@@ -41,6 +41,11 @@ export interface ResourceFacet {
   isMultiSelect?: boolean | undefined;
   /** Hint shown inside the popover search box. */
   searchPlaceholder?: string | undefined;
+  /**
+   * The hint is in the reader's words already - a sentence around a custom
+   * field's name - so the chips draw it as given (#7682).
+   */
+  isSearchPlaceholderTranslated?: boolean | undefined;
   /** Static option list (use either this or `fetchOptions` / `loadOptions`). */
   options?: Array<FilterChipDropdownOption> | undefined;
   /**

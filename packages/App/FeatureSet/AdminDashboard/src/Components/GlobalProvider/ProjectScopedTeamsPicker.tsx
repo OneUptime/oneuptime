@@ -151,7 +151,12 @@ export interface ComponentProps {
    * both modes, empty when nothing is selected.
    */
   isMultiSelect?: boolean | undefined;
+  /*
+   * In English, which Dropdown looks up - or the page's own keyed text in
+   * the reader's words already, said so with isPlaceholderTranslated (#7682).
+   */
   placeholder?: string | undefined;
+  isPlaceholderTranslated?: boolean | undefined;
   noProjectMessage?: string | undefined;
 }
 
@@ -302,6 +307,9 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
       placeholder={
         props.placeholder || (isMultiSelect ? "Select Teams" : "Select Team")
       }
+      isPlaceholderTranslated={Boolean(
+        props.placeholder && props.isPlaceholderTranslated,
+      )}
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
         const ids: Array<string> = Array.isArray(value)
           ? value.map((entry: DropdownValue) => {

@@ -11,6 +11,11 @@ export function getMetricsBreadcrumbs(path: string): Array<Link> | undefined {
       "Metrics",
       "Insights",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.METRICS_PROMQL, [
+      "Project",
+      "Metrics",
+      "PromQL",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.METRIC_VIEW, [
       "Project",
       "Metrics",

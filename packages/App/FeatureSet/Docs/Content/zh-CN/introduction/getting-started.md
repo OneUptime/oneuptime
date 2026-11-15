@@ -30,6 +30,8 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 
 **项目设置 → 高级 → 从其他工具导入** 会读取你在其他工具中的配置，使用 API 密钥，对于 Uptime Kuma 则使用文件。它会显示找到的内容，并创建你勾选的项目。其他工具中的任何内容都不会改变，再次运行导入也绝不会重复创建任何东西。
 
+已经在用 Prometheus、Loki 客户端、Splunk 转发器、Datadog Agent 或 Sentry SDK 发送遥测数据？保留它们，带上摄取密钥把它们指向 OneUptime 即可，做法见 [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints)。
+
 :::details 可以导入的 11 个工具
 | 迁移来源 | OneUptime 读取的内容 |
 | --- | --- |

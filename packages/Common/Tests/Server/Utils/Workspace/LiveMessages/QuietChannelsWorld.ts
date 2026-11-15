@@ -92,6 +92,7 @@ import OnCallEscalationAdvance from "../../../../../Server/Utils/OnCall/OnCallEs
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
+import { NotificationRuleUpdateKind } from "../../../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import NotificationRuleWorkspaceChannel from "../../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
@@ -351,6 +352,13 @@ export default class QuietChannelsWorld {
    * where it was asked for (OnCallPolicyRunMessage's page request places).
    */
   public recordTitle: string | undefined = undefined;
+  /*
+   * The updates the rule chose (its Updates step), when a suite sets them.
+   * Left unset, the rule posts every update, as a rule saved before rules
+   * chose does.
+   */
+  public ruleUpdatesToPost: Array<NotificationRuleUpdateKind> | undefined =
+    undefined;
 
   // The people in the project, and the rule's people for a new channel.
   public members: Set<string> = new Set<string>([
@@ -478,6 +486,23 @@ export default class QuietChannelsWorld {
         return [this.workspaceRule(data.workspaceType)];
       }) as never);
 
+    /*
+     * The project's rules, as stored: the same one rule, for every kind of
+     * record. An on-call run's message is Paging, posted only in the
+     * record's channels whose rule wants Paging (NotificationRuleUpdates),
+     * so posting it reads the rules the record's channels name. The rule
+     * posts every update unless a suite sets ruleUpdatesToPost.
+     */
+    jest
+      .spyOn(WorkspaceNotificationRuleService, "findBy")
+      .mockImplementation((async (data: {
+        query: { workspaceType?: WorkspaceType };
+      }): Promise<Array<WorkspaceNotificationRule>> => {
+        return data.query.workspaceType
+          ? [this.workspaceRule(data.query.workspaceType)]
+          : [];
+      }) as never);
+
     jest
       .spyOn(WorkspaceNotificationLogService, "create")
       .mockImplementation((async (data: { data: unknown }) => {
@@ -565,6 +590,9 @@ export default class QuietChannelsWorld {
       inviteTeamsToNewChannel: [],
       shouldInviteOwnersToNewChannel: true,
       shouldAutomaticallyInviteOnCallUsersToNewChannel: true,
+      ...(this.ruleUpdatesToPost
+        ? { updatesToPost: this.ruleUpdatesToPost }
+        : {}),
     } as never;
     return rule;
   }
@@ -1654,13 +1682,23 @@ export default class QuietChannelsWorld {
     return ended;
   }
 
-  // A run of PolicyX, created as OneUptime creates one, and its first rule.
-  public async startRun(): Promise<void> {
+  /*
+   * A run of PolicyX, created as OneUptime creates one, and its first rule -
+   * or, with startedByUserId, as a person's Execute On-Call Policy creates
+   * it: a policy started by hand (OnCallPolicyStartedByHand).
+   */
+  public async startRun(
+    options?: { startedByUserId?: ObjectID | undefined } | undefined,
+  ): Promise<void> {
     const run: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
     run.id = ObjectID.generate();
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;
+
+    if (options?.startedByUserId) {
+      run.triggeredByUserId = options.startedByUserId;
+    }
     run.status = OnCallDutyPolicyStatus.Scheduled;
     run.statusMessage = "Scheduled.";
     run.onCallPolicyExecutionRepeatCount = 1;

@@ -87,10 +87,15 @@ const SIGNAL_WINDOW_NOTE: string = translationKey(
   "Each app's error rate, requests and p95 latency in the last hour, from the spans where requests enter it.",
 );
 
+// The clouds' product names, as written in every language (DropdownOption.isUserContent).
 const PLATFORM_FILTER_OPTIONS: Array<DropdownOption> =
   MANAGED_CLOUD_PLATFORMS.map(
     (descriptor: ManagedCloudPlatformDescriptor): DropdownOption => {
-      return { label: descriptor.productName, value: descriptor.platform };
+      return {
+        label: descriptor.productName,
+        value: descriptor.platform,
+        isUserContent: true,
+      };
     },
   );
 

@@ -1454,9 +1454,23 @@ describePostgres(
         } as JSONWebTokenData;
       }) as never);
 
-      // Permissions are read from the tables every time: nothing is cached.
+      /*
+       * Permissions are read from the tables every time: nothing is cached,
+       * neither one project's set nor the sets a request across projects
+       * reads at once (AccessTokenService.getUserTenantAccessPermissions).
+       */
       getJestSpyOn(GlobalCache, "getJSONObject").mockResolvedValue(
         null as never,
+      );
+      getJestSpyOn(GlobalCache, "getJSONObjects").mockImplementation(
+        async (
+          _namespace: string,
+          keys: Array<string>,
+        ): Promise<Array<JSONObject | null>> => {
+          return keys.map((): null => {
+            return null;
+          });
+        },
       );
       getJestSpyOn(GlobalCache, "setJSON").mockResolvedValue(
         undefined as never,

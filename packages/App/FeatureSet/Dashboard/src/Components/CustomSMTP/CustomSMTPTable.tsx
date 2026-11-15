@@ -58,10 +58,20 @@ const SMTP_CONFIG_FORM_STEPS: Array<FormStep<ProjectSmtpConfig>> =
 const SMTP_CONFIG_FORM_FIELDS: Array<ModelField<ProjectSmtpConfig>> =
   getProjectSmtpConfigFormFields();
 
-// The providers, as the table's filter offers them: by the name people know.
-const EMAIL_PROVIDER_FILTER_OPTIONS: Array<DropdownOption> =
+/*
+ * The providers, as the table's filter offers them: by the name people
+ * know, read as their cards and the Sends Through cells read them - a
+ * product's name as written (isTitleProductName), so "Resend" is never the
+ * verb "Reenviar" in a Spanish menu or chip (#7690); "SMTP Server" in the
+ * reader's words.
+ */
+export const EMAIL_PROVIDER_FILTER_OPTIONS: Array<DropdownOption> =
   EMAIL_PROVIDER_CHOICES.map((choice: CardSelectOption): DropdownOption => {
-    return { label: choice.title, value: choice.value };
+    return {
+      label: choice.title,
+      value: choice.value,
+      isUserContent: choice.isTitleProductName,
+    };
   });
 
 export interface ComponentProps {

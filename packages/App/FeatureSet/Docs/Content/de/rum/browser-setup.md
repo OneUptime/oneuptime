@@ -170,7 +170,7 @@ Alles im Snippet wird an Ihre Besucher ausgeliefert, daher kann jeder das Token 
 | **Läuft ab am** | Nach diesem Datum wird der Schlüssel nicht mehr angenommen. |
 | **Aktiviert** | Schalten Sie es aus, um einen durchgesickerten Schlüssel sofort zu stoppen. |
 
-Ein Browser-Schlüssel schreibt OTLP-Traces, -Logs und -Metriken sowie Sitzungswiedergaben; jeder andere Ingest-Weg lehnt ihn ab. Diese Einstellungen ändern Sie auf der eigenen Seite des Schlüssels. Der Schlüsseltyp lässt sich nach dem Erstellen des Schlüssels nicht mehr ändern.
+Ein Browser-Schlüssel schreibt OTLP-Traces, -Logs und -Metriken, Sitzungswiedergaben sowie die Ereignisse eines [Sentry-SDKs im Browser](/docs/telemetry/compatible-endpoints#sentry-sdks); jeder andere Ingest-Weg lehnt ihn ab. Diese Einstellungen ändern Sie auf der eigenen Seite des Schlüssels. Der Schlüsseltyp lässt sich nach dem Erstellen des Schlüssels nicht mehr ändern.
 
 > [!WARNING]
 > Legen Sie nie einen **Server**-Schlüssel in eine Seite. Ein Server-Schlüssel schreibt jede Art von Telemetrie von überall aus, ohne Ursprungsprüfung, sodass jeder, der Ihre Seite liest, in Ihr Projekt schreiben könnte.

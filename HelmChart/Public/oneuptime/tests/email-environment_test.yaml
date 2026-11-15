@@ -1,0 +1,812 @@
+# email: the server's own email settings, set in the values instead of in
+# Admin Dashboard > Settings > Emails (#7738), so a new cluster comes up
+# sending email with nothing to click. So:
+#   - with email.serverType empty nothing is rendered: the settings saved in
+#     the Admin Dashboard are the ones that send, as before, and no
+#     GLOBAL_EMAIL_ variable an operator sets with extraEnv is hidden
+#     (HelmChart/Tests/suites/email-environment.sh renders the whole chart to
+#     hold that byte for byte, and to check that no workload was missed);
+#   - with it set, every workload that runs the server's env helper
+#     (oneuptime.env.runtime) gets all 25 GLOBAL_EMAIL_ variables, which
+#     packages/Common/Types/Email/ServerEmailEnvironment.ts reads;
+#   - the one password or key the settings read comes from its value, or
+#     from the Secret email.existingSecret names - under existingSecret.key,
+#     or else under the name of its value - and then never as a plain value
+#     too;
+#   - a block nothing would read, settings without the password or key they
+#     read, one given both ways and a Secret nothing reads are refused, each
+#     saying what to change.
+suite: Email settings from the values
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  # ---------------------------------------------------------------------------
+  # app
+  # ---------------------------------------------------------------------------
+  - it: app renders no GLOBAL_EMAIL_ variable while email.serverType is empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts: &noEmailAsserts
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SERVER_TYPE")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_FROM_EMAIL")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SMTP_HOST")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SMTP_PASSWORD")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SENDGRID_API_KEY")]
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY")]
+
+  # A server type of spaces is refused by the schema, which takes only the
+  # names the app knows (HelmChart/Tests/suites/email-environment.sh).
+  - it: app treats an empty server type, a Secret key name or a false switch alone as nothing set
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: ""
+        smtp:
+          requireTls: false
+        existingSecret:
+          key: email-password
+    asserts: *noEmailAsserts
+
+  - it: app renders nothing for email set to null, as helm upgrade --reuse-values from an older release has it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email: null
+    asserts: *noEmailAsserts
+
+  - it: app gets a whole mail server from the values
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &fullSmtp
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: "OneUptime: Alerts #1"
+        smtp:
+          transport: smtp
+          host: smtp.example.com
+          port: 587
+          requireTls: true
+          authType: username-and-password
+          username: mailer@example.com
+          password: "smtp pass: word #1"
+    asserts: &fullSmtpAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SERVER_TYPE
+            value: custom-smtp
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_FROM_EMAIL
+            value: alerts@example.com
+      # Written quoted: the ': ' and the ' #' reach the app as they are.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_FROM_NAME
+            value: "OneUptime: Alerts #1"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_TRANSPORT
+            value: smtp
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_HOST
+            value: smtp.example.com
+      # A number in YAML, a string in the pod: Kubernetes takes no other.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PORT
+            value: "587"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_REQUIRE_TLS
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_AUTH_TYPE
+            value: username-and-password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_USERNAME
+            value: mailer@example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+            value: "smtp pass: word #1"
+      # Each once.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SERVER_TYPE
+          any: true
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+          any: true
+          count: 1
+
+  - it: app leaves the values it is not given empty, for the app to read as unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: sendgrid
+        fromEmail: alerts@example.com
+        sendgrid:
+          apiKey: SG.sendgrid-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SENDGRID_API_KEY
+            value: SG.sendgrid-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_FROM_NAME
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_HOST
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+            value: null
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_REQUIRE_TLS
+            value: null
+
+  - it: app drops the whitespace around a value, as a key read from a file with its final newline has it
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: resend
+        fromEmail: " alerts@example.com "
+        resend:
+          apiKey: "re_resend-key\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_FROM_EMAIL
+            value: alerts@example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_RESEND_API_KEY
+            value: re_resend-key
+
+  - it: app gets Amazon SES signed in as the server's IAM role, with no key and no Secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: amazon-ses
+        fromEmail: alerts@example.com
+        amazonSes:
+          authenticationType: server-iam-role
+          region: eu-west-1
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_AMAZON_SES_AUTHENTICATION_TYPE
+            value: server-iam-role
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_AMAZON_SES_REGION
+            value: eu-west-1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY
+            value: null
+
+  - it: app gets Microsoft Graph's OAuth app from the values
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        smtp:
+          transport: microsoft-graph
+          oauth:
+            clientId: graph-client-id
+            clientSecret: graph-client-secret
+            tokenUrl: https://login.microsoftonline.com/tenant/oauth2/v2.0/token
+            scope: https://graph.microsoft.com/.default
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_TRANSPORT
+            value: microsoft-graph
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_ID
+            value: graph-client-id
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET
+            value: graph-client-secret
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_OAUTH_TOKEN_URL
+            value: https://login.microsoftonline.com/tenant/oauth2/v2.0/token
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_OAUTH_SCOPE
+            value: https://graph.microsoft.com/.default
+
+  - it: app reads the SMTP password from the operator's Secret, and never as a plain value too
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set: &existingSecret
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        smtp:
+          host: smtp.example.com
+          port: "587"
+          username: mailer@example.com
+        existingSecret:
+          name: oneuptime-email
+    asserts: &existingSecretAsserts
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: smtpPassword
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+          any: true
+          count: 1
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SMTP_PASSWORD")].value
+      # The rest of the settings stay in the values: none of it is secret.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_USERNAME
+            value: mailer@example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PORT
+            value: "587"
+      # Only the password the settings read comes from the Secret.
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SENDGRID_API_KEY")].valueFrom
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET")].valueFrom
+
+  - it: app reads the key email.existingSecret.key names
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: sendgrid
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        existingSecret:
+          name: oneuptime-email
+          key: sendgrid-api-key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SENDGRID_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: sendgrid-api-key
+
+  - it: app reads the SMTP password under smtpPassword when email.existingSecret.key is left empty
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        smtp:
+          host: smtp.example.com
+          port: "587"
+          username: mailer@example.com
+        existingSecret:
+          name: oneuptime-email
+          key: ""
+    asserts: *existingSecretAsserts
+
+  - it: app reads each provider's key from the Secret under its own name
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: amazon-ses
+        fromEmail: alerts@example.com
+        amazonSes:
+          accessKeyId: AKIAIOSFODNN7EXAMPLE
+          region: us-east-1
+        existingSecret:
+          name: oneuptime-email
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_AMAZON_SES_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: amazonSesSecretAccessKey
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_AMAZON_SES_ACCESS_KEY_ID
+            value: AKIAIOSFODNN7EXAMPLE
+
+  - it: app reads the OAuth client secret from the Secret for Microsoft Graph
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: custom-smtp
+        smtp:
+          transport: microsoft-graph
+        existingSecret:
+          name: oneuptime-email
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_OAUTH_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: smtpOAuthClientSecret
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name == "GLOBAL_EMAIL_SMTP_PASSWORD")].valueFrom
+
+  - it: app reads Postmark's server token from the Secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: postmark
+        existingSecret:
+          name: oneuptime-email
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_POSTMARK_SERVER_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: postmarkServerToken
+
+  - it: app reads Mailgun's key from the Secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: mailgun
+        mailgun:
+          domain: mg.example.com
+        existingSecret:
+          name: oneuptime-email
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_MAILGUN_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: mailgunApiKey
+
+  - it: app reads Resend's key from the Secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: resend
+        existingSecret:
+          name: oneuptime-email
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_RESEND_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-email
+                key: resendApiKey
+
+  - it: app sends without signing in with neither a username nor a password, and needs no Secret
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        smtp:
+          host: relay.example.com
+          port: 25
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_HOST
+            value: relay.example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GLOBAL_EMAIL_SMTP_PASSWORD
+            value: null
+
+  # A render stops at the first template that fails, and helm-unittest
+  # reports the error of that template only. So each refusal leaves the app
+  # the only workload rendering oneuptime.env.runtime (nginx and the migrate
+  # Job render it by default); HelmChart/Tests/suites/email-environment.sh
+  # checks that helm template refuses the whole release.
+  - it: app refuses email values without email.serverType, naming them
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        fromEmail: alerts@example.com
+        smtp:
+          host: smtp.example.com
+          port: 587
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.serverType is empty, so OneUptime reads none of the other email values, and these are set: email.fromEmail, email.smtp.host, email.smtp.port, email.existingSecret.name. Set email.serverType to send the server's email with them, or clear them to set email up in the Admin Dashboard."
+
+  - it: app refuses a password without email.serverType, without printing it
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        smtp:
+          password: smtp-password-sentinel
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.serverType is empty, so OneUptime reads none of the other email values, and these are set: email.smtp.password. Set email.serverType to send the server's email with them, or clear them to set email up in the Admin Dashboard."
+
+  - it: app refuses a mail server signed in to without its password
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: custom-smtp
+        smtp:
+          host: smtp.example.com
+          username: mailer@example.com
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.smtp.password is empty, and so is email.existingSecret.name: the mail server is signed in to with email.smtp.username and a password. To send without signing in, set email.smtp.authType to none. Set email.smtp.password, or name the Secret that holds it in email.existingSecret.name."
+
+  - it: app refuses SendGrid without its API key
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: sendgrid
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.sendgrid.apiKey is empty, and so is email.existingSecret.name: SendGrid sends nothing without it. Set email.sendgrid.apiKey, or name the Secret that holds it in email.existingSecret.name."
+
+  - it: app refuses OAuth without its client secret
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: custom-smtp
+        smtp:
+          authType: oauth
+          oauth:
+            providerType: jwt-bearer
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.smtp.oauth.clientSecret is empty, and so is email.existingSecret.name: the OAuth app signs in with its client secret (for jwt-bearer, its private key). Set email.smtp.oauth.clientSecret, or name the Secret that holds it in email.existingSecret.name."
+
+  - it: app refuses Amazon SES with an access key but no secret access key
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: amazon-ses
+        amazonSes:
+          accessKeyId: AKIAIOSFODNN7EXAMPLE
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.amazonSes.secretAccessKey is empty, and so is email.existingSecret.name: Amazon SES is signed in to with an access key, unless email.amazonSes.authenticationType is server-iam-role. Set email.amazonSes.secretAccessKey, or name the Secret that holds it in email.existingSecret.name."
+
+  - it: app refuses a key and existingSecret together, and says which to clear
+    templates:
+      - templates/app.yaml
+    set:
+      email: &bothSet
+        serverType: sendgrid
+        sendgrid:
+          apiKey: SG.sendgrid-key
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: &bothSetAsserts
+      - failedTemplate:
+          errorMessage: 'email.sendgrid.apiKey and email.existingSecret.name are both set. Set one of them: to read the password or key from the Secret oneuptime-email, clear email.sendgrid.apiKey (--set email.sendgrid.apiKey="").'
+
+  - it: app refuses a password the settings do not read beside existingSecret too
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: postmark
+        smtp:
+          password: smtp-password
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: 'email.smtp.password and email.existingSecret.name are both set. Set one of them: to read the password or key from the Secret oneuptime-email, clear email.smtp.password (--set email.smtp.password="").'
+
+  - it: app refuses a Secret the settings read nothing from
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: amazon-ses
+        amazonSes:
+          authenticationType: server-iam-role
+          region: us-east-1
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.existingSecret.name is set, but the email settings these values describe read no password or key, so nothing would read the Secret oneuptime-email. Clear email.existingSecret.name."
+
+  # A mail server is signed in to with the password only beside a username:
+  # left out, it is the likelier mistake than the Secret.
+  - it: app refuses a Secret for a mail server with no username, and says how to sign in with it
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: custom-smtp
+        fromEmail: alerts@example.com
+        fromName: Alerts
+        smtp:
+          host: smtp.example.com
+          port: 587
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.existingSecret.name is set, but the email settings these values describe read no password or key, so nothing would read the Secret oneuptime-email. Clear email.existingSecret.name. To sign in to the mail server with the password the Secret holds, set email.smtp.username too."
+
+  - it: app refuses a Secret for a mail server sent to without signing in, without that advice
+    templates:
+      - templates/app.yaml
+    set:
+      email:
+        serverType: custom-smtp
+        smtp:
+          host: relay.example.com
+          authType: none
+        existingSecret:
+          name: oneuptime-email
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "email.existingSecret.name is set, but the email settings these values describe read no password or key, so nothing would read the Secret oneuptime-email. Clear email.existingSecret.name."
+
+  # ---------------------------------------------------------------------------
+  # worker: it sends what the queues hold, so it reads the same settings
+  # ---------------------------------------------------------------------------
+  - it: worker renders no GLOBAL_EMAIL_ variable while email.serverType is empty
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+    asserts: *noEmailAsserts
+
+  - it: worker gets a whole mail server from the values
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *fullSmtp
+      worker:
+        enabled: true
+    asserts: *fullSmtpAsserts
+
+  - it: worker reads the SMTP password from the operator's Secret, and never as a plain value too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      <<: *existingSecret
+      worker:
+        enabled: true
+    asserts: *existingSecretAsserts
+
+  - it: worker refuses a key and existingSecret together
+    templates:
+      - templates/worker.yaml
+    set:
+      email: *bothSet
+      worker:
+        enabled: true
+      app:
+        enabled: false
+      nginx:
+        enabled: false
+      migrate:
+        enabled: false
+    asserts: *bothSetAsserts
+
+  # ---------------------------------------------------------------------------
+  # the migrate Job: it runs the data migrations, which read the settings too
+  # ---------------------------------------------------------------------------
+  - it: the migrate Job gets a whole mail server from the values
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *fullSmtp
+    asserts: *fullSmtpAsserts
+
+  - it: the migrate Job reads the SMTP password from the operator's Secret
+    templates:
+      - templates/migrate-job.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    set: *existingSecret
+    asserts: *existingSecretAsserts

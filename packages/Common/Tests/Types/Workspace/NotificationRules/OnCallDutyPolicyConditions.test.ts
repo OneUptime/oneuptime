@@ -19,6 +19,7 @@ import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/Schedul
 import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "../../../../Models/DatabaseModels/ServiceLevelObjective";
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import {
   buildDefaultTestPriorities,
@@ -79,6 +80,7 @@ function dropdownData(): {
   securityCasePriorities: Array<SecurityCasePriority>;
   securityCaseStatuses: Array<SecurityCaseStatus>;
   serviceLevelObjectives: Array<ServiceLevelObjective>;
+  onCallDutyPolicies: Array<OnCallDutyPolicy>;
 } {
   return {
     alertSeverities: [
@@ -120,6 +122,14 @@ function dropdownData(): {
         new ServiceLevelObjective(),
         "c8c8c8c8c8c8c8c8c8c8c8c8",
         "Checkout availability",
+      ),
+    ],
+    // An on-call rule's On-Call Policy condition (#7554): the project's policies.
+    onCallDutyPolicies: [
+      named(
+        new OnCallDutyPolicy(),
+        "c9c9c9c9c9c9c9c9c9c9c9c9",
+        "Payments Escalation",
       ),
     ],
   };
@@ -172,15 +182,17 @@ function onCallValues(overrides: Partial<CheckOnValues> = {}): CheckOnValues {
 
 describe("On-Call Duty Policy notification rule conditions (#3459)", () => {
   describe("the Filter Type dropdown", () => {
-    it("lists the three on-call check-ons instead of nothing", () => {
+    it("lists the on-call check-ons instead of nothing: the policies first, then words, labels and owners", () => {
       expect(
         NotificationRuleConditionUtil.getCheckOnByEventType(
           NotificationRuleEventType.OnCallDutyPolicy,
         ),
       ).toEqual([
+        NotificationRuleConditionCheckOn.OnCallDutyPolicies,
         NotificationRuleConditionCheckOn.OnCallDutyPolicyName,
         NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription,
         NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
+        NotificationRuleConditionCheckOn.OnCallDutyPolicyOwners,
       ]);
     });
 

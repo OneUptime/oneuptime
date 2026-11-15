@@ -632,6 +632,35 @@ describe("who may add people, and to which channel", () => {
     expect(world.slackRequests).toEqual([]);
   });
 
+  // A record of Scheduled Maintenance is a maintenance event (#6817).
+  test("on a maintenance event, the refusal calls it one", async () => {
+    world.canEdit = false;
+
+    await expect(
+      add({
+        recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
+        channelId: "C0SM5",
+        userIds: [ALICE],
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to add people to this maintenance event's channel: it needs permission to edit the maintenance event.",
+    );
+    expect(world.slackRequests).toEqual([]);
+  });
+
+  test("on a maintenance event, another channel id is not one of its channels", async () => {
+    await expect(
+      add({
+        recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
+        channelId: "C0GENERAL",
+        userIds: [ALICE],
+      }),
+    ).rejects.toThrow(
+      "This channel is not one of this maintenance event's channels.",
+    );
+    expect(world.slackRequests).toEqual([]);
+  });
+
   test("not into a Microsoft Teams channel: Teams decides who can open it", async () => {
     world.recordChannels[WorkspaceChannelRecordType.Incident] = [
       teamsChannel("19:acme@thread.tacv2", "inc-42", TEAMS_TEAM_ID),

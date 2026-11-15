@@ -3,6 +3,7 @@ import {
   createTranslator,
   fillTemplate,
   getPluralCategory,
+  getSentenceParts,
   isComposedValue,
   isOneFormOnlyForOne,
   isTranslatableTerm,
@@ -14,6 +15,10 @@ import {
   translationKey,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Types/ReadingDirection";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -167,6 +172,9 @@ describe("toSentenceTerm", () => {
     ["Google Cloud-projekt", "da", "Google Cloud-projekt"],
     ["Google Cloud-project", "nl", "Google Cloud-project"],
     ["Projekt i Google Cloud", "sv", "projekt i Google Cloud"],
+    // The cloud vendors of CloudPlatform, with their clouds (#7692).
+    ["Alibaba Cloud Functions", "en", "Alibaba Cloud functions"],
+    ["Tencent Cloud Functions", "en", "Tencent Cloud functions"],
     [
       "Incident Episode State Timeline",
       "en",
@@ -184,6 +192,39 @@ describe("toSentenceTerm", () => {
       expect(toSentenceTerm(label, language)).toBe(expected);
     },
   );
+
+  /*
+   * Every vendor the product names keeps its capital in a sentence (#7692):
+   * the network vendors of the device catalog, the cloud vendors of
+   * CloudPlatform and the integrations. "Meraki devices" never read
+   * "meraki devices".
+   */
+  test.each([
+    "Arista",
+    "Aruba",
+    "Cambium",
+    "Cisco",
+    "Dell",
+    "Fortinet",
+    "Huawei",
+    "Juniper",
+    "Meraki",
+    "Sophos",
+    "Ubiquiti",
+    "Alibaba",
+    "Tencent",
+    "Alertmanager",
+    "Datadog",
+    "Opsgenie",
+    "Splunk",
+    "Vercel",
+    "Zabbix",
+  ])("%s keeps its capital in the middle of a sentence", (vendor: string) => {
+    expect(toSentenceTerm(`${vendor} Devices`, "en")).toBe(`${vendor} devices`);
+    expect(toSentenceTerm(`Appareils ${vendor}`, "fr")).toBe(
+      `appareils ${vendor}`,
+    );
+  });
 
   test("an empty or blank label stays empty", () => {
     expect(toSentenceTerm("", "en")).toBe("");
@@ -514,6 +555,184 @@ describe("translatePlural", () => {
   });
 
   /*
+   * #7728: a language's plural can read like English's singular - Italian
+   * says "3 host", French, Spanish, Hindi and Persian "3 VM". A form a
+   * locale holds is read against the English text of its own key only:
+   * read against English's one form too, such a plural was taken for an
+   * English placeholder, and the count read "3 hosts", "3 VMs".
+   */
+  describe("a plural that reads like English's singular", () => {
+    const HOSTS: PluralTemplate = {
+      one: "{{count}} host",
+      other: "{{count}} hosts",
+    };
+    const VMS: PluralTemplate = { one: "{{count}} VM", other: "{{count}} VMs" };
+
+    // A language that words both forms alike, as these locales do.
+    const wordedAlike: (
+      template: PluralTemplate,
+      wording: string,
+      language: string,
+    ) => Translator = (
+      template: PluralTemplate,
+      wording: string,
+      language: string,
+    ): Translator => {
+      return createTranslator(
+        lookupFrom(
+          {
+            [template.other]: wording,
+            [`${template.other}_one`]: wording,
+          },
+          ENGLISH,
+        ),
+        language,
+      );
+    };
+
+    test("Italian says 3 host", () => {
+      const italian: Translator = wordedAlike(HOSTS, "{{count}} host", "it");
+
+      expect(italian.translatePlural(HOSTS, 3)).toBe("3 host");
+      expect(italian.translatePlural(HOSTS, 12345)).toBe("12.345 host");
+      expect(italian.translatePlural(HOSTS, 1)).toBe("1 host");
+    });
+
+    test.each([
+      ["fr", "3 VM"],
+      ["es", "3 VM"],
+      ["hi", "3 VM"],
+      ["fa", "۳ VM"],
+    ])("%s says %s", (language: string, expected: string) => {
+      expect(
+        wordedAlike(VMS, "{{count}} VM", language).translatePlural(VMS, 3),
+      ).toBe(expected);
+    });
+
+    /*
+     * French, Hindi and Persian count 0 as one, and their one form reads
+     * like English's one form too. Their general form reads the same - the
+     * language words the sentence alike for every count - so that one form
+     * is theirs, not an English one left in the locale: "0 VM".
+     */
+    test.each([
+      ["fr", "0 VM"],
+      ["hi", "0 VM"],
+      ["fa", "۰ VM"],
+    ])(
+      "%s says %s for zero, which it counts as one",
+      (language: string, expected: string) => {
+        expect(getPluralCategory(language, 0)).toBe("one");
+        expect(
+          wordedAlike(VMS, "{{count}} VM", language).translatePlural(VMS, 0),
+        ).toBe(expected);
+      },
+    );
+
+    test("the sentence is the reader's, its values with it", () => {
+      const FILTERS: PluralTemplate = {
+        one: "{{count}} filter ({{condition}})",
+        other: "{{count}} filters ({{condition}})",
+      };
+      const swedish: Translator = createTranslator(
+        lookupFrom(
+          {
+            [FILTERS.other]: "{{count}} filter ({{condition}})",
+            [`${FILTERS.other}_one`]: "{{count}} filter ({{condition}})",
+            ANY: "VALFRI",
+          },
+          ENGLISH,
+        ),
+        "sv",
+      );
+
+      // Never an English sentence around the Swedish word: "3 filters (ANY)".
+      expect(
+        swedish.translatePlural(FILTERS, 3, {
+          condition: translatableTerm("ANY"),
+        }),
+      ).toBe("3 filter (VALFRI)");
+    });
+
+    /*
+     * A one form left as English's is still English where the language's
+     * general form reads otherwise: Russian puts 21 in its "one" form,
+     * French puts 0 there, and neither may borrow English's "1 row" - the
+     * sentence is English, in English's form for the count.
+     */
+    test("a one form left as English still reads English's form for 21 in Russian and 0 in French", () => {
+      const russianOneLeft: Translator = createTranslator(
+        lookupFrom(
+          { [ROWS.other]: "{{count}} строк", [`${ROWS.other}_one`]: ROWS.one },
+          ENGLISH,
+        ),
+        "ru",
+      );
+      const frenchOneLeft: Translator = createTranslator(
+        lookupFrom(
+          { [ROWS.other]: "{{count}} lignes", [`${ROWS.other}_one`]: ROWS.one },
+          ENGLISH,
+        ),
+        "fr",
+      );
+
+      expect(russianOneLeft.translatePlural(ROWS, 21)).toBe("21 rows");
+      expect(russianOneLeft.translatePlural(ROWS, 1)).toBe("1 row");
+      expect(russianOneLeft.translatePlural(ROWS, 5)).toBe("5 строк");
+      expect(frenchOneLeft.translatePlural(ROWS, 0)).toBe("0 rows");
+      expect(frenchOneLeft.translatePlural(ROWS, 3)).toBe("3 lignes");
+    });
+
+    test("a general form left as English's plural still reads English", () => {
+      const italianLeft: Translator = createTranslator(
+        lookupFrom(
+          { [HOSTS.other]: HOSTS.other, [`${HOSTS.other}_one`]: HOSTS.one },
+          ENGLISH,
+        ),
+        "it",
+      );
+      const frenchLeft: Translator = createTranslator(
+        lookupFrom(
+          { [VMS.other]: VMS.other, [`${VMS.other}_one`]: VMS.one },
+          ENGLISH,
+        ),
+        "fr",
+      );
+
+      expect(italianLeft.translatePlural(HOSTS, 3)).toBe("3 hosts");
+      expect(italianLeft.translatePlural(HOSTS, 1)).toBe("1 host");
+      // Nothing worded, so zero - one in French - reads English's form.
+      expect(frenchLeft.translatePlural(VMS, 0)).toBe("0 VMs");
+      expect(frenchLeft.translatePlural(VMS, 3)).toBe("3 VMs");
+    });
+
+    /*
+     * A "_few" or "_many" form, read when a dictionary has one, is English
+     * left in the locale only as English's other form - what English says
+     * for every count it holds. English's one form there is the language's
+     * own, as in its general form: Italian counts a million as "many".
+     */
+    test("a many form that reads like English's one form is the language's own", () => {
+      const italianWithMany: Translator = createTranslator(
+        lookupFrom(
+          {
+            [HOSTS.other]: "{{count}} host",
+            [`${HOSTS.other}_one`]: "{{count}} host",
+            [`${HOSTS.other}_many`]: "{{count}} host",
+          },
+          ENGLISH,
+        ),
+        "it",
+      );
+
+      expect(getPluralCategory("it", 1000000)).toBe("many");
+      expect(italianWithMany.translatePlural(HOSTS, 1000000)).toBe(
+        "1.000.000 host",
+      );
+    });
+  });
+
+  /*
    * A one form written for an English one that names no count ("Fired
    * once") can only say one. Russian puts 21, 31 and 101 in its "one"
    * form, French puts 0 and 1.5 there: such a count reads the language's
@@ -733,6 +952,582 @@ describe("fillTemplate with terms", () => {
         itemName: translatableTerm(" Monitor "),
       }),
     ).toBe("Create Monitor");
+  });
+});
+
+/*
+ * A word cased for the middle of a sentence (an inSentence term) takes a
+ * capital where the sentence starts with it (#7692). A connection card's
+ * French says "Configurez le collecteur OneUptime" and, a sentence later,
+ * "Le collecteur OneUptime ne remonte plus de données": one value, cased
+ * where each sentence puts it.
+ */
+describe("a word cased for the middle of a sentence, where a sentence starts with it", () => {
+  const SET_UP: string = "Set up the {{agentName}} — it takes a few minutes.";
+  const STOPPED: string =
+    "OneUptime last heard from this host {{lastHeard}}. The {{agentName}} is no longer reporting.";
+
+  const frenchWith: (collector: string) => Translator = (
+    collector: string,
+  ): Translator => {
+    return createTranslator(
+      lookupFrom({
+        [SET_UP]:
+          "Configurez {{agentName}} — cela ne prend que quelques minutes.",
+        [STOPPED]:
+          "OneUptime a reçu des données de cet hôte pour la dernière fois {{lastHeard}}. {{agentName}} ne remonte plus de données.",
+        "OneUptime collector": collector,
+      }),
+      "fr",
+    );
+  };
+
+  const COLLECTOR: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OneUptime collector",
+    { inSentence: true },
+  );
+  const MONITORS: ReturnType<typeof translatableTerm> = translatableTerm(
+    "Monitors",
+    { inSentence: true },
+  );
+
+  test("French starts the sentence with the name's capital, and says it lower-case in the middle of one", () => {
+    // Stored as the middle of a sentence says it, or with a capital.
+    for (const stored of [
+      "le collecteur OneUptime",
+      "Le collecteur OneUptime",
+    ]) {
+      const french: Translator = frenchWith(stored);
+
+      expect(
+        french.translateTemplate(STOPPED, {
+          lastHeard: "il y a 3 heures",
+          agentName: COLLECTOR,
+        }),
+      ).toBe(
+        "OneUptime a reçu des données de cet hôte pour la dernière fois il y a 3 heures. Le collecteur OneUptime ne remonte plus de données.",
+      );
+      expect(french.translateTemplate(SET_UP, { agentName: COLLECTOR })).toBe(
+        "Configurez le collecteur OneUptime — cela ne prend que quelques minutes.",
+      );
+    }
+  });
+
+  test("English: at the start of a sentence, after a sentence's end, and on a line of its own", () => {
+    for (const [template, filled] of [
+      [
+        "{{items}} are checked every minute.",
+        "Monitors are checked every minute.",
+      ],
+      ["{{items}} checked:", "Monitors checked:"],
+      // A sentence, then a link of its own.
+      ["{{items}} are down. See {{link}}", "Monitors are down. See {{link}}"],
+      [
+        "Nothing is down. {{items}} are checked every minute.",
+        "Nothing is down. Monitors are checked every minute.",
+      ],
+      [
+        "Is anything down? {{items}} say no.",
+        "Is anything down? Monitors say no.",
+      ],
+      [
+        "Look (see below). {{items}} come next.",
+        "Look (see below). Monitors come next.",
+      ],
+      ['"{{items}}" is a page of its own.', '"Monitors" is a page of its own.'],
+      ["Checked\n{{items}} and hosts", "Checked\nMonitors and hosts"],
+    ] as Array<[string, string]>) {
+      expect(fillTemplate(template, { items: MONITORS })).toBe(filled);
+      expect(english.translateTemplate(template, { items: MONITORS })).toBe(
+        filled,
+      );
+    }
+  });
+
+  test("Spanish starts a question after its opening mark", () => {
+    const spanish: Translator = createTranslator(
+      lookupFrom({
+        "Are {{items}} up?": "¿{{items}} están activos?",
+        "Are all {{items}} up?": "¿Están activos todos los {{items}}?",
+        Monitors: "monitores",
+      }),
+      "es",
+    );
+
+    expect(
+      spanish.translateTemplate("Are {{items}} up?", { items: MONITORS }),
+    ).toBe("¿Monitores están activos?");
+    expect(
+      spanish.translateTemplate("Are all {{items}} up?", { items: MONITORS }),
+    ).toBe("¿Están activos todos los monitores?");
+  });
+
+  test("the middle of a sentence, a piece of one and an abbreviation's full stop start none", () => {
+    for (const [template, filled] of [
+      ["No {{items}} yet.", "No monitors yet."],
+      ["Status: {{items}}.", "Status: monitors."],
+      ["Pick one, e.g. {{items}}.", "Pick one, e.g. monitors."],
+      ["Pick one (i.e. {{items}}).", "Pick one (i.e. monitors)."],
+      // Pieces of other sentences, cased where those put them.
+      ["{{items}} and hosts", "monitors and hosts"],
+      ["{{items}} {{name}}", "monitors web-1"],
+    ] as Array<[string, string]>) {
+      expect(fillTemplate(template, { items: MONITORS, name: "web-1" })).toBe(
+        filled,
+      );
+    }
+  });
+
+  test("a word a language shortens before a value ends no sentence with its full stop", () => {
+    const PER_SIGNAL: string =
+      "OneUptime AI fixes one resource per {{signal}}.";
+    const danish: Translator = createTranslator(
+      lookupFrom({
+        [PER_SIGNAL]: "OneUptime AI retter én ressource pr. {{signal}}.",
+        Incident: "Hændelse",
+      }),
+      "da",
+    );
+
+    expect(
+      danish.translateTemplate(PER_SIGNAL, {
+        signal: translatableTerm("Incident", { inSentence: true }),
+      }),
+    ).toBe("OneUptime AI retter én ressource pr. hændelse.");
+
+    for (const [template, filled] of [
+      ["Byte pr. {{items}}", "Byte pr. monitors"],
+      ["Sendt i dag kl. {{items}}.", "Sendt i dag kl. monitors."],
+      // Starting a sentence itself, with its capital.
+      ["Ca. {{items}} tilbage.", "Ca. monitors tilbage."],
+      ["Máx. {{items}} cada uno.", "Máx. monitors cada uno."],
+      ["Filtern, z. B. {{items}}.", "Filtern, z. B. monitors."],
+      ["Filtra (ad es. {{items}}).", "Filtra (ad es. monitors)."],
+      ["Filtrer (par ex. {{items}}).", "Filtrer (par ex. monitors)."],
+      ["Filter (bijv. {{items}}).", "Filter (bijv. monitors)."],
+      ["в сред. {{items}}", "в сред. monitors"],
+      // Nor does such a full stop make a piece of a sentence one.
+      ["{{items}} pr. {{name}}", "monitors pr. web-1"],
+      // A unit after a number still ends one, and so does a word of its own.
+      [
+        "Checked every 5 min. {{items}} are next.",
+        "Checked every 5 min. Monitors are next.",
+      ],
+      ["Así es. {{items}} siguen.", "Así es. Monitors siguen."],
+    ] as Array<[string, string]>) {
+      expect(fillTemplate(template, { items: MONITORS, name: "web-1" })).toBe(
+        filled,
+      );
+    }
+  });
+
+  test("a name, a word as written and a composed value go in as they are", () => {
+    expect(fillTemplate("{{name}} is down.", { name: "web-1" })).toBe(
+      "web-1 is down.",
+    );
+    // A Kubernetes kind is written as Kubernetes names it.
+    expect(
+      fillTemplate("{{kind}} is ready.", { kind: translatableTerm("pod") }),
+    ).toBe("pod is ready.");
+    expect(
+      fillTemplate("{{items}} are next.", {
+        items: composedValue((): string => {
+          return "monitors and hosts";
+        }),
+      }),
+    ).toBe("monitors and hosts are next.");
+    // A word that keeps its own case.
+    expect(
+      fillTemplate("{{items}} are next.", {
+        items: translatableTerm("vCenter Servers", { inSentence: true }),
+      }),
+    ).toBe("vCenter servers are next.");
+  });
+
+  test("German capitals a word it writes lower-case; a script without case is drawn as it is", () => {
+    const NEXT: string = "{{items}} come next.";
+    const german: Translator = createTranslator(
+      lookupFrom({
+        [NEXT]: "{{items}} kommen als Nächstes.",
+        "Scheduled events": "geplante Ereignisse",
+      }),
+      "de",
+    );
+    const persian: Translator = createTranslator(
+      lookupFrom({ [NEXT]: "{{items}} بعدی هستند.", Monitors: "مانیتورها" }),
+      "fa",
+    );
+
+    expect(
+      german.translateTemplate(NEXT, {
+        items: translatableTerm("Scheduled events", { inSentence: true }),
+      }),
+    ).toBe("Geplante Ereignisse kommen als Nächstes.");
+    expect(persian.translateTemplate(NEXT, { items: MONITORS })).toBe(
+      "مانیتورها بعدی هستند.",
+    );
+  });
+
+  test("a sentence drawn in pieces and a count-dependent one are cased the same", () => {
+    expect(
+      getSentenceParts({
+        translator: frenchWith("le collecteur OneUptime"),
+        template: STOPPED,
+        slots: ["lastHeard"],
+        values: { agentName: COLLECTOR },
+      }),
+    ).toEqual([
+      {
+        kind: "text",
+        text: "OneUptime a reçu des données de cet hôte pour la dernière fois ",
+      },
+      { kind: "slot", slot: "lastHeard" },
+      {
+        kind: "text",
+        text: ". Le collecteur OneUptime ne remonte plus de données.",
+      },
+    ]);
+    // An English sentence in pieces.
+    expect(
+      getSentenceParts({
+        translator: english,
+        template: "Checked {{lastHeard}}. {{items}} are next.",
+        slots: ["lastHeard"],
+        values: { items: MONITORS },
+      }),
+    ).toEqual([
+      { kind: "text", text: "Checked " },
+      { kind: "slot", slot: "lastHeard" },
+      { kind: "text", text: ". Monitors are next." },
+    ]);
+    expect(
+      english.translatePlural(
+        {
+          one: "{{items}} have {{count}} check.",
+          other: "{{items}} have {{count}} checks.",
+        },
+        2,
+        { items: MONITORS },
+      ),
+    ).toBe("Monitors have 2 checks.");
+  });
+});
+
+/*
+ * A term beside Chinese or Japanese words (#7864). The zh-CN, zh-TW and ja
+ * files put a space between their words and a {{placeholder}}: right beside
+ * a name in Latin letters ("请设置 OneUptime 收集器"), wrong beside a term
+ * the language words in its own script ("请设置 设备上的导出器"). One key
+ * takes names of both kinds, so the Translator drops the space where a term
+ * and the words meet in Chinese or Japanese on both sides of it.
+ */
+describe("a term beside Chinese or Japanese words", () => {
+  const SET_UP: string = "Set up the {{agentName}} — it takes a few minutes.";
+  const STOPPED: string = "The {{agentName}} is no longer reporting.";
+  const REVOKES: string = "This revokes the {{agentName}}'s key.";
+  const STOPPED_SINCE: string =
+    "OneUptime last heard from this host {{lastHeard}}. The {{agentName}} is no longer reporting.";
+  const ABOUT: string = "Did you set up the {{agentName}}? {{agentName}}";
+
+  const CHINESE: Dictionary = {
+    [SET_UP]: "请设置 {{agentName}}，只需几分钟。",
+    [STOPPED]: "{{agentName}} 已不再上报数据。",
+    [REVOKES]: "此操作会撤销 {{agentName}} 的密钥。",
+    [STOPPED_SINCE]:
+      "OneUptime 最后一次收到此主机的数据是在 {{lastHeard}}。{{agentName}} 已不再上报数据。",
+    // A space after a full-width question mark: punctuation's spacing.
+    [ABOUT]: "你设置了吗？ {{agentName}}",
+    "OpenTelemetry exporter on your devices": "设备上的导出器",
+    "OneUptime collector": "OneUptime 收集器",
+    "Database AI agent": "数据库 AI 代理",
+  };
+
+  const EXPORTER: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OpenTelemetry exporter on your devices",
+    { inSentence: true },
+  );
+  const COLLECTOR: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OneUptime collector",
+    { inSentence: true },
+  );
+  const OTEL_COLLECTOR: ReturnType<typeof translatableTerm> = translatableTerm(
+    "OpenTelemetry Collector",
+  );
+  const DATABASE_AGENT: ReturnType<typeof translatableTerm> =
+    translatableTerm("Database AI agent");
+
+  const chinese: Translator = createTranslator(lookupFrom(CHINESE), "zh-CN");
+
+  test("zh-CN: no space where a term and the words meet in Chinese", () => {
+    expect(chinese.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "请设置设备上的导出器，只需几分钟。",
+    );
+    expect(chinese.translateTemplate(STOPPED, { agentName: COLLECTOR })).toBe(
+      "OneUptime 收集器已不再上报数据。",
+    );
+    // On both sides of it.
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("此操作会撤销数据库 AI 代理的密钥。");
+  });
+
+  test("zh-CN: the space beside a Latin letter stays, on either side", () => {
+    expect(chinese.translateTemplate(SET_UP, { agentName: COLLECTOR })).toBe(
+      "请设置 OneUptime 收集器，只需几分钟。",
+    );
+    expect(
+      chinese.translateTemplate(STOPPED, { agentName: OTEL_COLLECTOR }),
+    ).toBe("OpenTelemetry Collector 已不再上报数据。");
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: OTEL_COLLECTOR }),
+    ).toBe("此操作会撤销 OpenTelemetry Collector 的密钥。");
+  });
+
+  test("a plain value keeps the template's spaces: a name someone typed is set apart", () => {
+    expect(
+      chinese.translateTemplate(SET_UP, { agentName: "设备上的导出器" }),
+    ).toBe("请设置 设备上的导出器，只需几分钟。");
+    expect(
+      chinese.translateTemplate(REVOKES, { agentName: "数据库 AI 代理" }),
+    ).toBe("此操作会撤销 数据库 AI 代理 的密钥。");
+    // A date the reader's language writes, and a composed value.
+    expect(
+      chinese.translateTemplate(STOPPED_SINCE, {
+        lastHeard: "几秒前",
+        agentName: composedValue((): string => {
+          return "数据库代理";
+        }),
+      }),
+    ).toBe(
+      "OneUptime 最后一次收到此主机的数据是在 几秒前。数据库代理 已不再上报数据。",
+    );
+  });
+
+  test("a space beside punctuation is the template's own", () => {
+    expect(chinese.translateTemplate(ABOUT, { agentName: EXPORTER })).toBe(
+      "你设置了吗？ 设备上的导出器",
+    );
+
+    // The wave dash: punctuation of Chinese and Japanese, not a letter.
+    const BETWEEN: string = "From {{from}} to {{to}}";
+    const days: Translator = createTranslator(
+      lookupFrom({
+        [BETWEEN]: "{{from}} 〜 {{to}}",
+        Monday: "月曜日",
+        Friday: "金曜日",
+      }),
+      "ja",
+    );
+
+    expect(
+      days.translateTemplate(BETWEEN, {
+        from: translatableTerm("Monday"),
+        to: translatableTerm("Friday"),
+      }),
+    ).toBe("月曜日 〜 金曜日");
+  });
+
+  test("zh-TW and ja the same way: kana, and the prolonged sound mark, are letters", () => {
+    const traditional: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]: "請設定 {{agentName}}，只需幾分鐘。",
+        [REVOKES]: "這會撤銷 {{agentName}} 的金鑰。",
+        "OpenTelemetry exporter on your devices": "裝置上的匯出器",
+        "Database AI agent": "資料庫 AI 代理程式",
+      }),
+      "zh-TW",
+    );
+    const japanese: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]:
+          "{{agentName}} をセットアップしてください — 数分で完了します。",
+        [REVOKES]: "{{agentName}} のキーを無効にします。",
+        [STOPPED_SINCE]:
+          "OneUptime がこのホストから最後にデータを受信したのは {{lastHeard}} です。{{agentName}} は報告を停止しています。",
+        "OneUptime collector": "OneUptime コレクター",
+        "Database AI agent": "データベース AI エージェント",
+        "a while ago": "少し前",
+      }),
+      "ja",
+    );
+
+    expect(traditional.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "請設定裝置上的匯出器，只需幾分鐘。",
+    );
+    expect(
+      traditional.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("這會撤銷資料庫 AI 代理程式的金鑰。");
+    expect(japanese.translateTemplate(SET_UP, { agentName: COLLECTOR })).toBe(
+      "OneUptime コレクターをセットアップしてください — 数分で完了します。",
+    );
+    expect(
+      japanese.translateTemplate(REVOKES, { agentName: DATABASE_AGENT }),
+    ).toBe("データベース AI エージェントのキーを無効にします。");
+    expect(
+      japanese.translateTemplate(SET_UP, { agentName: OTEL_COLLECTOR }),
+    ).toBe(
+      "OpenTelemetry Collector をセットアップしてください — 数分で完了します。",
+    );
+    // A term on both sides of a value's spaces: "少し前" is a term too.
+    expect(
+      japanese.translateTemplate(STOPPED_SINCE, {
+        lastHeard: translatableTerm("a while ago"),
+        agentName: COLLECTOR,
+      }),
+    ).toBe(
+      "OneUptime がこのホストから最後にデータを受信したのは少し前です。OneUptime コレクターは報告を停止しています。",
+    );
+  });
+
+  test("ko, en and the other languages keep the template's spaces", () => {
+    // The same words, read as a language that puts spaces between its words.
+    for (const language of ["ko", "en", "de", "fa"]) {
+      expect(
+        createTranslator(lookupFrom(CHINESE), language).translateTemplate(
+          SET_UP,
+          { agentName: EXPORTER },
+        ),
+      ).toBe("请设置 设备上的导出器，只需几分钟。");
+    }
+
+    const korean: Translator = createTranslator(
+      lookupFrom({
+        [SET_UP]: "지금 {{agentName}} 설정을 시작하세요. 몇 분이면 됩니다.",
+        "OpenTelemetry exporter on your devices": "디바이스의 익스포터",
+      }),
+      "ko",
+    );
+
+    expect(korean.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "지금 디바이스의 익스포터 설정을 시작하세요. 몇 분이면 됩니다.",
+    );
+    expect(english.translateTemplate(SET_UP, { agentName: EXPORTER })).toBe(
+      "Set up the OpenTelemetry exporter on your devices — it takes a few minutes.",
+    );
+  });
+
+  test("two terms side by side meet the same way; a term and a typed name do not", () => {
+    const ACTION: string = "{{action}} {{itemName}}";
+    const KIND_AND_NAME: string = "{{kind}} {{name}}";
+    const words: Translator = createTranslator(
+      lookupFrom({ Update: "更新", Monitor: "监控器", Host: "主机" }),
+      "zh-CN",
+    );
+
+    // A template with no words of its own takes the reader's words.
+    expect(
+      words.translateTemplate(ACTION, {
+        action: translatableTerm("Update"),
+        itemName: translatableTerm("Monitor"),
+      }),
+    ).toBe("更新监控器");
+    expect(
+      words.translateTemplate(KIND_AND_NAME, {
+        kind: translatableTerm("Host"),
+        name: "数据库一号",
+      }),
+    ).toBe("主机 数据库一号");
+    expect(
+      words.translateTemplate(KIND_AND_NAME, {
+        kind: translatableTerm("Host"),
+        name: "web-1",
+      }),
+    ).toBe("主机 web-1");
+  });
+
+  test("a letter written as a surrogate pair, and the iteration and prolonged sound marks, are letters too", () => {
+    const edges: Translator = createTranslator(
+      lookupFrom({
+        [REVOKES]: "此操作会撤销 {{agentName}} 的密钥。",
+        // A character outside the Basic Multilingual Plane (a surrogate pair).
+        Rare: "𠀀代理𠀀",
+        // The iteration mark "々" and the prolonged sound mark "ー".
+        Marks: "人々ー",
+      }),
+      "zh-CN",
+    );
+
+    expect(
+      edges.translateTemplate(REVOKES, { agentName: translatableTerm("Rare") }),
+    ).toBe("此操作会撤销𠀀代理𠀀的密钥。");
+    expect(
+      edges.translateTemplate(REVOKES, {
+        agentName: translatableTerm("Marks"),
+      }),
+    ).toBe("此操作会撤销人々ー的密钥。");
+  });
+
+  test("a sentence with its values set apart, one drawn in pieces and a count-dependent one meet the same way", () => {
+    expect(
+      chinese.translateTemplate(
+        REVOKES,
+        { agentName: DATABASE_AGENT },
+        { setsValuesApart: true },
+      ),
+    ).toBe("此操作会撤销数据库 AI 代理的密钥。");
+    // A slot is drawn by the caller: its spaces stay.
+    expect(
+      getSentenceParts({
+        translator: chinese,
+        template: STOPPED_SINCE,
+        slots: ["lastHeard"],
+        values: { agentName: COLLECTOR },
+      }),
+    ).toEqual([
+      { kind: "text", text: "OneUptime 最后一次收到此主机的数据是在 " },
+      { kind: "slot", slot: "lastHeard" },
+      { kind: "text", text: "。OneUptime 收集器已不再上报数据。" },
+    ]);
+
+    const LEFT: PluralTemplate = {
+      one: "{{count}} {{itemName}} is left.",
+      other: "{{count}} {{itemsName}} are left.",
+    };
+    const counting: Translator = createTranslator(
+      lookupFrom(
+        { [LEFT.other]: "剩下 {{itemsName}} {{count}} 个。" },
+        {
+          Monitors: "监控器",
+        },
+      ),
+      "zh-CN",
+    );
+
+    expect(
+      counting.translatePlural(LEFT, 3, {
+        itemsName: translatableTerm("Monitors", { inSentence: true }),
+      }),
+    ).toBe("剩下监控器 3 个。");
+  });
+
+  test("a value set apart in a sentence read right to left is set apart as before", () => {
+    const persian: Translator = createTranslator(
+      lookupFrom({
+        [STOPPED]: "{{agentName}} دیگر داده‌ای گزارش نمی‌کند.",
+        "OneUptime collector": "گردآورنده OneUptime",
+      }),
+      "fa",
+    );
+
+    expect(
+      persian.translateTemplate(
+        STOPPED,
+        { agentName: COLLECTOR },
+        { setsValuesApart: true },
+      ),
+    ).toBe(
+      `${FIRST_STRONG_ISOLATE}گردآورنده OneUptime${POP_DIRECTIONAL_ISOLATE} دیگر داده‌ای گزارش نمی‌کند.`,
+    );
+    // A Persian name in a Chinese sentence.
+    expect(
+      chinese.translateTemplate(
+        SET_UP,
+        { agentName: translatableTerm("گردآورنده") },
+        { setsValuesApart: true },
+      ),
+    ).toBe(
+      `请设置 ${FIRST_STRONG_ISOLATE}گردآورنده${POP_DIRECTIONAL_ISOLATE}，只需几分钟。`,
+    );
   });
 });
 

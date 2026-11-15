@@ -308,10 +308,10 @@ export const handleLlmsTxt: (
 
     const llmsTxt: string = `# ${title} Status
 
-> This is a service status page powered by ${ProductBrandingText.getProductName()}. It shows real-time status, incidents, announcements, and scheduled maintenance events.
+> This is a service status page powered by ${ProductBrandingText.getProductName()}. It shows real-time status, incidents, announcements, and maintenance events.
 
-- [RSS Feed](${rssFeedUrl}): RSS feed of incidents, announcements, and scheduled maintenance events.
-- [Status Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of the current status, resources, active incidents, announcements, and scheduled maintenance events (HTTP GET).
+- [RSS Feed](${rssFeedUrl}): RSS feed of incidents, announcements, and maintenance events.
+- [Status Overview JSON](${overviewApiUrl}): Machine-readable JSON overview of the current status, resources, active incidents, announcements, and maintenance events (HTTP GET).
 `;
 
     res.set("Content-Type", "text/plain; charset=utf-8");

@@ -1,3 +1,4 @@
+import escapeRegExp from "../Utils/RegExpEscape";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import {
   FIRST_STRONG_ISOLATE,
@@ -72,7 +73,8 @@ import {
  * model's singular or plural name, a verb. `inSentence` asks for the casing a
  * word takes in the middle of a sentence in the reader's language: "No
  * incidents yet." in English and French, "Noch keine Vorfälle." in German,
- * whose nouns keep their capital.
+ * whose nouns keep their capital. Where the reader's sentence starts with
+ * it, it starts with a capital ("Incidents are raised...").
  */
 export interface TranslatableTerm {
   readonly translatableTerm: string;
@@ -103,6 +105,16 @@ export type TemplateValues = Record<string, TemplateValue>;
 export interface PluralTemplate {
   one: string;
   other: string;
+}
+
+/*
+ * A plural form a locale holds, with the plural category of the key it is
+ * held under: "one" for the key plus "_one", "few" for "_few", and "other"
+ * for the key itself - the language's general form.
+ */
+interface StoredPluralForm {
+  text: string;
+  category: string;
 }
 
 /*
@@ -220,32 +232,59 @@ const LANGUAGES_THAT_CAPITALIZE_NOUNS: Array<string> = ["de", "lb"];
  * Proper nouns that keep their capital wherever they appear. Acronyms
  * ("API", "SLOs") and words with a capital inside them ("OneUptime",
  * "GitHub", "IoT") are kept without being listed.
+ *
+ * Among them every vendor the product names (issue #7692): the cloud vendors
+ * of CloudPlatform, the network vendors of the device catalog (the SNMP
+ * vendor templates, the traffic and events setups, the Meraki dashboard) and
+ * the integrations - a name said in a sentence ("Meraki devices") is never
+ * "meraki". A word that is also a word of its own ("Extreme", "Elastic",
+ * "Alto" - "high" in Spanish and Italian) is not listed: it would keep its
+ * capital as that word too.
  */
 const PROPER_NOUNS: Array<string> = [
+  "Alertmanager",
+  "Alibaba",
+  "Arista",
+  "Aruba",
   "Azure",
+  "Cambium",
   "Ceph",
+  "Cisco",
+  "Datadog",
+  "Dell",
   "Discord",
   "Docker",
+  "Fortinet",
   "Google",
   "Grafana",
+  "Huawei",
   "Huntress",
   "Jira",
+  "Juniper",
   "Kubernetes",
   "Linux",
   "Mattermost",
+  "Meraki",
   "Microsoft",
   "Okta",
   "OpenTelemetry",
+  "Opsgenie",
   "Podman",
   "Prometheus",
   "Proxmox",
   "OpenStack",
   "Slack",
+  "Sophos",
+  "Splunk",
   "Swarm",
   "Telegram",
+  "Tencent",
   "Terraform",
   "Twilio",
+  "Ubiquiti",
+  "Vercel",
   "Windows",
+  "Zabbix",
 ];
 
 /*
@@ -253,8 +292,10 @@ const PROPER_NOUNS: Array<string> = [
  * ("Google Cloud project", but "cloud resources").
  */
 const PROPER_NOUN_PAIRS: Array<[string, string]> = [
+  ["Alibaba", "Cloud"],
   ["Google", "Cloud"],
   ["Microsoft", "Teams"],
+  ["Tencent", "Cloud"],
 ];
 
 // "API", "SLOs": two capitals in a row.
@@ -458,6 +499,382 @@ const hasWords: (template: string) => boolean = (template: string): boolean => {
   return LETTER.test(template.replace(PLACEHOLDER, ""));
 };
 
+/*
+ * WHERE A VALUE STARTS A SENTENCE.
+ *
+ * A word cased for the middle of a sentence (an inSentence term: "le
+ * collecteur OneUptime", "monitors") takes a capital where the reader's
+ * sentence starts with it: French says "Configurez le collecteur OneUptime"
+ * and "Le collecteur OneUptime ne remonte plus de données", Dutch "Monitors
+ * zoeken…" (issue #7692). A language puts a value where its grammar wants
+ * it, so only the filled sentence knows where it starts one.
+ *
+ * A placeholder starts a sentence where, past any opening quote, bracket or
+ * Spanish opening mark, a line starts, or a sentence's end - ". ", "! ",
+ * "? ", "… ", with any closing quote or bracket - comes right before it; or
+ * where it starts the template, and the template reads as a sentence: it
+ * ends as one does (". ! ? … :"), or holds a sentence's end before more
+ * words. A template that does neither is a piece of another sentence -
+ * "{{kind}} {{name}}", "{{names}} and {{count}} more" - whose values are
+ * cased where that sentence puts them. The full stop of an abbreviation
+ * ends no sentence (NOT_A_SENTENCE_END).
+ */
+
+/*
+ * The words a language shortens before the value they introduce, in lower
+ * case: "pr. time" (per hour), "kl. 12" (at 12 o'clock), "ca. 5", "z. B.",
+ * "bijv.", "máx. 10", "Serienr. 123". Their full stop never ends a
+ * sentence: Danish fixes one resource "pr. hændelse", never with a capital.
+ * Not a unit after a number ("5 min.", "3 Std."), whose full stop may end
+ * one: "Checked every 5 min. 2 more checks are off."
+ */
+const SHORTENED_BEFORE_A_VALUE: ReadonlyArray<string> = [
+  "ad es", // Italian: for example ("es" alone is Spanish "is")
+  "aprox", // Spanish: about
+  "bijv", // Dutch: for example
+  "ca", // Danish: about
+  "col", // Spanish: column
+  "ex", // French, Portuguese: for example ("par ex.", "por ex.")
+  "gem", // Dutch: on average
+  "gns", // Danish: on average
+  "kl", // Danish, Norwegian, Swedish: at (a time)
+  "lín", // Spanish: line
+  "maks", // Danish, Norwegian: at most
+  "max", // German, French, Dutch: at most
+  "máx", // Spanish, Portuguese: at most
+  "moy", // French: on average
+  "n", // Italian: number
+  "nr", // Dutch: number
+  "pr", // Danish: per
+  "prom", // Spanish: on average
+  "serienr", // Danish, Dutch, Norwegian: serial number
+  "seriennr", // German: serial number
+  "z. b", // German: for example ("B." alone may end a sentence: "plan B.")
+  "админ", // Russian: administrative
+  "макс", // Russian: at most
+  "сред", // Russian: on average
+];
+
+// Those words as a pattern.
+const SHORTENED_WORDS: string =
+  SHORTENED_BEFORE_A_VALUE.map(escapeRegExp).join("|");
+
+/*
+ * Right before a full stop that ends no sentence: an abbreviation with a
+ * full stop inside ("e.g.", "z.B.", "f.eks.", "т.е."), or one of the words
+ * above as a word of its own, in either case ("Ca. 5 timer").
+ */
+const NOT_A_SENTENCE_END: string = `(?<!\\p{L}\\.\\p{L}{1,3})(?<!(?:^|\\P{L})(?:${SHORTENED_WORDS}))`;
+
+const SENTENCE_END: string = `(?:${NOT_A_SENTENCE_END}\\.|[!?…])["'»”’)\\]]*`;
+
+// What a sentence may open with before its first word.
+const OPENING_MARKS_AT_END: RegExp = /["'«“„‘‚([¿¡]+$/u;
+
+// A sentence's end and a space, or a line break, right before a placeholder.
+const SENTENCE_END_BEFORE: RegExp = new RegExp(
+  `(?:${SENTENCE_END}\\s|\\n)\\s*$`,
+  "iu",
+);
+
+// A template ending as a sentence does.
+const ENDS_AS_A_SENTENCE: RegExp = new RegExp(
+  `(?:${SENTENCE_END}|:)\\s*$`,
+  "iu",
+);
+
+// A sentence's end before more words, inside a template.
+const SENTENCE_END_INSIDE: RegExp = new RegExp(`${SENTENCE_END}\\s+\\S`, "iu");
+
+const startsASentence: (template: string, at: number) => boolean = (
+  template: string,
+  at: number,
+): boolean => {
+  const before: string = template
+    .slice(0, at)
+    .replace(OPENING_MARKS_AT_END, "");
+
+  if (before.trim() === "") {
+    return (
+      ENDS_AS_A_SENTENCE.test(template) || SENTENCE_END_INSIDE.test(template)
+    );
+  }
+
+  return SENTENCE_END_BEFORE.test(before);
+};
+
+/*
+ * A value as text where it goes into a sentence: as the middle of one takes
+ * it, and as it reads where it starts one (startsASentence); and whether it
+ * is a term, OneUptime's own words (closeSpacesBesideTerms).
+ */
+interface SentenceValue {
+  text: string;
+  atSentenceStart: string;
+  isTerm: boolean;
+}
+
+/*
+ * `text`, the value as the middle of a sentence in `language` takes it, with
+ * its form where it starts one: an inSentence term takes a capital there
+ * (toLabelTerm); anything else - a name, a number, a term as written, a
+ * composed value - is the same wherever it goes.
+ */
+const toSentenceValue: (
+  value: TemplateValue,
+  text: string,
+  language: string,
+) => SentenceValue = (
+  value: TemplateValue,
+  text: string,
+  language: string,
+): SentenceValue => {
+  return {
+    text,
+    atSentenceStart:
+      isTranslatableTerm(value) && value.inSentence
+        ? toLabelTerm(text, language)
+        : text,
+    isTerm: isTranslatableTerm(value),
+  };
+};
+
+/*
+ * WHERE A TERM MEETS CHINESE OR JAPANESE WORDS.
+ *
+ * Chinese and Japanese write no space between their words. The Dashboard's
+ * zh-CN, zh-TW and ja files put one between their words and Latin text, a
+ * number or a {{placeholder}} (Dashboard/src/Locales/README.md), which reads
+ * right beside a name in Latin letters - "请设置 OneUptime Kubernetes
+ * Agent，只需几分钟。" - and wrong beside a term the language words in its
+ * own script: "请设置 设备或网关上的 OpenTelemetry 导出器，", "此操作会撤销
+ * 数据库 AI 代理 的密钥。" (issue #7864). One key can take a name of either
+ * kind - a host's collector is "OpenTelemetry Collector" or "OneUptime
+ * 收集器" - so no spacing written into the key reads right for both.
+ *
+ * So in a sentence of a language that writes no space between its words, a
+ * space the template puts between a term (translatableTerm) and a Chinese or
+ * Japanese letter is dropped where the term's own letter on that side is
+ * Chinese or Japanese too: "请设置设备或网关上的 OpenTelemetry 导出器，",
+ * "OneUptime 收集器已不再上报数据", "撤销数据库 AI 代理的密钥". A space
+ * beside a Latin letter, a digit or a sign stays ("请设置 OneUptime
+ * 收集器"), and so does one beside any other value - a name someone typed, a
+ * number, a date, a slot - which the space sets apart as the template wrote
+ * it. Two terms side by side meet the same way: "{{action}} {{itemName}}"
+ * reads "更新监控器". No space is ever added: a key that writes none reads
+ * as it is written.
+ */
+
+// The languages that write no space between their words: Chinese, Japanese.
+const LANGUAGES_WITHOUT_WORD_SPACES: ReadonlyArray<string> = ["ja", "zh"];
+
+/*
+ * One letter of Chinese or Japanese - a Han character or a kana - by the
+ * scripts that use it (its script extensions), as ReadingDirection reads a
+ * right-to-left letter: the prolonged sound mark that ends "コレクター"
+ * (U+30FC) is a letter of both kana scripts and of neither alone. Not their
+ * punctuation ("。", "、", "「"): the space beside it is the template's.
+ */
+const CHINESE_OR_JAPANESE_LETTER: RegExp =
+  /^(?=[\p{L}\p{Nl}])[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}]$/u;
+
+// Whether `text` starts with a letter of Chinese or Japanese.
+const startsInChineseOrJapanese: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  const first: number | undefined = text.codePointAt(0);
+
+  return (
+    first !== undefined &&
+    CHINESE_OR_JAPANESE_LETTER.test(String.fromCodePoint(first))
+  );
+};
+
+// Whether `text` ends with a letter of Chinese or Japanese.
+const endsInChineseOrJapanese: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  // Its last character, whole where it is a surrogate pair ("𠀀").
+  const last: string = Array.from(text.slice(-2)).pop() || "";
+
+  return CHINESE_OR_JAPANESE_LETTER.test(last);
+};
+
+// How many spaces `text` starts with, and how many it ends with.
+const countLeadingSpaces: (text: string) => number = (text: string): number => {
+  let count: number = 0;
+
+  while (text[count] === " ") {
+    count++;
+  }
+
+  return count;
+};
+
+const countTrailingSpaces: (text: string) => number = (
+  text: string,
+): number => {
+  let count: number = 0;
+
+  while (count < text.length && text[text.length - 1 - count] === " ") {
+    count++;
+  }
+
+  return count;
+};
+
+// A piece of a filled template: its own words, or a value where it goes.
+interface FilledPiece {
+  text: string;
+  isValue: boolean;
+  // A value that is a term (SentenceValue's isTerm).
+  isTerm: boolean;
+}
+
+/*
+ * The pieces of a filled template (fillPieces), in `language`: in one that
+ * writes no space between its words, each space its words put between a
+ * term and a letter of Chinese or Japanese is dropped where the term's own
+ * letter on that side is one too (WHERE A TERM MEETS CHINESE OR JAPANESE
+ * WORDS). The words beside any other value keep their spaces.
+ */
+const closeSpacesBesideTerms: (
+  pieces: Array<FilledPiece>,
+  language: string,
+) => Array<FilledPiece> = (
+  pieces: Array<FilledPiece>,
+  language: string,
+): Array<FilledPiece> => {
+  if (!LANGUAGES_WITHOUT_WORD_SPACES.includes(getBaseLanguage(language))) {
+    return pieces;
+  }
+
+  return pieces.map((piece: FilledPiece, index: number): FilledPiece => {
+    if (piece.isValue || !piece.text) {
+      return piece;
+    }
+
+    // The values either side of these words: pieces take turns.
+    const before: FilledPiece | undefined = pieces[index - 1];
+    const after: FilledPiece | undefined = pieces[index + 1];
+    const leading: number = countLeadingSpaces(piece.text);
+
+    // Spaces and nothing else, between two values: two terms meet.
+    if (leading === piece.text.length) {
+      const termsMeet: boolean = Boolean(
+        before?.isTerm &&
+          after?.isTerm &&
+          endsInChineseOrJapanese(before.text) &&
+          startsInChineseOrJapanese(after.text),
+      );
+
+      return termsMeet ? { ...piece, text: "" } : piece;
+    }
+
+    let text: string = piece.text;
+
+    if (
+      leading > 0 &&
+      before?.isTerm &&
+      endsInChineseOrJapanese(before.text) &&
+      startsInChineseOrJapanese(text.slice(leading))
+    ) {
+      text = text.slice(leading);
+    }
+
+    const trailing: number = countTrailingSpaces(text);
+    const words: string = text.slice(0, text.length - trailing);
+
+    if (
+      trailing > 0 &&
+      after?.isTerm &&
+      startsInChineseOrJapanese(after.text) &&
+      endsInChineseOrJapanese(words)
+    ) {
+      text = words;
+    }
+
+    return text === piece.text ? piece : { ...piece, text };
+  });
+};
+
+/*
+ * `template` filled with `values`, in pieces: its words and its values by
+ * turns, words first and last (empty where a value starts or ends it). Each
+ * value goes in the form its place takes (startsASentence), literally; a
+ * placeholder with no value is left among the words as it is. Beside a
+ * term, the words keep only the spaces `language` writes
+ * (closeSpacesBesideTerms).
+ */
+const fillPieces: (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+) => Array<FilledPiece> = (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+): Array<FilledPiece> => {
+  const pieces: Array<FilledPiece> = [];
+  let words: string = "";
+  let at: number = 0;
+
+  for (const match of template.matchAll(PLACEHOLDER)) {
+    const start: number = match.index ?? 0;
+    const name: string = match[1] || "";
+
+    words += template.slice(at, start);
+    at = start + match[0].length;
+
+    if (!Object.prototype.hasOwnProperty.call(values, name)) {
+      words += match[0];
+      continue;
+    }
+
+    const value: SentenceValue = values[name] as SentenceValue;
+
+    pieces.push({ text: words, isValue: false, isTerm: false });
+    pieces.push({
+      text: startsASentence(template, start)
+        ? value.atSentenceStart
+        : value.text,
+      isValue: true,
+      isTerm: value.isTerm,
+    });
+    words = "";
+  }
+
+  pieces.push({
+    text: words + template.slice(at),
+    isValue: false,
+    isTerm: false,
+  });
+
+  return closeSpacesBesideTerms(pieces, language);
+};
+
+/*
+ * `template` with each {{placeholder}} filled from `values`, in the form its
+ * place takes (startsASentence), as a sentence in `language` holds it
+ * (closeSpacesBesideTerms). A placeholder with no value is left as it is,
+ * and each value goes in literally.
+ */
+const fillSentenceValues: (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+) => string = (
+  template: string,
+  values: Record<string, SentenceValue>,
+  language: string,
+): string => {
+  return fillPieces(template, values, language)
+    .map((piece: FilledPiece): string => {
+      return piece.text;
+    })
+    .join("");
+};
+
 // A value as the English sentence shows it.
 const englishValue: (value: TemplateValue) => string = (
   value: TemplateValue,
@@ -498,26 +915,22 @@ const englishDateValues: (values: TemplateValues) => TemplateValues = (
  * Every value as the English sentence shows it, as text: a date in the
  * reader's language goes back to its English (englishDateValues).
  */
-const englishTextValues: (values: TemplateValues) => Record<string, string> = (
+const englishTextValues: (
   values: TemplateValues,
-): Record<string, string> => {
+) => Record<string, SentenceValue> = (
+  values: TemplateValues,
+): Record<string, SentenceValue> => {
   const dated: TemplateValues = englishDateValues(values);
-  const result: Record<string, string> = {};
+  const result: Record<string, SentenceValue> = {};
 
   for (const key of Object.keys(dated)) {
-    result[key] = englishValue(dated[key] as TemplateValue);
+    const value: TemplateValue = dated[key] as TemplateValue;
+
+    result[key] = toSentenceValue(value, englishValue(value), DEFAULT_LANGUAGE);
   }
 
   return result;
 };
-
-// A piece of a filled template: its own words, or a value where it goes.
-interface FilledPiece {
-  text: string;
-  // Where the piece starts in the template filled with its values as they are.
-  start: number;
-  isValue: boolean;
-}
 
 /*
  * `template` filled with `values` as a sentence that reads `direction`
@@ -536,50 +949,37 @@ interface FilledPiece {
  * A slot's marker (TranslatedSentence, translateTemplateAround) is set
  * apart in a sentence read right to left when asked to (SentenceOptions'
  * setsSlotsApart), so what is drawn there as an element is too; otherwise
- * it is left as it is. As in fillTemplate, a placeholder with no value is
- * left as it is, and each value goes in literally.
+ * it is left as it is. As in fillSentenceValues, each value goes in the
+ * form its place takes (startsASentence), with the spaces beside a term
+ * that `language` writes (closeSpacesBesideTerms), a placeholder with no
+ * value is left as it is, and each value goes in literally.
  */
 const fillSettingValuesApart: (
   template: string,
-  values: Record<string, string>,
+  values: Record<string, SentenceValue>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
+  language: string,
 ) => string = (
   template: string,
-  values: Record<string, string>,
+  values: Record<string, SentenceValue>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
+  language: string,
 ): string => {
-  const pieces: Array<FilledPiece> = [];
+  const pieces: Array<FilledPiece> = fillPieces(template, values, language);
   // The sentence with every value as it is: what a number's signs are read in.
   let filled: string = "";
-  let at: number = 0;
+  // Where each piece starts in it.
+  const starts: Array<number> = [];
 
-  const addPiece: (text: string, isValue: boolean) => void = (
-    text: string,
-    isValue: boolean,
-  ): void => {
-    pieces.push({ text, start: filled.length, isValue });
-    filled += text;
-  };
-
-  for (const match of template.matchAll(PLACEHOLDER)) {
-    const start: number = match.index ?? 0;
-    const name: string = match[1] || "";
-    const isFilled: boolean = Object.prototype.hasOwnProperty.call(
-      values,
-      name,
-    );
-
-    addPiece(template.slice(at, start), false);
-    addPiece(isFilled ? (values[name] as string) : match[0], isFilled);
-    at = start + match[0].length;
+  for (const piece of pieces) {
+    starts.push(filled.length);
+    filled += piece.text;
   }
 
-  addPiece(template.slice(at), false);
-
   return pieces
-    .map((piece: FilledPiece): string => {
+    .map((piece: FilledPiece, index: number): string => {
       if (!piece.isValue) {
         return piece.text;
       }
@@ -590,13 +990,14 @@ const fillSettingValuesApart: (
           : piece.text;
       }
 
-      const end: number = piece.start + piece.text.length;
+      const start: number = starts[index] as number;
+      const end: number = start + piece.text.length;
 
       if (
         direction === RIGHT_TO_LEFT &&
         isNumberJoinedToASign(
           piece.text,
-          filled.slice(Math.max(0, piece.start - 2), piece.start),
+          filled.slice(Math.max(0, start - 2), start),
           filled.slice(end, end + 2),
         )
       ) {
@@ -609,20 +1010,31 @@ const fillSettingValuesApart: (
 };
 
 /*
- * Fills {{key}} placeholders from values. A placeholder with no value is left
- * as it is, which a test notices and a reader at least recognises as a slot.
- * Each value goes in literally: braces or "$t(" inside a name are never
- * looked up again.
+ * Fills {{key}} placeholders from values, as an English sentence takes them:
+ * a word cased for the middle of a sentence takes a capital where it starts
+ * one (startsASentence). A placeholder with no value is left as it is, which
+ * a test notices and a reader at least recognises as a slot. Each value goes
+ * in literally: braces or "$t(" inside a name are never looked up again.
  */
 export const fillTemplate: (
   template: string,
   values?: TemplateValues,
 ) => string = (template: string, values: TemplateValues = {}): string => {
-  return template.replace(PLACEHOLDER, (match: string, key: string) => {
-    return Object.prototype.hasOwnProperty.call(values, key)
-      ? englishValue(values[key] as TemplateValue)
-      : match;
-  });
+  return template.replace(
+    PLACEHOLDER,
+    (match: string, key: string, at: number): string => {
+      if (!Object.prototype.hasOwnProperty.call(values, key)) {
+        return match;
+      }
+
+      const value: TemplateValue = values[key] as TemplateValue;
+      const text: string = englishValue(value);
+
+      return startsASentence(template, at)
+        ? toSentenceValue(value, text, DEFAULT_LANGUAGE).atSentenceStart
+        : text;
+    },
+  );
 };
 
 /*
@@ -804,23 +1216,28 @@ export const createTranslator: (
   };
 
   // Every value as the translated sentence shows it.
-  const translatedValues: (values: TemplateValues) => Record<string, string> = (
+  const translatedValues: (
     values: TemplateValues,
-  ): Record<string, string> => {
-    const result: Record<string, string> = {};
+  ) => Record<string, SentenceValue> = (
+    values: TemplateValues,
+  ): Record<string, SentenceValue> => {
+    const result: Record<string, SentenceValue> = {};
 
     for (const key of Object.keys(values)) {
       const value: TemplateValue = values[key] as TemplateValue;
+      let text: string;
 
       if (isTranslatableTerm(value)) {
-        result[key] = translateTerm(value.translatableTerm, {
+        text = translateTerm(value.translatableTerm, {
           inSentence: value.inSentence,
         });
       } else if (isComposedValue(value)) {
-        result[key] = value.compose(translator);
+        text = value.compose(translator);
       } else {
-        result[key] = String(value);
+        text = String(value);
       }
+
+      result[key] = toSentenceValue(value, text, activeLanguage);
     }
 
     return result;
@@ -834,7 +1251,9 @@ export const createTranslator: (
    * English one; then its terms are translated too. Otherwise the English
    * sentence is filled with the English terms - except for a template with no
    * words of its own ("{{action}} {{itemName}}"), which belongs to no
-   * language and always takes the reader's words.
+   * language and always takes the reader's words. A word cased for the
+   * middle of a sentence takes a capital where the sentence starts with it
+   * (startsASentence).
    *
    * Asked to (SentenceOptions), each value is set apart from the sentence
    * where it could move the words around it (fillSettingValuesApart), by the
@@ -867,18 +1286,25 @@ export const createTranslator: (
               englishTextValues(values),
               LEFT_TO_RIGHT,
               setsSlotsApart,
+              DEFAULT_LANGUAGE,
             )
           : fillTemplate(punctuate(english), englishDateValues(values));
       }
 
+      // No words of its own: the reader's words, as their sentence holds them.
       return setsValuesApart
         ? fillSettingValuesApart(
             punctuate(english),
             translatedValues(values),
             readerDirection,
             setsSlotsApart,
+            activeLanguage,
           )
-        : fillTemplate(punctuate(english), translatedValues(values));
+        : fillSentenceValues(
+            punctuate(english),
+            translatedValues(values),
+            activeLanguage,
+          );
     }
 
     return setsValuesApart
@@ -887,8 +1313,13 @@ export const createTranslator: (
           translatedValues(values),
           readerDirection,
           setsSlotsApart,
+          activeLanguage,
         )
-      : fillTemplate(punctuate(stored), translatedValues(values));
+      : fillSentenceValues(
+          punctuate(stored),
+          translatedValues(values),
+          activeLanguage,
+        );
   };
 
   const translateTemplate: (
@@ -915,7 +1346,8 @@ export const createTranslator: (
   /*
    * The form for `count` the way i18next resolves it: the language's own
    * category ("few" for 3 in Russian) under the key plus "_few", else the key
-   * itself, which holds the language's general (other) form.
+   * itself, which holds the language's general (other) form - with the
+   * category of the key it came from ("other" for the key itself).
    *
    * A language's "one" form is said for every count its language calls one
    * - 21 and 31 in Russian, 0 in French. A one form that says exactly one
@@ -928,11 +1360,11 @@ export const createTranslator: (
     key: string,
     count: number,
     oneFormSaysOnlyOne?: boolean,
-  ) => string | undefined = (
+  ) => StoredPluralForm | undefined = (
     key: string,
     count: number,
     oneFormSaysOnlyOne: boolean = false,
-  ): string | undefined => {
+  ): StoredPluralForm | undefined => {
     const category: string = getPluralCategory(activeLanguage, count);
     const saysOnlyOne: boolean =
       category === "one" && oneFormSaysOnlyOne && count !== 1;
@@ -941,11 +1373,50 @@ export const createTranslator: (
       const form: string | undefined = find(`${key}_${category}`);
 
       if (form !== undefined) {
-        return form;
+        return { text: form, category };
       }
     }
 
-    return find(key);
+    const general: string | undefined = find(key);
+
+    return general === undefined
+      ? undefined
+      : { text: general, category: "other" };
+  };
+
+  /*
+   * Whether a plural form a locale holds is English left in it - a
+   * placeholder, not a translation. A form is read against the English text
+   * of its own key, never the other form's: a language's plural can read
+   * like English's singular - Italian's "{{count}} host" for 3 hosts, the
+   * "{{count}} VM" of French, Spanish, Hindi and Persian for 3 VMs.
+   *
+   * - A "_one" form is English left in the locale when it reads as
+   *   English's one form, en.json's text for that key: Russian puts 21 in
+   *   its "one" form, French puts 0 there, and neither may borrow the
+   *   English "1 row" for it. Unless the language's general form reads the
+   *   same: the language then words the sentence alike for every count, and
+   *   the form is its own - French's "0 VM". A general form left English is
+   *   never that witness: the lookup gives nothing for a key that maps to
+   *   itself.
+   * - Every other form - the general one, and a "_few", "_many", "_two" or
+   *   "_zero" one, which en.json has none of - is English left in the
+   *   locale when it reads as English's other form, what English writes for
+   *   every count but one. English's one form there is the language's own,
+   *   as in its general form.
+   */
+  const isEnglishPlaceholder: (
+    form: StoredPluralForm,
+    template: PluralTemplate,
+  ) => boolean = (
+    form: StoredPluralForm,
+    template: PluralTemplate,
+  ): boolean => {
+    if (form.category !== "one") {
+      return form.text === template.other;
+    }
+
+    return form.text === template.one && find(template.other) !== form.text;
   };
 
   const translatePlural: (
@@ -961,20 +1432,21 @@ export const createTranslator: (
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
-    const stored: string | undefined = findPlural(
+    const stored: StoredPluralForm | undefined = findPlural(
       template.other,
       count,
       isOneFormOnlyForOne(template),
     );
 
     /*
-     * An English form left in a locale is a placeholder, not a translation:
-     * the sentence is English, in English's form for the count. Russian puts
-     * 21 in its "one" form, French puts 0 there - neither may borrow the
-     * English "1 row" for it.
+     * An English form left in a locale is a placeholder, not a translation
+     * (isEnglishPlaceholder): the sentence is English, in English's form for
+     * the count.
      */
     const translated: string | undefined =
-      stored === template.one || stored === template.other ? undefined : stored;
+      stored === undefined || isEnglishPlaceholder(stored, template)
+        ? undefined
+        : stored.text;
 
     // {{count}} is written the reader's way unless the caller passes its own.
     return fill(
@@ -1245,6 +1717,7 @@ export const getSentencePartsAndLanguage: (
         englishTextValues(englishValues),
         LEFT_TO_RIGHT,
         false,
+        DEFAULT_LANGUAGE,
       ),
     ) || [
       {

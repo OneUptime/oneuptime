@@ -8,7 +8,12 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import logger from "../../Logger";
-import { LLMMessage, LLMToolDefinition } from "../../LLM/LLMService";
+import {
+  LLMCompletionResponse,
+  LLMMessage,
+  LLMToolCall,
+  LLMToolDefinition,
+} from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolContext } from "../Toolbox/ToolTypes";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
@@ -194,11 +199,87 @@ export interface ObservabilityAssistantRequest {
     | ((result: { toolName: string; textForLlm: string }) => void)
     | undefined;
   /*
+   * Called with every tool call the loop ran and what the model was handed
+   * back - a result or an error, as the model read it - so an investigation
+   * can record what it saw, to be run again on the same data later
+   * (Eval/InvestigationRecorder). Never changes what the model reads; a
+   * handler that throws is logged and the run goes on.
+   */
+  onToolOutcome?:
+    | ((outcome: ObservabilityAssistantToolOutcome) => void)
+    | undefined;
+  /*
    * The code repositories the run's code tools may read
    * (ToolContext.codeRepositoryAllowance): left out, every one the caller
    * may read.
    */
   codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
+  /*
+   * Where the loop's model calls and toolbox calls go. Left out, the run's
+   * own: the project's LLM provider through AIService (billed, logged, under
+   * the project's limits) and the registered toolbox under props. A replay
+   * of a past investigation answers each tool call from what the original
+   * run was shown (Eval/ReplayInvestigation), and the fault-injection
+   * benchmark from a scenario's made-up telemetry
+   * (Eval/InvestigationBenchmark): neither reads a project's data.
+   */
+  transport?: ObservabilityAssistantTransport | undefined;
+  /*
+   * The time the prompt names as now. Left out, the time the run starts; a
+   * replay names the time the original run started, so "the last hour"
+   * means the hour it meant then.
+   */
+  currentTime?: Date | undefined;
+}
+
+// One tool call the loop ran, and what the model read back.
+export interface ObservabilityAssistantToolOutcome {
+  toolName: string;
+  toolArguments: JSONObject;
+  // False: the call failed, and textForLlm is the error the model read.
+  success: boolean;
+  // What the model read, before a result was framed with its citation.
+  textForLlm: string;
+  rowCount?: number | undefined;
+  citationLabel?: string | undefined;
+  citationTarget?: AIChatCitationTarget | undefined;
+  isTruncated?: boolean | undefined;
+  durationMs: number;
+}
+
+// One model call of the loop, as a transport receives it.
+export interface ObservabilityAssistantModelCall {
+  messages: Array<LLMMessage>;
+  // Undefined when the model must answer without tools.
+  tools: Array<LLMToolDefinition> | undefined;
+  maxTokens: number;
+  temperature: number;
+}
+
+// What a transport's model call answered.
+export interface ObservabilityAssistantModelReply {
+  content: string;
+  toolCalls?: Array<LLMToolCall> | undefined;
+  stopReason?: LLMCompletionResponse["stopReason"];
+  // The call's tokens, as OneUptime counts them (AiTokenCount).
+  tokenCount: number;
+  providerName?: string | undefined;
+  modelName?: string | undefined;
+}
+
+export interface ObservabilityAssistantTransport {
+  callModel: (
+    call: ObservabilityAssistantModelCall,
+  ) => Promise<ObservabilityAssistantModelReply>;
+  /*
+   * One call of a registered toolbox tool. An extra tool still runs its own
+   * execute, and an excluded or mutation tool is refused by the loop before
+   * any transport is asked.
+   */
+  executeTool: (call: {
+    name: string;
+    arguments: JSONObject;
+  }) => Promise<ToolCallOutcome>;
 }
 
 /*
@@ -292,6 +373,22 @@ export default class ObservabilityAssistant {
       }
     };
 
+    // What a tool call handed the model, to the run that records it.
+    const tellToolOutcome: (
+      outcome: ObservabilityAssistantToolOutcome,
+    ) => void = (outcome: ObservabilityAssistantToolOutcome): void => {
+      if (!request.onToolOutcome) {
+        return;
+      }
+      try {
+        request.onToolOutcome(outcome);
+      } catch (err) {
+        logger.error(
+          `ObservabilityAssistant: a tool outcome handler failed for ${outcome.toolName}: ${err}`,
+        );
+      }
+    };
+
     const toolContext: ToolContext = {
       projectId: request.projectId,
       props: request.props,
@@ -318,7 +415,7 @@ export default class ObservabilityAssistant {
     );
 
     let systemPromptContent: string = buildObservabilityChatSystemPrompt({
-      currentTime: OneUptimeDate.getCurrentDate(),
+      currentTime: request.currentTime ?? OneUptimeDate.getCurrentDate(),
       /*
        * Slack/Teams and autonomous investigations have no approval UI, so this
        * surface stays strictly read-only.
@@ -446,34 +543,36 @@ export default class ObservabilityAssistant {
 
       await emitStep({ type: "llm_started" });
 
-      const response: AILogResponse = await AIService.executeWithLogging({
-        projectId: request.projectId,
-        userId: request.userId,
-        incidentId: request.incidentId,
-        alertId: request.alertId,
-        aiRunId: request.aiRunId,
-        llmProviderId: request.llmProviderId,
-        feature: request.feature,
-        messages: messages,
-        tools: mustAnswer
-          ? undefined
-          : [
-              ...AIToolbox.getLlmToolDefinitions(
-                AIChatPermissionMode.ReadOnly,
-              ).filter((definition: LLMToolDefinition) => {
-                return !excludedToolNames.has(definition.name);
-              }),
-              ...Array.from(extraToolsByName.values()).map(
-                (extraTool: ObservabilityAssistantExtraTool) => {
-                  return extraTool.definition;
-                },
-              ),
-            ],
-        maxTokens: maxOutputTokens,
-        temperature: TEMPERATURE,
-        // Chat-ops content is per-user — do not persist previews to LlmLog.
-        storeContentPreviews: false,
-      }).catch(async (error: unknown): Promise<never> => {
+      const tools: Array<LLMToolDefinition> | undefined = mustAnswer
+        ? undefined
+        : [
+            ...AIToolbox.getLlmToolDefinitions(
+              AIChatPermissionMode.ReadOnly,
+            ).filter((definition: LLMToolDefinition) => {
+              return !excludedToolNames.has(definition.name);
+            }),
+            ...Array.from(extraToolsByName.values()).map(
+              (extraTool: ObservabilityAssistantExtraTool) => {
+                return extraTool.definition;
+              },
+            ),
+          ];
+
+      const response: ObservabilityAssistantModelReply = await (
+        request.transport
+          ? request.transport.callModel({
+              // A copy: the loop goes on adding to its own.
+              messages: [...messages],
+              tools,
+              maxTokens: maxOutputTokens,
+              temperature: TEMPERATURE,
+            })
+          : this.callProjectModel(request, {
+              messages,
+              tools,
+              maxOutputTokens,
+            })
+      ).catch(async (error: unknown): Promise<never> => {
         /*
          * The call failed for good (LLMService already retried it): close
          * the llm_started above, then let the run's owner decide.
@@ -491,7 +590,7 @@ export default class ObservabilityAssistant {
       llmCallCount++;
 
       // As OneUptime counts them: cached tokens weigh what they cost.
-      const callTokens: number = AiTokenCount.count(response.llmLog);
+      const callTokens: number = response.tokenCount;
       totalTokens += callTokens;
       lastCallTokens = callTokens;
 
@@ -501,8 +600,8 @@ export default class ObservabilityAssistant {
       });
 
       if (!providerName) {
-        providerName = response.llmLog.llmProviderName;
-        modelName = response.llmLog.modelName;
+        providerName = response.providerName;
+        modelName = response.modelName;
       }
 
       if (
@@ -609,6 +708,21 @@ export default class ObservabilityAssistant {
                 errorMessage: errorMessage,
               };
             }
+          } else if (request.transport) {
+            try {
+              outcome = await request.transport.executeTool({
+                name: toolCall.name,
+                arguments: toolCall.arguments,
+              });
+            } catch (err) {
+              const errorMessage: string =
+                err instanceof Error ? err.message : String(err);
+              outcome = {
+                success: false,
+                textForLlm: `Error executing ${toolCall.name}: ${errorMessage}. Adjust the arguments and try again, or answer with the data you already have.`,
+                errorMessage: errorMessage,
+              };
+            }
           } else {
             outcome = await AIToolbox.executeTool({
               name: toolCall.name,
@@ -616,6 +730,8 @@ export default class ObservabilityAssistant {
               ctx: toolContext,
             });
           }
+
+          const toolDurationMs: number = Date.now() - toolStartedAtMs;
 
           if (!outcome.success || !outcome.result) {
             roundCalls.push({
@@ -628,8 +744,16 @@ export default class ObservabilityAssistant {
             await emitStep({
               type: "tool_failed",
               toolName: toolCall.name,
-              durationMs: Date.now() - toolStartedAtMs,
+              durationMs: toolDurationMs,
               errorMessage: outcome.errorMessage || outcome.textForLlm,
+            });
+
+            tellToolOutcome({
+              toolName: toolCall.name,
+              toolArguments: toolCall.arguments,
+              success: false,
+              textForLlm: outcome.textForLlm,
+              durationMs: toolDurationMs,
             });
 
             messages.push({
@@ -655,11 +779,23 @@ export default class ObservabilityAssistant {
             type: "tool_completed",
             toolName: toolCall.name,
             toolArguments: toolCall.arguments,
-            durationMs: Date.now() - toolStartedAtMs,
+            durationMs: toolDurationMs,
             rowCount: outcome.result.rowCount,
             citationId: citationId,
             citationLabel: outcome.result.citationLabel,
             citationTarget: outcome.result.citationTarget,
+          });
+
+          tellToolOutcome({
+            toolName: toolCall.name,
+            toolArguments: toolCall.arguments,
+            success: true,
+            textForLlm: outcome.textForLlm,
+            rowCount: outcome.result.rowCount,
+            citationLabel: outcome.result.citationLabel,
+            citationTarget: outcome.result.citationTarget,
+            isTruncated: outcome.result.isTruncated,
+            durationMs: toolDurationMs,
           });
 
           if (request.onToolResult) {
@@ -779,6 +915,46 @@ export default class ObservabilityAssistant {
             }),
           }
         : {}),
+    };
+  }
+
+  /*
+   * A model call of a run with no transport: the project's LLM provider (or
+   * the one the request picks) through AIService, which checks the
+   * project's AI switch and limits, bills it and writes its AI Log.
+   */
+  private static async callProjectModel(
+    request: ObservabilityAssistantRequest,
+    call: {
+      messages: Array<LLMMessage>;
+      tools: Array<LLMToolDefinition> | undefined;
+      maxOutputTokens: number;
+    },
+  ): Promise<ObservabilityAssistantModelReply> {
+    const response: AILogResponse = await AIService.executeWithLogging({
+      projectId: request.projectId,
+      userId: request.userId,
+      incidentId: request.incidentId,
+      alertId: request.alertId,
+      aiRunId: request.aiRunId,
+      llmProviderId: request.llmProviderId,
+      feature: request.feature,
+      messages: call.messages,
+      tools: call.tools,
+      maxTokens: call.maxOutputTokens,
+      temperature: TEMPERATURE,
+      // Chat-ops content is per-user — do not persist previews to LlmLog.
+      storeContentPreviews: false,
+    });
+
+    return {
+      content: response.content,
+      toolCalls: response.toolCalls,
+      stopReason: response.stopReason,
+      // As OneUptime counts them: cached tokens weigh what they cost.
+      tokenCount: AiTokenCount.count(response.llmLog),
+      providerName: response.llmLog.llmProviderName,
+      modelName: response.llmLog.modelName,
     };
   }
 }

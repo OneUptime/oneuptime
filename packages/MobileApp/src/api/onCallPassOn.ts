@@ -24,7 +24,10 @@ import { toPlainText } from "../utils/text";
  *   record still acknowledged and not resolved): the record was acknowledged
  *   all along, so its own Acknowledge is not offered, and the person paged
  *   again answers their page instead - as its link, a call's 1 or a text
- *   would. { acknowledged: N }, 0 when there was none to answer.
+ *   would. So does a person paged by a page somebody asked for, or by a
+ *   policy somebody started by hand, about a record acknowledged already:
+ *   those go on until one of the people they paged answers them.
+ *   { acknowledged: N }, 0 when there was none to answer.
  */
 
 export type OnCallPageRecordType =
@@ -40,11 +43,20 @@ export interface OnCallPassOnPage {
   policyName: string;
   sentence: string;
   /*
-   * A page again about a record the person acknowledged earlier: it is
-   * answered with Acknowledge again, as the record's own Acknowledge is gone.
-   * Absent, or false, for any other page.
+   * A page again about a record the person acknowledged earlier - or a page
+   * somebody asked for, or a policy somebody started by hand, about a record
+   * acknowledged already: it is answered with Acknowledge again, as the
+   * record's own Acknowledge is gone. Absent, or false, for any other page.
    */
   isPageAgain?: boolean;
+  /*
+   * Beside isPageAgain: the page is not a page again, but one somebody asked
+   * for by hand - a page sent from a chat, or a policy started by hand -
+   * about a record somebody acknowledged already. The person is paged to
+   * help with it, not paged again about one they took. Absent, or false,
+   * for any other page - and on an older server, which does not say.
+   */
+  isAskedFor?: boolean;
   /*
    * An observer's page (oncall/observerPage.ts): answered with "I've seen
    * it", and never escalated from the app. Absent, or false, for a
@@ -99,6 +111,8 @@ export function toOnCallPassOnPages(body: unknown): OnCallPassOnPage[] {
       sentence: toPlainText(page["sentence"]).trim(),
       // Only ever sent as true; an older server sends nothing.
       isPageAgain: page["isPageAgain"] === true,
+      // Said only beside isPageAgain, and only as true.
+      ...(page["isAskedFor"] === true ? { isAskedFor: true } : {}),
       // Said only of an observer's page, and only as true.
       ...(page["isObserverPage"] === true ? { isObserverPage: true } : {}),
     });

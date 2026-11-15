@@ -15,6 +15,10 @@ import {
   isOnCallPassOnTimeToday,
 } from "./OnCallPagePassOn";
 import { OnCallPersonPageRun, isOnCallPersonPage } from "./OnCallPersonPage";
+import {
+  OnCallPolicyStartedByHandRun,
+  isOnCallPolicyStartedByHand,
+} from "./OnCallPolicyStartedByHand";
 
 /*
  * WHAT THE ACKNOWLEDGE PAGE A MESSAGE'S LINK OPENS OFFERS.
@@ -41,10 +45,11 @@ import { OnCallPersonPageRun, isOnCallPersonPage } from "./OnCallPersonPage";
  *   - a responder's page is over once its record is acknowledged - by the
  *     one rule, so a state after Acknowledged counts - whoever did it;
  *   - a page again (OnCallAcknowledgementTimeout), a page a person asked for
- *     (OnCallPersonPage) and an observer's page (OnCallObserverPage) are
- *     about a record that is often acknowledged already, and go on until one
- *     of their people answers them: the record being acknowledged ends none
- *     of them.
+ *     (OnCallPersonPage), a policy a person started by hand
+ *     (OnCallPolicyStartedByHand) and an observer's page (OnCallObserverPage)
+ *     are about a record that is often acknowledged already, and go on until
+ *     one of their people answers them: the record being acknowledged ends
+ *     none of them.
  *
  * Once it is over, the page says so, with what it is about and the button
  * that opens it in the Dashboard, and no Acknowledge - who took it, and when,
@@ -72,7 +77,8 @@ export enum OnCallAcknowledgePageState {
   AcknowledgedByYou = "AcknowledgedByYou",
   /*
    * Somebody else took it: answered the page (a page again, a person's
-   * page, an observer's page), or acknowledged the record (a responder's).
+   * page, a policy started by hand, an observer's page), or acknowledged the
+   * record (a responder's).
    */
   AcknowledgedBySomeoneElse = "AcknowledgedBySomeoneElse",
   // The record is resolved: every page of it is over.
@@ -83,6 +89,7 @@ export enum OnCallAcknowledgePageState {
 export interface OnCallAcknowledgePageRun
   extends OnCallPageAgainRun,
     OnCallPersonPageRun,
+    OnCallPolicyStartedByHandRun,
     OnCallObserverPageRun {
   acknowledgedAt?: Date | string | null | undefined;
   acknowledgedByUserId?: ObjectID | string | null | undefined;
@@ -150,7 +157,9 @@ export interface OnCallAcknowledgePageAnswer {
 /*
  * Whether a run goes on until one of its people answers it, or its record is
  * resolved - whoever acknowledges the record: a page again, a page a person
- * asked for, an observer's page.
+ * asked for, a policy a person started by hand, an observer's page. The one
+ * rule the workers that page end runs by, and everything that says whether a
+ * page is still waiting for an answer.
  */
 export function isOnCallPageEndedOnlyByAnAnswer(
   run: OnCallAcknowledgePageRun | null | undefined,
@@ -158,8 +167,23 @@ export function isOnCallPageEndedOnlyByAnAnswer(
   return (
     isOnCallPageAgainRun(run) ||
     isOnCallPersonPage(run) ||
+    isOnCallPolicyStartedByHand(run) ||
     isOnCallObserverPage(run)
   );
+}
+
+/*
+ * Whether a person answers their page of a run as the page it is, once its
+ * record is acknowledged: a page again, a page a person asked for, a policy a
+ * person started by hand. The record's own Acknowledge is gone then, so the
+ * Dashboard and the app offer "Acknowledge again" for it
+ * (OnCallAcknowledgementTimeout.acknowledgePagesAgainForRecord). Not an
+ * observer's page: an observer says they have seen it instead.
+ */
+export function isOnCallPageAnsweredAsAPage(
+  run: OnCallAcknowledgePageRun | null | undefined,
+): boolean {
+  return isOnCallPageEndedOnlyByAnAnswer(run) && !isOnCallObserverPage(run);
 }
 
 // What the acknowledge page offers, by the rule above.

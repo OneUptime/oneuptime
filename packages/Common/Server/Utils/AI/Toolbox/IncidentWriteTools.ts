@@ -71,6 +71,7 @@ import {
 } from "./NewRecords";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
+import NewIncidentSubscriberNotificationDefaultReader from "../../StatusPage/NewIncidentSubscriberNotificationDefaultReader";
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
  * Resolved lazily rather than at module load: this module is pulled in through
@@ -479,6 +480,19 @@ export const CreateIncidentTool: ObservabilityTool = {
      * the create starts read these lists.
      */
     AffectedResourceLinks.setOnRecord(incident, toLink.linked);
+
+    /*
+     * The approval card asks nothing about status page subscribers, so they
+     * are told as the project starts "Notify Status Page Subscribers" on
+     * Declare New Incident (Incidents > Settings > Subscriber
+     * Notifications): unticked there, declared here without notifying.
+     */
+    await NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclaredWithoutBox(
+      {
+        incident: incident,
+        projectId: ctx.projectId,
+      },
+    );
 
     // Created under the user's props so the model-layer RBAC applies too.
     const created: Incident = await IncidentService.create({

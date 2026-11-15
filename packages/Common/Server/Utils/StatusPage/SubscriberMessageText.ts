@@ -140,7 +140,7 @@ export const SubscribedChatText: {
     "You will receive real-time notifications for:",
   ),
   incidents: translationKey("Incidents and outages"),
-  scheduledMaintenance: translationKey("Scheduled maintenance events"),
+  scheduledMaintenance: translationKey("Maintenance events"),
   announcements: translationKey("Service announcements"),
   statusUpdates: translationKey("Status updates"),
   stayInformed: translationKey("Stay informed about service availability!"),

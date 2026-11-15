@@ -182,7 +182,7 @@ Incidenten, waarschuwingen, hun episoden en geplande onderhoudsgebeurtenissen he
 | `resolve <id>` | Verplaatst het naar de opgelost-status van je project | Dezelfde vier |
 | `start <id>` | Verplaatst de gebeurtenis naar de lopend-status van je project | `scheduled-maintenance-event` |
 | `end <id>` | Verplaatst haar naar de beëindigd-status van je project | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Voegt een notitie toe die je team ziet, of met `--public` een op de statuspagina's van het record | Alle vijf |
+| `add-note <id> --note <markdown>` | Voegt een notitie toe die alleen kan lezen wie het record kan zien, of met `--public` een op de statuspagina's van het record | Alle vijf |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

@@ -70,6 +70,7 @@ import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import { getBrandedDashboardManifest } from "./BrandedManifest";
 import { sendToRegisterBeforeFirstAccount } from "../Identity/Utils/FirstAccount";
 import StatusPageMaintenanceCalendarFeed from "Common/Server/Utils/StatusPage/StatusPageMaintenanceCalendarFeed";
+import HostAddressUtil from "Common/Utils/HostAddressUtil";
 import fsp from "fs/promises";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -287,15 +288,15 @@ const DashboardRootPwaFileMap: Array<{ route: string; file: string }> = [
   { route: "/browserconfig.xml", file: "browserconfig.xml" },
 ];
 
+/*
+ * A host without its port, in lower case: HOST, or the host a request names.
+ * The ingress names its primary server by the same rule
+ * (envsubst-on-templates.sh), so both take the same requests for their own.
+ * A bracketed IPv6 address keeps its brackets, as Express's req.hostname
+ * keeps them: cut at its first ":", "[2001:db8::1]:8080" was "[2001" (#7889).
+ */
 const normalizeHostname: (host: string) => string = (host: string): string => {
-  const hostParts: Array<string> = host.split(":");
-  const hostPart: string | undefined = hostParts[0];
-
-  if (!hostPart) {
-    return "";
-  }
-
-  return hostPart.trim().toLowerCase();
+  return HostAddressUtil.stripPort(host).trim().toLowerCase();
 };
 
 const getPrimaryHosts: () => Set<string> = (): Set<string> => {

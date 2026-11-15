@@ -28,6 +28,11 @@ import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolic
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { toOnCallPersonPageMessage } from "../../Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import { getOnCallPolicyStartedOnResolvedRecordMessage } from "../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
+import type {
+  OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordState,
+} from "../Utils/OnCall/OnCallAcknowledgementTimeout";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import Model from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -300,6 +305,29 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     const props: DatabaseCommonInteractionProps = onCreate.createBy.props;
 
+    /*
+     * A person starting a policy by hand (OnCallPolicyStartedByHand) - the
+     * Dashboard's Execute On-Call Policy, a page that names the policy, the
+     * API signed in as them - for a record that is resolved is told so, and
+     * nothing starts: nobody is needed any more, and the policy's first
+     * level would have been paged about it all the same before the run
+     * ended a minute later. Slack and Microsoft Teams say so before they
+     * get here (WorkspaceLatePress.ExecuteOnCallPolicy). Asked once every
+     * check on the caller has passed, so nobody who may not start a run
+     * learns where a record stands. OneUptime's own runs, a workflow's and
+     * an API key's are left as they were.
+     */
+    if (!props.isRoot && props.userId && !props.workflowId) {
+      const resolvedRecordKind: string | null =
+        await this.readResolvedRecordKind(onCreate.createBy.data);
+
+      if (resolvedRecordKind) {
+        throw new BadDataException(
+          getOnCallPolicyStartedOnResolvedRecordMessage(resolvedRecordKind),
+        );
+      }
+    }
+
     if (!props.workflowId) {
       return;
     }
@@ -310,6 +338,43 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (workflowName) {
       onCreate.createBy.data.triggeredByWorkflowName = workflowName;
+    }
+  }
+
+  /*
+   * The record a new run is about, in words - "incident", "alert episode" -
+   * when it is resolved; null while it is not, when the run is about none,
+   * or when where it stands cannot be read: a policy that could not be
+   * checked is started, as it always was, rather than lost. The clock's
+   * reader of a record's state (OnCallAcknowledgementTimeout) is loaded
+   * when it is needed: it reads this service, so a static import would be a
+   * cycle.
+   */
+  private async readResolvedRecordKind(data: Model): Promise<string | null> {
+    try {
+      const timeout: typeof import("../Utils/OnCall/OnCallAcknowledgementTimeout") =
+        await import("../Utils/OnCall/OnCallAcknowledgementTimeout");
+
+      const record: {
+        kind: OnCallTimeoutRecordKind;
+        recordId: ObjectID;
+      } | null = timeout.default.getRunRecord(data);
+
+      if (!record) {
+        return null;
+      }
+
+      const state: OnCallTimeoutRecordState | null =
+        await timeout.default.readRecordState(record);
+
+      return state?.isResolved ? record.kind : null;
+    } catch (err) {
+      logger.error(
+        "Could not read whether the record of a policy started by hand is resolved; starting it.",
+        { projectId: data.projectId?.toString() } as LogAttributes,
+      );
+      logger.error(err as Error);
+      return null;
     }
   }
 

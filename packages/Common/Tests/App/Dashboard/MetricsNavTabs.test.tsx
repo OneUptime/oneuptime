@@ -49,8 +49,16 @@ describe("Metrics' tabs", () => {
       links.map((link: { label: string; href: string }) => {
         return link.label;
       }),
-    ).toEqual(["Viewer", "Insights", "AI", "Setup Guide", "Settings"]);
-    expect(links[2]!.href).toBe(routeFor(PageMap.METRICS_AI_INSIGHTS));
+    ).toEqual([
+      "Viewer",
+      "PromQL",
+      "Insights",
+      "AI",
+      "Setup Guide",
+      "Settings",
+    ]);
+    expect(links[1]!.href).toBe(routeFor(PageMap.METRICS_PROMQL));
+    expect(links[3]!.href).toBe(routeFor(PageMap.METRICS_AI_INSIGHTS));
   });
 
   test("the AI tab is the one lit on its pages", () => {
@@ -72,6 +80,7 @@ describe("Metrics' tabs", () => {
     [PageMap.METRICS_AI_LOGS, "ai"],
     [PageMap.METRICS_AI_SETTINGS, "ai"],
     [PageMap.METRICS_INSIGHTS, "insights"],
+    [PageMap.METRICS_PROMQL, "promql"],
     [PageMap.METRICS_SETTINGS_PIPELINE_RULES, "settings"],
     [PageMap.METRICS_SETTINGS_RECORDING_RULES, "settings"],
     [PageMap.METRICS_DOCUMENTATION, "setup"],

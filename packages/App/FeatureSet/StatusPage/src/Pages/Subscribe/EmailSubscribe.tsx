@@ -147,6 +147,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       fieldType: FormFieldSchemaType.Email,
       required: true,
       placeholder: t("subscribe.email.placeholder"),
+      isPlaceholderTranslated: true,
       disableSpellCheck: true,
       disabled: Boolean(signInEmail),
     },
@@ -231,6 +232,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               fieldType: FormFieldSchemaType.Email,
               required: true,
               placeholder: t("subscribe.email.managePlaceholder"),
+              isPlaceholderTranslated: true,
               disableSpellCheck: true,
             },
           ]}

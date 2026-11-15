@@ -88,7 +88,7 @@ const ResponseTargetDurationField: FunctionComponent<ComponentProps> = (
           type={InputType.NUMBER}
           className={AMOUNT_INPUT_CLASS_NAME}
           value={entry.amount}
-          placeholder={translator.translateText(RESPONSE_TARGETS_COPY.noTarget)}
+          placeholder={RESPONSE_TARGETS_COPY.noTarget}
           // Named by the field's own label; on its own, as an amount.
           {...(props.ariaLabelledby
             ? { ariaLabelledby: props.ariaLabelledby }

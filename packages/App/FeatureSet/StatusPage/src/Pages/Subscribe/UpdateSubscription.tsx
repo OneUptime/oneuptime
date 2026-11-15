@@ -210,6 +210,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       disabled: true,
       placeholder: t("subscribe.email.placeholder"),
+      isPlaceholderTranslated: true,
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberEmail);
       },
@@ -227,6 +228,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       disabled: true,
       placeholder: t("subscribe.slack.workspaceNamePlaceholder"),
+      isPlaceholderTranslated: true,
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.slackWorkspaceName);
       },
@@ -244,6 +246,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
         return model && Boolean(model.subscriberPhone);
       },
       placeholder: t("subscribe.sms.placeholder"),
+      isPlaceholderTranslated: true,
       disabled: true,
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberPhone);

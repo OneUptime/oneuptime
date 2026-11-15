@@ -29,7 +29,7 @@ flowchart TB
 
 Spår berättar för OneUptime att en kö finns och hur applikationer använder den, men inte hur full den är. Det kommer från själva brokern eller från dess molnleverantörs övervaknings-API eller, för [BullMQ](#bullmq), som håller sina jobb i Redis och inte har någon broker att fråga, från en gauge som applikationen rapporterar.
 
-Du kan också lägga till en kö manuellt: **Köer → Skapa Queue**, med dess meddelandesystem och destinationens namn och, för Azure Service Bus och Event Hubs, dess namespace. Formuläret frågar efter dem i sitt första steg, **Meddelandesystem**, och sedan efter ett valfritt namn och en beskrivning, med etiketter under **Fler fält** (**Köinformation**). Lämna namespacet tomt bara för en kö som dina applikationer når via en emulator eller ett anpassat domännamn: deras span namnger inget namespace, och Azure Monitors mätvärden når aldrig en sådan kö (se [Begränsningar](#begränsningar)).
+Du kan också lägga till en kö manuellt: **Köer → Skapa Kö**, med dess meddelandesystem och destinationens namn och, för Azure Service Bus och Event Hubs, dess namespace. Formuläret frågar efter dem i sitt första steg, **Meddelandesystem**, och sedan efter ett valfritt namn och en beskrivning, med etiketter under **Fler fält** (**Köinformation**). Lämna namespacet tomt bara för en kö som dina applikationer når via en emulator eller ett anpassat domännamn: deras span namnger inget namespace, och Azure Monitors mätvärden når aldrig en sådan kö (se [Begränsningar](#begränsningar)).
 
 ## Kom igång
 
@@ -1057,7 +1057,7 @@ Självhostade installationer kan justera upptäckten med de här miljövariabler
 - Dess namn är ett av dem som OneUptime ignorerar (se [Vad som ignoreras](#vad-som-ignoreras)), eller så namnger bara SERVER-span den.
 - Färre än 3 av dess span kom in under de senaste 15 minuterna, eller så har projektet nått sin [budget för automatiskt skapande](#budgeten-för-automatiskt-skapande).
 
-När dess span faktiskt namnger den skapar du den manuellt med samma system och destination (**Köer → Skapa Queue**): dess flik **Spår** fylls i från de span som redan har lagrats.
+När dess span faktiskt namnger den skapar du den manuellt med samma system och destination (**Köer → Skapa Kö**): dess flik **Spår** fylls i från de span som redan har lagrats.
 
 ### Brokerhälsan förblir tom
 

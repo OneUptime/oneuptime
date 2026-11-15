@@ -1177,8 +1177,9 @@ export class OpenAPIParser {
 
   /*
    * Whether a data source attribute can be a lookup argument: a single plain
-   * value the list endpoint can match exactly. JSON, timestamps, lists and
-   * secrets cannot.
+   * value the list endpoint can match exactly. JSON, timestamps, phone
+   * numbers (kept in OneUptime's spelling, which a lookup would have to
+   * write exactly), lists and secrets cannot.
    */
   public static isLookupFilterCandidate(
     name: string,
@@ -1192,6 +1193,7 @@ export class OpenAPIParser {
     if (
       attribute.sensitive ||
       attribute.isDateTime ||
+      attribute.isPhone ||
       attribute.isMonitorSteps
     ) {
       return false;
@@ -1436,6 +1438,17 @@ export class OpenAPIParser {
       };
     }
 
+    /*
+     * Phone numbers: a plain string, which OneUptime may keep in another
+     * spelling - "+1 415 555 0100" as "+14155550100" (StaticFiles/phone.go).
+     */
+    if (this.isPhoneSchema(prop)) {
+      return {
+        attribute: { ...base, type: "string", isPhone: true },
+        requiredInCreate: required,
+      };
+    }
+
     const propType: string = prop.type || "string";
 
     switch (propType) {
@@ -1511,6 +1524,26 @@ export class OpenAPIParser {
         return { attribute, requiredInCreate: required };
       }
     }
+  }
+
+  /*
+   * The Phone wrapper ({_type: "Phone", value}): the spec marks it, and its
+   * example is one.
+   */
+  private isPhoneSchema(prop: any): boolean {
+    if (!prop) {
+      return false;
+    }
+    if (prop["x-oneuptime-type"] === "Phone") {
+      return true;
+    }
+    const example: any = prop.example;
+    return (
+      Boolean(example) &&
+      typeof example === "object" &&
+      example._type === "Phone" &&
+      typeof example.value === "string"
+    );
   }
 
   private isDateTimeSchema(prop: any): boolean {

@@ -499,6 +499,8 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           placeholder: translator.translateTemplate("Select {{axis}}", {
             axis: gridAxisNameInSentence(props.gridPlacement.rowLabel),
           }),
+          // Around the axis's own name, so worded here (#7682).
+          isPlaceholderTranslated: true,
         },
         {
           field: {
@@ -518,6 +520,8 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
           placeholder: translator.translateTemplate("Select {{axis}}", {
             axis: gridAxisNameInSentence(props.gridPlacement.columnLabel),
           }),
+          // Around the axis's own name, so worded here (#7682).
+          isPlaceholderTranslated: true,
         },
       );
     }

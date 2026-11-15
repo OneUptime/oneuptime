@@ -266,6 +266,15 @@ work out, starts from a default for everything else, and folds what most people 
   [PlaceholderOptionalMarkGuard](../../packages/Common/Tests/UI/Components/Forms/PlaceholderOptionalMarkGuard.test.ts).
 - **Help says what the field does first, then why it matters,** and is true: "A monitor with no
   probes is never checked", not "Leave this empty to use every probe". Not enforced: use judgement.
+- **A metric's description draws its code as code, never as backticks.** The metric catalogs write
+  what a person types in backticks ("fanned out by the `status` datapoint attribute"), and the
+  VMware, OpenStack and Kubernetes pickers drew them as text, backticks and all. Draw a description
+  through `MetricPickerDescription`: each name is code, read from the left on an Arabic or Persian
+  page too. A catalog whose descriptions are shown as text anywhere (a criteria line, a chart card, a
+  stored metric description) writes its names without backticks. Enforced by
+  [MetricDescriptionCodeGuard](../../packages/Common/Tests/App/Dashboard/MetricDescriptionCodeGuard.test.ts)
+  and
+  [MetricPickerDescriptionCode](../../packages/Common/Tests/App/Dashboard/MetricPickerDescriptionCode.test.tsx).
 
 ### Errors
 
@@ -315,6 +324,14 @@ work out, starts from a default for everything else, and folds what most people 
   card read half in English, and a server failure's reference had no copy button (#7307).
   Enforced by
   [ErrorSentenceGuard](../../packages/Common/Tests/App/Dashboard/ErrorSentenceGuard.test.ts).
+- **A dashboard widget says why it has nothing to draw with the one error line,** in the reader's
+  words: `DashboardWidgetError` (and its line, `DashboardWidgetErrorLine`), a public dashboard's
+  `WidgetPlaceholder`, or a view that draws one of them. Each widget drew it its own way: the set
+  sentence in English on every board, pale gray in a 160 or 192px column, or a page's
+  `ErrorMessage` with a page's margins (#7330). A widget hands its error on (`error={error}`),
+  never draws it as it is, and every sentence it sets as its error is worded in every Dashboard
+  language. Enforced by
+  [WidgetErrorLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetErrorLineGuard.test.ts).
 
 ## Lists and empty states
 
@@ -521,6 +538,15 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms": every monitor's Response Time read "ms 411" on
   an Arabic or Persian page (#7224). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
+- **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
+  a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
+  it timed out." stayed English on every page, and on an Arabic or Persian page an English message
+  lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
+  its count in the reader's plural forms, is written only by its template
+  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
+  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
+  right-to-left line. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
@@ -568,7 +594,8 @@ then `npm run i18n:validate` from the root.
   On a page read from the right the arrow is "←", the first value is drawn at the right, and each
   value is set apart so the arrow stays the line's. A line that reads one way on every page, like
   the names of the user flow map's bands (drawn from the left everywhere), takes
-  `joinWithArrowsInDirection`. Enforced by
+  `joinWithArrowsInDirection`, and its box takes that way too (`getOneWayLineDirection`), whatever
+  letters its values are in. Enforced by
   [ComponentArrowsInRightToLeftPages](../../packages/Common/Tests/App/ComponentArrowsInRightToLeftPages.test.ts)
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
@@ -600,6 +627,16 @@ then `npm run i18n:validate` from the root.
   that belongs to the English, as written, stays next to its word: a field a search is typed with
   ("user:"), or a setting in a vendor's console. Enforced by
   [DashboardFrenchPunctuation](../../packages/App/Tests/Dashboard/DashboardFrenchPunctuation.test.ts).
+- **An option reads the same in a filter's menu and in its chip.** An option's label is either the
+  product's words, a key looked up in the reader's language wherever the option is drawn, or a name
+  marked `isUserContent` and drawn as written: a record's ("Network"), a value read from data, a
+  product's own ("Google Cloud", "Resend"). A Spanish Health filter read "Con problemas" in its menu
+  and "Unhealthy" in its chip; a monitor named "Network" read "Red" in a menu over rows that said
+  "Network"; the email provider Resend read "Reenviar". Draw an option through
+  `getDropdownOptionText`. Enforced by
+  [FilterOptionLabelsGuard](../../packages/Common/Tests/App/Dashboard/FilterOptionLabelsGuard.test.ts)
+  and
+  [FilterChipAndMenuInSpanish](../../packages/Common/Tests/App/Dashboard/FilterChipAndMenuInSpanish.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.

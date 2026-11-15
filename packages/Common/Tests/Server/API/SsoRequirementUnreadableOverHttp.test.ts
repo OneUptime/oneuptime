@@ -76,6 +76,7 @@ import express from "express";
 import http from "http";
 import { AddressInfo } from "net";
 import timers from "timers";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 
 /*
  * A real Express app: an error that walks the routes registered after the
@@ -466,6 +467,13 @@ beforeAll(async () => {
 
       return memberPermissionIn(projectId);
     }) as never);
+  /*
+   * A request across projects, answered through the lookups here: each
+   * project's rule is read by its own getter, as the reads that fail below
+   * expect (the one read of every project's rows that comes first, and its
+   * failure, are ProjectAccessRulesRead's and MultiTenantProjectLookups').
+   */
+  answerMultiTenantReadsProjectByProject();
   jest
     .spyOn(TeamMemberService, "getTeamIdsForUser")
     .mockResolvedValue([] as never);

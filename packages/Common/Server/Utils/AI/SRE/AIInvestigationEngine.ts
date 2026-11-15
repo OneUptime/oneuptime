@@ -59,7 +59,11 @@ import ObservabilityAssistant, {
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
   ObservabilityAssistantStepType,
+  ObservabilityAssistantToolOutcome,
 } from "../Chat/ObservabilityAssistant";
+import InvestigationRecorder from "../Eval/InvestigationRecorder";
+import AIRunRecordingService from "../../../Services/AIRunRecordingService";
+import { InvestigationRecordingInputs } from "../../../../Types/AI/InvestigationRecording";
 import logger from "../../Logger";
 import LLMService from "../../LLM/LLMService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -104,9 +108,11 @@ import { getReportLanguageInstructions } from "./InvestigationReportLanguageProm
  */
 /*
  * Room for a full report. An answer that still reaches the limit is
- * finished with continuation calls, never published half-written.
+ * finished with continuation calls, never published half-written. The
+ * benchmark (Eval/Benchmark) gives the model under test the same room, and
+ * a recording keeps the value a run had, so a replay does too.
  */
-const MAX_OUTPUT_TOKENS: number = 4096;
+export const INVESTIGATION_MAX_OUTPUT_TOKENS: number = 4096;
 
 /*
  * Conditional recommendation persistence is idempotent, so transient
@@ -415,9 +421,56 @@ export interface InvestigationRequest {
    */
   runLimits?: AIAgentRunLimits | undefined;
   maxOutputTokens?: number | undefined;
+  /*
+   * Incident and alert RCA runs opt into keeping what they saw (issue
+   * #6800): the starting context and every tool call with the text the
+   * model was handed back, as an AIRunRecording, so the run can be replayed
+   * on the same data after a prompt or model change
+   * (Eval/ReplayInvestigation). Written once the attempt has completed the
+   * run; best-effort, like the TL;DR. Engine users that are not
+   * investigations (triage, remediation) omit it.
+   */
+  recordForReplay?: boolean | undefined;
 }
 
 export default class AIInvestigationEngine {
+  /*
+   * The instructions an investigation adds to the shared system prompt: its
+   * persona, what the runner added, and - when it read an AI context, which
+   * may ask for another language - each language's words for the persona's
+   * headings. Shared with a replay, so both are given the same.
+   */
+  public static getSystemInstructions(data: {
+    persona: string;
+    additionalInstructions?: string | undefined;
+    hasAiContext: boolean;
+  }): string {
+    /*
+     * Notes may ask for another language (issue #6542): a run that read
+     * them is also given each language's words for its persona's headings,
+     * which the AI card lays the report out by. Without notes, the prompt
+     * is the one it always was.
+     */
+    const reportLanguageInstructions: string = data.hasAiContext
+      ? getReportLanguageInstructions(data.persona)
+      : "";
+
+    return `${data.persona}${
+      data.additionalInstructions ? `\n\n${data.additionalInstructions}` : ""
+    }${reportLanguageInstructions ? `\n\n${reportLanguageInstructions}` : ""}`;
+  }
+
+  // What an investigation asks the model, around its subject's context.
+  public static getQuestion(data: {
+    questionOverride?: string | undefined;
+    contextText: string;
+  }): string {
+    return `${
+      data.questionOverride ??
+      "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
+    }\n\n${data.contextText}`;
+  }
+
   /*
    * Shared gate: AI enabled, the subject's auto-investigation opt-in on, an
    * LLM provider configured, AI credits to pay for it, and room left under
@@ -723,16 +776,6 @@ export default class AIInvestigationEngine {
     const persona: string = request.personaOverride ?? INVESTIGATION_PERSONA;
 
     /*
-     * Notes may ask for another language (issue #6542): a run that read
-     * them is also given each language's words for its persona's headings,
-     * which the AI card lays the report out by. Without notes, the prompt
-     * is the one it always was.
-     */
-    const reportLanguageInstructions: string = aiContext
-      ? getReportLanguageInstructions(persona)
-      : "";
-
-    /*
      * The model reads text: an image embedded in the subject's text - a
      * synthetic monitor's screenshot is hundreds of kilobytes of base64 -
      * would only be billed, on every call of the run (issue #4587). The
@@ -898,6 +941,14 @@ export default class AIInvestigationEngine {
      */
     let settledAsCompleted: boolean = false;
 
+    /*
+     * What this attempt is shown, tool call by tool call, for a run that
+     * keeps it (recordForReplay). In memory until the attempt completes the
+     * run: an attempt that loses its run keeps nothing.
+     */
+    const recorder: InvestigationRecorder | null =
+      request.recordForReplay === true ? new InvestigationRecorder() : null;
+
     // Alive between steps too: one slow model call can outlast the sweep.
     const heartbeatTimer: ReturnType<typeof setInterval> = setInterval(() => {
       keepAlive().catch((error: unknown) => {
@@ -906,6 +957,23 @@ export default class AIInvestigationEngine {
     }, AI_RUN_HEARTBEAT_INTERVAL_IN_MS);
 
     try {
+      // The time the prompt names as now: a replay names the same.
+      const promptTime: Date = OneUptimeDate.getCurrentDate();
+      const runLimits: AIAgentRunLimits =
+        request.runLimits ?? (await AIRunLimitsReader.read({ projectId }));
+      const maxOutputTokens: number =
+        request.maxOutputTokens ?? INVESTIGATION_MAX_OUTPUT_TOKENS;
+      /*
+       * The chat-facing AI-meta tools are hidden from the investigator:
+       * "the latest investigation" for this subject IS this in-flight
+       * run, so the model would poll its own unfinished status ("check
+       * again in a minute") and spend its calls instead of investigating.
+       */
+      const excludeToolNames: Array<string> = [
+        "get_ai_investigation",
+        "start_investigation",
+      ];
+
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({
           projectId,
@@ -925,22 +993,18 @@ export default class AIInvestigationEngine {
           feature: request.feature,
           // Read above, and recorded: null when there is none to read.
           aiContext,
-          systemInstructions: `${persona}${
-            request.additionalInstructions
-              ? `\n\n${request.additionalInstructions}`
-              : ""
-          }${
-            reportLanguageInstructions
-              ? `\n\n${reportLanguageInstructions}`
-              : ""
-          }`,
-          question: `${
-            request.questionOverride ??
-            "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
-          }\n\n${seed.text}`,
-          runLimits:
-            request.runLimits ?? (await AIRunLimitsReader.read({ projectId })),
-          maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+          systemInstructions: this.getSystemInstructions({
+            persona,
+            additionalInstructions: request.additionalInstructions,
+            hasAiContext: Boolean(aiContext),
+          }),
+          question: this.getQuestion({
+            questionOverride: request.questionOverride,
+            contextText: seed.text,
+          }),
+          currentTime: promptTime,
+          runLimits,
+          maxOutputTokens,
           onStep,
           getStopReason: (): string | null => {
             return isAttemptSuperseded
@@ -949,16 +1013,19 @@ export default class AIInvestigationEngine {
           },
           extraTools: request.extraTools,
           onToolResult: request.onToolResult,
+          ...(recorder
+            ? {
+                onToolOutcome: (
+                  outcome: ObservabilityAssistantToolOutcome,
+                ): void => {
+                  recorder.add(outcome);
+                },
+              }
+            : {}),
           ...(request.codeRepositoryAllowance
             ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
             : {}),
-          /*
-           * The chat-facing AI-meta tools are hidden from the investigator:
-           * "the latest investigation" for this subject IS this in-flight
-           * run, so the model would poll its own unfinished status ("check
-           * again in a minute") and spend its calls instead of investigating.
-           */
-          excludeToolNames: ["get_ai_investigation", "start_investigation"],
+          excludeToolNames,
         });
 
       /*
@@ -998,6 +1065,49 @@ export default class AIInvestigationEngine {
       }
 
       settledAsCompleted = true;
+
+      /*
+       * What the run saw, kept for a replay once this attempt has completed
+       * it (recordForReplay). Best-effort: a recording that cannot be
+       * written changes nothing else about the run.
+       */
+      if (recorder) {
+        await this.saveRecording({
+          projectId,
+          aiRunId,
+          recorder,
+          inputs: {
+            contextText: seed.text,
+            ...(request.additionalInstructions
+              ? { additionalInstructions: request.additionalInstructions }
+              : {}),
+            ...(request.personaOverride !== undefined
+              ? { personaOverride: request.personaOverride }
+              : {}),
+            ...(request.questionOverride !== undefined
+              ? { questionOverride: request.questionOverride }
+              : {}),
+            aiContext,
+            promptTime: OneUptimeDate.toString(promptTime),
+            runLimits,
+            maxOutputTokens,
+            excludedToolNames: excludeToolNames,
+            extraTools: (request.extraTools || []).map(
+              (extraTool: ObservabilityAssistantExtraTool) => {
+                return {
+                  name: extraTool.definition.name,
+                  description: extraTool.definition.description,
+                  inputSchema: extraTool.definition.inputSchema,
+                };
+              },
+            ),
+            ...(result.providerName
+              ? { providerName: result.providerName }
+              : {}),
+            ...(result.modelName ? { modelName: result.modelName } : {}),
+          },
+        });
+      }
 
       /*
        * A run a limit stopped says so in its activity - which limit, and
@@ -1783,6 +1893,26 @@ export default class AIInvestigationEngine {
     } catch (error) {
       // Events are best-effort telemetry — never fail the run because of them.
       logger.error(`AI: failed to emit AIRunEvent: ${error}`);
+    }
+  }
+
+  // Best-effort: a recording that cannot be written never fails the run.
+  private static async saveRecording(data: {
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+    recorder: InvestigationRecorder;
+    inputs: InvestigationRecordingInputs;
+  }): Promise<void> {
+    try {
+      await AIRunRecordingService.saveForRun({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
+        recording: data.recorder.getRecording(data.inputs),
+      });
+    } catch (error) {
+      logger.error(
+        `AI: failed to keep what run ${data.aiRunId.toString()} saw for a replay: ${error}`,
+      );
     }
   }
 }

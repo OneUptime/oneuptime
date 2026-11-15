@@ -38,6 +38,7 @@ import IncidentInternalNoteService from "../../../../../Server/Services/Incident
 import AlertInternalNoteService from "../../../../../Server/Services/AlertInternalNoteService";
 import ScheduledMaintenancePublicNoteService from "../../../../../Server/Services/ScheduledMaintenancePublicNoteService";
 import IncidentEpisodePublicNoteService from "../../../../../Server/Services/IncidentEpisodePublicNoteService";
+import AlertEpisodeService from "../../../../../Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "../../../../../Server/Services/IncidentEpisodeService";
 import PublicNoteApprovalEngine from "../../../../../Server/Utils/Notes/PublicNoteApprovalEngine";
 import { PublicNoteApprovalWaitingFor } from "../../../../../Server/Utils/Notes/PublicNoteApprovalFeed";
@@ -806,6 +807,77 @@ describe("MattermostActions", () => {
         }),
       );
       expect(answer.ephemeral_text).toBe("INC-42 was acknowledged already.");
+    });
+
+    /*
+     * A policy a person started by hand for an episode goes on until
+     * somebody it paged answers it (OnCallPolicyStartedByHand, #7596):
+     * Acknowledge on the episode somebody else is on answers the presser's
+     * own pages about it, as on an incident or an alert.
+     */
+    test.each([
+      {
+        actionId: SlackActionType.AcknowledgeIncidentEpisode,
+        type: WorkspaceEventType.IncidentEpisode,
+        kind: "incident episode",
+      },
+      {
+        actionId: SlackActionType.AcknowledgeAlertEpisode,
+        type: WorkspaceEventType.AlertEpisode,
+        kind: "alert episode",
+      },
+    ])(
+      "Acknowledge on an acknowledged $kind answers the presser's own pages about it, and changes nothing",
+      async (data: {
+        actionId: SlackActionType;
+        type: WorkspaceEventType;
+        kind: string;
+      }) => {
+        jest
+          .spyOn(IncidentEpisodeService, "findOneById")
+          .mockResolvedValue({ projectId: projectId } as never);
+        jest
+          .spyOn(AlertEpisodeService, "findOneById")
+          .mockResolvedValue({ projectId: projectId } as never);
+        authorize.mockResolvedValue({ ...event, type: data.type });
+        getStanding.mockResolvedValue({
+          isAcknowledged: true,
+          isResolved: false,
+          hasStarted: false,
+          isComplete: false,
+        });
+
+        await MattermostActions.handlePress(press(data.actionId));
+
+        expect(acknowledge).not.toHaveBeenCalled();
+        expect(
+          OnCallPersonPageAnswer.onAcknowledgePressed,
+        ).toHaveBeenCalledWith({
+          kind: data.kind,
+          recordId: recordId,
+          projectId: projectId,
+          pressedByUserId: userId,
+          isResolved: false,
+        });
+      },
+    );
+
+    test("Resolve on a resolved incident answers no page", async () => {
+      getStanding.mockResolvedValue({
+        isAcknowledged: true,
+        isResolved: true,
+        hasStarted: false,
+        isComplete: false,
+      });
+
+      await MattermostActions.handlePress(
+        press(SlackActionType.ResolveIncident),
+      );
+
+      expect(resolve).not.toHaveBeenCalled();
+      expect(
+        OnCallPersonPageAnswer.onAcknowledgePressed,
+      ).not.toHaveBeenCalled();
     });
 
     test("Resolve resolves an alert, as the member", async () => {

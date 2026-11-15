@@ -99,7 +99,7 @@ Hvert notat viser hvem som skrev det, publiseringstidspunktet, den gjengitte Mar
 
 ## Publiser et privat notat
 
-**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Private · Only your team can see this**, med notatet, **Maler**, **Utkast med KI** og **Legg ved** for filer som er ment for teamet som responderer på hendelsen. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
+**Notater → Private notater** er bevisst enklere. Det er det samme redigeringsverktøyet, som sier **Privat · Bare de som kan se denne hendelsen, kan lese det**, med notatet, **Maler**, **Utkast med KI** og **Legg ved** for filer, som bare de som kan lese notatet, kan åpne. **Legg til privat notat** i menyen **Handlinger** i hendelsens feed åpner det i en dialog. Via API-et er private notater `/api/incident-internal-note`.
 
 Ikke noe publiseringstidspunkt, ingen avkrysningsboks for abonnenter — notatet stemples når det opprettes.
 
@@ -138,7 +138,7 @@ Hver opplasting starter privat, fra dashbordet og fra API-et. Et bilde kan bare 
 
 ## Generer et notat med KI
 
-Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Legg til offentlig notat** og **Legg til privat notat**. Den sender hendelsen til prosjektets KI-leverandør og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
+Redigeringsverktøyet har en knapp **Utkast med KI**, på begge notatsidene og i feedens dialoger **Legg til offentlig notat** og **Legg til privat notat**. Den sender hendelsen til prosjektets [LLM-leverandør](/docs/ai/llm-provider) og setter den genererte Markdown-en inn i notatet, der du redigerer den før du publiserer — ingenting publiseres automatisk.
 
 | Dialog                             | Hva den skriver                                                      | Maler                                                             |
 | ---------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -164,7 +164,7 @@ Du administrerer dem under **Hendelser → Innstillinger → Notatmaler** — ko
 
 ## Publiser notater fra Slack eller Microsoft Teams
 
-Har du koblet til et arbeidsområde, trenger de som responderer, aldri å forlate kanalen. Både Slack og Microsoft Teams har en handling for å legge til et notat som åpner en dialog med en nedtrekksliste **Note Type** — **Public Note** (publisert på statussiden) eller **Private Note** (bare synlig for teammedlemmer) — og et tekstfelt **Note**, og som skriver resultatet rett på hendelsen. På en privat hendelse spør den ikke om **Note Type** og legger til et privat notat: se [Private hendelser tar bare private notater](#private-hendelser-tar-bare-private-notater).
+Har du koblet til et arbeidsområde, trenger de som responderer, aldri å forlate kanalen. Både Slack og Microsoft Teams har en handling for å legge til et notat som åpner en dialog med en nedtrekksliste **Note Type** — **Public Note** (publisert på statussiden) eller **Private Note** (bare de som kan se hendelsen, kan lese det) — og et tekstfelt **Note**, og som skriver resultatet rett på hendelsen. På en privat hendelse spør den ikke om **Note Type** og legger til et privat notat: se [Private hendelser tar bare private notater](#private-hendelser-tar-bare-private-notater).
 
 Tre detaljer det er verdt å kjenne til:
 

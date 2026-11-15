@@ -2249,7 +2249,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       expect(view["title"]).toEqual({ type: "plain_text", text: "Add Note" });
       expect(optionTexts(elementOf(view, "noteType")["options"])).toEqual([
         "Public Note (Will be posted on Status Page)",
-        "Private Note (Only visible to team members)",
+        "Private Note (Only people who can see the incident can read it)",
       ]);
     });
 

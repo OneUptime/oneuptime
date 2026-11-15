@@ -212,6 +212,8 @@ const DASHBOARD_MENU: string = `${DASHBOARDS_PAGES_DIR}/View/SideMenu.tsx`;
 const DASHBOARD_SETTINGS: string = `${DASHBOARDS_PAGES_DIR}/View/Settings.tsx`;
 const DASHBOARD_VIEW: string = `${DASHBOARD_COMPONENTS_DIR}/DashboardView.tsx`;
 const TOOLBAR: string = `${DASHBOARD_COMPONENTS_DIR}/Toolbar/DashboardToolbar.tsx`;
+// The leave question every editor that holds unsaved work asks (#7401).
+const LEAVE_QUESTION: string = `${DASHBOARD_APP}/Components/UnsavedChanges/LeaveWithoutSavingQuestion.tsx`;
 const ADD_WIDGET_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Toolbar/AddWidgetModal.tsx`;
 const VARIABLES_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Toolbar/DashboardVariablesModal.tsx`;
 const SETTINGS_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/ComponentSettingsModal.tsx`;
@@ -1117,6 +1119,7 @@ describe("Authoring a Dashboard, against the product", () => {
   it("says Cancel asks only when something changed, and leaving asks while changes are unsaved (issue #7173)", () => {
     const toolbar: string = readSource(TOOLBAR);
     const view: string = readSource(DASHBOARD_VIEW);
+    const question: string = readSource(LEAVE_QUESTION);
     const editAndSave: string = sectionOf(page, "## Edit and save");
 
     // Cancel with nothing changed goes straight back to view mode.
@@ -1132,9 +1135,12 @@ describe("Authoring a Dashboard, against the product", () => {
      */
     expect(view).toContain("useLeaveGuard(hasUnsavedChanges)");
     expect(view).toContain("useUnsavedChanges(hasUnsavedChanges)");
-    expect(view).toContain('title={"Leave without saving?"}');
-    expect(view).toContain('submitButtonText={"Discard Changes"}');
-    expect(view).toContain('closeButtonText={"Keep Editing"}');
+    // Asked with the question the runbook steps and the form builder ask too.
+    expect(view).toContain("<LeaveWithoutSavingQuestion");
+    expect(view).toContain("prompt={leavePrompt}");
+    expect(question).toContain('title={"Leave without saving?"}');
+    expect(question).toContain('submitButtonText={"Discard Changes"}');
+    expect(question).toContain('closeButtonText={"Keep Editing"}');
     expect(editAndSave).toContain(
       `A link in the side menu, the breadcrumbs or the top bar, or your browser's back and forward buttons, open ${bold(
         "Leave without saving?",

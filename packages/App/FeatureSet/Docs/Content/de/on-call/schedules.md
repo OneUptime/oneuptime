@@ -69,7 +69,18 @@ flowchart TB
 | **Erste Übergabezeit** | Die erste Übergabe an die nächste Person, zum Beginn oder danach. Spätere Übergaben folgen in jedem Rotationsintervall. |
 | **Einschränkungen** | Die Stunden, in denen die Ebene Bereitschaft hat: **Keine Einschränkungen**, **Bestimmte Tageszeiten** oder **Bestimmte Zeiten der Woche**, in der Zeitzone des Plans. Außerhalb davon übernehmen die unteren Ebenen. |
 
-Um zu ändern, welche Ebene zuerst kommt, verwenden Sie **Ebene nach oben verschieben (höhere Priorität)** oder **Ebene nach unten verschieben (niedrigere Priorität)** im Menü einer Ebene.
+Um zu ändern, welche Ebene zuerst kommt, verwenden Sie die Pfeile auf der Karte einer Ebene: **Ebene nach oben verschieben (höhere Priorität)** oder **Ebene nach unten verschieben (niedrigere Priorität)**.
+
+Änderungen daran, wer sich abwechselt, warten, bis Sie sie speichern. So können Sie mehrere vornehmen und prüfen, bevor sich jemandes Schicht verschiebt. Ziehen Sie Personen in eine neue Reihenfolge, fügen Sie Personen hinzu oder entfernen Sie sie, verschieben Sie eine Ebene nach oben oder unten oder löschen Sie eine, und die Seite zeigt jede Änderung, bevor sie gespeichert ist:
+
+- Wer hinzugefügt wurde, ist mit **Neu** markiert, und wer an eine neue Stelle gezogen wurde, mit **Verschoben**. Entfernte Personen stehen unter **Beim Speichern entfernt**, jede mit **Rückgängig**.
+- Eine gelöschte Ebene zeigt an, dass sie beim Speichern gelöscht wird, mit **Rückgängig**.
+- Jede Ebene und der endgültige Plan zeigen die Rotation so, wie sie sein wird. Der endgültige Plan ist mit **Enthält nicht gespeicherte Änderungen** markiert.
+- Eine Leiste am unteren Rand der Seite nennt die Änderungen, mit **Änderungen speichern** und **Verwerfen**.
+
+**Änderungen speichern** speichert alle Änderungen auf einmal. Wer Bereitschaft hat, wird dann einmal ermittelt, für die Ebenen, wie sie gespeichert sind: Wer in die Bereitschaft kommt, sie abgibt oder als Nächstes dran ist, erfährt es einmal, nicht einmal pro Änderung. **Verwerfen** setzt die Ebenen auf den zuletzt gespeicherten Stand zurück. Wenn Sie die Seite vor dem Speichern verlassen, wird zuerst nachgefragt: **Weiter bearbeiten** bleibt auf der Seite, **Änderungen verwerfen** verlässt sie ohne zu speichern.
+
+Hat jemand anderes die Ebenen geändert, nachdem Sie die Seite geöffnet haben, werden Ihre Änderungen nicht über seine gespeichert. Die Leiste sagt das, und **Ebenen neu laden** zeigt die Ebenen im aktuellen Stand, damit Sie Ihre Änderungen erneut vornehmen. **Ebene hinzufügen** fügt die Ebene sofort hinzu, und die Einstellungen einer Ebene werden mit ihrer eigenen Schaltfläche **Ebene speichern** gespeichert.
 
 Jede Person behält überall dieselbe Farbe, damit Sie ihr auf einen Blick folgen können: auf jeder Ebene, im endgültigen Plan und seinen Vertretungen und auf der **Zeitachse der Bereitschaftspläne**.
 

@@ -118,7 +118,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "add_incident_note",
     title: "Add Incident Note",
     description:
-      "Add a note to an incident. Internal notes are visible to your team only; public notes are posted to the status page for subscribers/customers. Markdown is supported.",
+      "Add a note to an incident. Only the people who can see the incident in OneUptime can read an internal note; public notes are posted to the status page for subscribers/customers. Markdown is supported.",
     inputSchema: {
       type: "object",
       properties: {
@@ -134,7 +134,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
           type: "string",
           enum: ["internal", "public"],
           description:
-            "Where the note is visible: 'internal' (team only, default) or 'public' (posted to the status page).",
+            "Where the note is visible: 'internal' (only the people who can see the incident, default) or 'public' (posted to the status page).",
           default: "internal",
         },
       },
@@ -147,7 +147,7 @@ const WORKFLOW_TOOL_DEFINITIONS: WorkflowToolDefinition[] = [
     name: "add_alert_note",
     title: "Add Alert Note",
     description:
-      "Add an internal note to an alert, visible to your team. Markdown is supported.",
+      "Add an internal note to an alert. Only the people who can see the alert in OneUptime can read it. Markdown is supported.",
     inputSchema: {
       type: "object",
       properties: {
@@ -596,7 +596,7 @@ async function addIncidentNote(
     message:
       visibility === "public"
         ? "Public note posted — it is visible on the status page."
-        : "Internal note added — visible to your team only.",
+        : "Internal note added — only the people who can see the incident can read it.",
   } as JSONObject;
 }
 

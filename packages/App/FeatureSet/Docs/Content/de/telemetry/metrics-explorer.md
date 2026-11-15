@@ -23,11 +23,12 @@ flowchart TB
     chart --> dash["Ein Dashboard-Widget"]
 ```
 
-Der Explorer hat fünf Tabs:
+Der Explorer hat sechs Tabs:
 
 | Tab | Wofür er da ist |
 | --- | --- |
 | **Betrachter** | Die Liste der Metriken, jede mit einem kleinen Diagramm und ihrem letzten Wert. Er öffnet mit der letzten Stunde. |
+| **PromQL** | Fragen Sie Ihre Metriken mit PromQL ab, der Abfragesprache von Prometheus, und verbinden Sie Grafana mit ihnen. Siehe [Metriken mit PromQL abfragen](/docs/telemetry/promql). |
 | **Einblicke** | Welche Dienste Metriken melden, und wie viele. |
 | **KI** | Die Probleme, die OneUptime in Ihren Metriken findet (zu viele Werte, Histogramm-Buckets, die nicht passen, fehlende Metriken), und was OneUptime AI dagegen getan hat. Siehe [Metriken mit KI verbessern und fehlende ergänzen](#metriken-mit-ki-verbessern-und-fehlende-ergänzen). |
 | **Einrichtungsanleitung** | Wie Sie Metriken mit OpenTelemetry senden, mit einem Ihrer Aufnahmeschlüssel. |

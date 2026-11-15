@@ -15,4 +15,10 @@ export default interface ListResult<
    * pagination off `hasMore` rather than computing total pages.
    */
   hasMore?: boolean | undefined;
+  /*
+   * Optional. True when the read asked for its count up to a cap
+   * (countUpTo) and more records match: `count` is the cap, so the list
+   * reads "10,000+", and records follow this page.
+   */
+  isCountCapped?: boolean | undefined;
 }

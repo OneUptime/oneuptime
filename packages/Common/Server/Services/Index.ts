@@ -178,6 +178,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerRuleService from "./MonitorOwnerRuleService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
+import MonitorNetworkDeviceService from "./MonitorNetworkDeviceService";
 import MonitorSecretService from "./MonitorSecretService";
 import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
@@ -185,6 +186,7 @@ import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
 import RunbookLabelRuleService from "./RunbookLabelRuleService";
 import RunbookVariableService from "./RunbookVariableService";
 import AIInsightService from "./AIInsightService";
+import AIRunRecordingService from "./AIRunRecordingService";
 
 // Monitors
 import MonitorService from "./MonitorService";
@@ -795,6 +797,7 @@ const services: Array<BaseService> = [
   MonitorOwnerRuleService,
   MonitorOwnerUserService,
   MonitorProbeService,
+  MonitorNetworkDeviceService,
   MonitorService,
   MonitorStatusService,
   MonitorStatusTimelineService,
@@ -805,6 +808,7 @@ const services: Array<BaseService> = [
   RunbookLabelRuleService,
   RunbookVariableService,
   AIInsightService,
+  AIRunRecordingService,
   MonitorFeedService,
   KubernetesClusterFeedService,
   DockerHostFeedService,

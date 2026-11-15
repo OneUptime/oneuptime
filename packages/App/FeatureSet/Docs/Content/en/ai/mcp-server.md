@@ -330,7 +330,7 @@ Beside the tools for each kind of record, the server has tools made for respondi
 
 - **`acknowledge_incident`** / **`resolve_incident`**: move an incident to the project's Acknowledged or Resolved state, as the dashboard's button does
 - **`acknowledge_alert`** / **`resolve_alert`**: the same for alerts
-- **`add_incident_note`**: add a note to an incident with `visibility: "internal"` (the team only, the default) or `visibility: "public"` (posted to the status page). Markdown is supported
+- **`add_incident_note`**: add a note to an incident with `visibility: "internal"` (only the people who can see the incident, the default) or `visibility: "public"` (posted to the status page). Markdown is supported
 - **`add_alert_note`**: add an internal note to an alert
 
 A typical loop: `list_incidents` → `acknowledge_incident` → investigate with `list_logs` → `add_incident_note` (public) → `resolve_incident`.

@@ -39,7 +39,7 @@ Arraste um cartão pela alça para movê-lo, ou use **Mover para cima** e **Move
 
 ### Salvar o formulário
 
-**Salvar alterações** salva todas as alterações de uma vez. Até você salvar, o editor diz **Alterações não guardadas** e oferece **Descartar alterações**, e o navegador pergunta antes de você sair da página.
+**Salvar alterações** salva todas as alterações de uma vez. Até você salvar, o editor diz **Alterações não guardadas** e oferece **Descartar alterações**. Sair do editor antes de salvar pergunta antes. Um link no menu lateral, na trilha de navegação ou na barra superior, ou os botões Voltar e Avançar do seu navegador, abrem **Sair sem salvar?** com duas opções: **Continuar Editando** fica no editor com suas alterações, e **Descartar alterações** segue para a página que você estava abrindo. Fechar ou recarregar a aba pergunta com a própria caixa de diálogo do navegador.
 :::
 
 - **O cabeçalho do formulário** mostra o nome e a descrição dele como a página pública mostrará. **Editar nome e descrição** os altera.

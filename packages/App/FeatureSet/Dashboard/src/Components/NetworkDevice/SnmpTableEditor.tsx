@@ -281,6 +281,8 @@ const SnmpTableEditor: FunctionComponent<ComponentProps> = (
                         })
                       : translator.translateText("Key (optional)")
                   }
+                  // A sentence around the key, in the reader's words here.
+                  isPlaceholderTranslated={true}
                   onChange={(value: string) => {
                     updateTable(tableIndex, { key: value });
                   }}
@@ -310,6 +312,7 @@ const SnmpTableEditor: FunctionComponent<ComponentProps> = (
                     "Row limit (default {{max}})",
                     { max: DEFAULT_SNMP_TABLE_MAX_ROWS },
                   )}
+                  isPlaceholderTranslated={true}
                   onChange={(value: string) => {
                     const parsed: number = parseInt(value, 10);
                     updateTable(tableIndex, {

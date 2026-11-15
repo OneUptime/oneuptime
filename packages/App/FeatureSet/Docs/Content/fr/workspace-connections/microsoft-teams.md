@@ -91,14 +91,17 @@ Une règle de notification dit quels événements sont publiés dans Microsoft T
 | **Astreinte** | Une liste de règles |
 | **SLOs** | Une liste de règles |
 
-Créer une règle passe par quatre étapes :
+Créer une règle passe par cinq étapes au plus :
 
 | Étape | Ce que vous définissez |
 | --- | --- |
 | **Basique** | **Nom de la règle** et **Description de la règle**. |
 | **Conditions** | Pour quels événements est la règle, par exemple selon la gravité, l'état, l'étiquette, le moniteur ou des mots du titre. Elles sont vérifiées à la création d'un événement, puis à chaque mise à jour que OneUptime publie à son sujet : une règle pour les incidents pris en compte agit donc quand un incident est pris en compte. Une nouvelle règle est pour chaque événement, par exemple **Tous les incidents**. Pour la restreindre, choisissez **Uniquement les incidents qui correspondent aux conditions** et ajoutez les conditions. Avec deux ou plus, **Condition de correspondance** dit si toutes doivent correspondre, ou une seule. |
 | **Destination** | Où elle publie : dans un canal existant d'une équipe choisie, dans les conversations choisies, dans un canal pour chaque incident (ou alerte, épisode, événement, moniteur ou politique d'astreinte) créé dans une équipe choisie, ou dans plusieurs d'entre eux à la fois. Sous l'étape, **Ce que fait cette règle** le dit en phrases, comme la carte de la règle. |
+| **Mises à jour** | Incidents, alertes, épisodes, maintenances planifiées et politiques d'astreinte uniquement : les mises à jour que la règle publie après le premier message de l'enregistrement. **Toutes les mises à jour** les publie toutes, et une nouvelle règle commence par ce choix, sauf celle d'une politique d'astreinte. **Mises à jour clés uniquement** publie celles qui comptent le plus, que l'étape liste pour chaque type d'enregistrement : pour un incident, sa résolution ou sa réouverture, les changements de gravité, les notes publiques et le post-mortem ; pour une politique d'astreinte, qui est d'astreinte maintenant et quand personne ne l'est, le choix par lequel commence une nouvelle règle de politique d'astreinte. **Choisir les mises à jour** vous permet de les cocher une à une. Quel que soit votre choix, la règle publie le premier message de l'enregistrement, et un appel vidéo quand il commence. Voir [Messages d'astreinte](#messages-dastreinte). |
 | **Appel vidéo** | Incidents et alertes uniquement : lancer un appel pour chacun. Voir [Appels vidéo](/docs/workspace-connections/video-calls). |
+
+Chaque condition se lit comme une phrase : le champ, la manière de comparer et la valeur. Les valeurs à choisir viennent des listes du projet, comme ses états, gravités, étiquettes et moniteurs. Une règle d'astreinte choisit ses politiques sous **Politique d'astreinte**, qui continue de correspondre à une politique après son renommage, alors que **Nom de la politique d'astreinte** cherche des mots dans le nom d'une politique. Chaque type d'événement qui a des propriétaires a une condition de propriétaire, comme **Propriétaire de l'incident** : choisissez des personnes et des équipes, et elle correspond aux personnes et aux équipes enregistrées comme propriétaires de l'événement. Faire partie d'une équipe propriétaire de l'événement ne compte pas. Un propriétaire ajouté plus tard fait correspondre la règle à partir de cette mise à jour, et une règle qui crée des canaux crée alors le canal. Une valeur archivée, comme une gravité ou une politique d'astreinte, n'est pas proposée pour une nouvelle condition. Une règle qui en a déjà une la conserve, marquée **Archivé**, et correspond toujours aux événements qui l'ont. Une personne, une équipe ou une politique que le projet n'a plus reste dans la condition, et la carte de la règle le signale.
 
 Une règle de SLO publie les changements de la politique de budget d'erreur d'un SLO : quand le SLO entre dans un palier, revient à un palier moins grave ou sort de tous les paliers, et quand ses déploiements sont gelés ou de nouveau autorisés. Elle ne publie que dans des canaux et des conversations existants, car un SLO n'a pas de canal à lui. Voir [Publier dans Slack, Microsoft Teams et Mattermost](/docs/slo/error-budget-policy#publier-dans-slack-microsoft-teams-et-mattermost).
 
@@ -108,7 +111,7 @@ Une règle crée son canal la première fois qu'un événement lui correspond : 
 
 Pour faire venir les personnes d'astreinte, choisissez leurs plannings d'astreinte sous **Mentionner les personnes d'astreinte**. À la création du canal, OneUptime y publie un message, juste après le premier message de l'enregistrement, qui mentionne avec @ les personnes d'astreinte dans ces plannings, pour que Microsoft Teams les notifie. Personne n'est alerté. OneUptime trouve chaque personne de l'équipe par le compte Microsoft Teams qu'elle a connecté à OneUptime, ou sinon par son adresse e-mail. Une personne qui n'est pas dans l'équipe ne peut pas ouvrir ses canaux, elle est donc nommée dans le message à la place, avec la raison. Dans un canal privé, seuls ses membres peuvent l'ouvrir ; ajoutez-y donc les personnes d'astreinte dans Microsoft Teams.
 
-Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux, et dans les canaux et conversations existants que ses règles nomment tant que leurs conditions correspondent. OneUptime ne peut pas archiver un canal Microsoft Teams, donc le canal d'une règle reste quand son enregistrement est terminé ; archivez-le ou supprimez-le dans Microsoft Teams.
+Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux, et dans les canaux et conversations existants que ses règles nomment tant que leurs conditions correspondent, quand une règle qui y publie la choisit à son étape **Mises à jour**. OneUptime ne peut pas archiver un canal Microsoft Teams, donc le canal d'une règle reste quand son enregistrement est terminé ; archivez-le ou supprimez-le dans Microsoft Teams.
 
 Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Microsoft Teams** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, dans l'application Microsoft Teams ou dans le navigateur. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a des canaux à la fois dans Slack et dans Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux et conversations existants où vos règles publient ne sont pas proposés.
 
@@ -119,6 +122,14 @@ Les canaux et les conversations restent lisibles : chaque événement est publi�
 **Paramètres du projet** > **Espace de travail** > **Microsoft Teams** liste les canaux que OneUptime voit dans vos équipes, et les conversations auxquelles il a été ajouté, avec **Envoyer le test** à côté de chacun. Une conversation apparaît dès que l'application OneUptime y est ajoutée dans Microsoft Teams ; **Refresh Chats** récupère les nouvelles conversations et leurs noms actuels.
 
 Une règle de notification peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+
+### Messages d'astreinte
+
+À chaque relève, les canaux et les conversations d'une politique d'astreinte apprennent qui est d'astreinte, en une ligne :
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments renvoie à la politique dans OneUptime. Une personne est nommée par son nom Microsoft Teams une fois qu'elle a connecté son compte Microsoft Teams à OneUptime, et par son nom OneUptime jusque-là. Les heures s'affichent dans le fuseau horaire de chaque lecteur. L'étape **Mises à jour** d'une règle choisit les messages d'astreinte qu'elle publie, comme dans Slack, et une nouvelle règle commence par qui est d'astreinte maintenant et quand personne ne l'est : voir [Messages d'astreinte](/docs/workspace-connections/slack#messages-dastreinte).
 
 ## Tester une règle
 
@@ -158,7 +169,7 @@ Réagissez à un message, ou à une réponse, dans le canal que OneUptime a cré
 
 | Réaction | Enregistré comme |
 | --- | --- |
-| 📌 ou 📍 | Une note privée, visible seulement par votre équipe |
+| 📌 ou 📍 | Une note privée, lisible uniquement par les personnes qui peuvent voir l'enregistrement |
 | 📣 ou 📢 | Une note publique, affichée sur la page de statut. Incidents et événements de maintenance planifiée uniquement. Sur un incident privé, une note privée, et la confirmation dit pourquoi. Quand les notes publiques du projet doivent être approuvées, elle n'est affichée qu'une fois approuvée, et la confirmation dit qui elle attend : voir [Approbation des notes publiques](/docs/incidents/notes-owners-and-feed#approbation-des-notes-publiques). |
 
 La note reprend le message tel que Microsoft Teams l'affichait : sa mise en forme, ses liens et son code, les personnes qu'il mentionne par leur nom, et ses fichiers et images sous forme de liens. Une note publique laisse de côté les fichiers et les images, puisqu'ils ne s'ouvrent que pour votre équipe.
@@ -253,7 +264,7 @@ La carte d'un incident a quatre boutons, **Acknowledge Incident**, **Resolve Inc
 | **Change Severity** | Définit la gravité de l'incident. |
 | **Change Incident State** | Fait passer l'incident à un état suivant. |
 | **Assign Role** | Donne à quelqu'un un rôle sur l'incident, comme **Incident Commander**. Un rôle réservé à une seule personne lui revient. |
-| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Les personnes sont alertées jusqu'à ce que l'une d'elles réponde ; une politique alerte jusqu'à ce que quelqu'un accuse réception de l'incident. |
+| **Page Someone** | Alerte des personnes, une équipe, la personne d'astreinte dans un planning, ou une politique d'astreinte au sujet de l'incident, avec un message facultatif. Toutes les personnes qu'il alerte, y compris celles d'une politique, sont alertées jusqu'à ce que l'une d'elles réponde ou que l'incident soit résolu. |
 | **Edit Custom Fields** | Définit les champs personnalisés de l'incident, chacun rempli avec ce que contient l'incident. Un champ laissé vide est effacé. |
 
 `incident 42`, écrit au bot, répond avec l'incident 42, ces boutons et son menu. Tapez le numéro tel que OneUptime l'affiche : `42`, `#42` ou `INC-42`. Dans le canal propre à un incident, `incident` seul affiche cet incident.

@@ -69,7 +69,18 @@ flowchart TB
 | **Hora del primer relevo** | El primer relevo a la siguiente persona, en el inicio o después. Los relevos posteriores siguen cada intervalo de rotación. |
 | **Restricciones** | Las horas en que la capa está de guardia: **Sin restricciones**, **Horas específicas del día** u **Horas específicas de la semana**, en la zona horaria de la programación. Fuera de ellas, toman el relevo las capas inferiores. |
 
-Para cambiar qué capa va primero, usa **Subir capa (mayor prioridad)** o **Bajar capa (menor prioridad)** en el menú de una capa.
+Para cambiar qué capa va primero, usa las flechas de la tarjeta de una capa: **Subir capa (mayor prioridad)** o **Bajar capa (menor prioridad)**.
+
+Los cambios en quién se turna esperan a que los guardes, así que puedes hacer varios y revisarlos antes de que cambie el turno de nadie. Arrastra personas a un nuevo orden, añade o quita personas, sube o baja una capa o elimina una, y la página muestra cada cambio antes de guardarlo:
+
+- Quien añadiste aparece marcado como **Nuevo**, y quien arrastraste a otro lugar, como **Movido**. Las personas que quitaste aparecen en **Se quitan al guardar**, cada una con **Deshacer**.
+- Una capa que eliminas indica que se eliminará al guardar, con **Deshacer**.
+- Cada capa y la programación final muestran la rotación como quedará. La programación final aparece marcada con **Incluye cambios sin guardar**.
+- Una barra al pie de la página enumera los cambios, con **Guardar cambios** y **Descartar**.
+
+**Guardar cambios** guarda todos los cambios a la vez. Quién está de guardia se calcula entonces una sola vez, para las capas tal como quedan guardadas: quien entra o sale de guardia, o es el siguiente, recibe el aviso una vez, no una por cada cambio. **Descartar** devuelve las capas a como estaban la última vez que se guardaron. Salir de la página antes de guardar te pregunta primero: **Seguir editando** te deja en ella, y **Descartar cambios** sale sin guardar.
+
+Si otra persona cambió las capas después de que abrieras la página, tus cambios no se guardan encima de los suyos. La barra lo indica, y **Recargar capas** muestra las capas como están ahora, para que vuelvas a hacer tus cambios. **Añadir capa** añade su capa al momento, y los ajustes de una capa se guardan con su propio botón **Guardar capa**.
 
 Cada persona conserva un mismo color en todas partes, para que puedas seguirla de un vistazo: en cada capa, en la programación final y sus sustituciones, y en la **Cronología de la programación**.
 

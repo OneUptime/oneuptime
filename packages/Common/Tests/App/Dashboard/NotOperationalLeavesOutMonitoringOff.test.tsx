@@ -102,6 +102,22 @@ const NOT_OPERATIONAL: Record<string, unknown> = {
   },
 };
 
+/*
+ * The same, asked in the monitors' project: the status is asked of that
+ * project too (issue #8096), which lets Postgres read only the monitors
+ * holding one of its statuses that are not operational.
+ */
+function notOperationalIn(projectId: string): Record<string, unknown> {
+  return {
+    isArchived: false,
+    disableActiveMonitoring: false,
+    currentMonitorStatus: {
+      isOperationalState: false,
+      projectId: new ObjectID(projectId),
+    },
+  };
+}
+
 function project(): Project {
   const value: Project = new Project();
   value._id = PROJECT_ID;
@@ -157,6 +173,22 @@ describe("NotOperationalMonitorQuery", () => {
     expect(NotOperationalMonitorQuery.getQuery()).toEqual(NOT_OPERATIONAL);
   });
 
+  test("given its project, asks the status of that project too, as an id or as text", () => {
+    expect(
+      NotOperationalMonitorQuery.getQuery(new ObjectID(PROJECT_ID)),
+    ).toEqual(notOperationalIn(PROJECT_ID));
+    expect(NotOperationalMonitorQuery.getQuery(PROJECT_ID)).toEqual(
+      notOperationalIn(PROJECT_ID),
+    );
+  });
+
+  test("with no project it asks the status alone, as before", () => {
+    expect(NotOperationalMonitorQuery.getQuery(undefined)).toEqual(
+      NOT_OPERATIONAL,
+    );
+    expect(NotOperationalMonitorQuery.getQuery(null)).toEqual(NOT_OPERATIONAL);
+  });
+
   test("hands out a fresh query each time: a caller that adds to it changes no one else's", () => {
     const first: Record<string, unknown> =
       NotOperationalMonitorQuery.getQuery() as Record<string, unknown>;
@@ -174,7 +206,7 @@ describe("the menus' Not Operational badges count what the list shows", () => {
     await renderMenu(<MonitorsSideMenu project={project()} />);
 
     expect(notOperationalBadgeQueries()).toEqual([
-      { projectId: PROJECT_ID, ...NOT_OPERATIONAL },
+      { projectId: PROJECT_ID, ...notOperationalIn(PROJECT_ID) },
     ]);
   });
 
@@ -222,7 +254,7 @@ describe("the Not Operational page lists them nowhere", () => {
       expect({
         ...props.query,
         projectId: props.query["projectId"]?.toString(),
-      }).toEqual({ projectId: PROJECT_ID, ...NOT_OPERATIONAL });
+      }).toEqual({ projectId: PROJECT_ID, ...notOperationalIn(PROJECT_ID) });
       expect(props.title).toBe("Not Operational Monitors");
       expect(props.description).toBe(
         "Monitors whose current status is not operational, such as Degraded or Offline. Monitors with monitoring turned off are not listed. View a monitor to see what changed.",
@@ -245,7 +277,10 @@ describe("Home's attention strip", () => {
       };
 
     expect(request.modelType).toBe(Monitor);
-    expect(request.query).toEqual({ projectId: projectId, ...NOT_OPERATIONAL });
+    expect(request.query).toEqual({
+      projectId: projectId,
+      ...notOperationalIn(PROJECT_ID),
+    });
   });
 });
 
@@ -270,7 +305,40 @@ describe("one rule for every Not Operational list and count", () => {
       "utf8",
     );
 
-    expect(source).toContain("NotOperationalMonitorQuery.getQuery()");
+    expect(source).toMatch(/NotOperationalMonitorQuery\.getQuery\(/);
     expect(source).not.toMatch(/isOperationalState:\s*false/);
+  });
+
+  /*
+   * Each one that knows the project it reads passes it, so its status is
+   * asked in that project (issue #8096). The Monitor List widget's query is
+   * built from a board's stored settings, the same on a board and on its
+   * public page, with no project in sight: it asks the status alone.
+   */
+  test.each([
+    [
+      "App/FeatureSet/Dashboard/src/Pages/Monitor/NotOperationalMonitors.tsx",
+      /NotOperationalMonitorQuery\.getQuery\(\s*ProjectUtil\.getCurrentProjectId\(\),?\s*\)/,
+    ],
+    [
+      "App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu.tsx",
+      /NotOperationalMonitorQuery\.getQuery\(props\.project\?\._id\)/,
+    ],
+    [
+      "App/FeatureSet/Dashboard/src/Components/Home/HomeOverviewData.ts",
+      /NotOperationalMonitorQuery\.getQuery\(projectId\)/,
+    ],
+    [
+      "Common/Server/Utils/AI/Toolbox/MonitorTools.ts",
+      /NotOperationalMonitorQuery\.getQuery\(ctx\.projectId\)/,
+    ],
+  ])("%s asks in its project", (relativePath: string, call: RegExp) => {
+    const source: string = fs.readFileSync(
+      path.join(PACKAGES, relativePath),
+      "utf8",
+    );
+
+    expect(source).toMatch(call);
+    expect(source).not.toContain("NotOperationalMonitorQuery.getQuery()");
   });
 });

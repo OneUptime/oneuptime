@@ -12972,7 +12972,7 @@ const products: Dictionary<Product> = {
     oneUptimeDescription:
       "OneUptime is an Apache 2.0, self-hostable observability and reliability platform that brings OpenTelemetry metrics, logs, and traces together with uptime and synthetic monitoring, status pages, on-call scheduling, and incident management. Instead of stitching together Prometheus, Grafana, Alertmanager, exporters, remote storage, a status page tool, and a paging tool, you run one system. Self-hosting is free and the managed cloud uses flat, predictable pricing.",
     description:
-      "Prometheus is the de facto open-source standard for infrastructure and application metrics, and OneUptime does not try to replace PromQL's power for time-series analysis. The difference is scope. Prometheus gives you a metrics engine and Alertmanager, then leaves you to bolt on Grafana for dashboards, Thanos or Mimir for long-term storage, dozens of exporters for coverage, plus separate products for status pages, on-call rotations, and incident response. OneUptime folds all of that into one open-source platform so a single team can go from a metric spike to a paged engineer, a public status update, and a completed postmortem without leaving the tool.",
+      "Prometheus is the de facto open-source standard for infrastructure and application metrics, and OneUptime speaks its language: PromQL runs on OneUptime's metrics, on the Metrics page and through a Prometheus-compatible API that Grafana reads. The difference is scope. Prometheus gives you a metrics engine and Alertmanager, then leaves you to bolt on Grafana for dashboards, Thanos or Mimir for long-term storage, dozens of exporters for coverage, plus separate products for status pages, on-call rotations, and incident response. OneUptime folds all of that into one open-source platform so a single team can go from a metric spike to a paged engineer, a public status update, and a completed postmortem without leaving the tool.",
     descriptionLine2:
       "If you love Prometheus for metrics but are tired of maintaining six other systems around it, OneUptime gives you the same open-source freedom with far less assembly and operational overhead.",
     migrationBenefits: [
@@ -13140,7 +13140,7 @@ const products: Dictionary<Product> = {
             title: "PromQL query language",
             description: "Native PromQL for slicing and aggregating metrics.",
             productColumn: "tick",
-            oneuptimeColumn: "",
+            oneuptimeColumn: "tick",
           },
           {
             title: "Exporter ecosystem",
@@ -13420,7 +13420,7 @@ const products: Dictionary<Product> = {
       {
         question: "Is OneUptime trying to replace Prometheus for metrics?",
         answer:
-          "No. Prometheus and PromQL are excellent for time-series metrics, and OneUptime does not compete on that specific engine. OneUptime is OpenTelemetry-native and gives you metrics, logs, and traces plus everything Prometheus does not do, such as uptime monitoring, status pages, on-call, and incident management, in one open-source platform.",
+          "It can be. OneUptime stores your metrics and runs PromQL on them, on the Metrics page and through a Prometheus-compatible API that Grafana reads, so most PromQL queries and Grafana dashboards carry over. It is OpenTelemetry-native and adds logs, traces, and everything Prometheus does not do, such as uptime monitoring, status pages, on-call, and incident management, in one open-source platform.",
       },
       {
         question: "Prometheus is free, so how is OneUptime cheaper?",

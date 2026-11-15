@@ -1140,6 +1140,45 @@ describe("MonitorOverviewProbeUtil.summarizeProbes", () => {
     expect(scheduled.reportingCount).toBe(0);
   });
 
+  /*
+   * The probes' claim sets the rows of a monitor nothing may probe aside a
+   * quarter of an hour at a time (Server/Utils/Probe/ClaimSetAside), so a
+   * paused monitor's rows carry a nextPingAt in the future - when the claim
+   * looks at them again, not a check that will happen. Nothing may read it
+   * as "next check in 12 minutes".
+   */
+  it("while monitoring is paused no probe has a next check, whatever its row says", () => {
+    const rows: Array<MonitorProbe> = [
+      reportingRow({
+        probeId: PROBE_A,
+        ageSeconds: 60,
+        nextPingInSeconds: 720,
+      }),
+      reportingRow({
+        probeId: PROBE_B,
+        ageSeconds: 60,
+        nextPingInSeconds: 900,
+      }),
+    ];
+
+    const paused: MonitorOverviewProbeSummary = summarize(rows, {
+      isScheduled: false,
+    });
+
+    expect(paused.nextCheckAt).toBeUndefined();
+    expect(paused.latestNextCheckAt).toBeUndefined();
+    for (const row of paused.rows) {
+      expect(row.nextPingAt).toBeUndefined();
+    }
+    // What it last found is still shown.
+    expect(paused.lastResultAt).toEqual(secondsAgo(60));
+
+    const scheduled: MonitorOverviewProbeSummary = summarize(rows);
+
+    expect(scheduled.nextCheckAt).toEqual(secondsAgo(-720));
+    expect(scheduled.latestNextCheckAt).toEqual(secondsAgo(-900));
+  });
+
   it("a schedule with gaps does not make probes late through the gap", () => {
     // Saturday evening; the last run of the week was Friday at 17:55.
     const saturday: Date = new Date("2026-09-19T20:00:00.000Z");

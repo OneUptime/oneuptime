@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51296,
-    "untranslated": 9498
+    "keys": 52236,
+    "untranslated": 9171
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -41,6 +41,7 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Enter",
     "Enterprise Edition",
     "Fluent Bit",
     "Full view",
@@ -61,6 +62,7 @@
     "IP",
     "Infrastructure only",
     "IoT",
+    "JSON",
     "JVM CPU",
     "JavaScript API",
     "Keystone",
@@ -98,7 +100,9 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Powered by OneUptime",
     "Project view",
+    "PromQL",
     "Proxmox ID",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -194,6 +198,7 @@
     "security-alerts",
     "storage-01 · RegionOne",
     "storefront-web",
+    "sum by (job) (rate(http_requests_total[5m]))",
     "svc-backup",
     "syslog",
     "timeout|connection refused",

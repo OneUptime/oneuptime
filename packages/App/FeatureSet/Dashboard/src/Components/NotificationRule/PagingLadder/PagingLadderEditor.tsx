@@ -413,6 +413,8 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                   },
                 )}
                 placeholder={addPlaceholder}
+                // Worded around the member's name: drawn as given.
+                isPlaceholderTranslated={true}
                 ariaLabel={addPlaceholder}
                 dataTestId="paging-ladder-add-step"
                 onChange={(

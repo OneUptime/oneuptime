@@ -4,7 +4,11 @@ import {
   buildSyncResultSummary,
   SyncResultSummary,
 } from "../../FeatureSet/Dashboard/src/Pages/Monitor/Settings/MonitorTemplateSyncResultUtil";
+import { createTranslator, Translator } from "Common/Types/Translator";
 import { describe, expect, it } from "@jest/globals";
+
+// The summary as an English reader gets it: OneUptime's own words, numbers written the English way.
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 const TEMPLATES_VIEW_SOURCE: string = path.join(
   __dirname,
@@ -309,6 +313,7 @@ describe("Monitor template sync result summary", () => {
       subject: "criteria",
       syncedMonitors: 12,
       totalLinkedMonitors: 12,
+      translator: ENGLISH,
     });
 
     expect(summary.isIncomplete).toBe(false);
@@ -327,12 +332,14 @@ describe("Monitor template sync result summary", () => {
       subject: "criteria",
       syncedMonitors: 10000,
       totalLinkedMonitors: 50000,
+      translator: ENGLISH,
     });
 
     expect(summary.isIncomplete).toBe(true);
     expect(summary.title).toBe("Partially synced");
+    // The count as English writes it (#7710): "40,000", as the reader's language writes numbers.
     expect(summary.message).toContain(
-      "40000 linked monitors still use the previous configuration",
+      "40,000 linked monitors still use the previous configuration",
     );
   });
 
@@ -342,6 +349,7 @@ describe("Monitor template sync result summary", () => {
         subject: "labels",
         syncedMonitors: 1,
         totalLinkedMonitors: 1,
+        translator: ENGLISH,
       }).message,
     ).toBe("Synced labels onto 1 monitor (1 linked to this template).");
 
@@ -349,6 +357,7 @@ describe("Monitor template sync result summary", () => {
       subject: "labels",
       syncedMonitors: 1,
       totalLinkedMonitors: 2,
+      translator: ENGLISH,
     });
 
     expect(partial.message).toContain(
@@ -361,6 +370,7 @@ describe("Monitor template sync result summary", () => {
       subject: "monitoring interval",
       syncedMonitors: 0,
       totalLinkedMonitors: 0,
+      translator: ENGLISH,
     });
 
     expect(summary.isIncomplete).toBe(false);
@@ -377,6 +387,7 @@ describe("Monitor template sync result summary", () => {
       subject: "criteria",
       syncedMonitors: 5,
       totalLinkedMonitors: 3,
+      translator: ENGLISH,
     });
 
     expect(summary.isIncomplete).toBe(false);
@@ -398,6 +409,7 @@ describe("Monitor template sync result summary", () => {
           subject: subject,
           syncedMonitors: 2,
           totalLinkedMonitors: 2,
+          translator: ENGLISH,
         }).message,
       ).toBe(`Synced ${subject} onto 2 monitors (2 linked to this template).`);
     }
@@ -408,6 +420,7 @@ describe("Monitor template sync result summary", () => {
       subject: "labels",
       syncedMonitors: 7,
       totalLinkedMonitors: 20,
+      translator: ENGLISH,
     });
 
     expect(summary.message).toContain(
@@ -425,6 +438,7 @@ describe("Monitor template sync result summary", () => {
       subject: "criteria",
       syncedMonitors: 0,
       totalLinkedMonitors: 12,
+      translator: ENGLISH,
     });
 
     expect(summary.isIncomplete).toBe(true);

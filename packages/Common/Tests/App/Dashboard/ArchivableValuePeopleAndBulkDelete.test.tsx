@@ -36,8 +36,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     value, and says apart how many people have rules for it in How to
  *     Reach Me (or notification settings), that those stay and still page,
  *     with a link to the reader's own;
- *   - the Delete dialog names them as whose they are: "2 people's How to
- *     Reach Me";
+ *   - the Delete dialog names them as what they are and whose: "2 people's
+ *     rules in How to Reach Me" - only their rules for the value go, never
+ *     their whole How to Reach Me (#7816) - in German too, from de.json;
  *   - Bulk Actions > Delete reads what the selected values have, once for
  *     the selection: which of them records still have - left out of the
  *     run, with why - and what deleting the rest changes, its Delete held
@@ -58,13 +59,26 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
+/*
+ * The reader's language: English, each word as written, unless a test hands
+ * t() a locale's words. t() then answers from them as i18next answers from
+ * a loaded locale file, and a word they lack falls back to its English.
+ */
+let readerLanguage: string = "en";
+let readerWords: Readonly<Record<string, string>> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (key: string, opts?: { defaultValue?: string }): string => {
+          if (Object.prototype.hasOwnProperty.call(readerWords, key)) {
+            return readerWords[key] as string;
+          }
+
           return opts?.defaultValue ?? key;
         },
+        i18n: { resolvedLanguage: readerLanguage, language: readerLanguage },
       };
     },
   };
@@ -151,6 +165,7 @@ import {
   BulkActionProps,
   DeleteConfirmation,
 } from "../../../UI/Components/ModelTable/BaseModelTable";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const CRITICAL_ID: string = "0193c0de-9999-4999-8999-000000000001";
 const MAJOR_ID: string = "0193c0de-9999-4999-8999-000000000002";
@@ -161,6 +176,8 @@ const SEV6_ID: string = "0193c0de-9999-4999-8999-000000000006";
 
 beforeEach(() => {
   recordedTables.length = 0;
+  readerLanguage = "en";
+  readerWords = {};
 
   countMock.mockReset();
   countMock.mockImplementation(
@@ -584,13 +601,8 @@ describe("the Archive dialog says people's own settings apart", () => {
 });
 
 describe("the Delete dialog names whose rules go with it", () => {
-  test("deleting a severity takes people's own rules for it in How to Reach Me: said as theirs, by person", async () => {
-    usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
-      return [onCallRulesOf(2), onCallRuleSettings];
-    });
-
-    await renderPage(IncidentSeveritiesPage);
-
+  // The Delete dialog's words for Critical, as the page draws them.
+  const deleteDialogText: () => Promise<string> = async (): Promise<string> => {
     const confirmation: DeleteConfirmation = await (
       table("incident-severity-table")["getDeleteConfirmation"] as (
         item: BaseModel,
@@ -600,14 +612,50 @@ describe("the Delete dialog names whose rules go with it", () => {
     const view: { container: HTMLElement } = render(
       <div>{confirmation.description}</div>,
     );
-    const text: string = (view.container.textContent || "").replace(
-      /\s+/g,
-      " ",
-    );
 
-    expect(text).toContain("Deleted with it: 2 people's How to Reach Me");
+    return (view.container.textContent || "").replace(/\s+/g, " ");
+  };
+
+  /*
+   * Only each person's rules for the severity go (their foreign key to it
+   * is ON DELETE CASCADE): their other rules, their notification methods
+   * and the rest of How to Reach Me stay. "2 people's How to Reach Me" said
+   * the whole page went (#7816).
+   */
+  test("deleting a severity takes people's own rules for it in How to Reach Me: said as theirs, by person", async () => {
+    usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
+      return [onCallRulesOf(2), onCallRuleSettings];
+    });
+
+    await renderPage(IncidentSeveritiesPage);
+
+    const text: string = await deleteDialogText();
+
+    expect(text).toContain(
+      "Deleted with it: 2 people's rules in How to Reach Me",
+    );
     expect(text).toContain("Removed from: Incident On-Call Rules (3)");
     expect(text).not.toContain("Notification Rules");
+    expect(text).not.toContain("people's How to Reach Me");
+  });
+
+  test("in German, the line is de.json's: the people's rules, in their Wie ich erreichbar bin", async () => {
+    readerLanguage = "de";
+    readerWords = readDashboardLocale("de");
+
+    usageMock.mockImplementation(async (): Promise<Array<unknown>> => {
+      return [onCallRulesOf(2)];
+    });
+
+    await renderPage(IncidentSeveritiesPage);
+
+    const text: string = await deleteDialogText();
+
+    expect(text).toContain(
+      "Werden mitgelöscht: Regeln von 2 Personen in „Wie ich erreichbar bin“",
+    );
+    // Never the whole page, as the old line had it.
+    expect(text).not.toContain("„Wie ich erreichbar bin“ von 2 Personen");
   });
 });
 
@@ -770,7 +818,7 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     expect(bulkText()).toContain("Deleting the others also changes these:");
     // Two values go: what goes is deleted with them.
     expect(bulkText()).toContain(
-      "Deleted with them: 11 people's How to Reach Me",
+      "Deleted with them: 11 people's rules in How to Reach Me",
     );
     expect(bulkText()).not.toContain("Deleted with it");
     expect(bulkText()).toContain("Removed from: Incident On-Call Rules (3)");
@@ -963,7 +1011,7 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
     });
 
     expect(bulkText()).toContain(
-      "Deleted with them: 2 people's How to Reach Me",
+      "Deleted with them: 2 people's rules in How to Reach Me",
     );
     expect(
       screen.queryByTestId("archivable-values-bulk-delete-refused"),
@@ -993,7 +1041,9 @@ describe("Bulk Actions > Delete of values says what it would do first", () => {
       );
     });
 
-    expect(bulkText()).toContain("Deleted with it: 2 people's How to Reach Me");
+    expect(bulkText()).toContain(
+      "Deleted with it: 2 people's rules in How to Reach Me",
+    );
     expect(bulkText()).not.toContain("Deleted with them");
   });
 

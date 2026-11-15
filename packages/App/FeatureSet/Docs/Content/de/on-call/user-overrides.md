@@ -5,6 +5,7 @@ Solange jemand abwesend ist, schickt eine Benutzerüberschreibung die Alarme, di
 :::cards
 - [Wie eine Überschreibung einen Alarm ändert](#wie-eine-überschreibung-einen-alarm-ändert): Wer stattdessen alarmiert wird, und wann.
 - [Eine Überschreibung hinzufügen](#eine-überschreibung-hinzufügen): Wer abwesend ist, wer vertritt, ab wann und bis wann.
+- [Eine Überschreibung bearbeiten](#eine-überschreibung-bearbeiten): Ändern, wer vertritt, oder wann sie beginnt und endet.
 - [Jede Richtlinie oder eine](#jede-richtlinie-oder-eine): Wo Sie eine Überschreibung hinzufügen und welche gewinnt.
 - [Weitere Wege, eine hinzuzufügen](#weitere-wege-eine-hinzuzufügen): Aus einem Plan und aus Ihren bevorstehenden Schichten.
 :::
@@ -48,7 +49,17 @@ Lassen Sie **Wer vertritt?** auf **Nächste Person in der Rotation**, um die Per
 **Beginnt** steht auf jetzt, wenn Sie keine andere Zeit wählen. Setzen Sie **Endet** auf den Zeitpunkt, an dem die Person zurück ist: Er muss nach dem Beginn liegen. Klicken Sie auf **Benutzervertretung hinzufügen**.
 :::
 
-Jede Überschreibung ist eine Zeile: **Abwesend**, **Vertreten durch**, **Beginnt** und **Endet**, filterbar nach Beginn und Ende. **Vertreten durch** zeigt bei einem Überspringen **Nächste Person in der Rotation**. Eine Überschreibung lässt sich nicht bearbeiten: Löschen Sie sie und fügen Sie eine neue hinzu, oder löschen Sie sie, um jemanden früher zurückzuholen.
+Jede Überschreibung ist eine Zeile: **Abwesend**, **Vertreten durch**, **Beginnt** und **Endet**, filterbar nach Beginn und Ende. **Vertreten durch** zeigt bei einem Überspringen **Nächste Person in der Rotation**.
+
+## Eine Überschreibung bearbeiten
+
+Klicken Sie in der Zeile einer Überschreibung auf **Bearbeiten**, auf einer der beiden Seiten **Benutzerüberschreibungen** oder in der Liste der Benutzerüberschreibungen auf der Seite **Ebenen** eines Plans. Das Formular öffnet sich mit der Überschreibung, wie sie gespeichert wurde: Ändern Sie sie und klicken Sie auf **Änderungen speichern**.
+
+- **Wer vertritt?** lässt sich ändern, bis die Überschreibung endet. Stellen Sie es wieder auf **Nächste Person in der Rotation**, um die Person stattdessen zu überspringen.
+- **Beginnt** lässt sich verschieben, bis die Überschreibung beginnt, und bleibt danach, wie es ist. **Endet** lässt sich verschieben, bis die Überschreibung endet: Setzen Sie es auf jetzt, um die Überschreibung früher zu beenden. Keines von beiden lässt sich in die Vergangenheit verschieben.
+- **Wer ist abwesend?** lässt sich nicht ändern. Fügen Sie für jemand anderen eine neue Überschreibung hinzu.
+
+Eine beendete Überschreibung lässt sich nicht mehr ändern: Ihr **Bearbeiten** ist gesperrt und sagt, warum.
 
 ## Jede Richtlinie oder eine
 
@@ -57,7 +68,11 @@ Jede Überschreibung ist eine Zeile: **Abwesend**, **Vertreten durch**, **Beginn
 | **Bereitschaft → Erweitert → Benutzerüberschreibungen** | **Globale Benutzervertretungen** | Jede Bereitschaftsrichtlinie im Projekt |
 | **Benutzerüberschreibungen** einer Richtlinie | **Benutzervertretungen der Bereitschaftsrichtlinie** | Nur diese Richtlinie |
 
-Überschneiden sich zwei Überschreibungen für dieselbe Person, gewinnt die eigene der Richtlinie gegen eine globale, und eine, die eine Vertretung nennt, gewinnt gegen ein Überspringen. Ein Alarm ohne Richtlinie, aus einem Workflow oder aus dem Chat, folgt nur den globalen Überschreibungen.
+Zwei Überschreibungen für dieselbe Person dürfen sich in derselben Richtlinie nicht überschneiden, und auch nicht, wenn beide global sind. Das Formular sagt es, sobald die Zeiten gewählt sind, mit **Diese Vertretung bearbeiten**, um stattdessen jene zu ändern. Eine kann enden, wenn die nächste beginnt.
+
+Die eigene Überschreibung einer Richtlinie darf sich mit einer globalen für dieselbe Person überschneiden: In dieser Richtlinie wird die eigene verwendet, solange beide gelten, und das Formular sagt es. Ein Alarm ohne Richtlinie, aus einem Workflow oder aus dem Chat, folgt nur den globalen Überschreibungen.
+
+Überschreibungen, die sich schon vor dieser Regel überschnitten, bleiben, wie sie sind. Beide sind mit **Überschneidet sich** markiert, und die Markierung sagt, welche verwendet wird: eine, die eine Vertretung nennt, vor einem Überspringen, dann die, die früher beginnt, dann die, die zuerst hinzugefügt wurde.
 
 ## Weitere Wege, eine hinzuzufügen
 
@@ -68,9 +83,9 @@ Verlässt jemand das Projekt, wird jede Überschreibung gelöscht, die ihn nennt
 
 ## Wer Überschreibungen hinzufügen darf
 
-**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Policy User Override**, **Delete On-Call Policy User Override** und **Read On-Call Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
+**Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Bereitschafts-Administrator** und **Bereitschafts-Mitglied** dürfen Überschreibungen hinzufügen, bearbeiten und löschen; **Betrachter** und **Bereitschafts-Betrachter** dürfen sie sehen. In einer eigenen Rolle heißen die Berechtigungen **Create On-Call Policy User Override**, **Edit On-Call Policy User Override**, **Delete On-Call Policy User Override** und **Read On-Call Policy User Override**. Auf der **Zeitachse der Bereitschaftspläne** sehen nur Personen, die Überschreibungen lesen dürfen, wessen Schicht vertreten wird.
 
-Eine Überschreibung in einer Richtlinie folgt dem Geltungsbereich der Richtlinie. Geben Sie einem Team **Bereitschafts-Mitglied**, beschränkt auf die Richtlinien, die ihm gehören, oder auf sein Label, dann fügen seine Mitglieder Überschreibungen nur in diesen Richtlinien hinzu und löschen sie nur dort. Eine globale Überschreibung gilt für jede Richtlinie, auch für die eines anderen Teams; sie hinzuzufügen oder zu löschen braucht deshalb die Berechtigung für Überschreibungen über das ganze Projekt. Mit einer engeren sind **Benutzervertretung hinzufügen** und **Löschen** unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** gesperrt und sagen, warum. **Überspringen bis…** in den Ebenen eines Plans und **Vertretung finden** an Ihren bevorstehenden Schichten, die globale Überschreibungen hinzufügen, bieten stattdessen die Richtlinien an, für die Sie Überschreibungen hinzufügen dürfen, mit einer Überschreibung je Richtlinie, und ebenso die Vertretung in der Mobil-App; wo Sie für keine davon eine hinzufügen dürfen, sind sie gesperrt und sagen, warum. Das Team fügt seine Überschreibungen auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie hinzu. Dasselbe gilt für die API: Eine Überschreibung ohne `onCallDutyPolicyId` wird für eine Berechtigung abgelehnt, die auf Labels oder auf eigene Richtlinien beschränkt ist.
+Eine Überschreibung in einer Richtlinie folgt dem Geltungsbereich der Richtlinie. Geben Sie einem Team **Bereitschafts-Mitglied**, beschränkt auf die Richtlinien, die ihm gehören, oder auf sein Label, dann fügen seine Mitglieder Überschreibungen nur in diesen Richtlinien hinzu und bearbeiten und löschen sie nur dort. Eine globale Überschreibung gilt für jede Richtlinie, auch für die eines anderen Teams; sie hinzuzufügen, zu bearbeiten oder zu löschen braucht deshalb die Berechtigung für Überschreibungen über das ganze Projekt. Mit einer engeren sind **Benutzervertretung hinzufügen**, **Bearbeiten** und **Löschen** unter **Bereitschaft → Erweitert → Benutzerüberschreibungen** gesperrt und sagen, warum. **Überspringen bis…** in den Ebenen eines Plans und **Vertretung finden** an Ihren bevorstehenden Schichten, die globale Überschreibungen hinzufügen, bieten stattdessen die Richtlinien an, für die Sie Überschreibungen hinzufügen dürfen, mit einer Überschreibung je Richtlinie, und ebenso die Vertretung in der Mobil-App; wo Sie für keine davon eine hinzufügen dürfen, sind sie gesperrt und sagen, warum. Das Team fügt seine Überschreibungen auf der eigenen Seite **Benutzerüberschreibungen** jeder Richtlinie hinzu. Dasselbe gilt für die API: Eine Überschreibung ohne `onCallDutyPolicyId` wird für eine Berechtigung abgelehnt, die auf Labels oder auf eigene Richtlinien beschränkt ist.
 
 In OneUptime Cloud brauchen Benutzerüberschreibungen den Plan **Growth**.
 
@@ -100,7 +115,9 @@ curl -X POST https://oneuptime.com/api/on-call-duty-policy-user-override \
   }'
 ```
 
-Eine Überschreibung, deren abwesende Person und Vertretung dieselbe ist, wird abgelehnt, ebenso eine, die vor ihrem Beginn endet.
+Eine Überschreibung, deren abwesende Person und Vertretung dieselbe ist, wird abgelehnt, ebenso eine, die vor ihrem Beginn endet. Ebenso eine, die sich mit einer anderen Überschreibung für dieselbe Person in derselben Richtlinie überschneidet, oder wenn beide global sind: Die Ablehnung nennt die, mit der sie sich überschneidet.
+
+Um eine Überschreibung zu ändern, senden Sie `PUT /api/on-call-duty-policy-user-override/<override-id>` mit den zu ändernden Feldern in `data`: `routeAlertsToUserId` (`null`, um die Person stattdessen zu überspringen), `startsAt` und `endsAt`. `overrideUserId` und `onCallDutyPolicyId` lassen sich nicht ändern. Eine beendete Überschreibung lässt sich nicht ändern, ebenso wenig der Beginn einer, die schon begonnen hat, und eine geänderte Zeit lässt sich nicht in die Vergangenheit verschieben.
 
 ## Fehlerbehebung
 
@@ -114,6 +131,10 @@ Sie wird über ihre eigenen persönlichen Bereitschaftsregeln und verifizierten 
 
 :::details Ich kann keine Überschreibung hinzufügen
 Dafür braucht es eine der Rollen oben, und in OneUptime Cloud den Plan **Growth**. Eine globale Überschreibung braucht die Rolle über das ganze Projekt: Ist die Rolle Ihres Teams auf seine eigenen Richtlinien oder auf einige Labels beschränkt, fügen Sie die Überschreibung auf der eigenen Seite **Benutzerüberschreibungen** der Richtlinie hinzu. **Überspringen bis…**, **Vertretung finden** und die Mobil-App bieten dann nur die Richtlinien an, für die Sie Überschreibungen hinzufügen dürfen, und sind gesperrt, wo Sie für keine davon eine hinzufügen dürfen.
+:::
+
+:::details Eine Überschreibung lässt sich nicht speichern, weil sie sich mit einer anderen überschneidet
+Die Person hat zu einigen dieser Zeiten bereits eine Überschreibung: in derselben Richtlinie, oder eine globale, wenn auch diese global ist. Klicken Sie unter **Endet** auf **Diese Vertretung bearbeiten**, um stattdessen jene zu ändern, oder wählen Sie Zeiten, die sich nicht mit ihr überschneiden.
 :::
 
 ## Nächste Schritte

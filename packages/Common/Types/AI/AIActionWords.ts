@@ -719,7 +719,8 @@ export const AI_ACTION_CARD_LINES: {
   nowResolved: string;
   linkedTo: string;
   alreadyLinkedTo: string;
-  privateNoteAdded: string;
+  privateNoteAddedToIncident: string;
+  privateNoteAddedToAlert: string;
   noteAdded: string;
   statusUpdatePostedQuietly: string;
   statusUpdatePostedSubscribersNotified: string;
@@ -750,8 +751,17 @@ export const AI_ACTION_CARD_LINES: {
   linkedTo: translationKey("Linked to {{resources}}"),
   // Nothing was added: everything named was linked already.
   alreadyLinkedTo: translationKey("Already linked to {{resources}}"),
-  // An internal note on an incident or alert: no status page shows it.
-  privateNoteAdded: translationKey("Private note added, for your team only"),
+  /*
+   * An internal note on an incident or alert: no status page shows it,
+   * and only the people who can see the record can read it. Not "for
+   * your team only", which read as one of OneUptime's Teams (#7595).
+   */
+  privateNoteAddedToIncident: translationKey(
+    "Private note added, only for people who can see the incident",
+  ),
+  privateNoteAddedToAlert: translationKey(
+    "Private note added, only for people who can see the alert",
+  ),
   // A note on a security case, on its timeline.
   noteAdded: translationKey("Note added"),
   // A public status update, and whether its subscribers heard of it.
@@ -1134,6 +1144,79 @@ export function getAIReadCardMonitorTypeTerms(): ReadonlyArray<string> {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * The table a read leaves under the answer (issue #7394).
+ *
+ * A read that lists records leaves a table beside its cards: "Which
+ * monitors are down right now?" leaves the monitors query_monitors read,
+ * under a card for each monitor it looked up. Since #7175 the cards said
+ * "Deaktiviert" and "Eingehende Anfrage" on a German page, and the row
+ * under them said "Disabled" and "Incoming Request" of the same monitor,
+ * under the English title "Monitors (4)" and its English order line. The
+ * table's own words are this module's now (AIActionTableWords): its title
+ * and the line under it sentences, its count a figure written the
+ * reader's way, and each cell that is a word of OneUptime's - a monitor's
+ * type, Disabled for a monitor whose monitoring is off - a term, the same
+ * word the card says. A name and a status the project chose are data, in
+ * the rows as written. The table stores the same words in English as its
+ * title, its line and its cells (WidgetBuilder.table), which the exports
+ * print and a conversation saved before reads as.
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A read's table's title: what it lists and how many, the count a figure
+ * ("Monitors (4)", "Monitore (4)", "مانیتورها (۴)").
+ */
+export const AI_READ_TABLE_TITLES: {
+  monitors: string;
+  monitorsWithProblems: string;
+  monitorsInStatus: string;
+} = {
+  monitors: translationKey("Monitors ({{count}})"),
+  monitorsWithProblems: translationKey("Monitors with problems ({{count}})"),
+  // {{status}} is a status the project named, as named.
+  monitorsInStatus: translationKey(
+    'Monitors in status "{{status}}" ({{count}})',
+  ),
+};
+
+/*
+ * The line under a read's table's title: what it holds and in what order,
+ * in about 40 English letters - the line is cut beside Open on a phone.
+ */
+export const AI_READ_TABLE_LINES: {
+  notOperationalOnly: string;
+  notOperationalFirst: string;
+  notOperationalFirstDisabledLast: string;
+} = {
+  notOperationalOnly: translationKey("Non-operational monitors only"),
+  notOperationalFirst: translationKey("Non-operational monitors first"),
+  // Disabled as the table's Status column says it (AI_READ_CARD_VALUES.disabled).
+  notOperationalFirstDisabledLast: translationKey(
+    "Non-operational first, Disabled last",
+  ),
+};
+
+/*
+ * A table cell that is a word of OneUptime's: a term (a monitor type's
+ * name, "Disabled") or a sentence of the module.
+ */
+export type AIActionTableCell = AIActionTerm | AIActionSentence;
+
+/*
+ * What a read's table says besides its data: its title, the line under
+ * it, and, row by row in the order of the rows it stores, the cells that
+ * are OneUptime's words, by column key. A cell not named is data, drawn
+ * as stored.
+ */
+export interface AIActionTableWords {
+  title: AIActionSentence;
+  description?: AIActionSentence | undefined;
+  cells?: Array<Record<string, AIActionTableCell>> | undefined;
+}
+
+/*
  * A card's value: data as written (a note, a name, a URL), a word of the
  * module (a term), a sentence or a list of them (the resources it linked),
  * a figure, or a moment.
@@ -1191,6 +1274,8 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   AI_READ_CARD_NAME,
   AI_READ_CARD_COUNTED,
   AI_READ_CARD_ENTITY,
+  ...Object.values(AI_READ_TABLE_TITLES),
+  ...Object.values(AI_READ_TABLE_LINES),
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
@@ -1624,6 +1709,123 @@ export function isKnownAIActionCardWords(
   );
 }
 
+/*
+ * A line a card saved before its words changed may hold, by the kind of
+ * record the card is about, and the line that kind's card says now. "Private
+ * note added, for your team only" said a team, which read as one of
+ * OneUptime's Teams (#7595): a private note's card saved with it reads as
+ * its record's line, in the reader's language - not as the English it
+ * stored. Plain English, not a key: no locale file words it any more.
+ */
+const RETIRED_CARD_LINES: ReadonlyMap<
+  string,
+  ReadonlyMap<string, string>
+> = new Map<string, ReadonlyMap<string, string>>([
+  [
+    "Private note added, for your team only",
+    new Map<string, string>([
+      [
+        AI_ACTION_CARD_KINDS.incident,
+        AI_ACTION_CARD_LINES.privateNoteAddedToIncident,
+      ],
+      [
+        AI_ACTION_CARD_KINDS.alert,
+        AI_ACTION_CARD_LINES.privateNoteAddedToAlert,
+      ],
+    ]),
+  ],
+]);
+
+/*
+ * A stored card's words with each retired line (RETIRED_CARD_LINES) as its
+ * kind's card says it now; anything else as stored. For a card read from a
+ * conversation's saved JSON, before isKnownAIActionCardWords.
+ */
+export function withCurrentAIActionCardLines(value: unknown): unknown {
+  if (!isPlainObject(value) || !Array.isArray(value["line"])) {
+    return value;
+  }
+
+  const kind: unknown = value["kind"];
+
+  if (!isAIActionTerm(kind)) {
+    return value;
+  }
+
+  let hasRetiredLine: boolean = false;
+
+  const line: Array<unknown> = value["line"].map((part: unknown): unknown => {
+    const current: string | undefined =
+      isPlainObject(part) &&
+      typeof part["template"] === "string" &&
+      part["values"] === undefined &&
+      part["count"] === undefined
+        ? RETIRED_CARD_LINES.get(part["template"])?.get(kind.term)
+        : undefined;
+
+    if (!current) {
+      return part;
+    }
+
+    hasRetiredLine = true;
+
+    return aiActionSentence(current);
+  });
+
+  return hasRetiredLine ? { ...value, line } : value;
+}
+
+/*
+ * The most rows a stored table's words may name, and the most worded cells
+ * a row may have: a tool lists at most a few hundred rows of a few columns.
+ */
+const MAX_TABLE_WORDED_ROWS: number = 500;
+const MAX_TABLE_WORDED_CELLS: number = 20;
+
+// A cell's words: a word of the module or a monitor type's name, or one of its sentences.
+const isKnownTableCell: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return isAIActionTerm(value)
+    ? isKnownCardValueTerm(value)
+    : isKnownAIActionSentence(value);
+};
+
+/*
+ * Whether a stored table's words are this module's (issue #7394): only
+ * then does the Dashboard draw the table's title, its line and its worded
+ * cells in the reader's language. A table is read from a conversation's
+ * saved JSON, so anything else - another template, a cell of another
+ * shape, a table saved before it had words - reads as the English the
+ * table stores.
+ */
+export function isKnownAIActionTableWords(
+  value: unknown,
+): value is AIActionTableWords {
+  if (!isPlainObject(value) || !isKnownAIActionSentence(value["title"])) {
+    return false;
+  }
+
+  const description: unknown = value["description"];
+  const cells: unknown = value["cells"];
+
+  return (
+    (description === undefined || isKnownAIActionSentence(description)) &&
+    (cells === undefined ||
+      (Array.isArray(cells) &&
+        cells.length <= MAX_TABLE_WORDED_ROWS &&
+        cells.every((row: unknown): boolean => {
+          return (
+            isPlainObject(row) &&
+            Object.keys(row).length <= MAX_TABLE_WORDED_CELLS &&
+            Object.keys(row).every((key: string): boolean => {
+              return isKnownTableCell(row[key]);
+            })
+          );
+        })))
+  );
+}
+
 // The translator the server writes its sentences with: English, as written.
 let englishTranslator: Translator | null = null;
 
@@ -1816,6 +2018,44 @@ export function describeAIActionCardWords(
         };
       },
     ),
+  };
+}
+
+/*
+ * A table cell's words in the translator's language - English, as the
+ * table stores the cell, by default.
+ */
+export function describeAIActionTableCell(
+  cell: AIActionTableCell,
+  translator: Translator = getEnglishTranslator(),
+  options?: SentenceOptions | undefined,
+): string {
+  return isAIActionTerm(cell)
+    ? translator.translateTerm(cell.term)
+    : describeAIActionSentence(cell, translator, options);
+}
+
+/*
+ * A table's title and the line under it, in the translator's language -
+ * English, as the table stores them for the exports, the model and older
+ * Dashboards, by default. No line when the words have none.
+ */
+export function describeAIActionTableWords(
+  words: AIActionTableWords,
+  translator: Translator = getEnglishTranslator(),
+  options?: SentenceOptions | undefined,
+): { title: string; description?: string | undefined } {
+  return {
+    title: describeAIActionSentence(words.title, translator, options),
+    ...(words.description
+      ? {
+          description: describeAIActionSentence(
+            words.description,
+            translator,
+            options,
+          ),
+        }
+      : {}),
   };
 }
 

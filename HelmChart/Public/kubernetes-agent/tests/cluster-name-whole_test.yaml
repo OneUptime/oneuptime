@@ -1,0 +1,481 @@
+# The cluster name reaches every component of the agent whole (#7336).
+#
+# clusterName is free text: values.schema.json only says it is a string. Three
+# lines spliced it inside literal double quotes, where YAML reads it by the
+# rules of a double-quoted string:
+#
+#   - both collectors' service.name, "kubernetes-agent-{{ .Values.clusterName }}",
+#     inside the collector config a ConfigMap holds: Helm installed fine, and
+#     the collector crash-looped on a config it could not parse;
+#   - the eBPF DaemonSet's OTEL_RESOURCE_ATTRIBUTES,
+#     "k8s.cluster.name={{ .Values.clusterName }}": the render failed.
+#
+# Each is now written with `| quote` (inside printf), through the
+# kubernetes-agent.clusterName helper, which trims the name as every other use
+# did. A comma cannot be written into OTEL_RESOURCE_ATTRIBUTES in any form OBI
+# reads back (it splits that list at every comma and decodes nothing), so the
+# variable is left out for such a name; OTEL_EBPF_KUBE_CLUSTER_NAME, which
+# outranks it, and the cluster collector's resource processor still name the
+# cluster. Every other component (the cluster collector, the log tailer, the
+# cost agent, OpenCost, the AI agent, the profiler, the audit log reader) gets
+# the same trimmed name, so one cluster never arrives under two names.
+#
+# The collector configs are read as text, the house style; the repo-root
+# Tests/Ops/KubernetesAgentClusterName.test.js renders the chart with every
+# component on and parses each collector config as the collector does.
+suite: the cluster name reaches every component whole
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+tests:
+  # ---------------------------------------------------------------------------
+  # A name with a double quote.
+  # Inside literal quotes it ended the string: the eBPF DaemonSet failed
+  # to parse, and the collectors crash-looped on their config.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with a double quote whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "prod \"eu\""
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod \\\\\"eu\\\\\"\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod \\\\\"eu\\\\\"\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with a double quote whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod \"eu\""
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod \\\\\"eu\\\\\"\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod \\\\\"eu\\\\\"\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with a double quote whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "prod \"eu\""
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod \"eu\""
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod \"eu\""
+
+  # ---------------------------------------------------------------------------
+  # A name with a backslash.
+  # Inside literal quotes YAML read it as an escape: \e is not one, so
+  # the collectors' config failed to load.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with a backslash whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "prod\\eu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod\\\\\\\\eu\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod\\\\\\\\eu\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with a backslash whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod\\eu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod\\\\\\\\eu\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod\\\\\\\\eu\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with a backslash whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "prod\\eu"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod\\eu"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod\\eu"
+
+  # ---------------------------------------------------------------------------
+  # A name with a backslash before a letter YAML escapes.
+  # Inside literal quotes \t silently became a tab.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with a backslash before a letter YAML escapes whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "prod\\teu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod\\\\\\\\teu\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod\\\\\\\\teu\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with a backslash before a letter YAML escapes whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod\\teu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod\\\\\\\\teu\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod\\\\\\\\teu\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with a backslash before a letter YAML escapes whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "prod\\teu"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod\\teu"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod\\teu"
+
+  # ---------------------------------------------------------------------------
+  # A name with a colon and a space, and a space and a hash.
+  # Unquoted, ': ' fails a render and ' #' starts a comment.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with a colon and a space, and a space and a hash whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "prod: eu #1"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod: eu #1\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod: eu #1\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with a colon and a space, and a space and a hash whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod: eu #1"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod: eu #1\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod: eu #1\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with a colon and a space, and a space and a hash whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "prod: eu #1"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod: eu #1"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod: eu #1"
+
+  # ---------------------------------------------------------------------------
+  # A name with an equals sign.
+  # OBI cuts a pair of OTEL_RESOURCE_ATTRIBUTES at its first '=', so the
+  # rest of the name stays in the value.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with an equals sign whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "prod=eu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod=eu\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod=eu\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with an equals sign whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod=eu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod=eu\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod=eu\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with an equals sign whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "prod=eu"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod=eu"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod=eu"
+
+  # ---------------------------------------------------------------------------
+  # A name with whitespace around it, as a name read from a file has.
+  # Every component gets the name trimmed, as the helper reads it.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with whitespace around it, as a name read from a file has whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "  prod-eu \n"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod-eu\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod-eu\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with whitespace around it, as a name read from a file has whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "  prod-eu \n"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod-eu\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod-eu\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with whitespace around it, as a name read from a file has whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "  prod-eu \n"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod-eu"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=prod-eu"
+
+  # ---------------------------------------------------------------------------
+  # A name with only digits.
+  # Unquoted, YAML reads it as a number.
+  # ---------------------------------------------------------------------------
+  - it: the node collector stamps a name with only digits whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "2026"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"2026\"\\n\\s*action: upsert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-2026\"\\n\\s*action: upsert\\n"
+
+  - it: the cluster collector stamps a name with only digits whole, and service.name is kubernetes-agent-<the name>
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "2026"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"2026\"\\n\\s*action: insert\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-2026\"\\n\\s*action: insert\\n"
+
+  - it: OBI gets a name with only digits whole
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "2026"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "2026"
+      # Read as OBI reads it: cut at the first '=', trimmed, nothing decoded.
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_RESOURCE_ATTRIBUTES")].value
+          value: "k8s.cluster.name=2026"
+
+  # ---------------------------------------------------------------------------
+  # A name with a comma. OTEL_RESOURCE_ATTRIBUTES is a comma-separated list:
+  # as it is, prod,eu reached OBI as k8s.cluster.name=prod and a stray eu, and
+  # OBI decodes no percent-encoding (prod%2Ceu would arrive as written, and the
+  # cluster collector, which only fills in a missing name, would keep it).
+  # ---------------------------------------------------------------------------
+  - it: the collectors stamp a name with a comma whole
+    templates:
+      - templates/configmap-daemonset.yaml
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod,eu"
+      ebpf.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod,eu\"\\n\\s*action: (upsert|insert)\\n\\s*- key: service\\.name\\n\\s*value: \"kubernetes-agent-prod,eu\"\\n"
+
+  - it: OBI gets a name with a comma whole from OTEL_EBPF_KUBE_CLUSTER_NAME, and no OTEL_RESOURCE_ATTRIBUTES it would split
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "  prod,eu\n"
+      ebpf.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name == "OTEL_EBPF_KUBE_CLUSTER_NAME")].value
+          value: "prod,eu"
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_RESOURCE_ATTRIBUTES
+          any: true
+
+  - it: the cluster collector stamps the cluster name on what OBI sends without one
+    templates:
+      - templates/configmap-deployment.yaml
+    set:
+      clusterName: "prod,eu"
+      ebpf.enabled: true
+    asserts:
+      # OBI's metrics and spans come in on the otlp receiver, and both of its
+      # pipelines run the resource processor, whose `insert` fills in a
+      # missing k8s.cluster.name.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "traces:\\s*\\n\\s*receivers:\\s*\\n\\s*- otlp\\s*\\n\\s*processors:\\s*\\n\\s*- memory_limiter\\s*\\n\\s*- transform/pod-level-mark\\s*\\n\\s*- k8sattributes\\s*\\n\\s*- transform/pod-level-unmark\\s*\\n\\s*- resource"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n\\s*metrics:\\n\\s*receivers:\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*)\\n)*\\s*- otlp\\n(?:\\s*(?:#[^\\n]*|- \\w[^\\n]*|\\{\\{[^\\n]*)\\n)*\\s*processors:\\n(?:\\s*(?:#[^\\n]*|- [^\\n]*)\\n)*?\\s*- resource\\n"
+
+  - it: a name with a comma keeps OBI's variable out on every preset that runs it
+    templates:
+      - templates/daemonset-ebpf.yaml
+    set:
+      clusterName: "a,b,c"
+      ebpf.enabled: true
+      preset: openshift
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OTEL_RESOURCE_ATTRIBUTES
+          any: true
+
+  # ---------------------------------------------------------------------------
+  # Every other component gets the same trimmed name. Before, these read
+  # .Values.clusterName itself, untrimmed, while the collectors trimmed it:
+  # a name with spaces around it reached the log tailer and the cost agent as
+  # " prod " and the collectors as "prod", two clusters in OneUptime.
+  # ---------------------------------------------------------------------------
+  - it: the cluster collector's pod gets the trimmed name
+    templates:
+      - templates/deployment.yaml
+    set:
+      clusterName: "  prod \"eu\" \n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_NAME
+            value: prod "eu"
+
+  - it: the log tailer stamps the trimmed name on every log
+    templates:
+      - templates/deployment-logs-api.yaml
+    set:
+      clusterName: "  prod \"eu\" \n"
+      logs.mode: api
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_NAME
+            value: prod "eu"
+
+  - it: the cost agent reports the trimmed name
+    templates:
+      - templates/deployment-cost-agent.yaml
+    set:
+      clusterName: "  prod \"eu\" \n"
+      cost.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_NAME
+            value: prod "eu"
+
+  - it: the bundled OpenCost gets the trimmed name as its cluster id
+    templates:
+      - templates/opencost.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      clusterName: "  prod \"eu\" \n"
+      cost.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: CLUSTER_ID
+            value: prod "eu"
+
+  - it: the AI agent registers under the trimmed name
+    templates:
+      - templates/ai-agent.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      clusterName: "  prod \"eu\" \n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+            value: prod "eu"
+
+  - it: the profiler stamps the trimmed name
+    templates:
+      - templates/configmap-profiling.yaml
+    set:
+      clusterName: "  prod \"eu\" \n"
+      profiling.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "- key: k8s\\.cluster\\.name\\n\\s*value: \"prod \\\\\"eu\\\\\"\"\\n"
+
+  - it: the audit log reader stamps the trimmed name, quoted
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      clusterName: "  prod \"eu\" \n"
+      auditLogs.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "field: resource\\[\"k8s\\.cluster\\.name\"\\]\\n\\s*value: \"prod \\\\\"eu\\\\\"\"\\n"

@@ -158,6 +158,7 @@ Le message décrit le changement avec les mots du **Fil d'activité** du SLO : l
 | **Étiquettes du SLO** | Les étiquettes du SLO : l'une de celles que vous choisissez, toutes, ou aucune. |
 | **Nom du SLO** | Le nom du SLO : égal à votre texte ou non, le contenant ou non, commençant ou se terminant par ce texte. |
 | **Changement de la politique de budget d'erreur** | Ce qui a changé : **Entré dans un palier plus sévère**, **Revenu à un palier moins sévère**, **Sorti de tous les paliers**, **Déploiements gelés** ou **Déploiements de nouveau autorisés**. |
+| **Propriétaire du SLO** | Les personnes et équipes enregistrées comme propriétaires du SLO : l'une de celles que vous choisissez, ou aucune. Faire partie d'une équipe propriétaire du SLO ne compte pas. |
 
 Un changement de palier qui a gelé les déploiements, ou les a de nouveau autorisés, est un seul message qui porte les deux changements. Une règle pour **Déploiements gelés** publie donc aussi le changement qui fait entrer le SLO dans un palier qui les gèle : un canal dédié aux mises en production est prévenu de chaque gel.
 

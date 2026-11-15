@@ -26,6 +26,9 @@ export const getActiveMetricsTab: (path: string) => MetricsTabKey = (
   if (path.includes("/metrics/insights")) {
     return "insights";
   }
+  if (path.includes("/metrics/promql")) {
+    return "promql";
+  }
   if (path.includes("/metrics/documentation")) {
     return "setup";
   }

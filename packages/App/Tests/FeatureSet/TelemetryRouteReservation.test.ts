@@ -41,6 +41,9 @@ const TELEMETRY_DIRECTORY: string = path.join(
   "../../FeatureSet/Telemetry",
 );
 
+// OneUptime's own API, which a compatible intake may share (Datadog's logs).
+const ONEUPTIME_API_PREFIX: string = "/api";
+
 // The names a router registers a route with, and what they hold.
 const ROUTE_NAMES: Record<string, string> = {
   CLOUD_STREAM_METRICS_PATH,
@@ -242,10 +245,20 @@ describe("the routes the Telemetry routers serve at the root", () => {
   });
 
   test("are reserved by their own first segment, not by a broader entry", () => {
-    // A route's own prefix, so the reservation says which route it is for.
+    /*
+     * A route's own prefix, so the reservation says which route it is for.
+     * A route under OneUptime's own /api - the Datadog Agent's logs, at
+     * /api/v2/logs (#6797) - has no first segment of its own: /api is
+     * reserved on the dashboard list only (RouteReservationInvariants), so
+     * such a route is reserved by its whole path.
+     */
     const missing: Array<string> = routes
       .map((route: TelemetryRoute): string => {
-        return `/${route.route.split("/")[1]}`;
+        const firstSegment: string = `/${route.route.split("/")[1]}`;
+
+        return firstSegment === ONEUPTIME_API_PREFIX
+          ? route.route
+          : firstSegment;
       })
       .filter((prefix: string): boolean => {
         return !IngestRoutePrefixesToSkip.includes(prefix);

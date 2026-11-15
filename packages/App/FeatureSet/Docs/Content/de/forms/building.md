@@ -39,7 +39,7 @@ Ziehen Sie eine Karte an ihrem Griff, um sie zu verschieben, oder nutzen Sie **N
 
 ### Das Formular speichern
 
-**Änderungen speichern** speichert alle Änderungen auf einmal. Bis Sie speichern, zeigt der Editor **Nicht gespeicherte Änderungen** und bietet **Änderungen verwerfen** an, und der Browser fragt nach, bevor Sie die Seite verlassen.
+**Änderungen speichern** speichert alle Änderungen auf einmal. Bis Sie speichern, zeigt der Editor **Nicht gespeicherte Änderungen** und bietet **Änderungen verwerfen** an. Wer den Editor vor dem Speichern verlässt, wird zuerst gefragt. Ein Link im Seitenmenü, in den Breadcrumbs oder in der oberen Leiste sowie die Zurück- und Vorwärts-Schaltflächen Ihres Browsers öffnen **Ohne Speichern verlassen?** mit zwei Möglichkeiten: **Weiter bearbeiten** bleibt mit Ihren Änderungen im Editor, und **Änderungen verwerfen** öffnet die Seite, die Sie öffnen wollten. Beim Schließen oder Neuladen des Tabs fragt Ihr Browser mit seinem eigenen Dialog.
 :::
 
 - **Der Kopf des Formulars** zeigt seinen Namen und seine Beschreibung so, wie die öffentliche Seite es tun wird. **Name und Beschreibung bearbeiten** ändert sie.

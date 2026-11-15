@@ -366,9 +366,7 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
                     return option.value === pickedRepositoryId;
                   },
                 )}
-                placeholder={translator.translateText(
-                  FIX_PICK_REPOSITORY_PLACEHOLDER,
-                )}
+                placeholder={FIX_PICK_REPOSITORY_PLACEHOLDER}
                 ariaLabelledby="profiles-fix-repository-label"
                 isClearable={false}
                 onChange={(

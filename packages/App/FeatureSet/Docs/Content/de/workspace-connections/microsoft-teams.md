@@ -91,14 +91,17 @@ Eine Benachrichtigungsregel legt fest, welche Ereignisse in Microsoft Teams gepo
 | **Bereitschaft** | Eine Liste von Regeln |
 | **SLOs** | Eine Liste von Regeln |
 
-Eine Regel wird in vier Schritten angelegt:
+Eine Regel wird in bis zu fünf Schritten angelegt:
 
 | Schritt | Was Sie festlegen |
 | --- | --- |
 | **Grundlegend** | **Regelname** und **Regelbeschreibung**. |
 | **Bedingungen** | Für welche Ereignisse die Regel gilt, zum Beispiel nach Schweregrad, Status, Beschriftung, Monitor oder Wörtern im Titel. Sie werden geprüft, wenn ein Ereignis erstellt wird, und erneut bei jedem Update, das OneUptime dazu postet, sodass eine Regel für bestätigte Vorfälle greift, sobald ein Vorfall bestätigt wird. Eine neue Regel gilt für jedes Ereignis, etwa **Alle Vorfälle**. Um sie einzugrenzen, wählen Sie **Nur Vorfälle, die den Bedingungen entsprechen** und fügen die Bedingungen hinzu. Bei zwei oder mehr legt **Abgleichsbedingung** fest, ob alle zutreffen müssen oder eine genügt. |
 | **Ziel** | Wohin sie postet: in einen bestehenden Kanal eines gewählten Teams, in die gewählten Chats, in einen Kanal für jeden Vorfall (oder jede Warnung, Episode, jedes Ereignis, jeden Monitor oder jede Bereitschaftsrichtlinie), der in einem gewählten Team erstellt wird, oder in mehrere davon zugleich. Unter dem Schritt sagt **Was diese Regel tut** in Sätzen, was sie tut, wie die Karte der Regel. |
+| **Aktualisierungen** | Nur Vorfälle, Warnungen, Episoden, geplante Wartungen und Bereitschaftsrichtlinien: welche Aktualisierungen die Regel nach der ersten Nachricht des Datensatzes postet. **Jede Aktualisierung** postet alle, und eine neue Regel beginnt damit, außer bei einer Bereitschaftsrichtlinie. **Nur wichtige Aktualisierungen** postet die wichtigsten, die der Schritt für jede Art von Datensatz auflistet: bei einem Vorfall seine Behebung oder Wiedereröffnung, Änderungen des Schweregrads, öffentliche Notizen und das Postmortem; bei einer Bereitschaftsrichtlinie, wer jetzt Bereitschaft hat und wann niemand sie hat, womit eine neue Regel für Bereitschaftsrichtlinien beginnt. Mit **Aktualisierungen auswählen** haken Sie sie einzeln an. Was Sie auch wählen, die Regel postet die erste Nachricht des Datensatzes und einen Videoanruf, wenn einer beginnt. Siehe [Bereitschaftsnachrichten](#bereitschaftsnachrichten). |
 | **Videoanruf** | Nur Vorfälle und Warnungen: für jeden einen Anruf starten. Siehe [Videoanrufe](/docs/workspace-connections/video-calls). |
+
+Jede Bedingung liest sich wie ein Satz: das Feld, wie es verglichen wird, und der Wert. Werte zum Auswählen stammen aus den Listen des Projekts, etwa seinen Status, Schweregraden, Beschriftungen und Monitoren. Eine Regel für Bereitschaftsrichtlinien wählt diese unter **Bereitschaftsrichtlinie** aus und trifft eine Richtlinie so auch nach einer Umbenennung, während **Name der Bereitschaftsrichtlinie** Wörter im Namen einer Richtlinie abgleicht. Jede Art von Ereignis mit Eigentümern hat eine Eigentümer-Bedingung, etwa **Eigentümer des Vorfalls**: Wählen Sie Personen und Teams aus, und sie trifft die Personen und Teams, die als Eigentümer des Ereignisses eingetragen sind. Die Mitgliedschaft in einem Team, dem das Ereignis gehört, zählt nicht. Ein später hinzugefügter Eigentümer lässt die Regel ab diesem Update greifen, und eine Regel, die Kanäle erstellt, erstellt den Kanal dann. Ein archivierter Wert, etwa ein Schweregrad oder eine Bereitschaftsrichtlinie, wird für eine neue Bedingung nicht angeboten. Eine Regel, die bereits einen enthält, behält ihn, als **Archiviert** markiert, und trifft weiterhin die Ereignisse, die ihn haben. Eine Person, ein Team oder eine Richtlinie, die das Projekt nicht mehr hat, bleibt in der Bedingung, und die Karte der Regel weist darauf hin.
 
 Eine SLO-Regel postet die Änderungen der Fehlerbudget-Richtlinie eines SLO: wenn das SLO in eine Stufe eintritt, sich in eine weniger strenge Stufe erholt oder alle Stufen verlässt, und wenn seine Deployments eingefroren oder wieder erlaubt werden. Sie postet nur in bestehenden Kanälen und Chats, da ein SLO keinen eigenen Kanal bekommt. Siehe [In Slack, Microsoft Teams und Mattermost posten](/docs/slo/error-budget-policy#in-slack-microsoft-teams-und-mattermost-posten).
 
@@ -108,7 +111,7 @@ Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrif
 
 Um die Personen in Bereitschaft dazuzuholen, wählen Sie ihre Bereitschaftspläne unter **Personen in Bereitschaft erwähnen** aus. Beim Erstellen des Kanals postet OneUptime darin, direkt nach der ersten Nachricht des Datensatzes, eine Nachricht, die alle mit @ erwähnt, die in diesen Bereitschaftsplänen Bereitschaft haben, sodass Microsoft Teams sie benachrichtigt. Niemand wird alarmiert. OneUptime findet jede Person im Team über das Microsoft-Teams-Konto, das sie mit OneUptime verbunden hat, oder sonst über ihre E-Mail-Adresse. Wer nicht im Team ist, kann dessen Kanäle nicht öffnen und wird deshalb stattdessen in der Nachricht genannt, mit dem Grund. Einen privaten Kanal können nur seine Mitglieder öffnen; fügen Sie die Personen in Bereitschaft daher in Microsoft Teams hinzu.
 
-Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen und Chats, die seine Regeln nennen, solange deren Bedingungen zutreffen. OneUptime kann keinen Microsoft Teams-Kanal archivieren, daher bleibt der Kanal einer Regel bestehen, wenn sein Datensatz abgeschlossen ist; archivieren oder löschen Sie ihn in Microsoft Teams.
+Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen und Chats, die seine Regeln nennen, solange deren Bedingungen zutreffen, wenn eine Regel, die dort postet, sie in ihrem Schritt **Aktualisierungen** auswählt. OneUptime kann keinen Microsoft Teams-Kanal archivieren, daher bleibt der Kanal einer Regel bestehen, wenn sein Datensatz abgeschlossen ist; archivieren oder löschen Sie ihn in Microsoft Teams.
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Microsoft Teams öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Microsoft-Teams-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle und Chats, in die Ihre Regeln posten, werden nicht angeboten.
 
@@ -119,6 +122,14 @@ Kanäle und Chats bleiben lesbar: Jedes Ereignis wird einmal gepostet, und der e
 **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** listet die Kanäle, die OneUptime in Ihren Teams sieht, und die Chats, denen es hinzugefügt wurde, mit **Test senden** neben jedem. Ein Chat erscheint, sobald die OneUptime-App ihm in Microsoft Teams hinzugefügt wurde; **Chats aktualisieren** holt neue Chats und ihre aktuellen Namen.
 
 Eine Benachrichtigungsregel kann Teams gehören. **Zuständige Teams** unter **Weitere Felder** beschränkt sie auf die Teams, die Sie auswählen: Nur deren Mitglieder und Projektadministratoren können sie bearbeiten oder löschen, alle anderen, die die Regeln sehen, sehen sie schreibgeschützt. Siehe [Regeln, die Teams gehören](/docs/permissions/index#regeln-die-teams-gehören).
+
+### Bereitschaftsnachrichten
+
+Bei jeder Übergabe erfahren die Kanäle und Chats einer Bereitschaftsrichtlinie in einer Zeile, wer Bereitschaft hat:
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments verlinkt die Richtlinie in OneUptime. Eine Person wird mit ihrem Microsoft-Teams-Namen genannt, sobald sie ihr Microsoft-Teams-Konto mit OneUptime verbunden hat, und bis dahin mit ihrem Namen in OneUptime. Zeiten erscheinen in der Zeitzone jedes Lesers. Der Schritt **Aktualisierungen** einer Regel wählt, welche Bereitschaftsnachrichten sie postet, wie in Slack, und eine neue Regel beginnt damit, wer jetzt Bereitschaft hat und wann niemand sie hat: siehe [Bereitschaftsnachrichten](/docs/workspace-connections/slack#bereitschaftsnachrichten).
 
 ## Eine Regel testen
 
@@ -158,7 +169,7 @@ Reagieren Sie auf eine Nachricht oder eine Antwort in dem Kanal, den OneUptime f
 
 | Reaktion | Gespeichert als |
 | --- | --- |
-| 📌 oder 📍 | Eine private Notiz, die nur Ihr Team sieht |
+| 📌 oder 📍 | Eine private Notiz, die nur lesen kann, wer den Datensatz sehen kann |
 | 📣 oder 📢 | Eine öffentliche Notiz, die auf der Statusseite erscheint. Nur Vorfälle und geplante Wartungsereignisse. Bei einem privaten Vorfall eine private Notiz, und die Bestätigung sagt, warum. Wenn öffentliche Notizen im Projekt eine Genehmigung brauchen, erscheint sie erst nach der Genehmigung, und die Bestätigung sagt, auf wen sie wartet: siehe [Genehmigung öffentlicher Notizen](/docs/incidents/notes-owners-and-feed#genehmigung-öffentlicher-notizen). |
 
 Die Notiz übernimmt die Nachricht so, wie Microsoft Teams sie gezeigt hat: ihre Formatierung, Links und Code, die erwähnten Personen mit Namen und ihre Dateien und Bilder als Links darauf. Eine öffentliche Notiz lässt die Dateien und Bilder weg, da sie sich nur für Ihr Team öffnen.
@@ -253,7 +264,7 @@ Die Karte eines Vorfalls hat vier Schaltflächen, **Acknowledge Incident**, **Re
 | **Change Severity** | Legt den Schweregrad des Vorfalls fest. |
 | **Change Incident State** | Versetzt den Vorfall in einen späteren Status. |
 | **Assign Role** | Gibt jemandem eine Rolle im Vorfall, etwa **Incident Commander**. Eine Rolle für nur eine Person geht an diese Person über. |
-| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Personen werden alarmiert, bis eine von ihnen antwortet; eine Richtlinie alarmiert, bis jemand den Vorfall bestätigt. |
+| **Page Someone** | Alarmiert Personen, ein Team, wer in einem Bereitschaftsplan gerade Bereitschaft hat, oder eine Bereitschaftsrichtlinie zu dem Vorfall, mit einer optionalen Nachricht. Alle, die es alarmiert, auch die Personen einer Richtlinie, werden alarmiert, bis eine von ihnen antwortet oder der Vorfall behoben ist. |
 | **Edit Custom Fields** | Setzt die benutzerdefinierten Felder des Vorfalls, jedes ausgefüllt mit dem, was der Vorfall enthält. Ein leer gelassenes Feld wird geleert. |
 
 `incident 42`, an den Bot geschrieben, antwortet mit Vorfall 42, diesen Schaltflächen und seinem Menü. Schreiben Sie die Nummer so, wie OneUptime sie zeigt: `42`, `#42` oder `INC-42`. Im eigenen Kanal eines Vorfalls zeigt `incident` allein diesen Vorfall.

@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다",
     "scheduledMaintenance": "예정된 유지보수",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "예정된 유지보수 1건",
-    "maintenanceEvents": "예정된 유지보수 {{total}}건",
+    "oneMaintenanceEvent": "유지 관리 이벤트 1건",
+    "maintenanceEvents": "유지 관리 이벤트 {{total}}건",
     "moreMaintenance": "외 {{total}}건"
   },
   "liveStatus": {
@@ -448,6 +448,17 @@
   "Loading": "로드 중",
   "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}은(는) 올바른 JSON이 아닙니다. {{parserMessage}}",
   "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}은(는) 올바른 YAML이 아닙니다. {{parserMessage}}",
+  "Click to reveal": "표시하려면 클릭",
+  "Click to copy": "복사하려면 클릭",
+  "Main navigation": "주 탐색",
+  "Navigate to": "이동",
+  "Navigation": "탐색",
+  "Breadcrumb": "탐색 경로",
+  "Skip to main content": "본문으로 건너뛰기",
+  "Copy": "복사",
+  "Copied!": "복사됨!",
+  "Copy failed": "복사 실패",
+  "Hide": "숨기기",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

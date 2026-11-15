@@ -159,6 +159,15 @@ const getAlignedWindowForData: (data: MetricViewData) => {
   } = AggregationIntervalUtil.getIntervalAlignedWindow({
     startDate: window.startValue,
     endDate: window.endValue,
+    /*
+     * The zone the request will carry (AnalyticsModelAPI.aggregate adds
+     * the same one), so a window of days starts at the reader's midnight,
+     * where the server starts its first day, not at UTC's (issue #7277).
+     */
+    timezone: AggregationIntervalUtil.getReaderTimezone({
+      startDate: window.startValue,
+      endDate: window.endValue,
+    }),
   });
 
   return {

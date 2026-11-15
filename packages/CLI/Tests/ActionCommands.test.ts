@@ -462,7 +462,7 @@ describe("the dashboard's buttons as commands", () => {
     );
     // It names the record, as acknowledge and resolve do.
     expect(internal.printed.join("\n")).toBe(
-      `Added the note to Incident ${INCIDENT_ID}. Only your team sees it.`,
+      `Added the note to Incident ${INCIDENT_ID}. Only the people who can see the Incident can read it.`,
     );
 
     mockExecuteApiRequest.mockReset();

@@ -39,7 +39,8 @@ The suite drives archiving the way a person does:
   to Reach Me, never as the project's settings; the link opens a new tab and
   the Archive dialog stays open for its answer; a severity only people's
   rules use (Minor, the maintainer's dialog) has no list of settings to
-  change; its Delete lists "Deleted with it: 2 people's How to Reach Me";
+  change; its Delete lists "Deleted with it: 2 people's rules in How to
+  Reach Me" - their rules for it go, never their whole How to Reach Me;
 - Bulk Actions > Delete of several severities reads what they have once
   (`POST /incident-severity/usage`, recorded on
   `window.__fixture.bulkUsageReads`), holds its Delete meanwhile, names the

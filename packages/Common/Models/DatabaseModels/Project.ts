@@ -1110,7 +1110,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Scheduled Maintenance Number Prefix",
     description:
-      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber scheduled maintenance events that already exist.",
+      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber maintenance events that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1396,7 +1396,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Scheduled Maintenance Numbers Start At",
     description:
-      "Where scheduled maintenance event numbers start: the next scheduled maintenance event gets this number if no scheduled maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every scheduled maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing scheduled maintenance events keep their numbers.",
+      "Where maintenance event numbers start: the next maintenance event gets this number if no maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing maintenance events keep their numbers.",
     example: 1000,
   })
   @Column({
@@ -2845,6 +2845,49 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public limitAlertsToOneEpisode?: boolean = undefined;
+
+  /*
+   * Whether "Notify Status Page Subscribers" starts ticked when someone
+   * declares an incident (Incidents -> Settings -> Subscriber Notifications,
+   * issue #7606; Common/Types/StatusPage/NewIncidentSubscriberNotificationDefault).
+   * On for every project, existing and new, as the box always started, so
+   * nothing changes until an owner or admin turns it off. It moves only
+   * where the Declare New Incident box starts: the incident records what the
+   * person declaring leaves it at. Incidents people declare where no box
+   * asks - from Slack or Microsoft Teams, or through OneUptime AI - follow
+   * it as the box would have started; incidents created by monitors, the
+   * API or workflows keep their own value.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Notify Status Page Subscribers of New Incidents by Default",
+    description:
+      "Whether the Notify Status Page Subscribers box starts ticked when someone declares an incident in the dashboard. When enabled, status page subscribers are notified of a new incident unless the person declaring it unticks the box. When disabled, the box starts unticked and subscribers are notified only if it is ticked. Incidents declared from Slack or Microsoft Teams, or by OneUptime AI, follow it too: while it is disabled they are declared without notifying. Incidents created by monitors, the API and workflows are not affected: each keeps its own Notify Status Page Subscribers value. On by default.",
+    defaultValue: true,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public notifyStatusPageSubscribersOfNewIncidentsByDefault?: boolean =
+    undefined;
 
   /*
    * The layout every network topology map in the project opens on (issue
@@ -5200,7 +5243,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Require Approval for Scheduled Maintenance Public Notes",
     description:
-      "When enabled, a public note on a scheduled maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+      "When enabled, a public note on a maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
     defaultValue: false,
     example: false,
   })

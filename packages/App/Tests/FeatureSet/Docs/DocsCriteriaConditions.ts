@@ -8,8 +8,9 @@ import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
  *
  * The criteria form offers the conditions as Dropdown options labelled with
  * their FilterType value, and the Dropdown draws every option through the
- * Dashboard's translator (tx(option.label)). So a condition is drawn in the
- * reader's language as soon as the Dashboard's locales have a key for it:
+ * Dashboard's translator (getDropdownOptionText(option, tx)). So a
+ * condition is drawn in the reader's language as soon as the Dashboard's
+ * locales have a key for it:
  * Contains, True and False always had one, adc8421a1b gave the other
  * comparisons theirs ("Greater Than" is "Größer als" in German), and
  * 31eadaee92e every condition left (Recieved In Minutes, Evaluates To True,

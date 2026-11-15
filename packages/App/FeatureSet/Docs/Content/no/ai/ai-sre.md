@@ -482,6 +482,16 @@ Delen **KI** i sidemenyene for Hendelser og Varsler åpner på to sider som ser 
 
 KI-innstillingene og AI-reglene lå tidligere på `…/settings/ai` og `…/settings/auto-remediation-rules`, og reglene deretter på `…/ai/auto-remediation-rules`; disse adressene virker fortsatt og åpner **KI → Innstillinger**, der reglene ligger nå, under **Flere innstillinger**.
 
+## Hvor godt OneUptime AI gjør det
+
+**AI-resultater** (**Prosjektinnstillinger → KI → AI-resultater**) viser uke for uke hva arbeidet til OneUptime AI har ført til de siste 12 ukene, så du kan se om den blir bedre, for eksempel etter at du har byttet modellen dens. Siden endrer ingenting, og teller bare hendelsene, varslene, vakttilkallingene og rettelsene du kan se.
+
+- **Unngåtte tilkallinger**: av tilkallingene som ble holdt tilbake mens OneUptime AI jobbet (se [OneUptime AI reagerer først](#oneuptime-ai-reagerer-først)), hvor mange som endte med rettelsen fra AI før noen ble tilkalt, og hvordan de andre endte: hendelsen eller varselet rettet seg av seg selv, en person håndterte det under tilbakeholdelsen, eller noen ble tilkalt fordi AI ga det videre til en person, tilbakeholdelsestiden gikk ut eller noen trykket på **Tilkall nå**.
+- **Verifiserte rettelser**: av rettelsene OneUptime AI kjørte og pull-forespørslene med rettelser den åpnet, hvor mange som virket da de ble sjekket opp mot det som skjedde etterpå. Rettelser som fortsatt blir sjekket, og de som ikke kunne sjekkes, vises ved siden av, men telles ikke med.
+- **Bekreftede rotårsaker**: av undersøkelsene OneUptime AI fullførte, hvor mange som fant den riktige rotårsaken: slik en ansvarlig vurderte det ved å bekrefte eller avvise undersøkelsen på AI-kortet, eller, når ingen gjorde det, målt mot rotårsaken som ble skrevet inn da hendelsen ble løst. Undersøkelser som ingen har vurdert ennå, telles ikke med.
+
+Hvert kort stiller de siste 4 ukene sine ved siden av de 4 ukene før. En uke teller arbeidet OneUptime AI startet den uken, uansett hvor lang tid kontrollen tok. Når et prosjekt hadde mer enn 5 000 av ett slag i de 12 ukene, telles de nyeste 5 000, og siden sier fra om det.
+
 ## Kostnadskontroll
 
 Alle grensene nedenfor er valgfrie, og ingen av dem gjelder før du setter dem: med automatisk undersøkelse på blir hver ny hendelse og hvert nytt varsel undersøkt, uansett alvorlighetsgrad, og ingenting begrenser hvor mange undersøkelser eller rettingsoppgaver som kjører. Mengden varsler kan være mye høyere enn mengden hendelser, så dette er kontrollene du griper til når du vil ha et tak.
@@ -542,7 +552,7 @@ På OneUptime Cloud betales OneUptime AI på den globale leverandøren av prosje
 
 - **Alltid skrivebeskyttet.** Autonome undersøkelser kjører med et utvalgt sett skrivebeskyttede verktøy (spørringer på metrikker, logger, traces, unntak og endringer, inkludert `baseline_anomaly`, som vurderer en metrikk mot det innlærte normalområdet for hver time i uken). KI-en kan ikke bekrefte, løse, varsle eller endre noe fra en undersøkelse.
 - **Kildehenvisninger lages på serveren** fra verktøykall som faktisk ble utført: modellen kan ikke dikte opp en kildehenvisning til data den aldri har lest.
-- **Fullt revisjonsspor.** Hver undersøkelse registreres som en KI-kjøring med et ordnet hendelsesspor (hvert LLM-kall og hvert verktøykall), og hvert LLM-kall måles på siden AI-logger (**Prosjektinnstillinger → KI → AI-logger**) med antall tokener og kostnad.
+- **Fullt revisjonsspor.** Hver undersøkelse registreres som en KI-kjøring med et ordnet hendelsesspor (hvert LLM-kall og hvert verktøykall), og hvert LLM-kall måles på siden AI-logger (**Prosjektinnstillinger → KI → AI-logger**) med antall tokener og kostnad. Det verktøyene returnerte til undersøkelsen av en hendelse eller et varsel, lagres sammen med kjøringen i 30 dager og kan bare leses av serveren, slik at en ny modell eller prompt kan prøves på dataene undersøkelsen så; det slettes sammen med kjøringen.
 - **Hemmeligheter sladdes** i verktøyresultater før noe sendes til LLM-en (tokener, påloggingsinformasjon, nøkkelmønstre).
 - **Bilder holdes utenfor det modellen leser.** Et bilde som er innebygd i teksten til en hendelse eller et varsel - en syntetisk monitors skjermbilde i beskrivelsen, et bilde limt inn i et notat - er hundrevis av kilobyte med base64 som modellen ikke kan lese, og som ville blitt fakturert ved hvert kall. Det erstattes av et kort notat, som `[image omitted: JPEG, 340 KB]`, og undersøkelsens aktivitet sier hva som ble utelatt. En beskrivelse, rotårsak eller et notat på over 4 000 tegn kortes ned på samme måte og slutter med et notat om hvor mye som mangler (16 000 tegn i et utkast til en etteranalyse eller et notat). Mennesker ser fortsatt alle bildene: bare det modellen leser, endres.
 - **Selvhostet = ingen data til tredjeparter.** Med din egen LLM-leverandør (inkludert en lokal Ollama) forlater telemetrien aldri infrastrukturen din.

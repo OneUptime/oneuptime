@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "يحتاج هذا إلى أحدث إصدار. احفظ تغييراتك، ثم أعد تحميل الصفحة.",
   "This couldn't be loaded.": "تعذّر تحميل هذا.",
   "Something went wrong": "حدث خطأ ما",
-  "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة"
+  "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة",
+  "Click to reveal": "انقر للإظهار",
+  "Click to copy": "انقر للنسخ",
+  "Copy": "نسخ",
+  "Copied!": "تم النسخ!",
+  "Copy failed": "فشل النسخ",
+  "Hide": "إخفاء"
 }

@@ -84,7 +84,10 @@ describe("create_incident_note", () => {
     expect(result.rowCount).toBe(1);
     expect(result.dataForLlm).toContain(NOTE_ID.toString());
     expect(result.dataForLlm).toContain("#42");
-    expect(result.dataForLlm).toContain("team members only");
+    expect(result.dataForLlm).toContain(
+      "Only the people who can see the incident can read it",
+    );
+    expect(result.dataForLlm).not.toContain("team");
     expect(result.citationLabel).toBe("Internal note on incident #42");
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.IncidentView,
@@ -95,7 +98,7 @@ describe("create_incident_note", () => {
     expect(actionCardText(result.widget)).toEqual({
       heading: expect.stringContaining("#42 · "),
       kind: "Incident",
-      line: "Private note added, for your team only",
+      line: "Private note added, only for people who can see the incident",
       facts: [
         {
           label: "Note",
@@ -224,7 +227,10 @@ describe("create_alert_note", () => {
     expect(result.rowCount).toBe(1);
     expect(result.dataForLlm).toContain(NOTE_ID.toString());
     expect(result.dataForLlm).toContain("#9");
-    expect(result.dataForLlm).toContain("team members only");
+    expect(result.dataForLlm).toContain(
+      "Only the people who can see the alert can read it",
+    );
+    expect(result.dataForLlm).not.toContain("team");
     expect(result.citationLabel).toBe("Internal note on alert #9");
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.AlertView,
@@ -234,7 +240,7 @@ describe("create_alert_note", () => {
     expect(actionCardText(result.widget)).toEqual({
       heading: expect.stringContaining("#9 · "),
       kind: "Alert",
-      line: "Private note added, for your team only",
+      line: "Private note added, only for people who can see the alert",
       facts: [{ label: "Note", value: "CPU normalized after rollout pause." }],
     });
 

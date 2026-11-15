@@ -471,7 +471,7 @@ async function evaluateSlo(slo: ServiceLevelObjective): Promise<void> {
       now: now,
       isSloStillEvaluated: checkSloStillEvaluated,
       reason:
-        "Every monitor attached to this SLO is archived or disabled - by hand, by a manual incident or by a scheduled maintenance event - so there is no live signal to measure.",
+        "Every monitor attached to this SLO is archived or disabled - by hand, by a manual incident or by a maintenance event - so there is no live signal to measure.",
     });
     return;
   }

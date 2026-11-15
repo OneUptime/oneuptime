@@ -168,6 +168,10 @@ describe("curation", () => {
     ["email_log", "Notification Logs"],
     ["user_notification_log", "Notification Logs"],
     ["workspace_notification_log", "Notification Logs"],
+    // A project's own Twilio account and mail server, not what they sent.
+    ["call_and_sms_config", "Notification Channels"],
+    ["smtp_config", "Notification Channels"],
+    ["call_log", "Notification Logs"],
     ["log", "Logs, Traces & Metrics"],
     ["scim_log", "Teams & Access"],
     ["postmortem_status", "Incidents"],

@@ -2,8 +2,14 @@ import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePrior
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ObjectID from "Common/Types/ObjectID";
 import { isArchivedValue } from "Common/Utils/ArchivableValues";
-import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
-import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import SecurityCasePriorities, {
+  DEFAULT_SECURITY_CASE_PRIORITIES,
+  DefaultSecurityCasePriority,
+} from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses, {
+  DEFAULT_SECURITY_CASE_STATUSES,
+  DefaultSecurityCaseStatus,
+} from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 /*
@@ -22,10 +28,33 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 type SecurityCaseValue = SecurityCasePriority | SecurityCaseStatus;
 
+/*
+ * The names a new project's priorities and statuses start with: OneUptime's
+ * words, read in the reader's language as their pills read them
+ * (SecurityCaseTerms). A name the project gave one of its own is drawn as
+ * written, never looked up (DropdownOption.isUserContent): a filter's menu
+ * and its chip, and a picker, read it as the project wrote it.
+ */
+const DEFAULT_VALUE_NAMES: ReadonlySet<string> = new Set<string>([
+  ...DEFAULT_SECURITY_CASE_PRIORITIES.map(
+    (priority: DefaultSecurityCasePriority): string => {
+      return priority.name;
+    },
+  ),
+  ...DEFAULT_SECURITY_CASE_STATUSES.map(
+    (status: DefaultSecurityCaseStatus): string => {
+      return status.name;
+    },
+  ),
+]);
+
 function toOption(value: SecurityCaseValue): DropdownOption {
+  const name: string = value.name || "";
+
   return {
     value: value.id?.toString() || "",
-    label: value.name || "",
+    label: name,
+    isUserContent: !DEFAULT_VALUE_NAMES.has(name),
     ...(value.color ? { color: value.color } : {}),
     ...(isArchivedValue(value) ? { isArchived: true } : {}),
   };

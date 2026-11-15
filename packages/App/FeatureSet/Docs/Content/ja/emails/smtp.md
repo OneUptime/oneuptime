@@ -74,6 +74,8 @@ Admin Dashboard で **設定** を開き、サイドメニューの **通知 > �
 
 **Microsoft Graph.** プロジェクトのフォームでは **プロバイダー** として `Microsoft Graph` を選び、インスタンスのフォームでは **その他の項目** を開いて **トランスポート** を `Microsoft Graph` に設定します。次に、**Mail.Send** アプリケーション権限を持つ Azure アプリの情報を入力します: クライアント ID とクライアントシークレット、トークン URL `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`、スコープ `https://graph.microsoft.com/.default` です。メールは **送信元メールアドレス** のメールボックスから送信されます。これはテナント内のライセンスのあるメールボックスでなければなりません。
 
+**Terraform.** プロジェクトの SMTP 設定は [Terraform プロバイダー](/docs/terraform/index) の `oneuptime_smtp_config` リソースでもあります。パスワード、OAuth クライアントシークレット、メールプロバイダーのキーは機密の値なので、プラン、ログ、出力に表示されることはありません。Terraform が使う API キーは、これらを読める必要があります: **プロジェクト所有者**、**プロジェクト管理者**、またはカスタムロールの **Read SMTP Config** です。ステータスページの `smtp_config_id` には、設定の `id` を指定します。
+
 > [!NOTE]
 > OneUptime Cloud では、プロジェクトのメールサーバーはインターネットから到達できる必要があります。プライベートまたは内部のアドレスに解決されるホストは拒否されます。セルフホストのインストールでは、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` が `true` でない限りプライベートアドレスは許可されますが、ループバックとリンクローカルのアドレスは常に拒否されます。インスタンス自身のメールサーバーは、このようにはチェックされません。
 

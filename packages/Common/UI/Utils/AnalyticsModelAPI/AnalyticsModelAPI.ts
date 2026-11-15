@@ -23,6 +23,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Project from "../../../Models/DatabaseModels/Project";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
+import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 import Query from "../../../Types/BaseDatabase/Query";
 
 export type ListResult<TAnalyticsBaseModel extends AnalyticsBaseModel> =
@@ -250,12 +251,23 @@ export default class ModelAPI {
 
     const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
 
+    /*
+     * Day, week, month and year buckets follow the reader's calendar: the
+     * request carries their zone, so each bucket starts at their midnight
+     * and lands on the day the chart names it by (issue #7277). A request
+     * that names its own zone keeps it.
+     */
+    const aggregateByInReaderTimezone: AggregateBy<TAnalyticsBaseModel> =
+      AggregationIntervalUtil.withReaderTimezone(aggregateBy);
+
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
       await this.getApiClientForRequest(requestOptions).fetch<JSONArray>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
-          aggregateBy: JSONFunctions.serialize(aggregateBy as any),
+          aggregateBy: JSONFunctions.serialize(
+            aggregateByInReaderTimezone as any,
+          ),
         },
         headers,
       });

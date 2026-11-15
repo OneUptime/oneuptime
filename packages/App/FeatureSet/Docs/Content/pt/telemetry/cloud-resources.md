@@ -39,7 +39,7 @@ Os recursos de nuvem são um dos vários lugares em que sua nuvem aparece:
 | Máquinas virtuais com um OpenTelemetry Collector instalado | **Hosts** | As próprias métricas e logs do host. Veja [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector) |
 | Filas e tópicos que suas aplicações usam | **Filas** | Spans, e as mesmas métricas de nuvem. Veja [Filas](/docs/telemetry/queues) |
 
-Um recurso pode aparecer em mais de um lugar. Uma máquina virtual com o coletor instalado é um **Host**, e as métricas de plataforma dela (créditos de CPU, disco e rede como o hipervisor os vê) a tornam também um **Recurso de nuvem**. Uma fila SQS é uma **Queue** e um **Recurso de nuvem**. Cada visão mostra o que a sua fonte sabe.
+Um recurso pode aparecer em mais de um lugar. Uma máquina virtual com o coletor instalado é um **Host**, e as métricas de plataforma dela (créditos de CPU, disco e rede como o hipervisor os vê) a tornam também um **Recurso de nuvem**. Uma fila SQS é uma **Fila** e um **Recurso de nuvem**. Cada visão mostra o que a sua fonte sabe.
 
 ## Antes de começar
 

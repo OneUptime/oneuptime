@@ -36,7 +36,7 @@ flowchart TB
 | | **服务器** | **浏览器** |
 | --- | --- | --- |
 | 用途 | 在你运营的机器上运行的应用、collector 和代理 | 网页，以及 React Native Session Replay |
-| 发送内容 | 所有类型的遥测，发往所有端点 | 追踪、日志、指标和 Session Replay |
+| 发送内容 | 所有类型的遥测，发往所有端点 | 追踪、日志、指标、Session Replay 和 [Sentry 事件](/docs/telemetry/compatible-endpoints#sentry-sdk) |
 | 是否为机密 | 是：请把它保存在你的服务器上 | 否：任何查看页面的人都能读取它 |
 | 来源 | 不检查 | 只接受列出的来源 |
 | 每分钟请求数 | 无限制，除非你设置了限额 | 6,000，除非你设置了其他限额 |
@@ -108,7 +108,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 
 ## 轮换、停用或删除密钥
 
-密钥的页面会显示它的 **状态**、隐藏在 **Click to reveal** 后面的 **密钥**，以及它的 **Last Used At**：OneUptime 最后一次接受用它发送的数据的时间。
+密钥的页面会显示它的 **状态**、隐藏在 **点击以显示** 后面的 **密钥**，以及它的 **Last Used At**：OneUptime 最后一次接受用它发送的数据的时间。
 
 | 目的 | 操作 | 发送方看到的结果 |
 | --- | --- | --- |

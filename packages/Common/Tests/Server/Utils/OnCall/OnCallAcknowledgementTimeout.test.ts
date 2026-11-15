@@ -1296,6 +1296,8 @@ describe("acknowledging a page again from the Dashboard", () => {
     expect(pages).toHaveLength(1);
     expect(pages[0]!.executionLogId).toBe(run.id!.toString());
     expect(pages[0]!.isPageAgain).toBe(true);
+    // Paged again about a record Ana took: the app says "again".
+    expect("isAskedFor" in pages[0]!).toBe(false);
   });
 
   test("a first run's open page is no page again", async () => {
@@ -1312,5 +1314,6 @@ describe("acknowledging a page again from the Dashboard", () => {
 
     expect(pages).toHaveLength(1);
     expect("isPageAgain" in pages[0]!).toBe(false);
+    expect("isAskedFor" in pages[0]!).toBe(false);
   });
 });

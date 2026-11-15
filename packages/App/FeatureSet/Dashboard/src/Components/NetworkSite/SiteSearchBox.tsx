@@ -93,6 +93,7 @@ export interface ComponentProps {
    * keeps names of its own.
    */
   dataTestId?: string | undefined;
+  // In English: looked up where it is drawn, once (#7682).
   placeholder?: string | undefined;
   /*
    * Whether the box prints its own "Showing 3 of 40 at this level" line. A
@@ -342,7 +343,11 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
         <Input
           isSearchOrFilter={true}
           dataTestId={testId}
-          placeholder={placeholder}
+          /*
+           * In English: Input looks its placeholder up, once (#7682). It
+           * draws its name as given, so that one is the translation.
+           */
+          placeholder={props.placeholder || DEFAULT_PLACEHOLDER}
           ariaLabel={placeholder}
           role="combobox"
           ariaAutoComplete="list"

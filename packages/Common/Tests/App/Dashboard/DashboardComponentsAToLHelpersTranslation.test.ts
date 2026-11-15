@@ -38,8 +38,8 @@ const GERMAN: Record<string, string> = {
   // EventNotes/EventNotesUtil
   incident: "Vorfall",
   alert: "Warnung",
-  "Internal notes for your team about this {{event}}. They are never shown on a status page or sent to subscribers.":
-    "Interne Notizen für Ihr Team zu diesem {{event}}. Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
+  "Internal notes about this {{event}}. They are never shown on a status page or sent to subscribers.":
+    "Interne Notizen zu diesem {{event}}. Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
   "Customer-facing updates about this {{event}}. They appear on your status page, and subscribers can be notified when you post one.":
     "Updates für Kunden zu dieser {{event}}. Sie erscheinen auf Ihrer Statusseite, und Abonnenten können benachrichtigt werden.",
   // EpisodeView/EpisodeHeader
@@ -48,8 +48,8 @@ const GERMAN: Record<string, string> = {
   // Inventory/LinkedResource
   "maintenance windows": "Wartungsfenster",
   "Kubernetes Pod": "Kubernetes-Pod",
-  "{{signal}} are raised against services, hosts and Kubernetes clusters. A {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.":
-    "{{signal}} werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Ein {{type}} hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
+  "{{signal}} are raised against services, hosts and Kubernetes clusters. This {{type}} does not carry its own — look at the service or host it belongs to, which you can find under Connections.":
+    "{{signal}} werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Dieser {{type}} hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
   // Inventory/InventoryLiveness
   "{{count}}h ago": "vor {{count}} Std.",
   "just now": "gerade eben",
@@ -92,7 +92,7 @@ const PAST_HOUR: RangeStartAndEndDateTime = {
 describe("before i18next is set up, the helpers answer in English, word for word", () => {
   test("a notes feed names its event in the sentence", () => {
     expect(getNotesCopy("private", "incident").description).toBe(
-      "Internal notes for your team about this incident. They are never shown on a status page or sent to subscribers.",
+      "Internal notes about this incident. They are never shown on a status page or sent to subscribers.",
     );
   });
 
@@ -110,11 +110,15 @@ describe("before i18next is set up, the helpers answer in English, word for word
     ).toEqual(["Grouping: Manual episode"]);
   });
 
+  /*
+   * The item's type is a noun in the middle of the sentence, after "This"
+   * (#7862): never a label's "A Kubernetes Pod".
+   */
   test("an inventory item's empty state starts with the signal, capitalised", () => {
     expect(
       describeMissingLink(EntityType.KubernetesPod, "maintenance windows"),
     ).toBe(
-      "Maintenance windows are raised against services, hosts and Kubernetes clusters. A Kubernetes Pod does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
+      "Maintenance windows are raised against services, hosts and Kubernetes clusters. This Kubernetes pod does not carry its own — look at the service or host it belongs to, which you can find under Connections.",
     );
   });
 
@@ -143,7 +147,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
     expect(
       getNotesCopy("private", "incident", germanTranslator).description,
     ).toBe(
-      "Interne Notizen für Ihr Team zu diesem Vorfall. Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
+      "Interne Notizen zu diesem Vorfall. Sie werden nie auf einer Statusseite angezeigt oder an Abonnenten gesendet.",
     );
   });
 
@@ -166,6 +170,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
     ).toEqual(["Grouping", "Last alert added"]);
   });
 
+  // German nouns keep their capital in the middle of a sentence.
   test("the empty state is one German sentence with the signal and the type in it", () => {
     expect(
       describeMissingLink(
@@ -174,7 +179,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
         germanTranslator,
       ),
     ).toBe(
-      "Wartungsfenster werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Ein Kubernetes-Pod hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
+      "Wartungsfenster werden für Dienste, Hosts und Kubernetes-Cluster erfasst. Dieser Kubernetes-Pod hat keine eigenen — sehen Sie sich den Dienst oder Host an, zu dem er gehört; Sie finden ihn unter Verbindungen.",
     );
   });
 

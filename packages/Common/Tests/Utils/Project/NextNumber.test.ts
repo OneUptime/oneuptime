@@ -148,7 +148,7 @@ describe("the kinds of numbered record", () => {
       ["Incident Episode Numbers Start At", "incident episode"],
       ["Alert Numbers Start At", "alert"],
       ["Alert Episode Numbers Start At", "alert episode"],
-      ["Scheduled Maintenance Numbers Start At", "scheduled maintenance event"],
+      ["Scheduled Maintenance Numbers Start At", "maintenance event"],
       ["Security Case Numbers Start At", "security case"],
     ]);
   });
@@ -463,7 +463,7 @@ describe("NextNumberUtil.getNotAboveHighestError - the API's refusal", () => {
     [
       NumberedRecordKind.ScheduledMaintenance,
       12,
-      "Scheduled Maintenance Numbers Start At must be higher than 12, the highest scheduled maintenance event number used so far. A number is never used twice.",
+      "Scheduled Maintenance Numbers Start At must be higher than 12, the highest maintenance event number used so far. A number is never used twice.",
     ],
   ])(
     "%s: names the column, the highest number and why",

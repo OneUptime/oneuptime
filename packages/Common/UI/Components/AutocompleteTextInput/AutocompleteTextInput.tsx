@@ -11,6 +11,10 @@ import React, {
 import { createPortal } from "react-dom";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  getTextReadingDirectionByMostLetters,
+  ReadingDirection,
+} from "../../../Types/ReadingDirection";
 
 export interface ComponentProps {
   value?: string;
@@ -142,6 +146,8 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [inputValue, setInputValue] = useState<string>(props.value || "");
+  const inputDirection: ReadingDirection | null =
+    getTextReadingDirectionByMostLetters(inputValue);
   const [isMenuVisible, setIsMenuVisible] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -470,6 +476,15 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         autoFocus={props.autoFocus}
         className={getInputClassName()}
         data-testid={props.dataTestId}
+        /*
+         * What is typed here is an attribute's key or value, a pattern or a
+         * name, read the way its own letters are: on a Persian page the
+         * pattern "/api/checkout/" with a star at its end showed the star
+         * first, and "test-" with a star read "*-test". An empty box, or a
+         * value without letters (a number), takes the page's direction, so
+         * its placeholder reads as the page does.
+         */
+        dir={inputDirection || undefined}
         disabled={props.disabled}
         aria-label={props.ariaLabel}
         aria-labelledby={props.ariaLabelledby}

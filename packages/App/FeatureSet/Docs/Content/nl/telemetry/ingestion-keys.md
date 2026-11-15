@@ -36,7 +36,7 @@ Kies het type op basis van waar de sleutel komt te staan. Het type kan niet meer
 | | **Server** | **Browser** |
 | --- | --- | --- |
 | Voor | Applicaties, collectors en agents op machines die u beheert | Webpagina's, en React Native Session Replay |
-| Verzendt | Elk soort telemetrie, naar elk endpoint | Traces, logboeken, metrieken en Session Replays |
+| Verzendt | Elk soort telemetrie, naar elk endpoint | Traces, logboeken, metrieken, Session Replays en [Sentry-gebeurtenissen](/docs/telemetry/compatible-endpoints#sentry-sdks) |
 | Een geheim | Ja: bewaar hem op uw servers | Nee: iedereen die de pagina bekijkt, kan hem lezen |
 | Origins | Niet gecontroleerd | Alleen de vermelde origins worden geaccepteerd |
 | Verzoeken per minuut | Geen limiet, tenzij u er een instelt | 6.000, tenzij u een andere limiet instelt |
@@ -108,7 +108,7 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
-De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Click to reveal**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
+De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
 
 | Om | Doe dit | Wat afzenders zien |
 | --- | --- | --- |

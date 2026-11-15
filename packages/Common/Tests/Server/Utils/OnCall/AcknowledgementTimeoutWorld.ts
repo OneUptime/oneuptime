@@ -26,7 +26,7 @@ import OnCallEscalationAdvance from "../../../../Server/Utils/OnCall/OnCallEscal
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
-import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { isOnCallPageEndedOnlyByAnAnswer } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgePage";
 import {
   getOnCallPolicyRunRecordHandledMessage,
   getOnCallPolicyRunRecordResolvedMessage,
@@ -591,6 +591,14 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
   public async changeState(
     stateId: ObjectID,
     byUserId: ObjectID | null,
+    options?: {
+      /*
+       * Tell the clock who made the change, as the state timeline does
+       * (changedByUserId): their own pages that go on until answered are
+       * answered by it (OnCallPersonPageAnswer).
+       */
+      tellsWho?: boolean | undefined;
+    },
   ): Promise<void> {
     const previous: ObjectID | null = this.incident?.stateId || null;
 
@@ -607,6 +615,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
       projectId: PROJECT_ID,
       stateId: stateId,
       previousStateId: previous,
+      ...(options?.tellsWho ? { changedByUserId: byUserId } : {}),
     });
   }
 
@@ -694,8 +703,9 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
   /*
    * The escalation worker's tick, for every run still paging, as
    * ExecutePendingExecutions runs it: a run whose record is handled ends -
-   * acknowledged or resolved, or for a page again, resolved - and a run
-   * whose rule's wait is over moves on.
+   * acknowledged or resolved, or, for a run only an answer ends (a page
+   * again, a policy a person started by hand: isOnCallPageEndedOnlyByAnAnswer),
+   * resolved - and a run whose rule's wait is over moves on.
    */
   public async escalationTick(): Promise<void> {
     for (const row of [...this.runs]) {
@@ -705,7 +715,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
         continue;
       }
 
-      const isOver: boolean = isOnCallPageAgainRun(run)
+      const isOver: boolean = isOnCallPageEndedOnlyByAnAnswer(run)
         ? this.isIncidentInState(["resolved"])
         : this.isIncidentInState(["acknowledged", "resolved"]);
 
@@ -714,7 +724,7 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
           id: run.id!,
           data: {
             status: OnCallDutyPolicyStatus.Completed,
-            statusMessage: isOnCallPageAgainRun(run)
+            statusMessage: isOnCallPageEndedOnlyByAnAnswer(run)
               ? getOnCallPolicyRunRecordResolvedMessage("incident")
               : getOnCallPolicyRunRecordHandledMessage("incident"),
           },

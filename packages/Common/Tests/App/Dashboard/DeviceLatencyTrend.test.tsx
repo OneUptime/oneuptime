@@ -275,4 +275,55 @@ describe("what the trend shows", () => {
       expect.stringContaining(`${DEVICE_ID}/metrics`),
     );
   });
+
+  /*
+   * Each (i) follows its words (issue #7348). German wraps the title in the
+   * Network Map's drawer on a phone ("ROUND-TRIP-ZEIT, LETZTE STUNDE"), and
+   * the (i) - the title's flex sibling - was drawn at the far end of the
+   * wrapped title, apart from its words. The link beside it stays whole:
+   * the title gives way first.
+   */
+  test("the title's (i) and the loss line's follow their words, and the link beside the title stays whole", async () => {
+    fetchResultsMock.mockResolvedValue([
+      aggregate([
+        { time: "2026-09-15T10:00:00Z", value: 10 },
+        { time: "2026-09-15T10:01:00Z", value: 30 },
+      ]),
+      aggregate([{ time: "2026-09-15T10:00:00Z", value: 5 }]),
+    ]);
+
+    await renderTrend();
+
+    const title: HTMLElement = screen.getByTestId(
+      "network-device-latency-title",
+    );
+    const titleInfo: HTMLElement = screen.getByRole("button", {
+      name: "About Round-trip time, past hour",
+    });
+
+    expect(title.tagName).toBe("SPAN");
+    expect(title.firstChild?.textContent).toBe("Round-trip time, past hour");
+    expect(title).toContainElement(titleInfo);
+    expect(title.lastElementChild).toBe(titleInfo.parentElement);
+    // The title may shrink beside the link and keeps the (i)'s room.
+    expect(title).toHaveClass("min-w-0", "pe-[1.125rem]", "uppercase");
+
+    const link: HTMLElement = screen.getByText("Open metrics").closest("a")!;
+    expect(link).toHaveClass("flex-shrink-0", "whitespace-nowrap");
+    expect(link).not.toContainElement(titleInfo);
+    // The title and the link: the row's two items, on one baseline.
+    expect(title.parentElement).toBe(link.parentElement);
+    expect(title.parentElement).toHaveClass("flex", "items-baseline");
+
+    const loss: HTMLElement = screen.getByTestId("network-device-loss-summary");
+    const lossInfo: HTMLElement = screen.getByRole("button", {
+      name: "About Packet loss (1h max)",
+    });
+    const lossWords: HTMLElement = loss.firstElementChild as HTMLElement;
+
+    expect(loss.children).toHaveLength(1);
+    expect(lossWords).toContainElement(lossInfo);
+    expect(lossWords.firstChild?.textContent).toBe("Packet loss (1h max): 5%");
+    expect(lossWords.lastElementChild).toBe(lossInfo.parentElement);
+  });
 });

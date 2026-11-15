@@ -79,16 +79,18 @@ import {
   LINKED_MONITORS_TITLE,
   SYNC_TO_LINKED_MONITORS_TITLES,
   SYNCED_MONITOR_RESULT,
+  UNLINK_MONITOR_CONFIRMATION,
   UNLINKED_MONITOR_RESULT,
 } from "./MonitorTemplateLinkedMonitorsWords";
 
 /*
- * What Sync from Template and Unlink from Template say when they are done
- * (#7678): the sentence in the reader's language, with the monitor's name
- * in it as it was written, set apart (IsolatedText) so a name in another
- * script keeps its own reading inside the sentence.
+ * A sentence about one monitor, in the reader's language, with the
+ * monitor's name in it as it was written, set apart (IsolatedText) so a
+ * name in another script keeps its own reading inside the sentence: what
+ * Sync from Template and Unlink from Template say when they are done
+ * (#7678), and what Unlink from Template asks first (#7710).
  */
-const MonitorResultSentence: FunctionComponent<{
+const SentenceWithMonitorName: FunctionComponent<{
   template: string;
   monitorName: string | undefined;
 }> = (props: {
@@ -323,6 +325,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("criteria"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -366,6 +369,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("monitoring interval"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -409,6 +413,7 @@ const MonitorTemplatesView: FunctionComponent<
         subject: translationKey("labels"),
         syncedMonitors: synced,
         totalLinkedMonitors: total,
+        translator: translator,
       });
 
       setSyncResultTitle(summary.title);
@@ -463,6 +468,7 @@ const MonitorTemplatesView: FunctionComponent<
           subject: translationKey("custom field defaults"),
           syncedMonitors: synced,
           totalLinkedMonitors: total,
+          translator: translator,
         });
 
         setSyncResultTitle(summary.title);
@@ -504,7 +510,7 @@ const MonitorTemplatesView: FunctionComponent<
       setIsSyncingSingle(false);
       setSyncResultTitle("Done");
       setSyncResultMessage(
-        <MonitorResultSentence
+        <SentenceWithMonitorName
           template={SYNCED_MONITOR_RESULT}
           monitorName={monitorName}
         />,
@@ -675,7 +681,7 @@ const MonitorTemplatesView: FunctionComponent<
       setIsUnlinking(false);
       setSyncResultTitle("Done");
       setSyncResultMessage(
-        <MonitorResultSentence
+        <SentenceWithMonitorName
           template={UNLINKED_MONITOR_RESULT}
           monitorName={monitorName}
         />,
@@ -1549,15 +1555,10 @@ const MonitorTemplatesView: FunctionComponent<
         <ConfirmModal
           title="Unlink Monitor from Template"
           description={
-            <span>
-              {translator.translateTemplate(
-                '"{{monitorName}}" keeps its settings but no longer gets updates from this template.',
-                {
-                  monitorName:
-                    unlinkTarget.name || translatableTerm("this monitor"),
-                },
-              )}
-            </span>
+            <SentenceWithMonitorName
+              template={UNLINK_MONITOR_CONFIRMATION}
+              monitorName={unlinkTarget.name}
+            />
           }
           submitButtonText="Unlink"
           submitButtonType={ButtonStyleType.DANGER}

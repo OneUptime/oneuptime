@@ -22,9 +22,15 @@ import {
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
 } from "./DashboardWidgetSetupCopy";
+import DashboardWidgetError, {
+  DashboardWidgetErrorLine,
+  DashboardWidgetState,
+} from "./DashboardWidgetError";
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
+// The line in its place when there is no value: none read, or why not.
+export const GAUGE_NO_DATA_TEST_ID: string = "gauge-no-data";
 // The centre's number, with its unit in a span of its own.
 export const GAUGE_VALUE_TEST_ID: string = "gauge-value";
 
@@ -46,9 +52,14 @@ const GaugeStateIcon: FunctionComponent<{
         props.tone === "emerald" ? "bg-emerald-50" : "bg-gray-50"
       }`}
     >
+      {/*
+       * Gray as every widget's error icon is (DashboardWidgetErrorIcon):
+       * the arc stands for the gauge where another widget's chart or table
+       * icon would.
+       */}
       <svg
         className={`w-5 h-5 ${
-          props.tone === "emerald" ? "text-emerald-300" : "text-gray-300"
+          props.tone === "emerald" ? "text-emerald-300" : "text-gray-400"
         }`}
         fill="none"
         viewBox="0 0 24 24"
@@ -122,7 +133,8 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    * translationKey so the extractor finds them) and are read out in the
    * reader's language here, as the Value widget reads its own. A
    * connector's own error message has no entry, so it reads as the
-   * connector wrote it.
+   * connector wrote it, in its own reading direction (ErrorMessageText,
+   * for the no-data and error lines).
    */
   const setupTitle: string =
     props.title?.trim() ||
@@ -130,8 +142,6 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     props.setupTitle;
   const setupMessage: string =
     translator.translateText(props.setupMessage) || props.setupMessage;
-  const noDataMessage: string =
-    translator.translateText(props.noDataMessage) || props.noDataMessage;
 
   if (props.isLoading && !props.hasEverLoaded) {
     // Skeleton loading for gauge - only on initial load
@@ -172,14 +182,19 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     );
   }
 
+  /*
+   * Every widget's error state (DashboardWidgetError), under the gauge's
+   * own arc icon: the line in the reader's language and readable, and a
+   * long message in a two-row gauge that drops the icon, then scrolls from
+   * its first line. It was drawn as set, in gray-400, in a 160px column,
+   * centred so a long one was cut off above and below.
+   */
   if (props.error) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <GaugeStateIcon tone="gray" />
-        <p className="text-xs text-gray-400 text-center max-w-40">
-          {props.error}
-        </p>
-      </div>
+      <DashboardWidgetError
+        icon={<GaugeStateIcon tone="gray" />}
+        error={props.error}
+      />
     );
   }
 
@@ -192,17 +207,25 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    */
   if (props.value === null && !props.isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <GaugeStateIcon tone="gray" />
+      <DashboardWidgetState icon={<GaugeStateIcon tone="gray" />}>
         {props.title ? (
-          <p className="text-xs font-medium text-gray-500">{props.title}</p>
+          <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
+            {props.title}
+          </p>
         ) : (
           <></>
         )}
-        <p className="text-xs text-gray-400 text-center max-w-40">
-          {noDataMessage}
-        </p>
-      </div>
+        {/*
+         * The line every widget says why it draws nothing in (issue #7330):
+         * readable, and a read's failure reason in the reader's language,
+         * or English from a connector in its own reading direction. It was
+         * gray-400 in a 160px column.
+         */}
+        <DashboardWidgetErrorLine
+          error={props.noDataMessage}
+          dataTestId={GAUGE_NO_DATA_TEST_ID}
+        />
+      </DashboardWidgetState>
     );
   }
 

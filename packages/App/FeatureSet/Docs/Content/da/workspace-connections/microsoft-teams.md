@@ -91,14 +91,17 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Microsoft Teams,
 | **Vagt** | Én liste med regler |
 | **SLOs** | Én liste med regler |
 
-At oprette en regel går gennem fire trin:
+At oprette en regel går gennem op til fem trin:
 
 | Trin | Hvad du angiver |
 | --- | --- |
 | **Grundlæggende** | **Regelnavn** og **Regelbeskrivelse**. |
 | **Betingelser** | Hvilke begivenheder reglen gælder for, for eksempel efter alvorlighed, tilstand, etiket, monitor eller ord i titlen. De kontrolleres, når en begivenhed oprettes, og igen ved hver opdatering, OneUptime slår op om den, så en regel for bekræftede hændelser virker, når en hændelse bekræftes. En ny regel gælder for hver begivenhed, for eksempel **Alle hændelser**. For at indsnævre den vælger du **Kun hændelser, der opfylder betingelserne** og tilføjer betingelserne. Med to eller flere siger **Matchbetingelse**, om alle skal passe, eller om én er nok. |
 | **Destination** | Hvor den slår op: en eksisterende kanal i et team, du vælger, de chats, du vælger, en kanal for hver hændelse (eller advarsel, episode, begivenhed, monitor eller vagtpolitik), der oprettes i et team, du vælger, eller flere af dem sammen. Under trinnet siger **Hvad reglen gør** det i sætninger, ligesom reglens kort. |
+| **Opdateringer** | Kun hændelser, advarsler, episoder, planlagt vedligeholdelse og vagtpolitikker: hvilke opdateringer reglen slår op efter postens første besked. **Alle opdateringer** slår dem alle op, og en ny regel starter med den, undtagen en vagtpolitiks. **Kun vigtige opdateringer** slår dem op, der betyder mest, som trinnet viser for hver slags post: for en hændelse dens løsning eller genåbning, ændringer i alvorlighed, offentlige noter og postmortem; for en vagtpolitik, hvem der har vagt nu, og hvornår ingen har, som en ny regel for en vagtpolitik starter med. Med **Vælg opdateringer** sætter du flueben ved dem én ad gangen. Uanset hvad du vælger, slår reglen postens første besked op og et videoopkald, når et starter. Se [Vagtbeskeder](#vagtbeskeder). |
 | **Video Call** | Kun hændelser og advarsler: start et opkald for hver. Se [Videoopkald](/docs/workspace-connections/video-calls). |
+
+Hver betingelse læses som en sætning: feltet, hvordan det sammenlignes, og værdien. Værdier at vælge kommer fra projektets egne lister, som dets tilstande, alvorligheder, etiketter og monitorer. En regel for vagtpolitikker vælger sine politikker under **Vagtpolitik**, som bliver ved med at matche en politik, efter at den har fået nyt navn, mens **Navn på vagtpolitik** matcher ord i en politiks navn. Hver slags begivenhed, der har ejere, har en ejerbetingelse, som **Ejer af hændelse**: vælg personer og teams, og den matcher de personer og teams, der er registreret som begivenhedens ejere. At være med i et team, der ejer begivenheden, tæller ikke. En ejer, der tilføjes senere, får reglen til at matche fra den opdatering, og en regel, der opretter kanaler, opretter kanalen da. En arkiveret værdi, som en alvorlighed eller en vagtpolitik, tilbydes ikke til en ny betingelse. En regel, der allerede har en, beholder den, markeret **Arkiveret**, og matcher stadig de begivenheder, der har den. En person, et team eller en politik, som projektet ikke længere har, bliver i betingelsen, og reglens kort siger det.
 
 En regel for SLO'er slår skiftene i et SLO's fejlbudgetpolitik op: når SLO'et går ind i et niveau, kommer sig til et mindre alvorligt niveau eller forlader alle niveauer, og når dets udrulninger fryses eller tillades igen. Den slår kun op i eksisterende kanaler og chats, da et SLO ikke får sin egen kanal. Se [Slå op i Slack, Microsoft Teams og Mattermost](/docs/slo/error-budget-policy#slå-op-i-slack-microsoft-teams-og-mattermost).
 
@@ -108,7 +111,7 @@ En regel opretter sin kanal første gang, en begivenhed matcher den: når begive
 
 For at inddrage dem, der har vagt, vælger du deres vagtplaner under **Nævn dem, der har vagt**. Når kanalen oprettes, slår OneUptime en besked op i den lige efter postens første besked. Beskeden @nævner dem, der har vagt i de vagtplaner, så Microsoft Teams underretter dem. Ingen tilkaldes. OneUptime finder hver person i teamet ud fra den Microsoft Teams-konto, personen har forbundet med OneUptime, eller ellers ud fra personens e-mailadresse. En person, der ikke er i teamet, kan ikke åbne dets kanaler, så i stedet står personens navn i beskeden sammen med årsagen. En privat kanal kan kun åbnes af dens medlemmer, så tilføj de vagthavende til den i Microsoft Teams.
 
-Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler og chats, dens regler nævner, så længe deres betingelser passer. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så en regels kanal bliver, når dens post er afsluttet; arkiver eller slet den i Microsoft Teams.
+Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler og chats, dens regler nævner, så længe deres betingelser passer, når en regel, der slår op dér, vælger den i sit trin **Opdateringer**. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så en regels kanal bliver, når dens post er afsluttet; arkiver eller slet den i Microsoft Teams.
 
 En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Microsoft Teams** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Microsoft Teams-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler og chats, dine regler slår op i, tilbydes ikke.
 
@@ -119,6 +122,14 @@ Kanaler og chats forbliver læsbare: hver begivenhed slås op én gang, og poste
 **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams** viser de kanaler, OneUptime kan se i dine teams, og de chats, den er føjet til, med **Send test** ved siden af hver. En chat vises, så snart OneUptime-appen er føjet til den i Microsoft Teams; **Refresh Chats** henter nye chats og deres nuværende navne.
 
 En notifikationsregel kan tilhøre teams. **Ansvarlige teams** under **Flere felter** forbeholder den de teams, du vælger: kun deres medlemmer og projektadministratorer kan redigere eller slette den, og alle andre, der kan se reglerne, ser den skrivebeskyttet. Se [Regler, der tilhører teams](/docs/permissions/index#regler-der-tilhører-teams).
+
+### Vagtbeskeder
+
+Ved hvert vagtskifte hører en vagtpolitiks kanaler og chats i én linje, hvem der har vagt:
+
+> 📞 @Ana Lee is now on call for Payments until Sat, Nov 14, 2026 at 5:50 PM, then @Bob Diaz.
+
+Payments linker til politikken i OneUptime. En person nævnes ved sit Microsoft Teams-navn, når vedkommende har forbundet sin Microsoft Teams-konto med OneUptime, og ved sit navn i OneUptime indtil da. Tidspunkter vises i hver læsers egen tidszone. En regels trin **Opdateringer** vælger, hvilke vagtbeskeder den slår op, som i Slack, og en ny regel starter med, hvem der har vagt nu, og hvornår ingen har: se [Vagtbeskeder](/docs/workspace-connections/slack#vagtbeskeder).
 
 ## Test en regel
 
@@ -158,7 +169,7 @@ Reagér på en besked, eller et svar, i den kanal, OneUptime oprettede for en h�
 
 | Reaktion | Gemt som |
 | --- | --- |
-| 📌 eller 📍 | En privat note, som kun dit team ser |
+| 📌 eller 📍 | En privat note, som kun dem, der kan se posten, kan læse |
 | 📣 eller 📢 | En offentlig note, vist på statussiden. Kun hændelser og planlagte vedligeholdelsesbegivenheder. På en privat hændelse en privat note, og bekræftelsen siger hvorfor. Når projektets offentlige noter kræver godkendelse, vises den først, når den er godkendt, og bekræftelsen siger, hvem den venter på: se [Godkendelse af offentlige noter](/docs/incidents/notes-owners-and-feed#godkendelse-af-offentlige-noter). |
 
 Noten bevarer beskeden, som Microsoft Teams viste den: dens formatering, links og kode, de personer, den nævner, ved navn, og dens filer og billeder som links til dem. En offentlig note udelader filerne og billederne, da de kun åbner for dit team.
@@ -253,7 +264,7 @@ En hændelses kort har fire knapper, **Acknowledge Incident**, **Resolve Inciden
 | **Change Severity** | Sætter hændelsens alvorlighed. |
 | **Change Incident State** | Flytter hændelsen til en senere tilstand. |
 | **Assign Role** | Giver nogen en rolle i hændelsen, som **Incident Commander**. En rolle til én person går over til vedkommende. |
-| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Personer tilkaldes, indtil en af dem svarer; en politik tilkalder, indtil nogen kvitterer for hændelsen. |
+| **Page Someone** | Tilkalder personer, et team, den der har vagt i en vagtplan, eller en vagtpolitik om hændelsen, med en valgfri besked. Alle, den tilkalder, også en politiks personer, tilkaldes, indtil en af dem svarer, eller hændelsen er løst. |
 | **Edit Custom Fields** | Sætter hændelsens brugerdefinerede felter, hvert udfyldt med det, hændelsen har. Et felt, der efterlades tomt, ryddes. |
 
 `incident 42`, skrevet til botten, svarer med hændelse 42, disse knapper og dens menu. Skriv nummeret, som OneUptime viser det: `42`, `#42` eller `INC-42`. I en hændelses egen kanal viser `incident` alene den hændelse.

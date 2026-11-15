@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -15,7 +17,9 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import i18next from "i18next";
 import React, { ReactElement } from "react";
+import { initReactI18next } from "react-i18next";
 import {
   MemoryRouter,
   NavigateFunction,
@@ -2515,5 +2519,147 @@ describe("the questions follow the incident on screen", () => {
 
     expect(screen.queryByTestId("ai-chat-context")).not.toBeInTheDocument();
     expect(suggestionTitles()).not.toContain("Prevent a repeat");
+  });
+});
+
+/*
+ * THE LANGUAGE THE DASHBOARD IS READ IN GOES WITH THE TURN (#7247).
+ *
+ * A monitor Ask AI sets up names its criteria, and the incident and alert
+ * they open, in the language the person reads the Dashboard in, as the
+ * website guided setup does. The panel sends that language with every
+ * question, and again with an approval - a setup is made when it is
+ * approved - and sends the one the Dashboard is read in at that moment.
+ *
+ * Last in the file: it sets up the app's i18next, which the rest of the
+ * file runs without. The languages have no words here, so the panel
+ * reads in English and only the language it sends changes.
+ */
+describe("the language the Dashboard is read in goes with every question and approval (#7247)", () => {
+  beforeAll(async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "en",
+      fallbackLng: "en",
+      resources: {
+        de: { translation: {} },
+        ar: { translation: {} },
+        ja: { translation: {} },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+  });
+
+  afterEach(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  afterAll(async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("en");
+    });
+  });
+
+  const readIn: (language: string) => Promise<void> = async (
+    language: string,
+  ): Promise<void> => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage(language);
+    });
+  };
+
+  const approvalWaiting: () => void = (): void => {
+    server.messages.set(CONVERSATION_ID, [
+      message({
+        id: "a1111111-1111-4111-8111-111111111111",
+        role: AIChatMessageRole.User,
+        content: "Monitor https://acme.example",
+      }),
+      message({
+        id: "a5555555-5555-4555-8555-555555555555",
+        role: AIChatMessageRole.Assistant,
+        content: "",
+        status: AIChatMessageStatus.WaitingForApproval,
+        toolActions: [
+          {
+            id: "call_setup",
+            toolName: "set_up_website_monitoring",
+            title: "Set up website monitoring",
+            arguments: { url: "https://acme.example" },
+            isMutation: true,
+            requiresApproval: true,
+            status: AIChatToolActionStatus.Pending,
+          },
+        ],
+      }),
+    ]);
+  };
+
+  test("in English, a question says so", async () => {
+    await renderAt();
+    await toggle();
+
+    await sendQuestion("Monitor https://acme.example");
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({
+        content: "Monitor https://acme.example",
+        language: "en",
+      }),
+    );
+  });
+
+  test.each(["de", "ar", "ja"])(
+    "read in %s, a question carries it",
+    async (language: string) => {
+      await readIn(language);
+      await renderAt();
+      await toggle();
+
+      await sendQuestion("Monitor https://acme.example");
+
+      expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+        expect.objectContaining({
+          content: "Monitor https://acme.example",
+          language: language,
+        }),
+      );
+    },
+  );
+
+  test("switched while the panel is open, the next question carries the new one", async () => {
+    await renderAt();
+    await toggle();
+    await readIn("de");
+
+    await sendQuestion("Monitor https://acme.example");
+
+    expect(sentRequests("/ai-chat/send-message")[0]!.data).toEqual(
+      expect.objectContaining({ language: "de" }),
+    );
+  });
+
+  test("the approval that makes the setup carries it too", async () => {
+    await readIn("ar");
+    approvalWaiting();
+    await renderAt();
+    await toggle({ conversationId: CONVERSATION_ID });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Run 1 action" }));
+    });
+    await settle();
+
+    expect(sentRequests("/ai-chat/respond-to-approval")[0]!.data).toEqual(
+      expect.objectContaining({
+        conversationId: CONVERSATION_ID,
+        assistantMessageId: "a5555555-5555-4555-8555-555555555555",
+        decisions: [{ toolCallId: "call_setup", approved: true }],
+        language: "ar",
+      }),
+    );
   });
 });

@@ -43,6 +43,10 @@ import {
  * Acknowledge is not offered, and this answers their page instead - their
  * notifications stop, and the policy counts its time again from now. In one
  * step, with no question, as every link, call and text of the page does.
+ * The same answers a page somebody asked for by hand - a page sent from a
+ * chat, a policy started by hand - about a record somebody acknowledged
+ * already: the person was paged to help with it, not paged again
+ * (isPagedToHelp), and the screen says so.
  *
  * Anybody the policy is not paging gets no button: the screen is as it was.
  * So does anybody whose server cannot be asked (an older server, no
@@ -63,6 +67,12 @@ export interface PassOnControls {
   // Whether the reader has an open page about the record, and a page again among them.
   hasOpenPages: boolean;
   isPageAgain: boolean;
+  /*
+   * Whether every page answered with Acknowledge again is one somebody asked
+   * for by hand (isAskedFor): the reader is paged to help with a record
+   * somebody else is on, not paged again about one they took.
+   */
+  isPagedToHelp: boolean;
   // Whether the server has answered (or failed to answer) what the open pages are.
   pagesSettled: boolean;
   pagesKnown: boolean;
@@ -111,6 +121,12 @@ export function usePassOnAction(data: {
   const isPageAgain: boolean = pages.some((page: OnCallPassOnPage) => {
     return page.isPageAgain === true;
   });
+  // A page again among them is said as one: the reader took the record before.
+  const isPagedToHelp: boolean =
+    isPageAgain &&
+    pages.every((page: OnCallPassOnPage) => {
+      return page.isPageAgain !== true || page.isAskedFor === true;
+    });
 
   const passOn: () => Promise<void> = useCallback(async (): Promise<void> => {
     setPassingOn(true);
@@ -243,6 +259,7 @@ export function usePassOnAction(data: {
     acknowledgingAgain,
     hasOpenPages: pages.length > 0,
     isPageAgain,
+    isPagedToHelp,
     pagesSettled: query.isFetched || query.isError || !query.isEnabled,
     pagesKnown: query.isSuccess,
     askToPassOn,

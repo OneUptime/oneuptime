@@ -707,6 +707,106 @@ describe("the pre-commit hook", () => {
       version: "1.0.0",
     });
   });
+
+  /*
+   * A package missing from the working tree when someone commits: ee/ moved
+   * aside to run the tests as CI does, say. `git diff --name-only` lists a
+   * deleted file too, and the hook staged the deletion of ee/package.json
+   * into a commit about something else entirely (#7686). A deletion is the
+   * committer's to stage, never the hook's.
+   */
+  describe("with a package's files deleted from the working tree", () => {
+    // A repository at `version` that runs the real hook on every commit,
+    // holding a committed package.json and package-lock.json per package.
+    function hookedRepository(version, packages) {
+      const root = makeWorkspace(version);
+      const hook = path.join(root, ".github", "hooks", "pre-commit");
+      fs.mkdirSync(path.dirname(hook), { recursive: true });
+      fs.copyFileSync(REAL_HOOK_PATH, hook);
+      fs.chmodSync(hook, 0o755);
+      for (const name of packages) {
+        writePackageJson(root, name, { name: name.toLowerCase(), version });
+        writeLockfile(root, name, lockfileFor(name.toLowerCase(), version));
+      }
+      expect(git(root, ["init", "-q"]).status).toBe(0);
+      expect(
+        git(root, ["config", "core.hooksPath", ".github/hooks"]).status,
+      ).toBe(0);
+      expect(git(root, ["add", "-A"]).status).toBe(0);
+      expect(
+        git(root, ["commit", "-q", "--no-verify", "-m", "fixture"]).status,
+      ).toBe(0);
+      return root;
+    }
+
+    // What the last commit holds, as `git show --name-status` lists it.
+    function committed(root) {
+      return git(root, ["show", "--name-status", "--format=", "HEAD"])
+        .stdout.trim()
+        .split("\n");
+    }
+
+    // What is left in the working tree, unstaged, as `git status` lists it.
+    function leftUnstaged(root) {
+      return git(root, ["status", "--porcelain"])
+        .stdout.split("\n")
+        .filter(Boolean)
+        .sort();
+    }
+
+    test.each([
+      ["its package.json", ["Ee/package.json"]],
+      ["its package-lock.json", ["Ee/package-lock.json"]],
+      [
+        "both, the package moved aside",
+        ["Ee/package-lock.json", "Ee/package.json"],
+      ],
+    ])(
+      "%s: a commit of an unrelated file holds that file alone",
+      (_deletedWhat, deleted) => {
+        const root = hookedRepository("13.0.1", ["App", "Ee"]);
+        for (const file of deleted) {
+          fs.rmSync(path.join(root, file));
+        }
+        fs.writeFileSync(path.join(root, "notes.txt"), "unrelated\n");
+        expect(git(root, ["add", "notes.txt"]).status).toBe(0);
+
+        const commit = git(root, ["commit", "-q", "-m", "notes"]);
+
+        expect([commit.status, commit.stderr]).toEqual([0, expect.any(String)]);
+        expect(committed(root)).toEqual(["A\tnotes.txt"]);
+        // Each deletion is still there, for the committer to decide on.
+        expect(leftUnstaged(root)).toEqual(
+          deleted.map((file) => {
+            return ` D ${file}`;
+          }),
+        );
+      },
+    );
+
+    test("a version bump stages what the sync rewrote, and still not the deletion", () => {
+      const root = hookedRepository("13.0.1", ["App", "Ee"]);
+      fs.rmSync(path.join(root, "Ee"), { recursive: true });
+      fs.writeFileSync(path.join(root, "VERSION"), "13.0.2\n");
+      expect(git(root, ["add", "VERSION"]).status).toBe(0);
+
+      const commit = git(root, ["commit", "-q", "-m", "13.0.2"]);
+
+      expect([commit.status, commit.stderr]).toEqual([0, expect.any(String)]);
+      expect(committed(root)).toEqual([
+        "M\tApp/package-lock.json",
+        "M\tApp/package.json",
+        "M\tVERSION",
+      ]);
+      expect(readJson(path.join(root, "App", "package.json")).version).toBe(
+        "13.0.2",
+      );
+      expect(leftUnstaged(root)).toEqual([
+        " D Ee/package-lock.json",
+        " D Ee/package.json",
+      ]);
+    });
+  });
 });
 
 describe("this repository", () => {

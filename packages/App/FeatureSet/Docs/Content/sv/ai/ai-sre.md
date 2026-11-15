@@ -482,6 +482,16 @@ Avsnittet **AI** i sidomenyerna för Incidenter och Larm öppnas på två sidor 
 
 AI-inställningarna och AI-reglerna fanns tidigare på `…/settings/ai` och `…/settings/auto-remediation-rules`, och reglerna därefter på `…/ai/auto-remediation-rules`; de adresserna fungerar fortfarande och öppnar **AI → Inställningar**, där reglerna finns nu, under **Fler inställningar**.
 
+## Hur bra OneUptime AI klarar sig
+
+**AI-resultat** (**Projektinställningar → AI → AI-resultat**) visar vecka för vecka vad OneUptime AI:s arbete har gett de senaste 12 veckorna, så att du kan se om den blir bättre, till exempel efter att du har bytt dess modell. Sidan ändrar ingenting och räknar bara de incidenter, larm, jourlarm och åtgärder som du får se.
+
+- **Undvikna jourlarm**: av de jourlarm som hölls inne medan OneUptime AI arbetade (se [OneUptime AI reagerar först](#oneuptime-ai-reagerar-först)), hur många som slutade med AI:s åtgärd innan någon larmades, och hur de andra slutade: incidenten eller larmet återhämtade sig av sig självt, en person hanterade det medan det hölls inne, eller jouren larmades för att AI lämnade över till en person, väntetiden tog slut eller någon tryckte på **Larma nu**.
+- **Verifierade åtgärder**: av de åtgärder som OneUptime AI körde och de pull-förfrågningar med korrigeringar som den öppnade, hur många som fungerade när de kontrollerades mot vad som hände sedan. Åtgärder som fortfarande kontrolleras, och de som inte kunde kontrolleras, visas bredvid men räknas inte.
+- **Bekräftade rotorsaker**: av de utredningar som OneUptime AI slutförde, hur många som hittade rätt rotorsak: enligt bedömningen från en ansvarig som bekräftade eller avvisade utredningen på dess AI-kort eller, när ingen gjorde det, jämförd med den rotorsak som angavs när incidenten löstes. Utredningar som ingen har bedömt ännu räknas inte.
+
+Varje kort ställer sina senaste 4 veckor bredvid de 4 veckorna innan. En vecka räknar det arbete som OneUptime AI påbörjade den veckan, oavsett hur lång tid kontrollen tog. När ett projekt hade fler än 5 000 av ett slag under de 12 veckorna räknas de senaste 5 000, och sidan säger det.
+
 ## Kostnadskontroll
 
 Varje gräns nedan är valfri, och ingen av dem gäller förrän du anger den: med automatisk utredning påslagen utreds varje ny incident och varje nytt larm, oavsett allvarlighetsgrad, och ingenting begränsar hur många utredningar eller åtgärdsuppgifter som körs. Mängden larm kan vara mycket större än mängden incidenter, så det är de här kontrollerna du ska ta till när du vill ha ett tak.
@@ -542,7 +552,7 @@ På OneUptime Cloud betalas OneUptime AI på den globala leverantören med proje
 
 - **Alltid skrivskyddat.** Autonoma utredningar körs med en utvald uppsättning skrivskyddade verktyg (frågor mot mätvärden, loggar, traces, undantag och ändringar, inklusive `baseline_anomaly`, som bedömer ett mätvärde mot dess inlärda normalintervall för varje timme i veckan). AI kan inte kvittera, lösa, larma eller ändra något från en utredning.
 - **Källhänvisningar skapas på servern** från verktygsanrop som faktiskt kördes: modellen kan inte hitta på en källhänvisning till data som den aldrig har läst.
-- **Fullständigt granskningsspår.** Varje utredning registreras som en AI-körning med ett ordnat händelsespår (varje LLM-anrop och varje verktygsanrop), och varje LLM-anrop mäts på sidan AI-loggar (**Projektinställningar → AI → AI-loggar**) med antal tokens och kostnad.
+- **Fullständigt granskningsspår.** Varje utredning registreras som en AI-körning med ett ordnat händelsespår (varje LLM-anrop och varje verktygsanrop), och varje LLM-anrop mäts på sidan AI-loggar (**Projektinställningar → AI → AI-loggar**) med antal tokens och kostnad. Det som verktygen returnerade till utredningen av en incident eller ett larm sparas med dess körning i 30 dagar och kan bara läsas av servern, så att en ny modell eller prompt kan provas på de data som utredningen såg; det raderas med körningen.
 - **Hemligheter maskeras** i verktygsresultat innan något skickas till LLM:en (tokens, autentiseringsuppgifter, nyckelmönster).
 - **Bilder hålls utanför det modellen läser.** En bild som är inbäddad i en incidents eller ett larms text - en syntetisk monitors skärmbild i beskrivningen, en bild inklistrad i en anteckning - är hundratals kilobyte base64 som modellen inte kan läsa och som skulle faktureras vid varje anrop. Den ersätts med en kort anteckning, till exempel `[image omitted: JPEG, 340 KB]`, och utredningens aktivitet säger vad som utelämnades. En beskrivning, grundorsak eller anteckning på mer än 4 000 tecken kortas på samma sätt och slutar med en anteckning om hur mycket som saknas (16 000 tecken i ett utkast till efteranalys eller anteckning). Människor ser fortfarande alla bilder: bara det modellen läser ändras.
 - **Självhostat = inga data till tredje part.** Med din egen LLM-leverantör (inklusive en lokal Ollama) lämnar telemetrin aldrig din infrastruktur.

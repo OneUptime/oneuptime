@@ -1078,7 +1078,7 @@ const MessageQueueTopologyExplorer: FunctionComponent<ComponentProps> = (
                   isSearchOrFilter={true}
                   dataTestId="message-queue-topology-search"
                   ariaLabel={t("Search queues and services")}
-                  placeholder={t("Search queues and services")}
+                  placeholder="Search queues and services"
                   value={searchText}
                   onChange={(value: string) => {
                     setSearchText(value);

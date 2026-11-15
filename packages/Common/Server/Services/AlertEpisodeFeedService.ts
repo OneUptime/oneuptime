@@ -23,6 +23,10 @@ import FeedWorkspaceNotificationUtil, {
   FeedWorkspaceAuthor,
   FeedWorkspaceNotification,
 } from "../Utils/Feed/FeedWorkspaceNotification";
+import FeedUpdateKinds, {
+  ALERT_EPISODE_FEED_UPDATE_KINDS,
+} from "../Utils/Feed/FeedUpdateKinds";
+import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { applyAlertEpisodeRelatedRecordPrivacyFilter } from "../Utils/AlertEpisode/AlertEpisodePrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -180,6 +184,12 @@ export class Service extends ProjectReferencesService<Model> {
             alertEpisodeId: data.alertEpisodeId,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            // Which updates it is: posted where a rule wants one of them.
+            updateKinds: FeedUpdateKinds.resolve({
+              named: data.workspaceNotification.updateKinds,
+              ofType:
+                ALERT_EPISODE_FEED_UPDATE_KINDS[data.alertEpisodeFeedEventType],
+            }),
             author: FeedWorkspaceNotificationUtil.getAuthor({
               workspaceNotification: data.workspaceNotification,
               userId: data.userId,
@@ -222,6 +232,11 @@ export class Service extends ProjectReferencesService<Model> {
     workspaceNotification: FeedWorkspaceNotification;
     // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
     author?: FeedWorkspaceAuthor | undefined;
+    /*
+     * Which updates the entry is (FeedUpdateKinds): posted only where a
+     * rule wants one of them. Left out, wherever its messages go.
+     */
+    updateKinds?: Array<NotificationRuleUpdateKind> | undefined;
   }): Promise<void> {
     return await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       {
@@ -235,6 +250,7 @@ export class Service extends ProjectReferencesService<Model> {
           FeedWorkspaceNotificationUtil.toWorkspaceNotification({
             workspaceNotification: data.workspaceNotification,
             author: data.author,
+            updateKinds: data.updateKinds,
           }),
       },
     );

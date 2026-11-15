@@ -840,7 +840,8 @@ describe("PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescr
       PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription;
 
     expect(text).toContain("subscribers");
-    expect(text).toContain("scheduled maintenance event");
+    expect(text).toContain("maintenance event");
+    expect(text).not.toContain("scheduled maintenance event");
     expect(text).toContain("created");
     expect(text).toContain("not notified");
   });
@@ -849,7 +850,7 @@ describe("PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescr
     expect(
       PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
     ).toBe(
-      "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.",
+      "Unticked by default because status page subscribers were not notified when this maintenance event was created.",
     );
   });
 });

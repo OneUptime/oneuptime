@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import ProjectUser from "../../../Utils/ProjectUser";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import TeamMembershipRemoval, {
@@ -86,7 +85,7 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
         pluralName=" "
         cardProps={{
           title: "Teams",
-          description: "See a list of teams this user is a members of.",
+          description: "See a list of teams this user is a member of.",
         }}
         noItemsMessage={"This user is not a member of any team."}
         formFields={[
@@ -127,6 +126,12 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
         }}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[
+          /*
+           * The table lists the project's teams for this filter itself, by
+           * name and id. A fetchFilterDropdownOptions here would replace that
+           * list: the people fetcher once did, so the menu offered people and
+           * picking one emptied the table (#7820).
+           */
           {
             field: {
               team: true,
@@ -134,11 +139,6 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
             type: FieldType.Entity,
             title: "Team",
             filterEntityType: Team,
-            fetchFilterDropdownOptions: async () => {
-              return await ProjectUser.fetchProjectUsersAsDropdownOptions(
-                ProjectUtil.getCurrentProjectId()!,
-              );
-            },
             filterDropdownField: {
               label: "name",
               value: "_id",

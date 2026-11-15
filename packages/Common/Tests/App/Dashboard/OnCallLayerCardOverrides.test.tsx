@@ -139,7 +139,6 @@ function renderCard(options: {
       total={1}
       isExpanded={false}
       actionsDisabled={false}
-      isDeleteButtonLoading={false}
       overrides={options.overrides}
       overridePolicyContextId=""
       overrideUserInfo={options.overrideUserInfo}

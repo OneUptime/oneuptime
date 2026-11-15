@@ -79,7 +79,7 @@ If the repository is open, compare the stack traces with the code and the recent
 
 ### 5. Write down what you find
 
-`add_incident_note` takes `incidentId`, `note` (Markdown) and `visibility`. It defaults to `internal`, which only the team sees. `public` posts to the status page, where subscribers and customers read it, so show the person the text and get a yes before you post one.
+`add_incident_note` takes `incidentId`, `note` (Markdown) and `visibility`. It defaults to `internal`, which only the people who can see the incident can read. `public` posts to the status page, where subscribers and customers read it, so show the person the text and get a yes before you post one.
 
 ### 6. Close it
 

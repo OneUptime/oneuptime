@@ -381,6 +381,16 @@ async function renderLayers(): Promise<void> {
   await screen.findAllByTestId("layer-user-skip-button", undefined, {
     timeout: 10000,
   });
+
+  /*
+   * And the page at rest before anything is clicked: what its first draw
+   * set going in effects - the place a heading's definition is drawn in
+   * (DefinitionsDrawnAfter) - drawn too. The layers' people come with the
+   * page's own read, so the list can show before those effects are.
+   */
+  await act(async (): Promise<void> => {
+    await Promise.resolve();
+  });
 }
 
 function skipButtonOf(id: string): HTMLElement {

@@ -293,8 +293,12 @@ for (const injection of FOREIGN_RULE_INJECTIONS) {
         name: "Products menu",
       });
       await expect(productsMenu).toHaveCount(1);
+      // Named by what it is, without its placeholder's "…" (#7486).
       await expect(
-        productsMenu.getByRole("combobox", { name: "Search products…" }),
+        productsMenu.getByRole("combobox", {
+          name: "Search products",
+          exact: true,
+        }),
       ).toBeVisible();
       /*
        * The menu's keyboard hint used `hidden ... md:flex` too; it is the

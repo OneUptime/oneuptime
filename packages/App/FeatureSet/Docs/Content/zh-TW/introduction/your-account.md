@@ -177,7 +177,7 @@ flowchart TB
 ## 後續步驟
 
 :::cards
-- [首頁與快捷鍵](/docs/introduction/home): 在儀表板中找到方向。
+- [首頁與快速鍵](/docs/introduction/home): 在儀表板中找到方向。
 - [上報規則](/docs/on-call/escalation-rules): 待命策略如何呼叫你。
 - [使用者、團隊與權限](/docs/permissions/index): 是什麼決定了你在專案中可以做什麼。
 - [SSO](/docs/identity/sso): 透過你公司的身分識別提供者登入。

@@ -27,6 +27,13 @@ import Input, { InputType } from "Common/UI/Components/Input/Input";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+// Each column card's header: its letter and kind, and its Remove.
+export const TABLE_COLUMN_CARD_HEADER_TEST_ID: string =
+  "table-column-card-header";
+
+// The row under the cards: Add Metric and Add Formula.
+export const TABLE_COLUMNS_ADD_ROW_TEST_ID: string = "table-columns-add-row";
+
 export interface ComponentProps {
   columns: Array<TableColumn>;
   metricTypes: Array<MetricType>;
@@ -208,8 +215,11 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
 
         return (
           <div key={column.id} className={cardClasses}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+            <div
+              className="flex items-center justify-between gap-3 mb-3"
+              data-testid={TABLE_COLUMN_CARD_HEADER_TEST_ID}
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="inline-flex items-center justify-center h-5 px-1.5 rounded bg-indigo-100 text-indigo-700 text-xs font-semibold">
                   {column.variable}
                 </span>
@@ -227,13 +237,15 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
               {/*
                * The shared Button is the full width of a narrow screen (and
                * steps 12px in from md up, for a dialog's footer): here it
-               * keeps its own width beside the column's name.
+               * keeps its own size beside the column's name, at every width
+               * (isFullWidthOnPhone, issue #7331).
                */}
-              <div className="flex-none [&_button]:ml-0 [&_button]:w-auto [&_button]:md:ml-0">
+              <div className="flex-none">
                 <Button
                   title="Remove"
                   buttonSize={ButtonSize.Small}
                   buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  isFullWidthOnPhone={false}
                   icon={IconProp.Trash}
                   onClick={(): void => {
                     removeColumn(index);
@@ -410,11 +422,22 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
         );
       })}
 
-      <div className="flex gap-2 pt-1">
+      {/*
+       * Two small buttons side by side, each its own size at every width:
+       * on a phone the shared Button took half the row each, in larger
+       * words that broke over two lines in German (issue #7331's footer
+       * look, as the cards' Remove had). They wrap under each other when
+       * they do not fit.
+       */}
+      <div
+        className="flex flex-wrap gap-2 pt-1"
+        data-testid={TABLE_COLUMNS_ADD_ROW_TEST_ID}
+      >
         <Button
           title="Add Metric"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
+          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Metric);
@@ -424,6 +447,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
           title="Add Formula"
           buttonSize={ButtonSize.Small}
           buttonStyle={ButtonStyleType.OUTLINE}
+          isFullWidthOnPhone={false}
           icon={IconProp.Add}
           onClick={(): void => {
             addColumn(TableColumnKind.Formula);

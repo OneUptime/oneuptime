@@ -11,9 +11,11 @@ import {
   buildUserFlowLoops,
   buildUserFlowPageStats,
   buildUserFlowPaths,
+  getUserFlowPageText,
   isDynamicPathSegment,
   normalizeUserFlowOptions,
   OTHER_PAGES_KEY,
+  OTHER_PAGES_LABEL,
   sliceJourneyForMap,
   spansMultipleHosts,
   toSessionListUrlPrefix,
@@ -201,6 +203,43 @@ describe("page keys", () => {
     ).toBe("/orders/:id");
   });
 
+  /*
+   * #7878: the scrubber keeps "#/" and "#!/" routes, so the stored URLs of
+   * a hash-routed app are one page each, read either way, and the query a
+   * route carries inside the fragment is no part of the page.
+   */
+  test("read a hashbang route as the path, and leave a route's query out", () => {
+    const key: (url: string) => string = (url: string): string => {
+      return toUserFlowPageKey(url, {
+        groupDynamicSegments: true,
+        includeHost: false,
+      });
+    };
+
+    expect(key("https://x.example/#!/orders")).toBe("/orders");
+    expect(key("https://x.example/#/orders?tab=open")).toBe("/orders");
+    expect(key("https://x.example/#!/orders/42?tab=open")).toBe("/orders/:id");
+    expect(key("https://x.example/app/#/")).toBe("/");
+    // An anchor is not a route: the page is the path.
+    expect(key("https://x.example/pricing#faq")).toBe("/pricing");
+    expect(key("https://x.example/pricing#!faq")).toBe("/pricing");
+  });
+
+  test("a hash-routed session is a journey through its routes", () => {
+    const journeys: Array<UserFlowJourney> = journeysOf([
+      {
+        id: "1",
+        pages: [
+          "https://x.example/#/orders",
+          "https://x.example/#/orders/42",
+          "https://x.example/#!/settings",
+        ],
+      },
+    ]);
+
+    expect(journeys[0]?.pages).toEqual(["/orders", "/orders/:id", "/settings"]);
+  });
+
   test("group id-shaped segments, and only those", () => {
     const grouped: (url: string) => string = (url: string): string => {
       return toUserFlowPageKey(`https://a.example.com${url}`, {
@@ -252,6 +291,379 @@ describe("page keys", () => {
     expect(toSessionListUrlPrefix("shop.example.com/cart")).toBe("/cart");
     expect(toSessionListUrlPrefix(OTHER_PAGES_KEY)).toBe("");
     expect(toSessionListUrlPrefix("")).toBe("");
+  });
+});
+
+/*
+ * #7817: a page named in Arabic, Persian or with accents was drawn as its
+ * key, which the URL parser escapes - "/%D8%A7%D9%84..." for "/الرئيسية",
+ * "/caf%C3%A9" for "/café". The key stays as it is: the session list, the
+ * anchor and the hidden pages hold it. What a person reads is decoded, as
+ * far as it can be without changing which page it names.
+ */
+describe("a page as a person reads it", () => {
+  const LRI: string = String.fromCharCode(0x2066);
+  const PDI: string = String.fromCharCode(0x2069);
+  const HOME: string = "/الرئيسية";
+  const HOME_KEY: string = "/%D8%A7%D9%84%D8%B1%D8%A6%D9%8A%D8%B3%D9%8A%D8%A9";
+  const KEY_OPTIONS: { groupDynamicSegments: boolean; includeHost: boolean } = {
+    groupDynamicSegments: true,
+    includeHost: false,
+  };
+
+  // A path with words read from the right, set apart to read from the left.
+  const setApart: (text: string) => string = (text: string): string => {
+    return `${LRI}${text}${PDI}`;
+  };
+
+  test("a key keeps the escapes of its address, so the session list still finds the page", () => {
+    // Written in its own letters or escaped, the address is one page.
+    expect(toUserFlowPageKey(`${ORIGIN}${HOME}`, KEY_OPTIONS)).toBe(HOME_KEY);
+    expect(toUserFlowPageKey(`${ORIGIN}${HOME_KEY}`, KEY_OPTIONS)).toBe(
+      HOME_KEY,
+    );
+    expect(toUserFlowPageKey(`${ORIGIN}/café?x=1`, KEY_OPTIONS)).toBe(
+      "/caf%C3%A9",
+    );
+    expect(toUserFlowPageKey(`${ORIGIN}/caf%C3%A9`, KEY_OPTIONS)).toBe(
+      "/caf%C3%A9",
+    );
+    // A hash router's route is escaped as a path is.
+    expect(toUserFlowPageKey(`${ORIGIN}/#/طلب`, KEY_OPTIONS)).toBe(
+      "/%D8%B7%D9%84%D8%A8",
+    );
+
+    // The session list compares it with the address the browser stored.
+    expect(toSessionListUrlPrefix(HOME_KEY)).toBe(HOME_KEY);
+    expect(
+      new URL(`${ORIGIN}${HOME_KEY}?ref=mail`).pathname.startsWith(
+        toSessionListUrlPrefix(
+          toUserFlowPageKey(`${ORIGIN}${HOME}`, KEY_OPTIONS),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("the letters of a page's words are decoded, and a path read from the right is set apart", () => {
+    expect(getUserFlowPageText(HOME_KEY)).toBe(setApart(HOME));
+    expect(
+      getUserFlowPageText("/%D8%AF%D8%B1%D8%A8%D8%A7%D8%B1%D9%87-%D9%85%D8%A7"),
+    ).toBe(setApart("/درباره-ما"));
+    expect(getUserFlowPageText("/caf%C3%A9")).toBe("/café");
+    // WordPress writes its escapes in lower case.
+    expect(getUserFlowPageText("/caf%c3%a9")).toBe("/café");
+    expect(getUserFlowPageText("/%E8%A3%BD%E5%93%81")).toBe("/製品");
+    // A vowel sign and a virama are part of a Hindi word.
+    expect(getUserFlowPageText(encodeURI("/हिन्दी"))).toBe("/हिन्दी");
+    // A Persian word keeps the non-joiner between its parts.
+    const word: string = `می${String.fromCharCode(0x200c)}خواهم`;
+
+    expect(encodeURI(`/${word}`)).toContain("%E2%80%8C");
+    expect(getUserFlowPageText(encodeURI(`/${word}`))).toBe(
+      setApart(`/${word}`),
+    );
+    expect(getUserFlowPageText("shop.example.com/caf%C3%A9")).toBe(
+      "shop.example.com/café",
+    );
+  });
+
+  test("a path in letters read from the left, and the fold, come back as they were", () => {
+    for (const page of ["/cart", "/orders/:id/refund", "/", "/a-b_c.d~e"]) {
+      expect(getUserFlowPageText(page)).toBe(page);
+    }
+
+    expect(getUserFlowPageText(OTHER_PAGES_KEY)).toBe(OTHER_PAGES_LABEL);
+  });
+
+  test("an escape that would change which page a row means, or what is drawn round it, is drawn as written", () => {
+    for (const page of [
+      // A separator, a query, a fragment, an escape: "/a%2Fb" is not "/a/b".
+      "/a%2Fb",
+      "/a%2fb",
+      "/a%3Fb",
+      "/a%23b",
+      "/100%25",
+      "/100%2541",
+      // Any other ASCII character, which a key can hold unescaped too.
+      "/a%20b",
+      "/%41",
+      "/a%2Eb",
+      // Not UTF-8: a lone "%", cut short, written too long, a surrogate.
+      "/%",
+      "/a%",
+      "/%2",
+      "/%zz",
+      "/%C3",
+      "/%E0%A4",
+      "/%E0%A4/x",
+      "/%C3%2F",
+      "/%80",
+      "/%C0%AF",
+      "/%E0%80%AF",
+      "/%ED%A0%80",
+      "/%F5%80%80%80",
+      // Marks that turn text round, and a control.
+      "/a%E2%80%AEb",
+      "/a%E2%81%A6b",
+      "/a%E2%81%A9b",
+      "/a%E2%80%8Fb",
+      "/a%D8%9Cb",
+      "/a%C2%85b",
+      // Spaces, and what is drawn with no width.
+      "/a%C2%A0b",
+      "/a%E3%80%80b",
+      "/a%E3%85%A4b",
+      "/a%E2%80%8Bb",
+      "/a%EF%BB%BFb",
+      "/a%CD%8Fb",
+      "/a%EF%B8%8Fb",
+      // Signs drawn like a slash, and other symbols.
+      "/a%E2%88%95b",
+      "/a%EF%BC%8Fb",
+      "/a%E2%81%84b",
+      "/a%E2%A7%B8b",
+      "/%F0%9F%98%80",
+    ]) {
+      expect(getUserFlowPageText(page)).toBe(page);
+    }
+  });
+
+  test("what can be decoded is, beside what cannot", () => {
+    expect(getUserFlowPageText("/caf%C3%A9%E0%A4")).toBe("/café%E0%A4");
+    expect(getUserFlowPageText("/caf%C3%A9/a%2Fb")).toBe("/café/a%2Fb");
+    expect(getUserFlowPageText("/%C3%A9%C3")).toBe("/é%C3");
+    expect(getUserFlowPageText(`${HOME_KEY}%20x`)).toBe(
+      setApart(`${HOME}%20x`),
+    );
+  });
+
+  test("two spellings of one page are one row, and two pages stay two", () => {
+    const analysis: UserFlowAnalysis = analyzeUserFlow(
+      response([
+        { id: "1", pages: [HOME, "/a/b"] },
+        { id: "2", pages: [HOME_KEY, "/a%2Fb"] },
+        { id: "3", pages: ["/café"] },
+        { id: "4", pages: ["/caf%C3%A9"] },
+      ]),
+      {},
+    );
+
+    expect(
+      analysis.pages.map((page: UserFlowPageStats): [string, number] => {
+        return [page.page, page.sessions];
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        [HOME_KEY, 2],
+        ["/caf%C3%A9", 2],
+        ["/a/b", 1],
+        ["/a%2Fb", 1],
+      ]),
+    );
+    expect(analysis.pages).toHaveLength(4);
+
+    // The map keys each node by its page and names it as a person reads it.
+    expect(
+      analysis.graph.nodes.map((node: UserFlowNode): [string, string] => {
+        return [node.page, node.label];
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        [HOME_KEY, setApart(HOME)],
+        ["/caf%C3%A9", "/café"],
+        ["/a/b", "/a/b"],
+        ["/a%2Fb", "/a%2Fb"],
+      ]),
+    );
+  });
+
+  /*
+   * #7877: the parser keeps an escape as written, so a page reached as
+   * "/caf%c3%a9" (lower-case hex, as .NET and WordPress write it) or with
+   * its accent decomposed ("/cafe" and U+0301, as macOS writes file names)
+   * was a row of its own beside "/caf%C3%A9", all three named "/café". A
+   * key is the path in one spelling, and what can name another page stays
+   * apart.
+   */
+  test("every spelling of one address is one row with all its sessions", () => {
+    const analysis: UserFlowAnalysis = analyzeUserFlow(
+      response([
+        { id: "1", pages: ["/café"] },
+        { id: "2", pages: ["/caf%C3%A9"] },
+        { id: "3", pages: ["/caf%c3%a9"] },
+        { id: "4", pages: [`/cafe${String.fromCharCode(0x301)}`] },
+        { id: "5", pages: ["/a/b"] },
+        { id: "6", pages: ["/a%2Fb"] },
+        { id: "7", pages: ["/a%2fb"] },
+        { id: "8", pages: ["/Cart"] },
+        { id: "9", pages: ["/cart"] },
+      ]),
+      {},
+    );
+
+    expect(
+      analysis.pages
+        .map((page: UserFlowPageStats): string => {
+          return `${page.page} ${page.sessions}`;
+        })
+        .sort(),
+    ).toEqual(
+      ["/caf%C3%A9 4", "/a/b 1", "/a%2Fb 2", "/Cart 1", "/cart 1"].sort(),
+    );
+
+    // One box on the map, named as a person reads it.
+    expect(
+      analysis.graph.nodes
+        .filter((candidate: UserFlowNode): boolean => {
+          return candidate.label === "/café";
+        })
+        .map((candidate: UserFlowNode): [string, number] => {
+          return [candidate.page, candidate.sessions];
+        }),
+    ).toEqual([["/caf%C3%A9", 4]]);
+  });
+
+  test("hiding a page, or anchoring the map on it, takes every spelling of it", () => {
+    const specs: Array<SessionSpec> = [
+      { id: "1", pages: ["/home", "/caf%c3%a9", "/menu"] },
+      { id: "2", pages: ["/home", "/cafe%CC%81", "/menu"] },
+      { id: "3", pages: ["/home", "/caf%C3%A9", "/order"] },
+    ];
+
+    const journeys: Array<UserFlowJourney> = buildUserFlowJourneys(
+      response(specs),
+      {
+        groupDynamicSegments: true,
+        hiddenPages: ["/caf%C3%A9"],
+        sessionFilter: "all",
+        deviceType: "",
+      },
+    ).journeys;
+
+    expect(
+      journeys
+        .map((journey: UserFlowJourney): string => {
+          return journey.pages.join(" ");
+        })
+        .sort(),
+    ).toEqual(["/home /menu", "/home /menu", "/home /order"]);
+
+    const anchored: UserFlowAnalysis = analyzeUserFlow(response(specs), {
+      anchorPage: "/caf%C3%A9",
+    });
+
+    expect(node(anchored.graph, 0, "/caf%C3%A9")?.sessions).toBe(3);
+    expect(node(anchored.graph, 1, "/menu")?.sessions).toBe(2);
+  });
+
+  test("a page is hidden by its key, whichever spelling its address had", () => {
+    const journeys: Array<UserFlowJourney> = buildUserFlowJourneys(
+      response([
+        { id: "1", pages: [HOME, "/cart"] },
+        { id: "2", pages: [HOME_KEY, "/cart"] },
+      ]),
+      {
+        groupDynamicSegments: true,
+        hiddenPages: [HOME_KEY],
+        sessionFilter: "all",
+        deviceType: "",
+      },
+    ).journeys;
+
+    expect(
+      journeys.map((journey: UserFlowJourney): Array<string> => {
+        return journey.pages;
+      }),
+    ).toEqual([["/cart"], ["/cart"]]);
+  });
+
+  test("a finding names a page as the map does, and points at its key", () => {
+    const CART: string = "/السلة";
+    const PAY: string = "/الدفع";
+    const HELP: string = "/مساعدة";
+    const specs: Array<SessionSpec> = [];
+
+    // 10 sessions reach the payment page; 8 give up there, each on an error.
+    for (let index: number = 0; index < 10; index++) {
+      const failed: boolean = index < 8;
+
+      specs.push({
+        id: `pay-${index}`,
+        pages: failed ? [HOME, CART, PAY] : [HOME, CART, PAY, "/ok"],
+        errorCount: failed ? 1 : 0,
+        signals: failed ? [[PAY, 1, 0]] : [],
+      });
+    }
+
+    // 4 sessions go back and forth between the cart and the help page.
+    for (let index: number = 0; index < 4; index++) {
+      specs.push({
+        id: `loop-${index}`,
+        pages: [HOME, CART, HELP, CART, "/ok"],
+        frustrationCount: 1,
+        signals: [[HELP, 0, 3]],
+      });
+    }
+
+    const insights: Array<UserFlowInsight> = analyzeUserFlow(
+      response(specs),
+      {},
+    ).insights;
+    const byKind: (kind: string) => UserFlowInsight | undefined = (
+      kind: string,
+    ): UserFlowInsight | undefined => {
+      return insights.find((insight: UserFlowInsight): boolean => {
+        return insight.kind === kind;
+      });
+    };
+
+    expect(byKind("error-hotspot")).toEqual(
+      expect.objectContaining({
+        page: encodeURI(PAY),
+        title: `Errors concentrate on ${setApart(PAY)}`,
+      }),
+    );
+    expect(byKind("error-hotspot")?.detail).toContain(
+      `visited ${setApart(PAY)} hit an error`,
+    );
+    expect(byKind("frustration-hotspot")).toEqual(
+      expect.objectContaining({
+        page: encodeURI(HELP),
+        title: `Frustration concentrates on ${setApart(HELP)}`,
+      }),
+    );
+    expect(byKind("drop-off")).toEqual(
+      expect.objectContaining({
+        page: encodeURI(PAY),
+        title: `Journeys end on ${setApart(PAY)}`,
+      }),
+    );
+    expect(byKind("drop-off")?.detail).toContain(
+      `navigated to ${setApart(PAY)} left`,
+    );
+    expect(byKind("loop")).toEqual(
+      expect.objectContaining({
+        page: encodeURI(CART),
+        secondaryPage: encodeURI(HELP),
+        title: `Visitors go back and forth between ${setApart(
+          CART,
+        )} and ${setApart(HELP)}`,
+      }),
+    );
+    expect(byKind("top-entry")).toEqual(
+      expect.objectContaining({
+        page: HOME_KEY,
+        title: `Most sessions start on ${setApart(HOME)}`,
+      }),
+    );
+    expect(byKind("top-entry")?.detail).toContain(
+      `landed on ${setApart(HOME)};`,
+    );
+
+    // No finding names a page by its escapes.
+    for (const insight of insights) {
+      expect(`${insight.title} ${insight.detail}`).not.toMatch(/%[0-9A-F]{2}/i);
+    }
   });
 });
 

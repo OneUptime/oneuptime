@@ -9,10 +9,25 @@ import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMai
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Team from "Common/Models/DatabaseModels/Team";
+import User from "Common/Models/DatabaseModels/User";
 import NotificationRuleCondition, {
   getCheckOnLabel,
   NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
+import { PeopleList } from "Common/UI/Components/PeoplePicker/PeopleList";
+import {
+  PeoplePickerKind,
+  PeoplePickerOption,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import { isArchivedValue } from "Common/Utils/ArchivableValues";
+import {
+  getConditionOperatorWords,
+  VALUE_NOT_FOUND_NAME,
+} from "../NotificationRuleForm/NotificationRuleConditionWords";
 import React, { FunctionComponent, ReactElement } from "react";
 import AlertSeverityElement from "../../AlertSeverity/AlertSeverityElement";
 import AlertStateElement from "../../AlertState/AlertStateElement";
@@ -30,7 +45,7 @@ import {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { joinList } from "Common/UI/Utils/ListSeparator";
+import { getListSeparator, joinList } from "Common/UI/Utils/ListSeparator";
 
 export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
@@ -47,8 +62,99 @@ export interface ComponentProps {
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   // An SLO rule's: the project's SLOs, to name the ones it picks.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
+  // An on-call rule's: the project's policies, to name the ones it picks.
+  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
+  // The project's people and teams, to name the owners a condition picks.
+  users?: Array<User> | undefined;
+  teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
+
+/*
+ * A value drawn in a condition, followed by "Archived" when it is archived
+ * (#7582): a rule keeps matching the records that still have it, and it can
+ * be taken out of the rule, but nobody can pick it again.
+ */
+const withArchivedTag: (data: {
+  row: { isArchived?: boolean | undefined };
+  key: string;
+  element: ReactElement;
+}) => ReactElement = (data: {
+  row: { isArchived?: boolean | undefined };
+  key: string;
+  element: ReactElement;
+}): ReactElement => {
+  if (!isArchivedValue(data.row)) {
+    return <React.Fragment key={data.key}>{data.element}</React.Fragment>;
+  }
+
+  return (
+    <span
+      key={data.key}
+      className="inline-flex max-w-full items-center gap-1"
+      data-testid="notification-rule-condition-archived-value"
+    >
+      {data.element}
+      <ArchivedTag isCompact={true} />
+    </span>
+  );
+};
+
+/*
+ * The owners an owners condition picks, as chips with their avatars - each
+ * person and team the project still has, by name, and one it no longer has
+ * (a person who left, a team since deleted) said to be so.
+ */
+export const getOwnerConditionOptions: (data: {
+  ids: Array<string>;
+  users: Array<User>;
+  teams: Array<Team>;
+}) => Array<PeoplePickerOption> = (data: {
+  ids: Array<string>;
+  users: Array<User>;
+  teams: Array<Team>;
+}): Array<PeoplePickerOption> => {
+  return data.ids.map((id: string): PeoplePickerOption => {
+    const lowerCaseId: string = id.toLowerCase();
+
+    const team: Team | undefined = data.teams.find(
+      (candidate: Team): boolean => {
+        return candidate._id?.toString().toLowerCase() === lowerCaseId;
+      },
+    );
+
+    if (team) {
+      return {
+        kind: PeoplePickerKind.Team,
+        id: id,
+        name: team.name?.toString() || "",
+      };
+    }
+
+    const user: User | undefined = data.users.find(
+      (candidate: User): boolean => {
+        return candidate._id?.toString().toLowerCase() === lowerCaseId;
+      },
+    );
+
+    if (user) {
+      return {
+        kind: PeoplePickerKind.User,
+        id: id,
+        name: user.name?.toString() || user.email?.toString() || "",
+        userId: id,
+        hasProfilePicture: Boolean(user.profilePictureId),
+      };
+    }
+
+    return {
+      kind: PeoplePickerKind.User,
+      id: id,
+      name: VALUE_NOT_FOUND_NAME,
+      isUnknown: true,
+    };
+  });
+};
 
 const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -66,15 +172,10 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
      * once: a bad row then renders as "nothing selected" instead of throwing
      * and taking the whole rule view down with it.
      */
-    const selectedIds: Array<string> = Array.isArray(
-      props.notificationRuleCondition?.value,
-    )
-      ? props.notificationRuleCondition.value.map((value: string) => {
-          return value?.toString();
-        })
-      : props.notificationRuleCondition?.value
-        ? [props.notificationRuleCondition.value.toString()]
-        : [];
+    const selectedIds: Array<string> =
+      NotificationRuleConditionUtil.getValueIds(
+        props.notificationRuleCondition,
+      );
 
     let valueElement: ReactElement | undefined = Array.isArray(
       props.notificationRuleCondition?.value,
@@ -101,12 +202,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedAlertSeverities.map(
             (alertSeverity: AlertSeverity, index: number) => {
-              return (
-                <AlertSeverityElement
-                  alertSeverity={alertSeverity}
-                  key={index}
-                />
-              );
+              return withArchivedTag({
+                row: alertSeverity,
+                key: `${index}`,
+                element: <AlertSeverityElement alertSeverity={alertSeverity} />,
+              });
             },
           )}
         </div>
@@ -126,7 +226,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedAlertStates.map((alertState: AlertState, index: number) => {
-            return <AlertStateElement alertState={alertState} key={index} />;
+            return withArchivedTag({
+              row: alertState,
+              key: `${index}`,
+              element: <AlertStateElement alertState={alertState} />,
+            });
           })}
         </div>
       );
@@ -147,12 +251,15 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedIncidentSeverities.map(
             (incidentSeverity: IncidentSeverity, index: number) => {
-              return (
-                <IncidentSeverityElement
-                  incidentSeverity={incidentSeverity}
-                  key={index}
-                />
-              );
+              return withArchivedTag({
+                row: incidentSeverity,
+                key: `${index}`,
+                element: (
+                  <IncidentSeverityElement
+                    incidentSeverity={incidentSeverity}
+                  />
+                ),
+              });
             },
           )}
         </div>
@@ -172,12 +279,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedIncidentStates.map(
             (incidentState: IncidentState, index: number) => {
-              return (
-                <IncidentStateElement
-                  incidentState={incidentState}
-                  key={index}
-                />
-              );
+              return withArchivedTag({
+                row: incidentState,
+                key: `${index}`,
+                element: <IncidentStateElement incidentState={incidentState} />,
+              });
             },
           )}
         </div>
@@ -203,12 +309,15 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
               scheduledMaintenanceState: ScheduledMaintenanceState,
               index: number,
             ) => {
-              return (
-                <ScheduledMaintenanceStateElement
-                  scheduledMaintenanceState={scheduledMaintenanceState}
-                  key={index}
-                />
-              );
+              return withArchivedTag({
+                row: scheduledMaintenanceState,
+                key: `${index}`,
+                element: (
+                  <ScheduledMaintenanceStateElement
+                    scheduledMaintenanceState={scheduledMaintenanceState}
+                  />
+                ),
+              });
             },
           )}
         </div>
@@ -225,13 +334,16 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedMonitorStatuses.map(
             (monitorStatus: MonitorStatus, index: number) => {
-              return (
-                <MonitorStatusElement
-                  shouldAnimate={false}
-                  monitorStatus={monitorStatus}
-                  key={index}
-                />
-              );
+              return withArchivedTag({
+                row: monitorStatus,
+                key: `${index}`,
+                element: (
+                  <MonitorStatusElement
+                    shouldAnimate={false}
+                    monitorStatus={monitorStatus}
+                  />
+                ),
+              });
             },
           )}
         </div>
@@ -264,7 +376,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedLabels.map((label: Label, index: number) => {
-            return <LabelElement label={label} key={index} />;
+            return withArchivedTag({
+              row: label,
+              key: `${index}`,
+              element: <LabelElement label={label} />,
+            });
           })}
         </div>
       );
@@ -280,7 +396,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {selectedMonitors.map((monitor: Monitor, index: number) => {
-            return <MonitorElement monitor={monitor} key={index} />;
+            return withArchivedTag({
+              row: monitor,
+              key: `${index}`,
+              element: <MonitorElement monitor={monitor} />,
+            });
           })}
         </div>
       );
@@ -308,42 +428,147 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       valueElement = (
         <div className="inline-flex flex-wrap items-center gap-1.5">
           {values.map((value: SecurityCasePriority | SecurityCaseStatus) => {
-            return isPriority ? (
-              <SecurityCasePriorityPill
-                key={value.id?.toString()}
-                value={value}
-                isMinimal={true}
-              />
-            ) : (
-              <SecurityCaseStatusPill
-                key={value.id?.toString()}
-                value={value}
-                isMinimal={true}
-              />
-            );
+            return withArchivedTag({
+              row: value,
+              key: value.id?.toString() || "",
+              element: isPriority ? (
+                <SecurityCasePriorityPill value={value} isMinimal={true} />
+              ) : (
+                <SecurityCaseStatusPill value={value} isMinimal={true} />
+              ),
+            });
           })}
         </div>
       );
     }
 
     /*
-     * The SLOs an SLO rule picks, by their names as the team wrote them,
-     * in the project's order: an SLO since deleted is no longer named.
+     * The SLOs an SLO rule picks and the policies an on-call rule picks, by
+     * their names as the team wrote them, in the project's order, listed
+     * with the commas of the script they are written in - each followed by
+     * "Archived" when it is, on the same line as its name. A policy since
+     * deleted is said to be gone, rather than left out: the rule still
+     * holds it, and the words that say so, in the reader's language, choose
+     * the commas too. (An SLO since deleted is left out, as it always was.)
      */
-    if (checkOn === NotificationRuleConditionCheckOn.Slos) {
-      const names: Array<string> = (props.serviceLevelObjectives || [])
-        .filter((slo: ServiceLevelObjective): boolean => {
-          return selectedIds.includes(slo.id?.toString() || "");
+    if (
+      checkOn === NotificationRuleConditionCheckOn.Slos ||
+      checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicies
+    ) {
+      const rows: Array<ServiceLevelObjective | OnCallDutyPolicy> =
+        (checkOn === NotificationRuleConditionCheckOn.Slos
+          ? props.serviceLevelObjectives
+          : props.onCallDutyPolicies) || [];
+      const picked: Set<string> = new Set(
+        selectedIds.map((id: string): string => {
+          return id.toLowerCase();
+        }),
+      );
+      const found: Array<ServiceLevelObjective | OnCallDutyPolicy> = rows
+        .filter((row: ServiceLevelObjective | OnCallDutyPolicy): boolean => {
+          return (
+            picked.has(row.id?.toString().toLowerCase() || "") &&
+            Boolean(row.name)
+          );
         })
-        .map((slo: ServiceLevelObjective): string => {
-          return slo.name || "";
-        })
-        .filter((name: string): boolean => {
-          return Boolean(name);
-        });
+        .filter(
+          (
+            row: ServiceLevelObjective | OnCallDutyPolicy,
+            index: number,
+            all: Array<ServiceLevelObjective | OnCallDutyPolicy>,
+          ): boolean => {
+            // Once each, however often the rule names it.
+            return (
+              all.findIndex(
+                (other: ServiceLevelObjective | OnCallDutyPolicy): boolean => {
+                  return (
+                    other.id?.toString().toLowerCase() ===
+                    row.id?.toString().toLowerCase()
+                  );
+                },
+              ) === index
+            );
+          },
+        );
+      const isAPolicyGone: boolean =
+        checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicies &&
+        found.length < picked.size;
+      const notFoundName: string = isAPolicyGone
+        ? translator.translateText(VALUE_NOT_FOUND_NAME) || VALUE_NOT_FOUND_NAME
+        : "";
+      const separator: string = getListSeparator([
+        ...found.map(
+          (row: ServiceLevelObjective | OnCallDutyPolicy): string => {
+            return row.name || "";
+          },
+        ),
+        notFoundName,
+      ]);
 
       valueElement = (
-        <span className="font-medium text-gray-900">{joinList(names)}</span>
+        <span
+          className="font-medium text-gray-900"
+          data-testid="notification-rule-condition-named-values"
+        >
+          {found.map(
+            (
+              row: ServiceLevelObjective | OnCallDutyPolicy,
+              index: number,
+            ): ReactElement => {
+              /*
+               * An archived one keeps its tag beside it: the tag never
+               * starts the next line alone, where it would seem to mark
+               * what follows.
+               */
+              return (
+                <React.Fragment key={row.id?.toString() || `${index}`}>
+                  {index > 0 ? separator : ""}
+                  {isArchivedValue(row) ? (
+                    <span
+                      className="inline-flex max-w-full items-center gap-1"
+                      data-testid="notification-rule-condition-archived-value"
+                    >
+                      <span className="min-w-0">{row.name || ""}</span>
+                      <ArchivedTag isCompact={true} />
+                    </span>
+                  ) : (
+                    row.name || ""
+                  )}
+                </React.Fragment>
+              );
+            },
+          )}
+          {isAPolicyGone ? (
+            <>
+              {found.length > 0 ? separator : ""}
+              <span
+                className="font-normal italic text-gray-500"
+                data-testid="notification-rule-condition-value-not-found"
+              >
+                {notFoundName}
+              </span>
+            </>
+          ) : (
+            <></>
+          )}
+        </span>
+      );
+    }
+
+    /*
+     * Who owns the record: the people and teams picked, with their avatars,
+     * as owners are drawn everywhere (PeopleList).
+     */
+    if (NotificationRuleConditionUtil.isOwnerCheckOn(checkOn)) {
+      valueElement = (
+        <PeopleList
+          dataTestId="notification-rule-condition-owners"
+          options={getOwnerConditionOptions({
+            ids: selectedIds,
+            users: props.users || [],
+            teams: props.teams || [],
+          })}
+        />
       );
     }
 
@@ -384,9 +609,15 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
             : "",
         )}
       </span>
-      <span className="text-gray-500">
+      <span
+        className="text-gray-500"
+        data-testid="notification-rule-condition-operator-words"
+      >
         {translator.translateText(
-          props.notificationRuleCondition?.conditionType || "",
+          getConditionOperatorWords({
+            checkOn: props.notificationRuleCondition?.checkOn,
+            conditionType: props.notificationRuleCondition?.conditionType,
+          }),
         )}
       </span>
       {getValueElement()}

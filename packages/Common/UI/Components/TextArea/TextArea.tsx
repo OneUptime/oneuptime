@@ -39,6 +39,8 @@ export interface ComponentProps {
   id?: string | undefined;
   value?: string | undefined;
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   onFocus?: () => void;
   onBlur?: () => void;
   className?: undefined | string;
@@ -269,7 +271,11 @@ const TextArea: FunctionComponent<ComponentProps> = (
           autoFocus={props.autoFocus}
           id={props.id}
           dir={props.readsLeftToRight ? "ltr" : undefined}
-          placeholder={translateString(props.placeholder)}
+          placeholder={
+            props.isPlaceholderTranslated
+              ? props.placeholder
+              : translateString(props.placeholder)
+          }
           data-testid={props.dataTestId}
           className={`${className || ""}`}
           value={text}

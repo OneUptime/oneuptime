@@ -26,6 +26,8 @@ import AcmeCertificate from "../../../../Models/DatabaseModels/AcmeCertificate";
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 type Row = {
   id: ObjectID;
@@ -496,6 +498,39 @@ describe("CertificateOwners", () => {
     ).toBe("oneuptime.example.com");
     expect(CertificateOwners.getPrimaryHostname("localhost")).toBe("localhost");
     expect(CertificateOwners.getPrimaryHostname("")).toBe("");
+  });
+
+  /*
+   * An IPv6 address keeps its brackets, as run.sh's PRIMARY_DOMAIN keeps
+   * them for the certificate's files in the ingress. Cut at its first ":",
+   * "[2001:DB8::1]:8443" was "[2001" (#7889).
+   */
+  test("an IPv6 HOST's primary hostname is its address in brackets, without the port", () => {
+    expect(CertificateOwners.getPrimaryHostname("[2001:DB8::1]:8443")).toBe(
+      "[2001:db8::1]",
+    );
+    expect(CertificateOwners.getPrimaryHostname("[::1]")).toBe("[::1]");
+    expect(CertificateOwners.getPrimaryHostname("10.0.0.5:8080")).toBe(
+      "10.0.0.5",
+    );
+  });
+
+  // The two jobs take HOST's port off by the rule getPrimaryHostname uses.
+  test("CoreSSL orders the certificate for that name, and the ingress writes it under that name", () => {
+    for (const job of [
+      "App/FeatureSet/Workers/Jobs/CoreSsl/ProvisionPrimaryDomain.ts",
+      "Nginx/Jobs/WriteServerCertToDisk.ts",
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(__dirname, "../../../../..", job),
+        "utf8",
+      );
+
+      expect(source).toMatch(
+        /const hostnameOnly: string = HostAddressUtil\.stripPort\(\s*Host\.trim\(\)\.toLowerCase\(\),?\s*\);/,
+      );
+      expect(source).not.toContain('split(":")');
+    }
   });
 
   /*

@@ -229,16 +229,18 @@ const CephClusterClusterLog: FunctionComponent<
         title: "Level",
         key: "level",
         type: FieldType.Dropdown,
+        // Ceph's own words, as its log and the rows write them ("WRN").
         filterDropdownOptions: levels.map((l: string) => {
-          return { label: l, value: l };
+          return { label: l, value: l, isUserContent: true };
         }),
       },
       {
         title: "Daemon",
         key: "daemon",
         type: FieldType.Dropdown,
+        // A daemon's name ("mon.a"), as the rows write it.
         filterDropdownOptions: daemons.map((d: string) => {
-          return { label: d, value: d };
+          return { label: d, value: d, isUserContent: true };
         }),
       },
       {

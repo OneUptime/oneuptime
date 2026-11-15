@@ -51,7 +51,7 @@ Open een beleid vanuit de lijst. Het zijmenu ervan bevat alles over het beleid:
 
 **Basis** staat open; de andere secties beginnen ingeklapt tot je erop klikt.
 
-- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten.
+- **Overzicht** toont de **Details bereikbaarheidsbeleid**, dan **Beleid in één oogopslag**: hoeveel niveaus en ontvangers het beleid heeft, hoe lang het duurt tot het laatste niveau en hoe vaak het zich herhaalt. **Gereedheid van ontvangers** zegt of iedereen die het kan oproepen nu bereikbaar is, en **Feed van het bereikbaarheidsbeleid** toont wat er is veranderd: toegevoegde of verwijderde personen, teams en schema's, overschrijvingen en overdrachten. Zijn regels voor Slack, Microsoft Teams en Mattermost plaatsen ze in je kanalen, een overdracht in één regel: zie [Dienstberichten](/docs/workspace-connections/slack#dienstberichten).
 - **Eigenaren** zijn de personen en teams die verantwoordelijk zijn voor het beleid. Vindt een oproep van het beleid voor iemand geen regel, of kan die niet worden afgeleverd, dan krijgen zij een e-mail; een beleid zonder eigenaren mailt in plaats daarvan de eigenaren van het project.
 - **Meldingslogboeken** toont elk bericht dat het beleid stuurde, met een tabblad per kanaal.
 - **Gebruikersoverschrijvingen** vervangt personen alleen in dit beleid. Zie [Gebruikersoverschrijvingen](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ Bevestigen stopt het oproepen van een beleid voorgoed, ook als daarna niemand he
 De minuten tellen vanaf elke bevestiging, en een beleid roept voor één incident, waarschuwing of episode hoogstens 5 keer opnieuw op. Een nieuwe oproep begint op het niveau dat opriep toen er werd bevestigd, roept op wie daar nu dienst heeft en gaat daarna door de niveaus zoals de eerste uitvoering. Het incident of de waarschuwing blijft bevestigd: de nieuwe oproep is een eigen uitvoering, in de feed en in de uitvoeringslogboeken van het beleid, waar de **Status** "Opnieuw opgeroepen (1 van 5)" zegt.
 
 Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt. **Beleid in één oogopslag** op het **Overzicht** en **Escalatieoverzicht** zeggen hetzelfde in woorden.
+
+## Als meerdere beleidsregels oproepen
+
+Een incident, waarschuwing of episode voert elk van zijn beleidsregels apart uit, tegelijk.
+
+- Wie in twee ervan dienst heeft, wordt door allebei opgeroepen, één keer door elk: OneUptime voegt de oproepen van verschillende beleidsregels niet samen. Binnen één beleid wordt iemand die een niveau twee keer noemt, persoonlijk en via een team of een schema, maar één keer opgeroepen.
+- Het incident of de waarschuwing bevestigen stopt binnen een minuut elk beleid dat ervoor loopt, waar het ook wordt bevestigd: vanuit elke oproep erover, op de eigen pagina, in de mobiele app, of in Slack of Microsoft Teams. Er wordt geen volgend niveau opgeroepen, en geen gesprek of sms die nog wacht, wordt verstuurd. Meldingen die al zijn verstuurd, blijven verstuurd.
+
+Sommige oproepen gaan na de bevestiging door, tot iemand die ze opriepen antwoordt of het is opgelost: een nieuwe oproep, een oproep aan waarnemers, een oproep die iemand vanuit Slack of Microsoft Teams naar mensen stuurde, en een beleid dat met de hand is gestart.
+
+Een beleid dat met de hand is gestart, is gestart met **Bereikbaarheidsdienstbeleid uitvoeren**, of door een oproep vanuit Slack of Microsoft Teams die het noemt. Het roept niveau voor niveau op zoals elke uitvoering, met gesprekken en herhaalde pushmeldingen, en dat iemand anders het incident bevestigt, stopt het niet: zo roep je een ander team op voor een incident waar al iemand mee bezig is. Wie het opriep, antwoordt vanuit het bericht van zijn oproep, met een gesprek of een sms, of door zelf het incident te bevestigen; zodra het incident bevestigd is, biedt de pagina van het incident **Opnieuw bevestigen** aan. **Escaleren** geeft het door aan het volgende niveau. Bij een incident, waarschuwing of episode dat is opgelost, wordt niets gestart, en je krijgt te horen waarom.
 
 ## Uitvoeringslogboeken
 
@@ -119,7 +130,7 @@ Elke rij toont wat de uitvoering startte, wanneer, de **Status** ervan en wie ha
 Archiveren neemt een beleid uit dienst en bewaart alles: open de **Instellingen** van het beleid en klik op **Archiveren** op de archiefkaart ervan, of selecteer beleid in de lijst en kies **Archiveren**.
 
 - Een gearchiveerd beleid roept niemand op. Incidenten en waarschuwingen die het gebruiken slaan het over, en een uitvoering die nog escaleert, stopt bij haar volgende stap.
-- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit archief halen** het weer in dienst neemt.
+- Het verdwijnt uit de lijst **Bereikbaarheidsbeleid** naar **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**, waar **Uit het archief halen** het weer in dienst neemt.
 
 **Beleid verwijderen**, onder **Geavanceerd**, verwijdert het beleid samen met de escalatieregels en gebruikersoverschrijvingen ervan. Verwijderen vanuit de lijst vraagt eerst om bevestiging en stelt voor om in plaats daarvan te archiveren.
 
@@ -162,6 +173,14 @@ Het niveau ervoor had niemand om op te roepen: geen ontvangers, niemand met dien
 
 :::details Een incident noemt een beleid dat niemand opriep
 Het beleid is gearchiveerd: een gearchiveerd beleid blijft staan bij de incidenten en waarschuwingen die het gebruiken, roept niemand op, en het uitvoeringslogboek ervan zegt dat het niet is uitgevoerd. Haal het uit het archief onder **Bereikbaarheid → Geavanceerd → Gearchiveerde beleidsregels**.
+:::
+
+:::details Iemand werd voor één incident twee keer opgeroepen
+Diegene heeft dienst in twee van de beleidsregels die het incident uitvoert, en elk beleid roept zijn eigen mensen op. Het incident bevestigen vanuit een van beide oproepen stopt ze allebei. Zet beide teams of schema's in hetzelfde niveau van één beleid, dan wordt diegene maar één keer opgeroepen.
+:::
+
+:::details Een beleid bleef oproepen nadat het incident was bevestigd
+Het is met de hand gestart, of het is een nieuwe oproep: het gaat door tot iemand die het opriep antwoordt, of het incident is opgelost. Zie [Als meerdere beleidsregels oproepen](#als-meerdere-beleidsregels-oproepen).
 :::
 
 ## Volgende stappen

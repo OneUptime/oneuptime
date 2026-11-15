@@ -137,6 +137,96 @@ const EXPECTED_WIRING: Array<WiredIngestRoute> = [
     routePath: "/security-events/v1/ingest",
     surfaceMember: "SecurityEvents",
   },
+  /*
+   * The compatible endpoints: other tools' agents and SDKs. Server keys
+   * only, except Sentry's ingest, which a browser SDK posts to with a DSN
+   * published in page JavaScript.
+   */
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/PrometheusRemoteWrite.ts`,
+    routePath: "/prometheus/api/v1/write",
+    surfaceMember: "PrometheusRemoteWrite",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Loki.ts`,
+    routePath: "/loki/api/v1/push",
+    surfaceMember: "Loki",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Sentry.ts`,
+    routePath: "/sentry/api/:sentryProjectId/envelope",
+    surfaceMember: "Sentry",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Sentry.ts`,
+    routePath: "/sentry/api/:sentryProjectId/store",
+    surfaceMember: "Sentry",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/event",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/event/1.0",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/SplunkHec.ts`,
+    routePath: "/services/collector/raw",
+    surfaceMember: "SplunkHec",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v2/logs",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v2/series",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/beta/sketches",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/check_run",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/validate",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/intake",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/datadog/api/v1/metadata",
+    surfaceMember: "Datadog",
+  },
+  {
+    file: `${TELEMETRY_API_DIRECTORY}/Datadog.ts`,
+    routePath: "/api/v2/logs",
+    surfaceMember: "Datadog",
+  },
   {
     file: `${TELEMETRY_API_DIRECTORY}/SessionReplayIngest.ts`,
     routePath: "/session-replay/v1/chunk",
@@ -174,6 +264,14 @@ const EXPECTED_BROWSER_REACHABLE_ROUTE_PATHS: Array<string> = [
   "/otlp/v1/logs",
   "/otlp/v1/metrics",
   "/otlp/v1/traces",
+  /*
+   * Sentry's ingest (#6797): @sentry/browser is given a DSN in page
+   * JavaScript, as the web OTLP SDKs are given a browser key, and posts its
+   * errors, transactions and logs here with it. (Sorted: /sentry before
+   * /session.)
+   */
+  "/sentry/api/:sentryProjectId/envelope",
+  "/sentry/api/:sentryProjectId/store",
   "/session-replay/v1/chunk",
   "/session-replay/v1/config",
   /*
@@ -449,7 +547,7 @@ describe("Telemetry ingest route -> surface wiring", () => {
     }
   });
 
-  test("only the OTLP traces/logs/metrics routes and the session replay routes are reachable by a published browser key", () => {
+  test("only the OTLP traces/logs/metrics routes, the session replay routes and Sentry's ingest are reachable by a published browser key", () => {
     /*
      * The cross-check that gives BROWSER_ALLOWED_INGEST_SURFACES its meaning.
      * Adding a member to that set is not an abstract act - it opens a specific

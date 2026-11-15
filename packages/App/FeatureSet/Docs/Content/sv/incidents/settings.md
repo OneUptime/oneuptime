@@ -20,6 +20,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
 | **Godkännande av offentliga anteckningar** | Låt offentliga anteckningar godkännas innan de publiceras och välj vem som godkänner dem. |
+| **Aviseringar till prenumeranter** | Välja om **Meddela statussideprenumeranter** börjar ikryssad när någon deklarerar en incident. Påslaget som standard. |
 | **Postmortem-mallar**        | Återanvändbara strukturer för efteranalyser.                                                 |
 | **Efteranalysstatusar** | De statusar en efteranalys går igenom, från Inte påbörjad till Slutförd. |
 | **Anpassade fält**           | Definiera extra fält som visas på varje incident.                                            |
@@ -183,6 +184,14 @@ De flesta projekt behöver ett steg. Lägg till ett till när en anteckning beh�
 - **Ingen godkänner sin egen anteckning, eller två steg av en anteckning.** Den som skickade en anteckning för godkännande kan varken godkänna eller avvisa den, och den som godkände ett av dess steg kan inte godkänna ett annat.
 
 Bara projektägare och -administratörer kan ändra de här inställningarna, och alla som läser anteckningarna kan se vem som godkänner dem. **Schemalagt underhåll → Inställningar → Godkännande av offentliga anteckningar** är samma sida för schemalagda underhållshändelser, med en egen brytare och egna steg. Vad en anteckning gör medan den väntar, och hur godkännare tar ställning, står under [Godkännande av offentliga anteckningar](/docs/incidents/notes-owners-and-feed#godkännande-av-offentliga-anteckningar).
+
+## Aviseringar till prenumeranter
+
+När någon deklarerar en incident börjar **Meddela statussideprenumeranter** ikryssad, så statussidans prenumeranter får höra om incidenten om inte den som deklarerar den kryssar ur rutan. Om ditt team arbetar med en incident innan någon utanför får höra om den kan du i stället låta rutan börja oikryssad: gå till **Incidenter → Inställningar → Aviseringar till prenumeranter** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) och slå av **Meddela statussideprenumeranter som standard**. Det är påslaget i alla projekt tills du slår av det, och sparas så snart du slår om det. Bara Project Owners och Project Admins kan ändra det; för alla andra är reglaget låst och säger vilken behörighet det kräver.
+
+Så länge det är avslaget börjar rutan oikryssad på **Deklarera ny incident**, oavsett om incidenten deklareras från incidentlistan, en mall, ett larm eller en monitor, och beskrivningen säger att den inte är markerad som standard i det här projektet. Prenumeranterna meddelas bara om den som deklarerar kryssar i den. På sammanfattningen, innan du skickar, står **Ändra till Ja** bredvid dess **Nej** och kryssar i rutan utan att du går tillbaka till **Berörda resurser**. Det erbjuds inte för en privat incident, som ingen statussida visar. Reglaget ändrar bara hur rutan börjar: incidenten sparar hur rutan lämnades, och en incident som deklarerades utan avisering förblir tyst, som [Deklarera en incident](/docs/incidents/declaring-incidents) beskriver.
+
+En incident som deklareras från Slack eller Microsoft Teams, eller som du ber OneUptime AI att deklarera, följer också reglaget: där frågas inget om prenumeranter, så medan reglaget är av deklareras den utan att meddela dem, och du kan berätta för dem senare med en offentlig anteckning. Incidenter som skapas på andra sätt — av monitorer, eller via API:t, Terraform eller arbetsflöden — behåller sin egen `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, som meddelar prenumeranterna om den inte är `false`. Via API:t är reglaget projektets fält `notifyStatusPageSubscribersOfNewIncidentsByDefault`.
 
 ## Mallar för efteranalys
 
@@ -727,7 +736,7 @@ Reglerna som sidan själv har med är värda att göra till dina egna:
 - Uppsättningen policyer som faktiskt körs är unionen av varje matchande regels policyer plus alla policyer som har kopplats till incidenten för hand eller av en mall, utan dubbletter, så att varje policy körs högst en gång. När två matchande regler larmar samma policy larmar den så snart någon av dem tillåter det: direkt vinner över arbetstid.
 
 > [!NOTE]
-> Allvarlighetsgraden är ett matchningskriterium här och ingen annanstans. Det finns inget jourfält på en allvarlighetsgrad för incidenter — att välja "Critical Incident" larmar inte i sig någon. Vill du att allvarlighetsgraden ska styra larmningen skriver du en jourregel som matchar på den.
+> Allvarlighetsgraden är ett matchningskriterium här och ingen annanstans. Det finns inget jourfält på en allvarlighetsgrad för incidenter — att välja "Kritisk incident" larmar inte i sig någon. Vill du att allvarlighetsgraden ska styra larmningen skriver du en jourregel som matchar på den.
 
 ## Koppla jourpolicyer direkt
 

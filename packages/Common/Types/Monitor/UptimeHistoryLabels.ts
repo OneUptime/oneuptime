@@ -73,7 +73,7 @@ export const DefaultUptimeHistoryLabels: UptimeHistoryLabels = {
   close: "Close",
   scheduledMaintenance: "Scheduled maintenance",
   dayLabelWithMaintenance: "{{label}}, {{maintenance}}",
-  oneMaintenanceEvent: "1 scheduled maintenance event",
-  maintenanceEvents: "{{total}} scheduled maintenance events",
+  oneMaintenanceEvent: "1 maintenance event",
+  maintenanceEvents: "{{total}} maintenance events",
   moreMaintenance: "+{{total}} more",
 };

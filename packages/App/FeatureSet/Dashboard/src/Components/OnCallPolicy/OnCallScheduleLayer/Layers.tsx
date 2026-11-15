@@ -1,8 +1,28 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import { getCoverageWindowEnd } from "./CoverageWindow";
+import DeletedLayerCard from "./DeletedLayerCard";
 import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
 import LayersPreview from "./LayersPreview";
+import LayersSaveBar, {
+  LayersSaveStatus,
+  getLayersChangeLines,
+} from "./LayersSaveBar";
+import {
+  buildScheduleLayersSaveRequest,
+  getLayerId,
+  getMovedLayerUserIds,
+  getRemovedLayerUsers,
+  getScheduleLayersState,
+  moveLayerInOrder,
+  restoreRemovedLayerUser,
+  sortInPriorityOrder,
+  sortInTurnOrder,
+} from "./LayersDraft";
+import {
+  isScheduleLayersSaveConflict,
+  saveScheduleLayers,
+} from "./SaveScheduleLayers";
 import SkipLayerUserModal from "./SkipLayerUserModal";
 import {
   GlobalUserOverrideShortcut,
@@ -26,8 +46,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import Dictionary from "Common/Types/Dictionary";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -41,10 +59,16 @@ import {
   buildNewScheduleLayer,
   getNewLayerName,
 } from "Common/Types/OnCallDutyPolicy/ScheduleLayerDefaults";
+import ScheduleLayersSaveUtil, {
+  ScheduleLayersChanges,
+  ScheduleLayersSaveRequest,
+  ScheduleLayersState,
+} from "Common/Types/OnCallDutyPolicy/ScheduleLayersSave";
 import ScheduleShiftUtil, {
   ScheduleCoverageState,
   ScheduleCoverageStatus,
 } from "Common/Types/OnCallDutyPolicy/ScheduleShiftUtil";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -55,6 +79,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
@@ -72,19 +98,102 @@ export interface ComponentProps {
   projectId: ObjectID;
 }
 
+/*
+ * THE LAYERS PAGE HOLDS ITS CHANGES TO WHO TAKES TURNS UNTIL SAVE.
+ *
+ * People added to a layer, taken out of it or dragged into another turn
+ * order, a layer moved up or down, a layer deleted: each is made on the page
+ * first. The layer cards, the coverage banner and the final schedule show
+ * the layers as they will be; a bar at the foot of the page says what has
+ * changed (LayersSaveBar); Save changes saves all of it at once, so who is
+ * on call changes once and the people it reaches are told once
+ * (SaveScheduleLayers); Discard puts the layers back as they are saved; and
+ * leaving the page asks first (useLeaveGuard). Each of them used to be
+ * saved the moment it was made, so a drag past three people told each of
+ * them they were on call, and then that they were not (issue #7575).
+ *
+ * The page keeps the layers and their people as they are saved, and its
+ * changes beside them: the layers in the order they are to have, the ones
+ * to be deleted still in their place, and each layer's people in their turn
+ * order (LayersDraft). Save sends the version the saved layers are at, so a
+ * save made after someone else changed them is refused rather than undo
+ * their change unseen (a 409, and the bar asks for a reload).
+ *
+ * Left as they were, each saved by a button of its own in a form or a
+ * dialog of its own, so none is saved by accident: a layer's settings (its
+ * form's Save Layer), the schedule's timezone (Save timezone) and Skip
+ * until... (its dialog's Save). And Add layer, saved at once: the new layer
+ * is empty and at the bottom, so it puts nobody on call until people are
+ * added to it - and that waits for Save.
+ */
+
+// The layers and their people as one read gives them.
+interface LoadedLayers {
+  timezone: string | undefined;
+  // In priority order, the highest first.
+  layers: Array<OnCallDutyPolicyScheduleLayer>;
+  // By layer id, each in turn order.
+  layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>;
+}
+
+// How long "Changes saved" stays up once a save is done.
+export const LAYERS_SAVED_NOTICE_MS: number = 4000;
+
+// A copy of the people of each layer, whose lists the page may change.
+const copyLayerUsers: (
+  layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>,
+) => Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> = (
+  layerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>,
+): Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> => {
+  const copy: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> = {};
+
+  for (const layerId in layerUsers) {
+    copy[layerId] = [...(layerUsers[layerId] || [])];
+  }
+
+  return copy;
+};
+
 const Layers: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
-  const [layers, setLayers] = React.useState<
+  // The layers as they are saved, in priority order.
+  const [savedLayers, setSavedLayers] = React.useState<
     Array<OnCallDutyPolicyScheduleLayer>
   >([]);
 
-  const [layerUsers, setLayerUsers] = React.useState<
+  // The people of each layer as they are saved, in turn order.
+  const [savedLayerUsers, setSavedLayerUsers] = React.useState<
     Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
   >({});
+
+  /*
+   * The page's changes, until Save or Discard: the layers in the order they
+   * are to have (the ones to be deleted too, in their place), the ones to be
+   * deleted, and the people of each layer in the turn order they are to
+   * have - someone added as a row with no id yet.
+   */
+  const [layerOrder, setLayerOrder] = React.useState<Array<string>>([]);
+
+  const [deletedLayerIds, setDeletedLayerIds] = React.useState<Set<string>>(
+    new Set<string>(),
+  );
+
+  const [draftLayerUsers, setDraftLayerUsers] = React.useState<
+    Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>
+  >({});
+
+  const [saveStatus, setSaveStatus] = React.useState<LayersSaveStatus>({
+    kind: "idle",
+  });
+
+  const [isReloading, setIsReloading] = React.useState<boolean>(false);
+
+  const [showDiscardConfirm, setShowDiscardConfirm] =
+    React.useState<boolean>(false);
 
   /*
    * The schedule's IANA timezone. The "Final schedule" preview must resolve
@@ -103,22 +212,18 @@ const Layers: FunctionComponent<ComponentProps> = (
   const [isAddButtonLoading, setIsAddButtonLoading] =
     React.useState<boolean>(false);
 
+  // The first read of the layers failed: the page says so instead of the layers.
   const [error, setError] = React.useState<string>("");
 
-  const [deletingLayerIds, setDeletingLayerIds] = React.useState<Set<string>>(
-    new Set<string>(),
-  );
-
-  const [reorderingLayerId, setReorderingLayerId] = React.useState<
-    string | null
-  >(null);
+  /*
+   * Adding a layer, saving the timezone or reading the layers again failed:
+   * said over the layers, which stay - with any changes the page holds.
+   */
+  const [actionError, setActionError] = React.useState<string>("");
 
   const [expandedLayerIds, setExpandedLayerIds] = React.useState<Set<string>>(
     new Set<string>(),
   );
-
-  const [layerToDelete, setLayerToDelete] =
-    React.useState<OnCallDutyPolicyScheduleLayer | null>(null);
 
   const [showCannotDeleteOnlyLayerError, setShowCannotDeleteOnlyLayerError] =
     React.useState<boolean>(false);
@@ -218,30 +323,13 @@ const Layers: FunctionComponent<ComponentProps> = (
     skipLockedReason = null;
   }
 
-  const hasInitialized: React.MutableRefObject<boolean> =
-    React.useRef<boolean>(false);
-
-  useEffect(() => {
-    fetchLayers().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
-
-  type FetchLayersFunction = (silent?: boolean) => Promise<void>;
-
   /*
-   * `silent` refetches (after add / delete / reorder) keep the editor on screen
-   * instead of replacing the whole page with a loading spinner. Per-action
-   * spinners on the buttons communicate progress instead.
+   * The schedule's timezone, its layers in priority order and every
+   * layer's people in turn order - the order the server reads them in, so
+   * twins (two rows saved with one order) are shown as they take turns.
    */
-  const fetchLayers: FetchLayersFunction = async (
-    silent: boolean = false,
-  ): Promise<void> => {
-    if (!silent) {
-      setIsLoading(true);
-    }
-
-    try {
+  const loadLayers: () => Promise<LoadedLayers> =
+    async (): Promise<LoadedLayers> => {
       /*
        * Load the schedule's timezone so the "Final schedule" preview resolves
        * restriction windows in the same zone the server uses to page people
@@ -255,8 +343,6 @@ const Layers: FunctionComponent<ComponentProps> = (
             timezone: true,
           },
         });
-
-      setScheduleTimezone(schedule?.timezone?.toString() || undefined);
 
       const layersResult: ListResult<OnCallDutyPolicyScheduleLayer> =
         await ModelAPI.getList<OnCallDutyPolicyScheduleLayer>({
@@ -320,41 +406,289 @@ const Layers: FunctionComponent<ComponentProps> = (
         groupedUsers[layerId]!.push(layerUser);
       }
 
-      setLayers(layersResult.data);
-      setLayerUsers(groupedUsers);
+      for (const layerId in groupedUsers) {
+        groupedUsers[layerId] = sortInTurnOrder(groupedUsers[layerId] || []);
+      }
 
-      /*
-       * On the very first successful load, expand the top layer so the editor
-       * is immediately visible without hiding the at-a-glance list of others.
-       */
-      if (!hasInitialized.current) {
-        hasInitialized.current = true;
-        const firstLayerId: string | undefined =
-          layersResult.data[0]?.id?.toString();
+      return {
+        timezone: schedule?.timezone?.toString() || undefined,
+        layers: sortInPriorityOrder(layersResult.data),
+        layerUsers: groupedUsers,
+      };
+    };
+
+  // The layers as read, saved and on the page alike: no changes held.
+  const applyLoadedLayers: (loaded: LoadedLayers) => void = (
+    loaded: LoadedLayers,
+  ): void => {
+    setScheduleTimezone(loaded.timezone);
+    setSavedLayers(loaded.layers);
+    setSavedLayerUsers(loaded.layerUsers);
+    setLayerOrder(loaded.layers.map(getLayerId));
+    setDeletedLayerIds(new Set<string>());
+    setDraftLayerUsers(copyLayerUsers(loaded.layerUsers));
+  };
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    loadLayers()
+      .then((loaded: LoadedLayers) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        applyLoadedLayers(loaded);
+
+        /*
+         * On the first load, expand the top layer so the editor is
+         * immediately visible without hiding the at-a-glance list of others.
+         */
+        const firstLayerId: string | undefined = loaded.layers[0]
+          ? getLayerId(loaded.layers[0])
+          : undefined;
+
         if (firstLayerId) {
           setExpandedLayerIds(new Set<string>([firstLayerId]));
         }
-      }
-    } catch (err) {
-      /*
-       * Only the initial (non-silent) load promotes to the full-page error
-       * state. A failed background refetch after a mutation must not tear down
-       * the editor (and any unsaved form edits) — the mutation itself already
-       * surfaced its own error, and the stale data self-heals on the next load.
-       */
-      if (!silent) {
+
+        setIsLoading(false);
+      })
+      .catch((err: Error) => {
+        if (!isCurrent) {
+          return;
+        }
+
         setError(API.getFriendlyMessage(err));
+        setIsLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const layerById: Map<string, OnCallDutyPolicyScheduleLayer> = useMemo(() => {
+    const map: Map<string, OnCallDutyPolicyScheduleLayer> = new Map<
+      string,
+      OnCallDutyPolicyScheduleLayer
+    >();
+
+    for (const layer of savedLayers) {
+      map.set(getLayerId(layer), layer);
+    }
+
+    return map;
+  }, [savedLayers]);
+
+  /*
+   * The layers in the order the page has them: every saved layer once, a
+   * layer added since at the end.
+   */
+  const draftLayerOrder: Array<string> = useMemo(() => {
+    const ordered: Array<string> = layerOrder.filter(
+      (layerId: string): boolean => {
+        return layerById.has(layerId);
+      },
+    );
+
+    const listed: Set<string> = new Set<string>(ordered);
+
+    for (const layer of savedLayers) {
+      const layerId: string = getLayerId(layer);
+
+      if (!listed.has(layerId)) {
+        ordered.push(layerId);
+        listed.add(layerId);
       }
     }
 
-    if (!silent) {
-      setIsLoading(false);
+    return ordered;
+  }, [layerOrder, savedLayers, layerById]);
+
+  // The layers the schedule keeps, in the priority order they are to have.
+  const keptLayerIds: Array<string> = useMemo(() => {
+    return draftLayerOrder.filter((layerId: string): boolean => {
+      return !deletedLayerIds.has(layerId);
+    });
+  }, [draftLayerOrder, deletedLayerIds]);
+
+  const keptLayers: Array<OnCallDutyPolicyScheduleLayer> = useMemo(() => {
+    return keptLayerIds
+      .map((layerId: string): OnCallDutyPolicyScheduleLayer | undefined => {
+        return layerById.get(layerId);
+      })
+      .filter(
+        (
+          layer: OnCallDutyPolicyScheduleLayer | undefined,
+        ): layer is OnCallDutyPolicyScheduleLayer => {
+          return Boolean(layer);
+        },
+      );
+  }, [keptLayerIds, layerById]);
+
+  // The people of each layer kept, as the page has them.
+  const keptLayerUsers: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> =
+    useMemo(() => {
+      const users: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>> = {};
+
+      for (const layerId of keptLayerIds) {
+        users[layerId] = draftLayerUsers[layerId] || [];
+      }
+
+      return users;
+    }, [keptLayerIds, draftLayerUsers]);
+
+  /*
+   * What Save sends, and what it changes - worked out the way the server
+   * works it out (ScheduleLayersSaveUtil.plan), from the layers as they are
+   * saved and the version they are at.
+   */
+  const savedState: ScheduleLayersState = useMemo(() => {
+    return getScheduleLayersState({
+      layers: savedLayers,
+      layerUsers: savedLayerUsers,
+    });
+  }, [savedLayers, savedLayerUsers]);
+
+  const saveRequest: ScheduleLayersSaveRequest = useMemo(() => {
+    return buildScheduleLayersSaveRequest({
+      basedOnVersion: ScheduleLayersSaveUtil.getVersion(savedState),
+      layerOrder: draftLayerOrder,
+      deletedLayerIds: deletedLayerIds,
+      layerUsers: draftLayerUsers,
+    });
+  }, [savedState, draftLayerOrder, deletedLayerIds, draftLayerUsers]);
+
+  /*
+   * Null only when the changes cannot be worked out, which the page's own
+   * changes never lead to: the bar then says there are changes, and Save
+   * says what the server makes of them.
+   */
+  const changes: ScheduleLayersChanges | null = useMemo(() => {
+    try {
+      return ScheduleLayersSaveUtil.plan({
+        state: savedState,
+        request: saveRequest,
+      }).changes;
+    } catch {
+      return null;
     }
+  }, [savedState, saveRequest]);
+
+  /*
+   * Whether the page holds changes Save has not saved. Not once a save is
+   * done but could not be read back: those are saved.
+   */
+  const hasUnsavedChanges: boolean =
+    (changes ? changes.hasChanges : true) && saveStatus.kind !== "reloadFailed";
+
+  /*
+   * Whether the page marks what it has changed: a person New, Moved or
+   * Removed when you save, a layer to be deleted, a card's "Unsaved
+   * changes". Not once a save is done but could not be read back: those
+   * changes are saved, and the page waits for Reload layers.
+   */
+  const marksUnsavedChanges: boolean = saveStatus.kind !== "reloadFailed";
+
+  /*
+   * A page with unsaved changes holds them: nothing reloads it under them,
+   * a new version of OneUptime included, and leaving it asks first.
+   */
+  useUnsavedChanges(hasUnsavedChanges);
+
+  const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsavedChanges);
+
+  // The layers whose people, or whose place among the layers, the page has changed.
+  const changedLayerIds: Set<string> = useMemo(() => {
+    const changed: Set<string> = new Set<string>();
+
+    for (const layer of changes?.layers || []) {
+      changed.add(layer.layerId.toLowerCase());
+    }
+
+    const savedKeptLayerIds: Array<string> = savedLayers
+      .map(getLayerId)
+      .filter((layerId: string): boolean => {
+        return !deletedLayerIds.has(layerId);
+      });
+
+    keptLayerIds.forEach((layerId: string, index: number): void => {
+      if (savedKeptLayerIds[index] !== layerId) {
+        changed.add(layerId.toLowerCase());
+      }
+    });
+
+    return changed;
+  }, [changes, savedLayers, deletedLayerIds, keptLayerIds]);
+
+  // "Changes saved" goes after a moment.
+  useEffect(() => {
+    if (saveStatus.kind !== "saved") {
+      return undefined;
+    }
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(() => {
+      setSaveStatus((status: LayersSaveStatus) => {
+        return status.kind === "saved" ? { kind: "idle" } : status;
+      });
+    }, LAYERS_SAVED_NOTICE_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [saveStatus]);
+
+  /*
+   * A change made on the page: what the bar said about the last save - that
+   * it failed, or that it is done - is no longer what it is about.
+   */
+  const noteChange: () => void = (): void => {
+    setSaveStatus((status: LayersSaveStatus) => {
+      return status.kind === "error" || status.kind === "saved"
+        ? { kind: "idle" }
+        : status;
+    });
   };
 
-  const addLayer: PromiseVoidFunction = async (): Promise<void> => {
+  // A layer's name, as its card says it.
+  const getLayerName: (layerId: string) => string = (
+    layerId: string,
+  ): string => {
+    const key: string = layerId.toLowerCase();
+    const layer: OnCallDutyPolicyScheduleLayer | undefined =
+      layerById.get(layerId) ||
+      savedLayers.find((candidate: OnCallDutyPolicyScheduleLayer) => {
+        return getLayerId(candidate).toLowerCase() === key;
+      });
+
+    const name: string = layer?.name?.toString() || "";
+
+    if (name) {
+      return name;
+    }
+
+    const index: number = draftLayerOrder.findIndex(
+      (candidate: string): boolean => {
+        return candidate.toLowerCase() === key;
+      },
+    );
+
+    return translator.translateTemplate("Layer {{number}}", {
+      number: index + 1,
+    });
+  };
+
+  const addLayer: () => Promise<void> = async (): Promise<void> => {
     setIsAddButtonLoading(true);
-    setError("");
+    setActionError("");
+
+    /*
+     * The page's changes, and the layers they were made to, as they are when
+     * the new layer is asked for.
+     */
+    const hadUnsavedChanges: boolean = hasUnsavedChanges;
+    const stateBefore: ScheduleLayersState = savedState;
 
     try {
       /*
@@ -362,7 +696,7 @@ const Layers: FunctionComponent<ComponentProps> = (
        * so adding after a deletion appends at the end without colliding with an
        * existing order.
        */
-      const maxOrder: number = layers.reduce(
+      const maxOrder: number = savedLayers.reduce(
         (max: number, layer: OnCallDutyPolicyScheduleLayer) => {
           return Math.max(max, layer.order || 0);
         },
@@ -383,9 +717,11 @@ const Layers: FunctionComponent<ComponentProps> = (
         projectId: props.projectId,
         name: getNewLayerName({
           order: newOrder,
-          existingNames: layers.map((layer: OnCallDutyPolicyScheduleLayer) => {
-            return layer.name?.toString() || "";
-          }),
+          existingNames: savedLayers.map(
+            (layer: OnCallDutyPolicyScheduleLayer) => {
+              return layer.name?.toString() || "";
+            },
+          ),
         }),
         order: newOrder,
         timezone: scheduleTimezone,
@@ -404,131 +740,117 @@ const Layers: FunctionComponent<ComponentProps> = (
       const createdLayer: OnCallDutyPolicyScheduleLayer =
         response.data as OnCallDutyPolicyScheduleLayer;
 
-      /*
-       * Refetch so client order matches the server's re-sequenced values, then
-       * expand the freshly added layer so the user can configure it right away.
-       */
-      await fetchLayers(true);
+      const createdLayerId: string = createdLayer.id?.toString() || "";
 
-      if (createdLayer.id) {
+      // Read again, so the page has the layer as the server saved it.
+      const loaded: LoadedLayers = await loadLayers();
+
+      if (!hadUnsavedChanges) {
+        applyLoadedLayers(loaded);
+      } else {
+        /*
+         * The page holds changes: they stay, made to the layers as they are
+         * now - the same, with the new layer at the end - and the new layer
+         * goes at the end of the page's order too. Unless someone else
+         * changed the layers meanwhile: saving the page's changes over theirs
+         * would undo theirs unseen, so the bar asks for a reload, as Save
+         * would.
+         */
+        const expected: ScheduleLayersState = {
+          layers: [
+            ...stateBefore.layers,
+            { id: createdLayerId, order: newOrder },
+          ],
+          layerUsers: stateBefore.layerUsers,
+        };
+
+        const loadedState: ScheduleLayersState = getScheduleLayersState({
+          layers: loaded.layers,
+          layerUsers: loaded.layerUsers,
+        });
+
+        if (
+          createdLayerId &&
+          ScheduleLayersSaveUtil.getVersion(loadedState) ===
+            ScheduleLayersSaveUtil.getVersion(expected)
+        ) {
+          setScheduleTimezone(loaded.timezone);
+          setSavedLayers(loaded.layers);
+          setSavedLayerUsers(loaded.layerUsers);
+          setLayerOrder((previous: Array<string>) => {
+            return previous.includes(createdLayerId)
+              ? previous
+              : [...previous, createdLayerId];
+          });
+        } else {
+          setSaveStatus({ kind: "conflict" });
+        }
+      }
+
+      // Expanded, so the user can configure it right away.
+      if (createdLayerId) {
         setExpandedLayerIds((prev: Set<string>) => {
           const next: Set<string> = new Set<string>(prev);
-          next.add(createdLayer.id!.toString());
+          next.add(createdLayerId);
           return next;
         });
       }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setActionError(API.getFriendlyMessage(err));
     }
 
     setIsAddButtonLoading(false);
   };
 
-  const requestDeleteLayer: (layer: OnCallDutyPolicyScheduleLayer) => void = (
-    layer: OnCallDutyPolicyScheduleLayer,
+  /*
+   * Delete on a layer: it is deleted when the page is saved, and until then
+   * its card says so where it was, with Undo. A schedule keeps one layer at
+   * least.
+   */
+  const requestDeleteLayer: (layerId: string) => void = (
+    layerId: string,
   ): void => {
-    if (layers.length === 1) {
+    if (keptLayerIds.length <= 1) {
       setShowCannotDeleteOnlyLayerError(true);
       return;
     }
-    setLayerToDelete(layer);
-  };
 
-  const confirmDeleteLayer: PromiseVoidFunction = async (): Promise<void> => {
-    const layer: OnCallDutyPolicyScheduleLayer | null = layerToDelete;
-    if (!layer || !layer.id) {
-      throw new BadDataException("layer.id cannot be null");
-    }
-
-    const layerId: string = layer.id.toString();
-    setLayerToDelete(null);
-    setDeletingLayerIds((prev: Set<string>) => {
+    setDeletedLayerIds((prev: Set<string>) => {
       const next: Set<string> = new Set<string>(prev);
       next.add(layerId);
       return next;
     });
+    noteChange();
+  };
 
-    try {
-      await ModelAPI.deleteItem<OnCallDutyPolicyScheduleLayer>({
-        modelType: OnCallDutyPolicyScheduleLayer,
-        id: layer.id,
-      });
-
-      // Refetch: the server re-sequences the remaining layers' order on delete.
-      await fetchLayers(true);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    setDeletingLayerIds((prev: Set<string>) => {
+  const undoDeleteLayer: (layerId: string) => void = (
+    layerId: string,
+  ): void => {
+    setDeletedLayerIds((prev: Set<string>) => {
       const next: Set<string> = new Set<string>(prev);
       next.delete(layerId);
       return next;
     });
+    noteChange();
   };
 
-  type MoveLayerFunction = (index: number, direction: "up" | "down") => void;
-
-  const moveLayer: MoveLayerFunction = async (
-    index: number,
+  /*
+   * A layer moved a place up (higher priority) or down, past the next layer
+   * the schedule keeps: one to be deleted stays where it is.
+   */
+  const moveLayer: (layerId: string, direction: "up" | "down") => void = (
+    layerId: string,
     direction: "up" | "down",
-  ): Promise<void> => {
-    const targetIndex: number = direction === "up" ? index - 1 : index + 1;
-
-    if (targetIndex < 0 || targetIndex >= layers.length) {
-      return;
-    }
-
-    const currentLayer: OnCallDutyPolicyScheduleLayer | undefined =
-      layers[index];
-
-    if (!currentLayer?.id) {
-      return;
-    }
-
-    setReorderingLayerId(currentLayer.id.toString());
-    setError("");
-
-    /*
-     * Reorder the array locally, then re-number every layer to a contiguous
-     * 1..N sequence based on its new position and persist only the ones whose
-     * order actually changed.
-     *
-     * This is deliberately NOT a two-value swap. A swap of two orders is not
-     * atomic across two requests: if the second write fails the two layers are
-     * left sharing one order value, and because the server never re-sequences
-     * on update, a subsequent swap would read equal orders and write the same
-     * value to both (a no-op) — permanently freezing the tie. Re-numbering by
-     * position always yields distinct, contiguous orders, so a partial failure
-     * self-heals on the next reorder instead of getting stuck. The order column
-     * has no unique constraint, so transient duplicates mid-sequence are fine.
-     */
-    const reordered: Array<OnCallDutyPolicyScheduleLayer> = [...layers];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(targetIndex, 0, moved!);
-
-    try {
-      for (let i: number = 0; i < reordered.length; i++) {
-        const layer: OnCallDutyPolicyScheduleLayer = reordered[i]!;
-        const desiredOrder: number = i + 1;
-        if (layer.id && layer.order !== desiredOrder) {
-          await ModelAPI.updateById({
-            modelType: OnCallDutyPolicyScheduleLayer,
-            id: layer.id,
-            data: { order: desiredOrder },
-          });
-        }
-      }
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
-
-    /*
-     * Always resync from the server — even if one of the writes failed, this
-     * pulls the authoritative order so the UI never shows a stale sequence.
-     */
-    await fetchLayers(true);
-    setReorderingLayerId(null);
+  ): void => {
+    setLayerOrder(
+      moveLayerInOrder({
+        layerOrder: draftLayerOrder,
+        deletedLayerIds: deletedLayerIds,
+        layerId: layerId,
+        direction: direction,
+      }),
+    );
+    noteChange();
   };
 
   const toggleExpand: (layerId: string) => void = (layerId: string): void => {
@@ -550,7 +872,7 @@ const Layers: FunctionComponent<ComponentProps> = (
      * Merge the saved fields into the matching layer so the collapsed summary
      * (name, rotation, restrictions) reflects the change without a full reload.
      */
-    setLayers((prev: Array<OnCallDutyPolicyScheduleLayer>) => {
+    setSavedLayers((prev: Array<OnCallDutyPolicyScheduleLayer>) => {
       return prev.map((layer: OnCallDutyPolicyScheduleLayer) => {
         if (layer.id?.toString() !== savedLayer.id?.toString()) {
           return layer;
@@ -578,6 +900,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     });
   };
 
+  // The people of a layer as the page is to have them: held until Save.
   const updateLayerUsers: (
     layerId: string,
     users: Array<OnCallDutyPolicyScheduleLayerUser>,
@@ -585,7 +908,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     layerId: string,
     users: Array<OnCallDutyPolicyScheduleLayerUser>,
   ): void => {
-    setLayerUsers(
+    setDraftLayerUsers(
       (prev: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>) => {
         return {
           ...prev,
@@ -593,19 +916,111 @@ const Layers: FunctionComponent<ComponentProps> = (
         };
       },
     );
+    noteChange();
+  };
+
+  // Undo on someone taken out of a layer: back where they were.
+  const restoreLayerUser: (
+    layerId: string,
+    layerUser: OnCallDutyPolicyScheduleLayerUser,
+  ) => void = (
+    layerId: string,
+    layerUser: OnCallDutyPolicyScheduleLayerUser,
+  ): void => {
+    setDraftLayerUsers(
+      (prev: Dictionary<Array<OnCallDutyPolicyScheduleLayerUser>>) => {
+        return {
+          ...prev,
+          [layerId]: restoreRemovedLayerUser({
+            saved: savedLayerUsers[layerId] || [],
+            draft: prev[layerId] || [],
+            layerUser: layerUser,
+          }),
+        };
+      },
+    );
+    noteChange();
+  };
+
+  // Discard: the layers as they are saved, on the page again.
+  const discardChanges: () => void = (): void => {
+    setLayerOrder(savedLayers.map(getLayerId));
+    setDeletedLayerIds(new Set<string>());
+    setDraftLayerUsers(copyLayerUsers(savedLayerUsers));
+    setSaveStatus({ kind: "idle" });
+    setShowDiscardConfirm(false);
   };
 
   /*
-   * A single in-flight flag that serializes every mutation. Add / delete /
-   * reorder each re-sequence the server-side `order`; letting two run at once
-   * (e.g. deleting one layer while another is mid-reorder) would interleave
-   * those re-sequences and corrupt the order values. While any mutation is in
-   * flight, all add / delete / reorder controls are disabled.
+   * Save: every change at once (SaveScheduleLayers), then the layers read
+   * again as they are now saved. A save refused because someone else
+   * changed the layers first keeps the changes on the page and asks for a
+   * reload; any other refusal says why and keeps them, to save again.
+   */
+  const saveChanges: () => Promise<void> = async (): Promise<void> => {
+    if (saveStatus.kind === "saving") {
+      return;
+    }
+
+    setSaveStatus({ kind: "saving" });
+    setActionError("");
+
+    try {
+      await saveScheduleLayers({
+        scheduleId: props.onCallDutyPolicyScheduleId,
+        projectId: props.projectId,
+        request: saveRequest,
+      });
+    } catch (err) {
+      setSaveStatus(
+        isScheduleLayersSaveConflict(err)
+          ? { kind: "conflict" }
+          : { kind: "error", message: API.getFriendlyMessage(err) },
+      );
+      return;
+    }
+
+    try {
+      applyLoadedLayers(await loadLayers());
+      setSaveStatus({ kind: "saved" });
+    } catch (err) {
+      setSaveStatus({
+        kind: "reloadFailed",
+        message: API.getFriendlyMessage(err),
+      });
+    }
+  };
+
+  // Reload, after a conflict or a save the page could not read back: the page's changes go.
+  const reloadLayers: () => Promise<void> = async (): Promise<void> => {
+    setIsReloading(true);
+    setActionError("");
+
+    try {
+      applyLoadedLayers(await loadLayers());
+      setSaveStatus({ kind: "idle" });
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
+
+    setIsReloading(false);
+  };
+
+  /*
+   * While the page saves, adds a layer or reads the layers again, its other
+   * changes wait: Add layer, and moving, deleting or changing the people of
+   * a layer. So they do after a save the page could not read back, and
+   * after someone else changed the layers first, until Reload layers: a
+   * change made to the layers as the page last read them would be refused,
+   * since they have moved on. The page's changes stay in view meanwhile, so
+   * whoever made them can see what to make again once the layers are read.
    */
   const isMutating: boolean =
     isAddButtonLoading ||
-    reorderingLayerId !== null ||
-    deletingLayerIds.size > 0;
+    saveStatus.kind === "saving" ||
+    saveStatus.kind === "reloadFailed" ||
+    saveStatus.kind === "conflict" ||
+    isReloading;
 
   const addLayerButton: GetReactElementFunction = (): ReactElement => {
     return (
@@ -623,13 +1038,13 @@ const Layers: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Every user on any layer of this schedule. Overrides for anyone else cannot
-   * affect what this page shows.
+   * Every user on any layer of this schedule, as the page has them. Overrides
+   * for anyone else cannot affect what this page shows.
    */
   const scheduleUserIds: Set<string> = useMemo(() => {
     const ids: Set<string> = new Set<string>();
-    for (const layerId in layerUsers) {
-      for (const layerUser of layerUsers[layerId] || []) {
+    for (const layerId in keptLayerUsers) {
+      for (const layerUser of keptLayerUsers[layerId] || []) {
         const userId: string = layerUser.user?.id?.toString() || "";
         if (userId) {
           ids.add(userId);
@@ -637,7 +1052,7 @@ const Layers: FunctionComponent<ComponentProps> = (
       }
     }
     return ids;
-  }, [layerUsers]);
+  }, [keptLayerUsers]);
 
   /*
    * The names of the people on this schedule's layers, by user id: the
@@ -645,8 +1060,8 @@ const Layers: FunctionComponent<ComponentProps> = (
    */
   const scheduleUserNameById: Record<string, string> = useMemo(() => {
     const names: Record<string, string> = {};
-    for (const layerId in layerUsers) {
-      for (const layerUser of layerUsers[layerId] || []) {
+    for (const layerId in keptLayerUsers) {
+      for (const layerUser of keptLayerUsers[layerId] || []) {
         const userId: string = layerUser.user?.id?.toString() || "";
         const name: string =
           layerUser.user?.name?.toString() ||
@@ -658,14 +1073,15 @@ const Layers: FunctionComponent<ComponentProps> = (
       }
     }
     return names;
-  }, [layerUsers]);
+  }, [keptLayerUsers]);
 
   /*
    * The window the layer cards actually reason over: a little history so an
    * in-progress turn keeps its true start, and the shared forward coverage
    * window so an upcoming substitution reaches the shift table. Anchored once
-   * per layer/user change rather than to a ticking clock, so the override list
-   * is not refetched on every re-render.
+   * per saved layer/user change rather than to a ticking clock, so the override
+   * list is not refetched on every re-render - nor on every change the page
+   * holds: someone added is read for by the overrides' own user key.
    *
    * A rotation slower than the coverage window (an annual hand-off, say) can
    * list turns beyond this window's end; a substitution that far out will not be
@@ -680,11 +1096,11 @@ const Layers: FunctionComponent<ComponentProps> = (
     };
     /*
      * The body reads neither dependency on purpose. They are here as a
-     * re-anchor signal: the window should move when the schedule's layers or
-     * users change (the cards are recomputed anyway), and NOT on every render,
-     * which is what keying it to the clock would do.
+     * re-anchor signal: the window should move when the schedule's saved
+     * layers or users change (the cards are recomputed anyway), and NOT on
+     * every render, which is what keying it to the clock would do.
      */
-  }, [layers, layerUsers]);
+  }, [savedLayers, savedLayerUsers]);
 
   /*
    * The overrides in force for this schedule, resolved the way the server does
@@ -708,7 +1124,8 @@ const Layers: FunctionComponent<ComponentProps> = (
    * preview at the bottom of the page uses, so the two can never disagree -
    * time away included: everybody in a layer away at once leaves that layer
    * with nobody on call, and a gap the banner names when no layer below
-   * covers it.
+   * covers it. Of the layers as the page has them: a change it holds shows
+   * here before it is saved.
    *
    * Expanding every layer's rotation across the window and merging the layers by
    * priority is the most expensive thing this component does — hundreds of
@@ -728,11 +1145,11 @@ const Layers: FunctionComponent<ComponentProps> = (
     const now: Date = OneUptimeDate.getCurrentDate();
     const windowEnd: Date = getCoverageWindowEnd(now);
 
-    const layerProps: Array<LayerProps> = layers.map(
+    const layerProps: Array<LayerProps> = keptLayers.map(
       (layer: OnCallDutyPolicyScheduleLayer): LayerProps => {
         const layerId: string = layer.id?.toString() || "";
         return {
-          users: (layerUsers[layerId] || [])
+          users: (keptLayerUsers[layerId] || [])
             .map((layerUser: OnCallDutyPolicyScheduleLayerUser) => {
               return layerUser.user!;
             })
@@ -755,7 +1172,7 @@ const Layers: FunctionComponent<ComponentProps> = (
 
     return {
       coverage: ScheduleShiftUtil.getCoverageState({
-        layerCount: layers.length,
+        layerCount: keptLayers.length,
         assignedUserCount,
         shifts: ScheduleShiftUtil.groupEventsIntoShifts(
           ScheduleResolution.resolve({
@@ -773,8 +1190,8 @@ const Layers: FunctionComponent<ComponentProps> = (
       windowLabel: formatWindowSpan(now, windowEnd),
     };
   }, [
-    layers,
-    layerUsers,
+    keptLayers,
+    keptLayerUsers,
     scheduleTimezone,
     overrideResolution.records,
     overrideResolution.policyContextId,
@@ -873,7 +1290,7 @@ const Layers: FunctionComponent<ComponentProps> = (
 
     setScheduleTimezone(timezone);
     setIsSavingTimezone(true);
-    setError("");
+    setActionError("");
 
     try {
       await ModelAPI.updateById({
@@ -885,7 +1302,7 @@ const Layers: FunctionComponent<ComponentProps> = (
       });
     } catch (err) {
       setScheduleTimezone(previous);
-      setError(API.getFriendlyMessage(err));
+      setActionError(API.getFriendlyMessage(err));
     }
 
     setIsSavingTimezone(false);
@@ -930,7 +1347,7 @@ const Layers: FunctionComponent<ComponentProps> = (
               dataTestId="schedule-timezone-button"
               onChange={(timezone: string | undefined) => {
                 saveScheduleTimezone(timezone).catch((err: Error) => {
-                  setError(API.getFriendlyMessage(err));
+                  setActionError(API.getFriendlyMessage(err));
                 });
               }}
             />
@@ -951,6 +1368,26 @@ const Layers: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // What went wrong adding a layer, saving the timezone or reading the layers again.
+  const actionErrorAlert: GetReactElementFunction = (): ReactElement => {
+    if (!actionError) {
+      return <></>;
+    }
+
+    return (
+      <div className="mb-5">
+        <Alert
+          type={AlertType.DANGER}
+          title={actionError}
+          dataTestId="schedule-layers-action-error"
+          onClose={() => {
+            setActionError("");
+          }}
+        />
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <ComponentLoader />;
   }
@@ -959,7 +1396,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (layers.length === 0) {
+  if (savedLayers.length === 0) {
     /*
      * The first layer, asked for in the card the layers go in - under the
      * timezone card, as the layers are - rather than on the bare page 13rem
@@ -968,6 +1405,7 @@ const Layers: FunctionComponent<ComponentProps> = (
     return (
       <div>
         {timezoneCard()}
+        {actionErrorAlert()}
         <Card
           title={rotationLayersTitle}
           titleText="Rotation layers"
@@ -1027,6 +1465,8 @@ const Layers: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
+      {actionErrorAlert()}
+
       {/*
        * Coverage gaps, stated at the point of EDITING rather than only in the
        * preview at the bottom of the page. Someone configuring a Mon-Fri layer
@@ -1036,41 +1476,82 @@ const Layers: FunctionComponent<ComponentProps> = (
        */}
       {coverageBanner()}
 
-      {/* Layer list */}
+      {/* Layer list: the layers the schedule keeps, and the ones to be deleted where they were. */}
       <div className="space-y-4">
-        {layers.map((layer: OnCallDutyPolicyScheduleLayer, i: number) => {
-          const layerId: string = layer.id?.toString() || `index-${i}`;
+        {draftLayerOrder.map((layerId: string) => {
+          const layer: OnCallDutyPolicyScheduleLayer | undefined =
+            layerById.get(layerId);
+
+          if (!layer) {
+            return null;
+          }
+
+          if (deletedLayerIds.has(layerId)) {
+            // Saved once the page could not read the save back: deleted.
+            if (!marksUnsavedChanges) {
+              return null;
+            }
+
+            return (
+              <DeletedLayerCard
+                key={layerId}
+                name={getLayerName(layerId)}
+                disabled={isMutating}
+                onUndo={() => {
+                  undoDeleteLayer(layerId);
+                }}
+              />
+            );
+          }
+
+          const index: number = keptLayerIds.indexOf(layerId);
+
           return (
             <LayerCard
               key={layerId}
               layer={layer}
-              users={layerUsers[layerId] || []}
+              users={draftLayerUsers[layerId] || []}
+              removedUsers={getRemovedLayerUsers({
+                saved: savedLayerUsers[layerId] || [],
+                draft: draftLayerUsers[layerId] || [],
+              })}
+              movedUserIds={getMovedLayerUserIds({
+                saved: savedLayerUsers[layerId] || [],
+                draft: draftLayerUsers[layerId] || [],
+              })}
+              hasUnsavedChanges={
+                marksUnsavedChanges &&
+                changedLayerIds.has(layerId.toLowerCase())
+              }
+              marksUnsavedChanges={marksUnsavedChanges}
               timezone={scheduleTimezone}
               overrides={overrideResolution.records}
               overridePolicyContextId={overrideResolution.policyContextId}
               overrideUserInfo={overrideResolution.userInfoById}
-              index={i}
-              total={layers.length}
+              index={index}
+              total={keptLayerIds.length}
               isExpanded={expandedLayerIds.has(layerId)}
               actionsDisabled={isMutating}
-              isDeleteButtonLoading={deletingLayerIds.has(layerId)}
               onToggleExpand={() => {
                 toggleExpand(layerId);
               }}
               onMoveUp={() => {
-                moveLayer(i, "up");
+                moveLayer(layerId, "up");
               }}
               onMoveDown={() => {
-                moveLayer(i, "down");
+                moveLayer(layerId, "down");
               }}
               onDeleteLayer={() => {
-                requestDeleteLayer(layer);
+                requestDeleteLayer(layerId);
               }}
               onLayerChange={applySavedLayer}
               onUsersChange={(
                 users: Array<OnCallDutyPolicyScheduleLayerUser>,
               ) => {
                 updateLayerUsers(layerId, users);
+              }}
+              onRestoreUser={(layerUser: OnCallDutyPolicyScheduleLayerUser) => {
+                restoreLayerUser(layerId, layerUser);
               }}
               onSkipUser={(person: { userId: string; name: string }) => {
                 if (skipLockedReason) {
@@ -1108,21 +1589,62 @@ const Layers: FunctionComponent<ComponentProps> = (
         {translator.translateText("Add another layer")}
       </button>
 
-      {/* Final schedule preview */}
+      {/* Final schedule preview, of the layers as the page has them */}
       <div className="mt-8">
         <Card
           title={"Final schedule"}
           description={SCHEDULE_FINAL_SCHEDULE_DESCRIPTION}
+          rightElement={
+            hasUnsavedChanges ? (
+              <span
+                data-testid="final-schedule-unsaved"
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                />
+                {translator.translateText("Includes unsaved changes")}
+              </span>
+            ) : undefined
+          }
         >
           <LayersPreview
-            layers={layers}
-            allLayerUsers={layerUsers}
+            layers={keptLayers}
+            allLayerUsers={keptLayerUsers}
             timezone={scheduleTimezone}
             onCallDutyPolicyScheduleId={props.onCallDutyPolicyScheduleId}
             overridesRefreshKey={overrideRefreshKey}
           />
         </Card>
       </div>
+
+      <LayersSaveBar
+        hasUnsavedChanges={hasUnsavedChanges}
+        status={saveStatus}
+        changeLines={getLayersChangeLines({
+          changes: changes,
+          getLayerName: getLayerName,
+          translator: translator,
+        })}
+        isReloading={isReloading}
+        onSave={() => {
+          saveChanges().catch((err: Error) => {
+            setSaveStatus({
+              kind: "error",
+              message: API.getFriendlyMessage(err),
+            });
+          });
+        }}
+        onDiscard={() => {
+          setShowDiscardConfirm(true);
+        }}
+        onReload={() => {
+          reloadLayers().catch((err: Error) => {
+            setActionError(API.getFriendlyMessage(err));
+          });
+        }}
+      />
 
       {personToSkip && !skipLockedReason && (
         <SkipLayerUserModal
@@ -1142,31 +1664,6 @@ const Layers: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {layerToDelete && (
-        <ConfirmModal
-          title={
-            layerToDelete.name?.toString()
-              ? translator.translateTemplate("Delete {{name}}?", {
-                  name: layerToDelete.name.toString(),
-                })
-              : translator.translateTemplate("Delete layer?")
-          }
-          description={
-            "This permanently removes the layer, its users and its rotation from this schedule. This action cannot be undone."
-          }
-          isLoading={false}
-          submitButtonText={"Delete Layer"}
-          submitButtonType={ButtonStyleType.DANGER}
-          closeButtonText={"Cancel"}
-          onClose={() => {
-            setLayerToDelete(null);
-          }}
-          onSubmit={async () => {
-            await confirmDeleteLayer();
-          }}
-        />
-      )}
-
       {showCannotDeleteOnlyLayerError && (
         <ConfirmModal
           title={`Cannot delete layer`}
@@ -1179,6 +1676,45 @@ const Layers: FunctionComponent<ComponentProps> = (
           onSubmit={() => {
             setShowCannotDeleteOnlyLayerError(false);
           }}
+        />
+      )}
+
+      {/*
+       * Discard on the bar asks first, in the words Cancel on a dashboard
+       * with unsaved changes asks in (DashboardToolbar).
+       */}
+      {showDiscardConfirm && (
+        <ConfirmModal
+          title={"Discard unsaved changes?"}
+          description={
+            "You have unsaved changes to this schedule's layers. If you discard them, the layers go back to how they were last saved."
+          }
+          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonText={"Discard Changes"}
+          closeButtonText={"Keep Editing"}
+          onSubmit={discardChanges}
+          onClose={() => {
+            setShowDiscardConfirm(false);
+          }}
+        />
+      )}
+
+      {/*
+       * Leaving the page with unsaved changes asks first (LeaveGuard): Keep
+       * Editing stays, Discard Changes goes where they were going. Last, so it
+       * opens above any dialog that is open on the page.
+       */}
+      {leavePrompt.isAsking && (
+        <ConfirmModal
+          title={"Leave without saving?"}
+          description={
+            "You have unsaved changes to this schedule's layers. If you leave now, they will be lost."
+          }
+          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonText={"Discard Changes"}
+          closeButtonText={"Keep Editing"}
+          onSubmit={leavePrompt.leave}
+          onClose={leavePrompt.stay}
         />
       )}
     </div>

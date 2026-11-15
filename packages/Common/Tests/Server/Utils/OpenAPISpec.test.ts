@@ -8,6 +8,7 @@ import { JSONObject } from "../../../Types/JSON";
 import { OpenAPIParser } from "../../../../../Scripts/TerraformProvider/Core/OpenAPIParser";
 import { StringUtils } from "../../../../../Scripts/TerraformProvider/Core/StringUtils";
 import {
+  TerraformAttribute,
   TerraformDataSource,
   TerraformResource,
 } from "../../../../../Scripts/TerraformProvider/Core/Types";
@@ -887,6 +888,473 @@ describe("OpenAPI specification", () => {
           expect.any(Array),
         ]);
       }
+    });
+  });
+
+  /*
+   * A PROJECT'S OWN TWILIO ACCOUNT AND MAIL SERVER (#7737).
+   *
+   * Settings > Notification Channels: the Twilio account that sends a
+   * project's SMS and makes its calls, and the mail server that sends its
+   * email, in place of OneUptime's own. Both had a CRUD API that the API
+   * reference and this spec left out, and so did the Terraform provider
+   * generated from it: a customer who sets OneUptime up from Terraform
+   * could not set these up there. They are documented now. Every credential
+   * of theirs is a secret as the spec says it (ModelSchema.isSecretColumn),
+   * and the provider marks it Sensitive, so a plan, a log or an output
+   * never prints it.
+   */
+  describe("a project's own Twilio account and mail server", () => {
+    interface Channel {
+      tableName: string;
+      tag: string;
+      crudApiPath: string;
+      resource: string;
+      secrets: Array<string>;
+      // The secrets the spec also writes as format: password.
+      passwords: Array<string>;
+    }
+
+    const TWILIO: Channel = {
+      tableName: "ProjectCallSMSConfig",
+      tag: "Call and SMS Config",
+      crudApiPath: "/call-sms-config",
+      resource: "call_and_sms_config",
+      secrets: ["twilioAuthToken"],
+      passwords: ["twilioAuthToken"],
+    };
+
+    const MAIL: Channel = {
+      tableName: "ProjectSMTPConfig",
+      tag: "SMTP Config",
+      crudApiPath: "/smtp-config",
+      resource: "smtp_config",
+      secrets: [
+        "amazonSesSecretAccessKey",
+        "clientSecret",
+        "mailgunApiKey",
+        "password",
+        "postmarkServerToken",
+        "resendApiKey",
+        "sendgridApiKey",
+      ],
+      /*
+       * The encrypted keys, and the password, a Password column. The OAuth
+       * client secret is marked `secret` and keeps its text format.
+       */
+      passwords: [
+        "amazonSesSecretAccessKey",
+        "mailgunApiKey",
+        "password",
+        "postmarkServerToken",
+        "resendApiKey",
+        "sendgridApiKey",
+      ],
+    };
+
+    const CHANNELS: Array<Channel> = [TWILIO, MAIL];
+
+    const SCHEMA_KINDS: Array<string> = [
+      "",
+      "CreateSchema",
+      "ReadSchema",
+      "UpdateSchema",
+    ];
+
+    let parser: OpenAPIParser;
+
+    beforeAll(() => {
+      parser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+    });
+
+    function getProperties(name: string): JSONObject {
+      return ((schemas[name] as JSONObject | undefined)?.["properties"] ||
+        {}) as JSONObject;
+    }
+
+    function getResource(channel: Channel): TerraformResource {
+      const resource: TerraformResource | undefined = parser
+        .getResources()
+        .find((candidate: TerraformResource): boolean => {
+          return candidate.name === channel.resource;
+        });
+
+      if (!resource) {
+        throw new Error(`no resource ${channel.resource}`);
+      }
+
+      return resource;
+    }
+
+    function getDataSource(channel: Channel): TerraformDataSource {
+      const dataSource: TerraformDataSource | undefined = parser
+        .getDataSources()
+        .find((candidate: TerraformDataSource): boolean => {
+          return candidate.name === channel.resource;
+        });
+
+      if (!dataSource) {
+        throw new Error(`no data source ${channel.resource}`);
+      }
+
+      return dataSource;
+    }
+
+    function getSnakeNames(names: Array<string>): Array<string> {
+      return names
+        .map((name: string): string => {
+          return StringUtils.toLegacySnakeCase(name);
+        })
+        .sort();
+    }
+
+    it.each(CHANNELS)(
+      "documents every endpoint of $tableName, under its own tag",
+      (channel: Channel) => {
+        const tagged: Array<string> = operations
+          .filter(
+            (entry: {
+              path: string;
+              method: string;
+              operation: Operation;
+            }): boolean => {
+              return Boolean(entry.operation.tags?.includes(channel.tag));
+            },
+          )
+          .map(
+            (entry: {
+              path: string;
+              method: string;
+              operation: Operation;
+            }): string => {
+              return `${entry.method} ${entry.path}`;
+            },
+          )
+          .sort();
+
+        expect(tagged).toEqual(
+          [
+            `post ${channel.crudApiPath}/get-list`,
+            `post ${channel.crudApiPath}/count`,
+            `post ${channel.crudApiPath}`,
+            `post ${channel.crudApiPath}/{id}/get-item`,
+            `put ${channel.crudApiPath}/{id}`,
+            `delete ${channel.crudApiPath}/{id}`,
+          ].sort(),
+        );
+
+        const tag: JSONObject | undefined = (
+          spec["tags"] as Array<JSONObject>
+        ).find((candidate: JSONObject): boolean => {
+          return candidate["name"] === channel.tag;
+        });
+
+        expect(tag?.["x-oneuptime-table"]).toBe(channel.tableName);
+      },
+    );
+
+    /*
+     * The tag's description is what the API reference and the provider's
+     * docs say the endpoints are for. The Twilio account's said "Manage
+     * Custom SMTP Servers for your project", copied from the mail server's.
+     */
+    it("describes the Twilio account as one, not as a mail server", () => {
+      const tag: JSONObject | undefined = (
+        spec["tags"] as Array<JSONObject>
+      ).find((candidate: JSONObject): boolean => {
+        return candidate["name"] === TWILIO.tag;
+      });
+      const description: string = String(tag?.["description"] || "");
+
+      expect(description).toContain("Twilio account");
+      expect(description).not.toContain("SMTP");
+    });
+
+    it.each(CHANNELS)(
+      "marks each credential of $tableName secret, and nothing else",
+      (channel: Channel) => {
+        for (const kind of SCHEMA_KINDS) {
+          const properties: JSONObject = getProperties(
+            `${channel.tableName}${kind}`,
+          );
+          const secrets: Array<string> = Object.keys(properties)
+            .filter((name: string): boolean => {
+              return (
+                (properties[name] as JSONObject)["x-oneuptime-secret"] === true
+              );
+            })
+            .sort();
+          const passwords: Array<string> = Object.keys(properties)
+            .filter((name: string): boolean => {
+              return (properties[name] as JSONObject)["format"] === "password";
+            })
+            .sort();
+
+          expect([kind, secrets]).toEqual([kind, channel.secrets]);
+          expect([kind, passwords]).toEqual([kind, channel.passwords]);
+        }
+      },
+    );
+
+    it.each(CHANNELS)(
+      "makes $resource a resource and a data source of the provider",
+      (channel: Channel) => {
+        const resource: TerraformResource = getResource(channel);
+
+        expect(resource.tableName).toBe(channel.tableName);
+        expect(getDataSource(channel).name).toBe(channel.resource);
+        expect(
+          parser.warnings.filter((warning: string): boolean => {
+            return warning.includes(`"${channel.resource}"`);
+          }),
+        ).toEqual([]);
+      },
+    );
+
+    it.each(CHANNELS)(
+      "makes each credential of $resource Sensitive, and nothing else",
+      (channel: Channel) => {
+        const resource: TerraformResource = getResource(channel);
+        const sensitive: Array<string> = Object.keys(resource.schema)
+          .filter((name: string): boolean => {
+            return Boolean(resource.schema[name]?.sensitive);
+          })
+          .sort();
+
+        expect(sensitive).toEqual(getSnakeNames(channel.secrets));
+
+        const dataSource: TerraformDataSource = getDataSource(channel);
+
+        for (const name of getSnakeNames(channel.secrets)) {
+          expect([name, dataSource.schema[name]?.sensitive]).toEqual([
+            name,
+            true,
+          ]);
+          // Nobody looks a record up by its password.
+          expect([name, dataSource.schema[name]?.isLookupFilter]).toEqual([
+            name,
+            undefined,
+          ]);
+        }
+      },
+    );
+
+    /*
+     * A credential is written on create and on every update that changes it,
+     * and read back, so a token changed in the configuration is sent and a
+     * refresh compares what the server holds.
+     */
+    it.each(CHANNELS)(
+      "writes each credential of $resource on create and update, and reads it back",
+      (channel: Channel) => {
+        const resource: TerraformResource = getResource(channel);
+
+        for (const name of getSnakeNames(channel.secrets)) {
+          expect([
+            name,
+            Boolean(resource.operationSchemas?.create?.[name]),
+            Boolean(resource.operationSchemas?.update?.[name]),
+            Boolean(resource.operationSchemas?.read?.[name]),
+          ]).toEqual([name, true, true, true]);
+        }
+      },
+    );
+
+    /*
+     * Which account is the project's default for SMS and which for calls is
+     * written by the server alone, from is_project_default and what each
+     * account is used for (#6574): Terraform reads them and never plans one.
+     */
+    it("reads the Twilio account's defaults for SMS and calls, and never writes them", () => {
+      const resource: TerraformResource = getResource(TWILIO);
+
+      for (const field of [
+        "isProjectDefaultForSms",
+        "isProjectDefaultForCalls",
+      ]) {
+        const name: string = StringUtils.toLegacySnakeCase(field);
+
+        expect([
+          name,
+          resource.schema[name]?.computed,
+          Boolean(resource.schema[name]?.required),
+          Boolean(resource.operationSchemas?.create?.[name]),
+          Boolean(resource.operationSchemas?.update?.[name]),
+          Boolean(resource.operationSchemas?.read?.[name]),
+        ]).toEqual([name, true, false, false, false, true]);
+      }
+
+      expect(
+        Boolean(resource.operationSchemas?.create?.["is_project_default"]),
+      ).toBe(true);
+    });
+
+    /*
+     * A status page names the Twilio account and the mail server that reach
+     * its subscribers, and an incoming call policy the account that takes
+     * its calls. Their IDs now say which resource they are the IDs of.
+     */
+    it.each([
+      ["status_page", "callSmsConfigId", TWILIO.resource],
+      ["status_page", "smtpConfigId", MAIL.resource],
+      ["incoming_call_policy", "projectCallSMSConfigId", TWILIO.resource],
+    ])(
+      "points %s's %s at %s",
+      (resourceName: string, apiFieldName: string, target: string) => {
+        const resource: TerraformResource | undefined = parser
+          .getResources()
+          .find((candidate: TerraformResource): boolean => {
+            return candidate.name === resourceName;
+          });
+        const attribute: TerraformAttribute | undefined = Object.values(
+          resource?.schema || {},
+        ).find((candidate: TerraformAttribute): boolean => {
+          return candidate.apiFieldName === apiFieldName;
+        });
+
+        expect(attribute?.relation).toEqual({ name: target, isList: false });
+        expect(attribute?.description).toContain(
+          `The ID of a \`oneuptime_${target}\`.`,
+        );
+      },
+    );
+  });
+
+  /*
+   * OneUptime keeps a phone number as written when it reads as three digits,
+   * three and four, and any other as its digits (Types/Phone.ts). The
+   * Terraform provider writes a phone column as a plain string and compares
+   * it as OneUptime keeps it (Scripts/TerraformProvider/StaticFiles/phone.go,
+   * #7777), so that "+1 415 555 0100" applies cleanly. The generator knows a
+   * phone column by the wrapper's marker.
+   */
+  describe("phone numbers", () => {
+    let parser: OpenAPIParser;
+
+    beforeAll(() => {
+      parser = new OpenAPIParser();
+      parser.setSpec(spec as never);
+    });
+
+    // The columns of a schema the spec writes as the Phone wrapper.
+    function getPhoneColumns(schemaName: string): Array<string> {
+      const properties: JSONObject = ((
+        schemas[schemaName] as JSONObject | undefined
+      )?.["properties"] || {}) as JSONObject;
+
+      return Object.keys(properties)
+        .filter((name: string): boolean => {
+          const example: unknown = (properties[name] as JSONObject)["example"];
+
+          return (
+            typeof example === "object" &&
+            example !== null &&
+            (example as JSONObject)["_type"] === "Phone"
+          );
+        })
+        .sort();
+    }
+
+    it("marks every phone column of every schema as one", () => {
+      let columns: number = 0;
+
+      for (const schemaName of Object.keys(schemas)) {
+        const properties: JSONObject = ((schemas[schemaName] as JSONObject)[
+          "properties"
+        ] || {}) as JSONObject;
+
+        for (const name of getPhoneColumns(schemaName)) {
+          columns++;
+          expect([
+            schemaName,
+            name,
+            (properties[name] as JSONObject)["x-oneuptime-type"],
+          ]).toEqual([schemaName, name, "Phone"]);
+        }
+      }
+
+      // The Twilio account's number and a subscriber's, at the least.
+      expect(columns).toBeGreaterThanOrEqual(8);
+    });
+
+    it("makes every phone column of a resource a phone number, written as a plain string", () => {
+      const writable: Array<string> = [];
+
+      for (const resource of parser.getResources()) {
+        const phoneColumns: Array<string> = getPhoneColumns(
+          resource.tableName || "",
+        );
+        const phones: Array<[string, TerraformAttribute]> = Object.entries(
+          resource.schema,
+        ).filter(([, attribute]: [string, TerraformAttribute]): boolean => {
+          return Boolean(attribute.isPhone);
+        });
+
+        expect([
+          resource.name,
+          phones
+            .map(([, attribute]: [string, TerraformAttribute]): string => {
+              return attribute.apiFieldName || "";
+            })
+            .sort(),
+        ]).toEqual([
+          resource.name,
+          phoneColumns.filter((column: string): boolean => {
+            return Object.values(resource.schema).some(
+              (attribute: TerraformAttribute): boolean => {
+                return attribute.apiFieldName === column;
+              },
+            );
+          }),
+        ]);
+
+        for (const [name, attribute] of phones) {
+          expect([
+            `${resource.name}.${name}`,
+            attribute.type,
+            Boolean(attribute.isComplexObject),
+          ]).toEqual([`${resource.name}.${name}`, "string", false]);
+
+          if (!attribute.computed || attribute.optional) {
+            writable.push(`${resource.name}.${name}`);
+          }
+        }
+      }
+
+      expect(writable).toEqual(
+        expect.arrayContaining([
+          "call_and_sms_config.twilio_primary_phone_number",
+          "incoming_call_log_item.user_phone_number",
+          "status_page_subscriber.subscriber_phone",
+        ]),
+      );
+    });
+
+    it("reads phone numbers in data sources, and looks nothing up by one", () => {
+      const phones: Array<string> = [];
+
+      for (const dataSource of parser.getDataSources()) {
+        for (const [name, attribute] of Object.entries(dataSource.schema)) {
+          if (!attribute.isPhone) {
+            continue;
+          }
+
+          phones.push(`${dataSource.name}.${name}`);
+          expect([
+            `${dataSource.name}.${name}`,
+            attribute.isLookupFilter,
+          ]).toEqual([`${dataSource.name}.${name}`, undefined]);
+        }
+      }
+
+      expect(phones).toEqual(
+        expect.arrayContaining([
+          "call_and_sms_config.twilio_primary_phone_number",
+          "call_log.from_number",
+          "status_page_subscriber.subscriber_phone",
+        ]),
+      );
     });
   });
 

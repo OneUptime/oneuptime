@@ -102,7 +102,7 @@ describe("the sentence over a rule's conditions", () => {
 
       expect(items).toHaveLength(1);
       expect(items[0]).toHaveTextContent(
-        /^Incident Title\s*Contains\s*database$/,
+        /^Incident Title\s*contains\s*database$/,
       );
     },
   );
@@ -199,7 +199,7 @@ describe("the sentence over a rule's conditions", () => {
     const line: HTMLElement = screen.getByRole("listitem");
 
     expect(line).toHaveTextContent(
-      /^Incident State\s*Contains Any\s*Acknowledged$/,
+      /^Incident State\s*is any of\s*Acknowledged$/,
     );
     expect(within(line).queryByText(ACKNOWLEDGED_ID)).not.toBeInTheDocument();
     // No framed box or timeline dots around a single condition any more.

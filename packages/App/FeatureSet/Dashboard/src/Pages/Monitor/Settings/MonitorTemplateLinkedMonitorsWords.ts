@@ -71,6 +71,11 @@ export const SYNCED_MONITOR_RESULT: string = translationKey(
   'Synced "{{monitorName}}" from this template.',
 );
 
+// What Unlink from Template asks before it unlinks, the monitor's name in it (#7710).
+export const UNLINK_MONITOR_CONFIRMATION: string = translationKey(
+  '"{{monitorName}}" keeps its settings but no longer gets updates from this template.',
+);
+
 /*
  * Link Existing Monitors, when some of the monitors picked could not be
  * linked: how many of how many, then why - each reason the server gave,

@@ -1,6 +1,6 @@
 # Snelstart
 
-Deze handleiding brengt u in ongeveer vijftien minuten van een nieuw account naar een werkende inrichting: een monitor die uw website elke vijf minuten controleert, een bereikbaarheidsbeleid dat u oproept wanneer de site uitvalt, en een statuspagina die uw klanten informeert. Ze volgt de checklist **Welkom bij OneUptime 👋** op de startpagina van uw project.
+Deze handleiding brengt u in ongeveer vijftien minuten van een nieuw account naar een werkende inrichting: een monitor die uw website elke vijf minuten controleert, een bereikbaarheidsbeleid dat u oproept wanneer de site uitvalt, en een statuspagina die uw klanten informeert. Ze volgt de checklist **Welkom bij OneUptime 👋** op de startpagina van uw project, en de begeleide installaties die de stappen ervan openen.
 
 Komt u van een andere tool? [Importeer dan eerst uw inrichting](/docs/introduction/getting-started#overstappen-van-een-andere-tool): uw monitoren, bereikbaarheidsschema's en statuspagina's gaan mee.
 
@@ -42,69 +42,87 @@ Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de 
 ## Uw website bewaken
 
 :::steps
-### Monitor maken openen
+### De website-installatie openen
 
-Klik in de checklist op **Maak je eerste monitor**. U kunt ook **Monitoren** openen vanuit het menu **Producten** en op **Monitor maken** klikken.
-
-### Website kiezen
-
-Kies onder **Monitortype** het type **Website**. Voer een **Naam** in, bijvoorbeeld `Website`, en klik op **Volgende**.
+Klik in de checklist op **Maak je eerste monitor**. Dat opent de begeleide installatie **Weten wanneer mijn website of API plat ligt**, die uw site controleert, kiest wie er wordt ingelicht en een test stuurt, op één pagina. Wie geen monitoren mag maken, krijgt in plaats daarvan de lijst **Monitoren**.
 
 ### Het adres invoeren
 
-Voer het volledige adres van uw site in bij **Website-URL**, bijvoorbeeld `https://example.com`. OneUptime voegt de criteria voor u toe: de monitor wordt **Offline** en meldt een incident wanneer de site niet antwoordt, of met een fout antwoordt. Klik op **Volgende**.
+![De stap "Wat moeten we controleren?", met "Beginnen met controleren" omcirkeld](screen:website-down-address)
 
-### De monitor aanmaken
+Voer onder **Wat moeten we controleren?** het volledige adres van uw site in bij **Adres van de website of API**, bijvoorbeeld `https://example.com`, en klik op **Beginnen met controleren**. De sondes controleren het meteen, en daarna elke 5 minuten: als de site niet antwoordt, of met een fout antwoordt, gaat de monitor naar **Offline** en meldt hij een incident. Klik op **Doorgaan**.
 
-Laat de gekozen **Sondes** en het **Bewakingsinterval** **Elke 5 minuten** staan, en klik op **Monitor maken**. De pagina van de monitor opent, en de sondes beginnen uw site te controleren.
+Met het Free-abonnement van OneUptime Cloud worden monitoren naar gebruik gefactureerd, dus heeft het project een betaalmethode nodig voordat het uw site kan controleren: zonder betaalmethode vraagt de stap u om [een betaalmethode toe te voegen](/docs/configuration/billing#betaalmethoden).
+
+### Kiezen wie er wordt ingelicht
+
+Onder **Wie moet er op de hoogte worden gesteld?** staat u al in **Wie wordt opgeroepen**. Klik op **Opslaan en doorgaan**: dat maakt `Default on-call policy` aan, dat u oproept bij elk nieuw incident en elke nieuwe waarschuwing in het project, om te beginnen per e-mail. Om ook teamleden op te roepen die al in het project zitten, klikt u eerst op **Teamleden toevoegen**.
+
+### Uzelf een test sturen
+
+Klik onder **Stuur een test** op **Stuur mij een testoproep**, kies een **Ernst** en klik op **Testoproep sturen**. Open de link in de e-mail, waarin TEST staat, en bevestig de oproep daar. Klik daarna in het dialoogvenster op **Klaar**, en op **Doorgaan**: de installatie eindigt met een overzicht van wat ze heeft ingericht.
 :::
 
-Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Monitor testen**. Alle andere monitortypen staan beschreven in [Een monitor maken](/docs/monitor/create-monitor).
+Om elke optie zelf in te stellen, of om iets anders dan een website te controleren, opent u **Monitoren** vanuit het menu **Producten** en klikt u op **Monitor maken**. [Een monitor maken](/docs/monitor/create-monitor) beschrijft het formulier en elk monitortype.
 
-Wilt u ook een API controleren, kiezen wie er wordt ingelicht en een testoproep sturen die bewijst dat het bericht u bereikt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+Wilt u ook een API controleren, en weten wat u moet doen als de eerste controle nooit terugkomt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
 
 ## Opgeroepen worden bij uitval
 
-Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.
+De website-installatie heeft al `Default on-call policy` aangemaakt, dat u per e-mail oproept bij elk nieuw incident en elke nieuwe waarschuwing, dus vinkt de checklist **Stel een bereikbaarheidsbeleid in** als gedaan af. De begeleide installatie daarvan voegt toch nog uw telefoon toe, de mensen die met u worden opgeroepen en wat er gebeurt als niemand antwoordt.
 
 :::steps
-### Een bereikbaarheidsbeleid aanmaken
+### De bereikbaarheidsinstallatie openen
 
-Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheid** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
-
-### De regel bekijken die het activeert
-
-De schakelaar heeft een bereikbaarheidsregel voor incidenten en een voor waarschuwingen toegevoegd. Om de uwe te zien, opent u **Incidenten** vanuit het menu **Producten**, klapt u **Regels** open in het zijmenu en kiest u **Bereikbaarheidsregels**: hij past bij **Alle incidenten**. Wilt u het beleid alleen bij sommige incidenten activeren, zoals kritieke, bewerk de regel dan daar, of klik op **Incident On-Call Rule aanmaken** om er zelf een toe te voegen.
+Druk op `Ctrl+K` (`Cmd+K` op een Mac), typ `get paged` en kies **De juiste persoon oproepen als er iets kapotgaat**. Zolang de checklist **Stel een bereikbaarheidsbeleid in** niet heeft afgevinkt, opent die stap dezelfde begeleide installatie.
 
 ### Kiezen hoe u bereikt wordt
 
-Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te krijgen, opent u **Gebruikersinstellingen** in de balk onder de bovenste balk, gaat u naar **Meldingsmethoden** en voegt u op het tabblad **Direct contact** uw nummer toe onder **Telefoonnummers voor SMS-meldingen** of **Telefoonnummers voor oproepmeldingen**. Klik op **Verifiëren** en voer de code in die OneUptime u stuurt. Een geverifieerd nummer wordt direct gebruikt voor oproepen vanuit bereikbaarheidsdiensten.
+![De stap "Hoe moeten we je bereiken?", met "Sms en oproepen aanzetten" omcirkeld](screen:paging-reach-you)
+
+Onder **Hoe moeten we je bereiken?** staat uw inlog-e-mail er al. Voor pushmeldingen installeert u de app OneUptime On-Call uit de App Store of Google Play, meldt u zich aan en klikt u op **Opnieuw controleren**. Om ook sms'jes en oproepen te krijgen, klikt u op **Sms en oproepen aanzetten**, voert u uw nummer in bij **Je telefoonnummer** en klikt u op **Stuur me een code per sms**: op OneUptime Cloud worden sms'jes en oproepen betaald uit het tegoed van het project, dus vraagt de stap u eerst tegoed toe te voegen. Klik op **Doorgaan**.
+
+### Kiezen wie er nog meer wordt opgeroepen
+
+Houd onder **Wie is er nog meer bereikbaar?** `Default on-call policy` aan bij **Bereikbaarheidsbeleid**. Om teamleden met u op te roepen, voegt u ze toe onder **Toevoegen aan de eerste escalatieregel**. Klik op **Opslaan en doorgaan**.
+
+### Bepalen wat er gebeurt als niemand antwoordt
+
+Kies onder **Wat als niemand antwoordt?** voor **Dezelfde mensen opnieuw oproepen** zolang u de enige persoon in het project bent. Zodra er teamleden zijn, roept **Iemand anders oproepen** de persoon op die u kiest onder **Daarna opgeroepen**. In OneUptime Cloud bieden alleen de betaalde abonnementen die keuze. Klik op **Opslaan en doorgaan**.
+
+### Een testoproep sturen
+
+Klik onder **Een testoproep sturen** op **Dit beleid testen**, kies een **Ernst** en klik op **Testoproep sturen**. Bevestig de oproep vanuit de e-mail, de sms of het telefoongesprek, klik daarna in het dialoogvenster op **Klaar**, en op **Doorgaan**. De installatie eindigt op **Oproepen zijn ingericht**.
 :::
 
 > [!NOTE]
 > Sms en telefoonoproepen staan uit in een nieuw project. Een projecteigenaar, een Billing Admin of iemand met Manage Billing zet ze aan in de kaart **Meldingskanalen**, onder **Projectinstellingen → Meldingen → Meldingskanalen**.
 
-Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
+Twee bereikbaarheidsregels activeren het beleid: een bij elk nieuw incident en een bij elke nieuwe waarschuwing. Om de eerste te zien, opent u **Incidenten** vanuit het menu **Producten**, klapt u **Regels** in het zijmenu uit en kiest u **Bereikbaarheidsregels**: die komt overeen met **Alle incidenten**. Om het beleid alleen bij sommige incidenten te activeren, zoals kritieke, bewerkt u de regel daar, of klikt u op **Incident On-Call Rule aanmaken** om er zelf een toe te voegen.
 
-Wilt u per sms, telefoonoproep en push worden opgeroepen, met de volgende persoon als niemand antwoordt en een testoproep die bewijst dat het werkt, volg dan de handleiding [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+Om in plaats daarvan veld voor veld een beleid op te bouwen, opent u **Bereikbaarheid** vanuit het menu **Producten** en klikt u op **Bereikbaarheidsbeleid aanmaken**. Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
+
+Voor elk scherm van de installatie, en wat u doet als een oproep niet aankomt, volgt u de handleiding [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
 
 ## Een statuspagina publiceren
 
 :::steps
-### De statuspagina aanmaken
+### De statuspagina-installatie openen
 
-Klik in de checklist op **Publiceer een statuspagina**, of open **Statuspagina's** vanuit het menu **Producten**. Klik op **Statuspagina maken**, voer een **Naam** in, bijvoorbeeld `Acme Status`, en klik op **Statuspagina maken**. De nieuwe pagina opent op het **Overzicht**.
+Klik in de checklist op **Publiceer een statuspagina**. Dat opent de begeleide installatie **Publiceer een statuspagina**, die de pagina een naam geeft, uw monitor erop zet en laat zien wat uw klanten zien. Wie geen statuspagina's mag maken, krijgt in plaats daarvan de lijst **Statuspagina's**. Het overzicht van de website-installatie opent dezelfde installatie, als **Op een statuspagina tonen**.
 
-### Uw monitor toevoegen
+### De pagina een naam geven en uw monitor kiezen
 
-Klik op **Monitoren toevoegen** in het **Overzicht**, of kies in het zijmenu van de pagina, onder **Middelen**, het item **Monitoren**; in projecten met monitorgroepen ingeschakeld heet het **Middelen**. Klik op **Monitor toevoegen**, kies uw websitemonitor en klik op **Monitor toevoegen**. De rij toont bezoekers de naam van de monitor; wijzig die desgewenst onder **Weergavenaam**.
+![De stap "Geef de pagina een naam en kies wat ze toont", met "De statuspagina aanmaken" omcirkeld](screen:status-page-pick)
+
+Houd onder **Geef de pagina een naam en kies wat ze toont** de voorgestelde **Naam van de statuspagina** aan, of typ uw eigen naam. Vink onder **Wat ze toont** uw websitemonitor aan, en klik op **De statuspagina aanmaken**. Vanaf dit moment is de pagina openbaar op haar link: iedereen met het adres kan haar openen.
 
 ### De pagina openen
 
-Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt naar uw statuspagina: open die, en uw website staat erop als operationeel.
+Open onder **Dit zien uw klanten** het adres bij **Openbare link**: uw website staat er als operationeel. Terug in de installatie klikt u op **Ziet er goed uit**. De installatie eindigt met een overzicht van wat u daarna kunt doen.
 :::
 
-Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
+Om in plaats daarvan met de hand een pagina te maken, opent u **Statuspagina's** vanuit het menu **Producten** en klikt u op **Statuspagina maken**; voeg daarna uw monitor toe met **Monitoren toevoegen** op het **Overzicht** ervan. Hoe u de pagina uw eigen logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 
 Wilt u de statuspagina via HTTPS op uw eigen domein zetten, volg dan de handleiding [Een statuspagina publiceren](/docs/guides/status-page).
 

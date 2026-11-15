@@ -77,7 +77,7 @@ import {
   pluralName: "Scheduled Maintenance Reminder Rules",
   icon: IconProp.Bell,
   tableDescription:
-    "Configure reminder rules to periodically notify scheduled maintenance event owners while an event is still not complete",
+    "Configure reminder rules to periodically notify maintenance event owners while an event is still not complete",
 })
 export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBaseModel {
   @ColumnAccessControl({
@@ -328,7 +328,7 @@ export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBa
     type: TableColumnType.Number,
     title: "Reminder Interval (Minutes)",
     description:
-      "How often (in minutes) to remind scheduled maintenance event owners while the event is still not complete. For example, set to 30 to remind owners every 30 minutes.",
+      "How often (in minutes) to remind maintenance event owners while the event is still not complete. For example, set to 30 to remind owners every 30 minutes.",
     canReadOnRelationQuery: true,
   })
   @Column({
@@ -365,7 +365,7 @@ export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBa
     allowedValues: Object.values(ScheduledMaintenanceReminderStopState),
     title: "Stop Reminders When",
     description:
-      "Stop sending reminders once the scheduled maintenance event reaches this state. Select Ongoing to stop reminders when the event starts, or Completed to keep reminding until the event is completed. Ongoing needs Remind While Event is Scheduled on: a rule that waits for the event to start and stops when it starts would never remind, so it is refused.",
+      "Stop sending reminders once the maintenance event reaches this state. Select Ongoing to stop reminders when the event starts, or Completed to keep reminding until the event is completed. Ongoing needs Remind While Event is Scheduled on: a rule that waits for the event to start and stops when it starts would never remind, so it is refused.",
     defaultValue: ScheduledMaintenanceReminderStopState.Completed,
     isDefaultValueColumn: true,
     canReadOnRelationQuery: true,
@@ -447,7 +447,7 @@ export default class ScheduledMaintenanceReminderRule extends RelationOnlyRuleBa
     modelType: Label,
     title: "Labels",
     description:
-      "Only apply this reminder rule to scheduled maintenance events with these labels. Leave empty to match all events.",
+      "Only apply this reminder rule to maintenance events with these labels. Leave empty to match all events.",
   })
   @ManyToMany(
     () => {

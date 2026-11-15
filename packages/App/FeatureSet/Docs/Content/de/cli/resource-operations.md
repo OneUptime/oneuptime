@@ -182,7 +182,7 @@ Vorfälle, Warnungen, ihre Episoden und geplante Wartungsereignisse haben Befehl
 | `resolve <id>` | Versetzt ihn in den Gelöst-Status Ihres Projekts | Dieselben vier |
 | `start <id>` | Versetzt das Ereignis in den Laufend-Status Ihres Projekts | `scheduled-maintenance-event` |
 | `end <id>` | Versetzt es in den Beendet-Status Ihres Projekts | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Fügt eine Notiz hinzu, die Ihr Team sieht, oder mit `--public` eine auf den Statusseiten des Datensatzes | Alle fünf |
+| `add-note <id> --note <markdown>` | Fügt eine Notiz hinzu, die nur lesen kann, wer den Datensatz sehen kann, oder mit `--public` eine auf den Statusseiten des Datensatzes | Alle fünf |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

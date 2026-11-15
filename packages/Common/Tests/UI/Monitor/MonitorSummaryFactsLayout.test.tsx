@@ -682,7 +682,7 @@ describe("what a fact is drawn with", () => {
       }).toEqual({ title, share: SUMMARY_WIDE_FACT_CLASS_NAME });
     }
 
-    for (const title of ["Probe", "Response Status Code", "Failed At"]) {
+    for (const title of ["Probe", "Response Status Code", "Failed Phase"]) {
       expect({
         title,
         share: shareOf(

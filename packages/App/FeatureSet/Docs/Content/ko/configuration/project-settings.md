@@ -35,7 +35,7 @@ flowchart LR
 | **워크스페이스** | **Slack**, **Microsoft Teams**, **Mattermost**, **화상 통화** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [화상 통화](/docs/workspace-connections/video-calls) |
 | **텔레메트리 및 APM** | **수집 키**, **데이터 보존**, **사용량** | [수집 키](/docs/telemetry/ingestion-keys), [데이터 보존](/docs/telemetry/data-retention), [텔레메트리 사용량](/docs/telemetry/usage) |
 | **알림** | **알림 채널**, **알림 로그**, **모바일 앱** | [알림](#알림) |
-| **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
+| **AI** | **AI 기능**, **LLM 공급자**, **외부 MCP 서버**, **AI 크레딧**, **AI 성과**, **AI 로그**, **MCP 서버** | [LLM 공급자](/docs/ai/llm-provider), [외부 MCP 서버](/docs/ai/external-mcp-servers), [MCP 서버](/docs/ai/mcp-server), [AI SRE](/docs/ai/ai-sre#비용-관리) |
 | **고급** | **도메인**, **API 키**, **기능 플래그**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |

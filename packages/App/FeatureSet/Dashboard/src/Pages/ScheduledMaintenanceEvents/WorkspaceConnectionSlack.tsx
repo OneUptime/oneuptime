@@ -23,7 +23,7 @@ const IncidentsPage: FunctionComponent<
           />
           <WorkspaceReactionNotesTips
             workspaceType={WorkspaceType.Slack}
-            resourceName="scheduled maintenance event"
+            resourceName="maintenance event"
             supportsPublicNotes={true}
           />
         </>

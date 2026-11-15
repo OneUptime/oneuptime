@@ -87,6 +87,15 @@ const STATUS_ICON_CLASS_NAME: Record<LicenseStatusTone, string> = {
 const FACT_VALUE_CLASS_NAME: string =
   "mt-1 truncate text-sm font-medium text-gray-900";
 
+/*
+ * The license key's value, never cut short: a revealed key wraps inside its
+ * box (HiddenText), with Copy and Hide beside it. Cut to one line, a key
+ * longer than its column lost its start on a phone, and on a Persian page
+ * its Hide button.
+ */
+const LICENSE_KEY_FACT_VALUE_CLASS_NAME: string =
+  "mt-1 min-w-0 text-sm font-medium text-gray-900";
+
 interface LicenseFact {
   // The English key: the fact's label, and its React key.
   label: string;
@@ -396,6 +405,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
             label: LicenseSettingsCopy.licenseKey,
             // Drawn left to right in every language (HiddenText).
             value: <HiddenText text={license.licenseKey} isCopyable={true} />,
+            className: LICENSE_KEY_FACT_VALUE_CLASS_NAME,
           },
         ]
       : []),

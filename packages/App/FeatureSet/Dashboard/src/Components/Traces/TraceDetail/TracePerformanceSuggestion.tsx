@@ -328,9 +328,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
                   return option.value === pickedRepository?.id;
                 },
               )}
-              placeholder={translator.translateText(
-                TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
-              )}
+              placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
               ariaLabelledby={REPOSITORY_LABEL_ID}
               isClearable={false}
               onChange={(

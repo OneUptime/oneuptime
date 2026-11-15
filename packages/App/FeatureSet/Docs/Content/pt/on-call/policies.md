@@ -51,7 +51,7 @@ Abra uma política a partir da lista. O menu lateral dela reúne tudo sobre ela:
 
 **Básico** fica aberta; as outras seções começam recolhidas até você clicar nelas.
 
-- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno.
+- **Visão geral** mostra os **Detalhes da política de Plantão** e depois **Política em resumo**: quantos níveis e destinatários a política tem, quanto tempo falta até o último nível e quantas vezes ela se repete. **Prontidão dos destinatários** diz se cada pessoa que ela pode acionar pode ser contatada agora, e **Feed da política de plantão** lista o que mudou: pessoas, equipes e agendamentos adicionados ou removidos, substituições e passagens de turno. As regras dela para Slack, Microsoft Teams e Mattermost as publicam nos seus canais, uma passagem de turno em uma linha: veja [Mensagens de plantão](/docs/workspace-connections/slack#mensagens-de-plantão).
 - Os **Proprietários** são as pessoas e as equipes responsáveis pela política. Quando um acionamento que ela envia não encontra regra para alguém, ou não pode ser entregue, eles recebem um e-mail; uma política sem proprietários escreve aos proprietários do projeto.
 - **Logs de notificação** lista cada mensagem que a política enviou, com uma aba por canal.
 - **Substituições de usuário** cobre pessoas só nesta política. Veja [Substituições de usuário](/docs/on-call/user-overrides).
@@ -80,6 +80,17 @@ Confirmar encerra os acionamentos de uma política de vez, mesmo que depois ning
 Os minutos contam a partir de cada confirmação, e uma política aciona de novo no máximo 5 vezes pelo mesmo incidente, alerta ou episódio. Um novo acionamento começa no nível que estava acionando quando houve a confirmação, aciona quem está de plantão agora nesse nível e segue pelos níveis como a primeira execução. O incidente ou alerta continua confirmado: o novo acionamento é uma execução própria, no seu feed e nos registros de execução da política, onde o seu **Status** diz "Acionado de novo (1 de 5)".
 
 Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido. **Política em resumo** na **Visão geral** e **Resumo do escalonamento** dizem o mesmo em palavras.
+
+## Quando várias políticas acionam
+
+Um incidente, alerta ou episódio executa cada uma das suas políticas por conta própria, ao mesmo tempo.
+
+- Quem está de plantão em duas delas é acionado pelas duas, uma vez por cada uma: o OneUptime não junta os acionamentos de políticas diferentes. Dentro de uma política, alguém que um nível cita duas vezes, pessoalmente e por meio de uma equipe ou de um agendamento, é acionado uma só vez.
+- Confirmar o incidente ou alerta encerra em até um minuto todas as políticas em execução para ele, onde quer que seja confirmado: em qualquer acionamento sobre ele, na sua própria página, no aplicativo móvel ou no Slack ou no Microsoft Teams. Nenhum próximo nível é acionado, e nenhuma ligação ou SMS que ainda esperava para sair é enviado. As notificações já enviadas continuam enviadas.
+
+Alguns acionamentos continuam depois da confirmação, até que alguém que eles acionaram responda ou que seja resolvido: um novo acionamento, um acionamento a observadores, um acionamento que alguém enviou a pessoas pelo Slack ou pelo Microsoft Teams, e uma política iniciada à mão.
+
+Uma política iniciada à mão é aquela iniciada com **Executar política de plantão**, ou por um acionamento do Slack ou do Microsoft Teams que a cita. Ela aciona nível por nível como qualquer execução, com ligações e notificações push repetidas, e outra pessoa confirmar o incidente não a encerra: é assim que você aciona outra equipe para um incidente de que alguém já está cuidando. Quem ela acionou responde pela mensagem do acionamento, por uma ligação ou um SMS, ou confirmando o incidente pessoalmente; quando o incidente já está confirmado, a página dele oferece **Confirmar de novo**. **Escalonar** passa a política para o próximo nível. Em um incidente, alerta ou episódio resolvido, nada é iniciado, e você fica sabendo por quê.
 
 ## Registros de execução
 
@@ -162,6 +173,14 @@ O nível anterior não tinha ninguém para acionar: nenhum destinatário, ningu�
 
 :::details Um incidente mostra uma política que não acionou ninguém
 A política está arquivada: uma política arquivada continua nos incidentes e alertas que a usam, não aciona ninguém, e o registro de execução dela diz que não foi executada. Desarquive-a em **Plantão → Avançado → Políticas arquivadas**.
+:::
+
+:::details Alguém foi acionado duas vezes pelo mesmo incidente
+A pessoa está de plantão em duas das políticas que o incidente executa, e cada política aciona as suas próprias pessoas. Confirmar o incidente por qualquer um dos dois acionamentos encerra os dois. Para que a pessoa seja acionada uma só vez, coloque as duas equipes ou agendamentos no mesmo nível de uma política.
+:::
+
+:::details Uma política continuou acionando depois que o incidente foi confirmado
+Ela foi iniciada à mão, ou é um novo acionamento: continua até que alguém que ela acionou responda, ou que o incidente seja resolvido. Veja [Quando várias políticas acionam](#quando-várias-políticas-acionam).
 :::
 
 ## Próximos passos

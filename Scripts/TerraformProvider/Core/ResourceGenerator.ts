@@ -19,6 +19,7 @@ import {
   MONITOR_STEPS_VALUES_CASES_FILE,
   monitorStepsValuesCasesFile,
 } from "./MonitorStepsValuesCases";
+import { PHONE_CASES_FILE, phoneCasesFile } from "./PhoneCases";
 import path from "path";
 import fs from "fs";
 
@@ -171,7 +172,8 @@ export class ResourceGenerator {
    * The plan modifier that keeps the state's value where the
    * configuration's means the same thing (StaticFiles/importsettle.go), for
    * an attribute a configuration writes: a timestamp the same instant, a
-   * number the same to OneUptime, a JSON value that is a subset of the
+   * number the same to OneUptime, a phone number OneUptime keeps as the same
+   * number (StaticFiles/phone.go), a JSON value that is a subset of the
    * record an import read. Null for every other attribute.
    */
   public static getImportSettleModifier(
@@ -179,6 +181,10 @@ export class ResourceGenerator {
   ): string | null {
     if (attr.type === "string" && attr.isDateTime) {
       return "RFC3339KeepSameInstant()";
+    }
+
+    if (attr.type === "string" && attr.isPhone) {
+      return "PhoneKeepSameNumber()";
     }
 
     if (attr.type === "number") {
@@ -285,6 +291,19 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     await this.copyStaticFile("rfc3339.go", "internal/provider");
     await this.copyStaticFile("rfc3339_test.go", "internal/provider");
     /*
+     * Phone numbers, which OneUptime may keep in another spelling (#7777):
+     * the type, its plan modifier and validator, and their tests, which read
+     * what the server's own code keeps for each of a list of numbers
+     * (Core/PhoneCases.ts).
+     */
+    await this.copyStaticFile("phone.go", "internal/provider");
+    await this.copyStaticFile("phone_test.go", "internal/provider");
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      PHONE_CASES_FILE,
+      phoneCasesFile(),
+    );
+    /*
      * numberFromAPI, which every number attribute - of resources and data
      * sources alike - is read through, and its tests: the shapes the API
      * answers numbers in, and a create, read, plan and lookup of the
@@ -337,6 +356,17 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
     await this.copyStaticFile(
       "monitorstepsvalues_roundtrip_test.go",
+      "internal/provider",
+    );
+    /*
+     * A project's own Twilio account and mail server (#7737), applied,
+     * refreshed, updated and imported through the real protocol server: the
+     * credentials sent and read back, is_project_default sent as false when
+     * left out, and the defaults for SMS and calls OneUptime sets. It drives
+     * Terraform with monitorstepsvalues_roundtrip_test.go's helpers.
+     */
+    await this.copyStaticFile(
+      "notificationchannels_roundtrip_test.go",
       "internal/provider",
     );
     await this.fileGenerator.writeFileInDir(
@@ -776,7 +806,7 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       ([name, attr]: [string, any]) => {
         return (
           attr.type === "string" &&
-          attr.isComplexObject &&
+          (attr.isComplexObject || attr.isPhone) &&
           !(attr.computed && !attr.optional) &&
           !isProjectIdName(name)
         );
@@ -1099,13 +1129,17 @@ ${this.generateValidObjectTypesMap()}
       /*
        * Complex JSON string fields use a custom type whose semantic-equality
        * tolerates server-side defaults (see jsonsubset.go); RFC3339 fields use
-       * a custom type whose semantic-equality compares instants (rfc3339.go).
+       * a custom type whose semantic-equality compares instants (rfc3339.go),
+       * and phone numbers one that compares them as OneUptime keeps them
+       * (phone.go).
        */
       let goType: string = this.mapTerraformTypeToGo(attr.type);
       if (attr.type === "monitor_steps") {
         goType = "MonitorStepsValue";
       } else if (attr.type === "string" && attr.isDateTime) {
         goType = "RFC3339Value";
+      } else if (attr.type === "string" && attr.isPhone) {
+        goType = "PhoneValue";
       } else if (attr.type === "string" && attr.isComplexObject) {
         goType = "JSONSubsetValue";
       }
@@ -1168,10 +1202,14 @@ ${this.generateValidObjectTypesMap()}
      * Complex JSON string fields use JSONSubsetType so the framework treats
      * server-supplied defaults as semantically equal to the planned value.
      * RFC3339 fields use RFC3339Type so server-side timestamp normalization
-     * (e.g. "...Z" -> "...000Z") is not reported as drift.
+     * (e.g. "...Z" -> "...000Z") is not reported as drift. Phone numbers use
+     * PhoneType, so a number OneUptime keeps as its digits ("+1 415 555
+     * 0100" as "+14155550100") is not either.
      */
     if (attr.type === "string" && attr.isDateTime) {
       options.push("CustomType: RFC3339Type{}");
+    } else if (attr.type === "string" && attr.isPhone) {
+      options.push("CustomType: PhoneType{}");
     } else if (attr.type === "string" && attr.isComplexObject) {
       options.push("CustomType: JSONSubsetType{}");
     }
@@ -1375,6 +1413,17 @@ ${this.generateValidObjectTypesMap()}
       validators = `,
                 Validators: []validator.String{
                     stringvalidator.OneOf(${values}),
+                }`;
+    } else if (
+      attr.type === "string" &&
+      attr.isPhone &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      // A number OneUptime takes (phone.go): its refusal at plan time.
+      validators = `,
+                Validators: []validator.String{
+                    PhoneValidator(),
                 }`;
     } else if (
       attr.type === "string" &&
@@ -2804,6 +2853,26 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = NewRFC3339Value(val)
     } else {
         ${fieldName} = NewRFC3339Null()
+    }`;
+        }
+
+        /*
+         * Phone numbers arrive as a {_type: "Phone", value} wrapper. Unwrap
+         * to the number; PhoneType's semantic equality keeps the
+         * configuration's spelling when OneUptime answers the number as its
+         * digits.
+         */
+        if (attr.isPhone) {
+          return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        if val, ok := obj["value"].(string); ok && val != "" {
+            ${fieldName} = NewPhoneValue(val)
+        } else {
+            ${fieldName} = NewPhoneNull()
+        }
+    } else if val, ok := ${responseValue}.(string); ok && val != "" {
+        ${fieldName} = NewPhoneValue(val)
+    } else {
+        ${fieldName} = NewPhoneNull()
     }`;
         }
 

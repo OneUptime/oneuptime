@@ -79,6 +79,14 @@ export const ON_CALL_DUTY_POLICY_FEED_KINDS: Record<
     icon: IconProp.ArrowUturnRight,
     tone: FeedTone.Warning,
   },
+  /*
+   * Its times, or who covers, changed: still who is paged, so the same
+   * tone as an added one, with an edit's pencil to tell the two apart.
+   */
+  [OnCallDutyPolicyFeedEventType.UserOverrideChanged]: {
+    icon: IconProp.PencilSquare,
+    tone: FeedTone.Warning,
+  },
   [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]: {
     icon: IconProp.ArrowUturnLeft,
     tone: FeedTone.Neutral,

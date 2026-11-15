@@ -30,6 +30,8 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 
 **프로젝트 설정 → 고급 → 다른 도구에서 가져오기**는 다른 도구의 설정을 API 키로(Uptime Kuma는 파일로) 읽습니다. 찾은 항목을 보여 주고, 체크한 항목을 만듭니다. 다른 도구에서는 아무것도 바뀌지 않으며, 가져오기를 다시 실행해도 같은 것을 두 번 만들지 않습니다.
 
+이미 Prometheus, Loki 클라이언트, Splunk 포워더, Datadog Agent 또는 Sentry SDK로 텔레메트리를 보내고 있나요? 그대로 두고 수집 키와 함께 OneUptime으로 보내도록 바꾸기만 하면 됩니다. 방법은 [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints)를 참고하세요.
+
 :::details 가져올 수 있는 11개 도구
 | 이전 도구 | OneUptime이 읽는 항목 |
 | --- | --- |

@@ -1128,7 +1128,8 @@ const OnCallReadinessPage: FunctionComponent<
 
       return Array.from(namesById.entries())
         .map(([id, name]: [string, string]): DropdownOption => {
-          return { value: id, label: name };
+          // A team's name, drawn as written (DropdownOption.isUserContent).
+          return { value: id, label: name, isUserContent: true };
         })
         .sort((a: DropdownOption, b: DropdownOption): number => {
           return a.label.localeCompare(b.label);

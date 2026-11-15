@@ -2,6 +2,12 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
 import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
+import ServerTwilioEnvironmentCard, {
+  ServerTwilioEnvironmentLoadingCard,
+  ServerTwilioEnvironmentUnusedAlert,
+  useServerTwilioEnvironment,
+  UseServerTwilioEnvironmentResult,
+} from "./ServerTwilioEnvironmentCard";
 import ServerTestCard, {
   SERVER_TEST_CARD_COPY,
 } from "../../../Components/ServerSetup/ServerTestCard";
@@ -76,50 +82,24 @@ const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   // Where SMS and calls stand, for the test card, read again after a save.
   const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
+  /*
+   * Whether the GLOBAL_TWILIO_ environment variables set the server's
+   * account (#7515): it is then shown in place of the saved one, read-only.
+   */
+  const twilioEnvironment: UseServerTwilioEnvironmentResult =
+    useServerTwilioEnvironment();
 
   const onSettingsSaved: () => void = (): void => {
     // Saving the settings starts SMS and calls again at "not tested yet".
     void checklist.reload();
   };
 
-  return (
-    <Page
-      title={t("pages.settings.title")}
-      breadcrumbLinks={[
-        {
-          title: t("breadcrumbs.adminDashboard"),
-          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
-        },
-        {
-          title: t("breadcrumbs.settings"),
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS] as Route,
-          ),
-        },
-        {
-          title: t("breadcrumbs.callsAndSms"),
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
-          ),
-        },
-      ]}
-      sideMenu={<DashboardSideMenu />}
-    >
-      {/*
-       * Does it work? Where SMS and calls stand, and their test sends -
-       * through Twilio or the gateway, whichever the server sends through.
-       */}
-      <ServerTestCard
-        check={ServerSetupCheckId.SmsAndCalls}
-        title={t(SERVER_TEST_CARD_COPY.callAndSmsTitle)}
-        description={t(SERVER_TEST_CARD_COPY.callAndSmsDescription)}
-        channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
-        checklist={checklist}
-      />
-
-      {/* What carries the server's SMS and calls: Twilio, or a gateway. */}
-      <CallAndSmsGatewayCard onSaveSuccess={onSettingsSaved} />
-
+  /*
+   * The account saved on this page: the one the server sends through
+   * unless the GLOBAL_TWILIO_ environment variables set one.
+   */
+  const getSavedAccountCard: () => ReactElement = (): ReactElement => {
+    return (
       <CardModelDetail
         name="Call and SMS Settings"
         onSaveSuccess={onSettingsSaved}
@@ -386,6 +366,59 @@ const Settings: FunctionComponent = (): ReactElement => {
           modelId: ObjectID.getZeroObjectID(),
         }}
       />
+    );
+  };
+
+  return (
+    <Page
+      title={t("pages.settings.title")}
+      breadcrumbLinks={[
+        {
+          title: t("breadcrumbs.adminDashboard"),
+          to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+        },
+        {
+          title: t("breadcrumbs.settings"),
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SETTINGS] as Route,
+          ),
+        },
+        {
+          title: t("breadcrumbs.callsAndSms"),
+          to: RouteUtil.populateRouteParams(
+            RouteMap[PageMap.SETTINGS_CALL_AND_SMS] as Route,
+          ),
+        },
+      ]}
+      sideMenu={<DashboardSideMenu />}
+    >
+      {/*
+       * Does it work? Where SMS and calls stand, and their test sends -
+       * through Twilio or the gateway, whichever the server sends through.
+       */}
+      <ServerTestCard
+        check={ServerSetupCheckId.SmsAndCalls}
+        title={t(SERVER_TEST_CARD_COPY.callAndSmsTitle)}
+        description={t(SERVER_TEST_CARD_COPY.callAndSmsDescription)}
+        channels={[ServerSendingChannel.SMS, ServerSendingChannel.Call]}
+        checklist={checklist}
+      />
+
+      {/* What carries the server's SMS and calls: Twilio, or a gateway. */}
+      <CallAndSmsGatewayCard onSaveSuccess={onSettingsSaved} />
+
+      {twilioEnvironment.isLoading ? (
+        <ServerTwilioEnvironmentLoadingCard />
+      ) : twilioEnvironment.answer?.isSetByEnvironment ? (
+        <ServerTwilioEnvironmentCard answer={twilioEnvironment.answer} />
+      ) : (
+        <>
+          <ServerTwilioEnvironmentUnusedAlert
+            answer={twilioEnvironment.answer}
+          />
+          {getSavedAccountCard()}
+        </>
+      )}
     </Page>
   );
 };

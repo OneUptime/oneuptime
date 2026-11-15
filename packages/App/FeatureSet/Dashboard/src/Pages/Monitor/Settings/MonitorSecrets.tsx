@@ -164,10 +164,14 @@ const MonitorSecrets: FunctionComponent<
             },
             title: "Access",
             type: FieldType.Dropdown,
+            /*
+             * The access titles in English: the filter's menu and its chip
+             * look them up, once (DropdownOption.isUserContent).
+             */
             filterDropdownOptions: MonitorSecretAccessUtil.ALL_ACCESS_MODES.map(
               (access: MonitorSecretAccess) => {
                 return {
-                  label: translate(MONITOR_SECRET_ACCESS_TITLES[access]),
+                  label: MONITOR_SECRET_ACCESS_TITLES[access],
                   value: access,
                 };
               },

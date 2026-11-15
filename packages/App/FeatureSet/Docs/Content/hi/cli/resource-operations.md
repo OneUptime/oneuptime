@@ -182,7 +182,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 | `resolve <id>` | इसे आपके प्रोजेक्ट की हल हो चुकी स्थिति में ले जाती है | यही चार |
 | `start <id>` | इवेंट को आपके प्रोजेक्ट की जारी स्थिति में ले जाती है | `scheduled-maintenance-event` |
 | `end <id>` | इसे आपके प्रोजेक्ट की समाप्त स्थिति में ले जाती है | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | ऐसा नोट जोड़ती है जिसे आपकी टीम देखती है, या `--public` के साथ रिकॉर्ड के स्थिति पृष्ठों पर एक नोट | सभी पाँच |
+| `add-note <id> --note <markdown>` | ऐसा नोट जोड़ती है जिसे केवल वे लोग पढ़ सकते हैं जो रिकॉर्ड देख सकते हैं, या `--public` के साथ रिकॉर्ड के स्थिति पृष्ठों पर एक नोट | सभी पाँच |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

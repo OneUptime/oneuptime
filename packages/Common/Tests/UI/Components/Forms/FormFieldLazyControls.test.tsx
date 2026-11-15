@@ -32,6 +32,7 @@ import {
   CODE_EDITOR_PADDING_Y_PX,
 } from "../../../../UI/Components/CodeEditor/CodeEditorSize";
 import FileModel from "../../../../Models/DatabaseModels/File";
+import { CUSTOM_FIELD_FILES_HINT } from "../../../../UI/Components/CustomFields/CustomFieldFormFields";
 import { JSONObject } from "../../../../Types/JSON";
 import MimeType from "../../../../Types/File/MimeType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -962,6 +963,43 @@ describe("a file field, before and after its picker arrives", () => {
     await arrive();
 
     expect(screen.getByTestId("file-picker-full").textContent).toBe(words);
+  });
+
+  // Full at one file: the words for one, on the stand-in as on the picker (issue #7421).
+  test("a picker of several full at one file says it holds one, before and after", async () => {
+    renderField(FormFieldSchemaType.MultipleFiles, {
+      value: [fileNamed("first.png")],
+      overrides: { maxFiles: 1 },
+    });
+
+    const words: string | null = screen.getByTestId(
+      "file-picker-placeholder-zone",
+    ).textContent;
+
+    expect(words).toBe("This field holds one file. Remove it to add another.");
+
+    await arrive();
+
+    expect(screen.getByTestId("file-picker-full").textContent).toBe(words);
+  });
+
+  // A hint that names the count says the field's own, before and after.
+  test("a picker of several says its own most files in its hint, before and after", async () => {
+    renderField(FormFieldSchemaType.MultipleFiles, {
+      overrides: { maxFiles: 3, fileHint: CUSTOM_FIELD_FILES_HINT },
+    });
+
+    const words: string | null = screen.getByTestId(
+      "file-picker-placeholder-zone",
+    ).textContent;
+
+    expect(words).toContain(
+      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
+
+    await arrive();
+
+    expect(screen.getByTestId("the-control").textContent).toBe(words);
   });
 
   test("a picker of one holding its file has the file alone, and no zone", async () => {

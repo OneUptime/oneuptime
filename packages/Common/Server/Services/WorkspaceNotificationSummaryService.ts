@@ -62,7 +62,15 @@ import URL from "../../Types/API/URL";
 import DatabaseConfig from "../DatabaseConfig";
 import NotificationRuleCondition, {
   NotificationRuleConditionCheckOn,
+  NotificationRuleConditionUtil,
+  NotificationRuleConditionValues,
 } from "../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import MonitorService from "./MonitorService";
+import WorkspaceRecordOwners, {
+  OwnedRecordKey,
+} from "../Utils/Workspace/WorkspaceRecordOwners";
+import NotificationRuleConditionIds from "../Utils/Workspace/NotificationRuleConditionIds";
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import { WorkspaceNotificationRuleUtil } from "../../Types/Workspace/NotificationRules/NotificationRuleUtil";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
@@ -184,6 +192,9 @@ export interface WorkspaceSummaryTimezoneBackfillResult {
 // How many summaries one pass of the backfill reads.
 const TIMEZONE_BACKFILL_BATCH_SIZE: number = 100;
 
+// How many monitors a summary reads the labels of in one query.
+const SUMMARY_READ_BATCH_SIZE: number = 500;
+
 /*
  * What became of a summary in one of the channels it names (sendSummary):
  * posted, with the message the workspace gave back, or not, with why in the
@@ -289,6 +300,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     }
 
     /*
+     * The people and teams its owners condition names are the project's
+     * own, as a notification rule's are (NotificationRuleConditionIds).
+     */
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (!createBy.props.isRoot && projectId) {
+      await NotificationRuleConditionIds.checkFilters({
+        projectId: projectId,
+        filters: data["filters"],
+      });
+    }
+
+    /*
      * A summary created without a Lookback Period - through the API; the
      * dashboard's form starts on 7 - covers the last 7 days, as the column
      * defaults to and as a weekly summary does. It was refused as
@@ -381,6 +406,34 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
 
     if (setupProblem) {
       throw new BadDataException(setupProblem);
+    }
+
+    /*
+     * Conditions written again: the people and teams they name now are the
+     * project's own, but for those each summary named already
+     * (NotificationRuleConditionIds).
+     */
+    if (
+      !updateBy.props.isRoot &&
+      NotificationRuleConditionIds.namesCheckedIds(data["filters"])
+    ) {
+      const summariesWritten: Array<WorkspaceNotificationSummary> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          projectId: true,
+          filters: true,
+        });
+
+      for (const summary of summariesWritten) {
+        if (!summary.projectId) {
+          continue;
+        }
+
+        await NotificationRuleConditionIds.checkFilters({
+          projectId: summary.projectId,
+          filters: data["filters"],
+          keptIds: NotificationRuleConditionIds.getIdsNamed(summary.filters),
+        });
+      }
     }
 
     const write: WorkspaceSummaryScheduleColumns = getScheduleColumns(data);
@@ -1583,14 +1636,17 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     });
   }
 
-  // Build values map for an incident
-  private static buildIncidentValues(incident: Incident): {
-    [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
-  } {
-    return {
+  /*
+   * The values an item's conditions are matched against: the item's own
+   * fields, then `read` - what a summary's conditions check that was read
+   * of the item elsewhere (filterItems). Every other field is undefined, so
+   * a condition on another kind of item never matches it.
+   */
+  private static buildIncidentValues(
+    incident: Incident,
+    read?: Partial<NotificationRuleConditionValues>,
+  ): NotificationRuleConditionValues {
+    return NotificationRuleConditionUtil.getValues({
       [NotificationRuleConditionCheckOn.IncidentTitle]: incident.title || "",
       [NotificationRuleConditionCheckOn.IncidentDescription]:
         incident.description || "",
@@ -1606,56 +1662,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         incident.monitors?.map((m: Monitor) => {
           return m._id?.toString() || "";
         }) || [],
-      // unused for incidents
-      [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
-      [NotificationRuleConditionCheckOn.SloName]: undefined,
-      [NotificationRuleConditionCheckOn.Slos]: undefined,
-      [NotificationRuleConditionCheckOn.SloLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
-      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
-        undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
-    };
+      ...read,
+    });
   }
 
-  // Build values map for an alert
-  private static buildAlertValues(alert: Alert): {
-    [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
-  } {
-    return {
+  private static buildAlertValues(
+    alert: Alert,
+    read?: Partial<NotificationRuleConditionValues>,
+  ): NotificationRuleConditionValues {
+    return NotificationRuleConditionUtil.getValues({
       [NotificationRuleConditionCheckOn.AlertTitle]: alert.title || "",
       [NotificationRuleConditionCheckOn.AlertDescription]:
         alert.description || "",
@@ -1670,56 +1685,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       [NotificationRuleConditionCheckOn.Monitors]: alert.monitor?._id
         ? [alert.monitor._id.toString()]
         : [],
-      // unused for alerts
-      [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
-      [NotificationRuleConditionCheckOn.SloName]: undefined,
-      [NotificationRuleConditionCheckOn.Slos]: undefined,
-      [NotificationRuleConditionCheckOn.SloLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
-        undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
-    };
+      ...read,
+    });
   }
 
-  // Build values map for an incident episode
-  private static buildIncidentEpisodeValues(episode: IncidentEpisode): {
-    [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
-  } {
-    return {
+  private static buildIncidentEpisodeValues(
+    episode: IncidentEpisode,
+    read?: Partial<NotificationRuleConditionValues>,
+  ): NotificationRuleConditionValues {
+    return NotificationRuleConditionUtil.getValues({
       [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]:
         episode.title || "",
       [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]:
@@ -1732,57 +1706,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         episode.labels?.map((l: Label) => {
           return l._id?.toString() || "";
         }) || [],
-      // unused for incident episodes
-      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
-      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertEpisodeLabels]: undefined,
-      [NotificationRuleConditionCheckOn.Monitors]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
-      [NotificationRuleConditionCheckOn.SloName]: undefined,
-      [NotificationRuleConditionCheckOn.Slos]: undefined,
-      [NotificationRuleConditionCheckOn.SloLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
-        undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
-    };
+      ...read,
+    });
   }
 
-  // Build values map for an alert episode
-  private static buildAlertEpisodeValues(episode: AlertEpisode): {
-    [key in NotificationRuleConditionCheckOn]:
-      | string
-      | Array<string>
-      | undefined;
-  } {
-    return {
+  private static buildAlertEpisodeValues(
+    episode: AlertEpisode,
+    read?: Partial<NotificationRuleConditionValues>,
+  ): NotificationRuleConditionValues {
+    return NotificationRuleConditionUtil.getValues({
       [NotificationRuleConditionCheckOn.AlertEpisodeTitle]: episode.title || "",
       [NotificationRuleConditionCheckOn.AlertEpisodeDescription]:
         episode.description || "",
@@ -1794,47 +1726,153 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         episode.labels?.map((l: Label) => {
           return l._id?.toString() || "";
         }) || [],
-      // unused for alert episodes
-      [NotificationRuleConditionCheckOn.IncidentTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentLabels]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeTitle]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeDescription]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeState]: undefined,
-      [NotificationRuleConditionCheckOn.IncidentEpisodeLabels]: undefined,
-      [NotificationRuleConditionCheckOn.AlertTitle]: undefined,
-      [NotificationRuleConditionCheckOn.AlertDescription]: undefined,
-      [NotificationRuleConditionCheckOn.AlertSeverity]: undefined,
-      [NotificationRuleConditionCheckOn.AlertState]: undefined,
-      [NotificationRuleConditionCheckOn.AlertLabels]: undefined,
-      [NotificationRuleConditionCheckOn.Monitors]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseTitle]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseDescription]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCasePriority]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseStatus]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseSource]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityCaseLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SecurityHuntName]: undefined,
-      [NotificationRuleConditionCheckOn.SloName]: undefined,
-      [NotificationRuleConditionCheckOn.Slos]: undefined,
-      [NotificationRuleConditionCheckOn.SloLabels]: undefined,
-      [NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorName]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorType]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorStatus]: undefined,
-      [NotificationRuleConditionCheckOn.MonitorLabels]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceTitle]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceDescription]:
-        undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceState]: undefined,
-      [NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyName]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyDescription]: undefined,
-      [NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels]: undefined,
-    };
+      ...read,
+    });
+  }
+
+  /*
+   * The items a summary's conditions keep. What a condition checks beyond
+   * an item's own fields is read only when one checks it, for all the items
+   * at once, a few hundred a query:
+   *
+   * - the labels of the monitors an incident or alert is about (Monitor
+   *   Labels). A summary offered the condition but never read them, so a
+   *   summary with it listed nothing, or everything;
+   * - who owns each item - its owner users and owner teams, as recorded
+   *   (an owners condition, WorkspaceRecordOwners).
+   */
+  private static async filterItems<TItem extends BaseModel>(data: {
+    items: Array<TItem>;
+    filters: Array<NotificationRuleCondition> | undefined;
+    filterCondition: FilterCondition | undefined;
+    projectId: ObjectID;
+    recordKey: OwnedRecordKey;
+    ownerCheckOn: NotificationRuleConditionCheckOn;
+    getMonitorIds?: ((item: TItem) => Array<string>) | undefined;
+    buildValues: (
+      item: TItem,
+      read: Partial<NotificationRuleConditionValues>,
+    ) => NotificationRuleConditionValues;
+  }): Promise<Array<TItem>> {
+    if (!data.filters || data.filters.length === 0) {
+      return data.items;
+    }
+
+    const used: Set<NotificationRuleConditionCheckOn> =
+      NotificationRuleConditionUtil.getCheckOnsUsed(data.filters);
+
+    const owners: Map<string, Array<string>> | null = used.has(
+      data.ownerCheckOn,
+    )
+      ? await WorkspaceRecordOwners.getOwnerIdsByRecord({
+          recordKey: data.recordKey,
+          recordIds: data.items
+            .filter((item: TItem): boolean => {
+              return Boolean(item._id);
+            })
+            .map((item: TItem): ObjectID => {
+              return new ObjectID(item._id!.toString());
+            }),
+        })
+      : null;
+
+    const getMonitorIds: ((item: TItem) => Array<string>) | undefined =
+      data.getMonitorIds;
+
+    const monitorLabelIds: Map<string, Array<string>> | null =
+      getMonitorIds && used.has(NotificationRuleConditionCheckOn.MonitorLabels)
+        ? await Service.getLabelIdsOfMonitors({
+            projectId: data.projectId,
+            monitorIds: data.items.flatMap(getMonitorIds),
+          })
+        : null;
+
+    return data.items.filter((item: TItem): boolean => {
+      const read: Partial<NotificationRuleConditionValues> = {};
+
+      if (owners) {
+        read[data.ownerCheckOn] =
+          owners.get(item._id?.toString().toLowerCase() || "") || [];
+      }
+
+      if (monitorLabelIds && getMonitorIds) {
+        const labelIds: Set<string> = new Set();
+
+        for (const monitorId of getMonitorIds(item)) {
+          for (const labelId of monitorLabelIds.get(monitorId.toLowerCase()) ||
+            []) {
+            labelIds.add(labelId);
+          }
+        }
+
+        read[NotificationRuleConditionCheckOn.MonitorLabels] =
+          Array.from(labelIds);
+      }
+
+      return Service.matchesFilters({
+        filters: data.filters,
+        filterCondition: data.filterCondition,
+        values: data.buildValues(item, read),
+      });
+    });
+  }
+
+  // The ids of each monitor's labels, by the monitor's id (lower case).
+  private static async getLabelIdsOfMonitors(data: {
+    projectId: ObjectID;
+    monitorIds: Array<string>;
+  }): Promise<Map<string, Array<string>>> {
+    const labelIds: Map<string, Array<string>> = new Map();
+    const monitorIds: Array<string> = Array.from(
+      new Set(
+        data.monitorIds
+          .filter((monitorId: string): boolean => {
+            return Boolean(monitorId);
+          })
+          .map((monitorId: string): string => {
+            return monitorId.toLowerCase();
+          }),
+      ),
+    );
+
+    for (
+      let start: number = 0;
+      start < monitorIds.length;
+      start += SUMMARY_READ_BATCH_SIZE
+    ) {
+      const monitors: Array<Monitor> = await MonitorService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(
+            monitorIds.slice(start, start + SUMMARY_READ_BATCH_SIZE),
+          ),
+        },
+        select: {
+          _id: true,
+          labels: { _id: true },
+        },
+        props: { isRoot: true },
+      });
+
+      for (const monitor of monitors) {
+        if (!monitor._id) {
+          continue;
+        }
+
+        labelIds.set(
+          monitor._id.toString().toLowerCase(),
+          (monitor.labels || [])
+            .map((label: Label): string => {
+              return label._id?.toString() || "";
+            })
+            .filter((labelId: string): boolean => {
+              return Boolean(labelId);
+            }),
+        );
+      }
+    }
+
+    return labelIds;
   }
 
   // ───────────────────────── main builder ─────────────────────────
@@ -1968,15 +2006,20 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     });
 
     // Apply filters
-    if (data.filters && data.filters.length > 0) {
-      incidents = incidents.filter((inc: Incident) => {
-        return Service.matchesFilters({
-          filters: data.filters,
-          filterCondition: data.filterCondition,
-          values: Service.buildIncidentValues(inc),
+    incidents = await Service.filterItems({
+      items: incidents,
+      filters: data.filters,
+      filterCondition: data.filterCondition,
+      projectId: projectId,
+      recordKey: "incidentId",
+      ownerCheckOn: NotificationRuleConditionCheckOn.IncidentOwners,
+      getMonitorIds: (incident: Incident): Array<string> => {
+        return (incident.monitors || []).map((monitor: Monitor): string => {
+          return monitor._id?.toString() || "";
         });
-      });
-    }
+      },
+      buildValues: Service.buildIncidentValues,
+    });
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -2294,15 +2337,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       });
 
     // Apply filters
-    if (data.filters && data.filters.length > 0) {
-      episodes = episodes.filter((ep: IncidentEpisode) => {
-        return Service.matchesFilters({
-          filters: data.filters,
-          filterCondition: data.filterCondition,
-          values: Service.buildIncidentEpisodeValues(ep),
-        });
-      });
-    }
+    episodes = await Service.filterItems({
+      items: episodes,
+      filters: data.filters,
+      filterCondition: data.filterCondition,
+      projectId: projectId,
+      recordKey: "incidentEpisodeId",
+      ownerCheckOn: NotificationRuleConditionCheckOn.IncidentEpisodeOwners,
+      buildValues: Service.buildIncidentEpisodeValues,
+    });
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -2474,15 +2517,18 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     });
 
     // Apply filters
-    if (data.filters && data.filters.length > 0) {
-      alerts = alerts.filter((alert: Alert) => {
-        return Service.matchesFilters({
-          filters: data.filters,
-          filterCondition: data.filterCondition,
-          values: Service.buildAlertValues(alert),
-        });
-      });
-    }
+    alerts = await Service.filterItems({
+      items: alerts,
+      filters: data.filters,
+      filterCondition: data.filterCondition,
+      projectId: projectId,
+      recordKey: "alertId",
+      ownerCheckOn: NotificationRuleConditionCheckOn.AlertOwners,
+      getMonitorIds: (alert: Alert): Array<string> => {
+        return alert.monitor?._id ? [alert.monitor._id.toString()] : [];
+      },
+      buildValues: Service.buildAlertValues,
+    });
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
@@ -2765,15 +2811,15 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     });
 
     // Apply filters
-    if (data.filters && data.filters.length > 0) {
-      episodes = episodes.filter((ep: AlertEpisode) => {
-        return Service.matchesFilters({
-          filters: data.filters,
-          filterCondition: data.filterCondition,
-          values: Service.buildAlertEpisodeValues(ep),
-        });
-      });
-    }
+    episodes = await Service.filterItems({
+      items: episodes,
+      filters: data.filters,
+      filterCondition: data.filterCondition,
+      projectId: projectId,
+      recordKey: "alertEpisodeId",
+      ownerCheckOn: NotificationRuleConditionCheckOn.AlertEpisodeOwners,
+      buildValues: Service.buildAlertEpisodeValues,
+    });
 
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 

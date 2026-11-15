@@ -148,7 +148,7 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
     },
     ScheduledMaintenance: {
       sentence: translationKey(
-        "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.",
+        "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.",
       ),
       deletedWith: [
         "ScheduledMaintenancePublicNote",

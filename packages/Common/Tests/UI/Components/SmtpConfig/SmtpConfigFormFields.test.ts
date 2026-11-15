@@ -87,6 +87,7 @@ import {
   getSmtpTransport,
   readSmtpFormValue,
   readSmtpPort,
+  requiresSmtpUsername,
   showsSmtpOAuthCredentials,
   showsSmtpOAuthProviderType,
   showsSmtpPassword,
@@ -263,6 +264,41 @@ const PROJECT: SmtpConfigFormColumns<ProjectSmtpConfig> =
 
 const GLOBAL: SmtpConfigFormColumns<GlobalConfig> =
   GLOBAL_SMTP_CONFIG_FORM_COLUMNS;
+
+/*
+ * Where a field is required, as the transport and sign-in it is asked for
+ * ("SMTP / OAuth"), read through a form's own column names. A field always
+ * or never required reads as that.
+ */
+function requiredWhen<TEntity>(
+  field: Field<TEntity>,
+  columns: SmtpConfigFormColumns<TEntity>,
+): boolean | Array<string> {
+  const required: Field<TEntity>["required"] = field.required;
+
+  if (typeof required !== "function") {
+    return Boolean(required);
+  }
+
+  const when: Array<string> = [];
+
+  for (const transport of Object.values(MailTransportType)) {
+    for (const authType of Object.values(SMTPAuthenticationType)) {
+      const values: Values = {
+        [columns.transportType]: transport,
+        [columns.authType]: authType,
+      };
+
+      if (required(values as unknown as FormValues<TEntity>)) {
+        when.push(`${transport} / ${authType}`);
+      }
+    }
+  }
+
+  return when;
+}
+
+const SMTP_WITH_OAUTH: string = `${MailTransportType.SMTP} / ${SMTPAuthenticationType.OAuth}`;
 
 const PROVIDER_STEPS: Array<[MailTransportType, string, string]> = [
   [MailTransportType.AmazonSES, "amazon-ses", "Amazon SES"],
@@ -572,9 +608,10 @@ describe("a project's Custom SMTP config", () => {
   });
 
   test("requires what the mail service cannot send without, on the step it is asked", () => {
+    // Always; the username only when OAuth signs in over SMTP (#7833).
     const required: Array<string> = PROJECT_FIELDS.filter(
       (field: Field<ProjectSmtpConfig>): boolean => {
-        return Boolean(field.required);
+        return field.required === true;
       },
     ).map((field: Field<ProjectSmtpConfig>): string => {
       return `${field.stepId}:${keyOf(field)}`;
@@ -605,8 +642,10 @@ describe("a project's Custom SMTP config", () => {
     ]);
 
     // A server that needs no password is the Authentication type's None.
-    expect(fieldFor(PROJECT_FIELDS, "username").required).toBe(false);
     expect(fieldFor(PROJECT_FIELDS, "password").required).toBe(false);
+    expect(requiredWhen(fieldFor(PROJECT_FIELDS, "username"), PROJECT)).toEqual(
+      [SMTP_WITH_OAUTH],
+    );
   });
 
   test("asks the OAuth grant only of SMTP: Microsoft Graph always uses Client Credentials", () => {
@@ -959,8 +998,12 @@ describe("both forms", () => {
      * form's initial values, the instance's edit form through the port's
      * default (#6875). Every other field starts the same way in both.
      */
-    const describeField: (field: Field<unknown>) => Record<string, unknown> = (
+    const describeField: (
       field: Field<unknown>,
+      columns: SmtpConfigFormColumns<unknown>,
+    ) => Record<string, unknown> = (
+      field: Field<unknown>,
+      columns: SmtpConfigFormColumns<unknown>,
     ): Record<string, unknown> => {
       const isPort: boolean = field.fieldType === FormFieldSchemaType.Port;
 
@@ -969,7 +1012,8 @@ describe("both forms", () => {
         description: field.description,
         placeholder: field.placeholder,
         fieldType: field.fieldType,
-        required: field.required,
+        // The username's hangs on the sign-in (#7833): where it holds.
+        required: requiredWhen(field, columns),
         defaultValue: isPort ? "587 to start" : field.defaultValue,
       };
     };
@@ -999,11 +1043,13 @@ describe("both forms", () => {
         key,
         ...describeField(
           fieldFor(PROJECT_FIELDS, String(PROJECT[key])) as Field<unknown>,
+          PROJECT as SmtpConfigFormColumns<unknown>,
         ),
       }).toEqual({
         key,
         ...describeField(
           fieldFor(GLOBAL_FIELDS, String(GLOBAL[key])) as Field<unknown>,
+          GLOBAL as SmtpConfigFormColumns<unknown>,
         ),
       });
     }
@@ -1062,10 +1108,11 @@ describe("both forms", () => {
   });
 
   test("the instance requires what the mail service cannot send without", () => {
+    // Always; the username only when OAuth signs in over SMTP (#7833).
     expect(
       (GLOBAL_FIELDS as Array<Field<unknown>>)
         .filter((field: Field<unknown>): boolean => {
-          return Boolean(field.required);
+          return field.required === true;
         })
         .map(keyOf),
     ).toEqual([
@@ -1523,9 +1570,95 @@ describe("what each transport and sign-in shows", () => {
 
       expect(showsSmtpServerFields(values, PROJECT)).toBe(false);
       expect(showsSmtpUsername(values, PROJECT)).toBe(false);
+      expect(requiresSmtpUsername(values, PROJECT)).toBe(false);
       expect(showsSmtpPassword(values, PROJECT)).toBe(false);
       expect(showsSmtpOAuthProviderType(values, PROJECT)).toBe(false);
       expect(showsSmtpOAuthCredentials(values, PROJECT)).toBe(false);
+    }
+  });
+});
+
+/*
+ * Over SMTP, OAuth signs in as a mailbox - the user the XOAUTH2 sign-in
+ * names, with either grant - and the mail service refuses every email
+ * without one (#7833). Both forms say so before saving: the Username is
+ * required with OAuth over SMTP. With a password it stays optional, as it
+ * was (the instance's server sends without signing in until both are set);
+ * Microsoft Graph sends as the From Email.
+ */
+describe("the username, when OAuth signs in over SMTP (#7833)", () => {
+  test.each([
+    ["a project's config", PROJECT_FIELDS, PROJECT, "username"],
+    ["the instance's server", GLOBAL_FIELDS, GLOBAL, "smtpUsername"],
+  ] as Array<
+    [string, Array<Field<unknown>>, SmtpConfigFormColumns<unknown>, string]
+  >)(
+    "%s requires it then, and only then: not with a password, without signing in, through Microsoft Graph or through a provider's API",
+    (
+      _form: string,
+      fields: Array<Field<unknown>>,
+      columns: SmtpConfigFormColumns<unknown>,
+      key: string,
+    ) => {
+      expect(requiredWhen(fieldFor(fields, key), columns)).toEqual([
+        SMTP_WITH_OAUTH,
+      ]);
+    },
+  );
+
+  test("reads the form as the mail service does: no transport picked is SMTP, no sign-in picked is a password", () => {
+    expect(requiresSmtpUsername({}, PROJECT)).toBe(false);
+    expect(
+      requiresSmtpUsername({ authType: SMTPAuthenticationType.OAuth }, PROJECT),
+    ).toBe(true);
+    expect(
+      requiresSmtpUsername(
+        { smtpAuthType: SMTPAuthenticationType.OAuth },
+        GLOBAL,
+      ),
+    ).toBe(true);
+    // The instance's own column names, not a project's.
+    expect(
+      requiresSmtpUsername({ authType: SMTPAuthenticationType.OAuth }, GLOBAL),
+    ).toBe(false);
+    expect(
+      requiresSmtpUsername(
+        {
+          smtpTransportType: MailTransportType.MicrosoftGraph,
+          smtpAuthType: SMTPAuthenticationType.OAuth,
+        },
+        GLOBAL,
+      ),
+    ).toBe(false);
+  });
+
+  test("required only where it is shown, so a hidden username never stops a save", () => {
+    for (const [fields, columns, key] of [
+      [PROJECT_FIELDS, PROJECT, "username"],
+      [GLOBAL_FIELDS, GLOBAL, "smtpUsername"],
+    ] as Array<
+      [Array<Field<unknown>>, SmtpConfigFormColumns<unknown>, string]
+    >) {
+      const username: Field<unknown> = fieldFor(fields, key);
+
+      for (const transport of Object.values(MailTransportType)) {
+        for (const authType of Object.values(SMTPAuthenticationType)) {
+          const values: FormValues<unknown> = {
+            [columns.transportType]: transport,
+            [columns.authType]: authType,
+          } as unknown as FormValues<unknown>;
+          const required: boolean = (
+            username.required as (values: FormValues<unknown>) => boolean
+          )(values);
+
+          expect({
+            key,
+            transport,
+            authType,
+            shownIfRequired: !required || username.showIf!(values),
+          }).toEqual({ key, transport, authType, shownIfRequired: true });
+        }
+      }
     }
   });
 });

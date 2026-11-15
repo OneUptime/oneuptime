@@ -309,7 +309,7 @@ OneUptime could not put the meeting on its organizer's calendar, so it started t
 :::
 
 :::details OneUptime AI could not read a transcript
-The card says why: AI is off for the project, the project reached a daily AI limit, or the AI provider refused. Once that is fixed, **Try again** on the card reads it again.
+The card says why: AI is off for the project, the project reached a daily AI limit, or the project's [LLM provider](/docs/ai/llm-provider) refused. Once that is fixed, **Try again** on the card reads it again.
 :::
 
 ## Next steps

@@ -18,6 +18,7 @@ import {
 } from "../../../Types/AutoRemediation/AutoRemediationDecision";
 import { KubernetesAiRemediationMode } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -515,6 +516,131 @@ describe("getRemediationDecisionLines", () => {
         'Database server "orders-db" could be fixed too, but OneUptime AI fixes one resource per incident.',
       );
     });
+
+    // Danish shortens "per" to "pr.", whose full stop ends no sentence (#7692).
+    test("says it in Danish with the signal lower-case after the shortened per", () => {
+      for (const [signal, ending] of [
+        ["incident", "retter én ressource pr. hændelse."],
+        ["alert", "retter én ressource pr. advarsel."],
+      ] as Array<[RemediationDecisionSignal, string]>) {
+        const lines: Array<RemediationDecisionLine> =
+          getRemediationDecisionLines({
+            decision: evaluated([
+              {
+                lane: AutoRemediationDecisionLane.Resource,
+                reason: AutoRemediationDecisionReason.ResourceNotChosen,
+                resourceType: "DatabaseServer",
+                resourceId: RESOURCE_ID,
+                resourceName: "orders-db",
+              },
+            ]),
+            signal,
+            translator: dashboardTranslator("da"),
+          });
+
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.text).toContain(ending);
+      }
+    });
+
+    /*
+     * The kind of resource, in the reader's language, as the middle of a
+     * sentence says it (#7862). Nine languages put it in brackets after the
+     * name, where a label's capital read wrong ("(Hôte)"), and a database
+     * server was "(Database server)", in English, in every language.
+     */
+    function resourceLineIn(
+      language: string,
+      reason: AutoRemediationDecisionReason,
+      resourceType: string,
+    ): string {
+      const lines: Array<RemediationDecisionLine> = getRemediationDecisionLines(
+        {
+          decision: evaluated([
+            {
+              lane: AutoRemediationDecisionLane.Resource,
+              reason,
+              resourceType,
+              resourceId: RESOURCE_ID,
+              resourceName: "web-1",
+            },
+          ]),
+          signal: "incident",
+          translator: dashboardTranslator(language),
+        },
+      );
+
+      expect(lines).toHaveLength(1);
+      return lines[0]!.text;
+    }
+
+    test.each([
+      ["fr", "Host", "« web-1 » (hôte) pourrait aussi être corrigé"],
+      ["da", "Host", '"web-1" (vært) kunne også rettes'],
+      ["ru", "Host", "«web-1» (хост) тоже можно было бы исправить"],
+      ["sv", "Host", "”web-1” (värd) kunde också åtgärdas"],
+      ["es", "Host", "«web-1» (host) también se podría corregir"],
+      // A type this build does not know is a resource.
+      ["fr", "Spaceship", "« web-1 » (ressource) pourrait aussi être corrigé"],
+      [
+        "fr",
+        "DatabaseServer",
+        "« web-1 » (serveur de base de données) pourrait aussi être corrigé",
+      ],
+      // German nouns keep their capital.
+      ["de", "DatabaseServer", "„web-1“ (Datenbankserver) könnte ebenfalls"],
+    ])(
+      "%s says a %s that was not chosen could be fixed too: %s",
+      (language: string, resourceType: string, expected: string) => {
+        expect(
+          resourceLineIn(
+            language,
+            AutoRemediationDecisionReason.ResourceNotChosen,
+            resourceType,
+          ),
+        ).toContain(expected);
+      },
+    );
+
+    test("says a database server's fixes are off in the reader's words", () => {
+      expect(
+        resourceLineIn(
+          "fr",
+          AutoRemediationDecisionReason.ResourceFixesOff,
+          "DatabaseServer",
+        ),
+      ).toContain("pour « web-1 » (serveur de base de données)");
+    });
+
+    /*
+     * Japanese, Korean, Chinese and Hindi start the line with the kind: the
+     * language's own word, never "database server" in English, lower-case
+     * at the start of a sentence.
+     */
+    test.each(["ja", "ko", "zh-CN", "zh-TW", "hi"])(
+      "%s starts a database server's line with its own word for one",
+      (language: string) => {
+        const kind: string = dashboardTranslator(language).translateText(
+          "database server",
+        ) as string;
+
+        expect(kind).not.toBe("database server");
+
+        for (const reason of [
+          AutoRemediationDecisionReason.ResourceFixesOff,
+          AutoRemediationDecisionReason.ResourceNotChosen,
+        ]) {
+          const text: string = resourceLineIn(
+            language,
+            reason,
+            "DatabaseServer",
+          );
+
+          expect(text.startsWith(kind)).toBe(true);
+          expect(text).not.toMatch(/database server/i);
+        }
+      },
+    );
 
     test("says why a resource's fixes cannot run yet", () => {
       const line: RemediationDecisionLine = onlyLine({

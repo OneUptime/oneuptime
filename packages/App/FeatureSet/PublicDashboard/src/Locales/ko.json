@@ -21,5 +21,11 @@
   "This needs the latest version. Save your changes, then reload the page.": "이 항목에는 최신 버전이 필요합니다. 변경 사항을 저장한 다음 페이지를 다시 로드하세요.",
   "This couldn't be loaded.": "로드할 수 없습니다.",
   "Something went wrong": "문제가 발생했습니다",
-  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 다시 로드하세요"
+  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 다시 로드하세요",
+  "Click to reveal": "표시하려면 클릭",
+  "Click to copy": "복사하려면 클릭",
+  "Copy": "복사",
+  "Copied!": "복사됨!",
+  "Copy failed": "복사 실패",
+  "Hide": "숨기기"
 }

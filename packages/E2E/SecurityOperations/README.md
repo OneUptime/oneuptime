@@ -613,7 +613,8 @@ failure as a server that could not explain it does, with its reference, and `fai
 first two reads. `notes-fail-with-reference` and `notes-fail-twice` fail the first read, or the
 first two, of a case's notes the same way, and read the case setup as ever. `notes-more-fail` gives
 the spray case 26 older notes - more than a page of its notes feed - and fails Load more's first
-read the same way; the next answers. Turn on recommended
+read the same way; the next answers. `notes-more-pages` gives it 58, three pages, and every read
+answers. Turn on recommended
 turns on the project's traces, network flows and session replays beside its logs, as SecuritySetup
 does in OneUptime Community (no audit log), so the pipeline counts 4 sources after it.
 
@@ -641,7 +642,10 @@ the keyboard (`notes-fail-twice`), Try again keeps the focus - on Try again afte
 then just before the notes. A Load more that fails (`?casesetup=notes-more-fail`, #7620) says what
 failed, then why, what to do and its reference, over the notes, in English and Persian at 1280
 and 390, with nothing scrolling sideways; dismissed from the keyboard, its banner leaves the focus
-on Load more, whose next press reads the notes. Its
+on Load more, whose next press reads the notes. A list's Try again pressed from the keyboard
+(`fail-twice` on the Custom Fields list, #7621) keeps the focus - on Try again after another
+failure, then on the list, just before its rows, with no ring around it; once the focus moves on,
+the list is not focusable, and a click on its words leaves the focus with the page. Its
 screenshots are named `case-custom-fields-*`, `case-custom-fields-settings-*`,
 `case-note-templates-*`, `case-note-template-*`, `case-notes-fail-*`, `case-notes-more-fail-*`,
 `case-numbering-*`, `case-overview-custom-fields-390-*` and
@@ -651,6 +655,14 @@ After a Load more that failed (`notes-more-fail`, #7646), Load more pressed agai
 and takes the banner away, and a focus on the banner stays in the feed rather than falling to the
 page; on a Persian page, the count by a case's notes heading is in Persian digits, as the count
 over its notes is.
+
+Pressed from the keyboard (`notes-more-fail`, #7706), Load more keeps the focus in the feed while
+it reads, with the page left where it was; its failure gives the focus to the banner, in view and
+with no ring around it, whose Dismiss gives it back to Load more; after the last page the feed
+keeps it, just before the notes - never on the page itself. With pages left (`notes-more-pages`),
+the focus goes back to Load more once the next page is drawn, with the page left on the notes that
+came. The feed is focusable only while it holds the focus: a click on a note's words leaves the
+focus with the page, and the next Tab goes on from that note.
 
 ## Run it
 

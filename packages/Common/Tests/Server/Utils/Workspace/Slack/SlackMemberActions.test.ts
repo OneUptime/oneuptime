@@ -1647,6 +1647,80 @@ describe("Slack buttons answered from the one read", (): void => {
     ]);
   });
 
+  /*
+   * A policy a person started by hand for an episode goes on until somebody
+   * it paged answers it (OnCallPolicyStartedByHand, #7596). The member it
+   * paged pressing Acknowledge on the episode Simon is on answers their
+   * page, as it does on an incident or an alert - it would page them again
+   * otherwise - and the answer names the episode, not an incident.
+   */
+  test.each(
+    SLACK_KINDS.filter((kind: SlackKind): boolean => {
+      return kind.name.endsWith("episode");
+    }),
+  )(
+    "Acknowledge on an $noun acknowledged already answers the presser's own page about it, and says so first",
+    async (kind: SlackKind): Promise<void> => {
+      mockMember([kind.role]);
+      const states: ProjectStates = kind.stubStates();
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: states.acknowledged,
+        columns: { episodeNumber: 3 },
+      });
+      jest
+        .spyOn(
+          kind.recordService as {
+            getEpisodeLinkInDashboard: () => Promise<URL>;
+          },
+          "getEpisodeLinkInDashboard",
+        )
+        .mockResolvedValue(URL.fromString("https://oneuptime.test/episode/3"));
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
+      stubLateAnswerReads({
+        timelineService: kind.timelineService,
+        rows: [
+          {
+            [kind.timelineStateColumn]: states.acknowledged,
+            startsAt: new Date(FIRST_AT),
+            createdByUserId: SIMON,
+          },
+        ],
+      });
+      const answerSpy: AnySpy = jest
+        .spyOn(OnCallPersonPageAnswer, "onAcknowledgePressed")
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0) as AnySpy;
+      const episodeId: ObjectID = ObjectID.generate();
+
+      await kind.handle(
+        handlerArgs(kind.acknowledge!.actionType, episodeId.toString()),
+      );
+      await kind.handle(
+        handlerArgs(kind.acknowledge!.actionType, episodeId.toString()),
+      );
+
+      // The episode's state is not written: Simon acknowledged it.
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(answerSpy).toHaveBeenCalledTimes(2);
+      expect(answerSpy.mock.calls[0]![0]).toEqual({
+        kind: kind.noun,
+        recordId: episodeId,
+        projectId: projectId,
+        pressedByUserId: userId,
+        isResolved: false,
+      });
+      const title: string =
+        kind.noun === "incident episode" ? "Incident Episode" : "Alert Episode";
+      expect(answerTexts()).toEqual([
+        `✅ You acknowledged the page for **[${title} #3](https://oneuptime.test/episode/3)**, so paging stopped. **Simon Lee** acknowledged the ${kind.noun} at {{TIME(${FIRST_AT})}}.`,
+        `✅ **[${title} #3](https://oneuptime.test/episode/3)** was already acknowledged by **Simon Lee** at {{TIME(${FIRST_AT})}}.`,
+      ]);
+    },
+  );
+
   test("Acknowledge on a resolved incident asks for no page to be answered: resolving it ended them", async (): Promise<void> => {
     mockMember([Permission.IncidentMember]);
     const states: ProjectStates = incidentStates();

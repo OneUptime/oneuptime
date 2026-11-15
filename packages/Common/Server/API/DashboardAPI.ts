@@ -1718,6 +1718,7 @@ export default class DashboardAPI extends BaseAPI<
               aggregateColumnName: "value",
               aggregationTimestampColumnName: "bucketStart",
               aggregationInterval: policy.aggregationInterval,
+              timezone: policy.timezone,
               startTimestamp: policy.startDate,
               endTimestamp: policy.endDate,
               // Oldest -> newest so the line renders left to right.

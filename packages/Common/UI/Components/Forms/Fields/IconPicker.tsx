@@ -25,6 +25,8 @@ export interface ComponentProps {
   onChange: (value: IconProp | null) => void;
   initialValue?: undefined | IconProp;
   placeholder: string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   onFocus?: (() => void) | undefined;
   tabIndex?: number | undefined;
   value?: string | undefined;
@@ -136,6 +138,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
           outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
           placeholder={props.placeholder}
+          isPlaceholderTranslated={props.isPlaceholderTranslated}
           value={selectedIcon || props.value || ""}
           readOnly={true}
           type={InputType.TEXT}

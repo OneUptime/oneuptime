@@ -218,6 +218,31 @@ export function hasReportedSince(data: {
   return !Number.isFinite(then) || now > then;
 }
 
+/**
+ * The first data a telemetry guide's ingestion key sends (#7754): the key
+ * had sent nothing when the step first looked at it (no lastUsedAt), and
+ * now it has. Telemetry that names no service - FluentBit's logs as the
+ * guide configures them, OTLP without service.name - registers no
+ * service, so this is how the step sees it arrive.
+ *
+ * Only a key's first data counts. Ingest stamps lastUsedAt at most once
+ * every five minutes per process (TelemetryIngestionKeyService.markUsed),
+ * so the stamp of a key something already sends with moves on whether or
+ * not the shipper just set up sent anything: a later stamp would pass that
+ * shipper off as connected. Such a key leaves the step to the service
+ * check. Both values are the server's clock, as everywhere in the watch.
+ */
+export function hasKeySentFirstData(data: {
+  lastUsedAtThen: Date | string | null | undefined;
+  lastUsedAtNow: Date | string | null | undefined;
+}): boolean {
+  if (data.lastUsedAtThen || !data.lastUsedAtNow) {
+    return false;
+  }
+
+  return Number.isFinite(new Date(data.lastUsedAtNow).getTime());
+}
+
 // ---- what the guide says ---------------------------------------------------
 
 /*
@@ -263,6 +288,14 @@ export const RESOURCE_CONNECTION_WAITING: string = translationKey(
 
 export const RESOURCE_CONNECTION_CONNECTED: string = translationKey(
   "{{name}} is connected. Its data arrives within a minute or two.",
+);
+
+/*
+ * A telemetry guide's key sent its first data, and no service registered:
+ * the data names none (hasKeySentFirstData). {{name}} is the key's name.
+ */
+export const RESOURCE_CONNECTION_DATA_ARRIVED: string = translationKey(
+  "The first data arrived with the key {{name}}. It shows up within a minute or two.",
 );
 
 /*

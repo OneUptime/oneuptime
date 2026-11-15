@@ -182,7 +182,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 | `resolve <id>` | 把它移到專案的已解決狀態 | 同樣這四種 |
 | `start <id>` | 把該事件移到專案的進行中狀態 | `scheduled-maintenance-event` |
 | `end <id>` | 把它移到專案的已結束狀態 | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | 新增團隊可見的備註，加上 `--public` 時則在記錄的狀態頁面上發布備註 | 全部五種 |
+| `add-note <id> --note <markdown>` | 新增只有能查看該記錄的人才能閱讀的備註，加上 `--public` 時則在記錄的狀態頁面上發布備註 | 全部五種 |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

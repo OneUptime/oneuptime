@@ -70,7 +70,10 @@ import { describe, expect, it } from "@jest/globals";
  *     locale key, the aggregation option "Count of logs" - and the docs' own
  *     tab names stay in English (SHOWN_IN_ENGLISH). When the Dashboard gains
  *     a key for one, a test below fails until the pages name it as drawn:
- *     the monitor criteria's aggregations (All Values) did in 31eadaee92e.
+ *     the monitor criteria's aggregations (All Values) did in 31eadaee92e,
+ *     and the profiles page's Grafana Alloy tab when the Setup Guide drew
+ *     the name (#7742). A docs tab keeps its English name on its @tab line
+ *     in every language, label or not.
  *
  * Bold words that are Dashboard labels only by coincidence are PROSE, with
  * why; bold words that are neither labels nor shown in English are the
@@ -137,8 +140,13 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [PROFILES]: [
     // The profile page's third tab, which has no locale key.
     "Diff vs. baseline",
-    // The page's own tabs: products, named as their makers name them.
-    "Grafana Alloy",
+    /*
+     * The page's own tab ("the **.NET** tab"): a product, named as its
+     * maker names it. Grafana Alloy, the other tab the page names in bold,
+     * is a Dashboard label since #7742 (the Setup Guide's snippet tab for
+     * Prometheus and Loki), a product name every locale keeps as is
+     * (i18n/SameAsEnglish.json).
+     */
     ".NET",
   ],
   /*
@@ -572,7 +580,11 @@ describe("the lists this test keeps", () => {
   /*
    * A name the Dashboard shows in English today and translates tomorrow
    * fails here: then every translation names it as drawn, and it leaves the
-   * list. The docs' own tab names are bold product names, never labels.
+   * list. The docs' own tab names are bold product names, kept here while
+   * the Dashboard draws none of them; one it draws is a label like any
+   * other, as "Grafana Alloy" is since #7742. The tab itself is read from
+   * its @tab line, never as a bold name, and every translation names it as
+   * the English page does.
    */
   it("keep in English only bold names the Dashboard has no translation for", () => {
     for (const page of Object.keys(SHOWN_IN_ENGLISH)) {
@@ -980,11 +992,21 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a product after Products as the Products menu does, the rest as labels", () => {
-    // Russian's menu says Сервисы where a label says Службы.
+    // After Products, the menu's own word for the product (navbar.items).
+    expect(drawnPath("ru", ["Products", "Services"])).toBe(
+      `Продукты → ${String(
+        (
+          (dashboardLocale("ru")["navbar"] as Record<string, unknown>)[
+            "items"
+          ] as Record<string, unknown>
+        )["servicesTitle"],
+      )}`,
+    );
+    // Russian's menu and its labels name Services one way since #7387.
     expect(drawnPath("ru", ["Products", "Services"])).toBe(
       "Продукты → Сервисы",
     );
-    expect(drawnActionLabel("ru", "Services")).toBe("Службы");
+    expect(drawnActionLabel("ru", "Services")).toBe("Сервисы");
     expect(drawnPath("de", ["Products", "Profiles"])).toBe(
       "Produkte → Profile",
     );
@@ -1100,6 +1122,28 @@ describe("the helpers, on these pages' shapes", () => {
       "tabs tabs=2 steps=0",
       "steps tabs=0 steps=2",
     ]);
+  });
+
+  it("read a tab's name off its @tab line only, and a bold name off the prose only", () => {
+    const tabs: Array<string> = [
+      ":::tabs",
+      "@tab Grafana Alloy",
+      "Text.",
+      ":::",
+    ];
+    const referred: string = [
+      "# Page",
+      "Use the **Grafana Alloy** tab.",
+      ...tabs,
+    ].join("\n");
+    const unreferred: string = ["# Page", "Use the first tab.", ...tabs].join(
+      "\n",
+    );
+
+    expect(tabNames(referred)).toEqual(["Grafana Alloy"]);
+    expect(boldLabels(referred)).toEqual(["Grafana Alloy"]);
+    expect(tabNames(unreferred)).toEqual(["Grafana Alloy"]);
+    expect(boldLabels(unreferred)).toEqual([]);
   });
 
   it("read the first column of the table under a heading", () => {

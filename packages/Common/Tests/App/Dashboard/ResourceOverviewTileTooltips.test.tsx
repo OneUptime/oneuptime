@@ -81,6 +81,7 @@ import ResourceTable, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
 import KubernetesResourceTable from "../../../../App/FeatureSet/Dashboard/src/Components/Kubernetes/KubernetesResourceTable";
 import Route from "../../../Types/API/Route";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 import IconProp from "../../../Types/Icon/IconProp";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import {
@@ -158,6 +159,39 @@ function renderOverview(
       <LocationProbe />
     </MemoryRouter>,
   );
+}
+
+/*
+ * The element holding a title's words, for its (i): the (i) is drawn in the
+ * title's own line of text, after its last word (WordsWithInfoTooltip,
+ * issue #7348), never as the title's sibling in a flex row.
+ */
+function wordsHoldingInfo(info: HTMLElement): HTMLElement {
+  const glue: HTMLElement | null = info.closest(
+    `[${INFO_GLUE_ATTRIBUTE}]`,
+  ) as HTMLElement | null;
+
+  expect(glue).not.toBeNull();
+  expect(glue!.lastElementChild).toBe(info);
+
+  const words: HTMLElement = glue!.parentElement as HTMLElement;
+
+  // The glue is the last thing the words' element holds: after the last word.
+  expect(words.lastChild).toBe(glue);
+
+  return words;
+}
+
+/*
+ * The words' element is an inline block (it keeps the (i)'s room at the end
+ * of its lines). Inside a plain block it would sit on a line of the tile's
+ * own, larger font, and a title of two lines would take that font's line
+ * height (24px a line, not the title's 16px). Its box is a flex row, which
+ * makes it a block of its own: the title's lines are its own.
+ */
+function expectWordsOwnTheirLines(words: HTMLElement): void {
+  expect(words).toHaveClass("inline-block");
+  expect(words.parentElement).toHaveClass("flex", "min-w-0");
 }
 
 function tileRoot(title: string): HTMLElement {
@@ -321,6 +355,25 @@ describe("a linked ResourceOverview tile", () => {
     expect(info).toHaveClass("relative", "z-10");
   });
 
+  test("the (i) follows the title's last word, inside the title's own text (issue #7348)", () => {
+    renderOverview([CLIENTS, P95_TILE]);
+
+    for (const title of ["Clients", "p95 duration"]) {
+      const info: HTMLElement = screen.getByRole("button", {
+        name: `About ${title}`,
+      });
+      const words: HTMLElement = wordsHoldingInfo(info);
+
+      // The element holding the title's words, which the tile names it by.
+      expect(words).toBe(
+        screen.getByText(title, { selector: "span.uppercase" }),
+      );
+      // In the line after the words, at the middle of their letters.
+      expect(info).toHaveClass("ms-1", "align-middle");
+      expectWordsOwnTheirLines(words);
+    }
+  });
+
   test("clicking the (i) does not navigate; clicking the overlay does", () => {
     renderOverview([CLIENTS]);
 
@@ -473,8 +526,11 @@ describe("ChartCard", () => {
     const info: HTMLElement = screen.getByRole("button", {
       name: "About p95 duration",
     });
+    const words: HTMLElement = wordsHoldingInfo(info);
 
-    expect(info.previousElementSibling).toHaveTextContent("p95 duration");
+    expect(words).toHaveTextContent("p95 duration");
+    expect(words).toHaveClass("uppercase");
+    expectWordsOwnTheirLines(words);
   });
 });
 
@@ -529,9 +585,13 @@ describe("Infrastructure GoldenMetricTile", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "About Pods" }).previousElementSibling,
-    ).toHaveTextContent("Pods");
+    const words: HTMLElement = wordsHoldingInfo(
+      screen.getByRole("button", { name: "About Pods" }),
+    );
+
+    expect(words).toHaveTextContent("Pods");
+    expect(words).toHaveAttribute("data-testid", "golden-metric-tile-title");
+    expectWordsOwnTheirLines(words);
   });
 });
 

@@ -27,8 +27,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * Ended by the record's acknowledgement, it reached them by its first
  * notifications only: paging somebody into an incident that is being worked
  * on - acknowledged already - is what paging from its channel is mostly
- * for. A workflow's direct page and every policy's run are ended by the
- * record's acknowledgement, as they always were.
+ * for. A workflow's direct page and a policy's run OneUptime started are
+ * ended by the record's acknowledgement, as they always were; a policy a
+ * person started by hand goes on as a person's page does
+ * (ExecutePendingExecutionsPolicyStartedByHand).
  */
 
 jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
@@ -36,6 +38,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
     __esModule: true,
     default: jest.fn(),
   };
+});
+
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
 });
 
 import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
@@ -63,13 +76,20 @@ type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
 // A person's page of a run, ten minutes in: a rule that calls after five is due.
 function pendingLog(run: {
-  startedBy: "person" | "workflow" | "policy started by a person";
+  startedBy:
+    | "person"
+    | "workflow"
+    | "policy started by a person"
+    | "policy OneUptime started";
   acknowledgedAt?: Date | undefined;
 }): PendingLog {
   const executionLog: OnCallDutyPolicyExecutionLog =
     new OnCallDutyPolicyExecutionLog();
 
-  if (run.startedBy !== "workflow") {
+  if (
+    run.startedBy !== "workflow" &&
+    run.startedBy !== "policy OneUptime started"
+  ) {
     executionLog.triggeredByUserId = JANE;
   }
 
@@ -77,7 +97,10 @@ function pendingLog(run: {
     executionLog.triggeredByWorkflowId = WORKFLOW;
   }
 
-  if (run.startedBy === "policy started by a person") {
+  if (
+    run.startedBy === "policy started by a person" ||
+    run.startedBy === "policy OneUptime started"
+  ) {
     executionLog.onCallDutyPolicyId = POLICY;
   }
 
@@ -235,14 +258,14 @@ describe("a person's page about an incident somebody else acknowledged", () => {
 });
 
 describe("pages nobody asked for by hand", () => {
-  test.each<[string, "workflow" | "policy started by a person"]>([
+  test.each<[string, "workflow" | "policy OneUptime started"]>([
     ["a workflow's direct page", "workflow"],
-    ["an on-call policy's run a person started", "policy started by a person"],
+    ["an on-call policy's run OneUptime started", "policy OneUptime started"],
   ])(
     "%s: ended by the incident's acknowledgement, as it always was",
     async (
       _name: string,
-      startedBy: "workflow" | "policy started by a person",
+      startedBy: "workflow" | "policy OneUptime started",
     ) => {
       await executePendingNotificationLog(
         pendingLog({ startedBy: startedBy }),
@@ -264,8 +287,8 @@ describe("pages nobody asked for by hand", () => {
 
 describe("the worker's tick", () => {
   test("reads each page's run with who started it, which tells a person's page apart", async () => {
-    const findAllBy: jest.SpyInstance = jest
-      .spyOn(UserOnCallLogService, "findAllBy")
+    const findBy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "findBy")
       .mockResolvedValue([] as Array<UserOnCallLog> as never);
     jest
       .spyOn(ProjectMembership, "getMemberKeys")
@@ -273,7 +296,7 @@ describe("the worker's tick", () => {
 
     await runTick();
 
-    expect(findAllBy.mock.calls[0]![0].select).toMatchObject({
+    expect(findBy.mock.calls[0]![0].select).toMatchObject({
       onCallDutyPolicyExecutionLog: {
         pageAgainNumber: true,
         acknowledgedAt: true,

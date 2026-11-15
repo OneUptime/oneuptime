@@ -42,6 +42,13 @@
     "errorOnSignUp": "Completa il captcha prima di registrarti."
   },
   "login": {
+    "title": "Accedi al tuo account",
+    "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
+    "sessionEnded": {
+      "lengthReached": "Sei stato disconnesso perché la tua sessione ha raggiunto il limite di tempo. Accedi di nuovo per riprendere da dove avevi lasciato.",
+      "inactive": "Sei stato disconnesso dopo un periodo di inattività. Accedi di nuovo per riprendere da dove avevi lasciato."
+    },
+    "submitButton": "Accedi",
     "passkey": {
       "signIn": "Accedi con una passkey",
       "inProgress": "Completa o annulla l’accesso con passkey prima di usare la password.",
@@ -57,13 +64,6 @@
       "insecure": "Le passkey richiedono una connessione sicura (HTTPS). Puoi comunque accedere con la password o l’SSO.",
       "tryAgain": "Riprova con la passkey"
     },
-    "title": "Accedi al tuo account",
-    "subtitle": "Usa la password, l’SSO della tua organizzazione o una passkey.",
-    "sessionEnded": {
-      "lengthReached": "Sei stato disconnesso perché la tua sessione ha raggiunto il limite di tempo. Accedi di nuovo per riprendere da dove avevi lasciato.",
-      "inactive": "Sei stato disconnesso dopo un periodo di inattività. Accedi di nuovo per riprendere da dove avevi lasciato."
-    },
-    "submitButton": "Accedi",
     "forgotPassword": "Password dimenticata?",
     "signInWithSso": "Accedi con SSO",
     "signInWithMicrosoft": "Accedi con Microsoft",
@@ -397,6 +397,9 @@
   "Copy": "Copia",
   "Copied!": "Copiato!",
   "Copy failed": "Copia non riuscita",
+  "Hide": "Nascondi",
+  "Click to reveal": "Fai clic per mostrare",
+  "Click to copy": "Fai clic per copiare",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Il provisioning SCIM si ferma, la registrazione di audit smette di registrare, la configurazione enterprise diventa di sola lettura e le dashboard di amministrazione enterprise vengono bloccate. Tutto riprende non appena viene attivata una licenza, e il monitoraggio principale non viene mai toccato.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Senza una licenza valida (dopo la prova di {{days}} giorni), il provisioning SCIM si ferma, la registrazione di audit smette di registrare, la configurazione enterprise diventa di sola lettura e le dashboard di amministrazione enterprise vengono bloccate. Tutto riprende non appena viene attivata una licenza, e il monitoraggio principale non viene mai toccato.",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Senza una licenza valida (dopo il periodo di tolleranza di {{days}} giorni), il provisioning SCIM si ferma, la registrazione di audit smette di registrare, la configurazione enterprise diventa di sola lettura e le dashboard di amministrazione enterprise vengono bloccate. Tutto riprende non appena viene attivata una licenza, e il monitoraggio principale non viene mai toccato.",
@@ -607,7 +610,8 @@
   "Click to choose a file or drag & drop.": "Fai clic per scegliere un file o trascinalo qui.",
   "Click to add more or drag & drop.": "Fai clic per aggiungerne altri o trascinali qui.",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "File PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP, fino a {{size}}.",
-  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Fino a 10 file da {{size}} ciascuno: file PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Fino a {{count}} file da {{size}} ciascuno: file PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP.",
+  "Up to {{count}} files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP._one": "Un file fino a {{size}}: file PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP.",
   "Chosen files": "File scelti",
   "Remove": "Rimuovi",
   "Replace": "Sostituisci",
@@ -618,6 +622,7 @@
   "These files are not a type this field takes: {{fileNames}}.": "Questi file non sono di un tipo accettato da questo campo: {{fileNames}}.",
   "Add one file at a time.": "Aggiungi un file alla volta.",
   "This field holds up to {{count}} files. Remove one to add another.": "Questo campo contiene al massimo {{count}} file. Rimuovine uno per aggiungerne un altro.",
+  "This field holds up to {{count}} files. Remove one to add another._one": "Questo campo contiene un solo file. Rimuovilo per aggiungerne un altro.",
   "markdownCallouts": {
     "caution": "Attenzione",
     "danger": "Pericolo",

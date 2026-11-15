@@ -158,6 +158,7 @@ El mensaje cuenta el cambio con las palabras del **Feed** del SLO: el nivel que 
 | **Etiquetas del SLO** | Las etiquetas del SLO: cualquiera de las que elijas, todas o ninguna. |
 | **Nombre del SLO** | El nombre del SLO: igual a tu texto o no, que lo contenga o no, que empiece o termine por él. |
 | **Cambio en la política de presupuesto de errores** | Qué cambió: **Entró en un nivel más grave**, **Se recuperó a un nivel menos grave**, **Salió de todos los niveles**, **Despliegues congelados** o **Despliegues permitidos de nuevo**. |
+| **Propietario del SLO** | Las personas y los equipos registrados como propietarios del SLO: cualquiera de los que elijas, o ninguno. Pertenecer a un equipo propietario del SLO no cuenta. |
 
 Un cambio de nivel que congeló los despliegues, o volvió a permitirlos, es un único mensaje que reúne ambos cambios. Así, una regla para **Despliegues congelados** también publica el cambio por el que el SLO entra en un nivel que los congela: un canal de despliegues se entera de cada congelación.
 

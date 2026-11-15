@@ -807,7 +807,7 @@ For at oprette en fra **Monitorer** i stedet:
 
 En netværksenheds-monitor har intet eget interval: den vurderes, hver gang enhedens pollingresultater ankommer, og hver gang en trap fra enheden ankommer.
 
-Når pollingen stopper, vurderes monitoren stadig. Når en enhed har været tre pollingintervaller, og mindst ti minutter, uden polling, vurderes dens monitorer hvert femte minut som en polling, der ikke kunne nå den: et kriterium, der matcher, at **SNMP-enhed er online** er False, for eksempel **Device unreachable**, udløses, og hændelsen siger, hvorfor der ikke kom nogen polling, for eksempel at sonden er nede, eller at enheden ingen sonde har. En enhed med polling slået fra eller med [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) lades i fred. Den næste polling vurderer monitoren som normalt.
+Når pollingen stopper, vurderes monitoren stadig. Når en enhed har været tre pollingintervaller, og mindst ti minutter, uden polling, vurderes dens monitorer én gang, hver gang pollingen stopper, som en polling, der ikke kunne nå den (et tjek kører hvert femte minut): et kriterium, der matcher, at **SNMP-enhed er online** er False, for eksempel **Device unreachable**, udløses, og hændelsen siger, hvorfor der ikke kom nogen polling, for eksempel at sonden er nede, eller at enheden ingen sonde har. En enhed med polling slået fra eller med [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor) lades i fred. Den næste polling vurderer monitoren som normalt.
 
 ### En enheds hændelser og advarsler
 

@@ -19,13 +19,19 @@ import Timezone from "../../Types/Timezone";
 import DeleteBy from "../Types/Database/DeleteBy";
 import logger from "../Utils/Logger";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
-import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import OnCallChatText from "../Utils/OnCall/OnCallChatText";
+import WorkspaceMessageTime from "../Utils/Workspace/WorkspaceMessageTime";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Permission from "../../Types/Permission";
 import GlobalUserOverrideAccess, {
   GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
   GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
+  GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,
 } from "../../Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
 import CreateScopeException from "../Types/Database/Permissions/CreateScopeException";
 import CallerPermission from "../Utils/Permission/CallerPermission";
@@ -33,6 +39,27 @@ import { UserOverrideAddAccess } from "../../Types/OnCallDutyPolicy/UserOverride
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import CreateLimit from "../Types/Database/CreateLimit";
+import UpdateLimit from "../Types/Database/UpdateLimit";
+import User from "../../Models/DatabaseModels/User";
+import UserOverrideOverlap, {
+  USER_OVERRIDE_CONFLICT_WHAT_TO_DO,
+  UserOverrideSentence,
+  UserOverrideTimes,
+} from "../../Types/OnCallDutyPolicy/UserOverrideOverlap";
+import UserOverrideEdit, {
+  UserOverrideTimesChange,
+} from "../../Types/OnCallDutyPolicy/UserOverrideEdit";
+import { fillTemplate } from "../../Types/Translator";
+import {
+  EntityManager,
+  FindOptionsWhere,
+  In,
+  IsNull,
+  LessThan,
+  MoreThan,
+  Not,
+} from "typeorm";
 
 /*
  * The (project, overridden user, substitute) triple an override names; the
@@ -44,6 +71,80 @@ interface OverrideUserPair {
   overrideUserId: ObjectID;
   routeAlertsToUserId?: ObjectID | undefined;
 }
+
+/*
+ * An override as an edit found it, before the edit: what onUpdateSuccess
+ * says changed in the policy's feed.
+ */
+interface OverrideBeforeEdit {
+  id: string;
+  projectId: ObjectID;
+  onCallDutyPolicyId: ObjectID | null;
+  overrideUserId: ObjectID;
+  routeAlertsToUserId: ObjectID | null;
+  startsAt: Date;
+  endsAt: Date;
+}
+
+// What onBeforeUpdate hands onUpdateSuccess.
+interface OverrideUpdateCarryForward {
+  // The people the overrides named before the edit, for the roster refresh.
+  pairs: Array<OverrideUserPair>;
+  before: Array<OverrideBeforeEdit>;
+}
+
+/*
+ * The lock every add of an override, and every edit of its times, takes in
+ * its project (ProjectLimitLock, through getCreateLimit and getUpdateLimit):
+ * they are decided one after another, each with what the one before it
+ * saved, so two that overlap cannot both be saved (UserOverrideOverlap).
+ */
+export const USER_OVERRIDE_TIMES_LIMIT_NAME: string = "user-override-times";
+
+// What the overlap check reads of an override, through the lock's transaction.
+const OVERLAP_COLUMNS: Record<string, boolean> = {
+  _id: true,
+  projectId: true,
+  onCallDutyPolicyId: true,
+  overrideUserId: true,
+  routeAlertsToUserId: true,
+  startsAt: true,
+  endsAt: true,
+  createdAt: true,
+};
+
+// An id the database handed back, as text: "" for none.
+const idText: (value: unknown) => string = (value: unknown): string => {
+  if (!value) {
+    return "";
+  }
+
+  return value.toString();
+};
+
+/*
+ * How many of the same person's overrides in the way the overlap check
+ * reads, to name the one used first: more than one is in the way only where
+ * overlaps were saved before the rule.
+ */
+const OVERLAP_CONFLICTS_READ: number = 50;
+
+// An override the overlap check read, as UserOverrideOverlap weighs it.
+const toOverlapTimes: (
+  row: OnCallDutyPolicyUserOverride,
+) => UserOverrideTimes = (
+  row: OnCallDutyPolicyUserOverride,
+): UserOverrideTimes => {
+  return {
+    id: idText(row._id) || null,
+    overrideUserId: idText(row.overrideUserId),
+    onCallDutyPolicyId: idText(row.onCallDutyPolicyId) || null,
+    routeAlertsToUserId: idText(row.routeAlertsToUserId) || null,
+    startsAt: OneUptimeDate.fromString(row.startsAt!),
+    endsAt: OneUptimeDate.fromString(row.endsAt!),
+    createdAt: row.createdAt ? OneUptimeDate.fromString(row.createdAt) : null,
+  };
+};
 
 /*
  * The subset of OnCallDutyPolicyScheduleService the override hooks call.
@@ -186,14 +287,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
    * A GLOBAL OVERRIDE TAKES A PERMISSION OVER THE WHOLE PROJECT
    * (GlobalUserOverrideAccess). An override that names no policy applies to
    * every on-call policy, another team's as much as the caller's own, so
-   * adding or deleting one takes the table's permission for it held over
-   * the whole project - not limited to labels or to owned policies, and not
-   * blocked for some labels (issue #5617). OneUptime itself and a master
-   * admin add and delete any: removing a member who leaves deletes theirs.
+   * adding, editing or deleting one takes the table's permission for it
+   * held over the whole project - not limited to labels or to owned
+   * policies, and not blocked for some labels (issue #5617). OneUptime
+   * itself and a master admin add, edit and delete any: removing a member
+   * who leaves deletes theirs.
    */
   private checkGlobalOverrideAccess(
     props: DatabaseCommonInteractionProps,
-    action: "create" | "delete",
+    action: "create" | "update" | "delete",
   ): void {
     if (props.isRoot || props.isMasterAdmin) {
       return;
@@ -201,10 +303,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
     const model: OnCallDutyPolicyUserOverride =
       new OnCallDutyPolicyUserOverride();
-    const permissions: Array<Permission> =
-      (action === "create"
-        ? model.getCreatePermissions()
-        : model.getDeletePermissions()) || [];
+
+    let permissions: Array<Permission> = model.getDeletePermissions() || [];
+
+    if (action === "create") {
+      permissions = model.getCreatePermissions() || [];
+    } else if (action === "update") {
+      permissions = model.getUpdatePermissions() || [];
+    }
 
     if (
       GlobalUserOverrideAccess.mayChange(
@@ -217,6 +323,10 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
 
     if (action === "create") {
       throw new CreateScopeException(GLOBAL_USER_OVERRIDE_ADD_REFUSAL);
+    }
+
+    if (action === "update") {
+      throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_EDIT_REFUSAL);
     }
 
     throw new NotAuthorizedException(GLOBAL_USER_OVERRIDE_DELETE_REFUSAL);
@@ -473,17 +583,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         )
       ).toString();
 
+      const routeAlertsToUserMarkdown: MarkdownText | undefined =
+        routeAlertsToUserId
+          ? await UserService.getUserMarkdownString({
+              userId: routeAlertsToUserId,
+              projectId: projectId!,
+            })
+          : undefined;
+
       /*
        * With a cover, who gets the alerts. Without one - a skip - what
        * happens to the person's turns instead.
        */
-      const what: MarkdownText = routeAlertsToUserId
-        ? mdText`All alerts will be routed to **${await UserService.getUserMarkdownString(
-            {
-              userId: routeAlertsToUserId,
-              projectId: projectId!,
-            },
-          )}** from **${from}**  to **${until}**. `
+      const what: MarkdownText = routeAlertsToUserMarkdown
+        ? mdText`All alerts will be routed to **${routeAlertsToUserMarkdown}** from **${from}**  to **${until}**. `
         : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
 
       await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
@@ -494,6 +607,27 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         displayColor: Gray500,
         feedInfoInMarkdown:
           mdText`🔁 Added a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what}`.toString(),
+        /*
+         * The channels hear it in a line, each moment in its reader's own
+         * zone - not in the time zones of both people, line after line
+         * (issue #7549).
+         */
+        chatInfoInMarkdown:
+          createdItem.startsAt && createdItem.endsAt
+            ? OnCallChatText.overrideAdded({
+                policy: OnCallChatText.policy({
+                  name: onCallPolicyName || "",
+                  link: policyLink,
+                }),
+                person: overrideUserMarkdown,
+                cover: routeAlertsToUserMarkdown,
+                from: createdItem.startsAt,
+                until: createdItem.endsAt,
+                moment: (date: Date): MarkdownText => {
+                  return WorkspaceMessageTime.dateAndTime(date);
+                },
+              }).toString()
+            : undefined,
 
         userId: createdItem.createdByUserId! || undefined,
         workspaceNotification: {
@@ -522,55 +656,467 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
     return createdItem;
   }
 
+  /*
+   * AN OVERRIDE MAY NOT OVERLAP ANOTHER OF THE SAME PERSON IN ITS SCOPE
+   * (issue #7630, UserOverrideOverlap). An add is decided with its INSERT,
+   * under the project's lock on override times, so two adds - or an add and
+   * an edit - that would overlap cannot both pass, each checking before the
+   * other has saved. Asked of every add.
+   */
+  protected override async getCreateLimit(
+    createBy: CreateBy<OnCallDutyPolicyUserOverride>,
+  ): Promise<CreateLimit | null> {
+    const data: OnCallDutyPolicyUserOverride = createBy.data;
+    const projectId: ObjectID | undefined | null =
+      data.projectId || data.project?.id;
+    const overrideUserId: ObjectID | undefined | null =
+      data.overrideUserId || data.overrideUser?.id;
+
+    if (!projectId || !overrideUserId || !data.startsAt || !data.endsAt) {
+      return null;
+    }
+
+    const candidate: UserOverrideTimes = {
+      overrideUserId: overrideUserId.toString(),
+      onCallDutyPolicyId:
+        idText(data.onCallDutyPolicyId || data.onCallDutyPolicy?.id) || null,
+      routeAlertsToUserId:
+        idText(data.routeAlertsToUserId || data.routeAlertsToUser?.id) || null,
+      startsAt: OneUptimeDate.fromString(data.startsAt),
+      endsAt: OneUptimeDate.fromString(data.endsAt),
+    };
+
+    return {
+      limitName: USER_OVERRIDE_TIMES_LIMIT_NAME,
+      projectId: projectId,
+      check: async (manager: EntityManager): Promise<void> => {
+        await this.refuseOverlap({
+          manager: manager,
+          projectId: projectId,
+          candidate: candidate,
+          props: createBy.props,
+        });
+      },
+    };
+  }
+
+  /*
+   * The same for an edit that moves an override's times: each override is
+   * read again under the lock, with its start and end as the edit leaves
+   * them, and written only when they come in order and overlap nothing.
+   * An edit that leaves the times as they are cannot make an overlap, and
+   * takes no lock.
+   */
+  protected override async getUpdateLimit(
+    updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
+  ): Promise<UpdateLimit | null> {
+    const change: UserOverrideTimesChange = this.readTimesChange(updateBy);
+
+    if (!change.startsAt && !change.endsAt) {
+      return null;
+    }
+
+    return {
+      limitName: USER_OVERRIDE_TIMES_LIMIT_NAME,
+      check: async (manager: EntityManager, rowId: ObjectID): Promise<void> => {
+        const rows: Array<OnCallDutyPolicyUserOverride> = await manager
+          .getRepository<OnCallDutyPolicyUserOverride>(this.modelType.name)
+          .find({
+            where: {
+              _id: rowId.toString(),
+            } as FindOptionsWhere<OnCallDutyPolicyUserOverride>,
+            select: OVERLAP_COLUMNS,
+            take: 1,
+          });
+
+        const row: OnCallDutyPolicyUserOverride | undefined = rows[0];
+
+        // Deleted since: the edit writes nothing.
+        if (!row || !row.projectId || !row.overrideUserId) {
+          return;
+        }
+
+        const candidate: UserOverrideTimes = {
+          id: rowId.toString(),
+          overrideUserId: row.overrideUserId.toString(),
+          onCallDutyPolicyId: idText(row.onCallDutyPolicyId) || null,
+          routeAlertsToUserId: idText(row.routeAlertsToUserId) || null,
+          startsAt: change.startsAt || OneUptimeDate.fromString(row.startsAt!),
+          endsAt: change.endsAt || OneUptimeDate.fromString(row.endsAt!),
+        };
+
+        if (!OneUptimeDate.isBefore(candidate.startsAt, candidate.endsAt)) {
+          throw new BadDataException(
+            "An override has to end after it starts. Pick an end time later than its start time.",
+          );
+        }
+
+        await this.refuseOverlap({
+          manager: manager,
+          projectId: row.projectId,
+          candidate: candidate,
+          props: updateBy.props,
+        });
+      },
+    };
+  }
+
+  // The times an update writes, as dates; a time it leaves out stays.
+  private readTimesChange(
+    updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
+  ): UserOverrideTimesChange {
+    const data: Record<string, unknown> = (updateBy.data || {}) as Record<
+      string,
+      unknown
+    >;
+    const change: UserOverrideTimesChange = {};
+
+    if (data["startsAt"]) {
+      change.startsAt = OneUptimeDate.fromString(data["startsAt"] as Date);
+    }
+
+    if (data["endsAt"]) {
+      change.endsAt = OneUptimeDate.fromString(data["endsAt"] as Date);
+    }
+
+    return change;
+  }
+
+  /*
+   * Refuses `candidate` - an override about to be added, or saved with new
+   * times - when another override of the same person, in the same scope,
+   * overlaps it. Read through `manager`: this runs in the write's own
+   * transaction, under the lock (ProjectLimitLock), so the overrides read
+   * are every one saved before it.
+   */
+  private async refuseOverlap(data: {
+    manager: EntityManager;
+    projectId: ObjectID;
+    candidate: UserOverrideTimes;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const where: Record<string, unknown> = {
+      projectId: data.projectId.toString(),
+      overrideUserId: data.candidate.overrideUserId,
+      onCallDutyPolicyId: data.candidate.onCallDutyPolicyId
+        ? data.candidate.onCallDutyPolicyId
+        : IsNull(),
+      // Back to back is no overlap: one that ends as this one starts.
+      startsAt: LessThan(data.candidate.endsAt),
+      endsAt: MoreThan(data.candidate.startsAt),
+    };
+
+    if (data.candidate.id) {
+      where["_id"] = Not(data.candidate.id);
+    }
+
+    const conflicts: Array<OnCallDutyPolicyUserOverride> = await data.manager
+      .getRepository<OnCallDutyPolicyUserOverride>(this.modelType.name)
+      .find({
+        where: where as FindOptionsWhere<OnCallDutyPolicyUserOverride>,
+        select: OVERLAP_COLUMNS,
+        order: {
+          startsAt: "ASC",
+          createdAt: "ASC",
+        },
+        take: OVERLAP_CONFLICTS_READ,
+      });
+
+    /*
+     * Named: the one used first where they overlap (compareUse) - one that
+     * names who covers over a skip, then the one that starts first, then the
+     * one added first - as the dialog's notice and the Overlaps marks name it.
+     */
+    const conflict: OnCallDutyPolicyUserOverride | undefined = [
+      ...conflicts,
+    ].sort(
+      (
+        a: OnCallDutyPolicyUserOverride,
+        b: OnCallDutyPolicyUserOverride,
+      ): number => {
+        return UserOverrideOverlap.compareUse(
+          toOverlapTimes(a),
+          toOverlapTimes(b),
+        );
+      },
+    )[0];
+
+    if (!conflict) {
+      return;
+    }
+
+    throw new BadDataException(
+      await this.getOverlapRefusal({
+        manager: data.manager,
+        conflict: conflict,
+        props: data.props,
+      }),
+    );
+  }
+
+  /*
+   * The refusal of an override that overlaps `conflict`: who is away, who
+   * covers them in it, and when - in the caller's own time zone, or in UTC
+   * for a caller without one (an API key) - then what to do about it. Read
+   * through the write's transaction, as refuseOverlap is.
+   */
+  private async getOverlapRefusal(data: {
+    manager: EntityManager;
+    conflict: OnCallDutyPolicyUserOverride;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<string> {
+    const awayUserId: string = idText(data.conflict.overrideUserId);
+    const coverUserId: string = idText(data.conflict.routeAlertsToUserId);
+    const callerId: string = idText(data.props.userId);
+
+    const userIds: Array<string> = [awayUserId, coverUserId, callerId].filter(
+      (id: string): boolean => {
+        return Boolean(id);
+      },
+    );
+
+    const users: Array<User> = await data.manager
+      .getRepository<User>(User.name)
+      .find({
+        where: {
+          _id: In(userIds),
+        } as FindOptionsWhere<User>,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+          timezone: true,
+        },
+      });
+
+    const findUser: (id: string) => User | undefined = (
+      id: string,
+    ): User | undefined => {
+      return users.find((user: User): boolean => {
+        return Boolean(
+          id && idText(user._id).toLowerCase() === id.toLowerCase(),
+        );
+      });
+    };
+
+    const nameOf: (id: string) => string = (id: string): string => {
+      const user: User | undefined = findUser(id);
+
+      return (
+        user?.name?.toString() || user?.email?.toString() || "Someone else"
+      );
+    };
+
+    const timezone: Timezone =
+      (callerId && findUser(callerId)?.timezone) || Timezone.UTC;
+
+    const sentence: UserOverrideSentence =
+      UserOverrideOverlap.getConflictSentence({
+        conflict: {
+          id: idText(data.conflict._id),
+          overrideUserId: awayUserId,
+          routeAlertsToUserId: coverUserId || null,
+          onCallDutyPolicyId: idText(data.conflict.onCallDutyPolicyId) || null,
+          startsAt: data.conflict.startsAt!,
+          endsAt: data.conflict.endsAt!,
+        },
+        awayName: nameOf(awayUserId),
+        coverName: coverUserId ? nameOf(coverUserId) : "",
+        from: OneUptimeDate.getDateAsFormattedStringInTimezone({
+          date: data.conflict.startsAt!,
+          timezone: timezone,
+        }),
+        until: OneUptimeDate.getDateAsFormattedStringInTimezone({
+          date: data.conflict.endsAt!,
+          timezone: timezone,
+        }),
+      });
+
+    return `${fillTemplate(sentence.template, sentence.values)} ${USER_OVERRIDE_CONFLICT_WHAT_TO_DO}`;
+  }
+
+  /*
+   * AN OVERRIDE'S TIMES AND WHO COVERS CAN BE CHANGED (issue #7631,
+   * UserOverrideEdit): who covers until it ends, its start until it
+   * starts, its end until it ends, and a moved time never to the past. One
+   * that has ended stays as it was. Who is away and its policy are never
+   * changed (their columns take no update).
+   *
+   * Each override the edit changes is read as it is now - and the edit held
+   * to them - to hold the edit to those rules, and so onUpdateSuccess can
+   * refresh the schedules of the people they named before the edit (audit
+   * M2) and say in the policy's feed what changed.
+   */
   @CaptureSpan()
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
   ): Promise<OnUpdate<OnCallDutyPolicyUserOverride>> {
     await super.onBeforeUpdate(updateBy);
 
-    /*
-     * Capture each affected override's PRE-update project + overrideUserId so
-     * onUpdateSuccess can also refresh the OLD user's schedules. onUpdateSuccess
-     * otherwise only sees the post-update overrideUserId; when an edit changes
-     * overrideUserId from A to A2, schedules that contained A (but not A2) would
-     * keep showing the substitute forever — until the next natural handoff the
-     * cron happens to re-select — because refreshRostersForUserInProject selects
-     * schedules by the NEW user only (audit M2). Mirrors the onBeforeDelete
-     * carry-forward pattern used by the delete path.
-     */
-    const previous: Array<OverrideUserPair> = [];
+    const rows: Array<OnCallDutyPolicyUserOverride> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, {
+        projectId: true,
+        onCallDutyPolicyId: true,
+        overrideUserId: true,
+        routeAlertsToUserId: true,
+        startsAt: true,
+        endsAt: true,
+      });
 
-    try {
-      const rows: Array<OnCallDutyPolicyUserOverride> =
-        await this.findRowsAndHoldUpdateToThem(updateBy, {
-          projectId: true,
-          overrideUserId: true,
-          routeAlertsToUserId: true,
-        });
+    // A global override among them: the edit takes a project-wide grant.
+    if (
+      rows.some((row: OnCallDutyPolicyUserOverride): boolean => {
+        return !(row.onCallDutyPolicyId || row.onCallDutyPolicy?.id);
+      })
+    ) {
+      this.checkGlobalOverrideAccess(updateBy.props, "update");
+    }
 
-      for (const row of rows) {
-        const projectId: ObjectID | undefined | null =
-          row.projectId || row.project?.id;
-        const overrideUserId: ObjectID | undefined | null =
-          row.overrideUserId || row.overrideUser?.id;
-        const routeAlertsToUserId: ObjectID | undefined | null =
-          row.routeAlertsToUserId || row.routeAlertsToUser?.id;
-        if (projectId && overrideUserId) {
-          previous.push({
-            projectId,
-            overrideUserId,
-            routeAlertsToUserId: routeAlertsToUserId || undefined,
-          });
-        }
+    this.checkEdit(updateBy, rows);
+
+    const carryForward: OverrideUpdateCarryForward = {
+      pairs: [],
+      before: [],
+    };
+
+    for (const row of rows) {
+      const projectId: ObjectID | undefined | null =
+        row.projectId || row.project?.id;
+      const overrideUserId: ObjectID | undefined | null =
+        row.overrideUserId || row.overrideUser?.id;
+      const routeAlertsToUserId: ObjectID | undefined | null =
+        row.routeAlertsToUserId || row.routeAlertsToUser?.id;
+
+      if (!projectId || !overrideUserId) {
+        continue;
       }
-    } catch (err) {
-      logger.error(err);
+
+      carryForward.pairs.push({
+        projectId,
+        overrideUserId,
+        routeAlertsToUserId: routeAlertsToUserId || undefined,
+      });
+
+      if (row.id && row.startsAt && row.endsAt) {
+        carryForward.before.push({
+          id: row.id.toString(),
+          projectId: projectId,
+          onCallDutyPolicyId:
+            row.onCallDutyPolicyId || row.onCallDutyPolicy?.id || null,
+          overrideUserId: overrideUserId,
+          routeAlertsToUserId: routeAlertsToUserId || null,
+          startsAt: OneUptimeDate.fromString(row.startsAt),
+          endsAt: OneUptimeDate.fromString(row.endsAt),
+        });
+      }
     }
 
     return {
       updateBy,
-      carryForward: previous,
+      carryForward: carryForward,
     };
+  }
+
+  /*
+   * Holds an edit of `rows` to what may change (UserOverrideEdit), at the
+   * minute it is made. A time sent back as it is - to the minute, for every
+   * override the edit changes - is left as it was saved, so a form that
+   * sends every field changes only what was changed in it.
+   */
+  private checkEdit(
+    updateBy: UpdateBy<OnCallDutyPolicyUserOverride>,
+    rows: Array<OnCallDutyPolicyUserOverride>,
+  ): void {
+    const data: Record<string, unknown> = (updateBy.data || {}) as Record<
+      string,
+      unknown
+    >;
+
+    // A time can be moved, never taken away: an override has both.
+    for (const key of ["startsAt", "endsAt"]) {
+      if (key in data && data[key] !== undefined && !data[key]) {
+        throw new BadDataException(
+          "An override always has a start time and an end time, so neither can be removed. Pick another time instead.",
+        );
+      }
+    }
+
+    const change: UserOverrideTimesChange = this.readTimesChange(updateBy);
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    // Who covers, when the edit names somebody: never the person away.
+    const coverUserId: ObjectID | null = RelationIdUtil.readConsistent(
+      data,
+      ["routeAlertsToUserId", "routeAlertsToUser"],
+      "Route Alerts To User",
+    );
+
+    for (const row of rows) {
+      if (!row.startsAt || !row.endsAt) {
+        continue;
+      }
+
+      const saved: { startsAt: Date; endsAt: Date } = {
+        startsAt: OneUptimeDate.fromString(row.startsAt),
+        endsAt: OneUptimeDate.fromString(row.endsAt),
+      };
+
+      const refusal: string | null = UserOverrideEdit.getRefusal({
+        saved: saved,
+        change: change,
+        now: now,
+      });
+
+      if (refusal) {
+        throw new BadDataException(refusal);
+      }
+
+      // With the time the edit leaves as it is, as the add holds it.
+      if (
+        !OneUptimeDate.isBefore(
+          change.startsAt || saved.startsAt,
+          change.endsAt || saved.endsAt,
+        )
+      ) {
+        throw new BadDataException(
+          "An override has to end after it starts. Pick an end time later than its start time.",
+        );
+      }
+
+      const overrideUserId: ObjectID | undefined | null =
+        row.overrideUserId || row.overrideUser?.id;
+
+      if (
+        coverUserId &&
+        overrideUserId &&
+        coverUserId.toString().toLowerCase() ===
+          overrideUserId.toString().toLowerCase()
+      ) {
+        throw new BadDataException(
+          "The person who is away cannot cover for themselves. Pick someone else to cover, or nobody, to skip them in the rotation.",
+        );
+      }
+    }
+
+    for (const key of ["startsAt", "endsAt"] as const) {
+      const sent: Date | undefined = change[key];
+
+      if (
+        sent &&
+        rows.length > 0 &&
+        rows.every((row: OnCallDutyPolicyUserOverride): boolean => {
+          return Boolean(
+            row[key] &&
+              UserOverrideEdit.isSameMinute(
+                sent,
+                OneUptimeDate.fromString(row[key]!),
+              ),
+          );
+        })
+      ) {
+        delete data[key];
+      }
+    }
   }
 
   @CaptureSpan()
@@ -606,9 +1152,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
       await this.refreshRostersForOverrideUser({ projectId, overrideUserId });
     };
 
+    const carryForward: OverrideUpdateCarryForward = (onUpdate.carryForward as
+      | OverrideUpdateCarryForward
+      | undefined) || { pairs: [], before: [] };
+
     // OLD override users captured before the update.
-    const previous: Array<OverrideUserPair> =
-      (onUpdate.carryForward as Array<OverrideUserPair>) || [];
+    const previous: Array<OverrideUserPair> = carryForward.pairs || [];
 
     // Everyone the edit touched, old and new, for the feed / reminder pass.
     const affectedPairs: Array<OverrideUserPair> = [...previous];
@@ -623,8 +1172,11 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         id: id,
         select: {
           projectId: true,
+          onCallDutyPolicyId: true,
           overrideUserId: true,
           routeAlertsToUserId: true,
+          startsAt: true,
+          endsAt: true,
         },
         props: {
           isRoot: true,
@@ -651,11 +1203,190 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
           routeAlertsToUserId: newRouteAlertsToUserId || undefined,
         });
       }
+
+      const before: OverrideBeforeEdit | undefined = (
+        carryForward.before || []
+      ).find((entry: OverrideBeforeEdit): boolean => {
+        return entry.id.toLowerCase() === id.toString().toLowerCase();
+      });
+
+      if (before) {
+        await this.addChangedFeedItem({
+          before: before,
+          after: item,
+          userId: onUpdate.updateBy.props.userId,
+        });
+      }
     }
 
     await this.propagateShiftChangeForOverrides(affectedPairs);
 
     return onUpdate;
+  }
+
+  /*
+   * One entry in an on-call policy's feed - and one message in the chat
+   * channels it posts to - for an edit of one of its overrides: what it is
+   * now, then what changed and what it was. Global overrides belong to no
+   * policy's feed, as when they are added and removed. An edit that changed
+   * nothing says nothing. Best-effort: never throws into the edit.
+   */
+  private async addChangedFeedItem(data: {
+    before: OverrideBeforeEdit;
+    after: OnCallDutyPolicyUserOverride;
+    userId?: ObjectID | undefined;
+  }): Promise<void> {
+    const before: OverrideBeforeEdit = data.before;
+    const after: OnCallDutyPolicyUserOverride = data.after;
+
+    const onCallDutyPolicyId: ObjectID | null = before.onCallDutyPolicyId;
+
+    if (!onCallDutyPolicyId || !after.startsAt || !after.endsAt) {
+      return;
+    }
+
+    const afterCoverId: string = idText(after.routeAlertsToUserId);
+    const beforeCoverId: string = idText(before.routeAlertsToUserId);
+    const afterStartsAt: Date = OneUptimeDate.fromString(after.startsAt);
+    const afterEndsAt: Date = OneUptimeDate.fromString(after.endsAt);
+
+    const isCoverChanged: boolean =
+      afterCoverId.toLowerCase() !== beforeCoverId.toLowerCase();
+    const isStartChanged: boolean =
+      afterStartsAt.getTime() !== before.startsAt.getTime();
+    const isEndChanged: boolean =
+      afterEndsAt.getTime() !== before.endsAt.getTime();
+
+    if (!isCoverChanged && !isStartChanged && !isEndChanged) {
+      return;
+    }
+
+    try {
+      const projectId: ObjectID = before.projectId;
+      const overrideUserId: ObjectID = before.overrideUserId;
+
+      const onCallPolicyName: string | null =
+        await OnCallDutyPolicyService.getOnCallDutyPolicyName({
+          onCallDutyPolicyId: onCallDutyPolicyId,
+        });
+
+      const timezones: Array<Timezone> = [];
+
+      for (const userId of [overrideUserId.toString(), afterCoverId]) {
+        if (!userId) {
+          continue;
+        }
+
+        const timezone: Timezone | null = await UserService.getTimezoneForUser(
+          new ObjectID(userId),
+        );
+
+        if (timezone) {
+          timezones.push(timezone);
+        }
+      }
+
+      const inTimezones: (date: Date) => string = (date: Date): string => {
+        return OneUptimeDate.getDateAsFormattedStringInMultipleTimezones({
+          date: date,
+          timezones: timezones,
+        });
+      };
+
+      const personMarkdown: (userId: string) => Promise<MarkdownText> = async (
+        userId: string,
+      ): Promise<MarkdownText> => {
+        return await UserService.getUserMarkdownString({
+          userId: new ObjectID(userId),
+          projectId: projectId,
+        });
+      };
+
+      const from: string = inTimezones(afterStartsAt);
+      const until: string = inTimezones(afterEndsAt);
+
+      const overrideUserMarkdown: MarkdownText = await personMarkdown(
+        overrideUserId.toString(),
+      );
+
+      // Who covers now; none when their turns pass to the next person.
+      const coverMarkdown: MarkdownText | undefined = afterCoverId
+        ? await personMarkdown(afterCoverId)
+        : undefined;
+
+      // What it is now, as the add says it.
+      const what: MarkdownText = coverMarkdown
+        ? mdText`All alerts will be routed to **${coverMarkdown}** from **${from}** to **${until}**.`
+        : mdText`Nobody is named to cover, so from **${from}** to **${until}** each of their turns goes to the next person in the rotation, and they are not paged.`;
+
+      // And what it was.
+      const changes: Array<MarkdownText> = [];
+
+      if (isCoverChanged) {
+        changes.push(
+          beforeCoverId
+            ? mdText`who covers (it was **${await personMarkdown(beforeCoverId)}**)`
+            : mdText`who covers (it was the next person in the rotation)`,
+        );
+      }
+
+      if (isStartChanged) {
+        changes.push(
+          mdText`when it starts (it was **${inTimezones(before.startsAt)}**)`,
+        );
+      }
+
+      if (isEndChanged) {
+        changes.push(
+          mdText`when it ends (it was **${inTimezones(before.endsAt)}**)`,
+        );
+      }
+
+      const policyLink: string = (
+        await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+          projectId,
+          onCallDutyPolicyId,
+        )
+      ).toString();
+
+      await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        projectId: projectId,
+        onCallDutyPolicyFeedEventType:
+          OnCallDutyPolicyFeedEventType.UserOverrideChanged,
+        displayColor: Gray500,
+        feedInfoInMarkdown:
+          mdText`✏️ Changed a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). ${what} Changed: ${FeedMarkdown.join(changes, "; ")}.`.toString(),
+        /*
+         * The channels hear the override as it is now, in a line, each
+         * moment in its reader's own zone, as they hear one added (issue
+         * #7549). What it was stays in the policy's feed.
+         */
+        chatInfoInMarkdown: OnCallChatText.overrideChanged({
+          policy: OnCallChatText.policy({
+            name: onCallPolicyName || "",
+            link: policyLink,
+          }),
+          person: overrideUserMarkdown,
+          cover: coverMarkdown,
+          from: afterStartsAt,
+          until: afterEndsAt,
+          moment: (date: Date): MarkdownText => {
+            return WorkspaceMessageTime.dateAndTime(date);
+          },
+        }).toString(),
+        userId: data.userId || undefined,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          leadWithAuthor: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Error adding a user override change to the policy feed (best-effort).",
+      );
+      logger.error(err);
+    }
   }
 
   @CaptureSpan()
@@ -761,6 +1492,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
         const deleteByUserId: ObjectID | undefined | null =
           deleteBy.props.userId;
 
+        const overrideUserMarkdown: MarkdownText =
+          await UserService.getUserMarkdownString({
+            userId: overrideUserId,
+            projectId: projectId!,
+          });
+
+        const policyLink: string = (
+          await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
+            projectId!,
+            onCallDutyPolicyId!,
+          )
+        ).toString();
+
         await OnCallDutyPolicyFeedService.createOnCallDutyPolicyFeedItem({
           onCallDutyPolicyId: onCallDutyPolicyId,
           projectId: projectId!,
@@ -768,17 +1512,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicyUserOverri
             OnCallDutyPolicyFeedEventType.UserOverrideRemoved,
           displayColor: Gray500,
           feedInfoInMarkdown:
-            mdText`❌ Removed a User Override Rule for user **${await UserService.getUserMarkdownString(
-              {
-                userId: overrideUserId,
-                projectId: projectId!,
-              },
-            )}** for the [On-Call Policy ${onCallPolicyName}](${(await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(projectId!, onCallDutyPolicyId!)).toString()}). All alerts will be routed back to **${await UserService.getUserMarkdownString(
-              {
-                userId: overrideUserId,
-                projectId: projectId!,
-              },
-            )}**`.toString(),
+            mdText`❌ Removed a User Override Rule for user **${overrideUserMarkdown}** for the [On-Call Policy ${onCallPolicyName}](${policyLink}). All alerts will be routed back to **${overrideUserMarkdown}**`.toString(),
+          chatInfoInMarkdown: OnCallChatText.overrideRemoved({
+            policy: OnCallChatText.policy({
+              name: onCallPolicyName || "",
+              link: policyLink,
+            }),
+            person: overrideUserMarkdown,
+          }).toString(),
           userId: deleteByUserId || undefined,
           workspaceNotification: {
             sendWorkspaceNotification: true,

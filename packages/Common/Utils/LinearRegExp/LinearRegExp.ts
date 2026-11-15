@@ -452,7 +452,13 @@ export default class LinearRegExp {
     const index: number = slots[0]!;
     const end: number = slots[1]!;
     const captures: Array<string | undefined> = [];
-    const groups: Record<string, string | undefined> = {};
+    /*
+     * With no prototype, as JavaScript's own: a group may be named
+     * constructor or toString, and a name no group has reads undefined.
+     */
+    const groups: Record<string, string | undefined> = Object.create(
+      null,
+    ) as Record<string, string | undefined>;
 
     if (this.capturesGroups) {
       for (

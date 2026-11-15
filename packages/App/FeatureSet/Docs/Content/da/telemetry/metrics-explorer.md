@@ -23,11 +23,12 @@ flowchart TB
     chart --> dash["En dashboard-widget"]
 ```
 
-Udforskeren har fem faner:
+Udforskeren har seks faner:
 
 | Fane | Hvad den bruges til |
 | --- | --- |
 | **Seer** | Listen over metrikker, hver med et lille diagram og sin seneste værdi. Den åbner på den seneste time. |
+| **PromQL** | Forespørg dine metrikker med PromQL, Prometheus' forespørgselssprog, og forbind Grafana til dem. Se [Forespørg metrikker med PromQL](/docs/telemetry/promql). |
 | **Indsigter** | Hvilke tjenester der rapporterer metrikker, og hvor mange. |
 | **AI** | De problemer, OneUptime finder i dine metrikker (for mange værdier, histogram-buckets, der ikke passer, manglende metrikker), og hvad OneUptime AI gjorde ved dem. Se [Forbedr metrikker og tilføj de manglende med AI](#forbedr-metrikker-og-tilføj-de-manglende-med-ai). |
 | **Opsætningsvejledning** | Sådan sender du metrikker med OpenTelemetry med en af dine indtagelsesnøgler. |

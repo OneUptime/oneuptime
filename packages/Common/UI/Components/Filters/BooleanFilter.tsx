@@ -54,6 +54,8 @@ const BooleanFilter: BooleanFilterFunction = <T extends GenericObject>(
           }
         }}
         placeholder={getFilterPlaceholder(translator, filter.title)}
+        // "Filter by {{field}}", in the reader's words here.
+        isPlaceholderTranslated={true}
         className="relative rounded-md w-full overflow-visible"
       />
     );

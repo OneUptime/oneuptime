@@ -217,6 +217,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           : []),
         {
           link: {
+            title: "AI Results",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_RESULTS] as Route,
+            ),
+          },
+          icon: IconProp.ArrowTrendingUp,
+        },
+        {
+          link: {
             title: "AI Logs",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_AI_LOGS] as Route,

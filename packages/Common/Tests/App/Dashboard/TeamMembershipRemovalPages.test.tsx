@@ -27,7 +27,8 @@ import { MemoryRouter } from "react-router-dom";
  * TeamMembershipRemoval.test.ts pins the words. This file pins that each page
  * actually asks for them - a dropped prop brings the blank dialog straight
  * back with every unit test still green - and that the Teams tab leaves the
- * page once the user is gone.
+ * page once the user is gone. It also pins that the Teams tab's Team filter
+ * offers teams (#7820), and what its card says (#7851).
  */
 
 jest.mock("../../../UI/Utils/Permission", () => {
@@ -83,6 +84,12 @@ jest.mock("../../../UI/Utils/Translation", () => {
  * the table, and what those callbacks do when the table calls them.
  */
 type CapturedTableProps = {
+  cardProps?:
+    | {
+        title?: string | undefined;
+        description?: string | undefined;
+      }
+    | undefined;
   deleteButtonText?: string | undefined;
   getDeleteConfirmation?:
     | ((item: TeamMember) => Promise<DeleteConfirmation>)
@@ -93,6 +100,7 @@ type CapturedTableProps = {
         deleteConfirmationWarning?: string | undefined;
       }
     | undefined;
+  filters?: Array<Filter<TeamMember>> | undefined;
 };
 
 let capturedTableProps: CapturedTableProps | null = null;
@@ -115,6 +123,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { DeleteConfirmation } from "../../../UI/Components/ModelTable/BaseModelTable";
+import Filter from "../../../UI/Components/ModelFilter/Filter";
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -129,6 +138,11 @@ import Route from "../../../Types/API/Route";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+  isWordedInDashboardLocale,
+} from "../../Helpers/DashboardLocales";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "00000000-0000-4000-8000-000000000001",
@@ -315,6 +329,69 @@ describe("Users > View User > Teams", () => {
     expect(confirmation.description).toContain(
       "so they will also be removed from the project",
     );
+  });
+
+  /*
+   * #7820: the Team filter fetched its options with the people fetcher of the
+   * User filter on a team's Members page, so its menu listed the project's
+   * people, and picking one filtered the memberships by a person's id as if
+   * it were a team's: an empty table. A filter's own fetcher replaces the
+   * table's read of its filterEntityType (BaseModelTable); without one, the
+   * table lists the project's teams, by name and id.
+   */
+  test("offers the project's teams in its Team filter, not its people", () => {
+    const teamFilter: Filter<TeamMember> | undefined =
+      capturedTableProps!.filters?.find(
+        (filter: Filter<TeamMember>): boolean => {
+          return Object.keys(filter.field)[0] === "team";
+        },
+      );
+
+    expect(teamFilter).toBeDefined();
+    expect(teamFilter!.fetchFilterDropdownOptions).toBeUndefined();
+    expect(teamFilter!.filterEntityType).toBe(Team);
+    expect(teamFilter!.filterDropdownField).toEqual({
+      label: "name",
+      value: "_id",
+    });
+  });
+
+  /*
+   * #7851: the card said "See a list of teams this user is a members of."
+   * The English sentence is also the key every locale file translates, so
+   * the corrected sentence is the key now, and each language's words, which
+   * were right all along, moved to it.
+   */
+  describe("its card", () => {
+    const DESCRIPTION: string = "See a list of teams this user is a member of.";
+
+    test("lists the teams this user is a member of", () => {
+      expect(capturedTableProps!.cardProps).toEqual({
+        title: "Teams",
+        description: DESCRIPTION,
+      });
+    });
+
+    test("says so in every language, in the words each one had", () => {
+      expect(
+        DASHBOARD_LANGUAGES.filter((language: string): boolean => {
+          return !isWordedInDashboardLocale(DESCRIPTION, language);
+        }),
+      ).toEqual([]);
+
+      expect(dashboardTranslator("en").translateText(DESCRIPTION)).toBe(
+        DESCRIPTION,
+      );
+      expect(dashboardTranslator("de").translateText(DESCRIPTION)).toBe(
+        "Sehen Sie eine Liste der Teams, denen dieser Benutzer angehört.",
+      );
+      expect(dashboardTranslator("fr").translateText(DESCRIPTION)).toBe(
+        "Consultez la liste des équipes dont cet utilisateur est membre.",
+      );
+      expect(dashboardTranslator("fa").translateText(DESCRIPTION)).toBe(
+        "فهرست تیم‌هایی را که این کاربر عضو آن‌هاست ببینید.",
+      );
+    });
   });
 
   describe("after a removal", () => {

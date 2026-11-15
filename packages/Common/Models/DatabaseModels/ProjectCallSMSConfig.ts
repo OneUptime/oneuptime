@@ -9,6 +9,7 @@ import TableBillingAccessControl from "../../Types/Database/AccessControl/TableB
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -33,6 +34,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: PlanType.Growth,
   delete: PlanType.Growth,
 })
+@EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [
@@ -68,7 +70,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "Call and SMS Config",
   pluralName: "Call and SMS Configs",
   icon: IconProp.Email,
-  tableDescription: "Manage Custom SMTP Servers for your project",
+  tableDescription:
+    "A project's own Twilio account. The project's default accounts send the SMS and make the calls to its team members instead of OneUptime's own. A status page can name one for the SMS to its subscribers, and an incoming call policy one for its calls.",
 })
 @Entity({
   name: "ProjectCallSMSConfig",

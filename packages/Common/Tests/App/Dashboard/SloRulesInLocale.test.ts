@@ -121,6 +121,8 @@ describe("an SLO rule's words, in every language", () => {
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      // Who owns the SLO (#7583): the people and teams on its list of owners.
+      "SLO Owner",
       "Entered a more severe tier",
       "Recovered to a less severe tier",
       "Left every tier",

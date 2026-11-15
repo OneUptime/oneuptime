@@ -18,6 +18,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
 import { ON_CALL_DIRECT_PAGE_ACKNOWLEDGE_WAIT_IN_MINUTES } from "../../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallPersonPage } from "../../../../../Types/OnCallDutyPolicy/OnCallPersonPage";
+import { isOnCallPolicyStartedByHand } from "../../../../../Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../../Utils/API";
@@ -322,6 +323,104 @@ describe("a person's page that nobody it paged answers", () => {
 
     expect(lines(pageMessageNow())[0]).toBe(told);
     expect(alarms()).toHaveLength(1);
+  });
+});
+
+/*
+ * A POLICY JANE STARTED BY HAND (OnCallPolicyStartedByHand, issue #7596).
+ *
+ * Jane presses Execute On-Call Policy on INC-8 for PolicyX. Like a page she
+ * asked for, it goes on until somebody it paged answers - so when it has
+ * been through every rule with nobody answering while somebody else is on
+ * the incident, the page went unanswered: the alarm tells Jane to page
+ * someone else, not that somebody needs to take an incident that is taken.
+ * A policy OneUptime started itself ends as it always did.
+ */
+describe("a policy Jane started by hand that nobody it paged answers", () => {
+  // Its message: the one post with the run's footer, as it stands now.
+  function policyMessageNow(): SlackRequest {
+    const posted: Array<SlackRequest> = posts().filter(
+      (post: SlackRequest): boolean => {
+        return (
+          post.text.indexOf("PolicyX") !== -1 && post.text.indexOf("⚠️") !== 0
+        );
+      },
+    );
+
+    expect(posted).toHaveLength(1);
+
+    const edits: Array<SlackRequest> = requests.filter(
+      (request: SlackRequest): boolean => {
+        return request.method === "chat.update" && request.ts === posted[0]!.ts;
+      },
+    );
+
+    return edits[edits.length - 1] || posted[0]!;
+  }
+
+  // Rules "second" and "third", the repeat, and "second" and "third" again.
+  async function goThroughEveryRule(): Promise<void> {
+    for (let tick: number = 0; tick < 4; tick++) {
+      await world.escalate();
+    }
+
+    expect(world.run!.status).toBe(OnCallDutyPolicyStatus.Completed);
+  }
+
+  test("about an incident somebody else is on: the page went unanswered - one alarm says to page someone else", async () => {
+    world.recordAcknowledged = true;
+    world.recordStateName = "Acknowledged";
+
+    await world.startRun({ startedByUserId: JANE });
+
+    expect(isOnCallPolicyStartedByHand(world.run!)).toBe(true);
+
+    await goThroughEveryRule();
+
+    const headline: string = lines(policyMessageNow())[0]!;
+
+    expect(headline.startsWith("⚠️ Nobody answered the page from *<")).toBe(
+      true,
+    );
+    expect(headline.endsWith(`|PolicyX>* for ${INCIDENT_IN_SLACK}`)).toBe(true);
+
+    expect(alarms()).toHaveLength(1);
+    expect(alarms()[0]!.text).toContain(
+      `⚠️ Nobody answered the page for ${INCIDENT_IN_SLACK}: `,
+    );
+    expect(alarms()[0]!.text).toContain(
+      "and paging has stopped. Page someone else, or reach them another way.",
+    );
+    expect(alarms()[0]!.text).not.toContain("Someone needs to take it");
+    expect(alarms()[0]!.notification).toBe(
+      "Nobody answered the page from PolicyX for Incident INC-8",
+    );
+  });
+
+  test("about an incident nobody is on: somebody needs to take it, as for any policy", async () => {
+    await world.startRun({ startedByUserId: JANE });
+    await goThroughEveryRule();
+
+    expect(alarms()).toHaveLength(1);
+    expect(alarms()[0]!.text).toContain(
+      `⚠️ Nobody has acknowledged ${INCIDENT_IN_SLACK}.`,
+    );
+    expect(alarms()[0]!.text).toContain("Someone needs to take it.");
+  });
+
+  test("a policy OneUptime started itself, ended the same way: 'nobody acknowledged', as it always was", async () => {
+    world.recordAcknowledged = true;
+
+    await world.startRun();
+
+    expect(isOnCallPolicyStartedByHand(world.run!)).toBe(false);
+
+    await goThroughEveryRule();
+
+    expect(alarms()).toHaveLength(1);
+    expect(alarms()[0]!.text).toContain(
+      `⚠️ Nobody has acknowledged ${INCIDENT_IN_SLACK}.`,
+    );
   });
 });
 

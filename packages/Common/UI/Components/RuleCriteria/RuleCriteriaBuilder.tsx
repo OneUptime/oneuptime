@@ -316,7 +316,10 @@ const RuleCriteriaBuilder: <TEntity>(
     problem: string | null,
   ): ReactElement => {
     const isMultiSelect: boolean = isRuleCriteriaArrayOperator(filter.operator);
-    // Dropdown and Input translate their own placeholder; EntityDropdown does not.
+    /*
+     * In English: Dropdown, EntityDropdown and Input each look their
+     * placeholder up, once (#7682).
+     */
     const placeholder: string = getRuleCriteriaValuePlaceholder(
       field,
       filter.operator,
@@ -349,7 +352,7 @@ const RuleCriteriaBuilder: <TEntity>(
           valueField={field.dropdownModal.valueField}
           isMultiSelect={isMultiSelect}
           value={filter.value}
-          placeholder={tx(placeholder)}
+          placeholder={placeholder}
           error={error}
           onChange={(
             value: DropdownValue | Array<DropdownValue> | null,

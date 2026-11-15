@@ -160,6 +160,10 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
                 })
               : undefined
           }
+          /*
+           * The field's own placeholder is English, for Dropdown to look up;
+           * the sentence around its label is worded here (#7682).
+           */
           placeholder={
             fieldDefinition.valuePlaceholder ||
             translator.translateTemplate("Select {{field}}...", {
@@ -168,6 +172,7 @@ const FilterConditionElement: FunctionComponent<ComponentProps> = (
               }),
             })
           }
+          isPlaceholderTranslated={!fieldDefinition.valuePlaceholder}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({
               ...condition,

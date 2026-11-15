@@ -175,6 +175,8 @@ describe("getUnitNameInLanguage", () => {
     ["ru", "By/s", "Байты/секунда"],
     ["fa", "By/s", "بایت بر ثانیه"],
     ["it", "By/s", "Byte/secondo"],
+    // Danish shortens "per" to "pr.", whose full stop ends no sentence.
+    ["da", "By/s", "Byte pr. sekund"],
   ])("%s writes %s as %s", (language: string, unit: string, name: string) => {
     expect(getUnitNameInLanguage(unit, translatorFor(language))).toBe(name);
   });

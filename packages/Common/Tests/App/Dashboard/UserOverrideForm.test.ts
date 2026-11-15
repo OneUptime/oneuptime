@@ -360,9 +360,11 @@ describe("the two people pickers", () => {
   test("the fields use these pickers", () => {
     const list: Array<OverrideField> = fields(ALEX);
 
-    expect(byTitle(list, "Who is away?").peoplePicker).toEqual(
-      getUserOverrideAwayPickerConfig(),
-    );
+    // Adding, who is away is picked: shown alone only when an override is edited.
+    expect(byTitle(list, "Who is away?").peoplePicker).toEqual({
+      ...getUserOverrideAwayPickerConfig(),
+      isReadOnly: false,
+    });
     expect(byTitle(list, "Who covers?").peoplePicker).toEqual(
       getUserOverrideCoverPickerConfig(),
     );
@@ -474,7 +476,10 @@ describe("what the form refuses", () => {
     expect(byTitle(list, "Who covers?").customValidation?.(values)).toBe(
       USER_OVERRIDE_SAME_PERSON_MESSAGE,
     );
-    expect(byTitle(list, "Starts").customValidation).toBeUndefined();
+    // Adding, Starts has nothing of its own to check: only an edit's start is held.
+    expect(byTitle(list, "Starts").customValidation?.(values) ?? null).toBe(
+      null,
+    );
     expect(byTitle(list, "Ends").customValidation?.(values)).toBe(
       USER_OVERRIDE_ENDS_BEFORE_START_MESSAGE,
     );

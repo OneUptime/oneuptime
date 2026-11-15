@@ -260,7 +260,7 @@ describe("a rule going back to one condition", () => {
      * change up onto the rule as it was before Any, putting All back.
      */
     await user.click(
-      screen.getAllByRole("button", { name: "Delete Filter" })[1]!,
+      screen.getByRole("button", { name: "Remove condition 2" }),
     );
     await settle();
 
@@ -284,7 +284,7 @@ describe("a rule going back to one condition", () => {
     ).toEqual(["first", "second"]);
 
     await user.click(
-      screen.getAllByRole("button", { name: "Delete Filter" })[0]!,
+      screen.getByRole("button", { name: "Remove condition 1" }),
     );
     await settle();
 
@@ -310,7 +310,7 @@ describe("a rule going back to one condition", () => {
     );
 
     await user.click(
-      screen.getAllByRole("button", { name: "Delete Filter" })[0]!,
+      screen.getByRole("button", { name: "Remove condition 1" }),
     );
     await settle();
 

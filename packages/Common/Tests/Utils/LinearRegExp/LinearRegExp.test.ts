@@ -134,6 +134,21 @@ describe("what it answers", () => {
     expect(match?.groups).toEqual({ word: "checkout", number: undefined });
   });
 
+  test("a group may be named as an Object member, and a name no group has reads undefined, as in JavaScript", () => {
+    const pattern: string = "(?<constructor>a)|(?<toString>b)";
+    const match: LinearRegExpMatch | null = linear(pattern).exec("a");
+    const expected: Record<string, string | undefined> | undefined = new RegExp(
+      pattern,
+    ).exec("a")?.groups;
+
+    expect(match?.groups["constructor"]).toBe("a");
+    expect(match?.groups["toString"]).toBeUndefined();
+    expect(match?.groups["valueOf"]).toBeUndefined();
+    expect(expected?.["constructor"]).toBe("a");
+    expect(expected?.["valueOf"]).toBeUndefined();
+    expect(match?.groups).toEqual({ ...expected });
+  });
+
   test("a group name used twice gives the value of the one that took part", () => {
     const pattern: string = "(?<side>left)|(?<side>right)";
     const match: LinearRegExpMatch | null = linear(pattern).exec("right");

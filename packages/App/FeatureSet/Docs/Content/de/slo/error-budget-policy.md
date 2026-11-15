@@ -158,6 +158,7 @@ Die Nachricht beschreibt die Änderung so, wie der **Feed** des SLO sie beschrei
 | **SLO-Beschriftungen** | Die Beschriftungen des SLO: eine beliebige der ausgewählten, alle oder keine davon. |
 | **SLO-Name** | Der Name des SLO: ist gleich Ihrem Text oder nicht, enthält ihn oder nicht, beginnt oder endet mit ihm. |
 | **Änderung der Fehlerbudget-Richtlinie** | Was sich geändert hat: **In eine strengere Stufe eingetreten**, **In eine weniger strenge Stufe erholt**, **Alle Stufen verlassen**, **Deployments eingefroren** oder **Deployments wieder erlaubt**. |
+| **Eigentümer des SLO** | Die als Eigentümer des SLO eingetragenen Personen und Teams: eine beliebige der ausgewählten, oder keine davon. Die Mitgliedschaft in einem Team, dem das SLO gehört, zählt nicht. |
 
 Ein Stufenwechsel, der Deployments eingefroren oder wieder erlaubt hat, ist eine einzige Nachricht für beide Änderungen. Eine Regel für **Deployments eingefroren** postet also auch den Wechsel in eine Stufe, die sie einfriert: Ein Release-Kanal erfährt von jedem Einfrieren.
 

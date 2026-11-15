@@ -7,10 +7,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
-import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,9 +20,13 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
-  layer: OnCallDutyPolicyScheduleLayer;
   onClose: () => void;
-  onUserAdded: () => void;
+  /*
+   * The member picked. They join the layer on the page, at the end of its
+   * rotation, and are saved with the page's other changes: adding someone
+   * pages nobody until Save (Layers).
+   */
+  onAdd: (person: ProjectUserResult) => void;
 }
 
 const SEARCH_DEBOUNCE_MS: number = 250;
@@ -39,8 +40,14 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
   const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [results, setResults] = useState<Array<ProjectUserResult>>([]);
   const [isSearching, setIsSearching] = useState<boolean>(true);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState<boolean>(false);
+  /*
+   * The member picked, kept whole: a search typed after picking them may
+   * leave them out of the results, and Add still adds them.
+   */
+  const [selectedUser, setSelectedUser] = useState<ProjectUserResult | null>(
+    null,
+  );
+  const selectedUserId: string | null = selectedUser?.userId || null;
   const [error, setError] = useState<string>("");
 
   // Guards against out-of-order responses from overlapping searches.
@@ -94,33 +101,16 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
    */
   const visibleUsers: Array<ProjectUserResult> = results;
 
-  const addUser: () => Promise<void> = async (): Promise<void> => {
-    if (!selectedUserId) {
+  /*
+   * The picked member, handed to the layer on the page. Nothing is saved
+   * here: Save on the page saves them with everything else.
+   */
+  const addUser: () => void = (): void => {
+    if (!selectedUser) {
       return;
     }
 
-    setIsAdding(true);
-    setError("");
-
-    try {
-      const model: OnCallDutyPolicyScheduleLayerUser =
-        new OnCallDutyPolicyScheduleLayerUser();
-      model.onCallDutyPolicyScheduleId =
-        props.layer.onCallDutyPolicyScheduleId!;
-      model.projectId = props.layer.projectId!;
-      model.onCallDutyPolicyScheduleLayerId = props.layer.id!;
-      model.userId = new ObjectID(selectedUserId);
-
-      await ModelAPI.create<OnCallDutyPolicyScheduleLayerUser>({
-        model: model,
-        modelType: OnCallDutyPolicyScheduleLayerUser,
-      });
-
-      props.onUserAdded();
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-      setIsAdding(false);
-    }
+    props.onAdd(selectedUser);
   };
 
   const getResultsBody: () => ReactElement = (): ReactElement => {
@@ -185,7 +175,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
               type="button"
               aria-pressed={isSelected}
               onClick={() => {
-                setSelectedUserId(user.userId);
+                setSelectedUser(user);
               }}
               className={`group relative flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
                 isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
@@ -248,11 +238,8 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
       submitButtonStyleType={ButtonStyleType.PRIMARY}
       closeButtonText="Cancel"
       onClose={props.onClose}
-      onSubmit={() => {
-        addUser().catch(() => {});
-      }}
-      isLoading={isAdding}
-      disableSubmitButton={!selectedUserId || isAdding}
+      onSubmit={addUser}
+      disableSubmitButton={!selectedUserId}
       error={error}
       modalWidth={ModalWidth.Normal}
     >

@@ -29,7 +29,7 @@ flowchart TB
 
 Traces fortæller OneUptime, at en kø findes, og hvordan applikationer bruger den, men ikke hvor fuld den er. Det kommer fra selve brokeren eller fra dens cloududbyders overvågnings-API eller, for [BullMQ](#bullmq), der gemmer sine jobs i Redis og ikke har en broker at spørge, fra en gauge, som applikationen rapporterer.
 
-Du kan også tilføje en kø manuelt: **Køer → Opret Queue**, med dens beskedsystem og navnet på dens destination og, for Azure Service Bus og Event Hubs, dens namespace. Formularen spørger om dem i sit første trin, **Beskedsystem**, og derefter om et valgfrit navn og en beskrivelse, med labels under **Flere felter** (**Køoplysninger**). Lad kun namespacet være tomt for en kø, som dine applikationer når via en emulator eller et brugerdefineret domænenavn: deres spans nævner intet namespace, og Azure Monitors metrikker når aldrig en sådan kø (se [Begrænsninger](#begrænsninger)).
+Du kan også tilføje en kø manuelt: **Køer → Opret Kø**, med dens beskedsystem og navnet på dens destination og, for Azure Service Bus og Event Hubs, dens namespace. Formularen spørger om dem i sit første trin, **Beskedsystem**, og derefter om et valgfrit navn og en beskrivelse, med labels under **Flere felter** (**Køoplysninger**). Lad kun namespacet være tomt for en kø, som dine applikationer når via en emulator eller et brugerdefineret domænenavn: deres spans nævner intet namespace, og Azure Monitors metrikker når aldrig en sådan kø (se [Begrænsninger](#begrænsninger)).
 
 ## Kom i gang
 
@@ -161,7 +161,7 @@ Traces og brokermetrikker opretter kun selv køer, så længe projektet har fær
 ### Livscyklus og arkivering
 
 - **Sidst set** er det tidspunkt, hvor registreringen sidst så køen, i traces, messaging-klienters metrikker eller brokermetrikker.
-- **Arkivér for at afvise.** At slette en registreret kø fjerner den kun, indtil den ses igen: dens næste observation bringer den tilbage som en ny kø. For at afvise en for altid skal du **arkivere** den. En arkiveret kø beholder sin identitet, så alt, hvad der nævner den, forbliver knyttet til den arkiverede kø i stedet for at oprette en ny.
+- **Arkiver for at afvise.** At slette en registreret kø fjerner den kun, indtil den ses igen: dens næste observation bringer den tilbage som en ny kø. For at afvise en for altid skal du **arkivere** den. En arkiveret kø beholder sin identitet, så alt, hvad der nævner den, forbliver knyttet til den arkiverede kø i stedet for at oprette en ny.
 - **Automatisk arkivering.** En registreret kø, der ikke er set i 7 dage (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`), arkiveres automatisk, medmindre en person har omdøbt den, beskrevet den, givet den labels eller givet den ejere. Labels og ejere, som label- eller ejerregler har tilføjet af sig selv, tæller ikke med.
 - **Gendannelse.** En automatisk arkiveret kø gendannes automatisk, når den ses igen. Køer, du har oprettet manuelt, og køer, som en person har arkiveret, bliver aldrig arkiveret eller gendannet af registreringen. En kø, som en person gendanner, forbliver gendannet i 30 dage (eller arkivvinduet, hvis det er længere), selv hvis intet ser den; fra dens næste observation gælder 7-dagesreglen igen.
 
@@ -1057,7 +1057,7 @@ Selvhostede installationer kan justere registreringen med disse miljøvariabler 
 - Dens navn er et af dem, OneUptime ignorerer (se [Hvad der ignoreres](#hvad-der-ignoreres)), eller kun SERVER-spans nævner den.
 - Færre end 3 af dens spans ankom inden for de seneste 15 minutter, eller projektet har nået sit [budget for automatisk oprettelse](#budgettet-for-automatisk-oprettelse).
 
-Når dens spans faktisk nævner den, så opret den manuelt med samme system og destination (**Køer → Opret Queue**): dens fane **Spor** fyldes ud fra de spans, der allerede er gemt.
+Når dens spans faktisk nævner den, så opret den manuelt med samme system og destination (**Køer → Opret Kø**): dens fane **Spor** fyldes ud fra de spans, der allerede er gemt.
 
 ### Brokersundheden forbliver tom
 
@@ -1077,11 +1077,11 @@ Når dens spans faktisk nævner den, så opret den manuelt med samme system og d
 - En observation fra Service Bus eller Event Hubs har intet namespace: emulatoren eller et brugerdefineret domæne.
 - RabbitMQ-spans nævner som regel exchangen, og brokerens metrikker køen: to køer i OneUptime, medmindre exchangen og køen har samme navn (se [Begrænsninger](#begrænsninger)).
 
-Arkivér den, du ikke vil have: en arkiveret kø forbliver arkiveret, og det, der nævner den, opretter ikke længere en ny.
+Arkiver den, du ikke vil have: en arkiveret kø forbliver arkiveret, og det, der nævner den, opretter ikke længere en ny.
 
 ### En ny kø for hver anmodning
 
-En destination, der navngives pr. anmodning eller pr. forbruger, og som OneUptime ikke genkender (et numerisk suffiks, en hash), giver en kø pr. navn. UUID'er foldes allerede sammen (se [Hvad der ignoreres](#hvad-der-ignoreres)). Markér sådanne destinationer med `messaging.destination.temporary=true` i din instrumentering, eller giv dem et stabilt navn, og arkivér derefter de køer, der allerede er oprettet.
+En destination, der navngives pr. anmodning eller pr. forbruger, og som OneUptime ikke genkender (et numerisk suffiks, en hash), giver en kø pr. navn. UUID'er foldes allerede sammen (se [Hvad der ignoreres](#hvad-der-ignoreres)). Markér sådanne destinationer med `messaging.destination.temporary=true` i din instrumentering, eller giv dem et stabilt navn, og arkiver derefter de køer, der allerede er oprettet.
 
 ## Næste trin
 

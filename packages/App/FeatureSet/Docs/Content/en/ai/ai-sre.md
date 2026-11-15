@@ -482,6 +482,16 @@ The **AI** section of the Incidents and Alerts side menus opens on two pages tha
 
 The AI settings and the AI rules used to be at `…/settings/ai` and `…/settings/auto-remediation-rules`, and the rules then at `…/ai/auto-remediation-rules`; those addresses still work, and open **AI → Settings**, where the rules are now, under **More settings**.
 
+## How well OneUptime AI is doing
+
+**AI Results** (**Project Settings → AI → AI Results**) shows what came of OneUptime AI's work over the last 12 weeks, week by week, so you can tell whether it is getting better, for example after you change its model. It changes nothing, and counts only the incidents, alerts, on-call pages and fixes you may see.
+
+- **Pages Avoided** — of the pages held while OneUptime AI worked (see [OneUptime AI responds first](#oneuptime-ai-responds-first)), how many ended with AI's fix before anyone was paged, and how the others ended: the incident or alert recovered on its own, a person handled it while it was held, or it paged because AI handed it off, the hold time ran out or someone pressed **Page now**.
+- **Fixes Verified** — of the fixes OneUptime AI ran and the fix pull requests it opened, how many worked once they were checked against what happened next. Fixes still being checked, and those that could not be checked, are shown beside them but not counted.
+- **Root Causes Confirmed** — of the investigations OneUptime AI finished, how many found the right root cause: as judged by a responder who confirmed or rejected the investigation on its AI card or, when nobody did, as graded against the root cause written when the incident was resolved. Investigations nobody has judged yet are not counted.
+
+Each card puts its last 4 weeks beside the 4 weeks before them. A week counts the work OneUptime AI started that week, however long its check took. When a project had more than 5,000 of one kind in the 12 weeks, the newest 5,000 are counted, and the page says so.
+
 ## Cost controls
 
 Every limit below is optional, and none applies until you set it: with automatic investigation on, every new incident and alert is investigated, whatever its severity, and nothing caps how many investigations or fix tasks run. Alert volume can be much higher than incident volume, so these are the controls to reach for when you want a ceiling.
@@ -542,7 +552,7 @@ On OneUptime Cloud, OneUptime AI on the global provider is paid from the project
 
 - **Read-only, always.** Autonomous investigations run with a curated set of read-only tools (metric, log, trace, exception, and change queries — including `baseline_anomaly`, which judges a metric against its learned hour-of-week normal range). The AI cannot acknowledge, resolve, page, or modify anything from an investigation.
 - **Citations are minted server-side** from tool calls that actually executed — the model cannot fabricate a citation to data it never read.
-- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (**Project Settings → AI → AI Logs**) with token counts and cost.
+- **Full audit trail.** Every investigation is recorded as an AI run with an ordered event trail (every LLM call and tool call), and every LLM call is metered in the AI Logs page (**Project Settings → AI → AI Logs**) with token counts and cost. What the tools returned to an incident's or alert's investigation is kept with its run for 30 days, readable only by the server, so a new model or prompt can be tried on the data the investigation saw; it is deleted with the run.
 - **Secrets are redacted** from tool results before anything is sent to the LLM (tokens, credentials, key patterns).
 - **Images are left out of what the model reads.** An image embedded in an incident's or alert's text - a synthetic monitor's screenshot in the description, a picture pasted into a note - is hundreds of kilobytes of base64 that the model cannot read and would be billed for on every call. It is given a short note in its place, such as `[image omitted: JPEG, 340 KB]`, and the investigation's activity says what was left out. A description, root cause or note longer than 4,000 characters is cut the same way, ending with a note that says how much is missing (16,000 characters in a drafted postmortem or note). People still see every image: only what the model reads changes.
 - **Self-host = zero third-party egress.** With your own LLM provider (including local Ollama), telemetry never leaves your infrastructure.

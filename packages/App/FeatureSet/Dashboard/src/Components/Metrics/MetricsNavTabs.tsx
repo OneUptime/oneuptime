@@ -5,7 +5,13 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type MetricsTabKey = "viewer" | "insights" | "ai" | "setup" | "settings";
+export type MetricsTabKey =
+  | "viewer"
+  | "promql"
+  | "insights"
+  | "ai"
+  | "setup"
+  | "settings";
 
 interface Props {
   active: MetricsTabKey;
@@ -22,6 +28,18 @@ const MetricsNavTabs: FunctionComponent<Props> = (
       icon: IconProp.List,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
       carriesScope: true,
+    },
+    /*
+     * Query the project's metrics with PromQL, and see how Grafana reads
+     * them (#6796).
+     */
+    {
+      key: "promql",
+      label: "PromQL",
+      icon: IconProp.Code,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.METRICS_PROMQL] as Route,
+      ),
     },
     {
       key: "insights",

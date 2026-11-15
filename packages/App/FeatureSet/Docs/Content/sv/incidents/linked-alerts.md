@@ -121,7 +121,7 @@ Vilken du än använder hamnar du på det vanliga formuläret **Deklarera ny inc
 | **Etiketter**          | Varje etikett från varje valt larm.                                                                                                                                                                                                                                                    |
 | **Privat incident**    | Påslagen om något av larmen är privat. Formuläret säger det, och larmens ägare blir ägare av incidenten — se nedan.                                                                                                                                                                     |
 
-"Allvarligast" följer ordningen av dina allvarlighetsgrader för larm: den första allvarlighetsgraden för larm i listan är den allvarligaste. Med allvarlighetsgraderna som varje projekt börjar med blir ett larm **Hög** en **Critical Incident** och ett larm **Låg** en **Major Incident**.
+"Allvarligast" följer ordningen av dina allvarlighetsgrader för larm: den första allvarlighetsgraden för larm i listan är den allvarligaste. Med allvarlighetsgraderna som varje projekt börjar med blir ett larm **Hög** en **Kritisk incident** och ett larm **Låg** en **Stor incident**.
 
 Allt går att redigera innan du skickar. **Etiketter** och **Privat incident** finns under **Fler fält** på formulärets första steg, vars hopfällda rubrik visar var och en av dem medan den är satt.
 

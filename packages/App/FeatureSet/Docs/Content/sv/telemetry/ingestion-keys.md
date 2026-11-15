@@ -36,7 +36,7 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 | | **Server** | **Webbläsare** |
 | --- | --- | --- |
 | För | Applikationer, collectors och agenter på maskiner du driver | Webbsidor, och React Native Session Replay |
-| Skickar | All sorts telemetri, till alla endpoints | Spår, loggar, mätvärden och Session Replays |
+| Skickar | All sorts telemetri, till alla endpoints | Spår, loggar, mätvärden, Session Replays och [Sentry-händelser](/docs/telemetry/compatible-endpoints#sentry-sdker) |
 | En hemlighet | Ja: håll den på dina servrar | Nej: alla som ser sidan kan läsa den |
 | Ursprung | Kontrolleras inte | Bara de angivna ursprungen godkänns |
 | Begäranden per minut | Ingen gräns, om du inte anger en | 6 000, om du inte anger en annan gräns |
@@ -108,7 +108,7 @@ Ett ursprung är ett schema, en värd och en valfri port: `https://app.example.c
 
 ## Byt ut, stäng av eller ta bort en nyckel
 
-En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Click to reveal** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
+En nyckels sida visar dess **Status**, dess **Hemlig nyckel** bakom **Klicka för att visa** och dess **Last Used At**: senaste gången OneUptime tog emot data som skickades med den.
 
 | För att | Gör så här | Vad avsändare ser |
 | --- | --- | --- |

@@ -59,17 +59,38 @@ export interface ComponentProps {
   // Display info for substitute users, who are by definition not on this layer.
   overrideUserInfo: Dictionary<OverrideUserInfo>;
   /*
-   * Disables delete + reorder while any layer mutation is in flight, so
-   * concurrent add / delete / reorder cannot interleave and corrupt ordering.
+   * Locks moving, deleting and changing the people of the layer while the
+   * page saves its changes or adds a layer.
    */
   actionsDisabled: boolean;
-  isDeleteButtonLoading: boolean;
   onToggleExpand: () => void;
+  /*
+   * Moving the layer, deleting it and changing its people are changes the
+   * page holds until Save (Layers, issue #7575).
+   */
   onMoveUp: () => void;
   onMoveDown: () => void;
   onDeleteLayer: () => void;
   onLayerChange: (layer: OnCallDutyPolicyScheduleLayer) => void;
   onUsersChange: (users: Array<OnCallDutyPolicyScheduleLayerUser>) => void;
+  // People saved in the layer whom the page has taken out, until Save.
+  removedUsers?: Array<OnCallDutyPolicyScheduleLayerUser> | undefined;
+  // The rows of people the page has moved in the turn order, by id (LayerUser).
+  movedUserIds?: Set<string> | undefined;
+  // Undo on one of them.
+  onRestoreUser?:
+    | ((layerUser: OnCallDutyPolicyScheduleLayerUser) => void)
+    | undefined;
+  /*
+   * Whether the page holds a change to this layer - its people, or its
+   * place among the layers - that is not saved yet.
+   */
+  hasUnsavedChanges?: boolean | undefined;
+  /*
+   * Whether the people list marks the page's changes - New, Moved, Removed
+   * when you save (LayerUser). Left out, it does.
+   */
+  marksUnsavedChanges?: boolean | undefined;
   /*
    * "Skip until..." on a person in this layer (SkipLayerUserModal, opened by
    * the page). Left out, the people list does not offer it.
@@ -429,6 +450,18 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Highest priority")}
               </span>
             )}
+            {props.hasUnsavedChanges && (
+              <span
+                data-testid="layer-card-unsaved"
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                />
+                {translator.translateText("Unsaved changes")}
+              </span>
+            )}
           </div>
           {layer.description ? (
             <p className="mt-0.5 truncate text-sm text-gray-500">
@@ -562,7 +595,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               aria-label={translator.translateText("Delete layer")}
-              disabled={props.isDeleteButtonLoading || props.actionsDisabled}
+              disabled={props.actionsDisabled}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 props.onDeleteLayer();
@@ -570,19 +603,11 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               className={`flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors ${getHandDrawnButtonStateClassName(
                 {
                   isLocked: props.actionsDisabled,
-                  isBusy: props.isDeleteButtonLoading,
                   hoverClassName: "hover:bg-red-50 hover:text-red-600",
                 },
               )}`}
             >
-              <Icon
-                icon={
-                  props.isDeleteButtonLoading
-                    ? IconProp.Spinner
-                    : IconProp.Trash
-                }
-                className="h-4 w-4"
-              />
+              <Icon icon={IconProp.Trash} className="h-4 w-4" />
             </button>
           </Tooltip>
           <button
@@ -652,7 +677,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
             </p>
             <LayerUser
               layer={layer}
-              onUpdateUsers={props.onUsersChange}
+              users={props.users}
+              onChange={props.onUsersChange}
+              removedUsers={props.removedUsers}
+              movedUserIds={props.movedUserIds}
+              marksUnsavedChanges={props.marksUnsavedChanges}
+              onRestore={props.onRestoreUser}
+              isDisabled={props.actionsDisabled}
               overrides={props.overrides}
               coverNameById={coverNameById}
               timezone={props.timezone}

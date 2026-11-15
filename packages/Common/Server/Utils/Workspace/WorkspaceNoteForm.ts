@@ -51,7 +51,6 @@ export const WORKSPACE_NOTE_FORM_TEXT: {
   noteTypePlaceholder: string;
   publicOption: string;
   publicOptionWithApproval: string;
-  privateOption: string;
   noteLabel: string;
   notePlaceholder: string;
   noteDescription: string;
@@ -64,13 +63,19 @@ export const WORKSPACE_NOTE_FORM_TEXT: {
   noteTypePlaceholder: "Select Note Type",
   publicOption: "Public Note (Will be posted on Status Page)",
   publicOptionWithApproval: "Public Note (Posted on Status Page once approved)",
-  privateOption: "Private Note (Only visible to team members)",
   noteLabel: "Note",
   notePlaceholder: "Note",
   noteDescription: "Please type in plain text or markdown.",
   submit: "Submit",
   cancel: "Cancel",
 };
+
+/*
+ * A scheduled maintenance event, as its form's private option names it:
+ * "the maintenance event", as the Dashboard's private note does, and
+ * short enough for Slack's 75 characters (getPrivateOption).
+ */
+export const SCHEDULED_MAINTENANCE_NOTE_NOUN: string = "maintenance event";
 
 // The form's Note Type values, as the forms send them.
 export enum WorkspaceNoteFormType {
@@ -191,6 +196,23 @@ export default class WorkspaceNoteForm {
   }
 
   /*
+   * The form's private option: who can read a private note - the people
+   * who can see the record it is on, as the private record's line says.
+   * It used to say "Only visible to team members", which read as one of
+   * OneUptime's Teams, or as the team in Microsoft Teams (#7595). Slack
+   * refuses an option longer than 75 characters: "incident episode" and
+   * "maintenance event" fit.
+   */
+  public static getPrivateOption(recordNoun: string): string {
+    return `Private Note (Only people who can see the ${recordNoun} can read it)`;
+  }
+
+  // The private option of an incident's or an incident episode's form.
+  public static getRecordPrivateOption(kind: PrivateRecordKind): string {
+    return WorkspaceNoteForm.getPrivateOption(RECORD_NOUNS[kind]);
+  }
+
+  /*
    * The form's public option: posted on the status page, or - while the
    * project asks for public notes to be approved - posted once approved.
    */
@@ -245,7 +267,7 @@ export default class WorkspaceNoteForm {
           value: WorkspaceNoteFormType.Public,
         },
         {
-          label: WORKSPACE_NOTE_FORM_TEXT.privateOption,
+          label: WorkspaceNoteForm.getRecordPrivateOption(data.kind),
           value: WorkspaceNoteFormType.Private,
         },
       ],

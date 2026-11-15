@@ -128,7 +128,7 @@ export const SCHEDULED_MAINTENANCE_NUMBER_PREFIXES: NumberPrefixPage = {
   name: "Scheduled Maintenance Number Prefix",
   detailId: "model-detail-project-sm-prefix",
   cardDescription:
-    "The short text in front of scheduled maintenance event numbers, like SM- in SM-42.",
+    "The short text in front of maintenance event numbers, like SM- in SM-42.",
   editDescription:
     "Only new events use the new prefix. Existing ones keep their numbers.",
   rows: [

@@ -17,6 +17,7 @@ import {
   RESOURCE_CONNECTION_POLL_INTERVAL_MS,
   RESOURCE_NAME_MAX_LENGTH,
   getSuggestedResourceName,
+  hasKeySentFirstData,
   hasReportedSince,
   isSameResourceName,
   pickConnectedRecord,
@@ -354,6 +355,56 @@ describe("a resource the project had, reporting again", () => {
     ).toBe(false);
     expect(
       hasReportedSince({ lastSeenAtThen: null, lastSeenAtNow: "not a date" }),
+    ).toBe(false);
+  });
+});
+
+/*
+ * A telemetry guide's key, for data that names no service (#7754):
+ * FluentBit's logs register no service, so the step finishes on the key's
+ * first data. Ingest stamps lastUsedAt at most once every five minutes per
+ * process, so a key that was sending already moves on its own.
+ */
+describe("a telemetry guide's key, sending its first data", () => {
+  const then: Date = new Date("2026-11-13T10:00:00.000Z");
+
+  test("has, once a key that had sent nothing has a lastUsedAt", () => {
+    expect(
+      hasKeySentFirstData({ lastUsedAtThen: null, lastUsedAtNow: then }),
+    ).toBe(true);
+    expect(
+      hasKeySentFirstData({
+        lastUsedAtThen: undefined,
+        lastUsedAtNow: "2026-11-13T10:00:05.000Z",
+      }),
+    ).toBe(true);
+  });
+
+  test("has not while it has still sent nothing", () => {
+    expect(
+      hasKeySentFirstData({ lastUsedAtThen: null, lastUsedAtNow: null }),
+    ).toBe(false);
+    expect(
+      hasKeySentFirstData({ lastUsedAtThen: null, lastUsedAtNow: undefined }),
+    ).toBe(false);
+    expect(
+      hasKeySentFirstData({
+        lastUsedAtThen: null,
+        lastUsedAtNow: "not a date",
+      }),
+    ).toBe(false);
+  });
+
+  // Something else sends with it: a later stamp says nothing of the new shipper.
+  test("has not for a key that had sent before the step looked, however its stamp moves", () => {
+    expect(
+      hasKeySentFirstData({ lastUsedAtThen: then, lastUsedAtNow: then }),
+    ).toBe(false);
+    expect(
+      hasKeySentFirstData({
+        lastUsedAtThen: then,
+        lastUsedAtNow: new Date("2026-11-13T10:05:00.000Z"),
+      }),
     ).toBe(false);
   });
 });
@@ -709,7 +760,10 @@ describe("resources added with a form", () => {
     expect(guide.split("code={replacePlaceholders(").length).toBe(1);
     expect(
       guide.split("code={withServiceName( replacePlaceholders(").length,
-    ).toBe(10);
+    ).toBe(6);
+    // The log shippers' files, built from the server's address (#7753).
+    expect(guide.split("code={getFluent").length).toBe(1);
+    expect(guide.split("code={withServiceName( getFluent").length).toBe(5);
   });
 
   test("a queue's guide opens once it is saved", () => {

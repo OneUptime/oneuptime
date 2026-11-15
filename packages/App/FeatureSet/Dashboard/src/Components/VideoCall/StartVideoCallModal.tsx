@@ -322,7 +322,7 @@ const StartVideoCallModal: FunctionComponent<ComponentProps> = (
                   id="start-video-call-title"
                   dataTestId="start-video-call-title"
                   value={ownTitle}
-                  placeholder={translator.translateText("War room")}
+                  placeholder="War room"
                   onChange={(value: string) => {
                     setOwnTitle(value);
                   }}

@@ -182,7 +182,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 | `resolve <id>` | 把它移到项目的已解决状态 | 同样这四种 |
 | `start <id>` | 把该事件移到项目的进行中状态 | `scheduled-maintenance-event` |
 | `end <id>` | 把它移到项目的已结束状态 | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | 添加团队可见的备注，加上 `--public` 时则在记录的状态页面上发布备注 | 全部五种 |
+| `add-note <id> --note <markdown>` | 添加只有能查看该记录的人才能阅读的备注，加上 `--public` 时则在记录的状态页面上发布备注 | 全部五种 |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

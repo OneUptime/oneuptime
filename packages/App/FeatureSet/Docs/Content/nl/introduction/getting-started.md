@@ -30,6 +30,8 @@ Draait u OneUptime op uw eigen servers? Volg eerst de [Handleiding zelf hosten](
 
 **Projectinstellingen → Geavanceerd → Importeren uit een andere tool** leest uw inrichting in een andere tool, met een API-sleutel of, voor Uptime Kuma, een bestand. Het laat zien wat het heeft gevonden en maakt aan wat u aanvinkt. In de andere tool verandert niets, en de import opnieuw uitvoeren maakt nooit iets dubbel aan.
 
+Verstuurt u al telemetrie met Prometheus, een Loki-client, een Splunk-forwarder, de Datadog Agent of een Sentry SDK? Houd die en richt hem met een ingestiesleutel op OneUptime: [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints) laat zien hoe.
+
 :::details De elf tools waaruit het importeert
 | U komt van | Wat OneUptime leest |
 | --- | --- |

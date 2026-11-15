@@ -161,6 +161,10 @@ export function getMetricValueWidgetBucketWidthMs(window: {
  * (fillValueWidgetSeriesGaps). A sparse count drew only the buckets it had,
  * so its line read flat while its arrow said it rose. An average, a
  * percentile, a min or a max of no readings is not 0, and keeps its gaps.
+ *
+ * Day and week buckets start at the reader's midnight, in the zone the
+ * request carried (AggregationIntervalUtil.getReaderTimezone, as
+ * AnalyticsModelAPI.aggregate adds it), so the gaps are its calendar days.
  */
 export function getMetricValueWidgetSparkline(data: {
   results: Array<AggregatedResult>;
@@ -179,6 +183,10 @@ export function getMetricValueWidgetSparkline(data: {
   return fillValueWidgetSeriesGaps({
     series: series,
     bucketWidthMs: getMetricValueWidgetBucketWidthMs(data.window),
+    timezone: AggregationIntervalUtil.getReaderTimezone({
+      startDate: data.window.startDate,
+      endDate: data.window.endDate,
+    }),
   });
 }
 

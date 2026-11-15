@@ -18,6 +18,10 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  AI_RUN_REFUSALS,
+  AiRunRefusalCode,
+} from "../../../../Types/AI/AiRunRefusal";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -260,11 +264,12 @@ describe("start_investigation on a record that waits", () => {
     jest
       .spyOn(InvestigationRuleWait, "getWaiting")
       .mockResolvedValue({ waitUntil: WAIT_UNTIL, waitMinutes: 10 });
+    // As startNow refuses it: the code, and its English sentence (#7359).
     jest.spyOn(InvestigationRuleWait, "startNow").mockResolvedValue({
       isStarted: false,
       problem: "project_daily_limit_reached",
-      message:
-        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+      refusalCode: AiRunRefusalCode.ProjectDailyLimitReached,
+      message: AI_RUN_REFUSALS[AiRunRefusalCode.ProjectDailyLimitReached],
     });
     const enqueue: jest.SpyInstance = jest.spyOn(
       AIInvestigationQueue,
@@ -278,7 +283,7 @@ describe("start_investigation on a record that waits", () => {
 
     expect(result.rowCount).toBe(0);
     expect(result.dataForLlm).toBe(
-      "The investigation for Incident #12 could not be started: This project has reached its own daily AI limit. It resets at midnight UTC.",
+      "The investigation for Incident #12 could not be started: The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     );
     expect(result.citationLabel).toBe(
       "Investigation not enqueued for Incident #12",

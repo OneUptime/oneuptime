@@ -158,6 +158,7 @@ Meldingen beskriver endringen med ordene fra **Feed** for SLO-et: nivået SLO-et
 | **SLO-etiketter** | Etikettene til SLO-et: hvilken som helst av dem du velger, alle sammen eller ingen av dem. |
 | **SLO-navn** | Navnet på SLO-et: lik teksten din eller ikke, inneholder den eller ikke, begynner eller slutter med den. |
 | **Endring i feilbudsjettpolicy** | Hva som endret seg: **Gikk inn i et mer alvorlig nivå**, **Kom tilbake til et mindre alvorlig nivå**, **Forlot alle nivåer**, **Distribusjoner frosset** eller **Distribusjoner tillatt igjen**. |
+| **Eier av SLO** | Personene og teamene som er registrert som eiere av SLO-et: hvilken som helst av dem du velger, eller ingen av dem. Å være med i et team som eier SLO-et, teller ikke. |
 
 En endring av nivå som frøs distribusjoner, eller tillot dem igjen, er én melding som teller som begge endringene. En regel for **Distribusjoner frosset** publiserer altså også endringen når SLO-et går inn i et nivå som fryser dem: En utgivelseskanal får vite om hver frysing.
 

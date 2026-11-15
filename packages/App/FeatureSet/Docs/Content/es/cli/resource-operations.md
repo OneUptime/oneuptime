@@ -182,7 +182,7 @@ Los incidentes, las alertas, sus episodios y los eventos de mantenimiento progra
 | `resolve <id>` | Lo pasa al estado de resuelto de su proyecto | Los mismos cuatro |
 | `start <id>` | Pasa el evento al estado en curso de su proyecto | `scheduled-maintenance-event` |
 | `end <id>` | Lo pasa al estado de finalizado de su proyecto | `scheduled-maintenance-event` |
-| `add-note <id> --note <markdown>` | Añade una nota que ve su equipo, o con `--public` una en las páginas de estado del registro | Los cinco |
+| `add-note <id> --note <markdown>` | Añade una nota que solo puede leer quien puede ver el registro, o con `--public` una en las páginas de estado del registro | Los cinco |
 
 ```bash
 oneuptime incident acknowledge 6f1c2a40-3b1e-4c55-9a0b-3e2f8d7c1a11

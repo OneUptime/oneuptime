@@ -38,6 +38,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 import { executePendingNotificationLog } from "../../../../FeatureSet/Workers/Jobs/UserOnCallLog/ExecutePendingExecutions";
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 
@@ -63,7 +74,11 @@ type PendingLog = Parameters<typeof executePendingNotificationLog>[0];
 
 // A person's page of a run, ten minutes in: a rule that calls after five is due.
 function pendingLog(run: {
-  startedBy: "person" | "workflow" | "policy started by a person";
+  startedBy:
+    | "person"
+    | "workflow"
+    | "policy started by a person"
+    | "policy OneUptime started";
   acknowledgedAt?: Date | undefined;
   isObserverPage?: boolean | undefined;
 }): PendingLog {
@@ -74,7 +89,10 @@ function pendingLog(run: {
     executionLog.isObserverPage = run.isObserverPage;
   }
 
-  if (run.startedBy !== "workflow") {
+  if (
+    run.startedBy !== "workflow" &&
+    run.startedBy !== "policy OneUptime started"
+  ) {
     executionLog.triggeredByUserId = JANE;
   }
 
@@ -82,7 +100,10 @@ function pendingLog(run: {
     executionLog.triggeredByWorkflowId = WORKFLOW;
   }
 
-  if (run.startedBy === "policy started by a person") {
+  if (
+    run.startedBy === "policy started by a person" ||
+    run.startedBy === "policy OneUptime started"
+  ) {
     executionLog.onCallDutyPolicyId = POLICY;
   }
 
@@ -240,7 +261,7 @@ describe("a responder's page beside it", () => {
   test("is ended by the incident's acknowledgement, as it always was", async () => {
     await executePendingNotificationLog(
       pendingLog({
-        startedBy: "policy started by a person",
+        startedBy: "policy OneUptime started",
         isObserverPage: false,
       }),
       MEMBER,
@@ -255,12 +276,26 @@ describe("a responder's page beside it", () => {
     ]);
     expect(isAcknowledgedAsked).toBe(1);
   });
+
+  test("of a policy a person started by hand goes on until answered, as the observers' does (OnCallPolicyStartedByHand)", async () => {
+    await executePendingNotificationLog(
+      pendingLog({
+        startedBy: "policy started by a person",
+        isObserverPage: false,
+      }),
+      MEMBER,
+    );
+
+    expect(executedRules).toEqual([RULE_ID.toString()]);
+    expect(updates).toEqual([]);
+    expect(isAcknowledgedAsked).toBe(0);
+  });
 });
 
 describe("the worker's tick", () => {
   test("reads each page's run with whether it pages observers", async () => {
-    const findAllBy: jest.SpyInstance = jest
-      .spyOn(UserOnCallLogService, "findAllBy")
+    const findBy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogService, "findBy")
       .mockResolvedValue([] as Array<UserOnCallLog> as never);
     jest
       .spyOn(ProjectMembership, "getMemberKeys")
@@ -268,7 +303,7 @@ describe("the worker's tick", () => {
 
     await runTick();
 
-    expect(findAllBy.mock.calls[0]![0].select).toMatchObject({
+    expect(findBy.mock.calls[0]![0].select).toMatchObject({
       onCallDutyPolicyExecutionLog: {
         isObserverPage: true,
       },

@@ -19,6 +19,7 @@ import {
   CloudUsageObservation,
 } from "Common/Types/Cloud/CloudRightSizing";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 
 /*
@@ -190,6 +191,8 @@ export async function fetchCloudResourceDailyCost(data: {
         aggregateColumnName: "cost",
         aggregationTimestampColumnName: "day",
         aggregationInterval: AggregationInterval.Day,
+        // One billed UTC day a row, as the cloud bills (CloudCost.day).
+        timezone: Timezone.UTC,
         startTimestamp: start,
         endTimestamp: end,
         limit: RIGHT_SIZING_COST_DAYS + 1,

@@ -106,6 +106,12 @@ export interface ComponentProps {
    */
   isPlaceholderIdentifier?: boolean | undefined;
   /*
+   * The placeholder is in the reader's words already - a sentence the page
+   * built around a value, or a front end's own keyed text - so it is drawn
+   * as given (a form Field's isPlaceholderTranslated, #7682).
+   */
+  isPlaceholderTranslated?: boolean | undefined;
+  /*
    * A datetime-local field shows and keeps hours and minutes: a time people
    * schedule or record something at is picked to the minute, and a value
    * with seconds made the browser's picker show a seconds column too
@@ -530,7 +536,7 @@ const Input: FunctionComponent<ComponentProps> = (
               : undefined
           }
           placeholder={
-            props.isPlaceholderIdentifier
+            props.isPlaceholderIdentifier || props.isPlaceholderTranslated
               ? props.placeholder
               : translateString(props.placeholder)
           }

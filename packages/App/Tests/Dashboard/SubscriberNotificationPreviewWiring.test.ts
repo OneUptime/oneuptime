@@ -438,10 +438,15 @@ describe("the dashboard is wired where the feature says", () => {
      * who it reaches under them.
      */
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="incident-create-notify-subscribers-line" > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton dataTestId="incident-create-preview-notification"',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton dataTestId="incident-create-preview-notification"',
     );
+    /*
+     * After the preview, on the same line: "Change to Yes" beside the No,
+     * where the project starts the box unticked (#7606) - never with the
+     * preview, which is offered only while notifying.
+     */
     expect(source).toContain(
-      "isShown: isAskedOnIncidentForm, }), }); }} /> ) : ( <></> )} </div> {getAudienceSummary(item)} </> ); },",
+      "isShown: isAskedOnIncidentForm, }), }); }} /> ) : ( <></> )} {canTickNotifyOnReview(item) ? ( <NotifySubscribersChangeToYes onClick={tickNotifyOnReview} /> ) : ( <></> )} </div> {getAudienceSummary(item)} </> ); },",
     );
     expect(
       source.split("<SubscriberNotificationPreviewButton").length - 1,

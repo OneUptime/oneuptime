@@ -1,6 +1,6 @@
 # Démarrage rapide
 
-Ce guide vous mène d'un nouveau compte à une configuration qui fonctionne en une quinzaine de minutes : un moniteur qui vérifie votre site web toutes les cinq minutes, une politique d'astreinte qui vous alerte quand le site tombe, et une page de statut qui informe vos clients. Il suit la liste de vérification **Bienvenue sur OneUptime 👋** de la page d'accueil de votre projet.
+Ce guide vous mène d'un nouveau compte à une configuration qui fonctionne en une quinzaine de minutes : un moniteur qui vérifie votre site web toutes les cinq minutes, une politique d'astreinte qui vous alerte quand le site tombe, et une page de statut qui informe vos clients. Il suit la liste de vérification **Bienvenue sur OneUptime 👋** de la page d'accueil de votre projet, et les configurations guidées qu'ouvrent ses étapes.
 
 Vous venez d'un autre outil ? [Importez votre configuration](/docs/introduction/getting-started#venir-dun-autre-outil) d'abord : vos moniteurs, vos plannings d'astreinte et vos pages de statut vous suivent.
 
@@ -42,69 +42,87 @@ Cliquez sur **Créer un projet**. La page d'accueil de votre projet s'ouvre, ave
 ## Surveiller votre site web
 
 :::steps
-### Ouvrir la création d'un moniteur
+### Ouvrir la configuration du site web
 
-Dans la liste de vérification, cliquez sur **Créez votre premier moniteur**. Vous pouvez aussi ouvrir **Moniteurs** depuis le menu **Produits** et cliquer sur **Créer un moniteur**.
-
-### Choisir Site web
-
-Sous **Type de moniteur**, choisissez **Site web**. Saisissez un **Nom**, par exemple `Website`, et cliquez sur **Suivant**.
+Dans la liste de vérification, cliquez sur **Créez votre premier moniteur**. Cela ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**, qui vérifie votre site, choisit qui est prévenu et envoie un test, sur une seule page. Une personne qui ne peut pas créer de moniteurs obtient plutôt la liste **Moniteurs**.
 
 ### Saisir l'adresse
 
-Saisissez l'adresse complète de votre site dans **URL du site web**, par exemple `https://example.com`. OneUptime ajoute les critères pour vous : le moniteur passe **Hors ligne** et déclare un incident quand le site ne répond pas, ou répond par une erreur. Cliquez sur **Suivant**.
+![L'étape « Que devons-nous vérifier ? », avec « Lancer la vérification » entouré](screen:website-down-address)
 
-### Créer le moniteur
+Sous **Que devons-nous vérifier ?**, saisissez l'adresse complète de votre site dans **Adresse du site web ou de l'API**, par exemple `https://example.com`, et cliquez sur **Lancer la vérification**. Les sondes la vérifient aussitôt, puis toutes les 5 minutes : quand le site ne répond pas, ou répond par une erreur, le moniteur passe **Hors ligne** et déclare un incident. Cliquez sur **Continuer**.
 
-Gardez les **Sondes** sélectionnées et l'**Intervalle de surveillance** **Toutes les 5 minutes**, puis cliquez sur **Créer un moniteur**. La page du moniteur s'ouvre, et les sondes commencent à vérifier votre site.
+Avec le forfait Free de OneUptime Cloud, les moniteurs sont facturés à l'usage, donc le projet a besoin d'un moyen de paiement avant de pouvoir vérifier votre site : sans moyen de paiement, l'étape vous demande d'[ajouter un moyen de paiement](/docs/configuration/billing#moyens-de-paiement).
+
+### Choisir qui est prévenu
+
+Sous **Qui faut-il prévenir ?**, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Enregistrer et continuer** : cela crée `Default on-call policy`, qui vous alerte pour chaque nouvel incident et chaque nouvelle alerte du projet, par e-mail pour commencer. Pour alerter aussi des membres de l'équipe qui font déjà partie du projet, cliquez d'abord sur **Ajouter des membres de l'équipe**.
+
+### Vous envoyer un test
+
+Sous **Envoyer un test**, cliquez sur **M'envoyer un appel de test**, choisissez une **Gravité** et cliquez sur **Envoyer l'appel de test**. Ouvrez le lien de l'e-mail, qui indique TEST, et prenez l'appel en compte à cet endroit. Cliquez ensuite sur **Terminé** dans la boîte de dialogue, puis sur **Continuer** : la configuration se termine sur un résumé de ce qu'elle a mis en place.
 :::
 
-Pour essayer la vérification avant d'enregistrer, cliquez sur **Tester le moniteur** à la deuxième étape. Tous les autres types de moniteurs sont décrits dans [Créer un moniteur](/docs/monitor/create-monitor).
+Pour régler vous-même chaque option, ou pour vérifier autre chose qu'un site web, ouvrez **Moniteurs** depuis le menu **Produits** et cliquez sur **Créer un moniteur**. [Créer un moniteur](/docs/monitor/create-monitor) décrit le formulaire et chaque type de moniteur.
 
-Pour vérifier aussi une API, choisir qui est prévenu et envoyer un appel de test qui prouve que le message vous parvient, suivez [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+Pour vérifier aussi une API, et savoir quoi faire quand la première vérification ne revient jamais, suivez [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
 
 ## Être alerté en cas de panne
 
-En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte : la première d'un projet se déclenche pour chaque nouvel incident et chaque nouvelle alerte.
+La configuration du site web a déjà créé `Default on-call policy`, qui vous alerte par e-mail pour chaque nouvel incident et chaque nouvelle alerte ; la liste de vérification coche donc **Configurez une politique d'astreinte** comme terminée. Sa configuration guidée ajoute tout de même votre téléphone, les personnes alertées avec vous et ce qui se passe quand personne ne répond.
 
 :::steps
-### Créer une politique d'astreinte
+### Ouvrir la configuration de l'astreinte
 
-Dans la liste de vérification, cliquez sur **Configurez une politique d'astreinte**, ou ouvrez **Astreinte** depuis le menu **Produits**. Cliquez sur **Créer : Politique d'astreinte** et saisissez un **Nom**. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez-vous. Laissez **La déclencher pour chaque nouvel incident et chaque nouvelle alerte** activé, et cliquez sur **Créer : Politique d'astreinte**.
-
-### Voir la règle qui la déclenche
-
-L'interrupteur a ajouté une règle d'astreinte pour les incidents et une pour les alertes. Pour voir la vôtre, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
+Appuyez sur `Ctrl+K` (`Cmd+K` sur un Mac), tapez `get paged` et choisissez **Alerter la bonne personne quand quelque chose tombe en panne**. Tant que la liste de vérification n'a pas coché **Configurez une politique d'astreinte**, cette étape ouvre la même configuration guidée.
 
 ### Choisir comment vous êtes joint
 
-Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aussi des SMS ou des appels, ouvrez **Paramètres utilisateur** dans la barre sous la barre supérieure, allez dans **Méthodes de notification** et, dans l'onglet **Contact direct**, ajoutez votre numéro sous **Numéros de téléphone pour les notifications SMS** ou **Numéros de téléphone pour les notifications par appel**. Cliquez sur **Vérifier** et saisissez le code que OneUptime vous envoie. Un numéro vérifié sert aussitôt aux alertes d'astreinte.
+![L'étape « Comment devons-nous vous joindre ? », avec « Activer les SMS et les appels » entouré](screen:paging-reach-you)
+
+Sous **Comment devons-nous vous joindre ?**, votre e-mail de connexion est déjà listé. Pour les notifications push, installez l'application OneUptime On-Call depuis l'App Store ou Google Play, connectez-vous et cliquez sur **Revérifier**. Pour recevoir aussi des SMS et des appels, cliquez sur **Activer les SMS et les appels**, saisissez votre numéro dans **Votre numéro de téléphone** et cliquez sur **M'envoyer un code par SMS** : sur OneUptime Cloud, les SMS et les appels sont payés sur le solde du projet, donc l'étape vous demande d'abord d'en ajouter. Cliquez sur **Continuer**.
+
+### Choisir qui d'autre est alerté
+
+Sous **Qui d'autre est d'astreinte ?**, gardez `Default on-call policy` sous **Politique d'astreinte**. Pour alerter des membres de l'équipe avec vous, ajoutez-les sous **Ajouter à la première règle d'escalade**. Cliquez sur **Enregistrer et continuer**.
+
+### Décider de ce qui se passe si personne ne répond
+
+Sous **Et si personne ne répond ?**, choisissez **Alerter à nouveau les mêmes personnes** tant que vous êtes la seule personne du projet. Une fois des membres de l'équipe arrivés, **Alerter quelqu'un d'autre** alerte la personne que vous choisissez sous **Alertés ensuite**. Sur OneUptime Cloud, seuls les forfaits payants proposent ce choix. Cliquez sur **Enregistrer et continuer**.
+
+### Envoyer un appel de test
+
+Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**, choisissez une **Gravité** et cliquez sur **Envoyer l'appel de test**. Prenez l'appel en compte depuis l'e-mail, le SMS ou l'appel téléphonique, puis cliquez sur **Terminé** dans la boîte de dialogue, et sur **Continuer**. La configuration se termine sur **L'alerte est configurée**.
 :::
 
 > [!NOTE]
 > Les SMS et les appels téléphoniques sont désactivés dans un nouveau projet. Un propriétaire du projet, un Billing Admin ou une personne disposant de Manage Billing les active dans la carte **Canaux de notification**, sous **Paramètres du projet → Notifications → Canaux de notification**.
 
-Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
+Deux règles d'astreinte déclenchent la politique : une pour chaque nouvel incident et une pour chaque nouvelle alerte. Pour voir la première, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
 
-Pour être alerté par SMS, appel téléphonique et push, avec la personne suivante alertée quand personne ne répond et un appel de test qui le prouve, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
+Pour construire plutôt une politique champ par champ, ouvrez **Astreinte** depuis le menu **Produits** et cliquez sur **Créer : Politique d'astreinte**. Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
+
+Pour chaque écran de la configuration, et quoi faire quand un appel n'arrive pas, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
 
 ## Publier une page de statut
 
 :::steps
-### Créer la page de statut
+### Ouvrir la configuration de la page de statut
 
-Dans la liste de vérification, cliquez sur **Publiez une page de statut**, ou ouvrez **Pages de statut** depuis le menu **Produits**. Cliquez sur **Créer une page de statut**, saisissez un **Nom**, par exemple `Acme Status`, et cliquez sur **Créer une page de statut**. La nouvelle page s'ouvre sur sa **Vue d'ensemble**.
+Dans la liste de vérification, cliquez sur **Publiez une page de statut**. Cela ouvre la configuration guidée **Publiez une page de statut**, qui nomme la page, y place votre moniteur et montre ce que voient vos clients. Une personne qui ne peut pas créer de pages de statut obtient plutôt la liste **Pages de statut**. Le résumé de la configuration du site web ouvre la même configuration, sous le nom **L'afficher sur une page de statut**.
 
-### Ajouter votre moniteur
+### La nommer et choisir votre moniteur
 
-Cliquez sur **Ajouter des moniteurs** dans la **Vue d'ensemble**, ou, dans le menu latéral de la page, sous **Ressources**, choisissez **Moniteurs** ; l'entrée s'appelle **Ressources** dans les projets où les groupes de moniteurs sont activés. Cliquez sur **Ajouter un moniteur**, choisissez votre moniteur de site web et cliquez sur **Ajouter un moniteur**. La ligne montre aux visiteurs le nom du moniteur ; modifiez-le sous **Nom d'affichage** si vous le souhaitez.
+![L'étape « Nommez-la et choisissez ce qu'elle affiche », avec « Créer la page de statut » entouré](screen:status-page-pick)
+
+Sous **Nommez-la et choisissez ce qu'elle affiche**, gardez le **Nom de la page de statut** proposé ou saisissez le vôtre. Sous **Ce qu'elle affiche**, cochez votre moniteur de site web, et cliquez sur **Créer la page de statut**. Dès cet instant, la page est publique à son lien : toute personne disposant de son adresse peut l'ouvrir.
 
 ### Ouvrir la page
 
-Choisissez **Vue d'ensemble** dans le menu latéral. La carte **Lien de la page de statut** pointe vers votre page de statut : ouvrez-la, et votre site web y apparaît comme opérationnel.
+Sous **Voici ce que voient vos clients**, ouvrez l'adresse affichée sous **Lien public** : votre site web y apparaît comme opérationnel. De retour dans la configuration, cliquez sur **C'est bon**. La configuration se termine sur un résumé de ce qu'il faut faire ensuite.
 :::
 
-Une nouvelle page de statut est publique : toute personne disposant de son adresse peut l'ouvrir. Pour lui donner votre propre domaine, votre logo et vos couleurs, consultez [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
+Pour créer plutôt une page à la main, ouvrez **Pages de statut** depuis le menu **Produits** et cliquez sur **Créer une page de statut**, puis ajoutez votre moniteur avec **Ajouter des moniteurs** sur sa **Vue d'ensemble**. Pour donner à la page votre propre logo et vos couleurs, consultez [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
 
 Pour placer la page de statut sur votre propre domaine, en HTTPS, suivez [Publier une page de statut](/docs/guides/status-page).
 

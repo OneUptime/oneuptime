@@ -39,7 +39,7 @@ Faites glisser une carte par sa poignée pour la déplacer, ou utilisez **Monter
 
 ### Enregistrer le formulaire
 
-**Enregistrer les modifications** enregistre toutes les modifications d'un coup. Tant que vous n'avez pas enregistré, l'éditeur indique **Modifications non enregistrées** et propose **Annuler les modifications**, et le navigateur demande confirmation avant que vous quittiez la page.
+**Enregistrer les modifications** enregistre toutes les modifications d'un coup. Tant que vous n'avez pas enregistré, l'éditeur indique **Modifications non enregistrées** et propose **Annuler les modifications**. Quitter l'éditeur avant d'enregistrer demande d'abord confirmation. Un lien du menu latéral, du fil d'Ariane ou de la barre supérieure, ou les boutons Précédent et Suivant de votre navigateur, ouvrent **Quitter sans enregistrer ?** avec deux choix : **Continuer la modification** reste dans l'éditeur avec vos modifications, et **Annuler les modifications** poursuit vers la page que vous ouvriez. Fermer ou recharger l'onglet demande confirmation dans la boîte de dialogue de votre navigateur.
 :::
 
 - **L'en-tête du formulaire** montre son nom et sa description comme la page publique le fera. **Modifier le nom et la description** les modifie.

@@ -58,10 +58,27 @@ export interface DropdownOption {
    */
   aliases?: Array<DropdownValue>;
   /*
-   * The label is something a person named - a variable, a record - drawn as
-   * it is, never looked up as a translation key: a variable named
-   * "Password" stays "Password" in German, never "Passwort". Left out, the
-   * label is English to look up.
+   * HOW AN OPTION'S LABEL READS - ONE RULE, WHEREVER THE OPTION IS DRAWN:
+   * the menu, the value picked, and the chip a filter leaves above its
+   * table (FilterViewer). Each draws it through getDropdownOptionText, so
+   * none of them reads it another way.
+   *
+   *   - Left out, the label is the product's own words, in English - a key
+   *     of the front end's locale files ("Unhealthy", "Production"): it is
+   *     looked up in the reader's language wherever it is drawn, so a
+   *     Spanish filter reads "Con problemas" in its menu and in its chip.
+   *   - Set, the label is drawn as it is, never looked up: something a
+   *     person named - a record, a variable, a value read from data - or a
+   *     product's own name ("AWS", "Google Cloud"). A monitor named
+   *     "Network" stays "Network" in Spanish, never "Red"; a variable
+   *     named "Password" stays "Password" in German, never "Passwort".
+   *     Words the page already put in the reader's language are marked
+   *     too, never looked up a second time - with isInPageDirection, so
+   *     they read the page's way.
+   *
+   * A filter's options keep the rule: FilterOptionLabelsGuard reads every
+   * filter's options in the front ends and fails on a label that is
+   * neither a key nor marked.
    */
   isUserContent?: boolean | undefined;
   /*
@@ -106,35 +123,76 @@ export interface DropdownOptionGroup {
   options: Array<DropdownOption>;
 }
 
+/*
+ * An option's label as its reader reads it, by the rule on isUserContent:
+ * the product's words looked up with `translate` (useTranslateValue's
+ * translateString), a name drawn as written. The menu, the value picked and
+ * a filter's chip all draw an option through this, so they never disagree.
+ */
+export function getDropdownOptionText(
+  option: Pick<DropdownOption, "label" | "isUserContent">,
+  translate: (value: string | undefined) => string | undefined,
+): string {
+  if (option.isUserContent) {
+    return option.label;
+  }
+
+  return translate(option.label) ?? option.label;
+}
+
 export { DROPDOWN_MENU_Z_INDEX };
 
 // What react-select hands a filter for each option it considers.
-interface SearchableOption {
+export interface SearchableOption {
   readonly label: string;
   readonly value: string;
   readonly data: DropdownOption;
 }
 
+export type DropdownSearchFilter = (
+  option: SearchableOption,
+  rawInput: string,
+) => boolean;
+
 /*
  * react-select's own filter — case- and accent-insensitive, trimmed — over
  * the label and value as before, and over an option's aliases too, so typing
  * a retired spelling ("Calcutta", "US/Eastern") still finds the option it
- * now lives under. An option without aliases is searched exactly as it was.
+ * now lives under.
+ *
+ * And over the label as the menu shows it, when the reader's language words
+ * it otherwise: a label is an English key, so a German reader who typed
+ * "Anderes" for the option listed as "Anderes Messaging-System..." (or
+ * "stimmt" for an operator) was told there were no options. The English
+ * still finds it too. An option shown as its own label - in English, or a
+ * name someone gave - is searched exactly as it was.
  */
-const filterOption: (option: SearchableOption, rawInput: string) => boolean =
-  createFilter<DropdownOption>({
+export const createDropdownSearchFilter: (
+  getShownLabel: (option: DropdownOption) => string,
+) => DropdownSearchFilter = (
+  getShownLabel: (option: DropdownOption) => string,
+): DropdownSearchFilter => {
+  return createFilter<DropdownOption>({
     stringify: (option: SearchableOption): string => {
-      return [option.label, option.value, ...(option.data.aliases || [])].join(
-        " ",
-      );
+      const shownLabel: string = getShownLabel(option.data);
+
+      return [
+        option.label,
+        option.value,
+        ...(option.data.aliases || []),
+        ...(shownLabel && shownLabel !== option.label ? [shownLabel] : []),
+      ].join(" ");
     },
   });
+};
 
 export interface ComponentProps {
   options: Array<DropdownOption | DropdownOptionGroup>;
   initialValue?: undefined | DropdownOption | Array<DropdownOption>;
   onClick?: undefined | (() => void);
   placeholder?: undefined | string;
+  // In the reader's words already: drawn as given (Field's, #7682).
+  isPlaceholderTranslated?: boolean | undefined;
   className?: undefined | string;
   onChange?:
     | undefined
@@ -325,12 +383,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   const getOptionLabelText: (option: DropdownOption) => string = (
     option: DropdownOption,
   ): string => {
-    if (option.isUserContent) {
-      return option.label;
-    }
-
-    return tx(option.label) ?? option.label;
+    return getDropdownOptionText(option, tx);
   };
+
+  // Typing finds an option by the words the menu shows, and by its English.
+  const filterOption: DropdownSearchFilter =
+    createDropdownSearchFilter(getOptionLabelText);
 
   /*
    * Which way an option's label reads, picked or listed: the page's way
@@ -891,10 +949,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         GroupBase<DropdownOption>
       >,
     ): ReactElement => {
-      const optionLabel: string = removeProps.data.isUserContent
-        ? removeProps.data.label
-        : translateStringRef.current(removeProps.data.label) ??
-          removeProps.data.label;
+      const optionLabel: string = getDropdownOptionText(
+        removeProps.data,
+        translateStringRef.current,
+      );
 
       return (
         <ReactSelectComponents.MultiValueRemove
@@ -1324,7 +1382,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           props.onSearchTextChange?.(inputValue);
         }}
         filterOption={filterOption}
-        placeholder={tx(props.placeholder) ?? props.placeholder}
+        placeholder={
+          props.isPlaceholderTranslated
+            ? props.placeholder
+            : tx(props.placeholder) ?? props.placeholder
+        }
         options={props.options as any}
         onChange={(option: any | null) => {
           if (option) {

@@ -27,7 +27,7 @@ Jede Ressource der OneUptime-API ist ein Befehl, 450 und mehr, von `incident` un
 ## Bevor Sie beginnen
 
 - **Node.js und npm**, ein aktuelles LTS-Release, um die CLI zu installieren.
-- **Ein API-Schlüssel Ihres Projekts.** Legen Sie einen unter **Projekteinstellungen → Erweitert → API-Schlüssel** mit **API-Schlüssel erstellen** an: siehe [Einen API-Schlüssel anlegen](/docs/api-reference/api-reference#einen-api-schlüssel-anlegen).
+- **Ein API-Schlüssel Ihres Projekts.** Legen Sie einen unter **Projekteinstellungen → Erweitert → API-Schlüssel** mit **API-Schlüssel erstellen** an: siehe [Einen API-Schlüssel erstellen](/docs/api-reference/api-reference#einen-api-schlüssel-erstellen).
 - **In OneUptime Cloud der Tarif Growth oder höher.** Die API-Schlüssel eines Projekts funktionieren nur dort: siehe [API-Schlüssel und SCIM unterhalb ihres Tarifs](/docs/api-reference/api-reference#api-schlüssel-und-scim-unterhalb-ihres-tarifs).
 
 ## Die CLI installieren

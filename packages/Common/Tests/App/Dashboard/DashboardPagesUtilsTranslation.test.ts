@@ -39,7 +39,10 @@ import {
   formatDurationCompact,
   formatDurationCompactInLanguage,
 } from "../../../Utils/Slo/SloDuration";
-import { translateText } from "../../../UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translateText,
+} from "../../../UI/Utils/TranslateTemplate";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -252,15 +255,17 @@ describe("before the Dashboard sets up i18next, the helpers answer in English", 
     ).toBe("2 Minutes");
   });
 
-  test("a template sync keeps its raw counts", () => {
+  // The summary is in the language of the translator it is handed: here the global instance's, English.
+  test("a template sync writes its counts as English writes numbers (#7710)", () => {
     expect(
       buildSyncResultSummary({
         subject: "labels",
         syncedMonitors: 10000,
         totalLinkedMonitors: 10000,
+        translator: getGlobalTranslator(),
       }).message,
     ).toBe(
-      "Synced labels onto 10000 monitors (10000 linked to this template).",
+      "Synced labels onto 10,000 monitors (10,000 linked to this template).",
     );
   });
 });
@@ -525,6 +530,7 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
         subject: "labels",
         syncedMonitors: 2,
         totalLinkedMonitors: 2,
+        translator: getGlobalTranslator(),
       }).message,
     ).toBe(
       "Labels auf 2 Monitore übertragen (2 mit dieser Vorlage verknüpft).",

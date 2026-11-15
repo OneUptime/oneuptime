@@ -379,6 +379,125 @@ describe("declaring an incident from alerts", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * #7606: Notify Status Page Subscribers starts as the project says -
+   * declared from alerts too, with or without a template. The alerts and
+   * the template fill in the incident; they never decide whether its
+   * status page subscribers are told.
+   */
+  describe("the Notify Status Page Subscribers box", () => {
+    type NotifyFieldFunction = (
+      form: CapturedFormProps,
+    ) => Record<string, unknown>;
+
+    const notifyField: NotifyFieldFunction = (
+      form: CapturedFormProps,
+    ): Record<string, unknown> => {
+      const field: Record<string, unknown> | undefined = form.fields.find(
+        (candidate: Record<string, unknown>): boolean => {
+          return (
+            Object.keys(
+              (candidate["field"] as Record<string, unknown>) || {},
+            )[0] === "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+          );
+        },
+      );
+
+      expect(field).toBeDefined();
+      return field!;
+    };
+
+    const answerWithProject: (
+      setting: boolean | undefined,
+      template: IncidentTemplate | null,
+    ) => void = (
+      setting: boolean | undefined,
+      template: IncidentTemplate | null,
+    ): void => {
+      getItemMock.mockImplementation((async (request: {
+        modelType: unknown;
+      }): Promise<unknown> => {
+        if (request.modelType === Project) {
+          const project: Project = new Project();
+          project._id = PROJECT_ID;
+
+          if (setting !== undefined) {
+            project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+              setting;
+          }
+
+          return project;
+        }
+
+        if (request.modelType === IncidentTemplate) {
+          return template;
+        }
+
+        return null;
+      }) as never);
+    };
+
+    test.each([
+      [false, false],
+      [true, true],
+      [undefined, true],
+    ])(
+      "declared from alerts in a project whose setting is %s, it starts ticked: %s",
+      async (setting: boolean | undefined, isTicked: boolean) => {
+        answerWithProject(setting, null);
+        queryParams = {
+          [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID},${ALERT_TWO_ID}`,
+        };
+
+        const form: CapturedFormProps = await openPage();
+
+        expect(notifyField(form)["defaultValue"]).toBe(isTicked);
+        // The alerts fill in nothing about it.
+        expect(
+          form.initialValues[
+            "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"
+          ],
+        ).toBeUndefined();
+      },
+    );
+
+    test("declared from alerts and a template, it still starts as the project says", async () => {
+      const template: IncidentTemplate = new IncidentTemplate();
+      template._id = TEMPLATE_ID;
+      template.title = "Template title";
+      answerWithProject(false, template);
+      queryParams = {
+        incidentTemplateId: TEMPLATE_ID,
+        [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID}`,
+      };
+
+      const form: CapturedFormProps = await openPage();
+
+      expect(form.initialValues["title"]).toBe("Template title");
+      expect(notifyField(form)["defaultValue"]).toBe(false);
+    });
+
+    test("a project that cannot be read starts it ticked, and the alerts are still linked", async () => {
+      getItemMock.mockImplementation((async (request: {
+        modelType: unknown;
+      }): Promise<unknown> => {
+        if (request.modelType === Project) {
+          throw new Error("Network error");
+        }
+
+        return null;
+      }) as never);
+      queryParams = {
+        [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: `${ALERT_ONE_ID}`,
+      };
+
+      const form: CapturedFormProps = await openPage();
+
+      expect(notifyField(form)["defaultValue"]).toBe(true);
+      expect(form.initialValues["title"]).toBeDefined();
+    });
+  });
+
   test("reads the shared query parameter name", () => {
     expect(INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM).toBe("alertIds");
     expect(INCIDENT_ALERT_IDS_TO_LINK_KEY).toBe("alertIdsToLink");
@@ -714,7 +833,17 @@ describe("declaring an incident from alerts", () => {
 
       const form: CapturedFormProps = await openPage();
 
-      expect(getItemMock).toHaveBeenCalledTimes(1);
+      /*
+       * The template is read once. (The project is read too, for how its
+       * Notify Status Page Subscribers box starts: #7606.)
+       */
+      expect(
+        getItemMock.mock.calls.filter((call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { modelType: unknown }).modelType === IncidentTemplate
+          );
+        }),
+      ).toHaveLength(1);
       expect(form.initialValues["title"]).toBe("Template title");
       expect(form.initialValues["description"]).toBe("Template description");
       expect(form.initialValues["incidentSeverity"]).toBe(INCIDENT_CRITICAL_ID);

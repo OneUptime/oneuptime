@@ -30,6 +30,8 @@ OneUptime es una plataforma de observabilidad de código abierto. Comprueba que 
 
 **Ajustes del proyecto → Avanzado → Importar desde otra herramienta** lee tu configuración en otra herramienta, con una clave de API o, en el caso de Uptime Kuma, un archivo. Te muestra lo que ha encontrado y crea lo que marques. Nada cambia en la otra herramienta, y volver a ejecutar la importación nunca crea nada dos veces.
 
+¿Ya envías telemetría con Prometheus, un cliente de Loki, un reenviador de Splunk, el Datadog Agent o un SDK de Sentry? Consérvalo y apúntalo a OneUptime con una clave de ingesta: [Prometheus, Loki, Splunk, Datadog & Sentry](/docs/telemetry/compatible-endpoints) explica cómo.
+
 :::details Las once herramientas desde las que importa
 | Si vienes de | Lo que OneUptime lee |
 | --- | --- |

@@ -48,6 +48,15 @@ import {
   getOnCallPolicyRepeatsAllowed,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallAcknowledgePageRun,
+  isOnCallPageAnsweredAsAPage,
+  isOnCallPageEndedOnlyByAnAnswer,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgePage";
+import {
+  getOnCallPolicyStartedOnResolvedRecordMessage,
+  isOnCallPolicyStartedByHand,
+} from "Common/Types/OnCallDutyPolicy/OnCallPolicyStartedByHand";
 import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -69,6 +78,17 @@ import { AWAY_TIMELINE_MESSAGE_PREFIX } from "Common/Types/OnCallDutyPolicy/Away
 import UserOverrideUtil, {
   UserOverrideRecord,
 } from "Common/Types/OnCallDutyPolicy/UserOverrideUtil";
+import UserOverrideOverlap, {
+  USER_OVERRIDE_OVERLAPS_LABEL,
+  UserOverrideTimes,
+  UserOverrideUseReason,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideOverlap";
+import UserOverrideEdit, {
+  USER_OVERRIDE_END_IN_PAST_REFUSAL,
+  USER_OVERRIDE_ENDED_REFUSAL,
+  USER_OVERRIDE_START_IN_PAST_REFUSAL,
+  USER_OVERRIDE_STARTED_REFUSAL,
+} from "Common/Types/OnCallDutyPolicy/UserOverrideEdit";
 import OnCallRuleKind, {
   ON_CALL_RULE_KINDS,
 } from "Common/Types/NotificationRule/OnCallRuleKind";
@@ -1403,6 +1423,170 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
   });
 });
 
+// ---- When several policies page ---------------------------------------------------
+
+/*
+ * What #7596 asked: a person on call in two of an incident's policies, what
+ * an acknowledgement stops, and a policy started by hand on an acknowledged
+ * incident. OnCallConcurrentPaging (Common) runs the real paging for each
+ * answer; these hold the page's words to the rules it runs on.
+ */
+describe("when several policies page", () => {
+  const severalPolicies: () => string = (): string => {
+    return section(english(ON_CALL_POLICIES), "## When several policies page");
+  };
+  const troubleshooting: () => string = (): string => {
+    return section(english(ON_CALL_POLICIES), "## Troubleshooting");
+  };
+
+  // Runs as the workers read them: who, or what, started each.
+  const POLICY_ID: string = "a-policy";
+  const PERSON_ID: string = "a-person";
+  const startedByOneUptime: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+  };
+  const startedByAWorkflow: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+    triggeredByWorkflowId: "a-workflow",
+  };
+  const aTestPage: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+    userNotificationEventType: UserNotificationEventType.TestPage,
+  };
+  const startedByHand: OnCallAcknowledgePageRun = {
+    onCallDutyPolicyId: POLICY_ID,
+    triggeredByUserId: PERSON_ID,
+  };
+
+  // The pages the section names as going on, in its order.
+  const pagesThatGoOn: Array<{ name: string; run: OnCallAcknowledgePageRun }> =
+    [
+      {
+        name: "a page again",
+        run: { onCallDutyPolicyId: POLICY_ID, pageAgainNumber: 1 },
+      },
+      {
+        name: "a page to observers",
+        run: {
+          onCallDutyPolicyId: POLICY_ID,
+          triggeredByUserId: PERSON_ID,
+          isObserverPage: true,
+        },
+      },
+      {
+        name: "a page someone sent to people from Slack or Microsoft Teams",
+        run: { triggeredByUserId: PERSON_ID },
+      },
+      { name: "a policy started by hand", run: startedByHand },
+    ];
+
+  const workers: Array<string> = [
+    "OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
+    "UserOnCallLog/ExecutePendingExecutions.ts",
+  ];
+
+  it("pages someone on call in two policies once by each, and someone a level names twice once", () => {
+    const levels: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
+    );
+    const levelRun: string = levels.slice(
+      levels.indexOf("public async startRuleExecution("),
+    );
+
+    // Each run of a level keeps whom it has paged, and pages each once.
+    expect(levelRun).toContain("const uniqueUserIds: Array<ObjectID> = [];");
+    expect(levelRun).toMatch(
+      /if \(!alreadyNotified\(pagedUserId\)\) \{\s*uniqueUserIds\.push\(pagedUserId\);\s*await startUserNotificationRuleExecution\(/,
+    );
+    expect(severalPolicies()).toContain(
+      "Someone on call in two of them is paged by both, once by each: OneUptime does not merge the pages of different policies. Within one policy, someone a level names twice, in person and through a team or a schedule, is paged once.",
+    );
+    // So the way to page them once is one level of one policy.
+    expect(troubleshooting()).toContain(
+      "They are on call in two of the policies the incident runs, and each policy pages its own people. Acknowledging the incident from either page stops both. To have them paged once, put both teams or schedules in one level of one policy.",
+    );
+  });
+
+  it("stops the policies OneUptime or a workflow started within a minute of an acknowledgement", () => {
+    for (const worker of workers) {
+      expect(readWorkerSource(worker)).toMatch(/schedule:[^,]*EVERY_MINUTE,/);
+    }
+
+    expect(EVERY_MINUTE).toBe("* * * * *");
+
+    for (const run of [startedByOneUptime, startedByAWorkflow]) {
+      expect(isOnCallPageEndedOnlyByAnAnswer(run)).toBe(false);
+    }
+
+    expect(severalPolicies()).toContain(
+      "Acknowledging the incident or alert stops every policy running for it within a minute, wherever it is acknowledged",
+    );
+  });
+
+  it("names the pages that go on after an acknowledgement, as both workers tell them apart", () => {
+    for (const page of pagesThatGoOn) {
+      expect({
+        page: page.name,
+        goesOn: isOnCallPageEndedOnlyByAnAnswer(page.run),
+      }).toEqual({ page: page.name, goesOn: true });
+    }
+
+    for (const worker of workers) {
+      expect(readWorkerSource(worker)).toContain(
+        "isOnCallPageEndedOnlyByAnAnswer(",
+      );
+    }
+
+    const names: Array<string> = pagesThatGoOn.map(
+      (page: { name: string }): string => {
+        return page.name;
+      },
+    );
+
+    expect(severalPolicies()).toContain(
+      `Some pages go on after it is acknowledged, until somebody they paged answers or it is resolved: ${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}.`,
+    );
+    expect(troubleshooting()).toContain(
+      "It was started by hand, or it is a page again: it goes on until somebody it paged answers, or the incident is resolved.",
+    );
+  });
+
+  it("starts a policy by hand only for a person, offers its people Acknowledge again, and refuses a resolved record", () => {
+    expect(isOnCallPolicyStartedByHand(startedByHand)).toBe(true);
+
+    for (const run of [startedByOneUptime, startedByAWorkflow, aTestPage]) {
+      expect(isOnCallPolicyStartedByHand(run)).toBe(false);
+    }
+
+    // Answered as a page, as a page again is: with Acknowledge again.
+    expect(isOnCallPageAnsweredAsAPage(startedByHand)).toBe(true);
+    expect(
+      readDashboardSource("Components/OnCallPolicy/PassOn/PassOnPage.ts"),
+    ).toContain('button: translationKey("Acknowledge again")');
+
+    // A person's run for a resolved record is refused, and says why.
+    expect(getOnCallPolicyStartedOnResolvedRecordMessage("incident")).toBe(
+      "This incident is resolved, so no on-call policy was started.",
+    );
+    expect(
+      readCommonSource(
+        "Server/Services/OnCallDutyPolicyExecutionLogService.ts",
+      ),
+    ).toContain(
+      "getOnCallPolicyStartedOnResolvedRecordMessage(resolvedRecordKind)",
+    );
+
+    expect(severalPolicies()).toContain(
+      "A policy started by hand is one started with **Execute On-Call Policy**, or by a page from Slack or Microsoft Teams that names it.",
+    );
+    expect(severalPolicies()).toContain(
+      "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
+    );
+  });
+});
+
 // ---- Execution logs --------------------------------------------------------------
 
 describe("execution logs", () => {
@@ -1709,8 +1893,9 @@ describe("user overrides", () => {
       "Starts",
       "Ends",
     ]);
+    // Said when adding one; an edit says what it may change instead.
     expect(USER_OVERRIDE_FORM).toContain(
-      'description: "It starts now unless you pick another time."',
+      ': "It starts now unless you pick another time.",',
     );
     expect(USER_OVERRIDE_FORM).toContain('"Next person in the rotation"');
     expect(english(USER_OVERRIDES)).toContain(
@@ -1790,8 +1975,260 @@ describe("user overrides", () => {
       }),
     ).toEqual([3, 2, 1, 0]);
     expect(english(USER_OVERRIDES)).toContain(
-      "When two overrides for the same person overlap, the policy's own one wins over a global one, and one that names who covers wins over a skip.",
+      "A policy's own override may overlap a global one for the same person: on that policy, the policy's own one is used while both apply, and the form says so.",
     );
+    expect(english(USER_OVERRIDES)).toContain(
+      "one that names who covers over a skip, then the one that starts first, then the one added first.",
+    );
+  });
+
+  /*
+   * Issue #7630: two overrides of one person may not overlap in one scope -
+   * both on a policy, or both global. The server refuses the second one,
+   * added or moved, under the project's lock on override times, naming the
+   * one it overlaps; the form says so as soon as the times are picked, with
+   * Edit that override. Back to back is no overlap, and a policy's own
+   * override over a global one is allowed.
+   */
+  it("refuses two overrides of one person that overlap on one policy, or both globally, as the rule, the service and the form hold it", () => {
+    const at: (hour: number) => Date = (hour: number): Date => {
+      return new Date(Date.UTC(2026, 11, 22, hour));
+    };
+    const override: (
+      policy: string | null,
+      from: number,
+      until: number,
+    ) => UserOverrideTimes = (
+      policy: string | null,
+      from: number,
+      until: number,
+    ): UserOverrideTimes => {
+      return {
+        overrideUserId: "away",
+        routeAlertsToUserId: "cover",
+        onCallDutyPolicyId: policy,
+        startsAt: at(from),
+        endsAt: at(until),
+      };
+    };
+
+    // On one policy, and both global: refused.
+    expect(
+      UserOverrideOverlap.isConflict(
+        override("policy", 9, 17),
+        override("policy", 13, 19),
+      ),
+    ).toBe(true);
+    expect(
+      UserOverrideOverlap.isConflict(
+        override(null, 9, 17),
+        override(null, 13, 19),
+      ),
+    ).toBe(true);
+    // Back to back: one ends as the next one starts.
+    expect(
+      UserOverrideOverlap.isConflict(
+        override("policy", 9, 17),
+        override("policy", 17, 19),
+      ),
+    ).toBe(false);
+    // A policy's own over a global one: allowed, and said.
+    expect(
+      UserOverrideOverlap.isConflict(
+        override("policy", 9, 17),
+        override(null, 13, 19),
+      ),
+    ).toBe(false);
+    expect(
+      UserOverrideOverlap.getOtherScopeOverlaps(override("policy", 9, 17), [
+        override(null, 13, 19),
+      ]),
+    ).toHaveLength(1);
+
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+
+    expect(service).toContain("protected override async getCreateLimit(");
+    expect(service).toContain("protected override async getUpdateLimit(");
+    expect(service).toContain("UserOverrideOverlap.getConflictSentence({");
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/UserOverrideOverlapNotice.tsx",
+      ),
+    ).toContain('translationKey("Edit that override")');
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "Two overrides for the same person cannot overlap on the same policy, or when both are global. The form says so as soon as the times are picked, with **Edit that override** to change that one instead. One can end as the next one starts.",
+    );
+    expect(page).toContain(
+      "So is one that overlaps another override for the same person on the same policy, or when both are global: the refusal names the one it overlaps.",
+    );
+  });
+
+  /*
+   * Overlaps saved before the rule are left as they were. Where two
+   * overlap, the one used is the one paging and the schedules follow
+   * (compareUse): one that names who covers over a skip, then the one that
+   * starts first, then the one added first. The lists mark both.
+   */
+  it("marks overlaps saved before the rule, and says which one is used, in the order paging follows", () => {
+    const base: UserOverrideTimes = {
+      overrideUserId: "away",
+      routeAlertsToUserId: "cover",
+      onCallDutyPolicyId: "policy",
+      startsAt: new Date("2026-12-22T09:00:00Z"),
+      endsAt: new Date("2026-12-22T17:00:00Z"),
+      createdAt: new Date("2026-12-01T00:00:00Z"),
+    };
+    const skip: UserOverrideTimes = { ...base, routeAlertsToUserId: null };
+    const later: UserOverrideTimes = {
+      ...base,
+      startsAt: new Date("2026-12-22T10:00:00Z"),
+    };
+    const addedLater: UserOverrideTimes = {
+      ...base,
+      createdAt: new Date("2026-12-02T00:00:00Z"),
+    };
+
+    expect(UserOverrideOverlap.compareUse(base, skip)).toBeLessThan(0);
+    expect(UserOverrideOverlap.compareUse(base, later)).toBeLessThan(0);
+    expect(UserOverrideOverlap.compareUse(base, addedLater)).toBeLessThan(0);
+    expect(UserOverrideOverlap.getUseReason(base, skip)).toBe(
+      UserOverrideUseReason.NamesCover,
+    );
+    expect(UserOverrideOverlap.getUseReason(base, later)).toBe(
+      UserOverrideUseReason.StartsFirst,
+    );
+    expect(UserOverrideOverlap.getUseReason(base, addedLater)).toBe(
+      UserOverrideUseReason.AddedFirst,
+    );
+    expect(USER_OVERRIDE_OVERLAPS_LABEL).toBe("Overlaps");
+    expect(english(USER_OVERRIDES)).toContain(
+      "Overrides that overlapped before this rule are left as they are. Both are marked **Overlaps**, which says which one is used: one that names who covers over a skip, then the one that starts first, then the one added first.",
+    );
+  });
+
+  /*
+   * Issue #7631: an override is edited in place. Who covers and both
+   * times can change - who is away and the policy cannot (no update
+   * permission on their columns) - an ended override cannot change, nor the
+   * start of one that has started, and a time moved is never moved into
+   * the past (UserOverrideEdit, which the service and the form share).
+   */
+  it("edits an override as the model, the edit rule and the form hold it", () => {
+    const override: OnCallDutyPolicyUserOverride =
+      new OnCallDutyPolicyUserOverride();
+    const updatable: (column: string) => boolean = (
+      column: string,
+    ): boolean => {
+      return (
+        (override.getColumnAccessControlFor(column)?.update || []).length > 0
+      );
+    };
+
+    expect(
+      [
+        "routeAlertsToUserId",
+        "startsAt",
+        "endsAt",
+        "overrideUserId",
+        "onCallDutyPolicyId",
+      ].map(updatable),
+    ).toEqual([true, true, true, false, false]);
+
+    const now: Date = new Date("2026-12-22T12:00:00Z");
+    const inForce: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-22T09:00:00Z"),
+      endsAt: new Date("2026-12-22T17:00:00Z"),
+    };
+    const upcoming: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-23T09:00:00Z"),
+      endsAt: new Date("2026-12-23T17:00:00Z"),
+    };
+    const ended: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date("2026-12-21T09:00:00Z"),
+      endsAt: new Date("2026-12-21T17:00:00Z"),
+    };
+
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: ended,
+        change: { endsAt: new Date("2026-12-24T09:00:00Z") },
+        now: now,
+      }),
+    ).toBe(USER_OVERRIDE_ENDED_REFUSAL);
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: inForce,
+        change: { startsAt: new Date("2026-12-22T13:00:00Z") },
+        now: now,
+      }),
+    ).toBe(USER_OVERRIDE_STARTED_REFUSAL);
+    // Ending it now: the current minute is allowed.
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: inForce,
+        change: { endsAt: now },
+        now: now,
+      }),
+    ).toBeNull();
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: inForce,
+        change: { endsAt: new Date("2026-12-22T11:00:00Z") },
+        now: now,
+      }),
+    ).toBe(USER_OVERRIDE_END_IN_PAST_REFUSAL);
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: upcoming,
+        change: { startsAt: new Date("2026-12-22T11:00:00Z") },
+        now: now,
+      }),
+    ).toBe(USER_OVERRIDE_START_IN_PAST_REFUSAL);
+    expect(
+      UserOverrideEdit.getRefusal({
+        saved: upcoming,
+        change: {
+          startsAt: new Date("2026-12-23T08:00:00Z"),
+          endsAt: new Date("2026-12-23T18:00:00Z"),
+        },
+        now: now,
+      }),
+    ).toBeNull();
+
+    // Each row's own Edit, locked on an override that has ended.
+    expect(USER_OVERRIDE_TABLE).toContain('title: "Edit",');
+    expect(USER_OVERRIDE_TABLE).toContain(
+      "return USER_OVERRIDE_ENDED_REFUSAL;",
+    );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/OnCallScheduleLayer/ActiveOverridesCard.tsx",
+      ),
+    ).toContain('dataTestId="active-override-edit"');
+
+    const page: string = english(USER_OVERRIDES);
+
+    expect(page).toContain(
+      "Click **Edit** on an override's row, on either **User Overrides** page or in the list of user overrides on a schedule's **Layers** page.",
+    );
+    expect(page).toContain(
+      "- **Who covers?** can change until the override ends. Set it back to **Next person in the rotation** to skip the person instead.",
+    );
+    expect(page).toContain(
+      "- **Starts** can move until the override starts, and then stays as it is. **Ends** can move until the override ends: set it to now to end the override early. Neither can be moved into the past.",
+    );
+    expect(page).toContain(
+      "- **Who is away?** cannot change. For somebody else, add a new override.",
+    );
+    expect(page).toContain(
+      "An override that has ended cannot be changed: its **Edit** is locked and says why.",
+    );
+    expect(page).not.toContain("An override cannot be edited");
   });
 
   it("follows only global overrides for a page sent without a policy", () => {
@@ -1882,11 +2319,15 @@ describe("user overrides", () => {
     expect(changers).toEqual(
       roleTitles(override.deleteRecordPermissions, custom),
     );
+    expect(changers).toEqual(
+      roleTitles(override.updateRecordPermissions, custom),
+    );
     expect(override.createBillingPlan).toBe(PlanType.Growth);
     expect(english(USER_OVERRIDES)).toContain(
-      `${listed(changers)} can add and delete overrides; ${listed(readersOnly)} can see them. In a custom role, the permissions are ${listed(
+      `${listed(changers)} can add, edit and delete overrides; ${listed(readersOnly)} can see them. In a custom role, the permissions are ${listed(
         permissionTitles([
           Permission.CreateOnCallDutyPolicyUserOverride,
+          Permission.EditOnCallDutyPolicyUserOverride,
           Permission.DeleteOnCallDutyPolicyUserOverride,
           Permission.ReadOnCallDutyPolicyUserOverride,
         ]),
@@ -1915,6 +2356,9 @@ describe("user overrides", () => {
       'this.checkGlobalOverrideAccess(createBy.props, "create");',
     );
     expect(service).toContain(
+      'this.checkGlobalOverrideAccess(updateBy.props, "update");',
+    );
+    expect(service).toContain(
       'this.checkGlobalOverrideAccess(deleteBy.props, "delete");',
     );
     expect(access).toContain("projectWideOnly: true,");
@@ -1929,11 +2373,16 @@ describe("user overrides", () => {
       "An override on a policy follows the policy's scope.",
     );
     expect(page).toContain(
-      "A global override applies to every policy, another team's included, so adding or deleting one takes the override permission over the whole project.",
+      "A global override applies to every policy, another team's included, so adding, editing or deleting one takes the override permission over the whole project.",
     );
     expect(page).toContain(
-      "**Add User Override** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
+      "**Add User Override**, **Edit** and **Delete** on **On-Call → Advanced → User Overrides** are locked and say why",
     );
+    expect(
+      readDashboardSource(
+        "Components/OnCallPolicy/UserOverrides/GlobalUserOverrideLock.ts",
+      ),
+    ).toContain("[ModelAction.Update]: GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,");
     expect(page).toContain(
       "an override with no `onCallDutyPolicyId` is refused for a permission limited to labels or to owned policies.",
     );
@@ -2041,6 +2490,27 @@ describe("user overrides", () => {
     expect(required("onCallDutyPolicyId")).toBe(false);
     expect(english(USER_OVERRIDES)).toContain(
       "User overrides are the `/api/on-call-duty-policy-user-override` resource:",
+    );
+  });
+
+  /*
+   * A change is the resource's own update - PUT on the record, the fields
+   * in `data` - checked by the same rule as the form (UserOverrideEdit),
+   * with who is away and the policy left as they are.
+   */
+  it("says how the API changes an override, and what it refuses, as the service holds it", () => {
+    expect(readCommonSource("Server/API/BaseAPI.ts")).toContain(
+      "router.put(\n      `${new this.entityType().getCrudApiPath()?.toString()}/:id`,",
+    );
+
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyUserOverrideService.ts",
+    );
+
+    expect(service).toContain("UserOverrideEdit.getRefusal({");
+
+    expect(english(USER_OVERRIDES)).toContain(
+      "To change an override, send `PUT /api/on-call-duty-policy-user-override/<override-id>` with the fields to change in `data`: `routeAlertsToUserId` (`null` to skip the person instead), `startsAt` and `endsAt`. `overrideUserId` and `onCallDutyPolicyId` cannot change. An override that has ended cannot be changed, nor can the start of one that has started, and a time that is changed cannot be moved into the past.",
     );
   });
 });

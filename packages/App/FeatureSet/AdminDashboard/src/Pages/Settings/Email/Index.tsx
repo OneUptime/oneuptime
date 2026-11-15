@@ -31,6 +31,12 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import IconProp from "Common/Types/Icon/IconProp";
 import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
+import ServerEmailEnvironmentCard, {
+  ServerEmailEnvironmentLoadingCard,
+  ServerEmailEnvironmentUnusedAlert,
+  useServerEmailEnvironment,
+  UseServerEmailEnvironmentResult,
+} from "./ServerEmailEnvironmentCard";
 import ServerTestCard, {
   SERVER_TEST_CARD_COPY,
 } from "../../../Components/ServerSetup/ServerTestCard";
@@ -137,6 +143,14 @@ const Settings: FunctionComponent = (): ReactElement => {
   // Where email stands, for the test card, read again after a save.
   const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
 
+  /*
+   * Whether the GLOBAL_EMAIL_ environment variables set the server's email
+   * settings (#7738): they are then shown in place of the saved ones,
+   * read-only.
+   */
+  const emailEnvironment: UseServerEmailEnvironmentResult =
+    useServerEmailEnvironment();
+
   const onSettingsSaved: () => void = (): void => {
     // Saving the settings starts email again at "not tested yet".
     void checklist.reload();
@@ -184,6 +198,17 @@ const Settings: FunctionComponent = (): ReactElement => {
   if (error) {
     return <ErrorMessage message={error} />;
   }
+
+  // An Email Server Type in the reader's words: a provider's name is its own in every language.
+  const getEmailServerTypeText: (value: unknown) => string = (
+    value: unknown,
+  ): string => {
+    const title: string = getEmailServerTypeTitle(value);
+
+    return getEmailServerTypeChoice(value)?.isTitleProductName
+      ? title
+      : t(title);
+  };
 
   return (
     <Page
@@ -262,376 +287,388 @@ const Settings: FunctionComponent = (): ReactElement => {
         }}
       />
 
-      <CardModelDetail
-        name="Email Server Settings"
-        cardProps={{
-          title: t("pages.settings.email.serverCardTitle"),
-          description: t("pages.settings.email.serverCardDescription"),
-        }}
-        isEditable={true}
-        editButtonText={t("pages.settings.email.serverEditButton")}
-        // Titled like the button that opens it, not "Edit Global Config".
-        editModalTitle={t("pages.settings.email.serverEditButton")}
-        onSaveSuccess={() => {
-          window.location.reload();
-        }}
-        formFields={[
-          /*
-           * One card an answer, each with its icon and its line, where a
-           * dropdown listed the enum's names (Sendgrid first) under a
-           * description that only said "Email Server Type" again. The
-           * stored values are the enum's, as before.
-           */
-          {
-            field: {
-              emailServerType: true,
-            },
-            title: "Email Server Type",
-            fieldType: FormFieldSchemaType.CardSelect,
-            cardSelectOptions: EMAIL_SERVER_TYPE_CHOICES,
-            // Two to a row: each card carries a line, which three columns squeeze.
-            cardSelectMaxColumns: 2,
-            // An instance that never picked one sends through its own server, as this page reads it.
-            defaultValue: EmailServerType.CustomSMTP,
-            required: true,
-            hideColumnDescription: true,
-            dataTestId: "email-server-type",
-          },
-        ]}
-        modelDetailProps={{
-          modelType: GlobalConfig,
-          id: "model-detail-global-config",
-          fields: [
-            {
-              field: {
-                emailServerType: true,
+      {emailEnvironment.isLoading ? (
+        <ServerEmailEnvironmentLoadingCard />
+      ) : emailEnvironment.answer?.isSetByEnvironment ? (
+        <ServerEmailEnvironmentCard
+          answer={emailEnvironment.answer}
+          getServerTypeText={getEmailServerTypeText}
+        />
+      ) : (
+        <>
+          <ServerEmailEnvironmentUnusedAlert answer={emailEnvironment.answer} />
+          {/*
+           * The settings saved on this page: the ones the server sends
+           * with, unless the GLOBAL_EMAIL_ environment variables set them.
+           */}
+          <CardModelDetail
+            name="Email Server Settings"
+            cardProps={{
+              title: t("pages.settings.email.serverCardTitle"),
+              description: t("pages.settings.email.serverCardDescription"),
+            }}
+            isEditable={true}
+            editButtonText={t("pages.settings.email.serverEditButton")}
+            // Titled like the button that opens it, not "Edit Global Config".
+            editModalTitle={t("pages.settings.email.serverEditButton")}
+            onSaveSuccess={() => {
+              window.location.reload();
+            }}
+            formFields={[
+              /*
+               * One card an answer, each with its icon and its line, where a
+               * dropdown listed the enum's names (Sendgrid first) under a
+               * description that only said "Email Server Type" again. The
+               * stored values are the enum's, as before.
+               */
+              {
+                field: {
+                  emailServerType: true,
+                },
+                title: "Email Server Type",
+                fieldType: FormFieldSchemaType.CardSelect,
+                cardSelectOptions: EMAIL_SERVER_TYPE_CHOICES,
+                // Two to a row: each card carries a line, which three columns squeeze.
+                cardSelectMaxColumns: 2,
+                // An instance that never picked one sends through its own server, as this page reads it.
+                defaultValue: EmailServerType.CustomSMTP,
+                required: true,
+                hideColumnDescription: true,
+                dataTestId: "email-server-type",
               },
-              title: "Email Server Type",
-              fieldType: FieldType.Element,
-              getElement: (item: GlobalConfig): ReactElement => {
-                // Never picked: the mail service sends through Custom SMTP.
-                const value: EmailServerType =
-                  item.emailServerType || EmailServerType.CustomSMTP;
-                const title: string = getEmailServerTypeTitle(value);
+            ]}
+            modelDetailProps={{
+              modelType: GlobalConfig,
+              id: "model-detail-global-config",
+              fields: [
+                {
+                  field: {
+                    emailServerType: true,
+                  },
+                  title: "Email Server Type",
+                  fieldType: FieldType.Element,
+                  getElement: (item: GlobalConfig): ReactElement => {
+                    // Never picked: the mail service sends through Custom SMTP.
+                    const value: EmailServerType =
+                      item.emailServerType || EmailServerType.CustomSMTP;
 
-                // A provider's name is its own in every language.
+                    return <span>{getEmailServerTypeText(value)}</span>;
+                  },
+                },
+              ],
+              modelId: ObjectID.getZeroObjectID(),
+            }}
+          />
+
+          {emailServerType === EmailServerType.CustomSMTP ? (
+            <CardModelDetail<GlobalConfig>
+              name="Host Settings"
+              cardProps={{
+                title: t("pages.settings.email.smtpCardTitle"),
+                description: t("pages.settings.email.smtpCardDescription"),
+              }}
+              isEditable={true}
+              editButtonText={t("pages.settings.email.smtpEditButton")}
+              // Titled like the button that opens it, not "Edit Global Config".
+              editModalTitle={t("pages.settings.email.smtpEditButton")}
+              onSaveSuccess={onSettingsSaved}
+              formSteps={SMTP_HOST_FORM_STEPS}
+              formFields={SMTP_HOST_FORM_FIELDS}
+              modelDetailProps={{
+                modelType: GlobalConfig,
+                id: "model-detail-global-config",
+                /*
+                 * What the server sends with: the rows a Microsoft Graph or
+                 * OAuth server does not use are left out, as the form leaves
+                 * them out.
+                 */
+                fields: [
+                  {
+                    field: {
+                      smtpTransportType: true,
+                    },
+                    title: "Transport",
+                    placeholder: "SMTP",
+                  },
+                  {
+                    field: {
+                      smtpHost: true,
+                    },
+                    title: "SMTP Host",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpServerFields(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpPort: true,
+                    },
+                    title: "SMTP Port",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpServerFields(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      isSMTPSecure: true,
+                    },
+                    title: "Require TLS",
+                    placeholder: "No",
+                    fieldType: FieldType.Boolean,
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpServerFields(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpAuthType: true,
+                    },
+                    title: "Authentication Type",
+                    fieldType: FieldType.Element,
+                    getElement: (item: GlobalConfig): ReactElement => {
+                      return (
+                        <span>
+                          {t(getSmtpAuthTypeTitle(item.smtpAuthType))}
+                        </span>
+                      );
+                    },
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpServerFields(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpUsername: true,
+                    },
+                    title: "Username",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpUsername(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpOAuthProviderType: true,
+                    },
+                    title: "OAuth Provider Type",
+                    // What the mail service uses when none is picked.
+                    placeholder: "Client Credentials",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpOAuthProviderType(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpClientId: true,
+                    },
+                    title: "OAuth Client ID",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpOAuthCredentials(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpTokenUrl: true,
+                    },
+                    title: "OAuth Token URL",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpOAuthCredentials(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpScope: true,
+                    },
+                    title: "OAuth Scope",
+                    placeholder: "None",
+                    showIf: (item: GlobalConfig): boolean => {
+                      return showsSmtpOAuthCredentials(
+                        item,
+                        GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+                      );
+                    },
+                  },
+                  {
+                    field: {
+                      smtpFromEmail: true,
+                    },
+                    title: "From Email",
+                    placeholder: "None",
+                    fieldType: FieldType.Email,
+                  },
+                  {
+                    field: {
+                      smtpFromName: true,
+                    },
+                    title: "From Name",
+                    placeholder: "None",
+                  },
+                ],
+                modelId: ObjectID.getZeroObjectID(),
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {emailServerType === EmailServerType.Sendgrid ? (
+            <CardModelDetail<GlobalConfig>
+              name="Sendgrid Settings"
+              cardProps={{
+                title: t("pages.settings.email.sendgridCardTitle"),
+                description: t("pages.settings.email.sendgridCardDescription"),
+              }}
+              isEditable={true}
+              editButtonText={t("pages.settings.email.sendgridEditButton")}
+              // Titled like the button that opens it, not "Edit Global Config".
+              editModalTitle={t("pages.settings.email.sendgridEditButton")}
+              onSaveSuccess={onSettingsSaved}
+              formFields={[
+                {
+                  field: {
+                    sendgridApiKey: true,
+                  },
+                  title: "SendGrid API Key",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: true,
+                  placeholder: "SendGrid API Key",
+                  // The column's description only said "Sendgrid API Key" again.
+                  hideColumnDescription: true,
+                },
+                {
+                  field: {
+                    sendgridFromEmail: true,
+                  },
+                  title: "From Email",
+                  fieldType: FormFieldSchemaType.Email,
+                  required: true,
+                  placeholder: "email@yourcompany.com",
+                  hideColumnDescription: true,
+                },
+                {
+                  field: {
+                    sendgridFromName: true,
+                  },
+                  title: "From Name",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: true,
+                  placeholder: "Acme, Inc.",
+                  hideColumnDescription: true,
+                },
+              ]}
+              modelDetailProps={{
+                modelType: GlobalConfig,
+                id: "model-detail-global-config",
+                selectMoreFields: {
+                  sendgridFromEmail: true,
+                  sendgridFromName: true,
+                },
+                fields: [
+                  {
+                    field: {
+                      sendgridApiKey: true,
+                    },
+                    title: "",
+                    placeholder: "None",
+                    getElement: (item: GlobalConfig) => {
+                      if (
+                        item["sendgridApiKey"] &&
+                        item["sendgridFromEmail"] &&
+                        item["sendgridFromName"]
+                      ) {
+                        return (
+                          <Pill
+                            text={t("pages.settings.email.pillEnabled")}
+                            color={Green}
+                          />
+                        );
+                      } else if (!item["sendgridApiKey"]) {
+                        return (
+                          <Pill
+                            text={t("pages.settings.email.pillNoApiKey")}
+                            color={Red}
+                          />
+                        );
+                      } else if (!item["sendgridFromEmail"]) {
+                        return (
+                          <Pill
+                            text={t("pages.settings.email.pillNoFromEmail")}
+                            color={Red}
+                          />
+                        );
+                      } else if (!item["sendgridFromName"]) {
+                        return (
+                          <Pill
+                            text={t("pages.settings.email.pillNoFromName")}
+                            color={Red}
+                          />
+                        );
+                      }
+
+                      return <></>;
+                    },
+                  },
+                ],
+                modelId: ObjectID.getZeroObjectID(),
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {/* One element: Page's children are elements, not an array among them. */}
+          <>
+            {GLOBAL_EMAIL_PROVIDERS.map(
+              (provider: {
+                serverType: EmailServerType;
+                transport: GlobalEmailProviderTransport;
+              }): ReactElement => {
+                if (emailServerType !== provider.serverType) {
+                  return (
+                    <React.Fragment key={provider.transport}></React.Fragment>
+                  );
+                }
+
                 return (
-                  <span>
-                    {getEmailServerTypeChoice(value)?.isTitleProductName
-                      ? title
-                      : t(title)}
-                  </span>
+                  <EmailProviderSettingsCard
+                    onSaveSuccess={onSettingsSaved}
+                    key={provider.transport}
+                    transport={provider.transport}
+                  />
                 );
               },
-            },
-          ],
-          modelId: ObjectID.getZeroObjectID(),
-        }}
-      />
-
-      {emailServerType === EmailServerType.CustomSMTP ? (
-        <CardModelDetail<GlobalConfig>
-          name="Host Settings"
-          cardProps={{
-            title: t("pages.settings.email.smtpCardTitle"),
-            description: t("pages.settings.email.smtpCardDescription"),
-          }}
-          isEditable={true}
-          editButtonText={t("pages.settings.email.smtpEditButton")}
-          // Titled like the button that opens it, not "Edit Global Config".
-          editModalTitle={t("pages.settings.email.smtpEditButton")}
-          onSaveSuccess={onSettingsSaved}
-          formSteps={SMTP_HOST_FORM_STEPS}
-          formFields={SMTP_HOST_FORM_FIELDS}
-          modelDetailProps={{
-            modelType: GlobalConfig,
-            id: "model-detail-global-config",
-            /*
-             * What the server sends with: the rows a Microsoft Graph or
-             * OAuth server does not use are left out, as the form leaves
-             * them out.
-             */
-            fields: [
-              {
-                field: {
-                  smtpTransportType: true,
-                },
-                title: "Transport",
-                placeholder: "SMTP",
-              },
-              {
-                field: {
-                  smtpHost: true,
-                },
-                title: "SMTP Host",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpServerFields(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpPort: true,
-                },
-                title: "SMTP Port",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpServerFields(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  isSMTPSecure: true,
-                },
-                title: "Require TLS",
-                placeholder: "No",
-                fieldType: FieldType.Boolean,
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpServerFields(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpAuthType: true,
-                },
-                title: "Authentication Type",
-                fieldType: FieldType.Element,
-                getElement: (item: GlobalConfig): ReactElement => {
-                  return (
-                    <span>{t(getSmtpAuthTypeTitle(item.smtpAuthType))}</span>
-                  );
-                },
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpServerFields(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpUsername: true,
-                },
-                title: "Username",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpUsername(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpOAuthProviderType: true,
-                },
-                title: "OAuth Provider Type",
-                // What the mail service uses when none is picked.
-                placeholder: "Client Credentials",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpOAuthProviderType(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpClientId: true,
-                },
-                title: "OAuth Client ID",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpOAuthCredentials(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpTokenUrl: true,
-                },
-                title: "OAuth Token URL",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpOAuthCredentials(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpScope: true,
-                },
-                title: "OAuth Scope",
-                placeholder: "None",
-                showIf: (item: GlobalConfig): boolean => {
-                  return showsSmtpOAuthCredentials(
-                    item,
-                    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
-                  );
-                },
-              },
-              {
-                field: {
-                  smtpFromEmail: true,
-                },
-                title: "From Email",
-                placeholder: "None",
-                fieldType: FieldType.Email,
-              },
-              {
-                field: {
-                  smtpFromName: true,
-                },
-                title: "From Name",
-                placeholder: "None",
-              },
-            ],
-            modelId: ObjectID.getZeroObjectID(),
-          }}
-        />
-      ) : (
-        <></>
+            )}
+          </>
+        </>
       )}
-
-      {emailServerType === EmailServerType.Sendgrid ? (
-        <CardModelDetail<GlobalConfig>
-          name="Sendgrid Settings"
-          cardProps={{
-            title: t("pages.settings.email.sendgridCardTitle"),
-            description: t("pages.settings.email.sendgridCardDescription"),
-          }}
-          isEditable={true}
-          editButtonText={t("pages.settings.email.sendgridEditButton")}
-          // Titled like the button that opens it, not "Edit Global Config".
-          editModalTitle={t("pages.settings.email.sendgridEditButton")}
-          onSaveSuccess={onSettingsSaved}
-          formFields={[
-            {
-              field: {
-                sendgridApiKey: true,
-              },
-              title: "SendGrid API Key",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "SendGrid API Key",
-              // The column's description only said "Sendgrid API Key" again.
-              hideColumnDescription: true,
-            },
-            {
-              field: {
-                sendgridFromEmail: true,
-              },
-              title: "From Email",
-              fieldType: FormFieldSchemaType.Email,
-              required: true,
-              placeholder: "email@yourcompany.com",
-              hideColumnDescription: true,
-            },
-            {
-              field: {
-                sendgridFromName: true,
-              },
-              title: "From Name",
-              fieldType: FormFieldSchemaType.Text,
-              required: true,
-              placeholder: "Acme, Inc.",
-              hideColumnDescription: true,
-            },
-          ]}
-          modelDetailProps={{
-            modelType: GlobalConfig,
-            id: "model-detail-global-config",
-            selectMoreFields: {
-              sendgridFromEmail: true,
-              sendgridFromName: true,
-            },
-            fields: [
-              {
-                field: {
-                  sendgridApiKey: true,
-                },
-                title: "",
-                placeholder: "None",
-                getElement: (item: GlobalConfig) => {
-                  if (
-                    item["sendgridApiKey"] &&
-                    item["sendgridFromEmail"] &&
-                    item["sendgridFromName"]
-                  ) {
-                    return (
-                      <Pill
-                        text={t("pages.settings.email.pillEnabled")}
-                        color={Green}
-                      />
-                    );
-                  } else if (!item["sendgridApiKey"]) {
-                    return (
-                      <Pill
-                        text={t("pages.settings.email.pillNoApiKey")}
-                        color={Red}
-                      />
-                    );
-                  } else if (!item["sendgridFromEmail"]) {
-                    return (
-                      <Pill
-                        text={t("pages.settings.email.pillNoFromEmail")}
-                        color={Red}
-                      />
-                    );
-                  } else if (!item["sendgridFromName"]) {
-                    return (
-                      <Pill
-                        text={t("pages.settings.email.pillNoFromName")}
-                        color={Red}
-                      />
-                    );
-                  }
-
-                  return <></>;
-                },
-              },
-            ],
-            modelId: ObjectID.getZeroObjectID(),
-          }}
-        />
-      ) : (
-        <></>
-      )}
-
-      {/* One element: Page's children are elements, not an array among them. */}
-      <>
-        {GLOBAL_EMAIL_PROVIDERS.map(
-          (provider: {
-            serverType: EmailServerType;
-            transport: GlobalEmailProviderTransport;
-          }): ReactElement => {
-            if (emailServerType !== provider.serverType) {
-              return <React.Fragment key={provider.transport}></React.Fragment>;
-            }
-
-            return (
-              <EmailProviderSettingsCard
-                onSaveSuccess={onSettingsSaved}
-                key={provider.transport}
-                transport={provider.transport}
-              />
-            );
-          },
-        )}
-      </>
     </Page>
   );
 };

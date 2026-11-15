@@ -13,6 +13,7 @@ import type { DropdownChange } from "../../Dropdown/DropdownChange";
 import { BulkAddedLabel } from "../../EntityDropdown/EntityDropdown";
 import { RadioButton } from "../../RadioButtons/GroupRadioButtons";
 import FormFieldSchemaType from "./FormFieldSchemaType";
+import type { FilePickerHint } from "../../FilePicker/FilePickerLayout";
 import FormValues from "./FormValues";
 import { DatabaseBaseModelType } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../../../Types/API/Route";
@@ -52,6 +53,11 @@ export interface CustomElementProps {
    * for a placeholder they are given.
    */
   placeholder?: string | undefined;
+  /*
+   * The field's placeholder is in the reader's words already (Field's
+   * isPlaceholderTranslated): a control handed it draws it as given.
+   */
+  isPlaceholderTranslated?: boolean | undefined;
   /*
    * The id of the field's label, so a custom control can be named by it the
    * way a native input is by <label for>.
@@ -162,12 +168,25 @@ export default interface Field<TEntity> {
   field?: SelectFormFields<TEntity> | undefined;
   /*
    * In English. FormField hands it over as written, and the control that
-   * draws it looks it up in the reader's language, once (#7663). A sentence
-   * built around a value ("Select {{axis}}") is the page's to translate,
-   * with translateTemplate: the control finds no key for the translation
-   * and draws it as it is.
+   * draws it looks it up in the reader's language, once (#7663). A
+   * placeholder handed to a control anywhere else - a page's own Input,
+   * Dropdown or picker - is English for the same reason.
+   *
+   * Some placeholders cannot be handed over in English: a sentence the page
+   * builds around a value ("Select {{axis}}", with translateTemplate or
+   * translatePlural), or a front end's own keyed text (t("pages.…") in the
+   * Admin Dashboard, Accounts and the status pages). The page puts those in
+   * the reader's words and says so, isPlaceholderTranslated, and the control
+   * draws them as given. Looked up a second time, a translation that is
+   * itself an English key read as another word: Spanish says "Red" for
+   * "Network", and "Rojo" for "Red" (#7682).
    */
   placeholder?: string;
+  /*
+   * The placeholder is in the reader's words already (see placeholder): the
+   * control draws it as given. Every control FormField draws honours it.
+   */
+  isPlaceholderTranslated?: boolean | undefined;
   showEvenIfPermissionDoesNotExist?: boolean; // show this field even if user does not have permissions to view.
   disabled?: boolean;
   stepId?: string | undefined;
@@ -267,9 +286,10 @@ export default interface Field<TEntity> {
   maxFiles?: number | undefined;
   /*
    * File and MultipleFiles fields: what the picker says it takes, in place
-   * of its list of types, for a field that takes many kinds of file.
+   * of its list of types, for a field that takes many kinds of file - for
+   * a MultipleFiles field, a plural whose {{count}} is its maxFiles.
    */
-  fileHint?: string | undefined;
+  fileHint?: FilePickerHint | undefined;
   /*
    * File and MultipleFiles fields: keep the files in the browser rather than
    * uploading them, so the field's value is the files themselves, bytes and

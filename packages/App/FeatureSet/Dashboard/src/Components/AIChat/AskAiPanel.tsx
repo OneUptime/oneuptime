@@ -5,7 +5,7 @@ import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { movePageDock, usePageDock } from "Common/UI/Utils/PageDock";
 import { usePageInert } from "Common/UI/Utils/PageInert";
 import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -461,12 +461,10 @@ const AskAiPanelSurface: FunctionComponent<PanelProps> = (
 
   /*
    * The pill above the box says what the question is about; the box only
-   * asks for it.
+   * asks for it. In English: ChatInput looks it up, once (#7682).
    */
   const placeholder: string | undefined =
-    view === "conversation"
-      ? (translator.translateText("Ask a follow-up…") as string)
-      : undefined;
+    view === "conversation" ? translationKey("Ask a follow-up…") : undefined;
 
   const errorBanner: ReactElement = chat.error ? (
     <div

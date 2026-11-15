@@ -312,7 +312,7 @@ test.describe("the calendar's own page", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        "Every scheduled maintenance event by month, week or day, in your own time zone.",
+        "Every maintenance event by month, week or day, in your own time zone.",
       ),
     ).toBeVisible();
 
@@ -1714,9 +1714,12 @@ test.describe("Subscribe to calendar", () => {
     await open(page, "feed=restricted");
     const dialog: Locator = await openSubscribe(page);
 
+    // The server's words since #7822: the record is a maintenance event.
     await expect(
       dialog.getByTestId("maintenance-calendar-feed-restricted"),
-    ).toContainText("You can see only some of this project's scheduled");
+    ).toContainText(
+      "You can see only some of this project's maintenance events, so its calendar link",
+    );
     await expect(dialog.getByText("Try again")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Manage link" })).toHaveCount(
       0,

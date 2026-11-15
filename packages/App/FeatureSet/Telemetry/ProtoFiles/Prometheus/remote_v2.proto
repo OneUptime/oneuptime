@@ -1,0 +1,95 @@
+// Prometheus remote write 2.0 (io.prometheus.write.v2.Request).
+//
+// Wire-compatible with prompb/io/prometheus/write/v2/types.proto in
+// github.com/prometheus/prometheus, without its gogoproto options:
+// https://prometheus.io/docs/specs/prw/remote_write_spec_2_0/
+syntax = "proto3";
+
+package io.prometheus.write.v2;
+
+message Request {
+  reserved 1 to 3;
+
+  // Every label name and value, help text and unit, referenced by index.
+  repeated string symbols = 4;
+  repeated TimeSeries timeseries = 5;
+}
+
+message TimeSeries {
+  // Pairs of indexes into symbols: name, value, name, value, ...
+  repeated uint32 labels_refs = 1;
+  repeated Sample samples = 2;
+  repeated Histogram histograms = 3;
+  repeated Exemplar exemplars = 4;
+  Metadata metadata = 5;
+  // When a counter, histogram or summary started, in milliseconds.
+  int64 created_timestamp = 6;
+}
+
+message Exemplar {
+  repeated uint32 labels_refs = 1;
+  double value = 2;
+  int64 timestamp = 3;
+}
+
+message Sample {
+  double value = 1;
+  int64 timestamp = 2;
+}
+
+message Metadata {
+  enum MetricType {
+    METRIC_TYPE_UNSPECIFIED = 0;
+    METRIC_TYPE_COUNTER = 1;
+    METRIC_TYPE_GAUGE = 2;
+    METRIC_TYPE_HISTOGRAM = 3;
+    METRIC_TYPE_GAUGEHISTOGRAM = 4;
+    METRIC_TYPE_SUMMARY = 5;
+    METRIC_TYPE_INFO = 6;
+    METRIC_TYPE_STATESET = 7;
+  }
+
+  MetricType type = 1;
+  uint32 help_ref = 3;
+  uint32 unit_ref = 4;
+}
+
+message Histogram {
+  enum ResetHint {
+    RESET_HINT_UNSPECIFIED = 0;
+    RESET_HINT_YES = 1;
+    RESET_HINT_NO = 2;
+    RESET_HINT_GAUGE = 3;
+  }
+
+  oneof count {
+    uint64 count_int = 1;
+    double count_float = 2;
+  }
+
+  double sum = 3;
+  sint32 schema = 4;
+  double zero_threshold = 5;
+
+  oneof zero_count {
+    uint64 zero_count_int = 6;
+    double zero_count_float = 7;
+  }
+
+  repeated BucketSpan negative_spans = 8;
+  repeated sint64 negative_deltas = 9;
+  repeated double negative_counts = 10;
+
+  repeated BucketSpan positive_spans = 11;
+  repeated sint64 positive_deltas = 12;
+  repeated double positive_counts = 13;
+
+  ResetHint reset_hint = 14;
+  int64 timestamp = 15;
+  repeated double custom_values = 16;
+}
+
+message BucketSpan {
+  sint32 offset = 1;
+  uint32 length = 2;
+}

@@ -262,7 +262,7 @@
       "countRequestTitle": "Count-verzoek",
       "aggregateHeading": "Aggregeren",
       "aggregateIntro": "Dit eindpunt voert serverzijdige aggregaties (som, gemiddelde, aantal en percentielen) uit over uw {{title}} en groepeert de resultaten in tijdsintervallen. Het voedt grafieken en dashboards.",
-      "aggregateByDescription": "De uit te voeren aggregatie. Geef aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp en optioneel query en groupBy op.",
+      "aggregateByDescription": "De uit te voeren aggregatie. Geef aggregationType (Count, Sum, Avg, Min, Max, P50, P90, P95, P99), aggregateColumnName, aggregationTimestampColumnName, startTimestamp, endTimestamp en optioneel query en groupBy op. Standaard wordt de grootte van de tijdsintervallen afgeleid uit het venster; stel het optionele aggregationInterval in om die vast te leggen (Minute, Hour, Day, Week, Month, Year), bijvoorbeeld Day-intervallen over een venster van een week, of op Total om per groep één aggregaat over het hele venster te krijgen, zonder tijdsintervallen. Day-, Week-, Month- en Year-intervallen beginnen om middernacht UTC, en weken op maandag; stel de optionele timezone in op de naam van een tijdzone, zoals America/New_York, om ze in plaats daarvan om middernacht in die tijdzone te laten beginnen. Een naam die geen bekende tijdzone is, wordt geweigerd.",
       "aggregateRequestTitle": "Aggregatieverzoek",
       "createHeading": "{{title}} aanmaken",
       "createIntro": "Met dit endpoint kunt u een nieuw object aanmaken.",

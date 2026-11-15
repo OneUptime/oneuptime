@@ -2397,9 +2397,20 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
         ? `quantile(${percentileLevel})(${aggregationColumn})`
         : `${aggregateBy.aggregationType.toLocaleLowerCase()}(${aggregationColumn})`;
 
-    selectStatement.append(
-      `${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(aggregationInterval, aggregationTimestampColumn)}`,
-    );
+    /*
+     * The time bucket follows the reader's calendar when the request
+     * carries their zone (AggregateBy.timezone, for a day and longer), so
+     * a day chart files each day's total under its own day (#7277).
+     */
+    selectStatement
+      .append(`${aggregationExpression} as ${aggregationColumn}, `)
+      .append(
+        AggregateUtil.buildBucketTimestampSelectStatement(
+          aggregationInterval,
+          aggregationTimestampColumn,
+          aggregateBy.timezone,
+        ),
+      );
 
     const columns: Array<string> = [
       aggregateBy.aggregateColumnName.toString(),

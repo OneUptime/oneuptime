@@ -90,6 +90,8 @@ const CASES: Array<TypeSchemaCase> = [
     openApi: {
       type: "object",
       description: "Phone object",
+      // The Terraform provider generator writes this wrapper as a phone number.
+      "x-oneuptime-type": ObjectType.Phone,
       example: wrapped(ObjectType.Phone, "+1-555-123-4567"),
     },
   },

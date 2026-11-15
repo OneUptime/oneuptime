@@ -273,6 +273,7 @@ import MonitorGroupResource from "./MonitorGroupResource";
 import MonitorOwnerTeam from "./MonitorOwnerTeam";
 import MonitorOwnerUser from "./MonitorOwnerUser";
 import MonitorProbe from "./MonitorProbe";
+import MonitorNetworkDevice from "./MonitorNetworkDevice";
 import MonitorSecret from "./MonitorSecret";
 import MonitorStatus from "./MonitorStatus";
 import MonitorStatusTimeline from "./MonitorStatusTimeline";
@@ -340,6 +341,7 @@ import AIConversation from "./AIConversation";
 import AIConversationMessage from "./AIConversationMessage";
 import AIRun from "./AIRun";
 import AIRunEvent from "./AIRunEvent";
+import AIRunRecording from "./AIRunRecording";
 import AIInsight from "./AIInsight";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
@@ -1001,6 +1003,7 @@ const AllModelTypes: Array<{
   StatusPageSCIM,
 
   MonitorProbe,
+  MonitorNetworkDevice,
 
   MonitorOwnerTeam,
   MonitorOwnerUser,
@@ -1127,6 +1130,7 @@ const AllModelTypes: Array<{
   AIConversationMessage,
   AIRun,
   AIRunEvent,
+  AIRunRecording,
   AIInsight,
 
   LlmProvider,

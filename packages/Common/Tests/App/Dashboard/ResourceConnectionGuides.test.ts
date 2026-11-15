@@ -53,6 +53,7 @@ import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages
 import { getOpenStackSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import { getRumSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumSetupGuide";
 import { getServerlessSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessSetupGuide";
+import { TranslatableTerm, translatableTerm } from "../../../Types/Translator";
 
 /*
  * The steps the "how do I connect this?" card shows on each resource's
@@ -154,8 +155,19 @@ interface GuideCase {
   build: (identifier: string) => ResourceConnectionGuide;
   // What the card's sentences call the resource: "Connect this <noun>".
   noun: string;
-  agentName: string;
+  /*
+   * A product's name as written, or words cased where the card's sentence
+   * puts them (an inSentence term, #7692).
+   */
+  agentName: string | TranslatableTerm;
 }
+
+// Words that say what sends the data, cased where a sentence puts them.
+const worded: (text: string) => TranslatableTerm = (
+  text: string,
+): TranslatableTerm => {
+  return translatableTerm(text, { inSentence: true });
+};
 
 /*
  * Every per-resource guide, built from one identifier. Cloud is keyed by
@@ -263,7 +275,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     {
       build: getIoTFleetConnectionGuide,
       noun: "fleet",
-      agentName: "OpenTelemetry exporter on your devices or gateway",
+      agentName: worded("OpenTelemetry exporter on your devices or gateway"),
     },
   ],
   [
@@ -277,7 +289,7 @@ const GUIDES: Array<[string, GuideCase]> = [
         });
       },
       noun: "environment",
-      agentName: "OpenTelemetry SDK or collector",
+      agentName: worded("OpenTelemetry SDK or collector"),
     },
   ],
   [
@@ -285,7 +297,7 @@ const GUIDES: Array<[string, GuideCase]> = [
     {
       build: getRumApplicationConnectionGuide,
       noun: "application",
-      agentName: "OpenTelemetry browser or mobile SDK",
+      agentName: worded("OpenTelemetry browser or mobile SDK"),
     },
   ],
   [
@@ -384,7 +396,7 @@ describe.each(GUIDES)("the %s guide", (_name: string, guideCase: GuideCase) => {
   const guide: ResourceConnectionGuide = guideCase.build(IDENTIFIER);
 
   test("names what sends its data", () => {
-    expect(guide.agentName).toBe(guideCase.agentName);
+    expect(guide.agentName).toEqual(guideCase.agentName);
   });
 
   /*
@@ -1136,6 +1148,23 @@ describe("Host guide, for a host OneUptime installed the collector on", () => {
       expect(DASHBOARD_EN[guide.startingCopy!.description]).toBeDefined();
       expect(DASHBOARD_EN[guide.linkText!]).toBeDefined();
     }
+  });
+
+  /*
+   * French, Italian and Russian put the article or the case on the name
+   * itself ("le collecteur OneUptime"): words of the Dashboard's strings,
+   * cased where the card's sentence puts them (#7692).
+   */
+  test("names its collector in words, cased where the card's sentence puts them", () => {
+    const guide: ResourceConnectionGuide = getHostConnectionGuide("web-09", {
+      isManaged: true,
+      osType: "linux",
+      registeredAt: minutesAgo(30),
+      now: NOW,
+    });
+
+    expect(guide.agentName).toEqual(worded("OneUptime collector"));
+    expect(DASHBOARD_EN["OneUptime collector"]).toBeDefined();
   });
 });
 

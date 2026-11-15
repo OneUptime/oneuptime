@@ -32,7 +32,7 @@ export const PUBLIC_NOTE_APPROVAL_SETTINGS_COPY: Record<
   },
   [PublicNoteApprovalEventType.ScheduledMaintenance]: {
     cardDescription: translationKey(
-      "Have someone approve public notes on scheduled maintenance events before customers see them. Off by default: notes are published as soon as they are posted.",
+      "Have someone approve public notes on maintenance events before customers see them. Off by default: notes are published as soon as they are posted.",
     ),
     switchDescription: translationKey(
       "A new public note, or an edit of one, waits until it is approved. Until then it is not on status pages, no subscriber is told, and it is not posted to chat channels.",

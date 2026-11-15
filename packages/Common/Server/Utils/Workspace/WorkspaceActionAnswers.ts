@@ -457,8 +457,9 @@ export default class WorkspaceActionAnswers {
   /*
    * A late Acknowledge that answered the presser's page about the record
    * (getAlreadyAnswer): what the press did, then who is on the record -
-   * "**Simon Lee** acknowledged the incident at 6:07 PM." - or only when,
-   * or nothing more when that cannot be told.
+   * "**Simon Lee** acknowledged the incident at 6:07 PM.", "... the alert
+   * episode at ..." - or only when, or nothing more when that cannot be
+   * told.
    */
   private static getPageAcknowledgedAnswer(data: {
     event: WorkspaceEventRecord;
@@ -466,8 +467,7 @@ export default class WorkspaceActionAnswers {
     acknowledgedBy: string | null;
     acknowledgedAt: Date | undefined;
   }): WorkspaceAnswer {
-    const noun: string =
-      data.event.type === WorkspaceEventType.Alert ? "alert" : "incident";
+    const noun: string = WorkspaceMemberActions.getNoun(data.event.type);
     const answered: MarkdownText = mdText`✅ You acknowledged the page for ${this.getRecordMarkdown(data.record)}, so paging stopped.`;
     const text: string = `You acknowledged the page for ${data.record.label}, so paging stopped`;
 

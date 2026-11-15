@@ -20,6 +20,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Modelos de incidentes**       | Preencher um incidente inteiro — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
 | **Modelos de notas**            | Texto reutilizável para notas públicas e privadas.                                                 |
 | **Aprovação de notas públicas** | Faça com que as notas públicas sejam aprovadas antes de serem publicadas e escolha quem as aprova. |
+| **Notificações aos assinantes** | Escolher se **Notificar assinantes da página de status** começa marcada quando alguém declara um incidente. Ativado por padrão. |
 | **Modelos de post-mortem**      | Estruturas de post-mortem reutilizáveis.                                                           |
 | **Status de post-mortem** | Os status pelos quais um post-mortem passa, de Não iniciado a Concluído. |
 | **Campos personalizados**       | Definir campos extras que aparecem em todo incidente.                                              |
@@ -183,6 +184,14 @@ A maioria dos projetos precisa de uma etapa. Adicione outra quando uma nota prec
 - **Ninguém aprova a própria nota, nem duas etapas de uma mesma nota.** Quem enviou uma nota para aprovação não pode aprová-la nem rejeitá-la, e quem aprovou uma das etapas dela não pode aprovar outra.
 
 Só os proprietários e os administradores do projeto podem mudar essas configurações, e todos que leem as notas veem quem as aprova. **Manutenção programada → Configurações → Aprovação de notas públicas** é a mesma página para eventos de manutenção programada, com interruptor e etapas próprios. O que uma nota faz enquanto aguarda, e como quem aprova decide, está em [Aprovação de notas públicas](/docs/incidents/notes-owners-and-feed#aprovação-de-notas-públicas).
+
+## Notificações aos assinantes
+
+Quando alguém declara um incidente, **Notificar assinantes da página de status** começa marcada, então os assinantes da página de status ficam sabendo do incidente, a menos que quem o declara desmarque a caixa. Se a sua equipe trabalha em um incidente antes que alguém de fora fique sabendo, faça a caixa começar desmarcada: vá em **Incidentes → Configurações → Notificações aos assinantes** (`/dashboard/{projectId}/incidents/settings/subscriber-notifications`) e desative **Notificar assinantes da página de status por padrão**. Ele fica ativado em todos os projetos até você desativá-lo e é salvo assim que você o altera. Só Project Owners e Project Admins podem alterá-lo; para todos os outros, o interruptor fica bloqueado e diz qual permissão é necessária.
+
+Enquanto ele está desativado, a caixa começa desmarcada em **Declarar novo incidente**, seja o incidente declarado pela lista de incidentes, por um modelo, por um alerta ou por um monitor, e a descrição dela diz que ela fica desmarcada por padrão neste projeto. Os assinantes só são avisados se quem declara marcar a caixa. No resumo, antes do envio, o **Não** dela tem **Mudar para Sim** ao lado, que marca a caixa sem voltar a **Recursos afetados**. Isso não é oferecido para um incidente privado, que nenhuma página de status mostra. O interruptor muda só como a caixa começa: o incidente registra como a caixa foi deixada, e um incidente declarado sem notificação continua silencioso, como [Declarar um incidente](/docs/incidents/declaring-incidents) descreve.
+
+Um incidente declarado pelo Slack ou Microsoft Teams, ou pedindo ao OneUptime AI, também segue o interruptor: ali nada pergunta sobre os assinantes, então, enquanto o interruptor estiver desativado, ele é declarado sem notificá-los, e você pode avisá-los depois com uma nota pública. Incidentes criados de qualquer outra forma — por monitores, ou pela API, pelo Terraform ou por fluxos de trabalho — mantêm o próprio `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`, que notifica os assinantes a menos que seja `false`. Pela API, o interruptor é o campo `notifyStatusPageSubscribersOfNewIncidentsByDefault` do projeto.
 
 ## Modelos de post-mortem
 
@@ -727,7 +736,7 @@ As regras que a própria página traz valem a pena ser internalizadas:
 - O conjunto de políticas que de fato é executado é a união das políticas de toda regra que corresponde, mais qualquer política anexada ao incidente manualmente ou por um modelo, sem duplicatas, para que cada política seja executada no máximo uma vez. Quando duas regras que correspondem acionam a mesma política, ela aciona assim que qualquer uma delas permitir: imediatamente vence o horário comercial.
 
 > [!NOTE]
-> A severidade é um critério de correspondência aqui e em nenhum outro lugar. Uma severidade de incidente não tem campo de plantão — escolher «Critical Incident» não aciona, por si só, ninguém. Se você quer que a severidade conduza o acionamento, escreva uma regra de plantão que corresponda a ela.
+> A severidade é um critério de correspondência aqui e em nenhum outro lugar. Uma severidade de incidente não tem campo de plantão — escolher «Incidente crítico» não aciona, por si só, ninguém. Se você quer que a severidade conduza o acionamento, escreva uma regra de plantão que corresponda a ela.
 
 ## Anexar políticas de plantão diretamente
 

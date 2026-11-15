@@ -816,6 +816,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             settings: ["Current Balance", "Auto Recharge"],
           },
           {
+            page: PageMap.SETTINGS_AI_RESULTS,
+            title: "AI Results",
+            icon: IconProp.ArrowTrendingUp,
+            keywords: [
+              "pages avoided",
+              "fixes verified",
+              "root causes confirmed",
+              "ai quality",
+              "ai outcomes",
+            ],
+          },
+          {
             page: PageMap.SETTINGS_AI_LOGS,
             title: "AI Logs",
             icon: IconProp.Logs,
@@ -1313,6 +1325,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "approval steps",
               "approvers",
             ],
+          },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_SUBSCRIBER_NOTIFICATIONS,
+            title: "Subscriber Notifications",
+            icon: IconProp.Megaphone,
+            keywords: [
+              "notify subscribers",
+              "notify status page subscribers",
+              "status page subscribers",
+              "subscriber emails",
+            ],
+            settings: ["Notify status page subscribers by default"],
           },
           {
             page: PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP,
@@ -1993,6 +2017,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Viewer",
             icon: IconProp.List,
             keywords: ["metric explorer", "search metrics"],
+          },
+          {
+            page: PageMap.METRICS_PROMQL,
+            title: "PromQL",
+            icon: IconProp.Code,
+            keywords: [
+              "prometheus",
+              "query metrics",
+              "metrics query language",
+              "grafana",
+              "prometheus data source",
+            ],
           },
           {
             page: PageMap.METRICS_INSIGHTS,

@@ -202,6 +202,13 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   public override async aggregateBy(
     aggregateBy: AggregateBy<Metric>,
   ): Promise<AggregatedResult> {
+    /*
+     * The reader's zone (#7277) is refused with a 400 here, before the
+     * point-type and service-key lookups below read anything: the base
+     * class checks it too, but only after them.
+     */
+    AggregateUtil.readTimezone(aggregateBy.timezone);
+
     if (
       aggregateBy.includeSampleAttributes === true &&
       this.getSanitizedGroupByAttributeKeys(aggregateBy).length > 0
@@ -1530,9 +1537,17 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * 0.5 rounds to 0 which drops the sample, but bucket counts are
      * always whole numbers in practice).
      */
-    statement.append(
-      `SELECT quantileExactWeighted(${percentileLevel})(__pcl_pair.1, toUInt64(greatest(0, round(__pcl_pair.2)))) as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(resolvedInterval, aggregationTimestampColumn)}`,
-    );
+    statement
+      .append(
+        `SELECT quantileExactWeighted(${percentileLevel})(__pcl_pair.1, toUInt64(greatest(0, round(__pcl_pair.2)))) as ${aggregationColumn}, `,
+      )
+      .append(
+        AggregateUtil.buildBucketTimestampSelectStatement(
+          resolvedInterval,
+          aggregationTimestampColumn,
+          aggregateBy.timezone,
+        ),
+      );
 
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
@@ -1790,9 +1805,15 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       scalarTopK && (groupByKeys.length > 0 || attributeGroupKeys.length > 0),
     );
 
-    statement.append(
-      `SELECT ${aggregationExpression} as ${aggregationColumn}, ${AggregateUtil.buildBucketTimestampSelect(resolvedInterval, aggregationTimestampColumn)}`,
-    );
+    statement
+      .append(`SELECT ${aggregationExpression} as ${aggregationColumn}, `)
+      .append(
+        AggregateUtil.buildBucketTimestampSelectStatement(
+          resolvedInterval,
+          aggregationTimestampColumn,
+          aggregateBy.timezone,
+        ),
+      );
     for (const key of groupByKeys) {
       statement.append(`, ${key}`);
     }
@@ -2472,9 +2493,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     const statement: Statement = SQL``;
 
-    statement.append(
-      `SELECT ${mergedExpr} as value, ${AggregateUtil.buildBucketTimestampExpression(interval, "bucketTime")} as time`,
-    );
+    statement
+      .append(`SELECT ${mergedExpr} as value, `)
+      .append(
+        AggregateUtil.buildBucketTimestampStatement(
+          interval,
+          "bucketTime",
+          aggregateBy.timezone,
+        ),
+      )
+      .append(` as time`);
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
       ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
@@ -2691,9 +2719,16 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
 
     const statement: Statement = SQL``;
 
-    statement.append(
-      `SELECT ${mergedExpr} as value, ${AggregateUtil.buildBucketTimestampExpression(interval, "bucketTime")} as time`,
-    );
+    statement
+      .append(`SELECT ${mergedExpr} as value, `)
+      .append(
+        AggregateUtil.buildBucketTimestampStatement(
+          interval,
+          "bucketTime",
+          aggregateBy.timezone,
+        ),
+      )
+      .append(` as time`);
     statement.append(SQL` FROM ${databaseName}.`);
     statement.append(resolved.route.tableName);
     statement.append(

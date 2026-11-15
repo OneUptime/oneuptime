@@ -25,7 +25,13 @@ import {
   getVMwareVCenterConnectionGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceConnection/ResourceConnectionGuides";
 import Route from "../../../Types/API/Route";
+import {
+  isTranslatableTerm,
+  TranslatableTerm,
+  translatableTerm,
+} from "../../../Types/Translator";
 import { followLanguageForDates } from "../../../UI/Utils/DateDisplayLanguage";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
@@ -363,6 +369,300 @@ describe.each(LANGUAGES)("the connection card in %s", (language: string) => {
         }).toEqual({ language, sentence, english: false });
         expect(sentence).not.toMatch(LEFT_UNFILLED);
       }
+    },
+  );
+});
+
+/*
+ * THE COLLECTOR A HOST'S CARD NAMES, WHERE EACH SENTENCE PUTS IT (#7692).
+ *
+ * French, Italian and Russian put the article or the case on the name of
+ * the collector OneUptime installs on a host - "le collecteur OneUptime" -
+ * so it is worded for the middle of a sentence. The card's sentence once
+ * data stopped starts with it, and takes its capital there; the guide's
+ * sentence for a host nothing has arrived from names it in its middle, and
+ * read "Configurez Le collecteur OneUptime" while the name carried the
+ * capital.
+ */
+// A host OneUptime installed the collector on, its first data late.
+function managedHost(): ResourceConnectionGuide {
+  return getHostConnectionGuide("db-04", {
+    isManaged: true,
+    osType: "linux",
+    registeredAt: new Date(Date.now() - 30 * MINUTE),
+  });
+}
+
+// The card's sentence, under its title.
+function drawnSentence(
+  guide: ResourceConnectionGuide,
+  lastSeenAt: Date | undefined,
+): string {
+  const { container } = render(
+    <ResourceConnectionGuideCard
+      status="disconnected"
+      lastSeenAt={lastSeenAt}
+      guide={guide}
+      documentationRoute={DOCS}
+    />,
+  );
+
+  const sentence: string =
+    container.querySelector('[data-testid="resource-connection-guide"] h2 + p')
+      ?.textContent || "";
+
+  cleanup();
+
+  return sentence;
+}
+
+describe("the collector a host's card names, where each sentence puts it", () => {
+  test.each([
+    [
+      "fr",
+      ". Le collecteur OneUptime ne remonte plus de données — ",
+      "Configurez le collecteur OneUptime — ",
+    ],
+    [
+      "it",
+      ". Il collector di OneUptime non invia più dati: ",
+      "Configura il collector di OneUptime: ",
+    ],
+    [
+      "ru",
+      ". Коллектор OneUptime больше не передаёт данные — ",
+      "Настройте коллектор OneUptime — ",
+    ],
+  ])(
+    "%s starts the sentence with the collector's capital, and names it lower-case in the middle of one",
+    async (language: string, stopped: string, setUp: string) => {
+      await useLanguage(language);
+
+      expect(
+        drawnSentence(managedHost(), new Date(Date.now() - 3 * 60 * MINUTE)),
+      ).toContain(stopped);
+
+      /*
+       * Before its first data the card says the host is starting instead
+       * (the guide's startingCopy), so the guide's sentence for a host
+       * nothing has arrived from is drawn without it.
+       */
+      expect(
+        drawnSentence({ ...managedHost(), startingCopy: undefined }, undefined),
+      ).toContain(setUp);
+    },
+  );
+});
+
+/*
+ * THE AGENT'S NAME IN A CHINESE OR JAPANESE SENTENCE (#7864).
+ *
+ * The zh-CN, zh-TW and ja sentences put a space on each side of
+ * {{agentName}}: right beside a name in Latin letters ("请设置 OneUptime
+ * Kubernetes Agent"), a stray one beside a name the language words in its
+ * own script ("请设置 设备或网关上的 OpenTelemetry 导出器"). Three stopped
+ * sentences were written without it, which suited such names ("OneUptime
+ * 收集器已不再上报数据") and read "OpenTelemetry Collector已不再上报数据" for
+ * a host set up by hand. Every sentence has the space now, and the
+ * Translator drops it where the name and the words meet in Chinese or
+ * Japanese.
+ */
+describe("the agent's name in a Chinese or Japanese sentence", () => {
+  const WITHOUT_WORD_SPACES: ReadonlyArray<string> = ["zh-CN", "zh-TW", "ja"];
+
+  // One letter of Chinese or Japanese: a Han character or a kana.
+  const LETTER: RegExp =
+    /^(?=[\p{L}\p{Nl}])[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}]$/u;
+
+  function isLetter(character: string | undefined): boolean {
+    return character !== undefined && LETTER.test(character);
+  }
+
+  // The agent's name as the card's sentences say it in `language`.
+  function agentNameIn(
+    guide: ResourceConnectionGuide,
+    language: string,
+  ): string {
+    const name: TranslatableTerm = isTranslatableTerm(guide.agentName)
+      ? guide.agentName
+      : translatableTerm(guide.agentName);
+
+    return dashboardTranslator(language).translateTerm(name.translatableTerm, {
+      inSentence: name.inSentence,
+    });
+  }
+
+  /*
+   * Whether `sentence` spaces `name` from a Chinese or Japanese word beside
+   * it the wrong way: with a space where the name is Chinese or Japanese on
+   * that side too, or with none where it is not (Latin letters, a digit).
+   */
+  function isSpacedWrong(sentence: string, name: string): boolean {
+    const letters: Array<string> = Array.from(name);
+
+    for (
+      let at: number = sentence.indexOf(name);
+      at !== -1;
+      at = sentence.indexOf(name, at + 1)
+    ) {
+      const before: Array<string> = Array.from(sentence.slice(0, at));
+      const after: Array<string> = Array.from(sentence.slice(at + name.length));
+      const isSpaceBefore: boolean = before[before.length - 1] === " ";
+      const isSpaceAfter: boolean = after[0] === " ";
+      // The word's letter next to the name, past the space if there is one.
+      const wordBefore: string | undefined =
+        before[before.length - (isSpaceBefore ? 2 : 1)];
+      const wordAfter: string | undefined = after[isSpaceAfter ? 1 : 0];
+
+      if (
+        (isLetter(wordBefore) && isSpaceBefore === isLetter(letters[0])) ||
+        (isLetter(wordAfter) &&
+          isSpaceAfter === isLetter(letters[letters.length - 1]))
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Every card and state, and a managed host's sentence for before its first data.
+  const CARDS: ReadonlyArray<{
+    name: string;
+    build: () => ResourceConnectionGuide;
+    lastSeenAt: () => Date | undefined;
+  }> = [
+    ...CASES.flatMap((cardCase: CardCase) => {
+      return STATES.map(
+        (state: { name: string; lastSeenAt: () => Date | undefined }) => {
+          return {
+            name: caseKey(cardCase, state.name),
+            build: cardCase.build,
+            lastSeenAt: state.lastSeenAt,
+          };
+        },
+      );
+    }),
+    {
+      name: "host OneUptime installed the collector on, its setup sentence",
+      build: (): ResourceConnectionGuide => {
+        return { ...managedHost(), startingCopy: undefined };
+      },
+      lastSeenAt: (): undefined => {
+        return undefined;
+      },
+    },
+  ];
+
+  test.each(WITHOUT_WORD_SPACES)(
+    "%s: a space between the agent's name and the words only where the name is not Chinese or Japanese on that side",
+    async (language: string) => {
+      await useLanguage(language);
+
+      const spacedWrong: Array<string> = [];
+      let named: number = 0;
+
+      for (const card of CARDS) {
+        const guide: ResourceConnectionGuide = card.build();
+        const name: string = agentNameIn(guide, language);
+        const sentences: Array<string> = drawnSentences(
+          (): ResourceConnectionGuide => {
+            return guide;
+          },
+          card.lastSeenAt(),
+        );
+
+        for (const sentence of sentences) {
+          if (!sentence.includes(name)) {
+            continue;
+          }
+
+          named++;
+
+          if (isSpacedWrong(sentence, name)) {
+            spacedWrong.push(`${card.name}: ${sentence}`);
+          }
+        }
+      }
+
+      // Every card names its agent: before its first data, or once it stopped.
+      expect(named).toBeGreaterThanOrEqual(CASES.length);
+      expect({ language, spacedWrong }).toEqual({ language, spacedWrong: [] });
+    },
+  );
+
+  test("zh-CN: a name in its own words takes no space, a name in Latin letters keeps it", async () => {
+    await useLanguage("zh-CN");
+
+    const threeHoursAgo: Date = new Date(Date.now() - 3 * 60 * MINUTE);
+
+    expect(
+      drawnSentence(getIoTFleetConnectionGuide("sensors-a"), undefined),
+    ).toBe(
+      "尚未收到此设备群的数据，因此显示为“已断开”。请设置设备或网关上的 OpenTelemetry 导出器，只需几分钟。",
+    );
+    // A host set up by hand, and one OneUptime installed the collector on.
+    expect(
+      drawnSentence(getHostConnectionGuide("db-01"), threeHoursAgo),
+    ).toContain("。OpenTelemetry Collector 已不再上报数据，");
+    expect(drawnSentence(managedHost(), threeHoursAgo)).toContain(
+      "。OneUptime 收集器已不再上报数据，",
+    );
+    expect(
+      drawnSentence(
+        getCloudResourceConnectionGuide({
+          cloudPlatform: "aws_ecs",
+          cloudAccountId: "123456789012",
+          cloudRegion: "us-east-1",
+        }),
+        threeHoursAgo,
+      ),
+    ).toContain("。OpenTelemetry SDK 或收集器已不再上报数据，");
+  });
+
+  test("ja: the same, before the particle", async () => {
+    await useLanguage("ja");
+
+    const threeHoursAgo: Date = new Date(Date.now() - 3 * 60 * MINUTE);
+
+    expect(
+      drawnSentence(getHostConnectionGuide("db-01"), threeHoursAgo),
+    ).toContain("。OpenTelemetry Collector は報告を停止しています");
+    expect(drawnSentence(managedHost(), threeHoursAgo)).toContain(
+      "。OneUptime コレクターは報告を停止しています",
+    );
+    expect(
+      drawnSentence({ ...managedHost(), startingCopy: undefined }, undefined),
+    ).toContain("。OneUptime コレクターをセットアップしてください");
+  });
+
+  test.each([
+    ["zh-CN", "读取集群是在 "],
+    ["zh-TW", "讀取叢集是在 "],
+  ])(
+    "%s: the Proxmox cluster's last read, a date, keeps its space",
+    async (language: string, wordsBefore: string) => {
+      await useLanguage(language);
+
+      // Its agent heard two minutes ago, the cluster last read 25 minutes ago.
+      const { container } = render(
+        <ResourceConnectionGuideCard
+          status="disconnected"
+          lastSeenAt={new Date(Date.now() - 25 * MINUTE)}
+          agentLastSeenAt={new Date(Date.now() - 2 * MINUTE)}
+          guide={getProxmoxClusterConnectionGuide("pve-a", ONEUPTIME_URL)}
+          documentationRoute={DOCS}
+        />,
+      );
+      const sentence: string =
+        container.querySelector(
+          '[data-testid="resource-connection-guide"] h2 + p',
+        )?.textContent || "";
+
+      cleanup();
+
+      // "是在 25分钟前", "是在 25 分鐘前": a space between the words and the date's digits.
+      expect(sentence).toContain(`${wordsBefore}25`);
     },
   );
 });

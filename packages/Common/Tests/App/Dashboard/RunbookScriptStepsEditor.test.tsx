@@ -821,7 +821,20 @@ describe("an SSH step's host key", () => {
     await renderSteps();
     open("Restart nginx");
 
+    // Saved with a host key first.
     fireEvent.change(hostKeyBox(), { target: { value: FINGERPRINT } });
+    expect(
+      ((await save())[0]!.config as Record<string, unknown>)["hostKey"],
+    ).toBe(FINGERPRINT);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Got it" }, WAIT),
+    );
+    saved = null;
+
+    /*
+     * Then cleared. (Set and cleared before a save, the steps are as they
+     * were loaded: nothing is unsaved, and Save Steps rests.)
+     */
     fireEvent.change(hostKeyBox(), { target: { value: "  \n " } });
 
     const steps: Array<RunbookStep> = await save();

@@ -57,22 +57,29 @@ function id(): ObjectID {
   );
 }
 
-// One of Nitin's pages still going out to him, of a run started as `run` says.
+/*
+ * One of Nitin's pages still going out to him, of a run started as `run`
+ * says: "policy" is a policy OneUptime started on its own, "policy by hand"
+ * one Jane started with Execute On-Call Policy (OnCallPolicyStartedByHand).
+ */
 function page(run: {
-  startedBy: "person" | "workflow" | "policy";
+  startedBy: "person" | "workflow" | "policy" | "policy by hand";
   answered?: boolean;
   kind?: OnCallPersonPageRecordKind;
   noTimelineRow?: boolean;
 }): UserOnCallLog {
   const executionLog: OnCallDutyPolicyExecutionLog =
     new OnCallDutyPolicyExecutionLog();
-  executionLog.triggeredByUserId = JANE;
+
+  if (run.startedBy !== "policy") {
+    executionLog.triggeredByUserId = JANE;
+  }
 
   if (run.startedBy === "workflow") {
     executionLog.triggeredByWorkflowId = WORKFLOW;
   }
 
-  if (run.startedBy === "policy") {
+  if (run.startedBy === "policy" || run.startedBy === "policy by hand") {
     executionLog.onCallDutyPolicyId = POLICY;
   }
 
@@ -88,10 +95,16 @@ function page(run: {
     log.onCallDutyPolicyExecutionLogTimelineId = id();
   }
 
-  if ((run.kind || "incident") === "incident") {
+  const kind: OnCallPersonPageRecordKind = run.kind || "incident";
+
+  if (kind === "incident") {
     log.triggeredByIncidentId = RECORD_ID;
-  } else {
+  } else if (kind === "alert") {
     log.triggeredByAlertId = RECORD_ID;
+  } else if (kind === "incident episode") {
+    log.triggeredByIncidentEpisodeId = RECORD_ID;
+  } else {
+    log.triggeredByAlertEpisodeId = RECORD_ID;
   }
 
   log.onCallDutyPolicyExecutionLog = executionLog;
@@ -206,7 +219,7 @@ describe("whose pages a state change answers", () => {
     ).toEqual(RECORD_ID);
   });
 
-  test("a workflow's direct page, a policy's run and a page somebody answered already are left as they are", async () => {
+  test("a workflow's direct page, a run of a policy OneUptime started and a page somebody answered already are left as they are", async () => {
     const person: UserOnCallLog = page({ startedBy: "person" });
     logs = [
       page({ startedBy: "workflow" }),
@@ -373,7 +386,7 @@ describe("Acknowledge pressed on a record acknowledged already", () => {
     expect(acknowledgePage).not.toHaveBeenCalled();
   });
 
-  test("a workflow's or a policy's page is left to its own link, as for a state change", async () => {
+  test("a workflow's page or one of a policy OneUptime started is left to its own link, as for a state change", async () => {
     logs = [page({ startedBy: "workflow" }), page({ startedBy: "policy" })];
 
     await expect(
@@ -390,6 +403,140 @@ describe("Acknowledge pressed on a record acknowledged already", () => {
 });
 
 /*
+ * A POLICY A PERSON STARTED BY HAND (OnCallPolicyStartedByHand, issue #7596).
+ *
+ * Jane presses Execute On-Call Policy on an incident, an alert or an episode
+ * somebody is on already. The policy goes on paging Nitin until somebody it
+ * paged answers it - and Nitin acknowledging the record is answering it, as
+ * it is for a page a person asked for: he is not called ten minutes later,
+ * and the policy does not move on to its next level.
+ */
+describe("a policy a person started by hand", () => {
+  const KINDS: Array<[OnCallPersonPageRecordKind, string]> = [
+    ["incident", "triggeredByIncidentId"],
+    ["alert", "triggeredByAlertId"],
+    ["incident episode", "triggeredByIncidentEpisodeId"],
+    ["alert episode", "triggeredByAlertEpisodeId"],
+  ];
+
+  test.each(KINDS)(
+    "its person who acknowledges the %s answers their page of it, read by the record's own column",
+    async (kind: OnCallPersonPageRecordKind, column: string) => {
+      const nitins: UserOnCallLog = page({
+        startedBy: "policy by hand",
+        kind: kind,
+      });
+      logs = [nitins];
+
+      await expect(
+        OnCallPersonPageAnswer.onRecordStateChanged(
+          stateChange({ kind: kind }),
+        ),
+      ).resolves.toBe(1);
+
+      const asked: { query: Record<string, unknown> } = findBy.mock
+        .calls[0]![0] as never;
+
+      expect(asked.query[column]).toEqual(RECORD_ID);
+
+      const answer: Record<string, unknown> = acknowledgePage.mock
+        .calls[0]![0] as never;
+
+      expect(answer["userOnCallLogId"]).toEqual(nitins.id);
+      expect(answer["userId"]).toEqual(NITIN);
+      expect(answer["onCallDutyPolicyExecutionLogId"]).toEqual(
+        nitins.onCallDutyPolicyExecutionLogId,
+      );
+      expect(answer[column]).toEqual(RECORD_ID);
+    },
+  );
+
+  test("Acknowledge pressed on the incident acknowledged already answers it too", async () => {
+    const nitins: UserOnCallLog = page({ startedBy: "policy by hand" });
+    logs = [nitins];
+
+    await expect(
+      OnCallPersonPageAnswer.onAcknowledgePressed({
+        kind: "incident",
+        recordId: RECORD_ID,
+        projectId: PROJECT_ID,
+        pressedByUserId: NITIN,
+        isResolved: false,
+      }),
+    ).resolves.toBe(1);
+    expect(
+      (acknowledgePage.mock.calls[0]![0] as { userOnCallLogId: ObjectID })
+        .userOnCallLogId,
+    ).toEqual(nitins.id);
+  });
+
+  test("beside a page of a policy OneUptime started, only the one started by hand is answered here", async () => {
+    const byHand: UserOnCallLog = page({ startedBy: "policy by hand" });
+    logs = [page({ startedBy: "policy" }), byHand];
+
+    await expect(
+      OnCallPersonPageAnswer.onRecordStateChanged(stateChange()),
+    ).resolves.toBe(1);
+    expect(acknowledgePage).toHaveBeenCalledTimes(1);
+    expect(
+      (acknowledgePage.mock.calls[0]![0] as { userOnCallLogId: ObjectID })
+        .userOnCallLogId,
+    ).toEqual(byHand.id);
+  });
+
+  test("one somebody answered already, or resolved, is left alone", async () => {
+    logs = [page({ startedBy: "policy by hand", answered: true })];
+
+    await expect(
+      OnCallPersonPageAnswer.onRecordStateChanged(stateChange()),
+    ).resolves.toBe(0);
+
+    logs = [page({ startedBy: "policy by hand" })];
+
+    await expect(
+      OnCallPersonPageAnswer.onRecordStateChanged(
+        stateChange({ isResolved: true }),
+      ),
+    ).resolves.toBe(0);
+    expect(acknowledgePage).not.toHaveBeenCalled();
+  });
+
+  test("somebody else acknowledging the record answers nothing of Nitin's", async () => {
+    logs = [page({ startedBy: "policy by hand" })];
+
+    await OnCallPersonPageAnswer.onRecordStateChanged(
+      stateChange({ changedByUserId: JANE }),
+    );
+
+    // Only Jane's own pages are read: Nitin's goes on until he answers it.
+    expect(
+      (findBy.mock.calls[0]![0] as { query: Record<string, unknown> }).query[
+        "userId"
+      ],
+    ).toEqual(JANE);
+  });
+
+  test("reads each page's run with what tells a policy started by hand apart", async () => {
+    await OnCallPersonPageAnswer.onRecordStateChanged(stateChange());
+
+    expect(
+      (
+        findBy.mock.calls[0]![0] as unknown as {
+          select: { onCallDutyPolicyExecutionLog: Record<string, unknown> };
+        }
+      ).select.onCallDutyPolicyExecutionLog,
+    ).toMatchObject({
+      onCallDutyPolicyId: true,
+      triggeredByUserId: true,
+      triggeredByWorkflowId: true,
+      pageAgainNumber: true,
+      isObserverPage: true,
+      userNotificationEventType: true,
+    });
+  });
+});
+
+/*
  * AN OBSERVER WHO ACKNOWLEDGES THE RECORD HAS SEEN IT (OnCallObserverPage).
  *
  * Somebody paged as an observer who steps in - acknowledges the incident
@@ -400,16 +547,16 @@ describe("Acknowledge pressed on a record acknowledged already", () => {
  */
 describe("an observer who acknowledges the record", () => {
   function observerPage(
-    startedBy: "person" | "workflow" | "policy",
+    startedBy: "person" | "workflow" | "policy" | "policy by hand",
   ): UserOnCallLog {
     const log: UserOnCallLog = page({ startedBy: startedBy });
     log.onCallDutyPolicyExecutionLog!.isObserverPage = true;
     return log;
   }
 
-  test.each(["policy", "workflow", "person"] as const)(
+  test.each(["policy", "policy by hand", "workflow", "person"] as const)(
     "answers their own page as an observer of a %s run",
-    async (startedBy: "person" | "workflow" | "policy") => {
+    async (startedBy: "person" | "workflow" | "policy" | "policy by hand") => {
       const theirs: UserOnCallLog = observerPage(startedBy);
       logs = [theirs];
 
@@ -426,6 +573,21 @@ describe("an observer who acknowledges the record", () => {
       );
     },
   );
+
+  test("an observer of an episode who acknowledges it has seen it too", async () => {
+    const theirs: UserOnCallLog = page({
+      startedBy: "policy",
+      kind: "alert episode",
+    });
+    theirs.onCallDutyPolicyExecutionLog!.isObserverPage = true;
+    logs = [theirs];
+
+    expect(
+      await OnCallPersonPageAnswer.onRecordStateChanged(
+        stateChange({ kind: "alert episode" }),
+      ),
+    ).toBe(1);
+  });
 
   test("an observer's page somebody answered already is left alone", async () => {
     const theirs: UserOnCallLog = observerPage("policy");

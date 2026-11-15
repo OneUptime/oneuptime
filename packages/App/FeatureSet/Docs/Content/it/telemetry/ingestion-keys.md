@@ -36,7 +36,7 @@ Scegliete il tipo in base a dove vivrà la chiave. Il tipo non si può cambiare 
 | | **Server** | **Browser** |
 | --- | --- | --- |
 | Per | Applicazioni, collector e agenti su macchine che gestite | Pagine web, e React Native Session Replay |
-| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche e Session Replay |
+| Invia | Ogni tipo di telemetria, a ogni endpoint | Tracce, log, metriche, Session Replay ed [eventi di Sentry](/docs/telemetry/compatible-endpoints#sdk-di-sentry) |
 | È un segreto | Sì: tenetela sui vostri server | No: chiunque visualizzi la pagina può leggerla |
 | Origini | Non verificate | Sono accettate solo le origini elencate |
 | Richieste al minuto | Nessun limite, a meno che non ne impostiate uno | 6.000, a meno che non impostiate un altro limite |
@@ -108,7 +108,7 @@ Un'origine è uno schema, un host e una porta facoltativa: `https://app.example.
 
 ## Ruotare, disattivare o eliminare una chiave
 
-La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Click to reveal**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
+La pagina di una chiave mostra il suo **Stato**, la sua **Chiave segreta** dietro **Fai clic per mostrare**, e il suo **Last Used At**: l'ultima volta che OneUptime ha accettato dati inviati con essa.
 
 | Per | Fate questo | Che cosa vedono i mittenti |
 | --- | --- | --- |

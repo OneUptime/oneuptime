@@ -10,9 +10,11 @@ import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../../Models/DatabaseModels/Project";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
 import AIService from "../../../../../Server/Services/AIService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
+import ProjectService from "../../../../../Server/Services/ProjectService";
 import { LinkedAffectedResource } from "../../../../../Server/Utils/AI/Toolbox/AffectedResourceLinks";
 import logger from "../../../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
@@ -59,6 +61,10 @@ import ObjectID from "../../../../../Types/ObjectID";
  *     incident private like a private alert; the confirmation says what it
  *     is linked to, and what was picked and not linked is said in a reply
  *     that mentions them.
+ *   - Status page subscribers (#7606): the card asks nothing about them, so
+ *     the incident is declared as the project starts Notify Status Page
+ *     Subscribers on Declare New Incident - without notifying them where the
+ *     project starts it unticked, as always everywhere else.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -521,11 +527,19 @@ describe("the submit", () => {
   let checkLinkSpy: SpyInstance<CheckLink>;
   let toLink: WorkspaceAffectedResourcesToLink;
   let alertLink: WorkspaceAlertToLink | WorkspaceAlertNotLinked;
+  /*
+   * The project's Notify status page subscribers by default (Incidents >
+   * Settings > Subscriber Notifications), and every read of it.
+   */
+  let notifiesByDefault: boolean;
+  let projectReads: Array<JSONObject>;
 
   beforeEach(() => {
     sent = [];
     deleted = [];
     created = [];
+    notifiesByDefault = true;
+    projectReads = [];
     toLink = { linked: [API_HOST, CHECKOUT], notLinkedCount: 0 };
     alertLink = {
       miscDataProps: {
@@ -551,6 +565,17 @@ describe("the submit", () => {
       .mockImplementation(async () => {
         return alertLink;
       });
+    jest.spyOn(ProjectService, "findOneById").mockImplementation((async (
+      findOneById: JSONObject,
+    ) => {
+      projectReads.push(findOneById);
+
+      const project: Project = new Project();
+      project.id = findOneById["id"] as ObjectID;
+      project.notifyStatusPageSubscribersOfNewIncidentsByDefault =
+        notifiesByDefault;
+      return project;
+    }) as never);
     jest.spyOn(IncidentService, "create").mockImplementation((async (create: {
       data: Incident;
       miscDataProps?: JSONObject;
@@ -781,5 +806,78 @@ describe("the submit", () => {
 
     expect(readPickedSpy).not.toHaveBeenCalled();
     expect(created).toEqual([]);
+    expect(projectReads).toEqual([]);
+  });
+
+  /*
+   * The card asks nothing about status page subscribers. Where the project
+   * starts Notify Status Page Subscribers unticked on Declare New Incident,
+   * an incident declared here tells them nothing either; anywhere else it is
+   * declared exactly as before, the column not written at all.
+   */
+  describe("status page subscribers, as the project starts Notify Status Page Subscribers", () => {
+    test("a project that starts the box unticked: declared without notifying them, the project read as OneUptime for that one column", async () => {
+      notifiesByDefault = false;
+
+      await submit({});
+
+      expect(created).toHaveLength(1);
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+      // Still declared as the member, and confirmed as always.
+      expect(created[0]!.props).toBe(MEMBER_PROPS);
+      expect(sent).toEqual([
+        {
+          kind: "reply",
+          text: `✅ **Incident INC-43** created successfully. [View incident](${INCIDENT_LINK})\n\nLinked to **api-1** (Host) and **checkout** (Service).`,
+        },
+      ]);
+      expect(projectReads).toEqual([
+        {
+          id: PROJECT_ID,
+          select: { notifyStatusPageSubscribersOfNewIncidentsByDefault: true },
+          props: { isRoot: true },
+        },
+      ]);
+    });
+
+    test("a project that keeps it on: declared as always - the column is not written, so the incident notifies them", async () => {
+      await submit({});
+
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBeUndefined();
+      expect(projectReads).toHaveLength(1);
+    });
+
+    test("a project that cannot be read: declared all the same, as always", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockImplementation((async () => {
+          throw new Error("the database is not connected");
+        }) as never);
+
+      await submit({});
+
+      expect(created).toHaveLength(1);
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBeUndefined();
+      expect(sent).toHaveLength(1);
+    });
+
+    test("declared from a private alert in a project that starts it unticked: private, and not notifying", async () => {
+      notifiesByDefault = false;
+      alertLink = { ...(alertLink as WorkspaceAlertToLink), isPrivate: true };
+
+      await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
+
+      expect(created[0]!.data.isPrivate).toBe(true);
+      expect(
+        created[0]!.data.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated,
+      ).toBe(false);
+    });
   });
 });

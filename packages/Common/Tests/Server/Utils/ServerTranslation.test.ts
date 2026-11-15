@@ -8,12 +8,14 @@ import { READER_LANGUAGE_CODES } from "../../../Types/ReaderLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   getEveryWordingOf,
+  getRecordWordsTranslator,
   getServerTranslator,
   POP_DIRECTIONAL_ISOLATE,
   SERVER_LOCALES,
   writeInLanguage,
 } from "../../../Server/Utils/ServerTranslation";
 import { composedValue, Translator } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
 /*
  * TEXT THE SERVER WRITES, IN ITS READER'S LANGUAGE.
@@ -177,6 +179,82 @@ describe("a value in a sentence read from the right", () => {
       ).not.toContain(FIRST_STRONG_ISOLATE);
     }
   });
+});
+
+/*
+ * WORDS ONEUPTIME SUGGESTS FOR A RECORD (#7247): a new monitor's criteria,
+ * which Ask AI writes in the language the person reads the Dashboard in,
+ * worded and put together exactly as the Dashboard's translator does it -
+ * never with a message's isolate marks, which a record would keep.
+ */
+describe("getRecordWordsTranslator", () => {
+  const ONLINE: string = "Check if {{monitorName}} is online";
+
+  test("English, and a language OneUptime does not write in, are the builders' own English", () => {
+    for (const language of [
+      undefined,
+      null,
+      "",
+      "en",
+      "en-GB",
+      "xx",
+      "klingon",
+      "<script>",
+    ]) {
+      expect([language, getRecordWordsTranslator(language)]).toEqual([
+        language,
+        undefined,
+      ]);
+    }
+  });
+
+  test("a language OneUptime writes in words a criteria in it, the value as it is", () => {
+    const german: Translator = getRecordWordsTranslator("de")!;
+
+    expect(german.language).toBe("de");
+    expect(
+      german.translateTemplate(ONLINE, { monitorName: "acme.example" }),
+    ).toBe(
+      dashboardTranslator("de").translateTemplate(ONLINE, {
+        monitorName: "acme.example",
+      }),
+    );
+    expect(
+      german.translateTemplate(ONLINE, { monitorName: "acme.example" }),
+    ).not.toBe("Check if acme.example is online");
+    expect(
+      german.translateTemplate(ONLINE, { monitorName: "acme.example" }),
+    ).toContain("acme.example");
+  });
+
+  test("reads a regional tag as its language", () => {
+    expect(getRecordWordsTranslator("de-AT")?.language).toBe("de");
+    expect(getRecordWordsTranslator("zh-HK")?.language).toBe("zh-TW");
+  });
+
+  test.each(["ar", "fa"])(
+    "in %s, read from the right, the value goes in with no isolate marks, as the Dashboard puts it",
+    (language: string) => {
+      const words: Translator = getRecordWordsTranslator(language)!;
+      const written: string = words.translateTemplate(ONLINE, {
+        monitorName: "api.acme.example/health",
+      });
+
+      expect(written).not.toContain(FIRST_STRONG_ISOLATE);
+      expect(written).not.toContain(POP_DIRECTIONAL_ISOLATE);
+      expect(written).toBe(
+        dashboardTranslator(language).translateTemplate(ONLINE, {
+          monitorName: "api.acme.example/health",
+        }),
+      );
+      // Where a message to a reader of the language sets it apart.
+      expect(
+        getServerTranslator(language).translateTemplate(ONLINE, {
+          monitorName: "api.acme.example/health",
+        }),
+      ).toContain(FIRST_STRONG_ISOLATE);
+    },
+  );
 });
 
 describe("getEveryWordingOf", () => {

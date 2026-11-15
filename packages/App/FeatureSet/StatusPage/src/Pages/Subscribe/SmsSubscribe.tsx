@@ -129,6 +129,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       fieldType: FormFieldSchemaType.Phone,
       required: true,
       placeholder: t("subscribe.sms.placeholder"),
+      isPlaceholderTranslated: true,
       disableSpellCheck: true,
     },
     // On a page that lets subscribers choose: Preferences, folded.
@@ -193,6 +194,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               fieldType: FormFieldSchemaType.Phone,
               required: true,
               placeholder: t("subscribe.sms.placeholder"),
+              isPlaceholderTranslated: true,
               disableSpellCheck: true,
             },
           ]}

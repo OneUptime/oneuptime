@@ -41,6 +41,8 @@ const OTHER_SLO_ID: string = "a7d0c2b9-5d9e-4c1b-8a8e-1c2f3e4d5a6b";
 const TIER_1_LABEL_ID: string = "11111111-1111-4111-8111-111111111111";
 const CHECKOUT_LABEL_ID: string = "22222222-2222-4222-8222-222222222222";
 const OTHER_LABEL_ID: string = "33333333-3333-4333-8333-333333333333";
+// The team on the SLO's list of owners.
+const SRE_TEAM_ID: string = "44444444-4444-4444-8444-444444444444";
 
 // What the server hands the matcher for an SLO (WorkspaceNotificationRuleService).
 function sloValues(data: {
@@ -64,6 +66,8 @@ function sloValues(data: {
   ];
   values[NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange] =
     data.changes ?? [SloErrorBudgetPolicyChange.EnteredMoreSevereTier];
+  // Read from its owner tables when a rule asks who owns it (#7583).
+  values[NotificationRuleConditionCheckOn.SloOwners] = [SRE_TEAM_ID];
 
   return values as CheckOnValues;
 }
@@ -111,6 +115,8 @@ const SLO_CHECK_ONS: Array<NotificationRuleConditionCheckOn> = [
   NotificationRuleConditionCheckOn.SloLabels,
   NotificationRuleConditionCheckOn.SloName,
   NotificationRuleConditionCheckOn.SloErrorBudgetPolicyChange,
+  // Who owns the SLO (#7583): read from its owner tables when a rule asks.
+  NotificationRuleConditionCheckOn.SloOwners,
 ];
 
 describe("SLO notification rule conditions", () => {
@@ -137,6 +143,7 @@ describe("SLO notification rule conditions", () => {
       "SLO Labels",
       "SLO Name",
       "Error Budget Policy Change",
+      "SLO Owner",
     ]);
   });
 

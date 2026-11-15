@@ -38,6 +38,7 @@ import {
   withPrivateRecordGateOptions,
 } from "../../Utils/PrivateRecordScope";
 import { HeldPermissions } from "../../../Types/HeldPermissions";
+import { isDefaultStatusName } from "../../../Types/StatusPage/DefaultStatusNames";
 import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema, {
@@ -178,6 +179,13 @@ import {
   isLiveRowsHeld,
 } from "./LiveRows";
 import useLiveRows from "./UseLiveRows";
+import {
+  EMPTY_LIST_COUNT,
+  ListCountState,
+  getListCountUpTo,
+  getListHasMore,
+  getNextListCount,
+} from "./ListCount";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -332,6 +340,8 @@ export interface BaseTableCallbacks<
     sort: Sort<TBaseModel>;
     select: Select<TBaseModel>;
     requestOptions?: RequestOptions | undefined;
+    // How far the count goes (ListCount.ts); unset, it is exact.
+    countUpTo?: number | undefined;
   }) => Promise<ListResult<TBaseModel>>;
   toJSONArray: (data: Array<TBaseModel>) => Array<JSONObject>;
   updateById: (data: { id: ObjectID; data: JSONObject }) => Promise<void>;
@@ -932,6 +942,72 @@ export const SEARCH_RESULT_COUNT_ON_PAGE: PluralTemplate = {
 
 // No row just brought in by a live read: one set, so a list at rest never redraws for it.
 const NO_ARRIVED_ROWS: ReadonlySet<string> = new Set<string>();
+
+/*
+ * The records a new project starts with that OneUptime names itself
+ * (ProjectService): the states, severities and statuses of incidents,
+ * alerts, monitors and scheduled maintenance. Their default names -
+ * "Resolved", "Operational", an alert's "High" and "Low" - are its words.
+ */
+const TABLES_NAMED_BY_ONEUPTIME: ReadonlyArray<string> = [
+  "IncidentState",
+  "IncidentSeverity",
+  "AlertState",
+  "AlertSeverity",
+  "MonitorStatus",
+  "ScheduledMaintenanceState",
+];
+
+const DEFAULT_ALERT_SEVERITY_NAMES: ReadonlyArray<string> = [
+  translationKey("High"),
+  translationKey("Low"),
+];
+
+// Whether a filter lists records whose default names are OneUptime's words.
+const isNamedByOneUptime: (entityType: unknown) => boolean = (
+  entityType: unknown,
+): boolean => {
+  if (
+    typeof entityType !== "function" ||
+    !(entityType.prototype instanceof BaseModel)
+  ) {
+    return false;
+  }
+
+  const tableName: string | null = new (entityType as DatabaseBaseModelType)()
+    .tableName;
+
+  return Boolean(tableName && TABLES_NAMED_BY_ONEUPTIME.includes(tableName));
+};
+
+/*
+ * An entity filter's option: a record, named by whoever made it - a monitor,
+ * a team, a label - so its name is drawn as written in the filter's menu and
+ * its chip, as the record's row draws it (DropdownOption.isUserContent). It
+ * was looked up: a monitor named "Network" read "Red" in a Spanish menu
+ * (#7690). A default name of a state, a severity or a status
+ * (TABLES_NAMED_BY_ONEUPTIME) is OneUptime's word, read in the reader's
+ * language as its badge reads it; a name the project gave one is its own.
+ * An option the filter's own fetchFilterDropdownOptions marked keeps its
+ * mark.
+ */
+const toRecordFilterOption: (
+  option: DropdownOption,
+  isOfRecordsNamedByOneUptime: boolean,
+) => DropdownOption = (
+  option: DropdownOption,
+  isOfRecordsNamedByOneUptime: boolean,
+): DropdownOption => {
+  const isDefaultName: boolean =
+    isOfRecordsNamedByOneUptime &&
+    (isDefaultStatusName(option.label) ||
+      DEFAULT_ALERT_SEVERITY_NAMES.includes(option.label));
+
+  return {
+    ...option,
+    isUserContent: option.isUserContent ?? !isDefaultName,
+  };
+};
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   props: ComponentProps<TBaseModel>,
@@ -1579,6 +1655,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * pagination falls back to the count-based UI.
    */
   const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
+  /*
+   * The count stopped at its cap: totalItemsCount is the cap, read
+   * "10,000+", and the list pages by previous and next (ListCount.ts). The
+   * ref is what a read asks with, including a live read's closure.
+   */
+  const [isCountCapped, setIsCountCapped] = useState<boolean>(false);
+  const listCountRef: MutableRefObject<ListCountState> =
+    React.useRef<ListCountState>(EMPTY_LIST_COUNT);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   /*
@@ -2325,10 +2409,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             continue;
           }
 
+          const isOfRecordsNamedByOneUptime: boolean = isNamedByOneUptime(
+            filter.filterEntityType,
+          );
+
           if (filter.fetchFilterDropdownOptions) {
-            // fetch filter dropdown options.
-            filter.filterDropdownOptions =
-              await filter.fetchFilterDropdownOptions();
+            // fetch filter dropdown options: records too, named as written.
+            filter.filterDropdownOptions = (
+              await filter.fetchFilterDropdownOptions()
+            )?.map((option: DropdownOption): DropdownOption => {
+              return toRecordFilterOption(option, isOfRecordsNamedByOneUptime);
+            });
             continue;
           }
 
@@ -2391,14 +2482,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           filter.filterDropdownOptions = [];
 
           for (const item of listResult.data) {
-            const option: DropdownOption = {
-              value: item.getColumnValue(
-                filter.filterDropdownField.value,
-              ) as string,
-              label: item.getColumnValue(
-                filter.filterDropdownField.label,
-              ) as string,
-            };
+            const option: DropdownOption = toRecordFilterOption(
+              {
+                value: item.getColumnValue(
+                  filter.filterDropdownField.value,
+                ) as string,
+                label: item.getColumnValue(
+                  filter.filterDropdownField.label,
+                ) as string,
+              },
+              isOfRecordsNamedByOneUptime,
+            );
 
             // The filter's dropdown draws the Archived tag beside it.
             if (
@@ -2922,6 +3016,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         sort: getFetchSort(),
         requestOptions: props.fetchRequestOptions,
+        // Counted no further than "10,000+" (ListCount.ts).
+        countUpTo: getListCountUpTo({
+          isManuallyOrdered: isManuallyOrdered,
+          isLiveRead: isBackground,
+          previous: listCountRef.current,
+        }),
       });
 
       if (
@@ -2964,8 +3064,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         setError("");
       }
 
-      setTotalItemsCount(listResult.count);
-      setHasMore(listResult.hasMore);
+      const listCount: ListCountState = getNextListCount({
+        previous: listCountRef.current,
+        result: listResult,
+        isLiveRead: isBackground,
+      });
+
+      listCountRef.current = listCount;
+      setTotalItemsCount(listCount.total);
+      setIsCountCapped(listCount.isCapped);
+      setHasMore(
+        getListHasMore({ count: listCount, hasMore: listResult.hasMore }),
+      );
       setData(listResult.data);
 
       /*
@@ -3007,7 +3117,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
        * but never invoked, which broke per-row owner enrichment.
        */
       if (props.onFetchSuccess) {
-        props.onFetchSuccess(listResult.data, listResult.count);
+        /*
+         * The count the list shows: a live read of a capped list counts
+         * only to its page's end, and keeps the cap it showed (ListCount).
+         */
+        props.onFetchSuccess(listResult.data, listCount.total);
       }
     } catch (err) {
       if (isBackground) {
@@ -4914,6 +5028,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         dragDisabledReason={dragDisabledReason}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         columns={tableColumns}
@@ -4993,6 +5108,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         isLoading={getTableLoadingState()}
         totalItemsCount={totalItemsCount}
         hasMore={hasMore}
+        isCountCapped={isCountCapped}
         data={data}
         id={props.id}
         fields={fields}
@@ -5449,26 +5565,49 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 )}
               </span>
             )}
-            {showMatchPill && hasMore !== undefined && data.length > 0 && (
+            {showMatchPill && isCountCapped && (
               <span
                 className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
                 title={translator.translatePlural(
-                  SEARCH_RESULT_COUNT_ON_PAGE,
-                  data.length,
+                  SEARCH_RESULT_COUNT,
+                  totalItemsCount,
                   {
-                    count: `${translator.formatNumber(data.length)}${
-                      hasMore ? "+" : ""
-                    }`,
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
                   },
                 )}
               >
-                {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
-                  count: `${translator.formatNumber(data.length)}${
-                    hasMore ? "+" : ""
-                  }`,
-                })}
+                {translator.translatePlural(
+                  SEARCH_MATCH_COUNT,
+                  totalItemsCount,
+                  {
+                    count: `${translator.formatNumber(totalItemsCount)}+`,
+                  },
+                )}
               </span>
             )}
+            {showMatchPill &&
+              hasMore !== undefined &&
+              !isCountCapped &&
+              data.length > 0 && (
+                <span
+                  className="flex-none whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
+                  title={translator.translatePlural(
+                    SEARCH_RESULT_COUNT_ON_PAGE,
+                    data.length,
+                    {
+                      count: `${translator.formatNumber(data.length)}${
+                        hasMore ? "+" : ""
+                      }`,
+                    },
+                  )}
+                >
+                  {translator.translatePlural(SEARCH_MATCH_COUNT, data.length, {
+                    count: `${translator.formatNumber(data.length)}${
+                      hasMore ? "+" : ""
+                    }`,
+                  })}
+                </span>
+              )}
             {searchText.length > 0 || selectedLabels.length > 0 ? (
               <button
                 type="button"

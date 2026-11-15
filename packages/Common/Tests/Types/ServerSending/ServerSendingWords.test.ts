@@ -73,6 +73,8 @@ describe("a stored status message, as a project's owners read it", () => {
     "Global SMTP From Email not found. Please set this in the Admin Dashboard: https://oneuptime.example.com/admin",
     "SMTP Host not found. Please set this in the Admin Dashboard: http://localhost/admin",
     "SMTP OAuth Scope not found. Please set this in the Admin Dashboard: http://localhost/admin",
+    // OAuth over SMTP without the mailbox it signs in as (#7833).
+    "SMTP Username not found. Please set this in the Admin Dashboard: http://localhost/admin",
     "Email is configured to use Amazon SES, but its Access Key ID is not set. Please set it in the Admin Dashboard, under Settings > Emails: http://localhost/admin",
     `  ${SERVER_EMAIL_NOT_SET_UP_MESSAGE}  `,
   ])("the server's settings refusing %p read the same", (stored: string) => {

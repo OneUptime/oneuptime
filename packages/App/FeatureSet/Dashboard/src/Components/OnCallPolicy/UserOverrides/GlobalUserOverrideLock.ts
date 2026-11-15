@@ -3,6 +3,7 @@ import { HeldPermissions } from "Common/Types/HeldPermissions";
 import GlobalUserOverrideAccess, {
   GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
   GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
+  GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,
 } from "Common/Types/OnCallDutyPolicy/GlobalUserOverrideAccess";
 import Permission from "Common/Types/Permission";
 import PermissionGate, {
@@ -12,16 +13,18 @@ import PermissionGate, {
 import User from "Common/UI/Utils/User";
 
 /*
- * WHY ADD OR DELETE IS LOCKED ON THE GLOBAL USER OVERRIDES PAGE.
+ * WHY ADD, EDIT OR DELETE IS LOCKED ON THE GLOBAL USER OVERRIDES PAGE.
  *
- * A global override applies to every on-call policy, so adding or deleting
- * one takes a permission to add (or to delete) user overrides over the
- * whole project (GlobalUserOverrideAccess, which the server holds every
- * write to - issue #5617). Someone whose permission covers only some
- * policies - limited to their team's policies, or to its label - would
- * otherwise fill in Add User Override and be refused on save. The page
- * locks Add, and each row's Delete, for them instead, saying why and where
- * their overrides go: on each policy's own User Overrides page.
+ * A global override applies to every on-call policy, so adding, editing or
+ * deleting one takes a permission to add (to edit, to delete) user
+ * overrides over the whole project (GlobalUserOverrideAccess, which the
+ * server holds every write to - issue #5617). Someone whose permission
+ * covers only some policies - limited to their team's policies, or to its
+ * label - would otherwise fill in Add User Override and be refused on save.
+ * The page locks Add, and each row's Edit and Delete, for them instead,
+ * saying why and where their overrides go: on each policy's own User
+ * Overrides page. A global override listed on a schedule (its active
+ * overrides card) locks its Edit the same way.
  *
  * The shortcuts that would add a global override - "Skip until..." on a
  * person in a schedule layer, and "Get cover" on an upcoming shift - ask
@@ -32,7 +35,35 @@ import User from "Common/UI/Utils/User";
  * React-free, so its tests read the snapshot they hand it.
  */
 
-export type GlobalUserOverrideAction = ModelAction.Create | ModelAction.Delete;
+export type GlobalUserOverrideAction =
+  | ModelAction.Create
+  | ModelAction.Update
+  | ModelAction.Delete;
+
+// The permissions of the table that `action` takes.
+const getActionPermissions: (
+  model: OnCallDutyPolicyUserOverride,
+  action: GlobalUserOverrideAction,
+) => Array<Permission> = (
+  model: OnCallDutyPolicyUserOverride,
+  action: GlobalUserOverrideAction,
+): Array<Permission> => {
+  if (action === ModelAction.Create) {
+    return model.getCreatePermissions() || [];
+  }
+
+  if (action === ModelAction.Update) {
+    return model.getUpdatePermissions() || [];
+  }
+
+  return model.getDeletePermissions() || [];
+};
+
+const REFUSALS: Record<GlobalUserOverrideAction, string> = {
+  [ModelAction.Create]: GLOBAL_USER_OVERRIDE_ADD_REFUSAL,
+  [ModelAction.Update]: GLOBAL_USER_OVERRIDE_EDIT_REFUSAL,
+  [ModelAction.Delete]: GLOBAL_USER_OVERRIDE_DELETE_REFUSAL,
+};
 
 export interface GlobalUserOverrideLockOptions {
   // The permission snapshot to read; the stored one when left out.
@@ -63,23 +94,16 @@ export const getGlobalUserOverrideLock: (
     return null;
   }
 
-  const permissions: Array<Permission> =
-    (action === ModelAction.Create
-      ? model.getCreatePermissions()
-      : model.getDeletePermissions()) || [];
-
   if (
     GlobalUserOverrideAccess.mayChange(
       PermissionGate.getHeldPermissions({ held: options?.held }),
-      permissions,
+      getActionPermissions(model, action),
     )
   ) {
     return null;
   }
 
-  return action === ModelAction.Create
-    ? GLOBAL_USER_OVERRIDE_ADD_REFUSAL
-    : GLOBAL_USER_OVERRIDE_DELETE_REFUSAL;
+  return REFUSALS[action];
 };
 
 /*

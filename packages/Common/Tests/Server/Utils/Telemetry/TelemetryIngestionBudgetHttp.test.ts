@@ -216,6 +216,26 @@ describe("which surfaces are budgeted", () => {
         TelemetryIngestSurface.SecurityEvents,
       ),
     ).toBe(ProductType.SecurityEvents);
+
+    // The compatible endpoints that only ever carry one signal.
+    expect(
+      getTelemetryIngestionBudgetSignalForSurface(
+        TelemetryIngestSurface.PrometheusRemoteWrite,
+      ),
+    ).toBe(ProductType.Metrics);
+    expect(
+      getTelemetryIngestionBudgetSignalForSurface(TelemetryIngestSurface.Loki),
+    ).toBe(ProductType.Logs);
+  });
+
+  test("a compatible endpoint whose requests carry several signals is budgeted per signal as it is queued, not at the door", () => {
+    for (const surface of [
+      TelemetryIngestSurface.SplunkHec,
+      TelemetryIngestSurface.Datadog,
+      TelemetryIngestSurface.Sentry,
+    ]) {
+      expect(getTelemetryIngestionBudgetSignalForSurface(surface)).toBe(null);
+    }
   });
 
   test("surfaces that are not telemetry signals - or have budgets of their own - are not budgeted", () => {
@@ -253,7 +273,13 @@ describe("which surfaces are budgeted", () => {
     expect(RAW_BODY_SURFACES.has(TelemetryIngestSurface.Fluent)).toBe(false);
     expect(Array.from(DEFERRED_BODY_SURFACES)).toEqual([
       TelemetryIngestSurface.Pyroscope,
+      // Snappy bodies, read after the key check: sized as they are queued.
+      TelemetryIngestSurface.PrometheusRemoteWrite,
+      TelemetryIngestSurface.Loki,
     ]);
+    expect(
+      RAW_BODY_SURFACES.has(TelemetryIngestSurface.PrometheusRemoteWrite),
+    ).toBe(false);
   });
 });
 

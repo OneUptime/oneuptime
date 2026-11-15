@@ -2,6 +2,7 @@ import JobDictionary, { WorkerJobFunction } from "./JobDictionary";
 import UnknownWorkerJob from "./UnknownWorkerJob";
 import { QueueJob } from "Common/Server/Infrastructure/Queue";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 
 export default async function runWorkerJob(
   job: QueueJob,
@@ -16,8 +17,9 @@ export default async function runWorkerJob(
   const handler: WorkerJobFunction = JobDictionary.getJobFunction(job.name);
   await QueueWorker.runJobWithTimeout(
     JobDictionary.getTimeoutInMs(job.name),
-    async (): Promise<void> => {
-      await handler(job);
+    // The job hears its time limit run out, and stops (JobDeadline).
+    async (deadline: JobDeadline): Promise<void> => {
+      await handler(job, deadline);
     },
   );
 }
