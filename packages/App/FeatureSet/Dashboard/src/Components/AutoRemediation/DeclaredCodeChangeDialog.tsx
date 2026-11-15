@@ -54,6 +54,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * ASK BEFORE OPENING A PULL REQUEST TO THE CODE THAT DECLARES A RESOURCE.
@@ -365,7 +366,9 @@ const DeclaredCodeChangeDialog: FunctionComponent<ComponentProps> = (
         className="space-y-1.5 text-sm"
         data-testid={`${DECLARED_CODE_DIALOG_TEST_ID}-load-error`}
       >
-        <p className="text-gray-700">{loadError}</p>
+        <p className="text-gray-700">
+          <ErrorInSentence message={loadError} showWhereToLook={true} />
+        </p>
         {canRetryLoad ? (
           <button
             type="button"

@@ -2029,6 +2029,15 @@ enum Permission {
   EditService = "EditService",
   ReadService = "ReadService",
 
+  /*
+   * Retired: they guarded the links between a service and its telemetry
+   * services (the ServiceTelemetryService model), which went when telemetry
+   * came to name its service directly. No model, API or page checks them, so
+   * they are not offered (isAssignableToTenant: false), and the migration
+   * RemoveServiceTelemetryLinkPermissions took them from every team, API key
+   * and custom role. The values stay, so a permission an API call still
+   * sends parses and shows its title.
+   */
   CreateServiceTelemetryService = "CreateServiceTelemetryService",
   DeleteServiceTelemetryService = "DeleteServiceTelemetryService",
   EditServiceTelemetryService = "EditServiceTelemetryService",
@@ -13594,12 +13603,17 @@ export class PermissionHelper {
         group: PermissionGroup.ServiceCatalog,
       },
 
+      /*
+       * Retired (see the enum): nothing checks them, so a team, an API key
+       * or a custom role is never offered them. Their props stay so a stored
+       * or sent value still has a title.
+       */
       {
         permission: Permission.CreateServiceTelemetryService,
         title: "Create Service Telemetry Link",
         description:
-          "This permission can create the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13608,8 +13622,8 @@ export class PermissionHelper {
         permission: Permission.DeleteServiceTelemetryService,
         title: "Delete Service Telemetry Link",
         description:
-          "This permission can delete the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13618,8 +13632,8 @@ export class PermissionHelper {
         permission: Permission.EditServiceTelemetryService,
         title: "Edit Service Telemetry Link",
         description:
-          "This permission can edit the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -13628,8 +13642,8 @@ export class PermissionHelper {
         permission: Permission.ReadServiceTelemetryService,
         title: "Read Service Telemetry Link",
         description:
-          "This permission can read the links between services and their telemetry in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: OneUptime no longer keeps links between services and their telemetry, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,

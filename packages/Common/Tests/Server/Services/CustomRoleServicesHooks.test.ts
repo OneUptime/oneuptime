@@ -14,6 +14,7 @@ import FindOneBy from "../../../Server/Types/Database/FindOneBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import CustomRoleSync from "../../../Server/Utils/CustomRole/CustomRoleSync";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import logger from "../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -571,5 +572,125 @@ describe("a team's copy of a role's permission", () => {
     expect(onlyOwnRows.getSql!("teamCustomRoleId")).toBe(
       "(teamCustomRoleId IS NULL)",
     );
+  });
+});
+
+/*
+ * The four Service Telemetry Link permissions guard nothing (#7637): no
+ * model, API or page checks them, so a role is refused them - on a create
+ * and on a change - before anything is read, whoever asks, while a
+ * permission of the Services group that guards something still goes in.
+ */
+describe("a Service Telemetry Link permission, which nothing checks", () => {
+  const RETIRED: Array<[Permission, string]> = [
+    [Permission.CreateServiceTelemetryService, "Create Service Telemetry Link"],
+    [Permission.ReadServiceTelemetryService, "Read Service Telemetry Link"],
+    [Permission.EditServiceTelemetryService, "Edit Service Telemetry Link"],
+    [Permission.DeleteServiceTelemetryService, "Delete Service Telemetry Link"],
+  ];
+
+  const ownerProps: DatabaseCommonInteractionProps = {
+    ...adminProps,
+    userTenantAccessPermission: {
+      [PROJECT.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT,
+        permissions: [
+          {
+            _type: "UserPermission",
+            permission: Permission.ProjectOwner,
+            labelIds: [],
+            isBlockPermission: false,
+            scope: PermissionScope.All,
+          },
+        ],
+      },
+    },
+  };
+
+  const rowOf: (permission: Permission) => CustomRolePermission = (
+    permission: Permission,
+  ): CustomRolePermission => {
+    const row: CustomRolePermission = new CustomRolePermission();
+    row.projectId = PROJECT;
+    row.customRoleId = ROLE;
+    row.permission = permission;
+    row.scope = PermissionScope.All;
+    return row;
+  };
+
+  beforeEach(() => {
+    getJestSpyOn(ProjectReferenceCheck, "validateCreate").mockResolvedValue(
+      undefined as never,
+    );
+    getJestSpyOn(ProjectReferenceCheck, "validateUpdate").mockResolvedValue(
+      undefined as never,
+    );
+  });
+
+  test.each(RETIRED)(
+    "%s is not put into a role, by a project owner either",
+    async (permission: Permission, title: string) => {
+      const findRole: jest.SpyInstance = getJestSpyOn(
+        CustomRoleService,
+        "findOneBy",
+      );
+
+      for (const props of [adminProps, ownerProps]) {
+        await expect(
+          callHook(CustomRolePermissionService, "onBeforeCreate", {
+            data: rowOf(permission),
+            props: props,
+          } as CreateBy<CustomRolePermission>),
+        ).rejects.toThrow(
+          `${title} can't be given to a team, so it can't be part of a custom role.`,
+        );
+      }
+
+      // Refused before the role, or anything else, is read.
+      expect(findRole).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(RETIRED)(
+    "a role's permission is not changed to %s",
+    async (permission: Permission, title: string) => {
+      const row: CustomRolePermission = rowOf(Permission.ReadService);
+      row.id = ROW;
+      getJestSpyOn(
+        CustomRolePermissionService,
+        "findRowsAndHoldUpdateToThem",
+      ).mockResolvedValue([row]);
+
+      await expect(
+        callHook(CustomRolePermissionService, "onBeforeUpdate", {
+          query: { _id: ROW },
+          data: { permission: permission },
+          props: ownerProps,
+          skip: 0,
+          limit: 1,
+        } as unknown as UpdateBy<CustomRolePermission>),
+      ).rejects.toThrow(
+        `${title} can't be given to a team, so it can't be part of a custom role.`,
+      );
+    },
+  );
+
+  test("Read Service, which the Service model checks, still goes into a role", async () => {
+    const role: CustomRole = new CustomRole(ROLE);
+    role.name = "Service Readers";
+    getJestSpyOn(CustomRoleService, "findOneBy").mockResolvedValue(role);
+    getJestSpyOn(CustomRolePermissionService, "findBy").mockResolvedValue([]);
+
+    const onCreate: OnCreate<CustomRolePermission> = (await callHook(
+      CustomRolePermissionService,
+      "onBeforeCreate",
+      {
+        data: rowOf(Permission.ReadService),
+        props: ownerProps,
+      } as CreateBy<CustomRolePermission>,
+    )) as OnCreate<CustomRolePermission>;
+
+    expect(onCreate.createBy.data.permission).toBe(Permission.ReadService);
   });
 });

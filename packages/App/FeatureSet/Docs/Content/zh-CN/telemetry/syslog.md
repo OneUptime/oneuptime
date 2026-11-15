@@ -28,7 +28,7 @@ flowchart TB
 OneUptime 一读完请求中的消息就会应答，稍后再解析并保存它们。消息文本保留在日志正文中，其他所有内容都会成为属性。
 
 > [!TIP]
-> 网络设备可以不经中继、直接通过 UDP 或 TCP 把 syslog 发送到 OneUptime 探针，随后 OneUptime 会把各厂商的消息读取为该设备上的事件。参见[网络事件](/docs/monitor/network-events)。
+> 网络设备可以不经中继、直接通过 UDP 或 TCP 把 syslog 发送到 OneUptime 探测器，随后 OneUptime 会把各厂商的消息读取为该设备上的事件。参见[网络事件](/docs/monitor/network-events)。
 
 ## 开始之前
 

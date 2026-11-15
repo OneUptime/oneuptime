@@ -2115,6 +2115,24 @@ jobs:
           Tests/Server/Infrastructure/Postgres/KeepChannelNamePrefixOfRulesWithoutOnePostgres.test.ts
           --forceExit
 
+      # Makes the custom role and permission tables in an isolated schema and
+      # runs the migration that takes the four Service Telemetry Link
+      # permissions, which nothing checks, from every team, API key and
+      # custom role: every other row stays, a role that held one is counted
+      # again without it, and a second run changes nothing.
+      - name: Test removing the Service Telemetry Link permissions on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SERVICE_TELEMETRY_LINK_TESTS: "true"
+          SERVICE_TELEMETRY_LINK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SERVICE_TELEMETRY_LINK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SERVICE_TELEMETRY_LINK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/RemoveServiceTelemetryLinkPermissionsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated ScheduledMaintenanceTemplate table into an isolated
       # schema and runs the migration that clears the next event of templates
       # whose Recurring Event switch is off: they lose the time they still

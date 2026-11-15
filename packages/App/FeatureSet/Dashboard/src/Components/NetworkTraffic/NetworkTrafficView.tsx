@@ -141,7 +141,9 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * THE TRAFFIC PAGE - a device's, a site's, or the whole network's.
@@ -1617,7 +1619,10 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                                   role="alert"
                                   data-testid="traffic-find-address-error"
                                 >
-                                  {addressError}
+                                  <ErrorInSentence
+                                    message={addressError}
+                                    showWhereToLook={true}
+                                  />
                                 </p>
                               ) : (
                                 <></>

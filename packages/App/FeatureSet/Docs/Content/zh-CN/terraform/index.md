@@ -105,7 +105,7 @@ provider "oneuptime" {
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | 事件，以及事件的严重程度和状态 |
 | `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | 警报，以及警报的严重程度和状态 |
 | `oneuptime_scheduled_maintenance_event` | 计划维护时间窗口 |
-| `oneuptime_probe` | 你自己的探针，从你的网络发起检查 |
+| `oneuptime_probe` | 你自己的探测器，从你的网络发起检查 |
 
 [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs) 列出了每个资源及其所有属性。
 

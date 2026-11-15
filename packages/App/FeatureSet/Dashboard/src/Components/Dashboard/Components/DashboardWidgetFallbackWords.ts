@@ -7,9 +7,10 @@ import {
  * THE WORDS A WIDGET DRAWS FOR A VALUE IT DOES NOT HAVE (#7091).
  *
  * A list's row with no name, a VMware host in no cluster, a grouped Table
- * row whose attribute holds nothing: the widgets wrote "Unnamed",
- * "Standalone" and "(unset)" themselves, in English on every board, in
- * every language. Each is the reader's word now, looked up where it is
+ * row whose attribute holds nothing, a network site with no name or no
+ * status yet: the widgets wrote "Unnamed", "Standalone", "(unset)",
+ * "Unnamed site" and "No status yet" themselves, in English on every
+ * board, in every language. Each is the reader's word now, looked up where it is
  * drawn. A row or a tile a widget builds outside its component reads the
  * page's translator, as that row's other words do; a component passes its
  * own (useTranslator).
@@ -37,4 +38,18 @@ export const getUnsetText: (translator?: Translator) => string = (
   translator: Translator = getGlobalTranslator(),
 ): string => {
   return translator.translateText("(unset)") as string;
+};
+
+// A network site on the Network Map with no name (#7520).
+export const getUnnamedSiteText: (translator?: Translator) => string = (
+  translator: Translator = getGlobalTranslator(),
+): string => {
+  return translator.translateText("Unnamed site") as string;
+};
+
+// A network site on the Network Map whose monitors have no status yet (#7520).
+export const getNoStatusYetText: (translator?: Translator) => string = (
+  translator: Translator = getGlobalTranslator(),
+): string => {
+  return translator.translateText("No status yet") as string;
 };

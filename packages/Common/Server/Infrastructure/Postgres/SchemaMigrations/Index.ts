@@ -1003,6 +1003,7 @@ import { AddCreatedNotificationHeldAtIndexes1809174710000 } from "./180917471000
 import { AddIncidentPostmortemActionItem1809174800000 } from "./1809174800000-AddIncidentPostmortemActionItem";
 import { AddSavedAsRunbookToAutoRemediationSuggestion1809174900000 } from "./1809174900000-AddSavedAsRunbookToAutoRemediationSuggestion";
 import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000 } from "./1809174910000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
+import { RemoveServiceTelemetryLinkPermissions1809176500000 } from "./1809176500000-RemoveServiceTelemetryLinkPermissions";
 
 export default [
   InitialMigration,
@@ -2010,4 +2011,5 @@ export default [
   AddIncidentPostmortemActionItem1809174800000,
   AddSavedAsRunbookToAutoRemediationSuggestion1809174900000,
   AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000,
+  RemoveServiceTelemetryLinkPermissions1809176500000,
 ];

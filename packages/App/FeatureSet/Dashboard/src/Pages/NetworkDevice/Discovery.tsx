@@ -103,6 +103,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
@@ -839,7 +840,10 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 </p>
                 {liveUpdates.error && (
                   <p className="mt-1 text-xs text-amber-800">
-                    {liveUpdates.error}
+                    <ErrorInSentence
+                      message={liveUpdates.error}
+                      showWhereToLook={true}
+                    />
                   </p>
                 )}
               </div>

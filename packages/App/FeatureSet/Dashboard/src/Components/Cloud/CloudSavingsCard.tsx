@@ -31,6 +31,7 @@ import {
 } from "./CloudRightSizingText";
 import { CloudCardFooterLink } from "./CloudSpendCard";
 import { CloudAccountRow } from "./UseCloudAccounts";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Cloud Overview's Ways to spend less: what your clouds' own recommenders -
@@ -175,7 +176,7 @@ const CloudSavingsCard: FunctionComponent<ComponentProps> = (
         </div>
         {error ? (
           <p className="mt-4 text-sm text-red-700" role="alert">
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : top && top.length > 0 ? (
           <ul

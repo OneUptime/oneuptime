@@ -58,7 +58,7 @@ const COLUMNS: Array<JSONObject> = [
 const SENTENCE: string = "Bestellungen haben nie eine negative Summe";
 
 const GERMAN_LINE_START: string =
-  "Write the name and the explanation in this language: German, Deutsch.";
+  "Write the name, the explanation and the why of an error in this language: German, Deutsch.";
 
 const ANSWER: JSONObject = {
   name: "Bestellungen mit negativer Summe",

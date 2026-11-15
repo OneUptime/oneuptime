@@ -29,7 +29,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   sloId: ObjectID;
@@ -373,7 +375,11 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
 
   const getBody: GetBodyFunction = (): ReactElement => {
     if (!openEvents && error) {
-      return <p className="text-sm text-red-700">{error}</p>;
+      return (
+        <p className="text-sm text-red-700">
+          <ErrorInSentence message={error} showWhereToLook={true} />
+        </p>
+      );
     }
 
     const incidentCount: number | null = openEvents

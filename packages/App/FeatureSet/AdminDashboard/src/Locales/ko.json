@@ -94,7 +94,8 @@
     "versionModalTitle": "OneUptime 버전",
     "versionLabel": "버전",
     "commitLabel": "커밋",
-    "versionUnavailable": "버전 데이터를 사용할 수 없습니다"
+    "versionUnavailable": "버전 데이터를 사용할 수 없습니다",
+    "versionUnavailableWithError": "버전 데이터를 사용할 수 없습니다: {{error}}"
   },
   "navbar": {
     "users": "사용자",
@@ -1907,7 +1908,9 @@
   "Filter by {{field}}": "{{field}}(으)로 필터링",
   "Something went wrong. Please try again.": "문제가 발생했습니다. 다시 시도해 주세요.",
   "More actions": "추가 작업",
-  "More actions for": "추가 작업:",
+  "More actions for {{name}}": "{{name}}에 대한 추가 작업",
+  "Clear {{filter}} filter": "{{filter}} 필터 지우기",
+  "Clear {{filter}}": "{{filter}} 지우기",
   "Delete Error": "삭제 오류",
   "Refresh?": "새로고침하시겠습니까?",
   "Updated": "업데이트됨",

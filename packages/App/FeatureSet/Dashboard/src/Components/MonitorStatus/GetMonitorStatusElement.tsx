@@ -15,6 +15,7 @@ import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -75,7 +76,11 @@ const GetMonitorStatusElement: FunctionComponent<ComponentProps> = (
   }, []);
 
   if (error) {
-    return <p>{error}</p>;
+    return (
+      <p>
+        <ErrorInSentence message={error} showWhereToLook={true} />
+      </p>
+    );
   }
 
   if (isLoading) {

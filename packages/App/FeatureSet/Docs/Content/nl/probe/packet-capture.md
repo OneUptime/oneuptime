@@ -36,7 +36,7 @@ sequenceDiagram
 
 ## Voordat u begint
 
-- **Een eigen sonde van uw project.** Globale sondes vervoeren het verkeer van andere projecten, dus ze capturen nooit. Hoe u een eigen sonde installeert, leest u in [Aangepaste probes](/docs/probe/custom-probe).
+- **Een eigen sonde van uw project.** Globale sondes vervoeren het verkeer van andere projecten, dus ze capturen nooit. Hoe u een eigen sonde installeert, leest u in [Aangepaste sondes](/docs/probe/custom-probe).
 - **Een sonde uit deze release of nieuwer.** Oudere sondes melden niet waarop ze kunnen capturen.
 - **De juiste machtigingen.** Een capture starten en stoppen vraagt **Start Packet Capture**, en een bestand downloaden **Download Packet Capture**. Projecteigenaren en -beheerders hebben beide. Zie [Machtigingen](#machtigingen).
 - **Een gespiegelde poort, voor verkeer dat de sonde niet bereikt.** Een sonde ziet alleen het verkeer op de interfaces van haar eigen host. Om verkeer tussen andere apparaten te capturen, spiegelt u hun switchpoort (SPAN) naar een vrije interface van de host van de sonde.
@@ -234,7 +234,7 @@ Een sonde voert 2 captures tegelijk uit. Wacht tot er een klaar is, of stop er e
 ## Volgende stappen
 
 :::cards
-- [Aangepaste probes](/docs/probe/custom-probe): Installeer een sonde in het netwerk waarin u wilt capturen.
+- [Aangepaste sondes](/docs/probe/custom-probe): Installeer een sonde in het netwerk waarin u wilt capturen.
 - [Netwerkapparaat-monitor](/docs/monitor/network-device-monitor): Bewaak de apparaten waarvan u het verkeer capturet.
 - [Machtigingen](/docs/permissions/index): Geef een team de machtigingen voor pakketcapture.
 :::

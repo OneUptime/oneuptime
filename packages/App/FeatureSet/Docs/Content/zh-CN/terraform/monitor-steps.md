@@ -11,7 +11,7 @@
 
 ## 如何判定一次检查
 
-每次检查都会给出一个结果：探针的响应、脚本的返回值，或检查读取的遥测数据。然后，步骤的条件按顺序判定这个结果。第一个筛选器匹配的条件决定会发生什么：它可以更改监视器的状态、创建事件和创建警报。对这次检查而言，它之后的条件不会被查看。
+每次检查都会给出一个结果：探测器的响应、脚本的返回值，或检查读取的遥测数据。然后，步骤的条件按顺序判定这个结果。第一个筛选器匹配的条件决定会发生什么：它可以更改监视器的状态、创建事件和创建警报。对这次检查而言，它之后的条件不会被查看。
 
 ```mermaid title="如何判定每次检查"
 flowchart TB
@@ -26,7 +26,7 @@ flowchart TB
 
 ## 编写步骤
 
-`monitor_steps` 是直接用 HCL 编写的有类型对象列表。没有 `jsonencode()`，没有 `{_type, value}` 包装，没有 camelCase 键，也不需要写 ID：提供程序把你的 HCL 转换为 API 的格式，服务器为每个步骤、条件、事件模板和警报模板分配 ID。服务器会在每次 apply 中保留这些 ID，按名称（否则按位置）把每个条件和模板与它所替换的那个对应起来，因此探针结果会留在各自的步骤上，事件也会一直指向触发它们的条件。
+`monitor_steps` 是直接用 HCL 编写的有类型对象列表。没有 `jsonencode()`，没有 `{_type, value}` 包装，没有 camelCase 键，也不需要写 ID：提供程序把你的 HCL 转换为 API 的格式，服务器为每个步骤、条件、事件模板和警报模板分配 ID。服务器会在每次 apply 中保留这些 ID，按名称（否则按位置）把每个条件和模板与它所替换的那个对应起来，因此探测器结果会留在各自的步骤上，事件也会一直指向触发它们的条件。
 
 ```mermaid title="monitor_steps 的组成部分"
 flowchart TB
@@ -170,8 +170,8 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_certificate` | string | 网站、API | 用于双向 TLS 的客户端证书：PEM，或 `{{monitorSecrets.name}}` 引用。 |
 | `tls_client_key` | string（敏感） | 网站、API | 客户端证书的私钥。与证书一起设置。 |
 | `tls_client_key_passphrase` | string（敏感） | 网站、API | 私钥的密码短语。 |
-| `request_timeout_in_ms` | number | 由探针执行的检查 | 单次尝试允许的时长，单位为毫秒。探针会把超过 60000 的值降为 60000。 |
-| `retry_count` | number | 由探针执行的检查 | 首次尝试失败后的重试次数：`0` 只检查一次，`3` 最多检查四次。探针会把超过 3 的值降为 3。 |
+| `request_timeout_in_ms` | number | 由探测器执行的检查 | 单次尝试允许的时长，单位为毫秒。探测器会把超过 60000 的值降为 60000。 |
+| `retry_count` | number | 由探测器执行的检查 | 首次尝试失败后的重试次数：`0` 只检查一次，`3` 最多检查四次。探测器会把超过 3 的值降为 3。 |
 | `custom_code` | string | Custom JavaScript Code、Synthetic | 步骤运行的脚本。 |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet` 和 `Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` 和 `Firefox`。 |
@@ -401,7 +401,7 @@ monitor_steps = [{
 
 ## 没有步骤的监视器
 
-`monitor_steps` 是可选的，但没有它而创建的监视器没有用来判定结果的条件：探针会跳过没有步骤的监视器，它会一直停留在初始状态。你的 state 会让该属性保持为空，计划也保持干净。手动监视器从不需要步骤：它的状态由你自己设置。其他所有类型都至少需要一个步骤才能检查任何东西。
+`monitor_steps` 是可选的，但没有它而创建的监视器没有用来判定结果的条件：探测器会跳过没有步骤的监视器，它会一直停留在初始状态。你的 state 会让该属性保持为空，计划也保持干净。手动监视器从不需要步骤：它的状态由你自己设置。其他所有类型都至少需要一个步骤才能检查任何东西。
 
 ## 传输格式
 
