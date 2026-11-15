@@ -191,7 +191,7 @@ To mekanismer er i spill, og de dekker ulike tilfeller:
 Android fryser innstillingene til en kanal når kanalen opprettes første gang, så de kan ikke endres med en appoppdatering – bare ved å levere en ny kanal-ID.
 :::
 
-For å sjekke at det virker, sender du et testvarsel til enheten fra **Brukerinnstillinger > Varselmetoder > Push-varsler**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
+For å sjekke at det virker, sender du en testvarsling til enheten fra **Brukerinnstillinger > Varslingsmetoder > Push-varslinger**. Når enheten har kritiske varsler slått på, sendes også testen som et kritisk varsel – så sett telefonen på lydløs først, og du hører om et ekte varsel ville nådd deg. Den samme listen viser om hver enhet har kritiske varsler slått på, og for en telefon som ikke har det, hvordan du slår dem på.
 
 ### Velge alarmlyd
 

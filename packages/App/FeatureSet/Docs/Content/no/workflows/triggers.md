@@ -30,7 +30,7 @@ En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme
 
 Kjør arbeidsflyten når du vil: klikk på **Kjør arbeidsflyt** på siden **Bygger**, fyll ut triggerens **JSON**, klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. En annen arbeidsflyt kan også starte den med en **Kjør en annen arbeidsflyt**-blokk.
 
-Bra for: automatisering med ett klikk som du vil ha en knapp for, som «roter denne nøkkelen» eller «send et testvarsel», og logikk du deler mellom arbeidsflyter.
+Bra for: automatisering med ett klikk som du vil ha en knapp for, som «roter denne nøkkelen» eller «send en testvarsling», og logikk du deler mellom arbeidsflyter.
 
 **Returns**: **JSON** — det kjøringen ble startet med.
 
