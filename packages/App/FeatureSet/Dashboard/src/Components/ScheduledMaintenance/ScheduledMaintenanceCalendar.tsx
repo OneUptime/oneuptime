@@ -57,6 +57,8 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -568,7 +570,11 @@ const ScheduledMaintenanceCalendar: FunctionComponent<ComponentProps> = (
               )}
               aria-hidden="true"
             ></span>
-            {state.name}
+            {translateRecordName(
+              translator,
+              StateListType.ScheduledMaintenanceState,
+              state.name,
+            )}
           </li>
         );
       })}

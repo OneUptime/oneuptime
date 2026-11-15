@@ -50659,8 +50659,6 @@
   "Searched the docs": "Sökte i dokumentationen",
   "Searching the docs": "Söker i dokumentationen",
   "A rule you can't see": "En regel som du inte kan se",
-  "A {{severity}} alert": "Ett larm med allvarlighetsgrad {{severity}}",
-  "A {{severity}} incident": "En incident med allvarlighetsgrad {{severity}}",
   "An on-call policy has no escalation rules, so it pages nobody.": "En jourpolicy har inga eskaleringsregler, så den larmar ingen.",
   "An on-call policy reaches nobody right now: nobody is on call in its first escalation rule.": "En jourpolicy når ingen just nu: ingen har jour i dess första eskaleringsregel.",
   "An on-call policy you can't see pages the people on call.": "En jourpolicy som du inte kan se larmar dem som har jour.",
@@ -50690,11 +50688,7 @@
   "Nothing stops the chain.": "Inget stoppar kedjan.",
   "On-call policy {{policy}} has no escalation rules, so it pages nobody.": "Jourpolicyn {{policy}} har inga eskaleringsregler, så den larmar ingen.",
   "On-call policy {{policy}} reaches nobody right now: nobody is on call in its first escalation rule.": "Jourpolicyn {{policy}} når ingen just nu: ingen har jour i dess första eskaleringsregel.",
-  "OneUptime marks it {{status}} and opens a {{severity}} alert.": "OneUptime sätter statusen till {{status}} och öppnar ett larm med allvarlighetsgrad {{severity}}.",
-  "OneUptime marks it {{status}} and opens a {{severity}} incident.": "OneUptime sätter statusen till {{status}} och öppnar en incident med allvarlighetsgrad {{severity}}.",
   "OneUptime marks it {{status}}. It opens no incident or alert, so nobody is paged.": "OneUptime sätter statusen till {{status}}. Varken en incident eller ett larm öppnas, så ingen larmas.",
-  "OneUptime opens a {{severity}} alert.": "OneUptime öppnar ett larm med allvarlighetsgrad {{severity}}.",
-  "OneUptime opens a {{severity}} incident.": "OneUptime öppnar en incident med allvarlighetsgrad {{severity}}.",
   "Open Admin Dashboard": "Öppna administratörspanelen",
   "Open Criteria": "Öppna kriterier",
   "Open On-Call Policy": "Öppna jourpolicy",
@@ -52820,5 +52814,11 @@
   "{{status}} SLOs ({{count}})": "SLO:er med status ”{{status}}” ({{count}})",
   "Log volume by severity, {{start}} – {{end}}": "Loggvolym per allvarlighetsgrad, {{start}} – {{end}}",
   "Security event summary {{start}} – {{end}}": "Sammanfattning av säkerhetshändelser {{start}} – {{end}}",
-  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "Sammanfattning av säkerhetshändelser {{start}} – {{end}} (utifrån de {{count}} senaste händelserna — antalen är minimivärden)"
+  "Security event summary {{start}} – {{end}} (based on the most recent {{count}} events — counts are a floor)": "Sammanfattning av säkerhetshändelser {{start}} – {{end}} (utifrån de {{count}} senaste händelserna — antalen är minimivärden)",
+  "An alert ({{severity}})": "Ett larm ({{severity}})",
+  "An incident ({{severity}})": "En incident ({{severity}})",
+  "OneUptime marks it {{status}} and opens an alert ({{severity}}).": "OneUptime sätter statusen till {{status}} och öppnar ett larm ({{severity}}).",
+  "OneUptime marks it {{status}} and opens an incident ({{severity}}).": "OneUptime sätter statusen till {{status}} och öppnar en incident ({{severity}}).",
+  "OneUptime opens an alert ({{severity}}).": "OneUptime öppnar ett larm ({{severity}}).",
+  "OneUptime opens an incident ({{severity}}).": "OneUptime öppnar en incident ({{severity}})."
 }

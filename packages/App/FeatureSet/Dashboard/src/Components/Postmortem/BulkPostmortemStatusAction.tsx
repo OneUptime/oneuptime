@@ -22,6 +22,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, { ReactElement, useState } from "react";
 import {
   PostmortemStatusChoice,
@@ -158,6 +160,10 @@ export default function useBulkPostmortemStatusAction(data: {
               (choice: PostmortemStatusChoice): DropdownOption => {
                 return {
                   label: choice.name,
+                  isUserContent: isRecordNameAsWritten(
+                    StateListType.IncidentPostmortemStatus,
+                    choice.name,
+                  ),
                   value: choice.id,
                   color: new Color(choice.color),
                 };

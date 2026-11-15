@@ -214,10 +214,10 @@ describe("each sentence reads in the language's order and digits", () => {
 
     expect(
       french.translateTemplate("Add Playbook: {{name}}", { name: "Phishing" }),
-    ).toBe("Ajouter le playbook : Phishing");
+    ).toBe("Ajouter le playbook\u00A0: Phishing");
     expect(
       french.translateTemplate("Last refreshed: {{time}}", { time: "10:15" }),
-    ).toBe("Dernière actualisation : 10:15");
+    ).toBe("Dernière actualisation\u00A0: 10:15");
   });
 
   test("Chinese says the total before what is shown, in one sentence", () => {

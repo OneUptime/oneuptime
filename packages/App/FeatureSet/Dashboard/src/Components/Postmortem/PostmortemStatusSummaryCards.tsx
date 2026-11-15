@@ -3,10 +3,12 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { TemplateValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+  isRecordNameAsWritten,
+  recordNameInSentence,
+} from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -171,10 +173,25 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
           translator.translateText(tile.description) || tile.description
         ).trim();
 
+        // The status's name in the tile's sentences, read by its list.
+        const statusInSentence: TemplateValue = recordNameInSentence(
+          StateListType.IncidentPostmortemStatus,
+          tile.name,
+        );
+
         return (
           <InfoCard
             key={tile.statusId}
             title={tile.name}
+            /*
+             * Named as the status's pill names it: the four a project starts
+             * with in the reader's language, a project's own as written - a
+             * status named "Open" never the verb "Abrir".
+             */
+            isTitleUserContent={isRecordNameAsWritten(
+              StateListType.IncidentPostmortemStatus,
+              tile.name,
+            )}
             /*
              * The tiles stay inert until the counts land: clicking a
              * skeleton would filter the list to a number nobody has read.
@@ -196,11 +213,11 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
                      * with in the reader's language, a project's own as
                      * written.
                      */
-                    { status: translatableTerm(tile.name), count: count },
+                    { status: statusInSentence, count: count },
                   )
                 : translator.translateTemplate(
                     "{{status}}: {{count}}. Activate to show only these postmortems below.",
-                    { status: translatableTerm(tile.name), count: count },
+                    { status: statusInSentence, count: count },
                   )
             }
             value={

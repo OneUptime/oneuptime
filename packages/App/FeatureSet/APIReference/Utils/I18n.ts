@@ -7,6 +7,7 @@ import {
   getDocsLanguageDirection,
   isSupportedDocsLanguage,
 } from "Common/Types/Docs/DocsLanguage";
+import { withNoBreakSpaces } from "Common/Types/NoBreakSpaces";
 
 import en from "../Locales/en.json";
 import de from "../Locales/de.json";
@@ -117,13 +118,23 @@ export const makeT: (lang: string) => TranslateFn = (
       langLocale as unknown as { [key: string]: unknown } | undefined,
       path,
     );
-    if (fromLang !== undefined) {
-      return interpolate(fromLang, vars);
-    }
     const fromEn: string | undefined = lookupNested(
       enLocale as unknown as { [key: string]: unknown },
       path,
     );
+    if (fromLang !== undefined) {
+      /*
+       * The language's own words as it sets a line: each number with its
+       * unit, and French's marks with their words (Common/Types/
+       * NoBreakSpaces). English left in a locale stays English.
+       */
+      return interpolate(
+        fromLang === fromEn
+          ? fromLang
+          : withNoBreakSpaces(fromLang, fromEn ?? key, resolvedLang),
+        vars,
+      );
+    }
     if (fromEn !== undefined) {
       return interpolate(fromEn, vars);
     }

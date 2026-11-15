@@ -63,6 +63,8 @@ type MultiSelectFunction = (data: {
   description: string;
   stepId: string;
   records: Array<FormRecordOption> | undefined;
+  // What the records are, which says how their names read.
+  model: FormTargetSettingReferenceModel;
 }) => Field<JSONObject>;
 
 const multiSelect: MultiSelectFunction = (data: {
@@ -71,13 +73,14 @@ const multiSelect: MultiSelectFunction = (data: {
   description: string;
   stepId: string;
   records: Array<FormRecordOption> | undefined;
+  model: FormTargetSettingReferenceModel;
 }): Field<JSONObject> => {
   return {
     field: { [data.key]: true },
     title: data.title,
     description: data.description,
     fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    dropdownOptions: toDropdownOptions(data.records),
+    dropdownOptions: toDropdownOptions(data.records, data.model),
     required: false,
     stepId: data.stepId,
   };
@@ -123,6 +126,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         description: FormsCopy.alwaysMonitorsDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
         records: lists[FormTargetSettingReferenceModel.Monitor],
+        model: FormTargetSettingReferenceModel.Monitor,
       }),
       multiSelect({
         key: "statusPageIds",
@@ -130,6 +134,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         description: FormsCopy.alwaysStatusPagesDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
         records: lists[FormTargetSettingReferenceModel.StatusPage],
+        model: FormTargetSettingReferenceModel.StatusPage,
       }),
       multiSelect({
         key: "labelIds",
@@ -137,6 +142,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
         description: FormsCopy.alwaysLabelsDescription,
         stepId: FORM_SETTINGS_STEP_ATTACH,
         records: lists[FormTargetSettingReferenceModel.Label],
+        model: FormTargetSettingReferenceModel.Label,
       }),
       ...owners,
       {
@@ -167,6 +173,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: toDropdownOptions(
         lists[FormTargetSettingReferenceModel.IncidentSeverity],
+        FormTargetSettingReferenceModel.IncidentSeverity,
       ),
       required: false,
       stepId: FORM_SETTINGS_STEP_DEFAULTS,
@@ -178,6 +185,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: toDropdownOptions(
         lists[FormTargetSettingReferenceModel.IncidentTemplate],
+        FormTargetSettingReferenceModel.IncidentTemplate,
       ),
       required: false,
       stepId: FORM_SETTINGS_STEP_DEFAULTS,
@@ -188,6 +196,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       description: FormsCopy.alwaysMonitorsDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
       records: lists[FormTargetSettingReferenceModel.Monitor],
+      model: FormTargetSettingReferenceModel.Monitor,
     }),
     multiSelect({
       key: "labelIds",
@@ -195,6 +204,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       description: FormsCopy.alwaysLabelsDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
       records: lists[FormTargetSettingReferenceModel.Label],
+      model: FormTargetSettingReferenceModel.Label,
     }),
     multiSelect({
       key: "onCallDutyPolicyIds",
@@ -202,6 +212,7 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       description: FormsCopy.onCallPoliciesDescription,
       stepId: FORM_SETTINGS_STEP_ATTACH,
       records: lists[FormTargetSettingReferenceModel.OnCallDutyPolicy],
+      model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
     }),
     ...owners,
   ];
