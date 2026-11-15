@@ -111,6 +111,11 @@ jobs:
       # scheduling saturate a pool of 10 (ConnectionSharesUnderLoadPostgres,
       # #7920). Creates nothing.
       RUN_POSTGRES_CONNECTION_SHARE_TESTS: "true"
+      # Every comparison QueryUtil writes for a Date, and the stale-run
+      # sweeps' and cloud-savings cleanup's real queries, tell rows minutes
+      # apart on Postgres (DateComparisonPostgres, #8200). A schema of its
+      # own, dropped after.
+      RUN_POSTGRES_DATE_COMPARISON_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

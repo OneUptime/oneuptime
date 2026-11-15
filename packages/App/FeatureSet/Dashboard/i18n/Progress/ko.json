@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52416,
-    "untranslated": 8957
+    "keys": 52780,
+    "untranslated": 8829
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -28,6 +28,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
+    "Chrome, Safari, Firefox",
     "ClickHouse",
     "CloudKitty",
     "Community Edition",
@@ -36,6 +37,7 @@
     "DES",
     "DHCP",
     "DNS:",
+    "DNSSEC",
     "Datadog URL",
     "Deployment",
     "DeploymentConfigs",
@@ -73,6 +75,7 @@
     "Keystone",
     "Kibana URL",
     "Kolla-Ansible",
+    "Kubernetes Deployment",
     "LXC 201 · pve3",
     "Log4Shell",
     "MCP",

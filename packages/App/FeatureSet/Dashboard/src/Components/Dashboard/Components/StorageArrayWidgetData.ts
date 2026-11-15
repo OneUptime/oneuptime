@@ -20,6 +20,7 @@ import {
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
 import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -171,8 +172,10 @@ function writeFigure(
  * Pure reports latency in microseconds. Below a millisecond the µs figure is
  * the readable one ("420 µs"); from a millisecond up, milliseconds are
  * ("2.35 ms"). Given a translator, the figure is in its reader's digits and
- * decimal sign ("۰٫۴۲ ms", "2,35 ms"), as a drive's size and a temperature
- * are (#7521); the unit is the symbol every language writes, as TiB is.
+ * decimal sign, as a drive's size and a temperature are (#7521), and its
+ * milliseconds are the Dashboard's duration in the reader's words ("2,35
+ * ms", "۲٫۳۵ میلی‌ثانیه": #7418); the microseconds keep the symbol every
+ * language writes, as TiB is.
  */
 export function formatLatencyUsec(
   value: unknown,
@@ -185,7 +188,10 @@ export function formatLatencyUsec(
   if (numeric < 1000) {
     return `${writeFigure(Math.round(numeric), 0, translator)} µs`;
   }
-  return `${writeFigure(numeric / 1000, 2, translator)} ms`;
+  return formatMilliseconds(translator || ENGLISH, numeric / 1000, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 /*

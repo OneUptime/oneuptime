@@ -17,6 +17,8 @@ import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
   isWordedInDashboardLocale,
+  readDashboardLocale,
+  readDashboardSameAsEnglish,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
@@ -110,11 +112,35 @@ describe("an inventory item's empty state", () => {
   const SENTENCE_LANGUAGES: ReadonlyArray<string> =
     DASHBOARD_LANGUAGES.filter(wordsTheSentence);
 
-  test("Japanese, Persian and Arabic word it", () => {
+  /*
+   * Only Japanese, Persian and Arabic worded it at first: the 14 others
+   * said why the tab is empty in English, types included (#7950).
+   */
+  test("every Dashboard language words it", () => {
     expect(UNLINKED_TYPE_LABELS.length).toBeGreaterThanOrEqual(40);
     expect(SENTENCE_LANGUAGES).toEqual(
       expect.arrayContaining(["ja", "fa", "ar"]),
     );
+    expect([...SENTENCE_LANGUAGES].sort()).toEqual(
+      [...DASHBOARD_LANGUAGES].sort(),
+    );
+  });
+
+  test("negative control: a type label put back to English is caught, and named", () => {
+    const words: Record<string, string> = {
+      ...readDashboardLocale("ko"),
+      "Kubernetes Pod": "Kubernetes Pod",
+    };
+    const sameAsEnglish: ReadonlyArray<string> =
+      readDashboardSameAsEnglish("ko");
+
+    expect(
+      UNLINKED_TYPE_LABELS.filter((label: string): boolean => {
+        return words[label] === label && !sameAsEnglish.includes(label);
+      }),
+    ).toEqual(["Kubernetes Pod"]);
+    // The file itself words it.
+    expect(unwordedIn("ko", UNLINKED_TYPE_LABELS)).toEqual([]);
   });
 
   test.each(SENTENCE_LANGUAGES)(

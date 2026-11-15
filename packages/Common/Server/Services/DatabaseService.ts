@@ -7860,9 +7860,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * own columns stay. A key that is no column at all - a filter by owners
    * (OwnedBy), a multi-field search - is left to the lookup too: the DELETE
    * would name a column the table does not have.
+   *
+   * A filter written with one of OneUptime's operators (LessThan, Includes,
+   * NotEqual, ...) is written as a read writes it (QueryUtil.serializeQuery):
+   * TypeORM does not know those classes and bound the object itself, which
+   * Postgres refused ("invalid input syntax for type timestamp with time
+   * zone: {"_type":"LessThan",...}"), so such a delete failed whenever it
+   * found rows (#8200). Its other filters - an id, a value, TypeORM's own
+   * operators - are handed to TypeORM as they are, as before.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
     const filters: Dictionary<unknown> = {};
+    const operators: Dictionary<unknown> = {};
 
     for (const [key, value] of Object.entries(query as Dictionary<unknown>)) {
       const type: TableColumnType | undefined =
@@ -7876,10 +7885,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         continue;
       }
 
+      if (value instanceof QueryOperator) {
+        operators[key] = value;
+        continue;
+      }
+
       filters[key] = value;
     }
 
-    return filters as Query<TBaseModel>;
+    return {
+      ...filters,
+      ...QueryUtil.serializeQuery(
+        this.modelType,
+        operators as Query<TBaseModel>,
+      ),
+    } as Query<TBaseModel>;
   }
 
   /*

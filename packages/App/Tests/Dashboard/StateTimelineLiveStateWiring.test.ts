@@ -260,8 +260,28 @@ describe("the shared pieces in Common", () => {
     expect(indicator).toContain(
       `export const CURRENTLY_ACTIVE_TEXT: string = "${CURRENTLY_ACTIVE}";`,
     );
-    expect(indicator).toContain("translateString(CURRENTLY_ACTIVE_TEXT)");
+    /*
+     * The key goes to the pill in English, and the pill looks it up, once
+     * (#8067, as every control does since #7790): the marker neither looks
+     * it up first nor says it is drawn as written.
+     */
+    expect(indicator).toContain("text={CURRENTLY_ACTIVE_TEXT}");
+    expect(indicator).not.toContain("translateString(");
+    expect(indicator).not.toContain("isUserContent");
     expect(indicator).toContain("isPulsing={true}");
+
+    const pill: string = squash(
+      stripComments(
+        fs.readFileSync(
+          path.join(COMMON_STATE_TIMELINE, "..", "Pill", "Pill.tsx"),
+          "utf8",
+        ),
+      ),
+    );
+
+    expect(pill).toContain(
+      "props.isUserContent ? props.text : translateString(props.text) ?? props.text;",
+    );
   });
 });
 

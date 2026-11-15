@@ -1,7 +1,11 @@
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -10,7 +14,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import AppLink from "../../AppLink/AppLink";
 import {
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   getMessageQueueBrokerMetricTitle,
 } from "../MessageQueueOverviewPresentation";
 import {
@@ -263,7 +267,12 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
             ? other.subtitle
             : ""
           : translator.translateTemplate(timeLabel, {
-              duration: formatMessageQueueDurationMs(edge.p95DurationMs),
+              duration: composedValue((sentence: Translator): string => {
+                return formatMessageQueueDurationMsInLanguage(
+                  edge.p95DurationMs,
+                  sentence,
+                );
+              }),
             }),
       messages: translator.translateTemplate("{{count}} messages", {
         count: formatMessageQueueCount(edge.messages),
@@ -584,7 +593,10 @@ const MessageQueueTopologyDetailPanel: FunctionComponent<ComponentProps> = (
           (edge.direction === "publish"
             ? translator.translateText("p95 publish")
             : translator.translateText("p95 processing")) || "",
-        value: formatMessageQueueDurationMs(edge.p95DurationMs),
+        value: formatMessageQueueDurationMsInLanguage(
+          edge.p95DurationMs,
+          translator,
+        ),
         testId: "message-queue-topology-drawer-p95",
       });
     }
