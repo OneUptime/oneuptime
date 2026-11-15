@@ -24,7 +24,11 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   getStandaloneText,
   getUnnamedText,
@@ -120,27 +124,54 @@ function toFiniteNumber(value: unknown): number | undefined {
   return Number.isFinite(numeric) ? numeric : undefined;
 }
 
-function formatPercent(value: unknown): string {
+/*
+ * A host's figures in the reader's digits, decimal sign and percent sign
+ * (#7520): "42,5 %" and "2,4 GHz" on a German board, "۴۲٫۵٪" on a Persian
+ * one, exactly as toFixed wrote them in English. The unit symbols (GHz,
+ * MHz, GiB) read the same in every language. The rows and tiles are drawn
+ * outside the component, so they read the page's translator, as their
+ * other words do.
+ */
+export function formatVMwareHostPercent(
+  value: unknown,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
   }
-  return `${numeric.toFixed(1)}%`;
+  return formatReaderFigure(numeric, {
+    decimals: 1,
+    isPercent: true,
+    language: translator.language,
+  });
 }
 
 /* The receiver reports CPU capacity in MHz; GHz reads better for a host. */
-function formatMhz(value: unknown): string {
+export function formatVMwareHostMhz(
+  value: unknown,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
   }
   if (numeric >= 1000) {
-    return `${(numeric / 1000).toFixed(1)} GHz`;
+    return `${formatReaderFigure(numeric / 1000, {
+      decimals: 1,
+      language: translator.language,
+    })} GHz`;
   }
-  return `${Math.round(numeric)} MHz`;
+  return `${formatReaderFigure(Math.round(numeric), {
+    decimals: 0,
+    language: translator.language,
+  })} MHz`;
 }
 
-function formatBytes(value: unknown): string {
+export function formatVMwareHostBytes(
+  value: unknown,
+  translator: Translator = getGlobalTranslator(),
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
@@ -152,7 +183,10 @@ function formatBytes(value: unknown): string {
     scaled = scaled / 1024;
     unitIndex++;
   }
-  return `${scaled.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  return `${formatReaderFigure(scaled, {
+    decimals: unitIndex === 0 ? 0 : 1,
+    language: translator.language,
+  })} ${units[unitIndex]}`;
 }
 
 /*
@@ -244,6 +278,7 @@ function getPercentTextColor(value: unknown): string {
 }
 
 function renderHostRow(r: VMwareResource): ReactElement {
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getHostDisplayName(r);
   const clusterName: string = (r.clusterName as string) || getStandaloneText();
@@ -276,20 +311,20 @@ function renderHostRow(r: VMwareResource): ReactElement {
       <td
         className="px-3 py-2 text-xs"
         style={{ color: getPercentTextColor(r.latestCpuPercent) }}
-        title={translateTemplate("Capacity {{capacity}}", {
-          capacity: formatMhz(r.cpuCapacityMhz),
+        title={translator.translateTemplate("Capacity {{capacity}}", {
+          capacity: formatVMwareHostMhz(r.cpuCapacityMhz, translator),
         })}
       >
-        {formatPercent(r.latestCpuPercent)}
+        {formatVMwareHostPercent(r.latestCpuPercent, translator)}
       </td>
       <td
         className="px-3 py-2 text-xs"
         style={{ color: getPercentTextColor(r.latestMemoryPercent) }}
-        title={translateTemplate("Capacity {{capacity}}", {
-          capacity: formatBytes(r.maxMemoryBytes),
+        title={translator.translateTemplate("Capacity {{capacity}}", {
+          capacity: formatVMwareHostBytes(r.maxMemoryBytes, translator),
         })}
       >
-        {formatPercent(r.latestMemoryPercent)}
+        {formatVMwareHostPercent(r.latestMemoryPercent, translator)}
       </td>
       <ResourceListNameCell
         name={clusterName}
@@ -305,6 +340,7 @@ function renderHostRow(r: VMwareResource): ReactElement {
 }
 
 function buildHostTile(r: VMwareResource): HoneycombTile {
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getHostDisplayName(r);
   const load: { text: string; color: string; textColor: string } =
@@ -324,17 +360,24 @@ function buildHostTile(r: VMwareResource): HoneycombTile {
           label: "Cluster",
           value: (r.clusterName as string) || getStandaloneText(),
         },
+        /*
+         * One sentence each, in the reader's language and digits: "42,5 %
+         * von 2,4 GHz" on a German board, where it read "42.5% of 2.4 GHz"
+         * on every one (#7520).
+         */
         {
           label: "CPU",
-          value: `${formatPercent(r.latestCpuPercent)} of ${formatMhz(
-            r.cpuCapacityMhz,
-          )}`,
+          value: translator.translateTemplate("{{used}} of {{capacity}}", {
+            used: formatVMwareHostPercent(r.latestCpuPercent, translator),
+            capacity: formatVMwareHostMhz(r.cpuCapacityMhz, translator),
+          }),
         },
         {
           label: "Memory",
-          value: `${formatPercent(r.latestMemoryPercent)} of ${formatBytes(
-            r.maxMemoryBytes,
-          )}`,
+          value: translator.translateTemplate("{{used}} of {{capacity}}", {
+            used: formatVMwareHostPercent(r.latestMemoryPercent, translator),
+            capacity: formatVMwareHostBytes(r.maxMemoryBytes, translator),
+          }),
         },
       ],
     },

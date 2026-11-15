@@ -130,11 +130,11 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 ## Feilsøking
 
 :::details Kjeden rapporteres som brutt, men sonen validerer med `dig`
-En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver Checks**, i **Resultat av overvåkingstest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
+En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-sjekker**, i **Resultat av overvåkingstest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente rett etter en endring
-Sekundærservere kan henge etter primærserveren en stund etter at sonen er endret. Tabellen **Nameserver Consistency** i sjekkens oppsummering viser hver navneservers SOA-serienummer. Hvis én blir hengende etter, har den sekundærserveren sluttet å hente overføringer. Hvis hver navneserver viser en feil, kan sonden være blokkert fra å spørre dem direkte: slå av **Sjekk navneserverkonsistens**.
+Sekundærservere kan henge etter primærserveren en stund etter at sonen er endret. Tabellen **Navneservernes konsistens** i sjekkens oppsummering viser hver navneservers SOA-serienummer. Hvis én blir hengende etter, har den sekundærserveren sluttet å hente overføringer. Hvis hver navneserver viser en feil, kan sonden være blokkert fra å spørre dem direkte: slå av **Sjekk navneserverkonsistens**.
 :::
 
 :::details Sjekken rapporterer et tidsavbrudd

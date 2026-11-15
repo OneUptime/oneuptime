@@ -43,6 +43,7 @@ import {
   isOpenStackProbeCollected,
   readOpenStackNames,
 } from "./OpenStackProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How a cloud a probe collects is doing, on its Overview: is the probe collecting it, and if
@@ -313,7 +314,7 @@ const OpenStackCollectionStatusCard: FunctionComponent<ComponentProps> = (
 
           {trustError ? (
             <p className="text-red-700" role="alert">
-              {trustError}
+              <ErrorInSentence message={trustError} showWhereToLook={true} />
             </p>
           ) : (
             <></>

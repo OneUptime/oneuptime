@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Send a test": one entry whose action is Test, delivered to the
@@ -116,12 +117,17 @@ export const AuditLogExportTestResultBox: FunctionComponent<{
         />
       </div>
       <div className="min-w-0 break-words">
-        {props.result.message ||
-          translator.translateText(
-            props.result.isSuccessful
-              ? AuditLogExportCopy.testSucceeded
-              : AuditLogExportCopy.testFailed,
-          )}
+        <ErrorInSentence
+          message={
+            props.result.message ||
+            translator.translateText(
+              props.result.isSuccessful
+                ? AuditLogExportCopy.testSucceeded
+                : AuditLogExportCopy.testFailed,
+            )
+          }
+          showWhereToLook={true}
+        />
       </div>
     </div>
   );

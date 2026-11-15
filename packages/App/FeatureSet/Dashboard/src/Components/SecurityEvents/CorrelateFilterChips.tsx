@@ -2,6 +2,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   CorrelationCondition,
   CorrelationConnectorWords,
@@ -27,6 +29,7 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
@@ -104,7 +107,10 @@ const CorrelateFilterChips: FunctionComponent<ComponentProps> = (
                 <button
                   type="button"
                   data-testid={`correlate-filter-chip-remove-${index}`}
-                  aria-label={`${t("Remove condition")} ${index + 1}`}
+                  aria-label={translator.translateTemplate(
+                    "Remove condition {{number}}",
+                    { number: translator.formatNumber(index + 1) },
+                  )}
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   onClick={() => {
                     props.onRemoveCondition(index);

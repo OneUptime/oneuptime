@@ -61,6 +61,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // The line under an issue's title: its check's group, and when it was found.
 const FIRST_DETECTED: string = translationKey("First detected {{time}}");
@@ -306,7 +307,7 @@ const DataSecurityIssuesPage: FunctionComponent<
                 "";
 
               if (!storeId) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               return (

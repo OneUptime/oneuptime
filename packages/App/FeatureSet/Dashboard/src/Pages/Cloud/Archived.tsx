@@ -22,6 +22,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Cloud > Archived: the cloud resources archived by a person or by the sweep
@@ -148,7 +149,7 @@ const CloudArchivedPage: FunctionComponent<
                     className="truncate text-sm font-medium text-gray-900"
                   >
                     <AppLink to={route} className="hover:underline">
-                      {name || "—"}
+                      {name || <TableEmptyValue />}
                     </AppLink>
                   </IsolatedLine>
                   {account && (
@@ -176,7 +177,7 @@ const CloudArchivedPage: FunctionComponent<
               );
               const region: string = (item.cloudRegion as string) || "";
               if (!type && !region) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <div className="text-sm text-gray-700">
@@ -255,7 +256,7 @@ const CloudArchivedPage: FunctionComponent<
                     </span>
                   );
                 }
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

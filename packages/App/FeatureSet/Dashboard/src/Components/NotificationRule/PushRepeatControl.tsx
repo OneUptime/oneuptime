@@ -21,6 +21,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * How often a push rule's push is sent again until somebody acknowledges
@@ -229,7 +230,8 @@ const PushRepeatControl: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid="push-repeat-error"
         >
-          {translator.translateText(REPEAT_SAVE_FAILED_MESSAGE)} {error}
+          {translator.translateText(REPEAT_SAVE_FAILED_MESSAGE)}{" "}
+          <ErrorInSentence message={error} />
         </p>
       ) : (
         <></>

@@ -26,14 +26,16 @@ import {
 } from "./DashboardResourceHoneycomb";
 import {
   getGlobalTranslator,
-  translateTemplate,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageArrayWidgetState,
   VOLUME_LATENCY_COLORS,
   formatIops,
   formatLatencyUsec,
-  formatStorageBytes,
+  formatReadWriteIops,
+  formatReadWriteLatencyUsec,
+  formatUsedOfProvisioned,
   getTotalIops,
   getVolumeLatencyState,
 } from "./StorageArrayWidgetData";
@@ -56,12 +58,18 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardStorageArrayVolumeListComponent;
 }
 
+/*
+ * The last column names the storage array a volume is in: "Array (storage
+ * array)", a key of its own (Common/Types/MeaningKeys), which English reads
+ * as "Array". The bare "Array" read as a programming array in six
+ * languages - 配列, Matriz, Tableau, 배열, 数组, Matrise (#7522).
+ */
 const COLUMNS: Array<ResourceListColumn> = [
   { label: "Volume", widthPct: "26%", sortKey: "name" },
   { label: "Used / Provisioned", widthPct: "22%", sortKey: "used" },
   { label: "Latency (R / W)", widthPct: "20%" },
   { label: "IOPS", widthPct: "12%" },
-  { label: "Array", widthPct: "20%", sortKey: "array" },
+  { label: "Array (storage array)", widthPct: "20%", sortKey: "array" },
 ];
 
 /*
@@ -134,21 +142,14 @@ function getVolumeDisplayName(r: StorageArrayResource): string {
   return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
-function formatUsedOfProvisioned(r: StorageArrayResource): string {
-  return translateTemplate("{{used}} of {{provisioned}}", {
-    used: formatStorageBytes(r.usedBytes),
-    provisioned: formatStorageBytes(r.capacityBytes),
-  });
-}
-
-function formatReadWriteLatency(r: StorageArrayResource): string {
-  return `${formatLatencyUsec(
-    r.readLatencyUsec,
-    getGlobalTranslator(),
-  )} / ${formatLatencyUsec(r.writeLatencyUsec, getGlobalTranslator())}`;
-}
-
+/*
+ * A volume's sizes, latencies and IOPS are written in the reader's digits
+ * and decimal sign (#7521): a Persian board read "3.5 TiB" and "0.42 ms"
+ * beside Persian words, and a drive's size in the hardware list beside it
+ * was already "۳٫۵ TiB".
+ */
 function renderVolumeRow(r: StorageArrayResource): ReactElement {
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getVolumeDisplayName(r);
   const arrayName: string = (r.storageArray?.name as string) || "—";
@@ -183,19 +184,20 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {formatUsedOfProvisioned(r)}
+        {formatUsedOfProvisioned(r.usedBytes, r.capacityBytes, translator)}
       </td>
       <td className="px-3 py-2 text-xs" style={{ color: latency.textColor }}>
-        {formatReadWriteLatency(r)}
+        {formatReadWriteLatencyUsec(
+          r.readLatencyUsec,
+          r.writeLatencyUsec,
+          translator,
+        )}
       </td>
       <td
         className="px-3 py-2 text-xs text-gray-500"
-        title={translateTemplate("Read {{read}} · Write {{write}}", {
-          read: formatIops(r.readIops),
-          write: formatIops(r.writeIops),
-        })}
+        title={formatReadWriteIops(r.readIops, r.writeIops, translator)}
       >
-        {formatIops(getTotalIops(r.readIops, r.writeIops))}
+        {formatIops(getTotalIops(r.readIops, r.writeIops), translator)}
       </td>
       <ResourceListNameCell
         name={arrayName}
@@ -206,6 +208,7 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
 }
 
 function buildVolumeTile(r: StorageArrayResource): HoneycombTile {
+  const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getVolumeDisplayName(r);
   const latency: StorageArrayWidgetState = getVolumeLatencyState(
@@ -221,19 +224,29 @@ function buildVolumeTile(r: StorageArrayResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Array", value: (r.storageArray?.name as string) || "—" },
+        {
+          label: "Array (storage array)",
+          value: (r.storageArray?.name as string) || "—",
+        },
         { label: "Group", value: (r.groupName as string) || "—" },
-        { label: "Used / Provisioned", value: formatUsedOfProvisioned(r) },
+        {
+          label: "Used / Provisioned",
+          value: formatUsedOfProvisioned(
+            r.usedBytes,
+            r.capacityBytes,
+            translator,
+          ),
+        },
         {
           label: "Read Latency",
-          value: formatLatencyUsec(r.readLatencyUsec, getGlobalTranslator()),
+          value: formatLatencyUsec(r.readLatencyUsec, translator),
         },
         {
           label: "Write Latency",
-          value: formatLatencyUsec(r.writeLatencyUsec, getGlobalTranslator()),
+          value: formatLatencyUsec(r.writeLatencyUsec, translator),
         },
-        { label: "Read IOPS", value: formatIops(r.readIops) },
-        { label: "Write IOPS", value: formatIops(r.writeIops) },
+        { label: "Read IOPS", value: formatIops(r.readIops, translator) },
+        { label: "Write IOPS", value: formatIops(r.writeIops, translator) },
       ],
     },
   };

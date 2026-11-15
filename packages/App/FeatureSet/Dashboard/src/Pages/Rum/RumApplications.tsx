@@ -53,6 +53,7 @@ import useShowcaseCreateForm, {
 } from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
 import RUM_APPLICATION_SHOWCASE from "../../Components/Rum/RumApplicationShowcase";
 import RumApplicationAddedModal from "../../Components/Rum/RumApplicationAddedModal";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
@@ -303,7 +304,7 @@ const RumApplications: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 truncate hover:underline"
                   >
-                    {name || "—"}
+                    {name || <TableEmptyValue />}
                   </AppLink>
                   {showId && (
                     <div className="text-xs text-gray-500 font-mono truncate">
@@ -324,7 +325,7 @@ const RumApplications: FunctionComponent<
             getElement: (item: RumApplication): ReactElement => {
               const clientType: string = (item.clientType as string) || "";
               if (!clientType) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return (
                 <span className="text-sm text-gray-700 capitalize">

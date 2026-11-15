@@ -173,6 +173,6 @@ dig @8.8.8.8 example.com A
 :::cards
 - [DNSSEC 监控](/docs/monitor/dnssec-monitor): 验证已签名区域的信任链。
 - [域名监控](/docs/monitor/domain-monitor): 关注域名的注册和到期。
-- [自定义探针](/docs/probe/custom-probe): 从您自己的网络查询内部 DNS 服务器。
+- [自定义探测器](/docs/probe/custom-probe): 从您自己的网络查询内部 DNS 服务器。
 - [事件概览](/docs/incidents/index): 监视器声明事件之后会发生什么。
 :::

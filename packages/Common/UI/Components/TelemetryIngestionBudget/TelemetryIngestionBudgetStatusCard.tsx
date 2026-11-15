@@ -44,6 +44,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 /*
  * Today's telemetry ingestion budgets: for each signal with a budget or a
@@ -129,7 +130,9 @@ export const SignalRows: FunctionComponent<{
             >
               {props.showKeyName ? (
                 <td className="py-3 pr-4 align-top text-sm font-medium text-gray-900">
-                  <bdi>{props.scope.ingestionKeyName || "—"}</bdi>
+                  <bdi>
+                    {props.scope.ingestionKeyName || <TableEmptyValue />}
+                  </bdi>
                 </td>
               ) : (
                 <></>
@@ -139,12 +142,14 @@ export const SignalRows: FunctionComponent<{
               </td>
               <td className="py-3 pr-4 align-top text-sm text-gray-700">
                 <div className="tabular-nums">
-                  {signal.usedBytes === null
-                    ? "—"
-                    : formatTelemetryIngestionBudgetBytes(
-                        signal.usedBytes,
-                        translator,
-                      )}
+                  {signal.usedBytes === null ? (
+                    <TableEmptyValue />
+                  ) : (
+                    formatTelemetryIngestionBudgetBytes(
+                      signal.usedBytes,
+                      translator,
+                    )
+                  )}
                   {signal.percentUsed !== null ? (
                     <span className="ml-1 text-gray-500">
                       ({translator.formatNumber(Math.floor(signal.percentUsed))}
@@ -172,12 +177,14 @@ export const SignalRows: FunctionComponent<{
               </td>
               <td className="py-3 pr-4 align-top text-sm text-gray-700">
                 <div className="tabular-nums">
-                  {signal.dailyBudgetBytes === null
-                    ? "—"
-                    : formatTelemetryIngestionBudgetBytes(
-                        signal.dailyBudgetBytes,
-                        translator,
-                      )}
+                  {signal.dailyBudgetBytes === null ? (
+                    <TableEmptyValue />
+                  ) : (
+                    formatTelemetryIngestionBudgetBytes(
+                      signal.dailyBudgetBytes,
+                      translator,
+                    )
+                  )}
                 </div>
                 {signal.dailyBudgetSource &&
                 signal.dailyBudgetBytes !== null ? (
@@ -194,35 +201,41 @@ export const SignalRows: FunctionComponent<{
               </td>
               <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
-                  {signal.rateLimitBytesPerSecond === null
-                    ? "—"
-                    : formatTelemetryIngestionBudgetRate(
-                        signal.rateLimitBytesPerSecond,
-                        translator,
-                      )}
+                  {signal.rateLimitBytesPerSecond === null ? (
+                    <TableEmptyValue />
+                  ) : (
+                    formatTelemetryIngestionBudgetRate(
+                      signal.rateLimitBytesPerSecond,
+                      translator,
+                    )
+                  )}
                 </span>
               </td>
               <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
-                  {signal.droppedBytes
-                    ? formatTelemetryIngestionBudgetBytes(
-                        signal.droppedBytes,
-                        translator,
-                      )
-                    : "—"}
+                  {signal.droppedBytes ? (
+                    formatTelemetryIngestionBudgetBytes(
+                      signal.droppedBytes,
+                      translator,
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               </td>
               <td className="max-md:hidden py-3 pr-4 align-top text-sm text-gray-700 md:table-cell">
                 <span className="tabular-nums">
-                  {signal.throttledRequests
-                    ? translator.translatePlural(
-                        {
-                          one: "{{count}} request",
-                          other: "{{count}} requests",
-                        },
-                        signal.throttledRequests,
-                      )
-                    : "—"}
+                  {signal.throttledRequests ? (
+                    translator.translatePlural(
+                      {
+                        one: "{{count}} request",
+                        other: "{{count}} requests",
+                      },
+                      signal.throttledRequests,
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               </td>
               <td className="py-3 align-top text-sm">

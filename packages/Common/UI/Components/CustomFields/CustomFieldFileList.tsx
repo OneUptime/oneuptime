@@ -16,6 +16,8 @@ import { handleAuthenticatedLinkClick } from "../../Utils/OpenAuthenticatedUrl";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
+import { isDashText } from "../Detail/EmptyValue";
 
 /*
  * THE FILES A FILE OR MULTIPLE FILES CUSTOM FIELD HOLDS, AS A LIST.
@@ -146,12 +148,21 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
    * the same words under the text field beside it.
    */
   if (props.files.length === 0) {
+    // No words of its own: the quiet dash every empty value is.
+    if (!props.emptyText?.trim() || isDashText(props.emptyText)) {
+      return (
+        <span data-testid={props.dataTestId}>
+          <TableEmptyValue />
+        </span>
+      );
+    }
+
     return (
       <span
         className={PLACEHOLDER_TEXT_CLASS_NAME}
         data-testid={props.dataTestId}
       >
-        {translator.translateText(props.emptyText || "-") || "-"}
+        {translator.translateText(props.emptyText) || props.emptyText}
       </span>
     );
   }

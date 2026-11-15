@@ -20,6 +20,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   onConnect: (suggestion: DataObservabilitySourceSuggestion) => void;
@@ -140,7 +141,13 @@ const DataSourceSuggestionsCard: FunctionComponent<ComponentProps> = (
       description="Your project already knows of these, and nobody has connected them. Nothing is read until you do."
     >
       <div>
-        {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
+        {error ? (
+          <p className="mb-3 text-sm text-red-600">
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </p>
+        ) : (
+          <></>
+        )}
         <ul className="divide-y divide-gray-100">
           {suggestions.map(
             (suggestion: DataObservabilitySourceSuggestion): ReactElement => {

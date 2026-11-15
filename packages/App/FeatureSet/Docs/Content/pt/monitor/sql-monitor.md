@@ -33,8 +33,8 @@ A sonda envia apenas:
 |---|---|
 | **Número de linhas** | O número de linhas que a consulta retornou (limitado pelo Max Rows). |
 | **Valor escalar** | A primeira coluna da primeira linha. É o valor natural de uma consulta no estilo `SELECT COUNT(*)`. |
-| **First Row** | A primeira linha como pares de coluna/valor, mostrada no resumo da verificação para dar contexto. |
-| **Execution Time** | Quanto tempo a verificação levou, em milissegundos, incluindo a conexão, não só a consulta. |
+| **Primeira linha** | A primeira linha como pares de coluna/valor, mostrada no resumo da verificação para dar contexto. |
+| **Tempo de execução** | Quanto tempo a verificação levou, em milissegundos, incluindo a conexão, não só a consulta. |
 | **Erro da consulta** | Uma mensagem de erro higienizada, se a consulta falhou. |
 
 O conjunto completo de resultados nunca é enviado ao OneUptime, então os dados dos seus clientes não são replicados no armazenamento do OneUptime.
@@ -250,7 +250,7 @@ Associe uma política de plantão ao critério para que as pessoas certas sejam 
 
 - A consulta roda a cada verificação, então mantenha-a barata. Use índices e janelas de tempo estreitas, e conte com o Statement Timeout como proteção.
 - Só o número de linhas, a primeira célula (escalar) e a primeira linha são enviados: monte sua consulta de forma que o valor sobre o qual quer alertar esteja na primeira coluna.
-- Se o resultado for truncado por ter passado do Max Rows, o resumo da verificação mostra **Rows Truncated**: "Yes (result capped)". Aumente o Max Rows só se precisar; conjuntos de resultados maiores custam mais memória na sonda.
+- Se o resultado for truncado por ter passado do Max Rows, o resumo da verificação mostra **Linhas truncadas**: "Sim (resultado limitado)". Aumente o Max Rows só se precisar; conjuntos de resultados maiores custam mais memória na sonda.
 - Escritas e DDL são sempre rejeitadas. Se você precisa testar um caminho de escrita, este monitor não serve para isso.
 - Prefira um segredo do monitor a uma senha em texto simples, para que a credencial fique criptografada em repouso.
 - Uma verificação cuja consulta falha é tentada de novo um segundo depois, até mais três vezes, antes de informar o erro, para que uma queda breve de conexão não deixe o monitor offline. Em uma sonda auto-hospedada, `PROBE_MONITOR_RETRY_LIMIT` define quantas vezes.

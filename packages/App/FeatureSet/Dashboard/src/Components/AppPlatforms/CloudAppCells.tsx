@@ -22,6 +22,7 @@ import {
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The cells an App Platforms app shows in a list - All Apps, an
@@ -145,7 +146,7 @@ export const CloudAppRevisionCell: FunctionComponent<
   });
 
   if (!revision) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -207,12 +208,8 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
     props.signals.requests <= 0
   ) {
     return (
-      <span
-        className="text-sm text-gray-400"
-        title={translator.translateText(APP_NO_TRACES_HINT)}
-        data-testid="cloud-app-signal-no-traces"
-      >
-        —
+      <span data-testid="cloud-app-signal-no-traces">
+        <TableEmptyValue title={translator.translateText(APP_NO_TRACES_HINT)} />
       </span>
     );
   }
@@ -224,18 +221,13 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
         aria-hidden="true"
       />
     ) : (
-      <span className="text-sm text-gray-400">—</span>
+      <TableEmptyValue />
     );
   }
 
   if (props.signals === null) {
     return (
-      <span
-        className="text-sm text-gray-400"
-        title={translator.translateText(APP_SIGNALS_UNKNOWN)}
-      >
-        —
-      </span>
+      <TableEmptyValue title={translator.translateText(APP_SIGNALS_UNKNOWN)} />
     );
   }
 

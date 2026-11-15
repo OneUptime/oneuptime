@@ -250,7 +250,7 @@ Associez une politique d'astreinte au critère pour que les bonnes personnes soi
 
 - La requête s'exécute à chaque vérification, alors gardez-la peu coûteuse. Utilisez des index et des fenêtres de temps étroites, et comptez sur le délai d'instruction comme filet de sécurité.
 - Seuls le nombre de lignes, la première cellule (scalaire) et la première ligne sont rapportés — concevez votre requête pour que la valeur sur laquelle vous voulez alerter soit dans la première colonne.
-- Si le résultat est tronqué parce qu'il dépassait Lignes max, le résumé de la vérification affiche **Rows Truncated** : "Yes (result capped)". N'augmentez Lignes max qu'en cas de besoin ; des jeux de résultats plus grands coûtent plus de mémoire sur la sonde.
+- Si le résultat est tronqué parce qu'il dépassait Lignes max, le résumé de la vérification affiche **Lignes tronquées** : "Oui (résultat plafonné)". N'augmentez Lignes max qu'en cas de besoin ; des jeux de résultats plus grands coûtent plus de mémoire sur la sonde.
 - Les écritures et le DDL sont toujours rejetés. Si vous devez tester un chemin d'écriture, ce n'est pas le rôle de ce moniteur.
 - Préférez un secret de moniteur à un mot de passe en clair pour que l'identifiant reste chiffré au repos.
 - Une vérification dont la requête échoue est retentée une seconde plus tard, jusqu'à trois fois de plus, avant de rapporter l'erreur, pour qu'une brève coupure de connexion ne mette pas le moniteur hors ligne. Sur une sonde auto-hébergée, `PROBE_MONITOR_RETRY_LIMIT` définit le nombre de tentatives.

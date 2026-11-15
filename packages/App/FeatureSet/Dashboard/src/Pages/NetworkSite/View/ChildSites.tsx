@@ -17,6 +17,7 @@ import { SITE_MORE_FIELDS } from "../SiteFormSections";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Sites nested directly under this one. New child sites created here are
@@ -172,7 +173,7 @@ const NetworkSiteChildSites: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },

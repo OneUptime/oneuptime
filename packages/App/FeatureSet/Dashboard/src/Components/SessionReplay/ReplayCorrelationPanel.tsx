@@ -87,6 +87,7 @@ import { getReplayAssetFailureDocsHref } from "./ReplayRecordedAssets";
  */
 
 import type { ReplaySessionDetails } from "./ReplaySessionDetails";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export type ReplayCorrelationPanelTabId = "session" | "provenance" | "fidelity";
 
@@ -212,7 +213,7 @@ const DetailRow: FunctionComponent<DetailRowProps> = (
           props.mono ? "font-mono text-xs" : ""
         }`}
       >
-        {hasValue ? props.value : "—"}
+        {hasValue ? props.value : <EmptyValue isSmall={true} />}
       </dd>
     </div>
   );
@@ -504,7 +505,7 @@ const StringMapRows: FunctionComponent<StringMapRowsProps> = (
                 {key}
               </dt>
               <dd className="mt-0.5 break-words text-xs text-gray-900">
-                {props.map[key] || "—"}
+                {props.map[key] || <EmptyValue isSmall={true} />}
               </dd>
             </div>
           );
@@ -574,7 +575,7 @@ const UrlDetail: FunctionComponent<UrlDetailProps> = (
           </a>
         ) : (
           <span className="min-w-0 flex-1 break-all text-sm text-gray-900">
-            {props.value || "—"}
+            {props.value || <EmptyValue />}
           </span>
         )}
         {props.value && (
@@ -618,7 +619,7 @@ const EnvironmentTile: FunctionComponent<EnvironmentTileProps> = (
         className="mt-1 truncate text-sm font-medium text-gray-900"
         title={props.value}
       >
-        {props.value || "—"}
+        {props.value || <EmptyValue />}
       </dd>
     </div>
   );

@@ -34,7 +34,9 @@ import { boxesInOneFrame } from "../SuiteHelpers/Frames";
  *   - the settings: a column's thresholds and the table's Threshold colors,
  *     drawn in the Live Preview as they are typed, kept by Save Changes;
  *   - at a phone's width on the board, and in a narrow window in the
- *     settings.
+ *     settings;
+ *   - a long group name on a narrow table gives way to the numbers, so
+ *     they stay inside the widget, on a phone and at 1280 (#7524).
  *
  * Screenshots are saved for review under
  * output/playwright/dashboard-table-thresholds-ui.
@@ -78,6 +80,11 @@ const SCREENSHOTS: string =
 const SATURATION: string = "c0000000-0000-4000-8000-0000000052a1";
 const FILLED: string = "c0000000-0000-4000-8000-0000000052a2";
 const OVER_TIME: string = "c0000000-0000-4000-8000-0000000052a3";
+// Errors per service, four grid columns wide, one service long-named (#7524).
+const ERRORS: string = "c0000000-0000-4000-8000-0000000075a4";
+const LONG_SERVICE_NAME: string =
+  "payments-webhook-consumer-eu-west-production";
+const SHORT_SERVICE_NAME: string = "checkout-api";
 
 const TITLES: Record<string, string> = {
   [SATURATION]: "Host saturation",
@@ -754,9 +761,15 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     await expect(await cellOf(table, "web-3", "CPU")).toHaveText("93.0%");
     // A metric whose unit is 1 is a plain number: no "1" after it.
     await expect(await cellOf(table, "web-3", "Load")).toHaveText("7.9");
-    // A host that sent no free disk reading shows a dash, uncolored.
+    /*
+     * A host that sent no free disk reading shows the quiet dash every empty
+     * cell is, uncolored, read out as "Not set" (#7603).
+     */
     const missing: Locator = await cellOf(table, "cache-1", "Free disk");
-    await expect(missing).toHaveText("—");
+    await expect(
+      missing.locator('[data-testid="table-empty-value"] [aria-hidden="true"]'),
+    ).toHaveText("—");
+    await expect(missing).toHaveText("—Not set");
     await expect(missing).not.toHaveAttribute("data-threshold-level");
   });
 
@@ -992,6 +1005,207 @@ test.describe("metric tables on the dashboard inside OneUptime", () => {
     }
 
     await shoot(page, testInfo, "board-fa", widgetTitled(page, FILLED));
+  });
+});
+
+/*
+ * A LONG GROUP NAME GIVES WAY TO THE NUMBERS (#7524).
+ *
+ * The Errors by service table is four grid columns wide, and on a phone
+ * the screen's width. Its group cells were cut short to one line that may
+ * not break, so the table made its Service column as wide as
+ * "payments-webhook-consumer-eu-west-production" - the whole widget at
+ * 390px - and the Errors column, the number it is for, sat past the edge,
+ * to be found by swiping sideways inside the widget. The name gives way
+ * now: cut at its own end, on one line, while the numbers keep their
+ * width inside the widget. A name that fits is drawn whole, as before.
+ */
+interface NarrowTableLayout {
+  // The table runs past its box, to be swiped sideways.
+  scrollsSideways: boolean;
+  valueText: string;
+  // The long name's box shows less than its name: cut, its "..." at its end.
+  isLongNameCut: boolean;
+  isShortNameCut: boolean;
+  longNameHeight: number;
+  shortNameHeight: number;
+  longNameDir: string | null;
+}
+
+const narrowTableLayout: (widget: Locator) => Promise<NarrowTableLayout> = (
+  widget: Locator,
+): Promise<NarrowTableLayout> => {
+  return widget.evaluate(
+    (
+      element: Element,
+      names: { long: string; short: string },
+    ): NarrowTableLayout => {
+      const table: HTMLElement = element.querySelector("table") as HTMLElement;
+      const box: HTMLElement = table.parentElement as HTMLElement;
+      const rowOf: (name: string) => HTMLElement = (
+        name: string,
+      ): HTMLElement => {
+        return Array.from(table.querySelectorAll("tbody tr")).find(
+          (row: Element): boolean => {
+            return (row.querySelector("td")?.textContent || "").trim() === name;
+          },
+        ) as HTMLElement;
+      };
+      const nameBoxOf: (name: string) => HTMLElement = (
+        name: string,
+      ): HTMLElement => {
+        return rowOf(name).querySelector("td > div") as HTMLElement;
+      };
+      const isCut: (nameBox: HTMLElement) => boolean = (
+        nameBox: HTMLElement,
+      ): boolean => {
+        return (
+          nameBox.scrollHeight > nameBox.clientHeight + 1 ||
+          nameBox.scrollWidth > nameBox.clientWidth + 1
+        );
+      };
+
+      return {
+        scrollsSideways: box.scrollWidth > box.clientWidth + 1,
+        valueText: (
+          rowOf(names.long).querySelectorAll("td")[1]?.textContent || ""
+        ).trim(),
+        isLongNameCut: isCut(nameBoxOf(names.long)),
+        isShortNameCut: isCut(nameBoxOf(names.short)),
+        longNameHeight: nameBoxOf(names.long).getBoundingClientRect().height,
+        shortNameHeight: nameBoxOf(names.short).getBoundingClientRect().height,
+        longNameDir: rowOf(names.long)
+          .querySelector("td")
+          ?.getAttribute("dir") as string | null,
+      };
+    },
+    { long: LONG_SERVICE_NAME, short: SHORT_SERVICE_NAME },
+  );
+};
+
+test.describe("a long group name on a narrow table", () => {
+  const drawErrorsTable: (
+    page: Page,
+    search?: string,
+  ) => Promise<Locator> = async (
+    page: Page,
+    search?: string,
+  ): Promise<Locator> => {
+    await openApp(page, search);
+
+    const widget: Locator = widgetTitled(page, ERRORS);
+
+    await expect(
+      widget.getByRole("cell", { name: LONG_SERVICE_NAME, exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+    await widget.scrollIntoViewIfNeeded();
+
+    return widget;
+  };
+
+  /*
+   * The value's cell and the box the table scrolls in, read in one frame:
+   * the value's whole box inside the widget's.
+   */
+  const expectValueInsideWidget: (widget: Locator) => Promise<void> = async (
+    widget: Locator,
+  ): Promise<void> => {
+    const table: Locator = widget.locator("table");
+    const [frameBox, valueBox] = await boxesInOneFrame([
+      table.locator("xpath=.."),
+      table
+        .locator("tbody tr")
+        .filter({ hasText: LONG_SERVICE_NAME })
+        .locator("td")
+        .nth(1),
+    ]);
+
+    expect(valueBox!.x).toBeGreaterThanOrEqual(frameBox!.x - 1);
+    expect(valueBox!.x + valueBox!.width).toBeLessThanOrEqual(
+      frameBox!.x + frameBox!.width + 1,
+    );
+  };
+
+  test("the long name is cut at its end, on one line, and the number stays inside the widget", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const widget: Locator = await drawErrorsTable(page);
+    const layout: NarrowTableLayout = await narrowTableLayout(widget);
+
+    expect(layout.scrollsSideways).toBe(false);
+    expect(layout.valueText).toContain("234");
+    expect(layout.isLongNameCut).toBe(true);
+    // One line, as high as the short name's.
+    expect(
+      Math.abs(layout.longNameHeight - layout.shortNameHeight),
+    ).toBeLessThanOrEqual(1);
+    // A name that fits is drawn whole.
+    expect(layout.isShortNameCut).toBe(false);
+    await expectValueInsideWidget(widget);
+
+    // The whole name, one hover away.
+    await expect(
+      widget.getByRole("cell", { name: LONG_SERVICE_NAME, exact: true }),
+    ).toHaveAttribute("title", LONG_SERVICE_NAME);
+
+    await shoot(page, testInfo, "long-group-name", widget);
+  });
+
+  test("on an Arabic board the English name reads left to right, cut at its own end, the number inside the widget", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const widget: Locator = await drawErrorsTable(page, "?lang=ar");
+    const layout: NarrowTableLayout = await narrowTableLayout(widget);
+
+    expect(layout.longNameDir).toBe("ltr");
+    expect(layout.scrollsSideways).toBe(false);
+    expect(layout.isLongNameCut).toBe(true);
+    expect(layout.isShortNameCut).toBe(false);
+    await expectValueInsideWidget(widget);
+
+    await shoot(page, testInfo, "long-group-name-ar", widget);
+  });
+
+  /*
+   * At 1280 a table eight grid columns wide has room for its short names:
+   * every host's name is drawn whole on one line, as it always was.
+   */
+  test("a wide table's short names are drawn whole, as before", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(
+      Boolean(testInfo.project.use.isMobile),
+      "the 1280px board's eight-column table",
+    );
+
+    await openApp(page);
+
+    const cut: Array<string> = await tableTitled(page, SATURATION).evaluate(
+      (table: Element): Array<string> => {
+        return Array.from(
+          table.querySelectorAll("tbody tr td:first-child > div"),
+        )
+          .filter((nameBox: Element): boolean => {
+            const box: HTMLElement = nameBox as HTMLElement;
+
+            return (
+              box.scrollHeight > box.clientHeight + 1 ||
+              box.scrollWidth > box.clientWidth + 1
+            );
+          })
+          .map((nameBox: Element): string => {
+            return nameBox.textContent || "";
+          });
+      },
+    );
+
+    expect(cut).toEqual([]);
   });
 });
 

@@ -26,6 +26,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A HIDDEN PRODUCT THAT STARTED RECEIVING DATA SAYS SO (issue #6814).
@@ -153,7 +154,7 @@ const HiddenProductsWithData: FunctionComponent = (): ReactElement => {
           </p>
           {error ? (
             <p className="mt-1 text-sm text-red-700" role="alert">
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </p>
           ) : (
             <></>

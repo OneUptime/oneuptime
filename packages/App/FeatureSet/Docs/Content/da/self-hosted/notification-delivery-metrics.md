@@ -153,7 +153,7 @@ Statusser kommer kun, hvor udbyderen kan melde dem:
 
 | `notification.page.start` | Tiden regnes fra |
 | --- | --- |
-| `monitor_data_received` | Da OneUptime modtog de data, der udløste monitoren: en indgående anmodning, en serveragents rapport, en indgående e-mail, en probes kontrol, en SNMP-trap eller en forespørgsel til en netværksenhed. Det omfatter den tid, dataene ventede i køen på at blive vurderet. |
+| `monitor_data_received` | Da OneUptime modtog de data, der udløste monitoren: en indgående anmodning, en serveragents rapport, en indgående e-mail, en sondes kontrol, en SNMP-trap eller en forespørgsel til en netværksenhed. Det omfatter den tid, dataene ventede i køen på at blive vurderet. |
 | `record_created` | Da hændelsen, advarslen eller episoden blev oprettet: af en telemetrimonitor, en regel eller en person, og ved en kontrol for fravær, såsom et heartbeat, der stoppede. |
 | `page_started` | Da et tilkald startede senere: en person, en arbejdsgang eller en regel, der nu passer, startede det, eller det er et direkte tilkald. For et tilkald, som dets vagtregel eller OneUptime AI holdt tilbage, da pausen udløb, eller da det startede, hvis det var før. For et nyt tilkald, da timeouten efter bekræftelse udløb. En worker, der nåede frem til et af dem for sent, viser sig altså i tiden. |
 

@@ -668,6 +668,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{name}} (monitor: {{monitor}})",
+    "{{rate}}/min",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",

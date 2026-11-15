@@ -3,6 +3,7 @@ import Icon from "../Icon/Icon";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   text: string;
@@ -121,7 +122,7 @@ const OsVersionDisplay: FunctionComponent<ComponentProps> = (
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   if (!props.text || props.text.trim() === "" || props.text === "-") {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const parts: OsVersionParts = parseOsVersion(props.text);

@@ -104,12 +104,12 @@ const KubernetesClusterContainerDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "container_cpu",
-      title: "Container CPU Utilization",
+      title: translator.translateText("Container CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for container {{containerName}}",
         { containerName: containerName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -133,12 +133,12 @@ const KubernetesClusterContainerDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "container_memory",
-      title: "Container Memory Usage",
+      title: translator.translateText("Container Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for container {{containerName}}",
         { containerName: containerName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

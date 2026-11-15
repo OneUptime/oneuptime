@@ -173,6 +173,6 @@ dig @8.8.8.8 example.com A
 :::cards
 - [DNSSEC 監控](/docs/monitor/dnssec-monitor): 驗證已簽署區域的信任鏈。
 - [網域監控](/docs/monitor/domain-monitor): 留意網域的註冊和到期。
-- [自訂探針](/docs/probe/custom-probe): 從您自己的網路查詢內部 DNS 伺服器。
+- [自訂探測器](/docs/probe/custom-probe): 從您自己的網路查詢內部 DNS 伺服器。
 - [事件概觀](/docs/incidents/index): 監測器宣告事件之後會發生什麼。
 :::

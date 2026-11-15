@@ -43,6 +43,7 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -200,7 +201,7 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },

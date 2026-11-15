@@ -15,10 +15,19 @@ export interface ValueFormatterOptions {
   metricName?: string;
   /*
    * The reader's language ("de", "fa"): the number is written the way it
-   * writes numbers (writeNumberInLanguage). None, or English, writes it
-   * exactly as it always was.
+   * writes numbers (writeNumberInLanguage), a big one in the language's own
+   * scale ("1,2 Mio.", "۱٫۲ هزار"), and a span of time in its own words
+   * ("6,91 Stunden", "۶٫۹۱ ساعت"). None, or English, writes it exactly as
+   * it always was.
    */
   language?: string | undefined;
+  /*
+   * The unit's name where the formatter names it in words a language has
+   * to translate (getReadableUnit's "Hertz", "Volts", "Celsius"):
+   * the reader's, as the charts' getUnitNameInLanguage gives it. The
+   * formatter has no translations of its own; English when left out.
+   */
+  unitName?: ((unit: string) => string) | undefined;
 }
 
 type UnitThreshold = {
@@ -490,6 +499,255 @@ function getLanguageNumberFormat(
 }
 
 /*
+ * THE SCALE AND THE TIME WORDS IN THE READER'S LANGUAGE (#7518).
+ *
+ * A big number kept English's scale letter in every language - "1,2K" on a
+ * German board, "۱٫۲K" on a Persian one - where German writes "1200" and
+ * "1,2 Mio.", Persian "۱٫۲ هزار" and Japanese "120万". Given a language, a
+ * scaled number is written in its own compact notation (Intl's), to the
+ * two decimals English keeps. And a span of time the formatter names in
+ * words ("6.91 hours", "2 min") is named in the language's words, in the
+ * form its number takes: "6,91 Stunden", "1 Stunde", "۶٫۹۱ ساعت". The
+ * symbols every language writes alike - ms, MB/s, %, °C - stay as they
+ * are. English, and no language, read exactly as before.
+ */
+
+// What each scale letter formatLargeNumber writes stands for.
+const SCALE_EXPONENTS: Record<string, number> = {
+  K: 3,
+  M: 6,
+  B: 9,
+  T: 12,
+  P: 15,
+};
+
+// The options Common's ES2017 library does not declare, that Intl reads.
+type IntlFormatOptions = Intl.NumberFormatOptions & {
+  notation?: "standard" | "compact";
+  compactDisplay?: "short" | "long";
+  unit?: string;
+  unitDisplay?: "long" | "short" | "narrow";
+};
+
+const languageCompactFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+function getLanguageCompactFormat(language: string): Intl.NumberFormat | null {
+  if (!languageCompactFormats.has(language)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      const options: IntlFormatOptions = {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 2,
+      };
+
+      format = new Intl.NumberFormat(getNumberLocale(language), options);
+    } catch {
+      format = null;
+    }
+
+    languageCompactFormats.set(language, format);
+  }
+
+  return languageCompactFormats.get(language) || null;
+}
+
+/*
+ * The words the threshold tables name a span of time with, and the Intl
+ * unit each is: in full for a day and an hour, as English writes "days"
+ * and "hours", and as the language shortens them for a minute and a
+ * second, as English writes "min" and "sec".
+ */
+const TIME_UNIT_WORDS: Record<
+  string,
+  { unit: string; display: "long" | "short" }
+> = {
+  days: { unit: "day", display: "long" },
+  hours: { unit: "hour", display: "long" },
+  min: { unit: "minute", display: "short" },
+  sec: { unit: "second", display: "short" },
+};
+
+const languageUnitFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+function getLanguageUnitFormat(
+  language: string,
+  unit: string,
+  display: "long" | "short",
+  decimals: number,
+  isCompact: boolean,
+): Intl.NumberFormat | null {
+  const key: string = [
+    language,
+    unit,
+    display,
+    decimals,
+    isCompact ? "compact" : "standard",
+  ].join("|");
+
+  if (!languageUnitFormats.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      const options: IntlFormatOptions = isCompact
+        ? {
+            style: "unit",
+            unit: unit,
+            unitDisplay: display,
+            notation: "compact",
+            compactDisplay: "short",
+            maximumFractionDigits: 2,
+          }
+        : {
+            style: "unit",
+            unit: unit,
+            unitDisplay: display,
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+          };
+
+      format = new Intl.NumberFormat(getNumberLocale(language), options);
+    } catch {
+      format = null;
+    }
+
+    languageUnitFormats.set(key, format);
+  }
+
+  return languageUnitFormats.get(key) || null;
+}
+
+// A number this formatter wrote ("6.91", "1.5K"), as the number it is.
+function readWrittenNumber(text: string): {
+  number: number;
+  decimals: number;
+  isScaled: boolean;
+} | null {
+  const match: RegExpExecArray | null = WRITTEN_NUMBER.exec(text);
+
+  if (!match) {
+    return null;
+  }
+
+  const fraction: string = match[2] || "";
+  const scaleLetter: string = match[3] || "";
+  const exponent: number = SCALE_EXPONENTS[scaleLetter] || 0;
+  const number: number = Number(
+    `${match[1]}${fraction ? `.${fraction}` : ""}e${exponent}`,
+  );
+
+  return Number.isFinite(number)
+    ? { number: number, decimals: fraction.length, isScaled: exponent > 0 }
+    : null;
+}
+
+/*
+ * The words `language` names a span of `timeWord` ("hours") with after
+ * `written`, a number this formatter wrote, and what it puts between the
+ * two: "Stunden" and a space after "6.91" in German, "ساعت" in Persian,
+ * "時間" after a space in Japanese, "小时" with none in Chinese. Null where
+ * there is nothing to rewrite - English, a word that is not a span of time,
+ * a number it cannot read - and the English stands.
+ */
+function writeTimeWordInLanguage(
+  written: string,
+  timeWord: string,
+  language: string | undefined,
+): { word: string; gap: string; isBefore: boolean } | null {
+  const timeUnit: { unit: string; display: "long" | "short" } | undefined =
+    TIME_UNIT_WORDS[timeWord];
+
+  if (!timeUnit || isEnglishDateLanguage(language)) {
+    return null;
+  }
+
+  const read: { number: number; decimals: number; isScaled: boolean } | null =
+    readWrittenNumber(written);
+
+  if (!read) {
+    return null;
+  }
+
+  const partsOf: (number: number) => Array<Intl.NumberFormatPart> | null = (
+    number: number,
+  ): Array<Intl.NumberFormatPart> | null => {
+    const format: Intl.NumberFormat | null = getLanguageUnitFormat(
+      (language || "").trim(),
+      timeUnit.unit,
+      timeUnit.display,
+      read.decimals,
+      read.isScaled,
+    );
+
+    return format ? format.formatToParts(number) : null;
+  };
+
+  let parts: Array<Intl.NumberFormatPart> | null = partsOf(read.number);
+
+  /*
+   * Arabic names one hour or two in a word with no number in it ("ساعة",
+   * "ساعتان"): the number is drawn on its own, so the unit is the word a
+   * number that is neither takes - as a hundred and one does ("101
+   * ساعة"), the form Arabic writes after a figure.
+   */
+  if (
+    parts &&
+    !parts.some((part: Intl.NumberFormatPart): boolean => {
+      return part.type === "integer";
+    })
+  ) {
+    parts = partsOf(read.number + 100);
+  }
+
+  if (!parts) {
+    return null;
+  }
+
+  const unitAt: number = parts.findIndex(
+    (part: Intl.NumberFormatPart): boolean => {
+      return part.type === "unit";
+    },
+  );
+  const numberAt: number = parts.findIndex(
+    (part: Intl.NumberFormatPart): boolean => {
+      return part.type === "integer";
+    },
+  );
+
+  if (unitAt < 0 || numberAt < 0) {
+    return null;
+  }
+
+  const word: string = parts
+    .filter((part: Intl.NumberFormatPart): boolean => {
+      return part.type === "unit";
+    })
+    .map((part: Intl.NumberFormatPart): string => {
+      return part.value;
+    })
+    .join(" ");
+  const isBefore: boolean = unitAt < numberAt;
+  // The space a language sets between the number and its unit, or none.
+  const between: Intl.NumberFormatPart | undefined =
+    parts[isBefore ? unitAt + 1 : unitAt - 1];
+  const gap: string =
+    between &&
+    between.type === "literal" &&
+    STARTS_WITH_SPACE.test(between.value)
+      ? between.value
+      : "";
+
+  return { word: word, gap: gap, isBefore: isBefore };
+}
+
+/*
  * `text`, a number this formatter wrote in English, written in `language`:
  * the number (with its scale letter), the percent sign when it is a
  * percentage ("" otherwise), and the two as the language joins them. Null
@@ -526,6 +784,24 @@ function writeNumberInLanguage(
   const number: number = Number(
     fraction ? `${match[1]}.${fraction}` : match[1],
   );
+
+  /*
+   * A scaled number in the language's own compact notation: "1,2 Mio.",
+   * "۱٫۲ هزار", "120万" - not English's letter after the language's digits.
+   */
+  if (scaleLetter && !isPercent) {
+    const compact: Intl.NumberFormat | null = getLanguageCompactFormat(
+      (language || "").trim(),
+    );
+    const read: { number: number } | null = readWrittenNumber(text);
+
+    if (compact && read) {
+      const written: string = compact.format(read.number);
+
+      return { value: written, percentSign: "", formatted: written };
+    }
+  }
+
   const parts: Array<Intl.NumberFormatPart> = format.formatToParts(
     isPercent ? number / 100 : number,
   );
@@ -589,7 +865,45 @@ function joinValueAndUnit(value: string, unit: string): string {
   if (unit === "%") {
     return `${value}%`;
   }
+  // A count per second ("1/s" reads "/s"): "5/s", as a chart writes it.
+  if (unit.startsWith("/")) {
+    return `${value}${unit}`;
+  }
   return `${value} ${unit}`;
+}
+
+/*
+ * A RATE AS A CHART WRITES IT: "req/s", "KiB/s", "ug/m3".
+ *
+ * A compound unit whose numerator the threshold tables do not scale (a
+ * page's own "req/s" or "resp/s", an exporter's "{request}/s") was written
+ * out in words, "100 req per Second": too wide for a chart's 64px y-axis,
+ * so every tick wrapped over two lines and the top one was cut at the
+ * card's edge, and "Second" was English, capitalised mid-phrase, in every
+ * language (#8049). It keeps its slash now, as "1.5 MB/s" always has: each
+ * part as its symbol where one is known ("s", "KiB"), an annotation as its
+ * word ("{request}" reads "request"), a dimensionless "1" as nothing
+ * ("1/s" reads "/s", drawn "5/s"), anything else as written. The words stay
+ * where there is room for them, in the reader's language: the unit chip
+ * and the metric's details (getReadableUnit, UnitNames).
+ */
+function getRateSymbol(unit: string): string {
+  return unit
+    .split("/")
+    .map((part: string): string => {
+      const trimmed: string = part.trim();
+      const annotation: RegExpMatchArray | null =
+        trimmed.match(/^\{([^{}]+)\}$/);
+
+      if (annotation) {
+        return (annotation[1] as string).trim();
+      }
+
+      const compact: string | undefined =
+        compactUnitMap[normalizeUnit(trimmed)];
+      return compact === undefined ? trimmed : compact;
+    })
+    .join("/");
 }
 
 /*
@@ -613,6 +927,8 @@ function compactThresholdUnit(unit: string): string {
  * The "readable" path must stay byte-identical to what formatValue has always
  * emitted; it has 20+ non-test callers (chart axis ticks, threshold
  * annotations, the Gauge, the metric list) and a table test pins every branch.
+ * One branch changed on purpose: a rate it cannot scale reads "100 req/s",
+ * not "100 req per Second", which no chart axis had room for (#8049).
  */
 function formatValueParts(
   value: number,
@@ -638,17 +954,43 @@ function formatValueParts(
     );
 
     if (inLanguage) {
-      return partUnit === "%"
-        ? {
-            value: inLanguage.value,
-            unit: inLanguage.percentSign || partUnit,
-            formatted: inLanguage.formatted,
-          }
-        : {
-            value: inLanguage.value,
-            unit: partUnit,
-            formatted: joinValueAndUnit(inLanguage.value, partUnit),
-          };
+      if (partUnit === "%") {
+        return {
+          value: inLanguage.value,
+          unit: inLanguage.percentSign || partUnit,
+          formatted: inLanguage.formatted,
+        };
+      }
+
+      /*
+       * A span of time named in words, in the language's words (#7518).
+       * The compact style names it by its symbol ("h", "min"), as every
+       * language may.
+       */
+      const timeWord: {
+        word: string;
+        gap: string;
+        isBefore: boolean;
+      } | null =
+        unitStyle === "readable"
+          ? writeTimeWordInLanguage(partValue, partUnit, options?.language)
+          : null;
+
+      if (timeWord) {
+        return {
+          value: inLanguage.value,
+          unit: timeWord.word,
+          formatted: timeWord.isBefore
+            ? `${timeWord.word}${timeWord.gap}${inLanguage.value}`
+            : `${inLanguage.value}${timeWord.gap}${timeWord.word}`,
+        };
+      }
+
+      return {
+        value: inLanguage.value,
+        unit: partUnit,
+        formatted: joinValueAndUnit(inLanguage.value, partUnit),
+      };
     }
 
     return {
@@ -712,8 +1054,8 @@ function formatValueParts(
    * Compound rate units like "By/s" or "ms/s". Scale the numerator with
    * its threshold table when we know one (so 1500000 By/s renders as
    * "1.5 MB/s" rather than "1500000 Bytes per Second"), and keep a
-   * compact denominator. Falls back to the verbose readable form for
-   * unrecognized compound units.
+   * compact denominator. Any other compound unit keeps its slash too
+   * ("100 req/s", getRateSymbol), never the words.
    */
   if (trimmedUnit.includes("/")) {
     const [numeratorRaw, ...denominatorParts] = trimmedUnit.split("/");
@@ -733,14 +1075,21 @@ function formatValueParts(
         return build(scaled.value, `${scaledUnit}/${denominator}`);
       }
     }
+
+    return build(formatNumber(value), getRateSymbol(trimmedUnit));
   }
 
-  // Unknown unit — format number and show the readable unit name when we have one.
+  /*
+   * Unknown unit — format number and show the readable unit name when we
+   * have one: the reader's, when the caller can name it (unitName).
+   */
   return build(
     formatNumber(value),
     unitStyle === "compact"
       ? ValueFormatter.getCompactUnit(unit, options)
-      : ValueFormatter.getReadableUnit(unit),
+      : options?.unitName
+        ? options.unitName(unit)
+        : ValueFormatter.getReadableUnit(unit),
   );
 }
 
@@ -763,7 +1112,7 @@ export default class ValueFormatter {
 
   /*
    * formatValue, but returning the number and the unit separately, the unit
-   * named as formatValue names it ("hours", "Bytes per Second"). For a
+   * named as formatValue names it ("hours", "req/s"). For a
    * widget that draws the two at different sizes, as formatValueCompact is
    * for one that draws the unit's symbol: the Gauge split the joined string
    * at its last space, which put "requests per" in the big-number span and
@@ -848,14 +1197,7 @@ export default class ValueFormatter {
      * characters where getReadableUnit's "ug per m3" is nine.
      */
     if (trimmed.includes("/")) {
-      return trimmed
-        .split("/")
-        .map((part: string): string => {
-          const partCompact: string | undefined =
-            compactUnitMap[normalizeUnit(part)];
-          return partCompact === undefined ? part.trim() : partCompact;
-        })
-        .join("/");
+      return getRateSymbol(trimmed);
     }
 
     return trimmed;
@@ -1088,6 +1430,14 @@ export default class ValueFormatter {
           return d.endsWith("s") ? d.slice(0, -1) : d;
         })
         .join(" per ");
+      /*
+       * A rate of a dimensionless count ("1/s", OpenTelemetry's "per
+       * second") has no numerator to name: "per Second", where it read
+       * " per Second", a space before its words in a unit chip.
+       */
+      if (!numerator) {
+        return `per ${denominator}`;
+      }
       return `${numerator} per ${denominator}`;
     }
 

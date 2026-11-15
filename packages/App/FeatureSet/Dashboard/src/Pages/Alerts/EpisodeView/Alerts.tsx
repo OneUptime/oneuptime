@@ -45,6 +45,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { lockUnlessAllowed } from "../../../Components/IncidentAlert/IncidentAlertLink";
 import AddEpisodeMembersModal from "../../../Components/EpisodeMembers/AddEpisodeMembersModal";
 import { ALERT_EPISODE_MEMBER_KIND } from "../../../Components/EpisodeMembers/EpisodeMemberKinds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The alerts in an episode (AlertEpisodeMember rows). "Add Alerts" picks
@@ -238,7 +239,7 @@ const EpisodeAlerts: FunctionComponent<
             title: "Alert #",
             type: FieldType.Text,
             getElement: (item: AlertEpisodeMember): ReactElement => {
-              return <>{getAlertNumber(item) || "-"}</>;
+              return <>{getAlertNumber(item) || <TableEmptyValue />}</>;
             },
             getExportValue: (item: AlertEpisodeMember): string => {
               return getAlertNumber(item);
@@ -256,7 +257,7 @@ const EpisodeAlerts: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: AlertEpisodeMember): ReactElement => {
               if (!item.alert) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <AlertElement alert={item.alert} />;
             },
@@ -277,7 +278,7 @@ const EpisodeAlerts: FunctionComponent<
                 item.alert?.currentAlertStateId,
               );
               if (!state) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <Pill
@@ -317,7 +318,7 @@ const EpisodeAlerts: FunctionComponent<
               if (item.addedBy === AlertEpisodeMemberAddedBy.API) {
                 return <Pill isMinimal={true} color={Black} text="API" />;
               }
-              return <>-</>;
+              return <TableEmptyValue />;
             },
             getExportValue: (item: AlertEpisodeMember): string => {
               return (

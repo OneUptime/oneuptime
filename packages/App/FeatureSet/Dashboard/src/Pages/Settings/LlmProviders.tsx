@@ -149,9 +149,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Provider",
               type: FieldType.Text,
               getElement: (item: LlmProvider): ReactElement => {
-                return (
-                  <LlmProviderTypeLabel llmType={item.llmType} emptyText="-" />
-                );
+                return <LlmProviderTypeLabel llmType={item.llmType} />;
               },
             },
             {

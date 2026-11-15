@@ -75,6 +75,7 @@ import {
   formatDurationMs,
   formatDurationMsInLanguage,
 } from "../Dashboard/Components/TraceChartData";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 
@@ -1432,10 +1433,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           />
         </svg>
         <p className="text-sm text-gray-400">
-          {error ||
-            translator.translateText(
-              "No data available for the selected query",
-            )}
+          <ErrorInSentence
+            message={
+              error ||
+              translator.translateText(
+                "No data available for the selected query",
+              )
+            }
+            showWhereToLook={true}
+          />
         </p>
       </div>
     );

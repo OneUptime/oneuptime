@@ -31,7 +31,7 @@ flowchart LR
 
 Motormetrikker kommer altid kun fra en collector, der taler med selve databasen (eller, for en administreret clouddatabase, med udbyderens overvågnings-API). Traces og containerinventarer fortæller OneUptime, at en database findes, og hvordan den bruges, men ikke hvordan den har det indvendig; statussen **Motormetrikker** på hver database viser, om den del er forbundet.
 
-Du kan også tilføje en database manuelt: **Databaser → Opret Database** med dens motor, adresse og port. For et sundhedstjek fra en probe, der slet ikke kræver nogen agent, se [Databasetilstands-monitor](/docs/monitor/database-health-monitor).
+Du kan også tilføje en database manuelt: **Databaser → Opret Database** med dens motor, adresse og port. For et sundhedstjek fra en sonde, der slet ikke kræver nogen agent, se [Databasetilstands-monitor](/docs/monitor/database-health-monitor).
 
 ## Understøttede databaser
 
@@ -653,7 +653,7 @@ En receivers dokumentation angiver, hvad den kan rapportere, ikke hvad der ankom
 En monitor, du selv bygger, knytter sine alarmer og hændelser til en database, når den nævner databasen:
 
 - **Via id.** En **Metrikker**-monitor over en motormetrik, eller en **Protokoller**-monitor over dens forespørgselshændelser og logfil, der filtrerer på `oneuptime.database.server.id`, id'et på databasens fane **Dokumentation**. For at holde øje med mange databaser med én monitor skal du i stedet gruppere forespørgslen efter `oneuptime.database.server.id`: hver serie knyttes så til sin egen database og dæmpes kun af den databases planlagte vedligeholdelse.
-- **Via endpoint.** Monitorer for **Databasesundhed** og **SQL-forespørgsel** knyttes til den database, hvis endpoints omfatter den vært og port, de forbinder til (for en navngiven SQL Server-instans `host\instance`, dens vært og instans: driveren ignorerer porten for en navngiven instans og spørger SQL Browser om instansens egen), og det samme gør metrik- og **Spor**-monitorer, der filtrerer på `server.address`, med `server.port` eller ellers standardporten for den motor, som et filter på `db.system.name` eller en receivermetrik (`postgresql.backends`) nævner. En traces-monitor på de mislykkede kald til `orders-db.example.com` hører til den database. Adressen læses på samme måde som et spans, så et filter på `k8s.namespace.name` eller `k8s.cluster.name` ved siden af et klyngelokalt navn fuldender og kvalificerer det; en probe bærer ingen klynge, så den matcher kun et navn, der opløses inden for én klynge, så længe databasen også har det ukvalificeret (et projekt med én Kubernetes-klynge).
+- **Via endpoint.** Monitorer for **Databasesundhed** og **SQL-forespørgsel** knyttes til den database, hvis endpoints omfatter den vært og port, de forbinder til (for en navngiven SQL Server-instans `host\instance`, dens vært og instans: driveren ignorerer porten for en navngiven instans og spørger SQL Browser om instansens egen), og det samme gør metrik- og **Spor**-monitorer, der filtrerer på `server.address`, med `server.port` eller ellers standardporten for den motor, som et filter på `db.system.name` eller en receivermetrik (`postgresql.backends`) nævner. En traces-monitor på de mislykkede kald til `orders-db.example.com` hører til den database. Adressen læses på samme måde som et spans, så et filter på `k8s.namespace.name` eller `k8s.cluster.name` ved siden af et klyngelokalt navn fuldender og kvalificerer det; en sonde bærer ingen klynge, så den matcher kun et navn, der opløses inden for én klynge, så længe databasen også har det ukvalificeret (et projekt med én Kubernetes-klynge).
 
 Den hurtigste måde at bygge en på er fra selve grafen: en graf, der er åbnet fra databasens fane **Metrikker**, har **Opret monitor**, som åbner en ny metrikmonitor over den metrik (med grafens aggregering, attributfiltre og tidsinterval), filtreret på databasens `oneuptime.database.server.id`, så den hører til databasen fra starten. En udvalgt gauge, som grafen lægger sammen på tværs af serier (forbindelser pr. database, én agent pr. medlem af replica settet), bliver til en monitor, der alarmerer på hver serie (en monitor kan ikke lægge serier sammen), og en, hvis graf viser det højeste eller laveste af sine serier, læses med Max eller Min; en linje under knappen siger det. Knappen er deaktiveret og siger hvorfor for en kumulativ tæller (grafen viser dens rate, og en monitor har ingen rate) og for en metrik, der ikke bærer databasens id: `db.client.*`-metrikker fra de applikationer, der kalder den, eller CPU og hukommelse for de pods og containere, den kører som. Byg dem i stedet fra metrik-explorer.
 
@@ -682,7 +682,7 @@ Angiv kun de tællere, du alarmerer på: fra da af viser databasens grafer de me
 
 SQL Servers `sqlserver.*.rate`-metrikker (batchanmodninger, kompileringer, låseventetider, deadlocks) er forklædte tællere: via agentens direkte forbindelse bærer de tællerens total siden serverens start i stedet for en rate pr. sekund (kun Windows-ydelsestællere rapporterer raten), og `cumulativetodelta` lader dem være, fordi receiveren rapporterer dem som gauges. Alarmér i stedet på SQL Servers øjebliksværdier: blokerede sessioner, ventende hukommelsestildelinger, page life expectancy, buffercache-hitrate.
 
-For en probe, der tjekker en database uden nogen agent, se [Databasetilstands-monitor](/docs/monitor/database-health-monitor).
+For en sonde, der tjekker en database uden nogen agent, se [Databasetilstands-monitor](/docs/monitor/database-health-monitor).
 
 ## Livscyklus, arkivering og opbevaring
 
@@ -714,7 +714,7 @@ curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troub
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 
-Det tjekker containeren, identiteten i `.env`, databasens TCP-tilgængelighed fra agentens eget netværk, login-, rettigheds- og TLS-fejl i collectorens log (og navngiver enhver anden receiverfejl, det finder dér) og indtagelsesnøglen. Nøgletjekket er vigtigt: OneUptimes OTLP-endpoints afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren kasserer hvert batch, den ikke kan levere, og logger én linje `Exporting failed` pr. batch, som er let at overse i receiverens output. Scriptet kalder `GET <url>/otlp/v1/validate`, som svarer `200` eller `401` direkte. Det kører sine prober fra et fastlåst curl-image og giver det nøglen via stdin, aldrig på en kommandolinje.
+Det tjekker containeren, identiteten i `.env`, databasens TCP-tilgængelighed fra agentens eget netværk, login-, rettigheds- og TLS-fejl i collectorens log (og navngiver enhver anden receiverfejl, det finder dér) og indtagelsesnøglen. Nøgletjekket er vigtigt: OneUptimes OTLP-endpoints afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren kasserer hvert batch, den ikke kan levere, og logger én linje `Exporting failed` pr. batch, som er let at overse i receiverens output. Scriptet kalder `GET <url>/otlp/v1/validate`, som svarer `200` eller `401` direkte. Det kører sine tjek fra et fastlåst curl-image og giver det nøglen via stdin, aldrig på en kommandolinje.
 
 ### Agenten kører, men der vises ingen database
 
@@ -785,7 +785,7 @@ Monitoren nævner ikke databasen. Filtrér eller gruppér en metrik- eller logmo
 
 :::cards
 - [Metrik-monitor](/docs/monitor/metrics-monitor): Alarmér på en databases motormetrikker, filtreret på dens `oneuptime.database.server.id`.
-- [Databasetilstands-monitor](/docs/monitor/database-health-monitor): Tjek PostgreSQL, MySQL eller SQL Server fra en probe, uden agent.
+- [Databasetilstands-monitor](/docs/monitor/database-health-monitor): Tjek PostgreSQL, MySQL eller SQL Server fra en sonde, uden agent.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Instrumentér dine applikationer, så deres databasekald fylder **Forespørgsler fra applikationer**.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hvad database-AI-agenten må køre, og hvordan rettelser fungerer.
 :::

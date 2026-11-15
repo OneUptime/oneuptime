@@ -1531,11 +1531,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                       className="ml-auto text-right text-sm text-gray-500 lg:hidden"
                       role="status"
                     >
+                      {/*
+                       * Counted in the reader's digits, as every other count
+                       * on the page: "مرحله ۱ از ۲" in Persian, Latin digits
+                       * in Arabic and every other language (#7933). A plain
+                       * number went into the sentence as String() wrote it.
+                       */}
                       {translator.translateTemplate(
                         "Step {{current}} of {{total}}",
                         {
-                          current: activeStepIndex + 1,
-                          total: formSteps?.length || 0,
+                          current: translator.formatNumber(activeStepIndex + 1),
+                          total: translator.formatNumber(
+                            formSteps?.length || 0,
+                          ),
                         },
                       )}
                       <span className="block font-medium text-gray-900">

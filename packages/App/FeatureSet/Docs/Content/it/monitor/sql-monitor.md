@@ -33,8 +33,8 @@ La sonda riporta solo:
 |---|---|
 | **Numero di righe** | Il numero di righe restituite dalla query (limitato dal limite Max Rows). |
 | **Valore scalare** | La prima colonna della prima riga. È il valore naturale di una query in stile `SELECT COUNT(*)`. |
-| **First Row** | La prima riga come coppie colonna/valore, mostrata nel riepilogo del controllo come contesto. |
-| **Execution Time** | Quanto è durato il controllo, in millisecondi, compresa la connessione e non solo la query. |
+| **Prima riga** | La prima riga come coppie colonna/valore, mostrata nel riepilogo del controllo come contesto. |
+| **Tempo di esecuzione** | Quanto è durato il controllo, in millisecondi, compresa la connessione e non solo la query. |
 | **Errore della query** | Un messaggio d'errore ripulito se la query è fallita. |
 
 L'insieme completo dei risultati non viene mai inviato a OneUptime, quindi i dati dei vostri clienti non vengono replicati nell'archivio di OneUptime.
@@ -250,7 +250,7 @@ Collegate una policy di reperibilità al criterio, così vengono avvisate le per
 
 - La query viene eseguita a ogni controllo, quindi tenetela economica. Usate indici e finestre temporali strette, e contate sullo Statement Timeout come rete di sicurezza.
 - Vengono riportati solo il numero di righe, la prima cella (scalare) e la prima riga: progettate la query in modo che il valore su cui volete gli avvisi sia nella prima colonna.
-- Se il risultato viene troncato perché superava Max Rows, il riepilogo del controllo mostra **Rows Truncated**: "Yes (result capped)". Aumentate Max Rows solo se serve; insiemi di risultati più grandi costano più memoria sulla sonda.
+- Se il risultato viene troncato perché superava Max Rows, il riepilogo del controllo mostra **Righe troncate**: "Sì (risultato limitato)". Aumentate Max Rows solo se serve; insiemi di risultati più grandi costano più memoria sulla sonda.
 - Scritture e DDL vengono sempre rifiutati. Se dovete testare un percorso di scrittura, questo monitor non fa al caso vostro.
 - Preferite un segreto del monitor a una password in chiaro, così la credenziale resta cifrata a riposo.
 - Un controllo la cui query fallisce viene ritentato un secondo dopo, fino a tre volte in più, prima di riportare l'errore, così una breve interruzione della connessione non porta il monitor offline. Su una sonda self-hosted, `PROBE_MONITOR_RETRY_LIMIT` stabilisce quante volte.

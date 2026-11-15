@@ -58,8 +58,9 @@ describe("the cluster list", () => {
 
     expect(entry).toContain('title: "Platform"');
     expect(entry).toContain("type: FieldType.Element");
+    // A cluster whose provider is not known: the quiet dash (#7603).
     expect(entry).toContain(
-      'getKubernetesClusterProviderLabel(item.provider) || "—"',
+      "getKubernetesClusterProviderLabel(item.provider) || ( <TableEmptyValue /> )",
     );
   });
 

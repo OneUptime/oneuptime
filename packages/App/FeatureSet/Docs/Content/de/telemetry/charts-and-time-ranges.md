@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Hinweise an den Diagrammen
 
-Die meisten zoombaren Diagramme nennen die Geste über der Zeichenfläche – **Ziehen zum Zoomen** oder **Klicken oder ziehen zum Zoomen** – und erinnern, solange ein Zoom aktiv ist, an **Doppelklick zum Zurücksetzen**. Metrikkarten, der Metrik-Explorer und die Volumendiagramme der Explorer zeigen den Hinweis immer. Auf den Diagrammkarten von Ressourcenübersichten und SLOs sowie auf einigen Dashboard-Widgets erscheint er nur, solange Sie auf die Karte zeigen oder per Tab hineinwechseln.
+Die meisten zoombaren Diagramme nennen die Geste über der Zeichenfläche – **Ziehen zum Zoomen** oder **Klicken oder ziehen zum Zoomen** – und erinnern, solange ein Zoom aktiv ist, an **Doppelklick zum Zurücksetzen**. Metrikkarten, der Metrik-Explorer und die Volumendiagramme der Explorer zeigen den Hinweis immer. Auf den Diagrammkarten von Ressourcenübersichten und SLOs sowie auf einigen Dashboard-Widgets erscheint er nur, solange Sie auf die Karte zeigen oder per Tab hineinwechseln. Auf einem Telefon oder Tablet lassen Metrikkarten und Diagrammkarten den Hinweis weg: Mit dem Finger lässt sich kein Zoombereich aufziehen.
 
 ## Wo es funktioniert
 

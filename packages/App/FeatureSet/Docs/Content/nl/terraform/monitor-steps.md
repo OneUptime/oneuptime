@@ -11,7 +11,7 @@
 
 ## Hoe een controle wordt beoordeeld
 
-Elke controle geeft een resultaat: het antwoord van een probe, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken.
+Elke controle geeft een resultaat: het antwoord van een sonde, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken.
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB
@@ -26,7 +26,7 @@ De volgorde van de criteria doet er dus toe: zet de criteria die alarm slaan bov
 
 ## De stappen schrijven
 
-`monitor_steps` is een lijst van getypeerde objecten die je rechtstreeks in HCL schrijft. Er is geen `jsonencode()`, geen `{_type, value}`-omhulsel, geen camelCase-sleutel en geen ID om te schrijven: de provider zet je HCL om in het formaat van de API, en de server geeft elke stap, elk criterium, elk incidentsjabloon en elk waarschuwingssjabloon zijn ID. Hij behoudt die ID's bij elke apply door elk criterium en sjabloon te koppelen aan het exemplaar dat het vervangt, op naam en anders op positie, zodat proberesultaten bij hun stap blijven en incidenten blijven verwijzen naar de criteria die ze hebben geopend.
+`monitor_steps` is een lijst van getypeerde objecten die je rechtstreeks in HCL schrijft. Er is geen `jsonencode()`, geen `{_type, value}`-omhulsel, geen camelCase-sleutel en geen ID om te schrijven: de provider zet je HCL om in het formaat van de API, en de server geeft elke stap, elk criterium, elk incidentsjabloon en elk waarschuwingssjabloon zijn ID. Hij behoudt die ID's bij elke apply door elk criterium en sjabloon te koppelen aan het exemplaar dat het vervangt, op naam en anders op positie, zodat sonderesultaten bij hun stap blijven en incidenten blijven verwijzen naar de criteria die ze hebben geopend.
 
 ```mermaid title="De onderdelen van monitor_steps"
 flowchart TB
@@ -170,8 +170,8 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `tls_client_certificate` | string | Website, API | Een clientcertificaat voor wederzijdse TLS: PEM, of een verwijzing `{{monitorSecrets.name}}`. |
 | `tls_client_key` | string (gevoelig) | Website, API | De privésleutel van het clientcertificaat. Stel hem samen met het certificaat in. |
 | `tls_client_key_passphrase` | string (gevoelig) | Website, API | De wachtwoordzin van de privésleutel. |
-| `request_timeout_in_ms` | number | Controles die een probe uitvoert | Hoe lang één poging mag duren, in milliseconden. De probe verlaagt alles boven 60000 naar 60000. |
-| `retry_count` | number | Controles die een probe uitvoert | Nieuwe pogingen na een mislukte eerste poging: `0` controleert één keer, `3` tot vier keer. De probe verlaagt alles boven 3 naar 3. |
+| `request_timeout_in_ms` | number | Controles die een sonde uitvoert | Hoe lang één poging mag duren, in milliseconden. De sonde verlaagt alles boven 60000 naar 60000. |
+| `retry_count` | number | Controles die een sonde uitvoert | Nieuwe pogingen na een mislukte eerste poging: `0` controleert één keer, `3` tot vier keer. De sonde verlaagt alles boven 3 naar 3. |
 | `custom_code` | string | Custom JavaScript Code, Synthetic | Het script dat de stap uitvoert. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` en `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` en `Firefox`. |
@@ -401,7 +401,7 @@ Een controle die met geen enkel criterium overeenkomt, zet de monitor in zijn st
 
 ## Een monitor zonder stappen
 
-`monitor_steps` is optioneel, maar een monitor die zonder wordt aangemaakt, heeft geen criteria om een resultaat mee te beoordelen: probes slaan een monitor zonder stappen over, en hij blijft in de status waarin hij begon. Je state houdt het attribuut leeg, en het plan blijft schoon. Een handmatige monitor heeft nooit stappen nodig: je stelt zijn status zelf in. Elk ander type heeft minstens één stap nodig om iets te controleren.
+`monitor_steps` is optioneel, maar een monitor die zonder wordt aangemaakt, heeft geen criteria om een resultaat mee te beoordelen: sondes slaan een monitor zonder stappen over, en hij blijft in de status waarin hij begon. Je state houdt het attribuut leeg, en het plan blijft schoon. Een handmatige monitor heeft nooit stappen nodig: je stelt zijn status zelf in. Elk ander type heeft minstens één stap nodig om iets te controleren.
 
 ## Het transportformaat
 

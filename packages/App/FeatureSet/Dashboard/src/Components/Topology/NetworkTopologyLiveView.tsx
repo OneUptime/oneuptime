@@ -109,7 +109,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Self-contained live network topology view: fetch + auto-refresh + search
@@ -1347,7 +1349,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
 
       {suppressionError ? (
         <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
-          {suppressionError}
+          <ErrorInSentence message={suppressionError} showWhereToLook={true} />
         </div>
       ) : (
         <></>

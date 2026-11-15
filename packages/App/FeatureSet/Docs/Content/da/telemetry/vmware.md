@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"skrivebeskyttede<br/>govc-kommandoer"| vsphere
 ```
 
-vCenter registrerer sig med sine første data under det navn, agenten stempler på hver metrik som `vmware.vcenter.name`. Vil du overvåge et vCenter helt uden at køre agenten, så se [VMware uden agent](/docs/telemetry/vmware-agentless): En af dine probes indsamler de samme data med en skrivebeskyttet konto.
+vCenter registrerer sig med sine første data under det navn, agenten stempler på hver metrik som `vmware.vcenter.name`. Vil du overvåge et vCenter helt uden at køre agenten, så se [VMware uden agent](/docs/telemetry/vmware-agentless): En af dine sonder indsamler de samme data med en skrivebeskyttet konto.
 
 ## Før du begynder
 
@@ -517,7 +517,7 @@ vSphere har ingen egen OpenTelemetry-push, så agenten (eller enhver OpenTelemet
 
 :::cards
 - [VMware-monitor](/docs/monitor/vmware-monitor): Advar om værter, VM'er, datastores, klynger, datacentre og vSAN.
-- [VMware uden agent](/docs/telemetry/vmware-agentless): Lad i stedet en probe indsamle vCenter.
+- [VMware uden agent](/docs/telemetry/vmware-agentless): Lad i stedet en sonde indsamle vCenter.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hvad VMware-AI-agenten må køre, og hvordan rettelser virker.
 - [OpenTelemetry-collector på værten](/docs/telemetry/host-otel-collector): Operativsystemets visning inde i VM'erne eller af agentens maskine.
 :::

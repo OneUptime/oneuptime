@@ -364,7 +364,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 以 `total` 結尾的計數器是自伺服器啟動以來的累計值。比較兩個時間點才能得到速率；單一數值只有和它自己的歷史相比才有意義，而且伺服器重新啟動時會歸零（**Uptime** 會告訴你何時重新啟動過）。
 
-**Cache Hit Ratio** 和 **Rollback Ratio** 在每次檢查時根據計數器自該監測器上一次檢查以來的變化計算，而不是自伺服器啟動以來，因此快取開始未命中時會立刻顯現。探針啟動後的第一次檢查，以及伺服器重新啟動後的第一次檢查，兩者都沒有。
+**Cache Hit Ratio** 和 **Rollback Ratio** 在每次檢查時根據計數器自該監測器上一次檢查以來的變化計算，而不是自伺服器啟動以來，因此快取開始未命中時會立刻顯現。探測器啟動後的第一次檢查，以及伺服器重新啟動後的第一次檢查，兩者都沒有。
 
 ## 設定條件
 
@@ -455,5 +455,5 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - [SQL 查詢監控](/docs/monitor/sql-monitor): 在伺服器健康狀態之外，針對你自己的查詢結果發出警示。
 - [資料庫](/docs/telemetry/databases): 在一個頁面上查看每個資料庫的指標、日誌和呼叫端。
 - [監控密鑰](/docs/monitor/monitor-secrets): 加密保存監控使用者的密碼。
-- [自訂探針](/docs/probe/custom-probe): 連到你網路內部的資料庫。
+- [自訂探測器](/docs/probe/custom-probe): 連到你網路內部的資料庫。
 :::

@@ -130,11 +130,11 @@ Standardkriterierna bevakar inte själva signaturernas utgång eller namnserverk
 ## Felsökning
 
 :::details Kedjan rapporteras som bruten, men zonen validerar med `dig`
-En av upplösarna i **Upplösare** returnerade inte AD-flaggan: den gick inte att nå från sonden, eller så validerar den inte DNSSEC. Tabellen **Resolver Checks**, i **Resultat av övervakningstest** och i varje kontrolls sammanfattning, visar varje upplösares svar och fel. Ta bort upplösare som sonden inte når, och ange bara validerande upplösare.
+En av upplösarna i **Upplösare** returnerade inte AD-flaggan: den gick inte att nå från sonden, eller så validerar den inte DNSSEC. Tabellen **Resolverkontroller**, i **Resultat av övervakningstest** och i varje kontrolls sammanfattning, visar varje upplösares svar och fel. Ta bort upplösare som sonden inte når, och ange bara validerande upplösare.
 :::
 
 :::details Namnservrar rapporteras som inkonsekventa direkt efter en ändring
-Sekundära servrar kan ligga efter den primära en stund efter att zonen har ändrats. Tabellen **Nameserver Consistency** i kontrollens sammanfattning visar varje namnservers SOA-serienummer. Om en fortsätter att ligga efter har den sekundära servern slutat hämta zonöverföringar. Om varje namnserver visar ett fel kan sonden vara blockerad från att fråga dem direkt: stäng av **Kontrollera namnserverkonsekvens**.
+Sekundära servrar kan ligga efter den primära en stund efter att zonen har ändrats. Tabellen **Namnservrarnas konsekvens** i kontrollens sammanfattning visar varje namnservers SOA-serienummer. Om en fortsätter att ligga efter har den sekundära servern slutat hämta zonöverföringar. Om varje namnserver visar ett fel kan sonden vara blockerad från att fråga dem direkt: stäng av **Kontrollera namnserverkonsekvens**.
 :::
 
 :::details Kontrollen rapporterar en timeout

@@ -5,6 +5,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ObjectID from "Common/Types/ObjectID";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   dashboard: Dashboard;
@@ -31,7 +32,7 @@ const DashboardElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return <span>{props.dashboard?.name || "-"}</span>;
+  return <span>{props.dashboard?.name || <TableEmptyValue />}</span>;
 };
 
 export default DashboardElement;

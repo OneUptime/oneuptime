@@ -38,6 +38,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -260,7 +261,7 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
                 data-testid="device-neighbour"
               >
                 <span className="min-w-0 break-words text-gray-500">
-                  {localPort || "—"}
+                  {localPort || <EmptyValue />}
                 </span>
                 <span className="min-w-0 break-words sm:text-right">
                   {neighbourId ? (
@@ -376,9 +377,11 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
               className="mt-0.5 text-gray-900"
               data-testid="device-attachment-vlan"
             >
-              {attachment.vlanId !== undefined && attachment.vlanId !== null
-                ? String(attachment.vlanId)
-                : "—"}
+              {attachment.vlanId !== undefined && attachment.vlanId !== null ? (
+                String(attachment.vlanId)
+              ) : (
+                <EmptyValue />
+              )}
             </dd>
           </div>
           <div>

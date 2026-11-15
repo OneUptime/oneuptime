@@ -2,6 +2,8 @@ import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 import { Handle, NodeProps, NodeTypes, Position } from "reactflow";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getSeverityColor } from "./SecurityEventSeverityPill";
 import { CorrelationGraphNodeKind } from "../../Utils/CorrelationGraph";
 
@@ -92,6 +94,7 @@ const CorrelateNodeCard: FunctionComponent<NodeProps<CorrelateNodeData>> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+  const translator: Translator = useTranslator();
 
   const data: CorrelateNodeData = props.data;
   const size: { width: number; height: number } =
@@ -218,7 +221,12 @@ const CorrelateNodeCard: FunctionComponent<NodeProps<CorrelateNodeData>> = (
             </span>
           </span>
           <span className="shrink-0 tabular-nums">
-            {`${count}${countSuffix} ${t(count === 1 ? "event" : "events")}`}
+            {/* "250+ events": the count, and its "+" while it is a floor. */}
+            {translator.translatePlural(
+              { one: "{{count}} event", other: "{{count}} events" },
+              count,
+              { count: `${translator.formatNumber(count)}${countSuffix}` },
+            )}
           </span>
         </span>
       </div>

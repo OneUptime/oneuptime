@@ -604,9 +604,9 @@ Tidspunkter er i RFC 3339, og det samme øjeblik skrevet på en anden måde er i
 
 For at sætte hændelsens monitorer i en status, mens den står på, tilknytter du dem med `monitors` og sætter `change_monitor_status_to_id` til en af dine monitorstatusser: monitorerne skifter til den, når hændelsen starter, og tilbage til operationel, når den slutter. Terraform ændrer `change_monitor_status_to_id` på stedet, indtil hændelsen starter. Når hændelsen er startet, er dens monitorer allerede i den status, og en apply, der ændrer den, fejler med “Change Monitor Status to can no longer be changed: this event has already started.”
 
-## Prober
+## Sonder
 
-En egen probe kører tjek fra dit netværk. Giv den et navn, så genererer OneUptime dens `key`, den hemmelighed proben melder sig med. Terraform holder nøglen ude af planer og logs, og et output af den skal markeres som følsomt:
+En egen sonde kører tjek fra dit netværk. Giv den et navn, så genererer OneUptime dens `key`, den hemmelighed sonden melder sig med. Terraform holder nøglen ude af planer og logs, og et output af den skal markeres som følsomt:
 
 ```hcl
 resource "oneuptime_probe" "eu_west" {
@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-Kør proben med `PROBE_ID` sat til probens `id` og `PROBE_KEY` sat til nøglen, som `terraform output -raw eu_west_probe_key` udskriver: se [Brugerdefinerede probes](/docs/probe/custom-probe). Vil du selv vælge nøglen, så sæt `key` fra en følsom variabel. End-to-end-testene `23-probe-crud` og `61-name-only-and-choices` anvender prober.
+Kør sonden med `PROBE_ID` sat til sondens `id` og `PROBE_KEY` sat til nøglen, som `terraform output -raw eu_west_probe_key` udskriver: se [Brugerdefinerede sonder](/docs/probe/custom-probe). Vil du selv vælge nøglen, så sæt `key` fra en følsom variabel. End-to-end-testene `23-probe-crud` og `61-name-only-and-choices` anvender sonder.
 
 ## Næste skridt
 

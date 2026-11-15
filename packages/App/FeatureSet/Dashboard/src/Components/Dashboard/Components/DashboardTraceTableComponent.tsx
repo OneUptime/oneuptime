@@ -21,6 +21,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import DashboardWidgetLine from "./DashboardWidgetLine";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import {
   DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
@@ -470,9 +471,10 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
             <DashboardWidgetError icon={IconProp.Waterfall} error={error} />
           ))}
         {!isLoading && !error && groupByAttribute && rows.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            {translator.translateText("No data for the selected time range")}
-          </div>
+          <DashboardWidgetEmpty
+            icon={IconProp.Waterfall}
+            message="No data for the selected time range"
+          />
         )}
         {!error && groupByAttribute && rows.length > 0 && (
           <div

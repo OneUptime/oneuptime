@@ -773,9 +773,13 @@ ${PROVISION_SSL_CERTIFICATE_DIRECTIVE}
 ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     http2  on;
 
-    # HOST without its port (envsubst-on-templates.sh): nginx compares a server
-    # name with the Host a request names minus its port.
-    server_name localhost ingress ${HOST_WITHOUT_PORT}; #All domains
+    # localhost, ingress, and HOST without its port (envsubst-on-templates.sh):
+    # nginx compares a server name with the Host a request names minus its
+    # port. HOST_SERVER_NAME is empty when HOST is localhost or ingress, which
+    # this line names already: nginx warns of a name listed twice, for every
+    # listen (#8023). localhost stays first, as it is $server_name, the Host
+    # this server hands the app.
+    server_name localhost ingress ${HOST_SERVER_NAME}; #All domains
 
     proxy_busy_buffers_size   512k;
     proxy_buffers   4 512k;

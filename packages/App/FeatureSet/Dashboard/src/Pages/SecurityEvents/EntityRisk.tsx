@@ -68,6 +68,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export const ENTITY_RISK_TABLE_ID: string = "security-entity-risk-table";
 
@@ -166,7 +167,7 @@ const SourcesCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
   );
 
   if (sources.length === 0) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const first: SecurityEntityRiskContribution = sources[0]!;
@@ -425,7 +426,7 @@ const SecurityEntityRiskPage: FunctionComponent<
                   <MitreAttackChips
                     tactics={tactics.slice(0, ENTITY_RISK_ROW_TACTICS)}
                     techniques={[]}
-                    emptyText="-"
+                    isEmptyDash={true}
                   />
                   {tactics.length > ENTITY_RISK_ROW_TACTICS ? (
                     <span className="text-xs font-medium text-gray-500">
@@ -448,7 +449,7 @@ const SecurityEntityRiskPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: SecurityEntityRisk): ReactElement => {
               if (!item.lastRiskAt) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               return (

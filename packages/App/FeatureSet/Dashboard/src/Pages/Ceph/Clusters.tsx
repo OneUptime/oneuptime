@@ -48,6 +48,7 @@ import {
 } from "./Utils/CephHealth";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -120,7 +121,7 @@ const renderCapacityBar: (
     capacityUsedPercent === undefined ||
     !Number.isFinite(Number(capacityUsedPercent))
   ) {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const pct: number = Number(capacityUsedPercent);
@@ -308,7 +309,7 @@ const CephClusters: FunctionComponent<
                   to={route}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {(item.name as string) || "—"}
+                  {(item.name as string) || <TableEmptyValue />}
                 </AppLink>
               );
             },
@@ -368,7 +369,7 @@ const CephClusters: FunctionComponent<
             getElement: (item: CephCluster): ReactElement => {
               const total: number = item.osdCount || 0;
               if (total === 0) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               const up: number = item.osdUpCount || 0;
               const inCount: number = item.osdInCount || 0;
@@ -398,7 +399,7 @@ const CephClusters: FunctionComponent<
             getElement: (item: CephCluster): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {item.monCount ? String(item.monCount) : "—"}
+                  {item.monCount ? String(item.monCount) : <TableEmptyValue />}
                 </span>
               );
             },
@@ -414,7 +415,11 @@ const CephClusters: FunctionComponent<
             getElement: (item: CephCluster): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {item.poolCount ? String(item.poolCount) : "—"}
+                  {item.poolCount ? (
+                    String(item.poolCount)
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

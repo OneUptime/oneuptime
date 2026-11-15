@@ -69,7 +69,7 @@ Gemini CLI تنظیماتش را هنگام آغاز می‌خواند، پس آ
 
 سه تنظیم در این بلوک از بقیه مهم‌ترند:
 
-- `otlpProtocol: "http"` . Gemini CLI از gRPC استفاده می‌کند، مگر اینکه چیز دیگری گفته شود. روی HTTP خودش `/v1/traces` ، `/v1/metrics` و `/v1/logs` را به نشانی پایه اضافه می‌کند. OneUptime پروتکل gRPC را هم روی درگاه ۴۴۳ می‌پذیرد ( [OTLP روی gRPC](/docs/telemetry/open-telemetry#otlp-روی-grpc) را ببینید)، اما HTTP ساده‌تر است.
+- `otlpProtocol: "http"` . Gemini CLI از gRPC استفاده می‌کند، مگر اینکه چیز دیگری گفته شود. روی HTTP خودش `/v1/traces` ، `/v1/metrics` و `/v1/logs` را به نشانی پایه اضافه می‌کند. OneUptime پروتکل gRPC را هم روی پورت ۴۴۳ می‌پذیرد ( [OTLP روی gRPC](/docs/telemetry/open-telemetry#otlp-روی-grpc) را ببینید)، اما HTTP ساده‌تر است.
 - `traces: true` . به‌طور پیش‌فرض خاموش است، و بدون آن spanهای Gemini CLI نه مدل دارند نه شمار توکن، پس نمی‌توان قیمتی برای چیزی حساب کرد. Gemini CLI متریک هزینه هم نمی‌فرستد: برای دیدن هزینهٔ فراخوانی‌هایش ترِیس‌ها را روشن کنید.
 - `logPrompts: false` . هشدار زیر را بخوانید.
 

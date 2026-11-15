@@ -13,6 +13,7 @@ import { Green, Red, Yellow, Grey } from "Common/Types/BrandColors";
 import UserElement from "../../../Components/User/User";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const IncomingCallPolicyLogsPage: FunctionComponent<
   PageComponentProps
@@ -151,7 +152,7 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
               if (item.answeredByUser) {
                 return <UserElement user={item.answeredByUser} />;
               }
-              return <span className="text-gray-400">-</span>;
+              return <TableEmptyValue />;
             },
           },
           {
@@ -172,7 +173,7 @@ const IncomingCallPolicyLogsPage: FunctionComponent<
                   </span>
                 );
               }
-              return <span>-</span>;
+              return <TableEmptyValue />;
             },
           },
           {

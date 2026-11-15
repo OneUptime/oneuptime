@@ -68,6 +68,8 @@ import {
   getFluentdHostCommands,
 } from "./LogShipperSnippets";
 import {
+  OTEL_SIGNALS,
+  OtelSignal,
   getEnvVarSnippet,
   getOtelConfigSnippet,
   getOtelInstallSnippet,
@@ -127,8 +129,28 @@ export const SETUP_GUIDE_FIRST_DATA_VIEWS: Record<
   },
 };
 
+/*
+ * The signals a guide's OpenTelemetry snippets set up: its own (issue
+ * #7927). Exceptions travel as span events, so their guide sets up traces.
+ */
+export const OTEL_SIGNALS_FOR_TYPE: Record<
+  Exclude<TelemetryType, "profiles">,
+  ReadonlyArray<OtelSignal>
+> = {
+  logs: ["logs"],
+  metrics: ["metrics"],
+  traces: ["traces"],
+  exceptions: ["traces"],
+};
+
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
+  /*
+   * A guide for a whole service rather than one product (Services' guided
+   * setup, a service just created): its OpenTelemetry snippets set up
+   * traces, metrics and logs, and a key it creates is not named for one.
+   */
+  everySignal?: boolean | undefined;
   onClose?: (() => void) | undefined;
   /*
    * The service the snippets are for (a service Create Service just
@@ -157,6 +179,9 @@ const NEW_KEY_NAME_FOR_TYPE: Record<TelemetryType, string> = {
   exceptions: translationKey("Exceptions key"),
   profiles: translationKey("Profiles key"),
 };
+
+// What a key created from a guide for every signal is called.
+const NEW_KEY_NAME_FOR_EVERY_SIGNAL: string = translationKey("Telemetry key");
 
 /*
  * The languages a reader can pick. Common's catalog of the website's
@@ -680,6 +705,12 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const showLogCollectors: boolean = telemetryType === "logs";
   const isProfiles: boolean = telemetryType === "profiles";
 
+  // The signals the OpenTelemetry snippets set up.
+  const otelSignals: ReadonlyArray<OtelSignal> =
+    props.everySignal || telemetryType === "profiles"
+      ? OTEL_SIGNALS
+      : OTEL_SIGNALS_FOR_TYPE[telemetryType];
+
   /*
    * The two languages whose snippet is compiled into a bundle and served to
    * end users. Everything else on this page runs on infrastructure the
@@ -901,15 +932,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     if (isProfiles) {
       return getProfileInstallSnippet(selectedLanguage);
     }
-    return getOtelInstallSnippet(selectedLanguage);
-  }, [selectedLanguage, isProfiles]);
+    return getOtelInstallSnippet(selectedLanguage, otelSignals);
+  }, [selectedLanguage, isProfiles, otelSignals]);
 
   const configSnippet: { code: string; language: string } = useMemo(() => {
     if (isProfiles) {
       return getProfileConfigSnippet(selectedLanguage);
     }
-    return getOtelConfigSnippet(selectedLanguage);
-  }, [selectedLanguage, isProfiles]);
+    return getOtelConfigSnippet(selectedLanguage, otelSignals);
+  }, [selectedLanguage, isProfiles, otelSignals]);
 
   const handleLanguageSelect: (lang: Language) => void = useCallback(
     (lang: Language) => {
@@ -1015,7 +1046,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ? TelemetryIngestionKeyType.Browser
             : TelemetryIngestionKeyType.Server
         }
-        newKeyName={NEW_KEY_NAME_FOR_TYPE[telemetryType]}
+        newKeyName={
+          props.everySignal
+            ? NEW_KEY_NAME_FOR_EVERY_SIGNAL
+            : NEW_KEY_NAME_FOR_TYPE[telemetryType]
+        }
         onSelectedKeyChange={(key: TelemetryIngestionKey | null): void => {
           setSelectedKey(key);
           props.onSelectedKeyChange?.(key);
@@ -1538,9 +1573,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               ? translationKey(
                   "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent.",
                 )
-              : translationKey(
-                  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
-                ),
+              : otelSignals.includes("logs")
+                ? translationKey(
+                    "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance. Logs are what your logger writes, not print or console.log lines.",
+                  )
+                : translationKey(
+                    "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
+                  ),
             <div>
               {renderBrowserKeyWarning()}
               <CodeBlock

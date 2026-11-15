@@ -25,6 +25,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The verdict at the top of Teams > Compliance: one sentence that answers
@@ -279,7 +280,7 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
             <span
               className={`text-base font-semibold tabular-nums ${valueClassName}`}
             >
-              {isMeasured || !filter ? data.value : "\u2014"}
+              {isMeasured || !filter ? data.value : <EmptyValue />}
             </span>
           )}
           {data.hint ? (

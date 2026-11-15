@@ -395,7 +395,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="external-status-page-summary">
       <SummaryFacts dataTestId="external-status-page-check-facts">
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -407,7 +407,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -417,7 +417,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
       </SummaryFacts>
@@ -447,7 +447,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
       <SummaryFacts dataTestId="external-status-page-page-facts">
         <SummaryFact
           title="Provider"
-          value={externalStatusPageResponse?.provider || "-"}
+          value={externalStatusPageResponse?.provider}
         />
         <SummaryFact
           title="Overall Status"
@@ -463,9 +463,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                   shouldAnimate={false}
                 />
               </div>
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
         />
         <SummaryFact
