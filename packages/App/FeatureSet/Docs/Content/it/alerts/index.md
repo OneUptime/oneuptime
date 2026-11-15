@@ -58,7 +58,7 @@ Aprite **Avvisi** dal menu **Prodotti** nella barra superiore. L'elenco degli av
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | **Avvisi**         | **Tutti gli avvisi** e **Avvisi attivi**, il cui badge rosso conta gli avvisi non ancora risolti.                          |
 | **Episodi** | **Tutti gli episodi** e **Episodi attivi**: avvisi correlati, raggruppati in un unico problema su cui lavorare. |
-| **IA**             | **Insight**, **Registri** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
+| **IA**             | **Insight**, **Log** e **Impostazioni**: che cosa OneUptime AI ha imparato dai vostri avvisi, tutto ciò che ha fatto e che cosa può fare. |
 | **Area di lavoro** | **Slack**, **Microsoft Teams** e **Mattermost**, a seconda di ciò che il progetto ha collegato, o **Collega un'area di lavoro** quando non ne ha nessuno. |
 | **Regole**         | **Regole di raggruppamento**, **Regole di reperibilità**, **Regole degli incidenti**, **Regole del proprietario**, **Regole di runbook**, **Regole di privacy**, **Regole etichette**, **Regole dei promemoria**. |
 | **Impostazioni**   | **Stato avviso**, **Gravità avviso**, **Modelli di note**, **Campi personalizzati**, **Misurazioni**, **Appartenenza agli episodi**, **Numerazione**, **Conservazione dei dati**. |
@@ -137,10 +137,10 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 | **Panoramica** | **Panoramica** e **Cronologia stato** |
 | **Indagine** | **Descrizione**, **Causa principale**, **Rimedio**, **Runbook**, **Incidenti collegati** |
 | **Team** | **Esecuzioni di reperibilità** e **Proprietari**: chi è stato chiamato per l'avviso, e chi ne è proprietario |
-| **Notifiche**              | **Registri di notifica** e **Registri IA**: ogni messaggio inviato sull'avviso, e tutto ciò che l'IA ha fatto per esso |
+| **Notifiche**              | **Log di notifica** e **Log IA**: ogni messaggio inviato sull'avviso, e tutto ciò che l'IA ha fatto per esso |
 | **Note**      | **Note private**                                                                                            |
 | **Sviluppatori**          | **Terraform**, **API**, **CLI** e **Assistenti IA**: l'avviso gestito dal codice                            |
-| **Avanzato** | **Campi personalizzati**, **Impostazioni**, **Registri di audit**, **Elimina avviso** |
+| **Avanzato** | **Campi personalizzati**, **Impostazioni**, **Log di audit**, **Elimina avviso** |
 
 **Panoramica**, **Indagine**, **Team** e **Note** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
 

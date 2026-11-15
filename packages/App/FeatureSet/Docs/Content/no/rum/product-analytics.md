@@ -124,7 +124,7 @@ Hver rad er en kohort og hvor mange personer den har, og hver celle andelen av d
 
 ## Dashbord og varsler
 
-Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en målingsovervåking; **Åpne Målinger** under **Alle hendelser** åpner siden.
+Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en målingsmonitor; **Åpne Målinger** under **Alle hendelser** åpner siden.
 
 | Måling | Hva den teller | Etter |
 | --- | --- | --- |

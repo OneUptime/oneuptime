@@ -62,7 +62,7 @@ Angi sonen som skal valideres, i **Sone (domenenavn)**, som `example.com`. Behol
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser hva hver sjekk fant.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva hver sjekk fant.
 
 ### Gå gjennom kriteriene
 
@@ -130,7 +130,7 @@ Standardkriteriene følger ikke selv med på signaturutløp eller navneserverkon
 ## Feilsøking
 
 :::details Kjeden rapporteres som brutt, men sonen validerer med `dig`
-En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-sjekker**, i **Resultat av overvåkingstest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
+En av løserne i **Løsere** returnerte ikke AD-flagget: den kunne ikke nås fra sonden, eller den validerer ikke DNSSEC. Tabellen **Resolver-sjekker**, i **Resultat av monitortest** og i oppsummeringen av hver sjekk, viser hver løsers svar og feil. Fjern løsere sonden ikke kan nå, og angi bare validerende løsere.
 :::
 
 :::details Navneservere rapporteres som inkonsistente rett etter en endring

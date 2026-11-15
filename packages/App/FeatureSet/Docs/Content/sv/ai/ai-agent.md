@@ -48,7 +48,7 @@ Klicka på **Starta uppgift**, eller tryck på Enter. Uppgiftens sida öppnas, o
 | **Länk** | En webbadress, som referens. |
 | **Incident** eller **Larm** | Dess tillstånd, beskrivning och grundorsak, så som de är när du skickar begäran. |
 | **Undantag** | Dess meddelande och stack trace. |
-| **Övervakning** | Dess typ, status och beskrivning. |
+| **Monitor** | Dess typ, status och beskrivning. |
 | **Spår** | Dess spans: deras namn, tider och fel. |
 | **Loggar** | De senaste 20 loggraderna som innehåller din sökning, från den senaste timmen, dagen eller veckan. |
 | **Prestandaprofil** | Vart en funktions tid går i dess tjänsts profiler: vem som anropar den, vad den anropar och dess hetaste rader. |

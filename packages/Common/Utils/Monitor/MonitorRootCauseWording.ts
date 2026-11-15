@@ -28,7 +28,7 @@ import {
   getRequestFailureDescriptionText,
   readRequestFailureDescription,
 } from "./RequestFailureDescriptions";
-import { wordRootCauseFact } from "./RootCauseFacts";
+import { wordForecastLine, wordRootCauseFact } from "./RootCauseFacts";
 
 /*
  * THE ROOT CAUSE A MONITOR WROTE, IN THE READER'S LANGUAGE (issue #6542).
@@ -137,6 +137,7 @@ const FACT_LABELS: ReadonlyArray<string> = [
   translationKey("Unit"),
   translationKey("Aggregation"),
   translationKey("Time Window"),
+  translationKey("Data Arrives"),
   translationKey("Filters"),
   translationKey("Grouped By"),
   translationKey("Formula"),
@@ -182,6 +183,17 @@ const BOLD_LABEL_LINE: RegExp = /^\*\*([^*\n]{1,80})\*\*(:?)(.*)$/;
 
 // "- Label: value", with a label of letters and spaces.
 const FACT_LINE: RegExp = /^- ([A-Z][A-Za-z ]{0,40}): (.*)$/;
+
+/*
+ * A forecast's line whose label holds a number or a comma: its value in
+ * bold ("- In 7 days: **91.5%**"), or what reaching the threshold takes
+ * ("- Reaches 90%: in about 5 days"). Each part bounded, so the match is
+ * linear in the line.
+ */
+const FORECAST_BOLD_LINE: RegExp =
+  /^- (Now, on its trend|In [0-9]{1,9} (?:hours?|days?)): \*\*(.{1,80})\*\*$/;
+const FORECAST_REACHES_LINE: RegExp =
+  /^- (Reaches [^:\n]{1,80}): (in about [^:\n]{1,40}|already (?:above|below) it)$/;
 
 // One finding the root cause may quote: a filter's message and its sentence.
 export interface RootCauseFinding {
@@ -346,6 +358,18 @@ export default class MonitorRootCauseWording {
           ).toString();
         }
 
+        // A forecast's line whose label holds a number: "- In 7 days: **93.2%**".
+        const forecastLine: string | null =
+          MonitorRootCauseWording.wordForecastLine({
+            line: line,
+            translator: translator,
+            setsValuesApart: setsValuesApart,
+          });
+
+        if (forecastLine !== null) {
+          return forecastLine;
+        }
+
         const fact: RegExpExecArray | null = FACT_LINE.exec(line);
 
         if (fact && FACT_LABEL_SET.has(fact[1]!)) {
@@ -502,6 +526,64 @@ export default class MonitorRootCauseWording {
       translator: data.translator,
       options: { setsValuesApart: data.setsValuesApart },
     });
+  }
+
+  /*
+   * A forecast's line whose label holds a number or a comma, as the engine
+   * writes it (MonitorCriteriaEvaluator.formatForecastSection):
+   *
+   *   - Now, on its trend: **84.5%**
+   *   - In 7 days: **91.5%**
+   *   - Reaches 90%: in about 5 days
+   *   - Reaches 90%: already above it
+   *
+   * in the reader's words, the metric's values as written (RootCauseFacts).
+   * Read back from the stored Markdown, and only taken for the engine's
+   * when mdText writes it back to the very line. Null for any other line.
+   */
+  private static wordForecastLine(data: {
+    line: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const line: string = data.line;
+    const bold: RegExpExecArray | null = FORECAST_BOLD_LINE.exec(line);
+    const reaches: RegExpExecArray | null = bold
+      ? null
+      : FORECAST_REACHES_LINE.exec(line);
+
+    if (!bold && !reaches) {
+      return null;
+    }
+
+    const label: string = (bold ? bold[1] : reaches![1]) as string;
+    const value: string = ((bold ? bold[2] : reaches![2]) as string).replace(
+      MARKDOWN_ESCAPE,
+      "$1",
+    );
+    const labelText: string = label.replace(MARKDOWN_ESCAPE, "$1");
+    const writtenBack: string = bold
+      ? mdText`- ${labelText}: **${value}**`.toString()
+      : mdText`- ${labelText}: ${value}`.toString();
+
+    if (writtenBack !== line) {
+      return null;
+    }
+
+    const worded: { label: string; value: string } | null = wordForecastLine({
+      label: labelText,
+      value: value,
+      translator: data.translator,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+
+    if (!worded) {
+      return null;
+    }
+
+    return bold
+      ? mdText`- ${worded.label}: **${worded.value}**`.toString()
+      : mdText`- ${worded.label}: ${worded.value}`.toString();
   }
 
   /*

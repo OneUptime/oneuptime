@@ -32,7 +32,7 @@ OneUptime 中有些東西看起來很相似。本頁把每組相似的東西並�
 | 工具 | 做什麼 | 何時使用 |
 | --- | --- | --- |
 | [工作流程](/docs/workflows/index) | 畫布上的區塊，在其觸發器觸發時執行：事件被建立、排程時間到了、其他工具呼叫一個 URL。 | 你想把 OneUptime 連接到其他工具，或對它的紀錄採取動作，而不必撰寫程式碼。 |
-| [操作手冊](/docs/runbooks/index) | 把你的應變程序寫成步驟，從手動檢查清單到指令碼、HTTP 請求和 kubectl，在事件、警示或維護事件上執行。 | 應變人員每次都應遵循相同的步驟。Runbook 規則會在相符的事件上啟動操作手冊。 |
+| [操作手冊](/docs/runbooks/index) | 把你的應變程序寫成步驟，從手動檢查清單到指令碼、HTTP 請求和 kubectl，在事件、警示或維護事件上執行。 | 應變人員每次都應遵循相同的步驟。Runbook 規則會在相符的事件上啟動運行手冊。 |
 | [劇本](/docs/telemetry/security-cases#劇本) | 回應安全案例的步驟：保全證據、呼叫待命人員、停用使用者。 | 你的資安團隊每次都以相同的方式回應同一類威脅。 |
 | [AI 規則](/docs/ai/ai-sre#哪些事件會被調查和修正) | 決定 OneUptime AI 調查並修復哪些新的事件和警示，以及是否要先詢問。 | OneUptime AI 只應處理部分事件，或不經詢問就進行修復。沒有規則時，它會調查每一個。 |
 
@@ -58,7 +58,7 @@ OneUptime 的大部分功能都不需要安裝任何東西：只有在需要連�
 | [基礎設施代理程式](/docs/monitor/server-monitor) | 向 Server / VM 監測器回報一台機器的 CPU、記憶體、磁碟和處理程序。 | 你想為一台伺服器設定一個監測器，並針對它的數值設定條件。 | 該監測器的秘密金鑰 |
 | [OpenTelemetry Collector](/docs/telemetry/hosts) | 傳送機器的指標、日誌和處理程序。**新增主機** 用一個指令安裝它。 | 你想讓一台機器連同它的遙測出現在 **主機** 下。 | 擷取金鑰 |
 | [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent) | 收集叢集的指標、事件、日誌和追蹤。你用 Helm 安裝它。 | 你在執行 Kubernetes。 | 擷取金鑰 |
-| [Runner](/docs/runbooks/agents) | 在你的基礎設施內部執行操作手冊步驟，例如 Bash、SSH 和 kubectl。 | 你的操作手冊需要連到你自己的主機和叢集。 | 它自己的 Runner ID 和金鑰 |
+| [Runner](/docs/runbooks/agents) | 在你的基礎設施內部執行運行手冊步驟，例如 Bash、SSH 和 kubectl。 | 你的運行手冊需要連到你自己的主機和叢集。 | 它自己的 Runner ID 和金鑰 |
 
 ### 擷取金鑰還是 API 金鑰？
 

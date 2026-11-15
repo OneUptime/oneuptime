@@ -15,7 +15,7 @@ C'è una pagina Eventi in due posti:
 - Fai clic su un evento per aprirlo: quando è successo, cosa riguarda, il messaggio così come lo ha inviato il dispositivo, e ogni attributo che OneUptime ne ha ricavato.
 - **Crea avviso** propone gli avvisi che la maggior parte delle reti vuole, e **Crea avviso per questo evento** ne crea uno per l'evento che hai aperto. Vedi [Avvisi](#avvisi).
 
-Un evento è un log. Tutto ciò che c'è nella pagina Eventi si può anche cercare, mettere in un grafico e usare per gli avvisi da **Registri**: un evento è un log il cui attributo `event.domain` è `network`, con ciò che è successo in `event.name`.
+Un evento è un log. Tutto ciò che c'è nella pagina Eventi si può anche cercare, mettere in un grafico e usare per gli avvisi da **Log**: un evento è un log il cui attributo `event.domain` è `network`, con ciò che è successo in `event.name`.
 
 ## Cosa legge OneUptime
 
@@ -248,7 +248,7 @@ Una pipeline appartiene al suo progetto. Per usarne una in un altro progetto, cr
 - **Condivisione dei parser tra progetti.** Una pipeline non si può ancora esportare e importare.
 - **Eventi da trap SNMP diversi dai quattro standard.** I trap propri di un fornitore vengono salvati come log, e gli avvisi su di essi si creano con il criterio **Trap SNMP ricevuta (OID della trap)** del [monitor dispositivi di rete](/docs/monitor/network-device-monitor).
 - **Switch Cambium cnMatrix, mobility controller Aruba e FortiGate in modalità CEF.** I loro messaggi vengono salvati e si possono cercare; non se ne ricavano ancora eventi.
-- **Una visualizzazione in tempo reale.** La pagina Eventi mostra ciò che era arrivato quando è stata aperta; usa il suo pulsante di aggiornamento, o la visualizzazione in tempo reale di **Registri**.
+- **Una visualizzazione in tempo reale.** La pagina Eventi mostra ciò che era arrivato quando è stata aperta; usa il suo pulsante di aggiornamento, o la visualizzazione in tempo reale di **Log**.
 
 ## Risoluzione dei problemi
 
@@ -258,4 +258,4 @@ Se una pagina Eventi mostra ancora i passaggi di configurazione:
 - **Firewall e Docker.** Consenti la porta 5140 dal dispositivo alla sonda, e pubblica la porta se la sonda gira in Docker. Molti dispositivi inviano alla porta 514 se non viene detto loro altro.
 - **Il log della sonda.** All'avvio la sonda scrive nel log la porta su cui ascolta, o che non è riuscita ad aprirla. Quando scarta messaggi oltre `PROBE_SYSLOG_RATE_LIMIT_PER_MINUTE`, scrive quanti, una volta al minuto.
 - **Una sonda globale.** Un dispositivo interrogato da una sonda globale non può inviarle syslog da una rete privata. Esegui una sonda personalizzata nella rete del dispositivo e sceglila nelle impostazioni del dispositivo.
-- **I messaggi arrivano, ma nessun evento.** La pagina lo dice, e ogni messaggio è nella scheda **Registri** del dispositivo. Controlla che il dispositivo invii i messaggi informativi, non solo gli errori, e che il prodotto sia uno di quelli in [Cosa legge OneUptime](#cosa-legge-oneuptime); altrimenti dai un nome ai suoi eventi in una pipeline dei log.
+- **I messaggi arrivano, ma nessun evento.** La pagina lo dice, e ogni messaggio è nella scheda **Log** del dispositivo. Controlla che il dispositivo invii i messaggi informativi, non solo gli errori, e che il prodotto sia uno di quelli in [Cosa legge OneUptime](#cosa-legge-oneuptime); altrimenti dai un nome ai suoi eventi in una pipeline dei log.

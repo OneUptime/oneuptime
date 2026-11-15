@@ -1,6 +1,6 @@
 # 호스트 OpenTelemetry 수집기
 
-OpenTelemetry Collector를 Linux, macOS, Windows 머신에서 실행해 머신의 메트릭, 프로세스, 로그, 서비스 상태를 OneUptime으로 보냅니다. 머신은 **제품 → 인프라 → 호스트** 아래에 자체 페이지와 함께 나타나며, 설치할 OneUptime 에이전트는 없습니다. Collector는 업스트림 `otelcol-contrib` 릴리스입니다. [호스트 모니터](/docs/monitor/host-monitor)는 Collector가 보낸 데이터를 기준으로 알림을 보냅니다.
+OpenTelemetry Collector를 Linux, macOS, Windows 머신에서 실행해 머신의 메트릭, 프로세스, 로그, 서비스 상태를 OneUptime으로 보냅니다. 머신은 **제품 → 인프라 → 호스트** 아래에 자체 페이지와 함께 나타나며, 설치할 OneUptime 에이전트는 없습니다. Collector는 업스트림 `otelcol-contrib` 릴리스입니다. [호스트 모니터](/docs/monitor/host-monitor)는 Collector가 보낸 데이터를 기준으로 경고를 보냅니다.
 
 > [!TIP]
 > 컬렉터 설치와 구성을 OneUptime에 맡길 수도 있습니다. [호스트](/docs/telemetry/hosts)에서는 명령 하나로 머신을 추가하고 구성을 최신 상태로 유지합니다. 이 페이지는 머신에서 직접 관리하는 `config.yaml`로 컬렉터를 실행하는 방법을 다룹니다.
@@ -513,7 +513,7 @@ Get-WinEvent -LogName Application -MaxEvents 20 | Where-Object ProviderName -eq 
 
 ### 호스트 메트릭
 
-`hostmetrics`는 모든 OS에서 작동합니다. `collection_interval`마다 커널에서 CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징, 프로세스를 읽습니다. `*.utilization` 메트릭과 `system.cpu.logical.count`는 리시버에서 기본적으로 꺼져 있지만 호스트의 차트와 Host 알림 템플릿이 이를 읽으므로, 위 구성처럼 켜 두세요. `process` 스크레이퍼는 **프로세스** 페이지를 채우며, 가장 큰 시계열 발생원이기도 합니다([전송량 줄이기](#수집하는-데이터양-줄이기) 참조).
+`hostmetrics`는 모든 OS에서 작동합니다. `collection_interval`마다 커널에서 CPU, 메모리, 디스크, 파일 시스템, 네트워크, 부하, 페이징, 프로세스를 읽습니다. `*.utilization` 메트릭과 `system.cpu.logical.count`는 리시버에서 기본적으로 꺼져 있지만 호스트의 차트와 Host 경고 템플릿이 이를 읽으므로, 위 구성처럼 켜 두세요. `process` 스크레이퍼는 **프로세스** 페이지를 채우며, 가장 큰 시계열 발생원이기도 합니다([전송량 줄이기](#수집하는-데이터양-줄이기) 참조).
 
 Linux에서 Collector는 `/proc`와 `/sys`를 읽습니다. 컨테이너 안의 Collector는 호스트의 것을 마운트하고 `HOST_PROC`와 `HOST_SYS`를 설정해야 하며([Docker 컨테이너에서](#docker-컨테이너에서) 참조), 네이티브 설치에는 아무것도 필요하지 않습니다.
 
@@ -597,7 +597,7 @@ service:
 이 리시버는 systemd가 권한 없이 허용하는, `systemctl list-units`가 하는 것과 같은 읽기 전용 호출로 시스템 D-Bus를 통해 유닛 상태를 읽습니다. 따라서 root가 아닌 `otelcol-contrib` 사용자로 실행되는 패키지 서비스에는 추가 권한이 필요하지 않습니다. 다만 버스는 필요합니다. 컨테이너 안의 Collector에는 호스트의 것을 마운트하지 않는 한 `/run/dbus/system_bus_socket`이 없으므로 네이티브 설치를 사용하세요. 이 리시버는 알파 단계이며 Linux 전용입니다.
 
 > [!WARNING]
-> 상태 집합은 스크레이프마다 유닛당 데이터 포인트 8개가 들고, 기본으로 켜져 있는 `systemd.service.cpu.time`이 두 개(`user`와 `system`)를 더합니다. 스크레이프마다 유닛당 데이터 포인트 10개입니다. 300개 유닛을 30초마다 추적하는 호스트는 이 리시버만으로 분당 약 6,000개의 데이터 포인트를 보내며, CPU 메트릭을 끄면 약 4,800개입니다. 플릿 전체에서 켜기 전에 `units:`를 알림을 보내는 서비스로 좁히거나 `collection_interval`을 늘리세요.
+> 상태 집합은 스크레이프마다 유닛당 데이터 포인트 8개가 들고, 기본으로 켜져 있는 `systemd.service.cpu.time`이 두 개(`user`와 `system`)를 더합니다. 스크레이프마다 유닛당 데이터 포인트 10개입니다. 300개 유닛을 30초마다 추적하는 호스트는 이 리시버만으로 분당 약 6,000개의 데이터 포인트를 보내며, CPU 메트릭을 끄면 약 4,800개입니다. 플릿 전체에서 켜기 전에 `units:`를 경고를 보내는 서비스로 좁히거나 `collection_interval`을 늘리세요.
 
 ### Apple Unified Log
 
@@ -981,11 +981,11 @@ receivers:
           match_type: strict
 ```
 
-이렇게 하면 리시버가 기본 메트릭으로 줄어듭니다. 호스트의 차트와 Host 알림 템플릿을 사용한다면 위 구성의 `metrics:` 블록을 `cpu`, `memory`, `filesystem`, `process` 아래에 다시 넣으세요.
+이렇게 하면 리시버가 기본 메트릭으로 줄어듭니다. 호스트의 차트와 Host 경고 템플릿을 사용한다면 위 구성의 `metrics:` 블록을 `cpu`, `memory`, `filesystem`, `process` 아래에 다시 넣으세요.
 
 ### systemd 유닛 좁히기
 
-`systemd` 리시버는 스크레이프마다 유닛별·상태별로 데이터 포인트를 하나씩, 즉 유닛당 8개를 보내고, 기본으로 켜져 있는 `systemd.service.cpu.time`에 대해 2개를 더 보내므로, 양은 `units:`와 일치하는 유닛 수로 정해집니다. 기본값 `["*.service"]`에는 상태가 절대 바뀌지 않는 수십 개의 일회성 유닛이 포함됩니다. 알림을 보내는 유닛을 나열하고, 차트로 보지 않는다면 CPU 메트릭을 끄세요:
+`systemd` 리시버는 스크레이프마다 유닛별·상태별로 데이터 포인트를 하나씩, 즉 유닛당 8개를 보내고, 기본으로 켜져 있는 `systemd.service.cpu.time`에 대해 2개를 더 보내므로, 양은 `units:`와 일치하는 유닛 수로 정해집니다. 기본값 `["*.service"]`에는 상태가 절대 바뀌지 않는 수십 개의 일회성 유닛이 포함됩니다. 경고를 보내는 유닛을 나열하고, 차트로 보지 않는다면 CPU 메트릭을 끄세요:
 
 ```yaml
 receivers:
@@ -1178,7 +1178,7 @@ service:
 필요할 때 좁은 `filelog` 또는 `journald` 리시버와 함께 `logs` 파이프라인을 다시 추가하세요.
 
 > [!CAUTION]
-> 무엇을 줄이는지 주의하세요. 로그 모니터는 로그가 도착해야 하므로, 심각도나 채널을 걸러 내면 그것을 감시하는 모니터가 조용해지고, Host 알림 템플릿에는 `*.utilization` 메트릭이 필요합니다. 대응에 쓰지 않는 데이터를 줄이고 모니터가 감시하는 데이터는 줄이지 말며, 다음 수단을 쓰기 전에 하루나 이틀 뒤 **프로젝트 설정 → 텔레메트리 및 APM → 사용량**에서 감소를 확인하세요(사용량은 하루 단위로 집계됩니다).
+> 무엇을 줄이는지 주의하세요. 로그 모니터는 로그가 도착해야 하므로, 심각도나 채널을 걸러 내면 그것을 감시하는 모니터가 조용해지고, Host 경고 템플릿에는 `*.utilization` 메트릭이 필요합니다. 대응에 쓰지 않는 데이터를 줄이고 모니터가 감시하는 데이터는 줄이지 말며, 다음 수단을 쓰기 전에 하루나 이틀 뒤 **프로젝트 설정 → 텔레메트리 및 APM → 사용량**에서 감소를 확인하세요(사용량은 하루 단위로 집계됩니다).
 
 ## 자체 호스팅 OneUptime과 프록시
 
@@ -1200,7 +1200,7 @@ exporters:
 
 ## AI 에이전트
 
-Collector는 호스트가 보고하는 것을 보내고, **호스트 AI 에이전트**는 OneUptime AI가 그 호스트의 인시던트나 알림을 조사하는 동안 호스트 자체에 물어볼 수 있게 합니다. 읽기 전용 명령(`systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn`)을 실행하고, 허용한 경우에만 지정한 systemd 유닛 재시작 같은 수정을 적용합니다. 자체 설치 프로그램이 있는 Linux 컨테이너(이미지 `oneuptime/resource-ai-agent:release`)이며, Docker(rootless Docker가 아닌 시스템 엔진)와 Docker Compose 플러그인이 필요합니다:
+Collector는 호스트가 보고하는 것을 보내고, **호스트 AI 에이전트**는 OneUptime AI가 그 호스트의 인시던트나 경고를 조사하는 동안 호스트 자체에 물어볼 수 있게 합니다. 읽기 전용 명령(`systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn`)을 실행하고, 허용한 경우에만 지정한 systemd 유닛 재시작 같은 수정을 적용합니다. 자체 설치 프로그램이 있는 Linux 컨테이너(이미지 `oneuptime/resource-ai-agent:release`)이며, Docker(rootless Docker가 아닌 시스템 엔진)와 Docker Compose 플러그인이 필요합니다:
 
 ```bash
 curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
@@ -1209,7 +1209,7 @@ sudo bash install.sh
 
 각 OneUptime은 자기 릴리스의 이 설치 프로그램을 제공합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 사용자의 URL에서 내려받으세요. 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 제거하세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 경고를 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 제거하세요.
 - `HOST_NAME`으로 등록됩니다. 비워 두면 호스트 자체의 호스트 이름을 사용하며, 다른 이름을 설정하지 않는 한 이 Collector가 `host.name`으로 보고하는 것도 그 이름입니다. 두 값이 일치해야 에이전트가 이 Collector가 만든 호스트를 담당합니다. OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.
 - `nsenter`로 호스트의 네임스페이스에 들어가 호스트 자체의 프로그램을 실행하므로, `pid: host`와 함께 root 권한의 privileged 모드로 실행됩니다. 즉 호스트의 root입니다. 한계는 에이전트의 명령 정책입니다. `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하지 않는 한 읽기 전용 명령만 실행하며, 셸, `sudo`, 목록에 없는 프로그램은 절대 실행하지 않고, 자기 자신, 이 Collector의 유닛, `ONEUPTIME_AI_PROTECTED_TARGETS`에 있는 것은 절대 건드리지 않습니다.
 - `ONEUPTIME_AI_ALLOW_WRITES=true`일 때 `ONEUPTIME_AI_WRITE_TARGETS`(`nginx.service,app-*` 같은 전체 유닛 이름)가 수정이 건드릴 수 있는 유닛을 제한합니다. `ONEUPTIME_AI_FIXES`는 수정 실행 방식, 즉 `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나를 정하며, AI 에이전트 페이지에는 읽기 전용으로 표시됩니다. 설치 프로그램은 두 값을 환경에서 에이전트의 `.env`에 기록합니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)).
@@ -1252,7 +1252,7 @@ sudo bash install.sh
 - 유닛마다 스크레이프 오류가 나거나 알 수 없는 메트릭 때문에 Collector가 시작을 거부하면 버전 차이입니다. v0.142.0은 모든 유닛에서 cgroup 통계를 읽고 CPU 메트릭을 `systemd.unit.cpu.time`이라고 부르며, v0.143.0 이상은 서비스만 읽고 `systemd.service.cpu.time`이라고 부릅니다. v0.143.0 이상을 실행하고, `metrics:` 재정의에서는 사용 중인 빌드의 키 이름을 사용하세요.
 :::
 
-:::details CPU 및 메모리 차트나 Host 알림 템플릿에 데이터가 없음
+:::details CPU 및 메모리 차트나 Host 경고 템플릿에 데이터가 없음
 이 차트와 템플릿은 `system.cpu.utilization`, `system.memory.utilization`, `system.filesystem.utilization`을 읽는데, `hostmetrics`는 켜지 않으면 이들을 꺼 둡니다. 위 구성의 `cpu`, `memory`, `filesystem` 아래 `metrics:` 블록을 자신의 구성에 복사하고 Collector를 다시 시작하세요.
 :::
 
@@ -1263,8 +1263,8 @@ sudo bash install.sh
 ## 다음 단계
 
 :::cards
-- [호스트 모니터](/docs/monitor/host-monitor): CPU, 메모리, 디스크, 프로세스에 대해 알림을 보냅니다.
-- [로그 모니터](/docs/monitor/logs-monitor): 5분 기간 안의 로그온 실패 같은 로그 패턴에 대해 알림을 보냅니다.
+- [호스트 모니터](/docs/monitor/host-monitor): CPU, 메모리, 디스크, 프로세스에 대해 경고를 보냅니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 5분 기간 안의 로그온 실패 같은 로그 패턴에 대해 경고를 보냅니다.
 - [CMDB로 내보내기](/docs/inventory/cmdb-sync): 인벤토리 속성을 CMDB로 보냅니다.
 - [서버 / VM 모니터](/docs/monitor/server-monitor): 서버의 도달 가능성을 외부에서도 확인합니다.
 :::

@@ -31,7 +31,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
 | Chiedere a una persona di approvare una correzione a un cloud OpenStack   | [Propose an OpenStack fix](#propose-an-openstack-fix)             |
 
-Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e registri più chiari che con un blocco **API** che fa lo stesso lavoro.
+Un blocco dedicato è meglio di uno generico: il blocco Slack conosce i limiti di Slack, e un blocco record conosce i campi del record, così ottieni errori e log più chiari che con un blocco **API** che fa lo stesso lavoro.
 
 ## Come funziona ogni blocco
 
@@ -58,7 +58,7 @@ Fai una richiesta HTTP a qualsiasi URL. C'è un blocco per metodo: **Chiamata AP
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | **URL**             | L'indirizzo da chiamare, `http` o `https`.                                                                                           |
 | **Corpo della Richiesta**    | Il JSON da inviare. Di solito ne hanno bisogno solo le richieste `POST`, `PUT` e `PATCH`.                                            |
-| **Intestazioni della richiesta** | Gli header da inviare, come una chiave API. Sotto **Altri campi**. I loro valori sono nascosti nel registro dell'esecuzione.         |
+| **Intestazioni della richiesta** | Gli header da inviare, come una chiave API. Sotto **Altri campi**. I loro valori sono nascosti nel log dell'esecuzione.         |
 
 | Uscita      | Quando                                                                                         |
 | ----------- | ---------------------------------------------------------------------------------------------- |
@@ -85,9 +85,9 @@ Genera una risposta testuale da un prompt e da un contesto JSON facoltativo. Il 
 | **Temperatura**           | Sotto **Altri campi**. La variabilità, da `0` a `1`; il valore predefinito è `0.2`, per un'automazione prevedibile. I modelli Claude attuali, Opus 4.7 e successivi e tutti i modelli Claude 5, scelgono da soli il proprio campionamento: OneUptime omette **Temperatura** dalle loro richieste, quindi su di loro non ha alcun effetto. |
 | **Numero massimo di token di output** | Sotto **Altri campi**. Da `1` a `4096`; il valore predefinito è `1024`.                                                                                          |
 
-System Instructions, Prompt e il Context serializzato sono limitati insieme a 50.000 caratteri. Un'immagine incorporata in base64, come lo screenshot di un monitor sintetico nella descrizione di un incidente, viene sostituita da una breve nota come `[image omitted: PNG, 340 KB]` prima della misurazione, perché il modello legge testo, non immagini. Il registro dell'esecuzione dice cosa è stato omesso. La richiesta al provider dura al massimo 60 secondi e viene tentata una sola volta. Per progetto possono girare contemporaneamente al massimo tre richieste di IA dei flussi di lavoro.
+System Instructions, Prompt e il Context serializzato sono limitati insieme a 50.000 caratteri. Un'immagine incorporata in base64, come lo screenshot di un monitor sintetico nella descrizione di un incidente, viene sostituita da una breve nota come `[image omitted: PNG, 340 KB]` prima della misurazione, perché il modello legge testo, non immagini. Il log dell'esecuzione dice cosa è stato omesso. La richiesta al provider dura al massimo 60 secondi e viene tentata una sola volta. Per progetto possono girare contemporaneamente al massimo tre richieste di IA dei flussi di lavoro.
 
-Restituisce **Risposta** (il testo generato), **Provider** e **Modello** (cosa ha risposto), **Token totali** e **Token di completamento** (l'utilizzo riportato dal provider), **ID del log LLM** (la voce della chiamata nei registri IA) ed **Errore**.
+Restituisce **Risposta** (il testo generato), **Provider** e **Modello** (cosa ha risposto), **Token totali** e **Token di completamento** (l'utilizzo riportato dal provider), **ID del log LLM** (la voce della chiamata nei log IA) ed **Errore**.
 
 Collega **Successo** ai blocchi che usano la risposta, ed **Errore** a un'alternativa: gli errori di convalida, di accesso, del provider, di budget, di fatturazione e di timeout lo prendono tutti. Il blocco non invia strumenti, quindi il modello non può interrogare OneUptime, chiamare API o modificare dati da solo.
 
@@ -129,7 +129,7 @@ Invia un messaggio a una chat di Telegram con un bot.
 
 | Impostazione           | Cosa fa                                                                                                                                            |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Token del bot Telegram** | Il token che BotFather ha dato al tuo bot, come `123456789:ABCdef…`. Un token di qualsiasi altra forma ferma l'esecuzione, senza che il token venga scritto nel registro. |
+| **Token del bot Telegram** | Il token che BotFather ha dato al tuo bot, come `123456789:ABCdef…`. Un token di qualsiasi altra forma ferma l'esecuzione, senza che il token venga scritto nel log. |
 | **ID della chat**            | La chat in cui pubblicare: il suo ID, o lo `@username` di un canale. Aggiungi prima il bot al gruppo o al canale. Per scrivere a una persona, questa deve aver avviato una chat con il bot. |
 | **Testo del messaggio**       | Il testo da inviare. Un messaggio di oltre 4.096 caratteri, il limite di Telegram, viene tagliato e termina con "… (truncated — see OneUptime for the full text)". |
 
@@ -163,7 +163,7 @@ Sotto **Altri campi**:
 
 Ogni esecuzione del blocco è una connessione a sé, e le reti IRC limitano la frequenza con cui uno stesso indirizzo può collegarsi: una raffica di messaggi può essere rifiutata con un motivo come "Reconnecting too fast", e prende **Errore** come qualsiasi altro rifiuto. Per un flusso di lavoro che può scattare molte volte al minuto, raccogli ciò che deve dire in un unico messaggio, o invialo tramite un tuo server.
 
-Tieni le password in [variabili globali segrete](/docs/workflows/variables#variabili-globali) e usa la variabile nell'impostazione; sono comunque nascoste nei registri delle esecuzioni. Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un server su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server IRC sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`.
+Tieni le password in [variabili globali segrete](/docs/workflows/variables#variabili-globali) e usa la variabile nell'impostazione; sono comunque nascoste nei log delle esecuzioni. Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un server su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server IRC sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`.
 
 ## Mattermost
 
@@ -184,7 +184,7 @@ Sotto **Altri campi**:
 
 **Successo** scatta quando Mattermost ha accettato il messaggio. **Errore** scatta quando il server non è raggiungibile o Mattermost rifiuta il messaggio, e riporta il motivo di Mattermost. Un **URL del webhook in entrata di Mattermost** o un **Testo del messaggio** mancante, un URL che non è quello di un webhook in entrata, o un'impostazione che non potrebbe mai funzionare, ferma invece l'esecuzione.
 
-Tieni l'URL del webhook in una [variabile globale segreta](/docs/workflows/variables#variabili-globali): chiunque lo abbia può pubblicare nel canale. È comunque nascosto nei registri delle esecuzioni. Il messaggio parte da OneUptime e i reindirizzamenti non vengono seguiti. Un webhook su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
+Tieni l'URL del webhook in una [variabile globale segreta](/docs/workflows/variables#variabili-globali): chiunque lo abbia può pubblicare nel canale. È comunque nascosto nei log delle esecuzioni. Il messaggio parte da OneUptime e i reindirizzamenti non vengono seguiti. Un webhook su un indirizzo di loopback (`localhost`, `127.0.0.1`), link-local o di metadati cloud viene rifiutato, e lo stesso vale per uno su un indirizzo di rete privata, a meno che un amministratore self-hosted non lo consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST`. Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 
 ## Email
 
@@ -202,7 +202,7 @@ Invia un'email tramite un server SMTP che indichi sul blocco. Il blocco si chiam
 
 **Successo** scatta quando il server SMTP ha accettato il messaggio. **Errore** scatta quando l'host SMTP viene rifiutato, il server non è raggiungibile o rifiuta il messaggio, e riporta il messaggio di errore. Un **Email del destinatario**, un **Email mittente**, uno **Host SMTP** o uno **Porta SMTP** mancante ferma invece l'esecuzione.
 
-Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime, e le email che invia non compaiono nei registri delle notifiche. Per controllare cosa ha fatto, guarda le [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro.
+Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime, e le email che invia non compaiono nei log delle notifiche. Per controllare cosa ha fatto, guarda le [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro.
 
 Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un host SMTP su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server di posta sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`. Un host rifiutato prende l'uscita **Errore**, e non viene inviato nulla.
 
@@ -273,7 +273,7 @@ return {
 
 Un blocco successivo legge il titolo breve come `{{local.components.javascript-1.returnValues.returnValue.shortTitle}}`.
 
-Il codice viene eseguito in una sandbox con `args`, `console.log` (scritto nel registro dell'esecuzione), `axios` per le richieste HTTP, `crypto` e `sleep`. Non ha file system né processo, e le sue richieste seguono le stesse regole sugli indirizzi del blocco API. Ha 5 secondi per impostazione predefinita; un'installazione self-hosted lo cambia con `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
+Il codice viene eseguito in una sandbox con `args`, `console.log` (scritto nel log dell'esecuzione), `axios` per le richieste HTTP, `crypto` e `sleep`. Non ha file system né processo, e le sue richieste seguono le stesse regole sugli indirizzi del blocco API. Ha 5 secondi per impostazione predefinita; un'installazione self-hosted lo cambia con `WORKFLOW_SCRIPT_TIMEOUT_IN_MS`.
 
 **Successo** scatta con il **Valore** restituito, ed **Errore** quando il codice lancia un'eccezione o esaurisce il tempo, con il messaggio in **Errore**. Per script più pesanti, usa invece un [Runbook](/docs/runbooks/index).
 
@@ -363,13 +363,13 @@ Un'esecuzione che prende un'uscita a cui non è collegato nulla, **Predefinito**
 
 Metti in pausa l'esecuzione prima del blocco successivo, per dare a un altro sistema il tempo di mettersi in pari o per fare un controllo più tardi.
 
-**Giorni**, **Ore**, **Minuti** e **Secondi** si sommano. L'attesa più lunga è di 30 giorni: una più lunga viene ridotta a 30 giorni, e il registro dell'esecuzione lo dice.
+**Giorni**, **Ore**, **Minuti** e **Secondi** si sommano. L'attesa più lunga è di 30 giorni: una più lunga viene ridotta a 30 giorni, e il log dell'esecuzione lo dice.
 
 Durante l'attesa, l'esecuzione viene messa da parte con lo stato **In attesa** e ripresa quando il tempo è scaduto, quindi un'attesa lunga non blocca nulla. Un'esecuzione il cui flusso di lavoro è stato disattivato o archiviato nel frattempo viene annullata al risveglio. Un'esecuzione di prova, avviata mentre il flusso di lavoro era disattivato, non viene annullata perché lo è.
 
 ## Log
 
-Scrivi un valore nel registro dell'esecuzione. Non cambia nient'altro, il che lo rende il modo più semplice per vedere cosa conteneva un valore.
+Scrivi un valore nel log dell'esecuzione. Non cambia nient'altro, il che lo rende il modo più semplice per vedere cosa conteneva un valore.
 
 **Valore** è ciò che va scritto. Può occupare più righe e includere valori dei blocchi precedenti, come `{{local.components.webhook-1.returnValues.request-body}}`. Il blocco prende **Uscita** quando ha finito.
 
@@ -409,7 +409,7 @@ Ogni esecuzione passa al blocco un evento: **Cosa è successo**, e **ID esterno*
 
 Un record va sempre e solo avanti, e uno risolto non si muove più, così quando entrambi gli strumenti lo cambiano nessuno dei due annulla ciò che ha fatto l'altro. Conserva l'ID in un campo personalizzato, `externalId` a meno che **Campo dell'ID esterno** non ne nomini un altro, e viene scritto solo quel campo, così gli altri campi personalizzati del record mantengono il loro valore. Per un ID che un record conserva non se ne apre mai un altro, anche quando quel record è risolto: usa un ID nuovo per ogni problema, come lo è un ID di evento di Zabbix o un numero di report di Huntress. Per agire invece su un record tramite il suo ID, come fanno i modelli Jira con l'ID portato dalle etichette di un ticket, mettilo in **ID incidente** o **ID avviso**.
 
-**Gravità** indica una delle tue gravità per nome o per ID, senza distinguere maiuscole e minuscole, oppure per la posizione che occupa tra di esse: `most severe`, `middle` o `least severe`. È così che i livelli propri di uno strumento vengono distribuiti sulle gravità che hai nominato tu. Lasciata vuota, o se non ne indica nessuna, è la tua più grave, e il registro dell'esecuzione lo dice. Un nuovo incidente viene tenuto fuori dalle tue pagine di stato, e i loro iscritti non vengono avvisati, perché il testo di un altro strumento è scritto per gli utenti di quello strumento: attiva **Mostra sulle pagine di stato** per mostrarlo.
+**Gravità** indica una delle tue gravità per nome o per ID, senza distinguere maiuscole e minuscole, oppure per la posizione che occupa tra di esse: `most severe`, `middle` o `least severe`. È così che i livelli propri di uno strumento vengono distribuiti sulle gravità che hai nominato tu. Lasciata vuota, o se non ne indica nessuna, è la tua più grave, e il log dell'esecuzione lo dice. Un nuovo incidente viene tenuto fuori dalle tue pagine di stato, e i loro iscritti non vengono avvisati, perché il testo di un altro strumento è scritto per gli utenti di quello strumento: attiva **Mostra sulle pagine di stato** per mostrarlo.
 
 In **Altri campi**, **Motivo** è il motivo nella cronologia del record quando cambia stato, e **Nota** viene allora aggiunta accanto come nota privata, per uno strumento che dice qualcosa mentre prende in carico o risolve. **Campi personalizzati** dà a un nuovo record altri campi personalizzati, come oggetto JSON, **Etichette** gli ID delle sue etichette, separati da virgole, e **Risorse interessate** le risorse di cui si occupa, come su **Create One Incident**. **Nota invece di risolvere** aggiunge la nota e lascia che sia il tuo team a risolvere il record. Il blocco restituisce **Riepilogo**, ciò che ha fatto in una frase, e il record, così un blocco successivo legge il suo ID come `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
@@ -473,25 +473,25 @@ Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola let
 
 È così che un flusso di lavoro legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Create One Incident** per aprire un incidente con i dettagli dell'errore.
 
-Questi componenti agiscono come Amministratore del progetto nel progetto del flusso di lavoro: ciò che un Amministratore del progetto non può fare, o che il tuo piano non include, viene rifiutato, e il registro dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
+Questi componenti agiscono come Amministratore del progetto nel progetto del flusso di lavoro: ciò che un Amministratore del progetto non può fare, o che il tuo piano non include, viene rifiutato, e il log dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 
 ### Dichiarare un incidente da un modello
 
 **Create One Incident** può dichiarare l'incidente da uno dei tuoi [modelli di incidente](/docs/incidents/settings#modelli-di-incidenti): sceglilo in **Modello di incidente**, la prima impostazione del passaggio. Il modello compila ogni campo che **Oggetto JSON** lascia fuori — il titolo, la descrizione, la gravità, lo stato iniziale, i monitor e le altre risorse, le policy di reperibilità, le etichette, le pagine di stato e i campi personalizzati — e i suoi proprietari diventano i proprietari dell'incidente. Tutto ciò che imposti in **Oggetto JSON** prevale sul modello, stato compreso, quindi con un modello scelto **Oggetto JSON** deve contenere solo ciò che deve essere diverso, e può restare vuoto.
 
-L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTemplateId`. Quella colonna la imposta OneUptime: un passaggio che la invia in **Oggetto JSON** viene rifiutato, e il suo registro dell'esecuzione ti rimanda a **Modello di incidente**. Un modello di un altro progetto, o uno eliminato, fa prendere al passaggio la sua uscita **Errore**, e su un piano che non include i modelli di incidente il passaggio viene rifiutato indicando il piano necessario. Vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello).
+L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTemplateId`. Quella colonna la imposta OneUptime: un passaggio che la invia in **Oggetto JSON** viene rifiutato, e il suo log dell'esecuzione ti rimanda a **Modello di incidente**. Un modello di un altro progetto, o uno eliminato, fa prendere al passaggio la sua uscita **Errore**, e su un piano che non include i modelli di incidente il passaggio viene rifiutato indicando il piano necessario. Vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello).
 
 ### Collegare le risorse di cui si tratta
 
 **Create One Incident** e **Create One Alert** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **Oggetto JSON** e il modello collegano già, fino a 50 dalle prime 25 voci.
 
-Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il registro dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **Oggetto JSON** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
+Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il log dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **Oggetto JSON** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
 
 ### A chi appartiene fin dall'inizio
 
 **Create One Incident** e **Create One Alert** hanno le impostazioni **Utenti proprietari** e **Team proprietari**: le persone e i team a cui il record appartiene fin dalla sua creazione. Sceglili, oppure prendili da un passaggio precedente: l'ID o l'indirizzo email di un utente, l'ID di un team, più d'uno separati da virgole, o una lista. I proprietari del record vengono a sapere della sua creazione circa un minuto dopo, tutti quelli che ha a quel punto: quelli scelti qui sono sempre tra loro, mentre i proprietari che un passaggio successivo aggiunge se la perdono quando quel passaggio viene eseguito più di un minuto dopo, e al loro posto vengono avvisati i Proprietari del progetto.
 
-Il passaggio chiede se può aggiungerli, come Amministratore del progetto nel progetto del flusso di lavoro, prima che il record venga salvato: i proprietari che non può aggiungere fanno rifiutare la creazione. Chi non è membro del progetto, o un team che non è del progetto, viene lasciato fuori, e il registro dell'esecuzione lo dice: il record viene creato comunque. I proprietari aggiunti così non vengono avvisati di essere stati aggiunti: la notifica che il record è stato creato è quella che ricevono.
+Il passaggio chiede se può aggiungerli, come Amministratore del progetto nel progetto del flusso di lavoro, prima che il record venga salvato: i proprietari che non può aggiungere fanno rifiutare la creazione. Chi non è membro del progetto, o un team che non è del progetto, viene lasciato fuori, e il log dell'esecuzione lo dice: il record viene creato comunque. I proprietari aggiunti così non vengono avvisati di essere stati aggiunti: la notifica che il record è stato creato è quella che ricevono.
 
 ## Lavorare con i record
 
@@ -515,7 +515,7 @@ Una query è sempre limitata al progetto in cui viene eseguito il flusso di lavo
 { "name": "Checkout API", "monitorType": "Website" }
 ```
 
-Una chiave che non è una colonna viene ignorata invece che rifiutata: il registro dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Campi da passare**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`. I campi di un record collegato vanno sotto la sua chiave, come in `{"monitor": {"name": true}}`: `{"monitor": true}` trasmette solo il suo ID.
+Una chiave che non è una colonna viene ignorata invece che rifiutata: il log dell'esecuzione nomina quelle scartate, quindi controlla lì quando un campo non arriva. **Campi da passare**, sui componenti Find e sui trigger, si sceglie da un elenco; il suo **Modifica come JSON** mostra le stesse chiavi di colonna con valori `true`: `{"_id": true, "name": true}`. I campi di un record collegato vanno sotto la sua chiave, come in `{"monitor": {"name": true}}`: `{"monitor": true}` trasmette solo il suo ID.
 
 I **Campi personalizzati** sono un'unica colonna, `customFields`, che contiene il valore di ogni campo personalizzato sotto il nome del campo. I componenti Update modificano solo i campi personalizzati che nomini, e tutti gli altri mantengono il loro valore:
 
@@ -535,7 +535,7 @@ I campi che OneUptime compila da solo non vengono offerti quando scrivi un recor
 
 **Salta** e **Limite** sono due campi numerici su Find Many, Update Many e Delete Many, sotto **Altri campi**: `Skip: 0` con `Limit: 100` prende le prime cento corrispondenze. **Limite** vale `10` per impostazione predefinita, e su Update Many e Delete Many limita quanti record vengono effettivamente scritti, non solo quanti vengono restituiti. Quindi `Items Deleted: 10` significa che sono stati eliminati dieci record, non che ne corrispondevano dieci. Aumenta **Limite** quando vuoi modificarne più di dieci.
 
-Delete One e Delete Many per query non svuotano mai una cronologia. Sugli eventi di stato di un monitor, e sulle cronologie di stato di incidenti, avvisi, eventi di manutenzione ed episodi, non rimuovono mai lo stato attuale di un record, e conservano ogni evento di stato di un monitor che copre parte degli ultimi 90 giorni, così una pagina di stato non mostra mai un monitor in grigio. Il registro dell'esecuzione dice quanti ne sono stati conservati. Per eliminare un evento preciso, cercalo per il suo `_id`.
+Delete One e Delete Many per query non svuotano mai una cronologia. Sugli eventi di stato di un monitor, e sulle cronologie di stato di incidenti, avvisi, eventi di manutenzione ed episodi, non rimuovono mai lo stato attuale di un record, e conservano ogni evento di stato di un monitor che copre parte degli ultimi 90 giorni, così una pagina di stato non mostra mai un monitor in grigio. Il log dell'esecuzione dice quanti ne sono stati conservati. Per eliminare un evento preciso, cercalo per il suo `_id`.
 
 **Successo** ed **Errore** indicano se la query è stata eseguita, non cosa ha trovato. Una query che non corrisponde a nulla restituisce `0` ed esce comunque da **Successo**: non è un errore. Per diramare in base al fatto che qualcosa corrisponda, leggi il conteggio restituito in un blocco **Se / Altrimenti**.
 

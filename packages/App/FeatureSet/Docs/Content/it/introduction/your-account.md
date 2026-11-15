@@ -141,7 +141,7 @@ Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono 
 | **Come contattarmi** | Quale metodo usare, e dopo quanto tempo, quando una policy di reperibilità ti avvisa. | [Regole di escalation](/docs/on-call/escalation-rules) |
 | **Impostazioni notifiche** | Quali aggiornamenti ricevi su incidenti, avvisi, monitor e altro, e su quale canale. | |
 | **Preferenze e-mail** | Quante e-mail ricevi: una alla volta, o raggruppate. | [Riepilogo delle notifiche](/docs/emails/notification-rollup) |
-| **Registri di reperibilità** | Ogni avviso inviato a te, e cosa ne è stato. | |
+| **Log di reperibilità** | Ogni avviso inviato a te, e cosa ne è stato. | |
 | **Numeri di telefono in entrata** | Il numero su cui ti chiama una politica di chiamate in arrivo. | [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy) |
 | **Feed calendario** | I tuoi turni di reperibilità in Google Calendar, Apple Calendar o Outlook. | [Feed calendario](/docs/on-call/calendar-feeds) |
 

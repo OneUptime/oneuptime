@@ -25,7 +25,7 @@ flowchart TB
 | Hvad | Hvor |
 | --- | --- |
 | Provideren, til Linux, macOS, Windows, FreeBSD, OpenBSD og Solaris | Hentes af `terraform init` og `tofu init`, med checksums, som OneUptime signerer |
-| Referencen for hver ressource og datakilde, med hver af dens attributter | Registrets dokumentation, grupperet efter produkt: overvågninger, statussider, hændelser, vagter og de andre |
+| Referencen for hver ressource og datakilde, med hver af dens attributter | Registrets dokumentation, grupperet efter produkt: monitorer, statussider, hændelser, vagter og de andre |
 | En vejledning i at bruge provideren med OpenTofu | Registrets vejledninger |
 | Hver version, nyeste først | Registrets versionsliste |
 

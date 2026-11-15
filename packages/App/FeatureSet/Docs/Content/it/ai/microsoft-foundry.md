@@ -295,7 +295,7 @@ La risposta, abbreviata:
 ```
 :::
 
-Le richieste di OneUptime contengono di più: le sue istruzioni, la conversazione, gli strumenti che il modello può chiamare e un limite di token. Dalla risposta legge il testo, le chiamate agli strumenti, il motivo per cui il modello si è fermato e il consumo di token, che **Impostazioni del progetto** > **IA** > **Registri IA** elenca per ogni richiesta. I **Parametri aggiuntivi** del provider vengono aggiunti a ogni richiesta.
+Le richieste di OneUptime contengono di più: le sue istruzioni, la conversazione, gli strumenti che il modello può chiamare e un limite di token. Dalla risposta legge il testo, le chiamate agli strumenti, il motivo per cui il modello si è fermato e il consumo di token, che **Impostazioni del progetto** > **IA** > **Log IA** elenca per ogni richiesta. I **Parametri aggiuntivi** del provider vengono aggiunti a ogni richiesta.
 
 ## Microsoft Entra ID e risorse senza chiave
 
@@ -311,7 +311,7 @@ I modelli Claude che accettano solo Microsoft Entra ID, come Claude Mythos, non 
 
 ## Risoluzione dei problemi
 
-OneUptime mette all'inizio dell'errore cosa cambiare, poi la risposta di Azure stessa. Il pulsante **Test** lo mostra per intero; i **Registri IA** ne conservano i primi 490 caratteri.
+OneUptime mette all'inizio dell'errore cosa cambiare, poi la risposta di Azure stessa. Il pulsante **Test** lo mostra per intero; i **Log IA** ne conservano i primi 490 caratteri.
 
 :::details "Azure did not accept the API key" (401)
 La chiave è sbagliata, è stata rigenerata o appartiene a un'altra risorsa. Copia di nuovo **KEY 1** da **Keys and Endpoint** della risorsa indicata dall'URL di base e incollala in **Chiave API**.

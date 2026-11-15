@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登录、目录更改和风险检测导入 OneUptime 的安全事件；如果你愿意，还可以导入应用在后台进行的登录，以及 [Microsoft 365 审计日志](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活动。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改你租户中的任何内容。
+把 [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) 的登录、目录更改和风险检测导入 OneUptime 的安全事件；如果你愿意，还可以导入应用在后台进行的登录，以及 [Microsoft 365 审计日志](https://learn.microsoft.com/en-us/purview/audit-log-activities) 中 Exchange、SharePoint、OneDrive 和 Teams 的活动。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改你租户中的任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、它的权限，以及连接的表单。

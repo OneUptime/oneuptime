@@ -1,6 +1,6 @@
 # Google SecOps
 
-把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
+把 [Google SecOps](https://cloud.google.com/security/products/security-operations)（原 Chronicle）的警报和检测导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的内容呼叫值班人员。
 
 :::cards
 - [选择连接方式](#选择连接方式): SOAR playbook Webhook、托管连接器，或 UDM 转发。

@@ -181,7 +181,7 @@ Mens en igangværende vedligeholdelseshændelse berører en ressource, fordi den
 :::steps
 ### Tilføj kriteriet
 
-Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **Komponentstatus på ekstern statusside**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift overvågningsstatus til**.
+Klik på **Tilføj kriterier** i monitorens kriterier. Giv det filteret **Komponentstatus på ekstern statusside**, **Lig med**, **Under vedligeholdelse**, og vælg din vedligeholdelsesstatus i **Skift monitorstatus til**.
 
 ### Flyt det helt op
 

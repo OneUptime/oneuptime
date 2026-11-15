@@ -74,7 +74,7 @@ Klik på **Opret Monitorgruppe**, indtast et **Navn** og, hvis du vil, en **Besk
 Klik på **Oversigt**. **Aktuel status** viser gruppens status lige nu, og **Oppetidgraf** viser dens seneste 90 dage, én søjle pr. dag.
 :::
 
-For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række under **Overvågninger i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
+For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række under **Monitorer i gruppe**. Selve monitoren ændres ikke. En monitor kan høre til mere end én gruppe.
 
 ## En gruppes sider
 
@@ -82,8 +82,8 @@ For at tage en monitor ud af gruppen klikker du på **Fjern** i dens række unde
 
 | Side | Hvad den viser |
 | --- | --- |
-| **Oversigt** | **Detaljer om overvågningsgruppe**, **Aktuel status**, **Overvågning** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
-| **Monitorer** | **Overvågninger i gruppe**, med **Tilføj monitorer** og **Fjern**. |
+| **Oversigt** | **Detaljer om monitorgruppe**, **Aktuel status**, **Overvågning** og **Oppetidgraf** med gruppens oppetidsprocent over de seneste 90 dage. En gruppe uden monitorer tilbyder **Tilføj monitorer** i stedet for grafen. |
+| **Monitorer** | **Monitorer i gruppe**, med **Tilføj monitorer** og **Fjern**. |
 | **Hændelser** | Hændelserne på enhver monitor i gruppen. |
 | **Advarsler** | Advarslerne på enhver monitor i gruppen. |
 | **Ejere** | De personer og teams, der er ansvarlige for gruppen. Den ligger under **Avanceret**, som starter foldet sammen. |

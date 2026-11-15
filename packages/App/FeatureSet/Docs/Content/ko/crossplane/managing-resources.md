@@ -46,7 +46,7 @@ spec:
         tier: production
 ```
 
-참조는 모니터 단계 안에서도 쓸 수 있습니다. 기준의 상태(`monitorStatusIdRef`), 그리고 기준이 만드는 인시던트와 알림의 심각도, 소유 팀, 온콜 정책, 레이블(`incidentSeverityIdRef`, `alertSeverityIdRef`, `ownerTeamIdsRefs`, `onCallPolicyIdsRefs`, `labelIdsRefs`)이 그렇습니다. 사람을 위한 kind는 없습니다. 필드는 `ownerUserIds`처럼 사용자 ID로 사람을 지정하며, 많은 kind는 `TeamMember`의 `userEmail`처럼 그 옆에 이메일 주소도 받습니다([사용자와 팀](/docs/terraform/people-and-teams)).
+참조는 모니터 단계 안에서도 쓸 수 있습니다. 기준의 상태(`monitorStatusIdRef`), 그리고 기준이 만드는 인시던트와 경고의 심각도, 소유 팀, 온콜 정책, 레이블(`incidentSeverityIdRef`, `alertSeverityIdRef`, `ownerTeamIdsRefs`, `onCallPolicyIdsRefs`, `labelIdsRefs`)이 그렇습니다. 사람을 위한 kind는 없습니다. 필드는 `ownerUserIds`처럼 사용자 ID로 사람을 지정하며, 많은 kind는 `TeamMember`의 `userEmail`처럼 그 옆에 이메일 주소도 받습니다([사용자와 팀](/docs/terraform/people-and-teams)).
 
 ## 이미 있는 것 가져오기
 

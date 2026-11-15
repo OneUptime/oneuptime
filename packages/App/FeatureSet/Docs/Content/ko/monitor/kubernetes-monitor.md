@@ -1,11 +1,11 @@
 # Kubernetes 모니터
 
-Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 보내는 메트릭(노드, Pod, 컨테이너, 워크로드, 오토스케일러, 컨트롤 플레인)으로 알림을 보냅니다. 미리 만들어진 알림 템플릿에서 시작하거나, 메트릭 하나를 고르거나, 직접 쿼리를 작성한 뒤 알림이나 인시던트를 여는 임계값을 설정합니다.
+Kubernetes 모니터는 OneUptime Kubernetes 에이전트가 클러스터에서 보내는 메트릭(노드, Pod, 컨테이너, 워크로드, 오토스케일러, 컨트롤 플레인)으로 경고를 보냅니다. 미리 만들어진 경고 템플릿에서 시작하거나, 메트릭 하나를 고르거나, 직접 쿼리를 작성한 뒤 경고나 인시던트를 여는 임계값을 설정합니다.
 
 :::cards
 - [에이전트 설치](/docs/monitor/kubernetes-agent): Helm 명령 하나로 클러스터를 OneUptime에 연결합니다.
 - [모니터 만들기](#kubernetes-모니터-만들기): 클러스터를 고른 다음 템플릿, 메트릭, 쿼리 중 하나를 고릅니다.
-- [알림 템플릿](#미리-만들어진-알림-템플릿): 보고를 멈춘 클러스터부터 etcd까지 21개의 미리 만들어진 알림.
+- [알림 템플릿](#미리-만들어진-알림-템플릿): 보고를 멈춘 클러스터부터 etcd까지 21개의 미리 만들어진 경고.
 - [기준](#모니터링-기준): 정적 임계값과 이상 탐지.
 :::
 
@@ -38,17 +38,17 @@ flowchart TB
 
 ### 감시할 대상 선택
 
-새 모니터는 **알림 대상** 아래의 **Cluster Stopped Reporting** 에서 시작하며, **변경** 으로 다른 템플릿을 고릅니다. **Custom Metric** 과 **고급** 은 **추가 필드** 아래에 있습니다.
+새 모니터는 **경고 대상** 아래의 **Cluster Stopped Reporting** 에서 시작하며, **변경** 으로 다른 템플릿을 고릅니다. **Custom Metric** 과 **고급** 은 **추가 필드** 아래에 있습니다.
 
 | 위치 | 선택하는 내용 |
 | --- | --- |
-| **알림 대상** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
+| **경고 대상** | [미리 만들어진 알림 템플릿](#미리-만들어진-알림-템플릿). 메트릭, 범위, 시간 범위, 기준을 채웁니다. **시간 범위** 는 계속 바꿀 수 있습니다. |
 | **Custom Metric** | [메트릭 카탈로그](#메트릭-카탈로그)의 메트릭 하나와 그 **리소스 범위**, 필터, **집계**(평균, 최대, 최소, 합계, 개수), **시간 범위**. |
 | **고급** | **리소스 범위**, 필터, **시간 범위**, 그리고 **메트릭 선택** 아래의 직접 만든 메트릭 쿼리와 수식. 결과의 실시간 차트가 함께 표시됩니다. |
 
 ### 기준 설정
 
-모니터가 상태를 바꾸는 시점과 알림이나 인시던트를 여는 시점을 설정합니다. [모니터링 기준](#모니터링-기준)을 참고하세요. 템플릿을 썼다면 이미 채워져 있으니 임계값, 심각도, 온콜 정책을 검토합니다.
+모니터가 상태를 바꾸는 시점과 경고나 인시던트를 여는 시점을 설정합니다. [모니터링 기준](#모니터링-기준)을 참고하세요. 템플릿을 썼다면 이미 채워져 있으니 임계값, 심각도, 온콜 정책을 검토합니다.
 
 ### 모니터 저장
 
@@ -85,15 +85,15 @@ flowchart TB
 
 | 범주 | 메트릭 |
 | --- | --- |
-| Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 노드 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| 컨테이너 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 워크로드 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| 파드 | Pod CPU 사용량, Pod 메모리 사용량, Pod 단계(코드), Pod 파일 시스템 사용량, Pod 메모리 제한 사용률, Pod CPU 제한 사용률, Pod 네트워크 I/O(누적, 양방향) |
+| 노드 | 노드 CPU 사용량, 노드 할당 가능 CPU, 노드 메모리 사용량, 노드 메모리 작업 집합, 노드 파일 시스템 사용량, 노드 할당 가능 메모리, 노드 Ready 조건, 노드 MemoryPressure 조건, 노드 DiskPressure 조건, 노드 PIDPressure 조건, 노드 파일 시스템 사용 가능 공간 |
+| 컨테이너 | 컨테이너 재시작, 컨테이너 재시작(증가분), 컨테이너 CPU 제한, 컨테이너 CPU 요청, 컨테이너 메모리 제한, 컨테이너 메모리 요청, 컨테이너 준비됨 |
+| 워크로드 | Deployment 사용 가능 레플리카, Deployment 원하는 레플리카, DaemonSet 원하는 노드, DaemonSet 잘못 예약된 노드, DaemonSet 준비된 노드, StatefulSet 원하는 레플리카, StatefulSet 준비된 레플리카, Job 실패한 Pod, Job 실패한 Pod(증가분), Job 성공한 Pod |
+| HPA | HPA 현재 레플리카, HPA 원하는 레플리카, HPA 최대 레플리카, HPA 최소 레플리카 |
+| 컨트롤 플레인 | etcd 리더 있음, API 서버 진행 중인 요청, 스케줄러 대기 중인 Pod |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **Container Restarts**가 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job Failed Pods**는 Job의 누적 실패 Pod 수이고, **Job Failed Pods (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job Failed Pods**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
+> **Pod CPU 사용량**과 **노드 CPU 사용량**의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod 단계(코드)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **노드 Ready 조건**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 경고를 받으세요. **컨테이너 재시작**은 컨테이너의 누적 재시작 수이고, **컨테이너 재시작(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **컨테이너 재시작**이 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job 실패한 Pod**는 Job의 누적 실패 Pod 수이고, **Job 실패한 Pod(증가분)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job 실패한 Pod**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
 
 ## 모니터링 기준
 
@@ -124,13 +124,13 @@ flowchart TB
 | **비정상적으로 낮음** | 예상 범위보다 내려감 |
 | **비정상** | 어느 방향으로든 예상 범위를 벗어남 |
 
-각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 같은 요일·같은 시간대에 2주 분량의 기록이 쌓일 때까지 "Learning" 상태로 남으며 알림을 만들지 않습니다. 이 모니터는 쿼리를 속성으로 필터링하므로, 각 쿼리와 그룹화한 쿼리의 각 시리즈는 메트릭이 보관되는 기간까지 자신의 기록과 비교합니다. 그 기간이 2주 미만이면 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남고, 나머지는 메트릭의 모든 시리즈와 비교합니다. 히스토그램의 백분위수는 항상 이 상태로 남습니다.
+각 샘플은 **기준선 기간**(기본 14일, 그 밖에 28, 60, 90일)으로 만든, 같은 요일·같은 시간대의 기준선과 비교됩니다. **민감도** 는 예상 범위의 폭을 정합니다. **낮음 (4σ — 심각한 편차만)**, 기본값인 **중간 (3σ — 권장)**, **높음 (2σ — 노이즈가 많음, 매우 안정적인 서비스)** 중에서 고릅니다. 이상 조건은 같은 요일·같은 시간대에 2주 분량의 기록이 쌓일 때까지 "Learning" 상태로 남으며 경고를 만들지 않습니다. 이 모니터는 쿼리를 속성으로 필터링하므로, 각 쿼리와 그룹화한 쿼리의 각 시리즈는 메트릭이 보관되는 기간까지 자신의 기록과 비교합니다. 그 기간이 2주 미만이면 합계, 개수 또는 히스토그램에 대한 쿼리는 계속 이 상태로 남고, 나머지는 메트릭의 모든 시리즈와 비교합니다. 히스토그램의 백분위수는 항상 이 상태로 남습니다.
 
 **추가 필드** 아래의 **데이터가 없는 경우** 는 기간 동안 쿼리가 아무것도 반환하지 않을 때의 동작을 정합니다. **Ignore**(기본값)는 일치하지 않고, **트리거** 는 무응답을 문제로 취급하며, **Treat As Zero** 는 0으로 비교합니다. OneUptime 자체가 데이터를 받지 못한 시간은 절대 데이터 없음으로 취급되지 않습니다. 그런 시간이 포함된 기간의 확인은 대신 기다리며, 자세한 내용은 [OneUptime이 데이터를 받지 못할 때](/docs/monitor/when-oneuptime-is-not-receiving)에서 설명합니다.
 
 ## 미리 만들어진 알림 템플릿
 
-**알림 대상** 목록은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 알림을 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
+**경고 대상** 목록은 다음 템플릿을 범주별로 보여 줍니다. 각 템플릿은 두 개의 기준을 채웁니다. 하나는 조건이 유지되는 동안 모니터를 오프라인으로 표시하고 인시던트와 경고를 열며, 다른 하나는 조건이 해소되면 모니터를 다시 온라인으로 돌립니다.
 
 | 템플릿 | 범주 | 작동 조건 | 심각도 |
 | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details CPU 임계값이 작동하지 않음
-**Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어이므로, 임계값 `80`은 80코어를 뜻합니다. 임계값을 코어 단위로 정하거나, 퍼센트를 비교하는 **High Node CPU Utilization** 또는 **Pod CPU Saturating Container Limit** 에서 시작하세요.
+**Pod CPU 사용량**과 **노드 CPU 사용량**의 단위는 퍼센트가 아니라 코어이므로, 임계값 `80`은 80코어를 뜻합니다. 임계값을 코어 단위로 정하거나, 퍼센트를 비교하는 **High Node CPU Utilization** 또는 **Pod CPU Saturating Container Limit** 에서 시작하세요.
 :::
 
 :::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음
@@ -207,6 +207,6 @@ flowchart TB
 :::cards
 - [Kubernetes 에이전트(Helm 설치)](/docs/monitor/kubernetes-agent): Helm으로 에이전트를 설치, 업그레이드, 조정합니다.
 - [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent): 네임스페이스 필터, 컨트롤 플레인 메트릭, 로그 심각도 필터, AI 에이전트.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 에이전트의 사용자 지정 메트릭과 eBPF 메트릭을 포함한 모든 메트릭으로 알림을 보냅니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 에이전트의 사용자 지정 메트릭과 eBPF 메트릭을 포함한 모든 메트릭으로 경고를 보냅니다.
 - [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 임계값을 넘은 Pod나 노드를 인시던트 제목에 넣습니다.
 :::
