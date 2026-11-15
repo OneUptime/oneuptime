@@ -1062,7 +1062,7 @@ describe("prepare: the shared guard runs first", () => {
     [
       "a command for another kind of resource",
       request(["ceph", "health"], {}, { resourceType: "ProxmoxCluster" }),
-      /this command is for a "ProxmoxCluster" resource, and this agent serves a Ceph cluster/,
+      /this command is for another kind of resource \("ProxmoxCluster"\), and this agent serves only its own Ceph cluster/,
     ],
     [
       "a command for another resource id",
