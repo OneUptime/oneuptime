@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "يُقرّ بها باسمك عند إعلان الحادثة، ويتوقف تصعيد المناوبة الخاص بها خلال دقيقة. ولا تُسترجع الاستدعاءات التي أُرسلت بالفعل.",
   "You do not have permission to acknowledge this alert.": "ليس لديك إذن بالإقرار بهذا التنبيه.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "تنبيهات مُقرّ بها أو محلولة بالفعل (العدد: {{count}})، وتُترك كما هي.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} تنبيه مُقرّ به أو محلول بالفعل، ويُترك كما هو."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} تنبيه مُقرّ به أو محلول بالفعل، ويُترك كما هو.",
+  "The whole {{name}}": "{{name}} بالكامل"
 }

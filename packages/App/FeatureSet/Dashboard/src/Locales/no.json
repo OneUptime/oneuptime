@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attributter kopiert som {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attributt kopiert som {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Kopier referansen til {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Kopier {{count}} attributter som {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Kopier {{count}} attributt som {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "De bekreftes i ditt navn når hendelsen erklæres, og deres egen vakteskalering stopper innen et minutt. Tilkallinger som allerede er sendt, trekkes ikke tilbake.",
   "You do not have permission to acknowledge this alert.": "Du har ikke tillatelse til å bekrefte dette varselet.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} varsler er allerede bekreftet eller løst og blir stående som de er.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} varsel er allerede bekreftet eller løst og blir stående som det er."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} varsel er allerede bekreftet eller løst og blir stående som det er.",
+  "The whole {{name}}": "{{name}} i sin helhet"
 }

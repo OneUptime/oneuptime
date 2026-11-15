@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} विशेषताएं {{format}} JSON के रूप में कॉपी की गईं",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} विशेषता {{format}} JSON के रूप में कॉपी की गई",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "{{name}} का संदर्भ कॉपी करें",
   "Copy {{count}} attributes as {{format}} JSON": "{{count}} विशेषताएं {{format}} JSON के रूप में कॉपी करें",
   "Copy {{count}} attributes as {{format}} JSON_one": "{{count}} विशेषता {{format}} JSON के रूप में कॉपी करें",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "घटना घोषित होने पर इन्हें आपके नाम से स्वीकार किया जाता है, और इनका अपना ऑन-कॉल एस्केलेशन एक मिनट के भीतर रुक जाता है। जो पेज पहले ही भेजे जा चुके हैं, वे वापस नहीं लिए जाते।",
   "You do not have permission to acknowledge this alert.": "आपको इस अलर्ट को स्वीकार करने की अनुमति नहीं है।",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} अलर्ट पहले से स्वीकार किए या सुलझाए जा चुके हैं और जैसे हैं वैसे ही छोड़े जाते हैं।",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} अलर्ट पहले से स्वीकार किया या सुलझाया जा चुका है और जैसा है वैसा ही छोड़ा जाता है।"
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} अलर्ट पहले से स्वीकार किया या सुलझाया जा चुका है और जैसा है वैसा ही छोड़ा जाता है।",
+  "The whole {{name}}": "संपूर्ण {{name}}"
 }

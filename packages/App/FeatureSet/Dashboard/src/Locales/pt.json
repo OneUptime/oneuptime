@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} atributos copiados em JSON {{format}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} atributo copiado em JSON {{format}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Copiar a referência a {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Copiar {{count}} atributos em JSON {{format}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copiar {{count}} atributo em JSON {{format}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "Eles são confirmados em seu nome quando o incidente é declarado, e o escalonamento de plantão deles para em até um minuto. Acionamentos que já saíram não são cancelados.",
   "You do not have permission to acknowledge this alert.": "Você não tem permissão para confirmar este alerta.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} alertas já estão confirmados ou resolvidos e ficam como estão.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alerta já está confirmado ou resolvido e fica como está."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alerta já está confirmado ou resolvido e fica como está.",
+  "The whole {{name}}": "{{name}} por inteiro"
 }

@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "インシデントの宣言時にあなたとして確認され、それらのアラート自身のオンコールのエスカレーションは 1 分以内に止まります。すでに送信された呼び出しは取り消されません。",
   "You do not have permission to acknowledge this alert.": "このアラートを確認する権限がありません。",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} 件のアラートはすでに確認済みまたは解決済みのため、そのままにします。",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} 件のアラートはすでに確認済みまたは解決済みのため、そのままにします。"
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} 件のアラートはすでに確認済みまたは解決済みのため、そのままにします。",
+  "The whole {{name}}": "{{name}} の全体"
 }

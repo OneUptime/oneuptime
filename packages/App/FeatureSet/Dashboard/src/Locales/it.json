@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attributi copiati in JSON {{format}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attributo copiato in JSON {{format}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Copia il riferimento a {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Copia {{count}} attributi in JSON {{format}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copia {{count}} attributo in JSON {{format}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "Vengono riconosciuti a tuo nome quando l'incidente viene dichiarato, e la loro escalation di reperibilità si ferma entro un minuto. Le notifiche già inviate non vengono ritirate.",
   "You do not have permission to acknowledge this alert.": "Non hai l'autorizzazione per riconoscere questo avviso.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} avvisi sono già riconosciuti o risolti e restano come sono.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} avviso è già riconosciuto o risolto e resta com'è."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} avviso è già riconosciuto o risolto e resta com'è.",
+  "The whole {{name}}": "{{name}} per intero"
 }

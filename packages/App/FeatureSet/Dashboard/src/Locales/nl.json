@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attributen gekopieerd als {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attribuut gekopieerd als {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Verwijzing naar {{name}} kopiëren",
   "Copy {{count}} attributes as {{format}} JSON": "{{count}} attributen kopiëren als {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "{{count}} attribuut kopiëren als {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "De waarschuwingen worden namens u bevestigd wanneer het incident wordt gemeld, en hun eigen escalatie stopt binnen een minuut. Oproepen die al zijn verstuurd, worden niet ingetrokken.",
   "You do not have permission to acknowledge this alert.": "U hebt geen toestemming om deze waarschuwing te bevestigen.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} waarschuwingen zijn al bevestigd of opgelost en blijven zoals ze zijn.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} waarschuwing is al bevestigd of opgelost en blijft zoals ze is."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} waarschuwing is al bevestigd of opgelost en blijft zoals ze is.",
+  "The whole {{name}}": "{{name}} in zijn geheel"
 }

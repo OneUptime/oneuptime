@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Копировать ссылку на {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "Они подтверждаются от вашего имени при объявлении инцидента, и их собственная эскалация дежурства останавливается в течение минуты. Уже отправленные вызовы не отзываются.",
   "You do not have permission to acknowledge this alert.": "У вас нет прав на подтверждение этого оповещения.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "Оповещений, уже подтверждённых или устранённых: {{count}}. Они остаются как есть.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} оповещение уже подтверждено или устранено и остаётся как есть."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} оповещение уже подтверждено или устранено и остаётся как есть.",
+  "The whole {{name}}": "{{name}} целиком"
 }

@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "已將 {{count}} 個屬性複製為 {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "Copied {{count}} attribute as {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "複製對 {{name}} 的參照",
   "Copy {{count}} attributes as {{format}} JSON": "將 {{count}} 個屬性複製為 {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copy {{count}} attribute as {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "宣告事件時會以你的身分確認它們，它們自己的待命升級會在一分鐘內停止。已經發出的呼叫不會被撤回。",
   "You do not have permission to acknowledge this alert.": "您沒有確認此警示的權限。",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} 個警示已確認或已解決，將維持原樣。",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} 個警示已確認或已解決，將維持原樣。"
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} 個警示已確認或已解決，將維持原樣。",
+  "The whole {{name}}": "整個 {{name}}"
 }

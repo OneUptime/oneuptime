@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "هنگام اعلام حادثه به نام شما تأیید می‌شوند، و تشدید آنکال خودشان ظرف یک دقیقه متوقف می‌شود. فراخوان‌هایی که پیش‌تر رفته‌اند پس گرفته نمی‌شوند.",
   "You do not have permission to acknowledge this alert.": "مجوز تأیید این هشدار را ندارید.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} هشدار از پیش تأیید یا برطرف شده‌اند و همان‌طور که هستند می‌مانند.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} هشدار از پیش تأیید یا برطرف شده و همان‌طور که هست می‌ماند."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} هشدار از پیش تأیید یا برطرف شده و همان‌طور که هست می‌ماند.",
+  "The whole {{name}}": "کل {{name}}"
 }

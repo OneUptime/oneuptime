@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "속성 {{count}}개를 {{format}} JSON으로 복사했습니다",
   "Copied {{count}} attributes as {{format}} JSON_one": "Copied {{count}} attribute as {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "{{name}}에 대한 참조 복사",
   "Copy {{count}} attributes as {{format}} JSON": "속성 {{count}}개를 {{format}} JSON으로 복사",
   "Copy {{count}} attributes as {{format}} JSON_one": "Copy {{count}} attribute as {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "인시던트를 선언할 때 사용자 이름으로 인지되며, 해당 경고들의 온콜 에스컬레이션은 1분 이내에 중지됩니다. 이미 발송된 호출은 취소되지 않습니다.",
   "You do not have permission to acknowledge this alert.": "이 경고를 인지할 권한이 없습니다.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "경고 {{count}}개는 이미 인지되었거나 해결되어 그대로 둡니다.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "경고 {{count}}개는 이미 인지되었거나 해결되어 그대로 둡니다."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "경고 {{count}}개는 이미 인지되었거나 해결되어 그대로 둡니다.",
+  "The whole {{name}}": "{{name}} 전체"
 }

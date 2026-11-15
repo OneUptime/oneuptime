@@ -52658,5 +52658,6 @@
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.",
   "You do not have permission to acknowledge this alert.": "You do not have permission to acknowledge this alert.",
   "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} alerts are already acknowledged or resolved and are left as they are.",
-  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alert is already acknowledged or resolved and is left as it is."
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} alert is already acknowledged or resolved and is left as it is.",
+  "The whole {{name}}": "The whole {{name}}"
 }
