@@ -253,7 +253,8 @@ export class Service extends DatabaseService<AlertState> {
    * The project's states as they are in the database now, past what this
    * process keeps: for an answer about a state the kept list does not have -
    * one created a moment ago, in another process - before saying it is not
-   * the project's.
+   * the project's. A list read for this answer is the database as it is now
+   * (statesAsOneUptime.isKept), and is not read again to find the same.
    */
   private async getAllAlertStatesHaving(data: {
     projectId: ObjectID;
@@ -269,6 +270,7 @@ export class Service extends DatabaseService<AlertState> {
     const stateId: string = data.stateId.toString();
 
     if (
+      !this.statesAsOneUptime.isKept(states) ||
       states.some((state: AlertState) => {
         return state.id?.toString() === stateId;
       })
