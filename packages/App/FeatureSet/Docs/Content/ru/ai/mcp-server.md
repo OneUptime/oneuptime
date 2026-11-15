@@ -38,7 +38,7 @@ flowchart TB
 - **Оповещения**: подтверждение и разрешение оповещений, добавление заметок и управление состояниями и уровнями важности оповещений.
 - **Команды и дежурства**: управление командами и политиками дежурств.
 - **Страницы статуса**: управление страницами статуса и публикация объявлений.
-- **Плановые работы**: создание и управление событиями обслуживания.
+- **Плановое обслуживание**: создание и управление событиями обслуживания.
 - **Телеметрия**: запросы к логам, метрикам, трассировкам, исключениям, логам мониторов, событиям безопасности и не только, только чтение.
 
 Есть инструменты создания, получения, перечисления, обновления, удаления и подсчёта для 54 видов записей, инструменты перечисления и подсчёта для 9 видов телеметрии и инструменты, созданные для реагирования на инциденты. Инструменты только для чтения помечены `readOnlyHint`, каждый инструмент, который что-то меняет, — `destructiveHint`, а `openWorldHint` есть только у инструментов публичных страниц статуса, поэтому клиент может сам выполнять вызовы только для чтения и спрашивать вас перед любым изменением. Неудачный вызов инструмента возвращается как результат инструмента (`isError: true`) с `statusCode`, подробностями и подсказкой, а не как ошибка протокола MCP, поэтому агент может прочитать сбой и исправиться.
@@ -483,7 +483,7 @@ MCP-сервер не хранит состояние: он не выдаёт и
 | Инциденты | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Оповещения | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Страницы статуса | Status Page, Status Page Announcement |
-| Плановые работы | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| Плановое обслуживание | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Команды и дежурства | Team, On-Call Policy |
 | Метки | Label |
 | Безопасность | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

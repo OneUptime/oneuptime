@@ -59,10 +59,10 @@ Faites glisser depuis un point au bas d'un bloc jusqu'au point en haut du bloc s
 
 ```mermaid title="Seule la sortie prise par un bloc mène quelque part"
 flowchart TB
-    hook["Webhook"] -->|"Out"| check{"If / Else"}
-    check -->|"Oui"| post["API Post (JSON)"]
+    hook["Webhook"] -->|"Out"| check{"Si / Sinon"}
+    check -->|"Oui"| post["Appel d'API POST (JSON)"]
     check -->|"Non"| ends(["Rien n'est relié,<br/>l'exécution s'arrête"])
-    post -->|"Succès"| slack["Send Message to Slack"]
+    post -->|"Succès"| slack["Envoyer un message à Slack"]
     post -->|"Erreur"| log["Journal"]
 ```
 
@@ -103,11 +103,11 @@ La plupart des paramètres peuvent utiliser une valeur d'un bloc précédent ou 
 
 Dans le paramètre, une valeur apparaît comme une puce, par exemple **Webhook › Request Body**. Survolez-la pour voir la référence qu'elle représente, `{{local.components.webhook-1.returnValues.request-body}}`, qui est ce qui est enregistré. Le curseur franchit une puce d'un seul coup, **Backspace** la supprime entièrement, et la copier copie la référence. Si vous connaissez la syntaxe, tapez plutôt `{{` : la même liste s'ouvre sous le paramètre et se réduit au fil de la saisie.
 
-- **Les valeurs disponibles viennent d'abord, et les autres sont listées à part.** Le déclencheur et les blocs qui s'exécutent avant celui-ci sont proposés. Un bloc qui ne s'exécute avant celui-ci que lors de certaines exécutions — après une sortie d'un **If / Else**, par exemple — le précise, car ses valeurs peuvent être vides ici. Un bloc qui s'exécute plus tard, ou sur une branche qui ne mène pas ici, est listé à la fin, replié et grisé, avec la raison, et ses valeurs ne peuvent pas être choisies. Tant qu'un bloc n'est pas relié, seules les valeurs du déclencheur sont listées, et la liste le précise.
-- **Un enregistrement s'ouvre sur ses champs.** Un bloc Find One ou On Create renvoie un enregistrement entier. Choisissez-le pour voir ses champs : d'abord ceux que le bloc transmet, nommés dans son **Fields to pass on**, puis, à part, ceux qu'il ne transmet pas et qui sont vides ici. Une valeur JSON ou un ensemble d'en-têtes s'ouvre sur une zone où vous tapez un chemin, comme `title` ou `alerts[0].status`.
+- **Les valeurs disponibles viennent d'abord, et les autres sont listées à part.** Le déclencheur et les blocs qui s'exécutent avant celui-ci sont proposés. Un bloc qui ne s'exécute avant celui-ci que lors de certaines exécutions — après une sortie d'un **Si / Sinon**, par exemple — le précise, car ses valeurs peuvent être vides ici. Un bloc qui s'exécute plus tard, ou sur une branche qui ne mène pas ici, est listé à la fin, replié et grisé, avec la raison, et ses valeurs ne peuvent pas être choisies. Tant qu'un bloc n'est pas relié, seules les valeurs du déclencheur sont listées, et la liste le précise.
+- **Un enregistrement s'ouvre sur ses champs.** Un bloc Find One ou On Create renvoie un enregistrement entier. Choisissez-le pour voir ses champs : d'abord ceux que le bloc transmet, nommés dans son **Champs à transmettre**, puis, à part, ceux qu'il ne transmet pas et qui sont vides ici. Une valeur JSON ou un ensemble d'en-têtes s'ouvre sur une zone où vous tapez un chemin, comme `title` ou `alerts[0].status`.
 - **Une fois qu'un bloc s'est exécuté, la liste sait ce que contiennent ses valeurs.** Chaque valeur indique ce qu'elle contenait lors de la dernière exécution — `"production"`, ou `3 fields` —, et une valeur JSON ou un ensemble d'en-têtes s'ouvre sur les champs qu'il avait, chacun avec son contenu. Depuis le **Corps de la requête** d'un Webhook, vous choisissez ainsi **incident.title** au lieu de taper un chemin. La recherche trouve aussi ces champs : tapez `title`, ou `{{` et le début d'un chemin. Les champs d'un enregistrement montrent aussi ce qu'ils contenaient. Les champs viennent de la dernière exécution : un champ qu'une requête ultérieure omet est donc vide dans cette exécution-là. Une valeur qui ressemble à un secret, comme un en-tête `Authorization`, un jeton ou un mot de passe, est listée sans ce qu'elle contenait.
 - **Un Webhook qui n'a encore reçu aucune requête le dit** en haut de ses valeurs, avec **Copier la requête de test** : une commande `curl` qui envoie `{"message": "Hello"}` à l'URL de webhook du flux de travail. Lancez-la dans un terminal pendant que la liste est ouverte : les champs de la requête y apparaissent dès que l'exécution qu'elle déclenche est terminée, en général en quelques secondes. Seules les personnes qui peuvent voir l'URL du webhook ont ce bouton. Tant que le flux de travail est désactivé, son URL refuse les requêtes : la liste propose alors **Tester avec « Exécuter le flux de travail »** à la place, et les champs de la requête que vous envoyez de là apparaissent de la même façon. Un déclencheur Incoming Email qui n'a encore reçu aucun e-mail le dit au même endroit ; envoyez un e-mail à son adresse, et ses en-têtes et ses pièces jointes apparaissent de la même façon.
-- **Les éditeurs de code ont Insert value dans leur barre d'outils.** En JSON, il ajoute les guillemets dont une valeur a besoin à l'intérieur d'un document. **Run Custom JavaScript** lit les valeurs via ses **Arguments** : son code n'a donc pas de sélecteur.
+- **Les éditeurs de code ont Insert value dans leur barre d'outils.** En JSON, il ajoute les guillemets dont une valeur a besoin à l'intérieur d'un document. **Exécuter du JavaScript personnalisé** lit les valeurs via ses **Arguments** : son code n'a donc pas de sélecteur.
 - **Les nombres, mots de passe, interrupteurs et dates gardent leur propre contrôle,** avec **{ }** à côté. Une valeur choisie remplace le contrôle, et **abc** revient à la saisie.
 
 Une puce devient orange quand ce qu'elle lit n'existe pas : un bloc renommé ou supprimé, une valeur que le bloc ne renvoie pas, un bloc qui s'exécute plus tard, un champ d'un enregistrement que son bloc ne transmet pas, ou une variable qui n'existe pas. Son info-bulle dit de quoi il s'agit. La syntaxe des références est décrite dans [Variables](/docs/workflows/variables).
@@ -134,7 +134,7 @@ Le plus rapide pour prendre le canevas en main est un flux de travail de deux bl
 
 :::steps
 1. Cliquez sur le bloc d'espace réservé en pointillés, puis sur **Manuel** dans le panneau **Ajouter un déclencheur**.
-2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Populaires**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Execute** du déclencheur au point d'entrée du bloc Log, en dessous.
+2. Cliquez sur **Ajouter un composant**, puis sur **Journal** sous **Populaires**. Le nouveau bloc se place sous le déclencheur. Reliez le point **Exécuter** du déclencheur au point d'entrée du bloc Log, en dessous.
 3. Cliquez sur le bloc Log, qui affiche **Click to set up**, et tapez `Hello from ` dans sa **Valeur**. Cliquez sur **{ }**, puis sur **JSON** sous **Manuel**. Le paramètre affiche **Manual › JSON** et enregistre `{{local.components.manual-1.returnValues.value}}`. `manual-1` est l'**Identifiant** du déclencheur, affiché sur le bloc déclencheur. Cliquez sur **Enregistrer**.
 4. De retour dans le **Constructeur**, cliquez sur **Exécuter le flux de travail**, mettez `{ "name": "Ada" }` dans le champ **JSON**, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Le flux de travail est toujours désactivé, et il n'a pas besoin d'être activé : une exécution que vous lancez vous-même est une **Exécution de test**.
 5. Un panneau **Exécution du flux de travail** s'ouvre de lui-même et suit l'exécution. Il indique **Exécution de test** en haut, et le journal affiche `Value:` suivi de `Hello from` et du JSON que vous avez tapé.
@@ -158,11 +158,11 @@ Tant qu'un flux de travail est désactivé, ce qui le lance décide s'il s'exéc
 | Son déclencheur : une planification, un événement OneUptime ou un e-mail | Ignoré.                                                                                                                                                                      |
 | **Exécuter le flux de travail** ou **Run just this step** | S'exécute, en tant qu'**Exécution de test**. Ses blocs s'exécutent pour de vrai : un message est vraiment envoyé et un enregistrement est vraiment modifié. L'exécution est marquée **Exécution de test** dans les listes d'exécutions et en haut de l'exécution, avec la personne qui l'a lancée. |
 | Un appel à son URL de webhook                            | Refusé avec HTTP 400 et "This workflow is turned off, so its trigger can't start it. Turn it on with the Enabled switch at the top of its Builder, then try again."                                        |
-| Le bloc **Execute Workflow** d'un autre flux de travail          | Ce bloc prend son chemin **Erreur**, et l'erreur nomme le flux de travail qu'il a appelé. C'est vrai aussi dans une exécution de test : un flux de travail qu'il appelle doit être activé. |
+| Le bloc **Exécuter un autre flux de travail** d'un autre flux de travail          | Ce bloc prend son chemin **Erreur**, et l'erreur nomme le flux de travail qu'il a appelé. C'est vrai aussi dans une exécution de test : un flux de travail qu'il appelle doit être activé. |
 
 L'ordre est donc : le construire, le tester avec **Exécuter le flux de travail** tant qu'il est encore désactivé, lire le journal de l'exécution, et basculer **Activé** quand vous êtes prêt à ce que son déclencheur se produise. Pour tester un seul bloc sans exécuter l'ensemble, utilisez **Run just this step** dans les paramètres de ce bloc.
 
-Pour mettre un flux de travail en pause sans le supprimer, désactivez **Activé**. Son déclencheur ne lance plus d'exécutions. Une exécution en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil et enregistrée comme une erreur. Une exécution de test continue.
+Pour mettre un flux de travail en pause sans le supprimer, désactivez **Activé**. Son déclencheur ne lance plus d'exécutions. Une exécution en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Pause** est annulée à son réveil et enregistrée comme une erreur. Une exécution de test continue.
 
 ## Mettre de l'ordre
 

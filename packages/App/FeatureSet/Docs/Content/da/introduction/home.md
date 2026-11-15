@@ -6,7 +6,7 @@ Hjem er den første side, du ser i et projekt. Den viser med et blik, om noget h
 - [Hvad Hjem viser](#hvad-hjem-viser): Om noget er galt, hvad der har brug for dig, hvad projektet rummer, og alle produkter.
 - [Find rundt](#find-rundt): Menuen Produkter og bjælkerne øverst på hver side.
 - [Søg](#søg-efter-en-side-en-indstilling-eller-en-handling): Find enhver side, indstilling eller handling ved at skrive dens navn.
-- [Tastaturgenveje](#tastaturgenveje): Gå til Hjem, Overvågninger eller Hændelser med to taster.
+- [Tastaturgenveje](#tastaturgenveje): Gå til Hjem, Monitorer eller Hændelser med to taster.
 :::
 
 ## Hvad Hjem viser
@@ -109,7 +109,7 @@ Når noget i projektets opsætning ville forhindre, at folk får besked, slutter
 
 ## Find rundt
 
-Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Overvågninger, Hændelser, Advarsler, Vagt, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
+Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grupper som rækkerne i én liste og åbner altid med den første af dem, det grundlæggende, foldet ud: Monitorer, Hændelser, Advarsler, Vagt, Statussider, Planlagt vedligeholdelse og SLOs. Hver anden gruppe (Observabilitet, Sikkerhed, AI, Kode, Ressourcer, Infrastruktur, Cloud, Dashboards og automatisering og Indstillinger) er foldet sammen til en række i den samme liste. Hver række nævner gruppens produkter og siger, hvor mange der er. Klik på en række for at folde den ud eller sammen, eller gå til den med piletasterne og tryk på **Enter**.
 
 - **Søgning finder alt.** Skriv i menuens søgefelt for at finde ethvert produkt på navn, på hvad det gør, eller på et velkendt ord som `k8s` eller `RUM`. Søgningen kigger også i de sammenfoldede grupper.
 - **Du starter, hvor du er.** Gruppen for den side, du er på, folder sig selv ud, og de produkter, du har åbnet for nylig, står øverst.
@@ -182,7 +182,7 @@ Tryk på `g` og derefter et bogstav for at gå direkte til et produkt. Tryk bogs
 | Taster | Går til |
 | --- | --- |
 | `g` derefter `h` | Hjem |
-| `g` derefter `m` | Overvågninger |
+| `g` derefter `m` | Monitorer |
 | `g` derefter `i` | Hændelser |
 | `g` derefter `a` | Advarsler |
 | `g` derefter `o` | Vagt |

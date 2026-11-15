@@ -50,7 +50,7 @@ Där en sökväg nedan säger `{statusPageIdOrDomain}` kan du skicka sidans ID e
 
 | Endpoint | Metoder | Returnerar |
 | -------- | ------- | ------- |
-| `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Allt som översikten visar: den samlade statusen, resurser och grupper, aktiva incidenter och episoder, planerat underhåll, aktuella meddelanden och datan bakom drifttidsstaplarna. |
+| `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Allt som översikten visar: den samlade statusen, resurser och grupper, aktiva incidenter och episoder, schemalagt underhåll, aktuella meddelanden och datan bakom drifttidsstaplarna. |
 | `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | Sidan i korthet: dess övergripande status, varje resurs status och om pågående underhåll berör den, de aktiva incidenterna, och det pågående och kommande underhållet. |
 | `/uptime/{statusPageId}` | `POST` | Drifttid i procent per resurs och per grupp, för ett datumintervall. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | Incidenterna som sidan listar, med deras offentliga anteckningar och tillståndsändringar. |
@@ -65,7 +65,7 @@ Där en sökväg nedan säger `{statusPageIdOrDomain}` kan du skicka sidans ID e
 Endpoints följer sidans egna inställningar, i kortet **Vad din statussida visar** (se [Välja vad som visas på sidan](/docs/status-pages/index#välja-vad-som-visas-på-sidan)):
 
 - En lista som är avstängd avvisar sin endpoint, till exempel med `Incidents are not enabled on this status page.`
-- Varje lista sträcker sig så långt bakåt som dess inställning **Visa de senaste … dagarna** (14 som standard). Incidentlistan tar dessutom med varje incident som inte är löst än, och listan över planerat underhåll varje händelse som ännu inte har börjat eller pågår.
+- Varje lista sträcker sig så långt bakåt som dess inställning **Visa de senaste … dagarna** (14 som standard). Incidentlistan tar dessutom med varje incident som inte är löst än, och listan över schemalagt underhåll varje händelse som ännu inte har börjat eller pågår.
 - Via sitt ID returneras en incident, episod, händelse eller ett meddelande oavsett ålder, så en länk till en äldre fortsätter att fungera. En som sidan inte visar alls, till exempel en incident på en monitor som inte finns på sidan, kommer tillbaka som en tom lista, och en episod som `404`.
 
 **Vilka incidenter en sida returnerar.** Incidentendpointen returnerar incidenterna på sidans monitorer, minus de som är begränsade till andra statussidor, och minus varje incident som inte är begränsad till den här sidan om sidan bara visar incidenter som är begränsade till den (se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience)). Vilka sidor en incident är begränsad till ingår aldrig i svaret.

@@ -24,9 +24,10 @@ import { KeptPhrase } from "./OneNamePerThing";
  *   - others: the words the language no longer says for a probe;
  *   - keptPhrases: phrases whose other word names something that is not a
  *     OneUptime probe (a cloud's startup or health probe, the eBPF probe
- *     OBI attaches to a system call) or names an option the Dashboard
- *     draws in English, each with why. They are taken out of a text before
- *     it is read;
+ *     OBI attaches to a system call), each with why. They are taken out of
+ *     a text before it is read. A network device's Monitoring method
+ *     options are drawn in every language's words since #8308, so the
+ *     sentences that name them ("Skift til Sonde ovenfor") need none;
  *   - explorer: a word the language says for an explorer, which a block
  *     may say only where its English says explorer (Persian کاوشگر).
  *
@@ -58,9 +59,6 @@ const EBPF_PROBE: string =
 
 const HEALTH_PROBES: string =
   "an Azure load balancer's health probes, which a cloud resource's health reason names: the cloud's checks, not OneUptime probes";
-
-const PROBE_OPTION: string =
-  "the network device's Probe option, which the Dashboard draws in English in this language (Probe — pinged by the assigned probe ...), named as drawn";
 
 // The five languages PR #8305 held to their Dashboard's word first.
 const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
@@ -94,10 +92,6 @@ const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       { phrase: /opstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /sætter OBI en probe/u, why: EBPF_PROBE },
       { phrase: /sundhedsprober/iu, why: HEALTH_PROBES },
-      {
-        phrase: /Skift til Probe ovenfor|Probe er det normale valg/u,
-        why: PROBE_OPTION,
-      },
     ],
   },
   nl: {
@@ -110,10 +104,6 @@ const FIRST_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       {
         phrase: /datastore-probes/iu,
         why: "the master admin API's checks of each datastore, which its example response names: not OneUptime probes",
-      },
-      {
-        phrase: /naar Probe om|Probe is de normale keuze/u,
-        why: PROBE_OPTION,
       },
     ],
   },
@@ -147,10 +137,6 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
       { phrase: /oppstartsprobe\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /fester OBI en probe/u, why: EBPF_PROBE },
       { phrase: /helseprober/iu, why: HEALTH_PROBES },
-      {
-        phrase: /Bytt til Probe ovenfor|Probe er det vanlige valget/u,
-        why: PROBE_OPTION,
-      },
     ],
   },
   sv: {
@@ -159,27 +145,15 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
     keptPhrases: [
       { phrase: /startprob\p{L}*/iu, why: STARTUP_PROBE },
       { phrase: /fäster OBI en probe/u, why: EBPF_PROBE },
-      {
-        phrase: /Byt till Probe ovan|Probe är det normala valet/u,
-        why: PROBE_OPTION,
-      },
     ],
   },
   it: {
     others: /probe/iu,
-    keptPhrases: [
-      { phrase: /probe di avvio/iu, why: STARTUP_PROBE },
-      { phrase: /Passa a Probe|Probe è la scelta/u, why: PROBE_OPTION },
-    ],
+    keptPhrases: [{ phrase: /probe di avvio/iu, why: STARTUP_PROBE }],
   },
   pt: {
     others: /probe/iu,
-    keptPhrases: [
-      {
-        phrase: /Mude para Probe acima|Probe é a escolha normal/u,
-        why: PROBE_OPTION,
-      },
-    ],
+    keptPhrases: [],
   },
   ru: {
     // The English word, and проба in every case, but пробел (a space), пробный (a trial) and the rest.
@@ -192,10 +166,6 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
         why: PROBES_OF_A_SCANNER,
       },
       {
-        phrase: /Переключитесь выше на Probe|Обычно выбирают Probe/u,
-        why: PROBE_OPTION,
-      },
-      {
         phrase: /Если это была проба/u,
         why: "a trial run of a Terraform configuration: проба is Russian for a trial, not a OneUptime probe",
       },
@@ -203,12 +173,7 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   },
   fr: {
     others: /probe/iu,
-    keptPhrases: [
-      {
-        phrase: /Passez à Probe ci-dessus|Probe est le choix habituel/u,
-        why: PROBE_OPTION,
-      },
-    ],
+    keptPhrases: [],
   },
   es: { others: /probe/iu, keptPhrases: [] },
   ko: { others: ENGLISH_PROBE_WORD, keptPhrases: [] },
@@ -223,9 +188,7 @@ const MORE_PROBE_WORDS: Readonly<Record<string, ProbeWords>> = {
   },
   hi: {
     others: ENGLISH_PROBE_WORD,
-    keptPhrases: [
-      { phrase: /ऊपर Probe पर स्विच|Probe सामान्य विकल्प/u, why: PROBE_OPTION },
-    ],
+    keptPhrases: [],
   },
 };
 

@@ -470,6 +470,28 @@ describe("Code page (?error=)", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * It sent the reader to "Connect with GitHub App", a button Code no
+   * longer draws (#8336): the sentence names the card's button as drawn.
+   */
+  test("an account that manages no installation is sent to the Connect GitHub button below", async () => {
+    query["error"] = "github-no-installation-to-connect";
+
+    await renderCode();
+
+    expect(notice()).toHaveTextContent("GitHub was not connected");
+    expect(notice()).toHaveTextContent(
+      "Your GitHub account does not manage an installation of the app yet. Please install it with Connect GitHub.",
+    );
+    expect(notice()).not.toHaveTextContent("Connect with GitHub App");
+    expect(
+      screen.getByRole("button", { name: "Connect GitHub" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Connect with GitHub App" }),
+    ).toBeNull();
+  });
+
   test("a plan refusal names the plan, as the locked card does", async () => {
     query["error"] = "plan-required";
 

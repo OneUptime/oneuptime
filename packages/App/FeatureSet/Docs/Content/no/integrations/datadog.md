@@ -55,7 +55,7 @@ Deretter [konfigurerer du Datadog](#konfigurer-datadog) til å sende varslene si
 
 ### Hva arbeidsflyten gjør
 
-Etter triggeren **Webhook** leser steget **Check With JavaScript** `read-event-1` den `transition` Datadog sender, og **Incident From Another Tool**, eller **Alert From Another Tool** i varselmalen, gjør det den betyr, ut fra varselets syklusnøkkel. Datadog beholder nøkkelen fra et varsel utløses til det gjenopprettes, og neste gang det utløses, er nøkkelen ny, så hver gang får en egen hendelse. Hendelsen tar vare på nøkkelen i det egendefinerte feltet `datadogAlertCycleKey`.
+Etter triggeren **Webhook** leser steget **Sjekk med JavaScript** `read-event-1` den `transition` Datadog sender, og **Hendelse fra et annet verktøy**, eller **Varsel fra et annet verktøy** i varselmalen, gjør det den betyr, ut fra varselets syklusnøkkel. Datadog beholder nøkkelen fra et varsel utløses til det gjenopprettes, og neste gang det utløses, er nøkkelen ny, så hver gang får en egen hendelse. Hendelsen tar vare på nøkkelen i det egendefinerte feltet `datadogAlertCycleKey`.
 
 | Transition | Hva arbeidsflyten gjør |
 | --- | --- |
@@ -82,7 +82,7 @@ En ny hendelse varsler vaktpolicyene du valgte når monitoren er P1 eller P2, el
 Med egne alvorlighetsgrader går P1, P2 og ingen prioritet til den mest alvorlige, P3 til den midterste, og P4 og P5 til den minst alvorlige.
 
 - For å knytte en prioritet til en av dine etter navn, rediger `SEVERITY_BY_NAME` i steget `read-event-1`, for eksempel `{ P3: 'Minor Incident' }`.
-- For å varsle også for P3, sett **Sammenlign med** i steget `if-page-1` **If / Else** til `3`.
+- For å varsle også for P3, sett **Sammenlign med** i steget `if-page-1` **Hvis / Ellers** til `3`.
 
 ## Motta varsler med en monitor
 

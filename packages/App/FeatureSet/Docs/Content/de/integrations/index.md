@@ -118,7 +118,7 @@ Für ein Alarmierungswerkzeug beginnen Sie mit einem [Monitor für eingehende An
 1. Öffnen Sie **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** und dann auf **Ohne Vorlage beginnen**. Benennen Sie den Workflow und klicken Sie auf **Arbeitsablauf erstellen**.
 2. Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Webhook**. Klicken Sie auf den Trigger und dann auf **URL kopieren**.
 3. Lassen Sie das andere Werkzeug seinen Webhook als `POST` mit `Content-Type: application/json` an diese URL senden.
-4. Fügen Sie die Bausteine hinzu, die damit arbeiten. Sie lesen die Anfrage mit Verweisen wie `{{local.components.webhook-1.returnValues.request-body.status}}`: einen **If / Else**-Baustein, um ein Feld zu prüfen, dann **Create One Incident**, um einen Vorfall zu melden.
+4. Fügen Sie die Bausteine hinzu, die damit arbeiten. Sie lesen die Anfrage mit Verweisen wie `{{local.components.webhook-1.returnValues.request-body.status}}`: einen **Wenn / Sonst**-Baustein, um ein Feld zu prüfen, dann **Create One Incident**, um einen Vorfall zu melden.
 5. Schalten Sie oben im **Editor** **Aktiviert** ein, senden Sie einen Test aus dem anderen Werkzeug und öffnen Sie **Protokolle → Ausführungen**, um zu sehen, was angekommen ist.
 :::
 
@@ -128,8 +128,8 @@ Die URL ist der einzige Berechtigungsnachweis, behandeln Sie sie also wie ein Pa
 
 :::steps
 1. Speichern Sie den API-Schlüssel des Werkzeugs als geheime globale Variable, wie [unten](#zugangsdaten-sicher-aufbewahren) gezeigt.
-2. Legen Sie einen Workflow an, klicken Sie auf den gestrichelten Baustein und wählen Sie einen Ereignis-Trigger, etwa **On Create Incident**. Klicken Sie auf den Trigger: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie die weiteren Felder, die gesendet werden sollen, etwa **Beschreibung**.
-3. Klicken Sie auf **Komponente hinzufügen** und fügen Sie einen **API Post (JSON)**-Baustein hinzu. Verbinden Sie den Punkt **Erfolg** des Triggers damit.
+2. Legen Sie einen Workflow an, klicken Sie auf den gestrichelten Baustein und wählen Sie einen Ereignis-Trigger, etwa **On Create Incident**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie die weiteren Felder, die gesendet werden sollen, etwa **Beschreibung**.
+3. Klicken Sie auf **Komponente hinzufügen** und fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu. Verbinden Sie den Punkt **Erfolg** des Triggers damit.
 4. Füllen Sie seine **URL** aus, seine **Anfrage-Header** mit dem `Authorization`-Header und seinen **Anfragetext** mit den Feldern des Vorfalls, etwa `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Vorfall aus und führen Sie ihn aus. Ein Testlauf sendet die Anfrage wirklich. Schalten Sie danach **Aktiviert** ein.
 :::

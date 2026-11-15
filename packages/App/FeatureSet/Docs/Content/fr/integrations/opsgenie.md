@@ -49,11 +49,11 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'alerte
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.opsgenie.com/v2/alerts`, ou `https://api.eu.opsgenie.com/v2/alerts` en Europe. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ Et son **Corps de la requête** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `202`, et l'alerte apparaît dans Opsgenie un instant plus tard. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 Le schéma d'Opsgenie est le mot `GenieKey`, une espace, puis la clé. Opsgenie limite `message` à 130 caractères, et ses priorités vont de `P1` à `P5` : pour envoyer celle de chaque incident, voir [Faire correspondre les priorités](#faire-correspondre-les-priorités).
@@ -85,7 +85,7 @@ Un flux de travail a un seul déclencheur, la fermeture demande donc un second f
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un flux de travail nommé `Close Opsgenie alerts` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+Créez un flux de travail nommé `Close Opsgenie alerts` et choisissez **On Update Incident** comme déclencheur. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Champs à transmettre**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Créez un flux de travail nommé `Close Opsgenie alerts` et choisissez **On Upda
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
+Ajoutez un bloc **Si / Sinon** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Fermer l'alerte
 
-Ajoutez un bloc **API Post (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
+Ajoutez un bloc **Appel d'API POST (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,9 +114,9 @@ Activez **Activé**, puis résolvez un incident de test dans OneUptime. Opsgenie
 
 ## Faire correspondre les priorités
 
-Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Run Custom JavaScript** entre le déclencheur et le bloc **API Post (JSON)**.
+Pour envoyer la gravité de chaque incident comme priorité Opsgenie, ajoutez un bloc **Exécuter du JavaScript personnalisé** entre le déclencheur et le bloc **Appel d'API POST (JSON)**.
 
-1. Dans les **Fields to pass on** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
+1. Dans les **Champs à transmettre** du déclencheur, cliquez sur **Ajouter un champ**, ouvrez **Gravité de l'incident** et choisissez **Nom**.
 2. Réglez les **Arguments** du bloc sur `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, et son **Code JavaScript** sur :
 
    ```javascript
@@ -149,7 +149,7 @@ Opsgenie répond `202` avant de traiter la requête, donc une requête qu'il ref
 :::
 
 :::details Le flux de travail ne s'exécute jamais
-Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **If / Else** est une mise à jour qui n'était pas une résolution.
+Vérifiez qu'il est activé : **Activé**, en haut de son **Constructeur**. Ouvrez ensuite **Journaux → Exécutions** : une exécution qui a pris le côté **Non** du bloc **Si / Sinon** est une mise à jour qui n'était pas une résolution.
 :::
 
 ## Étapes suivantes
