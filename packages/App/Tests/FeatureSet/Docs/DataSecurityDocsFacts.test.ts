@@ -1354,6 +1354,21 @@ describe("Sensitive Data in Telemetry", () => {
   const page: string = english(TELEMETRY);
   const scanner: string = `${SERVER}/Telemetry/TelemetryDataScanner.ts`;
 
+  // Its own switch did nothing for a service's telemetry (OneUptime issue #8323).
+  it("says the project's Scan Telemetry and a store's Scan Content each stop the scan, as the scan's rule reads them", () => {
+    const rule: string = source(`${SERVER}/DataSecurityTelemetryScanRule.ts`);
+
+    expect(page).toContain(
+      "unless **Scan Telemetry** is off in the project's settings.",
+    );
+    expect(page).toContain(
+      "turn **Scan Content** off in that store's **Settings**: from the next scan, none of it is read.",
+    );
+    expect(rule).toContain('`COALESCE(s."isTelemetryScanEnabled", true) = true`');
+    expect(rule).toContain('`ds."isContentScanEnabled" = true`');
+    expect(settingDefault("Scan Telemetry")).toBe("true");
+  });
+
   it("gives a telemetry scan's limits as the scanner holds them", () => {
     const limits: Array<Array<string>> = rows(
       tables(section(page, "## How a scan samples"))[0],
