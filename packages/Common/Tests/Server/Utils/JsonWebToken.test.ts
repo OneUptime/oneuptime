@@ -588,6 +588,39 @@ describe("JSONWebToken", () => {
         }
       }
     });
+
+    /*
+     * decode refuses the kind itself, not only a token without an address:
+     * one that says it is a sign-out cookie and holds everything a session's
+     * access token does is read as nothing by decode either.
+     */
+    test("decode refuses the kind, even a token of it that holds an address and a whole session's claims", () => {
+      const withAnAddress: string = JSONWebToken.signJsonPayload(
+        {
+          userId: userId.toString(),
+          email: email.toString(),
+          name: "Test User",
+          isMasterAdmin: true,
+          isGlobalLogin: true,
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSessionSignOut,
+        },
+        300,
+      );
+
+      // It is a sign-out cookie, and read as one where one is read.
+      expect(
+        JSONWebToken.decodeSessionToSignOut(withAnAddress).sessionId.toString(),
+      ).toBe(sessionId.toString());
+
+      for (const purpose of ALL_PURPOSES) {
+        for (const options of [undefined, { acceptExpired: true }]) {
+          expect(() => {
+            return JSONWebToken.decode(withAnAddress, purpose, options);
+          }).toThrow("AccessToken is invalid or expired");
+        }
+      }
+    });
   });
 
   describe("sign", () => {
