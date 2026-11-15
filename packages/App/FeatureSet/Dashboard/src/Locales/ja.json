@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "アクティブ · 最終確認 {{time}}",
   "Inactive · seen {{time}}": "非アクティブ · 最終確認 {{time}}",
   "Runs on {{count}} of these": "このうち {{count}} 件で実行",
-  "Runs on {{count}} of these_one": "このうち {{count}} 件で実行"
+  "Runs on {{count}} of these_one": "このうち {{count}} 件で実行",
+  "The connected engine does not report this group.": "接続先のエンジンはこのグループを報告しません。",
+  "The group could not be collected.": "グループを収集できませんでした。",
+  "The group's query timed out.": "グループのクエリがタイムアウトしました。",
+  "The monitoring login is missing a grant.": "モニターが接続に使うログインに権限が足りません。",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "監視用ロールは他のセッションの統計情報を読み取れません。PostgreSQL はこれをエラーとして報告せず、この接続自身の行だけを黙って返すため、これらのメトリクスは誤った値として記録せずにスキップします。"
 }

@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "सक्रिय · {{time}} देखा गया",
   "Inactive · seen {{time}}": "निष्क्रिय · {{time}} देखा गया",
   "Runs on {{count}} of these": "इनमें से {{count}} पर चलता है",
-  "Runs on {{count}} of these_one": "इनमें से {{count}} पर चलता है"
+  "Runs on {{count}} of these_one": "इनमें से {{count}} पर चलता है",
+  "The connected engine does not report this group.": "कनेक्ट किया गया इंजन इस समूह की रिपोर्ट नहीं करता।",
+  "The group could not be collected.": "समूह एकत्र नहीं किया जा सका।",
+  "The group's query timed out.": "समूह की क्वेरी का समय समाप्त हो गया।",
+  "The monitoring login is missing a grant.": "मॉनिटरिंग लॉगिन के पास एक अनुमति नहीं है।",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "मॉनिटरिंग भूमिका दूसरे सेशन के आँकड़े नहीं पढ़ सकती। PostgreSQL इसे त्रुटि के रूप में रिपोर्ट नहीं करता - यह चुपचाप केवल इस कनेक्शन की अपनी पंक्तियाँ लौटाता है - इसलिए ये मेट्रिक्स गलत मानों के रूप में दर्ज करने के बजाय छोड़ दिए जाते हैं।"
 }

@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "فعال · {{time}} دیده شد",
   "Inactive · seen {{time}}": "غیرفعال · {{time}} دیده شد",
   "Runs on {{count}} of these": "روی {{count}} مورد از این‌ها اجرا می‌شود",
-  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود"
+  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود",
+  "The connected engine does not report this group.": "موتور متصل این گروه را گزارش نمی‌کند.",
+  "The group could not be collected.": "جمع‌آوری این گروه ممکن نشد.",
+  "The group's query timed out.": "مهلت پرس‌وجوی این گروه به پایان رسید.",
+  "The monitoring login is missing a grant.": "حساب ورود پایش یک مجوز دسترسی ندارد.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "نقش پایش نمی‌تواند آمار نشست‌های دیگر را بخواند. PostgreSQL این را به‌عنوان خطا گزارش نمی‌کند - بی‌صدا فقط ردیف‌های خود این اتصال را برمی‌گرداند - پس این متریک‌ها به‌جای ثبت با مقدارهای نادرست، رد می‌شوند."
 }

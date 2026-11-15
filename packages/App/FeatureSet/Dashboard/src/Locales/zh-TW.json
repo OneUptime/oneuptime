@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "使用中 · 最近出現於 {{time}}",
   "Inactive · seen {{time}}": "不活躍 · 最近出現於 {{time}}",
   "Runs on {{count}} of these": "在其中 {{count}} 個上執行",
-  "Runs on {{count}} of these_one": "在其中 {{count}} 個上執行"
+  "Runs on {{count}} of these_one": "在其中 {{count}} 個上執行",
+  "The connected engine does not report this group.": "所連線的引擎不回報此群組。",
+  "The group could not be collected.": "無法收集該群組。",
+  "The group's query timed out.": "該群組的查詢逾時。",
+  "The monitoring login is missing a grant.": "監控登入缺少授權。",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "監控角色無法讀取其他工作階段的統計資訊。PostgreSQL 不會將此回報為錯誤 - 它會靜默地只傳回此連線自己的資料列 - 因此會略過這些指標，而不是記錄錯誤的值。"
 }

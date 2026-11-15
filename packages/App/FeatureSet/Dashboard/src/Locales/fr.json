@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "Actif · vu {{time}}",
   "Inactive · seen {{time}}": "Inactif · vu {{time}}",
   "Runs on {{count}} of these": "S'exécute sur {{count}} d'entre eux",
-  "Runs on {{count}} of these_one": "S'exécute sur {{count}} d'entre eux"
+  "Runs on {{count}} of these_one": "S'exécute sur {{count}} d'entre eux",
+  "The connected engine does not report this group.": "Le moteur connecté ne remonte pas ce groupe.",
+  "The group could not be collected.": "Le groupe n'a pas pu être collecté.",
+  "The group's query timed out.": "La requête du groupe a expiré.",
+  "The monitoring login is missing a grant.": "Il manque un droit à l'identifiant de supervision.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "Le rôle de supervision ne peut pas lire les statistiques des autres sessions. PostgreSQL ne le signale pas comme une erreur - il renvoie en silence les seules lignes de cette connexion -, ces métriques sont donc ignorées plutôt qu'enregistrées avec de fausses valeurs."
 }

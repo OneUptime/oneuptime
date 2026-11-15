@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "활성 · 마지막 확인 {{time}}",
   "Inactive · seen {{time}}": "비활성 · 마지막 확인 {{time}}",
   "Runs on {{count}} of these": "이 중 {{count}}개에서 실행",
-  "Runs on {{count}} of these_one": "이 중 {{count}}개에서 실행"
+  "Runs on {{count}} of these_one": "이 중 {{count}}개에서 실행",
+  "The connected engine does not report this group.": "연결된 엔진은 이 그룹을 보고하지 않습니다.",
+  "The group could not be collected.": "그룹을 수집할 수 없습니다.",
+  "The group's query timed out.": "그룹의 쿼리가 시간 초과되었습니다.",
+  "The monitoring login is missing a grant.": "모니터링 로그인에 권한이 빠져 있습니다.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "모니터링 역할은 다른 세션의 통계를 읽을 수 없습니다. PostgreSQL은 이를 오류로 보고하지 않고 이 연결 자체의 행만 조용히 반환하므로, 이 메트릭은 잘못된 값으로 기록하지 않고 건너뜁니다."
 }

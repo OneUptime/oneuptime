@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "نشط · آخر ظهور {{time}}",
   "Inactive · seen {{time}}": "غير نشط · آخر ظهور {{time}}",
   "Runs on {{count}} of these": "يعمل على {{count}} منها",
-  "Runs on {{count}} of these_one": "يعمل على {{count}} منها"
+  "Runs on {{count}} of these_one": "يعمل على {{count}} منها",
+  "The connected engine does not report this group.": "لا يبلّغ المحرك المتصل عن هذه المجموعة.",
+  "The group could not be collected.": "تعذّر جمع المجموعة.",
+  "The group's query timed out.": "انتهت مهلة استعلام المجموعة.",
+  "The monitoring login is missing a grant.": "ينقص حسابَ تسجيل الدخول للمراقبة إذنٌ.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "لا يستطيع دور المراقبة قراءة إحصاءات الجلسات الأخرى. لا يبلّغ PostgreSQL عن ذلك كخطأ - بل يعيد بصمت صفوف هذا الاتصال وحده - لذا تُتخطّى هذه المقاييس بدلًا من تسجيلها بقيم خاطئة."
 }

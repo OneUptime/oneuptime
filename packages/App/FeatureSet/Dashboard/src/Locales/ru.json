@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "Активен · замечен {{time}}",
   "Inactive · seen {{time}}": "Неактивен · замечен {{time}}",
   "Runs on {{count}} of these": "Работает на {{count}} из них",
-  "Runs on {{count}} of these_one": "Работает на {{count}} из них"
+  "Runs on {{count}} of these_one": "Работает на {{count}} из них",
+  "The connected engine does not report this group.": "Подключённая СУБД не сообщает данные этой группы.",
+  "The group could not be collected.": "Не удалось собрать данные группы.",
+  "The group's query timed out.": "Запрос группы превысил время ожидания.",
+  "The monitoring login is missing a grant.": "У учётной записи, под которой подключается монитор, нет нужного права.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "Роль мониторинга не может читать статистику других сеансов. PostgreSQL не сообщает об этом как об ошибке - он молча возвращает только собственные строки этого подключения, - поэтому эти метрики пропускаются, а не записываются с неверными значениями."
 }

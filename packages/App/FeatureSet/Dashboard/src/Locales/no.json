@@ -54362,5 +54362,10 @@
   "Active · seen {{time}}": "Aktiv · sist sett {{time}}",
   "Inactive · seen {{time}}": "Inaktiv · sist sett {{time}}",
   "Runs on {{count}} of these": "Kjører på {{count}} av disse",
-  "Runs on {{count}} of these_one": "Kjører på {{count}} av disse"
+  "Runs on {{count}} of these_one": "Kjører på {{count}} av disse",
+  "The connected engine does not report this group.": "Den tilkoblede motoren rapporterer ikke denne gruppen.",
+  "The group could not be collected.": "Gruppen kunne ikke samles inn.",
+  "The group's query timed out.": "Spørringen for gruppen fikk tidsavbrudd.",
+  "The monitoring login is missing a grant.": "Påloggingen monitoren kobler til med, mangler en rettighet.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "Overvåkingsrollen kan ikke lese statistikken til andre økter. PostgreSQL rapporterer ikke dette som en feil - den returnerer i stillhet bare denne tilkoblingens egne rader -, så disse målingene hoppes over i stedet for å bli registrert med feil verdier."
 }
