@@ -108,10 +108,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
-import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
-import KO from "../../../App/FeatureSet/Dashboard/src/Locales/ko.json";
+import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../../SuiteHelpers/FixtureLocales";
 import UserElement from "../../../App/FeatureSet/Dashboard/src/Components/User/User";
 
 const params = new URLSearchParams(window.location.search);
@@ -138,11 +136,34 @@ followLanguageForDates(i18next);
 /*
  * As every frontend's i18n set-up does: code in an Arabic or Persian
  * sentence set apart as it is handed to the page, and copied without the
- * marks that set it apart. The page bundles every language's words, so it
- * hands over the rules with them, as the Admin Dashboard does.
+ * marks that set it apart. The page hands over the rules before it knows
+ * which language it loads, as the Admin Dashboard does.
  */
 setCodeApartWith(setCodeApartInSentence);
 leaveIsolatesOutOfCopiedText();
+
+/*
+ * English, the fallback, is in the bundle; Arabic, German, Persian and
+ * Korean are each a chunk of its own, loaded only by a page drawn in that
+ * language, as the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts),
+ * and built as the Dashboard ships them (server.js,
+ * SuiteHelpers/FixtureLocalesBuild.js). Imported whole, they were parsed on
+ * every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  ar: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+  },
+  de: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+  ko: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/ko.json");
+  },
+};
 
 await i18next
   .use(initReactI18next)
@@ -153,13 +174,11 @@ await i18next
       : false,
     lng: language,
     fallbackLng: "en",
-    resources: {
-      en: { translation: {} },
-      de: { translation: DE },
-      fa: { translation: FA },
-      ko: { translation: KO },
-      ar: { translation: AR },
-    },
+    resources: await localeResources({
+      language: language,
+      english: EN,
+      loaders: LOCALE_LOADERS,
+    }),
     interpolation: { escapeValue: false },
     keySeparator: false,
     nsSeparator: false,

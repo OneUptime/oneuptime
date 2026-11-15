@@ -33,9 +33,8 @@ import CloudResourceChangesPage from "../../App/FeatureSet/Dashboard/src/Pages/C
 import CloudResourceLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
 import PageMap from "../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -444,15 +443,33 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
+/*
+ * English, the fallback, is in the bundle; Japanese, German and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  ja: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    ja: { translation: JA },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

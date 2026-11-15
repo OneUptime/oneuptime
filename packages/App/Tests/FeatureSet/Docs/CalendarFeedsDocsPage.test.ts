@@ -7,6 +7,10 @@ import {
 } from "../../../FeatureSet/Docs/Utils/I18n";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
+  MEANING_KEYS,
+  withMeaningKeyAsItsWord,
+} from "Common/Types/MeaningKeys";
+import {
   DEFAULT_FUTURE_DAYS,
   DEFAULT_PAST_DAYS,
   MAX_EVENTS,
@@ -835,8 +839,25 @@ describe("Calendar Feeds docs page", () => {
         readSourceTree("App/FeatureSet/Dashboard/src/Pages/Global"),
       ].join("\n");
 
+      /*
+       * Drawn as the word itself, or by a key that names its meaning and
+       * reads in English as the word: the Status panel's Not fetched yet is
+       * the calendar link's own key (#8659).
+       */
+      const drawn: (name: string) => boolean = (name: string): boolean => {
+        return (
+          dashboard.includes(`"${name}"`) ||
+          MEANING_KEYS.some((key: string): boolean => {
+            return (
+              withMeaningKeyAsItsWord(key) === name &&
+              dashboard.includes(`"${key}"`)
+            );
+          })
+        );
+      };
+
       for (const name of DASHBOARD_UI_NAMES) {
-        expect({ name, inDashboard: dashboard.includes(`"${name}"`) }).toEqual({
+        expect({ name, inDashboard: drawn(name) }).toEqual({
           name,
           inDashboard: true,
         });
@@ -858,10 +879,11 @@ describe("Calendar Feeds docs page", () => {
       );
       const start: number = util.indexOf("FEED_HEALTH_LABELS");
       const block: string = util.slice(start, util.indexOf("};", start));
+      // Each as English draws it: a key that names its meaning reads as its word.
       const badges: Array<string> = Array.from(
-        block.matchAll(/translationKey\("([^"]+)"\)/g),
+        block.matchAll(/translationKey\(\s*"([^"]+)",?\s*\)/g),
       ).map((match: RegExpMatchArray): string => {
-        return match[1] || "";
+        return withMeaningKeyAsItsWord(match[1] || "");
       });
 
       expect(start).toBeGreaterThan(0);

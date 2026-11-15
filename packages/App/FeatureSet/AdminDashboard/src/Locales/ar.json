@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "يُستخدم شعار الخلفيات الفاتحة.",
   "Dark mode will use the logo for light backgrounds.": "سيستخدم الوضع الداكن شعار الخلفيات الفاتحة.",
   "OneUptime's icon is shown.": "تُعرض أيقونة OneUptime.",
-  "Browser tabs will show OneUptime's icon again.": "ستعرض علامات تبويب المتصفح أيقونة OneUptime مجددًا."
+  "Browser tabs will show OneUptime's icon again.": "ستعرض علامات تبويب المتصفح أيقونة OneUptime مجددًا.",
+  "{{value}} ms": "{{value}} ملي ث",
+  "{{count}}y": "{{count}} سنة",
+  "{{count}}mo": "{{count}} ش",
+  "{{count}}d": "{{count}} ي",
+  "{{count}}h": "{{count}} س",
+  "{{count}}m": "{{count}} د",
+  "{{count}}s": "{{count}} ث",
+  "{{count}}y ago": "قبل {{count}} سنة",
+  "{{count}}mo ago": "قبل {{count}} ش",
+  "{{count}}d ago": "قبل {{count}} ي",
+  "{{count}}h ago": "قبل {{count}} س",
+  "{{count}}m ago": "قبل {{count}} د",
+  "{{count}}s ago": "قبل {{count}} ث",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} د {{seconds}} ث",
+  "{{hours}}h {{minutes}}m": "{{hours}} س {{minutes}} د",
+  "{{days}}d {{hours}}h": "{{days}} ي {{hours}} س"
 }

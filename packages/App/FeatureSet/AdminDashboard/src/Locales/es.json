@@ -3914,5 +3914,21 @@
   "The logo for light backgrounds is used.": "Se usa el logotipo para fondos claros.",
   "Dark mode will use the logo for light backgrounds.": "El modo oscuro usará el logotipo para fondos claros.",
   "OneUptime's icon is shown.": "Se muestra el icono de OneUptime.",
-  "Browser tabs will show OneUptime's icon again.": "Las pestañas volverán a mostrar el icono de OneUptime."
+  "Browser tabs will show OneUptime's icon again.": "Las pestañas volverán a mostrar el icono de OneUptime.",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} a",
+  "{{count}}mo": "{{count}} m.",
+  "{{count}}d": "{{count}} d",
+  "{{count}}h": "{{count}} h",
+  "{{count}}m": "{{count}} min",
+  "{{count}}s": "{{count}} s",
+  "{{count}}y ago": "hace {{count}} año(s)",
+  "{{count}}mo ago": "hace {{count}} mes(es)",
+  "{{count}}d ago": "hace {{count}} d",
+  "{{count}}h ago": "hace {{count}} h",
+  "{{count}}m ago": "hace {{count}} min",
+  "{{count}}s ago": "hace {{count}} s",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}} h {{minutes}} min",
+  "{{days}}d {{hours}}h": "{{days}} d {{hours}} h"
 }

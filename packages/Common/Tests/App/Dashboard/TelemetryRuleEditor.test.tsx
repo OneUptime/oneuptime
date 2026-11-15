@@ -320,7 +320,7 @@ describe("When to alert, for a Logs monitor", () => {
       ),
     ).toBeInTheDocument();
     expect(sentence()).toBe(
-      "Alerts when the number of matching logs in 5 minutes is more than 10.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than 10.",
     );
     // The full editor is not drawn for one rule.
     expect(
@@ -367,7 +367,7 @@ describe("When to alert, for a Logs monitor", () => {
       value: 25,
     });
     expect(sentence()).toBe(
-      "Alerts when the number of matching logs in 5 minutes is more than 25.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than 25.",
     );
     // The recipe's title says what kind of rule it is, and stays.
     expect(
@@ -390,7 +390,7 @@ describe("When to alert, for a Logs monitor", () => {
       screen.getByText("Enter the value to compare with."),
     ).toBeInTheDocument();
     expect(sentence()).toBe(
-      "Alerts when the number of matching logs in 5 minutes is more than the number you enter.",
+      "Alerts when the number of matching logs in 5\u00A0minutes is more than the number you enter.",
     );
   });
 
@@ -422,7 +422,7 @@ describe("When to alert, for a Logs monitor", () => {
     });
     expect(recorder.latest!.data!.logMonitor!.lastXSecondsOfLogs).toBe(600);
     expect(sentence()).toBe(
-      "Alerts when no matching logs arrive in 10 minutes.",
+      "Alerts when no matching logs arrive in 10\u00A0minutes.",
     );
     // Now a rule about silence: the title follows to that kind.
     expect(storedRule(recorder, MonitorType.Logs).alert?.title).toBe(
@@ -446,7 +446,7 @@ describe("When to alert, for a Logs monitor", () => {
     );
     expect(storedFilter(recorder).filterType).toBe(FilterType.AnomalouslyHigh);
     expect(sentence()).toBe(
-      "Alerts when matching logs in 5 minutes are unusually many for this hour of the week.",
+      "Alerts when matching logs in 5\u00A0minutes are unusually many for this hour of the week.",
     );
   });
 
@@ -473,7 +473,7 @@ describe("When to alert, for a Logs monitor", () => {
       },
     });
     expect(sentence()).toBe(
-      "Alerts when matching exceptions in 5 minutes are unusually many for this hour of the week.",
+      "Alerts when matching exceptions in 5\u00A0minutes are unusually many for this hour of the week.",
     );
     // It is still a count of exceptions: the chart stays.
     expect(screen.getByTestId("preview-stub")).toBeInTheDocument();
@@ -491,7 +491,7 @@ describe("When to alert, for a Logs monitor", () => {
     pick(comboboxOf("Condition"), label);
 
     expect(sentence()).toBe(
-      `Alerts when matching exceptions in 5 minutes are ${words} for this hour of the week.`,
+      `Alerts when matching exceptions in 5\u00A0minutes are ${words} for this hour of the week.`,
     );
   });
 
@@ -527,7 +527,7 @@ describe("When to alert, for a Logs monitor", () => {
     });
 
     expect(sentence()).toBe(
-      "Alerts when matching exceptions in 15 minutes are unusually many for this hour of the week.",
+      "Alerts when matching exceptions in 15\u00A0minutes are unusually many for this hour of the week.",
     );
     expect(
       screen.queryByTestId("telemetry-rule-threshold"),
@@ -539,7 +539,7 @@ describe("When to alert, for a Logs monitor", () => {
       storedFilter(recorder).metricMonitorOptions?.anomalyDetection,
     ).toEqual({ sensitivity: AnomalyDetectionSensitivity.High });
     expect(sentence()).toBe(
-      "Alerts when matching exceptions in 15 minutes are unusually many for this hour of the week.",
+      "Alerts when matching exceptions in 15\u00A0minutes are unusually many for this hour of the week.",
     );
   });
 
@@ -732,7 +732,7 @@ describe("When to alert, for a Logs monitor", () => {
 
     expect(storedFilter(recorder).checkOn).toBe(CheckOn.NewExceptionCount);
     expect(sentence()).toBe(
-      "Alerts when a matching exception happens for the first time in 5 minutes.",
+      "Alerts when a matching exception happens for the first time in 5\u00A0minutes.",
     );
     expect(screen.getByText("Number of new exceptions")).toBeInTheDocument();
     expect(screen.queryByTestId("preview-stub")).not.toBeInTheDocument();
@@ -756,7 +756,7 @@ describe("When to alert, for a Logs monitor", () => {
       CheckOn.ExceptionCountIncreasePercent,
     );
     expect(sentence()).toBe(
-      "Alerts when matching exceptions in 15 minutes rise above the usual for the day before by more than 200%.",
+      "Alerts when matching exceptions in 15\u00A0minutes rise above the usual for the day before by more than 200%.",
     );
     expect(screen.getByText("Rise over the usual (in %)")).toBeInTheDocument();
 
@@ -773,7 +773,7 @@ describe("When to alert, for a Logs monitor", () => {
     });
 
     expect(sentence()).toBe(
-      "Alerts when a matching exception you resolved comes back in 10 minutes.",
+      "Alerts when a matching exception you resolved comes back in 10\u00A0minutes.",
     );
   });
 
@@ -1062,7 +1062,7 @@ describe("When to alert, for a Metrics monitor", () => {
       screen.queryByTestId("telemetry-rule-metric"),
     ).not.toBeInTheDocument();
     expect(sentence()).toBe(
-      "Alerts when the average of CPU over the last 5 minutes is above the value you enter.",
+      "Alerts when the average of CPU over the last 5\u00A0minutes is above the value you enter.",
     );
     expect(previews).toHaveLength(0);
   });
@@ -1174,7 +1174,7 @@ describe("When to alert, for a Metrics monitor", () => {
       RollingTime.Past15Minutes,
     );
     expect(sentence()).toBe(
-      "Alerts when the highest value of CPU over the last 15 minutes is above 80 %.",
+      "Alerts when the highest value of CPU over the last 15\u00A0minutes is above 80 %.",
     );
   });
 
@@ -1191,7 +1191,7 @@ describe("When to alert, for a Metrics monitor", () => {
     pick(comboboxOf("Metric"), "metric.b");
 
     expect(storedFilter(recorder).metricMonitorOptions?.metricAlias).toBe("b");
-    expect(sentence()).toContain("of metric.b over the last 5 minutes");
+    expect(sentence()).toContain("of metric.b over the last 5\u00A0minutes");
   });
 
   test("what an empty window counts as waits under More fields", () => {
@@ -1270,7 +1270,7 @@ describe("When to alert, forecasting a metric", () => {
       "Draws a straight line through the metric's values in the time window",
     );
     expect(sentence()).toBe(
-      "Alerts when the trend of CPU over the last 7 days is forecast to rise above the value you enter within 7 days.",
+      "Alerts when the trend of CPU over the last 7\u00A0days is forecast to rise above the value you enter within 7\u00A0days.",
     );
     expect(recorder.latest!.data!.metricMonitor!.rollingTime).toBe(
       RollingTime.Past7Days,
@@ -1309,7 +1309,7 @@ describe("When to alert, forecasting a metric", () => {
       metricMonitorOptions: { forecast: { horizonInHours: 720 } },
     });
     expect(sentence()).toBe(
-      "Alerts when the trend of CPU over the last 7 days is forecast to fall below 10 % within 30 days.",
+      "Alerts when the trend of CPU over the last 7\u00A0days is forecast to fall below 10 % within 30\u00A0days.",
     );
     expect(storedRule(recorder, MonitorType.Metrics)).toMatchObject({
       filterType: FilterType.ForecastBelow,
