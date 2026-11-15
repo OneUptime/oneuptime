@@ -39,6 +39,84 @@ export interface MenuCategory {
   items: Array<MoreMenuItem>;
 }
 
+// Looks an English text up in the reader's language.
+export type MenuWordLookup = (text: string) => string;
+
+/*
+ * THE WORDS A PRODUCT IS DRAWN WITH, LOOKED UP ONCE (#8075).
+ *
+ * An item's title, description and category are English, looked up where
+ * they are drawn - the Admin Dashboard hands its menu over so ("Users",
+ * "Management") - unless the item says each is in the reader's words
+ * already (isTitleTranslated, isDescriptionTranslated,
+ * isCategoryTranslated), as the Dashboard's keyed ones are: those are
+ * drawn as given. The products menu drew all three as given, so the Admin
+ * Dashboard's menu read English in every language; the bar, its
+ * breadcrumb, a pin and the phone's rows already followed the rule
+ * (#7790).
+ */
+export function getItemTitle(
+  item: MoreMenuItem,
+  lookUp: MenuWordLookup,
+): string {
+  return item.isTitleTranslated ? item.title : lookUp(item.title);
+}
+
+export function getItemDescription(
+  item: MoreMenuItem,
+  lookUp: MenuWordLookup,
+): string {
+  return item.isDescriptionTranslated
+    ? item.description
+    : lookUp(item.description);
+}
+
+/*
+ * A category's heading. The items of one category share its words, and
+ * say alike whether they are translated. A product without a category is
+ * under the menu's own "Other", looked up.
+ */
+export function getCategoryHeading(
+  category: MenuCategory,
+  lookUp: MenuWordLookup,
+): string {
+  const first: MoreMenuItem | undefined = category.items[0];
+
+  if (!first?.category) {
+    return lookUp(UNCATEGORIZED_TITLE);
+  }
+
+  return first.isCategoryTranslated ? category.title : lookUp(category.title);
+}
+
+/*
+ * Whether a product matches what was typed into the menu's search: its
+ * words as drawn - so a German admin finds Users by typing "Benutzer" - and
+ * as handed over, with its keywords, so the familiar English names and
+ * acronyms still find it whatever the language.
+ */
+export function doesItemMatchSearch(
+  item: MoreMenuItem,
+  query: string,
+  lookUp: MenuWordLookup,
+): boolean {
+  const normalizedQuery: string = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return [
+    getItemTitle(item, lookUp),
+    getItemDescription(item, lookUp),
+    item.title,
+    item.description,
+    ...(item.keywords || []),
+  ].some((value: string): boolean => {
+    return value.toLowerCase().includes(normalizedQuery);
+  });
+}
+
 /*
  * Products grouped by category, in the order each category first appears in
  * the catalog: the catalog's own order is the order people see.
@@ -294,7 +372,9 @@ export const DEFAULT_HIDDEN_PRODUCTS_TITLE: string = "More products";
  * The hidden products as the list holds them: each under the hidden row's
  * title in place of its own category, after every listed product, so the
  * row is the list's last one and folds, opens, searches and moves the
- * keyboard cursor the way a category does.
+ * keyboard cursor the way a category does. The row's title is English
+ * (NavBar's moreMenuHiddenTitle), looked up where it is drawn, whatever
+ * the product's own category said of its words.
  */
 export const getMenuItemsWithHidden: (data: {
   items: ReadonlyArray<MoreMenuItem>;
@@ -308,7 +388,11 @@ export const getMenuItemsWithHidden: (data: {
   return [
     ...data.items,
     ...(data.hiddenItems || []).map((item: MoreMenuItem): MoreMenuItem => {
-      return { ...item, category: data.hiddenTitle };
+      return {
+        ...item,
+        category: data.hiddenTitle,
+        isCategoryTranslated: false,
+      };
     }),
   ];
 };

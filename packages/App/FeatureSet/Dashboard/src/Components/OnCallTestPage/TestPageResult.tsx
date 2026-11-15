@@ -242,11 +242,7 @@ const DeliveryLine: FunctionComponent<{
         ) : (
           <></>
         )}
-        <Pill
-          text={translator.translateText(status.text) || status.text}
-          color={status.color}
-          size={PillSize.Small}
-        />
+        <Pill text={status.text} color={status.color} size={PillSize.Small} />
       </div>
       {isFailed && delivery.statusMessage ? (
         <ResultLine
@@ -345,11 +341,7 @@ const StepBlock: FunctionComponent<{
             <></>
           )}
         </div>
-        <Pill
-          text={translator.translateText(status.text) || status.text}
-          color={status.color}
-          size={PillSize.Small}
-        />
+        <Pill text={status.text} color={status.color} size={PillSize.Small} />
       </div>
       {step.deliveries.length === 0 && step.statusMessage ? (
         <ResultLine
@@ -392,7 +384,7 @@ export const TestPageResultView: FunctionComponent<{
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <Pill
-            text={translator.translateText(status.title) || status.title}
+            text={status.title}
             color={status.color}
             isPulsing={result.status === OnCallTestPageStatus.Paging}
           />

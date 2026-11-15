@@ -70,6 +70,7 @@ const IpAllowlistCard: FunctionComponent<IpAllowlistCardProps> = (
           rightElement: planNeeded ? (
             <Pill
               text={getChoiceRowPlanPillText(translator, planNeeded)}
+              isUserContent={true}
               color={Yellow}
             />
           ) : undefined,

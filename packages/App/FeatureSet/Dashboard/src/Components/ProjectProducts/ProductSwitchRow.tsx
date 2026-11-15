@@ -137,6 +137,7 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
           text={translator.translateTemplate("{{planName}} Plan", {
             planName: props.neededPlan,
           })}
+          isUserContent={true}
           color={Yellow}
         />
       </span>,
