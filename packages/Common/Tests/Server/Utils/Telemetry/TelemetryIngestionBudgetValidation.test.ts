@@ -128,7 +128,7 @@ describe("applyBudgetColumnRules", () => {
         { allowZero: false },
       );
     }).toThrow(
-      "Security events rate limit: A rate limit must be more than 0 MB per second. Leave it empty for no limit.",
+      "Security events rate limit: A rate limit must be more than 0\u00A0MB per second. Leave it empty for no limit.",
     );
     expect(() => {
       TelemetryIngestionBudgetValidation.applyBudgetColumnRules(
@@ -228,7 +228,7 @@ describe("assertIngestionKeyBudgetsWithinProject", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as Error).message).toBe(
-      "This key's daily logs budget (51 GB) is more than the project's (50 GB). A key's budget can only subdivide its project's: set 50 GB or less, or leave it empty to use the project's.",
+      "This key's daily logs budget (51\u00A0GB) is more than the project's (50\u00A0GB). A key's budget can only subdivide its project's: set 50\u00A0GB or less, or leave it empty to use the project's.",
     );
   });
 

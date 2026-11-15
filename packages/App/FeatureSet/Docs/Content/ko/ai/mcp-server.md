@@ -1,6 +1,6 @@
 # MCP 서버
 
-OneUptime MCP 서버를 사용하면 AI 어시스턴트가 OneUptime 프로젝트에서 직접 작업할 수 있습니다. Claude, Cursor, GitHub Copilot이 있는 VS Code 또는 Model Context Protocol(MCP)의 다른 클라이언트를 연결한 뒤, 인시던트를 살펴보고, 로그와 트레이스를 조회하고, 알림을 확인하고, 모니터를 설정해 달라고 요청하세요. 클라이언트는 사용자의 권한 또는 API 키의 권한으로 OneUptime의 도구를 호출합니다.
+OneUptime MCP 서버를 사용하면 AI 어시스턴트가 OneUptime 프로젝트에서 직접 작업할 수 있습니다. Claude, Cursor, GitHub Copilot이 있는 VS Code 또는 Model Context Protocol(MCP)의 다른 클라이언트를 연결한 뒤, 인시던트를 살펴보고, 로그와 트레이스를 조회하고, 경고를 확인하고, 모니터를 설정해 달라고 요청하세요. 클라이언트는 사용자의 권한 또는 API 키의 권한으로 OneUptime의 도구를 호출합니다.
 
 :::cards
 - [클라이언트 연결하기](#클라이언트-연결하기): 클라이언트에 서버 주소를 알려 주고 로그인합니다.
@@ -35,7 +35,7 @@ flowchart TB
 
 - **모니터**: 모니터를 만들고 구성하며, 상태를 확인하고 기록을 검토합니다.
 - **인시던트 대응**: 인시던트를 만들고, 확인하고, 해결하며, 내부 메모나 공개 메모를 추가하고 해결될 때까지 따라갑니다.
-- **알림**: 알림을 확인하고 해결하며, 메모를 추가하고, 알림 상태와 심각도를 관리합니다.
+- **경고**: 경고를 확인하고 해결하며, 메모를 추가하고, 경고 상태와 심각도를 관리합니다.
 - **팀과 온콜**: 팀과 온콜 정책을 관리합니다.
 - **상태 페이지**: 상태 페이지를 관리하고 공지를 게시합니다.
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
@@ -326,20 +326,20 @@ curl https://oneuptime.com/mcp/tools
 
 ## 인시던트 대응을 위한 도구
 
-레코드 종류별 도구 외에도, 서버에는 인시던트와 알림에 대응하기 위해 만든 도구가 있습니다:
+레코드 종류별 도구 외에도, 서버에는 인시던트와 경고에 대응하기 위해 만든 도구가 있습니다:
 
 - **`acknowledge_incident`** / **`resolve_incident`**: 대시보드의 버튼과 마찬가지로 인시던트를 프로젝트의 Acknowledged 또는 Resolved 상태로 옮깁니다
-- **`acknowledge_alert`** / **`resolve_alert`**: 알림에 대해 같은 일을 합니다
+- **`acknowledge_alert`** / **`resolve_alert`**: 경고에 대해 같은 일을 합니다
 - **`add_incident_note`**: `visibility: "internal"`(인시던트를 볼 수 있는 사람만, 기본값) 또는 `visibility: "public"`(상태 페이지에 게시)로 인시던트에 메모를 추가합니다. Markdown을 지원합니다
-- **`add_alert_note`**: 알림에 내부 메모를 추가합니다
+- **`add_alert_note`**: 경고에 내부 메모를 추가합니다
 
 일반적인 흐름: `list_incidents` → `acknowledge_incident` → `list_logs` 로 조사 → `add_incident_note`(공개) → `resolve_incident`.
 
 **`oneuptime_whoami`** 도구는 자격 증명이 속한 프로젝트(ID와 이름)를 반환합니다. 로그인한 클라이언트라면 누구로 로그인했는지, 변경할 수 있는지도 알려 줍니다. 에이전트가 상황을 파악하기에 좋은 첫 호출이며, 생성 도구는 자격 증명에서 `projectId` 를 가져오므로 에이전트가 프로젝트 ID를 넘길 필요가 없습니다.
 
-**`get_data_table_freshness`** 도구는 에이전트가 데이터를 사용하기 전에 Data Observability가 감시하는 테이블이 최신인지 알려 줍니다. 테이블 자체의 주기에 비춰 최신인지 지연되었는지, 마지막으로 변경된 시각, 열린 알림, 그리고 그 테이블에 쓰는 각 파이프라인의 최근 실행 결과입니다. `table`에는 `schema.table`, 테이블 이름만, 또는 ID를 전달합니다. 아무것도 변경하지 않습니다.
+**`get_data_table_freshness`** 도구는 에이전트가 데이터를 사용하기 전에 Data Observability가 감시하는 테이블이 최신인지 알려 줍니다. 테이블 자체의 주기에 비춰 최신인지 지연되었는지, 마지막으로 변경된 시각, 열린 경고, 그리고 그 테이블에 쓰는 각 파이프라인의 최근 실행 결과입니다. `table`에는 `schema.table`, 테이블 이름만, 또는 ID를 전달합니다. 아무것도 변경하지 않습니다.
 
-**`get_data_table_lineage`** 도구는 에이전트가 테이블을 바꾸거나 그 데이터를 믿기 전에 Data Observability가 감시하는 테이블이 무엇으로 만들어지고 그 테이블로 무엇이 만들어지는지 알려 줍니다. 지연되었거나, 삭제되었거나, 열린 알림이 있거나, 파이프라인이 마지막 실행에 실패한 업스트림과 다운스트림 테이블을 가까운 순서로 각각 몇 단계 떨어져 있는지와 함께 보여 주고, 이어서 나머지 테이블, 바깥에서 원본을 적재하는 파이프라인, 그 위에 만든 BI 대시보드를 보여 줍니다. 방향마다 3단계, `depth`로 최대 5단계까지 따라갑니다. `table`은 `get_data_table_freshness`와 같은 방식으로 전달합니다. 아무것도 변경하지 않습니다.
+**`get_data_table_lineage`** 도구는 에이전트가 테이블을 바꾸거나 그 데이터를 믿기 전에 Data Observability가 감시하는 테이블이 무엇으로 만들어지고 그 테이블로 무엇이 만들어지는지 알려 줍니다. 지연되었거나, 삭제되었거나, 열린 경고가 있거나, 파이프라인이 마지막 실행에 실패한 업스트림과 다운스트림 테이블을 가까운 순서로 각각 몇 단계 떨어져 있는지와 함께 보여 주고, 이어서 나머지 테이블, 바깥에서 원본을 적재하는 파이프라인, 그 위에 만든 BI 대시보드를 보여 줍니다. 방향마다 3단계, `depth`로 최대 5단계까지 따라갑니다. `table`은 `get_data_table_freshness`와 같은 방식으로 전달합니다. 아무것도 변경하지 않습니다.
 
 ## 텔레메트리 조회하기
 
@@ -481,7 +481,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | --- | --- |
 | 모니터링 | Monitor, Monitor Status, Monitor Status Event |
 | 인시던트 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
-| 알림 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
+| 경고 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 상태 페이지 | Status Page, Status Page Announcement |
 | 예정된 유지 관리 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | 팀과 온콜 | Team, On-Call Policy |

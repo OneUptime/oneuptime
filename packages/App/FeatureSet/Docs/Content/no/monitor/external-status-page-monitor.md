@@ -181,7 +181,7 @@ Mens en pågående vedlikeholdshendelse berører en ressurs, fordi den nevner en
 :::steps
 ### Legg til kriteriet
 
-Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **Komponentstatus på ekstern statusside**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
+Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **Komponentstatus på ekstern statusside**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre monitorstatus til**.
 
 ### Flytt det helt øverst
 

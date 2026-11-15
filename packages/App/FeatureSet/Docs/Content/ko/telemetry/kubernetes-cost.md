@@ -148,7 +148,7 @@ Prometheus가 중단되어도 지출 수집은 멈추지 않습니다. 최대치
 
 ## 비용에 대한 알림
 
-비용 메트릭은 일반 메트릭이므로 [메트릭 모니터](/docs/monitor/metrics-monitor)가 다른 것과 마찬가지로 이에 대해 알림을 보낼 수 있습니다. 예를 들어 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때입니다.
+비용 메트릭은 일반 메트릭이므로 [메트릭 모니터](/docs/monitor/metrics-monitor)가 다른 것과 마찬가지로 이에 대해 경고를 보낼 수 있습니다. 예를 들어 평균 `node_total_hourly_cost`가 예산을 넘을 때, 또는 클러스터에 있어서는 안 되는 볼륨 클래스의 `pv_hourly_cost`가 나타날 때입니다.
 
 ## 데이터 모델과 보존
 
@@ -192,6 +192,6 @@ OneUptime은 엔진의 조정(reconciliation) 금액을 각 비용 구성 요소
 
 :::cards
 - [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent): 에이전트 설치와 에이전트가 수집하는 그 밖의 모든 것.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 지출이 예산을 넘으면 알림을 보냅니다.
-- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 클러스터 상태에 대해서도 알림을 보냅니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 지출이 예산을 넘으면 경고를 보냅니다.
+- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 클러스터 상태에 대해서도 경고를 보냅니다.
 :::

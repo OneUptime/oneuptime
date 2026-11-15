@@ -147,7 +147,7 @@ Huntress ble tidligere satt opp under **Hendelser → Integrasjoner → Huntress
 
 ## Bruk e-post i stedet
 
-Huntress sender også hendelsesrapporter på e-post, og en [overvåker for innkommende e-post](/docs/monitor/incoming-email-monitor) kan åpne hendelser fra de e-postene, for eksempel når emnet inneholder `Critical Incident Report`. Den behandler likevel e-postene som én overvåkers status: Mens hendelsen er åpen, åpner neste rapport ingen, og hendelsen løses av overvåkerens kriterier i stedet for når Huntress lukker rapporten. Arbeidsflyten åpner én hendelse per rapport og løser hver av dem med rapporten sin, så velg den. Så snart arbeidsflyten mottar rapporter, slutter du å sende e-postene til overvåkeren, ellers varsler hver rapport to ganger.
+Huntress sender også hendelsesrapporter på e-post, og en [overvåker for innkommende e-post](/docs/monitor/incoming-email-monitor) kan åpne hendelser fra de e-postene, for eksempel når emnet inneholder `Critical Incident Report`. Den behandler likevel e-postene som én monitors status: Mens hendelsen er åpen, åpner neste rapport ingen, og hendelsen løses av monitorens kriterier i stedet for når Huntress lukker rapporten. Arbeidsflyten åpner én hendelse per rapport og løser hver av dem med rapporten sin, så velg den. Så snart arbeidsflyten mottar rapporter, slutter du å sende e-postene til monitoren, ellers varsler hver rapport to ganger.
 
 ## Feilsøking
 

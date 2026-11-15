@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import WifiEmptyState from "../../../Components/NetworkDevice/WifiEmptyState";
 import WifiTablesNotReadState from "../../../Components/NetworkDevice/WifiTablesNotReadState";
@@ -55,7 +56,8 @@ const formatNumber: FormatNumberFunction = (
     return EMPTY_VALUE_MARK;
   }
 
-  return unit ? `${value} ${unit}` : `${value}`;
+  // "-67 dBm": the figure held to its unit by a no-break space (#8457).
+  return unit ? `${value}\u00A0${unit}` : `${value}`;
 };
 
 interface StatusDotProps {
@@ -588,7 +590,7 @@ const NetworkDeviceWiFi: FunctionComponent<
                 {tile.title}
               </div>
               <div className="mt-1 text-2xl font-semibold text-gray-900">
-                {tile.value}
+                {getFigure(tile.value)}
               </div>
             </div>
           );

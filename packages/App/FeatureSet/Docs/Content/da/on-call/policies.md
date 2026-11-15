@@ -4,7 +4,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 :::cards
 - [Opret en politik](#opret-en-politik): Et navn, og hvem der tilkaldes først.
-- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, overvågninger, chat og dig selv.
+- [Hvad der kører en politik](#hvad-der-kører-en-politik): Regler, skabeloner, monitorer, chat og dig selv.
 - [Udførelseslogs](#udførelseslogs): Hver kørsel, regel for regel, og hvorfor den stoppede.
 - [Arkiver eller slet en politik](#arkiver-eller-slet-en-politik): Tag en politik ud af drift.
 :::
@@ -30,7 +30,7 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 
 | Hvad | Hvordan politikken tilføjes | Læs mere |
 | --- | --- | --- |
-| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en overvågnings kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
+| Selve posten | Feltet **Vagtpolitik**, når en hændelse eller advarsel oprettes, en hændelsesskabelon eller den sammenfoldede del **Vagt** i en monitor kriterier | [Opret en hændelse](/docs/incidents/declaring-incidents) |
 | Vagtregler | **Hændelser → Regler → Vagtregler** og **Advarsler → Regler → Vagtregler** tilføjer politikkerne fra hver regel, der matcher | [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser) |
 | Grupperingsregler | En grupperingsregel kører sine politikker, når den åbner en episode | [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |

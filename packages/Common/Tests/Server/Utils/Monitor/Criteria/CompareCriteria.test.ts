@@ -885,7 +885,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "ms",
         }),
-      ).toBe("Metric Value was 100 ms, above the 50 ms threshold.");
+      ).toBe("Metric Value was 100\u00A0ms, above the 50\u00A0ms threshold.");
     });
 
     /*
@@ -912,7 +912,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "By",
         }),
-      ).toBe("Metric Value was 1.07 GB, above the 1 GB threshold.");
+      ).toBe("Metric Value was 1.07\u00A0GB, above the 1\u00A0GB threshold.");
     });
 
     test("rescales a duration", () => {
@@ -927,7 +927,7 @@ describe("CompareCriteria", () => {
           criteriaFilter: filter,
           unit: "ms",
         }),
-      ).toBe("Metric Value was 1.5 sec, above the 1 sec threshold.");
+      ).toBe("Metric Value was 1.5\u00A0sec, above the 1\u00A0sec threshold.");
     });
 
     test("gives each end of a range its own scale", () => {
@@ -948,7 +948,7 @@ describe("CompareCriteria", () => {
           unit: "By",
         }),
       ).toBe(
-        "Metric Value over the last 5 minutes ranged from 922 KB to 1.26 MB across all 2 readings, above the 900 KB threshold.",
+        "Metric Value over the last 5 minutes ranged from 922\u00A0KB to 1.26\u00A0MB across all 2 readings, above the 900\u00A0KB threshold.",
       );
     });
 
@@ -969,9 +969,9 @@ describe("CompareCriteria", () => {
       });
 
       expect(message).toContain(
-        "ranged from 1 GB to 6 GB across all 6 readings",
+        "ranged from 1\u00A0GB to 6\u00A0GB across all 6 readings",
       );
-      expect(message).toContain("above the 500 MB threshold");
+      expect(message).toContain("above the 500\u00A0MB threshold");
     });
 
     /*
@@ -1129,7 +1129,7 @@ describe("CompareCriteria", () => {
       });
 
       expect(message).toBe(
-        "Metric Value is Infinity, which is greater than 1 KB.",
+        "Metric Value is Infinity, which is greater than 1\u00A0KB.",
       );
       expect(message).not.toContain("InfinityP");
     });

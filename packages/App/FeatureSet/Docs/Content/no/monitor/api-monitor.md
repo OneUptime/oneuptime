@@ -55,7 +55,7 @@ Angi endepunktets fullstendige URL under **API-URL**, som `https://api.example.c
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser hva API-et svarte.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser hva API-et svarte.
 
 ### Gå gjennom kriteriene
 

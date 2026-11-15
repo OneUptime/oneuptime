@@ -55690,6 +55690,7 @@
   "which led to {{steps}}": "ما أدى إلى {{steps}}",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "لم تعمل {{step}} بعد. تظهر حقولها هنا بعد أن تعمل.",
   "HA": "HA",
+  "Insights (explorer analytics)": "الرؤى",
   "Key Manager": "Key Manager",
   "PG": "PG"
 }

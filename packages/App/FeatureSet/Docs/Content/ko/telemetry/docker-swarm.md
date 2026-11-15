@@ -1,6 +1,6 @@
 # Docker Swarm 에이전트
 
-OneUptime Docker Swarm 에이전트는 Docker Swarm 클러스터의 노드, 서비스, 태스크, 스택, 오버레이 네트워크, 시크릿, 컨피그, 볼륨과 각 컨테이너의 메트릭 및 로그를 모니터링합니다. Swarm 매니저 노드에서 Docker Compose로 실행하면 클러스터가 이 모든 것과 함께 OneUptime에 나타납니다. 들어오는 데이터에 대해서는 [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor)가 알림을 보냅니다.
+OneUptime Docker Swarm 에이전트는 Docker Swarm 클러스터의 노드, 서비스, 태스크, 스택, 오버레이 네트워크, 시크릿, 컨피그, 볼륨과 각 컨테이너의 메트릭 및 로그를 모니터링합니다. Swarm 매니저 노드에서 Docker Compose로 실행하면 클러스터가 이 모든 것과 함께 OneUptime에 나타납니다. 들어오는 데이터에 대해서는 [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor)가 경고를 보냅니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 매니저 노드에서 설치 스크립트나 Docker Compose를 사용합니다.
@@ -15,7 +15,7 @@ OneUptime Docker Swarm 에이전트는 Docker Swarm 클러스터의 노드, 서�
 
 1. **Collector**: OpenTelemetry Collector로, 각 컨테이너의 메트릭을 위해 `docker_stats`를 읽고, 컨테이너의 로그 파일을 따라가며, 인벤토리 스냅샷 파일도 따라갑니다. 모든 것에 클러스터 이름(`docker.swarm.cluster.name`)을 붙이고, 각 태스크의 메트릭에는 그 태스크의 서비스와 노드를 붙여 OTLP로 OneUptime에 보냅니다.
 2. **인벤토리 폴러**: `curl`과 `jq`로 된 작은 사이드카로, 5분마다 Swarm 매니저의 API(`/nodes`, `/services`, `/tasks`, `/networks`, `/secrets`, `/configs`, `/volumes`)를 순회하고 서비스 레이블 `com.docker.stack.namespace`에서 스택을 알아냅니다. 객체마다 JSON 한 줄을 쓰고, Collector가 이를 전달합니다. 또한 매분 각 노드가 준비되었는지와 각 서비스가 원하는 레플리카 수와 실행 중인 레플리카 수를 읽어 메트릭으로 씁니다(에이전트 파일 버전 0.161.3부터).
-3. **AI 에이전트**: `oneuptime-docker-swarm-ai-agent`로, OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 요청하는 `docker` 명령을 실행합니다. 수정을 허용하지 않는 한 읽기 전용입니다([AI 에이전트](#ai-에이전트) 참고).
+3. **AI 에이전트**: `oneuptime-docker-swarm-ai-agent`로, OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 요청하는 `docker` 명령을 실행합니다. 수정을 허용하지 않는 한 읽기 전용입니다([AI 에이전트](#ai-에이전트) 참고).
 
 ```mermaid title="매니저 노드의 컨테이너 세 개"
 flowchart TB
@@ -125,7 +125,7 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 | --- | --- | --- |
 | 노드, 서비스, 태스크, 스택, 네트워크, 시크릿, 컨피그, 볼륨 | 인벤토리 폴러, Swarm 매니저의 API에서 | 클러스터의 목록과 세부 정보 페이지 |
 | 클러스터 집계(준비된 노드, 실행 중인 태스크, 서비스, 스택 등) | 같은 스냅샷 | 개요의 개수 칩과 사이드 메뉴의 배지 |
-| 각 노드의 준비 상태와 각 서비스의 레플리카, 매분 | 인벤토리 폴러, 메트릭 `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired`, `docker.swarm.service.replicas.running` 으로 | Node Not Ready 및 Service Replicas Mismatch 알림, 그리고 **메트릭** 페이지 |
+| 각 노드의 준비 상태와 각 서비스의 레플리카, 매분 | 인벤토리 폴러, 메트릭 `docker.swarm.node.ready`, `docker.swarm.service.replicas.desired`, `docker.swarm.service.replicas.running` 으로 | Node Not Ready 및 Service Replicas Mismatch 경고, 그리고 **메트릭** 페이지 |
 | 컨테이너 CPU, 메모리, 프로세스 수, 가동 시간 | `docker_stats` 리시버 | **메트릭** 페이지 |
 | 컨테이너 stdout 및 stderr 로그 | `filelog` 리시버 | **로그** 페이지 |
 
@@ -141,7 +141,7 @@ AI 에이전트 자체의 설정은 [AI 에이전트](#ai-에이전트)에 있�
 
 - **개요**: Swarm의 상태와 **확인 필요**: 고장 났거나 확인이 필요한 것을 가장 급한 것부터, 각각 이유와 Docker 자체의 오류와 함께 보여 줍니다. 다운된 노드, 다른 매니저가 연결할 수 없는 매니저, 매니저 과반수를 잃기 직전인 Swarm, 레플리카가 하나도 실행되지 않거나 레플리카가 부족한 서비스, 일시 중지되거나 롤백된 롤링 업데이트, 계속 실패하는 작업입니다. 그 아래에서 각 노드를 한눈에 볼 수 있습니다.
 - **노드**, **서비스**, **작업**: 각 행의 상태를 같은 말과 색으로, 이유와 함께 보여 줍니다.
-- 노드, 서비스 또는 작업 자체의 페이지: 확인이 필요한 점, 그 작업, 열려 있는 항목, 감시하는 알림(한 번에 켤 수 있음), Docker가 보고하는 내용입니다.
+- 노드, 서비스 또는 작업 자체의 페이지: 확인이 필요한 점, 그 작업, 열려 있는 항목, 감시하는 경고(한 번에 켤 수 있음), Docker가 보고하는 내용입니다.
 
 ## 프로젝트 레이블로 클러스터에 태그 붙이기
 
@@ -203,9 +203,9 @@ docker compose down
 
 ## AI 에이전트
 
-Swarm의 `docker-compose.yml`(과 `install.sh`)은 **Docker Swarm AI 에이전트**도 실행합니다. 세 번째 컨테이너인 `oneuptime-docker-swarm-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker node ls`, `docker service ps web --no-trunc`, `docker service logs --tail 200 web`)을 실행하고, 허용한 경우에만 이름을 지정한 서비스의 롤링 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_SWARM_CLUSTER_NAME`을 읽으므로 바로 이 클러스터를 담당하며, OneUptime에서 클러스터의 **AI → AI 에이전트** 페이지에 표시됩니다.
+Swarm의 `docker-compose.yml`(과 `install.sh`)은 **Docker Swarm AI 에이전트**도 실행합니다. 세 번째 컨테이너인 `oneuptime-docker-swarm-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)로, OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 요청하는 읽기 전용 `docker` 명령(`docker node ls`, `docker service ps web --no-trunc`, `docker service logs --tail 200 web`)을 실행하고, 허용한 경우에만 이름을 지정한 서비스의 롤링 재시작 같은 수정을 적용합니다. Collector와 같은 `ONEUPTIME_URL`, `ONEUPTIME_SERVICE_TOKEN`, `DOCKER_SWARM_CLUSTER_NAME`을 읽으므로 바로 이 클러스터를 담당하며, OneUptime에서 클러스터의 **AI → AI 에이전트** 페이지에 표시됩니다.
 
-- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 알림을 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
+- **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 클러스터의 인시던트와 경고를 조사하며, 클러스터의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 빼세요.
 - 인벤토리 폴러처럼 **매니저 노드에서 실행해야 합니다**. 노드, 서비스, 태스크 명령은 매니저에서만 쓸 수 있기 때문입니다. 워커에서는 아무것도 실행하지 않으며, 노드가 매니저가 될 때까지 클러스터에 등록되지 않습니다(이유는 `/status`에 표시됩니다). 클러스터마다 하나를 실행하세요.
 - `.env`에 `ONEUPTIME_AI_ALLOW_WRITES=true`를 설정하고 `docker compose up -d`를 실행하지 않는 한(또는 그 변수와 함께 `install.sh`를 실행하지 않는 한) **읽기 전용**입니다. 설치 프로그램은 환경에서 `ONEUPTIME_AI_ALLOW_WRITES`, `ONEUPTIME_AI_INVESTIGATION`, `ONEUPTIME_AI_FIXES`, `ONEUPTIME_AI_WRITE_TARGETS`, `ONEUPTIME_AI_PROTECTED_TARGETS`를 `.env`에 쓰며, 다시 실행할 때는 그 변수를 (비어 있더라도) 전달하지 않는 한 마지막 네 개에 대해 `.env`에 이미 있는 값을 유지합니다. `ONEUPTIME_AI_WRITE_TARGETS`(서비스 및 노드 이름 글로브, 예: `web_*,api_*`)는 수정이 건드릴 수 있는 범위를 제한합니다. 같은 `.env`의 `ONEUPTIME_AI_FIXES`는 수정이 실행되는 방식을 정합니다. `ask-for-approval`(사람이 하나씩 승인), `automatic`, `bypass-approval` 중 하나이며, AI 에이전트 페이지에 읽기 전용으로 표시됩니다([에이전트가 설정하는 AI가 할 수 있는 작업](/docs/ai/infrastructure-ai-agents#ai가-할-수-있는-일-에이전트가-설정)). 노드 드레인은 모드와 관계없이 항상 사람의 승인이 필요합니다.
 - Docker 소켓을 마운트한 채 root로 실행됩니다. 소켓의 소유자가 root이기 때문입니다. 그리고 매니저에서는 소켓을 쓸 수 있는 사람이 `:ro` 여부와 관계없이 Swarm 전체를 제어합니다. 한계를 정하는 것은 에이전트의 명령 정책입니다. 서비스나 스택을 만들거나 제거하지 않고, 시크릿이나 컨피그를 건드리지 않으며, 자기 자신, Collector, 인벤토리 폴러, `ONEUPTIME_AI_PROTECTED_TARGETS`(서비스 및 노드 이름 글로브)에 있는 어떤 것도 절대 바꾸지 않습니다.
@@ -271,7 +271,7 @@ docker version --format '{{ .Server.APIVersion }}'
 ## 다음 단계
 
 :::cards
-- [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor): 노드, 서비스, 태스크, 컨테이너에 대해 알림을 보냅니다.
+- [Docker Swarm 모니터](/docs/monitor/docker-swarm-monitor): 노드, 서비스, 태스크, 컨테이너에 대해 경고를 보냅니다.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Docker Swarm AI 에이전트가 실행할 수 있는 명령과 수정이 동작하는 방식.
 - [Docker 에이전트](/docs/telemetry/docker-host): 대신 Docker 호스트 하나를 모니터링합니다.
 :::

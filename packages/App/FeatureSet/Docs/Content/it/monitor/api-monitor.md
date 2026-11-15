@@ -229,7 +229,7 @@ Per superare un riavvio, attivate **Valuta questo criterio su un periodo di temp
 ## Risoluzione dei problemi
 
 :::details L'API risponde alle mie richieste, ma il monitor è offline
-La sonda ha ricevuto una risposta diversa dalla vostra. La causa principale dell'incidente, e **Registri di monitoraggio** sul monitor, mostrano cosa ha visto la sonda. Controllate che la sonda invii ciò che l'API si aspetta: il metodo, l'intestazione `Authorization`, il corpo. Anche un firewall o un limitatore di frequenza davanti all'API può bloccare le sonde: consentite gli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses).
+La sonda ha ricevuto una risposta diversa dalla vostra. La causa principale dell'incidente, e **Log di monitoraggio** sul monitor, mostrano cosa ha visto la sonda. Controllate che la sonda invii ciò che l'API si aspetta: il metodo, l'intestazione `Authorization`, il corpo. Anche un firewall o un limitatore di frequenza davanti all'API può bloccare le sonde: consentite gli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses).
 :::
 
 :::details Il monitor invia `{{monitorSecrets.NAME}}` alla lettera

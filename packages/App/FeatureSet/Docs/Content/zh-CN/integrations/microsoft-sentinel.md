@@ -1,6 +1,6 @@
 # Microsoft Sentinel
 
-把 [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview) 分析规则创建的事件（incident）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改 Azure 中的任何内容。
+把 [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview) 分析规则创建的事件（incident）导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的事件呼叫值班人员。OneUptime 通过你创建的应用注册读取它们，不会更改 Azure 中的任何内容。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、一个角色，以及连接的表单。

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -1510,7 +1511,7 @@ const StorageArrayOverview: FunctionComponent<
                     </Link>
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {row.value}
+                    {getValueOrQuietDash(row.value)}
                   </div>
                 </div>
               );

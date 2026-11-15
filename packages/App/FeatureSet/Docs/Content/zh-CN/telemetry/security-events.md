@@ -1,6 +1,6 @@
 # 安全事件(SIEM)
 
-OneUptime 把安全事件与你的日志、跟踪和指标保存在一起，并且无论它们以什么格式到达，都统一成同一种结构：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以从任何来源发送事件、搜索它们，并用 Sigma 检测规则、威胁情报和监视器找出重要的事件。它们发现的问题会成为需要处理的 [案例](/docs/telemetry/security-cases)，并由剧本做出响应。
+OneUptime 把安全事件与你的日志、追踪和指标保存在一起，并且无论它们以什么格式到达，都统一成同一种结构：[OCSF](https://schema.ocsf.io/)（Open Cybersecurity Schema Framework）。你可以从任何来源发送事件、搜索它们，并用 Sigma 检测规则、威胁情报和监视器找出重要的事件。它们发现的问题会成为需要处理的 [案例](/docs/telemetry/security-cases)，并由剧本做出响应。
 
 :::cards
 - [发送事件](#发送安全事件): 一个 HTTPS POST、一个 Fluent Bit 输出，或与安全产品的连接。
@@ -260,7 +260,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ## 浏览安全事件
 
-**事件** 是一个与日志和跟踪浏览器类似的遥测浏览器：一个按严重程度显示时间窗口内事件的图表、一个分面侧栏、事件列表，以及一个显示所打开事件的每个字段和属性的面板。时间窗口、过滤器和搜索都保存在 URL 中，所以过滤后的视图可以分享，刷新后也不会丢失。
+**事件** 是一个与日志和追踪浏览器类似的遥测浏览器：一个按严重程度显示时间窗口内事件的图表、一个分面侧栏、事件列表，以及一个显示所打开事件的每个字段和属性的面板。时间窗口、过滤器和搜索都保存在 URL 中，所以过滤后的视图可以分享，刷新后也不会丢失。
 
 ### 搜索
 
