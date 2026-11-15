@@ -1643,7 +1643,7 @@ Die Seite **KI-Agent** der Cloud bietet für jeden davon ein Runbook an, das Sie
 
 ### Fixes aus einem Workflow
 
-Ein Workflow kann von einem OpenStack-Alarm ausgehen und einen Fix vorschlagen: Der Schritt **Propose an OpenStack fix** nimmt den Alarm oder Incident und den Befehl. Er durchläuft dieselbe Policy, denselben Schreibbereich und dasselbe Lesen dessen, was eine Änderung berührt, wie ein Fix, den OneUptime AI vorschlägt, braucht kein KI-Modell, und eine Person genehmigt ihn am Alarm. Ein Workflow kann die Änderung nicht selbst vornehmen oder genehmigen, was er vorschlägt, was der Fix-Modus der Cloud auch ist. Die Vorlage **Propose taking a failing OpenStack compute service out of scheduling** ist ein Ort zum Beginnen.
+Ein Workflow kann von einem OpenStack-Alarm ausgehen und einen Fix vorschlagen: Der Schritt **OpenStack-Korrektur vorschlagen** nimmt den Alarm oder Incident und den Befehl. Er durchläuft dieselbe Policy, denselben Schreibbereich und dasselbe Lesen dessen, was eine Änderung berührt, wie ein Fix, den OneUptime AI vorschlägt, braucht kein KI-Modell, und eine Person genehmigt ihn am Alarm. Ein Workflow kann die Änderung nicht selbst vornehmen oder genehmigen, was er vorschlägt, was der Fix-Modus der Cloud auch ist. Die Vorlage **Propose taking a failing OpenStack compute service out of scheduling** ist ein Ort zum Beginnen.
 
 ## Als systemd-Dienst ausführen
 

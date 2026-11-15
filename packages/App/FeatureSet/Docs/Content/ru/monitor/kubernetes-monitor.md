@@ -85,15 +85,15 @@ flowchart TB
 
 | Категория | Метрики |
 | --- | --- |
-| Под | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Узел | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
-| Контейнер | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Рабочая нагрузка | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
-| HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
-| Плоскость управления | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
+| Под | Использование CPU Pod, Использование памяти Pod, Фаза Pod (код), Использование файловой системы Pod, Загрузка лимита памяти Pod, Загрузка лимита CPU Pod, Сетевой I/O Pod (накопительно, в обе стороны) |
+| Узел | Использование CPU узла, Выделяемый CPU узла, Использование памяти узла, Рабочий набор памяти узла, Использование файловой системы узла, Выделяемая память узла, Условие Ready узла, Условие MemoryPressure узла, Условие DiskPressure узла, Условие PIDPressure узла, Свободное место в файловой системе узла |
+| Контейнер | Перезапуски контейнера, Перезапуски контейнера (прирост), Лимит CPU контейнера, Запрос CPU контейнера, Лимит памяти контейнера, Запрос памяти контейнера, Контейнер готов |
+| Рабочая нагрузка | Доступные реплики Deployment, Желаемые реплики Deployment, Желаемые узлы DaemonSet, Ошибочно запланированные узлы DaemonSet, Готовые узлы DaemonSet, Желаемые реплики StatefulSet, Готовые реплики StatefulSet, Неуспешные поды Job, Неуспешные поды Job (прирост), Успешные поды Job |
+| HPA | Текущие реплики HPA, Желаемые реплики HPA, Максимум реплик HPA, Минимум реплик HPA |
+| Плоскость управления | У etcd есть лидер, Запросы API-сервера в обработке, Ожидающие поды планировщика |
 
 > [!NOTE]
-> **Pod CPU Usage** и **Node CPU Usage** измеряются в ядрах, а не в процентах: `0.18` – это 0,18 ядра. **Pod Phase (Code)** – это код (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): агрегируйте его через «Максимум» или «Минимум», но никогда не через «Сумма». Метрики плоскости управления приходят только тогда, когда включён сбор метрик плоскости управления агентом. **Node Ready Condition** равно 1 при Ready, 0 при NotReady и -1 при Unknown — так выглядит упавший узел: оповещайте при значении меньше 1. **Container Restarts** — нарастающий счётчик перезапусков контейнера; **Container Restarts (Increase)** агент отправляет с каждым замером: перезапуски с его предыдущего замера контейнера, поэтому их сумма за окно — это перезапуски в нём. Он несёт то же, что и **Container Restarts**, включая имена рабочих нагрузок пода контейнера, но не ID контейнера, который меняется при каждом перезапуске. **Job Failed Pods** — нарастающий счётчик неудачных подов задания (Job); **Job Failed Pods (Increase)** агент отправляет с каждым замером: поды задания, завершившиеся неудачей с его предыдущего замера этого задания, поэтому их сумма за окно — это сбои в нём. Он несёт то же, что и **Job Failed Pods**: имя и пространство имён задания.
+> **Использование CPU Pod** и **Использование CPU узла** измеряются в ядрах, а не в процентах: `0.18` – это 0,18 ядра. **Фаза Pod (код)** – это код (1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown): агрегируйте его через «Максимум» или «Минимум», но никогда не через «Сумма». Метрики плоскости управления приходят только тогда, когда включён сбор метрик плоскости управления агентом. **Условие Ready узла** равно 1 при Ready, 0 при NotReady и -1 при Unknown — так выглядит упавший узел: оповещайте при значении меньше 1. **Перезапуски контейнера** — нарастающий счётчик перезапусков контейнера; **Перезапуски контейнера (прирост)** агент отправляет с каждым замером: перезапуски с его предыдущего замера контейнера, поэтому их сумма за окно — это перезапуски в нём. Он несёт то же, что и **Перезапуски контейнера**, включая имена рабочих нагрузок пода контейнера, но не ID контейнера, который меняется при каждом перезапуске. **Неуспешные поды Job** — нарастающий счётчик неудачных подов задания (Job); **Неуспешные поды Job (прирост)** агент отправляет с каждым замером: поды задания, завершившиеся неудачей с его предыдущего замера этого задания, поэтому их сумма за окно — это сбои в нём. Он несёт то же, что и **Неуспешные поды Job**: имя и пространство имён задания.
 
 ## Критерии мониторинга
 
@@ -191,7 +191,7 @@ flowchart TB
 :::
 
 :::details Порог CPU никогда не срабатывает
-**Pod CPU Usage** и **Node CPU Usage** измеряются в ядрах, а не в процентах, поэтому порог `80` означает 80 ядер. Задайте порог в ядрах или начните с **High Node CPU Utilization** или **Pod CPU Saturating Container Limit**, которые сравнивают процент.
+**Использование CPU Pod** и **Использование CPU узла** измеряются в ядрах, а не в процентах, поэтому порог `80` означает 80 ядер. Задайте порог в ядрах или начните с **High Node CPU Utilization** или **Pod CPU Saturating Container Limit**, которые сравнивают процент.
 :::
 
 :::details CrashLoopBackOff Detection не сработал при перезапуске
