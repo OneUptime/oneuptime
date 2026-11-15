@@ -45,4 +45,32 @@ export function readOwnValue<T>(
   return record[key];
 }
 
+/*
+ * Sets a key somebody typed on a record built at run time, as the record's
+ * own key. `record[key] = value` does that for every key but "__proto__":
+ * every object inherits that one as a setter, so assigning a string to it
+ * does nothing, and assigning an object or array replaces the record's
+ * prototype. Written here, "__proto__" is a key like any other: Object.keys
+ * lists it and JSON.stringify writes it. (Copying the record with
+ * `{ ...record }`, which this code's ES2017 target compiles to
+ * Object.assign, assigns it again and so drops it.)
+ */
+export function writeOwnValue<T>(
+  record: Record<string, T>,
+  key: string,
+  value: T,
+): void {
+  if (key === "__proto__") {
+    Object.defineProperty(record, key, {
+      value: value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+    return;
+  }
+
+  record[key] = value;
+}
+
 export default lookupTable;

@@ -10622,7 +10622,7 @@ test.describe("the header, by its own width", () => {
 
     // The dialog stays, saying why, and nothing is read as published.
     await expect(confirm).toContainText(
-      "This scheduled maintenance event could not be updated. Please try again.",
+      "This maintenance event could not be updated. Please try again.",
     );
     expect((await fixture(page)).updates).toEqual([
       {

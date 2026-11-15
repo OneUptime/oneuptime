@@ -92,7 +92,7 @@ Une question **Fichier** ou **Plusieurs fichiers** prend des fichiers sur l'ordi
 
 ### Champs de ce que le formulaire crée
 
-Les champs d'un incident, ou d'un événement de maintenance planifiée, auxquels une personne qui soumet peut répondre. La réponse devient la valeur du champ.
+Les champs d'un incident, ou d'un événement de maintenance, auxquels une personne qui soumet peut répondre. La réponse devient la valeur du champ.
 
 | Champ d'incident | Répondu avec |
 | --- | --- |

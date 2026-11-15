@@ -186,7 +186,7 @@ Una media sui figli pesa un negozio con due dispositivi quanto un centro di dist
 
 ## Manutenzione programmata per i siti di rete
 
-Collega i siti a un evento di manutenzione programmata in **Altre risorse interessate**, nel passaggio **Risorse interessate** dell'evento, come faresti con un host. La pagina **Manutenzione programmata** di un sito elenca gli eventi collegati, e il suo **Crea evento di manutenzione** apre il modulo con il sito già scelto.
+Collega i siti a un evento di manutenzione in **Altre risorse interessate**, nel passaggio **Risorse interessate** dell'evento, come faresti con un host. La pagina **Manutenzione programmata** di un sito elenca gli eventi collegati, e il suo **Crea evento di manutenzione** apre il modulo con il sito già scelto.
 
 Una finestra su un padre copre tutto ciò che sta sotto: una finestra su una regione copre ogni mercato e ogni unità al suo interno, compresi i siti creati dopo la pianificazione della finestra, quindi un cambio di operatore regionale non deve elencare quattrocento negozi.
 

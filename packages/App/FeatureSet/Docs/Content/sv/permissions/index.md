@@ -173,7 +173,7 @@ En användares tillåtande poster läggs ihop över alla hens team, men en block
 
 ### Ändra ett tillstånd
 
-En incident, ett larm, en larm- eller incidentepisod och ett schemalagt underhåll byter tillstånd, och en övervakare byter status, genom en ny rad på deras tillståndstidslinje. **Bekräfta**, **Lös**, **Ändra tillstånd**, sidan **Tillståndstidslinje**, API:et och arbetsflöden lägger alla till en. Att lägga till den kräver tidslinjens egen skapandebehörighet, tillsammans med en behörighet att läsa posten som den ändrar:
+En incident, ett larm, en larm- eller incidentepisod och en underhållshändelse byter tillstånd, och en övervakare byter status, genom en ny rad på deras tillståndstidslinje. **Bekräfta**, **Lös**, **Ändra tillstånd**, sidan **Tillståndstidslinje**, API:et och arbetsflöden lägger alla till en. Att lägga till den kräver tidslinjens egen skapandebehörighet, tillsammans med en behörighet att läsa posten som den ändrar:
 
 | För att ändra tillståndet för | Krävs |
 | --- | --- |
@@ -181,7 +181,7 @@ En incident, ett larm, en larm- eller incidentepisod och ett schemalagt underhå
 | Ett larm | **Create Alert State Timeline** |
 | En larmepisod | **Create Alert Episode State Timeline** |
 | En incidentepisod | **Create Incident Episode State Timeline** |
-| Ett schemalagt underhåll | **Create Scheduled Maintenance State Timeline** |
+| En underhållshändelse | **Create Scheduled Maintenance State Timeline** |
 | En övervakare (dess status) | **Create Monitor Status Timeline** |
 
 Posten får sedan det nya tillståndet från OneUptime självt, med det som hör till, som när en episod löstes eller när ett underhåll nästa gång påminner sina prenumeranter. En ändring kräver alltså inte också en behörighet att redigera posten: en anpassad roll med **Create Incident State Timeline** men utan **Edit Incident** ändrar en incidents tillstånd. För att hindra ett team från att ändra tillstånd blockerar du tidslinjens skapandebehörighet; en blockering av **Edit Incident** låter tillståndsändringar vara. Etiketter, ägare och privata poster smalnar av tidslinjens skapandebehörighet som de smalnar av alla andra, genom posten vars tillstånd den ändrar: se reglerna för omfattning nedan.
@@ -214,7 +214,7 @@ Vissa roller gäller per definition hela projektet och erbjuder ingen omfattning
 
 ## Ägare
 
-En ägare är en användare eller ett team som är kopplat till en viss resurs. De flesta resurser som representerar något du driver — övervakare, incidenter, larm, schemalagda underhåll, jourpolicyer, instrumentpaneler, tjänster, statussidor, arbetsflöden, runbooks och SLO:er — har en flik **Ägare**.
+En ägare är en användare eller ett team som är kopplat till en viss resurs. De flesta resurser som representerar något du driver — övervakare, incidenter, larm, underhållshändelser, jourpolicyer, instrumentpaneler, tjänster, statussidor, arbetsflöden, runbooks och SLO:er — har en flik **Ägare**.
 
 Ägare har två uppgifter:
 

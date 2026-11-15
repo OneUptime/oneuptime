@@ -238,8 +238,8 @@ const ServerProductsSettings: FunctionComponent = (): ReactElement => {
     return (
       <div key={product} className="py-3">
         <Toggle
-          title={translator.translateText(getProductTitle(product))}
-          ariaLabel={translator.translateText(getProductTitle(product))}
+          title={getProductTitle(product)}
+          ariaLabel={getProductTitle(product)}
           value={isIngestionStopped ? false : isSwitchedOn(product)}
           disabled={isIngestionStopped || isSaving}
           description={

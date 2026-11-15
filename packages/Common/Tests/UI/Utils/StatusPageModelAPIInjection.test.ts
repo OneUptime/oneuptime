@@ -220,24 +220,28 @@ describe("StatusPageUtil model API injection", () => {
       injectedGetListArguments().requestOptions?.overrideRequestUrl.toString(),
     ).toBe(overrideRequestUrl.toString());
 
+    // Each a name the page gave, drawn as written (#7782).
     expect(result.categories).toEqual([
-      { id: GROUP_TWO_ID, title: "Core services" },
-      { id: GROUP_ONE_ID, title: "Customer-facing" },
+      { id: GROUP_TWO_ID, title: "Core services", isUserContent: true },
+      { id: GROUP_ONE_ID, title: "Customer-facing", isUserContent: true },
     ]);
     expect(result.options).toEqual([
       {
         value: RESOURCE_TWO_ID,
         label: "API",
+        isUserContent: true,
         categoryId: GROUP_TWO_ID,
       },
       {
         value: RESOURCE_THREE_ID,
         label: "Worker",
+        isUserContent: true,
         categoryId: GROUP_ONE_ID,
       },
       {
         value: RESOURCE_ONE_ID,
         label: "Web application",
+        isUserContent: true,
         categoryId: GROUP_ONE_ID,
       },
     ]);

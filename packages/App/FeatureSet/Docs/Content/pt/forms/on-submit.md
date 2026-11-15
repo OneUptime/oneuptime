@@ -4,7 +4,7 @@ Cada envio por um formulário cria um registro no seu projeto: um **incidente** 
 
 :::cards
 - [Como um envio se torna um incidente](#como-um-envio-se-torna-um-incidente): Cada campo do novo incidente, e de onde vem o valor dele.
-- [Como um envio se torna um evento de manutenção programada](#como-um-envio-se-torna-um-evento-de-manutenção-programada): O mesmo, para uma solicitação de manutenção.
+- [Como um envio se torna um evento de manutenção](#como-um-envio-se-torna-um-evento-de-manutenção): O mesmo, para uma solicitação de manutenção.
 - [As configurações Ao enviar](#as-configurações-ao-enviar): Valores padrão, o que é sempre anexado, proprietários e publicação.
 - [A nota privada](#a-nota-privada): Quem enviou, e as respostas que nenhum campo guarda.
 :::
@@ -92,7 +92,7 @@ Ative **Visível na página de status** na página **Configurações** do incide
 Como o incidente foi declarado com **Notificar assinantes da página de status** desativado, publicá-lo não envia a notificação "incidente criado". Para avisar os assinantes, publique uma nota pública com **Notificar assinantes da página de status** marcado — consulte [Publicar uma nota pública](/docs/incidents/notes-owners-and-feed#publicar-uma-nota-pública).
 :::
 
-## Como um envio se torna um evento de manutenção programada
+## Como um envio se torna um evento de manutenção
 
 | Campo | Vem de |
 | --- | --- |

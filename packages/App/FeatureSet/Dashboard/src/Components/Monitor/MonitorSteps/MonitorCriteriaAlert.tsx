@@ -5,6 +5,8 @@ import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import ObjectID from "Common/Types/ObjectID";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { PeopleList } from "Common/UI/Components/PeoplePicker/PeopleList";
 import {
@@ -67,29 +69,23 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             placeholder: "No data entered",
             getElement: (item: CriteriaAlert): ReactElement => {
               if (item["alertSeverityId"]) {
+                const severity: AlertSeverity | undefined =
+                  props.alertSeverityOptions.find((option: AlertSeverity) => {
+                    return (
+                      option.id?.toString() ===
+                      item["alertSeverityId"]!.toString()
+                    );
+                  });
+
                 return (
                   <Pill
                     isMinimal={true}
-                    color={
-                      (props.alertSeverityOptions.find(
-                        (option: AlertSeverity) => {
-                          return (
-                            option.id?.toString() ===
-                            item["alertSeverityId"]!.toString()
-                          );
-                        },
-                      )?.color as Color) || Black
-                    }
-                    text={
-                      (props.alertSeverityOptions.find(
-                        (option: AlertSeverity) => {
-                          return (
-                            option.id?.toString() ===
-                            item["alertSeverityId"]!.toString()
-                          );
-                        },
-                      )?.name as string) || ""
-                    }
+                    color={(severity?.color as Color) || Black}
+                    text={(severity?.name as string) || ""}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      severity?.name,
+                    )}
                   />
                 );
               }

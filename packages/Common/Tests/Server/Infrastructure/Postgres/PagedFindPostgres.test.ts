@@ -803,6 +803,50 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
     MANY_PAGES_TIMEOUT_MS,
   );
 
+  /*
+   * An Incidents list sorted from its Severity or State header (#8134): by
+   * the related record's place in the project's list, worst first or the
+   * other way with the incidents that have none last, that place selected
+   * as the dashboard's table selects it (ModelTable's ColumnSort).
+   */
+  test(
+    "an Incidents list sorted by its Severity and State headers: TypeORM's pages, both ways",
+    async () => {
+      let compared: number = 0;
+
+      const select: Record<string, unknown> = {
+        ...(incidentsList({}).select as Record<string, unknown>),
+        currentIncidentState: { _id: true, name: true, order: true },
+        incidentSeverity: { _id: true, name: true, order: true },
+      };
+
+      for (const order of [
+        { incidentSeverity: { order: "ASC" }, _id: "ASC" },
+        {
+          incidentSeverity: { order: { direction: "DESC", nulls: "LAST" } },
+          _id: "ASC",
+        },
+        { currentIncidentState: { order: "ASC" }, _id: "ASC" },
+        {
+          currentIncidentState: {
+            order: { direction: "DESC", nulls: "LAST" },
+          },
+          _id: "ASC",
+        },
+      ]) {
+        compared += await expectSamePages({
+          target: Incident,
+          options: incidentsList({ order: order, select: select }),
+          pageSizes: [1, 3, 5, 100],
+          total: 17,
+        });
+      }
+
+      expect(compared).toBeGreaterThan(40);
+    },
+    MANY_PAGES_TIMEOUT_MS,
+  );
+
   test(
     "an Incidents list with deleted incidents, filtered through its state, with a raw condition",
     async () => {

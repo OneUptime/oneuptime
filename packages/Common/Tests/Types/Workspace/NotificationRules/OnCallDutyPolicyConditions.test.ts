@@ -331,9 +331,10 @@ describe("On-Call Duty Policy notification rule conditions (#3459)", () => {
           checkOn: NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels,
         });
 
+      // A label's name is its owner's, drawn as written (#7782).
       expect(options).toEqual([
-        { value: POLICY_LABEL_ID, label: "Payments" },
-        { value: OTHER_LABEL_ID, label: "Search" },
+        { value: POLICY_LABEL_ID, label: "Payments", isUserContent: true },
+        { value: OTHER_LABEL_ID, label: "Search", isUserContent: true },
       ]);
     });
 

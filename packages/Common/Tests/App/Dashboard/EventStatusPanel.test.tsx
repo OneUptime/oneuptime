@@ -35,6 +35,11 @@ jest.mock("react-i18next", () => {
             return "Résoudre";
           }
 
+          // A name a new project's incident states start with.
+          if (key === "Identified") {
+            return "Identificado";
+          }
+
           return options?.defaultValue ?? key;
         },
       };
@@ -1119,7 +1124,9 @@ describe("EventStatusPanel state track", () => {
   test("reads a default state's name in the reader's words, a project's own as written", () => {
     renderPanel({
       states: [
+        makeState("identified", "Identified"),
         makeState("created", "Created"),
+        // The project's own name, though the locale has a word for it (#7780).
         makeState("resolved", "Resolve translation key"),
       ],
       actions: [],
@@ -1129,7 +1136,7 @@ describe("EventStatusPanel state track", () => {
       steps().map((step: HTMLElement): string => {
         return step.textContent || "";
       }),
-    ).toEqual(["Created", "Résoudre"]);
+    ).toEqual(["Identificado", "Created", "Resolve translation key"]);
   });
 });
 

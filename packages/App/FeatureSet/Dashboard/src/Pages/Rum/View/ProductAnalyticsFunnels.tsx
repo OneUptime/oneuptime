@@ -395,6 +395,7 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
                         events={names.data?.events || []}
                         value={step}
                         ariaLabel={stepName}
+                        isAriaLabelTranslated={true}
                         dataTestId={`product-analytics-funnel-step-${index + 1}`}
                         onChange={(picked: ProductAnalyticsEventRef): void => {
                           const next: Array<ProductAnalyticsEventRef> = [
@@ -483,9 +484,7 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
                 return option.value === String(state.windowMs);
               })}
               isClearable={false}
-              ariaLabel={
-                translator.translateText("Time to finish the funnel") || ""
-              }
+              ariaLabel="Time to finish the funnel"
               dataTestId="product-analytics-funnel-window"
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,

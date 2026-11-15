@@ -32,12 +32,25 @@ export interface CategoryProps {
    */
   ariaLabel?: string | undefined;
   /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
+  /*
    * The hover text on the input itself - NOT `title` above, which is the visible
    * label rendered beside the box. Its most useful job is on a DISABLED box,
    * where it is the only place the reason can live: a box that cannot be ticked
    * and does not say why reads as broken rather than as deliberate.
    */
   hoverText?: string | undefined;
+  /*
+   * The title is a name - a record's - drawn as written, never looked up:
+   * a monitor named "Network" is "Network" in every language
+   * (CategoryCheckboxOption.isUserContent). Left out, the title is the
+   * product's words, looked up in the reader's language.
+   */
+  isTitleUserContent?: boolean | undefined;
 }
 
 const CheckboxElement: FunctionComponent<CategoryProps> = (
@@ -91,7 +104,11 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
             onFocus={props.onFocus}
             onBlur={props.onBlur}
             data-testid={props.dataTestId}
-            aria-label={translateValue(props.ariaLabel) as string | undefined}
+            aria-label={
+              props.isAriaLabelTranslated
+                ? props.ariaLabel
+                : (translateValue(props.ariaLabel) as string | undefined)
+            }
             title={translateValue(props.hoverText) as string | undefined}
             aria-describedby={props.description ? descriptionId : undefined}
             aria-invalid={props.error ? "true" : undefined}
@@ -103,7 +120,9 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         </div>
         <div className="ml-3 text-sm leading-6">
           <label className="font-medium text-gray-900" htmlFor={checkboxId}>
-            {translateValue(props.title)}
+            {props.isTitleUserContent
+              ? props.title
+              : translateValue(props.title)}
           </label>
           {props.description && (
             <div id={descriptionId} className="text-gray-500">

@@ -15,6 +15,7 @@ import {
   STATE_LISTS,
   StateListBuiltIn,
   StateListDefinition,
+  StateListEnd,
   StateListOrderViolation,
   StateListRow,
   StateListType,
@@ -23,6 +24,7 @@ import {
   getStateListDeleteRefusal,
   getStateListDeleteRefusalMessage,
   getStateListInsertValue,
+  getStateListOfTable,
   getStateListOrderViolation,
   getStateListOrderViolationIntroduced,
   getStateListOrderViolationMessage,
@@ -167,6 +169,52 @@ describe("the nine lists", () => {
       }
     },
   );
+
+  /*
+   * Where a list of what moves through it is sorted worst first (a list's
+   * Severity, State or Monitor Status header, #8134): the end that needs
+   * someone. Every list but the monitor statuses keeps it at the top.
+   */
+  test("the worst end of each list: the top, but for monitor statuses, whose list ends offline", () => {
+    for (const type of Object.values(StateListType)) {
+      expect([StateListEnd.Top, StateListEnd.Bottom]).toContain(
+        STATE_LISTS[type].worstAt,
+      );
+    }
+
+    expect(MONITOR.worstAt).toBe(StateListEnd.Bottom);
+    expect(INCIDENT.worstAt).toBe(StateListEnd.Top);
+    expect(STATE_LISTS[StateListType.AlertState].worstAt).toBe(
+      StateListEnd.Top,
+    );
+    expect(MAINTENANCE.worstAt).toBe(StateListEnd.Top);
+    expect(SEVERITY.worstAt).toBe(StateListEnd.Top);
+    expect(STATE_LISTS[StateListType.AlertSeverity].worstAt).toBe(
+      StateListEnd.Top,
+    );
+    expect(POSTMORTEM.worstAt).toBe(StateListEnd.Top);
+    expect(CASE_STATUS.worstAt).toBe(StateListEnd.Top);
+    expect(CASE_PRIORITY.worstAt).toBe(StateListEnd.Top);
+  });
+
+  test.each(Object.values(StateListType))(
+    "%s is the list its model's records make up, by the model's table",
+    (type: StateListType) => {
+      expect(getStateListOfTable(new MODELS[type]().tableName)).toBe(
+        STATE_LISTS[type],
+      );
+    },
+  );
+
+  test("no other table's records make up one of these lists", () => {
+    expect(getStateListOfTable("Monitor")).toBe(null);
+    expect(getStateListOfTable("Label")).toBe(null);
+    expect(getStateListOfTable("toString")).toBe(null);
+    expect(getStateListOfTable("__proto__")).toBe(null);
+    expect(getStateListOfTable("")).toBe(null);
+    expect(getStateListOfTable(null)).toBe(null);
+    expect(getStateListOfTable(undefined)).toBe(null);
+  });
 
   test("states are paths; monitor statuses and severities are not", () => {
     expect(STATE_LISTS[StateListType.IncidentState].keepsBuiltInOrder).toBe(

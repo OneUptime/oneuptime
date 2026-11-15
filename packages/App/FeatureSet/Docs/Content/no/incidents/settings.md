@@ -183,7 +183,7 @@ De fleste prosjekter trenger ett trinn. Legg til ett til når et notat trenger e
 - **Endringer gjelder med en gang.** Hvem som kan godkjenne, leses når noen tar stilling, og notater som allerede venter, følger endringene dine. Når du legger til, sletter eller flytter trinn, eller endrer hvem et trinn nevner, blir alle som nå kan godkjenne et ventende notat og ikke er spurt om det ennå, spurt gjennom varslingsinnstillingene sine, og det samme gjelder den som blir med i et team som trinnet et notat venter på, nevner. Ingen blir spurt to ganger om det samme trinnet i et notat. Den som fjernes fra trinnet, eller fra teamet, kan ikke lenger ta stilling til notatet, og meldingen deres om det i Slack, Microsoft Teams eller Mattermost sier det. Et notat beholder godkjenningene det har.
 - **Ingen godkjenner sitt eget notat, eller to trinn av ett notat.** Den som sendte et notat til godkjenning, kan verken godkjenne eller avvise det, og den som godkjente ett av trinnene, kan ikke godkjenne et annet.
 
-Bare prosjekteiere og -administratorer kan endre disse innstillingene, og alle som leser notatene, kan se hvem som godkjenner dem. **Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** er den samme siden for planlagte vedlikeholdshendelser, med egen bryter og egne trinn. Hva et notat gjør mens det venter, og hvordan godkjennere tar stilling, står under [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
+Bare prosjekteiere og -administratorer kan endre disse innstillingene, og alle som leser notatene, kan se hvem som godkjenner dem. **Planlagt vedlikehold → Innstillinger → Godkjenning av offentlige notater** er den samme siden for vedlikeholdshendelser, med egen bryter og egne trinn. Hva et notat gjør mens det venter, og hvordan godkjennere tar stilling, står under [Godkjenning av offentlige notater](/docs/incidents/notes-owners-and-feed#godkjenning-av-offentlige-notater).
 
 ## Varsler til abonnenter
 
@@ -236,7 +236,7 @@ Hver definisjon har:
 - **Ta med i abonnentvarsler** — under **Flere felt**. Sender feltet og verdien til statussidens abonnenter med hendelsens meldinger: standardmeldingene på e-post, i Slack og i Microsoft Teams og webhooks, men ikke SMS. Abonnenter er vanligvis utenfor teamet ditt, så slå det bare på for felt som trygt kan deles. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#hendelser).
 - **Malvariabel** — nøkkelen en mal når feltet med, `{{incident.customFields.<key>}}`, i notatmaler og egendefinerte maler for abonnentvarsler. Den dannes fra feltets navn når feltet opprettes — små bokstaver, sifre og understreker, så `Expected Resolution` blir `expected_resolution`, med `_2`, `_3` og så videre lagt til når et annet felt allerede har nøkkelen — og den endres ikke når feltet får nytt navn. Ingen setter den for hånd: API-et ignorerer en verdi som sendes for den. Maler som er skrevet med det eldre `{{customFields.<key>}}`, fortsetter å fungere. Du trenger aldri å slå den opp: redigeringsverktøyene som setter den inn — **Notat** i en notatmal og de egendefinerte malene for abonnentvarsler for hendelseshendelser på en statusside — viser hvert felts variabel under **Malvariabler**, etter feltets navn. Skjemaet **Rediger** for et felt viser den også, skrivebeskyttet, nederst i **Flere felt**, med en knapp som kopierer den.
 
-**Rekkefølge**, **Vis ved opprettelse**, **Påkrevd ved opprettelse**, **Ta med i abonnentvarsler** og **Malvariabel** finnes bare på egendefinerte hendelsesfelt. De egendefinerte feltene på monitorer, varsler, planlagte vedlikeholdshendelser og de andre ressursene har dem ikke.
+**Rekkefølge**, **Vis ved opprettelse**, **Påkrevd ved opprettelse**, **Ta med i abonnentvarsler** og **Malvariabel** finnes bare på egendefinerte hendelsesfelt. De egendefinerte feltene på monitorer, varsler, vedlikeholdshendelser og de andre ressursene har dem ikke.
 
 Definisjonene ligger i en egen modell; verdiene ligger på selve hendelsen i kolonnen `customFields`. På en enkelt hendelse fyller du dem ut fra **Egendefinerte felt** i hendelsens sidemeny (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), der feltene står i **Rekkefølge**. Hendelsesmaler beholder verdier for de samme feltene i sine egne `customFields`.
 
@@ -362,7 +362,7 @@ Når du lagrer, flyttes et alternativ med nytt navn og en verdi du velger et alt
 
 En hendelse der feltet ikke lenger tilbyr verdien, viser verdien, merket som _ikke lenger et alternativ_, på sin side **Egendefinerte felt** og i listen over hendelser. Å redigere de andre feltene beholder den; velg et annet alternativ for å endre den.
 
-De egendefinerte feltene på alle andre ressurser fungerer på samme måte: monitorer, varsler, planlagte vedlikeholdshendelser, statussider, vaktpolicyer, team, teammedlemmer og lagerelementer. Å gi et alternativ i et monitorfelt nytt navn, eller legge til et, gjør det samme med hendelses-, varsel- og vedlikeholdsfeltene som kopierer det (se [Felt som kopieres fra en monitor](#felt-som-kopieres-fra-en-monitor)), slik at de fortsetter å tilby hver verdi de kopierer.
+De egendefinerte feltene på alle andre ressurser fungerer på samme måte: monitorer, varsler, vedlikeholdshendelser, statussider, vaktpolicyer, team, teammedlemmer og lagerelementer. Å gi et alternativ i et monitorfelt nytt navn, eller legge til et, gjør det samme med hendelses-, varsel- og vedlikeholdsfeltene som kopierer det (se [Felt som kopieres fra en monitor](#felt-som-kopieres-fra-en-monitor)), slik at de fortsetter å tilby hver verdi de kopierer.
 
 Via API-et sender du den nye listen som `dropdownOptions` og de nye navnene i `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tid til etteranalyse"| postmortem["Etteranalysen blir publisert"]
 ```
 
-Varsler og planlagte vedlikeholdshendelser har den samme funksjonen, under **Varsler → Innstillinger → Målinger** og **Planlagt vedlikehold → Innstillinger → Målinger**. Alt nedenfor gjelder for alle tre, hver med sine egne øyeblikk.
+Varsler og vedlikeholdshendelser har den samme funksjonen, under **Varsler → Innstillinger → Målinger** og **Planlagt vedlikehold → Innstillinger → Målinger**. Alt nedenfor gjelder for alle tre, hver med sine egne øyeblikk.
 
 ### Ferdige målinger
 
@@ -477,7 +477,7 @@ Hver hendelses side viser sine egne målinger på et kort **Målinger**, rett un
 
 En måling der du endrer starten eller slutten, fortsetter å vise den gamle verdien på hver hendelse til OneUptime har regnet den ut på nytt, slik diagrammet også gjør. Rett etter en tilstandsendring fra hendelsens overskrift viser kortet de nye verdiene så snart OneUptime har regnet dem ut, vanligvis med en gang.
 
-Varsler og planlagte vedlikeholdshendelser har det samme kortet på sidene sine. For en vedlikeholdshendelse kommer **Ikke nådd** når hendelsen er avsluttet: når den er i den avsluttede eller den fullførte tilstanden, eller i en egen tilstand etter den avsluttede tilstanden. Øyeblikkene dens følger de samme plassene: **Vedlikeholdet starter**, **Vedlikeholdet slutter** og **Vedlikeholdet blir fullført** er overgangene til en tilstand der hendelsen pågår, er over eller er fullført, fra en der den ikke var det — så en hendelse som fullføres rett fra den pågående tilstanden, slutter der, en hendelse som flyttes fra den avsluttede tilstanden rett til en egen tilstand etter den fullførte tilstanden, blir fullført der, og å gå videre fra den fullførte tilstanden til en slik tilstand fullfører ingenting på nytt. Se [Planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser). Kortet utelates når ingen aktivert måling har **Vis på hendelsessider** slått på, og for noen som ikke har lov til å lese målinger.
+Varsler og vedlikeholdshendelser har det samme kortet på sidene sine. For en vedlikeholdshendelse kommer **Ikke nådd** når hendelsen er avsluttet: når den er i den avsluttede eller den fullførte tilstanden, eller i en egen tilstand etter den avsluttede tilstanden. Øyeblikkene dens følger de samme plassene: **Vedlikeholdet starter**, **Vedlikeholdet slutter** og **Vedlikeholdet blir fullført** er overgangene til en tilstand der hendelsen pågår, er over eller er fullført, fra en der den ikke var det — så en hendelse som fullføres rett fra den pågående tilstanden, slutter der, en hendelse som flyttes fra den avsluttede tilstanden rett til en egen tilstand etter den fullførte tilstanden, blir fullført der, og å gå videre fra den fullførte tilstanden til en slik tilstand fullfører ingenting på nytt. Se [Vedlikeholdshendelser](/docs/status-pages/subscribers#vedlikeholdshendelser). Kortet utelates når ingen aktivert måling har **Vis på hendelsessider** slått på, og for noen som ikke har lov til å lese målinger.
 
 ### Påvirkning startet, og hvorfor det er tomt
 
@@ -563,7 +563,7 @@ Dialogen sier hva som er galt før du lagrer, og API-et avviser de samme prefiks
 
 Project Owners, Project Admins og alle med **Edit Project** kan endre prefiksene. Alle andre ser dem med knappen **Oppdater** låst.
 
-Varsler og planlagte vedlikeholdshendelser har den samme siden: **Varsler → Innstillinger → Nummerering** for numrene til varsler og varselepisoder (`ALT-` og `AE-` i nye prosjekter), og **Planlagt vedlikehold → Innstillinger → Nummerering** for numrene til hendelser (`SM-`). I alle tre fungerer sidens gamle adresser fortsatt og åpner **Nummerering**: **Flere innstillinger** (`…/settings/more`) og **Nummerprefiks** (`…/settings/number-prefix`).
+Varsler og vedlikeholdshendelser har den samme siden: **Varsler → Innstillinger → Nummerering** for numrene til varsler og varselepisoder (`ALT-` og `AE-` i nye prosjekter), og **Planlagt vedlikehold → Innstillinger → Nummerering** for numrene til hendelser (`SM-`). I alle tre fungerer sidens gamle adresser fortsatt og åpner **Nummerering**: **Flere innstillinger** (`…/settings/more`) og **Nummerprefiks** (`…/settings/number-prefix`).
 
 ## Neste numre
 
@@ -589,7 +589,7 @@ Dialogen sier hva som er galt før du lagrer, og bare numrene du har endret, lag
 
 Project Owners, Project Admins og alle med **Edit Project** kan endre de neste numrene, slik som prefiksene. Alle andre ser dem med knappen **Oppdater** låst.
 
-Varsler og planlagte vedlikeholdshendelser har det samme kortet på sidene sine **Nummerering**: **Neste varselnummer** og **Neste nummer for varselepisode**, og **Neste nummer for planlagt vedlikehold**. [Importer fra et annet verktøy](/docs/moving-to-oneuptime/incident-io) henter oppsettet ditt, ikke de tidligere hendelsene dine, og lar derfor numrene være som de er: Sett de neste numrene før den første hendelsen erklæres i OneUptime.
+Varsler og vedlikeholdshendelser har det samme kortet på sidene sine **Nummerering**: **Neste varselnummer** og **Neste nummer for varselepisode**, og **Neste nummer for planlagt vedlikehold**. [Importer fra et annet verktøy](/docs/moving-to-oneuptime/incident-io) henter oppsettet ditt, ikke de tidligere hendelsene dine, og lar derfor numrene være som de er: Sett de neste numrene før den første hendelsen erklæres i OneUptime.
 
 ## Brytere for tilknyttede varsler
 
