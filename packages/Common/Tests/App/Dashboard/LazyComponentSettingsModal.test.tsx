@@ -47,6 +47,7 @@ jest.mock(
 import LazyComponentSettingsModal from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/LazyComponentSettingsModal";
 import type { ComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ComponentSettingsModal";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
+import { ObjectType } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
@@ -66,9 +67,10 @@ const COMPONENT_ID: ObjectID = new ObjectID(
 );
 
 const CONFIG: DashboardViewConfig = {
+  _type: ObjectType.DashboardViewConfig,
   components: [],
   heightInDashboardUnits: 10,
-} as DashboardViewConfig;
+};
 
 const RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
