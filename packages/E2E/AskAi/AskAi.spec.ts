@@ -4540,8 +4540,10 @@ const READ_CARD_DATA: Array<string> = [
 
 /*
  * The words in Latin letters an Arabic page keeps: names the Arabic
- * Dashboard writes in them (SLO, SLI, API, URL, IP, the time zone), and
- * Deployments, which its locale keeps in English (i18n/Progress/ar.json).
+ * Dashboard writes in them (SLO, SLI, API, URL, IP, the time zone - the
+ * browser's UTC, named as it is since #8475, where moment's guess read
+ * GMT), and Deployments, which its locale keeps in English
+ * (i18n/Progress/ar.json).
  */
 const ARABIC_LATIN_WORDS: Array<string> = [
   "SLO",
@@ -4549,7 +4551,7 @@ const ARABIC_LATIN_WORDS: Array<string> = [
   "API",
   "URL",
   "IP",
-  "GMT",
+  "UTC",
   "Deployments",
 ];
 
@@ -4738,8 +4740,9 @@ test.describe("every card a read leaves", () => {
       'Pages on-call schedule "Payments weekly rotation", then escalates after 30 minutes',
       "Pages no one",
       "On call now: Ana Souza",
-      "Oct 26 2026, 13:00 GMT",
-      "Nov 02 2026, 13:00 GMT",
+      // In the browser's zone, UTC, as the export's header names it (#8475).
+      "Oct 26 2026, 13:00 UTC",
+      "Nov 02 2026, 13:00 UTC",
       "Jonas Müller",
       "3: Checkout (monitor: Checkout API), Payments (monitor group: Payments stack), Backups - not monitored",
       "IP Address: 203.0.113.7, User: ana@acme.example.com",
