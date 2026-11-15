@@ -4016,6 +4016,20 @@
                     ],
                     "minimum": 1
                 },
+                "databaseMaxQueueJobConnections": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
+                "probeSchedulingMaxConcurrentRequests": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "workerConcurrency": {
                     "type": "integer"
                 },

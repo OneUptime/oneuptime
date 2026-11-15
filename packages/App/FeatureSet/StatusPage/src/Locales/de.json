@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "{{total}} Vorfälle an diesem Tag gemeldet",
     "scheduledMaintenance": "Geplante Wartung",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
-    "oneMaintenanceEvent": "1 geplante Wartung",
-    "maintenanceEvents": "{{total}} geplante Wartungen",
+    "oneMaintenanceEvent": "1 Wartungsereignis",
+    "maintenanceEvents": "{{total}} Wartungsereignisse",
     "moreMaintenance": "+{{total}} weitere"
   },
   "liveStatus": {

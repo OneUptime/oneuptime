@@ -753,7 +753,10 @@ export interface SessionReplayChunkEnvelope {
   payloadEncoding: SessionReplayPayloadEncoding;
   payloadBytes: number;
 
-  /* Already scrubbed client-side: origin + path, no query, no fragment. */
+  /*
+   * Already scrubbed client-side: origin + path, no query, and no fragment
+   * but a hash router's route (UrlScrubber.scrub).
+   */
   url: string;
 
   /*

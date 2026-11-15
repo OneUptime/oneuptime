@@ -19,7 +19,7 @@ import NetworkDeviceOtherAddressesUtil from "../../../Utils/NetworkDevice/Networ
  *
  *   1. devices this probe polls whose hostname is the address, or lists it
  *      in its Other Addresses, or resolves to it in DNS - the rule traps and
- *      syslog follow (NetworkDeviceHydrationUtil.findDevicesByProbeAndSource);
+ *      syslog follow (NetworkDeviceHydrationUtil.lookupDevicesByProbeAndSource);
  *   2. on a project's own probe, any device of that project with the
  *      address as its hostname or among its Other Addresses - a router
  *      polled by one probe may export to another of the project's probes.
@@ -123,8 +123,14 @@ export default class NetworkFlowDeviceMatcher {
       return cached;
     }
 
+    /*
+     * The uncached lookup: this answer, with the project's fallback, is
+     * cached below for CACHE_TTL_MS, so a device added starts receiving
+     * flows within that long - not within two such spans, as it would
+     * through the trap and syslog cache as well.
+     */
     const probeDevices: Array<NetworkDevice> =
-      await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
+      await NetworkDeviceHydrationUtil.lookupDevicesByProbeAndSource({
         probeId: probe.id,
         sourceIpAddress: address,
       });

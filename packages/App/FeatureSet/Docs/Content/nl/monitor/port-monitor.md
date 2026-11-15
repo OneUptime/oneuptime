@@ -27,7 +27,7 @@ sequenceDiagram
 
 De sonde opent alleen TCP-verbindingen: een dienst die alleen op UDP luistert, zoals een SNMP-agent, kan niet met een poortmonitor worden gecontroleerd.
 
-Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoekt zijn naam op, en voegt wat ze vond aan het resultaat toe als **Network Path at Time of Failure**, zodat u ziet waar de route brak. Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw dienst dus niet als offline markeren.
+Wanneer een controle mislukt, traceert de sonde ook de route naar de host en zoekt zijn naam op, en voegt wat ze vond aan het resultaat toe als **Netwerkpad op het moment van de storing**, zodat u ziet waar de route brak. Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat, en kan uw dienst dus niet als offline markeren.
 
 ## Voordat u begint
 
@@ -164,7 +164,7 @@ Maak het venster langer dan het monitoringinterval, zodat het meerdere controles
 ## Problemen oplossen
 
 :::details De dienst draait, maar de monitor meldt offline
-De sonde kon geen verbinding openen: een firewall laat haar vallen, de dienst luistert alleen op een privé-interface, of de poort klopt niet. De hoofdoorzaak van het incident, en **Monitoringlogboeken** bij de monitor, tonen de fout, en **Network Path at Time of Failure** toont hoe ver de route kwam. Laat de sondes door de firewall, of gebruik een [aangepaste sonde](/docs/probe/custom-probe) binnen het netwerk.
+De sonde kon geen verbinding openen: een firewall laat haar vallen, de dienst luistert alleen op een privé-interface, of de poort klopt niet. De hoofdoorzaak van het incident, en **Monitoringlogboeken** bij de monitor, tonen de fout, en **Netwerkpad op het moment van de storing** toont hoe ver de route kwam. Laat de sondes door de firewall, of gebruik een [aangepaste sonde](/docs/probe/custom-probe) binnen het netwerk.
 :::
 
 :::details De DNS-opzoektijd is altijd leeg

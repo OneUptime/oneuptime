@@ -13,6 +13,9 @@
  * seconds, until the next cron tick. A sibling monitor whose heartbeat
  * loaded after the cron's change recovered in half a second.
  *
+ * The monitor is now read once, and only once the lock is held, so the
+ * status it decides against is the one the evaluation before it left.
+ *
  * The evaluator, the per-monitor lock, the monitor reads and the timeline
  * writes are stubbed at their edges; monitorResource and the status
  * timeline decision (MonitorStatusTimelineUtil) run for real, and what they
@@ -138,6 +141,7 @@ import {
   test,
 } from "@jest/globals";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import ExceptionMessages from "../../../../Types/Exception/ExceptionMessages";
 
 const ONLINE: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000001");
 const OFFLINE: ObjectID = new ObjectID("aaaaaaaa-0000-4000-8000-000000000002");
@@ -218,30 +222,26 @@ function heartbeat(monitor: Monitor): IncomingMonitorRequest {
 }
 
 /*
- * Two reads of the monitor: the full load before the lock, and the status
- * re-read under it. statusUnderLock is what the second one finds - the
- * status the evaluation that held the lock left behind.
+ * The monitor as a read finds it: with the status it was loaded with before
+ * the lock is held, and with statusUnderLock once it is - the status the
+ * evaluation that held the lock left behind. A read made before the lock
+ * would see the stale status, so a test that passes proves the read is
+ * made under it.
  */
 function serveMonitorReads(data: {
   monitor: Monitor;
-  statusUnderLock: ObjectID | null;
+  statusUnderLock: ObjectID;
 }): void {
-  findOneById.mockImplementation(((args: {
-    select: Record<string, unknown>;
-  }) => {
-    const selectedColumns: Array<string> = Object.keys(args.select);
+  let isLocked: boolean = false;
 
-    if (
-      selectedColumns.length === 1 &&
-      selectedColumns[0] === "currentMonitorStatusId"
-    ) {
-      if (!data.statusUnderLock) {
-        return Promise.resolve(null);
-      }
+  lock.mockImplementation((() => {
+    isLocked = true;
+    return Promise.resolve({ isAcquired: true });
+  }) as any);
 
-      const fresh: Monitor = new Monitor();
-      fresh.currentMonitorStatusId = data.statusUnderLock;
-      return Promise.resolve(fresh);
+  findOneById.mockImplementation((() => {
+    if (isLocked) {
+      data.monitor.currentMonitorStatusId = data.statusUnderLock;
     }
 
     return Promise.resolve(data.monitor);
@@ -343,7 +343,7 @@ describe("MonitorResourceUtil.monitorResource decides status under the per-monit
     expect(writtenStatuses()).toEqual([ONLINE.toString()]);
   });
 
-  test("the status is re-read only once the lock is held, and only that one column", async () => {
+  test("the monitor is read once, and only once the lock is held", async () => {
     const monitor: Monitor = heartbeatMonitor({ loadedStatus: ONLINE });
     serveMonitorReads({ monitor, statusUnderLock: OFFLINE });
     lastTimelineRow.mockResolvedValue(timelineRowWithStatus(OFFLINE) as never);
@@ -351,28 +351,28 @@ describe("MonitorResourceUtil.monitorResource decides status under the per-monit
 
     await MonitorResourceUtil.monitorResource(heartbeat(monitor));
 
-    expect(findOneById).toHaveBeenCalledTimes(2);
+    expect(findOneById).toHaveBeenCalledTimes(1);
 
-    const loadOrder: number = findOneById.mock.invocationCallOrder[0]!;
     const lockOrder: number = lock.mock.invocationCallOrder[0]!;
-    const refreshOrder: number = findOneById.mock.invocationCallOrder[1]!;
+    const readOrder: number = findOneById.mock.invocationCallOrder[0]!;
 
-    expect(loadOrder).toBeLessThan(lockOrder);
-    expect(lockOrder).toBeLessThan(refreshOrder);
+    expect(lockOrder).toBeLessThan(readOrder);
 
-    const refresh: {
+    const read: {
       id: ObjectID;
       select: Record<string, unknown>;
       props: Record<string, unknown>;
-    } = findOneById.mock.calls[1]![0] as {
+    } = findOneById.mock.calls[0]![0] as {
       id: ObjectID;
       select: Record<string, unknown>;
       props: Record<string, unknown>;
     };
 
-    expect(refresh.id.toString()).toBe(monitor.id!.toString());
-    expect(refresh.select).toEqual({ currentMonitorStatusId: true });
-    expect(refresh.props).toEqual({ isRoot: true });
+    expect(read.id.toString()).toBe(monitor.id!.toString());
+    // The one read carries the status every decision below keys on.
+    expect(read.select["currentMonitorStatusId"]).toBe(true);
+    expect(read.select["monitorSteps"]).toBe(true);
+    expect(read.props).toEqual({ isRoot: true });
   });
 
   /*
@@ -420,18 +420,21 @@ describe("MonitorResourceUtil.monitorResource decides status under the per-monit
     expect(writtenStatuses()).toEqual([ONLINE.toString()]);
   });
 
-  test("a status re-read that finds nothing keeps the status the monitor was loaded with", async () => {
-    const monitor: Monitor = heartbeatMonitor({ loadedStatus: ONLINE });
-    serveMonitorReads({ monitor, statusUnderLock: null });
+  test("a monitor deleted while the result waited for the lock is not found, and the lock is given back", async () => {
+    findOneById.mockResolvedValue(null as never);
     evaluationMatches(RECEIVED);
 
-    await MonitorResourceUtil.monitorResource(heartbeat(monitor));
+    await expect(
+      MonitorResourceUtil.monitorResource(
+        heartbeat(heartbeatMonitor({ loadedStatus: ONLINE })),
+      ),
+    ).rejects.toThrow(ExceptionMessages.MonitorNotFound);
 
-    expect(monitor.currentMonitorStatusId?.toString()).toBe(ONLINE.toString());
-    expect(createTimelineRow).not.toHaveBeenCalled();
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    expect(processMonitorStep).not.toHaveBeenCalled();
   });
 
-  test("when the lock cannot be taken nothing is re-read or evaluated", async () => {
+  test("when the lock cannot be taken nothing is read or evaluated", async () => {
     const monitor: Monitor = heartbeatMonitor({ loadedStatus: ONLINE });
     serveMonitorReads({ monitor, statusUnderLock: OFFLINE });
     lock.mockRejectedValue(new Error("lock timeout") as never);
@@ -441,24 +444,19 @@ describe("MonitorResourceUtil.monitorResource decides status under the per-monit
       MonitorResourceUtil.monitorResource(heartbeat(monitor)),
     ).rejects.toThrow("lock timeout");
 
-    expect(findOneById).toHaveBeenCalledTimes(1);
+    expect(findOneById).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
     expect(createTimelineRow).not.toHaveBeenCalled();
   });
 
-  test("the lock is released even when the status re-read fails", async () => {
-    const monitor: Monitor = heartbeatMonitor({ loadedStatus: ONLINE });
-    let reads: number = 0;
-    findOneById.mockImplementation((() => {
-      reads++;
-      return reads === 1
-        ? Promise.resolve(monitor)
-        : Promise.reject(new Error("connection reset"));
-    }) as any);
+  test("the lock is released even when the monitor read fails", async () => {
+    findOneById.mockRejectedValue(new Error("connection reset") as never);
     evaluationMatches(RECEIVED);
 
     await expect(
-      MonitorResourceUtil.monitorResource(heartbeat(monitor)),
+      MonitorResourceUtil.monitorResource(
+        heartbeat(heartbeatMonitor({ loadedStatus: ONLINE })),
+      ),
     ).rejects.toThrow("connection reset");
 
     expect(Semaphore.release).toHaveBeenCalledTimes(1);

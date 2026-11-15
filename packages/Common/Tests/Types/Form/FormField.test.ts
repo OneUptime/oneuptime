@@ -484,7 +484,7 @@ describe("validateFormFields: what can be stored", () => {
           FormTargetType.ScheduledMaintenance,
         ),
       ).toContain(
-        "is linked to a field a scheduled maintenance event does not have. Fields it can be linked to: title, description, startsAt, endsAt, monitors, statusPages, labels.",
+        "is linked to a field a maintenance event does not have. Fields it can be linked to: title, description, startsAt, endsAt, monitors, statusPages, labels.",
       );
     });
 
@@ -661,7 +661,7 @@ describe("validateFormFields: what can be stored", () => {
   describe("what the target cannot do without", () => {
     test("a maintenance form must ask when it starts and ends", () => {
       expect(validate([], FormTargetType.ScheduledMaintenance)).toBe(
-        "A form that creates a scheduled maintenance event must ask for Starts At. A form that creates a scheduled maintenance event must ask for Ends At.",
+        "A form that creates a maintenance event must ask for Starts At. A form that creates a maintenance event must ask for Ends At.",
       );
     });
 
@@ -675,7 +675,7 @@ describe("validateFormFields: what can be stored", () => {
       });
 
       expect(validate(fields, FormTargetType.ScheduledMaintenance)).toBe(
-        "Ends At must be required: a scheduled maintenance event cannot be created without it.",
+        "Ends At must be required: a maintenance event cannot be created without it.",
       );
     });
 
@@ -1623,7 +1623,7 @@ describe("hidden questions", () => {
     });
 
     expect(validate(fields, FormTargetType.ScheduledMaintenance)).toContain(
-      "Starts At cannot be hidden: a scheduled maintenance event cannot be created without it.",
+      "Starts At cannot be hidden: a maintenance event cannot be created without it.",
     );
   });
 
@@ -1643,7 +1643,7 @@ describe("hidden questions", () => {
 
     expect(problem).toContain("is hidden, so it cannot be required");
     expect(problem).toContain(
-      "Ends At cannot be hidden: a scheduled maintenance event cannot be created without it.",
+      "Ends At cannot be hidden: a maintenance event cannot be created without it.",
     );
   });
 

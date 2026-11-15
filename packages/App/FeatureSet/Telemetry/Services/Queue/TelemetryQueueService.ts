@@ -15,6 +15,8 @@ import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
 import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import IncomingRequestLatestPayloadStore from "../../Utils/IncomingRequestLatestPayloadStore";
+import NetworkDevicePollLatestStore from "../../Utils/NetworkDevicePollLatestStore";
+import SnmpTrapPendingStore from "../../Utils/SnmpTrapPendingStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 import TelemetryIngestionBudget, {
   TelemetryIngestionBudgetAdmission,
@@ -56,7 +58,11 @@ export type ProbeIngestJobType =
   | "monitor-test"
   | "incoming-email"
   | "snmp-trap"
-  | "network-device-walk";
+  | "network-device-walk"
+  // A device's newest poll, from NetworkDevicePollLatestStore.
+  | "network-device-poll"
+  // A sender's waiting traps, from SnmpTrapPendingStore.
+  | "snmp-trap-batch";
 
 /*
  * Every kind of probe ingest this release processes. A kind a newer release
@@ -71,6 +77,8 @@ const PROBE_INGEST_JOB_TYPES: Record<ProbeIngestJobType, true> = {
   "incoming-email": true,
   "snmp-trap": true,
   "network-device-walk": true,
+  "network-device-poll": true,
+  "snmp-trap-batch": true,
 };
 
 export function isKnownProbeIngestJobType(
@@ -155,6 +163,28 @@ export interface ProbeIngestJobData {
    * `isOnline` / `snmpResponse` is always present here.
    */
   networkDeviceWalk?: JSONObject | undefined;
+  /*
+   * For network-device-poll: whose newest poll to process. The poll itself
+   * is in NetworkDevicePollLatestStore; `pollId` is the one that queued the
+   * job, which a newer poll of the device may have replaced.
+   */
+  networkDevicePoll?:
+    | {
+        probeId: string;
+        networkDeviceId: string;
+        pollId: string;
+      }
+    | undefined;
+  /*
+   * For snmp-trap-batch: whose waiting traps to process. The traps are in
+   * SnmpTrapPendingStore.
+   */
+  snmpTrapBatch?:
+    | {
+        probeId: string;
+        sourceIpAddress: string;
+      }
+    | undefined;
 }
 
 export interface ServerMonitorIngestJobData {
@@ -986,6 +1016,14 @@ export default class TelemetryQueueService {
   /*
    * Queues one trap a probe received. `probeId` is that probe, as it
    * authenticated: traps are matched only to the devices it polls.
+   *
+   * At most one job per sender waits in a backlog: the trap is pushed onto
+   * its sender's list (SnmpTrapPendingStore) and the sender's job, keyed by
+   * (probe, source address) with BullMQ deduplication, works through the
+   * list in order. No trap is skipped - traps are events, and the order of
+   * a linkDown and the linkUp after it matters. A trap with no source
+   * address to key it by is queued on its own, as before (the worker
+   * refuses it).
    */
   public static async addSnmpTrapIngestJob(data: {
     probeId: ObjectID;
@@ -1005,6 +1043,24 @@ export default class TelemetryQueueService {
         },
         ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
+
+      const sourceIpAddress: string | undefined =
+        TelemetryQueueService.getTrapSender(data.snmpTrap);
+
+      if (sourceIpAddress) {
+        await SnmpTrapPendingStore.push({
+          probeId: data.probeId.toString(),
+          sourceIpAddress: sourceIpAddress,
+          payload: probeData,
+        });
+
+        await TelemetryQueueService.addSnmpTrapBatchJob({
+          probeId: data.probeId.toString(),
+          sourceIpAddress: sourceIpAddress,
+        });
+
+        return;
+      }
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.ProbeIngest,
@@ -1032,6 +1088,77 @@ export default class TelemetryQueueService {
     }
   }
 
+  /*
+   * Queues the job that processes a sender's waiting traps - unless one is
+   * waiting already, which will process them. Added while the sender's job
+   * is running, it is queued after it (keepLastIfActive), so a trap pushed
+   * while a job drains the list is never left behind.
+   */
+  public static async addSnmpTrapBatchJob(data: {
+    probeId: string;
+    sourceIpAddress: string;
+  }): Promise<void> {
+    const jobData: TelemetryIngestJobData = {
+      type: TelemetryType.ProbeIngest,
+      ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+      probeIngest: {
+        jobType: "snmp-trap-batch",
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        snmpTrapBatch: {
+          probeId: data.probeId,
+          sourceIpAddress: data.sourceIpAddress,
+        },
+      },
+    };
+
+    const jobId: string = `probe-snmp-trap-batch-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+    await Queue.addJob(
+      QueueName.Telemetry,
+      jobId,
+      "ProcessTelemetry",
+      jobData as unknown as JSONObject,
+      {
+        skipExistenceCheck: true,
+        deduplication: {
+          id: TelemetryQueueService.getSnmpTrapDeduplicationId(data),
+          keepLastIfActive: true,
+        },
+      },
+    );
+
+    logger.debug(`Added SNMP trap batch job: ${jobId}`);
+  }
+
+  public static getSnmpTrapDeduplicationId(data: {
+    probeId: string;
+    sourceIpAddress: string;
+  }): string {
+    return `snmp-trap-${data.probeId}-${data.sourceIpAddress}`;
+  }
+
+  // The address a trap came from, as its sender's key; undefined when none.
+  public static getTrapSender(snmpTrap: JSONObject): string | undefined {
+    const source: unknown = snmpTrap["sourceIpAddress"];
+
+    if (typeof source !== "string") {
+      return undefined;
+    }
+
+    const trimmed: string = source.trim();
+
+    return trimmed && trimmed.length <= 100 ? trimmed : undefined;
+  }
+
+  /*
+   * Queues one device poll. At most one per device waits in a backlog: the
+   * poll is stored as the device's newest (NetworkDevicePollLatestStore) and
+   * the device's job, keyed by (probe, device) with BullMQ deduplication,
+   * processes whatever is newest when it runs. What a poll skipped that way
+   * loses - and what it does not - is written up in
+   * NetworkDevicePollLatestStore. A poll with no ids to key it by is queued
+   * on its own, as before (the worker refuses it).
+   */
   public static async addNetworkDeviceWalkJob(data: {
     walkRequestBody: JSONObject;
     /*
@@ -1047,11 +1174,48 @@ export default class TelemetryQueueService {
         ingestionTimestamp: data.receivedAt || OneUptimeDate.getCurrentDate(),
       };
 
-      const jobData: TelemetryIngestJobData = {
-        type: TelemetryType.ProbeIngest,
-        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
-        probeIngest: probeData,
-      };
+      const probeId: unknown = data.walkRequestBody["probeId"];
+      const networkDeviceId: unknown = data.walkRequestBody["networkDeviceId"];
+
+      const canCoalesce: boolean =
+        typeof probeId === "string" &&
+        typeof networkDeviceId === "string" &&
+        ObjectID.isValidUUID(probeId) &&
+        ObjectID.isValidUUID(networkDeviceId);
+
+      let jobData: TelemetryIngestJobData;
+
+      if (canCoalesce) {
+        const pollId: string = ObjectID.generate().toString();
+
+        // Stored BEFORE the job is added: the job that runs finds it.
+        await NetworkDevicePollLatestStore.store({
+          probeId: probeId as string,
+          networkDeviceId: networkDeviceId as string,
+          pollId: pollId,
+          payload: probeData,
+        });
+
+        jobData = {
+          type: TelemetryType.ProbeIngest,
+          ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+          probeIngest: {
+            jobType: "network-device-poll",
+            ingestionTimestamp: probeData.ingestionTimestamp,
+            networkDevicePoll: {
+              probeId: probeId as string,
+              networkDeviceId: networkDeviceId as string,
+              pollId: pollId,
+            },
+          },
+        };
+      } else {
+        jobData = {
+          type: TelemetryType.ProbeIngest,
+          ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+          probeIngest: probeData,
+        };
+      }
 
       const jobId: string = `probe-network-device-walk-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
@@ -1062,6 +1226,19 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          ...(canCoalesce
+            ? {
+                deduplication: {
+                  id: TelemetryQueueService.getNetworkDevicePollDeduplicationId(
+                    {
+                      probeId: probeId as string,
+                      networkDeviceId: networkDeviceId as string,
+                    },
+                  ),
+                  keepLastIfActive: true,
+                },
+              }
+            : {}),
         },
       );
 
@@ -1071,6 +1248,13 @@ export default class TelemetryQueueService {
       logger.error(error);
       throw error;
     }
+  }
+
+  public static getNetworkDevicePollDeduplicationId(data: {
+    probeId: string;
+    networkDeviceId: string;
+  }): string {
+    return `network-device-poll-${data.probeId}-${data.networkDeviceId}`;
   }
 
   public static async addIncomingEmailJob(data: {

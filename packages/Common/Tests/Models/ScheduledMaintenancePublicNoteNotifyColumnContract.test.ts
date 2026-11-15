@@ -62,9 +62,7 @@ describe("ScheduledMaintenancePublicNote notify-on-create column contract", () =
 
   test("describes the event-based default for API readers", () => {
     expect(metadata.description).toContain("If left out");
-    expect(metadata.description).toContain(
-      "follows the scheduled maintenance event",
-    );
+    expect(metadata.description).toContain("follows the maintenance event");
   });
 
   test("a new note object does not start with the flag set", () => {

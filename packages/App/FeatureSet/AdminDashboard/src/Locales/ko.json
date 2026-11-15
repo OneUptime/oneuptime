@@ -2671,7 +2671,7 @@
   "Deleting a monitor also deletes its status history and takes it off status pages, monitor groups and SLOs. Its incidents and alerts stay.": "모니터를 삭제하면 해당 상태 기록도 삭제되고 상태 페이지, 모니터 그룹, SLO에서 빠집니다. 모니터의 인시던트와 경고는 그대로 남습니다.",
   "Deleting an incident also deletes its notes and state timeline, and takes it off status pages. Linked alerts stay.": "인시던트를 삭제하면 해당 노트와 상태 타임라인도 삭제되고 상태 페이지에서 빠집니다. 연결된 경고는 그대로 남습니다.",
   "Deleting an alert also deletes its notes and state timeline. Linked incidents stay.": "경고를 삭제하면 해당 노트와 상태 타임라인도 삭제됩니다. 연결된 인시던트는 그대로 남습니다.",
-  "Deleting a scheduled maintenance event also deletes its notes and state timeline, and takes it off status pages.": "예정된 유지보수 이벤트를 삭제하면 해당 노트와 상태 타임라인도 삭제되고 상태 페이지에서 빠집니다.",
+  "Deleting a maintenance event also deletes its notes and state timeline, and takes it off status pages.": "유지 관리 이벤트를 삭제하면 해당 노트와 상태 타임라인도 삭제되고 상태 페이지에서 빠집니다.",
   "Deleting an incident episode also deletes its notes and state timeline. Its incidents stay.": "인시던트 에피소드를 삭제하면 해당 노트와 상태 타임라인도 삭제됩니다. 에피소드의 인시던트는 그대로 남습니다.",
   "Deleting an alert episode also deletes its notes and state timeline. Its alerts stay.": "경고 에피소드를 삭제하면 해당 노트와 상태 타임라인도 삭제됩니다. 에피소드의 경고는 그대로 남습니다.",
   "Deleting a monitor group takes it off status pages. Its monitors stay.": "모니터 그룹을 삭제하면 상태 페이지에서 빠집니다. 그룹의 모니터는 그대로 남습니다.",

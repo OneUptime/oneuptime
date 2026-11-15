@@ -528,6 +528,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             return {
               value: i._id!,
               label: i.name!,
+              // A policy's name is its owner's, drawn as written.
+              isUserContent: true,
             };
           }),
         );

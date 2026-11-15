@@ -24,6 +24,13 @@ import VMwareCollectionSettings, {
   MAX_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
   MIN_VMWARE_COLLECTION_INTERVAL_IN_MINUTES,
 } from "../../../Utils/VMware/VMwareCollectionSettings";
+import {
+  SetAsideCounts,
+  getClaimSetAsideParameters,
+  getClaimSetAsideStatement,
+  readSetAsideCounts,
+  setAsideAfterClaim,
+} from "../Probe/ClaimSetAside";
 
 /*
  * The database half of probe collection: which vCenters a probe collects
@@ -35,6 +42,11 @@ import VMwareCollectionSettings, {
  * one vCenter out twice, and no claim holds a vCenter longer than that
  * statement runs. The vCenters a probe says it is still collecting are left
  * out, so a collection slower than its interval is skipped, not stacked.
+ * After each claim, the due vCenters it stepped over because nothing may
+ * collect them are set aside for a quarter of an hour
+ * (Utils/Probe/ClaimSetAside), so no claim steps over them again and
+ * again; a write that makes one collectable makes it due at once
+ * (VMwareVCenterConnection.afterWrite).
  *
  * Only a probe that may collect a vCenter is ever handed one: the vCenter
  * names it, and it is the project's own probe - or, on a self-hosted
@@ -98,6 +110,17 @@ export default class VMwareProbeCollectionStore {
      * busy pod took to come back to its connection - and every write about
      * those vCenters waited for it: on a busy database, past lock_timeout.
      *
+     * `nextCollectionAt <= now`, oldest first, is a range of the
+     * (collectionProbeId, nextCollectionAt) index in its own order, which
+     * stops at the limit. It read `(nextCollectionAt IS NULL OR ...)`
+     * ordered `ASC NULLS FIRST`, which no btree serves: every claim read
+     * and sorted every due vCenter of the probe. A vCenter with no
+     * nextCollectionAt is made due by the set-aside below.
+     *
+     * The vCenters the probe is still collecting are left out, but they
+     * may be collected, so the set-aside leaves them alone too: that rule
+     * is not part of getCollectableSql.
+     *
      * The interval is held to getSafeInterval's bounds in SQL (the last
      * three parameters). The column is a NOT NULL integer, so it is the
      * same rule. The ids come back in claim order, the longest overdue
@@ -111,29 +134,14 @@ export default class VMwareProbeCollectionStore {
         INNER JOIN "Project" p ON vc."projectId" = p."_id"
         INNER JOIN "Probe" pr ON vc."collectionProbeId" = pr."_id"
         WHERE vc."collectionProbeId" = $1
-          AND vc."collectionMethod" = $5
-          AND vc."deletedAt" IS NULL
-          AND vc."isVCenterPasswordSet" = true
-          AND vc."vcenterUrl" IS NOT NULL
-          AND vc."vcenterUsername" IS NOT NULL
-          AND (vc."nextCollectionAt" IS NULL OR vc."nextCollectionAt" <= $2)
           AND NOT (vc."_id" = ANY($6::uuid[]))
-          -- The tenancy backstop: the project's own probe, or a global
-          -- probe on an instance where those are the operator's own.
-          AND (
-            (pr."isGlobalProbe" = false AND pr."projectId" = vc."projectId")
-            OR (pr."isGlobalProbe" = true AND $7::boolean = false)
-          )
-          AND pr."deletedAt" IS NULL
-          AND p."deletedAt" IS NULL
-          -- A project a master admin blocked is not collected until it is unblocked.
-          AND p."isBlocked" = false
-          AND p."isSampleProject" = false
-          AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
-          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
-        ORDER BY vc."nextCollectionAt" ASC NULLS FIRST
+          AND vc."nextCollectionAt" <= $2
+          AND ${VMwareProbeCollectionStore.getCollectableSql({
+            collectionMethodParameter: "$5",
+            statusesParameter: "$4",
+            isBillingEnabledParameter: "$7",
+          })}
+        ORDER BY vc."nextCollectionAt" ASC
         LIMIT $3
         FOR NO KEY UPDATE OF vc SKIP LOCKED
       ),
@@ -156,7 +164,7 @@ export default class VMwareProbeCollectionStore {
       SELECT "due"."_id"
       FROM "due"
       INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
-      ORDER BY "due"."dueAt" ASC NULLS FIRST
+      ORDER BY "due"."dueAt" ASC
     `,
       [
         data.probeId.toString(),
@@ -177,6 +185,23 @@ export default class VMwareProbeCollectionStore {
           return row._id;
         })
       : [];
+
+    /*
+     * The due vCenters the claim stepped over - nothing may collect them
+     * now - are set aside, so the next claim does not step over them again
+     * (Utils/Probe/ClaimSetAside).
+     */
+    await setAsideAfterClaim({
+      claim: "claimDueVCenters",
+      probeId: data.probeId,
+      rows: "vCenters nothing may collect now",
+      round: async (): Promise<SetAsideCounts> => {
+        return await VMwareProbeCollectionStore.setAsideUncollectable(service, {
+          probeId: data.probeId,
+          currentDate: currentDate,
+        });
+      },
+    });
 
     if (claimedIds.length === 0) {
       return [];
@@ -244,6 +269,100 @@ export default class VMwareProbeCollectionStore {
     }
 
     return jobs;
+  }
+
+  /*
+   * Sets aside the probe's due vCenters that nothing may collect now
+   * (Utils/Probe/ClaimSetAside): collected by the VMware agent - switching
+   * to it clears nextCollectionAt and keeps the probe - without a password,
+   * an address or a user name, on a probe that may not collect it, or of a
+   * suspended, blocked, sample or deleted project. Each is judged again by
+   * the claim's own rule (getCollectableSql, IS NOT TRUE), so a vCenter the
+   * claim would hand out is never moved. Makes due the probe's vCenters
+   * with no nextCollectionAt at all.
+   *
+   * Returns how many it set aside, and how many it made due.
+   */
+  public static async setAsideUncollectable(
+    service: DatabaseService<VMwareVCenter>,
+    data: {
+      probeId: ObjectID;
+      currentDate: Date;
+    },
+  ): Promise<SetAsideCounts> {
+    const rows: unknown = await service.getRepository().manager.query(
+      getClaimSetAsideStatement({
+        table: "VMwareVCenter",
+        alias: "vc",
+        dueColumn: "nextCollectionAt",
+        sources: [
+          {
+            from: `"VMwareVCenter" vc`,
+            where: `vc."collectionProbeId" = $1`,
+          },
+        ],
+        joins: `LEFT JOIN "Project" p ON vc."projectId" = p."_id"
+        LEFT JOIN "Probe" pr ON vc."collectionProbeId" = pr."_id"`,
+        isProbesRow: `vc."collectionProbeId" = $1`,
+        claimable: VMwareProbeCollectionStore.getCollectableSql({
+          collectionMethodParameter: "$6",
+          statusesParameter: "$7",
+          isBillingEnabledParameter: "$8",
+        }),
+      }),
+      getClaimSetAsideParameters({
+        probeId: data.probeId,
+        currentDate: data.currentDate,
+        ruleParameters: [
+          VMwareCollectionMethod.Probe,
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+          IsBillingEnabled,
+        ],
+      }),
+    );
+
+    return readSetAsideCounts(rows);
+  }
+
+  /*
+   * Whether a vCenter may be handed to its probe to collect now, as SQL over
+   * the aliases the claim's statements use - `vc` (the VMwareVCenter), `p`
+   * (its Project) and `pr` (its collection Probe) - with the Probe
+   * collection method, the served subscription statuses and whether
+   * billing is on bound as the parameters named. The claim keeps the
+   * vCenters it is true for and the set-aside moves the ones it is not
+   * true for: one definition, so a vCenter the claim would hand out is
+   * never one the set-aside moves. Read through LEFT JOINs, a missing
+   * project or probe is NULL here, never true.
+   *
+   * - Collected by a probe, not deleted, with the password, address and
+   *   user name a collection needs.
+   * - The tenancy backstop: the project's own probe, or a global probe on
+   *   an instance where those are the operator's own (billing off).
+   * - The project is served (ProjectService.getActiveProjectStatusQuery):
+   *   not deleted, not blocked by a master admin - it is not collected
+   *   until it is unblocked - not a sample, and its subscriptions not
+   *   inactive.
+   */
+  public static getCollectableSql(parameters: {
+    collectionMethodParameter: string;
+    statusesParameter: string;
+    isBillingEnabledParameter: string;
+  }): string {
+    return [
+      `vc."collectionMethod" = ${parameters.collectionMethodParameter}`,
+      `vc."deletedAt" IS NULL`,
+      `vc."isVCenterPasswordSet" = true`,
+      `vc."vcenterUrl" IS NOT NULL`,
+      `vc."vcenterUsername" IS NOT NULL`,
+      `((pr."isGlobalProbe" = false AND pr."projectId" = vc."projectId") OR (pr."isGlobalProbe" = true AND ${parameters.isBillingEnabledParameter}::boolean = false))`,
+      `pr."deletedAt" IS NULL`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `p."isSampleProject" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+    ].join("\n          AND ");
   }
 
   /*

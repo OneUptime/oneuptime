@@ -118,13 +118,35 @@ describe("monitoring", () => {
     expect(query.paymentProviderMeteredSubscriptionStatus).toBeDefined();
   });
 
+  /*
+   * `branches`: an OpenStack check claim locks in two branches - the checks
+   * that name the probe, and those that run on their cloud's - each holding
+   * the whole rule.
+   */
   const expectClaimSkipsBlockedProjects: (
+    statement: CapturedStatement,
+    branches?: number,
+  ) => void = (statement: CapturedStatement, branches: number = 1): void => {
+    const sql: string = normalizeSql(statement.sql);
+
+    expect(sql).toContain('INNER JOIN "Project" p');
+    expect(sql.split('AND p."isBlocked" = false').length - 1).toBe(branches);
+  };
+
+  /*
+   * And the set-aside after a claim (Utils/Probe/ClaimSetAside) moves a
+   * blocked project's due rows on, judged by the same rule: blocked is not
+   * claimable, so IS NOT TRUE.
+   */
+  const expectSetAsideMovesBlockedProjects: (
     statement: CapturedStatement,
   ) => void = (statement: CapturedStatement): void => {
     const sql: string = normalizeSql(statement.sql);
 
-    expect(sql).toContain('INNER JOIN "Project" p');
+    expect(sql).toContain('"unclaimable" AS (');
+    expect(sql).toContain('LEFT JOIN "Project" p');
     expect(sql.split('AND p."isBlocked" = false').length - 1).toBe(1);
+    expect(sql).toContain(") IS NOT TRUE");
   };
 
   test("the probes' monitor claim hands out no monitor of a blocked project", async () => {
@@ -178,8 +200,9 @@ describe("monitoring", () => {
       { probeId: PROBE_ID, runningVMwareVCenterIds: [], limit: 10 },
     );
 
-    expect(statements).toHaveLength(1);
+    expect(statements).toHaveLength(2);
     expectClaimSkipsBlockedProjects(statements[0]!);
+    expectSetAsideMovesBlockedProjects(statements[1]!);
   });
 
   test("the OpenStack collection claim hands out no cloud of a blocked project", async () => {
@@ -191,8 +214,9 @@ describe("monitoring", () => {
       { probeId: PROBE_ID, runningOpenStackCloudIds: [], limit: 10 },
     );
 
-    expect(statements).toHaveLength(1);
+    expect(statements).toHaveLength(2);
     expectClaimSkipsBlockedProjects(statements[0]!);
+    expectSetAsideMovesBlockedProjects(statements[1]!);
   });
 
   test("the OpenStack check claims hand out no check of a blocked project", async () => {
@@ -208,9 +232,12 @@ describe("monitoring", () => {
       { probeId: PROBE_ID, runningIds: [], limit: 10 },
     );
 
-    expect(statements).toHaveLength(2);
-    expectClaimSkipsBlockedProjects(statements[0]!);
-    expectClaimSkipsBlockedProjects(statements[1]!);
+    // Each claim, then its set-aside.
+    expect(statements).toHaveLength(4);
+    expectClaimSkipsBlockedProjects(statements[0]!, 2);
+    expectSetAsideMovesBlockedProjects(statements[1]!);
+    expectClaimSkipsBlockedProjects(statements[2]!, 2);
+    expectSetAsideMovesBlockedProjects(statements[3]!);
   });
 
   test("the data store claims - content scans and table health - hand out no store of a blocked project", async () => {
@@ -220,9 +247,12 @@ describe("monitoring", () => {
     await claimDueDataStoresForProbe({ probeId: PROBE_ID, limit: 10 });
     await claimDueTableHealthStoresForProbe({ probeId: PROBE_ID, limit: 10 });
 
-    expect(statements).toHaveLength(2);
+    // Each claim, then its set-aside.
+    expect(statements).toHaveLength(4);
     expectClaimSkipsBlockedProjects(statements[0]!);
-    expectClaimSkipsBlockedProjects(statements[1]!);
+    expectSetAsideMovesBlockedProjects(statements[1]!);
+    expectClaimSkipsBlockedProjects(statements[2]!);
+    expectSetAsideMovesBlockedProjects(statements[3]!);
   });
 });
 

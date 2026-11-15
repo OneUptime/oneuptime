@@ -189,6 +189,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/VMwareMetricDescriptions";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
@@ -252,6 +253,28 @@ function labelsOf(pairs: Array<[string, string]>): Array<string> {
   return pairs.map(([label]: [string, string]): string => {
     return label;
   });
+}
+
+/*
+ * The element holding a tile title's words, for the tile's (i). A golden
+ * metric tile draws its (i) after the last word of its title, in a box of
+ * its own inside the element that holds the words (WordsWithInfoTooltip,
+ * issue #7348), never as the title's sibling in a flex row: the (i) is the
+ * box's last element, and the box is the last thing the words hold.
+ */
+function wordsHoldingInfo(button: HTMLElement): HTMLElement {
+  const glue: HTMLElement | null = button.closest<HTMLElement>(
+    `[${INFO_GLUE_ATTRIBUTE}]`,
+  );
+
+  expect(glue).not.toBeNull();
+  expect(glue!.lastElementChild).toBe(button);
+
+  const words: HTMLElement = glue!.parentElement as HTMLElement;
+
+  expect(words.lastChild).toBe(glue);
+
+  return words;
 }
 
 function inventory(): Array<unknown> {
@@ -464,15 +487,39 @@ describe("VMware overview: an (i) beside every number", () => {
   test("each (i) sits right beside the title it explains", async () => {
     await renderLoaded();
 
-    for (const label of new Set(labelsOf([...TILES, ...CHARTS, ...TOP]))) {
-      for (const button of infoButtonsFor(label)) {
-        // The (i)'s own row holds the title and nothing else.
+    // In page order: the hero's, the tiles', then the chart cards' and the top-5 sections'.
+    const buttons: Array<HTMLElement> = infoButtons().slice(HERO.length);
+
+    expect(infoLabels().slice(HERO.length)).toEqual(
+      labelsOf([...TILES, ...CHARTS, ...TOP]),
+    );
+
+    /*
+     * A tile's (i) follows its title's last word, inside the title's own
+     * words (GoldenMetricTile draws them with WordsWithInfoTooltip, issue
+     * #7348): the words hold the title and nothing else.
+     */
+    labelsOf(TILES).forEach((label: string, index: number): void => {
+      const words: HTMLElement = wordsHoldingInfo(buttons[index]!);
+
+      expect(words).toHaveAttribute("data-testid", "golden-metric-tile-title");
+      expect({ label, words: words.textContent?.trim() }).toEqual({
+        label,
+        words: label,
+      });
+    });
+
+    // A chart card's or a top-5 section's (i) is in its title's row, which holds the title and nothing else.
+    labelsOf([...CHARTS, ...TOP]).forEach(
+      (label: string, index: number): void => {
+        const button: HTMLElement = buttons[TILES.length + index]!;
+
         expect({
           label,
           row: button.parentElement?.textContent?.trim(),
         }).toEqual({ label, row: label });
-      }
-    }
+      },
+    );
   });
 
   test("each pill's (i) sits beside its pill", async () => {

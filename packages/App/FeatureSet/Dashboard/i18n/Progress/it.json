@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52232,
-    "untranslated": 9325
+    "keys": 52236,
+    "untranslated": 9299
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -140,6 +140,7 @@
     "Hertz",
     "Home",
     "Hong Kong (+852)",
+    "Hop",
     "Host",
     "Hypervisor",
     "ICMP (ping)",
@@ -253,6 +254,7 @@
     "Query",
     "Query {{number}}",
     "Quota",
+    "RTT",
     "RabbitMQ",
     "Radio",
     "Re-encrypt",

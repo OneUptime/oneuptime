@@ -19,7 +19,16 @@ import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestion
 import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurface";
 
 jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
-  return { __esModule: true, default: { getPolicyFromSecretKey: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      getPolicyFromSecretKey: jest.fn(),
+      // An accepted export stamps its key as used (issue #7887).
+      markUsed: (): Promise<void> => {
+        return Promise.resolve();
+      },
+    },
+  };
 });
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {

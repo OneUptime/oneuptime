@@ -1110,7 +1110,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Scheduled Maintenance Number Prefix",
     description:
-      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber scheduled maintenance events that already exist.",
+      "Custom prefix for scheduled maintenance numbers (e.g., 'SM-'). If empty, '#' is used. Up to 20 letters, numbers or - _ . / : #, not ending in a digit. Changing it does not renumber maintenance events that already exist.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -1396,7 +1396,7 @@ export default class Project extends TenantModel {
     required: false,
     title: "Scheduled Maintenance Numbers Start At",
     description:
-      "Where scheduled maintenance event numbers start: the next scheduled maintenance event gets this number if no scheduled maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every scheduled maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing scheduled maintenance events keep their numbers.",
+      "Where maintenance event numbers start: the next maintenance event gets this number if no maintenance event has reached it yet, and later ones count up from it. Use it to carry on from another tool's numbers. A new value must be higher than every maintenance event number used so far, so a number is never used twice. Empty: numbers carry on from the highest one used. Existing maintenance events keep their numbers.",
     example: 1000,
   })
   @Column({
@@ -5243,7 +5243,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Require Approval for Scheduled Maintenance Public Notes",
     description:
-      "When enabled, a public note on a scheduled maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
+      "When enabled, a public note on a maintenance event is published - shown on status pages, sent to subscribers and posted to chat channels - only once the project's scheduled maintenance approvers approve it (PublicNoteApprovalStep). Edits of published notes wait for approval too. Off by default. Turning it on needs at least one approval step.",
     defaultValue: false,
     example: false,
   })

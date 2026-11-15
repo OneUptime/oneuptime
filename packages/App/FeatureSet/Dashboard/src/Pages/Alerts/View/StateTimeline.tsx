@@ -20,6 +20,8 @@ import StatusTimelineViewSwitch, {
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import SimpleLogViewer from "Common/UI/Components/SimpleLogViewer/SimpleLogViewer";
 import {
   getStateTimelineDurationColumn,
@@ -317,6 +319,10 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
                 <Pill
                   color={item["alertState"]["color"] as Color}
                   text={item["alertState"]["name"] as string}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.AlertState,
+                    item["alertState"]["name"] as string,
+                  )}
                 />
               );
             },

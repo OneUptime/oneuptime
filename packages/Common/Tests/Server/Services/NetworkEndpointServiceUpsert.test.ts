@@ -1,10 +1,15 @@
 import NetworkEndpointService, {
+  CoarseLastSeenAtBackfillPage,
   EndpointControllerClient,
   EndpointWriteCounts,
 } from "../../../Server/Services/NetworkEndpointService";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import logger from "../../../Server/Utils/Logger";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  ENDPOINT_LAST_SEEN_REFRESH_MS,
+  endpointRefreshSlot,
+} from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import {
   expectPlaceholdersMatchParameters,
   normalizeSql,
@@ -45,17 +50,34 @@ const OTHER_SWITCH_ID: ObjectID = new ObjectID(
 const SITE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const ROW_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 
-const NOW: Date = new Date("2026-07-22T12:00:00Z");
+/*
+ * An endpoint's refresh window turns on a whole minute, offset by its MAC
+ * (endpointRefreshSlot), so NOW sits half a minute past one: a row written
+ * JUST_WRITTEN is in NOW's window whatever its MAC, and one written
+ * A_WINDOW_AGO is in an earlier one whatever its MAC.
+ */
+const NOW: Date = new Date("2026-07-22T12:00:30Z");
 const EARLIER: Date = new Date("2026-07-01T00:00:00Z");
-// Inside the 5 minute lastSeenAt refresh threshold.
-const ONE_MINUTE_AGO: Date = new Date("2026-07-22T11:59:00Z");
-// Past the 5 minute refresh threshold.
-const TEN_MINUTES_AGO: Date = new Date("2026-07-22T11:50:00Z");
+const JUST_WRITTEN: Date = new Date("2026-07-22T12:00:10Z");
+const A_WINDOW_AGO: Date = new Date(NOW.getTime() - 15 * 60 * 1000);
+
+function minutesBefore(minutes: number): Date {
+  return new Date(NOW.getTime() - minutes * 60 * 1000);
+}
+
+// The refresh window of its own a time falls in, for one endpoint.
+function slotOf(macAddress: string, at: Date): number {
+  return endpointRefreshSlot({
+    time: at.getTime(),
+    macAddress: macAddress,
+    refreshMs: ENDPOINT_LAST_SEEN_REFRESH_MS,
+  });
+}
 
 // A MAC whose OUI is in the bundled registry slice (Cisco 00:00:0c).
 const CISCO_MAC: string = "00:00:0c:aa:bb:01";
 
-const INSERT_PARAMS_PER_ROW: number = 14;
+const INSERT_PARAMS_PER_ROW: number = 15;
 const UPDATE_PARAMS_PER_ROW: number = 11;
 
 type QueryCall = [string, Array<unknown>];
@@ -268,10 +290,14 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       SITE_ID.toString(),
       NOW, // firstSeenAt
       NOW, // lastSeenAt
+      NOW, // coarseLastSeenAt: lastSeenAt, until it is a day ahead of it
       0, // version
       null, // hostname: a walk knows no name
       null, // attachmentSource: a walk found it
     ]);
+    expect(insertCalls()[0]![0]).toContain(
+      '"firstSeenAt", "lastSeenAt", "coarseLastSeenAt", "version"',
+    );
   });
 
   it("creates an ARP-only row attached to the router interface", async () => {
@@ -301,6 +327,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       null, // no port name
       null, // no vlan
       null, // no deviceSiteId passed — none stamped
+      NOW,
       NOW,
       NOW,
       0,
@@ -373,7 +400,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         attachedNetworkDeviceId: OTHER_SWITCH_ID,
         attachedInterfaceIndex: 2,
         firstSeenAt: EARLIER,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
       }),
     ]);
 
@@ -399,7 +426,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         attachedNetworkDeviceId: OTHER_SWITCH_ID,
         attachedInterfaceIndex: 2,
         firstSeenAt: EARLIER,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
       }),
     ]);
 
@@ -470,7 +497,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       deviceId: SWITCH_ID,
       attachments: [{ macAddress: CISCO_MAC, attachedInterfaceIndex: 7 }],
       ipBindings: [],
-      now: TEN_MINUTES_AGO,
+      now: A_WINDOW_AGO,
     });
 
     // The port it saw is new, so it is written...
@@ -478,12 +505,124 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
     expect(updateCalls()[0]![1][4]).toBe(7);
 
     // ...with its own sighting, which the row keeps only if it is later.
-    expect(updateCalls()[0]![1][9]).toEqual(TEN_MINUTES_AGO);
+    expect(updateCalls()[0]![1][9]).toEqual(A_WINDOW_AGO);
     const sql: string = updateCalls()[0]![0];
     expect(sql).toContain(
       '"lastSeenAt" = GREATEST(e."lastSeenAt", v."lastSeenAt")',
     );
     expect(sql).not.toMatch(/"lastSeenAt" = v\."lastSeenAt"/);
+  });
+
+  /*
+   * coarseLastSeenAt is what the age-out's index holds, in place of
+   * lastSeenAt: it takes lastSeenAt's new value only once that is a day or
+   * more past it, so coarseLastSeenAt <= lastSeenAt < coarseLastSeenAt + a
+   * day, and a write changes an indexed column about once a day an endpoint.
+   * NetworkEndpointWritesPostgres runs the rule against Postgres.
+   */
+  it("moves coarseLastSeenAt only once lastSeenAt is a day past it, from the lastSeenAt it keeps", async () => {
+    findBySpy.mockResolvedValue([
+      makeExistingRow({
+        macAddress: CISCO_MAC,
+        attachedNetworkDeviceId: SWITCH_ID,
+        attachedInterfaceIndex: 2,
+        firstSeenAt: EARLIER,
+        lastSeenAt: A_WINDOW_AGO,
+      }),
+    ]);
+
+    await NetworkEndpointService.upsertDiscoveredEndpoints({
+      projectId: PROJECT_ID,
+      deviceId: SWITCH_ID,
+      attachments: [{ macAddress: CISCO_MAC, attachedInterfaceIndex: 7 }],
+      ipBindings: [],
+      now: NOW,
+    });
+
+    expect(normalizeSql(updateCalls()[0]![0])).toContain(
+      normalizeSql(`"coarseLastSeenAt" = CASE
+        WHEN e."coarseLastSeenAt" IS NULL
+          OR GREATEST(e."lastSeenAt", v."lastSeenAt") >= e."coarseLastSeenAt" + interval '24 hours'
+        THEN GREATEST(e."lastSeenAt", v."lastSeenAt")
+        ELSE e."coarseLastSeenAt"
+      END`),
+    );
+    // It rides on the sighting already in the row's tuple: no value of its own.
+    expect(updateCalls()[0]![1]).toHaveLength(1 + UPDATE_PARAMS_PER_ROW);
+  });
+
+  describe("the coarseLastSeenAt backfill, a page at a time", () => {
+    const AFTER: string = "00000000-0000-4000-8000-000000000041";
+
+    it("reads only live rows that were seen and have none, in id order after the cursor, and copies lastSeenAt into them", async () => {
+      querySpy.mockResolvedValue([
+        {
+          read: 1000,
+          written: 998,
+          lastId: "00000000-0000-4000-8000-000000001041",
+        },
+      ]);
+
+      const page: CoarseLastSeenAtBackfillPage =
+        await NetworkEndpointService.backfillCoarseLastSeenAtPage({
+          afterId: AFTER,
+          limit: 1000,
+        });
+
+      expect(page).toEqual({
+        read: 1000,
+        written: 998,
+        lastId: "00000000-0000-4000-8000-000000001041",
+      });
+
+      const [sql, params] = querySpy.mock.calls[0] as QueryCall;
+      const normalized: string = normalizeSql(sql);
+
+      expect(params).toEqual([1000, AFTER]);
+      expectPlaceholdersMatchParameters({ sql: sql, parameters: params });
+      expect(normalized).toContain(
+        normalizeSql(`WHERE "deletedAt" IS NULL
+          AND "coarseLastSeenAt" IS NULL
+          AND "lastSeenAt" IS NOT NULL
+          AND "_id" > $2::uuid
+          ORDER BY "_id" ASC
+          LIMIT $1`),
+      );
+      // Written as a walk would, checked again on the row it writes.
+      expect(normalized).toContain(
+        normalizeSql(`SET "coarseLastSeenAt" = e."lastSeenAt"`),
+      );
+      expect(normalized).toContain(
+        normalizeSql(`WHERE e."_id" = p."_id"
+            AND e."coarseLastSeenAt" IS NULL`),
+      );
+      // Nothing about the endpoint changed.
+      expect(normalized).not.toContain('"updatedAt"');
+    });
+
+    it("starts at the first id with no cursor", async () => {
+      querySpy.mockResolvedValue([{ read: 0, written: 0, lastId: null }]);
+
+      const page: CoarseLastSeenAtBackfillPage =
+        await NetworkEndpointService.backfillCoarseLastSeenAtPage({
+          limit: 1000,
+        });
+
+      const [sql, params] = querySpy.mock.calls[0] as QueryCall;
+
+      expect(params).toEqual([1000]);
+      expect(sql).not.toContain("$2");
+      expectPlaceholdersMatchParameters({ sql: sql, parameters: params });
+      expect(page).toEqual({ read: 0, written: 0, lastId: undefined });
+    });
+
+    it("reads at least one row a page, whatever it is asked", async () => {
+      querySpy.mockResolvedValue([{ read: 0, written: 0, lastId: null }]);
+
+      await NetworkEndpointService.backfillCoarseLastSeenAtPage({ limit: 0 });
+
+      expect((querySpy.mock.calls[0] as QueryCall)[1]).toEqual([1]);
+    });
   });
 
   it("lets ARP refresh the IP but not steal an attachment owned elsewhere", async () => {
@@ -494,7 +633,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         attachedInterfaceIndex: 2,
         ipAddress: "10.0.0.5",
         firstSeenAt: EARLIER,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
       }),
     ]);
 
@@ -537,7 +676,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         macAddress: "aa:bb:cc:dd:ee:01",
         attachedNetworkDeviceId: SWITCH_ID,
         attachedInterfaceIndex: 2,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
         // No firstSeenAt.
       }),
     ]);
@@ -570,7 +709,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         vlanId: 12,
         siteId: SITE_ID,
         firstSeenAt: EARLIER,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
       });
     };
 
@@ -604,15 +743,75 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       expect(querySpy).not.toHaveBeenCalled();
     });
 
-    it("still refreshes lastSeenAt once it ages past the threshold", async () => {
+    it("still refreshes lastSeenAt once a whole window has passed", async () => {
       const row: NetworkEndpoint = stableRow();
-      row.lastSeenAt = TEN_MINUTES_AGO;
+      row.lastSeenAt = A_WINDOW_AGO;
       findBySpy.mockResolvedValue([row]);
 
       await stableWalk(NOW);
 
       expect(updateCalls()).toHaveLength(1);
       expect(updateCalls()[0]![1][9]).toBe(NOW);
+    });
+
+    /*
+     * The refresh used to be five minutes - the default poll interval - so
+     * every poll rewrote every endpoint; then just under two polls, so every
+     * other poll rewrote all of a switch's endpoints at once. Now each
+     * endpoint's 15-minute window turns on a clock offset by its MAC: the
+     * poll after a write refreshes about a third of a switch, the third whose
+     * windows turned since, and one statement rewrites a third of a page.
+     */
+    it("refreshes about a third of a stable switch on each five-minute poll, the third whose windows turned", async () => {
+      const lastPoll: Date = minutesBefore(5);
+      const attachments: Array<{
+        macAddress: string;
+        attachedInterfaceIndex: number;
+      }> = [];
+      const rows: Array<NetworkEndpoint> = [];
+      const due: Array<string> = [];
+
+      for (let i: number = 0; i < 48; i++) {
+        attachments.push({ macAddress: macAt(i), attachedInterfaceIndex: i });
+        rows.push(
+          makeExistingRow({
+            macAddress: macAt(i),
+            attachedNetworkDeviceId: SWITCH_ID,
+            attachedInterfaceIndex: i,
+            firstSeenAt: EARLIER,
+            lastSeenAt: lastPoll,
+          }),
+        );
+
+        if (slotOf(macAt(i), NOW) > slotOf(macAt(i), lastPoll)) {
+          due.push(macAt(i));
+        }
+      }
+      findBySpy.mockResolvedValue(rows);
+
+      await NetworkEndpointService.upsertDiscoveredEndpoints({
+        projectId: PROJECT_ID,
+        deviceId: SWITCH_ID,
+        attachments: attachments,
+        ipBindings: [],
+        now: NOW,
+      });
+
+      expect(due.length).toBeGreaterThanOrEqual(15);
+      expect(due.length).toBeLessThanOrEqual(18);
+      expect(insertCalls()).toHaveLength(0);
+      expect(updateCalls()).toHaveLength(1);
+      expect(updatedMacs(updateCalls()[0]!).sort()).toEqual(due.sort());
+    });
+
+    it("a device polled every hour writes every poll, as before", async () => {
+      const row: NetworkEndpoint = stableRow();
+      row.lastSeenAt = minutesBefore(60);
+      findBySpy.mockResolvedValue([row]);
+
+      await stableWalk(NOW);
+
+      expect(updateCalls()).toHaveLength(1);
     });
 
     it("writes when the endpoint moves to a different port", async () => {
@@ -750,7 +949,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
             vendor: "Elo Touch",
             portName: "Port 7",
             vlanId: 18,
-            seenAt: ONE_MINUTE_AGO,
+            seenAt: JUST_WRITTEN,
             deviceId: SWITCH_ID,
             deviceSiteId: SITE_ID,
             ...client,
@@ -773,8 +972,9 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         "Port 7",
         18,
         SITE_ID.toString(),
-        ONE_MINUTE_AGO, // firstSeenAt
-        ONE_MINUTE_AGO, // lastSeenAt: when it saw the client, not the read
+        JUST_WRITTEN, // firstSeenAt
+        JUST_WRITTEN, // lastSeenAt: when it saw the client, not the read
+        JUST_WRITTEN, // coarseLastSeenAt
         0,
         "wb-0660-kds01",
         "meraki",
@@ -805,7 +1005,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         18,
         SITE_ID.toString(),
         "10.18.166.51",
-        ONE_MINUTE_AGO,
+        JUST_WRITTEN,
         "wb-0660-kds01",
         "meraki",
       ]);
@@ -846,7 +1046,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
           siteId: SITE_ID,
           hostname: "wb-0660-kds01",
           attachmentSource: "meraki",
-          lastSeenAt: TEN_MINUTES_AGO,
+          lastSeenAt: A_WINDOW_AGO,
         }),
       ]);
 
@@ -1021,7 +1221,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
             attachedNetworkDeviceId: SWITCH_ID,
             attachedInterfaceIndex: i % 48,
             firstSeenAt: EARLIER,
-            lastSeenAt: ONE_MINUTE_AGO,
+            lastSeenAt: JUST_WRITTEN,
           }),
         );
       }
@@ -1056,7 +1256,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
               attachedNetworkDeviceId: SWITCH_ID,
               attachedInterfaceIndex: 1,
               firstSeenAt: EARLIER,
-              lastSeenAt: ONE_MINUTE_AGO,
+              lastSeenAt: JUST_WRITTEN,
             }),
           );
         }
@@ -1099,7 +1299,7 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         attachedNetworkDeviceId: SWITCH_ID,
         attachedInterfaceIndex: 1,
         firstSeenAt: EARLIER,
-        lastSeenAt: ONE_MINUTE_AGO,
+        lastSeenAt: JUST_WRITTEN,
       });
     };
 
@@ -1271,8 +1471,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
           macAddress: MAC_A,
           attachedNetworkDeviceId: OTHER_SWITCH_ID,
           attachedInterfaceIndex: 7,
-          firstSeenAt: ONE_MINUTE_AGO,
-          lastSeenAt: ONE_MINUTE_AGO,
+          firstSeenAt: JUST_WRITTEN,
+          lastSeenAt: JUST_WRITTEN,
         }),
       ]);
       answerNothingOnce();
@@ -1319,8 +1519,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
         macAddress: CISCO_MAC,
         attachedNetworkDeviceId: OTHER_SWITCH_ID,
         attachedPortName: "Port 7",
-        firstSeenAt: ONE_MINUTE_AGO,
-        lastSeenAt: ONE_MINUTE_AGO,
+        firstSeenAt: JUST_WRITTEN,
+        lastSeenAt: JUST_WRITTEN,
       });
       placed.attachmentSource = "meraki";
       findBySpy.mockResolvedValueOnce([]).mockResolvedValueOnce([placed]);

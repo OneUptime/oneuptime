@@ -2901,7 +2901,7 @@ export class PermissionHelper {
         permission: Permission.ScheduledMaintenanceMember,
         title: "Scheduled Maintenance Member",
         description:
-          "Creates, changes and deletes scheduled maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
+          "Creates, changes and deletes maintenance events with their notes, state timelines and owners, and scheduled maintenance and note templates. Cannot change maintenance states.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: true,
@@ -18168,7 +18168,7 @@ export class PermissionHelper {
         permission: Permission.CreateForm,
         title: "Create Form",
         description:
-          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a scheduled maintenance event.",
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a maintenance event.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -29,6 +29,8 @@ import {
 } from "../../../Components/IncidentAlert/IncidentAlertLink";
 import LinkIncidentAlertModal from "../../../Components/IncidentAlert/LinkIncidentAlertModal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Black } from "Common/Types/BrandColors";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -272,6 +274,10 @@ const IncidentViewAlerts: FunctionComponent<
                   isMinimal={true}
                   color={state.color || Black}
                   text={state.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.AlertState,
+                    state.name,
+                  )}
                 />
               );
             },

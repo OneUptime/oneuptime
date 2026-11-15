@@ -588,7 +588,7 @@ describe("a service's noun", () => {
     "List of services affected by this event.",
     "List of services affected by this incident.",
     "List of services to pre-populate on incidents created from this template.",
-    "List of services to pre-populate on scheduled maintenance events created from this template.",
+    "List of services to pre-populate on maintenance events created from this template.",
     "Search and attach hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
     "Search and attach hosts, Kubernetes clusters, Docker hosts, or services that incidents created from this template should pre-populate.",
     "{{count}} services affected",

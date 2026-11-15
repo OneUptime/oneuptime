@@ -29,7 +29,7 @@ flowchart TB
 Alle API-Anfragen werden mit einem API-Schlüssel authentifiziert. Ein Schlüssel gehört zu einem Projekt und tut, was seine Berechtigungen erlauben.
 
 :::steps
-### Einen API-Schlüssel anlegen
+### Einen API-Schlüssel erstellen
 
 Öffnen Sie **Projekteinstellungen → Erweitert → API-Schlüssel** und klicken Sie auf **API-Schlüssel erstellen**. Geben Sie ihm einen **Name** und wählen Sie unter **Zugriff**, was er tun darf: **Projektadministrator**, **Projektmitglied**, **Betrachter** oder **Berechtigungen später wählen**, um auf der Seite des Schlüssels einzelne Berechtigungen hinzuzufügen. Der Schlüssel läuft in einem Jahr ab, es sei denn, Sie wählen unter **Erweitert** ein anderes Datum.
 

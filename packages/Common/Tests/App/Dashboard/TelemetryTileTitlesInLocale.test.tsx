@@ -73,6 +73,8 @@ import {
   WordRun,
 } from "../../../UI/Components/HyphenatedWords/LongWords";
 import HyphenatedWords from "../../../UI/Components/HyphenatedWords/HyphenatedWords";
+import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 const LOCALES_DIR: string = path.resolve(
@@ -160,6 +162,18 @@ function sentence(
     `{{${slot}}}`,
     worded ? drawn(language, english) : english,
   );
+}
+
+/*
+ * The (i)'s name as InfoTooltip fills it: "About {{label}}" through the
+ * Dashboard's Translator, the title a term of the sentence, so a Japanese
+ * sentence keeps no space where the title and its words meet in their own
+ * script, "クエリについて" (#7864).
+ */
+function aboutLabel(language: string, english: string): string {
+  return dashboardTranslator(language).translateTemplate("About {{label}}", {
+    label: translatableTerm(english),
+  });
 }
 
 beforeAll(async () => {
@@ -402,7 +416,7 @@ describe("a golden-metric tile", () => {
 
       expect(
         within(root).getByRole("button", {
-          name: sentence(language, "About {{label}}", "label", "Queries"),
+          name: aboutLabel(language, "Queries"),
         }),
       ).toBeInTheDocument();
     },
@@ -551,7 +565,7 @@ describe("a chart card", () => {
         });
         expect(
           screen.getByRole("button", {
-            name: sentence(language, "About {{label}}", "label", english),
+            name: aboutLabel(language, english),
           }),
         ).toBeInTheDocument();
         expect(screen.queryAllByTestId("line-chart")).toHaveLength(

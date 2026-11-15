@@ -41,6 +41,17 @@ jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
   };
 });
 
+/*
+ * Where each run's record stands, answered one record at a time by the
+ * per-record reads this suite mocks, as the worker read them before it read
+ * a page's records together (Fixtures/OnCallRecordStatesPerRecord).
+ */
+jest.mock("Common/Server/Utils/OnCall/OnCallRecordStates", () => {
+  return jest
+    .requireActual("../Fixtures/OnCallRecordStatesPerRecord")
+    .onCallRecordStatesReadPerRecord();
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -57,7 +68,7 @@ jest.mock("Common/Server/Services/OnCallDutyPolicyExecutionLogService", () => {
   return {
     __esModule: true,
     default: {
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateOneById: jest.fn(),
       claimEscalationAdvance: jest.fn(),
       startWaitingRun: jest.fn(),
@@ -140,13 +151,13 @@ const JOB_NAME: string =
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions";
 
 const executionLogService: {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   startWaitingRun: jest.Mock;
   endWaitingRun: jest.Mock;
 } = OnCallDutyPolicyExecutionLogService as unknown as {
-  findAllBy: jest.Mock;
+  findBy: jest.Mock;
   updateOneById: jest.Mock;
   claimEscalationAdvance: jest.Mock;
   startWaitingRun: jest.Mock;
@@ -258,12 +269,12 @@ beforeEach(() => {
 
 describe("the runs the worker reads", () => {
   test("say whether OneUptime AI holds them", async () => {
-    executionLogService.findAllBy.mockResolvedValue([]);
+    executionLogService.findBy.mockResolvedValue([]);
 
     await tick();
 
     const findBy: { select: Record<string, unknown> } =
-      executionLogService.findAllBy.mock.calls[0]![0];
+      executionLogService.findBy.mock.calls[0]![0];
 
     expect(findBy.select["aiHoldOutcome"]).toBe(true);
   });
@@ -274,7 +285,7 @@ describe("a run OneUptime AI holds", () => {
     const log: OnCallDutyPolicyExecutionLog = held({
       pagingStartsAt: new Date(Date.now() + 6 * MINUTE),
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -293,7 +304,7 @@ describe("a run OneUptime AI holds", () => {
     const log: OnCallDutyPolicyExecutionLog = held({
       pagingStartsAt: new Date(Date.now() - 20 * 1000),
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     const before: number = Date.now();
     await tick();
@@ -323,7 +334,7 @@ describe("a run OneUptime AI holds", () => {
       const log: OnCallDutyPolicyExecutionLog = held({
         pagingStartsAt: new Date(Date.now() + 6 * MINUTE),
       });
-      executionLogService.findAllBy.mockResolvedValue([log]);
+      executionLogService.findBy.mockResolvedValue([log]);
       markHandled("incident");
       firstResponder.classifyEndedHold.mockResolvedValue(outcome);
 
@@ -346,7 +357,7 @@ describe("a run OneUptime AI holds", () => {
       pagingStartsAt: new Date(Date.now() + 6 * MINUTE),
       recordKind: "alert",
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     markHandled("alert");
 
     await tick();
@@ -363,7 +374,7 @@ describe("a run OneUptime AI holds", () => {
     const log: OnCallDutyPolicyExecutionLog = held({
       pagingStartsAt: new Date(Date.now() - 1000),
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     markHandled("incident");
 
     await tick();
@@ -377,7 +388,7 @@ describe("a run OneUptime AI holds", () => {
       pagingStartsAt: new Date(Date.now() - 1000),
       isArchived: true,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -396,7 +407,7 @@ describe("a run OneUptime AI holds", () => {
       pagingStartsAt: new Date(Date.now() - 1000),
       aiHoldOutcome: OnCallPolicyAiHoldOutcome.HandedOff,
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -410,7 +421,7 @@ describe("a run OneUptime AI holds", () => {
     const log: OnCallDutyPolicyExecutionLog = held({
       pagingStartsAt: new Date(Date.now() + 6 * MINUTE),
     });
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     markHandled("incident");
     firstResponder.classifyEndedHold.mockRejectedValue(
       new Error("Database is down"),
@@ -437,7 +448,7 @@ describe("a run held for working hours", () => {
     const log: OnCallDutyPolicyExecutionLog = heldForWorkingHours(
       new Date(Date.now() - 1000),
     );
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 
@@ -451,7 +462,7 @@ describe("a run held for working hours", () => {
     const log: OnCallDutyPolicyExecutionLog = heldForWorkingHours(
       new Date(Date.now() + 3 * 60 * MINUTE),
     );
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
     markHandled("incident");
 
     await tick();
@@ -467,7 +478,7 @@ describe("a run held for working hours", () => {
       new Date(Date.now() - 1000),
     );
     log.onCallDutyPolicy!.isArchived = true;
-    executionLogService.findAllBy.mockResolvedValue([log]);
+    executionLogService.findBy.mockResolvedValue([log]);
 
     await tick();
 

@@ -84,7 +84,7 @@ export default class PublicNoteSubscriberNotificationDefault {
     "Unticked by default because status page subscribers were not notified when this episode was created.";
 
   public static readonly quietScheduledMaintenanceDescription: string =
-    "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.";
+    "Unticked by default because status page subscribers were not notified when this maintenance event was created.";
 
   /*
    * Only an explicit "no" on the parent event turns the default off. An

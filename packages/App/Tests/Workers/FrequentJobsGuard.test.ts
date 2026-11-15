@@ -62,9 +62,9 @@ const HAS_EE: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
 // The jobs that run more often than every minute, and why they must.
 const SUB_MINUTE_JOBS: Record<string, string> = {
   "packages/App/FeatureSet/Workers/Jobs/IncomingRequestMonitor/CheckHeartbeat.ts":
-    "A heartbeat monitor goes offline the moment its window passes without a request; a minute late is a page a minute late. Reads only the monitors not checked since the sweep began.",
+    "A heartbeat monitor goes offline the moment its window passes without a request; a minute late is a page a minute late. Reads its monitors once by id, and evaluates one only once a window can have turned since its last evaluation (MonitorHeartbeatState).",
   "packages/App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts":
-    "The same for monitors that expect an email: offline as soon as the window passes.",
+    "The same for monitors that expect an email: offline as soon as the window passes, evaluated only once it can have.",
   "packages/App/FeatureSet/Workers/Jobs/Telegram/PollUpdates.ts":
     "A Telegram long poll for the bot's messages while polling is on; with it off, one read of the settings.",
 };

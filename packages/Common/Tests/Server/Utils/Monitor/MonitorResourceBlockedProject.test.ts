@@ -1,7 +1,8 @@
 /*
  * A result for a monitor of a project a master admin blocked opens nothing
- * and changes nothing: monitorResource answers it as evaluated-to-nothing,
- * before the per-monitor lock is taken or any criteria are read. Its
+ * and changes nothing: monitorResource answers it as evaluated-to-nothing
+ * as soon as it has read the monitor (under the per-monitor lock, which it
+ * gives back), before any criteria are read. Its
  * monitors are no longer handed to probes or swept
  * (getActiveProjectStatusQuery); this is for the results that still arrive
  * - a probe that claimed just before the block, a heartbeat or an email its
@@ -82,6 +83,8 @@ const LIVE_PROJECT_ID: ObjectID = new ObjectID(
 const findOneById: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
 const lock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
+const release: jest.Mock = Semaphore.release as unknown as jest.Mock;
+const MUTEX: { key: string } = { key: "the monitor's lock" };
 const processMonitorStep: jest.Mock =
   MonitorCriteriaEvaluator.processMonitorStep as unknown as jest.Mock;
 
@@ -111,6 +114,7 @@ let isProjectBlocked: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  lock.mockResolvedValue(MUTEX as never);
 
   isProjectBlocked = jest
     .spyOn(ProjectService, "isProjectBlocked")
@@ -124,7 +128,7 @@ afterEach(() => {
 });
 
 describe("a result for a monitor of a blocked project", () => {
-  test("opens nothing and changes nothing: no lock, no criteria", async () => {
+  test("opens nothing and changes nothing: no criteria, and the lock is given back", async () => {
     findOneById.mockResolvedValue(monitorIn(BLOCKED_PROJECT_ID) as never);
 
     const response: ProbeApiIngestResponse =
@@ -133,8 +137,8 @@ describe("a result for a monitor of a blocked project", () => {
     expect(response.monitorId.toString()).toBe(MONITOR_ID.toString());
     expect(response.criteriaMetId).toBeUndefined();
     expect(response.rootCause).toBeNull();
-    expect(lock).not.toHaveBeenCalled();
     expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledWith(MUTEX);
     expect(isProjectBlocked).toHaveBeenCalledWith(BLOCKED_PROJECT_ID);
   });
 
@@ -150,7 +154,7 @@ describe("a result for a monitor of a blocked project", () => {
     expect(isProjectBlocked).not.toHaveBeenCalled();
   });
 
-  test("a lookup that fails fails the job, to be tried again, before the lock", async () => {
+  test("a lookup that fails fails the job, to be tried again, and gives the lock back", async () => {
     isProjectBlocked.mockRejectedValue(new Error("database unavailable"));
     findOneById.mockResolvedValue(monitorIn(LIVE_PROJECT_ID) as never);
 
@@ -158,20 +162,24 @@ describe("a result for a monitor of a blocked project", () => {
       MonitorResourceUtil.monitorResource(probeResult()),
     ).rejects.toThrow("database unavailable");
 
-    expect(lock).not.toHaveBeenCalled();
+    expect(processMonitorStep).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledWith(MUTEX);
   });
 });
 
 describe("a result for a monitor of a project that is not blocked", () => {
-  test("goes on to the per-monitor lock as before", async () => {
+  test("goes on past the gate as before", async () => {
     findOneById.mockResolvedValue(monitorIn(LIVE_PROJECT_ID) as never);
-    // Stops the evaluation at the lock: past the gate is all this asks.
-    lock.mockRejectedValue(new Error("reached the lock") as never);
+    // Stops the evaluation at the next question: past the gate is all this asks.
+    jest
+      .spyOn(ProjectService, "isSampleProject")
+      .mockRejectedValue(new Error("went on past the gate"));
 
     await expect(
       MonitorResourceUtil.monitorResource(probeResult()),
-    ).rejects.toThrow("reached the lock");
+    ).rejects.toThrow("went on past the gate");
 
     expect(isProjectBlocked).toHaveBeenCalledWith(LIVE_PROJECT_ID);
+    expect(release).toHaveBeenCalledWith(MUTEX);
   });
 });

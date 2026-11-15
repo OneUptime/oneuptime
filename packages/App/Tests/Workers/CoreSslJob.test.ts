@@ -2,6 +2,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { EVERY_HOUR } from "Common/Utils/CronTime";
 import { CertificateOrderReason } from "Common/Server/Utils/Greenlock/CertificateOrderBudget";
 import { CertificateOrderOutcome } from "Common/Server/Utils/Greenlock/CertificateOrderOutcome";
+import logger from "Common/Server/Utils/Logger";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type annotations below must resolve to the same @types/jest global
@@ -43,8 +44,13 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
   };
 });
 
+const PRIMARY_HOST: string = "OneUptime.Example.com:443";
+
+// HOST as the job reads it when it runs: PRIMARY_HOST unless a test sets it.
+let mockHost: string = PRIMARY_HOST;
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
-  return {
+  const mocked: Record<string, unknown> = {
     ...(jest.requireActual("Common/Server/EnvironmentConfig") as Record<
       string,
       unknown
@@ -52,8 +58,15 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
     __esModule: true,
     ProvisionSsl: true,
     IsDevelopment: false,
-    Host: "OneUptime.Example.com:443",
   };
+
+  Object.defineProperty(mocked, "Host", {
+    get: (): string => {
+      return mockHost;
+    },
+  });
+
+  return mocked;
 });
 
 jest.mock("Common/Server/Utils/Greenlock/Greenlock", () => {
@@ -103,6 +116,8 @@ function inDays(days: number): Date {
 }
 
 beforeEach(() => {
+  mockHost = PRIMARY_HOST;
+  (logger.warn as jest.Mock).mockClear();
   mockOrderCert.mockReset();
   mockFindOneBy.mockReset();
   mockOrderCert.mockResolvedValue(CertificateOrderOutcome.Ordered as never);
@@ -173,6 +188,23 @@ describe("CoreSSL:EnsurePrimaryHostCertificate", () => {
 
     await expect(JobDictionary.getJobFunction(JOB_NAME)()).rejects.toThrow(
       "CA refused the order",
+    );
+  });
+
+  /*
+   * #7889: an IPv6 HOST's port comes off after its closing bracket, not at
+   * its first colon. Let's Encrypt issues no certificate for an IP address,
+   * so nothing is ordered, and the warning names the whole address.
+   */
+  test("an IPv6 HOST orders nothing, and the warning names the address", async () => {
+    mockHost = "[2001:DB8::1]:8443";
+
+    await JobDictionary.getJobFunction(JOB_NAME)();
+
+    expect(mockFindOneBy).not.toHaveBeenCalled();
+    expect(mockOrderCert).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      `${JOB_NAME}: HOST "[2001:db8::1]" is not a valid domain. Skipping SSL provisioning.`,
     );
   });
 });

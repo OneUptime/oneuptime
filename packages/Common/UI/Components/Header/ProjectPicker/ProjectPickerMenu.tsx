@@ -81,7 +81,7 @@ const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
       <ul
         id={props.listboxId}
         role="listbox"
-        aria-label={translator.translateText("Projects") || "Projects"}
+        aria-label={translator.translateText("Projects")}
         className={PROJECT_PICKER_LIST_CLASS_NAME}
         data-testid="project-picker-list"
       >

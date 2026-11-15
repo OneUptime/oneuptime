@@ -3,6 +3,7 @@ import {
   UserFlowSessionDto,
 } from "../../Types/Rum/UserFlow";
 import { setPathApartInSentence } from "./PathInSentence";
+import UrlScrubber from "./UrlScrubber";
 
 /*
  * The User Flows engine: recorded session journeys in, everything the page
@@ -339,17 +340,18 @@ function parsePageUrl(rawUrl: string): ParsedPageUrl {
       parsed.origin === RELATIVE_BASE && !trimmed.startsWith(RELATIVE_BASE);
 
     /*
-     * A hash router keeps its route in the fragment ("/#/orders"). The
-     * recorder stores such URLs with the fragment when it can; treat
-     * "#/..." as the path so those apps do not collapse onto "/".
+     * A hash router keeps its route in the fragment ("/#/orders",
+     * "/#!/orders"), and the scrubber keeps that route in every URL it
+     * stores. The route is the page, so those apps do not collapse onto
+     * "/"; the query a route can carry inside the fragment is left out,
+     * as a path's query is.
      */
-    let path: string = parsed.pathname || "/";
+    const hashRoute: string | null = UrlScrubber.getHashRoute(parsed.hash);
 
-    if (parsed.hash.startsWith("#/")) {
-      path = parsed.hash.slice(1);
-    }
-
-    return { host: isRelative ? "" : parsed.host, path: path };
+    return {
+      host: isRelative ? "" : parsed.host,
+      path: hashRoute === null ? parsed.pathname || "/" : hashRoute,
+    };
   } catch {
     return { host: "", path: trimmed };
   }
@@ -386,13 +388,21 @@ function normalizePath(path: string, groupDynamicSegments: boolean): string {
  * The flow-map key for one stored URL. Query strings are dropped (the
  * scrubber keeps only redacted allowlisted parameters, which would split
  * one page into two), and the host is kept only when asked.
+ *
+ * The path is in its one spelling (UrlScrubber.normalizePathSpelling):
+ * "/caf%c3%a9", "/cafe%CC%81" and "/caf%C3%A9" are one page, "/a%2Fb" and
+ * "/a/b" two. The scrubber stores that spelling; a URL stored before it
+ * did is keyed the same way here.
  */
 export function toUserFlowPageKey(
   rawUrl: string,
   options: { groupDynamicSegments: boolean; includeHost: boolean },
 ): string {
   const parsed: ParsedPageUrl = parsePageUrl(rawUrl);
-  const path: string = normalizePath(parsed.path, options.groupDynamicSegments);
+  const path: string = normalizePath(
+    UrlScrubber.normalizePathSpelling(parsed.path),
+    options.groupDynamicSegments,
+  );
 
   if (options.includeHost && parsed.host) {
     return `${parsed.host}${path}`;
@@ -425,7 +435,9 @@ export function spansMultipleHosts(rawUrls: Array<string>): boolean {
 /*
  * The URL-path prefix that selects a page key in the session list's
  * urlPrefix filter: "/product/:id" -> "/product/", host dropped. The list
- * matches prefixes, so a grouped key is widened to its static head.
+ * matches prefixes, so a grouped key is widened to its static head. It
+ * matches every spelling of the key's path, as a key reads them
+ * (SessionReplayReadService's url arms).
  */
 export function toSessionListUrlPrefix(page: string): string {
   if (!page || page === OTHER_PAGES_KEY) {
@@ -559,7 +571,7 @@ function decodeWordEscapes(path: string): string {
  * A PAGE AS A PERSON READS IT: what the map, its tooltips, the panel, the
  * tables, the journeys and every sentence about a page draw for its key.
  *
- * A key is the path as the URL parser left it, and the parser escapes
+ * A key is the path as the URL parser writes it, and the parser escapes
  * every letter outside ASCII: "/الرئيسية" is "/%D8%A7%D9%84...", "/café"
  * is "/caf%C3%A9". The key stays so. The session list matches it against
  * the stored URLs, which the browser escaped the same way
@@ -569,11 +581,11 @@ function decodeWordEscapes(path: string): string {
  * Only an escape of a letter, a mark or a digit beyond ASCII is decoded:
  * the words of a path in Arabic, Persian, Chinese or with accents, and the
  * joiners inside a Persian or Hindi word. None of them is a separator, so
- * decoding one never changes which page a key names. Two keys are drawn
- * alike only when they write the same words two ways - in lower-case
- * escapes ("%c3%a9", as WordPress writes them) and upper-case ones
- * ("%C3%A9"), or with an accent composed and decomposed - and they stay
- * two rows, as they were. The rest is drawn as written:
+ * decoding one never changes which page a key names. The same words
+ * written two ways - in lower-case escapes ("%c3%a9", as WordPress writes
+ * them) and upper-case ones ("%C3%A9"), or with an accent composed and
+ * decomposed - are one key, so one row (toUserFlowPageKey). The rest is
+ * drawn as written:
  *  - an escaped "/", "?", "#" or "%", which would read as a separator, a
  *    query, a fragment or another escape: "/a%2Fb" is one page, and not
  *    "/a/b", which may be another;
