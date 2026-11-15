@@ -29,9 +29,13 @@ import {
   linearRegression,
   promQLQuantile,
 } from "./PromQLMath";
-import { compilePromQLRegex } from "./PromQLRegex";
-import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
-import { describePatternProblem } from "../LinearRegExp/PatternCache";
+import {
+  CompiledPromQLRegex,
+  compilePromQLRegex,
+  describePromQLPatternProblem,
+  readNamedCapture,
+} from "./PromQLRegex";
+import { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
 import lookupTable from "../LookupTable";
 
@@ -550,9 +554,14 @@ const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
  * text, `$$` a dollar sign. As in Go, `$1x` names the group "1x", which does
  * not exist, so write `${1}x`.
  */
-const expandTemplate: (template: string, match: LinearRegExpMatch) => string = (
+const expandTemplate: (
   template: string,
   match: LinearRegExpMatch,
+  groupNames: ReadonlyArray<string | null>,
+) => string = (
+  template: string,
+  match: LinearRegExpMatch,
+  groupNames: ReadonlyArray<string | null>,
 ): string => {
   let result: string = "";
   let index: number = 0;
@@ -610,7 +619,12 @@ const expandTemplate: (template: string, match: LinearRegExpMatch) => string = (
       const group: number = Number(name);
       result += (group === 0 ? match.value : match.captures[group - 1]) || "";
     } else {
-      result += match.groups[name] || "";
+      result +=
+        readNamedCapture({
+          captures: match.captures,
+          groupNames: groupNames,
+          name: name,
+        }) || "";
     }
 
     index = end;
@@ -961,14 +975,14 @@ export const evaluatePromQLFunction: (
       const replacement: string = readString(arg(2));
       const source: string = readString(arg(3));
       const pattern: string = readString(arg(4));
-      let regex: LinearRegExp;
+      let compiled: CompiledPromQLRegex;
 
       try {
         // Compiled once for every series below, with what its groups capture.
-        regex = compilePromQLRegex(pattern, { captures: true }).regex;
+        compiled = compilePromQLRegex(pattern, { captures: true });
       } catch (error: unknown) {
-        // Why a regular expression cannot run here, or null.
-        const problem: string | null = describePatternProblem(error);
+        // Why the pattern cannot be matched, or null.
+        const problem: string | null = describePromQLPatternProblem(error);
 
         throw new PromQLError(
           problem === null
@@ -992,7 +1006,9 @@ export const evaluatePromQLFunction: (
           let match: LinearRegExpMatch | null;
 
           try {
-            match = regex.exec(promQLLabelValue(sample.labels, source));
+            match = compiled.regex.exec(
+              promQLLabelValue(sample.labels, source),
+            );
           } catch (error: unknown) {
             if (error instanceof PatternWorkLimitError) {
               throw new PromQLError(
@@ -1010,7 +1026,11 @@ export const evaluatePromQLFunction: (
           }
 
           const labels: PromQLLabels = { ...sample.labels };
-          const value: string = expandTemplate(replacement, match);
+          const value: string = expandTemplate(
+            replacement,
+            match,
+            compiled.groupNames,
+          );
 
           if (value.length === 0) {
             delete labels[destination];
