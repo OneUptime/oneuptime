@@ -250,6 +250,18 @@ export interface AIChatWidgetData {
   series?: Array<AIChatWidgetSeries> | undefined;
   stacked?: boolean | undefined;
   xIsTime?: boolean | undefined;
+  /*
+   * A time chart whose buckets are days (or weeks, months, years): the zone
+   * they were cut in, as the tool read them (issue #8206) - the asker's
+   * (ToolContext.readerTimezone), or UTC for a run with no reader, such as
+   * an autonomous investigation. The chart is a snapshot, read later by
+   * whoever opens the thread or the incident; it draws each bucket on the
+   * day it counted in this zone, and says so when that is not the
+   * reader's own (Common/Types/AI/AIChatChartCalendar). Left out for finer
+   * buckets, which are the same instants in every zone, and on a chart
+   * saved before, which is drawn on the reader's calendar as it was.
+   */
+  bucketTimezone?: string | undefined;
   unit?: string | undefined;
   valueLabel?: string | undefined;
   columns?: Array<AIChatWidgetColumn> | undefined;

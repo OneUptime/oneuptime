@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}، فیلتر قفل‌شده",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، فیلتر قفل‌شده. برای کپی نحو جستجوی آن Enter را بزنید.",
   "{{summary}} - view session details": "{{summary}} - دیدن جزئیات نشست",
-  "{{rate}}/s": "{{rate}}/ثانیه"
+  "{{rate}}/s": "{{rate}}/ثانیه",
+  "Days are in {{timezone}}.": "روزها به وقت {{timezone}} هستند."
 }

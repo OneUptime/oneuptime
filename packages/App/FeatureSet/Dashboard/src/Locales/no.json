@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, låst filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Trykk Enter for å kopiere søkesyntaksen.",
   "{{summary}} - view session details": "{{summary}} - se øktdetaljer",
-  "{{rate}}/s": "{{rate}}/s"
+  "{{rate}}/s": "{{rate}}/s",
+  "Days are in {{timezone}}.": "Dagene er i {{timezone}}."
 }

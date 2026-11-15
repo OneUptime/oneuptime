@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, vergrendeld filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, vergrendeld filter. Druk op Enter om de zoeksyntaxis te kopiëren.",
   "{{summary}} - view session details": "{{summary}} - sessiedetails bekijken",
-  "{{rate}}/s": "{{rate}}/s"
+  "{{rate}}/s": "{{rate}}/s",
+  "Days are in {{timezone}}.": "Dagen in {{timezone}}."
 }

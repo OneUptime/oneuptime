@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, закреплённый фильтр",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, закреплённый фильтр. Нажмите Enter, чтобы скопировать его синтаксис поиска.",
   "{{summary}} - view session details": "{{summary}} — открыть сведения о сеансе",
-  "{{rate}}/s": "{{rate}}/с"
+  "{{rate}}/s": "{{rate}}/с",
+  "Days are in {{timezone}}.": "Дни указаны в {{timezone}}."
 }

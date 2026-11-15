@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, filtro bloqueado",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtro bloqueado. Pressione Enter para copiar a sintaxe de pesquisa.",
   "{{summary}} - view session details": "{{summary}} - ver detalhes da sessão",
-  "{{rate}}/s": "{{rate}}/s"
+  "{{rate}}/s": "{{rate}}/s",
+  "Days are in {{timezone}}.": "Dias em {{timezone}}."
 }

@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, locked filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, locked filter. Press Enter to copy its search syntax.",
   "{{summary}} - view session details": "{{summary}} - view session details",
-  "{{rate}}/s": "{{rate}}/s"
+  "{{rate}}/s": "{{rate}}/s",
+  "Days are in {{timezone}}.": "Days are in {{timezone}}."
 }

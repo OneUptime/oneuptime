@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}, 잠긴 필터",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, 잠긴 필터입니다. Enter를 눌러 검색 구문을 복사하세요.",
   "{{summary}} - view session details": "{{summary}} - 세션 세부 정보 보기",
-  "{{rate}}/s": "{{rate}}/초"
+  "{{rate}}/s": "{{rate}}/초",
+  "Days are in {{timezone}}.": "날짜는 {{timezone}} 기준입니다."
 }

@@ -53689,5 +53689,6 @@
   "{{filter}}, locked filter": "{{filter}}，锁定的过滤器",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}，锁定的过滤器。按 Enter 复制其搜索语法。",
   "{{summary}} - view session details": "{{summary}} - 查看会话详情",
-  "{{rate}}/s": "{{rate}}/秒"
+  "{{rate}}/s": "{{rate}}/秒",
+  "Days are in {{timezone}}.": "日期均按 {{timezone}} 计。"
 }
