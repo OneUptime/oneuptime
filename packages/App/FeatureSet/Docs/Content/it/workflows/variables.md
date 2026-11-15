@@ -195,7 +195,7 @@ Fai riferimento all'output di un blocco precedente così:
 | Dopo un blocco come…                                      | Leggi                                                                                  |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Un blocco **API** il cui ID è `lookup-user`               | Il suo codice di stato: `{{local.components.lookup-user.returnValues.response-status}}`. Il suo corpo: `{{local.components.lookup-user.returnValues.response-body}}`. |
-| Un blocco **Run Custom JavaScript** il cui ID è `transform` | Ciò che ha restituito: `{{local.components.transform.returnValues.returnValue}}`.    |
+| Un blocco **Esegui JavaScript personalizzato** il cui ID è `transform` | Ciò che ha restituito: `{{local.components.transform.returnValues.returnValue}}`.    |
 | Un trigger **On Create Incident** il cui ID è `incident-on-create-1` | Il titolo dell'incidente: `{{local.components.incident-on-create-1.returnValues.model.title}}`. I trigger dei record restituiscono il record come `model`, in cui scendi. |
 
 I valori dei blocchi esistono solo durante l'esecuzione corrente. Ogni nuova esecuzione riparte da zero.
@@ -208,22 +208,22 @@ Quasi tutti i campi di testo accettano variabili:
 - Il testo del messaggio su Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - L'oggetto e il corpo di un'email.
 - Gli header e i campi del corpo (all'interno dei valori stringa).
-- Entrambi i lati di un blocco **If / Else**.
+- Entrambi i lati di un blocco **Se / Altrimenti**.
 
-Nei campi JSON — **Data (JSON Object)** e **Query** sui componenti dei record, il **Corpo della Richiesta** di un blocco API, gli **Arguments** di **Run Custom JavaScript** — un riferimento viene compilato in base a dove si trova:
+Nei campi JSON — **Dati (oggetto JSON)** e **Query** sui componenti dei record, il **Corpo della Richiesta** di un blocco API, gli **Argomenti** di **Esegui JavaScript personalizzato** — un riferimento viene compilato in base a dove si trova:
 
 - **Tra virgolette, è testo.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` mette il valore nella stringa. Le virgolette, le barre rovesciate e gli a capo del valore vengono escaped, così il JSON resta valido e il valore resta un'unica stringa.
 - **Da solo, è il valore stesso.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` inserisce l'oggetto intero, una lista resta una lista e un numero resta un numero. Un testo che è JSON di per sé — `5`, `true`, o un oggetto che un blocco ha restituito come testo JSON — entra come quel valore. Qualsiasi altro testo entra come stringa.
 
-Anche un riferimento tra le virgolette di una chiave è testo. Se devi costruire una struttura in modo dinamico, costruiscila con un blocco **Run Custom JavaScript**, poi passa il suo output al blocco successivo.
+Anche un riferimento tra le virgolette di una chiave è testo. Se devi costruire una struttura in modo dinamico, costruiscila con un blocco **Esegui JavaScript personalizzato**, poi passa il suo output al blocco successivo.
 
-Il blocco **Run Custom JavaScript** non riceve le variabili automaticamente: nella sandbox non viene iniettato nulla. Metti `{{global.variables.NAME}}` (o qualsiasi riferimento a un componente) nel campo JSON **Arguments** del blocco; quei valori vengono sostituiti prima che lo script venga eseguito e arrivano come `args`.
+Il blocco **Esegui JavaScript personalizzato** non riceve le variabili automaticamente: nella sandbox non viene iniettato nulla. Metti `{{global.variables.NAME}}` (o qualsiasi riferimento a un componente) nel campo JSON **Argomenti** del blocco; quei valori vengono sostituiti prima che lo script venga eseguito e arrivano come `args`.
 
 ## Ciclare su un array
 
 In un campo di testo puoi ripetere un pezzo di testo per ogni elemento di una lista con `{{#each path}}…{{/each}}`. All'interno del blocco, `{{property}}` legge dall'elemento corrente, `{{@index}}` è la sua posizione a partire da 0, e `{{this}}` è l'elemento stesso per le liste di valori semplici. I nomi all'interno di un blocco `{{#each}}` vengono ripuliti dagli spazi, quindi gli spazi in più lì non fanno danni, a differenza di ovunque altrove.
 
-Ad esempio, questo **Message Text** elenca ogni avviso inviato da un webhook:
+Ad esempio, questo **Testo del messaggio** elenca ogni avviso inviato da un webhook:
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,7 +238,7 @@ Ad esempio, questo **Message Text** elenca ogni avviso inviato da un webhook:
 Arriva un webhook con un corpo come `{ "service": "checkout", "status": "failed" }`. Per trasformarlo in un incidente di OneUptime:
 
 1. Un trigger **Webhook** con l'ID `ci-webhook`.
-2. Un blocco **If / Else**: **Valore da verificare** è il campo `status` del Request Body del webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Confronto** è **è uguale a** e **Confronta con** è `failed`.
+2. Un blocco **Se / Altrimenti**: **Valore da verificare** è il campo `status` del Request Body del webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Confronto** è **è uguale a** e **Confronta con** è `failed`.
 3. Dal ramo **Sì**, un blocco **Create One Incident** con:
    - Titolo: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Descrizione: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
@@ -291,7 +291,7 @@ Due cose a cui fare attenzione:
 - **Usa { } (o scrivi `{{`).** Inserisce gli ID esatti di componente, valore di ritorno e variabile che l'esecutore si aspetta, e offre solo valori che esistono quando il blocco viene eseguito.
 - **I nomi delle variabili distinguono maiuscole e minuscole.** `{{global.variables.MyKey}}` e `{{global.variables.mykey}}` sono diversi.
 - **Un riferimento che non si risolve resta così com'è, non viene svuotato.** Fare riferimento a qualcosa che non esiste non è un errore, e non ti dà nemmeno una stringa vuota: le parentesi graffe passano così come sono, quindi `{{local.components.api-get-1.returnValues.body}}` con un ID di passaggio scritto male finisce alla lettera nel tuo messaggio Slack, nell'URL o nel corpo della richiesta, e l'esecuzione riporta comunque **Eseguito**. La scheda **Passaggi** dell'esecuzione mostra sul passaggio un avviso che nomina ogni riferimento sfuggito, e contrassegna l'impostazione in cui si trovava come **Did not resolve**; il registro dell'esecuzione riporta la stessa riga di avviso. L'eccezione è un ID che un componente dati legge o scrive, come `_id` nella sua **Query**: lì il passaggio si ferma prima di leggere o scrivere qualcosa, prende la sua uscita **Errore** e dice quale riferimento non si è risolto e cosa controllare.
-- **Un campo senza contenuto arriva vuoto.** Non tutti i record hanno tutti i campi. Un avviso che nessun monitor ha generato, come uno da uno SLO o uno creato a mano, non ha un monitor, quindi `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` non ha nulla da dare: in un messaggio non c'è nulla, e da solo in JSON è `null`. Lo stesso vale per una descrizione che nessuno ha scritto, un campo personalizzato che il record non contiene, un **Find One** che non ha trovato alcun record, un elenco senza quell'elemento e un campo che il blocco non trasmette, che in più mette sul passaggio un avviso che dice cosa aggiungere ai suoi **Fields to pass on**. Un URL e un blocco che legge o scrive record sono le eccezioni, perché un vuoto cambierebbe ciò su cui il blocco agisce: lì il riferimento resta così com'è, e un ID ferma il blocco. Per prendere un altro percorso, controlla il valore con **è vuoto** in un **If / Else**. Per nominare lo SLO dietro un avviso, trasmetti il suo nome e usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
+- **Un campo senza contenuto arriva vuoto.** Non tutti i record hanno tutti i campi. Un avviso che nessun monitor ha generato, come uno da uno SLO o uno creato a mano, non ha un monitor, quindi `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` non ha nulla da dare: in un messaggio non c'è nulla, e da solo in JSON è `null`. Lo stesso vale per una descrizione che nessuno ha scritto, un campo personalizzato che il record non contiene, un **Find One** che non ha trovato alcun record, un elenco senza quell'elemento e un campo che il blocco non trasmette, che in più mette sul passaggio un avviso che dice cosa aggiungere ai suoi **Campi da passare**. Un URL e un blocco che legge o scrive record sono le eccezioni, perché un vuoto cambierebbe ciò su cui il blocco agisce: lì il riferimento resta così com'è, e un ID ferma il blocco. Per prendere un altro percorso, controlla il valore con **è vuoto** in un **Se / Altrimenti**. Per nominare lo SLO dietro un avviso, trasmetti il suo nome e usa `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Il pannello dei problemi non può controllare i nomi delle variabili.** Segnala i riferimenti ai componenti che non riesce ad abbinare — un ID di passaggio sconosciuto, un valore di ritorno sconosciuto, una radice malformata — prima del salvataggio. Non può sapere se una variabile esiste. Le impostazioni di un blocco invece sì: un riferimento a una variabile mancante compare lì come chip ambra. Altrimenti, una variabile rinominata viene scoperta solo dal registro dell'esecuzione.
 - **Gli spazi dentro le parentesi graffe non vengono rimossi.** `{{ local.variables.NAME }}` è una ricerca diversa da `{{local.variables.NAME}}` e non si risolve mai. L'unica eccezione è all'interno di un blocco `{{#each}}`, dove i nomi vengono ripuliti.
 

@@ -5,6 +5,9 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import API from "Common/UI/Utils/API/API";
+import { translatableTerm } from "Common/Types/Translator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -71,6 +74,7 @@ export const getSlotTestId: (slot: Slot, part: string) => string = (
 const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const rule: WhiteLabelImageRule = WHITE_LABEL_IMAGE_RULES[props.slot];
   const inputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
@@ -191,7 +195,9 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
         type="file"
         accept={rule.accept}
         className="hidden"
-        aria-label={`${props.label} file`}
+        aria-label={translator.translateTemplate("{{image}} file", {
+          image: translatableTerm(props.label),
+        })}
         data-testid={getSlotTestId(props.slot, "input")}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
           const file: File | undefined = event.target.files?.[0];
@@ -215,8 +221,17 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
 
       {showRemoveConfirm ? (
         <ConfirmModal
-          title={`Remove the ${props.label.toLowerCase()}?`}
-          description={`${props.removedText} You can upload it again at any time.`}
+          title={translator.translateTemplate("Remove the {{image}}?", {
+            image: translatableTerm(props.label, { inSentence: true }),
+          })}
+          description={translator.translateTemplate(
+            "{{removed}} You can upload it again at any time.",
+            {
+              removed:
+                translator.translateText(props.removedText) ||
+                props.removedText,
+            },
+          )}
           submitButtonText="Remove"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isSaving}

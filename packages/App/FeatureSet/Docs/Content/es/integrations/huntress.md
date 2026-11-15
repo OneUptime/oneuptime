@@ -13,7 +13,7 @@ Esta integración es **entrante**: Huntress envía cada evento de un informe de 
 
 ## Cómo funciona
 
-Huntress envía un evento sobre un informe de incidente cuando se envía el informe, cuando alguien lo comenta y cuando se cierra. El disparador **Huntress Incident Report** inicia el flujo de trabajo una vez por cada evento, y su **Evento** dice cuál fue: `created`, `comment-added` o `closed`.
+Huntress envía un evento sobre un informe de incidente cuando se envía el informe, cuando alguien lo comenta y cuando se cierra. El disparador **Informe de incidente de Huntress** inicia el flujo de trabajo una vez por cada evento, y su **Evento** dice cuál fue: `created`, `comment-added` o `closed`.
 
 ```mermaid title="Un informe de incidente de Huntress en un flujo de trabajo"
 sequenceDiagram
@@ -55,11 +55,11 @@ Abre **Flujos de trabajo** y haz clic en **Crear flujo de trabajo**. En **O empi
 
 ### Elegir a quién avisar
 
-Después, el diálogo pregunta a quién avisar: en **Who to page for high and critical reports**, elige las políticas de guardia a las que avisar, o ninguna para no avisar a nadie, y haz clic en **Crear flujo de trabajo**. El flujo de trabajo se abre en el **Constructor**, desactivado. Para cambiar más adelante a quién avisa, haz clic en su paso **Page an On-Call Policy** y cambia sus **Políticas de guardia**.
+Después, el diálogo pregunta a quién avisar: en **Who to page for high and critical reports**, elige las políticas de guardia a las que avisar, o ninguna para no avisar a nadie, y haz clic en **Crear flujo de trabajo**. El flujo de trabajo se abre en el **Constructor**, desactivado. Para cambiar más adelante a quién avisa, haz clic en su paso **Iniciar una política de guardia** y cambia sus **Políticas de guardia**.
 
 ### Añadir un endpoint de webhook en Huntress
 
-Haz clic en el disparador **Huntress Incident Report** y, en **Añadir un endpoint de webhook en Huntress**, haz clic en **Copiar URL**. La URL se parece a `https://oneuptime.com/workflow/huntress/<key>`; en una instalación autoalojada empieza por tu propio host.
+Haz clic en el disparador **Informe de incidente de Huntress** y, en **Añadir un endpoint de webhook en Huntress**, haz clic en **Copiar URL**. La URL se parece a `https://oneuptime.com/workflow/huntress/<key>`; en una instalación autoalojada empieza por tu propio host.
 
 En Huntress, abre el menú de arriba a la derecha y elige **Integrations**. Haz clic en **Add an Integration**, elige **Webhooks** y haz clic en **Add Endpoint**. Pega la URL, activa **Incident Reports** y guarda. Deja desactivados **Escalations**, **Platform Actions** y **Account Notices**: el disparador acepta esos eventos y no inicia nada por ellos.
 
@@ -79,15 +79,15 @@ Activa **Habilitado** en la parte superior del **Constructor**. En Huntress, abr
 
 ## Qué hace el flujo de trabajo
 
-Tras el disparador, **Incident From Another Tool** hace lo que pide cada **Evento**, por el número del informe:
+Tras el disparador, **Incidente desde otra herramienta** hace lo que pide cada **Evento**, por el número del informe:
 
 | Event | Qué hace el flujo de trabajo |
 | --- | --- |
-| `created` | Abre un incidente con la **ID de la gravedad del incidente** del disparador, etiquetado con su **Organization Label ID**. Para un informe alto o crítico, **Page an On-Call Policy** avisa a tu política; un informe bajo no avisa a nadie. Un informe que ya tiene un incidente no abre otro. |
+| `created` | Abre un incidente con la **ID de la gravedad del incidente** del disparador, etiquetado con su **ID de la etiqueta de la organización**. Para un informe alto o crítico, **Iniciar una política de guardia** avisa a tu política; un informe bajo no avisa a nadie. Un informe que ya tiene un incidente no abre otro. |
 | `comment-added` | Busca el incidente del informe y le añade el comentario como nota privada. |
 | `closed` | Busca el incidente del informe y lo resuelve, salvo que ya esté resuelto. El motivo queda en su cronología: Huntress cerró el informe. |
 
-Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **If / Else** después de **Incident From Another Tool**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Switch / Case** sobre **Organización**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
+Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **Si / Si no** después de **Incidente desde otra herramienta**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Según / Caso** sobre **Organización**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
 
 ### Gravedades
 
@@ -103,7 +103,7 @@ Un proyecto con menos gravedades usa la más baja para el resto. Un informe sin 
 
 ### Organizaciones
 
-La **Organization Label ID** del disparador es una etiqueta con el nombre de la organización de Huntress del informe, como _Acme Corp_, que crea la primera vez que llega un informe de esa organización. Un flujo de trabajo recibe los informes de todas las organizaciones de tu cuenta de Huntress, y **Solo estas organizaciones** del disparador lo acota: un nombre o ID de organización por línea, los nombres sin distinguir mayúsculas.
+La **ID de la etiqueta de la organización** del disparador es una etiqueta con el nombre de la organización de Huntress del informe, como _Acme Corp_, que crea la primera vez que llega un informe de esa organización. Un flujo de trabajo recibe los informes de todas las organizaciones de tu cuenta de Huntress, y **Solo estas organizaciones** del disparador lo acota: un nombre o ID de organización por línea, los nombres sin distinguir mayúsculas.
 
 > [!TIP]
 > Para avisar al equipo de cada cliente, añade una regla de guardia de incidentes por organización, como «Si **Etiquetas de incidentes** tiene alguno de _Acme Corp_», que ejecute la política de ese cliente. Consulta [Reglas de guardia de incidentes](/docs/incidents/settings#reglas-de-guardia-de-incidentes).
@@ -115,7 +115,7 @@ El disparador se abre en Huntress: su URL, una marca junto a cada paso de config
 | Valor | Qué contiene |
 | --- | --- |
 | **Evento** | `created`, `comment-added` o `closed`. Un informe ya cerrado o descartado es `closed`, sea cual sea el evento que lo trajo. |
-| **Report ID** | El número del informe en Huntress. |
+| **ID del informe** | El número del informe en Huntress. |
 | **Gravedad** | `critical`, `high` o `low`. |
 | **Estado** | El estado del informe en Huntress, como `sent`, `closed` o `dismissed`. |
 | **Asunto** | El asunto del informe, tal como lo escribe Huntress. |
@@ -124,15 +124,15 @@ El disparador se abre en Huntress: su URL, una marca junto a cada paso de config
 | **Afectado** | El equipo o la identidad de los que trata el informe. |
 | **Plataforma**, **Indicadores** | Dónde lo encontró Huntress y qué encontró. |
 | **Comentario** | El comentario que añadió alguien, con `comment-added`. |
-| **Report URL** | Dónde se abre el informe en Huntress. |
+| **URL del informe** | Dónde se abre el informe en Huntress. |
 | **Título del incidente**, **Descripción del incidente** | Un título y una descripción en Markdown para un incidente sobre el informe. |
 | **Nota** | Markdown para una nota sobre el evento: el comentario, o que Huntress cerró el informe. |
-| **ID de la gravedad del incidente**, **Organization Label ID** | La gravedad de incidente y la etiqueta, como arriba. |
-| **Received At** | Cuándo recibió OneUptime el evento. |
+| **ID de la gravedad del incidente**, **ID de la etiqueta de la organización** | La gravedad de incidente y la etiqueta, como arriba. |
+| **Recibido el** | Cuándo recibió OneUptime el evento. |
 
 **Resumen** y **Comentario** son texto que escribieron los analistas de Huntress. Para ponerlos en un incidente o una nota, usa **Descripción del incidente** y **Nota**: conservan el formato, y nada en ellos carga una imagen ni menciona a nadie.
 
-Para probar el flujo de trabajo sin Huntress, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y escribe un **Evento**, un **Report ID** y los campos que necesites. Usa el mismo **Report ID** para seguir un informe de `created` a `closed`.
+Para probar el flujo de trabajo sin Huntress, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y escribe un **Evento**, un **ID del informe** y los campos que necesites. Usa el mismo **ID del informe** para seguir un informe de `created` a `closed`.
 
 ## Conexiones de Huntress creadas antes
 
@@ -170,15 +170,15 @@ Activa **Habilitado** en la parte superior del **Constructor**. Huntress vuelve 
 :::
 
 :::details "No Huntress workflow has this address."
-El flujo de trabajo se eliminó o se archivó, su disparador ya no es **Huntress Incident Report**, o la URL del endpoint en Huntress no es la del flujo de trabajo. Copia la URL desde el disparador y vuelve a pegarla en el endpoint de Huntress.
+El flujo de trabajo se eliminó o se archivó, su disparador ya no es **Informe de incidente de Huntress**, o la URL del endpoint en Huntress no es la del flujo de trabajo. Copia la URL desde el disparador y vuelve a pegarla en el endpoint de Huntress.
 :::
 
 :::details No se abrió ningún incidente
-Abre las ejecuciones del flujo de trabajo y la ejecución del informe. Si **Incident From Another Tool** falló con `This project has no incident severities to put the incident at.`, añade una en **Incidentes → Ajustes → Gravedad del incidente**.
+Abre las ejecuciones del flujo de trabajo y la ejecución del informe. Si **Incidente desde otra herramienta** falló con `This project has no incident severities to put the incident at.`, añade una en **Incidentes → Ajustes → Gravedad del incidente**.
 :::
 
 :::details No se avisó a nadie
-Un informe bajo abre un incidente sin avisar. Si no, la ejecución del informe dice qué hizo **Page an On-Call Policy**, y la página **Ejecuciones de guardia** del incidente muestra qué hizo cada política.
+Un informe bajo abre un incidente sin avisar. Si no, la ejecución del informe dice qué hizo **Iniciar una política de guardia**, y la página **Ejecuciones de guardia** del incidente muestra qué hizo cada política.
 :::
 
 ## Próximos pasos

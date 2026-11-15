@@ -5,6 +5,7 @@ import ComponentMetadata, {
   ComponentType,
   Port,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * Switch / Case: compares one value with a list of cases and carries on down
@@ -46,39 +47,42 @@ export const SWITCH_IN_PORT_ID: string = "in";
 export const MAX_SWITCH_CASES: number = 25;
 
 export const SWITCH_DEFAULT_PORT: Port = {
-  title: "Default",
-  description: "Runs next when no case matches.",
+  title: translationKey("Default"),
+  description: translationKey("Runs next when no case matches."),
   id: SWITCH_DEFAULT_PORT_ID,
 };
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.Switch,
-    title: "Switch / Case",
-    category: "Conditions",
+    title: translationKey("Switch / Case"),
+    category: translationKey("Conditions"),
     /*
      * Short enough for the two lines the Add Component panel gives a step,
      * as If / Else's is: the panel cut the longer one off mid-word.
      */
-    description:
+    description: translationKey(
       "Takes one of several paths: the first case the value matches, or Default.",
+    ),
     iconProp: IconProp.Switch,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.Text,
-        name: "Value to check",
-        description:
+        name: translationKey("Value to check"),
+        description: translationKey(
           "What every case is compared with, usually a value from an earlier step.",
+        ),
         placeholder: "Pick a value with { } or type one",
         required: true,
         id: SWITCH_ARGUMENT_IDS.valueToCheck,
       },
       {
         type: ComponentInputType.SwitchCases,
-        name: "Cases",
-        description:
+        name: translationKey("Cases"),
+        description: translationKey(
           "A comparison and a value for each way the workflow can go. They are checked from the top, and the first that matches is taken.",
+        ),
         required: true,
         id: SWITCH_ARGUMENT_IDS.cases,
       },
@@ -86,8 +90,10 @@ const components: Array<ComponentMetadata> = [
     returnValues: [],
     inPorts: [
       {
-        title: "In",
-        description: "Connect the step that runs before this check.",
+        title: translationKey("In"),
+        description: translationKey(
+          "Connect the step that runs before this check.",
+        ),
         id: SWITCH_IN_PORT_ID,
       },
     ],

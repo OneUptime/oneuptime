@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54327,
-    "untranslated": 8587
+    "keys": 55409,
+    "untranslated": 8483
   },
   "sameAsEnglish": [
     " is",
@@ -70,6 +70,7 @@
     "Buckets",
     "Budget",
     "Bytes",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
@@ -193,6 +194,7 @@
     "HTTP {{status}}",
     "Hardware",
     "Hash",
+    "Headers",
     "Headers (JSON)",
     "Hertz",
     "Histogram",

@@ -8,6 +8,7 @@ import {
   SessionEndCause,
 } from "../../../Types/UserSession/SessionEndCause";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -54,11 +55,10 @@ describe("revokeSessionByRefreshToken", () => {
     jest
       .spyOn(UserSessionService, "findActiveSessionByRefreshToken")
       .mockResolvedValue(liveSession() as never);
-    const revoke: jest.SpiedFunction<
-      typeof UserSessionService.revokeSessionById
-    > = jest
-      .spyOn(UserSessionService, "revokeSessionById")
-      .mockResolvedValue(undefined);
+    const revoke: SpyInstance<typeof UserSessionService.revokeSessionById> =
+      jest
+        .spyOn(UserSessionService, "revokeSessionById")
+        .mockResolvedValue(undefined);
 
     expect(
       await UserSessionService.revokeSessionByRefreshToken("current-token", {
@@ -78,11 +78,10 @@ describe("revokeSessionByRefreshToken", () => {
     jest
       .spyOn(UserSessionService, "findActiveSessionByRefreshToken")
       .mockResolvedValue(null as never);
-    const revoke: jest.SpiedFunction<
-      typeof UserSessionService.revokeSessionById
-    > = jest
-      .spyOn(UserSessionService, "revokeSessionById")
-      .mockResolvedValue(undefined);
+    const revoke: SpyInstance<typeof UserSessionService.revokeSessionById> =
+      jest
+        .spyOn(UserSessionService, "revokeSessionById")
+        .mockResolvedValue(undefined);
 
     expect(
       await UserSessionService.revokeSessionByRefreshToken("rotated-token"),
@@ -91,10 +90,9 @@ describe("revokeSessionByRefreshToken", () => {
   });
 
   test("looks the token up by its hash, among live sessions only", async () => {
-    const findOneBy: jest.SpiedFunction<typeof UserSessionService.findOneBy> =
-      jest
-        .spyOn(UserSessionService, "findOneBy")
-        .mockResolvedValue(null as never);
+    const findOneBy: SpyInstance<typeof UserSessionService.findOneBy> = jest
+      .spyOn(UserSessionService, "findOneBy")
+      .mockResolvedValue(null as never);
 
     await UserSessionService.revokeSessionByRefreshToken("some-token");
 
@@ -109,15 +107,13 @@ describe("revokeSessionByRefreshToken", () => {
 
 describe("revokeLiveSessionOfUser", () => {
   test("ends the live session of that user by its id, as a sign-out from where it came, and says it did", async () => {
-    const findOneBy: jest.SpiedFunction<typeof UserSessionService.findOneBy> =
+    const findOneBy: SpyInstance<typeof UserSessionService.findOneBy> = jest
+      .spyOn(UserSessionService, "findOneBy")
+      .mockResolvedValue(liveSession() as never);
+    const revoke: SpyInstance<typeof UserSessionService.revokeSessionById> =
       jest
-        .spyOn(UserSessionService, "findOneBy")
-        .mockResolvedValue(liveSession() as never);
-    const revoke: jest.SpiedFunction<
-      typeof UserSessionService.revokeSessionById
-    > = jest
-      .spyOn(UserSessionService, "revokeSessionById")
-      .mockResolvedValue(undefined);
+        .spyOn(UserSessionService, "revokeSessionById")
+        .mockResolvedValue(undefined);
 
     expect(
       await UserSessionService.revokeLiveSessionOfUser(
@@ -147,11 +143,10 @@ describe("revokeLiveSessionOfUser", () => {
     jest
       .spyOn(UserSessionService, "findOneBy")
       .mockResolvedValue(null as never);
-    const revoke: jest.SpiedFunction<
-      typeof UserSessionService.revokeSessionById
-    > = jest
-      .spyOn(UserSessionService, "revokeSessionById")
-      .mockResolvedValue(undefined);
+    const revoke: SpyInstance<typeof UserSessionService.revokeSessionById> =
+      jest
+        .spyOn(UserSessionService, "revokeSessionById")
+        .mockResolvedValue(undefined);
 
     expect(
       await UserSessionService.revokeLiveSessionOfUser({
@@ -166,11 +161,10 @@ describe("revokeLiveSessionOfUser", () => {
     jest
       .spyOn(UserSessionService, "findOneBy")
       .mockResolvedValue(liveSession() as never);
-    const updateOneById: jest.SpiedFunction<
-      typeof UserSessionService.updateOneById
-    > = jest
-      .spyOn(UserSessionService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+    const updateOneById: SpyInstance<typeof UserSessionService.updateOneById> =
+      jest
+        .spyOn(UserSessionService, "updateOneById")
+        .mockResolvedValue(undefined as never);
 
     await UserSessionService.revokeLiveSessionOfUser(
       { userId: USER_ID, sessionId: SESSION_ID },

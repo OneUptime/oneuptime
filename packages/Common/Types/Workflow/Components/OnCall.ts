@@ -17,6 +17,7 @@ import {
   PAGE_SUCCESS_PORT_ID,
   PageAbout,
 } from "./OnCallPageSettings";
+import { translationKey } from "../../Translator";
 
 /*
  * THE PAGE STEPS: page people from a workflow.
@@ -42,7 +43,7 @@ import {
  */
 
 // The step category these belong to, and its name in the Add Component panel.
-export const ON_CALL_COMPONENT_CATEGORY: string = "On-Call";
+export const ON_CALL_COMPONENT_CATEGORY: string = translationKey("On-Call");
 
 /*
  * Every step gets settings, ports and return values of its own - never one
@@ -68,38 +69,43 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
   return [
     {
       id: PAGE_ARGUMENT_IDS.about,
-      name: "Page About",
-      description:
+      name: translationKey("Page About"),
+      description: translationKey(
         "What the page is about. The people paged are told this, and a responder acknowledging the page acknowledges it.",
+      ),
       type: ComponentInputType.Choice,
       // An empty one is a new alert, so there is always a choice made.
       required: false,
       choices: [
         {
           value: PageAbout.NewAlert,
-          label: "A new alert",
-          description:
+          label: translationKey("A new alert"),
+          description: translationKey(
             "Write a title and a message. OneUptime creates an alert from them.",
+          ),
         },
         {
           value: PageAbout.Incident,
-          label: "An incident",
-          description:
+          label: translationKey("An incident"),
+          description: translationKey(
             "An incident that is already there, such as the one that started this workflow.",
+          ),
         },
         {
           value: PageAbout.Alert,
-          label: "An alert",
-          description:
+          label: translationKey("An alert"),
+          description: translationKey(
             "An alert that is already there, such as the one that started this workflow.",
+          ),
         },
       ],
     },
     {
       id: PAGE_ARGUMENT_IDS.title,
-      name: "Title",
-      description:
+      name: translationKey("Title"),
+      description: translationKey(
         "What the page says, in a few words. It becomes the new alert's title.",
+      ),
       type: ComponentInputType.Text,
       required: true,
       placeholder: "Database CPU is above 90%",
@@ -107,9 +113,10 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
     },
     {
       id: PAGE_ARGUMENT_IDS.message,
-      name: "Message",
-      description:
+      name: translationKey("Message"),
+      description: translationKey(
         "More about it: what happened and what to do. It becomes the new alert's description, so Markdown works.",
+      ),
       type: ComponentInputType.LongText,
       required: false,
       placeholder: "Queries are queueing on db-primary.",
@@ -117,12 +124,13 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
     },
     {
       id: PAGE_ARGUMENT_IDS.incidentId,
-      name: "Incident ID",
-      description:
+      name: translationKey("Incident ID"),
+      description: translationKey(
         "The incident to page about. Usually the ID of the incident that started this workflow.",
+      ),
       type: ComponentInputType.Text,
       required: true,
-      placeholder: "Pick a value with { } or paste an ID",
+      placeholder: translationKey("Pick a value with { } or paste an ID"),
       linkedTable: "Incident",
       shownWhen: {
         argumentId: PAGE_ARGUMENT_IDS.about,
@@ -131,12 +139,13 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
     },
     {
       id: PAGE_ARGUMENT_IDS.alertId,
-      name: "Alert ID",
-      description:
+      name: translationKey("Alert ID"),
+      description: translationKey(
         "The alert to page about. Usually the ID of the alert that started this workflow.",
+      ),
       type: ComponentInputType.Text,
       required: true,
-      placeholder: "Pick a value with { } or paste an ID",
+      placeholder: translationKey("Pick a value with { } or paste an ID"),
       linkedTable: "Alert",
       shownWhen: {
         argumentId: PAGE_ARGUMENT_IDS.about,
@@ -145,24 +154,27 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
     },
     {
       id: PAGE_ARGUMENT_IDS.pageAs,
-      name: "Page As",
-      description:
+      name: translationKey("Page As"),
+      description: translationKey(
         "What the people paged are asked to do. Responders take it on. Observers are kept informed while somebody else responds (an oversight team told about every critical incident, say).",
+      ),
       type: ComponentInputType.Choice,
       // An empty one pages responders, as every page step did before.
       required: false,
       choices: [
         {
           value: OnCallPageAs.Responders,
-          label: "Responders",
-          description:
+          label: translationKey("Responders"),
+          description: translationKey(
             "They take it on: acknowledging the page acknowledges it and stops every other page about it.",
+          ),
         },
         {
           value: OnCallPageAs.Observers,
-          label: "Observers",
-          description:
+          label: translationKey("Observers"),
+          description: translationKey(
             "They are kept informed: acknowledging their page only says they have seen it. Nothing else is acknowledged.",
+          ),
         },
       ],
       isAdvanced: true,
@@ -174,9 +186,10 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
     },
     {
       id: PAGE_ARGUMENT_IDS.alertSeverity,
-      name: "Severity",
-      description:
+      name: translationKey("Severity"),
+      description: translationKey(
         "How severe the new alert is. Each person is paged by their own On-Call Rules for that severity. Left empty, it is the project's most severe.",
+      ),
       type: ComponentInputType.AlertSeveritySelect,
       required: false,
       // What an empty list stands for, in the list itself.
@@ -190,8 +203,10 @@ const getAboutArguments: () => Array<Argument> = (): Array<Argument> => {
 const getInPorts: () => Array<Port> = (): Array<Port> => {
   return [
     {
-      title: "In",
-      description: "Connect the step that runs before this page.",
+      title: translationKey("In"),
+      description: translationKey(
+        "Connect the step that runs before this page.",
+      ),
       id: PAGE_IN_PORT_ID,
     },
   ];
@@ -202,17 +217,19 @@ const getRecordReturnValues: () => Array<ReturnValue> =
     return [
       {
         id: PAGE_RETURN_VALUE_IDS.alertId,
-        name: "Alert ID",
-        description:
+        name: translationKey("Alert ID"),
+        description: translationKey(
           "The alert the page is about: the new one, or the one in Alert ID. Empty for a page about an incident.",
+        ),
         type: ComponentInputType.Text,
         required: false,
       },
       {
         id: PAGE_RETURN_VALUE_IDS.incidentId,
-        name: "Incident ID",
-        description:
+        name: translationKey("Incident ID"),
+        description: translationKey(
           "The incident the page is about. Empty for a page about an alert.",
+        ),
         type: ComponentInputType.Text,
         required: false,
       },
@@ -222,8 +239,8 @@ const getRecordReturnValues: () => Array<ReturnValue> =
 const getErrorReturnValue: () => ReturnValue = (): ReturnValue => {
   return {
     id: PAGE_RETURN_VALUE_IDS.error,
-    name: "Error",
-    description: "Why nobody was paged, when nobody was.",
+    name: translationKey("Error"),
+    description: translationKey("Why nobody was paged, when nobody was."),
     type: ComponentInputType.Text,
     required: false,
   };
@@ -235,17 +252,19 @@ const getDirectPageReturnValues: () => Array<ReturnValue> =
     return [
       {
         id: PAGE_RETURN_VALUE_IDS.summary,
-        name: "Summary",
-        description:
+        name: translationKey("Summary"),
+        description: translationKey(
           "Who was paged and who was not, in a sentence or two. Ready to post to a channel.",
+        ),
         type: ComponentInputType.Text,
         required: false,
       },
       {
         id: PAGE_RETURN_VALUE_IDS.pagedUsers,
-        name: "Paged Users",
-        description:
+        name: translationKey("Paged Users"),
+        description: translationKey(
           "The people paged, as a list. Each has an id, a name and an email.",
+        ),
         type: ComponentInputType.JSONArray,
         required: false,
       },
@@ -257,13 +276,15 @@ const getDirectPageReturnValues: () => Array<ReturnValue> =
 const getDirectPageOutPorts: () => Array<Port> = (): Array<Port> => {
   return [
     {
-      title: "Success",
-      description: "Runs once at least one person is paged.",
+      title: translationKey("Success"),
+      description: translationKey("Runs once at least one person is paged."),
       id: PAGE_SUCCESS_PORT_ID,
     },
     {
-      title: "Error",
-      description: "Runs when nobody was paged. Error says why.",
+      title: translationKey("Error"),
+      description: translationKey(
+        "Runs when nobody was paged. Error says why.",
+      ),
       id: PAGE_ERROR_PORT_ID,
     },
   ];
@@ -272,17 +293,20 @@ const getDirectPageOutPorts: () => Array<Port> = (): Array<Port> => {
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.PageUsers,
-    title: "Page Users",
+    title: translationKey("Page Users"),
     category: ON_CALL_COMPONENT_CATEGORY,
-    description: "Pages the people you name, by their own on-call rules.",
+    description: translationKey(
+      "Pages the people you name, by their own on-call rules.",
+    ),
     iconProp: IconProp.User,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: PAGE_ARGUMENT_IDS.users,
-        name: "Users",
-        description:
+        name: translationKey("Users"),
+        description: translationKey(
           "Who to page. Pick people of this project, or use a value from an earlier step: a user's ID or email address.",
+        ),
         type: ComponentInputType.UserList,
         required: true,
       },
@@ -294,17 +318,20 @@ const components: Array<ComponentMetadata> = [
   },
   {
     id: ComponentID.PageTeam,
-    title: "Page a Team",
+    title: translationKey("Page a Team"),
     category: ON_CALL_COMPONENT_CATEGORY,
-    description: "Pages every member of a team, by their own on-call rules.",
+    description: translationKey(
+      "Pages every member of a team, by their own on-call rules.",
+    ),
     iconProp: IconProp.Team,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: PAGE_ARGUMENT_IDS.teams,
-        name: "Teams",
-        description:
+        name: translationKey("Teams"),
+        description: translationKey(
           "Every member of each team is paged. Pick teams, or use a team's ID from an earlier step.",
+        ),
         type: ComponentInputType.TeamList,
         required: true,
       },
@@ -316,17 +343,20 @@ const components: Array<ComponentMetadata> = [
   },
   {
     id: ComponentID.PageOnCall,
-    title: "Page Whoever Is On Call",
+    title: translationKey("Page Whoever Is On Call"),
     category: ON_CALL_COMPONENT_CATEGORY,
-    description: "Pages the person on call in a schedule right now.",
+    description: translationKey(
+      "Pages the person on call in a schedule right now.",
+    ),
     iconProp: IconProp.Calendar,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: PAGE_ARGUMENT_IDS.onCallSchedules,
-        name: "On-Call Schedules",
-        description:
+        name: translationKey("On-Call Schedules"),
+        description: translationKey(
           "Whoever is on call in each schedule right now is paged. Pick schedules, or use a schedule's ID from an earlier step.",
+        ),
         type: ComponentInputType.OnCallScheduleList,
         required: true,
       },
@@ -338,17 +368,20 @@ const components: Array<ComponentMetadata> = [
   },
   {
     id: ComponentID.PageOnCallPolicy,
-    title: "Page an On-Call Policy",
+    title: translationKey("Page an On-Call Policy"),
     category: ON_CALL_COMPONENT_CATEGORY,
-    description: "Starts an on-call policy, with its escalation rules.",
+    description: translationKey(
+      "Starts an on-call policy, with its escalation rules.",
+    ),
     iconProp: IconProp.Call,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: PAGE_ARGUMENT_IDS.onCallPolicies,
-        name: "On-Call Policies",
-        description:
+        name: translationKey("On-Call Policies"),
+        description: translationKey(
           "Each policy starts at its first escalation rule and pages as it always does. Pick policies, or use a policy's ID from an earlier step.",
+        ),
         type: ComponentInputType.OnCallPolicyList,
         required: true,
       },
@@ -357,9 +390,10 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         id: PAGE_RETURN_VALUE_IDS.summary,
-        name: "Summary",
-        description:
+        name: translationKey("Summary"),
+        description: translationKey(
           "Which policies started, in a sentence. Ready to post to a channel.",
+        ),
         type: ComponentInputType.Text,
         required: false,
       },
@@ -369,13 +403,17 @@ const components: Array<ComponentMetadata> = [
     inPorts: getInPorts(),
     outPorts: [
       {
-        title: "Success",
-        description: "Runs once at least one policy has started.",
+        title: translationKey("Success"),
+        description: translationKey(
+          "Runs once at least one policy has started.",
+        ),
         id: PAGE_SUCCESS_PORT_ID,
       },
       {
-        title: "Error",
-        description: "Runs when no policy could be started. Error says why.",
+        title: translationKey("Error"),
+        description: translationKey(
+          "Runs when no policy could be started. Error says why.",
+        ),
         id: PAGE_ERROR_PORT_ID,
       },
     ],

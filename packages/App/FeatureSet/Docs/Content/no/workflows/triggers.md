@@ -21,25 +21,25 @@ For å legge til triggeren klikker du på den stiplede blokken **Velg hva som st
 | Kjøre etter en gjentakende tidsplan            | **Tidsplan**                |
 | La et annet system sende inn data              | **Webhook**                 |
 | Starte ut fra en e-post                        | **Innkommende e-post**          |
-| Handle på hendelsesrapporter fra Huntress      | **Huntress Incident Report** |
+| Handle på hendelsesrapporter fra Huntress      | **Huntress-hendelsesrapport** |
 | Reagere på noe i OneUptime                     | **OneUptime-begivenhet**    |
 
-En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme automatiseringen på, bygger du den felles logikken i en arbeidsflyt med en **Manuell**-trigger og starter den fra to tynne «innpaknings»-arbeidsflyter med en **Execute Workflow**-blokk.
+En arbeidsflyt kan bare ha én trigger. Trenger du to måter å starte den samme automatiseringen på, bygger du den felles logikken i en arbeidsflyt med en **Manuell**-trigger og starter den fra to tynne «innpaknings»-arbeidsflyter med en **Kjør en annen arbeidsflyt**-blokk.
 
 ## Manual
 
-Kjør arbeidsflyten når du vil: klikk på **Kjør arbeidsflyt** på siden **Bygger**, fyll ut triggerens **JSON**, klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. En annen arbeidsflyt kan også starte den med en **Execute Workflow**-blokk.
+Kjør arbeidsflyten når du vil: klikk på **Kjør arbeidsflyt** på siden **Bygger**, fyll ut triggerens **JSON**, klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. En annen arbeidsflyt kan også starte den med en **Kjør en annen arbeidsflyt**-blokk.
 
 Bra for: automatisering med ett klikk som du vil ha en knapp for, som «roter denne nøkkelen» eller «send et testvarsel», og logikk du deler mellom arbeidsflyter.
 
 **Returns**: **JSON** — det kjøringen ble startet med.
 
 - Fra **Kjør arbeidsflyt** er det JSON-en du skrev. For å lese et felt i den legger du feltets navn til referansen, som i `{{local.components.manual-1.returnValues.value.name}}`.
-- Fra en **Execute Workflow**-blokk er hver nøkkel i blokkens **Arguments** en verdi for seg. Med `{"customerId": "42"}` leser en senere blokk `{{local.components.manual-1.returnValues.customerId}}`, der `manual-1` er ID-en til Manual-triggeren.
+- Fra en **Kjør en annen arbeidsflyt**-blokk er hver nøkkel i blokkens **Argumenter** en verdi for seg. Med `{"customerId": "42"}` leser en senere blokk `{{local.components.manual-1.returnValues.customerId}}`, der `manual-1` er ID-en til Manual-triggeren.
 
 ## Schedule
 
-Kjør arbeidsflyten etter en gjentakende tidsplan. Angi hvor ofte i **Schedule at**: velg en av **Common schedules**, skriv et **Custom cron**-uttrykk, eller velg en **Variabel** som inneholder et. Under feltet beskrives tidsplanen med ord, sammen med **Neste kjøringer**.
+Kjør arbeidsflyten etter en gjentakende tidsplan. Angi hvor ofte i **Planlegg kl.**: velg en av **Common schedules**, skriv et **Custom cron**-uttrykk, eller velg en **Variabel** som inneholder et. Under feltet beskrives tidsplanen med ord, sammen med **Neste kjøringer**.
 
 Bra for: opprydding om natten, synkronisering hver time, ukentlige rapporter.
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | Verdi                    | Hva den inneholder                                                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **Forespørselshoder**      | Hver header i forespørselen, etter navn med små bokstaver, som `content-type`.                                         |
-| **Request Query Params** | Spørringsparameterne i URL-en, etter navn.                                                                             |
+| **Spørringsparametere i forespørselen** | Spørringsparameterne i URL-en, etter navn.                                                                             |
 | **Forespørselstekst**         | Bodyen den som kalte, sendte. En JSON-body, sendt med `Content-Type: application/json`, kan leses felt for felt, og det samme gjelder JSON sendt som ren tekst, slik Amazon SNS sender den. |
 
 Les ett enkelt felt ved å legge navnet til referansen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
@@ -130,10 +130,10 @@ Hver e-post starter sin egen kjøring. E-posten når arbeidsflyten uansett om ad
 | **CC**          | Alle e-posten ble sendt som kopi til, på én linje.                                                       |
 | **Emne**     | Emnelinjen.                                                                                              |
 | **Brødtekst**        | Ren tekst-versjonen av e-posten.                                                                         |
-| **HTML Body**   | HTML-en i e-posten, når den har noe. Body og HTML Body kuttes hver ved 1 MB.                             |
-| **Headers**     | Hver header i e-posten, etter navn med små bokstaver, som `message-id`.                                  |
+| **HTML-tekst**   | HTML-en i e-posten, når den har noe. Body og HTML Body kuttes hver ved 1 MB.                             |
+| **Headere**     | Hver header i e-posten, etter navn med små bokstaver, som `message-id`.                                  |
 | **Vedlegg** | Navn, type og størrelse på hvert vedlegg. Selve filene lagres ikke.                                      |
-| **Received At** | Når OneUptime mottok e-posten.                                                                           |
+| **Mottatt** | Når OneUptime mottok e-posten.                                                                           |
 
 Når en e-post har kommet, vet verdivelgeren i hver blokk etter triggeren hva som var i den: den viser hver header og hvert vedlegg e-posten hadde, med innholdet, slik at du kan velge `headers.message-id` i stedet for å skrive en sti. Inntil da sier den at ingen e-post har nådd adressen ennå. Se [Bruk verdier fra tidligere blokker](/docs/workflows/authoring#bruk-verdier-fra-tidligere-blokker).
 
@@ -159,7 +159,7 @@ OneUptime gir arbeidsflyten sin egen URL for Huntress, tjenesten for managed det
 
 Bra for: å åpne en hendelse for hver hendelsesrapport fra Huntress, tilkalle vakten og følge rapporten til den lukkes. Malen **Open an incident for each Huntress incident report** gjør alle tre.
 
-For å koble til Huntress klikker du på triggeren **Huntress Incident Report** på lerretet: den viser URL-en du gir Huntress, lagrer endepunktets signeringshemmelighet og sier når Huntress sist nådde arbeidsflyten. En forespørsel som ikke er signert med den hemmeligheten, starter ingenting, så URL-en er ikke et passord. Se [Huntress](/docs/integrations/huntress) for oppsettet i Huntress, verdiene triggeren returnerer, og innstillingene.
+For å koble til Huntress klikker du på triggeren **Huntress-hendelsesrapport** på lerretet: den viser URL-en du gir Huntress, lagrer endepunktets signeringshemmelighet og sier når Huntress sist nådde arbeidsflyten. En forespørsel som ikke er signert med den hemmeligheten, starter ingenting, så URL-en er ikke et passord. Se [Huntress](/docs/integrations/huntress) for oppsettet i Huntress, verdiene triggeren returnerer, og innstillingene.
 
 ## OneUptime-begivenhetstriggere
 
@@ -172,7 +172,7 @@ Nesten alt i OneUptime — monitorer, hendelser, varsler, vedlikeholdshendelser,
 
 Slik bygger du «når X skjer i OneUptime, gjør Y» uten å måtte sjekke ting i en løkke.
 
-**On Update** kan begrenses til noen felt med **Fields to watch**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med. **On Create or Update** har de samme **Fields to watch**, bare for sine oppdateringer: hver ny post utløser den fortsatt.
+**On Update** kan begrenses til noen felt med **Felt som overvåkes**: da utløses den bare når en oppdatering endrer ett av dem, til en hvilken som helst verdi — å slå av en bryter eller tømme et felt teller med. **On Create or Update** har de samme **Felt som overvåkes**, bare for sine oppdateringer: hver ny post utløser den fortsatt.
 
 ```mermaid title="Når en On Update-trigger utløses"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"Nei"| nothing
 ```
 
-**On Create**, **On Update** og **On Create or Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem. Det samme gjelder et felt posten ikke har noe i, som monitoren til et varsel ingen monitor har utløst.
+**On Create**, **On Update** og **On Create or Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Felt som sendes videre**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem. Det samme gjelder et felt posten ikke har noe i, som monitoren til et varsel ingen monitor har utløst.
 
-**On Create or Update** sender også **Hva som skjedde** videre: `created` når en ny post startet kjøringen, og `updated` når en endring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For å behandle de to ulikt sammenligner du det i en **If / Else**-blokk, eller tar en vei for hver med **Switch / Case**.
+**On Create or Update** sender også **Hva som skjedde** videre: `created` når en ny post startet kjøringen, og `updated` når en endring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For å behandle de to ulikt sammenligner du det i en **Hvis / Ellers**-blokk, eller tar en vei for hver med **Valg / Sak**.
 
-Én lagring utløser den én gang. Det OneUptime fyller ut mens den oppretter en post, hører til opprettingen, så en ny post utløser den én gang, som `created`. Endringer OneUptime gjør senere, som å koble til Slack-kanalen til en hendelse, er oppdateringer som alle andre: for å holde dem utenfor legger du bare feltene du bryr deg om, til i **Fields to watch**.
+Én lagring utløser den én gang. Det OneUptime fyller ut mens den oppretter en post, hører til opprettingen, så en ny post utløser den én gang, som `created`. Endringer OneUptime gjør senere, som å koble til Slack-kanalen til en hendelse, er oppdateringer som alle andre: for å holde dem utenfor legger du bare feltene du bryr deg om, til i **Felt som overvåkes**.
 
 **On Delete** sender bare ID-en til den slettede posten videre: posten er borte når arbeidsflyten kjører, så de andre feltene kan ikke leses.
 

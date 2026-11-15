@@ -13,7 +13,7 @@ Cette intégration est **entrante** : Huntress envoie chaque événement d'un ra
 
 ## Fonctionnement
 
-Huntress envoie un événement sur un rapport d'incident quand le rapport est envoyé, quand quelqu'un le commente et quand il est clos. Le déclencheur **Huntress Incident Report** démarre le flux de travail une fois pour chaque événement, et son **Événement** dit lequel c'était : `created`, `comment-added` ou `closed`.
+Huntress envoie un événement sur un rapport d'incident quand le rapport est envoyé, quand quelqu'un le commente et quand il est clos. Le déclencheur **Rapport d'incident Huntress** démarre le flux de travail une fois pour chaque événement, et son **Événement** dit lequel c'était : `created`, `comment-added` ou `closed`.
 
 ```mermaid title="Un rapport d'incident Huntress dans un flux de travail"
 sequenceDiagram
@@ -55,11 +55,11 @@ Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **
 
 ### Choisir qui alerter
 
-La boîte de dialogue demande ensuite qui alerter : sous **Who to page for high and critical reports**, choisissez les politiques d'astreinte à alerter, ou aucune pour n'alerter personne, et cliquez sur **Créer un flux de travail**. Le flux de travail s'ouvre dans le **Constructeur**, désactivé. Pour changer plus tard qui il alerte, cliquez sur son étape **Page an On-Call Policy** et changez ses **Politiques d'astreinte**.
+La boîte de dialogue demande ensuite qui alerter : sous **Who to page for high and critical reports**, choisissez les politiques d'astreinte à alerter, ou aucune pour n'alerter personne, et cliquez sur **Créer un flux de travail**. Le flux de travail s'ouvre dans le **Constructeur**, désactivé. Pour changer plus tard qui il alerte, cliquez sur son étape **Déclencher une politique d'astreinte** et changez ses **Politiques d'astreinte**.
 
 ### Ajouter un point de terminaison webhook dans Huntress
 
-Cliquez sur le déclencheur **Huntress Incident Report**, puis sur **Copier l'URL** sous **Ajouter un point de terminaison webhook dans Huntress**. L'URL ressemble à `https://oneuptime.com/workflow/huntress/<key>` ; sur une installation auto-hébergée, elle commence par votre propre hôte.
+Cliquez sur le déclencheur **Rapport d'incident Huntress**, puis sur **Copier l'URL** sous **Ajouter un point de terminaison webhook dans Huntress**. L'URL ressemble à `https://oneuptime.com/workflow/huntress/<key>` ; sur une installation auto-hébergée, elle commence par votre propre hôte.
 
 Dans Huntress, ouvrez le menu en haut à droite et choisissez **Integrations**. Cliquez sur **Add an Integration**, choisissez **Webhooks**, puis cliquez sur **Add Endpoint**. Collez l'URL, activez **Incident Reports** et enregistrez. Laissez **Escalations**, **Platform Actions** et **Account Notices** désactivés : le déclencheur accepte ces événements et ne démarre rien pour eux.
 
@@ -79,15 +79,15 @@ Activez **Activé** en haut du **Constructeur**. Dans Huntress, ouvrez le menu d
 
 ## Ce que fait le flux de travail
 
-Après le déclencheur, **Incident From Another Tool** fait ce que demande chaque **Événement**, par le numéro du rapport :
+Après le déclencheur, **Incident depuis un autre outil** fait ce que demande chaque **Événement**, par le numéro du rapport :
 
 | Event | Ce que fait le flux de travail |
 | --- | --- |
-| `created` | Ouvre un incident avec l'**ID de la gravité de l'incident** du déclencheur, étiqueté avec son **Organization Label ID**. Pour un rapport élevé ou critique, **Page an On-Call Policy** alerte votre politique ; un rapport faible n'alerte personne. Un rapport qui a déjà un incident n'en ouvre pas d'autre. |
+| `created` | Ouvre un incident avec l'**ID de la gravité de l'incident** du déclencheur, étiqueté avec son **ID de l'étiquette d'organisation**. Pour un rapport élevé ou critique, **Déclencher une politique d'astreinte** alerte votre politique ; un rapport faible n'alerte personne. Un rapport qui a déjà un incident n'en ouvre pas d'autre. |
 | `comment-added` | Retrouve l'incident du rapport et y ajoute le commentaire comme note privée. |
 | `closed` | Retrouve l'incident du rapport et le résout, sauf s'il est déjà résolu. La raison figure sur sa chronologie : Huntress a clos le rapport. |
 
-C'est un flux de travail comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **If / Else** après **Incident From Another Tool**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Switch / Case** sur **Organisation**. Chaque exécution figure dans les exécutions du flux de travail, avec ce que chaque étape a fait.
+C'est un flux de travail comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **Si / Sinon** après **Incident depuis un autre outil**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Selon / Cas** sur **Organisation**. Chaque exécution figure dans les exécutions du flux de travail, avec ce que chaque étape a fait.
 
 ### Gravités
 
@@ -103,7 +103,7 @@ Un projet qui a moins de gravités utilise sa moins élevée pour le reste. Un r
 
 ### Organisations
 
-L'**Organization Label ID** du déclencheur est une étiquette au nom de l'organisation Huntress du rapport, par exemple _Acme Corp_, qu'il crée quand le premier rapport de cette organisation arrive. Un flux de travail reçoit les rapports de toutes les organisations de votre compte Huntress, et **Uniquement ces organisations** du déclencheur restreint cela : un nom ou un ID d'organisation par ligne, les noms sans tenir compte de la casse.
+L'**ID de l'étiquette d'organisation** du déclencheur est une étiquette au nom de l'organisation Huntress du rapport, par exemple _Acme Corp_, qu'il crée quand le premier rapport de cette organisation arrive. Un flux de travail reçoit les rapports de toutes les organisations de votre compte Huntress, et **Uniquement ces organisations** du déclencheur restreint cela : un nom ou un ID d'organisation par ligne, les noms sans tenir compte de la casse.
 
 > [!TIP]
 > Pour alerter l'équipe propre à chaque client, ajoutez une règle d'astreinte des incidents par organisation, par exemple « Si **Étiquettes d'incident** contient l'une de _Acme Corp_ », qui exécute la politique de ce client. Voir [Règles d'astreinte des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents).
@@ -115,7 +115,7 @@ Le déclencheur s'ouvre sur Huntress : son URL, une coche à côté de chaque é
 | Valeur | Ce qu'elle contient |
 | --- | --- |
 | **Événement** | `created`, `comment-added` ou `closed`. Un rapport déjà clos ou rejeté est `closed`, quel que soit l'événement qui l'a apporté. |
-| **Report ID** | Le numéro du rapport dans Huntress. |
+| **ID du rapport** | Le numéro du rapport dans Huntress. |
 | **Gravité** | `critical`, `high` ou `low`. |
 | **Statut** | Le statut du rapport dans Huntress, comme `sent`, `closed` ou `dismissed`. |
 | **Objet** | L'objet du rapport, tel que Huntress l'écrit. |
@@ -124,15 +124,15 @@ Le déclencheur s'ouvre sur Huntress : son URL, une coche à côté de chaque é
 | **Concerné** | L'hôte ou l'identité concerné par le rapport. |
 | **Plateforme**, **Indicateurs** | Où Huntress l'a trouvé, et ce qu'il a trouvé. |
 | **Commentaire** | Le commentaire que quelqu'un a ajouté, sur `comment-added`. |
-| **Report URL** | Où le rapport s'ouvre dans Huntress. |
+| **URL du rapport** | Où le rapport s'ouvre dans Huntress. |
 | **Titre de l'incident**, **Description de l'incident** | Un titre et une description Markdown pour un incident sur le rapport. |
 | **Note** | Du Markdown pour une note sur l'événement : le commentaire, ou le fait que Huntress a clos le rapport. |
-| **ID de la gravité de l'incident**, **Organization Label ID** | La gravité d'incident et l'étiquette, comme ci-dessus. |
-| **Received At** | Quand OneUptime a reçu l'événement. |
+| **ID de la gravité de l'incident**, **ID de l'étiquette d'organisation** | La gravité d'incident et l'étiquette, comme ci-dessus. |
+| **Reçu le** | Quand OneUptime a reçu l'événement. |
 
 **Résumé** et **Commentaire** sont du texte écrit par les analystes de Huntress. Pour les mettre dans un incident ou une note, utilisez **Description de l'incident** et **Note** : ils gardent la mise en forme, et rien en eux ne charge d'image ni ne mentionne qui que ce soit.
 
-Pour essayer le flux de travail sans Huntress, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez un **Événement**, un **Report ID** et les champs dont vous avez besoin. Utilisez le même **Report ID** pour suivre un rapport de `created` à `closed`.
+Pour essayer le flux de travail sans Huntress, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez un **Événement**, un **ID du rapport** et les champs dont vous avez besoin. Utilisez le même **ID du rapport** pour suivre un rapport de `created` à `closed`.
 
 ## Connexions Huntress créées auparavant
 
@@ -170,15 +170,15 @@ Activez **Activé** en haut du **Constructeur**. Huntress renvoie la requête re
 :::
 
 :::details "No Huntress workflow has this address."
-Le flux de travail a été supprimé ou archivé, son déclencheur n'est plus **Huntress Incident Report**, ou l'URL du point de terminaison dans Huntress n'est pas celle du flux de travail. Copiez l'URL depuis le déclencheur et collez-la de nouveau dans le point de terminaison dans Huntress.
+Le flux de travail a été supprimé ou archivé, son déclencheur n'est plus **Rapport d'incident Huntress**, ou l'URL du point de terminaison dans Huntress n'est pas celle du flux de travail. Copiez l'URL depuis le déclencheur et collez-la de nouveau dans le point de terminaison dans Huntress.
 :::
 
 :::details Aucun incident n'a été ouvert
-Ouvrez les exécutions du flux de travail et l'exécution du rapport. Si **Incident From Another Tool** a échoué avec `This project has no incident severities to put the incident at.`, ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
+Ouvrez les exécutions du flux de travail et l'exécution du rapport. Si **Incident depuis un autre outil** a échoué avec `This project has no incident severities to put the incident at.`, ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
 :::
 
 :::details Personne n'a été alerté
-Un rapport faible ouvre un incident sans alerter. Sinon, l'exécution du rapport dit ce qu'a fait **Page an On-Call Policy**, et la page **Exécutions d'astreinte** de l'incident montre ce que chaque politique a fait.
+Un rapport faible ouvre un incident sans alerter. Sinon, l'exécution du rapport dit ce qu'a fait **Déclencher une politique d'astreinte**, et la page **Exécutions d'astreinte** de l'incident montre ce que chaque politique a fait.
 :::
 
 ## Étapes suivantes

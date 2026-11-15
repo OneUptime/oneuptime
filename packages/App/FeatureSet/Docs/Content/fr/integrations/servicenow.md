@@ -54,11 +54,11 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'enregistrement
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://your-instance.service-now.com/api/now/table/incident`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://your-instance.service-now.com/api/now/table/incident`. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -81,7 +81,7 @@ Et son **Corps de la requête** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `201` contenant le nouvel enregistrement, avec son `sys_id` et son `number`, par exemple `INC0012345`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 `urgency` et `impact` prennent `1` pour élevé, `2` pour moyen et `3` pour faible, et ServiceNow en déduit la priorité. Toute autre colonne de la table `incident` peut aller dans le corps, sous son nom de colonne.
@@ -93,7 +93,7 @@ Un flux de travail a un seul déclencheur, la résolution demande donc un second
 :::steps
 ### Ajouter le déclencheur On Update Incident
 
-Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Fields to pass on**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Champs à transmettre**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **
 
 ### Vérifier que l'incident est résolu
 
-Ajoutez un bloc **If / Else** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
+Ajoutez un bloc **Si / Sinon** après le déclencheur. Réglez **Valeur à vérifier** sur `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` et **Comparaison** sur **est vrai**.
 
 ### Trouver l'enregistrement
 
-Ajoutez un bloc **API Get (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
+Ajoutez un bloc **Appel d'API GET (JSON)** après le côté **Oui**, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Résoudre l'enregistrement
 
-Ajoutez un bloc **API Patch (JSON)** après le **Succès** du bloc de recherche, avec les mêmes **En-têtes de la requête**, et cette **URL** :
+Ajoutez un bloc **Appel d'API PATCH (JSON)** après le **Succès** du bloc de recherche, avec les mêmes **En-têtes de la requête**, et cette **URL** :
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
