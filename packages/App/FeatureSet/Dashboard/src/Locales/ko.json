@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}}일",
   "{{count}}h": "{{count}}시간",
   "{{count}}m": "{{count}}분",
+  "{{count}}mo": "{{count}}개월",
+  "{{count}}y": "{{count}}년",
   "{{target}}% of the time": "시간의 {{target}}%",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "테이블의 데이터베이스에 대해 value라는 이름의 숫자 하나를 반환하는 읽기 전용 쿼리입니다. 시간 제한이 있는 읽기 전용 트랜잭션에서 실행됩니다.",
   "Absolute": "절대값",

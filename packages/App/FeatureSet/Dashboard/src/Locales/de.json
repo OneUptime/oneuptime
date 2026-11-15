@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}} Tg.",
   "{{count}}h": "{{count}} Std.",
   "{{count}}m": "{{count}} Min.",
+  "{{count}}mo": "{{count}} Mon.",
+  "{{count}}y": "{{count}} J.",
   "{{target}}% of the time": "{{target}} % der Zeit",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "Eine schreibgeschützte Abfrage der Datenbank der Tabelle, die eine Zahl mit dem Namen value zurückgibt. Sie läuft in einer schreibgeschützten Transaktion mit Zeitlimit.",
   "Absolute": "Absolut",

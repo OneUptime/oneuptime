@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}}天",
   "{{count}}h": "{{count}}小时",
   "{{count}}m": "{{count}}分",
+  "{{count}}mo": "{{count}}个月",
+  "{{count}}y": "{{count}}年",
   "{{target}}% of the time": "{{target}}% 的时间",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "对该表所在数据库的只读查询，返回一个名为 value 的数字。它在带超时的只读事务中运行。",
   "Absolute": "绝对值",

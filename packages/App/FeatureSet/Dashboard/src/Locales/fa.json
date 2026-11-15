@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}} روز",
   "{{count}}h": "{{count}} ساعت",
   "{{count}}m": "{{count}} دقیقه",
+  "{{count}}mo": "{{count}} ماه",
+  "{{count}}y": "{{count}} سال",
   "{{target}}% of the time": "{{target}}٪ از زمان",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "یک کوئری فقط‌خواندنی روی پایگاه داده جدول که یک عدد با نام value برمی‌گرداند. در یک تراکنش فقط‌خواندنی و با مهلت زمانی اجرا می‌شود.",
   "Absolute": "مطلق",

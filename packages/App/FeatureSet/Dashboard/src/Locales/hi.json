@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}} दिन",
   "{{count}}h": "{{count}} घंटे",
   "{{count}}m": "{{count}} मिनट",
+  "{{count}}mo": "{{count}} माह",
+  "{{count}}y": "{{count}} साल",
   "{{target}}% of the time": "{{target}}% समय",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "टेबल के डेटाबेस की एक रीड-ओनली क्वेरी जो value नाम की एक संख्या लौटाती है। यह टाइमआउट के साथ रीड-ओनली ट्रांज़ैक्शन में चलती है।",
   "Absolute": "निरपेक्ष",
