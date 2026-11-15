@@ -155,7 +155,7 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 :::steps
 1. Ouvrez **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**. **Politique d'appels entrants** est une section du menu latéral qui commence repliée.
 2. Dans la carte **Numéros de téléphone pour le routage des appels entrants**, cliquez sur **Ajouter : Numéro de téléphone pour le routage des appels entrants** et saisissez le numéro avec son indicatif de pays, par exemple `+15551234567`.
-3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Send a new code** en envoie un autre.
+3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Envoyer un nouveau code** en envoie un autre.
 :::
 
 Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ Le compte ne peut changer que tant que la politique n'a aucun numéro de télép
 :::
 
 :::details Le code pour le numéro d'une personne n'arrive pas
-Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Send a new code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
+Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Envoyer un nouveau code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
 :::
 
 ## Étapes suivantes

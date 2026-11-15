@@ -155,7 +155,7 @@ Uma regra faz tocar uma pessoa no número que ela verificou para chamadas recebi
 :::steps
 1. Abra **Configurações do usuário** > **Política de chamadas recebidas** > **Números de telefone recebidos**. **Política de chamadas recebidas** é uma seção do menu lateral que começa recolhida.
 2. No cartão **Números de telefone para roteamento de chamadas recebidas**, clique em **Adicionar: Número de telefone para roteamento de chamadas recebidas** e digite o número com o código do país, por exemplo `+15551234567`.
-3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Send a new code** envia outro.
+3. Digite o código de 6 dígitos que o OneUptime envia por SMS para o número em **Código de verificação** e clique em **Verificar**. **Enviar um novo código** envia outro.
 :::
 
 Cada pessoa pode ter um número verificado por projeto. Para trocá-lo, exclua antes o número antigo. Esses números são separados dos números de telefone em **Métodos de notificação**, que os acionamentos de plantão usam. Veja [Métodos de notificação](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ A conta só pode mudar enquanto a política não tem números de telefone: a pá
 :::
 
 :::details O código para o número de uma pessoa não chega
-O SMS precisa estar ligado no projeto. No OneUptime Cloud, um projeto sem uma configuração do Twilio padrão própria paga os SMS com o saldo dele, que precisa passar de 1 USD. Os códigos podem levar um minuto para chegar; clique em **Send a new code** para enviar outro, e **Configurações do projeto** > **Notificações** > **Logs de notificação** mostra o que aconteceu com ele.
+O SMS precisa estar ligado no projeto. No OneUptime Cloud, um projeto sem uma configuração do Twilio padrão própria paga os SMS com o saldo dele, que precisa passar de 1 USD. Os códigos podem levar um minuto para chegar; clique em **Enviar um novo código** para enviar outro, e **Configurações do projeto** > **Notificações** > **Logs de notificação** mostra o que aconteceu com ele.
 :::
 
 ## Próximos passos

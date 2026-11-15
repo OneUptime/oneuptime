@@ -155,7 +155,7 @@ Een regel laat een persoon overgaan op het nummer dat die persoon in dit project
 :::steps
 1. Open **Gebruikersinstellingen** > **Beleid inkomend gesprek** > **Inkomende telefoonnummers**. **Beleid inkomend gesprek** is een sectie van het zijmenu die ingeklapt begint.
 2. Klik in de kaart **Telefoonnummers voor inkomende oproeproutering** op **Telefoonnummer voor inkomende oproeproutering toevoegen** en vul het nummer in met de landcode, zoals `+15551234567`.
-3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Send a new code** stuurt een nieuwe.
+3. Vul de 6-cijferige code die OneUptime per SMS naar het nummer stuurt in onder **Verificatiecode**, en klik op **Verifiëren**. **Nieuwe code sturen** stuurt een nieuwe.
 :::
 
 Iedereen kan één geverifieerd nummer per project hebben. Om het te wijzigen, verwijdert u eerst het oude nummer. Deze nummers staan los van de telefoonnummers onder **Meldingsmethoden**, die oproepen voor bereikbaarheidsdiensten gebruiken. Zie [Meldingsmethoden](/docs/notifications/notification-methods).
@@ -275,7 +275,7 @@ Het account kan alleen wijzigen zolang het beleid geen telefoonnummers heeft: de
 :::
 
 :::details De code voor het nummer van een engineer komt niet aan
-SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Send a new code** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd.
+SMS moet aan staan voor het project. Op OneUptime Cloud betaalt een project zonder eigen standaard-Twilio-configuratie de sms'jes uit zijn saldo, dat boven 1 USD moet liggen. Codes kunnen een minuut onderweg zijn; klik op **Nieuwe code sturen** om een nieuwe te sturen, en **Projectinstellingen** > **Meldingen** > **Meldingslogboeken** toont wat ermee is gebeurd.
 :::
 
 ## Volgende stappen
