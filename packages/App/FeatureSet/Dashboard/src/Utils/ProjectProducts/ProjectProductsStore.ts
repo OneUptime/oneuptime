@@ -18,6 +18,7 @@ import RecordChanges, {
   RecordChange,
   RecordChangeKind,
 } from "Common/UI/Utils/ModelAPI/RecordChanges";
+import { getOpenLiveConnection } from "Common/UI/Utils/LiveConnection";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   fetchProjectProducts,
@@ -65,6 +66,15 @@ import {
  *     (below), and this tab takes it from the browser's storage event as it
  *     lands, asking nothing: a monitor made, or a project's last one
  *     deleted, in one tab shows in every other at once;
+ *   - anything else that changes what the project uses - a teammate's
+ *     first monitor in their own browser, an agent's first host with no
+ *     guide open, a product's last record deleted by a workflow or the API -
+ *     is heard on the app's live connection (#8626): the server tells the
+ *     project's open pages (the project's usage room), and the next look
+ *     asks, whatever the answer's age. A tab that is shown, on that
+ *     project, asks by itself too, once every server knows
+ *     (NUDGE_SETTLE_MS, spread over NUDGE_JITTER_MS) and at most once per
+ *     NUDGE_MIN_INTERVAL_MS, so a burst of changes is one ask;
  *   - an answer older than REFRESH_AFTER_MS is asked again when the person
  *     opens the products menu or the phone menu, moves to another page or
  *     comes back to the tab (load): a product set up elsewhere - its first
@@ -133,6 +143,24 @@ export const DELETE_SETTLE_MS: number = 2_000;
  */
 export const EXPECT_CHANGE_FOR_MS: number = 15_000;
 export const EXPECT_CHANGE_EVERY_MS: number = 2_500;
+
+/*
+ * When a tab that is shown asks after the server said what the project
+ * uses changed (#8626): once every server knows of it
+ * (CacheGenerations.SHARED_READ_TTL_MS, the server having started the new
+ * generation before it said so), at a moment spread over NUDGE_JITTER_MS
+ * so the project's open tabs do not all ask at once, and never sooner than
+ * NUDGE_MIN_INTERVAL_MS after the tab's last ask.
+ */
+export const NUDGE_SETTLE_MS: number = 1_500;
+export const NUDGE_JITTER_MS: number = 1_000;
+export const NUDGE_MIN_INTERVAL_MS: number = 10_000;
+
+const isPageHidden: () => boolean = (): boolean => {
+  return (
+    typeof document !== "undefined" && document.visibilityState === "hidden"
+  );
+};
 
 const rememberedKey: (projectId: string) => string = (
   projectId: string,
@@ -271,8 +299,21 @@ interface ProjectEntry {
    * the store keeps asking for them (expectProductsInUse).
    */
   expected: { products: Set<ProductKey>; until: number } | null;
-  // The store's own next ask: a delete settling, a guide's products awaited.
+  /*
+   * The server said what the project uses changed (#8626): an answer asked
+   * from `settledAt` on knows of it, and the store asks at `askAt`.
+   */
+  nudge: { settledAt: number; askAt: number } | null;
+  // When this page last asked, for NUDGE_MIN_INTERVAL_MS.
+  lastAskedAt: number | null;
+  /*
+   * The store's own next ask, and when: a delete settling, a guide's
+   * products awaited, a change the server told of.
+   */
   followUp: ReturnType<typeof setTimeout> | null;
+  followUpAt: number | null;
+  // Stops hearing the project's usage changes on the live connection.
+  stopHearing: (() => void) | null;
 }
 
 /*
@@ -371,6 +412,8 @@ export default class ProjectProducts {
     }
 
     const entry: ProjectEntry = ProjectProducts.entryFor(key);
+
+    ProjectProducts.hearChanges(key, entry);
 
     if (entry.request) {
       return entry.request;
@@ -596,6 +639,68 @@ export default class ProjectProducts {
     ProjectProducts.emit();
   }
 
+  /*
+   * The server said what the project uses changed (#8626) - a teammate's
+   * first monitor, an agent's first host, a product's last record deleted
+   * by a workflow - heard on the app's live connection (hearChanges). The
+   * next look at the products asks, whatever the answer's age. A tab that
+   * is shown, on that project, also asks by itself: once every server
+   * knows (NUDGE_SETTLE_MS, plus up to NUDGE_JITTER_MS so the project's
+   * open tabs do not all ask at the same moment), and never sooner than
+   * NUDGE_MIN_INTERVAL_MS after its last ask. Changes heard while that ask
+   * waits are covered by it, or by one more after it when they came too
+   * late for it (planFollowUp). A hidden tab asks when it is shown again
+   * (useProjectProductsKeptUpToDate), another project's entry on its next
+   * look.
+   */
+  public static noteUsageChangedElsewhere(projectId: ProjectIdInput): void {
+    const key: string = toProjectKey(projectId);
+    const entry: ProjectEntry | undefined = key
+      ? ProjectProducts.entries.get(key)
+      : undefined;
+
+    if (!entry) {
+      return;
+    }
+
+    entry.answeredAt = null;
+
+    if (
+      isPageHidden() ||
+      toProjectKey(ProjectUtil.getCurrentProjectId()) !== key
+    ) {
+      return;
+    }
+
+    const now: number = Date.now();
+    const settledAt: number = now + NUDGE_SETTLE_MS;
+
+    if (entry.nudge) {
+      // The ask waiting stays; one asked too early for this plans another.
+      entry.nudge.settledAt = Math.max(entry.nudge.settledAt, settledAt);
+      return;
+    }
+
+    const askAt: number = Math.max(
+      settledAt + Math.floor(Math.random() * NUDGE_JITTER_MS),
+      entry.lastAskedAt === null
+        ? 0
+        : entry.lastAskedAt + NUDGE_MIN_INTERVAL_MS,
+    );
+
+    entry.nudge = { settledAt: settledAt, askAt: askAt };
+
+    // A request out, or an ask due sooner: its answer plans this one.
+    if (
+      entry.request ||
+      (entry.followUp && entry.followUpAt !== null && entry.followUpAt <= askAt)
+    ) {
+      return;
+    }
+
+    ProjectProducts.scheduleFollowUp(key, entry, askAt);
+  }
+
   // Asks again even after a fresh answer.
   public static refresh(projectId: ProjectIdInput): Promise<void> {
     const key: string = toProjectKey(projectId);
@@ -702,6 +807,7 @@ export default class ProjectProducts {
   public static reset(): void {
     for (const [key, entry] of ProjectProducts.entries.entries()) {
       ProjectProducts.cancelFollowUp(entry);
+      ProjectProducts.stopHearing(entry);
 
       try {
         window.localStorage.removeItem(rememberedKey(key));
@@ -736,7 +842,11 @@ export default class ProjectProducts {
       created: new Map<ProductKey, number>(),
       settlingUntil: 0,
       expected: null,
+      nudge: null,
+      lastAskedAt: null,
       followUp: null,
+      followUpAt: null,
+      stopHearing: null,
     };
 
     ProjectProducts.entries.set(key, entry);
@@ -750,6 +860,8 @@ export default class ProjectProducts {
     const generation: number = entry.generation;
     const askedAt: number = Date.now();
     const fetcher: ProjectProductsFetcher = ProjectProducts.fetcher;
+
+    entry.lastAskedAt = askedAt;
 
     const request: Promise<void> = (async (): Promise<void> => {
       let answer: ProjectProductsAnswer | null = null;
@@ -805,7 +917,9 @@ export default class ProjectProducts {
    * itself, and when. A delete this page made that the answer may not know
    * of yet asks once every server does (settlingUntil); a guide's products
    * not in use yet ask every EXPECT_CHANGE_EVERY_MS until they are, or
-   * until the guide's wait is over. Otherwise nothing more is asked.
+   * until the guide's wait is over; a change the server told of that the
+   * answer was asked too early to know asks at its time (nudge), or
+   * NUDGE_MIN_INTERVAL_MS after this ask. Otherwise nothing more is asked.
    */
   private static planFollowUp(
     key: string,
@@ -829,8 +943,24 @@ export default class ProjectProducts {
       }
     }
 
+    if (entry.nudge) {
+      if (askedAt >= entry.nudge.settledAt) {
+        entry.nudge = null;
+      } else if (entry.nudge.askAt <= askedAt) {
+        entry.nudge.askAt = Math.max(
+          entry.nudge.settledAt,
+          askedAt + NUDGE_MIN_INTERVAL_MS,
+        );
+      }
+    }
+
     let askAt: number | null =
       askedAt < entry.settlingUntil ? entry.settlingUntil : null;
+
+    if (entry.nudge) {
+      askAt =
+        askAt === null ? entry.nudge.askAt : Math.min(askAt, entry.nudge.askAt);
+    }
 
     if (entry.expected) {
       const nextLook: number = Math.min(
@@ -861,9 +991,11 @@ export default class ProjectProducts {
   ): void {
     ProjectProducts.cancelFollowUp(entry);
 
+    entry.followUpAt = askAt;
     entry.followUp = setTimeout(
       (): void => {
         entry.followUp = null;
+        entry.followUpAt = null;
 
         if (ProjectProducts.entries.get(key) !== entry || entry.request) {
           return;
@@ -882,6 +1014,53 @@ export default class ProjectProducts {
       clearTimeout(entry.followUp);
       entry.followUp = null;
     }
+
+    entry.followUpAt = null;
+  }
+
+  /*
+   * Hears what the project uses change on the app's live connection
+   * (#8626), once the app has opened it (the Dashboard does as it starts):
+   * from the project's first look on, and on a later look when the
+   * connection was not open yet. A page without one (a preview, a test)
+   * follows the project on its looks alone.
+   */
+  private static hearChanges(key: string, entry: ProjectEntry): void {
+    if (entry.stopHearing) {
+      return;
+    }
+
+    try {
+      const live: ReturnType<typeof getOpenLiveConnection> =
+        getOpenLiveConnection();
+
+      if (!live) {
+        return;
+      }
+
+      entry.stopHearing = live.listenToProjectUsage(
+        new ObjectID(key),
+        (): void => {
+          ProjectProducts.noteUsageChangedElsewhere(key);
+        },
+      );
+    } catch {
+      // Nothing heard: the project's looks still ask.
+    }
+  }
+
+  private static stopHearing(entry: ProjectEntry): void {
+    if (!entry.stopHearing) {
+      return;
+    }
+
+    try {
+      entry.stopHearing();
+    } catch {
+      // Already gone with the connection.
+    }
+
+    entry.stopHearing = null;
   }
 
   // The project a record is of: the one it names, else the open one.

@@ -29,12 +29,19 @@ export interface ListenToModelEvent<
   modelId?: ObjectID | undefined;
 }
 
+// What a project's usage room is asked with (EventName.ListenToProjectUsage).
+interface ListenToProjectUsageJSON {
+  tenantId: string;
+}
+
 /*
  * One subscription a caller holds: what the server has to be asked for (again
- * after every reconnect) and the handler listening on its room.
+ * after every reconnect) - the join's event and its request - and the handler
+ * listening on its room.
  */
 interface RealtimeSubscription {
-  request: ListenToModelEventJSON;
+  joinEvent: EventName;
+  request: ListenToModelEventJSON | ListenToProjectUsageJSON;
   roomId: string;
   handler: (data: JSONObject) => void;
 }
@@ -177,6 +184,7 @@ export default abstract class Realtime {
     const roomId: string = this.getRoomIdOf(listenToModelEvent);
 
     return this.subscribe(
+      EventName.ListenToModalEvent,
       listenToModelEventJSON,
       roomId,
       (data: JSONObject): void => {
@@ -184,6 +192,38 @@ export default abstract class Realtime {
           data["modelId"]?.toString() as string,
         );
         onEvent(id);
+      },
+    );
+  }
+
+  /*
+   * Hears that what a project uses changed (#8626): a product's first
+   * record, its last one deleted, a telemetry product's first data - made
+   * by anyone, anywhere (the server's ProjectUsageCache). The event says
+   * nothing more: the listener asks for the project's products again
+   * (the Dashboard's ProjectProductsStore). Kept across reconnects, as
+   * every subscription is. Returns the function that stops listening.
+   */
+  public static listenToProjectUsage(
+    tenantId: ObjectID,
+    onChange: () => void,
+  ): () => void {
+    if (!this.socket) {
+      this.init();
+    }
+
+    if (!tenantId) {
+      return (): void => {
+        // Do nothing.
+      };
+    }
+
+    return this.subscribe(
+      EventName.ListenToProjectUsage,
+      { tenantId: tenantId.toString() },
+      RealtimeUtil.getProjectUsageRoomId(tenantId),
+      (): void => {
+        onChange();
       },
     );
   }
@@ -202,6 +242,7 @@ export default abstract class Realtime {
     const roomId: string = this.getRoomIdOf(listenToModelEvent);
 
     return this.subscribe(
+      EventName.ListenToModalEvent,
       listenToModelEventJSON,
       roomId,
       (model: JSONObject): void => {
@@ -266,11 +307,13 @@ export default abstract class Realtime {
   }
 
   private static subscribe(
-    request: ListenToModelEventJSON,
+    joinEvent: EventName,
+    request: ListenToModelEventJSON | ListenToProjectUsageJSON,
     roomId: string,
     handler: (data: JSONObject) => void,
   ): () => void {
     const subscription: RealtimeSubscription = {
+      joinEvent: joinEvent,
       request: request,
       roomId: roomId,
       handler: handler,
@@ -287,7 +330,7 @@ export default abstract class Realtime {
      * send it a second time on connect.
      */
     if (this.socket.connected) {
-      this.socket.emit(EventName.ListenToModalEvent, request);
+      this.socket.emit(joinEvent, request);
     }
 
     // Stop listening to the event.
@@ -309,7 +352,9 @@ export default abstract class Realtime {
     const sentRequests: Set<string> = new Set();
 
     for (const subscription of this.subscriptions) {
-      const requestKey: string = JSON.stringify(subscription.request);
+      const requestKey: string = `${subscription.joinEvent}|${JSON.stringify(
+        subscription.request,
+      )}`;
 
       if (sentRequests.has(requestKey)) {
         continue;
@@ -317,7 +362,7 @@ export default abstract class Realtime {
 
       sentRequests.add(requestKey);
 
-      this.socket.emit(EventName.ListenToModalEvent, subscription.request);
+      this.socket.emit(subscription.joinEvent, subscription.request);
     }
   }
 
