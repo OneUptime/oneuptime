@@ -139,7 +139,7 @@ describe("the Data Observability, Data Security and Database models' words", () 
     ["de", "Upstream Table", "Vorgelagerte Tabelle"],
     ["fr", "Downstream Table", "Table en aval"],
     ["es", "Source Measure", "Medida del origen"],
-    ["ja", "Table Health Status", "テーブル収集のステータス"],
+    ["ja", "Table Health Status", "テーブルのヘルスのステータス"],
     ["it", "Database Engine", "Motore del database"],
     ["zh-CN", "Data Source Type", "数据源类型"],
     ["ru", "Last Run Duration", "Длительность последнего запуска"],
