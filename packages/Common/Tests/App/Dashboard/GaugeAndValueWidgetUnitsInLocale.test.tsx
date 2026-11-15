@@ -39,7 +39,7 @@ import {
  * hours", a Persian one "۶٫۹۱ hours", a request rate "12,5 per Second",
  * and a Value widget's big count kept English's scale letter after the
  * reader's digits, "۱۵٫۳K". The unit is the reader's now - "6,91 Stunden",
- * "۶٫۹۱ ساعت", "12,5 pro Sekunde" - and a big number is written in their
+ * "۶٫۹۱ ساعت", "۲۳۰ ولت" - and a big number is written in their
  * own short scale: "15.300", "1,2 Mio.", "۱۵٫۳ هزار", "1.53万". The symbols
  * every language writes alike (%, MB/s, °C) stay as they are, and an
  * English board reads exactly as it did.
@@ -250,7 +250,12 @@ describe("a Gauge on a span of time", () => {
   });
 });
 
-describe("a Gauge on a rate", () => {
+/*
+ * A unit the formatter names in words ("Hertz", "Volts") reads in the
+ * reader's words; a rate keeps the slash a chart writes it with (#8049):
+ * "12,5/s", "۱۲٫۵/s".
+ */
+describe("a Gauge on a unit named in words, and on a rate", () => {
   const RATE: Partial<GaugeWidgetViewProps> = {
     value: 12.5,
     rawUnit: "1/s",
@@ -258,38 +263,42 @@ describe("a Gauge on a rate", () => {
     maxValue: 100,
   };
 
-  test("on an English board: per Second, no longer two spaces from its number", () => {
-    renderGauge(RATE);
-
-    expect(gaugeCentre()).toEqual({
-      value: "12.5",
-      unit: "per Second",
-      gap: "0.15em",
-    });
-  });
-
   test.each([
-    ["de", "12,5", "pro Sekunde"],
-    ["fr", "12,5", "par seconde"],
-    ["fa", "۱۲٫۵", "بر ثانیه"],
-    ["ar", "12.5", "لكل ثانية"],
+    ["en", "50", "Hertz"],
+    ["fa", "۵۰", "هرتز"],
+    ["ar", "50", "هرتز"],
   ])(
-    "on a %s board: %s %s",
+    "on a %s board a frequency reads %s %s",
     async (language: string, value: string, unit: string) => {
       await inLanguage(language);
-      renderGauge(RATE);
+      renderGauge({ value: 50, rawUnit: "Hz", minValue: 0, maxValue: 100 });
 
       expect(gaugeCentre().value).toBe(value);
       expect(gaugeCentre().unit).toBe(unit);
     },
   );
 
-  test("a rate of a unit the project named reads as one sentence of the reader's", async () => {
-    await inLanguage("de");
-    renderGauge({ ...RATE, rawUnit: "{request}/s" });
+  test("on a Persian board, a voltage in Persian's words and digits", async () => {
+    await inLanguage("fa");
+    renderGauge({ value: 230, rawUnit: "V", minValue: 0, maxValue: 400 });
 
-    expect(gaugeCentre().unit).toBe("{request} pro Sekunde");
+    expect(gaugeCentre()).toEqual({ value: "۲۳۰", unit: "ولت", gap: "0.15em" });
   });
+
+  test.each([
+    ["en", "12.5"],
+    ["de", "12,5"],
+    ["fa", "۱۲٫۵"],
+    ["ar", "12.5"],
+  ])(
+    "on a %s board a rate of a count keeps its slash: %s/s",
+    async (language: string, value: string) => {
+      await inLanguage(language);
+      renderGauge(RATE);
+
+      expect(gaugeCentre()).toEqual({ value: value, unit: "/s", gap: "0" });
+    },
+  );
 
   test("a rate in bytes keeps its symbol on every board", async () => {
     for (const language of ["de", "fa", "ar"]) {

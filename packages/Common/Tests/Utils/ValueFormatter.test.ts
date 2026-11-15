@@ -160,10 +160,9 @@ describe("ValueFormatter", () => {
       expect(ValueFormatter.formatValue(2000, "bytes/s")).toBe("2 KB/s");
     });
 
-    test("falls back to readable form for unknown numerator", () => {
-      expect(ValueFormatter.formatValue(5, "requests/s")).toBe(
-        "5 requests per Second",
-      );
+    test("keeps the slash for a numerator it cannot scale, never the words (#8049)", () => {
+      expect(ValueFormatter.formatValue(5, "requests/s")).toBe("5 requests/s");
+      expect(ValueFormatter.formatValue(100, "req/s")).toBe("100 req/s");
     });
   });
 
@@ -559,7 +558,7 @@ describe("ValueFormatter", () => {
 
     const cases: Array<NoDriftCase> = [
       { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
-      { value: 12, unit: "ug/m3", expected: "12 ug per m3" },
+      { value: 12, unit: "ug/m3", expected: "12 ug/m3" },
       { value: 23.5, unit: "%", expected: "23.50%" },
       { value: 1536, unit: "By", expected: "1.54 KB" },
       { value: 0, unit: "By", expected: "0 B" },
@@ -581,7 +580,7 @@ describe("ValueFormatter", () => {
       { value: 42, unit: "{thread}", expected: "42" },
       { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
       { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
-      { value: 5, unit: "requests/s", expected: "5 requests per Second" },
+      { value: 5, unit: "requests/s", expected: "5 requests/s" },
       { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
       { value: 10, unit: "hz", expected: "10 Hertz" },
       { value: 5, unit: "v", expected: "5 Volts" },
@@ -1137,30 +1136,44 @@ describe("ValueFormatter", () => {
       }
     });
 
-    /*
-     * A unit the formatter names in English words it has no translation
-     * of ("requests per Second", "Celsius") is named by its caller, who
-     * knows the reader (unitName). Left to itself, it writes the English.
-     */
-    test("a unit's name in words is the caller's to give, English when it gives none", () => {
+    test("the unit stays as the formatter names it", () => {
       expect(
         ValueFormatter.formatValueInParts(5, "requests/s", { language: "de" }),
       ).toEqual({
         value: "5",
-        unit: "requests per Second",
-        formatted: "5 requests per Second",
+        unit: "requests/s",
+        formatted: "5 requests/s",
+      });
+    });
+
+    /*
+     * A unit the formatter names in English words it has no translation
+     * of ("Hertz", "Celsius") is named by its caller, who knows the reader
+     * (unitName). Left to itself, it writes the English. A rate keeps its
+     * slash, as a chart writes it (#8049), whatever the caller names.
+     */
+    test("a unit's name in words is the caller's to give, English when it gives none", () => {
+      const naming: ValueFormatterOptions = {
+        language: "de",
+        unitName: (unit: string): string => {
+          return `«${unit}»`;
+        },
+      };
+
+      expect(
+        ValueFormatter.formatValueInParts(5, "Hz", { language: "de" }),
+      ).toEqual({ value: "5", unit: "Hertz", formatted: "5 Hertz" });
+      expect(ValueFormatter.formatValueInParts(5, "Hz", naming)).toEqual({
+        value: "5",
+        unit: "«Hz»",
+        formatted: "5 «Hz»",
       });
       expect(
-        ValueFormatter.formatValueInParts(5, "requests/s", {
-          language: "de",
-          unitName: (unit: string): string => {
-            return `«${unit}»`;
-          },
-        }),
+        ValueFormatter.formatValueInParts(5, "requests/s", naming),
       ).toEqual({
         value: "5",
-        unit: "«requests/s»",
-        formatted: "5 «requests/s»",
+        unit: "requests/s",
+        formatted: "5 requests/s",
       });
     });
   });
@@ -1480,10 +1493,15 @@ describe("ValueFormatter", () => {
   });
 
   describe("a rate of a dimensionless count", () => {
-    test("is named per its period, with no gap of two spaces", () => {
+    /*
+     * Its unit chip names it per its period, where it read " per Second"
+     * with a space before it; a value keeps the slash a chart writes it
+     * with (#8049).
+     */
+    test("is named per its period, with no space before it, and written with its slash", () => {
       expect(ValueFormatter.getReadableUnit("1/s")).toBe("per Second");
-      expect(ValueFormatter.formatValue(12.5, "1/s")).toBe("12.5 per Second");
       expect(ValueFormatter.getReadableUnit("1/min")).toBe("per Minute");
+      expect(ValueFormatter.formatValue(12.5, "1/s")).toBe("12.5/s");
     });
 
     test("a rate with a numerator reads as it always did", () => {

@@ -141,7 +141,7 @@ export function getUnitNameInLanguage(
  * What a widget that writes a value for its reader hands ValueFormatter
  * (#7518): their language, for the number, its scale and a span of time's
  * words ("1,2 Mio.", "6,91 Stunden"), and their words for a unit the
- * formatter names ("21,5 Celsius", "12,5 pro Sekunde"). English reads
+ * formatter names in words ("50 هرتز", "230 Volt"). English reads
  * exactly as the formatter writes it.
  */
 export function getValueFormatterOptionsForReader(

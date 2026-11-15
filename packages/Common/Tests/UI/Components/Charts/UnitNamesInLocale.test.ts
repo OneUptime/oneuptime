@@ -265,20 +265,23 @@ describe("getValueFormatterOptionsForReader", () => {
     }
   });
 
-  test("in German, a unit's name in German's words, a rate as one German sentence", () => {
-    const options: ReturnType<typeof getValueFormatterOptionsForReader> =
+  test("in German and Persian, a unit's name in the reader's words, a rate with its slash", () => {
+    const german: ReturnType<typeof getValueFormatterOptionsForReader> =
       getValueFormatterOptionsForReader(translatorFor("de"));
+    const persian: ReturnType<typeof getValueFormatterOptionsForReader> =
+      getValueFormatterOptionsForReader(translatorFor("fa"));
 
-    expect(ValueFormatter.formatValue(12.5, "1/s", options)).toBe(
-      "12,5 pro Sekunde",
-    );
-    expect(ValueFormatter.formatValue(12.5, "{request}/s", options)).toBe(
-      "12,5 {request} pro Sekunde",
-    );
-    expect(ValueFormatter.formatValue(21.5, "Hz", options)).toBe(
+    expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe(
       `21,5 ${String(locale("de")["Hertz"])}`,
     );
-    expect(ValueFormatter.formatValue(3600, "s", options)).toBe("1 Stunde");
+    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵ هرتز");
+    expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰ ولت");
+    expect(ValueFormatter.formatValue(3600, "s", german)).toBe("1 Stunde");
+    // A rate keeps the slash a chart writes it with (#8049).
+    expect(ValueFormatter.formatValue(12.5, "1/s", german)).toBe("12,5/s");
+    expect(ValueFormatter.formatValue(12.5, "{request}/s", german)).toBe(
+      "12,5 request/s",
+    );
   });
 
   test("it carries the metric's name, for the formatter's name-based rules", () => {

@@ -285,7 +285,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
    * reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in Persian,
    * as the SLO tiles beside it write theirs. They were Latin digits and a
    * point on every board. And its unit in the reader's words (#7518):
-   * "6,91 Stunden", "12,5 pro Sekunde", a big number in their own scale
+   * "6,91 Stunden", "۲۳۰ ولت", a big number in their own scale
    * ("1,2 Mio."). The unit's symbols (%, MB/s, °C) read the same in every
    * language.
    */

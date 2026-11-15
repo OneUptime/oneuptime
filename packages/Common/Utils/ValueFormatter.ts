@@ -23,7 +23,7 @@ export interface ValueFormatterOptions {
   language?: string | undefined;
   /*
    * The unit's name where the formatter names it in words a language has
-   * to translate (getReadableUnit's "Celsius", "{request} per Second"):
+   * to translate (getReadableUnit's "Hertz", "Volts", "Celsius"):
    * the reader's, as the charts' getUnitNameInLanguage gives it. The
    * formatter has no translations of its own; English when left out.
    */
@@ -865,7 +865,45 @@ function joinValueAndUnit(value: string, unit: string): string {
   if (unit === "%") {
     return `${value}%`;
   }
+  // A count per second ("1/s" reads "/s"): "5/s", as a chart writes it.
+  if (unit.startsWith("/")) {
+    return `${value}${unit}`;
+  }
   return `${value} ${unit}`;
+}
+
+/*
+ * A RATE AS A CHART WRITES IT: "req/s", "KiB/s", "ug/m3".
+ *
+ * A compound unit whose numerator the threshold tables do not scale (a
+ * page's own "req/s" or "resp/s", an exporter's "{request}/s") was written
+ * out in words, "100 req per Second": too wide for a chart's 64px y-axis,
+ * so every tick wrapped over two lines and the top one was cut at the
+ * card's edge, and "Second" was English, capitalised mid-phrase, in every
+ * language (#8049). It keeps its slash now, as "1.5 MB/s" always has: each
+ * part as its symbol where one is known ("s", "KiB"), an annotation as its
+ * word ("{request}" reads "request"), a dimensionless "1" as nothing
+ * ("1/s" reads "/s", drawn "5/s"), anything else as written. The words stay
+ * where there is room for them, in the reader's language: the unit chip
+ * and the metric's details (getReadableUnit, UnitNames).
+ */
+function getRateSymbol(unit: string): string {
+  return unit
+    .split("/")
+    .map((part: string): string => {
+      const trimmed: string = part.trim();
+      const annotation: RegExpMatchArray | null =
+        trimmed.match(/^\{([^{}]+)\}$/);
+
+      if (annotation) {
+        return (annotation[1] as string).trim();
+      }
+
+      const compact: string | undefined =
+        compactUnitMap[normalizeUnit(trimmed)];
+      return compact === undefined ? trimmed : compact;
+    })
+    .join("/");
 }
 
 /*
@@ -889,6 +927,8 @@ function compactThresholdUnit(unit: string): string {
  * The "readable" path must stay byte-identical to what formatValue has always
  * emitted; it has 20+ non-test callers (chart axis ticks, threshold
  * annotations, the Gauge, the metric list) and a table test pins every branch.
+ * One branch changed on purpose: a rate it cannot scale reads "100 req/s",
+ * not "100 req per Second", which no chart axis had room for (#8049).
  */
 function formatValueParts(
   value: number,
@@ -1014,8 +1054,8 @@ function formatValueParts(
    * Compound rate units like "By/s" or "ms/s". Scale the numerator with
    * its threshold table when we know one (so 1500000 By/s renders as
    * "1.5 MB/s" rather than "1500000 Bytes per Second"), and keep a
-   * compact denominator. Falls back to the verbose readable form for
-   * unrecognized compound units.
+   * compact denominator. Any other compound unit keeps its slash too
+   * ("100 req/s", getRateSymbol), never the words.
    */
   if (trimmedUnit.includes("/")) {
     const [numeratorRaw, ...denominatorParts] = trimmedUnit.split("/");
@@ -1035,6 +1075,8 @@ function formatValueParts(
         return build(scaled.value, `${scaledUnit}/${denominator}`);
       }
     }
+
+    return build(formatNumber(value), getRateSymbol(trimmedUnit));
   }
 
   /*
@@ -1070,7 +1112,7 @@ export default class ValueFormatter {
 
   /*
    * formatValue, but returning the number and the unit separately, the unit
-   * named as formatValue names it ("hours", "Bytes per Second"). For a
+   * named as formatValue names it ("hours", "req/s"). For a
    * widget that draws the two at different sizes, as formatValueCompact is
    * for one that draws the unit's symbol: the Gauge split the joined string
    * at its last space, which put "requests per" in the big-number span and
@@ -1155,14 +1197,7 @@ export default class ValueFormatter {
      * characters where getReadableUnit's "ug per m3" is nine.
      */
     if (trimmed.includes("/")) {
-      return trimmed
-        .split("/")
-        .map((part: string): string => {
-          const partCompact: string | undefined =
-            compactUnitMap[normalizeUnit(part)];
-          return partCompact === undefined ? part.trim() : partCompact;
-        })
-        .join("/");
+      return getRateSymbol(trimmed);
     }
 
     return trimmed;
@@ -1398,7 +1433,7 @@ export default class ValueFormatter {
       /*
        * A rate of a dimensionless count ("1/s", OpenTelemetry's "per
        * second") has no numerator to name: "per Second", where it read
-       * " per Second" and a value "12.5  per Second", two spaces wide.
+       * " per Second", a space before its words in a unit chip.
        */
       if (!numerator) {
         return `per ${denominator}`;

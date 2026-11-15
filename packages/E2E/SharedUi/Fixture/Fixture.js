@@ -12,10 +12,11 @@
  * DeviceDiagnostics.
  *
  * One page, /dashboard/<project>/shared-ui, steered by the query string:
- *   - section=buttons|dialogs|sections|pills|avatars|choices|rules  which part to draw
+ *   - section=buttons|dialogs|sections|pills|avatars|choices|rules|charts  which part to draw
  *     (all of them when left out)
  *   - read=<ms>      how long the edit dialog's record read takes (600)
- *   - lang=de|ja|fa|zh-CN   the Dashboard's words in that language
+ *   - lang=de|ja|fa|zh-CN|ru|fr   the Dashboard's words in that language
+ *   - zoomed=1       (charts) the page is zoomed, so the hints name the way back
  *   - layout=side-menu   beside a real side menu, as a record's pages are
  *   - theme=dark     (read by server.js) the Dashboard's dark mode
  *
@@ -87,6 +88,17 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
+import ChartGroup, {
+  ChartType,
+} from "Common/UI/Components/Charts/ChartGroup/ChartGroup";
+import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
+import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
+import { XAxisAggregateType } from "Common/UI/Components/Charts/Types/XAxis/XAxis";
+import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import { YAxisPrecision } from "Common/UI/Components/Charts/Types/YAxis/YAxis";
+import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
@@ -103,7 +115,9 @@ const params = new URLSearchParams(window.location.search);
 const section = params.get("section") || "all";
 const readDelay = Number(params.get("read") || 600);
 const layout = params.get("layout") || "";
-const language = ["de", "ja", "fa", "zh-CN"].includes(params.get("lang"))
+const language = ["de", "ja", "fa", "zh-CN", "ru", "fr"].includes(
+  params.get("lang"),
+)
   ? params.get("lang")
   : "en";
 
@@ -271,6 +285,15 @@ API.post = async (options) => {
   return { data: { data: [], count: 0 } };
 };
 
+/*
+ * Russian and French are read from the server when asked for: each is
+ * megabytes, and only the charts section draws them.
+ */
+const FETCHED_LOCALE =
+  language === "ru" || language === "fr"
+    ? await (await fetch(`/locales/${language}.json`)).json()
+    : {};
+
 await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: language,
@@ -280,6 +303,8 @@ await i18next.use(initReactI18next).init({
     ja: { translation: JA },
     fa: { translation: FA },
     "zh-CN": { translation: ZH_CN },
+    ru: { translation: FETCHED_LOCALE },
+    fr: { translation: FETCHED_LOCALE },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -1054,6 +1079,121 @@ function Rules() {
   );
 }
 
+/*
+ * Metric charts as a page of them draws them (#8048, #8049): the
+ * Kubernetes Control Plane's etcd and API server charts in a ChartGroup's
+ * cards and in its card-less stack, on a zoomable page, with a request
+ * rate whose ticks run to 1.85K req/s. The page hands each chart its words
+ * in the reader's language, as the pages do.
+ */
+const CHART_START = new Date("2026-11-15T11:00:00.000Z");
+const CHART_END = new Date("2026-11-15T12:00:00.000Z");
+
+function chartSeries(name, valueAt) {
+  return {
+    seriesName: name,
+    data: Array.from({ length: 60 }, (_, minute) => {
+      return {
+        x: new Date(CHART_START.getTime() + minute * 60000),
+        y: valueAt(minute),
+      };
+    }),
+  };
+}
+
+function Charts() {
+  const translator = useTranslator();
+  const zoomed = params.get("zoomed") === "1";
+  const words = (text) => {
+    return translator.translateText(text) || text;
+  };
+  const chart = (id, title, legend, unit, valueAt) => {
+    return {
+      id: id,
+      title: words(title),
+      description: words("Size of the etcd database on disk."),
+      type: ChartType.LINE,
+      metricInfo: { metricName: id, aggregationType: "Avg", unit: unit },
+      onOpenInExplorer: () => {},
+      props: {
+        data: [chartSeries(words(legend), valueAt)],
+        xAxis: {
+          legend: "",
+          options: {
+            type: XAxisType.Time,
+            min: CHART_START,
+            max: CHART_END,
+            aggregateType: XAxisAggregateType.Average,
+          },
+        },
+        yAxis: {
+          legend: unit,
+          options: {
+            type: YAxisType.Number,
+            min: 0,
+            max: "auto",
+            precision: YAxisPrecision.NoDecimals,
+            formatter: (value) => {
+              return ValueFormatter.formatValue(value, unit, {
+                language: language,
+              });
+            },
+          },
+        },
+        curve: ChartCurve.MONOTONE,
+        sync: true,
+      },
+    };
+  };
+  const charts = [
+    chart(
+      "etcd_mvcc_db_total_size_in_bytes",
+      "Database Size",
+      "Size",
+      "By",
+      (minute) => {
+        return 52000000 + minute * 90000;
+      },
+    ),
+    chart(
+      "apiserver_request_total",
+      "Request Rate",
+      "Requests",
+      "req/s",
+      (minute) => {
+        return 900 + Math.round(950 * Math.abs(Math.sin(minute / 9)));
+      },
+    ),
+    chart("etcd_debugging_mvcc_keys_total", "Total Keys", "Keys", "", () => {
+      return 1840;
+    }),
+  ];
+
+  return (
+    <TimeRangeZoomProvider
+      zoom={{
+        isZoomed: zoomed,
+        rangeBeforeZoom: zoomed ? { range: "Past 1 Hour" } : null,
+        timeRange: { range: "Past 1 Hour" },
+        zoomToTimeRange: () => {},
+        resetZoom: () => {},
+      }}
+    >
+      <div className="space-y-8" data-testid="section-charts">
+        <div data-testid="chart-cards">
+          <ChartGroup charts={charts} />
+        </div>
+        <div
+          className="rounded-lg border border-gray-200 bg-white"
+          data-testid="chart-stack"
+        >
+          <ChartGroup charts={charts} hideCard={true} />
+        </div>
+      </div>
+    </TimeRangeZoomProvider>
+  );
+}
+
 const SECTIONS = {
   buttons: Buttons,
   dialogs: Dialogs,
@@ -1062,11 +1202,17 @@ const SECTIONS = {
   avatars: Avatars,
   choices: Choices,
   rules: Rules,
+  // Only when asked for: the gallery of every part leaves it out.
+  charts: Charts,
 };
 
 function Gallery() {
   const shown =
-    section === "all" ? Object.keys(SECTIONS) : [section].filter(Boolean);
+    section === "all"
+      ? Object.keys(SECTIONS).filter((name) => {
+          return name !== "charts";
+        })
+      : [section].filter(Boolean);
 
   return (
     <div className="space-y-8" data-testid="shared-ui-gallery">
