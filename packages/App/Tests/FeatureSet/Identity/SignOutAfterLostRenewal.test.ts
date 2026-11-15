@@ -23,7 +23,7 @@ import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
-import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import {
   installFakeEnterpriseModule,
   uninstallEnterpriseModule,
@@ -356,6 +356,20 @@ function signIn(
   return { refreshToken, accessToken: accessTokenOf(sessionId, userId) };
 }
 
+// A JWT with these claims, signed HS256 with a key that is not the server's.
+function signedWithAnotherKey(claims: JSONObject): string {
+  const encode: (value: JSONObject) => string = (value: JSONObject): string => {
+    return Buffer.from(JSON.stringify(value)).toString("base64url");
+  };
+  const unsigned: string = `${encode({ alg: "HS256", typ: "JWT" })}.${encode(claims)}`;
+  const signature: string = crypto
+    .createHmac("sha256", "not-the-servers-key")
+    .update(unsigned)
+    .digest("base64url");
+
+  return `${unsigned}.${signature}`;
+}
+
 function row(sessionId: string = SESSION_ID): SessionRow {
   return table.find((candidate: SessionRow): boolean => {
     return candidate.id === sessionId;
@@ -632,15 +646,13 @@ describe("what the access token can end, and what it cannot", () => {
     const { refreshToken } = signIn();
     await renew(refreshToken);
 
-    const forged: string = jwt.sign(
-      {
-        userId: USER_ID,
-        sessionId: SESSION_ID,
-        purpose: "UserSession",
-      },
-      "not-the-servers-key",
-      { expiresIn: 60 },
-    );
+    const forged: string = signedWithAnotherKey({
+      userId: USER_ID,
+      sessionId: SESSION_ID,
+      purpose: "UserSession",
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
 
     const answer: Answer = await signOut({ refreshToken, bearer: forged });
 
