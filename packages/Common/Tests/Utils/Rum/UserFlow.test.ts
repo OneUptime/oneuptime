@@ -1483,6 +1483,81 @@ describe("options", () => {
     expect(normalizeUserFlowOptions({ anchorPage: "" }).anchorPage).toBeNull();
   });
 
+  /*
+   * #8018: a link or other saved state from before the keys had one
+   * spelling holds the spelling its session was stored in. Read in the
+   * key's spelling, it names the row it named.
+   */
+  test("read the anchor and the hidden pages in the key's one spelling", () => {
+    const options: ReturnType<typeof normalizeUserFlowOptions> =
+      normalizeUserFlowOptions({
+        anchorPage: "/caf%c3%a9",
+        hiddenPages: [
+          "/men%c3%bc",
+          "/menu%CC%88",
+          "/men%C3%BC",
+          "/cafe%CC%81",
+          "/a%2fb",
+          "/a/b",
+          "/Cart",
+          "shop.example.com/caf%c3%a9",
+          "/orders/:id",
+          "",
+        ],
+      });
+
+    expect(options.anchorPage).toBe("/caf%C3%A9");
+    /* Once each, and never the anchor, in whichever spelling it came. */
+    expect(options.hiddenPages).toEqual([
+      "/men%C3%BC",
+      "/a%2Fb",
+      "/a/b",
+      "/Cart",
+      "shop.example.com/caf%C3%A9",
+      "/orders/:id",
+    ]);
+    /* Read again, nothing changes. */
+    expect(normalizeUserFlowOptions(options)).toEqual(options);
+  });
+
+  test("an old spelling of the anchor and of a hidden page draws the merged rows", () => {
+    const specs: Array<SessionSpec> = [
+      { id: "1", pages: ["/home", "/caf%c3%a9", "/menu"] },
+      { id: "2", pages: ["/home", "/cafe%CC%81", "/menu"] },
+      { id: "3", pages: ["/home", "/caf%C3%A9", "/order"] },
+      { id: "4", pages: ["/login", "/caf%C3%A9"] },
+    ];
+
+    for (const anchorPage of ["/caf%c3%a9", "/cafe%CC%81", "/caf%C3%A9"]) {
+      const anchored: UserFlowAnalysis = analyzeUserFlow(response(specs), {
+        anchorPage: anchorPage,
+        hiddenPages: ["/login"],
+      });
+
+      expect([anchorPage, anchored.graph.anchorPage]).toEqual([
+        anchorPage,
+        "/caf%C3%A9",
+      ]);
+      expect([
+        anchorPage,
+        node(anchored.graph, 0, "/caf%C3%A9")?.sessions,
+      ]).toEqual([anchorPage, 4]);
+      expect(node(anchored.graph, 1, "/menu")?.sessions).toBe(2);
+    }
+
+    const hidden: UserFlowAnalysis = analyzeUserFlow(response(specs), {
+      hiddenPages: ["/caf%c3%a9"],
+    });
+
+    expect(
+      hidden.journeys
+        .map((journey: UserFlowJourney): string => {
+          return journey.pages.join(" ");
+        })
+        .sort(),
+    ).toEqual(["/home /menu", "/home /menu", "/home /order", "/login"]);
+  });
+
   test("analyzeUserFlow exposes pickers for the toolbar", () => {
     const analysis: UserFlowAnalysis = analyzeUserFlow(
       response([...SHOP, { id: "m", pages: ["/"], deviceType: "mobile" }]),

@@ -1727,14 +1727,36 @@ export function buildUserFlowInsights(
 /* Entry point                                                         */
 /* ------------------------------------------------------------------ */
 
+/*
+ * The anchor and the hidden pages are page keys, in the key's one spelling
+ * (UrlScrubber.normalizePathSpelling, as toUserFlowPageKey writes them). A
+ * link made before the keys had one spelling still holds the spelling its
+ * session was stored in - "/caf%c3%a9", "/cafe%CC%81" - which no row has any
+ * more: the anchor was lost and the hidden page shown again. Read in the
+ * key's spelling, it names the row it named, and the page writes the link
+ * back in that spelling.
+ */
 export function normalizeUserFlowOptions(
   options: Partial<UserFlowOptions>,
 ): UserFlowOptions {
   const merged: UserFlowOptions = { ...DEFAULT_USER_FLOW_OPTIONS, ...options };
+  const anchorPage: string | null = merged.anchorPage
+    ? UrlScrubber.normalizePathSpelling(merged.anchorPage)
+    : null;
+  const hiddenPages: Array<string> = [];
+
+  for (const page of merged.hiddenPages || []) {
+    const key: string = page ? UrlScrubber.normalizePathSpelling(page) : "";
+
+    /* The anchor cannot be hidden: the map would have nothing to draw. */
+    if (key && key !== anchorPage && !hiddenPages.includes(key)) {
+      hiddenPages.push(key);
+    }
+  }
 
   return {
     ...merged,
-    anchorPage: merged.anchorPage || null,
+    anchorPage: anchorPage,
     direction: merged.direction === "backward" ? "backward" : "forward",
     steps: clamp(merged.steps, USER_FLOW_MIN_STEPS, USER_FLOW_MAX_STEPS),
     pagesPerStep: clamp(
@@ -1742,10 +1764,7 @@ export function normalizeUserFlowOptions(
       USER_FLOW_MIN_PAGES_PER_STEP,
       USER_FLOW_MAX_PAGES_PER_STEP,
     ),
-    hiddenPages: (merged.hiddenPages || []).filter((page: string): boolean => {
-      /* The anchor cannot be hidden: the map would have nothing to draw. */
-      return Boolean(page) && page !== merged.anchorPage;
-    }),
+    hiddenPages: hiddenPages,
   };
 }
 
