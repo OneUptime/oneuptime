@@ -652,6 +652,27 @@ describe("the partials every email is built from", () => {
     expect(renderPartial("SupportBlock", RENAMED).trim()).toBe("");
   });
 
+  /*
+   * A self-hosted server's people ask its admin (#8190), whatever the
+   * server is called: the line names no product and no outside address.
+   */
+  test.each([
+    ["by its own name", {}],
+    ["renamed", RENAMED],
+  ] as Array<[string, Record<string, unknown>]>)(
+    "SupportBlock on a self-hosted server, %s, sends people to the server's admin",
+    (_name: string, variables: Record<string, unknown>) => {
+      const html: string = renderPartial("SupportBlock", {
+        ...variables,
+        isSelfHosted: "true",
+      });
+
+      expect(textOf(html)).toContain("Need help? Ask your server's admin.");
+      expect(html).not.toContain("support@oneuptime.com");
+      expect(html).not.toContain("OneUptime");
+    },
+  );
+
   test("Header keeps an email's own title", () => {
     expect(
       renderPartial("Header", { title: "Reset your password", ...RENAMED }),
