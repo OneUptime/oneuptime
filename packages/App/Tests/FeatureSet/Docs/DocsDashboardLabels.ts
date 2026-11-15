@@ -11,6 +11,7 @@ import {
   withDateDisplayLanguage,
   writeInDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
 import {
   SloBudgetRunwayKind,
@@ -158,6 +159,43 @@ export const drawnDashboardLabel: DashboardLabelFunction = (
 };
 
 /*
+ * THE PLANS' NAMES (#7512).
+ *
+ * The Dashboard writes a plan's name as it is in every language, as the
+ * invoice does: the plan picker names a plan plan.getName()
+ * (PlanPickerCopy), and the plan pills fill "{{planName}} Plan" with the
+ * plan itself (ChoiceRows' getChoiceRowPlanPillText, the navbar menus). A
+ * locale may still have a word for the same English from another use of
+ * it - Persian words "Growth" رشد and "Free" رایگان - so drawnDashboardLabel
+ * would name a plan by a word the screen never shows. A page that names a
+ * plan writes it as written instead, in every language.
+ */
+export const PLAN_NAMES: ReadonlyArray<string> = Object.values(PlanType);
+
+// Whether a name is a plan's: Free, Growth, Scale or Enterprise.
+export const isPlanName: (name: string) => boolean = (
+  name: string,
+): boolean => {
+  return PLAN_NAMES.includes(name);
+};
+
+/*
+ * A plan's name as a page in this language writes it: as it is, the way
+ * this language's Dashboard writes it. It throws for a name that is no
+ * plan's, which a page looks up as a label (drawnDashboardLabel).
+ */
+export const writtenPlanName: DashboardLabelFunction = (
+  _language: string,
+  plan: string,
+): string => {
+  if (!isPlanName(plan)) {
+    throw new Error(`Not a plan's name: ${plan}`);
+  }
+
+  return plan;
+};
+
+/*
  * The other buttons a page draws from a template with a model's name:
  * "Duplicate Workflow", "Export Workflow", "Edit Workflow" and "Delete
  * Workflow Variable" (translateNamedAction, Common/UI/Utils/TranslateTemplate).
@@ -227,6 +265,32 @@ export const drawnActionLabel: DashboardLabelFunction = (
   }
 
   return english;
+};
+
+/*
+ * What a page in this language writes for a bold name of the Dashboard: a
+ * plan's name as it is (writtenPlanName), any other label as this
+ * language's Dashboard draws it (drawnDashboardLabel), or with the named
+ * actions too (drawnActionLabel). A suite that checks a page's bold names
+ * one by one reads them here, so no suite asks for the Growth plan by a
+ * locale's word for growth (#7512).
+ */
+export const writtenDashboardLabel: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  return isPlanName(english)
+    ? writtenPlanName(language, english)
+    : drawnDashboardLabel(language, english);
+};
+
+export const writtenActionLabel: DashboardLabelFunction = (
+  language: string,
+  english: string,
+): string => {
+  return isPlanName(english)
+    ? writtenPlanName(language, english)
+    : drawnActionLabel(language, english);
 };
 
 /*
