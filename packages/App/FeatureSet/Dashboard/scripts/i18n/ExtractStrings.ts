@@ -159,6 +159,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Utils/Monitor", kind: "ui" },
   /*
+   * What a monitor's Incident Metrics and Alert Metrics charts, and an
+   * SLO's, draw: each chart's title, its legend and what it shows (#8282).
+   * Only the words the files mark are read: the metric names and units
+   * they also hold are stored as written.
+   */
+  {
+    directory: "packages/Common/Utils/Incident/IncidentMetricType.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Alerts/AlertMetricType.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
+  /*
    * A duration in milliseconds in the reader's language ("{{value}} ms"):
    * the Dashboard's views and the overview's hero write it with one helper.
    */

@@ -59,6 +59,8 @@ const SloMetricsElement: FunctionComponent<ComponentProps> = (
   /*
    * Memoised on the id STRING: the page hands down a new ObjectID instance on
    * every render, and fresh query configs would make each card refetch.
+   * Each chart's words are in the reader's language (#8282), and follow it:
+   * the categories are built again for another language.
    */
   const categoryQueryConfigs: Array<Array<MetricQueryConfigData>> =
     useMemo(() => {
@@ -68,6 +70,7 @@ const SloMetricsElement: FunctionComponent<ComponentProps> = (
             sloId: new ObjectID(sloIdString),
             projectId: projectId,
             metrics: category.metrics,
+            translator: translator,
           });
         },
       );

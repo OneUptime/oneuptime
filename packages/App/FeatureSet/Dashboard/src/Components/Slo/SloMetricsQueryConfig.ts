@@ -13,6 +13,7 @@ import IncidentMetricTypeUtil from "Common/Utils/Incident/IncidentMetricType";
 import { SLO_CURRENT_BURN_RATE_WINDOW_MINUTES } from "Common/Utils/Slo/SloEvaluation";
 import {
   createTranslator,
+  PluralTemplate,
   translationKey,
   Translator,
 } from "Common/Types/Translator";
@@ -156,10 +157,59 @@ const OVERLAID_ON: Partial<Record<SloMetricType, SloMetricType>> = {
   [SloMetricType.TargetPercent]: SloMetricType.SliPercent,
 };
 
+/*
+ * One of a chart's words in the reader's language, looked up once, here:
+ * the charts draw a title, a legend and a description as they are handed
+ * them, and the metric utilities write them in English (#8282). The cards
+ * hand these queries to the chart as they are, never through
+ * chartWordsInReadersLanguage as well: a translation looked up again can be
+ * an English key itself (#7790).
+ */
+const translateChartWord: (text: string, translator: Translator) => string = (
+  text: string,
+  translator: Translator,
+): string => {
+  return text ? translator.translateText(text) || text : text;
+};
+
+/*
+ * What the Burn Rate chart shows: the catalog's sentence
+ * (SloMetricTypeUtil.getDescription), worded around its window, so a
+ * language moves the count where its grammar puts it.
+ */
+export const SLO_BURN_RATE_CHART_DESCRIPTION: PluralTemplate = {
+  one: "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+  other:
+    "How fast the error budget is being spent, measured over the trailing {{count}} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+};
+
+export type GetSloMetricChartDescriptionFunction = (
+  metricType: SloMetricType,
+  translator?: Translator,
+) => string;
+
+// What one SLO chart shows, in the reader's words.
+export const getSloMetricChartDescription: GetSloMetricChartDescriptionFunction =
+  (metricType: SloMetricType, translator: Translator = ENGLISH): string => {
+    if (metricType === SloMetricType.BurnRate) {
+      return translator.translatePlural(
+        SLO_BURN_RATE_CHART_DESCRIPTION,
+        SLO_CURRENT_BURN_RATE_WINDOW_MINUTES,
+      );
+    }
+
+    return translateChartWord(
+      SloMetricTypeUtil.getDescription(metricType),
+      translator,
+    );
+  };
+
 export type BuildSloMetricQueryConfigsFunction = (data: {
   sloId: ObjectID;
   projectId: string;
   metrics: Array<SloMetricType>;
+  // The reader's; without one, each chart's words read English.
+  translator?: Translator | undefined;
 }) => Array<MetricQueryConfigData>;
 
 export const buildSloMetricQueryConfigs: BuildSloMetricQueryConfigsFunction =
@@ -167,7 +217,10 @@ export const buildSloMetricQueryConfigs: BuildSloMetricQueryConfigsFunction =
     sloId: ObjectID;
     projectId: string;
     metrics: Array<SloMetricType>;
+    translator?: Translator | undefined;
   }): Array<MetricQueryConfigData> => {
+    const translator: Translator = data.translator || ENGLISH;
+
     return data.metrics.map(
       (metricType: SloMetricType, index: number): MetricQueryConfigData => {
         const queryConfig: MetricQueryConfigData = {
@@ -175,9 +228,15 @@ export const buildSloMetricQueryConfigs: BuildSloMetricQueryConfigsFunction =
           id: `slo-metric-${metricType}`,
           metricAliasData: {
             metricVariable: metricType,
-            title: SloMetricTypeUtil.getTitle(metricType),
-            description: SloMetricTypeUtil.getDescription(metricType),
-            legend: SloMetricTypeUtil.getLegend(metricType),
+            title: translateChartWord(
+              SloMetricTypeUtil.getTitle(metricType),
+              translator,
+            ),
+            description: getSloMetricChartDescription(metricType, translator),
+            legend: translateChartWord(
+              SloMetricTypeUtil.getLegend(metricType),
+              translator,
+            ),
             legendUnit: SloMetricTypeUtil.getLegendUnit(metricType),
           },
           metricQueryData: {
@@ -210,9 +269,13 @@ export const buildSloMetricQueryConfigs: BuildSloMetricQueryConfigsFunction =
         }
 
         if (metricType === SloMetricType.Status) {
-          // "At Risk" on the axis, not "1".
-          queryConfig.yAxisValueFormatter =
-            SloMetricTypeUtil.formatStatusMetricValue;
+          // "At Risk" on the axis, not "1", in the reader's words.
+          queryConfig.yAxisValueFormatter = (value: number): string => {
+            return translateChartWord(
+              SloMetricTypeUtil.formatStatusMetricValue(value),
+              translator,
+            );
+          };
         }
 
         return queryConfig;
@@ -235,6 +298,8 @@ export const SLO_ALERT_METRICS_CARD: SloMetricsCardCopy = {
 /*
  * The incident and alert metric utils describe their series "for this
  * monitor"; on an SLO page that would be wrong, so the SLO wording lives here.
+ * Each is a key, looked up once where the builders below hand it to the
+ * chart.
  */
 export type GetSloIncidentMetricDescriptionFunction = (
   metricType: IncidentMetricType,
@@ -244,13 +309,21 @@ export const getSloIncidentMetricDescription: GetSloIncidentMetricDescriptionFun
   (metricType: IncidentMetricType): string => {
     switch (metricType) {
       case IncidentMetricType.IncidentCount:
-        return "The number of incidents affecting this SLO over time.";
+        return translationKey(
+          "The number of incidents affecting this SLO over time.",
+        );
       case IncidentMetricType.TimeToAcknowledge:
-        return "The average time taken to acknowledge incidents affecting this SLO.";
+        return translationKey(
+          "The average time taken to acknowledge incidents affecting this SLO.",
+        );
       case IncidentMetricType.TimeToResolve:
-        return "The average time taken to resolve incidents affecting this SLO.";
+        return translationKey(
+          "The average time taken to resolve incidents affecting this SLO.",
+        );
       case IncidentMetricType.IncidentDuration:
-        return "The average duration of incidents affecting this SLO.";
+        return translationKey(
+          "The average duration of incidents affecting this SLO.",
+        );
       default:
         return `${IncidentMetricTypeUtil.getTitleByIncidentMetricType(metricType)} for incidents affecting this SLO.`;
     }
@@ -264,13 +337,21 @@ export const getSloAlertMetricDescription: GetSloAlertMetricDescriptionFunction 
   (metricType: AlertMetricType): string => {
     switch (metricType) {
       case AlertMetricType.AlertCount:
-        return "The number of alerts affecting this SLO over time.";
+        return translationKey(
+          "The number of alerts affecting this SLO over time.",
+        );
       case AlertMetricType.TimeToAcknowledge:
-        return "The average time taken to acknowledge alerts affecting this SLO.";
+        return translationKey(
+          "The average time taken to acknowledge alerts affecting this SLO.",
+        );
       case AlertMetricType.TimeToResolve:
-        return "The average time taken to resolve alerts affecting this SLO.";
+        return translationKey(
+          "The average time taken to resolve alerts affecting this SLO.",
+        );
       case AlertMetricType.AlertDuration:
-        return "The average duration of alerts affecting this SLO.";
+        return translationKey(
+          "The average duration of alerts affecting this SLO.",
+        );
       default:
         return `${AlertMetricTypeUtil.getTitleByAlertMetricType(metricType)} for alerts affecting this SLO.`;
     }
@@ -279,6 +360,8 @@ export const getSloAlertMetricDescription: GetSloAlertMetricDescriptionFunction 
 export type BuildSloEventMetricQueryConfigsFunction = (data: {
   sloId: ObjectID;
   projectId: string;
+  // The reader's; without one, each chart's words read English.
+  translator?: Translator | undefined;
 }) => Array<MetricQueryConfigData>;
 
 /*
@@ -291,18 +374,28 @@ export const buildSloIncidentMetricQueryConfigs: BuildSloEventMetricQueryConfigs
   (data: {
     sloId: ObjectID;
     projectId: string;
+    translator?: Translator | undefined;
   }): Array<MetricQueryConfigData> => {
+    const translator: Translator = data.translator || ENGLISH;
+
     return IncidentMetricTypeUtil.getAllIncidentMetricTypes().map(
       (metricType: IncidentMetricType): MetricQueryConfigData => {
         return {
           id: `slo-incident-metric-${metricType}`,
           metricAliasData: {
             metricVariable: metricType,
-            title:
+            title: translateChartWord(
               IncidentMetricTypeUtil.getTitleByIncidentMetricType(metricType),
-            description: getSloIncidentMetricDescription(metricType),
-            legend:
+              translator,
+            ),
+            description: translateChartWord(
+              getSloIncidentMetricDescription(metricType),
+              translator,
+            ),
+            legend: translateChartWord(
               IncidentMetricTypeUtil.getLegendByIncidentMetricType(metricType),
+              translator,
+            ),
             legendUnit:
               IncidentMetricTypeUtil.getLegendUnitByIncidentMetricType(
                 metricType,
@@ -335,16 +428,28 @@ export const buildSloAlertMetricQueryConfigs: BuildSloEventMetricQueryConfigsFun
   (data: {
     sloId: ObjectID;
     projectId: string;
+    translator?: Translator | undefined;
   }): Array<MetricQueryConfigData> => {
+    const translator: Translator = data.translator || ENGLISH;
+
     return AlertMetricTypeUtil.getAllAlertMetricTypes().map(
       (metricType: AlertMetricType): MetricQueryConfigData => {
         return {
           id: `slo-alert-metric-${metricType}`,
           metricAliasData: {
             metricVariable: metricType,
-            title: AlertMetricTypeUtil.getTitleByAlertMetricType(metricType),
-            description: getSloAlertMetricDescription(metricType),
-            legend: AlertMetricTypeUtil.getLegendByAlertMetricType(metricType),
+            title: translateChartWord(
+              AlertMetricTypeUtil.getTitleByAlertMetricType(metricType),
+              translator,
+            ),
+            description: translateChartWord(
+              getSloAlertMetricDescription(metricType),
+              translator,
+            ),
+            legend: translateChartWord(
+              AlertMetricTypeUtil.getLegendByAlertMetricType(metricType),
+              translator,
+            ),
             legendUnit:
               AlertMetricTypeUtil.getLegendUnitByAlertMetricType(metricType),
           },
