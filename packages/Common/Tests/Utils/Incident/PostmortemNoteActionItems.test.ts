@@ -341,6 +341,24 @@ describe("the items of a section", () => {
     ).toEqual([{ title: "Fix it", isDone: false }]);
   });
 
+  test("a due date in Persian or Arabic digits is the same day, and the title keeps its digits", () => {
+    const note: string = `## Action Items
+| Action | Due Date |
+| --- | --- |
+| افزایش استخر اتصال | ۲۰۲۶-۱۱-۲۰ |
+| زيادة حجم المجمع | ٢٠٢٦-١٢-٠١ |
+| Fix it | ۲۰۲۶-۰۲-۳۰ |
+
+- [ ] ۲ برابر کردن هشدار (due ۲۰۲۶-۱۱-۲۵)`;
+
+    expect(PostmortemNoteActionItems.read(note)).toEqual([
+      { title: "افزایش استخر اتصال", isDone: false, dueDay: "2026-11-20" },
+      { title: "زيادة حجم المجمع", isDone: false, dueDay: "2026-12-01" },
+      { title: "Fix it", isDone: false },
+      { title: "۲ برابر کردن هشدار", isDone: false, dueDay: "2026-11-25" },
+    ]);
+  });
+
   test("an item that says there is nothing to do is not one", () => {
     const note: string = `## Action Items
 - None.
@@ -472,6 +490,12 @@ describe("a due day, placed as the Due Date picker places one", () => {
   test("is no date for anything that is not a day", () => {
     expect(PostmortemNoteActionItems.toDueDate("next week", "UTC")).toBeNull();
     expect(PostmortemNoteActionItems.toDueDate("2026-02-30", "UTC")).toBeNull();
+  });
+
+  test("reads a day written in Persian digits", () => {
+    expect(PostmortemNoteActionItems.toDueDate("۲۰۲۶-۱۱-۲۰", "UTC")).toEqual(
+      new Date("2026-11-20T00:00:00.000Z"),
+    );
   });
 });
 

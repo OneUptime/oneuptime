@@ -259,10 +259,17 @@ const TABLE_ROW_REGEX: RegExp = /^[ \t]*\|.*\|[ \t]*$/;
 const TABLE_SEPARATOR_REGEX: RegExp =
   /^[ \t]*\|?(?:[ \t]*:?-{1,}:?[ \t]*\|)+[ \t]*:?-*:?[ \t]*\|?[ \t]*$/;
 const ISO_DATE_REGEX: RegExp = /\b(\d{4})-(\d{2})-(\d{2})\b/;
+/*
+ * A digit as a Persian or an Arabic note may write one: "۲۰۲۶-۱۱-۲۰" is the
+ * same day as 2026-11-20 (toLatinDigits).
+ */
+const NON_LATIN_DIGIT_REGEX: RegExp = /[٠-٩۰-۹]/g;
+const ARABIC_INDIC_ZERO: number = 0x0660;
+const PERSIAN_ZERO: number = 0x06f0;
 const INLINE_OWNER_REGEX: RegExp =
   /[([,;\s-]+(?:owner|assignee|assigned to)[ \t]*[:=][ \t]*([^,;)\]]+)[)\]]?/i;
 const INLINE_DUE_REGEX: RegExp =
-  /[([,;\s-]+(?:due(?: date)?|deadline|by)[ \t]*[:=]?[ \t]*(\d{4}-\d{2}-\d{2})[)\]]?/i;
+  /[([,;\s-]+(?:due(?: date)?|deadline|by)[ \t]*[:=]?[ \t]*([\d٠-٩۰-۹]{4}-[\d٠-٩۰-۹]{2}-[\d٠-٩۰-۹]{2})[)\]]?/i;
 // A template's placeholder left as it was: the whole item in square brackets.
 const PLACEHOLDER_REGEX: RegExp = /^\[[^\]]*\]$/;
 
@@ -616,9 +623,13 @@ export default class PostmortemNoteActionItems {
     return moment.tz(day, "YYYY-MM-DD", true, zone).toDate();
   }
 
-  // A date written YYYY-MM-DD, as that day; anything else, 2026-02-30 too, is no day.
+  /*
+   * A date written YYYY-MM-DD, as that day, in Persian or Arabic digits too;
+   * anything else, 2026-02-30 too, is no day.
+   */
   private static toDay(text: string): string | null {
-    const match: RegExpMatchArray | null = text.match(ISO_DATE_REGEX);
+    const match: RegExpMatchArray | null =
+      PostmortemNoteActionItems.toLatinDigits(text).match(ISO_DATE_REGEX);
 
     if (!match) {
       return null;
@@ -638,6 +649,17 @@ export default class PostmortemNoteActionItems {
     }
 
     return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+
+  // Persian (۰-۹) and Arabic-Indic (٠-٩) digits as the Latin ones.
+  private static toLatinDigits(text: string): string {
+    return text.replace(NON_LATIN_DIGIT_REGEX, (digit: string): string => {
+      const code: number = digit.charCodeAt(0);
+
+      return String(
+        code >= PERSIAN_ZERO ? code - PERSIAN_ZERO : code - ARABIC_INDIC_ZERO,
+      );
+    });
   }
 
   /*
