@@ -42,6 +42,7 @@ import {
   Translator,
   composedValue,
   formatInline,
+  getGlobalTranslator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -307,7 +308,7 @@ export function statsForEntry(
       value:
         traffic.avgDurationMs === null
           ? "—"
-          : formatDurationMs(traffic.avgDurationMs),
+          : formatDurationMs(traffic.avgDurationMs, getGlobalTranslator()),
     },
   ];
 }
@@ -722,7 +723,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
               ? formatCallRate(edge.calls, props.metricsWindowSeconds)
               : metric === "errors"
                 ? `${formatErrorRate(edge.calls, edge.errors)} errors`
-                : formatDurationMs(edge.avgDurationMs ?? undefined)
+                : formatDurationMs(edge.avgDurationMs ?? undefined, translator)
             : undefined;
         return {
           id: edge.id,
@@ -1250,7 +1251,10 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
                       {entry.inbound.avgDurationMs === null
                         ? "—"
-                        : formatDurationMs(entry.inbound.avgDurationMs)}
+                        : formatDurationMs(
+                            entry.inbound.avgDurationMs,
+                            translator,
+                          )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">
                       {entry.callers}{" "}

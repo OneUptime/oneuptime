@@ -24,6 +24,7 @@ import Route from "Common/Types/API/Route";
 import { DOCS_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
+  composedValue,
   PluralTemplate,
   TranslatableTerm,
   translatableTerm,
@@ -1574,7 +1575,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
                     {translator.translateTemplate(
                       "{{duration}} missing between chunk {{from}} and chunk {{to}}",
                       {
-                        duration: formatReplayMilliseconds(gap.missingMs),
+                        duration: composedValue(
+                          (sentence: Translator): string => {
+                            return formatReplayMilliseconds(
+                              gap.missingMs,
+                              sentence,
+                            );
+                          },
+                        ),
                         from: translator.formatNumber(gap.fromIndex),
                         to: translator.formatNumber(gap.toIndex),
                       },

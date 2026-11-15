@@ -14,6 +14,7 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -145,9 +146,12 @@ export function getVolumeLatencyState(
 /*
  * Pure reports latency in microseconds. Below a millisecond the µs figure is
  * the readable one ("420 µs"); from a millisecond up, milliseconds are
- * ("2.35 ms").
+ * ("2.35 ms", "۲٫۳۵ میلی‌ثانیه" in Persian: issue #7418).
  */
-export function formatLatencyUsec(value: unknown): string {
+export function formatLatencyUsec(
+  value: unknown,
+  translator: Translator = ENGLISH,
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
@@ -155,7 +159,10 @@ export function formatLatencyUsec(value: unknown): string {
   if (numeric < 1000) {
     return `${Math.round(numeric)} µs`;
   }
-  return `${(numeric / 1000).toFixed(2)} ms`;
+  return formatMilliseconds(translator, numeric / 1000, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // Read plus write operations per second; undefined when neither is known.

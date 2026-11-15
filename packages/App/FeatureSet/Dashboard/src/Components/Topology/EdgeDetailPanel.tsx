@@ -50,7 +50,7 @@ import OneUptimeDate from "Common/Types/Date";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -569,7 +569,9 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                 </span>
                 <span>
                   {translator.translateTemplate("avg {{duration}}", {
-                    duration: formatDurationMs(rel.avgDurationMs),
+                    duration: composedValue((sentence: Translator): string => {
+                      return formatDurationMs(rel.avgDurationMs, sentence);
+                    }),
                   })}
                 </span>
               </div>

@@ -9,6 +9,11 @@ import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceK
 import { percentOf } from "Common/Types/OpenStack/OpenStackHealthRules";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  formatMilliseconds,
+  formatMillisecondsInEnglish,
+  MillisecondsOptions,
+} from "../../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackRow } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
 import { getOpenStackFlavorExternalId } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
@@ -109,9 +114,15 @@ function formatPercentValue(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-function formatMilliseconds(value: number): string {
-  return `${value.toFixed(1)} ms`;
+function formatChartMilliseconds(value: number): string {
+  return formatMillisecondsInEnglish(value, ONE_DECIMAL);
 }
+
+// A latency to a tenth: "4.0 ms", "۴٫۰ میلی‌ثانیه".
+const ONE_DECIMAL: MillisecondsOptions = {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+};
 
 const OpenStackInstanceUsageTiles: FunctionComponent<{
   part: OpenStackPart;
@@ -273,7 +284,11 @@ const OpenStackInstanceUsageTiles: FunctionComponent<{
         title="Disk latency"
         icon={IconProp.Clock}
         iconColor="sky"
-        value={diskLatency === null ? "—" : formatMilliseconds(diskLatency)}
+        value={
+          diskLatency === null
+            ? "—"
+            : formatMilliseconds(translator, diskLatency, ONE_DECIMAL)
+        }
         sublabel={
           diskLatency === null
             ? "No requests, or this source doesn't say"
@@ -477,7 +492,7 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               ),
               metricName: OpenStackInstanceMetric.DiskReadLatency,
               legend: translationKey("Read latency"),
-              format: formatMilliseconds,
+              format: formatChartMilliseconds,
             }),
             chart({
               variable: "instance_disk_write_latency",
@@ -487,7 +502,7 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
               ),
               metricName: OpenStackInstanceMetric.DiskWriteLatency,
               legend: translationKey("Write latency"),
-              format: formatMilliseconds,
+              format: formatChartMilliseconds,
             }),
             chart({
               variable: "instance_network_receive",

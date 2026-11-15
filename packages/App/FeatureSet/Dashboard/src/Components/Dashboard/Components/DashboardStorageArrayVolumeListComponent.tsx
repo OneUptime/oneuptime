@@ -24,7 +24,10 @@ import {
   HoneycombLegendItem,
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   StorageArrayWidgetState,
   VOLUME_LATENCY_COLORS,
@@ -139,9 +142,10 @@ function formatUsedOfProvisioned(r: StorageArrayResource): string {
 }
 
 function formatReadWriteLatency(r: StorageArrayResource): string {
-  return `${formatLatencyUsec(r.readLatencyUsec)} / ${formatLatencyUsec(
-    r.writeLatencyUsec,
-  )}`;
+  return `${formatLatencyUsec(
+    r.readLatencyUsec,
+    getGlobalTranslator(),
+  )} / ${formatLatencyUsec(r.writeLatencyUsec, getGlobalTranslator())}`;
 }
 
 function renderVolumeRow(r: StorageArrayResource): ReactElement {
@@ -222,11 +226,11 @@ function buildVolumeTile(r: StorageArrayResource): HoneycombTile {
         { label: "Used / Provisioned", value: formatUsedOfProvisioned(r) },
         {
           label: "Read Latency",
-          value: formatLatencyUsec(r.readLatencyUsec),
+          value: formatLatencyUsec(r.readLatencyUsec, getGlobalTranslator()),
         },
         {
           label: "Write Latency",
-          value: formatLatencyUsec(r.writeLatencyUsec),
+          value: formatLatencyUsec(r.writeLatencyUsec, getGlobalTranslator()),
         },
         { label: "Read IOPS", value: formatIops(r.readIops) },
         { label: "Write IOPS", value: formatIops(r.writeIops) },

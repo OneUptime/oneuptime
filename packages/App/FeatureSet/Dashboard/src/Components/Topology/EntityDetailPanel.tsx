@@ -29,6 +29,7 @@ import OneUptimeDate from "Common/Types/Date";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   formatInline,
   translatableTerm,
   translationKey,
@@ -856,7 +857,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
               <p className="text-sm font-semibold text-gray-900">
                 {totals.avgDurationMs === null
                   ? "—"
-                  : formatDurationMs(totals.avgDurationMs)}
+                  : formatDurationMs(totals.avgDurationMs, translator)}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>
             </div>
@@ -967,7 +968,11 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                       rate: formatErrorRate(row.callCount, row.errorCount),
                     }),
                     translator.translateTemplate("avg {{duration}}", {
-                      duration: formatDurationMs(row.avgDurationMs),
+                      duration: composedValue(
+                        (sentence: Translator): string => {
+                          return formatDurationMs(row.avgDurationMs, sentence);
+                        },
+                      ),
                     }),
                   ],
                   translator,

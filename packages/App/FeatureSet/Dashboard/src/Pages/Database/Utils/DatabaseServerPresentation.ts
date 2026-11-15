@@ -1,6 +1,7 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { formatMillisecondsInEnglish } from "../../../Utils/Milliseconds";
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
   getDatabaseServerDiscoverySourceLabel,
@@ -807,7 +808,9 @@ export function formatDatabaseMetricAxisValue(
   if (cleanUnit === "s") {
     // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
     return Math.abs(value) > 0 && Math.abs(value) < 1
-      ? `${formatDatabaseAxisNumber(value * 1000)} ms`
+      ? formatMillisecondsInEnglish(
+          Number(formatDatabaseAxisNumber(value * 1000)),
+        )
       : formatDatabaseSeconds(value);
   }
   if (cleanUnit === "fraction") {

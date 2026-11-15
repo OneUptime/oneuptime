@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { LlmConversationSummary } from "Common/Types/Telemetry/LlmConversationApi";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   formatLlmCost,
@@ -201,13 +201,15 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         label="Typical answer time"
         value={
           summary && summary.medianAnswerMs !== null
-            ? formatLlmDuration(summary.medianAnswerMs)
+            ? formatLlmDuration(summary.medianAnswerMs, translator)
             : "—"
         }
         hint={
           summary && summary.p95AnswerMs !== null
             ? translator.translateTemplate("Slowest 5%: {{duration}}", {
-                duration: formatLlmDuration(summary.p95AnswerMs),
+                duration: composedValue((sentence: Translator): string => {
+                  return formatLlmDuration(summary.p95AnswerMs!, sentence);
+                }),
               })
             : undefined
         }
