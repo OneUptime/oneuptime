@@ -135,7 +135,7 @@ export const formatBytes: (
   }
   const reading: BytesReading = getBytesReading(bytes);
   return inLanguage(
-    `${reading.value.toFixed(reading.decimals)} ${reading.unit}`,
+    `${reading.value.toFixed(reading.decimals)}\u00A0${reading.unit}`,
     translator,
   );
 };

@@ -534,7 +534,8 @@ export default class ProfileUtil {
       return formatCommonProfileValue(value, ProfileValueUnit.Count);
     }
 
-    return `${value} ${unit}`;
+    // Any other unit as the profile names it, held to its figure (#8457).
+    return `${value}\u00A0${unit}`;
   }
 
   /**

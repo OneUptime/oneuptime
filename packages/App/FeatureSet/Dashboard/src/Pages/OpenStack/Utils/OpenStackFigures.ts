@@ -34,7 +34,10 @@ export interface OpenStackFigureOptions {
   language?: string | undefined;
 }
 
-// "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit.
+/*
+ * "۶٫۰ TiB", "480 GiB": a size in the reader's digits, in formatBytes' unit,
+ * held to it by a no-break space (#8457).
+ */
 export function formatOpenStackBytes(
   bytes: number,
   options?: OpenStackFigureOptions,
@@ -48,7 +51,7 @@ export function formatOpenStackBytes(
   return `${formatReaderFigure(reading.value, {
     decimals: reading.decimals,
     language: options?.language,
-  })} ${reading.unit}`;
+  })}\u00A0${reading.unit}`;
 }
 
 /*

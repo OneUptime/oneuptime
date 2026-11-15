@@ -54,7 +54,8 @@ const formatNumber: FormatNumberFunction = (
     return "—";
   }
 
-  return unit ? `${value} ${unit}` : `${value}`;
+  // "-67 dBm": the figure held to its unit by a no-break space (#8457).
+  return unit ? `${value}\u00A0${unit}` : `${value}`;
 };
 
 interface StatusDotProps {
