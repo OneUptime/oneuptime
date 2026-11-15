@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Probes in several regions check the address, so it must be reachable from the internet. The Free plan has 10 active monitors.
+Probes in several regions check the address, so it must be reachable from the internet, and an incident opens only when all of them find it down. The Free plan has 10 active monitors. They are billed as they are used, so the project needs a payment method first: without one, the first step says so, with **Add Payment Method**.
 @tab Self-hosted
-The address is checked from your server's own probe, so it must be reachable from there. To be emailed, the server must be able to send email: its master admin sets that up at `/admin/setup`, as the [Self-Hosting Guide](/docs/installation/self-hosting-guide) shows. The master admin is not made the owner of what they create, so they add themselves on the monitor's **Owners** page to be emailed.
+The address is checked from your server's own probe, so it must be reachable from there. To be emailed, the server must be able to send email: its master admin sets that up at `/admin/setup`, as the [Self-Hosting Guide](/docs/installation/self-hosting-guide) shows.
 :::
 
 ## Steps

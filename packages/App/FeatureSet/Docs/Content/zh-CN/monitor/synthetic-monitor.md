@@ -239,7 +239,7 @@ return {
 
 每个过滤器都会针对每一次运行进行检查，只要有一次运行匹配就算匹配。过滤器是分别检查的，而不是逐次运行地检查：**错误** 不为空 加上 **浏览器类型** 等于 `Firefox`，会在任意一次运行失败、且其中一次运行使用了 Firefox 时匹配，而不只是在 Firefox 那次运行失败时匹配。要单独关注某一种浏览器，请为它单独创建一个监视器。
 
-在事件和告警模板中，每次运行都在 `{{syntheticResponses}}` 中：请参阅 [事件与告警模板](/docs/monitor/incident-alert-templating#合成监控器)。
+在事件和告警模板中，每次运行都在 `{{syntheticResponses}}` 中：请参阅 [事件与告警模板](/docs/monitor/incident-alert-templating#合成监视器)。
 
 ## 脚本中可用的模块
 

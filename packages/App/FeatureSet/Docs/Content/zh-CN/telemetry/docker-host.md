@@ -296,7 +296,7 @@ docker version --format '{{ .Server.APIVersion }}'
 :::
 
 :::details Container Restart Loop 从不触发，或漏掉重启
-旧版代理不会发送 `container.restarts.increase`，也就是自它上一次对每个容器采样以来的重启次数，模板会把它们相加。[升级代理](#升级代理)：从它对每个容器的第二次采样起，每次重启都会计入。升级之前用该模板创建的监控器读取的则是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
+旧版代理不会发送 `container.restarts.increase`，也就是自它上一次对每个容器采样以来的重启次数，模板会把它们相加。[升级代理](#升级代理)：从它对每个容器的第二次采样起，每次重启都会计入。升级之前用该模板创建的监视器读取的则是 `container.restarts` 在每分钟内增长了多少，会漏掉循环中大约一半的重启：请删除它，再用模板重新创建。
 :::
 
 :::details 指标能到达，但没有容器日志

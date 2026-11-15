@@ -27,6 +27,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import { getProbeFailureCauseText } from "Common/Utils/Monitor/ProbeFailureReading";
+import { getProbeAgreementSentence } from "Common/Utils/Monitor/ProbeAgreementRule";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
 
 export interface ComponentProps {
@@ -148,13 +149,14 @@ export const PROBE_HEALTH_FIGURE_CLASS_NAME: string = "whitespace-nowrap";
 
 /*
  * The probe agreement rule, worked out the way the server applies it
- * (MonitorResourceUtil.checkProbeAgreement): only enabled, connected probes
- * take part, an unset minimum means all of them must agree, and the minimum
- * is capped at how many take part. So 3 required with one of three probes
- * disconnected is 2 of 2, never "3 of 2". A probe whose connection is not
- * known counts as connected, as it does everywhere else on this card.
- * Null when no agreement is needed: one probe, or a minimum of one. Its
- * counts are written in the reader's digits ("۲ از ۳ پراب متصل").
+ * (MonitorResourceUtil.checkProbeAgreement, through Common's
+ * ProbeAgreementRule): only enabled, connected probes take part, an unset
+ * minimum means all of them must agree, and the minimum is capped at how
+ * many take part. So 3 required with one of three probes disconnected is 2
+ * of 2, never "3 of 2". A probe whose connection is not known counts as
+ * connected, as it does everywhere else on this card. Null when no
+ * agreement is needed: one probe, or a minimum of one. Its counts are
+ * written in the reader's digits ("۲ از ۳ پراب متصل").
  */
 export const getProbeAgreementText: (data: {
   rows: Array<MonitorOverviewProbeRow>;
@@ -165,43 +167,13 @@ export const getProbeAgreementText: (data: {
   minimumProbeAgreement: number | null | undefined;
   translator: Translator;
 }): string | null => {
-  const translator: Translator = data.translator;
-  const activeCount: number = data.rows.filter(
-    (row: MonitorOverviewProbeRow) => {
+  return getProbeAgreementSentence({
+    activeProbeCount: data.rows.filter((row: MonitorOverviewProbeRow) => {
       return row.isEnabled && row.isConnected !== false;
-    },
-  ).length;
-
-  const minimum: number | null | undefined = data.minimumProbeAgreement;
-  const requiredCount: number = Math.min(
-    typeof minimum === "number" && Number.isFinite(minimum)
-      ? minimum
-      : activeCount,
-    activeCount,
-  );
-
-  if (activeCount < 2 || requiredCount < 2) {
-    return null;
-  }
-
-  if (requiredCount < activeCount) {
-    return translator.translateTemplate(
-      "A status change needs {{required}} of {{count}} connected probes to agree.",
-      {
-        required: translator.formatNumber(requiredCount),
-        count: translator.formatNumber(activeCount),
-      },
-    );
-  }
-
-  return activeCount === 2
-    ? translator.translateTemplate(
-        "A status change needs both connected probes to agree.",
-      )
-    : translator.translateTemplate(
-        "A status change needs all {{count}} connected probes to agree.",
-        { count: translator.formatNumber(activeCount) },
-      );
+    }).length,
+    minimumProbeAgreement: data.minimumProbeAgreement,
+    translator: data.translator,
+  });
 };
 
 const toProbeModel: (row: MonitorOverviewProbeRow) => Probe = (

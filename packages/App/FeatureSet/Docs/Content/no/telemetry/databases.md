@@ -29,7 +29,7 @@ flowchart LR
     agent["Database Agent<br/>eller en collector"] -->|"motormetrikker,<br/>spørringshendelser"| db
 ```
 
-Motormetrikker kommer bare fra en collector som snakker med selve databasen (eller, for en administrert skydatabase, med leverandørens overvåkings-API). Spor og containerinventarer forteller OneUptime at en database finnes og hvordan den brukes, men ikke hvordan den har det innvendig; statusen **Motormetrikker** på hver database viser om den delen er tilkoblet.
+Motormetrikker kommer bare fra en collector som snakker med selve databasen (eller, for en administrert skydatabase, med leverandørens overvåkings-API). Spor og containerinventarer forteller OneUptime at en database finnes og hvordan den brukes, men ikke hvordan den har det innvendig; statusen **Motormålinger** på hver database viser om den delen er tilkoblet.
 
 Du kan også legge til en database manuelt: **Databaser → Opprett Database** med motor, adresse og port. For en helsesjekk fra en probe som ikke trenger noen agent i det hele tatt, se [Databasehelse-overvåking](/docs/monitor/database-health-monitor).
 
@@ -358,7 +358,7 @@ docker compose up -d
 
 ### Finn databasen i OneUptime
 
-Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis OneUptime allerede hadde oppdaget den fra spor eller containere på samme adresse, endres statusen **Motormetrikker** til Tilkoblet. For en privat IP eller et navn som bare løses opp i nettverket ditt (`db.prod.internal`, et klyngelokalt navn), oppretter du først databasen eller setter `DATABASE_SERVER_ID` (se [Fra Database Agent eller din egen collector](#fra-database-agent-eller-din-egen-collector)).
+Etter den første innsamlingen vises databasen under **Databaser**, eller, hvis OneUptime allerede hadde oppdaget den fra spor eller containere på samme adresse, endres statusen **Motormålinger** til Tilkoblet. For en privat IP eller et navn som bare løses opp i nettverket ditt (`db.prod.internal`, et klyngelokalt navn), oppretter du først databasen eller setter `DATABASE_SERVER_ID` (se [Fra Database Agent eller din egen collector](#fra-database-agent-eller-din-egen-collector)).
 :::
 
 ### Miljøvariabler
@@ -618,8 +618,8 @@ Under det sier hver databases **Status** hvordan motoren har det, med årsaken u
 | **Feilfri** | Motormetrikkene kommer frem, og ingen er forbi en terskel i motorens anbefalte varsler. |
 | **Redusert** | En varselsterskel er krysset, fra tabellen nedenfor. |
 | **Ikke feilfri** | En kritisk terskel er krysset, fra tabellen nedenfor. |
-| **Motormetrikker stoppet** | Feltet **Motormetrikker** viser _Frakoblet_: en agent eller collector rapporterte og stoppet så (se [Livssyklus](#livssyklus-arkivering-og-oppbevaring)). Det den rapporterte sist, stemmer ikke lenger, så raden sier i stedet når den sist rapporterte. |
-| **Ingen motormetrikker** | Ingen Database Agent eller collector har rapportert for den ennå (se [Database Agent](#database-agent)). |
+| **Motormålinger stoppet** | Feltet **Motormålinger** viser _Frakoblet_: en agent eller collector rapporterte og stoppet så (se [Livssyklus](#livssyklus-arkivering-og-oppbevaring)). Det den rapporterte sist, stemmer ikke lenger, så raden sier i stedet når den sist rapporterte. |
+| **Ingen motormålinger** | Ingen Database Agent eller collector har rapportert for den ennå (se [Database Agent](#database-agent)). |
 | **Rapporterer** | Motormetrikkene kommer frem, men ingen av målingene som motorens terskler vurderer, har kommet de siste 15 minuttene, eller OneUptime anbefaler ingen varsler for motoren. |
 
 Tersklene er de [anbefalte monitorenes](#anbefalte-monitorer) egne (metrikkene, formelen og terskelen for hver), vurdert ut fra det motoren sist rapporterte, som OneUptime lagrer på databasen omtrent én gang i minuttet. Siden sier det så snart en måling krysser en terskel; monitoren venter ut tidsvinduet sitt før den åpner et varsel. En monitor du har endret etter at du opprettet den, beholder sin egen terskel, og tilstanden den anbefalte. En database som flere agenter rapporterer for (for eksempel én per medlem av et replica set), vurderes slik monitoren vurderer den: tilkoblingene lagt sammen, forsinkelsen til replikaen som ligger lengst bak.
@@ -687,7 +687,7 @@ For en probe som sjekker en database uten noen agent, se [Databasehelse-overvåk
 ## Livssyklus, arkivering og oppbevaring
 
 - **Sist sett** oppdateres av alle kilder, og merket i databasens topptekst leser det: _Sett nylig_ så lenge en kilde har sett databasen de siste 30 minuttene, _Ikke sett nylig_ etter det, og _Aldri sett_ før noen kilde har sett den. Det sier ingenting om motormetrikker, som har sin egen status.
-- **Motormetrikker** viser _Tilkoblet_ så lenge collectordata fortsetter å komme, _Frakoblet_ når en collector som har rapportert, stopper i 15 minutter, og _Ikke tilkoblet_ når ingen Database Agent eller collector noen gang har rapportert. De 15 minuttene er et minimum: OneUptime registrerer en collectors heartbeat bare omtrent hvert 5. minutt mens data flyter, så den venter 7 minutter i tillegg, regnet fra det sist registrerte heartbeatet, og sjekker hvert 5. minutt; en collector som stopper, viser _Frakoblet_ mellom 15 og omtrent 27 minutter etter det siste datapunktet. Listens filter **Motormetrikker** tilbyr alle tre.
+- **Motormålinger** viser _Tilkoblet_ så lenge collectordata fortsetter å komme, _Frakoblet_ når en collector som har rapportert, stopper i 15 minutter, og _Ikke tilkoblet_ når ingen Database Agent eller collector noen gang har rapportert. De 15 minuttene er et minimum: OneUptime registrerer en collectors heartbeat bare omtrent hvert 5. minutt mens data flyter, så den venter 7 minutter i tillegg, regnet fra det sist registrerte heartbeatet, og sjekker hvert 5. minutt; en collector som stopper, viser _Frakoblet_ mellom 15 og omtrent 27 minutter etter det siste datapunktet. Listens filter **Motormålinger** tilbyr alle tre.
 - **Arkiver for å avvise.** Å slette en oppdaget database fjerner den bare til en kilde ser den igjen: det neste spanet eller den neste poden bringer den tilbake som en ny database. For å avvise en for godt **arkiverer** du den: en arkivert database beholder endepunktene sine, så alt som passer til dem, forblir knyttet til den arkiverte databasen i stedet for å opprette en ny.
 - **Databaser opprettet for porten til en klient.** En database som applikasjonsspor opprettet for en port fra 32768 og oppover (annen enn motorens standardport), slettes, ikke arkiveres, hvis ingen har investert i den, omdøpt den, beskrevet den, arkivert den eller gjenopprettet den. Oppdagelsen oppretter dem ikke lenger (se [Én database per tilkobling](#én-database-per-tilkobling-hver-på-en-annen-høy-port)), og en slettet en kommer ikke tilbake.
 - **Automatisk arkivering.** En oppdaget database som ingen kilde har sett på 7 dager, arkiveres automatisk, med mindre noen har investert i den: etiketter eller eiere som en person har lagt til, en hendelse, et varsel eller planlagt vedlikehold, et endepunkt som en person har lagt til, eller en oppbevaringsinnstilling. Etiketter og eiere som etikett- eller eierregler eller `oneuptime.label.*`-attributter har knyttet til av seg selv, teller ikke (ellers ville en generell regel holdt på alle databaser for alltid) før en person lagrer dem på databasen. Databaser i en Kubernetes-klynge eller på en Docker- eller Podman-vert som selv har blitt stille, arkiveres ikke så lenge den er taus: en database regnes bare som usett når den sluttet å bli sett godt før klyngen eller verten sin.

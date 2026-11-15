@@ -1,6 +1,6 @@
 # Ceph-agent
 
-OneUptimes Ceph-agent övervakar ett Ceph-kluster: dess hälsa, monitorkvorum, OSD:er, pooler och placement groups. Den skrapar Ceph mgr-modulen `prometheus` på varje mgr-daemon, stämplar varje mätvärde med ditt klusters namn och skickar det till OneUptime, där klustret visas med sina OSD:er, pooler och daemoner. [Ceph-övervakare](/docs/monitor/ceph-monitor) larmar utifrån det som kommer in.
+OneUptimes Ceph-agent övervakar ett Ceph-kluster: dess hälsa, monitorkvorum, OSD:er, pooler och placement groups. Den skrapar Ceph mgr-modulen `prometheus` på varje mgr-daemon, stämplar varje mätvärde med ditt klusters namn och skickar det till OneUptime, där klustret visas med sina OSD:er, pooler och daemoner. [Ceph-monitorer](/docs/monitor/ceph-monitor) larmar utifrån det som kommer in.
 
 :::cards
 - [Installera agenten](#installera-agenten): Aktivera mgr-modulen, sedan installationsskriptet eller Docker Compose.

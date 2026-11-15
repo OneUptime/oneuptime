@@ -295,7 +295,7 @@
   "This criteria checks if the {{monitorName}} time server answers, is synchronized, and its clock is within {{offset}} ms of the probe's": "यह मानदंड जाँचता है कि {{monitorName}} टाइम सर्वर जवाब देता है, सिंक्रनाइज़ है, और उसकी घड़ी व प्रोब की घड़ी में {{offset}} ms से कम का अंतर है",
   "This criteria checks if the {{monitorName}} time server does not answer, is not synchronized, or its clock is {{offset}} ms or more away from the probe's": "यह मानदंड जाँचता है कि {{monitorName}} टाइम सर्वर जवाब नहीं देता, सिंक्रनाइज़ नहीं है, या उसकी घड़ी व प्रोब की घड़ी में {{offset}} ms या उससे अधिक का अंतर है",
   "This criteria checks if {{monitorName}} is offline": "यह मानदंड जाँचता है कि {{monitorName}} ऑफ़लाइन है या नहीं",
-  "This criteria checks if {{monitorName}} is reachable and its health metrics were collected": "यह मानदंड जाँचता है कि {{monitorName}} पहुँच योग्य है और उसके स्वास्थ्य मीट्रिक एकत्र किए गए",
+  "This criteria checks if {{monitorName}} is reachable and its health metrics were collected": "यह मानदंड जाँचता है कि {{monitorName}} पहुँच योग्य है और उसके स्वास्थ्य मेट्रिक एकत्र किए गए",
   "This criteria checks that no more than {{percent}}% of the answers {{monitorName}} counts were bad": "यह मानदंड जाँचता है कि {{monitorName}} द्वारा गिने गए जवाबों में से {{percent}}% से ज़्यादा खराब नहीं थे",
   "This criteria checks that {{monitorName}} has no matching security events": "यह मानदंड जाँचता है कि {{monitorName}} में मेल खाने वाला कोई सुरक्षा इवेंट नहीं है",
   "This criteria fires when more than {{percent}}% of the answers {{monitorName}} counts, and at least {{minimum}} of them, were bad": "यह मानदंड तब ट्रिगर होता है जब {{monitorName}} द्वारा गिने गए जवाबों में से {{percent}}% से ज़्यादा, और कम से कम {{minimum}}, खराब हों",

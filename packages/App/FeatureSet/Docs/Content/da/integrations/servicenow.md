@@ -41,8 +41,8 @@ Table API accepterer Basic-godkendelse: brugerens navn og adgangskode, kodet sam
 
    Brug `printf`, ikke `echo`: `echo` tilføjer et linjeskift, som kodes sammen med resten og ødelægger loginoplysningerne.
 
-2. Gå i OneUptime til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**. Giv den navnet `SERVICENOW_AUTH`, og klik på **Næste**.
-3. Indsæt den kodede værdi i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+2. Gå i OneUptime til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**. Giv den navnet `SERVICENOW_AUTH`, og klik på **Næste**.
+3. Indsæt den kodede værdi i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 ## Opret en hændelse i ServiceNow for hver hændelse

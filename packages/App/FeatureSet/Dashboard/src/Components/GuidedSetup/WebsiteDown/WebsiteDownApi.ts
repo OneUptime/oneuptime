@@ -30,7 +30,17 @@ import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import { isProjectOnFreePlan } from "../../../Utils/PayAsYouGo";
+import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
+import { ProbeConnectionStatus } from "Common/Models/DatabaseModels/Probe";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import ExceptionCode from "Common/Types/Exception/ExceptionCode";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+import API from "Common/UI/Utils/API/API";
+import ProjectUtil from "Common/UI/Utils/Project";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -51,11 +61,21 @@ export interface WebsiteDownMonitorRecord {
   name: string;
   monitorSteps: Monitor["monitorSteps"];
   monitoringInterval: string | undefined;
+  // How many of its probes must agree; null or undefined is all of them.
+  minimumProbeAgreement?: number | null | undefined;
 }
 
 export interface FirstCheckState {
-  // The probes that check the monitor.
+  // The enabled probes: the locations the monitor is checked from.
   locationCount: number;
+  /*
+   * Of those, the connected ones: the probes whose answers the probe
+   * agreement counts (MonitorResourceUtil.checkProbeAgreement). A probe
+   * whose connection is not known counts as connected, as on the
+   * monitor's probes card.
+   */
+  activeLocationCount: number;
+  // What the connected ones answered.
   answers: Array<FirstCheckAnswer>;
 }
 
@@ -68,6 +88,31 @@ export interface WebsiteDownPolicyRecord {
 
 export const mayCreateMonitor: () => boolean = (): boolean => {
   return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
+};
+
+// Whether this person may add an owner to a monitor: themselves, here.
+export const mayAddMonitorOwner: () => boolean = (): boolean => {
+  return PermissionGate.check(new MonitorOwnerUser(), ModelAction.Create)
+    .isAllowed;
+};
+
+// Whether this person may add a payment method (the billing page's button).
+export const mayAddPaymentMethod: () => boolean = (): boolean => {
+  return PermissionGate.check(new BillingPaymentMethod(), ModelAction.Create)
+    .isAllowed;
+};
+
+/*
+ * A create the server refused for want of a payment method: 402, Payment
+ * Required (PaymentRequiredException).
+ */
+export const isPaymentRequired: (error: unknown) => boolean = (
+  error: unknown,
+): boolean => {
+  return (
+    error instanceof HTTPErrorResponse &&
+    error.statusCode === ExceptionCode.PaymentRequiredException
+  );
 };
 
 /*
@@ -186,6 +231,7 @@ export default class WebsiteDownApi {
         name: true,
         monitorSteps: true,
         monitoringInterval: true,
+        minimumProbeAgreement: true,
         isArchived: true,
         disableActiveMonitoring: true,
       },
@@ -210,6 +256,7 @@ export default class WebsiteDownApi {
       name: found.name || "",
       monitorSteps: found.monitorSteps,
       monitoringInterval: found.monitoringInterval,
+      minimumProbeAgreement: found.minimumProbeAgreement ?? null,
     };
   }
 
@@ -225,6 +272,7 @@ export default class WebsiteDownApi {
         name: true,
         monitorSteps: true,
         monitoringInterval: true,
+        minimumProbeAgreement: true,
       },
     });
 
@@ -237,6 +285,7 @@ export default class WebsiteDownApi {
       name: monitor.name || "",
       monitorSteps: monitor.monitorSteps,
       monitoringInterval: monitor.monitoringInterval,
+      minimumProbeAgreement: monitor.minimumProbeAgreement ?? null,
     };
   }
 
@@ -250,14 +299,31 @@ export default class WebsiteDownApi {
         query: { monitorId: new ObjectID(monitorId), isEnabled: true },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
-        select: { _id: true, lastMonitoringLog: true },
+        select: {
+          _id: true,
+          lastMonitoringLog: true,
+          probe: { connectionStatus: true },
+        },
         sort: {},
       });
 
+    /*
+     * A disconnected probe checks nothing, and the probe agreement leaves
+     * it out: so does what is said about the answers.
+     */
+    const active: Array<MonitorProbe> = probes.data.filter(
+      (probe: MonitorProbe): boolean => {
+        return (
+          probe.probe?.connectionStatus !== ProbeConnectionStatus.Disconnected
+        );
+      },
+    );
+
     return {
       locationCount: probes.data.length,
+      activeLocationCount: active.length,
       answers: readFirstCheckAnswers(
-        probes.data.map((probe: MonitorProbe) => {
+        active.map((probe: MonitorProbe) => {
           return probe.lastMonitoringLog;
         }),
       ),
@@ -431,6 +497,82 @@ export default class WebsiteDownApi {
       return severity?.name || null;
     } catch {
       return null;
+    }
+  }
+
+  /*
+   * Makes this person an owner of the monitor the setup goes on with, when
+   * they are not one, so the step's "You own this monitor, so you are
+   * emailed when it goes down" is true (#7409). The creator of an
+   * operational resource is made its owner
+   * (DatabaseService.autoOwnerOnCreate) - but never a master admin, and the
+   * first person to sign up to a self-hosted server is one. The row is
+   * added quietly: it is their own, so nobody is told they were made an
+   * owner. Resolves whether they own it now, read back from the records.
+   */
+  public static async ensureMonitorOwner(data: {
+    monitorId: string;
+    userId: string;
+  }): Promise<boolean> {
+    if (!data.userId) {
+      return false;
+    }
+
+    if (await WebsiteDownApi.isMonitorOwner(data)) {
+      return true;
+    }
+
+    if (!mayAddMonitorOwner()) {
+      return false;
+    }
+
+    const owner: MonitorOwnerUser = new MonitorOwnerUser();
+    owner.monitorId = new ObjectID(data.monitorId);
+    owner.userId = new ObjectID(data.userId);
+    owner.isOwnerNotified = true;
+
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (projectId) {
+      owner.projectId = projectId;
+    }
+
+    try {
+      await ModelAPI.create<MonitorOwnerUser>({
+        model: owner,
+        modelType: MonitorOwnerUser,
+      });
+    } catch {
+      // Another tab may have made them one: what the records say decides.
+    }
+
+    return await WebsiteDownApi.isMonitorOwner(data);
+  }
+
+  /*
+   * Whether a monitor this project makes now would be refused for want of
+   * a payment method (#7367): on Cloud's Free plan only, as the server asks
+   * (PayAsYouGoBillingService.canUsePayAsYouGo, read live by
+   * /billing/pay-as-you-go-status). Anywhere else, and when the answer
+   * cannot be read, false: the step says nothing it is not sure of, and
+   * Start checking's refusal says it then (isPaymentRequired).
+   */
+  public static async needsPaymentMethod(): Promise<boolean> {
+    if (!isProjectOnFreePlan()) {
+      return false;
+    }
+
+    try {
+      const response: HTTPResponse<JSONObject> = await API.get<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/billing/pay-as-you-go-status",
+        ),
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+      return response.data?.["isAllowed"] === false;
+    } catch {
+      return false;
     }
   }
 

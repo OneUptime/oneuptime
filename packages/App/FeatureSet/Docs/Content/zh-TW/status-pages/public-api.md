@@ -66,9 +66,9 @@ flowchart TB
 
 - 已關閉的清單會拒絕對應的端點，例如回傳 `Incidents are not enabled on this status page.`
 - 每個清單回溯的天數由它的 **顯示最近 … 天** 設定決定（預設 14）。事件清單還會包含所有尚未解決的事件，排定維護清單還會包含所有即將開始或正在進行的事件。
-- 以 ID 要求時，事件、片段、維護事件或公告無論多舊都會回傳，因此指向舊項目的連結仍然有效。頁面完全不顯示的項目（例如不在頁面上的監控器的事件）會回傳空清單，片段則回傳 `404`。
+- 以 ID 要求時，事件、片段、維護事件或公告無論多舊都會回傳，因此指向舊項目的連結仍然有效。頁面完全不顯示的項目（例如不在頁面上的監測器的事件）會回傳空清單，片段則回傳 `404`。
 
-**頁面回傳哪些事件。** 事件端點會回傳頁面上監控器的事件，扣除限定到其他狀態頁的事件；如果頁面只顯示限定到它自己的事件，還會扣除所有沒有限定到此頁面的事件（請參閱[每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些頁面，永遠不會出現在回應中。
+**頁面回傳哪些事件。** 事件端點會回傳頁面上監測器的事件，扣除限定到其他狀態頁的事件；如果頁面只顯示限定到它自己的事件，還會扣除所有沒有限定到此頁面的事件（請參閱[每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些頁面，永遠不會出現在回應中。
 
 ## 讀取概覽
 
@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-整體狀態是頁面上監控器與監控器群組目前狀態中最差的那一個，也就是優先順序最高的那一個。頁面顯示為 **未監控** 的資源（列在 `notMonitoredResourceIds` 中）不計入其中。一個監控器狀態如下所示：
+整體狀態是頁面上監測器與監測器群組目前狀態中最差的那一個，也就是優先順序最高的那一個。頁面顯示為 **未監控** 的資源（列在 `notMonitoredResourceIds` 中）不計入其中。一個監測器狀態如下所示：
 
 ```json
 {
@@ -129,19 +129,19 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 鍵 | 內容 |
 | --- | ------------- |
-| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監控器狀態；頁面上什麼都沒有時，是專案中優先順序最低的狀態；頁面上所有資源都是 **未監控** 時，為 `null`。 |
+| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監測器狀態；頁面上什麼都沒有時，是專案中優先順序最低的狀態；頁面上所有資源都是 **未監控** 時，為 `null`。 |
 | `statusPage` | 頁面的公開設定：標題、說明、品牌，以及顯示的內容。 |
-| `statusPageResources` | 每個資源：顯示名稱、說明、群組、監控器或監控器群組，以及顯示選項。 |
+| `statusPageResources` | 每個資源：顯示名稱、說明、群組、監測器或監測器群組，以及顯示選項。 |
 | `resourceGroups` | 群組；巢狀群組帶有 `parentStatusPageGroupId`。 |
-| `monitorStatuses` | 專案的所有監控器狀態，依優先順序由低到高排列。 |
-| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 頁面上每個監控器群組的目前狀態，以及其中的監控器。 |
-| `notMonitoredResourceIds` | 頁面顯示為 **未監控** 的資源的 ID：監測已關閉的監控器，或所有監控器的監測都已關閉的監控器群組。它們不決定任何狀態，這樣的群組在 `monitorGroupCurrentStatuses` 中沒有項目。 |
+| `monitorStatuses` | 專案的所有監測器狀態，依優先順序由低到高排列。 |
+| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 頁面上每個監測器群組的目前狀態，以及其中的監測器。 |
+| `notMonitoredResourceIds` | 頁面顯示為 **未監控** 的資源的 ID：監測已關閉的監測器，或所有監測器的監測都已關閉的監測器群組。它們不決定任何狀態，這樣的群組在 `monitorGroupCurrentStatuses` 中沒有項目。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 頁面顯示的未解決事件、它們的公開備註與狀態變化，以及專案的事件狀態。 |
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即將開始或正在進行的維護事件，以及它們的公開備註與狀態變化。 |
-| `timelineScheduledMaintenanceEvents` | 運作率長條時間範圍內已經開始的維護事件（進行中或已結束），用於長條的提示說明與每天的對話框：僅限頁面顯示、且包含頁面某個監控器的事件，每個事件只列出頁面的監控器。 |
+| `timelineScheduledMaintenanceEvents` | 運作率長條時間範圍內已經開始的維護事件（進行中或已結束），用於長條的提示說明與每天的對話框：僅限頁面顯示、且包含頁面某個監測器的事件，每個事件只列出頁面的監測器。 |
 | `activeAnnouncements` | 目前顯示中的公告：已經開始且尚未結束。 |
 
 ## 讀取狀態概要
@@ -334,7 +334,7 @@ for group in uptime["groupUptimes"]:
 | `currentStatus` | 資源或群組不顯示目前狀態時為 `null`。 |
 | `isMonitored` | 頁面將資源顯示為 **未監控** 時為 `false`；對群組而言，其下每個資源都如此時也是。此時其 `currentStatus` 為 `null`。 |
 
-當一段時間的監控器狀態屬於頁面的 **計為停機時間** 狀態之一時，這段時間會計為停機。
+當一段時間的監測器狀態屬於頁面的 **計為停機時間** 狀態之一時，這段時間會計為停機。
 
 ## 事件、片段、維護與公告
 

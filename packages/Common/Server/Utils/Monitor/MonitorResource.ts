@@ -119,6 +119,7 @@ import { toStorableJson } from "../Database/PostgresStorableValue";
 import ProbeReportIdentity from "../Probe/ProbeReportIdentity";
 
 import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
+import { getProbeAgreementRequiredCount } from "../../../Utils/Monitor/ProbeAgreementRule";
 interface ProbeAgreementResult {
   hasAgreement: boolean;
   agreementCount: number;
@@ -2666,14 +2667,16 @@ export default class MonitorResourceUtil {
       };
     }
 
-    // Determine required count for agreement
-    const requiredCount: number =
-      monitor.minimumProbeAgreement ?? activeProbes.length;
-    // Effective threshold cannot exceed number of active probes
-    const effectiveThreshold: number = Math.min(
-      requiredCount,
-      activeProbes.length,
-    );
+    /*
+     * How many must agree: the monitor's minimum, all of them when it is
+     * not set, never more than take part. The pages that say what this
+     * decides (the probes card, the website-down guided setup) read the
+     * same rule (Common/Utils/Monitor/ProbeAgreementRule).
+     */
+    const effectiveThreshold: number = getProbeAgreementRequiredCount({
+      minimumProbeAgreement: monitor.minimumProbeAgreement,
+      activeProbeCount: activeProbes.length,
+    });
 
     /*
      * Count how many probes agree on each criteria result

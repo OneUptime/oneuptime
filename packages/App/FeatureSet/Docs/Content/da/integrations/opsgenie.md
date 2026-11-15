@@ -33,9 +33,9 @@ Begge workflows kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert
 ## Gem API-nøglen
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den navnet `OPSGENIE_KEY`, og klik på **Næste**.
-3. Indsæt API-nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt API-nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 En hemmelig variabel erstattes med `[REDACTED]` i kørselslogs, så nøglen vises aldrig i en kørsel.

@@ -11,7 +11,7 @@
 
 ## 工作原理
 
-Docker Compose 把 OneUptime 的每个部分作为容器运行在你的服务器上。所有流量都从 `ingress` 容器进入，再由它路由到 `app`。应用把数据保存在 PostgreSQL、ClickHouse 和 Valkey 中。内置的探针执行监控器的检查，并通过 ingress 回报结果。
+Docker Compose 把 OneUptime 的每个部分作为容器运行在你的服务器上。所有流量都从 `ingress` 容器进入，再由它路由到 `app`。应用把数据保存在 PostgreSQL、ClickHouse 和 Valkey 中。内置的探针执行监视器的检查，并通过 ingress 回报结果。
 
 ```mermaid title="Docker Compose 部署"
 flowchart TB
@@ -48,9 +48,9 @@ flowchart TB
 | --- | --- | --- |
 | `ingress` | `oneuptime/nginx` | 接收端口 80 和 443 上的所有流量，并路由到应用。当 OneUptime 管理证书时提供 HTTPS。 |
 | `app` | `oneuptime/app` | 仪表板、API、状态页面、遥测数据接收和后台任务进程。 |
-| `probe-1` | `oneuptime/probe` | 执行监控器检查的全局探针。它使用主机网络。 |
+| `probe-1` | `oneuptime/probe` | 执行监视器检查的全局探针。它使用主机网络。 |
 | `global-runner` | `oneuptime/runner` | 内置的全局 Runner，为所有项目运行运行手册的 JavaScript 步骤和 OneUptime AI 的代码修复。 |
-| `postgres` | `postgres:15` | 配置和状态：监控器、事件、用户。保存在 `postgres` 卷中。 |
+| `postgres` | `postgres:15` | 配置和状态：监视器、事件、用户。保存在 `postgres` 卷中。 |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | 遥测数据：日志、指标、追踪和异常。保存在 `clickhouse` 卷中。 |
 | `valkey` | `valkey/valkey:9.1-alpine` | 缓存和队列。它不在磁盘上保存任何数据。 |
 
@@ -398,7 +398,7 @@ npm start
 
 ## 备份与恢复
 
-PostgreSQL 保存你配置的一切：监控器、事件、状态页面、用户。`npm run backup` 会把它转储到 `Backups` 文件夹中的一个文件里。Enterprise Edition 还可以在 Admin Dashboard 中按计划将 PostgreSQL 和 ClickHouse 备份到你自己的存储：请参阅[备份](/docs/installation/backups)。
+PostgreSQL 保存你配置的一切：监视器、事件、状态页面、用户。`npm run backup` 会把它转储到 `Backups` 文件夹中的一个文件里。Enterprise Edition 还可以在 Admin Dashboard 中按计划将 PostgreSQL 和 ClickHouse 备份到你自己的存储：请参阅[备份](/docs/installation/backups)。
 
 :::steps
 ### 为备份脚本提供数据库密码
@@ -450,8 +450,8 @@ ClickHouse 把遥测数据保存在 Docker 卷 `oneuptime_clickhouse` 中，没�
 
 - **预设** 一键设置所有开关：**监控与状态页面** 保留监视器、事件、值班、状态页面和计划维护；**事件响应** 再加上警报、SLOs、工作流和运行手册；**全部** 保留所有产品。**逐个选择产品** 可切换单个产品。用户、团队和项目设置始终开启。
 - 已关闭的产品会从每个项目的 **产品** 菜单、首页和搜索中消失，**项目设置 > 产品** 会将其显示为已关闭。指向其某个页面的链接会说明该产品已在此服务器上关闭，以及谁可以开启它。
-- API 拒绝创建、更改或删除该产品的记录，询问 AI 也会将其排除在外。读取仍然有效，因为保持开启的产品会显示其他产品的记录：事件会列出它的监控器。
-- 不会删除任何内容，已经在运行的内容会继续运行：监控器继续检查，已发布的状态页面保持在线，遥测数据也会继续到达，除非你同时停止数据接收。重新开启的产品会恢复原样。
+- API 拒绝创建、更改或删除该产品的记录，询问 AI 也会将其排除在外。读取仍然有效，因为保持开启的产品会显示其他产品的记录：事件会列出它的监视器。
+- 不会删除任何内容，已经在运行的内容会继续运行：监视器继续检查，已发布的状态页面保持在线，遥测数据也会继续到达，除非你同时停止数据接收。重新开启的产品会恢复原样。
 
 要以代码方式设置产品，请在 `config.env` 中把 `SERVER_PRODUCTS`（Helm：`products.onThisServer`）设为 `everything`、`monitoring-and-status-pages`、`incident-response`，或按键名列出要保持开启的产品，例如 `monitors,incidents,on-call,status-pages`。这是一个初始值：一旦管理员保存了 **设置 > 产品**，就以其保存的内容为准。
 
@@ -473,7 +473,7 @@ MQTT_INGEST_ENABLED=false
 | `GLOBAL_RUNNER_REPLICAS=0` | `global-runner` 服务不会启动。只有运行手册和 OneUptime AI 的代码修复会用到它。 |
 | `MQTT_INGEST_ENABLED=false` | 关闭 IoT 设备发送数据所用的 MQTT 监听器。 |
 
-仍有六个服务在运行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 会保留，因为监控器把结果和日志保存在其中。在 Kubernetes 上，请在 Helm values 中设置 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。请按照[要求](#要求)确定服务器规格。
+仍有六个服务在运行：`ingress`、`app`、`probe-1`、`postgres`、`clickhouse` 和 `valkey`。ClickHouse 会保留，因为监视器把结果和日志保存在其中。在 Kubernetes 上，请在 Helm values 中设置 `products.onThisServer: monitoring-and-status-pages`、`telemetry.disableIngestion: true` 和 `globalRunner.enabled: false`。请按照[要求](#要求)确定服务器规格。
 
 ## 更新 OneUptime
 
@@ -508,7 +508,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 然后删除 `oneuptime` 文件夹。
 
 > [!CAUTION]
-> `--volumes` 会永久删除所有监控器、事件、用户和全部遥测数据。如果你可能还需要其中任何内容，请先备份。
+> `--volumes` 会永久删除所有监视器、事件、用户和全部遥测数据。如果你可能还需要其中任何内容，请先备份。
 
 ## 检查你的安装
 
@@ -600,7 +600,7 @@ Admin Dashboard 在 **设置 > 监控 > 全局探针** 下列出该探针。它�
 
 :::cards
 - [完成服务器设置](/docs/installation/self-hosting-guide#完成服务器设置): 先是邮件，然后是短信和电话，每一项都带测试。
-- [快速开始](/docs/introduction/quickstart): 你的第一个监控器、第一个值班策略和第一个状态页。
+- [快速开始](/docs/introduction/quickstart): 你的第一个监视器、第一个值班策略和第一个状态页。
 - [升级 OneUptime](/docs/installation/upgrading): 每个主版本需要你做的事。
 - [自托管架构](/docs/self-hosted/architecture): 各组件如何协同工作。
 :::

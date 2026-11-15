@@ -11,7 +11,7 @@ En **Log Recording Rule** gör loggar till ett mått. Varje minut tar den de log
 
 ## Översikt
 
-Resultatet är ett vanligt mått. Visa det i **Måttutforskare** och på instrumentpaneler, och få larm på det med en övervakare av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
+Resultatet är ett vanligt mått. Visa det i **Måttutforskare** och på instrumentpaneler, och få larm på det med en monitor av typen **Mätvärden**, även larm per serie med **Gruppera efter**.
 
 Använd en inspelningsregel för loggar när talet du bryr dig om bara finns i dina loggar: en brandväggs SLA-sammanfattningar, ett batchjobb som loggar hur lång tid det tog, svarsstorlekarna i en åtkomstlogg, eller helt enkelt hur många felloggar en tjänst skriver varje minut.
 
@@ -26,13 +26,13 @@ flowchart TB
     groups --> agg["Räkna, eller aggregera ett numeriskt attribut"]
     agg --> points["En måttpunkt per serie"]
     points --> explorer["Måttutforskare och instrumentpaneler"]
-    points --> monitor["Metrikövervakare"]
+    points --> monitor["Mätvärdesmonitor"]
 ```
 
 - **En punkt per minut och serie.** Loggar grupperas i buckets på 1 minut efter sin tidsstämpel. Varje bucket ger en punkt för varje unik kombination av grupperingsattributens värden.
 - **Beräknas 30 sekunder efter att minuten är slut.** Den korta väntan låter loggar som kommer lite sent ändå hamna i sin minut. En logg som kommer senare än så räknas inte.
 - **Inga luckor, ingen dubbelräkning.** Varje regel kommer ihåg den senaste minut den skrev (visas som **Computed Until** i regellistan). Efter en omstart av workern eller annat avbrott kör den ikapp de minuter den missade, upp till 60 minuter bakåt, och skriver aldrig samma minut två gånger.
-- **En räkning utan gruppering har aldrig luckor.** En minut utan matchande loggar skrivs som `0`. Alla andra regler skriver ingenting för en minut utan något att aggregera, så diagram och övervakare ser inga data i stället för en påhittad nolla.
+- **En räkning utan gruppering har aldrig luckor.** En minut utan matchande loggar skrivs som `0`. Alla andra regler skriver ingenting för en minut utan något att aggregera, så diagram och monitorer ser inga data i stället för en påhittad nolla.
 - **Skrivs som vilket annat härlett mått som helst.** Punkterna är Gauge-datapunkter med regelns **Namn på utdatamått**, de bär grupperingsattributen och `oneuptime.derived.log_rule_id` (regelns ID), och de följer samma lagring som punkterna från inspelningsreglerna för mätvärden och spår: 15 dagar.
 
 En ändring av en regels definition gäller från nästa minut den skriver; redan skrivna punkter skrivs inte om. Att stänga av en regel stoppar den; påslagen igen kör den ikapp de minuter den missade medan den var avstängd, upp till samma 60 minuter.
@@ -120,7 +120,7 @@ flowchart TB
     logs --> pipeline["Loggpipeline tolkar key=value-par"]
     pipeline --> rule["Inspelningsregel: genomsnittlig latens per gateway"]
     rule --> metric["sdwan.gateway.latency.ms"]
-    metric --> monitor["Metrikövervakare, ett larm per gateway"]
+    metric --> monitor["Mätvärdesmonitor, ett larm per gateway"]
 ```
 
 :::steps
@@ -164,7 +164,7 @@ Inom några minuter visar regellistan en tid under **Computed Until**, och `sdwa
 
 ### Få larm när en gateways latens förblir hög
 
-Skapa en övervakare av typen **Mätvärden** (se [Metrikövervakning](/docs/monitor/metrics-monitor)):
+Skapa en monitor av typen **Mätvärden** (se [Metrikövervakning](/docs/monitor/metrics-monitor)):
 
 1. **Måttfråga:** `sdwan.gateway.latency.ms`, aggregering **Genomsnitt**, **Gruppera efter** `gw_name` och `profile_name`.
 2. **Rullande tidsfönster:** Past 15 Minutes. Brandväggen rapporterar med några minuters mellanrum, så fönstret innehåller flera punkter per gateway.
