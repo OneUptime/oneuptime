@@ -208,7 +208,16 @@ export const USE_IN_RULE_LABEL: string = translationKey(
 export const USE_IN_SEARCH_LABEL: string = translationKey(
   "In a search on Events or a hunt",
 );
-export const READ_BY_LABEL: string = translationKey("Read by");
+/*
+ * A folded row's line of what reads its list, as one sentence with the
+ * names in it: "Read by: A, B and 2 more". Its label, the names and how
+ * many more were drawn one after another, in English's order (#8290).
+ */
+export const READ_BY_NAMES_LINE: string = translationKey("Read by: {{names}}");
+export const READ_BY_NAMES_AND_MORE_LINE: PluralTemplate = {
+  one: "Read by: {{names}} and {{count}} more",
+  other: "Read by: {{names}} and {{count}} more",
+};
 export const OPEN_DETECTION_RULES: string = translationKey(
   "Open Detection Rules",
 );
