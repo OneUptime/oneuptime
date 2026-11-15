@@ -238,7 +238,7 @@ describe("a date in OneUptime AI's table", () => {
     expect(text).not.toContain("2026");
     expect(text).toBe(OneUptimeDate.getDateAsCompactLocalString(THIS_YEAR_ISO));
     // And how long ago it was, under the pointer, in German.
-    expect(cell.getAttribute("title")).toContain("vor 15 Tagen");
+    expect(cell.getAttribute("title")).toContain("vor 15\u00A0Tagen");
   });
 });
 

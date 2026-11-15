@@ -142,7 +142,7 @@ RunCron(
 );
 
 // A person told, as the event's feed names them.
-function feedLine(user: User): string {
+function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
     OwnerNotificationFeedText.nameAndEmail({
       name: user.name?.toString(),
@@ -166,7 +166,7 @@ async function notifyOwnersOfMaintenanceCreated(
 
   // Whom a run that stopped part way told already.
   let moreScheduledMaintenanceFeedInformationInMarkdown: string =
-    delivery.toldEarlier.map(feedLine).join("");
+    delivery.toldEarlier.map(feedLineMarkdown).join("");
 
   const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
@@ -277,7 +277,8 @@ async function notifyOwnersOfMaintenanceCreated(
     );
 
     if (isTold) {
-      moreScheduledMaintenanceFeedInformationInMarkdown += feedLine(user);
+      moreScheduledMaintenanceFeedInformationInMarkdown +=
+        feedLineMarkdown(user);
     }
   }
 

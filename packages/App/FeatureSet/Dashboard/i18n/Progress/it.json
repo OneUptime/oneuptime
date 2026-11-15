@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8353
+    "keys": 55711,
+    "untranslated": 8157
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -185,6 +185,7 @@
     "Job",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
@@ -194,6 +195,7 @@
     "Link-local",
     "Listener",
     "Load balancer",
+    "Log",
     "Log4Shell",
     "Logo",
     "Loopback",

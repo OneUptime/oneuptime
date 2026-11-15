@@ -22,7 +22,16 @@ import ComponentID from "Common/Types/Workflow/ComponentID";
 import Components, { Categories } from "Common/Types/Workflow/Components";
 import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
 import { FROM_ANOTHER_TOOL_KINDS } from "Common/Types/Workflow/Components/FromAnotherTool";
+import {
+  WHAT_HAPPENED_ID,
+  WhatHappened,
+} from "Common/Types/Workflow/CreateOrUpdateTrigger";
+import { ComposedWords, composedWordsOf } from "Common/Types/ComposedWords";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -55,6 +64,14 @@ const CATALOGUE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Types/Workflow/Components.ts", kind: "keys" },
   {
     directory: "packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/CreateFromTemplate.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/OwnersOnCreateSetting.ts",
     kind: "keys",
   },
 ];
@@ -217,6 +234,78 @@ const KEPT_AS_WRITTEN: ReadonlyArray<{ text: string; why: string }> = [
   },
 ];
 
+/*
+ * A record step's words are built from its model's name (#8642): each is a
+ * sentence the catalogue marks, with the name in it ("Find One
+ * {{itemName}}"), and the English built from it is remembered as built
+ * from that sentence (ComposedWords), so the builder reads it in the
+ * reader's language. The models these build them for, plural names and
+ * names of two words among them.
+ */
+const RECORD_MODELS: Array<DatabaseBaseModel> = [
+  new Incident(),
+  new Alert(),
+  new Monitor(),
+  new StatusPage(),
+];
+
+const MODEL_NAME: RegExp = /\{\{(itemName|itemsName)\}\}/;
+const PLACEHOLDERS: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
+
+function modelCase(model: DatabaseBaseModel): {
+  name: string;
+  model: DatabaseBaseModel;
+} {
+  return { name: model.singularName || model.tableName || "", model };
+}
+
+// The words a record step draws that are neither a key, its name, nor built from a marked sentence.
+function unmarkedRecordStepWords(
+  model: DatabaseBaseModel,
+  steps: Array<ComponentMetadata> = BaseModelComponent.getComponents(model),
+): Array<string> {
+  const names: Array<string | null | undefined> = [
+    model.singularName,
+    model.pluralName,
+  ];
+
+  return steps
+    .flatMap(drawnWordsOf)
+    .filter((word: DrawnWord): boolean => {
+      if (CATALOGUE_KEYS.has(word.text) || names.includes(word.text)) {
+        return false;
+      }
+
+      const composed: ComposedWords | undefined = composedWordsOf(word.text);
+
+      return !(composed && CATALOGUE_KEYS.has(composed.template));
+    })
+    .map((word: DrawnWord): string => {
+      return `${word.where}: ${word.text}`;
+    });
+}
+
+// The sentences a model's record steps are built from, once each.
+function recordStepSentences(model: DatabaseBaseModel): Array<string> {
+  const sentences: Set<string> = new Set<string>();
+
+  for (const word of BaseModelComponent.getComponents(model).flatMap(
+    drawnWordsOf,
+  )) {
+    const composed: ComposedWords | undefined = composedWordsOf(word.text);
+
+    if (composed) {
+      sentences.add(composed.template);
+    }
+  }
+
+  return Array.from(sentences);
+}
+
+function placeholdersOf(text: string): Array<string> {
+  return (text.match(PLACEHOLDERS) || []).sort();
+}
+
 function unwordedIn(language: string, keys: Iterable<string>): Array<string> {
   return Array.from(keys).filter((key: string): boolean => {
     return !isWordedInDashboardLocale(key, language);
@@ -328,6 +417,72 @@ describe("the step catalogue's words are keys", () => {
     }
   });
 
+  test.each(RECORD_MODELS.map(modelCase))(
+    "every word $name's record steps draw is a key, its name, or a sentence with its name in it (#8642)",
+    ({ model }: { model: DatabaseBaseModel }) => {
+      expect(
+        BaseModelComponent.getComponents(model).flatMap(drawnWordsOf).length,
+      ).toBeGreaterThan(80);
+      expect(unmarkedRecordStepWords(model)).toEqual([]);
+    },
+  );
+
+  test("a record step's words are built from sentences that name the model, as English always read", () => {
+    const sentences: Array<string> = recordStepSentences(new Incident());
+
+    expect(sentences.length).toBeGreaterThan(40);
+
+    for (const sentence of sentences) {
+      expect({ sentence, named: MODEL_NAME.test(sentence) }).toEqual({
+        sentence,
+        named: true,
+      });
+    }
+
+    const titles: Array<string> = BaseModelComponent.getComponents(
+      new Incident(),
+    ).map((component: ComponentMetadata): string => {
+      return component.title;
+    });
+
+    expect(titles).toEqual(
+      expect.arrayContaining([
+        "Find One Incident",
+        "Find Many Incidents",
+        "On Create Incident",
+        "On Create or Update Incident",
+        "Delete Many Incidents",
+      ]),
+    );
+    expect(composedWordsOf("Find Many Incidents")).toEqual({
+      template: "Find Many {{itemsName}}",
+      terms: { itemName: "Incident", itemsName: "Incidents" },
+      inSentence: false,
+    });
+    expect(composedWordsOf("Database query to find one Incident")).toEqual({
+      template: "Database query to find one {{itemName}}",
+      terms: { itemName: "Incident", itemsName: "Incidents" },
+      inSentence: true,
+    });
+  });
+
+  test("What Happened's help names the two values the trigger hands on", () => {
+    const trigger: ComponentMetadata = BaseModelComponent.getComponents(
+      new Incident(),
+    ).find((component: ComponentMetadata): boolean => {
+      return component.title === "On Create or Update Incident";
+    }) as ComponentMetadata;
+    const whatHappened: ReturnValue = trigger.returnValues.find(
+      (returnValue: ReturnValue): boolean => {
+        return returnValue.id === WHAT_HAPPENED_ID;
+      },
+    ) as ReturnValue;
+
+    expect(whatHappened.description).toBe(
+      `"${WhatHappened.Created}" for a new Incident, "${WhatHappened.Updated}" for a change to one.`,
+    );
+  });
+
   test("a placeholder that is a sentence is a key, and one that shows what to type is not", () => {
     for (const placeholder of PROSE_PLACEHOLDERS) {
       expect({ placeholder, key: CATALOGUE_KEYS.has(placeholder) }).toEqual({
@@ -421,6 +576,20 @@ describe.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
     ).toEqual([]);
   });
 
+  test("words every sentence a record step is built from, the model's name still in it (#8642)", () => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+    const sentences: Array<string> = recordStepSentences(new Incident());
+
+    expect(unwordedIn(language, sentences)).toEqual([]);
+
+    for (const sentence of sentences) {
+      expect({
+        sentence,
+        placeholders: placeholdersOf(locale[sentence] || ""),
+      }).toEqual({ sentence, placeholders: placeholdersOf(sentence) });
+    }
+  });
+
   test("words the step names #8359 found in English its own way", () => {
     const locale: Record<string, string> = readDashboardLocale(language);
 
@@ -459,6 +628,22 @@ describe("the check itself", () => {
     }
 
     expect(unwordedIn("de", ["Response Status"])).toEqual([]);
+  });
+
+  test("finds a record step's word built from the name with no sentence of its own", () => {
+    const incident: Incident = new Incident();
+    const step: ComponentMetadata = BaseModelComponent.getComponents(
+      incident,
+    )[0] as ComponentMetadata;
+    const unmarked: ComponentMetadata = {
+      ...step,
+      title: `Find Every ${incident.singularName}`,
+    };
+
+    expect(unmarkedRecordStepWords(incident, [step])).toEqual([]);
+    expect(unmarkedRecordStepWords(incident, [unmarked])).toEqual([
+      `${step.id}: title: Find Every Incident`,
+    ]);
   });
 
   test("finds a step word the catalogue does not mark", () => {

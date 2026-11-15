@@ -46,6 +46,18 @@ export const SESSION_SIGN_OUT_COOKIE_NAME: string = "user-sign-out";
  */
 export const SESSION_SIGN_OUT_COOKIE_PATH: string = `${IdentityRoute.toString()}/logout`;
 
+/*
+ * Where a status page signs its reader out, before the page's id: every
+ * host that serves a status page - the installation's own address, a
+ * custom domain - passes /status-page-identity-api to the identity
+ * service (Nginx/default.conf.template), and the page posts its sign-out
+ * there, on its own host. Each page's sign-out cookie is sent only to its
+ * own sign-out (getStatusPageSessionSignOutPath), and a refused renewal,
+ * which clears the page's cookies, never sees it (issue #8671).
+ */
+export const STATUS_PAGE_SIGN_OUT_COOKIE_PATH_PREFIX: string =
+  "/status-page-identity-api/logout";
+
 export default class CookieUtil {
   // set cookie with express response
 
@@ -439,6 +451,28 @@ export default class CookieUtil {
       },
     );
 
+    /*
+     * Which session this browser holds on this page, for its sign-out on
+     * this page only (issue #8671): renewed with the refresh token, for as
+     * long, and sent to nothing but the page's sign-out.
+     */
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getStatusPageSessionSignOutKey(statusPageId),
+      JSONWebToken.signStatusPageSessionSignOutToken({
+        statusPageId: statusPageId,
+        userId: user.id!,
+        sessionId: sessionId,
+        expiresInSeconds: refreshTokenTtl / 1000,
+      }),
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+        sameSite: "strict",
+        path: CookieUtil.getStatusPageSessionSignOutPath(statusPageId),
+      },
+    );
+
     return token;
   }
 
@@ -665,6 +699,59 @@ export default class CookieUtil {
       sameSite: "strict",
       httpOnly: true,
     });
+  }
+
+  // The cookie that says which session a browser holds on one status page, for its sign-out there.
+  @CaptureSpan()
+  public static getStatusPageSessionSignOutKey(statusPageId: ObjectID): string {
+    return `${SESSION_SIGN_OUT_COOKIE_NAME}-${statusPageId.toString()}`;
+  }
+
+  /*
+   * Where a status page signs its reader out, on whichever host serves the
+   * page - POST /status-page-identity-api/logout/<status page>, the address
+   * the page posts its sign-out to (UserUtil.logout in the status page,
+   * STATUS_PAGE_IDENTITY_API_URL) - and the only path its sign-out cookie
+   * is sent to.
+   */
+  @CaptureSpan()
+  public static getStatusPageSessionSignOutPath(
+    statusPageId: ObjectID,
+  ): string {
+    return `${STATUS_PAGE_SIGN_OUT_COOKIE_PATH_PREFIX}/${statusPageId.toString()}`;
+  }
+
+  /*
+   * The sign-out cookie for this status page a browser sent, which it sends
+   * only to the page's sign-out. Read from the cookie only: never from a
+   * body or a header.
+   */
+  @CaptureSpan()
+  public static getStatusPageSessionSignOutTokenFromExpressRequest(
+    req: ExpressRequest,
+    statusPageId: ObjectID,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getStatusPageSessionSignOutKey(statusPageId),
+    );
+  }
+
+  // Clears a status page's sign-out cookie on the path, and with the attributes, it was set with.
+  @CaptureSpan()
+  public static removeStatusPageSessionSignOutCookie(
+    res: ExpressResponse,
+    statusPageId: ObjectID,
+  ): void {
+    CookieUtil.removeCookie(
+      res,
+      CookieUtil.getStatusPageSessionSignOutKey(statusPageId),
+      {
+        path: CookieUtil.getStatusPageSessionSignOutPath(statusPageId),
+        sameSite: "strict",
+        httpOnly: true,
+      },
+    );
   }
 
   @CaptureSpan()

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8413
+    "keys": 55711,
+    "untranslated": 8216
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -141,6 +141,7 @@
     "Japan (+81)",
     "Jitter",
     "Kelvin",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
