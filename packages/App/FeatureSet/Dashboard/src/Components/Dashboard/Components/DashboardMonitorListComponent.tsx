@@ -106,10 +106,12 @@ const DashboardMonitorListComponentElement: FunctionComponent<
        * the monitors that are checked: one whose monitoring is off keeps the
        * status its last check saw, and its row says Disabled instead
        * (MonitorListWidgetFormat - the public policy builds the same query).
+       * Given the project, "non-operational" is asked of the project's own
+       * statuses, so the read and its count start from those (issue #8096).
        */
       const query: Query<Monitor> = {
         projectId: projectId,
-        ...getMonitorListQuery({ statusFilter, monitorStatusIds }),
+        ...getMonitorListQuery({ statusFilter, monitorStatusIds }, projectId),
       } as Query<Monitor>;
 
       if (monitorTypes && monitorTypes.length > 0) {

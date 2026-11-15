@@ -3565,9 +3565,9 @@ const OWNER_ADD_REFUSALS = {
   [tableName(AlertEpisodeOwnerTeam)]:
     "This team is already an owner of this alert episode.",
   [tableName(ScheduledMaintenanceOwnerUser)]:
-    "This user is already an owner of this scheduled maintenance event.",
+    "This user is already an owner of this maintenance event.",
   [tableName(ScheduledMaintenanceOwnerTeam)]:
-    "This team is already an owner of this scheduled maintenance event.",
+    "This team is already an owner of this maintenance event.",
 };
 
 // What the server says when it refuses a role (?fail=role-assign).
@@ -6335,18 +6335,20 @@ if (hasReport) {
  * incident or alert is linked to, recorded in its activity as the server
  * does (LinkedInfrastructureContext.buildActivityNote): the resources, by
  * kind (LinkedAffectedResourceType) and name, and how many open or recent
- * alerts were on them. `message` is the server's English; the card words it
+ * alerts were on them. `message` is the server's English, each kind's noun
+ * as the middle of its sentence says it (describeActivityResource: "host
+ * checkout-api-7f9c", "Docker host checkout-api-7f9c"); the card words it
  * from the data, in the reader's language.
  */
 const LINKED_KIND_NOUNS = {
-  Host: "Host",
+  Host: "host",
   DockerHost: "Docker host",
   KubernetesCluster: "Kubernetes cluster",
-  DatabaseServer: "Database",
-  CloudResource: "Cloud resource",
+  DatabaseServer: "database",
+  CloudResource: "cloud resource",
   // An App Platforms environment, as buildActivityNote records it.
-  CloudEnvironment: "Cloud environment",
-  Service: "Service",
+  CloudEnvironment: "cloud environment",
+  Service: "service",
 };
 
 const INCIDENT_LINKED_RESOURCES = [
@@ -6448,7 +6450,7 @@ const FOLLOW_UP_ALERT_NUMBER = 318;
 const FOLLOW_UP_ALERT_TITLE = "High CPU on checkout-api-7f9c";
 const followUpWindow = { start: at("17:49", 5), end: at("18:04", 5) };
 
-const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
+const FOLLOW_UP_LEAD = `**Checked again** after alert #${FOLLOW_UP_ALERT_NUMBER} opened on host checkout-api-7f9c, 3 minutes after this incident was declared: ${FOLLOW_UP_ALERT_TITLE}.`;
 
 const FOLLOW_UP_CITATIONS = [
   {
@@ -6649,7 +6651,7 @@ if (linkedMode === "followup") {
     ],
     contextNotes: [
       {
-        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on Host "checkout-api-7f9c" after the first analysis`,
+        message: `Checking again: alert #${FOLLOW_UP_ALERT_NUMBER} opened on host checkout-api-7f9c after the first analysis`,
         severity: "Info",
         followUpCheck: {
           alertNumber: FOLLOW_UP_ALERT_NUMBER,
@@ -9345,13 +9347,19 @@ async function handleApi(method, options) {
   /*
    * Investigate now on a waiting record (issue #5074): started, as
    * InvestigationRuleWait.startNow answers, or refused with the server's
-   * words - the project's daily AI limit, for ?fail=investigate-now.
+   * words and their code beside them (#7359) - the project's daily AI
+   * limit, for ?fail=investigate-now.
    */
   if (url.endsWith("/ai-investigation/investigate-now")) {
     if (failures.has("investigate-now")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+        {
+          message:
+            "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+          refusalCode: "project_daily_limit_reached",
+        },
+        {},
       );
     }
     const investigation =
@@ -9375,15 +9383,21 @@ async function handleApi(method, options) {
   /*
    * Try again on an investigation that did not finish (issue #6438): a new
    * run, queued, as InvestigationTryAgain starts one - the record's next
-   * read answers it - or refused with the server's words: OneUptime AI
-   * switched off, for ?fail=investigation-try-again, and a run that is not
-   * one to try again (queued or running already, or someone else's to start).
+   * read answers it - or refused with the server's words and their code
+   * beside them (#7359, Types/AI/AiRunRefusal): OneUptime AI switched off,
+   * for ?fail=investigation-try-again, and a run that is not one to try
+   * again (queued or running already, or someone else's to start).
    */
   if (method === "POST" && url.endsWith("/ai-investigation/try-again")) {
     if (failures.has("investigation-try-again")) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+        {
+          message:
+            "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+          refusalCode: "ai_off",
+        },
+        {},
       );
     }
     const isAlert = body.subjectType === "alert";
@@ -9395,9 +9409,15 @@ async function handleApi(method, options) {
       String(body.subjectId) !== String(investigation.subjectId) ||
       triedAgain.has(String(investigation.subjectId))
     ) {
-      throw fail(
+      throw new HTTPErrorResponse(
         400,
-        `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+        {
+          message: `This ${isAlert ? "alert" : "incident"}'s investigation is queued or running already.`,
+          refusalCode: isAlert
+            ? "alert_investigation_running"
+            : "incident_investigation_running",
+        },
+        {},
       );
     }
     const newRunId = ID.aiRun(100 + triedAgain.size + 1);

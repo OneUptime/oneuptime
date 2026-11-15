@@ -99,19 +99,54 @@ export default class UserPermissionUtil {
     userId: ObjectID,
     projectId: ObjectID,
   ): Promise<UserTenantAccessPermission | null> {
-    const json: UserTenantAccessPermission | null =
-      (await GlobalCache.getJSONObject(
+    return this.readCachedTenantAccessPermission(
+      await GlobalCache.getJSONObject(
         PermissionNamespace.ProjectPermission,
         this.buildTenantPermissionCacheKey(userId, projectId),
-      )) as UserTenantAccessPermission;
+      ),
+    );
+  }
 
-    if (json) {
-      json._type = "UserTenantAccessPermission";
+  /*
+   * getUserTenantAccessPermissionFromCache for several projects of one user,
+   * in a single round trip to the cache (MGET): one entry per project, in
+   * the order asked, each read as that method reads it.
+   */
+  @CaptureSpan()
+  public static async getUserTenantAccessPermissionsFromCache(
+    userId: ObjectID,
+    projectIds: Array<ObjectID>,
+  ): Promise<Array<UserTenantAccessPermission | null>> {
+    if (projectIds.length === 0) {
+      return [];
     }
+
+    const cached: Array<JSONObject | null> = await GlobalCache.getJSONObjects(
+      PermissionNamespace.ProjectPermission,
+      projectIds.map((projectId: ObjectID): string => {
+        return this.buildTenantPermissionCacheKey(userId, projectId);
+      }),
+    );
+
+    return cached.map(
+      (json: JSONObject | null): UserTenantAccessPermission | null => {
+        return this.readCachedTenantAccessPermission(json);
+      },
+    );
+  }
+
+  // A cached permission set as a request may use it, or null to rebuild it.
+  private static readCachedTenantAccessPermission(
+    cached: JSONObject | null,
+  ): UserTenantAccessPermission | null {
+    const json: UserTenantAccessPermission | null =
+      cached as UserTenantAccessPermission | null;
 
     if (!json) {
       return null;
     }
+
+    json._type = "UserTenantAccessPermission";
 
     if (!json.permissions) {
       json.permissions = [];

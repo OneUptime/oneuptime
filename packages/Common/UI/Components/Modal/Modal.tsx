@@ -419,8 +419,18 @@ const Modal: FunctionComponent<ComponentProps> = (
             typeof element.checkVisibility !== "function" ||
             element.checkVisibility();
 
+          /*
+           * A control in a disabled fieldset carries no disabled attribute
+           * of its own, but it is disabled all the same: the browser neither
+           * focuses it nor tabs to it. A workflow step's settings on a view
+           * are held still that way (WorkflowViewOnlyFieldset), and a
+           * dropdown there - a react-select input, tabindex 0 - was picked
+           * as the field to start on: its focus() did nothing, and the focus
+           * stayed outside the dialog.
+           */
           return (
             !element.hasAttribute("disabled") &&
+            !element.matches(":disabled") &&
             element.getAttribute("aria-hidden") !== "true" &&
             isRendered
           );

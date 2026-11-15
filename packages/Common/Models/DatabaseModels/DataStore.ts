@@ -213,6 +213,14 @@ const bigNumberTransformer: {
 @Index(["projectId", "sensitivity"])
 @Index(["projectId", "kind"])
 @Index(["projectId", "isArchived"])
+/*
+ * A probe asks for the stores whose tables it collects and whose content it
+ * scans every five minutes (DataObservabilityProbeClaim,
+ * DataSecurityProbeClaim): each a range of one of these, oldest first, that
+ * stops at the claim's limit.
+ */
+@Index(["scanProbeId", "nextTableHealthCollectionAt"])
+@Index(["scanProbeId", "nextContentScanAt"])
 export default class DataStore extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({

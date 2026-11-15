@@ -25,7 +25,7 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 const MAINTENANCE_BLUE: string = "rgb(59, 130, 246)";
 
 // How a bar's accessible name ends on a day with one event.
-const ONE_EVENT_LABEL_END: RegExp = /% uptime, 1 scheduled maintenance event$/;
+const ONE_EVENT_LABEL_END: RegExp = /% uptime, 1 maintenance event$/;
 
 // An event's window, on the reader's clock and naming it: "..., 01:00 – 03:00 UTC".
 const WINDOW_ON_THE_READERS_CLOCK: RegExp = /– .*(UTC|GMT)/;

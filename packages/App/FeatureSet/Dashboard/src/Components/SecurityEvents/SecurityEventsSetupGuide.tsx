@@ -27,6 +27,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "../Telemetry/IngestionKeySelector";
+import { getFluentBitHostAndPort } from "../Telemetry/CompatibleIngestGuide";
 
 /*
  * "How do I get my SIEM signals in here?"
@@ -173,18 +174,22 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
     ? `${httpProtocol}://${HOST}/security-events/v1/ingest`
     : "<YOUR_ONEUPTIME_URL>/security-events/v1/ingest";
 
+  const tokenValue: string =
+    selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
+
   /*
    * Fluent Bit's http output takes host and port as separate settings, so
    * the port has to come off the configured HOST (which carries one in
-   * local and self-hosted setups) rather than staying in the hostname.
+   * local and self-hosted setups), and an IPv6 address goes without its
+   * brackets, which Fluent Bit cannot resolve: as in every Fluent Bit file
+   * the guides hand out. Cut at its first ":", "[::1]:8080" gave Host "["
+   * and the protocol's default port instead of 8080 (#7889).
    */
-  const ingestHostName: string = HOST
-    ? HOST.split(":")[0] || HOST
-    : "<YOUR_ONEUPTIME_HOST>";
-  const ingestPort: string =
-    HOST.split(":")[1] || (httpProtocol === "https" ? "443" : "80");
-  const tokenValue: string =
-    selectedKey?.secretKey?.toString() || "<YOUR_ONEUPTIME_TOKEN>";
+  const fluentBit: { host: string; port: string } = getFluentBitHostAndPort({
+    protocol: httpProtocol,
+    host: HOST || "<YOUR_ONEUPTIME_HOST>",
+    key: tokenValue,
+  });
 
   useEffect(() => {
     if (isDataConfirmed) {
@@ -360,8 +365,8 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
 [OUTPUT]
     Name             http
     Match            security.*
-    Host             ${ingestHostName}
-    Port             ${ingestPort}
+    Host             ${fluentBit.host}
+    Port             ${fluentBit.port}
     tls              ${httpProtocol === "https" ? "On" : "Off"}
     URI              /security-events/v1/ingest
     Format           json

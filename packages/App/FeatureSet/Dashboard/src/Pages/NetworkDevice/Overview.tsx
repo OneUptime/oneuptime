@@ -46,6 +46,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -580,6 +582,10 @@ const NetworkOverview: FunctionComponent<
                         {site.statusName && (
                           <Pill
                             text={site.statusName}
+                            isUserContent={isRecordNameAsWritten(
+                              StateListType.MonitorStatus,
+                              site.statusName,
+                            )}
                             color={
                               site.statusColor
                                 ? Color.fromString(site.statusColor)

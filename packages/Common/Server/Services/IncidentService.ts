@@ -1,4 +1,5 @@
 import DatabaseConfig from "../DatabaseConfig";
+import MonitorOpenRecords from "../Utils/Monitor/MonitorOpenRecords";
 import MeasurementMetricWriter from "../Utils/Measurement/MeasurementMetricWriter";
 import NumberPrefixUtil from "../../Utils/Project/NumberPrefix";
 import IncidentMeasurementService from "./IncidentMeasurementService";
@@ -5544,6 +5545,20 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         CURRENT_STATE_KEYS,
         "Incident State",
       );
+
+    /*
+     * A state written - a reopen among them - or monitors linked can make an
+     * incident a monitor's criteria raised open for that monitor again:
+     * what those monitors knew of their open incidents no longer counts, so
+     * their next result reads them (MonitorOpenRecords; a guard holds every
+     * other write of these out: MonitorOpenRecordsWrites.test.ts).
+     */
+    if (
+      updatedIncidentStateId ||
+      Object.prototype.hasOwnProperty.call(onUpdate.updateBy.data, "monitors")
+    ) {
+      await MonitorOpenRecords.forgetMonitorsOfIncidents(updatedItemIds);
+    }
 
     /*
      * The severity the update wrote, under either of its names: the

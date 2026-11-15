@@ -342,6 +342,8 @@ const LogEntryRow: FunctionComponent<{
         </span>
         <Pill
           text={getEntryLabel(entry)}
+          // A tool's name or an event's type is code, drawn as written.
+          isUserContent={Boolean(entry.toolName || entry.eventType)}
           color={getEntryColor(entry)}
           isMinimal={true}
         />

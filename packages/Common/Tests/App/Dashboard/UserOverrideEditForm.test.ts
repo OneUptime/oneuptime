@@ -315,6 +315,13 @@ describe("the Edit form holds its times to the server's rules, under the field e
 
 describe("Ends and an overlap", () => {
   test("times known to overlap one they may not: Ends says to change them, and the form is not sent", () => {
+    /*
+     * Ends holds the times to the server's rules at the moment it is checked
+     * (as above), so the clock is this file's: UPCOMING is tomorrow only at
+     * NOW, and on the real clock it has ended since 2026-11-14 17:00 UTC.
+     */
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+
     const ends: OverrideField = byTitle(
       editFields(UPCOMING, {
         isKnownOverlap: (): boolean => {

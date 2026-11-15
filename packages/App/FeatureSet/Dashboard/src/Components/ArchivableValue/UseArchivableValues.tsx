@@ -74,6 +74,7 @@ import {
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -610,6 +611,10 @@ const useArchivableValues: <T extends BaseModel>(
             isMinimal={true}
             color={(item.getColumnValue("color") as Color) || Gray500}
             text={readName(item)}
+            isUserContent={isRecordNameAsWritten(
+              definition.tableName,
+              readName(item),
+            )}
           />
         );
       },

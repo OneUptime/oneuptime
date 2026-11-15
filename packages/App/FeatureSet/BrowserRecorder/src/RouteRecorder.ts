@@ -14,13 +14,14 @@ import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
  *
  * Hash routers (Angular's HashLocationStrategy, React's HashRouter, Vue's
  * hash mode, every `#/`-routed admin tool) keep the whole route in the
- * fragment. UrlScrubber drops the fragment, so comparing scrubbed URLs saw
- * `#/orders` -> `#/orders/42` as no change at all: those apps reported one
- * page per session and never got a forced snapshot. The fragment's PATH
- * (a hash beginning `#/` or `#!/`) now takes part in both the comparison and
- * the stored URL, scrubbed the same way a real path is, while a plain
- * in-page anchor (`#pricing`) stays ignored and any query inside the hash is
- * dropped.
+ * fragment. Comparing URLs scrubbed of their fragment saw `#/orders` ->
+ * `#/orders/42` as no change at all: those apps reported one page per
+ * session and never got a forced snapshot. UrlScrubber keeps the fragment's
+ * PATH (a hash beginning `#/` or `#!/`), scrubbed the same way a real path
+ * is, so it takes part in both the comparison and the stored URL, while a
+ * plain in-page anchor (`#pricing`) stays ignored and any query inside the
+ * hash is dropped. It is the same rule the ingest scrubs every URL with
+ * again, so what the recorder keeps is what is stored.
  */
 
 export const ROUTE_CUSTOM_EVENT_TAG: string = "oneuptime.route";
@@ -47,9 +48,6 @@ const MIN_MS_BETWEEN_FORCED_SNAPSHOTS: number = 5000;
  * when the recorder rolls the session over.
  */
 export const MAX_ROUTES_RECORDED: number = 500;
-
-/* A fragment that is a route rather than an in-page anchor. */
-const HASH_ROUTE_PATTERN: RegExp = /^#!?\//;
 
 export interface RecordedRoute {
   from: string;
@@ -296,44 +294,25 @@ export default class RouteRecorder {
   }
 
   /*
-   * The scrubbed URL plus, for a hash router, the scrubbed route inside the
-   * fragment. This is what is compared and what is stored.
+   * The scrubbed URL, a hash router's route included (UrlScrubber keeps
+   * it). This is what is compared and what is stored.
    */
   private describe(rawUrl: string): string {
-    const scrubbed: string = this.options.scrubUrl(rawUrl);
-    const hashRoute: string = RouteRecorder.scrubHashRoute(rawUrl);
-
-    return hashRoute ? `${scrubbed}${hashRoute}` : scrubbed;
+    return this.options.scrubUrl(rawUrl);
   }
 
   /*
    * `#/orders/42?token=x` -> `#/orders/42`, with identifier-shaped segments
    * redacted exactly as a real path's would be. Empty for a URL whose
-   * fragment is an in-page anchor or absent.
+   * fragment is an in-page anchor or absent. UrlScrubber's rule, the one
+   * every stored URL is scrubbed with.
    */
   public static scrubHashRoute(rawUrl: string): string {
     const hashIndex: number = rawUrl.indexOf("#");
 
-    if (hashIndex === -1) {
-      return "";
-    }
-
-    const hash: string = rawUrl.slice(hashIndex);
-
-    if (!HASH_ROUTE_PATTERN.test(hash)) {
-      return "";
-    }
-
-    const prefix: string = hash.startsWith("#!") ? "#!" : "#";
-    let route: string = hash.slice(prefix.length);
-
-    const queryIndex: number = route.indexOf("?");
-
-    if (queryIndex !== -1) {
-      route = route.slice(0, queryIndex);
-    }
-
-    return `${prefix}${UrlScrubber.scrubPath(route)}`;
+    return hashIndex === -1
+      ? ""
+      : UrlScrubber.scrubHashRoute(rawUrl.slice(hashIndex));
   }
 
   /*

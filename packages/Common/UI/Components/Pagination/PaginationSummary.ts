@@ -24,6 +24,11 @@ export interface PaginationSummaryInput {
    * follow this page, which is all that can be said about them.
    */
   hasMore?: boolean | undefined;
+  /*
+   * More rows match than totalItemsCount: the list counted up to a cap
+   * (ListCount.ts) and the total is that cap - "of 10,000+".
+   */
+  isCountCapped?: boolean | undefined;
   // translateTemplate in the app; tests pass a locale of their own.
   translate?: TranslateTemplateFunction | undefined;
 }
@@ -84,6 +89,23 @@ export const getPaginationSummary: (input: PaginationSummaryInput) => string = (
     input.itemRange.firstItemNumber === input.itemRange.lastItemNumber
       ? input.itemRange.firstItemNumber.toLocaleString(getReaderNumberLocale())
       : `${input.itemRange.firstItemNumber.toLocaleString(getReaderNumberLocale())}-${input.itemRange.lastItemNumber.toLocaleString(getReaderNumberLocale())}`;
+
+  if (input.isCountCapped) {
+    /*
+     * The list stopped counting at its cap: the total is a floor, and the
+     * "+" says so - "Showing 1-10 of 10,000+ incidents". Always the plural:
+     * more than one row matches.
+     */
+    const cappedTotal: string = `${input.totalItemsCount.toLocaleString(
+      getReaderNumberLocale(),
+    )}+`;
+
+    return inReadersLanguage(
+      PaginationCopy.showingRangeOfTotal,
+      { range: rangeText, total: cappedTotal },
+      `Showing ${rangeText} of ${cappedTotal} ${pluralNoun}`,
+    );
+  }
 
   if (input.hasMore !== undefined) {
     /*

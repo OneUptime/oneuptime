@@ -632,7 +632,7 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
       }) => {
         if (String(args.data.userId) === USER_A.toString()) {
           throw PostgresErrorTranslator.createUniqueViolationException(
-            "This user is already an owner of this scheduled maintenance event.",
+            "This user is already an owner of this maintenance event.",
           );
         }
         return args.data;

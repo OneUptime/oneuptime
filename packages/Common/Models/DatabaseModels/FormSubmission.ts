@@ -81,7 +81,7 @@ const DELETE_PERMISSIONS: Array<Permission> = [
   pluralName: "Form Submissions",
   icon: IconProp.ClipboardDocumentCheck,
   tableDescription:
-    "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident or scheduled maintenance event each one created.",
+    "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident or maintenance event each one created.",
 })
 export default class FormSubmission extends BaseModel {
   @ColumnAccessControl({
@@ -256,7 +256,7 @@ export default class FormSubmission extends BaseModel {
     allowedValues: Object.values(FormTargetType),
     title: "Created",
     description:
-      "What the submission created: Incident, or ScheduledMaintenance (a scheduled maintenance event).",
+      "What the submission created: Incident, or ScheduledMaintenance (a maintenance event).",
     example: FormTargetType.Incident,
   })
   @Column({
@@ -326,7 +326,7 @@ export default class FormSubmission extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Maintenance Event",
     description:
-      "The scheduled maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
+      "The maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
   })
   @ManyToOne(
     () => {
@@ -354,7 +354,7 @@ export default class FormSubmission extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Maintenance Event ID",
     description:
-      "ID of the scheduled maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
+      "ID of the maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
     example: "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
   })
   @Column({

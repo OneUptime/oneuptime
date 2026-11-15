@@ -8,6 +8,8 @@ import KeyboardKey, {
 } from "../KeyboardShortcut/KeyboardKey";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
 import {
   PaletteCommand,
@@ -38,6 +40,18 @@ import React, {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+
+/*
+ * What a screen reader hears after every keystroke: how many rows the query
+ * found, worded by the reader's language's own plural rule (#7485). Built as
+ * English builds it - one form for 1, another for every other count - it read
+ * "5 результаты" in Russian, which counts 1, 21 and 31 in one form and every
+ * other count in another, and Arabic in six.
+ */
+export const COMMAND_PALETTE_RESULT_COUNT: PluralTemplate = {
+  one: "{{count}} result",
+  other: "{{count}} results",
+};
 
 export interface ComponentProps {
   commands: Array<PaletteCommand>;
@@ -217,6 +231,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+  const translator: Translator = useTranslator();
 
   useEffect(() => {
     const open: () => void = (): void => {
@@ -792,7 +807,10 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
               data-testid="command-palette-result-count"
               className="sr-only"
             >
-              {resultCount} {resultCount === 1 ? tx("result") : tx("results")}
+              {translator.translatePlural(
+                COMMAND_PALETTE_RESULT_COUNT,
+                resultCount,
+              )}
             </p>
 
             {/* Results */}

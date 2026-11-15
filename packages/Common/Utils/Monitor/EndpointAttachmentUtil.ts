@@ -2,6 +2,7 @@ import ArpEntry from "../../Types/Monitor/SnmpMonitor/ArpEntry";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import FdbEntry from "../../Types/Monitor/SnmpMonitor/FdbEntry";
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
+import DeviceReachabilityUtil from "../NetworkDevice/DeviceReachabilityUtil";
 
 /*
  * Pure helpers that turn ONE device's ARP/FDB walk snapshot into endpoint
@@ -122,17 +123,84 @@ export interface EndpointExistingRowSnapshot {
  * How stale a row's lastSeenAt is allowed to get before an otherwise
  * unchanged observation is written purely to refresh it.
  *
- * Freshness is load-bearing: NetworkTopologyUtil calls an endpoint
- * "down" once lastSeenAt is older than 15 minutes. Suppressing the
- * refresh entirely would mark every stable endpoint down, so the real
- * bound is that stored lastSeenAt may lag reality by at most
- * (refresh threshold + poll interval). At 5 minutes that stays inside
- * the 15-minute window for any poll interval up to 10 minutes, and for
- * slower polls the threshold simply stops suppressing anything (age is
- * always past it) and the behaviour degrades back to write-every-poll —
- * so the optimisation can never make a device look down.
+ * Freshness is load-bearing: the map draws an endpoint "down", the Discovered
+ * Devices list stops counting it, and the "Connected to" card stops matching
+ * a device by its address once lastSeenAt is older than the walk window
+ * (ENDPOINT_WALK_WINDOW_MS, the shared device staleness window at the default
+ * interval - 60 minutes). Suppressing the refresh entirely would mark every
+ * stable endpoint down, so the real bound is that stored lastSeenAt may lag
+ * reality by at most (refresh window + poll interval).
+ *
+ * It was a flat 5 minutes - the default poll interval itself - so every
+ * ARP/FDB walk rewrote every endpoint it saw; then just under two polls, so
+ * an unchanged endpoint was written every other poll. It is now 15 minutes,
+ * as an interface's refresh is (InterfaceInventoryUtil), counted on a clock
+ * of the endpoint's own (endpointRefreshSlot): at 5-minute polls a stable
+ * endpoint is written every third poll. The window plus a poll stays inside
+ * the walk window for every interval up to 45 minutes, and a device polled
+ * less often than the window writes on every poll, as before, so the refresh
+ * can never make an endpoint look gone.
  */
-export const ENDPOINT_LAST_SEEN_REFRESH_MS: number = 5 * 60 * 1000;
+export const ENDPOINT_WALK_WINDOW_MS: number =
+  DeviceReachabilityUtil.getStaleWindowInMinutes(undefined) * 60 * 1000;
+
+export const ENDPOINT_LAST_SEEN_REFRESH_MS: number = 15 * 60 * 1000;
+
+/*
+ * The refresh is spread across the window, not taken all at once: each
+ * endpoint counts its window on a clock of its own, offset by its MAC in
+ * steps of a fifteenth of the window (endpointRefreshSlot). A switch's
+ * endpoints then come due a few at a time - a third of them on each
+ * five-minute poll - rather than all of them on the same poll.
+ *
+ * That is what lets the refresh be a HOT update. A walk writes a device's
+ * endpoints in one statement, and the rows of a device's endpoints sit
+ * together, since its walk inserted them together. A page takes a HOT
+ * update only into room it has free while the statement runs, because the
+ * rows it replaces are not dead until the statement commits: rewriting every
+ * endpoint on a page at once needs half the page free. A third of them needs
+ * a quarter of the page, which is about the room the table keeps
+ * (fillfactor, SetNetworkEndpointFillfactor). The refresh also writes no
+ * indexed column: lastSeenAt is in no index (coarseLastSeenAt is the age-out's
+ * copy, and moves once a day).
+ */
+export const ENDPOINT_REFRESH_GROUPS: number = 15;
+
+/*
+ * How far an endpoint's lastSeenAt gets ahead of its coarseLastSeenAt before
+ * a write moves the coarse one up to it, as SQL: so coarseLastSeenAt <=
+ * lastSeenAt < coarseLastSeenAt + this. NetworkEndpointService writes by it
+ * and the age-out of discovered devices (DiscoveredDeviceAgeOut) narrows by
+ * it, so both must read this one. Hours, not '1 day': a day added to a
+ * timestamptz follows the session's time zone, and is 23 or 25 hours across
+ * a change of clocks.
+ */
+export const COARSE_LAST_SEEN_STEP_SQL: string = `interval '24 hours'`;
+
+/*
+ * Which refresh window of its own a time falls in, for one endpoint: windows
+ * of `refreshMs`, offset by the endpoint's MAC in steps of
+ * 1/ENDPOINT_REFRESH_GROUPS of a window. The group is the MAC's twelve hex
+ * digits as a number, modulo the groups: MACs that differ by one, as a batch
+ * of terminals from one vendor often do, come due a fifteenth of a window
+ * apart.
+ */
+export function endpointRefreshSlot(data: {
+  time: number;
+  macAddress: string;
+  refreshMs: number;
+}): number {
+  const hex: string = data.macAddress.toLowerCase().replace(/[^0-9a-f]/g, "");
+  const value: number = hex ? parseInt(hex.slice(-12), 16) : 0;
+  const group: number = Number.isFinite(value)
+    ? value % ENDPOINT_REFRESH_GROUPS
+    : 0;
+
+  return Math.floor(
+    (data.time + (group * data.refreshMs) / ENDPOINT_REFRESH_GROUPS) /
+      data.refreshMs,
+  );
+}
 
 /*
  * How long a sighting a network controller reported stays current. A walk
@@ -415,8 +483,8 @@ export default class EndpointAttachmentUtil {
    *    over; lastSeenAt is not refreshed meanwhile, or it never could.
    *
    * When `context` is supplied, an update that would write nothing but a
-   * lastSeenAt already refreshed within lastSeenRefreshMs collapses to
-   * "none" — a stable 4096-MAC switch must not issue 4096 writes a poll
+   * lastSeenAt whose refresh is not due yet (endpointRefreshSlot) collapses
+   * to "none" — a stable 4096-MAC switch must not issue 4096 writes a poll
    * just to bump a timestamp nobody reads that precisely.
    */
   public static decideUpsert(
@@ -506,7 +574,7 @@ export default class EndpointAttachmentUtil {
       EndpointAttachmentUtil.isUnchangedSighting(
         existing,
         decision,
-        incoming.deviceId,
+        incoming,
         context,
       )
     ) {
@@ -522,10 +590,11 @@ export default class EndpointAttachmentUtil {
 
   /*
    * True when applying `decision` to `existing` would change nothing a
-   * reader can observe, and lastSeenAt is fresh enough that skipping the
-   * refresh is safe. Deliberately conservative — any doubt (a row that
-   * still needs the firstSeenAt backfill, a row we have never seen a
-   * timestamp for) falls through to a real write.
+   * reader can observe, and the row's refresh is not due yet: the sighting
+   * falls in the same refresh window of the endpoint's own as the row's
+   * lastSeenAt (endpointRefreshSlot). Deliberately conservative — any doubt
+   * (a row that still needs the firstSeenAt backfill, a row we have never
+   * seen a timestamp for) falls through to a real write.
    *
    * A sighting older than the row's lastSeenAt refreshes nothing either.
    * That is an older poll processed after a newer one (OneUptime issue
@@ -536,9 +605,11 @@ export default class EndpointAttachmentUtil {
   private static isUnchangedSighting(
     existing: EndpointExistingRowSnapshot,
     decision: EndpointUpsertDecision,
-    incomingDeviceId: string,
+    incoming: EndpointIncomingObservation,
     context: EndpointUpsertContext,
   ): boolean {
+    const incomingDeviceId: string = incoming.deviceId;
+
     // Rows predating first-seen tracking still owe us a backfill.
     if (!existing.firstSeenAt || !existing.lastSeenAt) {
       return false;
@@ -546,9 +617,18 @@ export default class EndpointAttachmentUtil {
 
     const refreshMs: number =
       context.lastSeenRefreshMs ?? ENDPOINT_LAST_SEEN_REFRESH_MS;
-    const ageMs: number =
-      context.now.getTime() - new Date(existing.lastSeenAt).getTime();
-    if (ageMs >= refreshMs) {
+    if (
+      endpointRefreshSlot({
+        time: context.now.getTime(),
+        macAddress: incoming.macAddress,
+        refreshMs: refreshMs,
+      }) >
+      endpointRefreshSlot({
+        time: new Date(existing.lastSeenAt).getTime(),
+        macAddress: incoming.macAddress,
+        refreshMs: refreshMs,
+      })
+    ) {
       return false;
     }
 

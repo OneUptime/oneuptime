@@ -18,6 +18,8 @@ import useEventStateActions from "../EventView/useEventStateActions";
 import { EventStateKind } from "../EventView/EventStateKinds";
 import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -382,6 +384,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -406,6 +412,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={false}
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

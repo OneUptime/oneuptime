@@ -1,8 +1,9 @@
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 import {
-  InventorySyncResult,
+  InventorySyncPassResult,
   syncAllInventorySources,
 } from "Common/Server/Utils/Telemetry/InventoryEntityRegistry";
 
@@ -24,14 +25,32 @@ import {
  *
  * Not run on startup, so a fleet-wide restart does not have every worker
  * begin a full estate scan at once.
+ *
+ * Its time limit is just under its period, rather than the five minutes a job
+ * gets by default: the pass checks its deadline before every page and stops
+ * there, and a pass cut short at five minutes on a large estate would read
+ * the same first pages every time. A pass that does stop keeps what it
+ * wrote, and the next one reads past it without writing.
  */
+export const SYNC_INVENTORY_ENTITIES_TIME_LIMIT_MS: number = 14 * 60 * 1000;
 
 RunCron(
   "TelemetryEntity:SyncInventoryEntities",
-  { schedule: EVERY_FIFTEEN_MINUTE, runOnStartup: false },
-  async () => {
+  {
+    schedule: EVERY_FIFTEEN_MINUTE,
+    runOnStartup: false,
+    timeoutInMS: SYNC_INVENTORY_ENTITIES_TIME_LIMIT_MS,
+  },
+  async (deadline: JobDeadline = JobDeadline.none()): Promise<void> => {
     try {
-      const result: InventorySyncResult = await syncAllInventorySources();
+      const result: InventorySyncPassResult =
+        await syncAllInventorySources(deadline);
+
+      if (result.stoppedAtDeadline) {
+        logger.debug(
+          "SyncInventoryEntities: the pass reached its time limit and stopped; the next pass carries on.",
+        );
+      }
 
       if (
         result.created > 0 ||

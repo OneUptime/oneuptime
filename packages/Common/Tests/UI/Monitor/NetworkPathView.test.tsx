@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "@jest/globals";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it } from "@jest/globals";
+import { createInstance, i18n } from "i18next";
 import * as React from "react";
+import { I18nextProvider } from "react-i18next";
 import IP from "../../../Types/IP/IP";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import NetworkPathTrace, {
@@ -14,8 +16,18 @@ import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "../../../Utils/ProbeNetworkFailureUtil";
-import NetworkPathView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
+import {
+  getHopHostParts,
+  getHopHostText,
+  splitHopAddress,
+  TRACEROUTE_HOP_HOST_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable";
+import NetworkPathView, {
+  NETWORK_PATH_VERDICT_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/NetworkPathView";
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * "Network Path at Time of Failure" under a failed Ping or Port check.
@@ -59,6 +71,17 @@ const HOPS: Array<TraceRouteHop> = [
     isTimeout: false,
   },
 ];
+
+/*
+ * The line under the hop table: the verdict, then the trace's own message,
+ * drawn in an isolate of its own (so getByText, which reads one element's
+ * own text, cannot find the whole line).
+ */
+function verdictText(): string {
+  return withoutIsolateMarks(
+    screen.getByTestId(NETWORK_PATH_VERDICT_TEST_ID).textContent || "",
+  );
+}
 
 function buildTraceRoute(overrides: Partial<TraceRoute> = {}): TraceRoute {
   return {
@@ -134,9 +157,9 @@ describe("Network path card when traceroute recorded no hops", () => {
     expect(
       screen.getByText("Network Path at Time of Failure"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(`No path was recorded. ${TRACEROUTE_COULD_NOT_RUN}`),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe(
+      `No path was recorded. ${TRACEROUTE_COULD_NOT_RUN}`,
+    );
 
     /*
      * The check is still Offline (the probe could not verify the host), but
@@ -170,9 +193,7 @@ describe("Network path card when traceroute recorded no hops", () => {
   it("says no path was recorded when traceroute hit its deadline before any hop", () => {
     renderPath(buildTraceRoute({ failureMessage: "Traceroute timed out" }));
 
-    expect(
-      screen.getByText("No path was recorded. Traceroute timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("No path was recorded. Traceroute timed out");
   });
 
   it("shows the lead-in alone, and no hop table, when there is no message either", () => {
@@ -199,9 +220,7 @@ describe("Network path card when traceroute recorded no hops", () => {
       }),
     );
 
-    expect(
-      screen.getByText("No path was recorded. Traceroute timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("No path was recorded. Traceroute timed out");
   });
 });
 
@@ -237,9 +256,7 @@ describe("Network path card when traceroute recorded hops", () => {
     );
 
     expect(screen.getByText("* * *")).toBeInTheDocument();
-    expect(
-      screen.getByText("Route broke at hop 2. Hop 2 timed out"),
-    ).toBeInTheDocument();
+    expect(verdictText()).toBe("Route broke at hop 2. Hop 2 timed out");
   });
 
   it("keeps 'did not reach' for a walked route that fell short with no failed hop", () => {
@@ -254,6 +271,139 @@ describe("Network path card when traceroute recorded hops", () => {
     expect(
       screen.getByText("Route did not reach the destination."),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * A hop's host on a phone. The host column broke at whatever letter filled
+ * the line (break-all): "(198.51.100.4" / "2)", "gw.exampl" / "e.com". It
+ * gives way between its name and its address first, then after the name's
+ * own dots before a letter and the address's dots and colons - never
+ * inside a number or before the closing bracket ("(198.51.100.42" / ")",
+ * which a 390px Persian page drew with the address alone in its cell). On
+ * an Arabic or Persian page it is a box as wide as its words that starts
+ * where the page's lines start, each of its lines drawn from the left.
+ */
+describe("a hop's host on a narrow screen", () => {
+  const LONG_HOP: TraceRouteHop = {
+    hopNumber: 4,
+    address: "198.51.100.42",
+    hostName: "edge-router-01.lon.example.net",
+    roundTripTimeInMS: 22,
+    isTimeout: false,
+  };
+
+  const hostCells: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+    return screen.getAllByTestId("traceroute-hop-host");
+  };
+
+  // The cell's text with a "|" where it may break.
+  const breaksOf: (host: HTMLElement) => string = (
+    host: HTMLElement,
+  ): string => {
+    return Array.from(host.childNodes)
+      .map((node: ChildNode): string => {
+        return node.nodeName === "WBR" ? "|" : node.textContent || "";
+      })
+      .join("");
+  };
+
+  it("an address breaks after its dots and colons, never inside a number or before its bracket", () => {
+    expect(splitHopAddress("(198.51.100.42)")).toEqual([
+      "(198.",
+      "51.",
+      "100.",
+      "42)",
+    ]);
+    expect(splitHopAddress("(2001:db8::1)")).toEqual(["(2001:", "db8::", "1)"]);
+    expect(splitHopAddress("(2001:db8:85a3::8a2e:370:7334)")).toEqual([
+      "(2001:",
+      "db8:",
+      "85a3::",
+      "8a2e:",
+      "370:",
+      "7334)",
+    ]);
+    // Nothing after a last separator to break before.
+    expect(splitHopAddress("a.")).toEqual(["a."]);
+    expect(splitHopAddress("")).toEqual([]);
+  });
+
+  it("the parts join to the host's text", () => {
+    for (const hop of [
+      ...HOPS,
+      LONG_HOP,
+      { ...LONG_HOP, address: undefined },
+      { ...LONG_HOP, hostName: undefined, address: "2001:db8::1" },
+    ]) {
+      expect(getHopHostParts(hop).join("")).toBe(getHopHostText(hop));
+    }
+    expect(getHopHostParts(HOPS[1]!)).toEqual(["* * *"]);
+  });
+
+  it("names the host and its address, or three stars when none answered", () => {
+    expect(getHopHostText(HOPS[0]!)).toBe("gw.example.com (192.168.1.1)");
+    expect(getHopHostText(HOPS[1]!)).toBe("* * *");
+    expect(getHopHostText(HOPS[2]!)).toBe("(198.51.100.7)");
+    expect(
+      getHopHostText({ ...LONG_HOP, address: undefined, hostName: "gw" }),
+    ).toBe("gw");
+    expect(
+      getHopHostText({
+        ...LONG_HOP,
+        hostName: undefined,
+        address: "2001:db8::1",
+      }),
+    ).toBe("(2001:db8::1)");
+  });
+
+  it("each host is a box as wide as its words, read left to right, never break-all", () => {
+    renderPath(buildTraceRoute({ hops: [...HOPS, LONG_HOP], totalHops: 4 }));
+
+    const hosts: Array<HTMLElement> = hostCells();
+
+    expect(hosts).toHaveLength(4);
+    for (const host of hosts) {
+      expect(host.tagName).toBe("BDI");
+      expect(host).toHaveAttribute("dir", "ltr");
+      expect(host.className).toBe(TRACEROUTE_HOP_HOST_CLASS_NAME);
+      expect(host).toHaveClass("block", "w-fit", "max-w-full");
+      expect(host).toHaveClass("[overflow-wrap:anywhere]");
+      expect(host.parentElement).not.toHaveClass("break-all");
+      expect(host.parentElement).toHaveClass("font-mono");
+    }
+  });
+
+  it("a long host breaks after its own dots before a letter, and its address after its dots", () => {
+    renderPath(buildTraceRoute({ hops: [LONG_HOP], totalHops: 1 }));
+
+    const host: HTMLElement = hostCells()[0]!;
+
+    // The text is unchanged: a break adds no character.
+    expect(host.textContent).toBe(
+      "edge-router-01.lon.example.net (198.51.100.42)",
+    );
+    expect(breaksOf(host)).toBe(
+      "edge-router-01.|lon.|example.|net |(198.|51.|100.|42)",
+    );
+  });
+
+  it("an address alone breaks after its dots, its closing bracket kept with its last number", () => {
+    renderPath(buildTraceRoute({ hops: [HOPS[2]!], totalHops: 1 }));
+
+    expect(breaksOf(hostCells()[0]!)).toBe("(198.|51.|100.|7)");
+  });
+
+  it("a short host breaks after its dots too: it is alone in its cell", () => {
+    renderPath(buildTraceRoute({ hops: [HOPS[0]!, HOPS[1]!], totalHops: 2 }));
+
+    const hosts: Array<HTMLElement> = hostCells();
+
+    expect(breaksOf(hosts[0]!)).toBe("gw.|example.|com |(192.|168.|1.|1)");
+    expect(hosts[0]!.textContent).toBe("gw.example.com (192.168.1.1)");
+    // Three stars have nothing to break after.
+    expect(hosts[1]!.querySelectorAll("wbr")).toHaveLength(0);
+    expect(hosts[1]!.textContent).toBe("* * *");
   });
 });
 
@@ -285,5 +435,319 @@ describe("Network path card without a traceroute", () => {
     const container: HTMLElement = renderPath(undefined);
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+/*
+ * The card in the reader's language (#7420), rendered with the Dashboard's
+ * real locale files: its title, its description, its column headers, its
+ * DNS line and its verdict are the reader's words; a hop's number is
+ * written in the reader's digits, in the table and in "Route broke at hop
+ * 2."; RTT and the DNS label stay as abbreviations. What the probe wrote -
+ * the trace's own message, a host and its address - stays as written, read
+ * left to right on an Arabic or Persian page.
+ */
+describe("Network path card in the reader's language", () => {
+  const LANGUAGES: Array<string> = ["en", "de", "fa", "ar"];
+  const instances: Record<string, i18n> = {};
+
+  beforeAll(async () => {
+    for (const language of LANGUAGES) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          [language]: { translation: readDashboardLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+      instances[language] = instance;
+    }
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  const BROKEN_ROUTE: TraceRoute = buildTraceRoute({
+    hops: HOPS,
+    destinationAddress: "203.0.113.9",
+    totalHops: 3,
+    failedHop: 2,
+    failureMessage: "Hop 2 timed out",
+  });
+
+  const renderIn: (language: string, traceRoute: TraceRoute) => void = (
+    language: string,
+    traceRoute: TraceRoute,
+  ): void => {
+    render(
+      <I18nextProvider i18n={instances[language]!}>
+        <NetworkPathView
+          networkPathTrace={{
+            timestamp: MONITORED_AT,
+            traceRoute: traceRoute,
+            dnsLookup: {
+              hostName: "api.example.com",
+              resolvedAddresses: ["203.0.113.9"],
+              resolvedInMS: 1234,
+              isSuccess: true,
+              errorMessage: undefined,
+            },
+          }}
+        />
+      </I18nextProvider>,
+    );
+  };
+
+  const verdict: () => HTMLElement = (): HTMLElement => {
+    return screen.getByTestId(NETWORK_PATH_VERDICT_TEST_ID);
+  };
+
+  const hopNumbers: () => Array<string> = (): Array<string> => {
+    return screen
+      .getAllByTestId("traceroute-hop-number")
+      .map((cell: HTMLElement): string => {
+        return cell.textContent || "";
+      });
+  };
+
+  const headers: () => Array<string> = (): Array<string> => {
+    return Array.from(document.querySelectorAll("thead th")).map(
+      (cell: Element): string => {
+        return withoutIsolateMarks(cell.textContent || "").trim();
+      },
+    );
+  };
+
+  it("English reads as it always did", () => {
+    renderIn("en", BROKEN_ROUTE);
+
+    expect(
+      screen.getByText("Network Path at Time of Failure"),
+    ).toBeInTheDocument();
+    expect(withoutIsolateMarks(verdict().textContent || "")).toBe(
+      "Route broke at hop 2. Hop 2 timed out",
+    );
+    expect(hopNumbers()).toEqual(["1", "2", "3"]);
+    expect(headers()).toEqual(["Hop", "Host", "RTT"]);
+  });
+
+  it("German: the card's words in German, RTT as an abbreviation", () => {
+    renderIn("de", BROKEN_ROUTE);
+
+    expect(
+      screen.getByText("Netzwerkpfad zum Zeitpunkt des Fehlers"),
+    ).toBeInTheDocument();
+    expect(withoutIsolateMarks(verdict().textContent || "")).toBe(
+      "Die Route brach bei Hop 2 ab. Hop 2 timed out",
+    );
+    expect(headers()).toEqual(["Hop", "Host", "RTT"]);
+    expect(document.body.textContent).toContain(
+      "api.example.com wurde in 1.234 ms zu 203.0.113.9 aufgelöst",
+    );
+  });
+
+  it("Persian: Persian words, the hops' numbers in Persian digits, in the table and the verdict", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const persian: Record<string, string> = readDashboardLocale("fa");
+
+    expect(
+      screen.getByText(persian["Network Path at Time of Failure"]!),
+    ).toBeInTheDocument();
+    expect(hopNumbers()).toEqual(["۱", "۲", "۳"]);
+
+    const verdictWords: string = withoutIsolateMarks(
+      verdict().textContent || "",
+    );
+
+    expect(verdictWords).toBe(
+      `${persian["Route broke at hop {{hop}}."]!.replace("{{hop}}", "۲")} Hop 2 timed out`,
+    );
+    expect(headers()[0]).toBe(persian["Hop"]);
+    expect(headers()[1]).toBe(persian["Host"]);
+  });
+
+  /*
+   * Every sentence the card writes itself, in each of the four shapes it
+   * takes: no English sentence of it is left on a German or Persian page
+   * (the probe's own message and the hosts are the probe's, not the
+   * card's, and stay as written).
+   */
+  it("German and Persian: none of the card's own English sentences is left", () => {
+    const ENGLISH_SENTENCES: Array<string> = [
+      "Network Path at Time of Failure",
+      "Traceroute captured by the probe when this check failed.",
+      "No path was recorded.",
+      "Route reached the destination.",
+      "Route broke at hop",
+      "Route did not reach the destination.",
+      "resolved to",
+      "Lookup for",
+    ];
+    const SHAPES: Array<TraceRoute> = [
+      BROKEN_ROUTE,
+      buildTraceRoute({ failureMessage: "Traceroute timed out" }),
+      buildTraceRoute({
+        hops: HOPS,
+        destinationAddress: "203.0.113.9",
+        totalHops: 3,
+        isComplete: true,
+      }),
+      buildTraceRoute({
+        hops: HOPS,
+        destinationAddress: "203.0.113.9",
+        totalHops: 3,
+      }),
+    ];
+
+    for (const language of ["de", "fa"]) {
+      for (const shape of SHAPES) {
+        renderIn(language, shape);
+
+        const words: string = withoutIsolateMarks(
+          document.body.textContent || "",
+        );
+
+        for (const sentence of ENGLISH_SENTENCES) {
+          expect({
+            language,
+            sentence,
+            found: words.includes(sentence),
+          }).toEqual({ language, sentence, found: false });
+        }
+        cleanup();
+      }
+    }
+  });
+
+  it("Persian: the DNS line is the Persian sentence, its time in Persian digits", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const persian: Record<string, string> = readDashboardLocale("fa");
+    const words: string = withoutIsolateMarks(document.body.textContent || "");
+
+    expect(words).toContain(
+      persian["{{host}} resolved to {{addresses}} in {{time}} ms"]!.replace(
+        "{{host}}",
+        "api.example.com",
+      )
+        .replace("{{addresses}}", "203.0.113.9")
+        .replace("{{time}}", "۱٬۲۳۴"),
+    );
+  });
+
+  it("German and Persian: a failed lookup is the reader's sentence", () => {
+    for (const language of ["de", "fa"]) {
+      render(
+        <I18nextProvider i18n={instances[language]!}>
+          <NetworkPathView
+            networkPathTrace={{
+              timestamp: MONITORED_AT,
+              dnsLookup: {
+                hostName: "api.example.com",
+                resolvedAddresses: [],
+                resolvedInMS: 12,
+                isSuccess: false,
+                errorMessage: undefined,
+              },
+            }}
+          />
+        </I18nextProvider>,
+      );
+
+      const words: string = withoutIsolateMarks(
+        document.body.textContent || "",
+      );
+
+      expect(words).toContain(
+        readDashboardLocale(language)["Lookup for {{host}} failed"]!.replace(
+          "{{host}}",
+          "api.example.com",
+        ),
+      );
+      expect(words).not.toContain("Lookup for");
+      cleanup();
+    }
+  });
+
+  it("Arabic and Persian: the probe's own message and each host read left to right", () => {
+    for (const language of ["ar", "fa"]) {
+      renderIn(language, BROKEN_ROUTE);
+
+      const message: HTMLElement | null = verdict().querySelector("bdi");
+
+      expect(message).toHaveTextContent("Hop 2 timed out");
+      expect(message).toHaveAttribute("dir", "ltr");
+
+      const hosts: Array<Element> = Array.from(
+        document.querySelectorAll("tbody tr td:nth-child(2) bdi"),
+      );
+
+      expect(hosts).toHaveLength(3);
+      for (const host of hosts) {
+        expect(host).toHaveAttribute("dir", "ltr");
+      }
+      expect(hosts[0]).toHaveTextContent("gw.example.com (192.168.1.1)");
+      cleanup();
+    }
+  });
+
+  /*
+   * On an Arabic or Persian page the hop table starts on the right: each
+   * header starts where the page's lines start (text-start, never the row's
+   * old text-left, which kept the headers on the left over values drawn
+   * from the right), and the gap between columns is on each cell's end.
+   */
+  it("each header and cell starts where the page's lines start", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const headerCells: Array<Element> = Array.from(
+      document.querySelectorAll("thead th"),
+    );
+
+    expect(headerCells).toHaveLength(3);
+    for (const cell of headerCells) {
+      expect(cell).toHaveClass("text-start");
+      expect(cell).not.toHaveClass("text-left");
+      expect(cell).not.toHaveClass("pr-4");
+    }
+    expect(document.querySelector("thead tr")).not.toHaveClass("text-left");
+
+    const bodyCells: Array<Element> = Array.from(
+      document.querySelectorAll("tbody tr:first-child td"),
+    );
+
+    expect(bodyCells[0]).toHaveClass("pe-4");
+    expect(bodyCells[1]).toHaveClass("pe-4");
+    for (const cell of bodyCells) {
+      expect(cell).not.toHaveClass("pr-4");
+    }
+  });
+
+  /*
+   * A round trip is a figure with its unit, which a phone must not break
+   * between the two ("۴۸٫۲۷" on one line, "میلی‌ثانیه" on the next): the
+   * host column gives way instead, between its words and after its own
+   * dots (TracerouteHopsTable).
+   */
+  it("a hop's round trip stays on one line, in the reader's digits and unit", () => {
+    renderIn("fa", BROKEN_ROUTE);
+
+    const times: Array<HTMLElement> =
+      screen.getAllByTestId("traceroute-hop-rtt");
+
+    expect(times).toHaveLength(3);
+    for (const time of times) {
+      expect(time).toHaveClass("whitespace-nowrap");
+    }
+    expect(times[0]!.textContent).toBe(
+      readDashboardLocale("fa")["{{value}} ms"]!.replace("{{value}}", "۱"),
+    );
   });
 });

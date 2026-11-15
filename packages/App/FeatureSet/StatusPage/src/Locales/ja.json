@@ -86,8 +86,8 @@
     "incidentsOnThisDay": "この日に {{total}} 件のインシデントが報告されました",
     "scheduledMaintenance": "予定されたメンテナンス",
     "dayLabelWithMaintenance": "{{label}}、{{maintenance}}",
-    "oneMaintenanceEvent": "予定されたメンテナンス 1 件",
-    "maintenanceEvents": "予定されたメンテナンス {{total}} 件",
+    "oneMaintenanceEvent": "メンテナンスイベント 1 件",
+    "maintenanceEvents": "メンテナンスイベント {{total}} 件",
     "moreMaintenance": "他 {{total}} 件"
   },
   "liveStatus": {

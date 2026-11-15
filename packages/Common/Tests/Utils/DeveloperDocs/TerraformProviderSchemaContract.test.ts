@@ -67,11 +67,15 @@ const PROVIDER_TYPES_BY_KIND: Readonly<
  * "#ff0000"}). The provider keeps them as JSON strings it unwraps on read, and
  * configuration gives them as their plain value (`color = "#ff0000"`), which
  * is why the dashboard treats them as strings.
+ *
+ * A phone number's API value is a wrapper too, but the provider no longer
+ * keeps it as JSON: it is a string of its own (isPhone), sent as the number
+ * and compared as OneUptime keeps it, as written or as its digits (#7777).
+ * Configuration gives it as the plain number all the same.
  */
 const WRAPPER_COLUMN_TYPES: ReadonlyArray<TableColumnType> = [
   TableColumnType.Color,
   TableColumnType.Email,
-  TableColumnType.Phone,
   TableColumnType.Name,
   TableColumnType.Domain,
   TableColumnType.IP,
@@ -86,6 +90,7 @@ interface ProviderAttribute {
   default: unknown;
   isComplexObject: boolean;
   isDateTime: boolean;
+  isPhone: boolean;
   forceNew: boolean;
 }
 
@@ -96,6 +101,7 @@ interface MirroredAttribute {
   default: unknown;
   isComplexObject: boolean;
   isDateTime: boolean;
+  isPhone: boolean;
   forceNew: boolean;
 }
 
@@ -140,6 +146,7 @@ function providerAttributes(
           default: attribute.default ?? null,
           isComplexObject: Boolean(attribute.isComplexObject),
           isDateTime: Boolean(attribute.isDateTime),
+          isPhone: Boolean(attribute.isPhone),
           forceNew: Boolean(attribute.forceNew),
         };
       },
@@ -170,6 +177,7 @@ function mirroredAttributes(
         default: null,
         isComplexObject: false,
         isDateTime: false,
+        isPhone: false,
         forceNew: false,
       };
     });
@@ -196,6 +204,7 @@ function mirroredAttributes(
           descriptor.kind === TerraformValueKind.Json ||
           WRAPPER_COLUMN_TYPES.includes(descriptor.columnType),
         isDateTime: descriptor.kind === TerraformValueKind.DateTime,
+        isPhone: descriptor.columnType === TableColumnType.Phone,
         forceNew:
           descriptor.inCreateSchema && !descriptor.inUpdateSchema && hasUpdate,
       };

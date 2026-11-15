@@ -6,6 +6,8 @@ import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/Advance
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -169,6 +171,10 @@ const AlertIncidentRulesPage: FunctionComponent<
               <Pill
                 color={item.incidentSeverity.color || Black}
                 text={item.incidentSeverity.name || ""}
+                isUserContent={isRecordNameAsWritten(
+                  StateListType.IncidentSeverity,
+                  item.incidentSeverity.name,
+                )}
               />
             );
           },

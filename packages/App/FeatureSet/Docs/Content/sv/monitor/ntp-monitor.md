@@ -29,7 +29,7 @@ Utifrån de fyra tidsstämplarna räknar sonden ut **klockavvikelsen**, ((T2 −
 > [!NOTE]
 > Avvikelsen mäts mot sondens egen klocka. OneUptime Clouds sonder håller sina klockor synkroniserade. På en [anpassad sond](/docs/probe/custom-probe) behöver även värdens klocka hållas synkroniserad, med chrony eller systemd-timesyncd, annars kan en avvikelselarm handla om sonden och inte om servern.
 
-En server som svarar tillfrågas inte igen, inte ens när den svarar utan tillförlitlig tid. Tystnad, en nekad port och en misslyckad DNS-uppslagning görs om med en ny begäran. När servern inte svarar alls spårar sonden också vägen dit och bifogar det den hittade som **Network Path at Time of Failure**. En sond som har tappat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera din server som offline.
+En server som svarar tillfrågas inte igen, inte ens när den svarar utan tillförlitlig tid. Tystnad, en nekad port och en misslyckad DNS-uppslagning görs om med en ny begäran. När servern inte svarar alls spårar sonden också vägen dit och bifogar det den hittade som **Nätverksväg vid felet**. En sond som har tappat sin egen nätverksanslutning rapporterar inget resultat, så den kan inte markera din server som offline.
 
 ## Innan du börjar
 
@@ -133,7 +133,7 @@ Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör v
 ## Felsökning
 
 :::details Servern är igång, men monitorn säger att den inte svarade
-Begäran eller svaret föll bort på vägen. En brandvägg som tillåter TCP men inte UDP, en ntpd-regel `restrict` eller chrony-regel `allow` som utelämnar sondens adress, eller en server som bara lyssnar på ett internt gränssnitt ser alla ut så här. **Network Path at Time of Failure** visar hur långt vägen nådde. Släpp igenom sonden, eller kontrollera servern från en [anpassad sond](/docs/probe/custom-probe) inne i nätverket.
+Begäran eller svaret föll bort på vägen. En brandvägg som tillåter TCP men inte UDP, en ntpd-regel `restrict` eller chrony-regel `allow` som utelämnar sondens adress, eller en server som bara lyssnar på ett internt gränssnitt ser alla ut så här. **Nätverksväg vid felet** visar hur långt vägen nådde. Släpp igenom sonden, eller kontrollera servern från en [anpassad sond](/docs/probe/custom-probe) inne i nätverket.
 :::
 
 :::details Monitorn säger att servern nekade begäran

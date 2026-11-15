@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Når et tjek fejler, sporer sonden også ruten til adressen og vedhæfter det, den fandt, til resultatet som **Network Path at Time of Failure**, så du kan se, hvor ruten brød sammen.
+Når et tjek fejler, sporer sonden også ruten til adressen og vedhæfter det, den fandt, til resultatet som **Netværkssti på fejltidspunktet**, så du kan se, hvor ruten brød sammen.
 
 Hvilken du skal bruge:
 
@@ -139,7 +139,7 @@ Gør vinduet længere end overvågningsintervallet, så det rummer flere tjek: e
 ## Fejlfinding
 
 :::details Adressen er oppe, men monitoren siger offline
-Adressen, eller en firewall foran den, svarer ikke på ICMP-ekkoanmodninger fra sonden. Tillad ICMP-ekkoanmodninger fra sonderne, eller overvåg i stedet en tjeneste på den adresse med en [port-monitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på det mislykkede tjek viser, hvor langt ruten nåede.
+Adressen, eller en firewall foran den, svarer ikke på ICMP-ekkoanmodninger fra sonden. Tillad ICMP-ekkoanmodninger fra sonderne, eller overvåg i stedet en tjeneste på den adresse med en [port-monitor](/docs/monitor/port-monitor). **Netværkssti på fejltidspunktet** på det mislykkede tjek viser, hvor langt ruten nåede.
 :::
 
 :::details En IPv6-adresse fejler altid

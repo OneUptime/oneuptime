@@ -1,5 +1,6 @@
 import AlignItem from "../../../Types/AlignItem";
 import FieldType from "../../Types/FieldType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import GenericObject from "../../../../Types/GenericObject";
 import { ReactElement } from "react";
 
@@ -16,6 +17,15 @@ export default interface Column<T extends GenericObject> {
    */
   headerTooltip?: string | undefined;
   disableSort?: boolean | undefined;
+  /*
+   * The way the list runs when this column's header is first clicked, or
+   * the column is picked in the cards' Sort menu: descending for a
+   * severity, a state or a status, which puts the worst on top (ModelTable's
+   * ColumnSort). Unset, a first click turns the list's current direction
+   * round, and a pick keeps it. A second click on the sorted column always
+   * turns it round.
+   */
+  firstSortOrder?: SortOrder | undefined;
   tooltipText?: ((item: T) => string) | undefined;
   type: FieldType;
   colSpan?: number | undefined;

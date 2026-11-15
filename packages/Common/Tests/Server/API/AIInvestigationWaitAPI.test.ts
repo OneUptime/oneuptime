@@ -23,6 +23,8 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../Types/Exception/AiRunRefusalException";
+import { AiRunRefusalCode } from "../../../Types/AI/AiRunRefusal";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -401,12 +403,13 @@ describe("POST /ai-investigation/investigate-now", () => {
     },
   );
 
-  it("what stopped it is told in the server's own words", async () => {
+  it("what stopped it is told in the server's own words, with its code beside them", async () => {
     const refused: StartNowResult = {
       isStarted: false,
       problem: "project_daily_limit_reached",
+      refusalCode: AiRunRefusalCode.ProjectDailyLimitReached,
       message:
-        "This project has reached its own daily AI limit. It resets at midnight UTC.",
+        "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     };
     startNow.mockResolvedValue(refused);
 
@@ -416,7 +419,14 @@ describe("POST /ai-investigation/investigate-now", () => {
     });
 
     expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
-    expect((next.mock.calls[0]![0] as Error).message).toBe(refused.message);
+    const error: AiRunRefusalException = next.mock
+      .calls[0]![0] as AiRunRefusalException;
+    expect(error).toBeInstanceOf(AiRunRefusalException);
+    expect(error.message).toBe(refused.message);
+    // Response.sendErrorResponse sends these beside the message (#7359).
+    expect(error.details).toEqual({
+      refusalCode: "project_daily_limit_reached",
+    });
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });

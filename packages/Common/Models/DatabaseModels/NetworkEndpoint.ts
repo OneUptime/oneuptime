@@ -69,12 +69,14 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   where: '"deletedAt" IS NULL',
 })
 /*
- * A project's live endpoints by when they were last seen: what the job that
- * removes devices no longer seen (DiscoveredDeviceAgeOut, issue #6389) reads
- * - whether a project has any due, the oldest first, and the devices that
- * saw anything lately - without reading every row of the project.
+ * A project's live endpoints by when they were last seen, to the day: what
+ * the job that removes devices no longer seen (DiscoveredDeviceAgeOut, issue
+ * #6389) reads - whether a project has any due, the oldest first, and the
+ * devices that saw anything lately - without reading every row of the
+ * project. It holds coarseLastSeenAt, not lastSeenAt, so the walk's refresh
+ * of lastSeenAt changes no indexed column and can be a HOT update.
  */
-@Index(["projectId", "lastSeenAt"], {
+@Index(["projectId", "coarseLastSeenAt"], {
   where: '"deletedAt" IS NULL',
 })
 @TableMetadata({
@@ -665,19 +667,49 @@ export default class NetworkEndpoint extends BaseModel {
     ],
     update: [],
   })
-  @Index()
   @TableColumn({
     required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Last Seen At",
-    description: "When this endpoint was last seen in an ARP or FDB walk",
+    description:
+      "When this endpoint was last seen in an ARP or FDB walk, or in a network controller's client list. While a walk keeps seeing it unchanged, this is refreshed every 15 minutes, so it is accurate to within 15 minutes and one poll.",
   })
   @Column({
     nullable: true,
     type: ColumnType.Date,
   })
   public lastSeenAt?: Date = undefined;
+
+  /*
+   * lastSeenAt, a day at a time: it takes lastSeenAt's value only once
+   * lastSeenAt is a day or more past it (NetworkEndpointService), so it is
+   * never later than lastSeenAt and never a day behind it. The age-out
+   * (DiscoveredDeviceAgeOut) finds its candidates by this column's index and
+   * checks lastSeenAt on the row. lastSeenAt itself is in no index, so the
+   * walk's refresh of it changes no indexed column and can be a HOT update;
+   * this column changes about once a day an endpoint.
+   *
+   * The server's alone: nobody reads or writes it through the API.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Coarse Last Seen At",
+    description:
+      "When this endpoint was last seen, to within a day. Managed by the server, for removing devices no longer seen.",
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public coarseLastSeenAt?: Date = undefined;
 
   /*
    * When a person last added this device or changed its vendor, address or

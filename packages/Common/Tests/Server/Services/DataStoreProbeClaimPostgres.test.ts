@@ -20,6 +20,10 @@ import {
   PROBE_SCANNABLE_KINDS,
 } from "../../../Server/Utils/DataSecurity/DataSecurityProbeScan";
 import logger from "../../../Server/Utils/Logger";
+import {
+  SET_ASIDE_FOR_MINUTES,
+  SET_ASIDE_SPREAD_IN_MINUTES,
+} from "../../../Server/Utils/Probe/ClaimSetAside";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import {
   DataStoreKind,
@@ -408,8 +412,12 @@ describePostgres("Data store probe claims against Postgres", () => {
         times: dueAt(claim, minutesFromNow(-1)),
       });
 
-      const left: Array<ObjectID> = [
-        await insertStore({ times: dueAt(claim, minutesFromNow(5)) }),
+      // Not due yet: left as it is.
+      const notDue: ObjectID = await insertStore({
+        times: dueAt(claim, minutesFromNow(5)),
+      });
+      // Due on this probe, but nothing may read them: set aside (ClaimSetAside).
+      const unreadable: Array<ObjectID> = [
         await insertStore(switchedOff()),
         await insertStore({ archived: true }),
         await insertStore({ deleted: true }),
@@ -421,7 +429,13 @@ describePostgres("Data store probe claims against Postgres", () => {
 
       const before: Map<string, StoreRow> = new Map();
 
-      for (const id of [neverRead, longestOverdue, due, ...left]) {
+      for (const id of [
+        neverRead,
+        longestOverdue,
+        due,
+        notDue,
+        ...unreadable,
+      ]) {
         before.set(id.toString(), await readStore(id));
       }
 
@@ -432,13 +446,28 @@ describePostgres("Data store probe claims against Postgres", () => {
       });
       const endedAt: number = Date.now();
 
+      /*
+       * The read is `due <= now`, a range of the (scanProbeId, due) index:
+       * a store never read has no due time, so the set-aside after the claim
+       * makes it due (at the claim's own clock reading), and the next claim
+       * hands it out.
+       */
       expect(claimed).toEqual(
-        [neverRead, longestOverdue, due].map((id: ObjectID): ClaimedStore => {
+        [longestOverdue, due].map((id: ObjectID): ClaimedStore => {
           return { _id: id.toString(), projectId: projectId.toString() };
         }),
       );
 
-      for (const id of [neverRead, longestOverdue, due]) {
+      const madeDue: StoreRow = await readStore(neverRead);
+      expect(madeDue[claim.nextColumn]!.getTime()).toBeGreaterThanOrEqual(
+        startedAt,
+      );
+      expect(madeDue[claim.nextColumn]!.getTime()).toBeLessThanOrEqual(endedAt);
+      expect(madeDue[claim.otherNextColumn]).toEqual(
+        before.get(neverRead.toString())![claim.otherNextColumn],
+      );
+
+      for (const id of [longestOverdue, due]) {
         const row: StoreRow = await readStore(id);
 
         // Held from the claim's own clock reading, which lies between the two.
@@ -456,11 +485,29 @@ describePostgres("Data store probe claims against Postgres", () => {
         );
       }
 
-      for (const id of left) {
-        expect(await readStore(id)).toEqual(before.get(id.toString()));
+      expect(await readStore(notDue)).toEqual(before.get(notDue.toString()));
+
+      for (const id of unreadable) {
+        const row: StoreRow = await readStore(id);
+        const next: number = row[claim.nextColumn]!.getTime();
+
+        // A quarter of an hour on, plus the spread; the other work's time kept.
+        expect(next).toBeGreaterThanOrEqual(
+          startedAt + SET_ASIDE_FOR_MINUTES * 60_000,
+        );
+        expect(next).toBeLessThanOrEqual(
+          endedAt +
+            (SET_ASIDE_FOR_MINUTES + SET_ASIDE_SPREAD_IN_MINUTES) * 60_000,
+        );
+        expect(row[claim.otherNextColumn]).toEqual(
+          before.get(id.toString())![claim.otherNextColumn],
+        );
       }
 
-      // A second claim right away hands nothing out twice.
+      // A second claim right away hands out the one made due, nothing twice.
+      expect(idsOf(await claim.claim({ probeId: probeId, limit: 20 }))).toEqual(
+        [neverRead.toString()],
+      );
       expect(await claim.claim({ probeId: probeId, limit: 20 })).toEqual([]);
     });
 

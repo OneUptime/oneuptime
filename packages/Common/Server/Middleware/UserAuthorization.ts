@@ -58,6 +58,7 @@ import CallerPermission, {
 } from "../Utils/Permission/CallerPermission";
 import { PermissionOperation } from "../../Types/HeldPermissions";
 import OneUptimeDate from "../../Types/Date";
+import ArrayUtil from "../../Utils/Array";
 import {
   getSessionEndReachedBy,
   SessionEndReason,
@@ -92,6 +93,28 @@ export interface ProjectScopedSsoSignIn {
   tokenData: JSONWebTokenData;
   issuedAtMs: number | null;
 }
+
+/*
+ * At most how many of the person's projects a request across their projects
+ * asks its questions of at once (getUserTenantAccessPermissionForMultiTenant).
+ * The rows those questions read are read beforehand, together, so they are
+ * usually answered from this server's memory; what still reads the database
+ * - a project's own SSO providers, and the projects a provider governs,
+ * kept a minute each - must not take a connection per project. Someone in
+ * 300 projects used to send 300 reads at once, more than the pool's
+ * connections, each asking a connection while signing in and the
+ * dashboards waited behind them.
+ */
+export const MULTI_TENANT_PROJECT_LOOKUPS_AT_ONCE: number = 4;
+
+// What a request across projects does with one of them (see below).
+type MultiTenantProjectAnswer =
+  // Left out: blocked, gone, or one the person is not a member of.
+  | { kind: "leftOut" }
+  // Its SSO requirement is not met: what a signed-in user holds, nothing more.
+  | { kind: "notSignedInWithSso" }
+  // Their permission set in it, read for every such project together.
+  | { kind: "member" };
 
 export default class UserMiddleware {
   /*
@@ -1539,84 +1562,119 @@ export default class UserMiddleware {
       : await GlobalConfigService.getRequireSsoForLogin();
 
     /*
-     * Resolve permissions for every project in parallel. A project's own
-     * requireSsoForLogin is read through the cached getter; the global flag is
-     * OR'd in so enforcement matches the single-tenant path.
+     * A REQUEST ACROSS THE PERSON'S PROJECTS READS A BOUNDED NUMBER OF ROWS,
+     * HOWEVER MANY PROJECTS THEY ARE IN.
+     *
+     * Every project's row this server does not keep is read first, in one
+     * statement: whether it is blocked and its sign-in rules
+     * (ProjectService.loadAccessRules). A read that fails throws, and the
+     * whole request is refused with it. The questions below are then asked
+     * of this server's memory, MULTI_TENANT_PROJECT_LOOKUPS_AT_ONCE projects
+     * at a time - each still through its own getter, so a project forgotten
+     * meanwhile is read again by itself, and a read that fails refuses the
+     * request as before. Last, the person's permission set in every project
+     * they may open is read at once (AccessTokenService
+     * .getUserTenantAccessPermissions): one read of the cache, and two
+     * statements for the sets it does not hold.
+     *
+     * This used to ask each project's questions at once, with nothing
+     * shared: once the cached answers ran out, someone in 300 projects
+     * sent 600 reads of the project table together for each such request
+     * - and the dashboard's header sends five on every page.
      */
-    const resolved: Array<{
-      projectId: ObjectID;
-      permission: UserTenantAccessPermission | null;
-    }> = await Promise.all(
-      projectIds.map(async (projectId: ObjectID) => {
-        // Blocked: left out, as a project the person may not open is.
-        if (
-          await UserMiddleware.isProjectBlockedFor({
-            projectId,
-            isMasterAdmin,
-          })
-        ) {
-          return { projectId, permission: null };
-        }
+    await ProjectService.loadAccessRules(projectIds);
 
-        /*
-         * A project that no longer exists is left out, as one the person may
-         * not open is: the list of their projects can be a minute behind its
-         * deletion. Any other failure to read its rule throws, and the whole
-         * request is refused with it, as it is when whether a project is
-         * blocked cannot be read.
-         */
-        let projectRequireSsoForLogin: boolean;
-
-        try {
-          projectRequireSsoForLogin =
-            await ProjectService.getRequireSsoForLogin(projectId);
-        } catch (err) {
-          if (UserMiddleware.isUnknownProject(err)) {
-            return { projectId, permission: null };
-          }
-
-          throw err;
-        }
-
-        const requireSsoForLogin: boolean =
-          projectRequireSsoForLogin || globalRequireSsoForLogin;
-
-        if (requireSsoForLogin) {
-          // Read with the project's rule; a read that fails throws.
-          const requiredSsoProviderId: ObjectID | null =
-            await ProjectService.getRequireSsoWithSsoProviderId(projectId);
-
+    const answers: Array<MultiTenantProjectAnswer> =
+      await ArrayUtil.mapWithConcurrency(
+        projectIds,
+        MULTI_TENANT_PROJECT_LOOKUPS_AT_ONCE,
+        async (projectId: ObjectID): Promise<MultiTenantProjectAnswer> => {
+          // Blocked: left out, as a project the person may not open is.
           if (
-            !(await UserMiddleware.isSsoSatisfiedForProject({
-              req,
+            await UserMiddleware.isProjectBlockedFor({
               projectId,
-              userId,
-              requiredSsoProviderId: requiredSsoProviderId ?? undefined,
-            }))
+              isMasterAdmin,
+            })
           ) {
-            return {
-              projectId,
-              permission:
-                UserPermissionUtil.getDefaultUserTenantAccessPermission(
-                  projectId,
-                ),
-            };
+            return { kind: "leftOut" };
           }
-        }
 
-        return {
-          projectId,
-          permission: await AccessTokenService.getUserTenantAccessPermission(
-            userId,
-            projectId,
-            { userGlobalAccessPermission },
-          ),
-        };
-      }),
+          /*
+           * A project that no longer exists is left out, as one the person
+           * may not open is: the list of their projects can be a minute
+           * behind its deletion. Any other failure to read its rule throws,
+           * and the whole request is refused with it, as it is when whether
+           * a project is blocked cannot be read.
+           */
+          let projectRequireSsoForLogin: boolean;
+
+          try {
+            projectRequireSsoForLogin =
+              await ProjectService.getRequireSsoForLogin(projectId);
+          } catch (err) {
+            if (UserMiddleware.isUnknownProject(err)) {
+              return { kind: "leftOut" };
+            }
+
+            throw err;
+          }
+
+          // The server's flag is OR'd in, as on the single-tenant path.
+          const requireSsoForLogin: boolean =
+            projectRequireSsoForLogin || globalRequireSsoForLogin;
+
+          if (requireSsoForLogin) {
+            // Read with the project's rule; a read that fails throws.
+            const requiredSsoProviderId: ObjectID | null =
+              await ProjectService.getRequireSsoWithSsoProviderId(projectId);
+
+            if (
+              !(await UserMiddleware.isSsoSatisfiedForProject({
+                req,
+                projectId,
+                userId,
+                requiredSsoProviderId: requiredSsoProviderId ?? undefined,
+              }))
+            ) {
+              return { kind: "notSignedInWithSso" };
+            }
+          }
+
+          return { kind: "member" };
+        },
+      );
+
+    const memberProjectIds: Array<ObjectID> = projectIds.filter(
+      (_projectId: ObjectID, index: number): boolean => {
+        return answers[index]?.kind === "member";
+      },
     );
 
+    const permissions: Map<string, UserTenantAccessPermission | null> =
+      memberProjectIds.length > 0
+        ? await AccessTokenService.getUserTenantAccessPermissions(
+            userId,
+            memberProjectIds,
+            { userGlobalAccessPermission },
+          )
+        : new Map<string, UserTenantAccessPermission | null>();
+
     let result: Dictionary<UserTenantAccessPermission> | null = null;
-    for (const { projectId, permission } of resolved) {
+
+    for (let index: number = 0; index < projectIds.length; index++) {
+      const projectId: ObjectID = projectIds[index]!;
+      const answer: MultiTenantProjectAnswer | undefined = answers[index];
+
+      let permission: UserTenantAccessPermission | null = null;
+
+      if (answer?.kind === "notSignedInWithSso") {
+        permission =
+          UserPermissionUtil.getDefaultUserTenantAccessPermission(projectId);
+      } else if (answer?.kind === "member") {
+        permission =
+          permissions.get(projectId.toString().toLowerCase()) || null;
+      }
+
       if (permission) {
         if (!result) {
           result = {};

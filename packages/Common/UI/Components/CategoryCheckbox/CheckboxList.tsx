@@ -50,6 +50,7 @@ const CheckBoxList: FunctionComponent<CategoryProps> = (
           <CheckboxElement
             key={i}
             title={option.label}
+            isTitleUserContent={option.isUserContent}
             value={Boolean(
               currentValues?.find((value: CategoryCheckboxValue) => {
                 return value === option.value;
