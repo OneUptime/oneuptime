@@ -95,7 +95,7 @@ En tilkalling kan nå deg for en type og en alvorlighetsgrad du ikke har noen re
 2. Har du ingen av dem, én betalt metode, i denne rekkefølgen: SMS, et telefonanrop, WhatsApp, Telegram. Det er den første du har verifisert, på en kanal prosjektet har slått på.
 3. Har du heller ingen av dem, en webhook.
 
-Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller prosjektets eiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Slik når man meg](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
+Du får en e-post om det, og det gjør også eierne av vaktpolicyen, eller Prosjekteiere hvis policyen ikke har noen. Er ingenting verifisert, kan tilkallingen ikke leveres, og e-posten sier det i stedet. Disse e-postene holdes tilbake mens tilkallingene fortsetter å komme, slik at en storm av tilkallinger ikke blir en storm av e-poster. Hvordan du legger til den manglende regelen, står under [Slik når man meg](/docs/notifications/on-call-rules#når-en-alvorlighetsgrad-ikke-har-noen-regel).
 
 ## Språket i tilkallingene dine
 

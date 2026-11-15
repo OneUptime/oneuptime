@@ -132,6 +132,12 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import User from "../../../UI/Utils/User";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: string = "dddddddd-4444-4444-8444-444444444444";
 const USER_ID: string = "aaaaaaaa-1111-4111-8111-111111111111";

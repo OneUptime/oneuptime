@@ -834,7 +834,7 @@ Then run the install command again with \`--set preset=gke-autopilot\` added. Th
       title: 'AI → Agent shows "Offline" or "Not installed"',
       markdown: `1. Check the AI agent's pod: \`kubectl get pods -n ${namespace} -l component=ai-agent\`
 2. Check its logs: \`kubectl logs -n ${namespace} -l component=ai-agent --tail=100\`
-3. No pod? Upgrade the chart (see **Upgrade the agent** under Advanced) and add \`--set aiAgent.enabled=true\`.`,
+3. No pod? Upgrade the chart (see **Upgrade or uninstall the agent** under Advanced) and add \`--set aiAgent.enabled=true\`.`,
     },
     {
       title: "No metrics appearing",

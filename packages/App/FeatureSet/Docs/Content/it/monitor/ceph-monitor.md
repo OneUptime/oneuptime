@@ -89,7 +89,7 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | **Ceph Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo** o **Minimo**. Parte dall'aggregazione abituale della metrica. Una somma o un conteggio sommerebbe ogni raccolta di un minuto, quindi sono lasciati ad **Avanzato**. |
 | **Intervallo di tempo** | Tutte | La finestra mobile letta dalla query, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano il proprio. |
-| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
+| **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggrega per**, **Filtra per attributi**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
 Le serie di dati dei pool hanno solo l'etichetta `pool_id`: il nome del pool esiste solo in `ceph_pool_metadata`. Filtra e raggruppa le serie dei pool per `pool_id`, e cerca il nome in `ceph_pool_metadata` quando ti serve.
 

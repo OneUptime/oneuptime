@@ -13,7 +13,7 @@ Questa integrazione è **in entrata**: Huntress invia ogni evento di un report d
 
 ## Come funziona
 
-Huntress invia un evento su un report di incidente quando il report viene inviato, quando qualcuno lo commenta e quando viene chiuso. Il trigger **Huntress Incident Report** avvia il flusso di lavoro una volta per ogni evento, e il suo **Evento** dice quale è stato: `created`, `comment-added` o `closed`.
+Huntress invia un evento su un report di incidente quando il report viene inviato, quando qualcuno lo commenta e quando viene chiuso. Il trigger **Report di incidente Huntress** avvia il flusso di lavoro una volta per ogni evento, e il suo **Evento** dice quale è stato: `created`, `comment-added` o `closed`.
 
 ```mermaid title="Un report di incidente di Huntress in un flusso di lavoro"
 sequenceDiagram
@@ -55,11 +55,11 @@ Apri **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure p
 
 ### Scegliere chi avvisare
 
-La finestra chiede poi chi avvisare: in **Who to page for high and critical reports**, scegli le policy di reperibilità da avvisare, o nessuna per non avvisare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato. Per cambiare in seguito chi avvisa, fai clic sul suo passaggio **Page an On-Call Policy** e cambia le sue **Policy di reperibilità**.
+La finestra chiede poi chi avvisare: in **Who to page for high and critical reports**, scegli le policy di reperibilità da avvisare, o nessuna per non avvisare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato. Per cambiare in seguito chi avvisa, fai clic sul suo passaggio **Avvia una policy di reperibilità** e cambia le sue **Policy di reperibilità**.
 
 ### Aggiungere un endpoint webhook in Huntress
 
-Fai clic sul trigger **Huntress Incident Report** e, in **Aggiungi un endpoint webhook in Huntress**, fai clic su **Copia URL**. L'URL ha la forma `https://oneuptime.com/workflow/huntress/<key>`; in un'installazione self-hosted inizia con il tuo host.
+Fai clic sul trigger **Report di incidente Huntress** e, in **Aggiungi un endpoint webhook in Huntress**, fai clic su **Copia URL**. L'URL ha la forma `https://oneuptime.com/workflow/huntress/<key>`; in un'installazione self-hosted inizia con il tuo host.
 
 In Huntress, apri il menu in alto a destra e scegli **Integrations**. Fai clic su **Add an Integration**, scegli **Webhooks** e fai clic su **Add Endpoint**. Incolla l'URL, attiva **Incident Reports** e salva. Lascia disattivati **Escalations**, **Platform Actions** e **Account Notices**: il trigger accetta quegli eventi e non avvia nulla per loro.
 
@@ -79,15 +79,15 @@ Attiva **Abilitato** in alto nel **Costruttore**. In Huntress, apri il menu dell
 
 ## Cosa fa il flusso di lavoro
 
-Dopo il trigger, **Incident From Another Tool** fa ciò che chiede ogni **Evento**, tramite il numero del report:
+Dopo il trigger, **Incidente da un altro strumento** fa ciò che chiede ogni **Evento**, tramite il numero del report:
 
 | Event | Cosa fa il flusso di lavoro |
 | --- | --- |
-| `created` | Apre un incidente con la **ID gravità dell'incidente** del trigger, con l'etichetta della sua **Organization Label ID**. Per un report alto o critico, **Page an On-Call Policy** avvisa la tua policy; un report basso non avvisa nessuno. Un report che ha già un incidente non ne apre un altro. |
+| `created` | Apre un incidente con la **ID gravità dell'incidente** del trigger, con l'etichetta della sua **ID dell'etichetta dell'organizzazione**. Per un report alto o critico, **Avvia una policy di reperibilità** avvisa la tua policy; un report basso non avvisa nessuno. Un report che ha già un incidente non ne apre un altro. |
 | `comment-added` | Trova l'incidente del report e vi aggiunge il commento come nota privata. |
 | `closed` | Trova l'incidente del report e lo risolve, a meno che non sia già risolto. Il motivo è nella sua cronologia: Huntress ha chiuso il report. |
 
-È un flusso di lavoro come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**If / Else** dopo **Incident From Another Tool**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Switch / Case** su **Organizzazione**. Ogni esecuzione compare tra le esecuzioni del flusso di lavoro, con cosa ha fatto ogni passaggio.
+È un flusso di lavoro come gli altri, quindi puoi cambiare cosa fa: avvisare solo per i report critici cambiando cosa confronta l'**Se / Altrimenti** dopo **Incidente da un altro strumento**, pubblicare ogni report in un canale di chat con un passaggio Slack o Microsoft Teams, oppure mandare ogni organizzazione alla propria policy di reperibilità con uno **Scegli / Caso** su **Organizzazione**. Ogni esecuzione compare tra le esecuzioni del flusso di lavoro, con cosa ha fatto ogni passaggio.
 
 ### Gravità
 
@@ -103,7 +103,7 @@ Un progetto con meno gravità usa la più bassa per le restanti. Un report senza
 
 ### Organizzazioni
 
-La **Organization Label ID** del trigger è un'etichetta con il nome dell'organizzazione Huntress del report, ad esempio _Acme Corp_, che crea la prima volta che arriva un report di quell'organizzazione. Un flusso di lavoro riceve i report di tutte le organizzazioni del tuo account Huntress, e **Solo queste organizzazioni** del trigger li restringe: un nome o ID di organizzazione per riga, i nomi senza distinguere maiuscole e minuscole.
+La **ID dell'etichetta dell'organizzazione** del trigger è un'etichetta con il nome dell'organizzazione Huntress del report, ad esempio _Acme Corp_, che crea la prima volta che arriva un report di quell'organizzazione. Un flusso di lavoro riceve i report di tutte le organizzazioni del tuo account Huntress, e **Solo queste organizzazioni** del trigger li restringe: un nome o ID di organizzazione per riga, i nomi senza distinguere maiuscole e minuscole.
 
 > [!TIP]
 > Per avvisare il team di ogni cliente, aggiungi una regola di reperibilità degli incidenti per organizzazione, ad esempio «Se **Etichette dell'incidente** ha uno qualsiasi di _Acme Corp_», che esegua la policy di quel cliente. Vedi [Regole di reperibilità degli incidenti](/docs/incidents/settings#regole-di-reperibilità-degli-incidenti).
@@ -115,7 +115,7 @@ Il trigger si apre su Huntress: il suo URL, un segno di spunta accanto a ogni pa
 | Valore | Cosa contiene |
 | --- | --- |
 | **Evento** | `created`, `comment-added` o `closed`. Un report già chiuso o archiviato è `closed`, qualunque evento lo abbia portato. |
-| **Report ID** | Il numero del report in Huntress. |
+| **ID del report** | Il numero del report in Huntress. |
 | **Gravità** | `critical`, `high` o `low`. |
 | **Stato** | Lo stato del report in Huntress, ad esempio `sent`, `closed` o `dismissed`. |
 | **Oggetto** | L'oggetto del report, come lo scrive Huntress. |
@@ -124,15 +124,15 @@ Il trigger si apre su Huntress: il suo URL, un segno di spunta accanto a ogni pa
 | **Interessato** | L'host o l'identità di cui tratta il report. |
 | **Piattaforma**, **Indicatori** | Dove l'ha trovato Huntress, e cosa ha trovato. |
 | **Commento** | Il commento aggiunto da qualcuno, con `comment-added`. |
-| **Report URL** | Dove si apre il report in Huntress. |
+| **URL del report** | Dove si apre il report in Huntress. |
 | **Titolo dell'incidente**, **Descrizione dell'incidente** | Un titolo e una descrizione in Markdown per un incidente sul report. |
 | **Nota** | Markdown per una nota sull'evento: il commento, oppure che Huntress ha chiuso il report. |
-| **ID gravità dell'incidente**, **Organization Label ID** | La gravità di incidente e l'etichetta, come sopra. |
-| **Received At** | Quando OneUptime ha ricevuto l'evento. |
+| **ID gravità dell'incidente**, **ID dell'etichetta dell'organizzazione** | La gravità di incidente e l'etichetta, come sopra. |
+| **Ricevuto il** | Quando OneUptime ha ricevuto l'evento. |
 
 **Riepilogo** e **Commento** sono testo scritto dagli analisti di Huntress. Per inserirli in un incidente o in una nota, usa **Descrizione dell'incidente** e **Nota**: mantengono la formattazione, e niente in essi carica un'immagine o menziona qualcuno.
 
-Per provare il flusso di lavoro senza Huntress, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scrivi un **Evento**, un **Report ID** e i campi che ti servono. Usa lo stesso **Report ID** per seguire un report da `created` a `closed`.
+Per provare il flusso di lavoro senza Huntress, fai clic su **Esegui flusso di lavoro** nel **Costruttore** e scrivi un **Evento**, un **ID del report** e i campi che ti servono. Usa lo stesso **ID del report** per seguire un report da `created` a `closed`.
 
 ## Connessioni Huntress create prima
 
@@ -170,15 +170,15 @@ Attiva **Abilitato** in alto nel **Costruttore**. Huntress invia di nuovo la ric
 :::
 
 :::details "No Huntress workflow has this address."
-Il flusso di lavoro è stato eliminato o archiviato, il suo trigger non è più **Huntress Incident Report**, oppure l'URL dell'endpoint in Huntress non è quello del flusso di lavoro. Copia l'URL dal trigger e incollalo di nuovo nell'endpoint in Huntress.
+Il flusso di lavoro è stato eliminato o archiviato, il suo trigger non è più **Report di incidente Huntress**, oppure l'URL dell'endpoint in Huntress non è quello del flusso di lavoro. Copia l'URL dal trigger e incollalo di nuovo nell'endpoint in Huntress.
 :::
 
 :::details Nessun incidente è stato aperto
-Apri le esecuzioni del flusso di lavoro e l'esecuzione del report. Se **Incident From Another Tool** è fallito con `This project has no incident severities to put the incident at.`, aggiungine una in **Incidenti → Impostazioni → Gravità incidente**.
+Apri le esecuzioni del flusso di lavoro e l'esecuzione del report. Se **Incidente da un altro strumento** è fallito con `This project has no incident severities to put the incident at.`, aggiungine una in **Incidenti → Impostazioni → Gravità incidente**.
 :::
 
 :::details Nessuno è stato avvisato
-Un report basso apre un incidente senza avvisare. Altrimenti, l'esecuzione del report dice cosa ha fatto **Page an On-Call Policy**, e la pagina **Esecuzioni di reperibilità** dell'incidente mostra cosa ha fatto ogni policy.
+Un report basso apre un incidente senza avvisare. Altrimenti, l'esecuzione del report dice cosa ha fatto **Avvia una policy di reperibilità**, e la pagina **Esecuzioni di reperibilità** dell'incidente mostra cosa ha fatto ogni policy.
 :::
 
 ## Passi successivi

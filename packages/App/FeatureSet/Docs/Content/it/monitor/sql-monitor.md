@@ -151,7 +151,7 @@ Selezionate le **Sonde** che raggiungono il database e un **Intervallo di monito
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Quanto attendere per stabilire una connessione. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Il limite rigido di durata della query. |
-| **Max Rows** | `100` | `1000` | Il tetto di righe rilette dal database. |
+| **Righe max** | `100` | `1000` | Il tetto di righe rilette dal database. |
 
 Un valore sopra il massimo viene abbassato al massimo.
 

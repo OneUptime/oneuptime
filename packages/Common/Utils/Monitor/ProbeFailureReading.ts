@@ -6,6 +6,7 @@ import {
   translationKey,
   Translator,
 } from "../../Types/Translator";
+import { wordProbeFailureCause } from "./ProbeFailureCauses";
 import {
   getRequestFailureDescriptionText,
   readRequestFailureDescription,
@@ -122,21 +123,34 @@ export const readProbeTimeoutFailureCause: (
 /*
  * A check's failure cause - or any message of the probe's - as a summary
  * draws it: the probe's timeout sentence in the reader's language, with
- * the count in the reader's digits; anything else as written, trimmed.
+ * the count in the reader's digits; one of its causes with values (an NTP
+ * server that did not answer, a probe with no IPv6 route, a connect that
+ * failed on every address: ProbeFailureCauses) in the reader's language,
+ * its values as the probe found them - set apart from the reader's words
+ * when the options ask, for a text drawn on the page; anything else as
+ * written, trimmed.
  */
 export const getProbeFailureCauseText: (data: {
   translator: Translator;
   failureCause: string | null | undefined;
+  options?: SentenceOptions | undefined;
 }) => string = (data: {
   translator: Translator;
   failureCause: string | null | undefined;
+  options?: SentenceOptions | undefined;
 }): string => {
   const text: string =
     typeof data.failureCause === "string" ? data.failureCause.trim() : "";
   const triedCount: number | null = readProbeTimeoutFailureCause(text);
 
   if (triedCount === null) {
-    return text;
+    return (
+      wordProbeFailureCause({
+        translator: data.translator,
+        failureCause: text,
+        options: data.options,
+      }) ?? text
+    );
   }
 
   return data.translator.translatePlural(
@@ -151,10 +165,11 @@ const ON_THE_PAGE: SentenceOptions = { setsValuesApart: true };
 /*
  * Any message of the probe's as a monitor summary draws it on the page:
  * OneUptime's own sentences in the reader's language - the timeout
- * sentence (getProbeFailureCauseText), and what a failed request means
- * (Error Details, RequestFailureDescriptions), with the message that came
- * with it kept as written and set apart from the reader's words - and any
- * other message as written, trimmed.
+ * sentence and the causes with values (getProbeFailureCauseText), and what
+ * a failed request means (Error Details, RequestFailureDescriptions), with
+ * the values and the message that came with them kept as written and set
+ * apart from the reader's words - and any other message as written,
+ * trimmed.
  *
  * Only for a text drawn on the page and nothing else: the isolate's marks
  * round a message kept as written are characters.
@@ -180,6 +195,7 @@ export const getProbeMessageText: (data: {
   return getProbeFailureCauseText({
     translator: data.translator,
     failureCause: text,
+    options: ON_THE_PAGE,
   });
 };
 

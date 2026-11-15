@@ -95,7 +95,7 @@ Et tilkald kan nå dig for en slags og en alvorlighed, du ikke har en regel for:
 2. Har du ingen af dem, én betalt metode, i denne rækkefølge: sms, et telefonopkald, WhatsApp, Telegram. Det er den første, du har bekræftet, på en kanal, projektet har slået til.
 3. Har du heller ingen af dem, en webhook.
 
-Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller projektets ejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Sådan når man mig](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
+Du får en e-mail om det, og det gør vagtpolitikkens ejere også, eller Projektejere, hvis politikken ingen har. Er intet bekræftet, kan tilkaldet ikke leveres, og e-mailen siger det i stedet. Disse e-mails holdes tilbage, mens tilkaldene bliver ved med at komme, så en storm af tilkald ikke bliver en storm af e-mails. Hvordan du tilføjer den manglende regel, står under [Sådan når man mig](/docs/notifications/on-call-rules#når-en-alvorlighed-ingen-regel-har).
 
 ## Sproget i dine tilkald
 

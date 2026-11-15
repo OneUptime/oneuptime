@@ -136,6 +136,25 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * comes in as its words are routed through the translator.
    */
   { directory: "ee/Dashboard/AuditLogs", kind: "ui" },
+  /*
+   * Teams > Compliance, the SCIM pages and their logs, the telemetry
+   * retention overrides, and the notice an Enterprise setting's screen
+   * shows when the license lapses: Enterprise screens whose every word goes
+   * through the reader's Translator since #8296 and #8461. Before, none was
+   * read here, so about 116 of their words were in no locale and every
+   * reader got them in English.
+   */
+  { directory: "ee/Dashboard/TeamCompliance", kind: "ui" },
+  { directory: "ee/Dashboard/Identity", kind: "ui" },
+  { directory: "ee/Dashboard/TelemetryRetention", kind: "ui" },
+  { directory: "ee/Dashboard/EnterpriseSettings", kind: "ui" },
+  /*
+   * The team compliance rules' catalog: each rule kind's and channel's
+   * name, what each kind checks, and the sentence a rule reads as on the
+   * Compliance page. Only the words the file marks are read: the server
+   * evaluates rules with the same file and keeps its own English.
+   */
+  { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -380,6 +399,24 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The workflow builder's step catalogue (#8359): each step's title and
+   * what it does, each setting's name, help and choices, each output's
+   * name and help, each returned value's name and what it holds, and the
+   * Add Component panel's groups. The canvas, the settings panel, the
+   * value picker and the run log look each one up as they draw it. Only
+   * the words the files mark are read: ids, the references a workflow
+   * stores ({{local.components...}}), example values and a Switch / Case's
+   * cases (people name them) stay as written. A record step's words, built
+   * from its model's name, are not marked yet.
+   */
+  { directory: "packages/Common/Types/Workflow/Components", kind: "keys" },
+  { directory: "packages/Common/Types/Workflow/Components.ts", kind: "keys" },
+  // The Affected Resources setting the incident and alert steps share.
+  {
+    directory: "packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
+    kind: "keys",
+  },
+  /*
    * A naming rule's name pattern and lookup table (issue #6619): what each
    * placeholder is, and what is wrong with a pattern or a table, as the
    * rule form says it. Only the sentences the files mark are read: the
@@ -560,6 +597,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a request filter they cannot read (#8444).
+  {
+    directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
     kind: "keys",
   },
   /*

@@ -173,7 +173,7 @@ function Journey(props: {
     sessionId: journey.sessionId,
   });
   const facts: Array<string> = [
-    formatUserFlowDuration(journey.durationMs),
+    formatUserFlowDuration(journey.durationMs, translator),
     journey.browserName,
     journey.deviceType,
     journey.countryCode,

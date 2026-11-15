@@ -1,4 +1,5 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
@@ -22,7 +23,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import EnterpriseLicenseUsageSnapshot from "Common/Types/EnterpriseLicense/EnterpriseLicenseUsageSnapshot";
 import EnterpriseLicenseUsageUtil from "Common/Utils/EnterpriseLicense/EnterpriseLicenseUsage";
@@ -42,6 +42,8 @@ import { APP_API_URL } from "Common/UI/Config";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -52,6 +54,9 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+
+// A release's version, as OneUptime writes it everywhere: v14.2.0.
+const VERSION_PREFIX: string = "v";
 
 const fetchEnterpriseLicenseUsageSnapshot: (
   modelId: string,
@@ -78,6 +83,7 @@ interface TimedEnterpriseLicenseUsageSnapshot {
 }
 
 const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const { t } = useTranslation();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
@@ -446,18 +452,36 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
           ) : (
             <div className="mt-2 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <div className="text-sm text-gray-500">Seats in use</div>
+                <div className="text-sm text-gray-500">
+                  {translator.translateText("Seats in use")}
+                </div>
                 <div className="mt-1 text-4xl font-semibold text-gray-900">
-                  {license
-                    ? (usageSnapshot?.currentUserCount || 0).toLocaleString()
-                    : "—"}
+                  {license ? (
+                    translator.formatNumber(
+                      usageSnapshot?.currentUserCount || 0,
+                    )
+                  ) : (
+                    <EmptyFigure />
+                  )}
                   {license?.userLimit ? (
                     <span className="ml-2 text-lg font-normal text-gray-500">
-                      of {license.userLimit.toLocaleString()} licensed
+                      {translator.translatePlural(
+                        {
+                          one: "of {{count}} licensed",
+                          other: "of {{count}} licensed",
+                        },
+                        license.userLimit,
+                      )}
                     </span>
                   ) : (
                     <span className="ml-2 text-lg font-normal text-gray-500">
-                      · no seat limit
+                      {formatInline(
+                        [
+                          "",
+                          translator.translateText("no seat limit") as string,
+                        ],
+                        translator,
+                      )}
                     </span>
                   )}
                 </div>
@@ -471,18 +495,28 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 </div>
                 <div className="mt-3 text-sm text-gray-500">
                   {usageSnapshot?.lastUsageReportedAt
-                    ? `Last reported ${inEnglishDates((): string => {
-                        // The page's words are English.
-                        return OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                          new Date(usageSnapshot!.lastUsageReportedAt!),
-                        );
-                      })}`
-                    : "This license has not reported usage yet."}
+                    ? translator.translateTemplate(
+                        "Last reported {{time}}",
+                        {
+                          time: OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                            new Date(usageSnapshot.lastUsageReportedAt),
+                          ),
+                        },
+                        { setsValuesApart: true },
+                      )
+                    : translator.translateText(
+                        "This license has not reported usage yet.",
+                      )}
                 </div>
                 <div className="mt-1 text-xs text-gray-400">
-                  Only instances active within the past{" "}
-                  {EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays} days
-                  are included.
+                  {translator.translatePlural(
+                    {
+                      one: "Only instances active within the past {{count}} day are included.",
+                      other:
+                        "Only instances active within the past {{count}} days are included.",
+                    },
+                    EnterpriseLicenseUsageUtil.InstanceUsageFreshnessInDays,
+                  )}
                 </div>
                 <div className="mt-2">
                   <LicenseStatusPill
@@ -493,7 +527,7 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               </div>
               <div>
                 <div className="text-sm text-gray-500">
-                  Master admin contacts
+                  {translator.translateText("Master admin contacts")}
                 </div>
                 <div className="mt-2">
                   {masterAdminEmails.length === 0 ? (
@@ -503,10 +537,9 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                         className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
                       />
                       <span>
-                        No master admin emails synced yet. The customer&apos;s
-                        instances report their master admins once a day — until
-                        then, license notifications only go to the OneUptime
-                        enterprise license email.
+                        {translator.translateText(
+                          "No master admin emails synced yet. The customer's instances report their master admins once a day — until then, license notifications only go to the OneUptime enterprise license email.",
+                        )}
                       </span>
                     </div>
                   ) : (
@@ -532,8 +565,14 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                   )}
                 </div>
                 <div className="mt-3 text-sm text-gray-500">
-                  These contacts get daily emails while the license is over its
-                  user limit or within {reminderDays} days of expiry.
+                  {translator.translatePlural(
+                    {
+                      one: "These contacts get daily emails while the license is over its user limit or within {{count}} day of expiry.",
+                      other:
+                        "These contacts get daily emails while the license is over its user limit or within {{count}} days of expiry.",
+                    },
+                    reminderDays,
+                  )}
                 </div>
               </div>
             </div>
@@ -648,7 +687,9 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               getElement: (item: EnterpriseLicenseInstance): ReactElement => {
                 if (!item.oneuptimeVersion) {
                   return (
-                    <span className="text-sm text-gray-400">Not reported</span>
+                    <span className="text-sm text-gray-400">
+                      {translator.translateText("Not reported")}
+                    </span>
                   );
                 }
 
@@ -669,18 +710,23 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 return (
                   <div className="flex items-center gap-2">
                     <span className="text-sm tabular-nums text-gray-700">
-                      v{item.oneuptimeVersion}
+                      {VERSION_PREFIX}
+                      {item.oneuptimeVersion}
                     </span>
                     {!isLatestReleaseKnown ? (
                       <span
                         className="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500"
-                        title="This installation does not know the latest OneUptime release, so it cannot tell whether this instance is behind."
+                        title={
+                          translator.translateText(
+                            "This installation does not know the latest OneUptime release, so it cannot tell whether this instance is behind.",
+                          ) as string
+                        }
                       >
-                        Not compared
+                        {translator.translateText("Not compared")}
                       </span>
                     ) : isOutdated ? (
                       <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
-                        Outdated
+                        {translator.translateText("Outdated")}
                       </span>
                     ) : (
                       <></>
@@ -706,7 +752,11 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                 const emails: Array<string> = item.masterAdminEmails || [];
 
                 if (emails.length === 0) {
-                  return <span className="text-gray-400">Not synced yet</span>;
+                  return (
+                    <span className="text-gray-400">
+                      {translator.translateText("Not synced yet")}
+                    </span>
+                  );
                 }
 
                 return (
@@ -741,7 +791,9 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
 
                 if (!lastCommunicatedAt) {
                   return (
-                    <span className="text-gray-400">Never communicated</span>
+                    <span className="text-gray-400">
+                      {translator.translateText("Never communicated")}
+                    </span>
                   );
                 }
 
@@ -766,7 +818,9 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                     </div>
                     {isInactive ? (
                       <div className="text-xs text-gray-400">
-                        Inactive — not counted towards seats
+                        {translator.translateText(
+                          "Inactive — not counted towards seats",
+                        )}
                       </div>
                     ) : (
                       <></>

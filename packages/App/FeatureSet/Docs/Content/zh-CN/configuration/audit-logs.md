@@ -43,7 +43,7 @@ flowchart TB
 
 ### 编辑设置
 
-点击 **Edit Audit Log Settings**。
+点击 **编辑审计日志设置**。
 
 ### 开启
 

@@ -117,6 +117,7 @@ describe("the keys that name their meaning", () => {
         "Array (storage array)",
         "Change (schema change)",
         "Created (import result)",
+        "Deleted (invoice status)",
         "From (range start)",
         "Open (invoice status)",
         "Open (status)",
@@ -124,10 +125,15 @@ describe("the keys that name their meaning", () => {
         "Test (dbt test)",
         "Test (environment)",
         "To (range end)",
+        "Undefined (invoice status)",
         "View (database object)",
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");
+    // #8181: an invoice's Deleted and Undefined, worded for the invoice.
+    expect(getWordOfMeaningKey("Deleted (invoice status)")).toBe("Deleted");
+    expect(getWordOfMeaningKey("Undefined (invoice status)")).toBe("Undefined");
+    expect(getWordOfMeaningKey("Deleted")).toBeUndefined();
     expect(getWordOfMeaningKey("Table (database object)")).toBe("Table");
     expect(getWordOfMeaningKey(CHANGE)).toBe("Change");
     expect(getWordOfMeaningKey("Open (invoice status)")).toBe("Open");

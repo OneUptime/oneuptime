@@ -20,7 +20,7 @@ flowchart TB
     workflow -->|"POST issues"| issue["GitLab-issue"]
 ```
 
-Arbejdsgangen kører én gang for hver ny hændelse. Dens blok **API Post (JSON)** sender hændelsens titel og beskrivelse til projektets issues, signeret med et adgangstoken.
+Arbejdsgangen kører én gang for hver ny hændelse. Dens blok **API-kald POST (JSON)** sender hændelsens titel og beskrivelse til projektets issues, signeret med et adgangstoken.
 
 ## Før du går i gang
 
@@ -47,11 +47,11 @@ Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start
 
 ### Tilføj triggeren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse** og **Incident Number With Prefix**.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg **Beskrivelse** og **Incident Number With Prefix**.
 
 ### Åbn issuet
 
-Klik på **Tilføj komponent**, tilføj en blok **API Post (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med dit projekts ID i stedet for `12345678`. Sæt under **Flere felter** dens **Anmodningsheadere** til:
+Klik på **Tilføj komponent**, tilføj en blok **API-kald POST (JSON)**, og forbind triggerens punkt **Succes** til den. Sæt dens **URL** til `https://gitlab.com/api/v4/projects/12345678/issues`, med dit projekts ID i stedet for `12345678`. Sæt under **Flere felter** dens **Anmodningsheadere** til:
 
 ```json
 {
@@ -71,7 +71,7 @@ Og dens **Anmodningsbrødtekst** til:
 
 ### Test det, og slå det derefter til
 
-Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API Post (JSON)** viser et `201`-svar med det nye issue, med dets `iid` og dets `web_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
+Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og kør den. Trinnet **API-kald POST (JSON)** viser et `201`-svar med det nye issue, med dets `iid` og dets `web_url`. Slå derefter **Aktiveret** til øverst i **Bygger**.
 :::
 
 Blokken sender JSON, så den behøver ingen `Content-Type`-header. GitLab opretter labels, den ikke har set før, så `incident` og `oneuptime` kræver ingen opsætning. Issuet forbliver åbent, når hændelsen er løst, da opfølgningsarbejdet som regel lever længere end hændelsen.
@@ -81,11 +81,11 @@ Blokken sender JSON, så den behøver ingen `Content-Type`-header. GitLab oprett
 - **Dit eget GitLab.** Send i stedet anmodningen til din server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. En server på en privat netværksadresse kræver et selvhostet OneUptime, hvis administrator tillader det: se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 - **Projektets sti i stedet for dets ID.** Stien virker i stedet for ID'et, med dens `/` skrevet som `%2F`: `projects/your-group%2Fyour-project/issues`. URL'en sendes præcis, som den er skrevet, så kod den selv.
 - **Tildel det.** Føj `"assignee_ids": [42]` eller `"due_date": "2026-12-31"` til body'en, eller `"confidential": true` for kun at vise det for projektmedlemmer.
-- **Kun nogle hændelser.** Sæt en blok **If / Else** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
+- **Kun nogle hændelser.** Sæt en blok **Hvis / Ellers** mellem triggeren og API-blokken, og åbn kun issues på dens **Ja**-side, for eksempel for én alvorlighed.
 
 ## Fejlfinding
 
-Trinnet **API Post (JSON)** tager **Fejl**, når GitLab afviser anmodningen. Dets **Response Status** og **Svarets brødtekst** i kørslen siger hvorfor.
+Trinnet **API-kald POST (JSON)** tager **Fejl**, når GitLab afviser anmodningen. Dets **Svarstatus** og **Svarets brødtekst** i kørslen siger hvorfor.
 
 :::details GitLab svarer 401
 Tokenet er forkert, udløbet eller tilbagekaldt. Opret et nyt, og erstat indholdet af `GITLAB_TOKEN`.

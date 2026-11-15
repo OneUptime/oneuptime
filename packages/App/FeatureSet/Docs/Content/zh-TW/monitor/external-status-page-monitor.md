@@ -39,7 +39,7 @@ flowchart TB
 
 | 供應商 | 說明 |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Auto**（預設） | 自動判斷狀態頁面的格式 |
+| **自動**（預設） | 自動判斷狀態頁面的格式 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供的狀態頁面（JSON API） |
 | **incident.io** | 由 incident.io 提供的狀態頁面（例如 `https://status.openai.com`） |
 | **OneUptime Status Page** | 用 OneUptime 製作的狀態頁面：每個資源的狀態，以及哪些正在維護 |
@@ -48,7 +48,7 @@ flowchart TB
 
 ### 自動判斷
 
-設定為 **Auto** 時，OneUptime 會依下列順序自動判斷狀態頁面的格式：
+設定為 **自動** 時，OneUptime 會依下列順序自動判斷狀態頁面的格式：
 
 1. 首先嘗試 incident.io 狀態頁面 API（`/proxy/<host>`）。
 2. 接著嘗試 Atlassian Statuspage JSON API（`/api/v2/status.json`、`/api/v2/components.json` 和 `/api/v2/incidents/unresolved.json`）。
@@ -70,7 +70,7 @@ flowchart TB
 
 ### 輸入狀態頁面的 URL
 
-輸入 **狀態頁面 URL**。除非你知道格式，否則請把 **提供者** 保留為 **Auto**。
+輸入 **狀態頁面 URL**。除非你知道格式，否則請把 **提供者** 保留為 **自動**。
 
 ### 視需要選擇元件
 
@@ -94,7 +94,7 @@ flowchart TB
 | 選項 | 要輸入的內容 | 預設值 |
 | --- | --- | --- |
 | **狀態頁面 URL** | 狀態頁面的 URL。對於由 Atlassian Statuspage 和 incident.io 提供的網站，通常是根 URL（例如 `https://status.example.com`）。對於 RSS/Atom 摘要，請直接輸入摘要的 URL。 | — |
-| **提供者** | **Auto** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
+| **提供者** | **自動** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **自動** |
 | **元件** | 要留意的元件，從頁面本身的清單中選擇或直接輸入。 | 整個頁面 |
 | **元件群組篩選器** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
 | **逾時（ms）** | 等待狀態頁面的最長時間。位於 **更多欄位** 下。 | `10000`（10 秒） |
@@ -152,7 +152,7 @@ flowchart TB
 
 ## OneUptime 狀態頁面
 
-若要監測用 OneUptime 製作的狀態頁面（另一個團隊的專案，或供應商在 OneUptime Cloud 或自行託管的 OneUptime 上的頁面），請把提供者選為 **OneUptime Status Page** ，或保留 **Auto** 。在 **狀態頁面 URL** 中輸入頁面本身的位址：有網域就輸入網域，例如 `https://status.example.com`，沒有就輸入 `https://oneuptime.com/status-page/<status-page-id>`。
+若要監測用 OneUptime 製作的狀態頁面（另一個團隊的專案，或供應商在 OneUptime Cloud 或自行託管的 OneUptime 上的頁面），請把提供者選為 **OneUptime Status Page** ，或保留 **自動** 。在 **狀態頁面 URL** 中輸入頁面本身的位址：有網域就輸入網域，例如 `https://status.example.com`，沒有就輸入 `https://oneuptime.com/status-page/<status-page-id>`。
 
 監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。在 **元件** 中選擇資源，或用 **元件群組篩選器** 監測一個群組。
 
@@ -215,7 +215,7 @@ flowchart TB
 
 ## 常用狀態頁面 URL
 
-下列是一些常用服務的狀態頁面。其中許多使用 Atlassian Statuspage 或 incident.io，因此 **Auto** 供應商會自動判斷它們。既不是以這兩者為基礎、也不是摘要的頁面只會進行連線能力檢查；對於這類頁面，如果供應商有發布 RSS 或 Atom 摘要，請改為監控該摘要。
+下列是一些常用服務的狀態頁面。其中許多使用 Atlassian Statuspage 或 incident.io，因此 **自動** 供應商會自動判斷它們。既不是以這兩者為基礎、也不是摘要的頁面只會進行連線能力檢查；對於這類頁面，如果供應商有發布 RSS 或 Atom 摘要，請改為監控該摘要。
 
 | 服務 | 狀態頁面 URL |
 | ---------------------------- | --------------------------------------------- |

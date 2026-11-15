@@ -186,6 +186,18 @@ import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSch
 import { getCreateFormColumnDefault } from "../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import Validation from "../../../UI/Components/Forms/Validation";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
+
+// The custom channels that are on, answered here rather than over the network: none.
+beforeEach((): void => {
+  stubDashboardCustomNotificationChannels();
+});
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 const PROJECT_ID: ObjectID = new ObjectID(PROJECT_ID_STRING);
 const currentUserId: ObjectID = new ObjectID(CURRENT_USER_ID_STRING);

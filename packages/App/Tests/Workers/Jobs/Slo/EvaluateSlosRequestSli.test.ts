@@ -394,6 +394,7 @@ interface RequestSloOverrides {
   lastAccumulatedBucketEndAt?: Date | undefined;
   eventAccumulationFingerprint?: string | undefined;
   monitors?: Array<Monitor> | undefined;
+  requestFilter?: string | undefined;
 }
 
 // A rolling 30-day, 99.9% Request Success SLO over two services.
@@ -426,6 +427,10 @@ function makeRequestSlo(
 
   if (overrides.lastAccumulatedBucketEndAt) {
     slo.lastAccumulatedBucketEndAt = overrides.lastAccumulatedBucketEndAt;
+  }
+
+  if (overrides.requestFilter !== undefined) {
+    slo.requestFilter = overrides.requestFilter;
   }
 
   if (overrides.eventAccumulationFingerprint) {
@@ -478,6 +483,7 @@ interface MeasureArgs {
     sliType: SliType;
     serviceIds: Array<ObjectID>;
     latencyThresholdInMilliseconds?: number | null;
+    requestFilter?: string | null;
   };
   now: Date;
   neededFrom: Date;
@@ -794,6 +800,22 @@ describe("Slo:EvaluateSlos worker - request SLIs", () => {
       });
     });
 
+    // Which of the services' requests count (#8444), as written.
+    test("a request filter is handed over as stored", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({
+          requestFilter: "@http.route:/checkout* -@http.route:/health",
+        }),
+      ]);
+      stubMeasurement({ window: { goodCount: 999, totalCount: 1000 } });
+
+      await runWorkerTick();
+
+      expect(measureArgs().config.requestFilter).toBe(
+        "@http.route:/checkout* -@http.route:/health",
+      );
+    });
+
     test("a calendar month is summed from the start of the month", async () => {
       sloService["getDueSlos"]!.mockResolvedValue([
         makeRequestSlo({ windowType: SloWindowType.CalendarMonth }),
@@ -987,6 +1009,26 @@ describe("Slo:EvaluateSlos worker - request SLIs", () => {
       expect(counting.measure).not.toHaveBeenCalled();
       expect(statusWrites()).toEqual([SloStatus.Misconfigured]);
       expect(feedTexts().join("\n")).toContain("has no latency threshold");
+    });
+
+    /*
+     * The service refuses a filter it cannot read, so this one was stored
+     * before a rule tightened (#8444): counting every request instead would
+     * be a wrong SLI, so nothing is counted until it is fixed.
+     */
+    test("a request filter that cannot be read: Misconfigured with what is wrong, and nothing is counted", async () => {
+      sloService["getDueSlos"]!.mockResolvedValue([
+        makeRequestSlo({ requestFilter: "checkout" }),
+      ]);
+
+      await runWorkerTick();
+
+      expect(counting.measure).not.toHaveBeenCalled();
+      expect(statusWrites()).toEqual([SloStatus.Misconfigured]);
+      expect(feedTexts().join("\n")).toContain(
+        "This SLO's request filter cannot be read",
+      );
+      expect(feedTexts().join("\n")).toContain('"checkout" is neither');
     });
 
     test("a target out of range: Misconfigured", async () => {

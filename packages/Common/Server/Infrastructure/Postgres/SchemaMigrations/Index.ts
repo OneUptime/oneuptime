@@ -1014,6 +1014,7 @@ import { AddIncomingRequestSecretActivity1809179500000 } from "./1809179500000-A
 import { AddOwnerNotificationFeedStatus1809179600000 } from "./1809179600000-AddOwnerNotificationFeedStatus";
 import { AddOwnerNotificationFeedStatusIndex1809179610000 } from "./1809179610000-AddOwnerNotificationFeedStatusIndex";
 import { AddDataStoreWorkerContentScanIndex1809179800000 } from "./1809179800000-AddDataStoreWorkerContentScanIndex";
+import { AddServiceLevelObjectiveRequestFilter1809179900000 } from "./1809179900000-AddServiceLevelObjectiveRequestFilter";
 
 export default [
   InitialMigration,
@@ -2032,4 +2033,5 @@ export default [
   AddOwnerNotificationFeedStatus1809179600000,
   AddOwnerNotificationFeedStatusIndex1809179610000,
   AddDataStoreWorkerContentScanIndex1809179800000,
+  AddServiceLevelObjectiveRequestFilter1809179900000,
 ];

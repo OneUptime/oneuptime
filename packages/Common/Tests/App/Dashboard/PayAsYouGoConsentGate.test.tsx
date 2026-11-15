@@ -23,6 +23,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import { getTelemetryPayAsYouGoFormFields } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PayAsYouGo";
+import { standInForGlobalConfig } from "../../Helpers/GlobalConfigStandIn";
+
+// The server's global config, answered here rather than over the network.
+beforeEach((): void => {
+  standInForGlobalConfig();
+});
 
 /*
  * Telemetry and single-monitor creation retain pricing notices without
@@ -241,6 +247,8 @@ function paymentChecks(): Array<string> {
 describe("Pay as you go creation notices", () => {
   beforeEach(() => {
     jest.restoreAllMocks();
+    // Restoring the mocks took the global config's answer away too.
+    standInForGlobalConfig();
     jest
       .spyOn(ProjectUtil, "getCurrentProjectId")
       .mockReturnValue(ObjectID.generate());

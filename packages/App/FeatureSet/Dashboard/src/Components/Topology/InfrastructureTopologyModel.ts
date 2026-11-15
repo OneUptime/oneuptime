@@ -67,6 +67,13 @@ export interface InfrastructureNode {
   id: string;
   kind: InfrastructureNodeKind;
   name: string;
+  /*
+   * A resource that reported no display name. Its name is then
+   * UNNAMED_RESOURCE, the product's English, which the explorer draws in
+   * the reader's language (getInfrastructureNodeName) - not as written, as
+   * a resource's own name is (#8260).
+   */
+  isUnnamed?: boolean | undefined;
   /** Entity type of the resource, of every member of a group, or of a collection. */
   entityType: string | null;
   entity: TopologyEntity | null;
@@ -122,6 +129,31 @@ export interface BuildInfrastructureOptions {
 }
 
 export const COLLECTION_ID_PREFIX: string = "collection:";
+
+/*
+ * What a resource that reported no display name is called: the product's
+ * words, a key, drawn in the reader's language by the explorer - never as
+ * a name someone gave it, which a resource's own name is (#8260).
+ */
+export const UNNAMED_RESOURCE: string = translationKey("Unnamed resource");
+
+/*
+ * A node's name as the explorer draws it: a category's and an unnamed
+ * resource's in the reader's language (they are the product's words), any
+ * other name as it was reported. Its tree, its rows, its breadcrumb and
+ * the aria labels on them all read it from here, so none says "Unnamed
+ * resource" in English on a Persian page.
+ */
+export function getInfrastructureNodeName(
+  node: Pick<InfrastructureNode, "kind" | "name" | "isUnnamed">,
+  translate: (text: string) => string,
+): string {
+  if (node.kind === "category" || node.isUnnamed) {
+    return translate(node.name);
+  }
+
+  return node.name;
+}
 
 export function collectionNodeId(entityType: string): string {
   return `${COLLECTION_ID_PREFIX}${entityType}`;
@@ -366,7 +398,8 @@ export function buildInfrastructureTopologyModel(
     nodes.set(entity.entityKey, {
       id: entity.entityKey,
       kind: "resource",
-      name: entity.displayName || "Unnamed resource",
+      name: entity.displayName || UNNAMED_RESOURCE,
+      isUnnamed: !entity.displayName,
       entityType: entity.entityType || null,
       entity,
       parentId: null,

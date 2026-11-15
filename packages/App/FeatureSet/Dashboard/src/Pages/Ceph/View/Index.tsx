@@ -1117,7 +1117,7 @@ const CephClusterOverview: FunctionComponent<
           description={CEPH_METRIC_DESCRIPTIONS.osdsUp}
           icon={IconProp.Database}
           iconColor="emerald"
-          value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : "—"}
+          value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : undefined}
           sublabel={
             osdTotal > 0
               ? translator.translateTemplate("{{in}} in", {
@@ -1139,7 +1139,7 @@ const CephClusterOverview: FunctionComponent<
               ? `${monsInQuorum || 0}/${monsTotal}`
               : cluster.monCount
                 ? String(cluster.monCount)
-                : "—"
+                : undefined
           }
           sublabel="monitor daemons"
         />

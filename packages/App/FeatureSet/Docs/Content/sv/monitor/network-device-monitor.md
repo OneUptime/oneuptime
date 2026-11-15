@@ -256,14 +256,14 @@ En [nätverksplats](/docs/monitor/network-sites#standardvärden-för-övervaknin
 
 ## Åsidosättningen med bunden monitor
 
-Viss utrustning kan ingen sond nå eller pinga på ett meningsfullt sätt: en enhet bakom en NAT, en appliance vars hälsa bättre bedöms med en HTTP-kontroll, en tjänst vars verkliga signal är en portkontroll. För dem har **Redigera inställningar** på enhetens sida **Inställningar** en **Monitoring Method**:
+Viss utrustning kan ingen sond nå eller pinga på ett meningsfullt sätt: en enhet bakom en NAT, en appliance vars hälsa bättre bedöms med en HTTP-kontroll, en tjänst vars verkliga signal är en portkontroll. För dem har **Redigera inställningar** på enhetens sida **Inställningar** en **Övervakningsmetod**:
 
 | Metod | Vad den betyder |
 | --- | --- |
 | **Sond** | Standard. Pingas av den tilldelade sonden enligt dess schema, och walkas via SNMP när den har autentiseringsuppgifter. |
-| **Bound monitor** | En befintlig monitors status är den här enhetens status. |
+| **Bunden monitor** | En befintlig monitors status är den här enhetens status. |
 
-Att byta en enhet till **Bound monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **Ingen övervakning**.
+Att byta en enhet till **Bunden monitor** stoppar avsökningen av den. Sonden, intervallet och avsökningsreglaget försvinner från kortet **Polling & Data Collection**, enhetens gamla avsökningsresultat rensas och dess status kommer från den monitor du binder. Att binda en är valfritt: tills du gör det visar enheten **Väntar**, markerad med **Ingen övervakning**.
 
 Att byta tillbaka till **Sond** återställer avsökningen och ber om en sond. En monitor som var bunden förblir bunden och fortsätter att varna; den bestämmer bara inte längre enhetens status.
 

@@ -134,6 +134,14 @@ import {
   zoomOfChart,
 } from "./ContainerChartZoomStandIn";
 import { CHART_TITLE_ROW_TEST_ID } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/metrics/aggregate"]);
 
 const NOW: Date = new Date("2026-09-24T12:00:00.000Z");
 const HOUR_START: Date = new Date("2026-09-24T11:00:00.000Z");

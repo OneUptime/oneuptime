@@ -3,6 +3,11 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import {
+  NTP_NO_REPLY_IGNORED_PACKETS,
+  PROBE_FAILURE_CAUSES,
+  ProbeFailureCause,
+} from "../../../Utils/Monitor/ProbeFailureCauses";
 import { REQUEST_FAILURE_DESCRIPTIONS } from "../../../Utils/Monitor/RequestFailureDescriptions";
 import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
 
@@ -37,7 +42,12 @@ import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
  *     Description: "DNS resolution failed. ...") written by hand anywhere
  *     but its table (Common/Utils/Monitor/RequestFailureDescriptions),
  *     which the probe writes and every view reads back, and a check that
- *     sets a request's errorDescription other than from there (#8001).
+ *     sets a request's errorDescription other than from there (#8001);
+ *   - a failure cause with values - the NTP check's, the probe-side
+ *     sentences ProbeNetworkFailureUtil describes, the AggregateError one -
+ *     written by hand anywhere but its table
+ *     (Common/Utils/Monitor/ProbeFailureCauses), and a check that writes
+ *     one and does not write it from there (#8267).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -817,4 +827,305 @@ describe("what a failed request means", () => {
       ),
     ).toEqual([3, 6, 10]);
   });
+});
+
+/*
+ * WHY A CHECK FAILED, WITH THE VALUES IT FOUND (#8267): the NTP check's
+ * causes, the probe-side failures ProbeNetworkFailureUtil describes and the
+ * AggregateError sentence. Written by hand, a sentence is one no view reads
+ * back, and it reads English on every page.
+ */
+
+const CAUSES_FILE: string =
+  "packages/Common/Utils/Monitor/ProbeFailureCauses.ts";
+
+// The checks, and the utilities, that write a cause with values.
+const CAUSE_WRITERS: ReadonlyArray<string> = [
+  "packages/Common/Utils/ProbeNetworkFailureUtil.ts",
+  "packages/Common/Types/Monitor/NtpMonitor/NtpMonitorUtil.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/NetworkPathMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/NtpMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/WebsiteMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/ApiMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/PortMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/PingMonitor.ts",
+];
+
+const CAUSE_WRITER: string = "writeProbeFailureCause";
+
+/*
+ * A literal this long that a fixed piece holds is that piece, cut short: a
+ * hand-written sentence may leave its stop or its space to a neighbour.
+ */
+const PIECE_OF_A_PIECE_LENGTH: number = 12;
+
+// A piece of words, not of punctuation: "Could not resolve ", " Tried ".
+const WORDS_PIECE_LENGTH: number = 5;
+
+/*
+ * A cause of one piece is found by that piece whole, so it is its own:
+ * "Server returned ", " Monitor ID: ".
+ */
+const OWN_PIECE_LENGTH: number = 12;
+
+/*
+ * Causes the scan does not look for, as their one piece is anybody's words:
+ * the runtime writes a thrown error's name before its message ("Error: "),
+ * and " Monitor ID: " is in the server's own log lines. The Ping check is
+ * held to writing its message from the table below instead.
+ */
+const NOT_SCANNED: ReadonlySet<string> = new Set<string>([
+  PROBE_FAILURE_CAUSES[ProbeFailureCause.ThrownError],
+  PROBE_FAILURE_CAUSES[ProbeFailureCause.PingProbeSide],
+]);
+
+// Each cause's fixed pieces, in order: what its sentence is besides its values.
+const CAUSE_PIECES: ReadonlyArray<{ english: string; pieces: Array<string> }> =
+  [
+    ...Object.values(PROBE_FAILURE_CAUSES).filter(
+      (english: string): boolean => {
+        return !NOT_SCANNED.has(english);
+      },
+    ),
+    NTP_NO_REPLY_IGNORED_PACKETS.one,
+  ].map((english: string): { english: string; pieces: Array<string> } => {
+    return {
+      english,
+      pieces: english
+        .split(PLACEHOLDER_IN_TEMPLATE)
+        .filter((piece: string): boolean => {
+          return piece.trim().length > 0;
+        }),
+    };
+  });
+
+/*
+ * Whether the texts of one literal - a string, or a template's head, middles
+ * and tail - write `pieces` by hand: every fixed piece of the cause, in
+ * order (one text may hold several). Fewer is anybody's words: " within ",
+ * " failed: " and "." are in hundreds of sentences, and describe()'s " was
+ * never contacted. The failure is on the probe, not on " is in what a
+ * failed request means too (RequestFailureDescriptions).
+ */
+const writesPieces: (
+  texts: ReadonlyArray<string>,
+  pieces: ReadonlyArray<string>,
+) => boolean = (
+  texts: ReadonlyArray<string>,
+  pieces: ReadonlyArray<string>,
+): boolean => {
+  let next: number = 0;
+
+  for (const text of texts) {
+    let from: number = 0;
+
+    while (next < pieces.length) {
+      const piece: string = pieces[next] as string;
+      const at: number = text.indexOf(piece, from);
+
+      if (at !== -1) {
+        // The rest of this text may hold the next piece too.
+        next += 1;
+        from = at + piece.length;
+        continue;
+      }
+
+      // A piece cut short is most of it: "AggregateError" alone is a name.
+      if (
+        from === 0 &&
+        text.trim().length > 0 &&
+        text.length >= Math.max(PIECE_OF_A_PIECE_LENGTH, piece.length / 2) &&
+        piece.includes(text)
+      ) {
+        next += 1;
+      }
+
+      break;
+    }
+  }
+
+  return next === pieces.length;
+};
+
+// Every literal of a source that writes a cause by hand.
+const findHandWrittenCauses: (
+  fileName: string,
+  source: string,
+) => Array<Finding> = (fileName: string, source: string): Array<Finding> => {
+  const sourceFile: ts.SourceFile = parse(fileName, source);
+  const found: Array<Finding> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    let texts: Array<string> | null = null;
+
+    if (ts.isTemplateExpression(node)) {
+      texts = [
+        node.head.text,
+        ...node.templateSpans.map((span: ts.TemplateSpan): string => {
+          return span.literal.text;
+        }),
+      ];
+    } else if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node)
+    ) {
+      texts = [node.text];
+    }
+
+    if (
+      texts &&
+      CAUSE_PIECES.some(
+        (cause: { english: string; pieces: Array<string> }): boolean => {
+          return writesPieces(texts as Array<string>, cause.pieces);
+        },
+      )
+    ) {
+      found.push(findingAt(sourceFile, node));
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return found;
+};
+
+describe("why a check failed, with the values it found", () => {
+  test("every cause has pieces the scan can find it by", () => {
+    for (const cause of CAUSE_PIECES) {
+      expect({
+        english: cause.english,
+        // Two pieces to find it by, one of them words, or one long enough to be its own.
+        findable:
+          (cause.pieces.length >= 2 &&
+            cause.pieces.some((piece: string): boolean => {
+              return piece.trim().length >= WORDS_PIECE_LENGTH;
+            })) ||
+          (cause.pieces.length === 1 &&
+            (cause.pieces[0] as string).length >= OWN_PIECE_LENGTH),
+      }).toEqual({ english: cause.english, findable: true });
+    }
+  });
+
+  test("is written only by its table", () => {
+    const written: Array<string> = [];
+
+    for (const root of SENTENCE_SCAN_ROOTS) {
+      for (const file of listSourceFiles(path.join(REPOSITORY_ROOT, root))) {
+        const relativeFile: string = toRelativePath(REPOSITORY_ROOT, file);
+
+        if (relativeFile === CAUSES_FILE || isTestFile(relativeFile)) {
+          continue;
+        }
+
+        const source: string = fs.readFileSync(file, "utf-8");
+
+        for (const finding of findHandWrittenCauses(file, source)) {
+          written.push(`${relativeFile}:${finding.line} ${finding.text}`);
+        }
+      }
+    }
+
+    expect(written).toEqual([]);
+  });
+
+  test("the table is where the scan says", () => {
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, CAUSES_FILE),
+      "utf-8",
+    );
+
+    expect(
+      findHandWrittenCauses(CAUSES_FILE, source).length,
+    ).toBeGreaterThanOrEqual(CAUSE_PIECES.length);
+  });
+
+  test("negative control: the causes as the checks wrote them by hand are found, a comment and a lone piece are not", () => {
+    const source: string = `
+      // No NTP reply from \${target} within \${seconds}.
+      const a = \`Looking up \${data.host} did not finish within \${formatSeconds(data.timeoutInMs)}.\`;
+      let b = \`No NTP reply from \${target} within \${formatSeconds(data.timeoutInMs)}.\`;
+      b += \` The probe ignored \${n === 1 ? "a packet" : \`\${n} packets\`} that did not answer its request: \${r}.\`;
+      const c = \`Could not resolve \${data.host} (\${code}).\`;
+      const d = \`\${target} refused the request: nothing is listening for NTP on UDP port \${port} there (ICMP port unreachable).\`;
+      const e = \`The NTP request to \${target} failed: \${raw}.\`;
+      const f = \`\${failureCause} Tried \${attemptCount} times.\`;
+      const g = \`This probe has no route to \${host}: \${detail}.\`;
+      const h = \`This probe cannot send IPv6 traffic (\${detail}), so \${host} was never contacted. The probe has no usable IPv6 address or route; this says nothing about whether \${host} is up. Monitor IPv6 destinations from a probe that has IPv6 connectivity.\`;
+      const i = "Request failed with AggregateError (all connection attempts failed). " + cause;
+      const j = \`The check did not finish within \${seconds}.\`;
+      const k = "Could not resolve the name.";
+    `;
+
+    expect(
+      findHandWrittenCauses("Old.ts", source).map(
+        (finding: Finding): number => {
+          return finding.line;
+        },
+      ),
+    ).toEqual(
+      /*
+       * Line 5 is the second half of line 4's sentence, added on its own: the
+       * sentence is found by its first half.
+       */
+      [3, 4, 6, 7, 8, 9, 10, 11, 12],
+    );
+  });
+
+  // #8656: the NTP, Ping, Traceroute and attempt causes as written by hand.
+  test("negative control: the other causes as the checks wrote them by hand are found, the runtime's prefix is not", () => {
+    const source: string = `
+      const a = \`The server answered with a kiss-o'-death (\${code}): \${meaning}.\`;
+      const b = "The server answered, but its reply carried no usable time.";
+      const c = \`The server reports stratum \${stratum}: it is not synchronized to a time source.\`;
+      const d = \`Server returned \${result.responseStatusCode}\`;
+      const e = \`ICMP ping is not usable on this probe: \${output.substring(0, 200)}\`;
+      const f = \`No ICMP echo reply from \${hostAddress} (\${packetCount} sent)\`;
+      const h = \`Traceroute could not run: \${clause}.\`;
+      const i = \`this probe may have no route to \${host} (\${detail}); \${host} itself may also be down\`;
+      const j = \`Error: \${message}\`;
+      const k = "The server answered.";
+    `;
+
+    expect(
+      findHandWrittenCauses("Old.ts", source).map(
+        (finding: Finding): number => {
+          return finding.line;
+        },
+      ),
+    ).toEqual([2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  // The causes the scan leaves out, held to the table where they are written.
+  test("the Ping check writes the message it throws from the table", () => {
+    const source: string = fs.readFileSync(
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/Probe/Utils/Monitors/MonitorTypes/PingMonitor.ts",
+      ),
+      "utf-8",
+    );
+
+    expect(source).toContain("ProbeFailureCause.PingProbeSide");
+    expect(source).toContain("ProbeFailureCause.PingUnableToReachHost");
+    expect(source).not.toMatch(/Monitor ID: \$\{/);
+  });
+
+  test.each(CAUSE_WRITERS)(
+    "%s writes its causes from the table",
+    (file: string) => {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf-8",
+      );
+
+      expect(source).toMatch(
+        /import \{[^}]*\bProbeFailureCause\b[^}]*\bwriteProbeFailureCause\b[^}]*\} from "(?:Common\/Utils\/Monitor|\.\/Monitor|(?:\.\.\/){3}Utils\/Monitor)\/ProbeFailureCauses";/,
+      );
+      expect(source.split(`${CAUSE_WRITER}(`).length - 1).toBeGreaterThan(0);
+      expect(findHandWrittenCauses(file, source)).toEqual([]);
+    },
+  );
 });

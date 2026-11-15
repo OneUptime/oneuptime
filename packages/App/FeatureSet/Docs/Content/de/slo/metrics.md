@@ -98,7 +98,7 @@ Das [SLO-Widget](/docs/dashboards/widgets#slo) zeigt den SLI, das verbleibende B
 | Einstellung | Wie es sich verhält |
 | --- | --- |
 | **Service Level Objective** | Heftet das Widget an ein SLO. Die Auswahl listet SLOs, die nicht archiviert sind. |
-| **Follow SLO Variable** | Zeigt das SLO, das in einer Dashboard-Variablen gewählt ist: einer Variablen **Telemetrieattribut** auf dem Schlüssel `sloName`. Wird ignoriert, solange ein SLO angeheftet ist. |
+| **SLO-Variable folgen** | Zeigt das SLO, das in einer Dashboard-Variablen gewählt ist: einer Variablen **Telemetrieattribut** auf dem Schlüssel `sloName`. Wird ignoriert, solange ein SLO angeheftet ist. |
 
 Auf einem [öffentlichen Dashboard](/docs/dashboards/sharing) lässt ein Widget, das einer Variablen folgt, Betrachter jedes nicht archivierte SLO des Projekts nach Namen wählen. Ein angeheftetes Widget zeigt immer nur sein eigenes SLO und zeigt die letzten Zahlen eines SLO, das später archiviert wurde, weiter an.
 

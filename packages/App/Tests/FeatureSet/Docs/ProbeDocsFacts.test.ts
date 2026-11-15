@@ -24,6 +24,10 @@ import ProbeNetworkFailureUtil, {
   ProbeNetworkOperation,
 } from "Common/Utils/ProbeNetworkFailureUtil";
 import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
+import {
   DocsFence,
   DocsHeading,
   DocsLink,
@@ -795,7 +799,7 @@ describe("the Custom Probes page: how OneUptime knows a probe is running", () =>
 
     expect(minutes).toBe(3);
     expect(howItWorks).toContain(
-      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the project's owners.",
+      "After about three minutes without one, the probe shows **Disconnected**, and its owners are told. A probe with no owners tells the Project Owners.",
     );
     expect(service).toMatch(
       /let owners: Array<User> = await this\.getOwners\(probe\.id!\);[\s\S]{0,200}if \(owners\.length === 0\) \{[\s\S]{0,200}owners = await ProjectService\.getOwners\(probe\.projectId!\);/,
@@ -1160,9 +1164,15 @@ describe("the Custom Probes page: IPv6", () => {
     expect(clause.startsWith("this probe cannot send IPv6 traffic (")).toBe(
       true,
     );
+    // The check writes the line from the failure causes' table (#8656).
     expect(readSource(PROBE_NETWORK_PATH_MONITOR)).toContain(
-      "return `Traceroute could not run: ${ProbeNetworkFailureUtil.describeClause(",
+      "writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {\n        clause: ProbeNetworkFailureUtil.describeClause({",
     );
+    expect(
+      writeProbeFailureCause(ProbeFailureCause.TracerouteCouldNotRun, {
+        clause: clause,
+      }),
+    ).toBe(`Traceroute could not run: ${clause}.`);
     expect(ipv6).toContain(
       "`Traceroute could not run: this probe cannot send IPv6 traffic (...)`",
     );

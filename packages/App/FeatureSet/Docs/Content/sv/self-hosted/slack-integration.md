@@ -1,6 +1,6 @@
 # Slack-integration
 
-Anslut din egenvärdade OneUptime till Slack. Du skapar en Slack-app från manifestet som din server genererar, ger OneUptime appens inloggningsuppgifter och ansluter varje projekt till en arbetsyta. Sedan publicerar OneUptime incidenter, larm och planerat underhåll i dina kanaler, och ditt team hanterar dem direkt i Slack.
+Anslut din egenvärdade OneUptime till Slack. Du skapar en Slack-app från manifestet som din server genererar, ger OneUptime appens inloggningsuppgifter och ansluter varje projekt till en arbetsyta. Sedan publicerar OneUptime incidenter, larm och schemalagt underhåll i dina kanaler, och ditt team hanterar dem direkt i Slack.
 
 Den här sidan är till för den som driver OneUptime-servern. När Slack är anslutet ställs aviseringsregler in per projekt: se [Slack](/docs/workspace-connections/slack).
 

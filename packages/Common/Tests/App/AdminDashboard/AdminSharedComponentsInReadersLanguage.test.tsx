@@ -130,6 +130,14 @@ import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/global-config/email-environment"]);
 
 const WAIT: { timeout: number } = { timeout: 30000 };
 

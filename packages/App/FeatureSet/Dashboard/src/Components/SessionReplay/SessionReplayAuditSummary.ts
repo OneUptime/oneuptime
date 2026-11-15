@@ -12,6 +12,7 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { readStoredAddress } from "Common/Utils/Rum/UserFlow";
 import { APP_API_URL } from "Common/UI/Config";
+import { Translator } from "Common/Types/Translator";
 import { formatSessionDuration } from "./SessionReplayPlayability";
 
 /*
@@ -202,6 +203,8 @@ export function sessionReplayStartDate(
 export function describeSessionReplayAuditSession(data: {
   sessionId: string;
   summary?: SessionReplayAuditSummary | undefined;
+  // The reader's, for the session's length in their language (#8455).
+  translator?: Translator | undefined;
 }): SessionReplayAuditPresentation {
   const fullSessionId: string = data.sessionId.trim();
   const summary: SessionReplayAuditSummary | undefined =
@@ -211,7 +214,7 @@ export function describeSessionReplayAuditSession(data: {
     SESSION_REPLAY_AUDIT_SHORT_ID_LENGTH,
   );
   const durationLabel: string = summary
-    ? formatSessionDuration(summary.durationMs)
+    ? formatSessionDuration(summary.durationMs, data.translator)
     : "";
 
   return {

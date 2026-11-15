@@ -338,7 +338,7 @@ Opløste tilladelser caches pr. bruger og projekt og opdateres, når teammedlems
 
 ### Private hændelser, advarsler og episoder
 
-En hændelse, en advarsel eller en episode, der er markeret som privat, kan kun ses af dens ejere — de personer, der er angivet som dens ejere, og medlemmerne af dens ejerteams, der har accepteret deres invitation — og af projektets ejere og administratorer.
+En hændelse, en advarsel eller en episode, der er markeret som privat, kan kun ses af dens ejere — de personer, der er angivet som dens ejere, og medlemmerne af dens ejerteams, der har accepteret deres invitation — og af Projektejere og Projektadministratorer.
 
 En sådan post ændres kun med tilladelserne fra de teams, der ejer den, og fra de personer, der er angivet som dens ejere. Den, der er angivet som ejer, handler på den med alle de tilladelser, vedkommende har. Alle andre handler kun på den med tilladelserne fra deres teams, der ejer den, hver med sit eget omfang og sine egne labels: et andet teams tilladelse når ingen privat post, som det team ikke ejer. Det gælder alt, hvad der gøres ved posten og det, der hører til den — at redigere den, ændre dens tilstand, dens noter, ejere, roller, labels, tilknyttede advarsler, episodemedlemmer og opkald, og at slette den — fra dashboardet, API'et, massehandlinger, Slack, Microsoft Teams eller OneUptime AI. Projektejere og Projektadministratorer ændrer enhver privat post, og det gør arbejdsgangstrin også, da de handler som Projektadministrator; en API-nøgle gør det kun med `ProjectOwner` eller `ProjectAdmin`.
 
@@ -352,7 +352,7 @@ Et team, der ejer private poster, men ikke har nogen tilladelser, et team, der k
 
 ### Regler, der tilhører teams
 
-En vagtregel for hændelser eller advarsler, en vagtregel for episoder, en ejerregel for hændelser og en notifikationsregel for Slack eller Microsoft Teams kan tilhøre teams. En regel, som intet team ejer, tilhører projektet: alle, hvis tilladelser lader dem ændre regler af den slags, kan ændre den. En regel, som teams ejer, ændres og slettes kun med tilladelserne fra de teams, der ejer den, og af projektets ejere og administratorer. Alle, der må læse regler, kan stadig læse den og se, hvilke teams der ejer den.
+En vagtregel for hændelser eller advarsler, en vagtregel for episoder, en ejerregel for hændelser og en notifikationsregel for Slack eller Microsoft Teams kan tilhøre teams. En regel, som intet team ejer, tilhører projektet: alle, hvis tilladelser lader dem ændre regler af den slags, kan ændre den. En regel, som teams ejer, ændres og slettes kun med tilladelserne fra de teams, der ejer den, og af Projektejere og Projektadministratorer. Alle, der må læse regler, kan stadig læse den og se, hvilke teams der ejer den.
 
 Vælg teamene i reglens formular, i **Ansvarlige teams** under **Flere felter**. Det kræver regeltypens tilladelse til ansvarlige teams, fx `CreateIncidentOnCallRuleOwningTeam`, som Projektejere og Projektadministratorer har. At tilføje eller fjerne en regels teams ændrer reglen, så når teams ejer en regel, er det kun dem og Projektejere og Projektadministratorer, der ændrer, hvem der ejer den. I en liste over regler er en regel, som kun andre teams ejer, skrivebeskyttet for dig: dens handlinger til at redigere og slette er låst og nævner de teams, der ejer den.
 

@@ -1193,16 +1193,25 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a Products menu path's product as the Products menu does, the rest as labels", () => {
+    const hindiMenu: Record<string, unknown> = (
+      dashboardLocale("hi")["navbar"] as { items: Record<string, unknown> }
+    ).items;
+
+    /*
+     * The menu's item is read from navbar.items: Hindi's said होस्ट्स over
+     * a page titled होस्ट until #8229 made the menu say its page's title.
+     */
     expect(
       drawnPath("hi", ["Products", "Infrastructure", "Hosts", "All Hosts"]),
     ).toBe(
       [
         drawnActionLabel("hi", "Products"),
         drawnActionLabel("hi", "Infrastructure"),
-        "होस्ट्स",
+        hindiMenu["hostsTitle"],
         drawnActionLabel("hi", "All Hosts"),
       ].join(PATH_SEPARATOR),
     );
+    expect(hindiMenu["hostsTitle"]).toBe("होस्ट");
     // A label that is not a product after Products stays a label.
     expect(drawnPath("de", ["Products", "Infrastructure", "Docker"])).toBe(
       "Produkte → Infrastruktur → Docker",

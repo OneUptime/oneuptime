@@ -208,7 +208,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         label="Input tokens"
         value={
           tokensNotReported
-            ? "—"
+            ? undefined
             : number(figures?.inputTokens, formatLlmTokens)
         }
         hint={tokenHint}
@@ -223,7 +223,7 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
         label="Output tokens"
         value={
           tokensNotReported
-            ? "—"
+            ? undefined
             : number(figures?.outputTokens, formatLlmTokens)
         }
         hint={tokenHint}
@@ -236,7 +236,9 @@ const LlmUsageTotalsTiles: FunctionComponent<ComponentProps> = (
       />
       <LlmTile
         label="Cost (USD)"
-        value={costNotReported ? "—" : number(figures?.costUsd, formatLlmCost)}
+        value={
+          costNotReported ? undefined : number(figures?.costUsd, formatLlmCost)
+        }
         hint={
           costNotReported
             ? translator.translateText("No cost reported") || undefined

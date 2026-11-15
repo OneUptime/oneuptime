@@ -10,11 +10,13 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import {
+  getGlobalTranslator,
   translatableTerm,
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatCompactDuration } from "../../Utils/Milliseconds";
 import {
   PROFILE_KIND_DESCRIPTIONS,
   PROFILE_KIND_LABELS,
@@ -95,16 +97,27 @@ export interface ComponentProps {
 const ALL_SERVICES_VALUE: string = "__all__";
 const DEPLOY_VALUE_PREFIX: string = "deploy:";
 
-export function getRangeLabel(minutes: number): string {
+/*
+ * A range's button: "15m", "1h", "7d" in English, the reader's short unit
+ * and digits in their language ("15 Min.", "۷ روز"; #8455).
+ */
+export function getRangeLabel(
+  minutes: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (minutes < 60) {
-    return `${minutes}m`;
+    return formatCompactDuration(translator, { minutes });
   }
 
   if (minutes < 24 * 60) {
-    return `${Math.round(minutes / 60)}h`;
+    return formatCompactDuration(translator, {
+      hours: Math.round(minutes / 60),
+    });
   }
 
-  return `${Math.round(minutes / (24 * 60))}d`;
+  return formatCompactDuration(translator, {
+    days: Math.round(minutes / (24 * 60)),
+  });
 }
 
 const ProfileScopeBar: FunctionComponent<ComponentProps> = (
@@ -387,7 +400,7 @@ const ProfileScopeBar: FunctionComponent<ComponentProps> = (
                     props.onSelectRange(minutes);
                   }}
                 >
-                  {getRangeLabel(minutes)}
+                  {getRangeLabel(minutes, translator)}
                 </button>
               );
             })}

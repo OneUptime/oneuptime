@@ -123,7 +123,7 @@ Der Vorfall übernimmt Titel, Beschreibung, Monitor, betroffene Ressourcen und B
 
 ## Datenschutz- und Runbook-Regeln
 
-**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Admins und Eigentümer des Projekts können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
+**Datenschutzregeln** machen passende neue Warnungen privat, bevor irgendetwas anderes läuft: Nur ihre Eigentümer sowie die Projektadministratoren und Projektinhaber können sie sehen. Eine Regel hat zwei Schritte: **Übereinstimmung**, die Warnungen, die sie privat macht, dann **Name**, schon ausgefüllt mit „Warnungen privat machen“. Siehe [Private Warnungen](/docs/alerts/index#private-warnungen).
 
 **Runbook-Regeln** starten ein Runbook, wenn eine neue Warnung zutrifft, es sei denn, die Warnung wurde behoben erstellt. Siehe [Runbook-Regeln](/docs/runbooks/rules).
 

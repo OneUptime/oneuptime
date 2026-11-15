@@ -306,6 +306,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 interface RuntimeCase {
   slug: "docker" | "podman";
@@ -781,7 +782,7 @@ describe.each(RUNTIMES)(
         .closest("div.rounded-xl") as HTMLElement;
       expect(
         (restarts.querySelector("div.text-2xl")?.textContent || "").trim(),
-      ).toBe("—");
+      ).toBe(QUIET_DASH_TEXT);
       // A count nobody sent has no window to name.
       expect(restarts).not.toHaveTextContent("in the last 15 minutes");
     });

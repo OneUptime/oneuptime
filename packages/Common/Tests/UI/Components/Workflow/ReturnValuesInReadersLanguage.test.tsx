@@ -286,10 +286,26 @@ describe("ReturnValueNames", () => {
   });
 
   test("a name the locale has no word for stays English", () => {
+    // Every built-in step's names are worded now (#8359): one no catalogue has.
+    const unworded: ReturnValue = {
+      ...returnValueOf(API_POST, "response-status"),
+      name: "A value nobody worded",
+    };
+
+    expect(LOCALES["de"]![unworded.name]).toBeUndefined();
+    expect(returnValueName(unworded, translatorFor("de"))).toBe(unworded.name);
+  });
+
+  test("API Post's Response Status, drawn in English before #8359, reads in German and Persian", () => {
     const status: ReturnValue = returnValueOf(API_POST, "response-status");
 
-    expect(LOCALES["de"]![status.name]).toBeUndefined();
-    expect(returnValueName(status, translatorFor("de"))).toBe(status.name);
+    expect(returnValueName(status, translatorFor("de"))).toBe("Antwortstatus");
+    expect(returnValueName(status, translatorFor("fa"))).toBe(
+      drawn("fa", "Response Status"),
+    );
+    expect(returnValueName(status, translatorFor("fa"))).not.toBe(
+      "Response Status",
+    );
   });
 
   test("a language that words the name but not the sentence reads the sentence wholly in English", () => {

@@ -12,6 +12,8 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -36,9 +38,10 @@ export interface ComplianceRulePreset {
 export const COMPLIANCE_RULE_PRESETS: ReadonlyArray<ComplianceRulePreset> = [
   {
     id: "call-for-critical-incidents",
-    title: "Call for critical incidents",
-    description:
+    title: translationKey("Call for critical incidents"),
+    description: translationKey(
       "Every member has an incident on-call rule that phones them for your most severe incidents.",
+    ),
     icon: IconProp.Call,
     ruleType: ComplianceRuleType.HasIncidentOnCallRules,
     notificationChannels: [ComplianceNotificationChannel.Call],
@@ -46,9 +49,10 @@ export const COMPLIANCE_RULE_PRESETS: ReadonlyArray<ComplianceRulePreset> = [
   },
   {
     id: "push-for-critical-alerts",
-    title: "Push for critical alerts",
-    description:
+    title: translationKey("Push for critical alerts"),
+    description: translationKey(
       "Every member gets a push notification when your most severe alerts page them.",
+    ),
     icon: IconProp.DevicePhoneMobile,
     ruleType: ComplianceRuleType.HasAlertOnCallRules,
     notificationChannels: [ComplianceNotificationChannel.Push],
@@ -56,16 +60,19 @@ export const COMPLIANCE_RULE_PRESETS: ReadonlyArray<ComplianceRulePreset> = [
   },
   {
     id: "incident-rules-for-every-severity",
-    title: "Incident on-call rules for every severity",
-    description:
+    title: translationKey("Incident on-call rules for every severity"),
+    description: translationKey(
       "Every member is notified, on any channel, for every incident severity - including ones added later.",
+    ),
     icon: IconProp.Alert,
     ruleType: ComplianceRuleType.HasIncidentOnCallRules,
   },
   {
     id: "verified-phone-for-calls",
-    title: "Verified phone for calls",
-    description: "Every member has a verified phone number that can be called.",
+    title: translationKey("Verified phone for calls"),
+    description: translationKey(
+      "Every member has a verified phone number that can be called.",
+    ),
     icon: IconProp.Phone,
     ruleType: ComplianceRuleType.HasNotificationCallMethod,
   },
@@ -159,6 +166,7 @@ export interface ComponentProps {
 const ComplianceRulePresets: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [loadingPresetId, setLoadingPresetId] = useState<string>("");
 
   return (
@@ -171,11 +179,12 @@ const ComplianceRulePresets: FunctionComponent<ComponentProps> = (
         id="compliance-presets-heading"
         className="text-xs font-semibold uppercase tracking-wide text-gray-500"
       >
-        Recommended rules
+        {translator.translateText("Recommended rules")}
       </h3>
       <p className="mt-1 text-sm text-gray-500">
-        Start from one of these. Nothing is saved until you review it and press
-        Add rule.
+        {translator.translateText(
+          "Start from one of these. Nothing is saved until you review it and press Add rule.",
+        )}
       </p>
       <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {COMPLIANCE_RULE_PRESETS.map(
@@ -222,10 +231,10 @@ const ComplianceRulePresets: FunctionComponent<ComponentProps> = (
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold text-gray-900">
-                      {preset.title}
+                      {translator.translateText(preset.title)}
                     </span>
                     <span className="mt-0.5 block text-sm leading-relaxed text-gray-500">
-                      {preset.description}
+                      {translator.translateText(preset.description)}
                     </span>
                   </span>
                   <Icon

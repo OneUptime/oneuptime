@@ -125,11 +125,11 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Verificar que a notificação está disparando
 
-Clique em **Adicionar componente**, adicione um bloco **If / Else** e ligue a ele o ponto **Saída** do gatilho. Defina **Valor a verificar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparação** como **é igual a** e **Comparar com** como `firing`.
+Clique em **Adicionar componente**, adicione um bloco **Se / Senão** e ligue a ele o ponto **Saída** do gatilho. Defina **Valor a verificar** como `{{local.components.webhook-1.returnValues.request-body.status}}`, **Comparação** como **é igual a** e **Comparar com** como `firing`.
 
 ### Declarar o incidente
 
-Adicione um bloco **Create One Incident** e ligue a ele o lado **Sim** do bloco **If / Else**. Em **Modelo de incidente**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **JSON Object**, defina o que vem do Grafana:
+Adicione um bloco **Create One Incident** e ligue a ele o lado **Sim** do bloco **Se / Senão**. Em **Modelo de incidente**, escolha um modelo que defina a gravidade e as políticas de plantão a acionar (veja [Modelos de incidentes](/docs/incidents/settings#modelos-de-incidentes)). Em **Objeto JSON**, defina o que vem do Grafana:
 
 ```json
 {
@@ -138,14 +138,14 @@ Adicione um bloco **Create One Incident** e ligue a ele o lado **Sim** do bloco 
 }
 ```
 
-Sem modelo, **JSON Object** também precisa de `incidentSeverityId`, o ID de uma das gravidades de incidente do projeto.
+Sem modelo, **Objeto JSON** também precisa de `incidentSeverityId`, o ID de uma das gravidades de incidente do projeto.
 
 ### Ativar o workflow
 
 Ative **Habilitado** no topo do **Construtor**. Um workflow desativado responde ao Grafana com `400`.
 :::
 
-Uma execução trata uma notificação, então declara um único incidente, não importa quantos alertas a notificação tenha. Uma notificação `resolved` segue pelo lado **Não** do bloco **If / Else**, onde nada está ligado, então a execução termina ali. Para um incidente por alerta, resolvido na recuperação, use o monitor.
+Uma execução trata uma notificação, então declara um único incidente, não importa quantos alertas a notificação tenha. Uma notificação `resolved` segue pelo lado **Não** do bloco **Se / Senão**, onde nada está ligado, então a execução termina ali. Para um incidente por alerta, resolvido na recuperação, use o monitor.
 
 ## Solução de problemas
 

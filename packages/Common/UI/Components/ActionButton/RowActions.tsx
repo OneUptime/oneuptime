@@ -284,7 +284,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
         isDestructive={isDestructive}
         isDisabled={lock.isDisabled}
         tooltip={translateString(lock.tooltip)}
-        isTooltipUserContent={true}
+        isTooltipTranslated={true}
         onClick={() => {
           runAction(entry);
         }}

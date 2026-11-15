@@ -20,6 +20,14 @@ import {
   CEPH_INSTALL_METHODS,
   getCephSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
+import {
+  IOT_INGESTION_METHODS,
+  getIoTSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import {
+  KUBERNETES_PLATFORMS,
+  getKubernetesSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -167,6 +175,52 @@ export function getCephSetupGuideWays(): Array<SetupGuideWay> {
         apiKey: reader.apiKey,
         hasApiKey: reader.hasApiKey,
         method: option,
+        clusterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * IoT's guide sends readings to a fleet: one named in Add IoT Fleet or on a
+ * fleet's own Documentation tab, or an example fleet on the product page.
+ */
+export function getIoTSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: IOT_INGESTION_METHODS,
+    names: ["fleet-1", "Prod Fleet 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof IOT_INGESTION_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getIoTSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        method: option,
+        fleetName: name,
+      });
+    },
+  });
+}
+
+/*
+ * Kubernetes's guide varies by platform (Helm, EKS, GKE, AKS, Autopilot,
+ * Fargate, OpenShift) and by the cluster a Documentation tab installs for.
+ */
+export function getKubernetesSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: KUBERNETES_PLATFORMS,
+    names: ["k8s-1", "Prod Cluster 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof KUBERNETES_PLATFORMS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getKubernetesSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        platform: option,
         clusterName: name,
       });
     },

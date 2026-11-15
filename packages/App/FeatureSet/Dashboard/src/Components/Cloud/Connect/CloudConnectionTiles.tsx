@@ -6,7 +6,9 @@ import {
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import LockedReason, {
+  LOCKED_CONTROL_CLASS_NAME,
+} from "Common/UI/Components/Tooltip/LockedReason";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -49,6 +51,10 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
           const count: number =
             props.connectionCounts[definition.provider] || 0;
 
+          // Locked with a reason: the wrapper around it takes the pointer.
+          const isExplainedLock: boolean =
+            !props.canConnect && Boolean(props.connectDisabledReason);
+
           const tile: ReactElement = (
             <button
               type="button"
@@ -62,7 +68,7 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
                   isLocked: !props.canConnect,
                   hoverClassName: "hover:border-indigo-300 hover:shadow",
                 },
-              )}`}
+              )}${isExplainedLock ? ` ${LOCKED_CONTROL_CLASS_NAME}` : ""}`}
             >
               <CloudConnectionLogo provider={definition.provider} size="lg" />
               {/* A column, so each tile's Connect sits on the same line. */}
@@ -103,13 +109,14 @@ const CloudConnectionTiles: FunctionComponent<ComponentProps> = (
 
           return (
             <li key={definition.provider} className="min-w-0">
-              {!props.canConnect && props.connectDisabledReason ? (
-                <Tooltip
-                  text={props.connectDisabledReason}
-                  isTextTranslated={true}
+              {isExplainedLock && props.connectDisabledReason ? (
+                <LockedReason
+                  reason={props.connectDisabledReason}
+                  layoutClassName="flex h-full w-full"
+                  dataTestId={`cloud-connection-tile-locked-${definition.provider}`}
                 >
                   {tile}
-                </Tooltip>
+                </LockedReason>
               ) : (
                 tile
               )}

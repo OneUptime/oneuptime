@@ -9,8 +9,14 @@ import { DOCKER_SWARM_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/
 import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
 import { CEPH_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
+import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
+import { KUBERNETES_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getKubernetesSetupGuideWays,
+  getIoTSetupGuideWays,
   getCephSetupGuideWays,
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
@@ -148,6 +154,42 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "OneUptime AI agent",
         "AI",
         "AI agent",
+      ],
+    }),
+    product({
+      name: "IoT",
+      translations: IOT_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "IOT_DOCUMENTATION_TRANSLATIONS",
+      ways: getIoTSetupGuideWays,
+      options: IOT_INGESTION_METHODS,
+      dashboardWords: [
+        "IoT",
+        "Devices",
+        "Metrics",
+        "Fleet",
+        "Device",
+        "Device Registry",
+        "Metric conventions",
+        "MQTT topics and payloads",
+      ],
+    }),
+    product({
+      name: "Kubernetes",
+      translations: KUBERNETES_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "KUBERNETES_DOCUMENTATION_TRANSLATIONS",
+      ways: getKubernetesSetupGuideWays,
+      options: KUBERNETES_PLATFORMS,
+      dashboardWords: [
+        "Kubernetes",
+        "AI",
+        "Agent",
+        "Application traces",
+        "Network flows",
+        "Upgrade or uninstall the agent",
+        "GKE Autopilot",
+        "EKS Fargate",
+        "OpenShift",
+        "Red Hat OpenShift",
       ],
     }),
   ];

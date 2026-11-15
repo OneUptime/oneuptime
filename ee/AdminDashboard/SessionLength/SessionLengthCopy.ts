@@ -1,5 +1,6 @@
 import {
   DEFAULT_SESSION_IDLE_TIMEOUT_IN_MINUTES,
+  MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES,
   MINUTES_IN_A_DAY,
   MINUTES_IN_AN_HOUR,
   SESSION_IDLE_TIMEOUT_CHOICES_IN_MINUTES,
@@ -73,6 +74,7 @@ export const SessionLengthCopy: {
   idleLabel: string;
   idleDefaultDescription: string;
   idleSetDescription: string;
+  idleShortestDescription: string;
   ssoCardTitle: string;
   ssoCardDescription: string;
   separateTitle: string;
@@ -106,6 +108,15 @@ export const SessionLengthCopy: {
   ),
   idleSetDescription: translationKey(
     "Counted from the last time each person clicked, typed or scrolled in OneUptime.",
+  ),
+  /*
+   * Under the shortest idle timeout, the mobile app up to 1.6.0 is signed
+   * out at every renewal, however much it is used: it does not report its
+   * person's use (issue #8187, docs Self Hosted > Session Length). Said
+   * where a master admin chooses it (issue #8593).
+   */
+  idleShortestDescription: translationKey(
+    "Counted from the last time each person clicked, typed or scrolled in OneUptime. The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.",
   ),
   ssoCardTitle: translationKey("SSO Sign-ins"),
   ssoCardDescription: translationKey(
@@ -323,8 +334,13 @@ export const getLengthDescription: (minutes: number | null) => string = (
 export const getIdleDescription: (minutes: number | null) => string = (
   minutes: number | null,
 ): string => {
-  return toIdleChoiceValue(minutes) === DEFAULT_CHOICE_VALUE
-    ? SessionLengthCopy.idleDefaultDescription
+  if (toIdleChoiceValue(minutes) === DEFAULT_CHOICE_VALUE) {
+    return SessionLengthCopy.idleDefaultDescription;
+  }
+
+  // The shortest, which the mobile app up to 1.6.0 cannot keep up with.
+  return minutes === MIN_SESSION_IDLE_TIMEOUT_IN_MINUTES
+    ? SessionLengthCopy.idleShortestDescription
     : SessionLengthCopy.idleSetDescription;
 };
 
