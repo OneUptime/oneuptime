@@ -230,6 +230,8 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
     icon: IconProp.Edit,
     isDisabled: !updateGate.isAllowed,
     tooltip: updateGate.isAllowed ? undefined : updateGate.disabledReason,
+    // The permission check words its reason in the reader's language.
+    isTooltipTranslated: true,
     dataTestId: HUNTS_TEST_IDS.edit,
     onClick: props.onEdit,
   };
@@ -251,9 +253,14 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
         !updateGate.isAllowed ||
         props.isSaving ||
         Boolean(props.saveDisabledReason),
+      /*
+       * In the reader's words, both of them: the permission check words its
+       * reason, and why there is nothing to save is looked up here.
+       */
       tooltip: updateGate.isAllowed
-        ? props.saveDisabledReason
+        ? translator.translateText(props.saveDisabledReason)
         : updateGate.disabledReason,
+      isTooltipTranslated: true,
       dataTestId: HUNTS_TEST_IDS.saveChanges,
       onClick: props.onSaveChanges,
     },

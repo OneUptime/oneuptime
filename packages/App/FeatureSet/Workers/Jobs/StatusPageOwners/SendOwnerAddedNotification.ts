@@ -22,11 +22,45 @@ import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUse
 import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
 
 RunCron(
   "StatusPageOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the status page as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.StatusPageOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const statusPage: StatusPage | null = await readStatusPage(
+          delivery.notification.resourceId,
+        );
+
+        if (!statusPage) {
+          await delivery.giveUp("the status page is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          statusPage: statusPage,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const statusPageOwnerTeams: Array<StatusPageOwnerTeam> =
       await StatusPageOwnerTeamService.findAllBy({
         query: {
@@ -43,7 +77,7 @@ RunCron(
         },
       });
 
-    const statusPageOwnersMap: Dictionary<Array<User>> = {};
+    const statusPageOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const statusPageOwnerTeam of statusPageOwnerTeams) {
       const statusPageId: ObjectID = statusPageOwnerTeam.statusPageId!;
@@ -57,21 +91,12 @@ RunCron(
         statusPageOwnersMap[statusPageId.toString()] = [];
       }
 
-      for (const user of users) {
-        (statusPageOwnersMap[statusPageId.toString()] as Array<User>).push(
-          user,
-        );
-      }
-
-      // mark this as notified.
-      await StatusPageOwnerTeamService.updateOneById({
-        id: statusPageOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        statusPageOwnersMap[statusPageId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: statusPageOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -103,91 +128,148 @@ RunCron(
         statusPageOwnersMap[statusPageId.toString()] = [];
       }
 
-      (statusPageOwnersMap[statusPageId.toString()] as Array<User>).push(user);
-
-      // mark this as notified.
-      await StatusPageOwnerUserService.updateOneById({
-        id: statusPageOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        statusPageOwnersMap[statusPageId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: statusPageOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
     // send email to all of these users.
 
     for (const statusPageId in statusPageOwnersMap) {
-      if (!statusPageOwnersMap[statusPageId]) {
+      const ownerRows: Array<OwnerRowAdded> =
+        statusPageOwnersMap[statusPageId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if ((statusPageOwnersMap[statusPageId] as Array<User>).length === 0) {
-        continue;
-      }
-
-      const ownerUsers: Array<User> = statusPageOwnersMap[
-        statusPageId
-      ] as Array<User>;
-
-      // get all scheduled events of all the projects.
-      const statusPage: StatusPage | null = await StatusPageService.findOneById(
-        {
-          id: new ObjectID(statusPageId),
-          props: {
-            isRoot: true,
-          },
-
-          select: {
-            _id: true,
-            name: true,
-            description: true,
-            projectId: true,
-            project: {
-              name: true,
-            },
-          },
-        },
+      const statusPage: StatusPage | null = await readStatusPage(
+        new ObjectID(statusPageId),
       );
+
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = statusPage
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.StatusPageOwnerAdded,
+            projectId: statusPage.projectId!,
+            resourceId: statusPage.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
+
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose status page is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await StatusPageOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        } else {
+          await StatusPageOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
 
       if (!statusPage) {
         continue;
       }
 
-      /*
-       * A team row expands to every member row, pending invitations included,
-       * and a pending invitee has no notification settings yet (the defaults
-       * are added on accept). Tell only the accepted members of the project -
-       * the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: statusPage.projectId!,
-          users: ownerUsers,
+      try {
+        await notifyOwnersAdded({
+          statusPage: statusPage,
+          deliveries: deliveries,
         });
-
-      if (users.length === 0) {
-        continue;
+      } catch (e) {
+        logger.error("Error in sending status page owner added notification", {
+          projectId: statusPage.projectId?.toString(),
+          statusPageId: statusPage.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: statusPage.projectId?.toString(),
+          statusPageId: statusPage.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      const vars: Dictionary<string> = {
-        statusPageName: statusPage.name!,
-        projectName: statusPage.project!.name!,
-        statusPageDescription: await Markdown.convertToHTML(
-          statusPage.description! || "",
-          MarkdownContentType.Email,
-        ),
-        statusPageViewLink: (
-          await StatusPageService.getStatusPageLinkInDashboard(
-            statusPage.projectId!,
-            statusPage.id!,
-          )
-        ).toString(),
-      };
+async function readStatusPage(
+  statusPageId: ObjectID,
+): Promise<StatusPage | null> {
+  return await StatusPageService.findOneById({
+    id: statusPageId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      name: true,
+      description: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+    },
+  });
+}
 
-      for (const user of users) {
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * status page, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  statusPage: StatusPage;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const statusPage: StatusPage = data.statusPage;
+
+  if (ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
+
+  const vars: Dictionary<string> = {
+    statusPageName: statusPage.name!,
+    projectName: statusPage.project!.name!,
+    statusPageDescription: await Markdown.convertToHTML(
+      statusPage.description! || "",
+      MarkdownContentType.Email,
+    ),
+    statusPageViewLink: (
+      await StatusPageService.getStatusPageLinkInDashboard(
+        statusPage.projectId!,
+        statusPage.id!,
+      )
+    ).toString(),
+  };
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.StatusPageOwnerAdded,
           vars: vars,
@@ -246,7 +328,7 @@ RunCron(
           statusPageId: statusPage.id!,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

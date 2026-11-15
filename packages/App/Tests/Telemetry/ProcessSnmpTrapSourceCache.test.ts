@@ -45,6 +45,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import { processSnmpTrapFromQueue } from "../../FeatureSet/Telemetry/Jobs/ProbeIngest/ProcessProbeIngest";
 import { ProbeIngestJobData } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import SnmpTrapLogWriter from "../../FeatureSet/Telemetry/Services/SnmpTrapLogWriter";
@@ -60,7 +61,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 type DnsCache = { resolve: (hostname: string) => Promise<Array<string>> };
 
 const PROBE_ID: ObjectID = ObjectID.generate();

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 2437
+    "keys": 54285,
+    "untranslated": 2435
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -63,6 +63,7 @@
     "Amazon EKS",
     "Amphora",
     "Amphorae",
+    "Analog",
     "Andorra",
     "Angola",
     "Anguilla",
@@ -197,6 +198,7 @@
     "Desktop",
     "Detail (in Markdown)",
     "Details",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Dominica",
@@ -334,6 +336,7 @@
     "Lesotho",
     "Liberia",
     "Liechtenstein",
+    "Limit",
     "Limits",
     "Link",
     "Links",

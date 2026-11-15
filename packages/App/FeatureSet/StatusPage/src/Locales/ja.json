@@ -275,6 +275,7 @@
       "channelSlack": "Slack ワークスペース",
       "channelMicrosoftTeams": "Microsoft Teams ワークスペース",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "この購読は、このステータスページを運営するチームが追加したものです。メーリングリストなどの共有アドレスの場合、購読を解除すると、それを受け取っている全員にこれらの通知が届かなくなり、チームにも通知されます。",
       "confirmButton": "購読を解除",
       "manageInstead": "代わりに受け取る通知を選択する",

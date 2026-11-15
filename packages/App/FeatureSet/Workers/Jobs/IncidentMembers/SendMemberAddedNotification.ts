@@ -23,11 +23,102 @@ import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import Select from "Common/Server/Types/Database/Select";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What a member row is read with.
+const MEMBER_SELECT: Select<IncidentMember> = {
+  _id: true,
+  incidentId: true,
+  userId: true,
+  incidentRoleId: true,
+  user: {
+    email: true,
+    name: true,
+  },
+};
+
+// What the incident of a member row is read with.
+const INCIDENT_SELECT: Select<Incident> = {
+  _id: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  currentIncidentState: {
+    name: true,
+    color: true,
+  },
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+};
+
+/*
+ * One member row not notified yet: the person it assigned, and the role
+ * they are told of. Each row is a notification of its own (#8573): someone
+ * assigned twice, in two roles, is told of each.
+ */
+interface MemberAssigned {
+  memberRowId: ObjectID;
+  user: User;
+  roleName: string;
+}
 
 RunCron(
   "IncidentMember:SendMemberAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The people a run that stopped part way left untold - a worker killed
+     * between marking the rows and the last person (#8573) - told first,
+     * exactly them, of the role their row gives them now
+     * (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentMemberAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const incidentMember: IncidentMember | null =
+          await IncidentMemberService.findOneById({
+            id: delivery.notification.eventId,
+            select: MEMBER_SELECT,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        const incident: Incident | null = incidentMember
+          ? await readIncident(delivery.notification.resourceId)
+          : null;
+
+        if (!incidentMember || !incident) {
+          await delivery.giveUp("the incident or the assignment is gone");
+          return;
+        }
+
+        await notifyMembersAssigned({
+          incident: incident,
+          assignments: [
+            {
+              memberRowId: incidentMember.id!,
+              user: userOf(incidentMember),
+              roleName: await roleNameOf(incidentMember),
+            },
+          ],
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const incidentMembers: Array<IncidentMember> =
       await IncidentMemberService.findAllBy({
         query: {
@@ -37,143 +128,208 @@ RunCron(
           isRoot: true,
         },
         skip: 0,
-        select: {
-          _id: true,
-          incidentId: true,
-          userId: true,
-          incidentRoleId: true,
-          user: {
-            email: true,
-            name: true,
-          },
-        },
+        select: MEMBER_SELECT,
       });
 
-    const incidentMembersMap: Dictionary<
-      Array<{ user: User; roleName: string }>
-    > = {};
+    const incidentMembersMap: Dictionary<Array<MemberAssigned>> = {};
 
     for (const incidentMember of incidentMembers) {
       const incidentId: ObjectID = incidentMember.incidentId!;
-      const user: User = incidentMember.user!;
-      const incidentRoleId: ObjectID | undefined =
-        incidentMember.incidentRoleId;
-
-      let roleName: string = "Member";
-      if (incidentRoleId) {
-        const role: IncidentRole | null = await IncidentRoleService.findOneById(
-          {
-            id: incidentRoleId,
-            select: {
-              name: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          },
-        );
-        if (role && role.name) {
-          roleName = role.name;
-        }
-      }
 
       if (incidentMembersMap[incidentId.toString()] === undefined) {
         incidentMembersMap[incidentId.toString()] = [];
       }
 
-      (
-        incidentMembersMap[incidentId.toString()] as Array<{
-          user: User;
-          roleName: string;
-        }>
-      ).push({ user, roleName });
-
-      // mark this as notified.
-      await IncidentMemberService.updateOneById({
-        id: incidentMember.id!,
-        data: {
-          isMemberNotified: true,
+      (incidentMembersMap[incidentId.toString()] as Array<MemberAssigned>).push(
+        {
+          memberRowId: incidentMember.id!,
+          user: userOf(incidentMember),
+          roleName: await roleNameOf(incidentMember),
         },
-        props: {
-          isRoot: true,
-        },
-      });
+      );
     }
 
     // send email to all of these users.
 
     for (const incidentId in incidentMembersMap) {
-      if (!incidentMembersMap[incidentId]) {
+      const assignments: Array<MemberAssigned> =
+        incidentMembersMap[incidentId] || [];
+
+      if (assignments.length === 0) {
         continue;
       }
-
-      if (
-        (
-          incidentMembersMap[incidentId] as Array<{
-            user: User;
-            roleName: string;
-          }>
-        ).length === 0
-      ) {
-        continue;
-      }
-
-      const members: Array<{ user: User; roleName: string }> =
-        incidentMembersMap[incidentId] as Array<{
-          user: User;
-          roleName: string;
-        }>;
 
       // get incident details
-      const incident: Incident | null = await IncidentService.findOneById({
-        id: new ObjectID(incidentId),
-        props: {
-          isRoot: true,
-        },
+      const incident: Incident | null = await readIncident(
+        new ObjectID(incidentId),
+      );
 
-        select: {
-          _id: true,
-          title: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
+      /*
+       * Whom each member row is to tell, written before the rows are
+       * marked: a worker stopped from here on leaves them to be told by a
+       * later run, and one stopped before the marking leaves the rows to be
+       * read again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = [];
+
+      if (incident) {
+        for (const assignment of assignments) {
+          deliveries.push(
+            await OwnerNotificationDeliveries.plan({
+              notification: {
+                kind: OwnerNotificationKind.IncidentMemberAdded,
+                projectId: incident.projectId!,
+                resourceId: incident.id!,
+                eventId: assignment.memberRowId,
+              },
+              owners: [assignment.user],
+              isProjectOwners: false,
+              writesFeedItem: false,
+            }),
+          );
+        }
+      }
+
+      /*
+       * Marked as notified before anyone is told, so a row whose
+       * notification keeps failing is never read again on every run - one
+       * whose incident is gone too.
+       */
+      for (const assignment of assignments) {
+        await IncidentMemberService.updateOneById({
+          id: assignment.memberRowId,
+          data: {
+            isMemberNotified: true,
           },
-          currentIncidentState: {
-            name: true,
-            color: true,
+          props: {
+            isRoot: true,
           },
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-        },
-      });
+        });
+      }
 
       if (!incident) {
         continue;
       }
 
-      const incidentNumber: string =
-        incident.incidentNumberWithPrefix ||
-        (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+      try {
+        await notifyMembersAssigned({
+          incident: incident,
+          assignments: assignments,
+          deliveries: deliveries,
+        });
+      } catch (e) {
+        logger.error("Error in sending incident member added notification", {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: incident.projectId?.toString(),
+          incidentId: incident.id?.toString(),
+        });
+      }
+    }
+  },
+);
 
-      // Every resource the incident's Affected Resources card lists.
-      const resourcesAffected: string = LinkedAffectedResources.getText({
-        resources: await LinkedAffectedResources.readForIncident({
-          service: IncidentService,
-          projectId: incident.projectId!,
-          incidentId: incident.id!,
-        }),
-        fallback: "None",
-      });
+async function readIncident(incidentId: ObjectID): Promise<Incident | null> {
+  return await IncidentService.findOneById({
+    id: incidentId,
+    props: {
+      isRoot: true,
+    },
+    select: INCIDENT_SELECT,
+  });
+}
 
-      for (const member of members) {
-        const user: User = member.user;
-        const roleName: string = member.roleName;
+// The person a member row assigned, by the id the row names.
+function userOf(incidentMember: IncidentMember): User {
+  const user: User = incidentMember.user || new User();
 
+  if (!user.id && incidentMember.userId) {
+    user.id = incidentMember.userId;
+  }
+
+  return user;
+}
+
+// The role a member row gives: its role's name, or "Member".
+async function roleNameOf(incidentMember: IncidentMember): Promise<string> {
+  const incidentRoleId: ObjectID | undefined = incidentMember.incidentRoleId;
+
+  let roleName: string = "Member";
+  if (incidentRoleId) {
+    const role: IncidentRole | null = await IncidentRoleService.findOneById({
+      id: incidentRoleId,
+      select: {
+        name: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+    if (role && role.name) {
+      roleName = role.name;
+    }
+  }
+
+  return roleName;
+}
+
+/*
+ * Tells each delivery's person that they were assigned to the incident in
+ * their row's role, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyMembersAssigned(data: {
+  incident: Incident;
+  assignments: Array<MemberAssigned>;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const incident: Incident = data.incident;
+
+  const toTell: number = data.deliveries.reduce(
+    (count: number, delivery: OwnerNotificationDelivery): number => {
+      return count + delivery.owners.length;
+    },
+    0,
+  );
+
+  if (toTell === 0) {
+    return;
+  }
+
+  const incidentNumber: string =
+    incident.incidentNumberWithPrefix ||
+    (incident.incidentNumber ? `#${incident.incidentNumber}` : "");
+
+  // Every resource the incident's Affected Resources card lists.
+  const resourcesAffected: string = LinkedAffectedResources.getText({
+    resources: await LinkedAffectedResources.readForIncident({
+      service: IncidentService,
+      projectId: incident.projectId!,
+      incidentId: incident.id!,
+    }),
+    fallback: "None",
+  });
+
+  for (const delivery of data.deliveries) {
+    // The row this delivery is of: its person, and their role.
+    const assignment: MemberAssigned | undefined = data.assignments.find(
+      (each: MemberAssigned): boolean => {
+        return (
+          each.memberRowId.toString() ===
+          delivery.notification.eventId.toString()
+        );
+      },
+    );
+
+    if (!assignment) {
+      continue;
+    }
+
+    const roleName: string = assignment.roleName;
+
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const vars: Dictionary<string> = {
           incidentTitle: incident.title!,
           incidentNumber: incidentNumber,
@@ -270,7 +426,7 @@ RunCron(
           incidentId: incident.id!,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

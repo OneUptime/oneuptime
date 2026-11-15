@@ -18,7 +18,15 @@ export interface ComponentProps {
   title: string;
   className?: string | undefined;
   alertType: HeaderAlertType;
+  // In English, looked up by the tooltip - unless isTooltipTranslated says.
   tooltip?: string | undefined;
+  /*
+   * The tooltip is in the reader's words already: a front end's own keyed
+   * text, a sentence built around a value. Drawn as given, never looked up
+   * again (#8423): looked up again, a translation that is itself an English
+   * key reads as another word, as the Spanish "Red" (Network) read "Rojo".
+   */
+  isTooltipTranslated?: boolean | undefined;
   colorSwatch?: ColorSwatch | undefined;
   suffix?: string | undefined;
 }
@@ -100,7 +108,14 @@ const HeaderAlert: (props: ComponentProps) => ReactElement = (
   };
 
   if (props.tooltip) {
-    return <Tooltip text={props.tooltip}>{getElement()}</Tooltip>;
+    return (
+      <Tooltip
+        text={props.tooltip}
+        isTextTranslated={props.isTooltipTranslated}
+      >
+        {getElement()}
+      </Tooltip>
+    );
   }
 
   return getElement();

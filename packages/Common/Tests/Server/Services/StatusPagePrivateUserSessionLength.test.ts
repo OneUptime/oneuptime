@@ -29,7 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import { Repository, SelectQueryBuilder, UpdateResult } from "typeorm";
 
 /*
@@ -257,7 +257,7 @@ describe("a refresh or login code counts a session only within the limit the pag
 });
 
 describe("a session's refresh token expires by the end of its limit", () => {
-  let pageRead: jest.SpiedFunction<typeof StatusPageService.findOneById>;
+  let pageRead: SpyInstance<typeof StatusPageService.findOneById>;
   let page: StatusPage;
 
   beforeEach(() => {
@@ -270,7 +270,7 @@ describe("a session's refresh token expires by the end of its limit", () => {
       "findOneById",
     ).mockImplementation(async (): Promise<StatusPage | null> => {
       return page;
-    }) as unknown as jest.SpiedFunction<typeof StatusPageService.findOneById>;
+    }) as unknown as SpyInstance<typeof StatusPageService.findOneById>;
     getJestSpyOn(StatusPagePrivateUserService, "getRepository").mockReturnValue(
       {
         update: jest.fn(async (): Promise<UpdateResult> => {
@@ -292,7 +292,7 @@ describe("a session's refresh token expires by the end of its limit", () => {
     service: Service,
     statusPageId: ObjectID,
   ): Promise<StatusPagePrivateUserSession> => {
-    const create: jest.SpiedFunction<typeof service.create> = getJestSpyOn(
+    const create: SpyInstance<typeof service.create> = getJestSpyOn(
       service,
       "create",
     ).mockImplementation(
@@ -302,7 +302,7 @@ describe("a session's refresh token expires by the end of its limit", () => {
         request.data.id = ObjectID.generate();
         return request.data;
       },
-    ) as unknown as jest.SpiedFunction<typeof service.create>;
+    ) as unknown as SpyInstance<typeof service.create>;
 
     await service.createSession({
       projectId: ObjectID.generate(),
@@ -369,7 +369,7 @@ describe("a session's refresh token expires by the end of its limit", () => {
   test("a login code keeps its five minutes and reads no page", async () => {
     page = pageWithLength(1);
     const service: Service = new Service();
-    const create: jest.SpiedFunction<typeof service.create> = getJestSpyOn(
+    const create: SpyInstance<typeof service.create> = getJestSpyOn(
       service,
       "create",
     ).mockImplementation(
@@ -379,7 +379,7 @@ describe("a session's refresh token expires by the end of its limit", () => {
         request.data.id = ObjectID.generate();
         return request.data;
       },
-    ) as unknown as jest.SpiedFunction<typeof service.create>;
+    ) as unknown as SpyInstance<typeof service.create>;
 
     await service.createLoginCodeSession({
       projectId: ObjectID.generate(),
