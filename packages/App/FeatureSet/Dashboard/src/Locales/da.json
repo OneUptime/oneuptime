@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "{{count}} attributter kopieret som {{format}} JSON",
   "Copied {{count}} attributes as {{format}} JSON_one": "{{count}} attribut kopieret som {{format}} JSON",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Kopiér referencen til {{name}}",
+  "Copy the reference to {{name}}": "Kopier referencen til {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Kopiér {{count}} attributter som {{format}} JSON",
   "Copy {{count}} attributes as {{format}} JSON_one": "Kopiér {{count}} attribut som {{format}} JSON",
   "Copy {{field}}": "Copy {{field}}",
