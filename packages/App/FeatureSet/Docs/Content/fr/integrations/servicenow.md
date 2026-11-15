@@ -13,9 +13,9 @@ Créez un incident [ServiceNow](https://www.servicenow.com) pour chaque incident
 
 ```mermaid title="Deux flux de travail, un incident ServiceNow"
 flowchart TB
-    declared["Incident déclaré"] --> create["Flux de travail 1 :<br/>On Create Incident"]
+    declared["Incident déclaré"] --> create["Flux de travail 1 :<br/>À la création : Incident"]
     create -->|"POST incident"| sn["Incident ServiceNow"]
-    resolved["Incident résolu"] --> update["Flux de travail 2 :<br/>On Update Incident"]
+    resolved["Incident résolu"] --> update["Flux de travail 2 :<br/>À la mise à jour :<br/>Incident"]
     update --> find["Trouver l'enregistrement<br/>par correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **À la création : Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description**.
 
 ### Créer l'enregistrement
 
@@ -91,9 +91,9 @@ Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sou
 Un flux de travail a un seul déclencheur, la résolution demande donc un second flux de travail, démarré quand l'état d'un incident change.
 
 :::steps
-### Ajouter le déclencheur On Update Incident
+### Ajouter le déclencheur « À la mise à jour : Incident »
 
-Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **On Update Incident** comme déclencheur. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Champs à transmettre**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
+Créez un flux de travail nommé `Resolve ServiceNow incidents` et choisissez **À la mise à jour : Incident** comme déclencheur. Dans **Champs à surveiller**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**, pour qu'il ne s'exécute que quand l'état change. Dans **Champs à transmettre**, demandez si le nouvel état est un état résolu : cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Est un état de résolution**. Ou cliquez sur **Modifier en JSON** et remplacez le JSON par :
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

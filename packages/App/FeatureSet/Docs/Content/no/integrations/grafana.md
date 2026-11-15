@@ -129,7 +129,7 @@ Klikk på **Legg til komponent**, legg til en blokk **Hvis / Ellers**, og koble 
 
 ### Erklær hendelsen
 
-Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **Hvis / Ellers** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON-objekt** hva som kommer fra Grafana:
+Legg til en blokk **Opprett Hendelse (én post)**, og koble siden **Ja** av blokken **Hvis / Ellers** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON-objekt** hva som kommer fra Grafana:
 
 ```json
 {

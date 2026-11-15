@@ -107,7 +107,7 @@ Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo
 
 ```mermaid title="L'esempio completo"
 flowchart TB
-    trigger["On Create Incident"] -->|"Successo"| post["Chiamata API POST (JSON)"]
+    trigger["Alla creazione: Incidente"] -->|"Successo"| post["Chiamata API POST (JSON)"]
     post -->|"Errore"| log["Log"]
     post -->|"Successo"| done["L'esecuzione termina"]
 ```
@@ -124,7 +124,7 @@ Il nuovo flusso di lavoro si apre nel **Costruttore**, disattivato.
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro**, poi su **On Create Incident** sotto **Popolari** nel pannello **Aggiungi trigger**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro**, poi su **Alla creazione: Incidente** sotto **Popolari** nel pannello **Aggiungi trigger**.
 
 Il trigger prende il posto del blocco tratteggiato. L'ID che compare su di esso, `incident-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 

@@ -76,7 +76,7 @@ En hændelse, der er oprettet via en formular, er en almindelig hændelse med no
 - **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere.
 - **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
 
-Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **On Create Incident**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.
+Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **Ved oprettelse: Hændelse**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.
 
 :::steps
 #### Læs, hvad indsenderen skrev

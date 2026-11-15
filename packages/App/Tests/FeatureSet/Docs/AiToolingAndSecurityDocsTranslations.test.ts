@@ -171,8 +171,10 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
  * up in the Dashboard's locale, so a translation names the ones a locale
  * has a word for as its builder draws them - the URL, Request Headers and
  * Request Body settings, the Success, Yes, No and Error dots (#7511,
- * WorkflowStepNamesAsDrawnDocs) - and keeps the rest, the steps' titles,
- * as written. "Error" is also a span status on that page, drawn the same.
+ * WorkflowStepNamesAsDrawnDocs), the steps' titles (#8359) and the On
+ * Create Alert trigger, drawn as the sentence it was built from (#8708) -
+ * and keeps the rest as written. "Error" is also a span status on that
+ * page, drawn the same.
  *
  * If / Else's Value to check, Comparison and Compare with are not among
  * them: its editor draws them in the reader's language (ConditionModel),
@@ -280,9 +282,15 @@ function keptAsWritten(page: string): Array<string> {
   ];
 }
 
-// Whether a list accounts for a bold English word on a page.
+/*
+ * Whether a list accounts for a bold English word on a page: a step's own
+ * name that is no Dashboard label (a record step's title, built from its
+ * model's name) is held by WorkflowStepNamesAsDrawnDocs.
+ */
 function accountedFor(page: string, span: string): boolean {
   return (
+    (listed(WORKFLOW_STEP_NAMES, page).includes(span) &&
+      !isActionLabel(span)) ||
     keptAsWritten(page).includes(span) ||
     listed(MENU_ITEMS, page).includes(span) ||
     listed(CREATE_BUTTONS, page).includes(span)

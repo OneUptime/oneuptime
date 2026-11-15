@@ -15,7 +15,7 @@ OneUptime werkt op twee manieren met [GitHub](https://github.com). Koppel je rep
 flowchart TB
     app["De GitHub App"] --> repos["Je repository's,<br/>geïmporteerd"]
     repos --> pr["Pull requests met<br/>fixes van de AI<br/>van OneUptime"]
-    declared["Incident gemeld"] --> workflow["Workflow:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> workflow["Workflow:<br/>Bij aanmaken:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
@@ -62,7 +62,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en dan op **Vanaf nul beginnen
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving** en **Incident Number With Prefix**.
 
 ### Het issue openen
 

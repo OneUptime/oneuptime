@@ -90,7 +90,7 @@ Au moment où vous cliquez sur **Créer un événement de maintenance**, OneUpti
 5. **Les règles de runbook démarrent** les runbooks qui correspondent à l'événement.
 6. **Les rappels sont planifiés**, quand une règle de rappel correspond, pour ses propriétaires.
 
-Dans la minute qui suit sa publication, immédiate sauf si vous avez choisi un **Publier le**, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de flux de travail **On Create Maintenance Event** démarre tout flux de travail construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
+Dans la minute qui suit sa publication, immédiate sauf si vous avez choisi un **Publier le**, les abonnés de ses pages de statut sont prévenus qu'il est planifié, sauf si vous avez désactivé **Lorsque l'événement est planifié**. Le déclencheur de flux de travail **À la création : Événement de maintenance** démarre tout flux de travail construit dessus, et ses propriétaires en sont informés s'ils ont activé cette notification : voir [Paramètres de notification](/docs/notifications/notification-settings).
 
 ## Publier plus tard
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | L'interrupteur **Lorsque l'événement est planifié**. Les deux autres moments ont leurs propres champs. |
 | `publishOnStatusPageAt`                               | Quand l'événement est publié sur ses pages de statut et que ses abonnés sont prévenus qu'il est planifié. Omis, immédiatement. |
 
-Le même événement en code est la ressource Terraform `oneuptime_scheduled_maintenance_event` : voir [Exemples](/docs/terraform/examples#maintenance-planifiée). Un flux de travail en crée un avec son étape **Create One Maintenance Event**, et `/oneuptime maintenance` ouvre le formulaire dans Slack : voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
+Le même événement en code est la ressource Terraform `oneuptime_scheduled_maintenance_event` : voir [Exemples](/docs/terraform/examples#maintenance-planifiée). Un flux de travail en crée un avec son étape **Créer : Événement de maintenance (un seul)**, et `/oneuptime maintenance` ouvre le formulaire dans Slack : voir [Slack](/docs/workspace-connections/slack#créer-des-incidents-et-des-maintenances-depuis-slack).
 
 ## Dépannage
 

@@ -208,13 +208,13 @@ Ejere får som standard en e-mail. Hver person kan vælge andre kanaler (SMS, op
 
 Logs over indgående opkald er tilgængelige som arbejdsgangsudløsere:
 
-- **On Create Incoming Call Log** kører, når et opkald kommer ind.
-- **On Update Incoming Call Log** kører, efterhånden som opkaldet skrider frem. Den opdatering, der sætter **Ended At**, er opkaldets afslutning.
+- **Ved oprettelse: Log for indgående opkald** kører, når et opkald kommer ind.
+- **Ved opdatering: Log for indgående opkald** kører, efterhånden som opkaldet skrider frem. Den opdatering, der sætter **Ended At**, er opkaldets afslutning.
 
 For kun at reagere på ubesvarede opkald, fx for at poste dem i Slack eller Microsoft Teams eller for at åbne en sag:
 
 :::steps
-1. Tilføj udløseren **On Update Incoming Call Log**. Sæt **Felter, der holdes øje med** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
+1. Tilføj udløseren **Ved opdatering: Log for indgående opkald**. Sæt **Felter, der holdes øje med** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
 2. Tilføj et trin **Hvis / Ellers**. Tjek udløserens **Status** med sammenligningen **er ikke lig med** og `Completed`.
 3. Forbind dine trin til porten **Ja**.
 :::

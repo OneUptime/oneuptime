@@ -196,7 +196,7 @@ Verwijs zo naar de uitvoer van een eerder blok:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Een **API**-blok met de ID `lookup-user`                  | De statuscode: `{{local.components.lookup-user.returnValues.response-status}}`. De body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Een **Eigen JavaScript uitvoeren**-blok met de ID `transform`  | Wat het teruggaf: `{{local.components.transform.returnValues.returnValue}}`.           |
-| Een **On Create Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven het record terug als `model`, en daarin ga je dieper. |
+| Een **Bij aanmaken: Incident**-trigger met de ID `incident-on-create-1` | De titel van het incident: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Recordtriggers geven het record terug als `model`, en daarin ga je dieper. |
 
 Blokwaarden bestaan alleen tijdens de huidige uitvoering. Elke nieuwe uitvoering begint opnieuw.
 
@@ -239,7 +239,7 @@ Er komt een webhook binnen met een body zoals `{ "service": "checkout", "status"
 
 1. Een **Webhook**-trigger met de ID `ci-webhook`.
 2. Een **Als / Anders**-blok: **Te controleren waarde** is het veld `status` van de Request Body van de webhook (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergelijking** is **is gelijk aan** en **Vergelijken met** is `failed`.
-3. Vanuit de tak **Ja** een **Create One Incident**-blok met:
+3. Vanuit de tak **Ja** een **Incident aanmaken (één record)**-blok met:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschrijving: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

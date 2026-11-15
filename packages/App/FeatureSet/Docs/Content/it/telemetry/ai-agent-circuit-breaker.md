@@ -15,7 +15,7 @@ Un agente IA raramente si guasta andando in crash. Si guasta andando avanti: rip
 flowchart TB
     agent["Il tuo agente invia<br/>span gen_ai.*"] --> ingest["OneUptime"]
     ingest --> wire{"Innesco: avviso di<br/>budget o di ciclo"}
-    wire -->|"Avviso creato"| workflow["Flusso di lavoro:<br/>On Create Alert"]
+    wire -->|"Avviso creato"| workflow["Flusso di lavoro:<br/>Alla creazione: Avviso"]
     workflow -->|"API Post (JSON)"| endpoint["Il tuo endpoint di arresto"]
     endpoint --> runner["Il runner mette in pausa<br/>o ferma l'agente"]
 ```
@@ -125,7 +125,7 @@ Apri **Prodotti → Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. 
 
 ### Aggiungi il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Campi da passare** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Avviso** nel pannello **Aggiungi trigger**. Fai clic sul trigger: **Campi da passare** parte con il titolo, quindi fai clic su **Aggiungi campo**, spunta la descrizione e fai clic su **Salva**. L'ID sul blocco, `alert-on-create-1`, è il modo in cui i blocchi successivi vi fanno riferimento.
 
 ### Controlla il titolo
 

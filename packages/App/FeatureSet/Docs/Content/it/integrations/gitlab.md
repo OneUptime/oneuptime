@@ -16,7 +16,7 @@ Apri una issue [GitLab](https://gitlab.com) per ogni incidente di OneUptime, cos
 
 ```mermaid title="Un flusso di lavoro, una issue GitLab"
 flowchart TB
-    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> workflow["Flusso di lavoro:<br/>Alla creazione:<br/>Incidente"]
     workflow -->|"POST issues"| issue["Issue GitLab"]
 ```
 
@@ -47,7 +47,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione** e **Incident Number With Prefix**.
 
 ### Aprire la issue
 

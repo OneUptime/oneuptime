@@ -48,7 +48,7 @@ Utløs et varsel når teamet ditt bør se på noe før noen utenfor merker det, 
 - **Forbruksraten til en SLO.** En forbruksrateregel kan opprette et varsel når en SLO bruker feilbudsjettet sitt for raskt. Se [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts).
 - **Nettverkslokasjoner og sikkerhetshendelser.** En nettverkslokasjon som er satt til å varsle når den er usunn, åpner et varsel når den samlede helsestatusen ikke lenger er operativ, og deteksjonsreglene dine for sikkerhetshendelser åpner også varsler. Se [Nettverkslokasjoner (samlet helsestatus og oppetid)](/docs/monitor/network-sites) og [Sikkerhetshendelser (SIEM)](/docs/telemetry/security-events).
 - **En tilkalling.** `/oneuptime page` i Slack eller Microsoft Teams, overalt unntatt i en hendelses eller et varsels egen kanal, åpner et varsel med meldingen din som tittel og tilkaller personene du nevner. Tilkallingsblokkene i en arbeidsflyt gjør det samme med tittelen og meldingen du gir dem. Se [Tilkall noen fra Slack](/docs/workspace-connections/slack#tilkall-noen-fra-slack) og [Paging](/docs/workflows/components#paging).
-- **API-et, Terraform og arbeidsflyter.** Varsler er en vanlig ressurs: `/api/alert`, Terraform-ressursen `oneuptime_alert` og trinnet **Create One Alert** i en arbeidsflyt.
+- **API-et, Terraform og arbeidsflyter.** Varsler er en vanlig ressurs: `/api/alert`, Terraform-ressursen `oneuptime_alert` og trinnet **Opprett Varsel (én post)** i en arbeidsflyt.
 
 ## Hvor varsler finnes i dashbordet
 
@@ -104,9 +104,9 @@ I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i 
 7. **Grupperingsregler legger det i en episode**, når en av dem samsvarer. Se [Varselepisoder og grupperingsregler](/docs/alerts/episodes).
 8. **Påminnelser planlegges**, når en påminnelsesregel samsvarer, og **OneUptime AI** undersøker varselet når **Undersøk nye varsler** er slått på under **Varsler → KI → Innstillinger**, og retter det når **Rett nye varsler automatisk** er slått på. Se [AI SRE](/docs/ai/ai-sre).
 
-En bakgrunnsjobb gir varselets eiere beskjed omtrent ett minutt etter at det er opprettet, alle eierne det har da, og arbeidsflytutløseren **On Create Alert** starter alle arbeidsflyter som bygger på den.
+En bakgrunnsjobb gir varselets eiere beskjed omtrent ett minutt etter at det er opprettet, alle eierne det har da, og arbeidsflytutløseren **Ved oppretting: Varsel** starter alle arbeidsflyter som bygger på den.
 
-For å gjøre personer og team til varselets eiere idet det opprettes, slik at denne beskjeden når dem og ikke Prosjekteiere, gir du dem med opprettelsen: over API-et sender du id-ene deres i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i en arbeidsflyt velger du dem under **Eierbrukere** og **Eierteam** i **Create One Alert**; over MCP gir du `ownerUsers` og `ownerTeams` til `create_alert`. En forespørsel der avsenderen ikke kan legge til de eierne, avvises før noe lagres. Eiere som en egen forespørsel legger til etter opprettelsen, får bare høre om det hvis de er lagt til innen det minuttet.
+For å gjøre personer og team til varselets eiere idet det opprettes, slik at denne beskjeden når dem og ikke Prosjekteiere, gir du dem med opprettelsen: over API-et sender du id-ene deres i `miscDataProps`, som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, med `POST /api/alert`; i en arbeidsflyt velger du dem under **Eierbrukere** og **Eierteam** i **Opprett Varsel (én post)**; over MCP gir du `ownerUsers` og `ownerTeams` til `create_alert`. En forespørsel der avsenderen ikke kan legge til de eierne, avvises før noe lagres. Eiere som en egen forespørsel legger til etter opprettelsen, får bare høre om det hvis de er lagt til innen det minuttet.
 
 ### Opprettet allerede bekreftet eller løst
 

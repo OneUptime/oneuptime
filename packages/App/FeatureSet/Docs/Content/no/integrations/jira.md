@@ -306,7 +306,7 @@ Tokener utløper som standard etter ett år og fornyes ikke. For å slippe å by
 ### Opprett en Jira-sak for hver hendelse
 
 :::steps
-1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. **Felt som sendes videre** starter med **Tittel**: klikk på **Legg til felt**, og velg **Beskrivelse** og **Hendelsesnummer**. ID-en sendes alltid videre. La **Identifier** stå som `incident-on-create-1`.
+1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Jira`. Klikk på den stiplede blokken, og legg til triggeren **Ved oppretting: Hendelse**. **Felt som sendes videre** starter med **Tittel**: klikk på **Legg til felt**, og velg **Beskrivelse** og **Hendelsesnummer**. ID-en sendes alltid videre. La **Identifier** stå som `incident-on-create-1`.
 2. Klikk på **Legg til komponent**, legg til en **API-kall POST (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **Identifier** til `create-issue`, **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felt**, **Forespørselshoder** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sett **Forespørselstekst** til saken, og erstatt `OPS` og `Bug` med prosjektnøkkelen din og en sakstype i det prosjektet:
 
@@ -390,7 +390,7 @@ Klikk for dette på **Legg til felt** i triggerens **Felt som sendes videre**, v
 Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker opprettes.
 
 :::steps
-1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **On Update Incident**. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**. Klikk på **Legg til felt** i **Felt som sendes videre**, åpne **Current Incident State**, og velg **Navn**.
+1. Opprett en arbeidsflyt som heter `Incident updates to Jira`, med triggeren **Ved oppdatering: Hendelse**. Klikk på **Legg til felt** i **Felt som overvåkes**, og velg **Current Incident State**. Klikk på **Legg til felt** i **Felt som sendes videre**, åpne **Current Incident State**, og velg **Navn**.
 2. Legg til en **Hvis / Ellers**-blokk: **Verdi som skal sjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lik**, **Sammenlign med** `Resolved`, eller navnet på den løste tilstanden din.
 3. Finn saken etter **Ja**-siden med en **API-kall POST (JSON)**-blokk der **Identifier** er `find-issue`, som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Bygg først den mottakende arbeidsflyten:
 
    En selvhostet installasjon bruker sin egen vert. Behandle URL-en som et passord: alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted, og den gamle URL-en slutter å virke med en gang.
 
-3. Legg til en **Update One Incident**-blokk fra triggeren. Sett **Spørring** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON-objekt)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Find One Incident State**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Legg til en **Oppdater Hendelse (én post)**-blokk fra triggeren. Sett **Spørring** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON-objekt)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Finn Hendelsesstatus (én post)**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå den på, og få deretter Jira til å kalle den, fra en automatiseringsregel eller fra en webhook:
 
@@ -466,13 +466,13 @@ Start med malene for varsler i [Start fra en mal](#start-fra-en-mal). For å byg
 
 | Hendelse | Varsel |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Ingen: varsler har ingen offentlige notater |
+| **Ved oppretting: Hendelse** (`incident-on-create-1`) | **Ved oppretting: Varsel** (`alert-on-create-1`) |
+| **Ved oppdatering: Hendelse** (`incident-on-update-1`) | **Ved oppdatering: Varsel** (`alert-on-update-1`) |
+| **Ved oppretting: Internt hendelsesnotat** | **Ved oppretting: Internt notat for varsel** |
+| **Ved oppretting: Offentlig hendelsesnotat** | Ingen: varsler har ingen offentlige notater |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Finn Hendelsesstatus (én post)** | **Finn Varselsstatus (én post)** |
+| **Oppdater Hendelse (én post)** | **Oppdater Varsel (én post)** |
 | Etikett `oneuptime-incident-<incident id>` | Etikett `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Sjekk porten først: Jira kaller bare de tillatte portene. Send deretter en fore
 :::
 
 :::details Arbeidsflyten kjører, men hendelsen endres ikke
-En **Update One Incident**-blokk rapporterer `Items Updated: 0` når spørringen ikke samsvarte med noe, og det er en suksess, ikke en feil. Sjekk at ID-en i forespørselen virkelig er OneUptime-hendelsens, og at du spør på `_id`.
+En **Oppdater Hendelse (én post)**-blokk rapporterer `Items Updated: 0` når spørringen ikke samsvarte med noe, og det er en suksess, ikke en feil. Sjekk at ID-en i forespørselen virkelig er OneUptime-hendelsens, og at du spør på `_id`.
 :::
 
 :::details En referanse vises slik den er skrevet i en Jira-sak

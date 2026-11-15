@@ -107,7 +107,7 @@ Det här arbetsflödet skickar en JSON-sammanfattning av varje ny incident till 
 
 ```mermaid title="Det färdiga exemplet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Framgång"| post["API-anrop POST (JSON)"]
+    trigger["Vid skapande: Incident"] -->|"Framgång"| post["API-anrop POST (JSON)"]
     post -->|"Fel"| log["Logg"]
     post -->|"Framgång"| done["Körningen slutar"]
 ```
@@ -124,7 +124,7 @@ Det nya arbetsflödet öppnas i **Byggare**, avstängt.
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och klicka sedan på **On Create Incident** under **Populära** i panelen **Lägg till utlösare**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och klicka sedan på **Vid skapande: Incident** under **Populära** i panelen **Lägg till utlösare**.
 
 Utlösaren tar det streckade blockets plats. ID:t på det, `incident-on-create-1`, är hur senare block hänvisar till det.
 

@@ -117,7 +117,7 @@ Die Karte **Nächste Nummer** darunter legt die Nummer fest, die das nächste Er
 
 ## Workflows
 
-Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** und **On Delete Maintenance Event**, dasselbe für **Scheduled Maintenance State Timeline** und die anderen, und Aktionen wie **Create One Maintenance Event** und **Update One Maintenance Event**. Definitionen benutzerdefinierter Felder und Messwerte sind die Ausnahmen: Sie haben keine Workflow-Schritte. Siehe [Workflows – Übersicht](/docs/workflows/index).
+Jedes Wartungsmodell hat Workflow-Trigger und -Aktionen, nach ihm benannt: **Bei Erstellung: Wartungsereignis**, **Bei Aktualisierung: Wartungsereignis**, **Bei Erstellung oder Aktualisierung: Wartungsereignis** und **Bei Löschung: Wartungsereignis**, dasselbe für **Scheduled Maintenance State Timeline** und die anderen, und Aktionen wie **Wartungsereignis erstellen (einzeln)** und **Wartungsereignis aktualisieren (einzeln)**. Definitionen benutzerdefinierter Felder und Messwerte sind die Ausnahmen: Sie haben keine Workflow-Schritte. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
 ## Wer sie ändern darf
 

@@ -40,6 +40,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -416,8 +417,7 @@ const DASHBOARD_QUOTES: Record<string, Array<string>> = {
  * Names every language shows in English: plans and permissions, as the
  * team pages, the API and Terraform name them; the states every project's
  * scheduled maintenance starts with, which are its own data; and what the
- * server writes in English (feed entries, an email's rows, a chat button, a
- * workflow component).
+ * server writes in English (feed entries, an email's rows, a chat button).
  *
  * The template event types are not among them any more: the Dashboard draws
  * each in the reader's language (#8179), so a page names it as its
@@ -443,9 +443,16 @@ const KEPT_IN_ENGLISH: Array<string> = [
   "Status:",
   "Updated Note",
   "Mark as Complete",
-  "Create One Incident",
   "×",
 ];
+
+/*
+ * The workflow's record steps the pages name, built from the model's name:
+ * the builder draws each as the sentence it was built from, in the
+ * reader's words (#8642), and every language names it so (drawnStepName,
+ * #8708).
+ */
+const RECORD_STEPS: Array<string> = ["Create One Incident"];
 
 // Bold names the pages hold elsewhere: by NotificationChannelsWhoCanDocs.
 const HELD_ELSEWHERE: Array<string> = [
@@ -727,6 +734,7 @@ function accountedFor(page: string, span: string): boolean {
       },
     ),
     ...KEPT_IN_ENGLISH,
+    ...RECORD_STEPS,
     ...HELD_ELSEWHERE,
     ...listed(PROSE, page),
   ];
@@ -752,6 +760,7 @@ function dashboardLabels(page: string): Array<string> {
       return entry.english;
     }),
     ...KEPT_IN_ENGLISH,
+    ...RECORD_STEPS,
     ...HELD_ELSEWHERE,
     ...listed(PROSE, page),
   ];
@@ -918,7 +927,11 @@ describe("the lists this test keeps", () => {
       },
     );
 
-    for (const name of [...KEPT_IN_ENGLISH, ...HELD_ELSEWHERE]) {
+    for (const name of [
+      ...KEPT_IN_ENGLISH,
+      ...RECORD_STEPS,
+      ...HELD_ELSEWHERE,
+    ]) {
       expect({ name, found: english.includes(name) }).toEqual({
         name,
         found: true,
@@ -1249,6 +1262,19 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         });
 
       expect(missing).toEqual([]);
+    });
+
+    it("names a workflow's record step as this language's builder draws it (#8708)", () => {
+      const translated: string = readPage(language, entry.page);
+
+      for (const step of boldLabels(english).filter((span: string): boolean => {
+        return RECORD_STEPS.includes(span);
+      })) {
+        expect({ step, named: true }).toEqual({
+          step,
+          named: translated.includes(`**${drawnStepName(language, step)}**`),
+        });
+      }
     });
 
     it("keeps the plans, permissions, maintenance states and server texts in English", () => {

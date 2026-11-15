@@ -208,13 +208,13 @@ Eigentümer erhalten standardmäßig eine E-Mail. Jede Person kann andere Kanäl
 
 Protokolle eingehender Anrufe stehen als Workflow-Auslöser zur Verfügung:
 
-- **On Create Incoming Call Log** läuft, wenn ein Anruf eingeht.
-- **On Update Incoming Call Log** läuft, während der Anruf fortschreitet. Die Aktualisierung, die **Ended At** setzt, ist das Ende des Anrufs.
+- **Bei Erstellung: Eingangsanruf-Protokoll** läuft, wenn ein Anruf eingeht.
+- **Bei Aktualisierung: Eingangsanruf-Protokoll** läuft, während der Anruf fortschreitet. Die Aktualisierung, die **Ended At** setzt, ist das Ende des Anrufs.
 
 Um nur auf verpasste Anrufe zu reagieren, etwa um sie in Slack oder Microsoft Teams zu posten oder ein Ticket zu eröffnen:
 
 :::steps
-1. Fügen Sie den Auslöser **On Update Incoming Call Log** hinzu. Setzen Sie **Beobachtete Felder** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
+1. Fügen Sie den Auslöser **Bei Aktualisierung: Eingangsanruf-Protokoll** hinzu. Setzen Sie **Beobachtete Felder** auf **Ended At** und wählen Sie die Felder, die Sie nutzen möchten, etwa **Status**, **Caller Phone Number** und **Routing Phone Number**.
 2. Fügen Sie einen Schritt **Wenn / Sonst** hinzu. Prüfen Sie den **Status** des Auslösers mit dem Vergleich **ist ungleich** und `Completed`.
 3. Verbinden Sie Ihre Schritte mit dem Port **Ja**.
 :::

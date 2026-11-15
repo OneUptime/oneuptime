@@ -16,9 +16,9 @@ Invia gli incidenti di OneUptime a [Opsgenie](https://www.atlassian.com/software
 
 ```mermaid title="Due flussi di lavoro, un alert Opsgenie"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>Alla creazione:<br/>Incidente"]
     create -->|"POST /v2/alerts"| og["Alert Opsgenie"]
-    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>All'aggiornamento:<br/>Incidente"]
     update -->|"chiudi per alias"| og
 ```
 
@@ -49,7 +49,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Creare l'alert
 
@@ -83,9 +83,9 @@ Lo schema di Opsgenie è la parola `GenieKey`, uno spazio, poi la chiave. Opsgen
 Un flusso di lavoro ha un solo trigger, quindi per chiudere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
-### Aggiungere il trigger On Update Incident
+### Aggiungere il trigger «All'aggiornamento: Incidente»
 
-Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **On Update Incident** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **All'aggiornamento: Incidente** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

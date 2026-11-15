@@ -178,7 +178,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschu
 
 ## Workflows
 
-Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** en **On Delete Alert**, hetzelfde voor **Waarschuwingsepisode**, **Statustijdlijn van waarschuwing** en de andere, en acties zoals **Create One Alert** en **Update One Alert**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
+Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn genoemd: **Bij aanmaken: Waarschuwing**, **Bij bijwerken: Waarschuwing**, **Bij aanmaken of bijwerken: Waarschuwing** en **Bij verwijderen: Waarschuwing**, hetzelfde voor **Waarschuwingsepisode**, **Statustijdlijn van waarschuwing** en de andere, en acties zoals **Waarschuwing aanmaken (één record)** en **Waarschuwing bijwerken (één record)**. De definities van aangepaste velden voor waarschuwingen zijn de enige uitzondering: ze hebben geen workflowtriggers. Zie [Workflows – Overzicht](/docs/workflows/index).
 
 ## Wie dit kan wijzigen
 
