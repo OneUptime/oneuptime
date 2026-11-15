@@ -1022,6 +1022,18 @@ Un équipement non vu depuis 30 jours est retiré de la liste et de la carte, sa
 
 Les propriétaires et les administrateurs du projet choisissent la disposition par défaut : passez à une disposition et sélectionnez **Définir par défaut pour tout le monde**. Chaque vue de la carte des équipements s'ouvre alors sur elle : **Topologie de l'équipement**, un site sur la **Carte**, et l'onglet **Réseau** de **Topologie**. Sur la disposition par défaut, **Supprimer la valeur par défaut** rend à chaque carte sa propre disposition par défaut. Les positions déplacées sont enregistrées pour chaque disposition dans votre navigateur : la carte s'ouvre avec l'agencement que vous avez fait dans cette disposition.
 
+### S'orienter dans un grand réseau
+
+Dans la disposition **Parent and child**, un équipement auquel sont reliés six équipements ou plus sans rien en dessous les dessine en grille compacte sous lui plutôt qu'en une longue rangée, reliés par des lignes à angle droit qui ne croisent aucun équipement ni aucun nom. La disposition choisit la forme de grille qui affiche toute la carte à l'écran à la plus grande taille.
+
+Un équipement qui a quelque chose en dessous porte un bouton `−` sous son nom : sélectionnez-le pour réduire la branche à l'équipement et au nombre d'équipements qu'elle contient, par exemple `+24`, puis sélectionnez ce nombre pour la développer de nouveau. **Réduire toutes les branches** et **Développer toutes les branches**, à côté des boutons de zoom, réduisent la carte à ses grandes lignes et la développent de nouveau. Votre navigateur mémorise les branches réduites pour chaque site.
+
+Pour examiner une branche seule, cliquez sur son équipement et sélectionnez **Afficher uniquement cette branche**. La carte montre cet équipement et tout ce qui se trouve en dessous, avec en haut le chemin depuis le sommet du réseau : sélectionnez une étape pour élargir la vue à la branche de cet équipement, ou **Afficher toute la carte** pour tout revoir.
+
+La recherche déplace la carte vers les équipements trouvés. Les flèches à côté du nombre de correspondances, ou Entrée dans le champ de recherche, passent d'une correspondance à l'autre et l'entourent d'un anneau. Dans la disposition **Parent and child**, le chemin depuis le sommet du réseau jusqu'à chaque correspondance reste en évidence, et une correspondance dans une branche réduite est comptée aussi, avec un bouton qui ouvre les branches où elle se trouve.
+
+Dès que vous avez déplacé des équipements, un sélecteur en haut de la carte bascule entre **Disposition personnalisée · 2 déplacés** et **Disposition d'origine** : la disposition d'origine est la carte telle que OneUptime la dispose, et votre disposition personnalisée est conservée jusqu'à ce que vous y reveniez. **Reset layout** la supprime.
+
 ### Exporter la carte en PDF
 
 **Exporter en PDF**, en haut de la carte, télécharge la carte que vous regardez sous forme de PDF à joindre à un audit, une demande de changement ou une revue d'incident, ou à lire hors ligne. Chaque vue de la carte des équipements l'a : **Topologie de l'équipement**, un site sur la **Carte**, et l'onglet **Réseau** de **Topologie**.

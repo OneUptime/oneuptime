@@ -84,6 +84,11 @@ export const FILLED_TEMPLATES: Readonly<
     key: "Collect on {{count}} devices",
     values: { count: "12" },
   },
+  // The network map's layout switch, once two devices are dragged (#6606).
+  "Custom layout · 2 moved": {
+    key: "Custom layout · {{count}} moved",
+    values: { count: "2" },
+  },
 };
 
 /*
