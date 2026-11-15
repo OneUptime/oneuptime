@@ -2,7 +2,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
-import { WebVital, formatDurationMs } from "./telemetryMetrics";
+import { WebVital, formatDurationMsInLanguage } from "./telemetryMetrics";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getLineDirection } from "Common/UI/Utils/LineDirection";
@@ -17,16 +18,25 @@ export interface WebVitalsCardProps {
 /* The parts of a vital that decide how it is shown and rated. */
 export type RatedValue = Pick<WebVital, "value" | "unit" | "thresholds">;
 
-export const formatVital: (v: RatedValue) => string = (
+/*
+ * A vital's reading in the reader's language: an LCP's "2.50 s" is "2,50
+ * Sek." in German and "۲٫۵۰ ثانیه" in Persian, a CLS "0.100" is "0,100"
+ * and "۰٫۱۰۰" - English exactly as before.
+ */
+export const formatVital: (v: RatedValue, translator: Translator) => string = (
   v: RatedValue,
+  translator: Translator,
 ): string => {
   if (v.value === null || !Number.isFinite(v.value)) {
     return "—";
   }
   if (v.unit === "ms") {
-    return formatDurationMs(v.value);
+    return formatDurationMsInLanguage(v.value, translator);
   }
-  return v.value.toFixed(3);
+  return formatReaderFigure(v.value, {
+    decimals: 3,
+    language: translator.language,
+  });
 };
 
 export const ratingClasses: (v: RatedValue) => {
@@ -162,11 +172,11 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
                     {/* "640 ms" on a page read from the right, not "ms 640". */}
                     <span
                       dir={getLineDirection(
-                        formatVital(v),
+                        formatVital(v, translator),
                         translator.language,
                       )}
                     >
-                      {formatVital(v)}
+                      {formatVital(v, translator)}
                     </span>
                   </div>
                   <div className="mt-1 text-[11px] text-gray-400 truncate">

@@ -40,7 +40,7 @@ Ein Fehlerbudget macht Zuverlässigkeit zu etwas, das Sie ausgeben können. Ist 
 
 ## Ein SLO erstellen
 
-Sie brauchen eine Rolle, die SLOs erstellen darf: Project Owner, Project Admin oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
+Sie brauchen eine Rolle, die SLOs erstellen darf: Projektinhaber, Projektadministrator oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
 
 :::steps
 ### SLOs öffnen

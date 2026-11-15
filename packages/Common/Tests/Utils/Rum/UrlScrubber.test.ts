@@ -369,6 +369,261 @@ describe("UrlScrubber", () => {
         }).not.toThrow();
       }
     });
+
+    /*
+     * #8384: the React Native recorder names every screen
+     * "app://<app id>/<route>". URL.origin is the string "null" for a scheme
+     * the URL standard gives no origin, and the result was built from it, so
+     * the ingest stored every mobile page as "null/<route>": the app lost,
+     * and User Flows drew each screen as "/null/...".
+     */
+    describe("a scheme with no origin", () => {
+      it("keeps a mobile app's scheme and app id, and scrubs its route", () => {
+        expect(
+          UrlScrubber.scrub("app://com.example.shop/Checkout/42", []),
+        ).toBe("app://com.example.shop/Checkout/42");
+        expect(
+          UrlScrubber.scrub(
+            "app://com.example.shop/u/someone@example.com/orders/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f?token=abc#x",
+            [],
+          ),
+        ).toBe("app://com.example.shop/u/[redacted]/orders/[redacted]");
+        expect(UrlScrubber.scrub("app://com.example.shop", [])).toBe(
+          "app://com.example.shop/",
+        );
+        expect(
+          UrlScrubber.scrub("chrome-extension://abcdefghij/popup.html"),
+        ).toBe("chrome-extension://abcdefghij/popup.html");
+      });
+
+      it("never writes the origin's 'null' into what it keeps", () => {
+        for (const url of [
+          "app://com.example.shop/Checkout/42",
+          "app://com.example.shop",
+          "myapp:/Checkout",
+          "file:///index.html",
+          "data:text/plain,hello",
+          "mailto:someone@example.com",
+          "about:blank",
+          "javascript:alert(1)",
+        ]) {
+          const scrubbed: string = UrlScrubber.scrub(url, []);
+
+          expect([url, scrubbed.startsWith("null")]).toEqual([url, false]);
+          expect([
+            url,
+            UrlScrubber.getScrubbedPage(url).includes("null"),
+          ]).toEqual([url, false]);
+        }
+      });
+
+      it("drops a user name and password, as an origin does, and keeps a port", () => {
+        expect(
+          UrlScrubber.scrub("app://user:secret@com.example.shop/Checkout", []),
+        ).toBe("app://com.example.shop/Checkout");
+        expect(
+          UrlScrubber.scrub("app://com.example.shop:8081/Checkout", []),
+        ).toBe("app://com.example.shop:8081/Checkout");
+      });
+
+      it("keeps the app id as written, and tells two apps apart", () => {
+        const first: string = UrlScrubber.scrub(
+          "app://com.example.shop/Home",
+          [],
+        );
+        const second: string = UrlScrubber.scrub(
+          "app://com.example.admin/Home",
+          [],
+        );
+
+        expect(first).toBe("app://com.example.shop/Home");
+        expect(second).toBe("app://com.example.admin/Home");
+        expect(UrlScrubber.scrub("app://Com.Example.Shop/Home", [])).toBe(
+          "app://Com.Example.Shop/Home",
+        );
+      });
+
+      it("keeps a path from the root with the scheme alone when there is no host", () => {
+        expect(UrlScrubber.scrub("myapp:/Checkout/42", [])).toBe(
+          "myapp:/Checkout/42",
+        );
+        expect(UrlScrubber.scrub("file:///Users/me/index.html", [])).toBe(
+          "file:/Users/me/index.html",
+        );
+      });
+
+      /*
+       * An address with no path from the root is no page, and can be
+       * content: a data: URL is its own body. Nothing of it is kept but its
+       * scheme.
+       */
+      it("redacts what an address with no path from the root holds", () => {
+        expect(
+          UrlScrubber.scrub("data:text/plain,someone@example.com", []),
+        ).toBe("data:[redacted]");
+        expect(
+          UrlScrubber.scrub(
+            "data:application/json;base64,eyJlbWFpbCI6InNvbWVvbmVAZXhhbXBsZS5jb20ifQ==",
+            [],
+          ),
+        ).toBe("data:[redacted]");
+        expect(UrlScrubber.scrub("mailto:someone@example.com", [])).toBe(
+          "mailto:[redacted]",
+        );
+        expect(UrlScrubber.scrub("about:blank", [])).toBe("about:[redacted]");
+      });
+
+      it("keeps what it keeps when it runs over its own output", () => {
+        for (const url of [
+          "app://com.example.shop/Checkout/42?x=1",
+          "app://user:secret@com.example.shop:8081/u/someone@example.com",
+          "app://com.example.shop",
+          "myapp:/Checkout",
+          "file:///Users/me/index.html",
+          "data:text/plain,hello",
+          "mailto:someone@example.com",
+        ]) {
+          const once: string = UrlScrubber.scrub(url, []);
+
+          expect([url, UrlScrubber.scrub(once, [])]).toEqual([url, once]);
+        }
+      });
+
+      it("names a mobile screen's page by its route", () => {
+        expect(
+          UrlScrubber.getScrubbedPage("app://com.example.shop/Checkout/42"),
+        ).toBe("/Checkout/42");
+        expect(
+          UrlScrubber.getScrubbedPage(
+            "app://com.example.shop/u/someone@example.com",
+          ),
+        ).toBe("/u/[redacted]");
+      });
+
+      it("leaves an address with an origin as it was", () => {
+        expect(
+          UrlScrubber.scrub("https://user:secret@shop.example.com:443/a", []),
+        ).toBe("https://shop.example.com/a");
+        expect(UrlScrubber.scrub("http://shop.example.com:8080/a", [])).toBe(
+          "http://shop.example.com:8080/a",
+        );
+        expect(
+          UrlScrubber.scrub(
+            "blob:https://shop.example.com/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f",
+            [],
+          ),
+        ).not.toContain("3f1a9c7e");
+      });
+    });
+
+    /*
+     * #8385: the token rule's characters hold no dot, so a JSON Web Token -
+     * three base64url parts joined by dots - was kept whole, and an address
+     * an application escaped twice read, decoded once, as no address.
+     */
+    describe("secrets the path rule used to keep", () => {
+      const JWT: string =
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+      it("redacts a JSON Web Token in a path, and in a hash router's route", () => {
+        expect(
+          UrlScrubber.scrub(`https://shop.example.com/auth/callback/${JWT}`),
+        ).toBe("https://shop.example.com/auth/callback/[redacted]");
+        expect(
+          UrlScrubber.scrub(`https://shop.example.com/#/verify/${JWT}?next=1`),
+        ).toBe("https://shop.example.com/#/verify/[redacted]");
+        expect(
+          UrlScrubber.scrub(`app://com.example.shop/session/${JWT}`, []),
+        ).toBe("app://com.example.shop/session/[redacted]");
+      });
+
+      it("redacts an email an application escaped twice", () => {
+        expect(
+          UrlScrubber.scrub(
+            "https://shop.example.com/users/someone%2540example.com/orders",
+          ),
+        ).toBe("https://shop.example.com/users/[redacted]/orders");
+        expect(
+          UrlScrubber.getScrubbedPage(
+            "https://shop.example.com/#!/u/someone%2540example.com",
+          ),
+        ).toBe("/#!/u/[redacted]");
+      });
+
+      it("keeps a file name, a version and a word that only look dotted", () => {
+        for (const url of [
+          "https://shop.example.com/files/report-2026-11-15.pdf",
+          "https://shop.example.com/docs/v14.2.0/notes.html",
+          "https://shop.example.com/eyJ/eyJsb2.png",
+          "https://shop.example.com/sale/50%2525-off",
+        ]) {
+          expect(UrlScrubber.scrub(url)).toBe(url);
+        }
+      });
+    });
+  });
+
+  /*
+   * #8195: the spelling a page pattern is compared in. A person writes the
+   * page as the address bar shows it ("/café"), and the browser's path
+   * escapes it ("/caf%C3%A9", or "/caf%c3%a9", "/cafe%CC%81" from a link).
+   */
+  describe("normalizePathSpelling, as read", () => {
+    it("decodes the words, in every spelling, and composes them", () => {
+      for (const path of [
+        "/caf%C3%A9",
+        "/caf%c3%a9",
+        "/cafe%CC%81",
+        "/cafe%cc%81",
+        "/café",
+        `/cafe${String.fromCharCode(0x301)}`,
+      ]) {
+        expect([path, UrlScrubber.normalizePathSpelling(path, true)]).toEqual([
+          path,
+          "/café",
+        ]);
+      }
+
+      expect(
+        UrlScrubber.normalizePathSpelling(
+          "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9/men%c3%bc",
+          true,
+        ),
+      ).toBe("/السلة/menü");
+    });
+
+    it("keeps every other escape an escape, in upper-case hex", () => {
+      expect(UrlScrubber.normalizePathSpelling("/a%2fb", true)).toBe("/a%2Fb");
+      expect(UrlScrubber.normalizePathSpelling("/100%25/x%20y", true)).toBe(
+        "/100%25/x%20y",
+      );
+      // Bytes that are not UTF-8, and a character NFC writes in ASCII.
+      expect(UrlScrubber.normalizePathSpelling("/%e9t%e9", true)).toBe(
+        "/%E9t%E9",
+      );
+      expect(UrlScrubber.normalizePathSpelling("/%e2%84%aa", true)).toBe(
+        "/%E2%84%AA",
+      );
+    });
+
+    it("leaves a path with nothing to settle as it is, and is stable", () => {
+      expect(UrlScrubber.normalizePathSpelling("/Cart/42", true)).toBe(
+        "/Cart/42",
+      );
+
+      for (const path of ["/caf%c3%a9/a%2fb", "/cafe%CC%81", "/%e9"]) {
+        const once: string = UrlScrubber.normalizePathSpelling(path, true);
+
+        expect(UrlScrubber.normalizePathSpelling(once, true)).toBe(once);
+      }
+    });
+
+    it("does not change the spelling the scrubber stores", () => {
+      expect(UrlScrubber.normalizePathSpelling("/caf%c3%a9")).toBe(
+        "/caf%C3%A9",
+      );
+      expect(UrlScrubber.normalizePathSpelling("/café")).toBe("/caf%C3%A9");
+    });
   });
 
   describe("getScrubbedPage", () => {

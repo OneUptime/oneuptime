@@ -217,7 +217,7 @@ Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse lieg
 
 Der vollständige Name einer Domain wird beim Hinzufügen festgelegt; **Bearbeiten** ändert daher nur ihr Zertifikat. Um eine andere Adresse zu verwenden, fügen Sie diese hinzu und löschen die alte. Ein Name, den schon ein Dashboard oder ein Formular verwendet, in welchem Projekt auch immer, wird abgelehnt: Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular.
 
-Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Domain**, oder Project Owner oder Project Admin), und um sie zu verifizieren, **Edit Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
+Um eine Domain zum Projekt hinzuzufügen, brauchen Sie die Berechtigung, Projektdomains zu erstellen (**Create Domain**, oder Projektinhaber oder Projektadministrator), und um sie zu verifizieren, **Edit Domain**. Fehlen sie, sagt der Dialog, wer es tun kann.
 
 ### DNS-Einrichtung und Verifizierung
 
@@ -301,9 +301,9 @@ Suchen Sie nach einem CAA-Eintrag Ihrer Domain, der `letsencrypt.org` auslässt,
 
 ### Wer prüfen und neu ausstellen darf
 
-**Jetzt prüfen**, das Bestellen des Zertifikats einer Domain und **SSL neu ausstellen** ändern die Domain und brauchen daher die Berechtigung, sie zu bearbeiten: **Edit Status Page Domain** oder eine Rolle, die sie enthält (Project Owner, Project Admin, Project Member, Status Page Admin oder Status Page Member).
+**Jetzt prüfen**, das Bestellen des Zertifikats einer Domain und **SSL neu ausstellen** ändern die Domain und brauchen daher die Berechtigung, sie zu bearbeiten: **Edit Status Page Domain** oder eine Rolle, die sie enthält (Projektinhaber, Projektadministrator, Projektmitglied, Statusseiten-Administrator oder Statusseiten-Mitglied).
 
-Wer die Domain nur lesen kann, etwa ein Viewer oder ein Status Page Viewer, sieht trotzdem die Spalte **Status** und den hinzuzufügenden Eintrag in **DNS-Einrichtung**. Für ihn sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung er braucht. OneUptime prüft jede Domain und bestellt ihr Zertifikat so oder so von selbst weiter.
+Wer die Domain nur lesen kann, etwa ein Betrachter oder ein Statusseiten-Betrachter, sieht trotzdem die Spalte **Status** und den hinzuzufügenden Eintrag in **DNS-Einrichtung**. Für ihn sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung er braucht. OneUptime prüft jede Domain und bestellt ihr Zertifikat so oder so von selbst weiter.
 
 Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur lesen kann, kann `verify-cname`, `check-dns`, `order-ssl` oder `reissue-ssl` auf `/status-page-domain` nicht aufrufen. Geben Sie ihm **Read Status Page Domain** und **Edit Status Page Domain**, wenn er das braucht. Wird der Eintrag nicht gefunden, lehnt `verify-cname` ab und nennt, was es nachgeschlagen hat und was zurückkam, in den Worten, die **DNS-Einrichtung** zeigt; `check-dns` beantwortet so oder so jeden Eintrag, den es nachgeschlagen hat.
 

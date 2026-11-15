@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个在你要连接的区域中启用了 Security Hub 的 AWS 账户。Security Hub 是区域性的：一个连接读取的是一个账户在一个区域中持有的发现结果。
 - 要通过一个连接读取每个账户和每个区域的发现结果，需要使用 Security Hub 的委派管理员账户，在其主区域中并开启[跨区域聚合](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html)。**Security Hub → Settings → Regions** 会显示主区域。
 - 从 OneUptime 应用和工作进程到 `securityhub.<region>.amazonaws.com`（中国区域为 `securityhub.<region>.amazonaws.com.cn`）的出站 HTTPS，以及这些主机上准确的时钟：AWS 会拒绝签名时间偏差超过 5 分钟的请求。

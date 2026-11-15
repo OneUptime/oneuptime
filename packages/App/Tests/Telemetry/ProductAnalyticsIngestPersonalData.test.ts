@@ -15,6 +15,7 @@ import {
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import {
   PAGES_WITH_PERSONAL_DATA,
+  PAGES_WITH_SECRETS,
   PAGE_SPELLINGS,
   PageSpellingCase,
   addressOf,
@@ -284,6 +285,9 @@ const PERSONAL_DATA: Array<string> = [
   "abc123",
   "token=",
   "access_token",
+  // #8385: a JSON Web Token's header, and an address escaped twice.
+  "eyJhbGci",
+  "%2540",
 ];
 
 function buildPolicy(): SessionReplayGatePolicy {
@@ -479,7 +483,7 @@ describe("a batch a client sent unscrubbed, through the real ingest", () => {
   });
 
   test.each(
-    PAGES_WITH_PERSONAL_DATA.map(
+    [...PAGES_WITH_PERSONAL_DATA, ...PAGES_WITH_SECRETS].map(
       (row: PageSpellingCase): [string, PageSpellingCase] => {
         return [row.name, row];
       },
@@ -574,6 +578,7 @@ describe("a batch a client sent unscrubbed, through the real ingest", () => {
     const pages: Array<string> = [
       ...PAGE_SPELLINGS,
       ...PAGES_WITH_PERSONAL_DATA,
+      ...PAGES_WITH_SECRETS,
     ].map((row: PageSpellingCase): string => {
       return row.page;
     });
@@ -611,6 +616,10 @@ describe("a batch a client sent unscrubbed, through the real ingest", () => {
     "ProductDetailsScreenWithLongName",
     "/users/someone%40example.com?tab=orders",
     "/",
+    // #8385: a token, and an address escaped twice.
+    "Session/eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.c2lnbmF0dXJl",
+    "Invite/someone%2540example.com",
+    "Files/report-2026-11-15.pdf",
   ])(
     "a mobile app's screen %p is the page the mobile recorder's route names",
     (screen: string) => {

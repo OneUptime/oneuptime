@@ -28,7 +28,7 @@ flowchart TB
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **DNS サーバーに到達できるプローブ。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。社内リゾルバーなど、プライベートネットワーク上の DNS サーバーに問い合わせるには、そのネットワーク内の [カスタムプローブ](/docs/probe/custom-probe) を使います。
 
 ## DNS モニターを作成する

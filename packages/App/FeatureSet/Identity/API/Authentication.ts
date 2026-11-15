@@ -100,6 +100,8 @@ import {
   LONGEST_INACTIVITY_FIELD,
   readReportedInactivityInSeconds,
   readReportedLongestInactivity,
+  readReportsActivityWhileInUse,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
   SessionEndReason,
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
@@ -2432,6 +2434,13 @@ router.post(
         );
       }
 
+      /*
+       * Whether this browser renews while its person uses OneUptime, as
+       * this renewal says (issue #8188): kept with the session, so the
+       * sweep may record its idle timeout soon after it ran out - and never
+       * of a session whose last renewal did not say so (the mobile app, a
+       * tab of an earlier release), which is decided at its next renewal.
+       */
       const renewedSession: SessionMetadata | null =
         await UserSessionService.renewSessionWithNewRefreshToken({
           session,
@@ -2440,6 +2449,12 @@ router.post(
           ipAddress: getClientIp(req),
           userAgent: headerValueToString(req.headers["user-agent"]),
           ...extractDeviceInfo(req),
+          additionalInfo: {
+            [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]:
+              readReportsActivityWhileInUse(
+                renewalBody?.[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD],
+              ),
+          },
         });
 
       // Ended while this request was on its way: it stays ended.

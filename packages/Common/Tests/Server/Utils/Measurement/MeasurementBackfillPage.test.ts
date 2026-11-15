@@ -31,7 +31,8 @@ const CURSOR_ID: ObjectID = new ObjectID(
 );
 const CURSOR_CREATED_AT: Date = new Date("2026-06-01T09:00:00.123Z");
 
-const SELECT: string = `SELECT "_id", "createdAt" FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL`;
+// Each record's createdAt, as a Date and to the microsecond as UTC text (#8388).
+const SELECT: string = `SELECT "_id", "createdAt", to_char("createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "exactCreatedAt" FROM "Incident" WHERE "projectId" = $1 AND "deletedAt" IS NULL`;
 const ORDER: string = `ORDER BY "createdAt" ASC, "_id" ASC`;
 
 interface CapturedQuery {
@@ -246,6 +247,109 @@ describe("MeasurementBackfillPage.getStatement", () => {
   });
 });
 
+/*
+ * #8388. A cursor's createdAt to the microsecond places the page after it
+ * exactly, even once its record is deleted for good: compared with the
+ * millisecond, the page read again every record created in that
+ * millisecond before the cursor's.
+ */
+describe("MeasurementBackfillPage.getStatement, a cursor to the microsecond", () => {
+  const EXACT: string = "2026-06-01T09:00:00.123456Z";
+
+  test("binds the cursor's createdAt to the microsecond, for both the range and the stand-in for its record", () => {
+    const statement: MeasurementBackfillStatement =
+      MeasurementBackfillPage.getStatement({
+        tableName: "Incident",
+        projectId: PROJECT_ID,
+        after: {
+          createdAt: CURSOR_CREATED_AT,
+          exactCreatedAt: EXACT,
+          id: CURSOR_ID,
+        },
+        limit: 500,
+      });
+
+    // The same statement: only what $2 is changes.
+    expect(statement).toEqual({
+      sql:
+        `${SELECT} AND "createdAt" >= $2 ` +
+        `AND ("createdAt", "_id") > (COALESCE((SELECT "cursor"."createdAt" FROM "Incident" AS "cursor" WHERE "cursor"."_id" = $3), $2), $3) ` +
+        `${ORDER} LIMIT $4`,
+      parameters: [PROJECT_ID.toString(), EXACT, CURSOR_ID.toString(), 500],
+    });
+  });
+
+  test("binds the Date when the cursor has no microseconds: one read through TypeORM, or saved before", () => {
+    const statement: MeasurementBackfillStatement =
+      MeasurementBackfillPage.getStatement({
+        tableName: "Incident",
+        projectId: PROJECT_ID,
+        after: {
+          createdAt: CURSOR_CREATED_AT,
+          exactCreatedAt: undefined,
+          id: CURSOR_ID,
+        },
+        limit: 500,
+      });
+
+    expect(statement.parameters[1]).toBe(CURSOR_CREATED_AT);
+  });
+
+  test("a cursor saved before it kept an id, given to the microsecond, is still read from on, inclusive", () => {
+    expect(
+      MeasurementBackfillPage.getStatement({
+        tableName: "Incident",
+        projectId: PROJECT_ID,
+        after: { createdAt: CURSOR_CREATED_AT, exactCreatedAt: EXACT },
+        limit: 500,
+      }),
+    ).toEqual({
+      sql: `${SELECT} AND "createdAt" >= $2 ${ORDER} LIMIT $3`,
+      parameters: [PROJECT_ID.toString(), EXACT, 500],
+    });
+  });
+
+  test("refuses a createdAt to the microsecond that is not of the cursor's millisecond, or not such text at all", () => {
+    for (const exactCreatedAt of [
+      // Another millisecond.
+      "2026-06-01T09:00:00.124456Z",
+      // Three digits, five, seven.
+      "2026-06-01T09:00:00.123Z",
+      "2026-06-01T09:00:00.12345Z",
+      "2026-06-01T09:00:00.1234567Z",
+      // A zone other than UTC, or none.
+      "2026-06-01T09:00:00.123456+00:00",
+      "2026-06-01 09:00:00.123456",
+      "",
+    ]) {
+      expect(() => {
+        return MeasurementBackfillPage.getStatement({
+          tableName: "Incident",
+          projectId: PROJECT_ID,
+          after: {
+            createdAt: CURSOR_CREATED_AT,
+            exactCreatedAt: exactCreatedAt,
+            id: CURSOR_ID,
+          },
+          limit: 500,
+        });
+      }).toThrow("is not one of the millisecond it was read at");
+    }
+  });
+
+  test("reads every record's createdAt to the microsecond in UTC, whatever the session's zone", () => {
+    const sql: string = MeasurementBackfillPage.getStatement({
+      tableName: "Alert",
+      projectId: PROJECT_ID,
+      limit: 500,
+    }).sql;
+
+    expect(sql).toContain(
+      `to_char("createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "exactCreatedAt" FROM "Alert"`,
+    );
+  });
+});
+
 describe("MeasurementBackfillPage.read", () => {
   test("runs the statement on its service's connection and hands each record back as a cursor: its id and createdAt", async () => {
     const captured: Array<CapturedQuery> = [];
@@ -285,6 +389,83 @@ describe("MeasurementBackfillPage.read", () => {
     expect(page[0]!.id.toString()).toBe(CURSOR_ID.toString());
     expect(page[0]!.createdAt).toBe(first);
     expect(page[1]!.id.toString()).toBe("44444444-4444-4444-8444-444444444444");
+  });
+
+  test("hands each record's createdAt back to the microsecond too, as the read gave it (#8388)", async () => {
+    const first: Date = new Date("2026-06-01T09:00:00.123Z");
+
+    const page: Array<MeasurementBackfillCursor> =
+      await MeasurementBackfillPage.read({
+        service: fakeService({
+          tableName: "Incident",
+          answer: [
+            {
+              _id: CURSOR_ID.toString(),
+              createdAt: first,
+              exactCreatedAt: "2026-06-01T09:00:00.123456Z",
+            },
+            {
+              _id: "44444444-4444-4444-8444-444444444444",
+              createdAt: first,
+              exactCreatedAt: "2026-06-01T09:00:00.123999Z",
+            },
+            // A whole millisecond, as a record written from JavaScript has.
+            {
+              _id: "55555555-5555-4555-8555-555555555555",
+              createdAt: first,
+              exactCreatedAt: "2026-06-01T09:00:00.123000Z",
+            },
+          ],
+          captured: [],
+        }),
+        projectId: PROJECT_ID,
+        limit: 3,
+      });
+
+    expect(
+      page.map((record: MeasurementBackfillCursor): unknown => {
+        return record.exactCreatedAt;
+      }),
+    ).toEqual([
+      "2026-06-01T09:00:00.123456Z",
+      "2026-06-01T09:00:00.123999Z",
+      "2026-06-01T09:00:00.123000Z",
+    ]);
+    expect(page[0]!.createdAt).toBe(first);
+  });
+
+  test("leaves a record's createdAt to the millisecond when the read gave no text of it to the microsecond: the cursor stands in as before", async () => {
+    const first: Date = new Date("2026-06-01T09:00:00.123Z");
+
+    for (const exactCreatedAt of [
+      undefined,
+      null,
+      7,
+      "2026-06-01T09:00:00.123Z",
+      // Of another millisecond than the createdAt read.
+      "2026-06-01T09:00:00.124000Z",
+    ]) {
+      const page: Array<MeasurementBackfillCursor> =
+        await MeasurementBackfillPage.read({
+          service: fakeService({
+            tableName: "Incident",
+            answer: [
+              {
+                _id: CURSOR_ID.toString(),
+                createdAt: first,
+                exactCreatedAt: exactCreatedAt,
+              },
+            ],
+            captured: [],
+          }),
+          projectId: PROJECT_ID,
+          limit: 1,
+        });
+
+      expect(page).toHaveLength(1);
+      expect(page[0]!.createdAt).toBe(first);
+      expect(page[0]!.exactCreatedAt).toBeUndefined();
+    }
   });
 
   test("answers an empty page with no records", async () => {

@@ -253,8 +253,21 @@ describe("formatOpenStackBytes", () => {
 });
 
 describe("the rest of OpenStack's figures", () => {
-  test("a chart's axis and tooltip keep Latin digits on a Persian page, as every chart does", () => {
+  /*
+   * A chart's axis and tooltip write a size as the tiles beside them do
+   * (#8349): Persian digits on a Persian page, English exactly as before.
+   */
+  test("a chart's axis and tooltip write a size in the page's digits, English as before", () => {
     setDateDisplayLanguage("fa");
+
+    for (const bytes of SIZES) {
+      expect(formatOpenStackChartBytes(bytes)).not.toMatch(LATIN_DIGIT);
+      expect(formatOpenStackChartBytes(bytes)).toBe(
+        formatOpenStackBytes(bytes, { language: "fa" }),
+      );
+    }
+
+    setDateDisplayLanguage("en");
 
     for (const bytes of SIZES) {
       expect(formatOpenStackChartBytes(bytes)).toBe(writtenTheOldWay(bytes));
@@ -536,19 +549,22 @@ describe("OpenStack writes its sizes through OpenStackFigures", () => {
     return files;
   }
 
-  test("no OpenStack page or part reads telemetryFormat's formatBytes but OpenStackFigures", () => {
+  /*
+   * No OpenStack file reads telemetryFormat's formatBytes: its chart sizes
+   * are written in the reader's digits too now (#8349), through
+   * formatOpenStackBytes, as its tiles are.
+   */
+  test("no OpenStack page or part reads telemetryFormat's formatBytes", () => {
     const readers: Array<string> = OPENSTACK_DIRECTORIES.flatMap(
       filesUnder,
     ).filter((file: string): boolean => {
       return IMPORTS_FORMAT_BYTES.test(readSource(file));
     });
 
-    expect(readers).toEqual([
-      path.join("Pages/OpenStack/Utils/OpenStackFigures.ts"),
-    ]);
+    expect(readers).toEqual([]);
   });
 
-  test("the charts keep Latin digits through the chart formatter", () => {
+  test("the charts write their sizes through the chart formatter", () => {
     for (const file of [
       "Pages/OpenStack/View/HypervisorDetail.tsx",
       "Components/OpenStack/Part/OpenStackInstanceUsage.tsx",

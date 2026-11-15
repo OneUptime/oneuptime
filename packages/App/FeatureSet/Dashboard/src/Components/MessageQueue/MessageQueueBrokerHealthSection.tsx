@@ -493,7 +493,11 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                 data-testid="message-queue-broker-metric-value"
                 className="mt-2 text-xl font-semibold text-gray-900"
               >
-                {formatMessageQueueMetricValue(result.value, result.descriptor)}
+                {formatMessageQueueMetricValue(
+                  result.value,
+                  result.descriptor,
+                  translator,
+                )}
               </div>
               <div className="mt-1 truncate text-xs text-gray-500">
                 {getMessageQueueBrokerMetricCaption(result.descriptor)}
@@ -553,6 +557,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                   return formatMessageQueueMetricAxisValue(
                     value,
                     result.descriptor,
+                    translator,
                   );
                 }}
               />

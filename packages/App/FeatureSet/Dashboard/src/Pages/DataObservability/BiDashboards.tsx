@@ -40,7 +40,6 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import URL from "Common/Types/API/URL";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -450,8 +449,9 @@ const BiDashboardsPage: FunctionComponent<
                 <div className="min-w-0">
                   <span className="block text-sm text-gray-700">
                     {item.lastSyncedAt ? (
-                      new Date(item.lastSyncedAt).toLocaleString(
-                        getReaderDateLocale(),
+                      // As a table's date cell writes it (Table/TableDate).
+                      OneUptimeDate.getDateAsCompactLocalString(
+                        new Date(item.lastSyncedAt),
                       )
                     ) : (
                       <TableEmptyValue />

@@ -43,7 +43,7 @@ Jedes Mal, wenn Telemetrie eintrifft, rückt **Zuletzt gesehen** des Dienstes vo
 ## Bevor Sie beginnen
 
 - **Eintreffende Telemetrie** mit einem `service.name`. Siehe [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` setzt ihn.
-- **Eine Rolle, die Dienste lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member oder Settings Viewer, oder eine eigene Rolle mit der Berechtigung Read Service. Dienste anlegen, ändern und löschen dürfen Project Owner, Project Admin, Project Member, Settings Admin oder Settings Member, oder Rollen mit den passenden Dienst-Berechtigungen.
+- **Eine Rolle, die Dienste lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Einstellungs-Administrator, Einstellungs-Mitglied oder Einstellungs-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Service. Dienste anlegen, ändern und löschen dürfen Projektinhaber, Projektadministrator, Projektmitglied, Einstellungs-Administrator oder Einstellungs-Mitglied, oder Rollen mit den passenden Dienst-Berechtigungen.
 
 ## Einen Dienst finden
 

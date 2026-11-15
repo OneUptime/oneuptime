@@ -436,7 +436,7 @@ Siehe [Grundkonzepte](/docs/introduction/core-concepts#die-arten-von-regeln).
 
 ### Rolle
 
-Vier verschiedene Dinge: die Berechtigungen, die ein Team gewährt, etwa Project Owner oder Project Admin; eine **Benutzerdefinierte Rolle**, die Sie aus Berechtigungen zusammenstellen; eine **Vorfallsrolle**, also die Rolle, die jemand in einem Vorfall übernimmt; und eine **Netzwerkgeräterolle**, also das, was ein Gerät in Ihrem Netzwerk tut.
+Vier verschiedene Dinge: die Berechtigungen, die ein Team gewährt, etwa Projektinhaber oder Projektadministrator; eine **Benutzerdefinierte Rolle**, die Sie aus Berechtigungen zusammenstellen; eine **Vorfallsrolle**, also die Rolle, die jemand in einem Vorfall übernimmt; und eine **Netzwerkgeräterolle**, also das, was ein Gerät in Ihrem Netzwerk tut.
 
 Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index).
 

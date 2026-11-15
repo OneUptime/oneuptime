@@ -31,7 +31,7 @@ sequenceDiagram
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **ポートに到達できるプローブ。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。サービスの前にファイアウォールがある場合は、[OneUptime Cloud のプローブの IP アドレス](/docs/configuration/ip-addresses) からポートへの接続を許可します。データベースのようにプライベートネットワーク上にあるサービスには、そのネットワーク内で動く [カスタムプローブ](/docs/probe/custom-probe) が必要です。
 
 ## ポートモニターを作成する

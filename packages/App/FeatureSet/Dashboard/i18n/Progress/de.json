@@ -826,6 +826,7 @@
     "{{exceptionType}} in {{serviceName}}",
     "{{gigabytes}} GB",
     "{{in}} in",
+    "{{rate}}/s",
     "{{size}} in {{duration}}",
     "{{value}} ms",
     "{{value}} s",

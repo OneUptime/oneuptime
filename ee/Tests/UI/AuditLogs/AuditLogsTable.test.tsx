@@ -395,10 +395,11 @@ describe("the Enterprise license", () => {
       expect(notice).toHaveTextContent(
         "Audit logging is not recording: Enterprise license required",
       );
-      expect(notice).toHaveAttribute(
-        "title",
-        `${AUDIT_LOGS_LAPSED_TITLE} ${AUDIT_LOGS_LAPSED_DESCRIPTION}`,
-      );
+      /*
+       * Its hover says why, in the reader's language (#8319): the pill
+       * already says what the title would.
+       */
+      expect(notice).toHaveAttribute("title", AUDIT_LOGS_LAPSED_DESCRIPTION);
       // In the card header, where the "logging is off" pill goes.
       expect(capturedTableProps?.cardProps?.rightElement).toBeDefined();
 
