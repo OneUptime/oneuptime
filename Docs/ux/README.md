@@ -645,9 +645,10 @@ then `npm run i18n:validate` from the root.
   `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
   Enforced by
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
-  [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx)
+  [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
+  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)
   and
-  [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx).
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the
   button says "How it works"; "Uptime" read "runtime", so a share of time up says "Availability". Not
   enforced: use judgement.
