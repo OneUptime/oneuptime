@@ -38,6 +38,13 @@ export interface DashboardNavigationItems {
 export function useDashboardNavigationItems(): DashboardNavigationItems {
   const { t } = useTranslation();
 
+  /*
+   * Every title below is the Dashboard's own keyed text, in the reader's
+   * words already, and says so (isTitleTranslated): the bar, its
+   * breadcrumb, a pin and the phone's menu draw it as given. Looked up
+   * again, a translation that is itself an English word was translated
+   * twice - Spanish says "Red" for Network, and "Red" is "Rojo" (#7790).
+   */
   const essentialsCategory: string = t("navbar.categories.essentials");
   const observabilityCategory: string = t("navbar.categories.observability");
   /*
@@ -69,6 +76,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       id: "home-nav-bar-item",
       title: t("navbar.home"),
+      isTitleTranslated: true,
       icon: IconProp.Home,
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
       activeRoute: RouteMap[PageMap.HOME],
@@ -86,6 +94,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Monitors,
       title: t("navbar.items.monitorsTitle"),
+      isTitleTranslated: true,
       keywords: [
         "uptime",
         "checks",
@@ -108,6 +117,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Incidents,
       title: t("navbar.items.incidentsTitle"),
+      isTitleTranslated: true,
       keywords: ["outage", "downtime", "incident response", "postmortem"],
       description: t("navbar.items.incidentsDescription"),
       route: RouteUtil.populateRouteParams(
@@ -121,6 +131,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Alerts,
       title: t("navbar.items.alertsTitle"),
+      isTitleTranslated: true,
       keywords: ["notifications", "alarms", "thresholds", "warnings"],
       description: t("navbar.items.alertsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.ALERTS] as Route),
@@ -132,6 +143,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.OnCall,
       title: t("navbar.items.onCallDutyTitle"),
+      isTitleTranslated: true,
       /*
        * The product was "On-Call Duty" until #6817 named it On-Call: its
        * old name is a keyword, so people who learned it still find it.
@@ -161,6 +173,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.StatusPages,
       title: t("navbar.items.statusPagesTitle"),
+      isTitleTranslated: true,
       keywords: [
         "statuspage",
         "service status",
@@ -179,6 +192,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.ScheduledMaintenance,
       title: t("navbar.items.scheduledMaintenanceTitle"),
+      isTitleTranslated: true,
       keywords: [
         "maintenance window",
         "planned downtime",
@@ -199,6 +213,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Slos,
       title: t("navbar.items.slosTitle", "SLOs"),
+      isTitleTranslated: true,
       keywords: [
         "service level objectives",
         "service level indicators",
@@ -221,6 +236,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Logs,
       title: t("navbar.items.logsTitle"),
+      isTitleTranslated: true,
       keywords: ["logging", "log search", "log explorer", "syslog"],
       description: t("navbar.items.logsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
@@ -232,6 +248,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Metrics,
       title: t("navbar.items.metricsTitle"),
+      isTitleTranslated: true,
       keywords: [
         "timeseries",
         "time series",
@@ -250,6 +267,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Traces,
       title: t("navbar.items.tracesTitle"),
+      isTitleTranslated: true,
       keywords: [
         "distributed tracing",
         "spans",
@@ -267,6 +285,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Profiles,
       title: t("navbar.items.performanceProfilesTitle"),
+      isTitleTranslated: true,
       keywords: [
         "profiling",
         // Its names before they became Profiles (#6817).
@@ -288,6 +307,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Exceptions,
       title: t("navbar.items.exceptionsTitle"),
+      isTitleTranslated: true,
       keywords: [
         "errors",
         "error tracking",
@@ -309,6 +329,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Llm,
       title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
+      isTitleTranslated: true,
       keywords: [
         "large language models",
         "generative ai",
@@ -332,6 +353,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.DataObservability,
       title: t("navbar.items.dataObservabilityTitle", "Data Observability"),
+      isTitleTranslated: true,
       keywords: [
         "data quality",
         "data freshness",
@@ -358,6 +380,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Topology,
       title: t("navbar.items.topologyTitle"),
+      isTitleTranslated: true,
       keywords: [
         "service map",
         "dependency map",
@@ -378,6 +401,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.SecurityEvents,
       title: t("navbar.items.securityEventsTitle", "Security Events"),
+      isTitleTranslated: true,
       keywords: [
         "siem",
         "soar",
@@ -406,6 +430,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.DataSecurity,
       title: t("navbar.items.dataSecurityTitle", "Data Security"),
+      isTitleTranslated: true,
       keywords: [
         "dspm",
         "data security posture management",
@@ -435,6 +460,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.AIChat,
       title: t("navbar.items.aiChatTitle", "Chat"),
+      isTitleTranslated: true,
       keywords: ["ai chat", "copilot", "assistant", "ask ai"],
       description: t(
         "navbar.items.aiChatDescription",
@@ -451,6 +477,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.AIInsights,
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
+      isTitleTranslated: true,
       keywords: [
         "sentinel",
         "anomalies",
@@ -481,6 +508,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Code,
       title: t("navbar.items.codeTitle", "Code"),
+      isTitleTranslated: true,
       keywords: [
         "tasks",
         "ai tasks",
@@ -512,6 +540,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Inventory,
       title: t("navbar.items.inventoryTitle", "Inventory"),
+      isTitleTranslated: true,
       keywords: ["assets", "entities", "resource catalog", "cmdb"],
       description: t(
         "navbar.items.inventoryDescription",
@@ -532,6 +561,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Services,
       title: t("navbar.items.servicesTitle"),
+      isTitleTranslated: true,
       keywords: [
         "apm",
         "application performance monitoring",
@@ -560,6 +590,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Databases,
       title: t("navbar.items.databasesTitle", "Databases"),
+      isTitleTranslated: true,
       keywords: [
         "database",
         "db",
@@ -595,6 +626,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Queues,
       title: t("navbar.items.queuesTitle", "Queues"),
+      isTitleTranslated: true,
       keywords: [
         "queue",
         "message queue",
@@ -633,6 +665,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Rum,
       title: t("navbar.items.rumTitle"),
+      isTitleTranslated: true,
       keywords: [
         "rum",
         "browser",
@@ -655,6 +688,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Hosts,
       title: t("navbar.items.hostsTitle"),
+      isTitleTranslated: true,
       keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
       description: t("navbar.items.hostsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
@@ -666,6 +700,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Kubernetes,
       title: t("navbar.items.kubernetesTitle"),
+      isTitleTranslated: true,
       keywords: ["k8s", "kube", "kubectl", "pods", "containers", "clusters"],
       description: t("navbar.items.kubernetesDescription"),
       route: RouteUtil.populateRouteParams(
@@ -679,6 +714,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Docker,
       title: t("navbar.items.dockerTitle"),
+      isTitleTranslated: true,
       keywords: ["containers", "container monitoring", "docker hosts"],
       description: t("navbar.items.dockerDescription"),
       route: RouteUtil.populateRouteParams(
@@ -692,6 +728,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.DockerSwarm,
       title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
+      isTitleTranslated: true,
       keywords: ["swarm", "container orchestration", "swarm clusters"],
       description: t(
         "navbar.items.dockerSwarmDescription",
@@ -708,6 +745,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Podman,
       title: t("navbar.items.podmanTitle"),
+      isTitleTranslated: true,
       keywords: ["containers", "container monitoring", "rootless containers"],
       description: t("navbar.items.podmanDescription"),
       route: RouteUtil.populateRouteParams(
@@ -721,6 +759,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Proxmox,
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
+      isTitleTranslated: true,
       keywords: [
         "pve",
         "virtualization",
@@ -743,6 +782,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.OpenStack,
       title: t("navbar.items.openstackTitle", "OpenStack"),
+      isTitleTranslated: true,
       keywords: [
         "private cloud",
         "nova",
@@ -768,6 +808,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.VMware,
       title: t("navbar.items.vmwareTitle", "VMware"),
+      isTitleTranslated: true,
       keywords: [
         "vcenter",
         "esxi",
@@ -791,6 +832,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Ceph,
       title: t("navbar.items.cephTitle", "Ceph"),
+      isTitleTranslated: true,
       keywords: ["storage", "osd", "rados", "storage pools"],
       description: t(
         "navbar.items.cephDescription",
@@ -807,6 +849,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.StorageArrays,
       title: t("navbar.items.storageArraysTitle", "Storage Arrays"),
+      isTitleTranslated: true,
       keywords: [
         "storage",
         "san",
@@ -832,6 +875,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Network,
       title: t("navbar.items.networkTitle", "Network"),
+      isTitleTranslated: true,
       keywords: [
         "snmp",
         "network devices",
@@ -857,6 +901,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.IoT,
       title: t("navbar.items.iotTitle", "IoT"),
+      isTitleTranslated: true,
       keywords: ["internet of things", "devices", "sensors", "fleets"],
       description: t(
         "navbar.items.iotDescription",
@@ -879,6 +924,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Cloud,
       title: t("navbar.items.cloudTitle"),
+      isTitleTranslated: true,
       keywords: [
         "aws",
         "amazon web services",
@@ -927,6 +973,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.AppPlatforms,
       title: t("navbar.items.appPlatformsTitle", "App Platforms"),
+      isTitleTranslated: true,
       keywords: [
         "paas",
         "platform as a service",
@@ -963,6 +1010,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Serverless,
       title: t("navbar.items.serverlessTitle"),
+      isTitleTranslated: true,
       keywords: [
         "lambda",
         "aws lambda",
@@ -983,6 +1031,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Dashboards,
       title: t("navbar.items.dashboardsTitle"),
+      isTitleTranslated: true,
       keywords: ["charts", "graphs", "widgets", "visualizations"],
       description: t("navbar.items.dashboardsDescription"),
       route: RouteUtil.populateRouteParams(
@@ -996,6 +1045,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Workflows,
       title: t("navbar.items.workflowsTitle"),
+      isTitleTranslated: true,
       keywords: ["automation", "automations", "integrations", "triggers"],
       description: t("navbar.items.workflowsDescription"),
       route: RouteUtil.populateRouteParams(
@@ -1009,6 +1059,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Runbooks,
       title: t("navbar.items.runbooksTitle"),
+      isTitleTranslated: true,
       /*
        * "runners": Runners are set up inside Runbooks, and someone who only
        * uses one for AI code fixes has no other reason to look here.
@@ -1035,6 +1086,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Forms,
       title: t("navbar.items.formsTitle", "Forms"),
+      isTitleTranslated: true,
       keywords: [
         "form",
         "form builder",
@@ -1062,6 +1114,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Users,
       title: t("navbar.items.usersTitle"),
+      isTitleTranslated: true,
       keywords: ["members", "people", "teammates", "invite"],
       description: t("navbar.items.usersDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
@@ -1073,6 +1126,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.Teams,
       title: t("navbar.items.teamsTitle"),
+      isTitleTranslated: true,
       keywords: ["groups", "departments", "team members"],
       description: t("navbar.items.teamsDescription"),
       route: RouteUtil.populateRouteParams(RouteMap[PageMap.TEAMS] as Route),
@@ -1084,6 +1138,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.ProjectSettings,
       title: t("navbar.items.projectSettingsTitle"),
+      isTitleTranslated: true,
       keywords: [
         "configuration",
         "config",
@@ -1134,6 +1189,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
     title: t("navbar.userSettings"),
+    isTitleTranslated: true,
     icon: IconProp.User,
     route: RouteUtil.populateRouteParams(
       RouteMap[PageMap.USER_SETTINGS] as Route,

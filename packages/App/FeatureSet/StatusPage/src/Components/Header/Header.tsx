@@ -152,6 +152,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
                * screen reader hears more than "button".
                */
               ariaLabel={t("a11y.moreLinks")}
+              isAriaLabelTranslated={true}
               ariaExpanded={isMobileMenuOpen}
             />
 

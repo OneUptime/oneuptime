@@ -375,11 +375,16 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       {menuItems.length > 0 && (
         <MoreMenu
           isMenuPortaled={true}
+          /*
+           * Around the row's name, in the reader's words here; without one,
+           * English, for the menu to look up (#7790).
+           */
           ariaLabel={
             props.itemLabel
               ? `${translateString("More actions for") || "More actions for"} ${props.itemLabel}`
-              : translateString("More actions") || "More actions"
+              : "More actions"
           }
+          isAriaLabelTranslated={Boolean(props.itemLabel)}
           elementToBeShownInsteadOfButton={
             <button
               type="button"
