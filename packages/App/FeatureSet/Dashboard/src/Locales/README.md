@@ -120,7 +120,9 @@ OneUptimeDate.fromNow(date) })`), or draw a time component in a
   locale's chunk holds its translations and the `_one` forms it reads. Read
   strings through the lookups above only, and a `_one` key only as the plural
   it belongs to. `i18n.exists()` or `getResourceBundle()` would see the
-  shipped copy, not these files.
+  shipped copy, not these files. The Admin Dashboard ships its locale files
+  the same way (its `esbuild.config.js`, `Utils/I18nLocaleLoader.ts`): English
+  in the entry chunk, the reader's language fetched when it is needed.
 
 Everything above lives in `Common/UI/Utils/TranslateTemplate.ts`, which has a
 `Translator` with `translateText`, `translateTemplate`, `translatePlural`,
@@ -546,7 +548,11 @@ that `en.json`'s share of the entry stays under 32 KB.
 `packages/Common/Tests/App/Dashboard/DashboardRuntimeLocales.test.tsx` checks
 that every string in all eighteen languages reads the same from the shipped
 copies as from these files, every plural at counts that pick each form, and
-that no source looks a `_one` key up on its own.
+that no source looks a `_one` key up on its own. The Admin Dashboard's are
+held the same way, by the Admin Dashboard block of `EsbuildLocales.test.ts`,
+`Common/Tests/App/AdminDashboard/AdminRuntimeLocales.test.tsx` and
+`AdminLazyLocalesInTheBrowser.test.tsx` (only the reader's language is
+fetched, and a switch fetches the next).
 
 ## Merging and conflicts
 

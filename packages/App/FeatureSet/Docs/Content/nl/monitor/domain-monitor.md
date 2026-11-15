@@ -122,8 +122,8 @@ Met twee of meer filters bepaalt **Overeenkomstvoorwaarde** of **Alle** filters 
 
 Een nieuwe domeinmonitor begint met drie criteria, zodat hij u zonder instellen waarschuwt voordat een registratie verloopt:
 
-1. **Domeincontrole mislukt** — de registratie is verlopen, of de registratiegegevens konden niet worden gelezen. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "_monitor name_ domain check failed" gemaakt. Het incident lost zichzelf op zodra de registratie weer wordt gelezen en actueel is.
-2. **Domein verloopt binnenkort** — de registratie is niet verlopen, maar verloopt binnen 30 dagen. Er wordt een **waarschuwing** met de naam "_monitor name_ domain expires soon" aangemaakt.
+1. **Domeincontrole mislukt** — de registratie is verlopen, of de registratiegegevens konden niet worden gelezen. De monitor wordt als **Offline** gemarkeerd en er wordt een incident met de naam "Domeincontrole van _monitornaam_ mislukt" gemaakt. Het incident lost zichzelf op zodra de registratie weer wordt gelezen en actueel is.
+2. **Domein verloopt binnenkort** — de registratie is niet verlopen, maar verloopt binnen 30 dagen. Er wordt een **waarschuwing** met de naam "Domein _monitornaam_ verloopt binnenkort" aangemaakt.
 3. **Domein is niet verlopen** — de monitor wordt als **Operationeel** gemarkeerd.
 
 De waarschuwing "verloopt binnenkort" is een waarschuwing, geen incident: ze verschijnt niet op uw statuspagina's, ze roept niemand op tenzij u er een bereikbaarheidsbeleid aan toevoegt, en ze wijzigt de status van de monitor niet. Ze gebruikt de tweede waarschuwingsernst van uw project, **Laag** in een nieuw project. Zodra de verlenging in de registratie verschijnt, lost de waarschuwing zichzelf op. Een registry die geen vervaldatum publiceert, geeft de waarschuwing niets om op af te gaan, dus die blijft stil.

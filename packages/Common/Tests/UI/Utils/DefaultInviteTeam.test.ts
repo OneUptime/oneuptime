@@ -730,7 +730,7 @@ describe("who may invite to every team", () => {
     );
   });
 
-  test("a project owner, a project admin, or Invite New Members for the whole project", () => {
+  test("a Project Owner, a Project Admin, or Invite New Members for the whole project", () => {
     for (const permission of TEAM_INVITE_PERMISSIONS) {
       holdingRows([{ permission: permission }]);
 

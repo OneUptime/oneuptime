@@ -108,7 +108,7 @@ A variable that is misspelled is left exactly as written, so a typo shows up in 
 - **Owner teams and owner users** are added to the record when it is created, and are notified.
 - **Add SLO Owners as Owners** also adds this SLO's owners — its owner users and the members of its owner teams. They already hear about the SLO's status changes, so this can notify them twice.
 - **Labels** are added to the record, so filters, owner rules and workspace notification rules can match it.
-- A **private** record is visible only to its owners, project admins and project owners.
+- A **private** record is visible only to its owners, Project Admins and Project Owners.
 
 ---
 

@@ -242,7 +242,7 @@ describe("Invite User's team, for whoever opens it", () => {
     expect(modal["initialValues"]).toEqual({ team: MEMBERS_TEAM_ID });
   });
 
-  test("so does a project admin", async () => {
+  test("so does a Project Admin", async () => {
     holding([
       { permission: Permission.ProjectAdmin, scope: PermissionScope.All },
     ]);

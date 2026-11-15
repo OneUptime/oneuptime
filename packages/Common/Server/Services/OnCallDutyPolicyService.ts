@@ -4,6 +4,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { ON_CALL_RUN_SCHEDULED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallRunStart";
 import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
@@ -1240,7 +1241,7 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
     log.projectId = policy.projectId!;
     log.onCallDutyPolicyId = policyId;
     log.userNotificationEventType = options.userNotificationEventType;
-    log.statusMessage = "Scheduled.";
+    log.statusMessage = ON_CALL_RUN_SCHEDULED_MESSAGE;
     log.status = OnCallDutyPolicyStatus.Scheduled;
 
     // Held until later: created waiting, as the log service checks again.

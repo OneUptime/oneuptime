@@ -482,7 +482,7 @@ const LlmConnectionFormModal: FunctionComponent<ComponentProps> = (
       dataTestId: "llm-connection-readers",
       radioButtonOptions: [
         {
-          title: "Project owners and admins",
+          title: "Project Owners and Project Admins",
           description:
             "Everyone else in the project sees none of these conversations, anywhere in OneUptime.",
           value: LlmConversationReaders.Admins,

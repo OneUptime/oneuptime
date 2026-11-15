@@ -764,7 +764,7 @@ describe("WorkspaceOAuthState", () => {
     });
   });
 
-  test("lets project owners, admins and members manage connections, and nobody read-only", () => {
+  test("lets Project Owners, admins and members manage connections, and nobody read-only", () => {
     expect(WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

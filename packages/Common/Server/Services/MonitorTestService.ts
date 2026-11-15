@@ -4,10 +4,16 @@ import MonitorTest from "../../Models/DatabaseModels/MonitorTest";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { MonitorStepProbeResponse } from "../../Models/DatabaseModels/MonitorProbe";
+import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 
-// A result for a test the reporting probe was not handed (or one that is gone).
+/*
+ * A result for a test the reporting probe was not handed (or one that is
+ * gone). Kept in ExceptionMessages, so the telemetry worker can tell it
+ * apart without loading this service (isNonActionableIngestError, issue
+ * #8539).
+ */
 export const MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE: string =
-  "This monitor test was not handed to this probe, or no longer exists.";
+  ExceptionMessages.MonitorTestNotHandedToProbe;
 
 export class Service extends ProjectReferencesService<MonitorTest> {
   private static readonly STALE_TEST_CLAIM_TIMEOUT_IN_MINUTES: number = 10;

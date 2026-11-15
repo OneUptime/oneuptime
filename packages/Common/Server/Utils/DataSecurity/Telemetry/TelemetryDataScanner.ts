@@ -333,7 +333,7 @@ export type TelemetryOwnersNotScanned = ReadonlyMap<
 >;
 
 export const RESTRICTED_CONVERSATIONS_WARNING: string =
-  "Not read: this service holds a company AI tool's conversations, which only project owners and admins may read, and findings are read by everyone with access to Data Security.";
+  "Not read: this service holds a company AI tool's conversations, which only Project Owners and Project Admins may read, and findings are read by everyone with access to Data Security.";
 
 export interface TelemetryReadWindow {
   projectId: ObjectID;

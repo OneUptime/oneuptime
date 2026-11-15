@@ -130,7 +130,7 @@ Hver arbejdsgang har sin egen kopi. Når du udskifter klienthemmeligheden, åbne
 1. Åbn **Arbejdsgange → Opret arbejdsgang**. Vælg **Dynamics 365** i kategorilisten under **Eller start fra en skabelon**, eller skriv `Dynamics` i **Søg i skabeloner…**, og klik på den skabelon, du vil have. Den åbnes og viser, hvad den gør, og hvilke indstillinger den vil bede om. Klik på **Brug denne skabelon**.
 2. **Navn** udfyldes ud fra skabelonen. Skift det, hvis du vil.
 3. **Konfigurer** beder om værdierne ovenfor.
-4. Klik på **Opret arbejdsgang**. Hver arbejdsgang oprettes slået fra: slå **Aktiveret** til øverst i dets **Bygger**.
+4. Klik på **Opret arbejdsgang**. Hver arbejdsgang oprettes slået fra: slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** til advarsler: alle andre skabeloner OneUptime → Dynamics 365 af samme slags finder sagen via den forbindelse, som denne skriver. Slå den til, erklær en testhændelse eller opret en testadvarsel, og åbn arbejdsgangens **Protokoller → Kørsler**. Kørslen bør slutte som **Udført**, og **Svarets brødtekst** i dens sidste trin, `create-case-1`, indeholder den nye sags `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.

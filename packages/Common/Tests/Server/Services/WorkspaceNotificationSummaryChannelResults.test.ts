@@ -302,7 +302,7 @@ describe("getTestNotPostedMessage: what Send Test Now answers", () => {
 
   test("every channel, for one reason: that reason once", () => {
     const reason: string =
-      "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.";
+      "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.";
 
     expect(
       WorkspaceNotificationSummaryService.getTestNotPostedMessage([

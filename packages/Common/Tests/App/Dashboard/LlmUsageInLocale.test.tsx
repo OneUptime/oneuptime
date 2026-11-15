@@ -210,7 +210,7 @@ describe.each(["de", "fa"])("the Usage tab in %s", (locale: string) => {
     expect(screen.getByTestId("llm-usage-metrics-left-out")).toHaveTextContent(
       word(
         locale,
-        "Usage metrics are left out: your role cannot read metrics. Ask a project admin for access.",
+        "Usage metrics are left out: your role cannot read metrics. Ask a Project Admin for access.",
       ),
     );
 

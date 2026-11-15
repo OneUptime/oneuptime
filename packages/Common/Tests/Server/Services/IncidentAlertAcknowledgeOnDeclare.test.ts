@@ -82,7 +82,7 @@ const FOREIGN_ALERT: string = "0194c3a9-0000-4000-8000-0000000000b7";
 const BATCH_SIZE: number = 5;
 
 const PERMISSION_MESSAGE: string =
-  "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a project admin for permission.";
+  "You do not have permission to acknowledge one or more of these alerts. Declare the incident without acknowledging them, or ask a Project Admin for permission.";
 const NO_ACKNOWLEDGED_STATE_ON_CREATE_MESSAGE: string =
   "This project has no Acknowledged alert state, so the alerts cannot be acknowledged. Declare the incident without acknowledging them, or add an Acknowledged state in the alert settings.";
 const NO_ACKNOWLEDGED_STATE_MESSAGE: string =

@@ -55,13 +55,13 @@ Bruk den når formen på linjen forteller historien: ventetid, feil, gjennomstr�
 
 ### Verdi
 
-Ett stort tall med en sparkline: spørringens verdi over hele tidsintervallet, summert for en sum eller en telling, den høyeste for et maksimum, den laveste for et minimum og ellers gjennomsnittet. En pil sammenligner den andre halvdelen av intervallet med den første, hver halvdel regnet ut på samme måte, farget etter **Trend Direction**: om en høyere verdi er bedre eller verre, eller lest ut fra målingens navn. Pek på pilen for å se verdien for hver halvdel, og på sparklinen for å lese verdien og tidspunktet for et punkt. **Warning Threshold** gjør bakgrunnen gul og **Critical Threshold** rød når verdien når dem.
+Ett stort tall med en sparkline: spørringens verdi over hele tidsintervallet, summert for en sum eller en telling, den høyeste for et maksimum, den laveste for et minimum og ellers gjennomsnittet. En pil sammenligner den andre halvdelen av intervallet med den første, hver halvdel regnet ut på samme måte, farget etter **Trend Direction**: om en høyere verdi er bedre eller verre, eller lest ut fra målingens navn. Pek på pilen for å se verdien for hver halvdel, og på sparklinen for å lese verdien og tidspunktet for et punkt. **Varselsterskel** gjør bakgrunnen gul og **Kritisk terskel** rød når verdien når dem.
 
 Bruk den når ett tall svarer på spørsmålet: feilraten, P95-ventetiden eller antall forespørsler betjent i dag.
 
 ### Måler
 
-En skive mellom et minimum og et maksimum, 0 og 100 med mindre du angir dem, med en gul sone fra **Warning Threshold** og en rød sone fra **Critical Threshold**.
+En skive mellom et minimum og et maksimum, 0 og 100 med mindre du angir dem, med en gul sone fra **Varselsterskel** og en rød sone fra **Kritisk terskel**.
 
 Bruk den når verdien lever i et kjent område: CPU- eller diskbruk i prosent, eller kapasiteten til en kø.
 

@@ -146,13 +146,13 @@ describe("ColumnPermissions on WorkflowVariable", () => {
       ).not.toThrow();
     });
 
-    it("still lets a project admin write the content column", () => {
+    it("still lets a Project Admin write the content column", () => {
       expect(
         checkUpdate({ content: "rotated-token" }, [Permission.ProjectAdmin]),
       ).not.toThrow();
     });
 
-    it("still lets a project owner write the content column", () => {
+    it("still lets a Project Owner write the content column", () => {
       expect(
         checkUpdate({ content: "rotated-token" }, [Permission.ProjectOwner]),
       ).not.toThrow();
@@ -180,7 +180,7 @@ describe("ColumnPermissions on WorkflowVariable", () => {
       ).not.toThrow();
     });
 
-    it("lets a project admin and a project owner flip the secret toggle", () => {
+    it("lets a Project Admin and a Project Owner flip the secret toggle", () => {
       expect(
         checkUpdate({ isSecret: true } as Partial<WorkflowVariable>, [
           Permission.ProjectAdmin,
@@ -252,7 +252,7 @@ describe("ColumnPermissions on WorkflowVariable", () => {
      * proves the read list was genuinely evaluated rather than the whole model
      * coming back empty, which would make the content assertion vacuous.
      */
-    it("keeps content unreadable even for a project owner", () => {
+    it("keeps content unreadable even for a Project Owner", () => {
       const columns: Columns = ColumnPermissions.getModelColumnsByPermissions(
         WorkflowVariable,
         makeUserPermissions([

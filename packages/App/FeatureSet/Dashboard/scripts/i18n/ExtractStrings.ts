@@ -183,6 +183,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   { directory: "packages/Common/Utils/Slo/SloMetricType.ts", kind: "keys" },
   /*
+   * What the server stores as each monitor series' description, which the
+   * metrics list words under the series' name (#8356).
+   */
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorMetricUtil.ts",
+    kind: "keys",
+  },
+  /*
    * A duration in milliseconds in the reader's language ("{{value}} ms"):
    * the Dashboard's views and the overview's hero write it with one helper.
    */
@@ -886,6 +894,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a data alert most likely happened (its Why This Happened card,
+   * #8343): each likely cause's title the server words, as a whole sentence
+   * with the names and counts it gives as values, for the Dashboard to word
+   * in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataAlertCauseTitles.ts",
     kind: "keys",
   },
 ];

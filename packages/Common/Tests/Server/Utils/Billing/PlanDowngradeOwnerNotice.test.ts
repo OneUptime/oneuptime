@@ -585,7 +585,7 @@ describe("what the email holds", () => {
     await move(PlanType.Growth, PlanType.Free);
 
     expect(sentHtml()).toContain(
-      "Project owners get this email when a plan change stops the project&#39;s API keys or SCIM provisioning.",
+      "Project Owners get this email when a plan change stops the project&#39;s API keys or SCIM provisioning.",
     );
   });
 });
@@ -719,7 +719,7 @@ describe("the one-time notice to a project already below the plan", () => {
     expect(html).not.toContain("moved from");
     expect(html).toContain(`<a href="${SETTINGS_LINK}">${SETTINGS_LINK}</a>`);
     expect(html).toContain(
-      "Project owners get this email once, because the project was already below the Growth plan when API keys started to need it.",
+      "Project Owners get this email once, because the project was already below the Growth plan when API keys started to need it.",
     );
   });
 
@@ -744,7 +744,7 @@ describe("the one-time notice to a project already below the plan", () => {
       "Acme Production is on the Growth plan, which does not include SCIM provisioning.",
     );
     expect(sent().message).toContain(
-      "Project owners get this email once, because the project was already below the Scale plan when SCIM provisioning started to need it.",
+      "Project Owners get this email once, because the project was already below the Scale plan when SCIM provisioning started to need it.",
     );
     // Growth includes API keys: the email never names them.
     expect(sent().message).not.toContain("API key");
@@ -769,7 +769,7 @@ describe("the one-time notice to a project already below the plan", () => {
       "Acme Production is on the Free plan, which includes neither API keys nor SCIM provisioning.",
     );
     expect(sent().message).toContain(
-      "Project owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.",
+      "Project Owners get this email once, because the project was already below these plans when API keys and SCIM provisioning started to need them.",
     );
   });
 

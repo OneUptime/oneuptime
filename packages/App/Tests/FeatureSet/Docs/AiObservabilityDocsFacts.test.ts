@@ -1039,7 +1039,7 @@ describe("the AI / LLM Observability page", () => {
       "dimension.key !== LlmUsageDimension.Service ? (",
     );
     expect(breakdown).toContain(
-      '"Usage metrics are left out: your role cannot read metrics. Ask a project admin for access."',
+      '"Usage metrics are left out: your role cannot read metrics. Ask a Project Admin for access."',
     );
     expect(breakdown).toContain("TelemetryServiceUtil.isUnknownServiceId(");
     expect(page).toContain(

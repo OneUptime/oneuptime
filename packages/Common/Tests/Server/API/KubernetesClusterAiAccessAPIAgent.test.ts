@@ -690,7 +690,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         expect(resetSpy).toHaveBeenCalledTimes(1);
       });
 
-      test("refuses a project admin blocked from editing a label this cluster carries", async () => {
+      test("refuses a Project Admin blocked from editing a label this cluster carries", async () => {
         clusterFind.mockResolvedValue(
           clusterRow([label(PROD_LABEL_ID, "prod")]),
         );

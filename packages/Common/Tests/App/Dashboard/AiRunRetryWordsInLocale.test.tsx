@@ -61,7 +61,7 @@ import {
 
 // Every word the retries, the attempts and Try again added to the Dashboard.
 const WORDS: Array<string> = [
-  "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+  "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
   "Add an LLM provider in Project Settings > AI > LLM Providers, then try again.",
   "Attempt {{number}}",
   "Attempt {{number}} of {{count}}",

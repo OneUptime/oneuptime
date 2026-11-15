@@ -53,7 +53,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 - **Hendelsestittel**: `{{requestBody.commonLabels.alertname}} on {{requestBody.commonLabels.instance}}`.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være slått på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Åpne én hendelse per varsel
@@ -197,7 +197,7 @@ Klikk på **Legg til komponent**, legg til en blokk **If / Else**, og koble trig
 
 ### Erklær hendelsen
 
-Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If / Else** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktretningslinjene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON Object** hva som kommer fra Alertmanager:
+Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If / Else** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON Object** hva som kommer fra Alertmanager:
 
 ```json
 {
@@ -299,6 +299,6 @@ Når en nyere forespørsel når en monitor før en tidligere er evaluert, evalue
 :::cards
 - [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [Grafana](/docs/integrations/grafana): Det samme oppsettet, for Grafana-varsler.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

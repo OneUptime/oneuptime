@@ -167,7 +167,7 @@ Un nouveau moniteur de site web commence avec deux critères, il fonctionne donc
 - **Hors ligne** — le site web ne répond pas, ou répond avec un code de statut de `400` ou plus (ou inférieur à `200`). Le moniteur est marqué **Hors ligne** et un incident est créé. L'incident se résout de lui-même quand le site web revient.
 - **En ligne** — le site web répond avec n'importe quel code de statut `2xx` ou `3xx`, comme `200`, `204` ou `301`. Le moniteur est marqué **Opérationnel**.
 
-Dans la liste des critères, ils sont nommés d'après le moniteur : _Check if (name) is offline_ et _Check if (name) is online_.
+Dans la liste des critères, ils sont nommés d'après le moniteur : « Vérifier si _nom du moniteur_ est hors ligne » et « Vérifier si _nom du moniteur_ est en ligne ».
 
 Ainsi, une page qui répond `204 No Content`, ou une redirection que vous surveillez avec **Ne pas suivre les redirections** activé, compte comme disponible. Si un seul code de statut signifie « en bonne santé » pour vous, modifiez les deux critères sur la page **Configuration → Critères** du moniteur : par exemple **Code de statut de la réponse** / **Égal à** / `200` dans le critère en ligne et **Différent de** / `200` dans le critère hors ligne, à la place des deux filtres de code de statut de chacun.
 

@@ -6,6 +6,7 @@ import path from "path";
 import { makeT as makeApiReferenceT } from "../../../App/FeatureSet/APIReference/Utils/I18n";
 import { makeT as makeDocsT } from "../../../App/FeatureSet/Docs/Utils/I18n";
 import { getServerTranslator } from "../../Server/Utils/ServerTranslation";
+import { HtmlMarkupReplacer, replaceHtmlMarkup } from "../../Types/HtmlMarkup";
 import {
   NoBreakLocaleTree,
   withNoBreakSpacesInLocale,
@@ -62,12 +63,25 @@ const GUILLEMET_BESIDE_A_BREAK: RegExp = new RegExp(
 // What i18next reads in a key as a path: a key with one is looked up flat.
 const KEY_SEPARATORS: RegExp = /[.:]/;
 
-// What a text holds as it is written: code, and an HTML tag.
-const AS_WRITTEN: RegExp = /`[^`]*`|<[^<>]*>/g;
+/*
+ * What a text holds as it is written: code, and an HTML tag. Each is read
+ * as one "`", code first (a tag inside it is code), then each tag through
+ * the shared walk (replaceHtmlMarkup), which reads a "<" as a browser
+ * does: "« < 15 s »" is text, its spaces read too.
+ */
+const CODE_SPAN: RegExp = /`[^`]*`/g;
+
+const AS_WRITTEN_MARK: HtmlMarkupReplacer = (): string => {
+  return "`";
+};
 
 // Where `text` lets a line break beside a French mark: each spot, quoted.
 function frenchBreaksIn(text: string): Array<string> {
-  const prose: string = text.replace(AS_WRITTEN, "`");
+  const prose: string = replaceHtmlMarkup(
+    text.replace(CODE_SPAN, "`"),
+    AS_WRITTEN_MARK,
+    { lessThanAsText: true },
+  );
 
   return [
     ...(prose.match(MARK_AFTER_A_BREAK) || []),

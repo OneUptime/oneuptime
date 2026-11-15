@@ -136,7 +136,7 @@ const EVERY_FILTER: Array<[string, () => OwnedBy]> = [
 
 // Who reads on-call schedules and their owners.
 const SCHEDULE_AND_OWNER_READERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
+  ["a Project Owner", [Permission.ProjectOwner]],
   ["a project member", [Permission.ProjectMember]],
   ["a viewer", [Permission.Viewer]],
   ["an on-call admin", [Permission.OnCallAdmin]],

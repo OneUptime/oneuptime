@@ -114,7 +114,7 @@ export const TELEMETRY_SETUP_COPY: {
     "{{service}} is already watched by these monitors.",
   ),
   cannotCreateMonitors: translationKey(
-    "Creating monitors needs permission you do not have in this project. Ask a project admin to add them, or to give you the permission.",
+    "Creating monitors needs permission you do not have in this project. Ask a Project Admin to add them, or to give you the permission.",
   ),
   nothingPicked: translationKey(
     "Pick at least one monitor, or choose Not now.",

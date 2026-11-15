@@ -16,8 +16,11 @@ import path from "path";
  * and runbooks lists, in LiveLists.spec.ts, that the incidents and alerts
  * lists keep themselves current as the server announces changes, in
  * ColumnResize.spec.ts, a column's edge dragged, double-clicked, keyed,
- * reset, on a tablet and right to left, and in CardsBulkLine.spec.ts, a
- * phone's Bulk Actions in the band over a table's cards.
+ * reset, on a tablet and right to left, in CardsBulkLine.spec.ts, a
+ * phone's Bulk Actions in the band over a table's cards, and in
+ * DataObservabilityLists.spec.ts, Data Observability's Checks and
+ * Reconciliations lists at 1280px and 1100px beside the side menu, in
+ * English and German, nothing under their sticky Run Now column.
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
@@ -49,6 +52,7 @@ export default defineConfig({
     "LiveLists.spec.ts",
     "ColumnResize.spec.ts",
     "CardsBulkLine.spec.ts",
+    "DataObservabilityLists.spec.ts",
   ],
   // By test when halved, as Event Overview is: its tests are independent.
   fullyParallel: shard !== null,

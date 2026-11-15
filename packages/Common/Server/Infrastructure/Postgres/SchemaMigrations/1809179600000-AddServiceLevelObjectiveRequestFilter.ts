@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddServiceLevelObjectiveRequestFilter1809179500000
+export class AddServiceLevelObjectiveRequestFilter1809179600000
   implements MigrationInterface
 {
-  public name: string = "AddServiceLevelObjectiveRequestFilter1809179500000";
+  public name: string = "AddServiceLevelObjectiveRequestFilter1809179600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -346,7 +346,7 @@ describe("a responder reached only by push", () => {
     ]);
   });
 
-  test("push off: the reason names a server admin, not the project owners a project switch names", () => {
+  test("push off: the reason names a server admin, not the Project Owners a project switch names", () => {
     const readiness: UserReadiness = readinessOf(
       [method(ReadinessMethodType.Push)],
       settings({ isPushTurnedOffOnServer: true }),

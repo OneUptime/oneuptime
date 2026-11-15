@@ -449,7 +449,7 @@ export default class RumSessionErasureRequest extends BaseModel {
     type: TableColumnType.Number,
     title: "Attempts",
     description:
-      "How many processing runs have failed for this request. An erasure is retried until this reaches the retry cap; only then is it marked Failed and the project owners are notified — a right-to-erasure obligation must not die silently on one transient error.",
+      "How many processing runs have failed for this request. An erasure is retried until this reaches the retry cap; only then is it marked Failed and the Project Owners are notified — a right-to-erasure obligation must not die silently on one transient error.",
     defaultValue: 0,
   })
   @Column({

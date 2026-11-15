@@ -496,7 +496,7 @@ describe("Test Rule on a workspace notification rule says what the test came to"
 
   test("a refusal of another kind - a project not connected - is said in its own words too", async () => {
     const notConnected: string =
-      "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.";
+      "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.";
     testAnswer = new HTTPErrorResponse(400, { message: notConnected }, {});
 
     await renderTable();

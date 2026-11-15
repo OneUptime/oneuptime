@@ -166,6 +166,58 @@ export const OTHER_LOGGER_WORDS: Array<LogSeverityWord> = [
     severity: LogSeverity.Fatal,
     source: "Appendix B: ETW CRITICAL, .NET LogLevel.Critical",
   },
+  /*
+   * The short forms loggers write in a level field (issue #8536), each at
+   * the level it abbreviates.
+   */
+  {
+    word: "trc",
+    severityNumber: 1,
+    severity: LogSeverity.Trace,
+    source: "zerolog's TRC: TRACE",
+  },
+  {
+    word: "vrb",
+    severityNumber: 5,
+    severity: LogSeverity.Debug,
+    source: "Serilog's VRB: Verbose, Appendix B's DEBUG",
+  },
+  {
+    word: "dbg",
+    severityNumber: 5,
+    severity: LogSeverity.Debug,
+    source: "Serilog's DBG: DEBUG",
+  },
+  {
+    word: "dbug",
+    severityNumber: 5,
+    severity: LogSeverity.Debug,
+    source: "log15's dbug: DEBUG",
+  },
+  {
+    word: "inf",
+    severityNumber: 9,
+    severity: LogSeverity.Information,
+    source: "Serilog's INF: INFO",
+  },
+  {
+    word: "wrn",
+    severityNumber: 13,
+    severity: LogSeverity.Warning,
+    source: "Serilog's WRN: WARN",
+  },
+  {
+    word: "eror",
+    severityNumber: 17,
+    severity: LogSeverity.Error,
+    source: "log15's eror: ERROR",
+  },
+  {
+    word: "ftl",
+    severityNumber: 21,
+    severity: LogSeverity.Fatal,
+    source: "Serilog's FTL: FATAL",
+  },
 ];
 
 export const LOG_SEVERITY_WORDS: Array<LogSeverityWord> = [

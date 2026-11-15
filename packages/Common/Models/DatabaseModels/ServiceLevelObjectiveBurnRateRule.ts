@@ -836,7 +836,7 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Private Alert",
     description:
-      "Make the alert raised by this burn rate rule private, so only its owners, project admins and project owners can see it. Disabled by default.",
+      "Make the alert raised by this burn rate rule private, so only its owners, Project Admins and Project Owners can see it. Disabled by default.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -1295,7 +1295,7 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Private Incident",
     description:
-      "Make the incident declared by this burn rate rule private, so only its owners, project admins and project owners can see it. Disabled by default.",
+      "Make the incident declared by this burn rate rule private, so only its owners, Project Admins and Project Owners can see it. Disabled by default.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

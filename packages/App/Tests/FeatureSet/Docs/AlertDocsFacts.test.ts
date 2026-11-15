@@ -1608,7 +1608,7 @@ describe("responding to an alert", () => {
     const model: string = readCommonSource("Models/DatabaseModels/Alert.ts");
 
     expect(model).toContain(
-      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), project admins, and project owners.",
+      "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     );
     expect(section(page, "## Private alerts")).toContain(
       "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by your project's admins and owners.",

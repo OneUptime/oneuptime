@@ -99,7 +99,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ### Prosjektet ditt
 
-**Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktretningslinjer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
+**Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktpolicyer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
 
 **Kommende vedlikehold** viser de neste tre planlagte vedlikeholdsvinduene, det tidligste først. Den utelates når ingenting er planlagt.
 
@@ -157,7 +157,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 Søket leser det du skriver slik du mener det:
 
 - Store og små bokstaver, aksenter, mellomrom og bindestreker spiller ingen rolle: *on-call*, *on call* og *oncall* finner de samme sidene, og ordene kan stå i hvilken som helst rekkefølge.
-- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktretningslinjer, *rota* for Vaktplaner, *2fa* for totrinnsbekreftelse, *delete project* for Faresone.
+- Det kjenner andre ord for mange sider, på engelsk: *pager* eller *escalation* for Vaktpolicyer, *rota* for Vaktplaner, *2fa* for totrinnsbekreftelse, *delete project* for Faresone.
 - Legg til produktets navn for å snevre inn et søk: *incident custom fields* finner siden Egendefinerte felt under Hendelser.
 - En liten skrivefeil, som *incidnet*, finner likevel det du mente når ingenting treffer slik det er skrevet.
 
