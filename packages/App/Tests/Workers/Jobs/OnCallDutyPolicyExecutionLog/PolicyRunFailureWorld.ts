@@ -341,6 +341,13 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
 
   // Redis, in memory, outside the process: what it holds outlives a restart.
   private installCache(): void {
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return this.cache.get(`${namespace}-${key}`) || null;
+    }) as never);
+
     jest.spyOn(GlobalCache, "getStrings").mockImplementation((async (
       namespace: string,
       keys: Array<string>,

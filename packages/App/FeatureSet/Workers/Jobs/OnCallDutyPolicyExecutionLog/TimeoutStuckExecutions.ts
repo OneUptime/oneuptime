@@ -13,6 +13,9 @@ import {
   isOnCallDirectPage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallPageAgainClaimsInFlight, {
+  OnCallPageAgainClaim,
+} from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
 
 // What a run that cannot be handed over ends with, as it always did.
 export const ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE: string =
@@ -110,6 +113,17 @@ RunCron(
         },
       });
 
+    /*
+     * The pages again in flight, by their run (issue #8549): a page again
+     * whose process stopped once its run was written, with the workers then
+     * down past five minutes, can be read here before the page-again tick
+     * settles it. Read only when a run is stuck.
+     */
+    const pagesAgainInFlight: Map<string, OnCallPageAgainClaim> =
+      stuckExecutions.length + scheduledStuckExecutions.length > 0
+        ? await readPagesAgainInFlightByRun()
+        : new Map();
+
     for (const executionLog of stuckExecutions) {
       await settleStuckRun({
         run: executionLog,
@@ -117,6 +131,7 @@ RunCron(
         statusMessage: isOnCallDirectPage(executionLog)
           ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
           : ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
+        pageAgainInFlight: pagesAgainInFlight.get(executionLog.id!.toString()),
       });
     }
 
@@ -127,10 +142,64 @@ RunCron(
         statusMessage: isOnCallDirectPage(executionLog)
           ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
           : ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
+        pageAgainInFlight: pagesAgainInFlight.get(executionLog.id!.toString()),
       });
     }
   },
 );
+
+// The pages again in flight whose run was written, by that run. None when Redis cannot be read.
+async function readPagesAgainInFlightByRun(): Promise<
+  Map<string, OnCallPageAgainClaim>
+> {
+  const byRun: Map<string, OnCallPageAgainClaim> = new Map();
+
+  for (const claim of (
+    await OnCallPageAgainClaimsInFlight.readAll()
+  ).values()) {
+    if (claim.pageAgainRunId) {
+      byRun.set(claim.pageAgainRunId, claim);
+    }
+  }
+
+  return byRun;
+}
+
+/*
+ * Keeps the start of a stuck page again whose process stopped before it
+ * kept it (issue #8549), from its page again in flight, before it is
+ * handed over: its escalation then starts it from the rule it starts at,
+ * the person who acknowledged first - not from the policy's first level.
+ * Only the run's own start is written; the page again in flight is left
+ * to the page-again tick, which forgets it. One that cannot be kept is
+ * handed over all the same, as any stuck run is.
+ */
+async function keepPageAgainStart(data: {
+  run: OnCallDutyPolicyExecutionLog;
+  pageAgain: OnCallPageAgainClaim;
+}): Promise<void> {
+  try {
+    const isKept: boolean =
+      await OnCallDutyPolicyExecutionLogService.keepPageAgainStartIfMissing({
+        runId: data.run.id!,
+        startAtRuleId: data.pageAgain.startAtRuleId,
+        acknowledgedByUserId: data.pageAgain.acknowledgedByUserId,
+        minutes: data.pageAgain.minutes,
+        dueAt: data.pageAgain.dueAt,
+      });
+
+    if (isKept) {
+      logger.warn(
+        `On-call execution log ${data.run.id?.toString()}: its page again's process stopped before it kept its start; kept now, before it is handed over.`,
+      );
+    }
+  } catch (err) {
+    logger.error(
+      `Could not keep the start of the page again of on-call execution log ${data.run.id?.toString()}; handed over from its policy's first level.`,
+    );
+    logger.error(err as Error);
+  }
+}
 
 /*
  * A run that did not finish starting (issue #8405).
@@ -155,10 +224,16 @@ async function settleStuckRun(data: {
   run: OnCallDutyPolicyExecutionLog;
   status: OnCallDutyPolicyStatus;
   statusMessage: string;
+  // Its page again in flight, when it is a page again whose start was never kept (issue #8549).
+  pageAgainInFlight?: OnCallPageAgainClaim | undefined;
 }): Promise<void> {
   const run: OnCallDutyPolicyExecutionLog = data.run;
 
   if (!isOnCallDirectPage(run) && !isOnCallTestPage(run)) {
+    if (data.pageAgainInFlight) {
+      await keepPageAgainStart({ run: run, pageAgain: data.pageAgainInFlight });
+    }
+
     const handedOver: boolean =
       await OnCallDutyPolicyExecutionLogService.handStartedRunToEscalation({
         executionLogId: run.id!,

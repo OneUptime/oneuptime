@@ -2,6 +2,7 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallPageAgainClaimsInFlight from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -16,7 +17,10 @@ import {
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 import "../../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "../../../../FeatureSet/Workers/Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
-import PolicyRunFailureWorld, { FailurePoint } from "./PolicyRunFailureWorld";
+import PolicyRunFailureWorld, {
+  FailurePoint,
+  ProcessStopped,
+} from "./PolicyRunFailureWorld";
 import {
   afterEach,
   beforeEach,
@@ -173,6 +177,17 @@ const PAGED_AT_ONE: Array<string> = [
   "Carl Diaz L2 @ 1",
 ];
 
+// The run whose acknowledgement clock the page again stopped.
+const PAGED_RUN_ID: ObjectID = new ObjectID(
+  "85490000-0000-4000-8000-0000000000e1",
+);
+
+const PAGED_AT_ZERO: Array<string> = [
+  "Ana Lopez L2 @ 0",
+  "Bob Smith L2 @ 0",
+  "Carl Diaz L2 @ 0",
+];
+
 describe("a page again whose start fails before its rule is recorded", () => {
   test("REGRESSION: the read of the rule it starts at failing: the worker starts it the next minute, from that rule, the person who acknowledged first - once each", async () => {
     world.failAt(FailurePoint.ReadNextRule);
@@ -310,6 +325,139 @@ describe("a page again whose start stopped - a worker that restarted - before it
     await minutesPass(6);
 
     expect(pagesSoFar()).toEqual(["Dana Kim L1 @ 6"]);
+  });
+});
+
+describe("a page again whose process stopped once its run was written, before it kept its start (issue #8549)", () => {
+  // What the page-again tick does with it, two minutes on (OnCallPageAgainStoppedProcess shows when).
+  async function settledByThePageAgainTick(): Promise<boolean> {
+    return await OnCallDutyPolicyExecutionLogService.keepPageAgainStartIfMissing(
+      {
+        runId: world.run.id!,
+        startAtRuleId: levelTwo.id!.toString(),
+        acknowledgedByUserId: ANA.toString(),
+        minutes: 30,
+        dueAt: new Date(START),
+      },
+    );
+  }
+
+  function startsKept(): Array<string> {
+    return Array.from(world.cache.keys()).filter((key: string) => {
+      return key.startsWith("on-call-levels-in-flight");
+    });
+  }
+
+  test("REGRESSION: its start kept by the page-again tick, it is handed over just after five minutes and started from the rule it starts at, the person who acknowledged first - once each", async () => {
+    await world
+      .startPageAgain({
+        startAtRule: levelTwo,
+        acknowledgedBy: ANA,
+        onRunCreated: (): void => {
+          world.stopped = true;
+          throw new ProcessStopped();
+        },
+      })
+      .catch(() => {
+        return undefined;
+      });
+    world.stopped = false;
+
+    expect(world.run.status).toBe(OnCallDutyPolicyStatus.Scheduled);
+    expect(startsKept()).toEqual([]);
+
+    await minutesPass(2);
+    await expect(settledByThePageAgainTick()).resolves.toBe(true);
+    expect(startsKept()).toHaveLength(1);
+
+    await minutesPass(3);
+
+    expect(pagesSoFar()).toEqual([]);
+
+    await minutesPass(1);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 6",
+      "Bob Smith L2 @ 6",
+      "Carl Diaz L2 @ 6",
+    ]);
+
+    // Settled again, it keeps nothing: its rule is recorded.
+    await expect(settledByThePageAgainTick()).resolves.toBe(false);
+
+    await minutesPass(3);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 6",
+      "Bob Smith L2 @ 6",
+      "Carl Diaz L2 @ 6",
+    ]);
+    // Never Dana, Level 1's.
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+    expect(world.runStatuses).not.toContain(OnCallDutyPolicyStatus.Error);
+  });
+
+  test("REGRESSION: its workers down past five minutes, the stuck-run job keeps its start from the page again in flight before it hands it over - not from the policy's first level", async () => {
+    await world
+      .startPageAgain({
+        startAtRule: levelTwo,
+        acknowledgedBy: ANA,
+        onRunCreated: async (runId: ObjectID): Promise<void> => {
+          // As the page-again tick keeps its page again in flight, once its run is written.
+          await OnCallPageAgainClaimsInFlight.keep(PAGED_RUN_ID, {
+            claimedAt: new Date(START),
+            clockStartedAt: new Date(START.getTime() - 30 * MINUTE),
+            pageAgainNumber: 1,
+            startAtRuleId: levelTwo.id!.toString(),
+            acknowledgedByUserId: ANA.toString(),
+            minutes: 30,
+            dueAt: new Date(START),
+            pageAgainRunId: runId.toString(),
+          });
+
+          world.stopped = true;
+          throw new ProcessStopped();
+        },
+      })
+      .catch(() => {
+        return undefined;
+      });
+    world.stopped = false;
+
+    // The workers are down for six minutes: nothing settles it.
+    world.clock = new Date(world.clock.getTime() + 6 * MINUTE);
+
+    // Back, the stuck-run job runs before the page-again tick.
+    await minutesPass(1);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 7",
+      "Bob Smith L2 @ 7",
+      "Carl Diaz L2 @ 7",
+    ]);
+
+    // The page-again tick, when it settles it, keeps nothing more.
+    await expect(settledByThePageAgainTick()).resolves.toBe(false);
+
+    await minutesPass(3);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 7",
+      "Bob Smith L2 @ 7",
+      "Carl Diaz L2 @ 7",
+    ]);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("one whose start was kept is not kept over: the page again started, it is paged from its rule once", async () => {
+    await pageAgain();
+
+    await expect(settledByThePageAgainTick()).resolves.toBe(false);
+
+    await minutesPass(6);
+
+    expect(pagesSoFar()).toEqual(PAGED_AT_ZERO);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
   });
 });
 
