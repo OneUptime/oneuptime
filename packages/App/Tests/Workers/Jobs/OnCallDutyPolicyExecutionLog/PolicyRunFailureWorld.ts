@@ -79,6 +79,8 @@ export enum FailurePoint {
   ClaimStart = "ClaimStart",
   // The read of the incident's state, for the page of runs.
   ReadRecords = "ReadRecords",
+  // A move on's claim given back (giveBackEscalationAdvance).
+  GiveBackClaim = "GiveBackClaim",
 }
 
 interface PlannedFailure {
@@ -482,6 +484,33 @@ export default class PolicyRunFailureWorld extends EmptyLevelWorld {
         this.hit(FailurePoint.ClaimStart, args);
       },
     );
+
+    /*
+     * The real give-back, over the run table's own UPDATE: a planned
+     * failure is the database's, thrown to a caller that asks for it and
+     * swallowed otherwise, as the real one does.
+     */
+    const realGiveBack: AnyFunction =
+      OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance.bind(
+        OnCallDutyPolicyExecutionLogService,
+      );
+
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "giveBackEscalationAdvance")
+      .mockImplementation((async (data: { throwOnError?: boolean }) => {
+        try {
+          this.throwIfStopped();
+          this.hit(FailurePoint.GiveBackClaim, [data]);
+        } catch (err) {
+          if (data.throwOnError) {
+            throw err;
+          }
+
+          return false;
+        }
+
+        return await realGiveBack(data);
+      }) as never);
   }
 
   private wrap(

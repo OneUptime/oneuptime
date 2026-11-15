@@ -197,6 +197,11 @@ export class Service extends ProjectReferencesService<Model> {
     // The rule the run was on, and its pass, when it was claimed.
     lastExecutedEscalationRuleId: ObjectID | null;
     onCallPolicyExecutionRepeatCount: number | null;
+    /*
+     * Throw what the database throws, rather than log it and say nothing
+     * was given back: for a caller that tries again later (issue #8410).
+     */
+    throwOnError?: boolean | undefined;
   }): Promise<boolean> {
     try {
       const current: Model | null = await this.findOneById({
@@ -245,6 +250,10 @@ export class Service extends ProjectReferencesService<Model> {
 
       return (result.affected || 0) > 0;
     } catch (err) {
+      if (data.throwOnError) {
+        throw err;
+      }
+
       logger.error(
         `Could not give back the claim to move on-call execution log ${data.executionLogId.toString()} on; it waits its rule's wait again before it is tried.`,
       );
