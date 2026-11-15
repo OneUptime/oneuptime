@@ -7,6 +7,7 @@ import {
   sortListOrderItems,
   toListOrderNumber,
 } from "./ListOrder";
+import { StateListType } from "./StateListType";
 
 /*
  * What the order of a project's states, severities, monitor statuses,
@@ -62,17 +63,8 @@ import {
  *     moves things into, so a list keeps at least one of each kind.
  */
 
-export enum StateListType {
-  IncidentState = "IncidentState",
-  AlertState = "AlertState",
-  ScheduledMaintenanceState = "ScheduledMaintenanceState",
-  MonitorStatus = "MonitorStatus",
-  IncidentSeverity = "IncidentSeverity",
-  AlertSeverity = "AlertSeverity",
-  IncidentPostmortemStatus = "IncidentPostmortemStatus",
-  SecurityCaseStatus = "SecurityCaseStatus",
-  SecurityCasePriority = "SecurityCasePriority",
-}
+// Each list by its records' table, in a module of its own (Utils/StateListType).
+export { StateListType };
 
 export interface StateListBuiltIn {
   // The boolean column that marks a row as this built-in.

@@ -3,8 +3,8 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddIncomingRequestSecret1809178300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178300000-AddIncomingRequestSecret";
-import { AddMeasurementBackfillCursorId1809178200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178200000-AddMeasurementBackfillCursorId";
+import { AddIncomingRequestSecret1809178800000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178800000-AddIncomingRequestSecret";
+import { AddServiceLevelObjectiveRequestSli1809178700000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178700000-AddServiceLevelObjectiveRequestSli";
 import IncomingRequestSecret from "../../../../Models/DatabaseModels/IncomingRequestSecret";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -28,7 +28,7 @@ import { getTableColumns } from "../../../../Types/Database/TableColumn";
  *  4. IT RUNS AFTER THE MIGRATION BEFORE IT, and its file and class agree.
  */
 
-const MIGRATION_FILE_NAME: string = "1809178300000-AddIncomingRequestSecret.ts";
+const MIGRATION_FILE_NAME: string = "1809178800000-AddIncomingRequestSecret.ts";
 
 const SOURCE: string = fs.readFileSync(
   path.join(
@@ -125,17 +125,17 @@ describe("AddIncomingRequestSecret migration", () => {
     );
 
     const index: number = names.indexOf(
-      AddIncomingRequestSecret1809178300000.name,
+      AddIncomingRequestSecret1809178800000.name,
     );
 
     expect(index).toBeGreaterThan(-1);
     expect(index).toBe(
-      names.indexOf(AddMeasurementBackfillCursorId1809178200000.name) + 1,
+      names.indexOf(AddServiceLevelObjectiveRequestSli1809178700000.name) + 1,
     );
 
-    expect(new AddIncomingRequestSecret1809178300000().name).toBe(
-      "AddIncomingRequestSecret1809178300000",
+    expect(new AddIncomingRequestSecret1809178800000().name).toBe(
+      "AddIncomingRequestSecret1809178800000",
     );
-    expect(MIGRATION_FILE_NAME.startsWith("1809178300000-")).toBe(true);
+    expect(MIGRATION_FILE_NAME.startsWith("1809178800000-")).toBe(true);
   });
 });

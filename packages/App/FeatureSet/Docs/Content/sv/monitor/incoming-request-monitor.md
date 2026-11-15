@@ -14,6 +14,7 @@ Båda använder samma monitortyp. Det som skiljer dem åt är kriterierna du kon
 - [Skicka ett heartbeat](#skicka-ett-heartbeat): Från curl, cron, Node.js, Python eller Go.
 - [Larma när anropen slutar](#markera-som-offline-om-inget-heartbeat-kommit-på-10-minuter-ett-dödmansgrepp): Gör monitorn till ett dödmansgrepp.
 - [Ta emot larm](#ta-emot-larm-från-ett-annat-system): En incident per larm från Alertmanager eller Grafana.
+- [Prenumerera på SNS eller Event Grid](#prenumerera-på-amazon-sns-eller-azure-event-grid): Bekräfta prenumerationen med ett klick.
 :::
 
 ## Så fungerar det
@@ -93,6 +94,7 @@ Om du vill använda fält i kroppen — `{{requestBody.status}}` i en incidentti
 | --- | --- |
 | `application/json` | Den tolkade JSON:en. |
 | `application/x-www-form-urlencoded` | Det tolkade formuläret. Nycklar inom hakparenteser nästlas (`alerts[0][status]=firing`), och alla värden är strängar. |
+| `text/plain` | Den tolkade JSON:en, när texten är ett JSON-objekt eller en JSON-matris: så skickar Amazon SNS sina meddelanden. All annan text blir en tom kropp. |
 | Allt annat, eller ingen | En tom kropp (`{}`), så varje hänvisning till `requestBody` blir ingenting. |
 
 Kroppar på upp till 50 MB godtas; en större avvisas med en `413`. Komprimera inte kroppen med `Content-Encoding: gzip`: då lagras den inte som JSON, och sökvägar in i den löses inte upp.
@@ -377,6 +379,40 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+## Prenumerera på Amazon SNS eller Azure Event Grid
+
+Amazon SNS och Azure Event Grid skickar ingenting till en ny slutpunkt förrän någon bekräftar prenumerationen genom att öppna en länk som tjänsten skickar dit. När den förfrågan kommer visar kortet **Monitor-sammanfattning** på monitorns **Översikt** vad tjänsten väntar på, ämnet och en knapp som öppnar länken i en ny flik.
+
+| Tjänst | Förfrågan | Knapp | Länken fungerar i |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, för en ny HTTPS-prenumeration | **Bekräfta prenumeration** | Två dagar |
+| Amazon SNS | `UnsubscribeConfirmation`, när prenumerationen tas bort | **Återställ prenumeration** | Två dagar |
+| Azure Event Grid | `SubscriptionValidationEvent`, för en ny händelseprenumeration med webhook | **Validera prenumeration** | 10 minuter |
+
+Knappen finns kvar tills monitorns nästa förfrågan kommer, även efter att du har öppnat länken. När länkens tid har gått ut berättar kortet i stället hur du får en ny. Om nyare förfrågningar har kommit öppnar du **Övervakningsloggar** och klickar på **Visa sammanfattning** på förfrågans rad.
+
+Länken, och token i den, behålls omaskerade överallt där förfrågan behålls: i dess detaljer, i dess loggar och i de incidenter och larm den öppnar. Det enda länken kan göra är att starta leveranser till den här monitorn. Bara en länk till tjänstens egen adress räknas: alla andra maskeras som vanligt och får ingen knapp.
+
+### Amazon SNS
+
+:::steps
+1. Öppna ämnet i Amazon SNS-konsolen och välj **Create subscription**. Välj `HTTPS` som protokoll och klistra in monitorns **Heartbeat URL** som slutpunkt.
+2. Öppna monitorns **Översikt** och klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning**. I SNS-konsolen ändras prenumerationens status från **Pending confirmation** till bekräftad.
+:::
+
+SNS skickar sina meddelanden som JSON märkt `text/plain`, och monitorn läser dem som JSON, så kriterier, mallar och gruppering av incidenter kan använda deras fält, som `{{requestBody.Subject}}` och `{{requestBody.Message}}`. En aviserings egen JSON, till exempel ett CloudWatch-larms, kommer som text i `Message`.
+
+Om kortet säger att länken inte längre kan öppnas markerar du prenumerationen i SNS-konsolen och väljer **Request confirmation**. SNS tar bort en prenumeration som inte har bekräftats inom 48 timmar; om det händer skapar du prenumerationen igen.
+
+### Azure Event Grid
+
+:::steps
+1. Öppna resursen vars händelser du vill ha i Azure-portalen och lägg till en händelseprenumeration. Välj **Event Grid Schema** som händelseschema, **Web Hook** som slutpunktstyp och monitorns **Heartbeat URL** som slutpunkt.
+2. Öppna monitorns **Översikt** inom 10 minuter och klicka på **Validera prenumeration** på kortet **Monitor-sammanfattning**.
+:::
+
+Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller vars ägare öppnar länken den skickar. OneUptime svarar på varje förfrågan med en tom `200`, så det är länken som gäller. Länken pekar på Event Grid på port 553, som en brandvägg framför din webbläsare måste släppa igenom. Om 10 minuter hinner gå först misslyckas händelseprenumerationen: skapa den igen.
+
 ## Bästa praxis
 
 1. **Ställ in tidsfönstret rätt** — Om ditt cron-jobb körs var 5:e minut sätter du tröskeln för "Inte mottaget inom (minuter)" till 10–15 minuter för att ge utrymme för enstaka fördröjningar, och lägger det kriteriet först.
@@ -400,11 +436,15 @@ Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**
 :::
 
 :::details Ett filter på Begärandekropp matchar aldrig
-Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte.
+Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte: det gör bara JSON som skickas som `text/plain`.
 :::
 
 :::details Ett filter på Begärandehuvud matchar aldrig
 Headernamn och headervärden jämförs i sin helhet. Ange hela värdet, som `application/json; charset=utf-8`, i stället för en del av det.
+:::
+
+:::details Amazon SNS säger att prenumerationen väntar på bekräftelse
+Klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning** på monitorns **Översikt**. Om nyare förfrågningar har kommit öppnar du **Övervakningsloggar** och klickar på **Visa sammanfattning** på bekräftelsens rad. När **Behåll förfrågans innehåll** är avstängt behåller monitorn ingen kropp och därmed ingen länk heller: slå på det i monitorns **Inställningar**, så visas den senaste förfrågan igen med sin länk.
 :::
 
 :::details Avsändaren får en 500

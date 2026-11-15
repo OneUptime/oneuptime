@@ -14,6 +14,7 @@ Beide gebruiken hetzelfde monitortype. Wat ze onderscheidt, zijn de criteria die
 - [Een heartbeat sturen](#een-heartbeat-sturen): Vanuit curl, cron, Node.js, Python of Go.
 - [Waarschuwen als aanroepen uitblijven](#als-offline-markeren-als-er-10-minuten-geen-heartbeat-komt-een-dodemansknop): Maak van de monitor een dodemansknop.
 - [Waarschuwingen ontvangen](#waarschuwingen-uit-een-ander-systeem-ontvangen): Eén incident per waarschuwing uit Alertmanager of Grafana.
+- [Abonneren op SNS of Event Grid](#abonneren-op-amazon-sns-of-azure-event-grid): Bevestig het abonnement met één klik.
 :::
 
 ## Zo werkt het
@@ -93,6 +94,7 @@ Wilt u velden in de body aanspreken (`{{requestBody.status}}` in een incidenttit
 | --- | --- |
 | `application/json` | De geparste JSON. |
 | `application/x-www-form-urlencoded` | Het geparste formulier. Sleutels tussen vierkante haken worden genest (`alerts[0][status]=firing`), en elke waarde is een tekenreeks. |
+| `text/plain` | De geparste JSON, als de tekst een JSON-object of -array is: zo stuurt Amazon SNS zijn berichten. Elke andere tekst is een lege body. |
 | Alles anders, of geen | Een lege body (`{}`), dus elke verwijzing naar `requestBody` levert niets op. |
 
 Bodies tot 50 MB worden geaccepteerd; een grotere wordt geweigerd met een `413`. Comprimeer de body niet met `Content-Encoding: gzip`: dan wordt hij niet als JSON opgeslagen, en worden paden erin niet opgelost.
@@ -377,6 +379,40 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
 
+## Abonneren op Amazon SNS of Azure Event Grid
+
+Amazon SNS en Azure Event Grid sturen niets naar een nieuw endpoint totdat iemand het abonnement bevestigt, door een link te openen die de dienst ernaartoe stuurt. Zodra dat verzoek binnenkomt, toont de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor waar de dienst op wacht, het topic, en één knop die de link in een nieuw tabblad opent.
+
+| Dienst | Het verzoek | Knop | Geldigheid van de link |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, voor een nieuw HTTPS-abonnement | **Abonnement bevestigen** | Twee dagen |
+| Amazon SNS | `UnsubscribeConfirmation`, wanneer het abonnement wordt verwijderd | **Abonnement herstellen** | Twee dagen |
+| Azure Event Grid | `SubscriptionValidationEvent`, voor een nieuw gebeurtenisabonnement met een webhook | **Abonnement valideren** | 10 minuten |
+
+De knop blijft staan tot het volgende verzoek van de monitor binnenkomt, ook nadat u de link hebt geopend. Is de tijd van de link om, dan zegt de kaart in plaats daarvan hoe u een nieuwe krijgt. Zijn er intussen nieuwere verzoeken binnengekomen, open dan **Monitoringlogboeken** en klik op **Samenvatting bekijken** in de rij van het verzoek.
+
+De link, en het token erin, blijven ongemaskeerd overal waar het verzoek wordt bewaard: in de details ervan, in de logs ervan en in de incidenten en waarschuwingen die het opent. Het enige wat de link kan doen, is leveringen aan deze monitor starten. Alleen een link naar het eigen adres van de dienst telt: elke andere wordt zoals gewoonlijk gemaskeerd en krijgt geen knop.
+
+### Amazon SNS
+
+:::steps
+1. Open in de Amazon SNS-console het topic en kies **Create subscription**. Kies `HTTPS` als protocol, en plak de **Heartbeat URL** van de monitor als endpoint.
+2. Open het **Overzicht** van de monitor, en klik op **Abonnement bevestigen** in de kaart **Monitorsamenvatting**. In de SNS-console verandert de status van het abonnement van **Pending confirmation** in bevestigd.
+:::
+
+SNS stuurt zijn berichten als JSON met het label `text/plain`, en de monitor leest ze als JSON, dus criteria, sjablonen en het groeperen van incidenten kunnen hun velden gebruiken, zoals `{{requestBody.Subject}}` en `{{requestBody.Message}}`. De eigen JSON van een melding, zoals die van een CloudWatch-alarm, komt als tekst binnen in `Message`.
+
+Zegt de kaart dat de link niet meer kan worden geopend, selecteer dan het abonnement in de SNS-console en kies **Request confirmation**. SNS verwijdert een abonnement dat niet binnen 48 uur is bevestigd; maak het abonnement in dat geval opnieuw aan.
+
+### Azure Event Grid
+
+:::steps
+1. Open in de Azure-portal de resource waarvan u de gebeurtenissen wilt ontvangen, en voeg een gebeurtenisabonnement toe. Kies **Event Grid Schema** als gebeurtenisschema, **Web Hook** als endpointtype en de **Heartbeat URL** van de monitor als endpoint.
+2. Open binnen 10 minuten het **Overzicht** van de monitor en klik op **Abonnement valideren** in de kaart **Monitorsamenvatting**.
+:::
+
+Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of waarvan de eigenaar de link opent die Event Grid stuurt. OneUptime beantwoordt elk verzoek met een lege `200`, dus de link is de manier. De link wijst naar Event Grid op poort 553, die een firewall vóór uw browser moet toestaan. Verstrijken de 10 minuten eerst, dan mislukt het gebeurtenisabonnement: maak het opnieuw aan.
+
 ## Aanbevolen werkwijzen
 
 1. **Stel het tijdvenster passend in**: draait uw cronjob elke 5 minuten, zet de drempel van "Niet ontvangen in minuten" dan op 10–15 minuten om af en toe een vertraging op te vangen, en zet dat criterium bovenaan.
@@ -400,11 +436,15 @@ Alleen een criterium **Inkomende aanvraag** (**Niet ontvangen in minuten**) kan 
 :::
 
 :::details Een filter Verzoeklichaam komt nooit overeen
-Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON- of formuliercontenttype wordt de body niet geparst.
+Stuur `Content-Type: application/json`, en schrijf de waarde als compacte JSON: `"status":"firing"`, zonder spatie na de dubbele punt. Zonder JSON- of formuliercontenttype wordt de body niet geparst: alleen JSON die als `text/plain` is verstuurd, wel.
 :::
 
 :::details Een filter Aanvraagheader komt nooit overeen
 Headernamen en -waarden worden in hun geheel vergeleken. Geef de volledige waarde, zoals `application/json; charset=utf-8`, in plaats van een deel ervan.
+:::
+
+:::details Amazon SNS zegt dat het abonnement op bevestiging wacht
+Klik op **Abonnement bevestigen** in de kaart **Monitorsamenvatting** op het **Overzicht** van de monitor. Zijn er intussen nieuwere verzoeken binnengekomen, open dan **Monitoringlogboeken** en klik op **Samenvatting bekijken** in de rij van de bevestiging. Staat **Verzoekinhoud bewaren** uit, dan bewaart de monitor geen body, en dus ook geen link: zet het aan in de **Instellingen** van de monitor, dan wordt het laatste verzoek weer met zijn link getoond.
 :::
 
 :::details De afzender krijgt een 500

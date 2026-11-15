@@ -191,7 +191,8 @@ describe("claiming clouds", () => {
     expect(select?.sql).toContain('c."collectionProbeId" = $1');
     expect(select?.sql).toContain('c."collectionMethod" = $5');
     expect(select?.sql).toContain('c."deletedAt" IS NULL');
-    expect(select?.sql).toContain('c."isArchived" = false');
+    // An archived cloud is collected, as an archived vCenter is (#8324).
+    expect(select?.sql).not.toContain("isArchived");
     expect(select?.sql).toContain('c."isCredentialSet" = true');
     expect(select?.sql).toContain('c."authUrl" IS NOT NULL');
     // A range of the (collectionProbeId, nextCollectionAt) index, oldest first.

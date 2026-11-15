@@ -14,6 +14,7 @@ Entrambi usano lo stesso tipo di monitor. A distinguerli sono i criteri che conf
 - [Inviare un heartbeat](#inviare-un-heartbeat): Da curl, cron, Node.js, Python o Go.
 - [Avvisare quando le chiamate si fermano](#segnare-offline-se-non-arriva-un-heartbeat-in-10-minuti-un-interruttore-a-uomo-morto): Trasformate il monitor in un interruttore a uomo morto.
 - [Ricevere avvisi](#ricevere-avvisi-da-un-altro-sistema): Un incidente per ogni avviso di Alertmanager o Grafana.
+- [Sottoscrivere SNS o Event Grid](#sottoscrivere-amazon-sns-o-azure-event-grid): Confermate la sottoscrizione con un clic.
 :::
 
 ## Come funziona
@@ -93,6 +94,7 @@ Se volete raggiungere campi all'interno del corpo (`{{requestBody.status}}` in u
 | --- | --- |
 | `application/json` | Il JSON analizzato. |
 | `application/x-www-form-urlencoded` | Il modulo analizzato. Le chiavi tra parentesi quadre si annidano (`alerts[0][status]=firing`), e ogni valore è una stringa. |
+| `text/plain` | Il JSON analizzato, quando il testo è un oggetto o un array JSON: è così che Amazon SNS invia i suoi messaggi. Qualsiasi altro testo è un corpo vuoto. |
 | Qualsiasi altro, o nessuno | Un corpo vuoto (`{}`), quindi ogni riferimento a `requestBody` non dà nulla. |
 
 Sono accettati corpi fino a 50 MB; uno più grande viene rifiutato con un `413`. Non comprimete il corpo con `Content-Encoding: gzip`: non verrebbe salvato come JSON, e i percorsi al suo interno non si risolverebbero.
@@ -377,6 +379,40 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
 
+## Sottoscrivere Amazon SNS o Azure Event Grid
+
+Amazon SNS e Azure Event Grid non inviano nulla a un nuovo endpoint finché qualcuno non conferma la sottoscrizione aprendo un link che il servizio gli invia. Quando arriva quella richiesta, la scheda **Riepilogo del monitor** nella **Panoramica** del monitor mostra che cosa attende il servizio, il topic e un pulsante che apre il link in una nuova scheda del browser.
+
+| Servizio | La richiesta | Pulsante | Validità del link |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, per una nuova sottoscrizione HTTPS | **Conferma sottoscrizione** | Due giorni |
+| Amazon SNS | `UnsubscribeConfirmation`, quando la sottoscrizione viene eliminata | **Ripristina sottoscrizione** | Due giorni |
+| Azure Event Grid | `SubscriptionValidationEvent`, per una nuova sottoscrizione di eventi tramite webhook | **Convalida sottoscrizione** | 10 minuti |
+
+Il pulsante resta finché non arriva la prossima richiesta del monitor, anche dopo che avete aperto il link. Quando il tempo del link è scaduto, la scheda spiega invece come ottenerne uno nuovo. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della richiesta.
+
+Il link, e il token che contiene, vengono conservati senza mascheramento ovunque sia conservata la richiesta: i suoi dettagli, i suoi log e gli incidenti e gli avvisi che apre. Il link non può fare altro che avviare le consegne a questo monitor. Conta solo un link all'indirizzo del servizio stesso: qualsiasi altro viene mascherato come di consueto e non riceve alcun pulsante.
+
+### Amazon SNS
+
+:::steps
+1. Nella console di Amazon SNS, aprite il topic e scegliete **Create subscription**. Scegliete `HTTPS` come protocollo e incollate l'**Heartbeat URL** del monitor come endpoint.
+2. Aprite la **Panoramica** del monitor e fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor**. Nella console SNS, lo stato della sottoscrizione passa da **Pending confirmation** a confermata.
+:::
+
+SNS invia i suoi messaggi come JSON etichettato `text/plain`, e il monitor li legge come JSON, quindi criteri, modelli e raggruppamento degli incidenti possono usarne i campi, come `{{requestBody.Subject}}` e `{{requestBody.Message}}`. Il JSON proprio di una notifica, come quello di un allarme CloudWatch, arriva come testo in `Message`.
+
+Se la scheda dice che il link non si può più aprire, selezionate la sottoscrizione nella console SNS e scegliete **Request confirmation**. SNS elimina una sottoscrizione che non viene confermata entro 48 ore; in quel caso, create di nuovo la sottoscrizione.
+
+### Azure Event Grid
+
+:::steps
+1. Nel portale di Azure, aprite la risorsa di cui volete ricevere gli eventi e aggiungete una sottoscrizione di eventi. Scegliete **Event Grid Schema** come schema degli eventi, **Web Hook** come tipo di endpoint e l'**Heartbeat URL** del monitor come endpoint.
+2. Entro 10 minuti, aprite la **Panoramica** del monitor e fate clic su **Convalida sottoscrizione** nella scheda **Riepilogo del monitor**.
+:::
+
+Event Grid convalida un endpoint che gli restituisce un codice, o il cui proprietario apre il link che invia. OneUptime risponde a ogni richiesta con un `200` vuoto, quindi la strada è il link. Il link punta a Event Grid sulla porta 553, che un firewall davanti al vostro browser deve consentire. Se prima passano 10 minuti, la sottoscrizione di eventi non va a buon fine: createla di nuovo.
+
 ## Buone pratiche
 
 1. **Impostate bene la finestra di tempo**: se il vostro cron job gira ogni 5 minuti, impostate la soglia "Non ricevuto in minuti" a 10–15 minuti per assorbire ritardi occasionali, e mettete quel criterio per primo.
@@ -400,11 +436,15 @@ Solo un criterio **Richiesta in arrivo** (**Non ricevuto in minuti**) può accor
 :::
 
 :::details Un filtro Corpo della Richiesta non corrisponde mai
-Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato.
+Inviate `Content-Type: application/json`, e scrivete il valore come JSON compatto: `"status":"firing"`, senza spazio dopo i due punti. Senza un tipo di contenuto JSON o di modulo, il corpo non viene analizzato: lo è solo il JSON inviato come `text/plain`.
 :::
 
 :::details Un filtro Intestazione della richiesta non corrisponde mai
 Nomi e valori delle intestazioni vengono confrontati per intero. Indicate il valore completo, come `application/json; charset=utf-8`, invece di una sua parte.
+:::
+
+:::details Amazon SNS dice che la sottoscrizione è in attesa di conferma
+Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** della **Panoramica** del monitor. Se nel frattempo sono arrivate richieste più recenti, aprite **Registri di monitoraggio** e fate clic su **Visualizza riepilogo** nella riga della conferma. Con **Conserva il contenuto della richiesta** disattivato, il monitor non conserva alcun corpo, quindi nemmeno il link: attivatelo nelle **Impostazioni** del monitor, e l'ultima richiesta viene mostrata di nuovo con il suo link.
 :::
 
 :::details Il mittente riceve un 500

@@ -4,7 +4,10 @@ import {
   DEFAULT_INCIDENT_SEVERITY_NAMES,
   DEFAULT_INCIDENT_STATE_NAMES,
   DEFAULT_MONITOR_STATUS_NAMES,
+  DEFAULT_POSTMORTEM_STATUS_NAMES,
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
+  DEFAULT_SECURITY_CASE_PRIORITY_NAMES,
+  DEFAULT_SECURITY_CASE_STATUS_NAMES,
 } from "../Types/StatusPage/DefaultStatusNames";
 import {
   TemplateValue,
@@ -12,10 +15,7 @@ import {
   Translator,
   translatableTerm,
 } from "../Types/Translator";
-import { DEFAULT_POSTMORTEM_STATUSES } from "./Incident/PostmortemStatus";
-import { DEFAULT_SECURITY_CASE_PRIORITIES } from "./SecurityCase/SecurityCasePriorities";
-import { DEFAULT_SECURITY_CASE_STATUSES } from "./SecurityCase/SecurityCaseStatuses";
-import { StateListType } from "./StateOrder";
+import { StateListType } from "./StateListType";
 
 /*
  * A RECORD'S NAME, AS ITS READER READS IT - ONE RULE, WHEREVER IT IS DRAWN.
@@ -52,19 +52,11 @@ import { StateListType } from "./StateOrder";
  * each handed its record's list (#8066).
  */
 
-interface NamedDefault {
-  name: string;
-}
-
-const namesOf: (defaults: ReadonlyArray<NamedDefault>) => Array<string> = (
-  defaults: ReadonlyArray<NamedDefault>,
-): Array<string> => {
-  return defaults.map((value: NamedDefault): string => {
-    return value.name;
-  });
-};
-
-// Every list a project orders has the names it starts with.
+/*
+ * Every list a project orders has the names it starts with. Only names:
+ * every form loads this, so it loads none of the lists' own modules
+ * (StateOrder, PostmortemStatus, SecurityCaseStatuses and _Priorities).
+ */
 const DEFAULT_NAMES_BY_TABLE: Readonly<
   Record<StateListType, ReadonlyArray<string>>
 > = {
@@ -75,13 +67,9 @@ const DEFAULT_NAMES_BY_TABLE: Readonly<
   [StateListType.MonitorStatus]: DEFAULT_MONITOR_STATUS_NAMES,
   [StateListType.IncidentSeverity]: DEFAULT_INCIDENT_SEVERITY_NAMES,
   [StateListType.AlertSeverity]: DEFAULT_ALERT_SEVERITY_NAMES,
-  [StateListType.IncidentPostmortemStatus]: namesOf(
-    DEFAULT_POSTMORTEM_STATUSES,
-  ),
-  [StateListType.SecurityCaseStatus]: namesOf(DEFAULT_SECURITY_CASE_STATUSES),
-  [StateListType.SecurityCasePriority]: namesOf(
-    DEFAULT_SECURITY_CASE_PRIORITIES,
-  ),
+  [StateListType.IncidentPostmortemStatus]: DEFAULT_POSTMORTEM_STATUS_NAMES,
+  [StateListType.SecurityCaseStatus]: DEFAULT_SECURITY_CASE_STATUS_NAMES,
+  [StateListType.SecurityCasePriority]: DEFAULT_SECURITY_CASE_PRIORITY_NAMES,
 };
 
 /*

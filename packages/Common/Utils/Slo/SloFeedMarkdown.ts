@@ -1,7 +1,9 @@
+import SliType from "../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import FeedMarkdown, { MarkdownText, mdText } from "../Markdown/FeedMarkdown";
 import { formatSloPolicyTierThreshold } from "./SloErrorBudgetPolicy";
+import { formatRequestBudget } from "./SloRequestSli";
 
 /*
  * The words of the SLO feed.
@@ -227,6 +229,48 @@ export const formatSloFeedDuration: FormatSloFeedDurationFunction = (
 
   return pluralize(formatSloFeedNumber(absoluteSeconds / 86400, 1), "day");
 };
+
+/*
+ * A request SLO's budget, in the bad requests it has left: what its feed
+ * items, alert texts and chat posts say in place of a duration.
+ */
+export interface SloFeedRequestBudget {
+  sliType: SliType | string | undefined | null;
+  // SIGNED: negative once the budget is spent.
+  remainingEvents: number;
+}
+
+export type GetSloFeedBudgetRemainingDetailFunction = (data: {
+  errorBudgetRemainingPercentage: number;
+  errorBudgetRemainingSeconds: number;
+  requestBudget?: SloFeedRequestBudget | undefined | null;
+}) => MarkdownText;
+
+/*
+ * "**Error budget remaining**: 62% (12 minutes)", or "(1,234 failed
+ * requests)" for a request SLO, and "(over budget by ...)" once it is spent.
+ */
+export const getSloFeedBudgetRemainingDetail: GetSloFeedBudgetRemainingDetailFunction =
+  (data: {
+    errorBudgetRemainingPercentage: number;
+    errorBudgetRemainingSeconds: number;
+    requestBudget?: SloFeedRequestBudget | undefined | null;
+  }): MarkdownText => {
+    const remaining: number = data.requestBudget
+      ? data.requestBudget.remainingEvents
+      : data.errorBudgetRemainingSeconds;
+
+    const amount: string = data.requestBudget
+      ? formatRequestBudget({
+          sliType: data.requestBudget.sliType,
+          remainingEvents: data.requestBudget.remainingEvents,
+        })
+      : formatSloFeedDuration(data.errorBudgetRemainingSeconds);
+
+    return remaining < 0
+      ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${amount})`
+      : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${amount})`;
+  };
 
 /*
  * ---------------------------------------------------------------------------
@@ -468,6 +512,8 @@ export enum SloFeedValueKind {
   Percent = "Percent",
   Days = "Days",
   Minutes = "Minutes",
+  // A latency threshold, e.g. 300 ms.
+  Milliseconds = "Milliseconds",
   // A burn rate multiple, e.g. 14.4x.
   Multiplier = "Multiplier",
   Count = "Count",
@@ -649,6 +695,7 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
     case SloFeedValueKind.Percent:
     case SloFeedValueKind.Days:
     case SloFeedValueKind.Minutes:
+    case SloFeedValueKind.Milliseconds:
     case SloFeedValueKind.Multiplier:
     case SloFeedValueKind.Count: {
       const numeric: number | null = normalizeNumber(value);
@@ -667,6 +714,10 @@ export const formatSloFeedValue: FormatSloFeedValueFunction = (
 
       if (column.kind === SloFeedValueKind.Minutes) {
         return formatSloFeedMinutes(numeric);
+      }
+
+      if (column.kind === SloFeedValueKind.Milliseconds) {
+        return mdText`${formatSloFeedNumber(numeric)} ms`;
       }
 
       if (column.kind === SloFeedValueKind.Multiplier) {
@@ -848,6 +899,18 @@ export const SLO_FEED_UPDATE_COLUMNS: Array<SloFeedColumn> = [
     column: "downtimeMonitorStatuses",
     title: "Downtime monitor statuses",
     kind: SloFeedValueKind.EntityList,
+  },
+  /*
+   * What a request SLO measures. A change to any of them starts its
+   * request counting again, so the feed says when its numbers changed
+   * meaning.
+   */
+  { column: "sliType", title: "SLI type", kind: SloFeedValueKind.Text },
+  { column: "services", title: "Services", kind: SloFeedValueKind.EntityList },
+  {
+    column: "latencyThresholdInMilliseconds",
+    title: "Latency threshold",
+    kind: SloFeedValueKind.Milliseconds,
   },
 ];
 
@@ -1209,6 +1272,8 @@ export interface SloFeedStatusMeasurement {
   targetPercentage: number;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
   currentBurnRate: number;
   currentBurnRateWindowInMinutes: number;
   atRiskThresholdPercentage: number;
@@ -1252,14 +1317,13 @@ export const getSloStatusChangedFeedMarkdown: GetSloStatusChangedFeedMarkdownFun
         mdText`**SLI**: ${formatSloFeedPercent(measurement.sliPercentage, 4)} against a ${formatSloFeedPercent(measurement.targetPercentage, 3)} target`,
       );
 
-      const budgetDuration: string = formatSloFeedDuration(
-        measurement.errorBudgetRemainingSeconds,
-      );
-
       details.push(
-        measurement.errorBudgetRemainingSeconds < 0
-          ? mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-          : mdText`**Error budget remaining**: ${formatSloFeedPercent(measurement.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+        getSloFeedBudgetRemainingDetail({
+          errorBudgetRemainingPercentage:
+            measurement.errorBudgetRemainingPercentage,
+          errorBudgetRemainingSeconds: measurement.errorBudgetRemainingSeconds,
+          requestBudget: measurement.requestBudget,
+        }),
       );
 
       details.push(
@@ -1682,6 +1746,8 @@ export interface SloFeedPolicyTierChange {
   isEscalation: boolean;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
   // The deploy gate after the change; unset when it plays no part.
   deployments?: SloFeedDeploymentGate | undefined;
 }
@@ -1743,14 +1809,12 @@ export const getSloPolicyTierChangedFeedParts: GetSloPolicyTierChangedFeedPartsF
       details.push(deploymentGate);
     }
 
-    const budgetDuration: string = formatSloFeedDuration(
-      data.errorBudgetRemainingSeconds,
-    );
-
     details.push(
-      data.errorBudgetRemainingSeconds < 0
-        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+      getSloFeedBudgetRemainingDetail({
+        errorBudgetRemainingPercentage: data.errorBudgetRemainingPercentage,
+        errorBudgetRemainingSeconds: data.errorBudgetRemainingSeconds,
+        requestBudget: data.requestBudget,
+      }),
     );
 
     let whatWeDo: string | undefined;
@@ -1793,6 +1857,8 @@ export interface SloFeedDeploymentGateChange {
   isAllowed: boolean;
   errorBudgetRemainingPercentage: number;
   errorBudgetRemainingSeconds: number;
+  // A request SLO's budget, said in requests instead of the seconds above.
+  requestBudget?: SloFeedRequestBudget | undefined | null;
 }
 
 export type GetSloDeploymentGateChangedFeedMarkdownFunction = (
@@ -1827,16 +1893,14 @@ export const getSloDeploymentGateChangedFeedParts: GetSloDeploymentGateChangedFe
         : mdText`🔒 Deployments of ${data.sloMarkdownLink} are frozen.`;
     }
 
-    const budgetDuration: string = formatSloFeedDuration(
-      data.errorBudgetRemainingSeconds,
-    );
-
     const details: Array<MarkdownText> = [
       data.isAllowed ? DEPLOYMENTS_ALLOWED_DETAIL : DEPLOYMENTS_FROZEN_DETAIL,
       mdText`**Error budget policy tier**: ${tierName || "none"}`,
-      data.errorBudgetRemainingSeconds < 0
-        ? mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (over budget by ${budgetDuration})`
-        : mdText`**Error budget remaining**: ${formatSloFeedPercent(data.errorBudgetRemainingPercentage)} (${budgetDuration})`,
+      getSloFeedBudgetRemainingDetail({
+        errorBudgetRemainingPercentage: data.errorBudgetRemainingPercentage,
+        errorBudgetRemainingSeconds: data.errorBudgetRemainingSeconds,
+        requestBudget: data.requestBudget,
+      }),
     ];
 
     return {

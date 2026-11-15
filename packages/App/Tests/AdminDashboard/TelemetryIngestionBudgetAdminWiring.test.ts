@@ -211,7 +211,9 @@ describe("the Admin Dashboard's ingestion budget pages", () => {
       menu.indexOf(compact('title={t("sideMenu.settingsTelemetry")}')),
     );
 
-    expect(section.slice(0, 80)).toContain("defaultCollapsed={true}");
+    // The section's own attributes: its title, said translated (#8225), and its fold.
+    expect(section.slice(0, 120)).toContain("isTitleTranslated={true}");
+    expect(section.slice(0, 120)).toContain("defaultCollapsed={true}");
     expect(section.slice(0, 400)).toContain(
       compact('title: t("sideMenu.settingsIngestionBudgets")'),
     );

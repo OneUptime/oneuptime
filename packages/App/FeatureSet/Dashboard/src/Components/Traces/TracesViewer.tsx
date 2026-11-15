@@ -3670,6 +3670,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                       "Open the logs explorer scoped like this view",
                     )
               }
+              isTextTranslated={true}
             >
               <button
                 type="button"
@@ -3696,6 +3697,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                       "Open the metric explorer scoped like this view",
                     )
               }
+              isTextTranslated={true}
             >
               <button
                 type="button"

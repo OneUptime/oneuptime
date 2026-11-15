@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nyckeln bestämmer projektet.** Du skickar aldrig ett projekt-ID: data som skickas med en nyckel hamnar i det projekt som nyckeln tillhör.
-- **Ändringar når alla servrar inom en minut.** Att stänga av en nyckel, återställa dess hemlighet eller ändra dess ursprung, utgång eller gräns får effekt inom ungefär en minut.
+- **Ändringar når alla servrar inom några sekunder.** Att stänga av en nyckel, återställa dess hemlighet eller ändra dess ursprung, utgång eller gräns får effekt på alla servrar inom några sekunder.
 - **En nyckel kan ha egna budgetar.** En daglig budget och en hastighet per sekund för varje signal, inom projektets: se [Intagningsbudgetar](/docs/telemetry/ingestion-budgets).
 - **En servernyckel är ett lösenord.** Den som har den kan skicka telemetri till ditt projekt. Förvara den bland dina servrars hemligheter, aldrig i versionshantering eller på en webbsida.
 
@@ -139,8 +139,8 @@ Nyckelns sida räknar också: **Avvisad telemetri** visar vad som avvisats från
 
 För de andra svar som en OTLP-exportör kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Data kommer fortfarande in en minut efter att jag stängde av nyckeln
-Varje OneUptime-server minns vad den vet om en nyckel i upp till en minut, så en ändring når alla inom ungefär en minut. Begäranden efter det avvisas. En MQTT-klient som anslöt med nyckeln kopplas bort inom några sekunder.
+:::details Data kommer fortfarande in efter att jag stängde av nyckeln
+Varje OneUptime-server kontrollerar minst en gång i sekunden om en nyckel har ändrats, så en ändring når alla inom några sekunder och begäranden efter det avvisas. Medan en server inte når OneUptimes cache kan den utgå från det den visste om nyckeln i upp till en minut. En MQTT-klient som anslöt med nyckeln kopplas bort inom några sekunder.
 :::
 
 :::details En webbläsarnyckel fungerar på min bärbara dator men inte i produktion

@@ -556,9 +556,7 @@ import ScheduledMaintenanceMeasurementService, {
 import ScheduledMaintenanceMeasurementValueService, {
   Service as ScheduledMaintenanceMeasurementValueServiceType,
 } from "Common/Server/Services/ScheduledMaintenanceMeasurementValueService";
-import ServiceLevelObjectiveService, {
-  Service as ServiceLevelObjectiveServiceType,
-} from "Common/Server/Services/ServiceLevelObjectiveService";
+
 import LlmCostBudgetService, {
   Service as LlmCostBudgetServiceType,
 } from "Common/Server/Services/LlmCostBudgetService";
@@ -636,6 +634,7 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import ServiceLevelObjectiveAPI from "Common/Server/API/ServiceLevelObjectiveAPI";
 import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
 import SecurityWatchlistAPI from "Common/Server/API/SecurityWatchlistAPI";
@@ -1644,7 +1643,6 @@ import AlertMeasurement from "Common/Models/DatabaseModels/AlertMeasurement";
 import AlertMeasurementValue from "Common/Models/DatabaseModels/AlertMeasurementValue";
 import ScheduledMaintenanceMeasurement from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurement";
 import ScheduledMaintenanceMeasurementValue from "Common/Models/DatabaseModels/ScheduledMaintenanceMeasurementValue";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import LlmModelPrice from "Common/Models/DatabaseModels/LlmModelPrice";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -3744,10 +3742,8 @@ const BaseAPIFeatureSet: FeatureSet = {
     // ServiceLevelObjective
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<ServiceLevelObjective, ServiceLevelObjectiveServiceType>(
-        ServiceLevelObjective,
-        ServiceLevelObjectiveService,
-      ).getRouter(),
+      // Its CRUD, and the release check a rollout asks (ServiceLevelObjectiveAPI).
+      new ServiceLevelObjectiveAPI().getRouter(),
     );
 
     // ServiceLevelObjectiveBurnRateRule, and "Add recommended rules"

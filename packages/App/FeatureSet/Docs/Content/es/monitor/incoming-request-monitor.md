@@ -14,6 +14,7 @@ Ambos usan el mismo tipo de monitor. Lo que los separa son los criterios que con
 - [Enviar un latido](#enviar-un-latido): Desde curl, cron, Node.js, Python o Go.
 - [Alertar cuando cesan las llamadas](#marcar-sin-conexión-si-no-hay-latido-en-10-minutos-un-interruptor-de-hombre-muerto): Convierta el monitor en un interruptor de hombre muerto.
 - [Recibir alertas](#recibir-alertas-de-otro-sistema): Un incidente por cada alerta de Alertmanager o Grafana.
+- [Suscribirse a SNS o Event Grid](#suscribirse-a-amazon-sns-o-azure-event-grid): Confirme la suscripción con un clic.
 :::
 
 ## Cómo funciona
@@ -93,6 +94,7 @@ Si quiere acceder a campos dentro del cuerpo (`{{requestBody.status}}` en un tí
 | --- | --- |
 | `application/json` | El JSON analizado. |
 | `application/x-www-form-urlencoded` | El formulario analizado. Las claves entre corchetes se anidan (`alerts[0][status]=firing`), y cada valor es una cadena. |
+| `text/plain` | El JSON analizado, cuando el texto es un objeto o un array JSON: así envía Amazon SNS sus mensajes. Cualquier otro texto es un cuerpo vacío. |
 | Cualquier otro, o ninguno | Un cuerpo vacío (`{}`), así que cada referencia a `requestBody` no da nada. |
 
 Se aceptan cuerpos de hasta 50 MB; uno más grande se rechaza con un `413`. No comprima el cuerpo con `Content-Encoding: gzip`: no se guarda como JSON, y las rutas dentro de él no se resolverán.
@@ -377,6 +379,40 @@ La carga útil completa está disponible junto a ella, así que funcionan tanto 
 
 Para una configuración completa de Alertmanager, consulte [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para Grafana, consulte [Grafana](/docs/integrations/grafana).
 
+## Suscribirse a Amazon SNS o Azure Event Grid
+
+Amazon SNS y Azure Event Grid no envían nada a un endpoint nuevo hasta que alguien confirma la suscripción abriendo un enlace que el servicio le envía. Cuando llega esa solicitud, la tarjeta **Resumen del monitor** de la **Vista general** del monitor muestra qué espera el servicio, el tema y un botón que abre el enlace en una pestaña nueva.
+
+| Servicio | La solicitud | Botón | Validez del enlace |
+| --- | --- | --- | --- |
+| Amazon SNS | `SubscriptionConfirmation`, para una nueva suscripción HTTPS | **Confirmar suscripción** | Dos días |
+| Amazon SNS | `UnsubscribeConfirmation`, cuando se elimina la suscripción | **Restaurar suscripción** | Dos días |
+| Azure Event Grid | `SubscriptionValidationEvent`, para una nueva suscripción de eventos por webhook | **Validar suscripción** | 10 minutos |
+
+El botón se mantiene hasta que llega la próxima solicitud del monitor, incluso después de abrir el enlace. Cuando vence el plazo del enlace, la tarjeta indica en su lugar cómo obtener uno nuevo. Si han llegado solicitudes más recientes, abra **Registros de monitoreo** y haga clic en **Ver resumen** en la fila de la solicitud.
+
+El enlace, y el token que contiene, se guardan sin enmascarar dondequiera que se guarde la solicitud: sus detalles, sus registros y los incidentes y alertas que abre. Lo único que puede hacer el enlace es iniciar las entregas a este monitor. Solo cuenta un enlace a la dirección propia del servicio: cualquier otro se enmascara como de costumbre y no recibe botón.
+
+### Amazon SNS
+
+:::steps
+1. En la consola de Amazon SNS, abra el tema y elija **Create subscription**. Elija `HTTPS` como protocolo y pegue la **URL de latido** del monitor como endpoint.
+2. Abra la **Vista general** del monitor y haga clic en **Confirmar suscripción** en la tarjeta **Resumen del monitor**. En la consola de SNS, el estado de la suscripción pasa de **Pending confirmation** a confirmada.
+:::
+
+SNS envía sus mensajes como JSON etiquetado como `text/plain`, y el monitor los lee como JSON, así que los criterios, las plantillas y la agrupación de incidentes pueden usar sus campos, como `{{requestBody.Subject}}` y `{{requestBody.Message}}`. El JSON propio de una notificación, como el de una alarma de CloudWatch, llega como texto en `Message`.
+
+Si la tarjeta dice que el enlace ya no se puede abrir, seleccione la suscripción en la consola de SNS y elija **Request confirmation**. SNS elimina una suscripción que no se confirma en 48 horas; si eso ocurre, vuelva a crear la suscripción.
+
+### Azure Event Grid
+
+:::steps
+1. En el portal de Azure, abra el recurso cuyos eventos quiere recibir y añada una suscripción de eventos. Elija **Event Grid Schema** como esquema de eventos, **Web Hook** como tipo de endpoint y la **URL de latido** del monitor como endpoint.
+2. En un plazo de 10 minutos, abra la **Vista general** del monitor y haga clic en **Validar suscripción** en la tarjeta **Resumen del monitor**.
+:::
+
+Event Grid valida un endpoint que le devuelve un código, o cuyo propietario abre el enlace que envía. OneUptime responde a cada solicitud con un `200` vacío, así que el camino es el enlace. El enlace apunta a Event Grid en el puerto 553, que un firewall situado delante de su navegador debe permitir. Si antes pasan 10 minutos, la suscripción de eventos falla: vuelva a crearla.
+
 ## Buenas prácticas
 
 1. **Ajuste bien la ventana de tiempo**: si su trabajo cron se ejecuta cada 5 minutos, ponga el umbral de "No recibido en minutos" en 10–15 minutos para admitir retrasos ocasionales, y ponga ese criterio el primero.
@@ -400,11 +436,15 @@ Solo un criterio **Solicitud entrante** (**No recibido en minutos**) puede notar
 :::
 
 :::details Un filtro Cuerpo de la solicitud nunca coincide
-Envíe `Content-Type: application/json`, y escriba el valor como JSON compacto: `"status":"firing"`, sin espacio después de los dos puntos. Sin un tipo de contenido JSON o de formulario, el cuerpo no se analiza.
+Envíe `Content-Type: application/json`, y escriba el valor como JSON compacto: `"status":"firing"`, sin espacio después de los dos puntos. Sin un tipo de contenido JSON o de formulario, el cuerpo no se analiza: solo se analiza el JSON enviado como `text/plain`.
 :::
 
 :::details Un filtro Encabezado de la solicitud nunca coincide
 Los nombres y valores de las cabeceras se comparan completos. Indique el valor entero, como `application/json; charset=utf-8`, en lugar de una parte.
+:::
+
+:::details Amazon SNS dice que la suscripción está pendiente de confirmación
+Haga clic en **Confirmar suscripción** en la tarjeta **Resumen del monitor** de la **Vista general** del monitor. Si han llegado solicitudes más recientes, abra **Registros de monitoreo** y haga clic en **Ver resumen** en la fila de la confirmación. Con **Conservar el contenido de la solicitud** desactivado, el monitor no guarda ningún cuerpo, y por tanto tampoco ningún enlace: actívelo en los **Ajustes** del monitor, y la última solicitud vuelve a mostrarse con su enlace.
 :::
 
 :::details El emisor recibe un 500

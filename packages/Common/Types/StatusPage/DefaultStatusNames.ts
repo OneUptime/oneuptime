@@ -54,6 +54,39 @@ export const DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES: ReadonlyArray<string> =
   ];
 
 /*
+ * The names of its postmortem statuses (DEFAULT_POSTMORTEM_STATUSES,
+ * Utils/Incident/PostmortemStatus) and of its security case statuses and
+ * priorities (DEFAULT_SECURITY_CASE_STATUSES and _PRIORITIES, in
+ * Utils/SecurityCase), and nothing else of them: DefaultRecordNames reads a
+ * record's name against them on every form, and loading those lists'
+ * colours, descriptions and rules would load them on every page that has
+ * one (packages/Common/Scripts/first-load-budgets.js). Tests/Utils/
+ * DefaultRecordNames holds each to its list's names. Written as those lists
+ * write them, not as lookups: no message the server sends names one.
+ */
+export const DEFAULT_POSTMORTEM_STATUS_NAMES: ReadonlyArray<string> = [
+  "Not Started",
+  "Draft",
+  "Completed",
+  "Not Needed",
+];
+
+export const DEFAULT_SECURITY_CASE_STATUS_NAMES: ReadonlyArray<string> = [
+  "New",
+  "Investigating",
+  "Contained",
+  "Closed",
+];
+
+export const DEFAULT_SECURITY_CASE_PRIORITY_NAMES: ReadonlyArray<string> = [
+  "Critical",
+  "High",
+  "Medium",
+  "Low",
+  "Informational",
+];
+
+/*
  * The lists whose records a status page names - and its notifications to
  * its subscribers: incident states, incident severities, monitor statuses
  * and scheduled maintenance states. It shows no alert.

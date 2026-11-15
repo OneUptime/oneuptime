@@ -29,7 +29,10 @@ import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { NotificationSchedule } from "../Telemetry/NotificationDeliveryMetrics";
+import { toOnCallPolicyRunStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
+import OnCallRunFailure from "./OnCallRunFailure";
 import OnCallSendLag, { OnCallScheduledSend } from "./OnCallSendLag";
+import { OnCallLevelInFlight } from "./OnCallLevelsInFlight";
 
 /*
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
@@ -169,10 +172,12 @@ export default class OnCallEscalationAdvance {
    *
    * The run is read again first, as the worker reads it, so the claim
    * compares what starting the rule wrote. A run that is no longer paging
-   * is left as it is. A move that fails ends the run with an error that says
-   * why, as the worker's own would: its record's feed and its Slack and
-   * Microsoft Teams message say so. Never throws: the run starting is not to
-   * fail because moving it on did.
+   * is left as it is. A move that fails for a reason a retry cannot fix ends
+   * the run with an error that says why, as the worker's own would: its
+   * record's feed and its Slack and Microsoft Teams message say so. One that
+   * fails for a reason a retry can outlast is left to the worker, which
+   * moves the run on at its next tick (issue #8167). Never throws: the run
+   * starting is not to fail because moving it on did.
    */
   @CaptureSpan()
   public static async moveOnAtOnce(data: {
@@ -204,13 +209,38 @@ export default class OnCallEscalationAdvance {
       logger.error(err as Error);
 
       try {
+        /*
+         * A failure a retry can outlast - the database, the network
+         * (OnCallRunFailure) - leaves the run paging, its rule's wait cut to
+         * nothing: the rule reached nobody, so there is nobody to wait for,
+         * and the worker moves the run on at its next tick, in the same
+         * claimed way, trying again as it tries any run's failed step. It
+         * used to end the run in Error, and none of its later rules was
+         * ever paged (issue #8167). A failure a retry cannot fix ends it,
+         * saying why, as it did.
+         */
+        if (OnCallRunFailure.isRetryable(OnCallRunFailure.classify(err))) {
+          await OnCallDutyPolicyExecutionLogService.updateOneById({
+            id: data.runId,
+            data: {
+              executeNextEscalationRuleInMinutes: 0,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          return null;
+        }
+
         await OnCallDutyPolicyExecutionLogService.updateOneById({
           id: data.runId,
           data: {
             status: OnCallDutyPolicyStatus.Error,
-            statusMessage:
+            statusMessage: toOnCallPolicyRunStatusMessage(
               (err as Error)?.message ||
-              ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
+                ON_CALL_POLICY_RUN_MOVE_ON_FAILED_MESSAGE,
+            ),
           },
           props: {
             isRoot: true,
@@ -264,16 +294,17 @@ export default class OnCallEscalationAdvance {
       dueAt: this.getDueAt({ dueAt: data.dueAt, now: data.now }),
       schedule: NotificationSchedule.Escalation,
     };
+    const claimTime: Date = this.getClaimTime({
+      previous: run.lastEscalationRuleExecutedAt,
+      now: data.now,
+    });
 
     const claimed: boolean =
       await OnCallDutyPolicyExecutionLogService.claimEscalationAdvance({
         executionLogId: runId,
         previousLastEscalationRuleExecutedAt:
           run.lastEscalationRuleExecutedAt || null,
-        newLastEscalationRuleExecutedAt: this.getClaimTime({
-          previous: run.lastEscalationRuleExecutedAt,
-          now: data.now,
-        }),
+        newLastEscalationRuleExecutedAt: claimTime,
       });
 
     if (!claimed) {
@@ -286,6 +317,55 @@ export default class OnCallEscalationAdvance {
 
       return { kind: OnCallEscalationAdvanceKind.NotClaimed, pagedUserIds: [] };
     }
+
+    try {
+      return await this.moveOnClaimed({
+        run: run,
+        isCurrentRuleEmpty: data.isCurrentRuleEmpty,
+        toRuleId: data.toRuleId,
+        send: send,
+      });
+    } catch (err) {
+      /*
+       * The move failed after its claim, which started the wait of the rule
+       * the run is on afresh. If it failed before it started its next rule,
+       * nobody was paged: the claim is given back, and the worker's next
+       * tick tries the move again at once rather than after the rule's whole
+       * wait (issue #8167). One that got further keeps its claim, and pages
+       * nobody twice (giveBackEscalationAdvance). A later level picked by the
+       * person escalating is theirs to pick again: its claim is kept.
+       */
+      if (!data.toRuleId) {
+        await OnCallDutyPolicyExecutionLogService.giveBackEscalationAdvance({
+          executionLogId: runId,
+          claimedLastEscalationRuleExecutedAt: claimTime,
+          previousLastEscalationRuleExecutedAt: run.lastEscalationRuleExecutedAt
+            ? new Date(run.lastEscalationRuleExecutedAt)
+            : null,
+          lastExecutedEscalationRuleId:
+            run.lastExecutedEscalationRuleId || null,
+          onCallPolicyExecutionRepeatCount:
+            run.onCallPolicyExecutionRepeatCount ?? null,
+        });
+      }
+
+      throw err;
+    }
+  }
+
+  /*
+   * The move on, once it is claimed: the rule after the one the run is on,
+   * or the policy again from its first rule, or the end (see advance).
+   */
+  private static async moveOnClaimed(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    isCurrentRuleEmpty?: boolean | undefined;
+    toRuleId?: ObjectID | undefined;
+    send: OnCallScheduledSend;
+  }): Promise<OnCallEscalationAdvanceResult> {
+    const run: OnCallDutyPolicyExecutionLog = data.run;
+    const runId: ObjectID = run.id!;
+    const send: OnCallScheduledSend = data.send;
 
     // Who passed this run's page on: its later rules and repeats pass them over.
     const passedOnUserIds: Array<ObjectID> =
@@ -524,6 +604,54 @@ export default class OnCallEscalationAdvance {
     );
 
     return lastStarted!;
+  }
+
+  /*
+   * RESUMES THE LEVEL A RUN IS ON, WHOSE PAGING STOPPED PART WAY
+   * (issue #8406).
+   *
+   * A database error in the middle of a level, or a process that stopped
+   * there, left the rest of its people unpaged: the level's rule was
+   * recorded on the run, so the run waited out the level's wait and moved
+   * on. The level was kept in flight (OnCallLevelsInFlight), and the
+   * policy-run worker resumes it at the run's next try: its people this run
+   * has not paged for the rule since the level started are paged now, as
+   * the level pages them - nobody is paged twice - and a level that, all
+   * told, reached nobody moves the run on at once, as one does when it
+   * starts (OnCallEmptyLevel). Its wait runs from when the level started.
+   * Throws as paging does: the level stays in flight, stopped, for the
+   * run's next try.
+   */
+  @CaptureSpan()
+  public static async resumeLevel(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    level: OnCallLevelInFlight;
+  }): Promise<void> {
+    const run: OnCallDutyPolicyExecutionLog = data.run;
+
+    logger.warn(
+      `On-call execution log ${run.id?.toString()}: the paging of escalation rule ${data.level.ruleId}, started at ${data.level.startedAt.toISOString()}, stopped part way; paging the people it did not get to.`,
+      { projectId: run.projectId?.toString() } as LogAttributes,
+    );
+
+    const passedOnUserIds: Array<ObjectID> = await this.getPassedOnUserIds(
+      run.id!,
+    );
+
+    const outcome: OnCallRuleExecutionOutcome =
+      await OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
+        new ObjectID(data.level.ruleId),
+        {
+          ...this.getPageContext(run),
+          onCallPolicyId: run.onCallDutyPolicyId!,
+          passedOnUserIds: passedOnUserIds,
+          since: data.level.startedAt,
+        },
+      );
+
+    if (outcome.movesOnAtOnce) {
+      await this.moveOnAtOnce({ runId: run.id! });
+    }
   }
 
   /*

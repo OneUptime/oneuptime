@@ -311,6 +311,7 @@ const Users: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.users.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

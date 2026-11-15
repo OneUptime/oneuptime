@@ -130,7 +130,7 @@
     "title": "أنشئ حسابك في OneUptime",
     "subtitle": "انضم إلى آلاف الشركات التي تستخدم OneUptime لتبقى متاحة على الإنترنت طوال الوقت.",
     "firstAccountSubtitle": "لا توجد حسابات على خادم OneUptime هذا بعد. الحساب الذي تنشئه الآن يصبح مسؤوله.",
-    "noCreditCard": "لا حاجة إلى بطاقة ائتمان.",
+    "noCreditCard": "لا حاجة إلى بطاقة ائتمان للتسجيل.",
     "submitButton": "إنشاء حساب",
     "haveAccountPrompt": "لديك حساب بالفعل؟",
     "loginLink": "سجّل الدخول.",
@@ -631,5 +631,9 @@
     "note": "ملاحظة",
     "tip": "نصيحة",
     "warning": "تحذير"
-  }
+  },
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم.",
+  "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "إذا رفضه وكيل (proxy) أمام OneUptime، فارفع حد حجم الطلب في ذلك الوكيل إلى 50 MB، أي ما يقبله OneUptime نفسه (في nginx، client_max_body_size 50M)."
 }

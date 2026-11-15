@@ -19,9 +19,25 @@ import IncomingRequestSecretGate, {
 import IncomingRequestSecretRequest, {
   PresentedIncomingRequestSecrets,
 } from "Common/Server/Utils/Monitor/IncomingRequestSecretRequest";
+import PlainTextJsonBody from "Common/Server/Middleware/PlainTextJsonBody";
 import OneUptimeDate from "Common/Types/Date";
 
 const router: ExpressRouter = Express.getRouter();
+
+/*
+ * The largest text/plain body read: the JSON parser's own limit
+ * (StartServer's jsonBodyParserOptions), and nginx's for /heartbeat.
+ */
+export const TEXT_BODY_LIMIT: string = "50mb";
+
+/*
+ * JSON sent as text/plain - how Amazon SNS posts its subscription
+ * confirmations and notifications - is read as the JSON it is; any other
+ * text stays empty (PlainTextJsonBody). The JSON and form parsers
+ * StartServer runs for every route have read every other body by now.
+ */
+const readTextBody: RequestHandler =
+  PlainTextJsonBody.getReader(TEXT_BODY_LIMIT);
 
 const processIncomingRequest: RequestHandler = async (
   req: ExpressRequest,
@@ -115,6 +131,7 @@ const processIncomingRequest: RequestHandler = async (
 
 router.post(
   "/incoming-request/:secretkey",
+  readTextBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -126,6 +143,7 @@ router.post(
 
 router.get(
   "/incoming-request/:secretkey",
+  readTextBody,
   async (
     req: ExpressRequest,
     res: ExpressResponse,

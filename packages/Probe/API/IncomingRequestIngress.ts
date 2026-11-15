@@ -17,6 +17,7 @@ import Express, {
   createExpressApp,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import PlainTextJsonBody from "Common/Server/Middleware/PlainTextJsonBody";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -235,9 +236,10 @@ router.get("/heartbeat/:secretkey", forwardToOneUptime);
 
 /*
  * The listener's own app, on its own port. It reads the bodies OneUptime
- * reads - JSON and forms, up to the same 50 MB - and nothing else, so a
- * request through the probe reaches the monitor as it would have directly:
- * any other body arrives empty, whatever its size. (It used to read
+ * reads - JSON and forms, and JSON sent as text/plain (as Amazon SNS sends
+ * it), up to the same 50 MB - and nothing else, so a request through the
+ * probe reaches the monitor as it would have directly: any other body
+ * arrives empty, whatever its size. (It used to read
  * application/octet-stream bodies too, under express.raw's 100 KB default,
  * which answered a larger one with 413 instead of the promised 200; and
  * OneUptime drops such a body anyway.)
@@ -246,6 +248,7 @@ export function createIngressApp(): ExpressApplication {
   const app: ExpressApplication = createExpressApp();
   app.use(ExpressJson({ limit: INGRESS_BODY_LIMIT }));
   app.use(ExpressUrlEncoded({ extended: true, limit: INGRESS_BODY_LIMIT }));
+  app.use(PlainTextJsonBody.getReader(INGRESS_BODY_LIMIT));
   app.use(router);
   return app;
 }

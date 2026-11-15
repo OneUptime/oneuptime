@@ -25,14 +25,17 @@ import { ClaimDue, readClaimDue } from "../Probe/ClaimDueTime";
  *   samples, it names the probe's variable that holds its connection
  *   string, the project scans content, and the probe is the project's own.
  *   Any other store the claim sets aside, a quarter of an hour at a time.
- *   A probe that is disconnected asks for nothing.
+ *   A probe that is disconnected asks for nothing. What a probe reports is
+ *   kept only while the same rule still holds for the store
+ *   (isDataStoreContentScannableByProbe, OneUptime issue #8391).
  * - From OneUptime's workers: their claim
  *   (Server/Utils/DataSecurity/DataSecurityWorkerClaim,
  *   getWorkerContentScannableSql) hands out the stores with content
  *   scanning on, not archived, of a kind a worker samples, of a project
  *   that scans content; the scan reads the same rule again before it
- *   reads any content. Their hold on a store moves its due time an hour
- *   on; a store they may not scan keeps its due time.
+ *   reads any content, and once more before it writes what it read. Their
+ *   hold on a store moves its due time an hour on; a store they may not
+ *   scan keeps its due time (no set-aside: measured in #8392).
  * - A service's telemetry: the project's hourly telemetry scan reads every
  *   service's last hour, unless the project's telemetry scanning is off,
  *   and leaves out the services whose store turned content scanning off

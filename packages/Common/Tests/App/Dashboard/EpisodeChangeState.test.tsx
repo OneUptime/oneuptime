@@ -1083,8 +1083,9 @@ describe.each(CASES)("$noun episode header", (episodeCase: EpisodeCase) => {
       const fields: Array<Record<string, any>> =
         lastModalProps()["formProps"]["fields"];
 
+      // A template's name is the project's, drawn as written (DropdownUtil).
       expect(fields[0]!["dropdownOptions"]).toEqual([
-        { value: TEMPLATE_ID, label: "Customer update" },
+        { value: TEMPLATE_ID, label: "Customer update", isUserContent: true },
       ]);
     });
 

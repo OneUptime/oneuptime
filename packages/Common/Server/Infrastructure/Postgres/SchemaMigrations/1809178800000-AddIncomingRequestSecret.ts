@@ -9,10 +9,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * in the transaction. The column is added with a constant default, which
  * Postgres records without rewriting "Project".
  */
-export class AddIncomingRequestSecret1809178300000
+export class AddIncomingRequestSecret1809178800000
   implements MigrationInterface
 {
-  public name: string = "AddIncomingRequestSecret1809178300000";
+  public name: string = "AddIncomingRequestSecret1809178800000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
