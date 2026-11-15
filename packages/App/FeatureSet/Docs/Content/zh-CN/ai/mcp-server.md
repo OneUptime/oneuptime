@@ -497,7 +497,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 安全 | Security Event, Threat Intel Indicator |
 | 变更和成本 | Change Event, Kubernetes Cost Allocation |
 
-工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遥测则为 `list_logs` 和 `count_spans`。
+工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遥测则为 `list_logs` 和 `count_spans`。`create_incident` 和 `create_alert` 还接受 `ownerUsers` 和 `ownerTeams`：从一开始就拥有该记录的用户和团队的 ID，他们会收到记录已创建的通知。
 
 ## 后续步骤
 

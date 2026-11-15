@@ -497,7 +497,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Beveiliging | Security Event, Threat Intel Indicator |
 | Wijzigingen en kosten | Change Event, Kubernetes Cost Allocation |
 
-De tools heten in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` en `count_incidents`, of `list_logs` en `count_spans` voor telemetrie.
+De tools heten in snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` en `count_incidents`, of `list_logs` en `count_spans` voor telemetrie. `create_incident` en `create_alert` nemen ook `ownerUsers` en `ownerTeams`: de id's van de gebruikers en teams die het record vanaf het begin bezitten en die horen dat het is gemaakt.
 
 ## Volgende stappen
 

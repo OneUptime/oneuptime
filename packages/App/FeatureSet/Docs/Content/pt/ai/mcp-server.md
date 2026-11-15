@@ -497,7 +497,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Segurança | Security Event, Threat Intel Indicator |
 | Mudanças e custos | Change Event, Kubernetes Cost Allocation |
 
-As ferramentas têm nomes em snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, ou `list_logs` e `count_spans` para a telemetria.
+As ferramentas têm nomes em snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, ou `list_logs` e `count_spans` para a telemetria. `create_incident` e `create_alert` também recebem `ownerUsers` e `ownerTeams`: os ids dos usuários e equipes que são donos do registro desde o início, que são avisados de que ele foi criado.
 
 ## Próximos passos
 

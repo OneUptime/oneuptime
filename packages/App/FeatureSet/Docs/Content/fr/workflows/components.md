@@ -487,6 +487,12 @@ L'incident enregistre le modèle dont il a été déclaré dans `createdIncident
 
 Une entrée qui ne correspond à rien n'arrête pas l'étape : l'enregistrement est tout de même créé, et le journal d'exécution indique ce que chaque entrée a lié et lesquelles ne correspondaient à rien. Les ressources archivées ne sont pas liées. Les moniteurs ne sont pas recherchés : nommez-les dans **JSON Object** (`monitors` pour un incident, `monitorId` pour une alerte), car lier un moniteur à un incident met sa surveillance en pause.
 
+### À qui il appartient dès le départ
+
+**Create One Incident** et **Create One Alert** ont les réglages **Utilisateurs propriétaires** et **Équipes propriétaires** : les personnes et les équipes à qui l'enregistrement appartient dès sa création. Choisissez-les, ou prenez-les d'une étape précédente : l'identifiant ou l'adresse e-mail d'un utilisateur, l'identifiant d'une équipe, plusieurs séparés par des virgules, ou une liste. Les propriétaires de l'enregistrement apprennent sa création environ une minute après, tous ceux qu'il a alors : ceux choisis ici en font toujours partie, tandis que les propriétaires qu'une étape ultérieure ajoute la manquent dès que cette étape s'exécute plus d'une minute après, et ce sont les propriétaires du projet qui sont prévenus à leur place.
+
+L'étape demande si elle peut les ajouter, en tant que Project Admin du projet du workflow, avant que l'enregistrement soit sauvegardé : des propriétaires qu'elle n'a pas le droit d'ajouter font refuser la création. Une personne qui n'est pas membre du projet, ou une équipe qui n'est pas l'une des siennes, est laissée de côté, et le journal d'exécution le dit : l'enregistrement est tout de même créé. Les propriétaires ajoutés ainsi ne sont pas prévenus qu'ils ont été ajoutés : la notification de la création de l'enregistrement est celle qu'ils reçoivent.
+
 ## Travailler avec les enregistrements
 
 Chaque champ d'un composant de données se réfère aux noms de **colonnes** de l'enregistrement — les mêmes noms que ceux de l'API, et non les libellés du formulaire du tableau de bord. La colonne d'ID est `_id`. L'orthographe `id` est acceptée comme alias partout où vous pouvez taper un nom de colonne, mais c'est `_id` qu'un enregistrement renvoie : c'est donc lui qu'il faut lire en sortie :
