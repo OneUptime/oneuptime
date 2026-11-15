@@ -109,6 +109,105 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       </span>
     );
   };
+  /*
+   * A value under a text operator ("contains", "starts with", "equals" ...)
+   * as its chip's sentence, with the value drawn by `display`; null for any
+   * other value. The text filter's chip, and a dropdown's or an entity
+   * filter's for a value kept from before it was one (#8321).
+   */
+  type RenderTextOperatorChipFunction = (
+    title: string,
+    value: unknown,
+    display: (text: string) => ReactElement | string,
+  ) => ReactElement | null;
+
+  const renderTextOperatorChip: RenderTextOperatorChipFunction = (
+    title: string,
+    value: unknown,
+    display: (text: string) => ReactElement | string,
+  ): ReactElement | null => {
+    type RenderFunction = (template: string, text: string) => ReactElement;
+    const render: RenderFunction = (
+      template: string,
+      text: string,
+    ): ReactElement => {
+      return renderChip(template, title, { value: display(text) });
+    };
+
+    if (value instanceof Search) {
+      return render(
+        translationKey("{{field}} contains {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof NotContains) {
+      return render(
+        translationKey("{{field}} does not contain {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof StartsWith) {
+      return render(
+        translationKey("{{field}} starts with {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof EndsWith) {
+      return render(
+        translationKey("{{field}} ends with {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof InBetween) {
+      return renderChip(
+        translationKey("{{field}} is between {{start}} and {{end}}"),
+        title,
+        {
+          start: String(value.startValue),
+          end: String(value.endValue),
+        },
+      );
+    }
+    if (value instanceof GreaterThanOrEqual) {
+      return render(
+        translationKey("{{field}} is ≥ {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof LessThanOrEqual) {
+      return render(
+        translationKey("{{field}} is ≤ {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof GreaterThan) {
+      return render(
+        translationKey("{{field}} is greater than {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof LessThan) {
+      return render(
+        translationKey("{{field}} is less than {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof NotEqual) {
+      return render(
+        translationKey("{{field}} does not equal {{value}}"),
+        value.toString(),
+      );
+    }
+    if (value instanceof EqualTo) {
+      return render(
+        translationKey("{{field}} equals {{value}}"),
+        value.toString(),
+      );
+    }
+
+    return null;
+  };
+
   const [tempFilterDataForModal, setTempFilterDataForModal] = useState<
     FilterData<T>
   >({});
@@ -263,15 +362,15 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
       const key: keyof T = data.filter.key;
       const value: unknown = data.filterData[key];
 
+      /*
+       * A phone number, or the start of one, reads +4477 on a Persian
+       * page too (PhoneNumberText).
+       */
       type RenderFunction = (template: string, display: string) => ReactElement;
       const render: RenderFunction = (
         template: string,
         display: string,
       ): ReactElement => {
-        /*
-         * A phone number, or the start of one, reads +4477 on a Persian
-         * page too (PhoneNumberText).
-         */
         return renderChip(template, data.filter.title, {
           value:
             data.filter.type === FieldType.Phone ? (
@@ -294,75 +393,20 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           data.filter.title,
         );
       }
-      if (value instanceof Search) {
-        return render(
-          translationKey("{{field}} contains {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof NotContains) {
-        return render(
-          translationKey("{{field}} does not contain {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof StartsWith) {
-        return render(
-          translationKey("{{field}} starts with {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof EndsWith) {
-        return render(
-          translationKey("{{field}} ends with {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof InBetween) {
-        return renderChip(
-          translationKey("{{field}} is between {{start}} and {{end}}"),
-          data.filter.title,
-          {
-            start: String(value.startValue),
-            end: String(value.endValue),
-          },
-        );
-      }
-      if (value instanceof GreaterThanOrEqual) {
-        return render(
-          translationKey("{{field}} is ≥ {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof LessThanOrEqual) {
-        return render(
-          translationKey("{{field}} is ≤ {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof GreaterThan) {
-        return render(
-          translationKey("{{field}} is greater than {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof LessThan) {
-        return render(
-          translationKey("{{field}} is less than {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof NotEqual) {
-        return render(
-          translationKey("{{field}} does not equal {{value}}"),
-          value.toString(),
-        );
-      }
-      if (value instanceof EqualTo) {
-        return render(
-          translationKey("{{field}} equals {{value}}"),
-          value.toString(),
-        );
+      const operatorChip: ReactElement | null = renderTextOperatorChip(
+        data.filter.title,
+        value,
+        (text: string): ReactElement | string => {
+          return data.filter.type === FieldType.Phone ? (
+            <PhoneNumberText phoneNumber={text} />
+          ) : (
+            text
+          );
+        },
+      );
+
+      if (operatorChip) {
+        return operatorChip;
       }
       if (value !== undefined && value !== null && value !== "") {
         return render(
@@ -533,6 +577,27 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
           translationKey("{{field}} is not empty"),
           data.filter.title,
         );
+      }
+
+      /*
+       * A value typed while this filter was text, kept by a link or a saved
+       * view from before it became a list of values (the audit log's
+       * Resource Type, #7580): it still narrows the list, so it is drawn as
+       * the text filter drew it ("Resource Type contains Monitor"), the
+       * value as it was typed, and Clear Filters clears it. Nothing here
+       * drew it, so the list read filtered with no chip saying why and
+       * nothing to clear (#8321).
+       */
+      const typedChip: ReactElement | null = renderTextOperatorChip(
+        data.filter.title,
+        rawValue,
+        (text: string): string => {
+          return text;
+        },
+      );
+
+      if (typedChip) {
+        return typedChip;
       }
 
       let items: Array<string> = [];

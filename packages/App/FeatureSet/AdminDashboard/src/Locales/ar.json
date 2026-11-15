@@ -3148,6 +3148,8 @@
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "يمكن الوصول إلى المضيف، لكنه أجاب بأنه لا توجد خدمة تستمع على منفذ UDP هذا: خدمة NTP متوقفة، أو تستمع على منفذ آخر.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "تعذّر على المسبار إرسال الطلب من جهته، لذلك لم يُتواصل مع خادم NTP قط. العطل في المسبار، لا في الخادم.",
   "The NTP check failed because of a network error.": "فشل فحص NTP بسبب خطأ في الشبكة.",
+  "From (range start)": "من",
+  "To (range end)": "إلى",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "ما أُرسل كان أكبر من أن يقبله الخادم، لذا لم تكتمل العملية. حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",
   "What was sent was too large for the server to accept.": "ما أُرسل كان أكبر من أن يقبله الخادم.",
   "Try again with less at once, such as a smaller file.": "حاول مرة أخرى بإرسال كمية أقل في كل مرة، مثل ملف أصغر.",

@@ -41,7 +41,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **一个已签名的区域。** 区域必须已签名，并且已通过您的注册商在父区域中发布其 DS 记录。
 - **来自探测器的出站 DNS**，发往您列出的解析器；为了检查域名服务器一致性，还要发往该区域的权威域名服务器。每个新监视器都会选中您项目的默认探测器。
 

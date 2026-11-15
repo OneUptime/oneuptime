@@ -217,7 +217,7 @@ statusPage:
 
 網域的完整名稱在新增時就固定了，因此 **編輯** 只能變更它的憑證。若要使用另一個位址，請新增該位址並刪除舊的網域。 儀表板或表單已在使用的名稱，無論在哪個專案中，都會被拒絕：一個網域只顯示一個狀態頁、儀表板或表單。
 
-將網域新增到專案需要建立專案網域的權限（**Create Domain**，或 Project Owner 或 Project Admin），驗證它則需要 **Edit Domain**。沒有這些權限時，對話方塊會說明誰可以執行此操作。
+將網域新增到專案需要建立專案網域的權限（**Create Domain**，或專案擁有者或專案管理員），驗證它則需要 **Edit Domain**。沒有這些權限時，對話方塊會說明誰可以執行此操作。
 
 ### DNS 設定與驗證
 
@@ -301,9 +301,9 @@ OneUptime 每 15 分鐘檢查一次每個未驗證網域的 CNAME 記錄，一�
 
 ### 誰可以檢查與重新核發
 
-**立即檢查**、訂購網域憑證與 **Reissue SSL** 都會變更網域，因此需要編輯該網域的權限：**Edit Status Page Domain**，或包含該權限的角色（Project Owner、Project Admin、Project Member、Status Page Admin 或 Status Page Member）。
+**立即檢查**、訂購網域憑證與 **Reissue SSL** 都會變更網域，因此需要編輯該網域的權限：**Edit Status Page Domain**，或包含該權限的角色（專案擁有者、專案管理員、專案成員、狀態頁面管理員或狀態頁面成員）。
 
-只能讀取該網域的人，例如 Viewer 或 Status Page Viewer，仍然可以看到 **狀態** 欄以及 **DNS 設定** 中要新增的記錄。對他們來說，**立即檢查** 與 **Reissue SSL** 處於鎖定狀態，並會說明需要哪項權限。無論如何，OneUptime 都會繼續自行檢查每個網域並訂購其憑證。
+只能讀取該網域的人，例如檢視者或狀態頁面檢視者，仍然可以看到 **狀態** 欄以及 **DNS 設定** 中要新增的記錄。對他們來說，**立即檢查** 與 **Reissue SSL** 處於鎖定狀態，並會說明需要哪項權限。無論如何，OneUptime 都會繼續自行檢查每個網域並訂購其憑證。
 
 API 金鑰也是如此。只能讀取狀態頁網域的金鑰無法在 `/status-page-domain` 上呼叫 `verify-cname`、`check-dns`、`order-ssl` 或 `reissue-ssl`。如有需要，請授予它 **Read Status Page Domain** 與 **Edit Status Page Domain**。找不到記錄時，`verify-cname` 會拒絕要求，並以 **DNS 設定** 所顯示的相同措辭說明它查詢了什麼、得到了什麼；無論哪種情況，`check-dns` 都會回覆它查詢的每筆記錄。
 

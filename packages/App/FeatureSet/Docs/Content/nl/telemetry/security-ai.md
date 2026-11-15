@@ -27,7 +27,7 @@ Een beoordeling leest alleen. Ze draait op de eigen AI van het project: **AI ins
 
 - **AI inschakelen** aan, onder **Projectinstellingen → AI → AI-functies**. Staat het uit, dan toont beveiliging niets van OneUptime AI en draait er niets.
 - Een LLM-provider die OneUptime AI kan gebruiken, onder **Projectinstellingen → AI → LLM-providers**. OneUptime Cloud levert er een.
-- Een rol die beveiligingszaken mag behandelen, om een beoordeling te starten: Project Owner, Project Admin, Security Admin of Security Member. Security Viewer leest elke beoordeling, maar kan er geen starten. Zie [Rollen](/docs/permissions/reference#rollen).
+- Een rol die beveiligingszaken mag behandelen, om een beoordeling te starten: Projecteigenaar, Projectbeheerder, Beveiligingsbeheerder of Beveiligingslid. Beveiligingskijker leest elke beoordeling, maar kan er geen starten. Zie [Rollen](/docs/permissions/reference#rollen).
 
 ## Een zaak beoordelen
 
@@ -40,7 +40,7 @@ Open een zaak: de kaart **OneUptime AI** staat bovenaan de pagina.
 | Een lezing, zoals **Waarschijnlijk kwaadaardig** | De beoordeling is klaar. **Opnieuw beoordelen** leest de zaak opnieuw. |
 | **De beoordeling is niet afgerond** | De run is gestopt. **Opnieuw proberen** start een nieuwe. |
 
-Een Security Viewer leest dezelfde kaart: **Beoordelen met AI** en **Opnieuw proberen** blijven grijs naast een regel die zegt wie een beoordeling kan starten, en **Opnieuw beoordelen** en **Prioriteit instellen** worden niet aangeboden.
+Een Beveiligingskijker leest dezelfde kaart: **Beoordelen met AI** en **Opnieuw proberen** blijven grijs naast een regel die zegt wie een beoordeling kan starten, en **Opnieuw beoordelen** en **Prioriteit instellen** worden niet aangeboden.
 
 Een beoordeling leest:
 
@@ -82,7 +82,7 @@ Gebeurtenissen, waarschuwingen en waarden van entiteiten komen van buiten het pr
 
 ## Nieuwe zaken automatisch beoordelen
 
-Open **Producten → Beveiligingsgebeurtenissen → AI → Instellingen** en zet **Nieuwe zaken beoordelen** aan: dan wordt elke zaak die een detectie opent, beoordeeld zodra ze opent. De schakelaar slaat op zodra je hem omzet. Project Owner en Project Admin kunnen hem wijzigen.
+Open **Producten → Beveiligingsgebeurtenissen → AI → Instellingen** en zet **Nieuwe zaken beoordelen** aan: dan wordt elke zaak die een detectie opent, beoordeeld zodra ze opent. De schakelaar slaat op zodra je hem omzet. Projecteigenaar en Projectbeheerder kunnen hem wijzigen.
 
 Nieuwe projecten beginnen met de optie aan; een eerder aangemaakt project houdt hem uit tot iemand hem aanzet. Een met de hand geopende zaak, en de zaak van de testaanval uit **Testaanval sturen**, worden beoordeeld als iemand op **Beoordelen met AI** klikt.
 

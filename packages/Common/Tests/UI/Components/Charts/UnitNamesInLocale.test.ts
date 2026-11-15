@@ -265,17 +265,22 @@ describe("getValueFormatterOptionsForReader", () => {
     }
   });
 
-  test("in German and Persian, a unit's name in the reader's words, a rate with its slash", () => {
+  test("in German and Persian, a unit's symbol beside its value, a name with none in the reader's words, a rate with its slash", () => {
     const german: ReturnType<typeof getValueFormatterOptionsForReader> =
       getValueFormatterOptionsForReader(translatorFor("de"));
     const persian: ReturnType<typeof getValueFormatterOptionsForReader> =
       getValueFormatterOptionsForReader(translatorFor("fa"));
 
-    expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe(
-      `21,5 ${String(locale("de")["Hertz"])}`,
+    // A symbol reads alike in every language, never an English word (#8284).
+    expect(ValueFormatter.formatValue(21.5, "Hz", german)).toBe("21,5 Hz");
+    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵ Hz");
+    expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰ V");
+    expect(ValueFormatter.formatValue(23.5, "Cel", german)).toBe("23,5 °C");
+    // A unit with no symbol is named in the reader's words.
+    expect(ValueFormatter.formatValue(300, "K", german)).toBe(
+      `300 ${String(locale("de")["Kelvin"])}`,
     );
-    expect(ValueFormatter.formatValue(21.5, "Hz", persian)).toBe("۲۱٫۵ هرتز");
-    expect(ValueFormatter.formatValue(230, "V", persian)).toBe("۲۳۰ ولت");
+    expect(ValueFormatter.formatValue(300, "K", persian)).toBe("۳۰۰ کلوین");
     expect(ValueFormatter.formatValue(3600, "s", german)).toBe("1 Stunde");
     // A rate keeps the slash a chart writes it with (#8049).
     expect(ValueFormatter.formatValue(12.5, "1/s", german)).toBe("12,5/s");

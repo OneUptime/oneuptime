@@ -34,7 +34,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når API-et.** Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran API-et, tillater du [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). Et API på et privat nettverk trenger en [egendefinert sonde](/docs/probe/custom-probe) i det nettverket, som får nå private adresser: se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
 - **Påloggingsdata som overvåkingshemmeligheter.** Trenger API-et en nøkkel eller et token, lagrer du det først som en [overvåkingshemmelighet](/docs/monitor/monitor-secrets), så monitoren bare har en referanse til den.
 

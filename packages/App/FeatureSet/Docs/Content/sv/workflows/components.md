@@ -473,7 +473,7 @@ En typ erbjuder bara de komponenter som dess modell tillåter. En skrivskyddad t
 
 Så läser och ändrar ett arbetsflöde OneUptime-data. Till exempel kan en webhook från ditt CI-verktyg använda **Create One Incident** för att öppna en incident med detaljerna om felet.
 
-De här komponenterna agerar som Project Admin för arbetsflödets projekt: det en Project Admin inte får göra, eller som din plan inte omfattar, avvisas, och körningens logg säger varför. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
+De här komponenterna agerar som Projektadministratör för arbetsflödets projekt: det en Projektadministratör inte får göra, eller som din plan inte omfattar, avvisas, och körningens logg säger varför. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 
 ### Deklarera en incident från en mall
 

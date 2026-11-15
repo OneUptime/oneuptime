@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een Log Analytics-werkruimte met Microsoft Sentinel ingeschakeld, in de openbare cloud van Azure of in Azure Government (US).
 - In Microsoft Entra ID het recht om een app-registratie en een clientgeheim te maken.
 - Op de resourcegroep met de werkruimte het recht om rollen toe te wijzen, zoals Eigenaar of Beheerder van gebruikerstoegang.

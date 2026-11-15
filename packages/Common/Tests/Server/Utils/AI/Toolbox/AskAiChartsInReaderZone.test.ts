@@ -25,6 +25,11 @@ import {
 } from "../../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { AIResourceType } from "../../../../../Types/AI/AIResourceContext";
 import {
+  getChartBucketTimezone,
+  isDrawnOnAnotherCalendar,
+  toReaderCalendarDate,
+} from "../../../../../Types/AI/AIChatChartCalendar";
+import {
   AIChatWidgetPoint,
   AIChatWidgetSeries,
 } from "../../../../../Types/AI/AIChatTypes";
@@ -942,4 +947,373 @@ describe("describeBucketCalendar", () => {
       );
     },
   );
+});
+
+/*
+ * A CHART KEEPS THE ZONE ITS DAYS WERE CUT IN, AND IS DRAWN IN THOSE DAYS
+ * (issue #8206).
+ *
+ * A chat chart is a snapshot, read later by whoever opens it: every
+ * responder of an incident's shared investigation thread, wherever they
+ * are, and everyone who reads an autonomous investigation's evidence,
+ * whose days are UTC's. Drawn at its instants on the reader's calendar, a
+ * day a responder asked for in New York - from 05:00 UTC - sat under the
+ * day before in Los Angeles, where 05:00 UTC is 21:00 the evening before,
+ * and each UTC day of an investigation's chart sat under the day before in
+ * New York. The widget records the zone its days were cut in
+ * (AIChatWidgetData.bucketTimezone), and the chart draws each bucket at the
+ * start of the same day on the reader's calendar (AIChatChartCalendar), so
+ * every reader sees each total under the day it counted.
+ */
+describe("a chart keeps the zone its days were cut in", () => {
+  function resourceArgs(extra: JSONObject): JSONObject {
+    return {
+      resourceType: AIResourceType.Host,
+      resourceId: HOST_ID.toString(),
+      signal: "metrics",
+      ...windowArgs(30),
+      ...extra,
+    };
+  }
+
+  function bucketTimezoneOf(result: ToolExecutionResult): unknown {
+    return result.widget?.data.bucketTimezone;
+  }
+
+  // The rows ChartWidget draws: each bucket on its own day, on the reader's calendar.
+  function drawnChartOf(result: ToolExecutionResult): Array<ChartDataPoint> {
+    const series: AIChatWidgetSeries = onlySeries(result);
+    const bucketTimezone: Timezone | undefined = getChartBucketTimezone(
+      result.widget?.data,
+    );
+
+    return chatChartOf({
+      ...series,
+      points: series.points.map(
+        (point: AIChatWidgetPoint): AIChatWidgetPoint => {
+          return {
+            ...point,
+            x: toReaderCalendarDate(
+              OneUptimeDate.fromString(point.x),
+              bucketTimezone,
+            ).toISOString(),
+          };
+        },
+      ),
+    });
+  }
+
+  // Each drawn total, under the day of the reader's calendar it is drawn on.
+  function drawnTotals(
+    rows: Array<ChartDataPoint>,
+    seriesName: string,
+    readerTimezone: string,
+  ): Map<string, number> {
+    const totals: Map<string, number> = new Map();
+
+    for (const row of rows) {
+      if (row[seriesName] !== undefined) {
+        totals.set(
+          platformDay(Number(row[CHART_DATA_POINT_DATE_KEY]), readerTimezone),
+          row[seriesName] as number,
+        );
+      }
+    }
+
+    return totals;
+  }
+
+  // How many days a drawing puts a total the day did not count under.
+  function misplacedDays(
+    drawn: Map<string, number>,
+    expected: Map<string, number>,
+  ): number {
+    return Array.from(drawn.entries()).filter(
+      ([day, total]: [string, number]): boolean => {
+        return expected.get(day) !== total;
+      },
+    ).length;
+  }
+
+  function instantsOf(series: AIChatWidgetSeries): Array<Date> {
+    return series.points.map((point: AIChatWidgetPoint): Date => {
+      return OneUptimeDate.fromString(point.x);
+    });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(HostService, "findBy").mockResolvedValue([
+      {
+        _id: HOST_ID.toString(),
+        name: "web-1",
+        hostIdentifier: "web-1",
+        lastSeenAt: NOW,
+        otelCollectorStatus: "Connected",
+        isArchived: false,
+      },
+    ] as never);
+    jest.spyOn(ModelPermission, "getReadScope").mockResolvedValue({
+      readableIds: null,
+      blockedIds: [],
+    });
+  });
+
+  describe.each(READERS)("asked in %s", (_name: string, timezone: Timezone) => {
+    test("query_metrics' chart of 30 days names the asker's zone", async () => {
+      seedHourly(timezone);
+
+      const result: ToolExecutionResult = await QueryMetricsTool.execute(
+        { metricName: METRIC, aggregationType: "Sum", ...windowArgs(30) },
+        askedIn(timezone),
+      );
+
+      expect(bucketTimezoneOf(result)).toBe(timezone);
+    });
+
+    test("a chart by attribute names it too", async () => {
+      seedHourly(timezone, { "resource.container.name": "api" });
+
+      const result: ToolExecutionResult = await QueryMetricsTool.execute(
+        {
+          metricName: METRIC,
+          aggregationType: "Sum",
+          groupBy: ["resource.container.name"],
+          ...windowArgs(30),
+        },
+        askedIn(timezone),
+      );
+
+      expect(bucketTimezoneOf(result)).toBe(timezone);
+    });
+
+    test("query_resource_telemetry's trend names it, alone and by attribute", async () => {
+      seedHourly(timezone, { state: "user" });
+
+      const alone: ToolExecutionResult =
+        await QueryResourceTelemetryTool.execute(
+          resourceArgs({ metricName: METRIC, aggregationType: "Sum" }),
+          askedIn(timezone),
+        );
+      const byState: ToolExecutionResult =
+        await QueryResourceTelemetryTool.execute(
+          resourceArgs({ metricName: METRIC, groupBy: ["state"] }),
+          askedIn(timezone),
+        );
+
+      expect(bucketTimezoneOf(alone)).toBe(timezone);
+      expect(bucketTimezoneOf(byState)).toBe(timezone);
+    });
+  });
+
+  test("a run with no reader - an autonomous investigation, Slack - names UTC, where its days were cut", async () => {
+    seedHourly(Timezone.UTC, { state: "user" });
+
+    const metrics: ToolExecutionResult = await QueryMetricsTool.execute(
+      { metricName: METRIC, ...windowArgs(30) },
+      noReader(),
+    );
+    const resource: ToolExecutionResult =
+      await QueryResourceTelemetryTool.execute(
+        resourceArgs({ metricName: METRIC }),
+        noReader(),
+      );
+
+    expect(bucketTimezoneOf(metrics)).toBe(Timezone.UTC);
+    expect(bucketTimezoneOf(resource)).toBe(Timezone.UTC);
+  });
+
+  test("a zone the list does not name is never asked for: the days are UTC's, and the chart says UTC", async () => {
+    seedHourly(Timezone.UTC);
+
+    const result: ToolExecutionResult = await QueryMetricsTool.execute(
+      { metricName: METRIC, ...windowArgs(30) },
+      { ...noReader(), readerTimezone: "Mars/Olympus_Mons" as Timezone },
+    );
+
+    expect(bucketTimezoneOf(result)).toBe(Timezone.UTC);
+  });
+
+  test.each([1, 3, 7])(
+    "a chart of %s days is hours or shorter, the same instants everywhere: no zone kept",
+    async (days: number) => {
+      seedHourly(Timezone.UTC);
+
+      const result: ToolExecutionResult = await QueryMetricsTool.execute(
+        { metricName: METRIC, ...windowArgs(days) },
+        askedIn(Timezone.AmericaNew_York),
+      );
+
+      expect(result.widget).toBeDefined();
+      expect("bucketTimezone" in result.widget!.data).toBe(false);
+    },
+  );
+
+  test("a chart by attribute keeps a zone exactly when its buckets are days", async () => {
+    seedHourly(Timezone.UTC, { "resource.container.name": "api" });
+
+    const groupedOver: (days: number) => Promise<ToolExecutionResult> = (
+      days: number,
+    ): Promise<ToolExecutionResult> => {
+      return QueryMetricsTool.execute(
+        {
+          metricName: METRIC,
+          groupBy: ["resource.container.name"],
+          ...windowArgs(days),
+        },
+        askedIn(Timezone.AmericaNew_York),
+      );
+    };
+
+    // A day in half hours; three days and a week in days (at most 49 buckets).
+    expect("bucketTimezone" in (await groupedOver(1)).widget!.data).toBe(false);
+    expect(bucketTimezoneOf(await groupedOver(3))).toBe(
+      Timezone.AmericaNew_York,
+    );
+    expect(bucketTimezoneOf(await groupedOver(7))).toBe(
+      Timezone.AmericaNew_York,
+    );
+  });
+
+  const SHARED_READS: Array<[string, Timezone, Timezone, boolean]> = [
+    // West of the asker: drawn at its instant, each day sat under the day before.
+    [
+      "asked in New York, read in Los Angeles",
+      Timezone.AmericaNew_York,
+      Timezone.AmericaLos_Angeles,
+      true,
+    ],
+    [
+      "asked in Kathmandu, read in Kolkata, 15 minutes west",
+      Timezone.AsiaKathmandu,
+      Timezone.AsiaKolkata,
+      true,
+    ],
+    [
+      "asked in London, read in New York, over both their autumn changes",
+      Timezone.EuropeLondon,
+      Timezone.AmericaNew_York,
+      true,
+    ],
+    // East of it, by less than a day: the day stayed the same.
+    [
+      "asked in New York, read in Tokyo",
+      Timezone.AmericaNew_York,
+      Timezone.AsiaTokyo,
+      false,
+    ],
+    [
+      "asked in Kolkata, read on Lord Howe Island",
+      Timezone.AsiaKolkata,
+      Timezone.AustraliaLord_Howe,
+      false,
+    ],
+  ];
+
+  test.each(SHARED_READS)(
+    "a shared thread %s: each day's total sits under the asker's day it counted",
+    async (
+      _name: string,
+      asker: Timezone,
+      reader: Timezone,
+      wasUnderTheDayBefore: boolean,
+    ) => {
+      seedHourly(asker);
+
+      const result: ToolExecutionResult = await QueryMetricsTool.execute(
+        { metricName: METRIC, aggregationType: "Sum", ...windowArgs(30) },
+        askedIn(asker),
+      );
+      const series: AIChatWidgetSeries = onlySeries(result);
+      const expected: Map<string, number> = expectedDailySums(
+        asker,
+        NOW.getTime() - 30 * DAY,
+        NOW.getTime(),
+      );
+
+      OneUptimeDate.setUserTimezone(reader);
+
+      expect(drawnTotals(drawnChartOf(result), series.name, reader)).toEqual(
+        expected,
+      );
+
+      // As it was drawn before: at its instants, on the reader's calendar.
+      const before: number = misplacedDays(
+        drawnTotals(chatChartOf(series), series.name, reader),
+        expected,
+      );
+
+      if (wasUnderTheDayBefore) {
+        expect(before).toBeGreaterThanOrEqual(29);
+      } else {
+        expect(before).toBe(0);
+      }
+    },
+  );
+
+  test.each<[string, Timezone, boolean]>([
+    ["New York", Timezone.AmericaNew_York, true],
+    ["Los Angeles", Timezone.AmericaLos_Angeles, true],
+    ["St John's, half an hour off the hour", Timezone.AmericaSt_Johns, true],
+    ["Kathmandu", Timezone.AsiaKathmandu, false],
+    ["Lord Howe Island", Timezone.AustraliaLord_Howe, false],
+  ])(
+    "an investigation's UTC days read in %s: each UTC day's total under its own date",
+    async (_name: string, reader: Timezone, wasUnderTheDayBefore: boolean) => {
+      seedHourly(Timezone.UTC);
+
+      const result: ToolExecutionResult = await QueryMetricsTool.execute(
+        { metricName: METRIC, aggregationType: "Sum", ...windowArgs(30) },
+        noReader(),
+      );
+      const series: AIChatWidgetSeries = onlySeries(result);
+      const expected: Map<string, number> = expectedDailySums(
+        Timezone.UTC,
+        NOW.getTime() - 30 * DAY,
+        NOW.getTime(),
+      );
+
+      OneUptimeDate.setUserTimezone(reader);
+
+      expect(drawnTotals(drawnChartOf(result), series.name, reader)).toEqual(
+        expected,
+      );
+      expect(
+        isDrawnOnAnotherCalendar(
+          instantsOf(series),
+          getChartBucketTimezone(result.widget?.data),
+        ),
+      ).toBe(true);
+
+      const before: number = misplacedDays(
+        drawnTotals(chatChartOf(series), series.name, reader),
+        expected,
+      );
+
+      if (wasUnderTheDayBefore) {
+        expect(before).toBeGreaterThanOrEqual(29);
+      } else {
+        expect(before).toBe(0);
+      }
+    },
+  );
+
+  test("read in the asker's own zone, nothing moves and nothing is said", async () => {
+    seedHourly(Timezone.AmericaNew_York);
+
+    const result: ToolExecutionResult = await QueryMetricsTool.execute(
+      { metricName: METRIC, aggregationType: "Sum", ...windowArgs(30) },
+      askedIn(Timezone.AmericaNew_York),
+    );
+    const series: AIChatWidgetSeries = onlySeries(result);
+
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    expect(drawnChartOf(result)).toEqual(chatChartOf(series));
+    expect(
+      isDrawnOnAnotherCalendar(
+        instantsOf(series),
+        getChartBucketTimezone(result.widget?.data),
+      ),
+    ).toBe(false);
+  });
 });

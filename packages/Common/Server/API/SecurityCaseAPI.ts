@@ -1264,11 +1264,17 @@ export default class SecurityCaseAPI extends BaseAPI<
   }): Promise<JSONObject> {
     const { projectId, props } = data;
     const now: Date = OneUptimeDate.getCurrentDate();
-    const windowStart: Date = OneUptimeDate.addRemoveDays(
+    /*
+     * The last 30 and 14 days as lengths of time, the same on every server:
+     * stepped on the server's own calendar they were an hour short or long
+     * across a clock change on a server outside UTC (issue #8236). The day
+     * bars walk the reader's calendar over them (computeSecurityOverviewMetrics).
+     */
+    const windowStart: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
     );
-    const detectionWindowStart: Date = OneUptimeDate.addRemoveDays(
+    const detectionWindowStart: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
     );

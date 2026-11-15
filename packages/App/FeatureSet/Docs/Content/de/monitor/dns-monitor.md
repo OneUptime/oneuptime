@@ -28,7 +28,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die den DNS-Server erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Um einen DNS-Server in einem privaten Netzwerk abzufragen, etwa einen internen Resolver, verwenden Sie eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk.
 
 ## Einen DNS-Monitor erstellen

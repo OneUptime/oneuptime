@@ -29,7 +29,7 @@ Chattene kommer inn på samme måte som AI-kallene fra appene dine, så scrub-re
 
 ## Før du begynner
 
-- Rollen Project Owner eller Project Admin. Bare de kan koble til, endre eller fjerne et verktøy.
+- Rollen Prosjekteier eller Prosjektadministrator. Bare de kan koble til, endre eller fjerne et verktøy.
 - En administrator av verktøyet til å lage påloggingsinformasjonen: avsnittet for hvert verktøy nedenfor sier hvem.
 - Folkene dine informert, og svaret fra juridisk avdeling eller HR.
 

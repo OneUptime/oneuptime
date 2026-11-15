@@ -66,10 +66,10 @@ flowchart TB
 
 | 操作 | 所需权限 |
 | --- | --- |
-| 查看和播放播放列表 | `ReadDashboardPlaylist` ，或项目角色：Project Owner、Project Admin、Project Member、Viewer 或某个 Settings 角色 |
-| 创建播放列表 | `CreateDashboardPlaylist` 、Project Owner 或 Project Admin |
-| 修改播放列表：它的名称、仪表板和时长 | `EditDashboardPlaylist` 、Project Owner 或 Project Admin |
-| 删除播放列表 | `DeleteDashboardPlaylist` 、Project Owner 或 Project Admin |
+| 查看和播放播放列表 | `ReadDashboardPlaylist` ，或项目角色：项目所有者、项目管理员、项目成员、查看者或某个 Settings 角色 |
+| 创建播放列表 | `CreateDashboardPlaylist` 、项目所有者或项目管理员 |
+| 修改播放列表：它的名称、仪表板和时长 | `EditDashboardPlaylist` 、项目所有者或项目管理员 |
+| 删除播放列表 | `DeleteDashboardPlaylist` 、项目所有者或项目管理员 |
 
 播放列表绝不会向任何人显示其无权阅读的仪表板。播放器只播放在屏幕上登录的人可以阅读且未归档的仪表板，其余的都会跳过：已删除的仪表板、已归档的仪表板，或其权限不允许查看的仪表板。播放列表的页面会说明跳过每一个的原因。保存播放列表时，编辑者自己看不到的仪表板会保留在其中，因此别人放进去的内容不会丢失。
 
@@ -81,7 +81,7 @@ flowchart TB
 | 读取失败 | **无法加载此播放列表** ，并且每分钟重试一次，或在点击 **重试** 时重试。 |
 
 > [!NOTE]
-> 播放器面向已登录 OneUptime 的人。要在一块屏幕上播放播放列表，请在这块屏幕上用可以阅读该播放列表及其仪表板的账号登录，比如具有 Viewer 角色的团队成员。
+> 播放器面向已登录 OneUptime 的人。要在一块屏幕上播放播放列表，请在这块屏幕上用可以阅读该播放列表及其仪表板的账号登录，比如具有查看者角色的团队成员。
 
 ## 后续步骤
 

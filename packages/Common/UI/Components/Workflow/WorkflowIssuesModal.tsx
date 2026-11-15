@@ -27,6 +27,7 @@ import {
 } from "./GraphLintSummary";
 import React, { FunctionComponent, ReactElement } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "../../Utils/LabelWithColon";
 import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -262,10 +263,16 @@ const WorkflowIssuesModal: FunctionComponent<ComponentProps> = (
                             {renderSeverityIcon(issue.severity)}
                             <p className="text-sm leading-5 text-gray-700">
                               <span className="sr-only">
-                                {translator.translateText(
-                                  getWorkflowLintSeverityLabel(issue.severity),
-                                )}
-                                :{" "}
+                                {translator.translateTemplate(
+                                  LABEL_WITH_COLON,
+                                  {
+                                    label: translatableTerm(
+                                      getWorkflowLintSeverityLabel(
+                                        issue.severity,
+                                      ),
+                                    ),
+                                  },
+                                )}{" "}
                               </span>
                               {issue.message}
                             </p>

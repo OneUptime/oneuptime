@@ -102,7 +102,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { writeReaderTimeOfDay } from "Common/UI/Utils/ReaderMoments";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -858,8 +858,8 @@ const NetworkDeviceDiscovery: FunctionComponent<
                       : translator.translateTemplate(
                           "Last refreshed {{time}}",
                           {
-                            time: liveUpdates.lastRefreshedAt.toLocaleTimeString(
-                              getReaderDateLocale(),
+                            time: writeReaderTimeOfDay(
+                              liveUpdates.lastRefreshedAt,
                             ),
                           },
                         )}

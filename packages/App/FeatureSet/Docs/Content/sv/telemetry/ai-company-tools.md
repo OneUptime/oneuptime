@@ -29,7 +29,7 @@ Chattarna kommer in på samma sätt som dina appars AI-anrop, så scrub-regler, 
 
 ## Innan du börjar
 
-- Rollen Project Owner eller Project Admin. Bara de kan ansluta, ändra eller ta bort ett verktyg.
+- Rollen Projektägare eller Projektadministratör. Bara de kan ansluta, ändra eller ta bort ett verktyg.
 - En administratör av verktyget som skapar inloggningsuppgifterna: varje verktygs avsnitt nedan säger vem.
 - Dina medarbetare informerade, och svaret från er juridiska avdelning eller HR.
 

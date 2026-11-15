@@ -51,10 +51,9 @@ export function readOwnValue<T>(
  * every object inherits that one as a setter, so assigning a string to it
  * does nothing, and assigning an object or array replaces the record's
  * prototype. Written here, "__proto__" is a key like any other: Object.keys
- * lists it and JSON.stringify writes it. (Copying the record with
- * `{ ...record }`, which this code's ES2017 target compiles to
- * Object.assign, assigns it again and so drops it: copy it with
- * copyOwnValues, and merge it with assignOwnValues.)
+ * lists it and JSON.stringify writes it. (Object.assign assigns it again and
+ * so drops it: merge such a record with assignOwnValues, and copy it with
+ * copyOwnValues, which keeps it whatever a spread is compiled to.)
  */
 export function writeOwnValue<T>(
   record: Record<string, T>,
@@ -78,10 +77,13 @@ export function writeOwnValue<T>(
  * Copies every own key of each source onto `target`, in order, as
  * Object.assign does - "__proto__" included, as the target's own key.
  * Object.assign assigns each key, so it drops a "__proto__" key, and makes
- * an object or array written under it the target's prototype. So does
- * `{ ...record }`: this code's ES2017 target compiles a spread to
- * Object.assign. A record keyed by what a sender wrote - an attribute map, a
- * series' labels - is copied and merged here instead.
+ * an object or array written under it the target's prototype. A spread,
+ * `{ ...record }`, did the same below ES2018, where TypeScript compiles it
+ * to Object.assign; the servers compile for ES2018 now, where a spread
+ * defines each key (Tests/Dependencies/TypeScriptTargets.test.ts), and the
+ * browser bundles' spread helper defines it too. A record keyed by what a
+ * sender wrote - an attribute map, a series' labels - is still merged here,
+ * and copied with copyOwnValues, so it never depends on either.
  *
  * A source without an own "__proto__" key, nearly every one, is still
  * copied by Object.assign itself: this adds one own-key test per source, so
@@ -111,7 +113,7 @@ export function assignOwnValues<T>(
 
 /*
  * A new plain object with every own key of `record`, "__proto__" included:
- * what `{ ...record }` gives on an ES2018 or later target.
+ * what `{ ...record }` gives on an ES2018 or later target, at any target.
  */
 export function copyOwnValues<T>(
   record: Readonly<Record<string, T>> | null | undefined,

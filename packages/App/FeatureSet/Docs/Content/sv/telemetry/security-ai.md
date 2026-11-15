@@ -27,7 +27,7 @@ En AI-bedömning läser bara. Den körs på projektets egen AI: **Aktivera AI**,
 
 - **Aktivera AI** påslaget, under **Projektinställningar → AI → AI-funktioner**. Är det avslaget visar säkerhet ingenting från OneUptime AI, och ingenting körs.
 - En LLM-leverantör som OneUptime AI kan använda, under **Projektinställningar → AI → LLM-leverantörer**. OneUptime Cloud tillhandahåller en.
-- En roll som får arbeta med säkerhetsärenden, för att starta en AI-bedömning: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer läser varje AI-bedömning men kan inte starta någon. Se [Roller](/docs/permissions/reference#roller).
+- En roll som får arbeta med säkerhetsärenden, för att starta en AI-bedömning: Projektägare, Projektadministratör, Säkerhetsadministratör eller Säkerhetsmedlem. Säkerhetstittare läser varje AI-bedömning men kan inte starta någon. Se [Roller](/docs/permissions/reference#roller).
 
 ## Bedöm ett ärende
 
@@ -40,7 +40,7 @@ En AI-bedömning läser bara. Den körs på projektets egen AI: **Aktivera AI**,
 | En AI-bedömning som **Troligen skadlig** | AI-bedömningen är klar. **Bedöm igen** läser ärendet på nytt. |
 | **Bedömningen slutfördes inte** | Körningen stoppade. **Försök igen** startar en ny. |
 
-En Security Viewer ser samma kort: **Bedöm med AI** och **Försök igen** förblir nedtonade bredvid en rad som säger vem som kan starta en bedömning, och **Bedöm igen** och **Ange prioritet** erbjuds inte.
+En Säkerhetstittare ser samma kort: **Bedöm med AI** och **Försök igen** förblir nedtonade bredvid en rad som säger vem som kan starta en bedömning, och **Bedöm igen** och **Ange prioritet** erbjuds inte.
 
 En AI-bedömning läser:
 
@@ -82,7 +82,7 @@ Händelser, larm och värden för entiteter kommer utifrån projektet, och en an
 
 ## Bedöm nya ärenden automatiskt
 
-Öppna **Produkter → Säkerhetshändelser → AI → Inställningar** och slå på **Bedöm nya ärenden**: då bedöms varje ärende som en detektion öppnar så fort det öppnas. Reglaget sparar så fort du slår om det. Project Owner och Project Admin kan ändra det.
+Öppna **Produkter → Säkerhetshändelser → AI → Inställningar** och slå på **Bedöm nya ärenden**: då bedöms varje ärende som en detektion öppnar så fort det öppnas. Reglaget sparar så fort du slår om det. Projektägare och Projektadministratör kan ändra det.
 
 Nya projekt startar med det påslaget; ett projekt som skapades tidigare har det avslaget tills någon slår på det. Ett ärende som har öppnats för hand, och ärendet från testattacken i **Skicka en testattack**, bedöms när någon klickar på **Bedöm med AI**.
 

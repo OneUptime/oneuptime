@@ -32,7 +32,7 @@ flowchart TB
 
 - **在 OneUptime Cloud 上：Enterprise 套餐。** 在其他套餐上，审计日志页面会显示该功能的作用以及如何获得。
 - **自托管时：Enterprise Edition**，以及包含审计日志的许可证。参见[企业版](/docs/self-hosted/enterprise)。
-- **可以读取审计日志的角色。** Project Owner、Project Admin、Settings Admin 或 **Read Audit Log** 权限。开启审计日志和更改其设置需要 Project Owner、Project Admin 或编辑项目的权限。
+- **可以读取审计日志的角色。** 项目所有者、项目管理员、设置管理员或 **Read Audit Log** 权限。开启审计日志和更改其设置需要项目所有者、项目管理员或编辑项目的权限。
 
 ## 开启审计日志
 

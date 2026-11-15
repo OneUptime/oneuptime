@@ -614,6 +614,7 @@
     "{{in}} in",
     "{{online}}/{{count}} node online",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{size}} disk",
     "{{tokens}} tokens",
     "{{value}} ms",

@@ -7,7 +7,10 @@ import EntityType from "Common/Types/Telemetry/EntityType";
 import { keyForHost } from "Common/Utils/Telemetry/EntityKey";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   ServiceOperationalStatus,
   ServiceStatusItem,
@@ -144,6 +147,8 @@ export async function loadHostTopology(
     serviceMap: serviceMap,
     issues: issues?.records || [],
     now: new Date(),
+    // The reader's language, for the rates and shares the map writes (#8259).
+    translator: getGlobalTranslator(),
   };
 
   // The services on the map, for their pages and their open issues.

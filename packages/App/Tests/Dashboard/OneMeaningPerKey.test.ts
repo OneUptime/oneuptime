@@ -454,6 +454,48 @@ describe("one meaning per key", () => {
     }
   });
 
+  /*
+   * #8201: the bare "From" and "To" are a message's sender and recipient -
+   * the notification logs' columns - so a German date filter read "Von" ...
+   * "An" (to someone), a Japanese one 差出人 ... 宛先. A range's two ends
+   * have keys of their own, looked up where a range is drawn: the shared
+   * filters and time ranges read them through RangeEnds, a status
+   * timeline's column and a lone start in an investigation's evidence by
+   * name.
+   */
+  test("a range's two ends are their own keys, and no range looks up the bare From or To", () => {
+    const RANGE_FILES: Array<string> = [
+      "Pages/NetworkSite/View/StatusTimeline.tsx",
+      "Utils/InvestigationEvidenceFormat.ts",
+      "packages/Common/UI/Components/Filters/RangeEnds.ts",
+    ].sort();
+
+    expect(filesLookingUp("From (range start)")).toEqual(RANGE_FILES);
+    expect(filesLookingUp("To (range end)")).toEqual([
+      "packages/Common/UI/Components/Filters/RangeEnds.ts",
+    ]);
+
+    for (const file of [
+      ...RANGE_FILES,
+      "Components/ResourceOwners/FilterChipDateRange.tsx",
+      "packages/Common/UI/Components/Filters/DateFilter.tsx",
+      "packages/Common/UI/Components/Filters/NumberFilter.tsx",
+      "packages/Common/UI/Components/Date/CustomTimeRangeModal.tsx",
+      "packages/Common/UI/Components/Date/RangeStartAndEndDateEdit.tsx",
+    ]) {
+      expect({
+        file,
+        bareFrom: filesLookingUp("From").includes(file),
+        bareTo: filesLookingUp("To").includes(file),
+      }).toEqual({ file, bareFrom: false, bareTo: false });
+    }
+
+    // A message's recipient keeps the bare word.
+    expect(filesLookingUp("To")).toContain(
+      "Components/NotificationLogs/EmailLogsTable.tsx",
+    );
+  });
+
   // Every key that names its meaning is one a place looks up.
   test("every key that names its meaning is looked up somewhere", () => {
     for (const key of MEANING_KEYS) {

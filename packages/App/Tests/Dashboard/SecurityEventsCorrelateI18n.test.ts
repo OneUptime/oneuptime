@@ -91,7 +91,11 @@ const STRINGS: Array<string> = [
   "No severity",
   "Numbers are event counts; thicker lines mean more shared events. Hold Ctrl and scroll, or pinch, to zoom.",
   "{{count}} less frequent observables not drawn",
-  "less frequent observables not shown",
+  // A count and its noun as one sentence (#8290).
+  "{{count}} less frequent observables not shown",
+  "{{count}} matching events",
+  "{{count}} matching events.",
+  "Searched {{start}} to {{end}}",
   "No co-occurring observables in these events.",
   "Select a node or a row to see its details.",
   "Class filters apply only when matching all conditions.",

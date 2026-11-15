@@ -37,7 +37,7 @@ flowchart TB
 ## 始める前に
 
 - サービスが OneUptime にトレースを送信していること。[OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。各サービスは、`service.name` の名前で [サービスカタログ](/docs/telemetry/services) に表示されます。
-- SLO を作成できるロール。Project Owner、Project Admin、または Create Service Level Objective 権限を持つカスタムロールです。
+- SLO を作成できるロール。プロジェクト所有者、プロジェクト管理者、または Create Service Level Objective 権限を持つカスタムロールです。
 
 ## リクエスト SLO を作成する
 

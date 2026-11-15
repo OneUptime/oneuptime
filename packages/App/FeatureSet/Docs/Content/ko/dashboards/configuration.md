@@ -15,15 +15,15 @@
 
 | 작업 | 필요한 것 |
 | --- | --- |
-| 대시보드 읽기 | `ReadDashboard` 또는 프로젝트 역할: Project Owner, Project Admin, Project Member, Viewer 또는 Settings 역할 |
-| 대시보드 만들기 | `CreateDashboard`, Project Owner 또는 Project Admin |
-| 대시보드 변경: 위젯, 변수, 공유, 브랜딩, 그리고 보관 | `EditDashboard`, Project Owner 또는 Project Admin |
-| 대시보드 삭제 | `DeleteDashboard`, Project Owner 또는 Project Admin |
-| 소유자 추가 및 제거 | 대시보드 소유자 권한, Project Owner, Project Admin 또는 Project Member |
-| 사용자 정의 도메인 추가 및 변경 | 대시보드 도메인 권한, Project Owner, Project Admin, Project Member, Settings Admin 또는 Settings Member |
-| 소유자 규칙과 레이블 규칙 만들기 | 규칙 권한, Project Owner 또는 Project Admin |
+| 대시보드 읽기 | `ReadDashboard` 또는 프로젝트 역할: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 뷰어 또는 Settings 역할 |
+| 대시보드 만들기 | `CreateDashboard`, 프로젝트 소유자 또는 프로젝트 관리자 |
+| 대시보드 변경: 위젯, 변수, 공유, 브랜딩, 그리고 보관 | `EditDashboard`, 프로젝트 소유자 또는 프로젝트 관리자 |
+| 대시보드 삭제 | `DeleteDashboard`, 프로젝트 소유자 또는 프로젝트 관리자 |
+| 소유자 추가 및 제거 | 대시보드 소유자 권한, 프로젝트 소유자, 프로젝트 관리자 또는 프로젝트 구성원 |
+| 사용자 정의 도메인 추가 및 변경 | 대시보드 도메인 권한, 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 설정 관리자 또는 설정 구성원 |
+| 소유자 규칙과 레이블 규칙 만들기 | 규칙 권한, 프로젝트 소유자 또는 프로젝트 관리자 |
 
-즉 Project Member는 모든 대시보드를 읽지만, 대시보드를 만들려면 `CreateDashboard`와 `EditDashboard`가 필요합니다. 읽기, 편집, 삭제는 각각 팀이 소유한 대시보드나 특정 레이블이 있는 대시보드로 제한할 수 있습니다. [범위: 허용 권한이 미치는 넓이](/docs/permissions/index#범위-허용-권한이-미치는-넓이)를 참고하세요.
+즉 프로젝트 구성원은 모든 대시보드를 읽지만, 대시보드를 만들려면 `CreateDashboard`와 `EditDashboard`가 필요합니다. 읽기, 편집, 삭제는 각각 팀이 소유한 대시보드나 특정 레이블이 있는 대시보드로 제한할 수 있습니다. [범위: 허용 권한이 미치는 넓이](/docs/permissions/index#범위-허용-권한이-미치는-넓이)를 참고하세요.
 
 권한은 팀의 **권한** 페이지에서 할당합니다. **제품 → 팀**을 열고 팀을 고르세요.
 

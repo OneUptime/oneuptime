@@ -11,7 +11,7 @@ OneUptime은 이미 가지고 있는 데이터 - 로그, 사용 중인 보안 �
 
 ## 시작하기 전에
 
-보안을 설정하려면 Project Owner, Project Admin 또는 Security Admin 역할이 필요합니다. Security Member와 Security Viewer 역할은 찾은 것을 읽을 수 있습니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
+보안을 설정하려면 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할이 필요합니다. 보안 구성원과 보안 뷰어 역할은 찾은 것을 읽을 수 있습니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
 
 ## 설정하기
 
@@ -84,7 +84,7 @@ CEF나 LEEF 탐지 결과, FortiGate의 IPS 탐지 결과처럼 보안 제품이
 ## 문제 해결
 
 :::details Turn on recommended가 비활성화되어 있음
-역할에 탐지 규칙, 플레이북 또는 로그 소스를 추가할 권한이 없습니다. Project Owner, Project Admin 또는 Security Admin에게 요청하거나 Security Admin 역할을 부여해 달라고 하세요.
+역할에 탐지 규칙, 플레이북 또는 로그 소스를 추가할 권한이 없습니다. 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자에게 요청하거나 보안 관리자 역할을 부여해 달라고 하세요.
 :::
 
 :::details Turn on recommended가 모든 항목을 켜지 못함

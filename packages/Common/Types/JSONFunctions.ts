@@ -474,6 +474,18 @@ export default class JSONFunctions {
   }
 
   public static deserializeValue(val: JSONValue): JSONValue {
+    return JSONFunctions.deserializeAnyValue(val, false);
+  }
+
+  /*
+   * `isNested`: whether `val` is inside an object deserialize was handed -
+   * a column's value, a value within one - rather than that object itself
+   * or a list of such objects. See keptProtoKeyValue.
+   */
+  private static deserializeAnyValue(
+    val: JSONValue,
+    isNested: boolean,
+  ): JSONValue {
     if (val === null || val === undefined) {
       return val;
     } else if (typeof val === Typeof.String && val.toString().trim() === "") {
@@ -520,12 +532,12 @@ export default class JSONFunctions {
       const arr: Array<JSONValue> = [];
 
       for (const v of val) {
-        arr.push(this.deserializeValue(v));
+        arr.push(JSONFunctions.deserializeAnyValue(v, isNested));
       }
 
       return arr;
     } else if (typeof val === Typeof.Object) {
-      return this.deserialize(val as JSONObject);
+      return JSONFunctions.deserializeObject(val as JSONObject, isNested);
     }
 
     return val;
@@ -606,16 +618,84 @@ export default class JSONFunctions {
   }
 
   public static deserialize(val: JSONObject): JSONObject {
+    return JSONFunctions.deserializeObject(val, false);
+  }
+
+  /*
+   * THE ONE KEY THAT IS NOT COPIED LIKE THE OTHERS: "__proto__".
+   *
+   * JSON.parse keeps a "__proto__" key as an ordinary property of the
+   * object it builds. Assigned to a new object, it is not: every object
+   * inherits "__proto__" as a setter, so a string under it is dropped, and
+   * an object or array under it becomes the new object's prototype - its
+   * values then read by name, a column of a request body say, while every
+   * check that lists the object's own keys misses them.
+   *
+   * So the object deserialize is handed - a model's columns, a request
+   * body, a response - never gets one: no column is named "__proto__".
+   *
+   * Inside a column's value it can be data. A telemetry attribute or a
+   * series' label has no reserved names, the server stores one named
+   * "__proto__" and the API's JSON sends it (serialize writes every key as
+   * its own), and the Logs, Traces and Metrics pages read that JSON here.
+   * There, a string, a number or a boolean under "__proto__" is kept, and
+   * written with writeOwnValue: defined as the new object's own data
+   * property, never assigned, so no setter runs and no prototype changes.
+   * Such a value is no way to reach a prototype either: reading
+   * `value.__proto__` reads the text, writing through it writes onto a
+   * string (nothing, or a TypeError), and code that copies it on with an
+   * assignment hands the setter a primitive, which it ignores.
+   *
+   * Anything else under "__proto__" is still left out, at every depth: an
+   * object or an array would become a copy's prototype the first time
+   * code copies the key with an assignment, null would leave that copy
+   * with no prototype at all (no toString, no hasOwnProperty), and code
+   * that walks into the key on a fresh object would walk into
+   * Object.prototype itself.
+   */
+  private static keptProtoKeyValue(
+    val: JSONObject,
+    isNested: boolean,
+  ): string | number | boolean | undefined {
+    if (!isNested) {
+      return undefined;
+    }
+
+    const descriptor: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(val, "__proto__");
+
+    // Only the object's own data property: never a getter, never inherited.
+    if (!descriptor || !("value" in descriptor)) {
+      return undefined;
+    }
+
+    const value: unknown = descriptor.value;
+
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
+    }
+
+    return undefined;
+  }
+
+  private static deserializeObject(
+    val: JSONObject,
+    isNested: boolean,
+  ): JSONObject {
     const newVal: JSONObject = {};
     for (const key in val) {
-      /*
-       * JSON.parse keeps a "__proto__" key as an ordinary property, but
-       * assigning it below would set the new object's prototype instead:
-       * its values would then be read by name - a column of a request
-       * body, say - while every check that lists the object's own keys
-       * missed them. It is never data, so it is not copied.
-       */
       if (key === "__proto__") {
+        const kept: string | number | boolean | undefined =
+          JSONFunctions.keptProtoKeyValue(val, isNested);
+
+        if (kept !== undefined) {
+          writeOwnValue<JSONValue>(newVal, key, kept);
+        }
+
         continue;
       }
 
@@ -626,12 +706,15 @@ export default class JSONFunctions {
       if (Array.isArray(val[key])) {
         const arraySerialize: Array<JSONValue> = [];
         for (const arrVal of val[key] as Array<JSONValue>) {
-          arraySerialize.push(this.deserializeValue(arrVal));
+          arraySerialize.push(JSONFunctions.deserializeAnyValue(arrVal, true));
         }
 
         newVal[key] = arraySerialize;
       } else {
-        newVal[key] = this.deserializeValue(val[key] as JSONValue);
+        newVal[key] = JSONFunctions.deserializeAnyValue(
+          val[key] as JSONValue,
+          true,
+        );
       }
     }
 

@@ -23,7 +23,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ## 開始之前
 
-- 在 OneUptime 中擁有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以檢視連線及其執行歷史，但不能更改它們。
+- 在 OneUptime 中擁有專案擁有者、專案管理員或安全性管理員角色。安全性成員和安全性檢視者可以檢視連線及其執行歷史，但不能更改它們。
 - 執行 Splunk Enterprise 9.0.1 或更高版本的搜尋頭，或 Splunk Cloud Platform。OneUptime 在管理連接埠（通常為 `8089`）上與其 REST API 通訊。連接埠 `8000` 上的 Splunk Web 不提供 REST API。
 - 一個供 OneUptime 使用的 Splunk 使用者，其角色具有 `search` 能力，並且可以讀取搜尋所讀取的索引：對於 notable event 是 `notable`。Enterprise Security 的 `ess_analyst` 和 `ess_user` 角色兩者都會授予。連線只做讀取，所以角色不需要其他任何權限。
 - 一個 OneUptime 能透過 HTTPS 存取到的搜尋頭。OneUptime Cloud 從網際網路連線，所以搜尋頭需要一個公開位址：私有位址會被拒絕。自行託管的 OneUptime 從它的應用程式和工作程序容器連線，可以存取你私有網路中的搜尋頭，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 為 `true`。

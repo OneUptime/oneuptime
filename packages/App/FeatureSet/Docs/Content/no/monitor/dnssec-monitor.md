@@ -41,7 +41,7 @@ En signatur med mindre enn en dag igjen regnes allerede som brutt, så du får v
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En signert sone.** Sonen må være signert, og DS-posten dens publisert i den overordnede sonen via registraren din.
 - **Utgående DNS fra sonden** til løserne du angir, og, for sjekken av navneserverkonsistens, til sonens autoritative navneservere. Prosjektets standardsonder velges for hver nye monitor.
 

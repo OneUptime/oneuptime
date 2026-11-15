@@ -27,6 +27,8 @@ export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_SETTINGS]: "settings/status",
   [PageMap.MONITORS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.MONITORS_SETTINGS_SECRETS]: "settings/secrets",
+  [PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]:
+    "settings/incoming-request-secrets",
   [PageMap.MONITORS_SETTINGS_TEMPLATES]: "settings/templates",
   [PageMap.MONITORS_SETTINGS_TEMPLATES_VIEW]: `settings/templates/${RouteParams.ModelID}`,
   [PageMap.MONITORS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
@@ -1952,6 +1954,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITORS_SETTINGS_SECRETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITORS_SETTINGS_SECRETS]
+    }`,
+  ),
+
+  [PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS]
     }`,
   ),
 

@@ -35,7 +35,7 @@ Die [Preisseite](https://oneuptime.com/pricing) vergleicht die Tarife.
 ## Bevor Sie beginnen
 
 - **OneUptime Cloud.** Der Abschnitt **Abrechnung und Rechnungen** der **Projekteinstellungen** gibt es nur in OneUptime Cloud, und er ist anfangs eingeklappt: Klicken Sie auf seinen Titel, um ihn zu öffnen.
-- **Eine Rolle, die die Abrechnung lesen darf.** Project Owners, Personen mit **Manage Billing** und die drei Abrechnungsrollen lesen jede Abrechnungsseite. Siehe [Wer was darf](#wer-was-darf).
+- **Eine Rolle, die die Abrechnung lesen darf.** Projektinhaber, Personen mit **Manage Billing** und die drei Abrechnungsrollen lesen jede Abrechnungsseite. Siehe [Wer was darf](#wer-was-darf).
 
 ## Ihr Tarif und Ihre Plätze
 
@@ -144,13 +144,13 @@ Wenn ein Guthaben nicht ausreicht, wird die Nachricht nicht gesendet oder OneUpt
 
 | Um | Es braucht |
 | --- | --- |
-| Die Abrechnungsseiten lesen: Tarif, Rechnungen, Nutzung, Guthaben und Zahlungsmethoden | Project Owner, **Manage Billing**, **Abrechnungs-Administrator**, **Abrechnungs-Mitglied** oder **Abrechnungs-Betrachter** |
-| Eine Rechnung herunterladen | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
-| Rechnungsadresse und Rechnungs-E-Mail ändern | Project Owner, **Manage Billing**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
-| SMS, Anrufe, WhatsApp oder Telegram ein- oder ausschalten | Project Owner, **Manage Billing** oder **Abrechnungs-Administrator** |
-| Eine Zahlungsmethode hinzufügen | Project Owner, **Manage Billing** oder **Create Payment Method** |
-| Eine Rechnung bezahlen | Project Owner, **Manage Billing** oder **Edit Invoices** |
-| Den Tarif ändern, ein Guthaben aufladen oder das automatische Aufladen ändern | Project Owner oder **Manage Billing** |
+| Die Abrechnungsseiten lesen: Tarif, Rechnungen, Nutzung, Guthaben und Zahlungsmethoden | Projektinhaber, **Manage Billing**, **Abrechnungs-Administrator**, **Abrechnungs-Mitglied** oder **Abrechnungs-Betrachter** |
+| Eine Rechnung herunterladen | Projektinhaber, Projektadministrator, **Manage Billing**, **Read Invoices**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
+| Rechnungsadresse und Rechnungs-E-Mail ändern | Projektinhaber, **Manage Billing**, **Abrechnungs-Administrator** oder **Abrechnungs-Mitglied** |
+| SMS, Anrufe, WhatsApp oder Telegram ein- oder ausschalten | Projektinhaber, **Manage Billing** oder **Abrechnungs-Administrator** |
+| Eine Zahlungsmethode hinzufügen | Projektinhaber, **Manage Billing** oder **Create Payment Method** |
+| Eine Rechnung bezahlen | Projektinhaber, **Manage Billing** oder **Edit Invoices** |
+| Den Tarif ändern, ein Guthaben aufladen oder das automatische Aufladen ändern | Projektinhaber oder **Manage Billing** |
 
 Eine Schaltfläche, die Sie nicht nutzen dürfen, erscheint gesperrt und sagt, wer darf. Siehe [Benutzer, Teams & Berechtigungen](/docs/permissions/index#teams) zu den Abrechnungsrollen.
 

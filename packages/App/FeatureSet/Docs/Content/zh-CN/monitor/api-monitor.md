@@ -34,7 +34,7 @@ sequenceDiagram
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该 API 的探测器。** 每个新监视器都会选中您项目的默认探测器。如果 API 前面有防火墙，请放行 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses)。私有网络中的 API 需要在该网络内运行、并被允许访问私有地址的 [自定义探测器](/docs/probe/custom-probe)：请参阅 [私有网络访问](/docs/self-hosted/private-network-access)。
 - **存为监视器密钥的凭据。** 如果 API 需要密钥或令牌，请先将其存储为 [监视器密钥](/docs/monitor/monitor-secrets)，这样监视器只保存对它的引用。
 

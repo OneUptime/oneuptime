@@ -37,7 +37,7 @@ flowchart TB
 ## 시작하기 전에
 
 - 서비스가 OneUptime으로 트레이스를 보내고 있어야 합니다. [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요. 각 서비스는 `service.name` 으로 [서비스 카탈로그](/docs/telemetry/services)에 등록되어 있습니다.
-- SLO를 만들 수 있는 역할이 필요합니다. Project Owner, Project Admin, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
+- SLO를 만들 수 있는 역할이 필요합니다. 프로젝트 소유자, 프로젝트 관리자, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
 
 ## 요청 SLO 만들기
 

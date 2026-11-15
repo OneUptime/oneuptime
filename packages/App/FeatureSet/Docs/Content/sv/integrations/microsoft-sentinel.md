@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - En Log Analytics-arbetsyta med Microsoft Sentinel aktiverat, i Azures offentliga moln eller i Azure Government (US).
 - I Microsoft Entra ID behörighet att skapa en appregistrering och en klienthemlighet.
 - På den resursgrupp som innehåller arbetsytan behörighet att tilldela roller, till exempel Ägare eller Administratör för användaråtkomst.

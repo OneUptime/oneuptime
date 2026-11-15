@@ -23,7 +23,7 @@ Elke minuut pollt OneUptime elke ingeschakelde verbinding waarvan het pollinterv
 
 ## Voordat je begint
 
-- In OneUptime de rol Project Owner, Project Admin of Security Admin. Security Member en Security Viewer zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
+- In OneUptime de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder. Beveiligingslid en Beveiligingskijker zien verbindingen en hun runhistorie, maar kunnen ze niet wijzigen.
 - Een Microsoft Entra-tenant met een licentie voor Microsoft Defender XDR: elke Defender-workload die is toegevoegd aan de Microsoft Defender-portal, zoals Defender for Endpoint, for Identity, for Office 365 of for Cloud Apps.
 - Een Entra-rol die toepassingen mag registreren, zoals Toepassingsbeheerder, en een Globale beheerder of Beheerder met bevoorrechte rol om beheerderstoestemming te verlenen.
 - Uitgaand HTTPS van de OneUptime-app en -workers naar `login.microsoftonline.com` en `graph.microsoft.com`, of naar `login.microsoftonline.us` en `graph.microsoft.us` voor Azure Government.

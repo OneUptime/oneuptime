@@ -23,7 +23,7 @@ Hvert minut poller OneUptime hver aktiveret forbindelse, hvis pollinterval er g�
 
 ## Før du går i gang
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
+- I OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan se forbindelser og deres kørselshistorik, men ikke ændre dem.
 - Et search head med Splunk Enterprise 9.0.1 eller nyere, eller Splunk Cloud Platform. OneUptime taler med dets REST API på administrationsporten, normalt `8089`. Splunk Web, på port `8000`, udstiller ikke REST API'et.
 - En Splunk-bruger til OneUptime, hvis rolle har capability'en `search` og kan læse det indeks, søgningen læser: `notable` for notable events. Enterprise Security-rollerne `ess_analyst` og `ess_user` giver begge dele. Forbindelsen læser kun, så rollen behøver intet andet.
 - Et search head, som OneUptime kan nå over HTTPS. OneUptime Cloud forbinder fra internettet, så search headet skal have en offentlig adresse: private adresser afvises. Et selvhostet OneUptime forbinder fra sine app- og workercontainere og kan nå et search head på dit private netværk, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.

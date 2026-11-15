@@ -19,7 +19,7 @@ Hver rolle og hver tilladelse har en række med disse kolonner:
 
 ## Roller
 
-{{PERMISSION_ROLE_COUNT}} roller. Fire af dem gælder i hele projektet: Project Owner, Project Admin, Project Member og Viewer. Hver af de andre dækker ét produktområde, for eksempel hændelser eller monitorer, på niveauet Admin, Member eller Viewer. Det er dem, **Tilføj rolle** tilbyder på et teams side **Tilladelser** og på en API-nøgles side.
+{{PERMISSION_ROLE_COUNT}} roller. Fire af dem gælder i hele projektet: Projektejer, Projektadministrator, Projektmedlem og Seer. Hver af de andre dækker ét produktområde, for eksempel hændelser eller monitorer, på niveauet Administrator, Medlem eller Seer. Det er dem, **Tilføj rolle** tilbyder på et teams side **Tilladelser** og på en API-nøgles side.
 
 {{PERMISSION_ROLE_TABLES}}
 

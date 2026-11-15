@@ -29,6 +29,7 @@ import {
   ProductAnalyticsPersonSessionDto,
   fromProductAnalyticsPersonSegment,
 } from "Common/Types/Rum/ProductAnalytics";
+import { getPathText } from "Common/Utils/Rum/PathText";
 import ProductAnalyticsPersonCard from "../../../Components/ProductAnalytics/ProductAnalyticsPersonCard";
 import React, {
   Fragment,
@@ -237,15 +238,21 @@ function getSessionColumns(translator: Translator): Columns<SessionRow> {
         /*
          * One line, ending in "..." where the column does: a page is
          * written left to right in any page, so its start stays in view.
+         * Its words are drawn decoded, "/café" for "/caf%C3%A9", as User
+         * Flows draws a page (PathText.getPathText, #8196).
          */
+        const entryPage: string = row.entryPage
+          ? getPathText(row.entryPage)
+          : "";
+
         return (
           <div className="grid grid-cols-1">
             <div
               className="truncate text-sm text-gray-900"
               dir="ltr"
-              title={row.entryPage || undefined}
+              title={entryPage || undefined}
             >
-              {row.entryPage ||
+              {entryPage ||
                 translator.translateText(NOT_REPORTED) ||
                 NOT_REPORTED}
             </div>
