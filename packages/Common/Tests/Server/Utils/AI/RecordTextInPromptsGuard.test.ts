@@ -133,12 +133,6 @@ const ALLOWED: Array<AllowedField> = [
     };
   }),
   {
-    file: "packages/Common/Server/Utils/AI/Toolbox/TimelineTools.ts",
-    expression: "item.rootCause",
-    reason:
-      "Part of a tool row's entry: ToolResultSerializer.serializeRows leaves embedded data out of every field and holds it to MAX_FIELD_LENGTH.",
-  },
-  {
     file: "packages/Common/Server/Utils/AI/SRE/IncidentInvestigationRunner.ts",
     expression: "contextData.incident.rootCause",
     reason:
