@@ -52644,5 +52644,19 @@
   "{{count}}c / {{memory}}": "{{count}} कोर / {{memory}}",
   "{{count}}c / {{memory}}_one": "{{count}} कोर / {{memory}}",
   "{{running}} running / {{stopped}} stopped": "{{running}} चल रहे / {{stopped}} रुके हुए",
-  "per {{denominator}}": "प्रति {{denominator}}"
+  "per {{denominator}}": "प्रति {{denominator}}",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation": "अभी तक स्वीकार न किए गए {{count}} अलर्ट को स्वीकार करें ताकि उनका एस्केलेशन रुक जाए",
+  "Acknowledge the {{count}} alerts that are not acknowledged yet, to stop their escalation_one": "अभी तक स्वीकार न किए गए {{count}} अलर्ट को स्वीकार करें ताकि उसका एस्केलेशन रुक जाए",
+  "Acknowledge these {{count}} alerts to stop their escalation": "इन {{count}} अलर्ट को स्वीकार करें ताकि उनका एस्केलेशन रुक जाए",
+  "Acknowledge these {{count}} alerts to stop their escalation_one": "इस अलर्ट को स्वीकार करें ताकि उसका एस्केलेशन रुक जाए",
+  "Declaring the incident does not acknowledge the alert: it keeps escalating until it is acknowledged.": "घटना घोषित करने से अलर्ट स्वीकार नहीं होता: स्वीकार होने तक उसका एस्केलेशन जारी रहता है।",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged.": "घटना घोषित करने से अभी तक स्वीकार न किए गए {{count}} अलर्ट स्वीकार नहीं होते: स्वीकार होने तक उनका एस्केलेशन जारी रहता है।",
+  "Declaring the incident does not acknowledge the {{count}} alerts that are not acknowledged yet: they keep escalating until they are acknowledged._one": "घटना घोषित करने से अभी तक स्वीकार न किया गया अलर्ट स्वीकार नहीं होता: स्वीकार होने तक उसका एस्केलेशन जारी रहता है।",
+  "Declaring the incident does not acknowledge these alerts: they keep escalating until they are acknowledged.": "घटना घोषित करने से ये अलर्ट स्वीकार नहीं होते: स्वीकार होने तक उनका एस्केलेशन जारी रहता है।",
+  "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.": "घटना घोषित होने पर इसे आपके नाम से स्वीकार किया जाता है, और इसका अपना ऑन-कॉल एस्केलेशन एक मिनट के भीतर रुक जाता है। जो पेज पहले ही भेजे जा चुके हैं, वे वापस नहीं लिए जाते।",
+  "The alerts it is declared from are acknowledged too, so their own escalation stops. An alert episode they belong to keeps escalating until the episode is acknowledged, and an incident on-call rule, if any, may still page.": "जिन अलर्ट से इसे घोषित किया जाता है, वे भी स्वीकार हो जाते हैं, इसलिए उनका अपना एस्केलेशन रुक जाता है। वे जिस अलर्ट एपिसोड का हिस्सा हैं, उसका एस्केलेशन एपिसोड स्वीकार होने तक जारी रहता है, और कोई घटना ऑन-कॉल नियम हो, तो वह अब भी पेज कर सकता है।",
+  "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.": "घटना घोषित होने पर इन्हें आपके नाम से स्वीकार किया जाता है, और इनका अपना ऑन-कॉल एस्केलेशन एक मिनट के भीतर रुक जाता है। जो पेज पहले ही भेजे जा चुके हैं, वे वापस नहीं लिए जाते।",
+  "You do not have permission to acknowledge this alert.": "आपको इस अलर्ट को स्वीकार करने की अनुमति नहीं है।",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are.": "{{count}} अलर्ट पहले से स्वीकार किए या सुलझाए जा चुके हैं और जैसे हैं वैसे ही छोड़े जाते हैं।",
+  "{{count}} alerts are already acknowledged or resolved and are left as they are._one": "{{count}} अलर्ट पहले से स्वीकार किया या सुलझाया जा चुका है और जैसा है वैसा ही छोड़ा जाता है।"
 }
