@@ -54694,5 +54694,5 @@
   "The request filter can be at most {{max}} characters long.": "요청 필터는 최대 {{max}}자까지 입력할 수 있습니다.",
   "The request filter can have at most {{max}} terms.": "요청 필터의 조건은 최대 {{max}}개입니다.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다.",
-  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone의 감사 추적과 각 API의 감사 필터를 보안 이벤트로."
 }

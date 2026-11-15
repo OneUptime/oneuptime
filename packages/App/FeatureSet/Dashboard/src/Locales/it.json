@@ -54694,5 +54694,5 @@
   "The request filter can be at most {{max}} characters long.": "Il filtro delle richieste può avere al massimo {{max}} caratteri.",
   "The request filter can have at most {{max}} terms.": "Il filtro delle richieste può avere al massimo {{max}} termini.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Il filtro delle richieste accetta gli attributi dello span e il suo nome, come @http.route:/checkout* o name:\"POST /checkout\". «{{text}}» non è né l'uno né l'altro.",
-  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "L'audit trail di Keystone e il filtro di audit su ogni API, negli Eventi di sicurezza."
 }

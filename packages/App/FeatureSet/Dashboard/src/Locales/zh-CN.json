@@ -42799,7 +42799,7 @@
   "OpenStack cloud": "OpenStack 云",
   "OpenStack clouds that are being monitored in this project. Each cloud is auto-discovered when the OneUptime OpenStack Agent sends metrics, or can be manually registered.": "OpenStack clouds that are being monitored in this project. Each cloud is auto-discovered when the OneUptime OpenStack Agent sends metrics, or can be manually registered.",
   "OpenStack has no global read-only role, so there is no read-only account to create. Instead, choose how much the agent should see.": "OpenStack 没有全局只读角色，因此无法创建只读账户。请改为选择代理能看到多少内容。",
-  "OpenStack key": "OpenStack 键",
+  "OpenStack key": "OpenStack 密钥",
   "OpenStack monitoring": "OpenStack 监控",
   "Owners added to every alert and incident that reaches this project or domain, by its ID, so a rename breaks nothing.": "按 ID 添加到抵达此项目或域的每个警报和事件的所有者，因此重命名不会造成任何影响。",
   "Physical Network": "物理网络",
@@ -54694,5 +54694,5 @@
   "The request filter can be at most {{max}} characters long.": "请求过滤器最多 {{max}} 个字符。",
   "The request filter can have at most {{max}} terms.": "请求过滤器最多包含 {{max}} 个条件。",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "请求过滤器使用 Span 属性和 Span 名称，例如 @http.route:/checkout* 或 name:\"POST /checkout\"。“{{text}}”两者都不是。",
-  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone 的审计跟踪和每个 API 上的审计过滤器，进入安全事件。"
 }

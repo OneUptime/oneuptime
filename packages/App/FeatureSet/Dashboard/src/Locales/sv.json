@@ -54694,5 +54694,5 @@
   "The request filter can be at most {{max}} characters long.": "Begäransfiltret får vara högst {{max}} tecken långt.",
   "The request filter can have at most {{max}} terms.": "Begäransfiltret får ha högst {{max}} villkor.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Begäransfiltret tar spanattribut och spannets namn, till exempel @http.route:/checkout* eller name:\"POST /checkout\". \"{{text}}\" är ingetdera.",
-  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystones granskningslogg och granskningsfiltret på varje API, in i Säkerhetshändelser."
 }
