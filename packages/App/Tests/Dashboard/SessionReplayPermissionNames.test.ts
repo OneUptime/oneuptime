@@ -64,8 +64,8 @@ const LANGUAGES: Array<string> = fs
 // The sentences that ask a reader for a permission, by the title they fill in.
 const ASKING_SENTENCES: ReadonlyArray<string> = [
   'A recording of this error may exist, but your role cannot list session replays. Ask a Project Admin for the "{{permission}}" permission.',
-  'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (Project Owners, admins and telemetry admins have it). Ask a Project Admin to arm the target for you.',
-  'Reading recording health needs the "{{permission}}" permission (Project Owners, admins and telemetry admins have it). Ask a Project Admin to grant it, or to run this check for you.',
+  'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to arm the target for you.',
+  'Reading recording health needs the "{{permission}}" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to grant it, or to run this check for you.',
   'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a Project Admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
   'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a Project Admin for the "{{permission}}" permission.',
   'Your role lacks the "{{permission}}" permission. Ask a Project Admin for it.',
@@ -108,7 +108,7 @@ describe("the permission a sentence names", () => {
     expect(
       describeHealthError({ kind: "permission", message: "" }).detail,
     ).toBe(
-      'Reading recording health needs the "List Session Replays" permission (Project Owners, admins and telemetry admins have it). Ask a Project Admin to grant it, or to run this check for you.',
+      'Reading recording health needs the "List Session Replays" permission (Project Owners, Project Admins and Telemetry Admins have it). Ask a Project Admin to grant it, or to run this check for you.',
     );
     expect(describeSessionReplayListError("", 403).detail).toBe(
       'Your role lacks the "List Session Replays" permission. Ask a Project Admin for it.',
