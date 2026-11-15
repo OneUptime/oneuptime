@@ -34,6 +34,8 @@ const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Utils/Database/ProjectStateListCache.ts",
   // The on-call policies each person is on duty for, by project.
   "Server/Utils/OnCall/OnDutyPoliciesCache.ts",
+  // What each project uses, for the products menu's "Not set up" (#7465).
+  "Server/Utils/ProjectProducts/ProjectUsageCache.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.

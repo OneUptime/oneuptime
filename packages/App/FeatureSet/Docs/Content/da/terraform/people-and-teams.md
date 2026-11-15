@@ -118,7 +118,7 @@ data "oneuptime_team_member" "alice" {
 
 ## Fjern personer
 
-Fjern personens medlemskaber fra din konfiguration, og anvend den. Ude af deres sidste team i projektet er de ude af projektet, og OneUptime fjerner dem fra hver vagtplan, hver eskaleringsregel og hver stedfortræder og fra det, de ejer: alt, undtagen de hændelser, alarmer og vedligeholdelsesbegivenheder, der er overstået. Fjern de blokke, der navngiver dem, i samme ændring, ellers opretter den næste plan dem igen for en, der ikke længere er i projektet.
+Fjern personens medlemskaber fra din konfiguration, og anvend den. Ude af deres sidste team i projektet er de ude af projektet, og OneUptime fjerner dem fra hver vagtplan, hver eskaleringsregel og hver stedfortræder og fra det, de ejer: alt, undtagen de hændelser, alarmer og vedligeholdelseshændelser, der er overstået. Fjern de blokke, der navngiver dem, i samme ændring, ellers opretter den næste plan dem igen for en, der ikke længere er i projektet.
 
 Deres OneUptime-konto forbliver deres: Det er kun projektet, de forlader. Et team, der skal beholde et medlem, giver ikke slip på sit sidste medlem, der har accepteret.
 

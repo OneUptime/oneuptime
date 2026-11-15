@@ -8,7 +8,8 @@ import ActivationMilestone from "../Analytics/ActivationMilestone";
  * come first in their category, and one you set up that has nothing in it
  * yet carries a quiet "Not set up". One request answers it for the whole
  * catalog (GET /project-products), and the server keeps the answer for a
- * few minutes per project (ProjectProductsService).
+ * few minutes per project, or until a product's first record or first data
+ * changes it (ProjectProductsService, ProjectUsageCache).
  *
  * A product has something in it when:
  *

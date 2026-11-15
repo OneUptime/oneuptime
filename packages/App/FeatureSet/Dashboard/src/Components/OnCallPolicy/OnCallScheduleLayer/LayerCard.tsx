@@ -49,6 +49,12 @@ export interface ComponentProps {
   total: number;
   isExpanded: boolean;
   /*
+   * The layer was just added: its form puts the cursor in Layer name, to be
+   * named right away. Any other layer's form, opened by the page or by its
+   * chevron, leaves focus and the scroll where they are (#7812).
+   */
+  focusesNameOnOpen?: boolean | undefined;
+  /*
    * The user overrides in force for this schedule, already scoped to the right
    * policy by the parent (see ./ScheduleOverrides). Applied to this layer's
    * rotation so "on call now" names whoever is actually covering.
@@ -697,6 +703,7 @@ const LayerCard: FunctionComponent<ComponentProps> = (
               layer={layer}
               timezone={props.timezone}
               onLayerChange={props.onLayerChange}
+              focusesNameOnOpen={props.focusesNameOnOpen}
             />
           </div>
         </div>

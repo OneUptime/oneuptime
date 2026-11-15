@@ -137,7 +137,7 @@ A un indirizzo si possono inviare 10 inviti all'ora, a progetti e pagine di stat
 :::details L'email di invito non è arrivata, o il suo link è scaduto
 L'invito non dipende dall'email. Chiedi alla persona di registrarsi con l'indirizzo invitato: OneUptime invia a quell'indirizzo un nuovo link per completare la creazione dell'account. Chi ha già un account accede e trova l'invito ad aspettarlo.
 
-Su un server self-hosted che non può ancora inviare email, nemmeno la registrazione può inviare un nuovo link via email: chiede invece alla persona di farsi dare il suo link di invito. Quando l'amministratore del server avrà [configurato l'email](/docs/emails/smtp#aprire-il-modulo), la registrazione funziona come sopra. Fino ad allora, un amministratore principale può rimuovere la persona dal progetto, invitarla di nuovo e inviarle il nuovo link di invito, che funziona una volta, solo per quell'indirizzo, per 7 giorni.
+Su un server self-hosted che non può ancora inviare email, nemmeno la registrazione può inviare un nuovo link via email: chiede invece alla persona di farsi dare il suo link di invito. Quando l'amministratore del server avrà [configurato l'email](/docs/emails/smtp#aprire-il-modulo), la registrazione funziona come sopra. Fino ad allora, un amministratore principale può inviarle un nuovo link, che funziona una volta, solo per quell'indirizzo, per 7 giorni: in **Utenti**, apri il menu della riga della persona, **⋯**, e fai clic su **Ottieni link di invito**.
 :::
 
 :::details Invita utente dice che gli utenti sono gestiti da SCIM Push Groups

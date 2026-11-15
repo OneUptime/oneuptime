@@ -35,7 +35,7 @@ flowchart TB
 
 **製品 → プロジェクト設定** を開き、サイドメニューで **テレメトリと APM** を開いて **取り込みキー** を選びます。
 
-![プロジェクト設定のテレメトリ取り込みキーのページ](/docs/static/images/TelemetryIngestionKeys.png)
+![「取り込みキー」の一覧。「取り込みキーを作成」を枠で囲んでいます](screen:ingestion-keys)
 
 ### キーを作成する
 

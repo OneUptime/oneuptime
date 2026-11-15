@@ -137,7 +137,7 @@ I OneUptime Cloud har et prosjekt på Free-abonnementet plass til én person. En
 :::details Invitasjonsmeldingen kom ikke frem, eller lenken er utløpt
 Invitasjonen avhenger ikke av e-posten. Be personen registrere seg med den inviterte adressen: OneUptime sender den adressen en ny lenke for å fullføre kontoen. Den som allerede har en konto, logger inn og finner invitasjonen.
 
-På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke registreringen sende en ny lenke på e-post: den ber i stedet personen spørre etter invitasjonslenken sin. Når serverens administrator har [satt opp e-post](/docs/emails/smtp#åpne-skjemaet), virker registreringen som over. Inntil da kan en hovedadministrator fjerne personen fra prosjektet, invitere personen igjen og sende den nye invitasjonslenken, som virker én gang, bare for den adressen, i 7 dager.
+På en selvhostet server som ikke kan sende e-post ennå, kan heller ikke registreringen sende en ny lenke på e-post: den ber i stedet personen spørre etter invitasjonslenken sin. Når serverens administrator har [satt opp e-post](/docs/emails/smtp#åpne-skjemaet), virker registreringen som over. Inntil da kan en hovedadministrator sende personen en ny lenke, som virker én gang, bare for den adressen, i 7 dager: under **Brukere** åpner du radmenyen til personen, **⋯**, og klikker på **Hent invitasjonslenke**.
 :::
 
 :::details Inviter bruker sier at brukerne styres av SCIM Push Groups

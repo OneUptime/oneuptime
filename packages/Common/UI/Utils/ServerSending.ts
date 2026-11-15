@@ -27,6 +27,14 @@ import { useEffect, useState } from "react";
  *     when it fails and why, and whether the global probes report. One
  *     request per page load serves every component that draws it; one that
  *     fails draws nothing, and is asked again by the next one that mounts.
+ *
+ * Both are kept until something changes what the server can send: a save
+ * of its settings, or a test send. That clears them
+ * (ServerSendingStatusLoader.clear), and every component still drawing the
+ * sending status reads it again at once (#7459). The banner at the top of
+ * the Admin Dashboard is mounted once for the whole visit, so it read the
+ * answer once: email saved and a test email delivered, it still said
+ * "Email is not set up" until a reload.
  */
 
 export const useServerCanSendEmail: () => boolean | null = ():
@@ -57,9 +65,15 @@ export const useServerCanSendEmail: () => boolean | null = ():
   return canSendEmail;
 };
 
+// Told when the kept answer is forgotten, so whoever draws it reads it again.
+export type ServerSendingStatusClearedListener = () => void;
+
 export default class ServerSendingStatusLoader {
   private static pending: Promise<ServerSendingStatusAnswer | null> | null =
     null;
+
+  private static listeners: Set<ServerSendingStatusClearedListener> =
+    new Set<ServerSendingStatusClearedListener>();
 
   // Whether this reader may be told: a master admin, the only one who can fix it.
   public static isShownToReader(): boolean {
@@ -92,9 +106,35 @@ export default class ServerSendingStatusLoader {
     return this.pending;
   }
 
-  // Forgets the answer, so the next load asks again.
+  /*
+   * Forgets what this page has read of whether the server can send - the
+   * sending status, and GET /global-config/vars' canSendEmail - so the next
+   * load asks again, and tells every component drawing the sending status
+   * to read it again now. Called once the server's settings are saved or a
+   * test is sent: what it can send may have changed with them.
+   */
   public static clear(): void {
     this.pending = null;
+    GlobalConfigUtil.clearCache();
+
+    for (const listener of Array.from(this.listeners)) {
+      try {
+        listener();
+      } catch {
+        // One reader that fails costs the others nothing.
+      }
+    }
+  }
+
+  // Calls the listener on every clear() until the returned function is called.
+  public static onCleared(
+    listener: ServerSendingStatusClearedListener,
+  ): () => void {
+    this.listeners.add(listener);
+
+    return (): void => {
+      this.listeners.delete(listener);
+    };
   }
 
   private static async fetch(): Promise<ServerSendingStatusAnswer | null> {
@@ -119,7 +159,13 @@ export default class ServerSendingStatusLoader {
   }
 }
 
-// The sending status, once loaded; null before, for anyone else, or on a failure.
+/*
+ * The sending status, once loaded; null before, for anyone else, or on a
+ * failure. Read again each time the kept answer is cleared, keeping what it
+ * shows until the new answer comes: only the latest read is drawn, so an
+ * answer that was on its way when the settings changed never replaces the
+ * one read after.
+ */
 export const useServerSendingStatus: () => ServerSendingStatusAnswer | null =
   (): ServerSendingStatusAnswer | null => {
     const [answer, setAnswer] = useState<ServerSendingStatusAnswer | null>(
@@ -128,19 +174,30 @@ export const useServerSendingStatus: () => ServerSendingStatusAnswer | null =
 
     useEffect(() => {
       let isCurrent: boolean = true;
+      let latestRead: number = 0;
 
-      ServerSendingStatusLoader.load()
-        .then((loaded: ServerSendingStatusAnswer | null): void => {
-          if (isCurrent) {
-            setAnswer(loaded);
-          }
-        })
-        .catch((): void => {
-          // load() never rejects; nothing to draw if it did.
-        });
+      const read: () => void = (): void => {
+        const thisRead: number = ++latestRead;
+
+        ServerSendingStatusLoader.load()
+          .then((loaded: ServerSendingStatusAnswer | null): void => {
+            if (isCurrent && thisRead === latestRead) {
+              setAnswer(loaded);
+            }
+          })
+          .catch((): void => {
+            // load() never rejects; nothing to draw if it did.
+          });
+      };
+
+      const stopListening: () => void =
+        ServerSendingStatusLoader.onCleared(read);
+
+      read();
 
       return () => {
         isCurrent = false;
+        stopListening();
       };
     }, []);
 

@@ -49,7 +49,7 @@ Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erac
 | **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** | **Incidenten → Actieve incidenten** |
 | **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** | **Waarschuwingen → Actieve waarschuwingen** |
 | **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** | **Monitoren → Niet operationeel** |
-| **Lopend onderhoud** | Onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende onderhoudsgebeurtenissen** |
+| **Lopend onderhoud** | Onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Gepland onderhoud → Lopende onderhoudsgebeurtenissen** |
 | **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** | **SLOs** |
 
 Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Zolang er een SLO in gevaar is, opent **SLO's in gevaar** de lijst **SLOs**, gefilterd op die SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
@@ -109,7 +109,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Gepland onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
@@ -187,7 +187,7 @@ Druk op `g` en dan op een letter om direct naar een product te gaan. Druk de let
 | `g` dan `a` | Waarschuwingen |
 | `g` dan `o` | Bereikbaarheid |
 | `g` dan `s` | Statuspagina's |
-| `g` dan `e` | Geplande onderhoud |
+| `g` dan `e` | Gepland onderhoud |
 | `g` dan `d` | Dashboards |
 | `g` dan `l` | Logboeken |
 | `g` dan `t` | Traces |

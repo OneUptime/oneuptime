@@ -27,7 +27,7 @@ Een inzending die een controle niet doorstaat, maakt niets aan. Zie [Wat een for
 De kaart **Wat elke inzending aanmaakt** bevat de keuze die je maakte toen je het formulier aanmaakte:
 
 - **Incident** — elke inzending meldt een incident, zodat je bereikbaarheidsdienst meteen wordt ingelicht. Gebruik het voor probleemmeldingen.
-- **Geplande onderhoud** — elke inzending plant een onderhoudsgebeurtenis. Gebruik het voor wijzigings- en onderhoudsverzoeken.
+- **Gepland onderhoud** — elke inzending plant een onderhoudsgebeurtenis. Gebruik het voor wijzigings- en onderhoudsverzoeken.
 
 De andere kiezen vraagt je om bevestiging, omdat het formulier ermee verandert:
 

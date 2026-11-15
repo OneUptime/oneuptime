@@ -13,7 +13,7 @@ import React, {
   useState,
 } from "react";
 import { RouteUtil } from "../../../Utils/RouteMap";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { getSubscriberNotificationEventTypeOptions } from "../../../Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -178,9 +178,7 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             description:
               "Select the type of event this template will be used for. The default template for this event will be loaded as a starting point.",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationEventType,
-            ),
+            dropdownOptions: getSubscriberNotificationEventTypeOptions(),
             required: true,
             placeholder: "Select Event Type",
             onChange: (
@@ -374,9 +372,8 @@ const SubscriberNotificationTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Event Type",
             type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              StatusPageSubscriberNotificationEventType,
-            ),
+            // Each as its name, as the Event Type column draws it.
+            filterDropdownOptions: getSubscriberNotificationEventTypeOptions(),
           },
           {
             field: {

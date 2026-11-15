@@ -35,7 +35,7 @@ Sie brauchen einen Telemetrie-Ingestion-Schlüssel vom Typ **Server**. Falls Sie
 
 Gehen Sie zu **Produkte → Projekteinstellungen**, öffnen Sie im Seitenmenü **Telemetrie & APM** und wählen Sie **Ingestion-Schlüssel**.
 
-![Die Seite der Telemetrie-Ingestion-Schlüssel in den Projekteinstellungen](/docs/static/images/TelemetryIngestionKeys.png)
+![Die Liste „Ingestion-Schlüssel“, „Aufnahmeschlüssel erstellen“ ist markiert](screen:ingestion-keys)
 
 ### Einen Schlüssel erstellen
 

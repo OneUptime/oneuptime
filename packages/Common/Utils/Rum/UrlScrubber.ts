@@ -333,10 +333,16 @@ export default class UrlScrubber {
   }
 
   /*
-   * Path-only form, used for the refresh-rage detector, which needs to
-   * compare "the same page" across reloads without the origin.
+   * The page a URL is, without its origin or query: the scrubbed path and,
+   * for a hash router, the route scrub keeps ("/#/orders/[redacted]",
+   * "/app/#!/cart"). The refresh-rage log compares it across page loads,
+   * and the support bundle names the page by it.
+   *
+   * The path alone was the page before: every route of a hash-routed app
+   * has the path "/", so a full load of #/a and then of #/b was counted as
+   * two reloads of one page, and raised refresh rage.
    */
-  public static getScrubbedPathname(rawUrl: string): string {
+  public static getScrubbedPage(rawUrl: string): string {
     const scrubbed: string = UrlScrubber.scrub(rawUrl);
 
     if (!scrubbed || scrubbed === REDACTED) {
@@ -345,7 +351,7 @@ export default class UrlScrubber {
 
     try {
       const parsed: URL = new URL(scrubbed, "https://redacted.invalid");
-      return parsed.pathname;
+      return parsed.pathname + parsed.hash;
     } catch {
       return REDACTED;
     }
