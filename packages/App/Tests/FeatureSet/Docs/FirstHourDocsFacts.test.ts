@@ -4,10 +4,15 @@ import {
   WhoIsToldFacts,
   WhoIsToldMode,
   buildFirstOnCallPolicy,
+  getFirstOnCallPolicyName,
   getWhoIsToldMode,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
-import { drawnActionLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
+import {
+  dashboardTranslator,
+  drawnActionLabel,
+  drawnDashboardLabel,
+} from "./DocsDashboardLabels";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -101,7 +106,7 @@ describe("the Quickstart's first on-call policy", () => {
       create.miscDataProps[PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY],
     ).toBe(true);
     expect(english).toContain(
-      `this makes \`${GUIDED_SETUP_POLICY_NAME}\`, which pages you for every new incident and alert in the project`,
+      `this makes **${GUIDED_SETUP_POLICY_NAME}**, which pages you for every new incident and alert in the project`,
     );
     expect(english).not.toContain(`**${SWITCH}**`);
   });
@@ -116,7 +121,7 @@ describe("the Quickstart's first on-call policy", () => {
     );
     // The Quickstart walks a new project: its policy is the setup's.
     expect(english).toContain(
-      `The website setup already made \`${GUIDED_SETUP_POLICY_NAME}\``,
+      `The website setup already made **${GUIDED_SETUP_POLICY_NAME}**`,
     );
   });
 
@@ -270,17 +275,23 @@ describe("every translation tells the same story, where the English does", () =>
   );
 
   it.each(TRANSLATIONS)(
-    "%s's Quickstart names the policy the website setup makes, never the create form's switch",
+    "%s's Quickstart names the policy the website setup makes, as it names it for this reader, never the create form's switch",
     (language: string) => {
       const quickstart: string = page(language, QUICKSTART);
-      const policyName: string = `\`${GUIDED_SETUP_POLICY_NAME}\``;
+      // The setup names the policy with this reader's translator (#7995, #8329).
+      const policyName: string = `**${getFirstOnCallPolicyName(
+        dashboardTranslator(language),
+      )}**`;
+      const englishName: string = `**${GUIDED_SETUP_POLICY_NAME}**`;
 
       expect(quickstart).not.toContain(
         `**${drawnDashboardLabel(language, SWITCH)}**`,
       );
+      expect(policyName).not.toBe(englishName);
       expect(quickstart.split(policyName).length).toBe(
-        page("en", QUICKSTART).split(policyName).length,
+        page("en", QUICKSTART).split(englishName).length,
       );
+      expect(quickstart).not.toContain(GUIDED_SETUP_POLICY_NAME);
     },
   );
 

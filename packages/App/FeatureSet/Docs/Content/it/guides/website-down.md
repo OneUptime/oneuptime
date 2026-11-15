@@ -42,7 +42,7 @@ In **Cosa dobbiamo controllare?**, digita l'indirizzo in **Indirizzo del sito we
 
 In **Chi deve essere avvisato?**, ciò che vedi dipende dal progetto:
 
-- Se il progetto non ha ancora né una policy di reperibilità né una regola di reperibilità, sei già in **Chi viene chiamato**. Fai clic su **Aggiungi membri del team** per aggiungere persone che fanno già parte del progetto, poi fai clic su **Salva e continua**. Questo crea `Default on-call policy`, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso del progetto.
+- Se il progetto non ha ancora né una policy di reperibilità né una regola di reperibilità, sei già in **Chi viene chiamato**. Fai clic su **Aggiungi membri del team** per aggiungere persone che fanno già parte del progetto, poi fai clic su **Salva e continua**. Questo crea la **Policy di reperibilità predefinita**, che avvisa queste persone per ogni nuovo incidente e ogni nuovo avviso del progetto.
 - Se il progetto ha una policy o una regola di reperibilità, sono le sue regole a decidere chi viene chiamato: fai clic su **Continua**.
 - Se sei un membro, e quindi non puoi configurare le chiamate, ti viene detto che riceverai un'email come proprietario del monitor: fai clic su **Continua**.
 

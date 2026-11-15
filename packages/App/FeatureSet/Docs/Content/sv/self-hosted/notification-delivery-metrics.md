@@ -153,7 +153,7 @@ Statusar kommer bara där leverantören kan rapportera dem:
 
 | `notification.page.start` | Tiden räknas från |
 | --- | --- |
-| `monitor_data_received` | När OneUptime tog emot de data som utlöste monitorn: en inkommande begäran, en serveragents rapport, ett inkommande e-postmeddelande, en probs kontroll, en SNMP-trap eller en avläsning av en nätverksenhet. Det inkluderar tiden som data väntade i kön på att utvärderas. |
+| `monitor_data_received` | När OneUptime tog emot de data som utlöste monitorn: en inkommande begäran, en serveragents rapport, ett inkommande e-postmeddelande, en sonds kontroll, en SNMP-trap eller en avläsning av en nätverksenhet. Det inkluderar tiden som data väntade i kön på att utvärderas. |
 | `record_created` | När incidenten, larmet eller episoden skapades: av en telemetrimonitor, en regel eller en person, och vid en kontroll av frånvaro, till exempel en heartbeat som slutade. |
 | `page_started` | När ett larm startade senare: en person, ett arbetsflöde eller en regel som nu matchar startade det, eller det är ett direktlarm. För ett larm som dess jourregel eller OneUptime AI höll kvar, när uppehållet tog slut, eller när det startade om det var tidigare. För ett nytt larm, när tidsgränsen efter bekräftelse löpte ut. Så syns en worker som kom sent till något av dem i tiden. |
 

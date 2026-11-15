@@ -3,7 +3,7 @@
 Invia gli avvisi dei monitor di [Datadog](https://www.datadoghq.com) a OneUptime, così ognuno diventa un incidente o un avviso, chiama il tuo team reperibile quando è urgente e si risolve quando il monitor di Datadog rientra. Datadog invia i suoi avvisi tramite la sua [integrazione Webhooks](https://docs.datadoghq.com/integrations/webhooks/), quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un modello di workflow, o un monitor di richieste in arrivo.
+- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un modello del flusso di lavoro, o un monitor di richieste in arrivo.
 - [Partire dal modello](#partire-dal-modello): Scegli chi chiamare, copia l'URL e vedi cosa fa ogni avviso.
 - [Ricevere gli avvisi con un monitor](#ricevere-gli-avvisi-con-un-monitor): Un incidente per avviso, risolto al rientro.
 - [Configurare Datadog](#configurare-datadog): Un webhook e i monitor che lo notificano.
@@ -27,7 +27,7 @@ Un monitor di Datadog notifica i webhook che il suo messaggio menziona quando ca
 ## Prima di iniziare
 
 - Un account Datadog in cui puoi configurare le integrazioni e modificare i monitor.
-- In OneUptime, il permesso di creare workflow, o monitor se scegli quella strada. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
+- In OneUptime, il permesso di creare flussi di lavoro, o monitor se scegli quella strada. Su OneUptime Cloud, i flussi di lavoro richiedono il piano **Growth** o superiore.
 
 ## Scegliere come OneUptime riceve gli avvisi
 
@@ -35,8 +35,8 @@ Configura prima OneUptime: ti dà l'URL a cui invia Datadog.
 
 | Strada | Usala quando |
 | --- | --- |
-| Il modello di workflow (consigliato) | Vuoi ogni avviso come un incidente o un avviso a una gravità data dalla priorità del monitor, con i reperibili chiamati per P1 e P2, gli avvertimenti annotati sopra, e risolto al rientro. Non c'è nulla da costruire. |
-| Un monitor di richieste in arrivo | Vuoi incidenti senza un workflow, con qualsiasi piano, e un monitor il cui stato segue Datadog. |
+| Il modello del flusso di lavoro (consigliato) | Vuoi ogni avviso come un incidente o un avviso a una gravità data dalla priorità del monitor, con i reperibili chiamati per P1 e P2, gli avvertimenti annotati sopra, e risolto al rientro. Non c'è nulla da costruire. |
+| Un monitor di richieste in arrivo | Vuoi incidenti senza un flusso di lavoro, con qualsiasi piano, e un monitor il cui stato segue Datadog. |
 
 Entrambi ricevono lo stesso JSON dallo stesso webhook, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un URL in Datadog.
 
@@ -46,18 +46,18 @@ La finestra **Crea un flusso di lavoro** ha due modelli Datadog, sotto **Datadog
 
 :::steps
 1. Vai su **Flussi di lavoro** e fai clic su **Crea flusso di lavoro**. In **Oppure parti da un modello**, scegli **Datadog** nell'elenco di categorie, fai clic su **Declare an incident when a Datadog monitor triggers**, o su **Create an alert when a Datadog monitor triggers**, e poi su **Usa questo modello**.
-2. In **Who to page for P1 and P2 monitors**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il workflow si apre nel **Costruttore**, disattivato.
+2. In **Who to page for P1 and P2 monitors**, scegli le policy di reperibilità da chiamare, o nessuna per non chiamare nessuno, e fai clic su **Crea flusso di lavoro**. Il flusso di lavoro si apre nel **Costruttore**, disattivato.
 3. Fai clic sul trigger **Webhook**, poi su **Copia URL**, e conserva l'URL per Datadog.
-4. Attiva **Abilitato** in cima al **Costruttore**. Un workflow disattivato risponde a Datadog con `400`.
+4. Attiva **Abilitato** in cima al **Costruttore**. Un flusso di lavoro disattivato risponde a Datadog con `400`.
 :::
 
-Poi [configura Datadog](#configurare-datadog) perché invii i suoi avvisi a quell'URL. Il passo `read-event-1` del workflow si apre con la stessa configurazione, per quando ci torni nel **Costruttore**.
+Poi [configura Datadog](#configurare-datadog) perché invii i suoi avvisi a quell'URL. Il passo `read-event-1` del flusso di lavoro si apre con la stessa configurazione, per quando ci torni nel **Costruttore**.
 
-### Cosa fa il workflow
+### Cosa fa il flusso di lavoro
 
 Dopo il trigger **Webhook**, il passo **Check With JavaScript** `read-event-1` legge la `transition` che Datadog invia, e **Incident From Another Tool**, o **Alert From Another Tool** nel modello degli avvisi, fa ciò che significa, tramite la chiave di ciclo dell'avviso. Datadog tiene quella chiave dal momento in cui un avviso scatta finché non rientra, e la volta successiva che scatta la chiave è nuova, quindi ogni volta ha un incidente tutto suo. L'incidente conserva la chiave nel suo campo personalizzato `datadogAlertCycleKey`.
 
-| Transizione | Cosa fa il workflow |
+| Transizione | Cosa fa il flusso di lavoro |
 | --- | --- |
 | `Triggered`, `Re-Triggered` | Dichiara un incidente intitolato `Datadog: <monitor>`, alla gravità a cui corrisponde la priorità del monitor, fuori dalle tue pagine di stato. La sua descrizione collega l'avviso in Datadog e riporta la priorità, l'host, l'ambito e il messaggio del monitor. Una notifica per un avviso che ha già il suo incidente non ne apre un secondo, e non chiama nessuno di nuovo. |
 | `Recovered` | Risolve l'incidente dell'avviso, a meno che non sia già risolto. Il motivo è nella sua cronologia. |
@@ -200,17 +200,17 @@ curl -X POST "<url>" \
 
 Con il modello, si apre un incidente intitolato `Datadog: High CPU`, e le policy di reperibilità che hai scelto vengono chiamate. Con il monitor, si apre un incidente intitolato `[Triggered] High CPU`. Invia la stessa richiesta con `transition` impostato su `Recovered`, e l'incidente si risolve.
 
-Poi prova da Datadog: apri un monitor che menziona il webhook, fai clic su **Test Notifications** e invia la sua notifica **Alert**. Per vedere che è arrivata, apri **Registri → Esecuzioni** del workflow, o la timeline del monitor di OneUptime.
+Poi prova da Datadog: apri un monitor che menziona il webhook, fai clic su **Test Notifications** e invia la sua notifica **Alert**. Per vedere che è arrivata, apri **Registri → Esecuzioni** del flusso di lavoro, o la timeline del monitor di OneUptime.
 
 ## Risoluzione dei problemi
 
 :::details Non arriva nulla in OneUptime
 - Verifica che il messaggio del monitor di Datadog menzioni `@webhook-oneuptime`, scritto come si chiama il webhook.
 - Il monitor risponde `200` subito, prima di controllare qualsiasi cosa, anche con una chiave segreta errata. Guarda la timeline del monitor per vedere se gli avvisi arrivano.
-- Un workflow disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
+- Un flusso di lavoro disattivato risponde `400`. Attiva **Abilitato** in cima al suo **Costruttore**.
 :::
 
-:::details Il workflow gira, ma non apre nulla
+:::details Il flusso di lavoro gira, ma non apre nulla
 Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi** dice perché ha preso **No**.
 
 - `Datadog named no alert cycle key`: aggiungi `"alert_cycle_key": "$ALERT_CYCLE_KEY"` al payload del webhook in Datadog.
@@ -220,7 +220,7 @@ Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suo
 :::details I reperibili non vengono chiamati
 - Chiamano solo i monitor P1 e P2 e i monitor senza priorità. Vedi [Priorità e chiamate](#priorità-e-chiamate).
 - Una notifica per un avviso che ha già il suo incidente non chiama nessuno di nuovo.
-- Se nella finestra **Crea un flusso di lavoro** non hai scelto nessuno, il workflow non ha alcun passo che chiami.
+- Se nella finestra **Crea un flusso di lavoro** non hai scelto nessuno, il flusso di lavoro non ha alcun passo che chiami.
 :::
 
 :::details Gli incidenti si aprono ma non vengono mai risolti
@@ -232,7 +232,7 @@ Apri l'esecuzione in **Registri → Esecuzioni**. La voce `read-event-1` nei suo
 :::
 
 :::details Un campo mostra il nome di una variabile, o niente
-Datadog compila solo le variabili che valgono per l'evento. Invia una notifica di prova, poi guarda cosa è arrivato: nella timeline del monitor, o per un workflow in **Registri → Esecuzioni**.
+Datadog compila solo le variabili che valgono per l'evento. Invia una notifica di prova, poi guarda cosa è arrivato: nella timeline del monitor, o per un flusso di lavoro in **Registri → Esecuzioni**.
 :::
 
 :::details Tutti gli avvisi di un monitor finiscono in un solo incidente
@@ -241,14 +241,14 @@ Con il monitor, ogni gruppo ha bisogno del proprio `alert_key`. Verifica che il 
 
 ## Sicurezza
 
-- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta URL** nel trigger **Webhook** del workflow, o **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor. Poi aggiorna l'**URL** del webhook in Datadog.
+- **Tratta l'URL come una password.** Chiunque lo abbia può aprire incidenti. Se trapela, reimpostalo: **Reimposta URL** nel trigger **Webhook** del flusso di lavoro, o **Reimposta la chiave segreta della richiesta in arrivo** nella pagina **Impostazioni** del monitor. Poi aggiorna l'**URL** del webhook in Datadog.
 - **I link portano a Datadog.** Il modello collega un avviso solo su un sito Datadog, qualunque cosa dica una richiesta, e scrive ciò che Datadog ha inviato come testo.
 - **Self-hosted?** Datadog invia i webhook da internet, quindi il tuo OneUptime deve essere raggiungibile da lì via HTTPS.
 
 ## Prossimi passi
 
 :::cards
-- [Modelli di workflow](/docs/workflows/authoring): Crea un workflow da un modello e modificalo nel Costruttore.
+- [Modelli dei flussi di lavoro](/docs/workflows/authoring): Crea un flusso di lavoro da un modello e modificalo nel Costruttore.
 - [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor): Ogni impostazione del monitor che riceve i tuoi avvisi.
 - [New Relic](/docs/integrations/new-relic): Lo stesso modello, per i problemi di New Relic.
 - [Regole di escalation](/docs/on-call/escalation-rules): Decidi chi chiama una policy di reperibilità, e quando.

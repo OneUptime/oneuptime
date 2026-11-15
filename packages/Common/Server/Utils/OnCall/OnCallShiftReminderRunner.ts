@@ -455,7 +455,10 @@ export default class OnCallShiftReminderRunner {
       options?.retentionDays ?? SHIFT_REMINDER_LOG_RETENTION_DAYS;
     const batchSize: number =
       options?.batchSize ?? SHIFT_REMINDER_LOG_DELETE_BATCH_SIZE;
-    const cutoff: Date = OneUptimeDate.addRemoveDays(now, retentionDays * -1);
+    const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(
+      now,
+      retentionDays * -1,
+    );
 
     let deleted: number = 0;
 

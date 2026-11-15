@@ -55,7 +55,7 @@ Tre ting afgør, hvad du får fra et værktøj: om det overhovedet sender OpenTe
 En tankestreg betyder, at OneUptime endnu ikke har en vejledning til værktøjet. Dets telemetri modtages alligevel som al anden OpenTelemetry.
 
 :::details Hvad GitHub Copilot præcis eksporterer
-Copilot eksporterer kun OpenTelemetry fra sine agentflader: chat og agenttilstand i VS Code, agentværten bag Copilot CLI, Copilot SDK og agent-workflows i JetBrains-IDE'er gennem Copilot-plugin'et. GitHub dokumenterer ingen eksport for inline-forslag, Copilot på github.com eller Copilots kodegennemgang. Copilot sender ingen brugerattribut af nogen art, så sæt `enduser.id` og `user.email` pr. maskine via `resourceAttributes` eller `OTEL_RESOURCE_ATTRIBUTES`.
+Copilot eksporterer kun OpenTelemetry fra sine agentflader: chat og agenttilstand i VS Code, agentværten bag Copilot CLI, Copilot SDK og agent-arbejdsgange i JetBrains-IDE'er gennem Copilot-plugin'et. GitHub dokumenterer ingen eksport for inline-forslag, Copilot på github.com eller Copilots kodegennemgang. Copilot sender ingen brugerattribut af nogen art, så sæt `enduser.id` og `user.email` pr. maskine via `resourceAttributes` eller `OTEL_RESOURCE_ATTRIBUTES`.
 :::
 
 :::details Amazon Bedrock, Azure OpenAI, Windsurf og JetBrains AI

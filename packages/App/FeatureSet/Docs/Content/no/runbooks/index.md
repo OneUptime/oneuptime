@@ -159,7 +159,7 @@ Kjøringen blir liggende på hendelsens side **Runbooks**. Når du skriver postm
 - **Database-failover**: registrer tilstanden med JavaScript, be den vakthavende DBA-en bekrefte replikaens tilstand (Manual), kall orkestratoren (HTTP request), bekreft DNS (Manual), send avblåsningen (HTTP request).
 - **Tømming av cache**: én HTTP-forespørsel, og deretter et Manual-trinn "bekreft at treffraten i cachen er på vei opp igjen".
 - **Hendelse som rammer kunder**: Manual "publiser en oppdatering på statussiden", en HTTP-forespørsel for å varsle supportteamet, JavaScript for å hente listen over berørte kontoer.
-- **Forhåndssjekk før planlagt vedlikehold**: ta et øyeblikksbilde av metrikker, bekreft endringsvinduet med interessentene (Manual), slå på vedlikeholdsmodus på lastbalansereren (HTTP request).
+- **Forhåndssjekk før planlagt vedlikehold**: ta et øyeblikksbilde av målinger, bekreft endringsvinduet med interessentene (Manual), slå på vedlikeholdsmodus på lastbalansereren (HTTP request).
 - **Diagnostiser, og rett deretter**: et Bash-trinn samler inn diagnostikk, et AI-trinn leser den og anbefaler en løsning, og et kubectl-trinn med **Krev godkjenning** starter arbeidsbelastningen på nytt først når en person har godkjent det.
 - **Hygiene som alltid kjører**: en regel uten betingelser som registrerer systemets tilstand ved hver hendelse til postmortem.
 

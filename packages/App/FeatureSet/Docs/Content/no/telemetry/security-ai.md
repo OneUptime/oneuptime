@@ -51,7 +51,7 @@ En vurdering leser:
 - vertene i OneUptime som sakens verter og adresser samsvarer med, og hvem som eier dem;
 - hendelsen saken har erklært, notatene, de beskyttede entitetene og playbookene som er slått på.
 
-Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, metrikker, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
+Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, målinger, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
 
 ### Hva den konkluderer
 

@@ -1,24 +1,24 @@
 # Intégration Huntress
 
-Alertez votre équipe d'astreinte pour les rapports d'incident Huntress, avec un workflow. Quand le SOC de Huntress envoie un rapport d'incident sur un poste ou une identité, le workflow ouvre un seul incident pour lui, alerte la politique d'astreinte que vous choisissez, ajoute les commentaires faits dans Huntress comme notes privées, et résout l'incident quand le rapport est clos dans Huntress.
+Alertez votre équipe d'astreinte pour les rapports d'incident Huntress, avec un flux de travail. Quand le SOC de Huntress envoie un rapport d'incident sur un poste ou une identité, le flux de travail ouvre un seul incident pour lui, alerte la politique d'astreinte que vous choisissez, ajoute les commentaires faits dans Huntress comme notes privées, et résout l'incident quand le rapport est clos dans Huntress.
 
-Cette intégration est **entrante** : Huntress envoie chaque événement d'un rapport d'incident à l'URL propre du workflow, signé avec le secret de signature du point de terminaison. OneUptime n'appelle jamais Huntress, il n'a donc besoin d'aucune clé d'API Huntress.
+Cette intégration est **entrante** : Huntress envoie chaque événement d'un rapport d'incident à l'URL propre du flux de travail, signé avec le secret de signature du point de terminaison. OneUptime n'appelle jamais Huntress, il n'a donc besoin d'aucune clé d'API Huntress.
 
 :::cards
-- [Fonctionnement](#fonctionnement) : Ce que le workflow fait de chaque événement d'un rapport.
-- [Mise en place](#mettre-en-place-lintégration) : Créer le workflow, ajouter le point de terminaison dans Huntress, enregistrer son secret de signature, envoyer un test.
-- [Le déclencheur](#le-déclencheur-huntress-incident-report) : Les valeurs qu'un rapport transmet au workflow, et les paramètres du déclencheur.
+- [Fonctionnement](#fonctionnement) : Ce que le flux de travail fait de chaque événement d'un rapport.
+- [Mise en place](#mettre-en-place-lintégration) : Créer le flux de travail, ajouter le point de terminaison dans Huntress, enregistrer son secret de signature, envoyer un test.
+- [Le déclencheur](#le-déclencheur-huntress-incident-report) : Les valeurs qu'un rapport transmet au flux de travail, et les paramètres du déclencheur.
 - [Dépannage](#dépannage) : Ce que signifient les erreurs du déclencheur, et quoi changer.
 :::
 
 ## Fonctionnement
 
-Huntress envoie un événement sur un rapport d'incident quand le rapport est envoyé, quand quelqu'un le commente et quand il est clos. Le déclencheur **Huntress Incident Report** démarre le workflow une fois pour chaque événement, et son **Événement** dit lequel c'était : `created`, `comment-added` ou `closed`.
+Huntress envoie un événement sur un rapport d'incident quand le rapport est envoyé, quand quelqu'un le commente et quand il est clos. Le déclencheur **Huntress Incident Report** démarre le flux de travail une fois pour chaque événement, et son **Événement** dit lequel c'était : `created`, `comment-added` ou `closed`.
 
-```mermaid title="Un rapport d'incident Huntress dans un workflow"
+```mermaid title="Un rapport d'incident Huntress dans un flux de travail"
 sequenceDiagram
     participant H as Huntress
-    participant W as Workflow
+    participant W as Flux de travail
     participant C as Équipe d'astreinte
     H->>W: incident_report.created
     W->>W: Vérifier la<br/>signature, ouvrir<br/>un seul incident
@@ -32,30 +32,30 @@ sequenceDiagram
 ```
 
 1. **Vérifier.** Une requête doit être signée avec le secret de signature du point de terminaison, au plus cinq minutes avant son arrivée. Tout le reste est refusé, et les paramètres du déclencheur disent pourquoi.
-2. **Démarrer le workflow.** Chaque événement démarre une exécution, avec les champs du rapport comme valeurs du déclencheur. Un événement que Huntress renvoie ne démarre plus rien.
-3. **Ouvrir un seul incident.** Sur `created`, le workflow ouvre un incident nommé d'après le rapport, par exemple `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Sa description contient le résumé du rapport, sa gravité dans Huntress, l'organisation, l'hôte ou l'identité concerné, les indicateurs trouvés par Huntress et un lien vers le rapport dans Huntress. L'incident reçoit une étiquette au nom de l'organisation du rapport, et alerte la politique d'astreinte de votre choix quand le rapport est élevé ou critique.
+2. **Démarrer le flux de travail.** Chaque événement démarre une exécution, avec les champs du rapport comme valeurs du déclencheur. Un événement que Huntress renvoie ne démarre plus rien.
+3. **Ouvrir un seul incident.** Sur `created`, le flux de travail ouvre un incident nommé d'après le rapport, par exemple `Huntress: Incident on DESKTOP-01 (Acme Corp)`. Sa description contient le résumé du rapport, sa gravité dans Huntress, l'organisation, l'hôte ou l'identité concerné, les indicateurs trouvés par Huntress et un lien vers le rapport dans Huntress. L'incident reçoit une étiquette au nom de l'organisation du rapport, et alerte la politique d'astreinte de votre choix quand le rapport est élevé ou critique.
 4. **Suivre le rapport.** Sur `comment-added`, le commentaire devient une note privée sur l'incident. Sur `closed`, l'incident est résolu, avec la raison sur sa chronologie.
 
-L'incident garde le numéro du rapport dans ses champs personnalisés, sous `huntressReportId` : c'est ainsi que le workflow le retrouve quand Huntress commente ou clôt le rapport. Les incidents ouverts ainsi n'apparaissent jamais sur une page de statut, et vos règles d'incident (règles d'astreinte, de propriétaires, d'étiquettes et de confidentialité) s'y appliquent comme à tout autre incident.
+L'incident garde le numéro du rapport dans ses champs personnalisés, sous `huntressReportId` : c'est ainsi que le flux de travail le retrouve quand Huntress commente ou clôt le rapport. Les incidents ouverts ainsi n'apparaissent jamais sur une page de statut, et vos règles d'incident (règles d'astreinte, de propriétaires, d'étiquettes et de confidentialité) s'y appliquent comme à tout autre incident.
 
 ## Avant de commencer
 
-- Dans OneUptime, un rôle qui peut créer et modifier des workflows, comme **Propriétaire du projet**, **Administrateur du projet** ou **Administrateur des flux de travail**.
+- Dans OneUptime, un rôle qui peut créer et modifier des flux de travail, comme **Propriétaire du projet**, **Administrateur du projet** ou **Administrateur des flux de travail**.
 - Dans Huntress, le rôle **Account Admin** : seuls les administrateurs de compte peuvent ajouter des webhooks.
 - Une politique d'astreinte à alerter.
-- Sur OneUptime Cloud, une offre avec les workflows : Growth ou supérieure. Chaque événement envoyé par Huntress est une exécution de workflow.
+- Sur OneUptime Cloud, une offre avec les flux de travail : Growth ou supérieure. Chaque événement envoyé par Huntress est une exécution de flux de travail.
 - Sur une installation auto-hébergée, un OneUptime que Huntress peut joindre depuis Internet en HTTPS : Huntress n'envoie de webhooks qu'à des URL `https://`.
 
 ## Mettre en place l'intégration
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez la catégorie **Huntress**, choisissez **Open an incident for each Huntress incident report** et cliquez sur **Utiliser ce modèle**.
 
 ### Choisir qui alerter
 
-La boîte de dialogue demande ensuite qui alerter : sous **Who to page for high and critical reports**, choisissez les politiques d'astreinte à alerter, ou aucune pour n'alerter personne, et cliquez sur **Créer un flux de travail**. Le workflow s'ouvre dans le **Constructeur**, désactivé. Pour changer plus tard qui il alerte, cliquez sur son étape **Page an On-Call Policy** et changez ses **Politiques d'astreinte**.
+La boîte de dialogue demande ensuite qui alerter : sous **Who to page for high and critical reports**, choisissez les politiques d'astreinte à alerter, ou aucune pour n'alerter personne, et cliquez sur **Créer un flux de travail**. Le flux de travail s'ouvre dans le **Constructeur**, désactivé. Pour changer plus tard qui il alerte, cliquez sur son étape **Page an On-Call Policy** et changez ses **Politiques d'astreinte**.
 
 ### Ajouter un point de terminaison webhook dans Huntress
 
@@ -69,25 +69,25 @@ Dans Huntress, ouvrez le menu du point de terminaison (⋯) et choisissez **View
 
 Tant que le secret n'est pas enregistré, le déclencheur refuse toutes les requêtes. Huntress renvoie plus tard un événement refusé : un événement refusé maintenant arrive quand même.
 
-### Activer le workflow, et envoyer un test
+### Activer le flux de travail, et envoyer un test
 
 Activez **Activé** en haut du **Constructeur**. Dans Huntress, ouvrez le menu du point de terminaison (⋯) et choisissez **Send Test**. En quelques secondes, le déclencheur affiche **Reçoit les rapports**.
 
 > [!NOTE]
-> Quoi que contienne le test, le déclencheur montre qu'il est arrivé. Un test qui contient un rapport d'incident démarre le workflow comme n'importe quel autre rapport.
+> Quoi que contienne le test, le déclencheur montre qu'il est arrivé. Un test qui contient un rapport d'incident démarre le flux de travail comme n'importe quel autre rapport.
 :::
 
-## Ce que fait le workflow
+## Ce que fait le flux de travail
 
 Après le déclencheur, **Incident From Another Tool** fait ce que demande chaque **Événement**, par le numéro du rapport :
 
-| Event | Ce que fait le workflow |
+| Event | Ce que fait le flux de travail |
 | --- | --- |
 | `created` | Ouvre un incident avec l'**ID de la gravité de l'incident** du déclencheur, étiqueté avec son **Organization Label ID**. Pour un rapport élevé ou critique, **Page an On-Call Policy** alerte votre politique ; un rapport faible n'alerte personne. Un rapport qui a déjà un incident n'en ouvre pas d'autre. |
 | `comment-added` | Retrouve l'incident du rapport et y ajoute le commentaire comme note privée. |
 | `closed` | Retrouve l'incident du rapport et le résout, sauf s'il est déjà résolu. La raison figure sur sa chronologie : Huntress a clos le rapport. |
 
-C'est un workflow comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **If / Else** après **Incident From Another Tool**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Switch / Case** sur **Organisation**. Chaque exécution figure dans les exécutions du workflow, avec ce que chaque étape a fait.
+C'est un flux de travail comme un autre, vous pouvez donc changer ce qu'il fait : n'alerter que pour les rapports critiques en changeant ce que compare le **If / Else** après **Incident From Another Tool**, publier chaque rapport dans un canal de discussion avec une étape Slack ou Microsoft Teams, ou orienter chaque organisation vers sa propre politique d'astreinte avec un **Switch / Case** sur **Organisation**. Chaque exécution figure dans les exécutions du flux de travail, avec ce que chaque étape a fait.
 
 ### Gravités
 
@@ -103,7 +103,7 @@ Un projet qui a moins de gravités utilise sa moins élevée pour le reste. Un r
 
 ### Organisations
 
-L'**Organization Label ID** du déclencheur est une étiquette au nom de l'organisation Huntress du rapport, par exemple _Acme Corp_, qu'il crée quand le premier rapport de cette organisation arrive. Un workflow reçoit les rapports de toutes les organisations de votre compte Huntress, et **Uniquement ces organisations** du déclencheur restreint cela : un nom ou un ID d'organisation par ligne, les noms sans tenir compte de la casse.
+L'**Organization Label ID** du déclencheur est une étiquette au nom de l'organisation Huntress du rapport, par exemple _Acme Corp_, qu'il crée quand le premier rapport de cette organisation arrive. Un flux de travail reçoit les rapports de toutes les organisations de votre compte Huntress, et **Uniquement ces organisations** du déclencheur restreint cela : un nom ou un ID d'organisation par ligne, les noms sans tenir compte de la casse.
 
 > [!TIP]
 > Pour alerter l'équipe propre à chaque client, ajoutez une règle d'astreinte des incidents par organisation, par exemple « Si **Étiquettes d'incident** contient l'une de _Acme Corp_ », qui exécute la politique de ce client. Voir [Règles d'astreinte des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents).
@@ -132,22 +132,22 @@ Le déclencheur s'ouvre sur Huntress : son URL, une coche à côté de chaque é
 
 **Résumé** et **Commentaire** sont du texte écrit par les analystes de Huntress. Pour les mettre dans un incident ou une note, utilisez **Description de l'incident** et **Note** : ils gardent la mise en forme, et rien en eux ne charge d'image ni ne mentionne qui que ce soit.
 
-Pour essayer le workflow sans Huntress, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez un **Événement**, un **Report ID** et les champs dont vous avez besoin. Utilisez le même **Report ID** pour suivre un rapport de `created` à `closed`.
+Pour essayer le flux de travail sans Huntress, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez un **Événement**, un **Report ID** et les champs dont vous avez besoin. Utilisez le même **Report ID** pour suivre un rapport de `created` à `closed`.
 
 ## Connexions Huntress créées auparavant
 
-Huntress se configurait auparavant sous **Incidents → Intégrations → Huntress**. Chaque connexion Huntress est devenue un workflow du même nom, activé, qui fait ce que faisait la connexion : il alerte les mêmes politiques d'astreinte pour les mêmes rapports, ajoute les mêmes étiquettes et résout (ou se contente de noter) de la même façon. Son URL reste celle de la connexion, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, et son secret de signature est le même : il n'y a rien à changer dans Huntress. Les incidents que la connexion a ouverts gardent le numéro de leur rapport, si bien que le workflow les retrouve quand Huntress commente ou clôt ces rapports.
+Huntress se configurait auparavant sous **Incidents → Intégrations → Huntress**. Chaque connexion Huntress est devenue un flux de travail du même nom, activé, qui fait ce que faisait la connexion : il alerte les mêmes politiques d'astreinte pour les mêmes rapports, ajoute les mêmes étiquettes et résout (ou se contente de noter) de la même façon. Son URL reste celle de la connexion, `https://oneuptime.com/api/huntress/webhook/<connection-id>`, et son secret de signature est le même : il n'y a rien à changer dans Huntress. Les incidents que la connexion a ouverts gardent le numéro de leur rapport, si bien que le flux de travail les retrouve quand Huntress commente ou clôt ces rapports.
 
 ## Sécurité
 
 - **Uniquement des requêtes signées.** Le déclencheur vérifie les en-têtes `svix-id`, `svix-timestamp` et `svix-signature` envoyés par Huntress par rapport au corps de la requête, tel qu'il est arrivé. Une requête qui n'est pas signée avec le secret enregistré, ou qui a été signée plus de cinq minutes avant ou après, est refusée.
 - **Le secret reste secret.** Il est chiffré au repos, jamais renvoyé par l'API et plus jamais affiché. **Remplacer le secret de signature** dans le déclencheur en enregistre un autre, comme le secret d'un nouveau point de terminaison.
-- **L'URL est une adresse, pas un mot de passe.** Elle se termine par la clé du workflow ; seule une requête signée avec le secret du point de terminaison démarre le workflow.
-- **Un point de terminaison par workflow.** Chaque workflow a sa propre URL et son propre secret. Pour recevoir les rapports d'un deuxième compte Huntress, créez un deuxième workflow.
+- **L'URL est une adresse, pas un mot de passe.** Elle se termine par la clé du flux de travail ; seule une requête signée avec le secret du point de terminaison démarre le flux de travail.
+- **Un point de terminaison par flux de travail.** Chaque flux de travail a sa propre URL et son propre secret. Pour recevoir les rapports d'un deuxième compte Huntress, créez un deuxième flux de travail.
 
 ## Utiliser plutôt l'e-mail
 
-Huntress envoie aussi les rapports d'incident par e-mail, et un [moniteur d'e-mails entrants](/docs/monitor/incoming-email-monitor) peut ouvrir des incidents à partir de ces e-mails, par exemple quand l'objet contient `Critical Incident Report`. Il traite toutefois les e-mails comme le statut d'un seul moniteur : tant que son incident est ouvert, le rapport suivant n'en ouvre aucun, et l'incident est résolu par les critères du moniteur plutôt que quand Huntress clôt le rapport. Le workflow ouvre un incident par rapport et résout chacun avec son rapport : préférez-le. Dès que le workflow reçoit des rapports, cessez d'envoyer les e-mails au moniteur, sinon chaque rapport alerte deux fois.
+Huntress envoie aussi les rapports d'incident par e-mail, et un [moniteur d'e-mails entrants](/docs/monitor/incoming-email-monitor) peut ouvrir des incidents à partir de ces e-mails, par exemple quand l'objet contient `Critical Incident Report`. Il traite toutefois les e-mails comme le statut d'un seul moniteur : tant que son incident est ouvert, le rapport suivant n'en ouvre aucun, et l'incident est résolu par les critères du moniteur plutôt que quand Huntress clôt le rapport. Le flux de travail ouvre un incident par rapport et résout chacun avec son rapport : préférez-le. Dès que le flux de travail reçoit des rapports, cessez d'envoyer les e-mails au moniteur, sinon chaque rapport alerte deux fois.
 
 ## Dépannage
 
@@ -166,15 +166,15 @@ Les horloges de Huntress et de votre serveur OneUptime ont plus de cinq minutes 
 :::
 
 :::details "A request arrived while this workflow is off"
-Activez **Activé** en haut du **Constructeur**. Huntress renvoie la requête refusée, et elle démarre alors le workflow.
+Activez **Activé** en haut du **Constructeur**. Huntress renvoie la requête refusée, et elle démarre alors le flux de travail.
 :::
 
 :::details "No Huntress workflow has this address."
-Le workflow a été supprimé ou archivé, son déclencheur n'est plus **Huntress Incident Report**, ou l'URL du point de terminaison dans Huntress n'est pas celle du workflow. Copiez l'URL depuis le déclencheur et collez-la de nouveau dans le point de terminaison dans Huntress.
+Le flux de travail a été supprimé ou archivé, son déclencheur n'est plus **Huntress Incident Report**, ou l'URL du point de terminaison dans Huntress n'est pas celle du flux de travail. Copiez l'URL depuis le déclencheur et collez-la de nouveau dans le point de terminaison dans Huntress.
 :::
 
 :::details Aucun incident n'a été ouvert
-Ouvrez les exécutions du workflow et l'exécution du rapport. Si **Incident From Another Tool** a échoué avec `This project has no incident severities to put the incident at.`, ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
+Ouvrez les exécutions du flux de travail et l'exécution du rapport. Si **Incident From Another Tool** a échoué avec `This project has no incident severities to put the incident at.`, ajoutez-en une sous **Incidents → Paramètres → Gravité de l'incident**.
 :::
 
 :::details Personne n'a été alerté
@@ -184,7 +184,7 @@ Un rapport faible ouvre un incident sans alerter. Sinon, l'exécution du rapport
 ## Étapes suivantes
 
 :::cards
-- [Déclencheurs de workflow](/docs/workflows/triggers) : Les autres façons de démarrer un workflow.
+- [Déclencheurs de flux de travail](/docs/workflows/triggers) : Les autres façons de démarrer un flux de travail.
 - [Règles d'astreinte des incidents](/docs/incidents/settings#règles-dastreinte-des-incidents) : Alerter l'équipe propre à chaque organisation, par son étiquette.
 - [États et sévérités des incidents](/docs/incidents/states-and-severities) : Ordonner les gravités avec lesquelles s'ouvrent les rapports Huntress.
 - [Présentation des intégrations](/docs/integrations/index) : Les autres outils que vous pouvez connecter.

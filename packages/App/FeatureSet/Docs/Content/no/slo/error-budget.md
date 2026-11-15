@@ -80,7 +80,7 @@ Diagrammet **Nedbrenning av feilbudsjett** i **Oversikt** viser gjenværende bud
 - Et punkt registreres ved hver evaluering, hvert 5. minutt, så diagrammet til et nytt SLO er tomt til den første evalueringen.
 - Dra over diagrammet for å zoome inn på en del av vinduet. Dobbeltklikk, eller klikk på **Tilbakestill zoom**, for å se hele vinduet igjen.
 
-**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Feilbudsjettets historikk** går opptil 400 dager tilbake. Se [SLO-metrikker og -dashbord](/docs/slo/metrics).
+**Åpne målinger** åpner siden **Målinger** til SLO-et, der fanen **Feilbudsjettets historikk** går opptil 400 dager tilbake. Se [SLO-målinger og -dashbord](/docs/slo/metrics).
 
 ## Hvordan budsjettet kommer tilbake
 
@@ -147,6 +147,6 @@ For at et SLO nær en grense ikke skal varsle hele tiden, får eierne høyst én
 :::cards
 - [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle teamet ditt når budsjettet brennes for fort.
 - [Feilbudsjettpolicy](/docs/slo/error-budget-policy): Skriv ned hva teamet gjør mens budsjettet tømmes.
-- [SLO-metrikker og -dashbord](/docs/slo/metrics): Vis budsjettet over tid i et diagram.
+- [SLO-målinger og -dashbord](/docs/slo/metrics): Vis budsjettet over tid i et diagram.
 - [SLO-er – Oversikt](/docs/slo/introduction): Mål, vinduer og nedetidsstatuser.
 :::

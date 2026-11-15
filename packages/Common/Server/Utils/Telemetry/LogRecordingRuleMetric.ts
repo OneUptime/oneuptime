@@ -37,7 +37,7 @@ export default class LogRecordingRuleMetric {
     points: Array<LogRecordingRulePoint>;
     now: Date;
   }): Array<JSONObject> {
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       input.now,
       LOG_RECORDING_RULE_METRIC_RETENTION_IN_DAYS,
     );

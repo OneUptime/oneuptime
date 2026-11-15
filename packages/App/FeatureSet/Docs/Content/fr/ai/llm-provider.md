@@ -15,7 +15,7 @@ Un fournisseur LLM est le modèle derrière chaque fonctionnalité d'IA de OneUp
 - **Questions** : **Demander à l'IA** répond à partir des données de votre projet, avec une source pour chaque affirmation. Voir [Demander à l'IA](/docs/ai/ask-ai).
 - **Brouillons** : **Rédiger avec l'IA** dans les notes des incidents, des alertes et des maintenances planifiées, et les postmortems, rédigés à la demande ou lorsqu'un incident est résolu.
 - **Code** : des pull requests qui corrigent les exceptions, les traces lentes et les causes que trouvent les investigations, depuis OneUptime ou depuis GitHub. Voir [Code](/docs/ai/ai-agent).
-- **Tout le reste** : le tri d'AI Insights, les étapes d'IA des workflows et des runbooks, et les réponses dans Slack et Microsoft Teams.
+- **Tout le reste** : le tri d'AI Insights, les étapes d'IA des flux de travail et des runbooks, et les réponses dans Slack et Microsoft Teams.
 
 ## Quel fournisseur l'IA utilise
 

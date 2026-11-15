@@ -34,7 +34,7 @@ En politik tilkalder ingen, før noget kører den. Hver hændelse, advarsel og e
 | Vagtregler | **Hændelser → Regler → Vagtregler** og **Advarsler → Regler → Vagtregler** tilføjer politikkerne fra hver regel, der matcher | [Vagtregler for hændelser](/docs/incidents/settings#vagtregler-for-hændelser) |
 | Grupperingsregler | En grupperingsregel kører sine politikker, når den åbner en episode | [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes) |
 | Manuelt | **Udfør vagtpolitik**, i menuen **Handlinger** i et feed, eller på en besked i Slack eller Microsoft Teams | [Hændelsens feed](/docs/incidents/notes-owners-and-feed#hændelsens-feed) |
-| Chat og workflows | `/oneuptime page` i Slack eller Microsoft Teams, og et workflows trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
+| Chat og arbejdsgange | `/oneuptime page` i Slack eller Microsoft Teams, og en arbejdsgangs trin **Page an On-Call Policy** | [Paging](/docs/workflows/components#paging) |
 
 En politik, som flere regler tilføjer, kører én gang. En alvorlighed kører aldrig en politik af sig selv: det gør en vagtregel, der matcher alvorligheden. En hændelse eller advarsel, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker. En vagtregel sat til **Kun i arbejdstiden** lader de politikker, den tilføjer, vente, til arbejdstiden begynder.
 
@@ -120,7 +120,7 @@ flowchart TB
 Du finder udførelseslogs tre steder:
 
 - i politikkens egne **Udførelseslogs**, under **Protokoller**;
-- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
+- under **Vagt → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra arbejdsgange og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
 Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. **Notificeret via** viser, hvordan hvert tilkald nåede frem til personen: telefonopkald, SMS, e-mail, push-notifikation og så videre. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.

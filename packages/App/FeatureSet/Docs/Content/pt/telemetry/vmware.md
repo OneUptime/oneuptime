@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"comandos govc<br/>somente leitura"| vsphere
 ```
 
-O vCenter se registra com os primeiros dados, com o nome que o agente marca em cada métrica como `vmware.vcenter.name`. Para monitorar um vCenter sem rodar o agente, veja [VMware sem agente](/docs/telemetry/vmware-agentless): uma das suas probes coleta os mesmos dados com uma conta somente leitura.
+O vCenter se registra com os primeiros dados, com o nome que o agente marca em cada métrica como `vmware.vcenter.name`. Para monitorar um vCenter sem rodar o agente, veja [VMware sem agente](/docs/telemetry/vmware-agentless): uma das suas sondas coleta os mesmos dados com uma conta somente leitura.
 
 ## Antes de começar
 
@@ -517,7 +517,7 @@ O vSphere não tem push próprio de OpenTelemetry, então o agente (ou qualquer 
 
 :::cards
 - [Monitor de VMware](/docs/monitor/vmware-monitor): Alertas sobre hosts, VMs, datastores, clusters, datacenters e vSAN.
-- [VMware sem agente](/docs/telemetry/vmware-agentless): Deixe uma probe coletar o vCenter em vez disso.
+- [VMware sem agente](/docs/telemetry/vmware-agentless): Deixe uma sonda coletar o vCenter em vez disso.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): O que o agente de IA do VMware pode executar e como as correções funcionam.
 - [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector): A visão do sistema operacional dentro das VMs, ou da máquina do agente.
 :::

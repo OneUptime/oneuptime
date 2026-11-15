@@ -243,7 +243,7 @@ Che cosa succede dopo dipende da chi altro viene avvisato:
 
 Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere che qualcuno lo confermi, e chi l'ha escalato può ancora confermarlo. Questa esecuzione non lo avvisa più al riguardo: un livello successivo, o una ripetizione, che lo nomina lo salta. Quando tutti quelli che ha avvisato l'hanno escalato e non resta nessuno da avvisare, gli avvisi si fermano, e il feed dell'incidente lo dice.
 
-Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
+Un avviso che un flusso di lavoro invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
 Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**. Un livello saltato per uno più avanti è segnato come **Saltato** nella **Cronologia di esecuzione**, e il feed dice «On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it.»
 

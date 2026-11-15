@@ -1542,7 +1542,7 @@ export default class SessionReplayIngestService {
      * so one session's chunks would expire on different days, TTL-drop
      * mid-session, and leave an unplayable fragment.
      */
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       new Date(startUnixMs),
       SessionIdentity.clampRetentionDays(
         data.policy.retentionInDays,

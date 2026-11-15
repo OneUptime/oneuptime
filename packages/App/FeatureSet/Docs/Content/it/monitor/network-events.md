@@ -219,7 +219,7 @@ Aggiungi un server syslog remoto sul dispositivo: l'indirizzo IP della sonda, po
 
 Ciascuno è un [monitor log](/docs/monitor/logs-monitor) che conta l'evento negli ultimi 5 minuti, con **Raggruppa per attributi** impostato in modo che ogni tunnel, gateway o interfaccia abbia un avviso proprio, e con **Risolto per attributi** impostato sull'evento che dice che il problema è finito. Un avviso così resta aperto finché quell'evento non arriva per lo stesso dispositivo e lo stesso tunnel, per quanto tempo ci voglia; vedi [Risolto da un log](/docs/monitor/logs-monitor#risolto-da-un-log). OneUptime non legge alcun evento che dica che una temperatura è tornata normale, quindi un avviso di temperatura resta aperto finché non lo risolvi.
 
-Dalla scheda **Eventi** di un dispositivo i monitor osservano solo quel dispositivo. Per qualsiasi altro evento, aprine uno nella pagina Eventi e fai clic su **Crea avviso per questo evento**. Per inviare un avviso da qualche parte, o per chiamare qualcuno in reperibilità, aggiungi al monitor una policy di reperibilità o un workflow, come per qualsiasi altro.
+Dalla scheda **Eventi** di un dispositivo i monitor osservano solo quel dispositivo. Per qualsiasi altro evento, aprine uno nella pagina Eventi e fai clic su **Crea avviso per questo evento**. Per inviare un avviso da qualche parte, o per chiamare qualcuno in reperibilità, aggiungi al monitor una policy di reperibilità o un flusso di lavoro, come per qualsiasi altro.
 
 ## Indirizzi che non sono ancora dispositivi
 
