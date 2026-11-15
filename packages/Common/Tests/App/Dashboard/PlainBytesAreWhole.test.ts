@@ -13,6 +13,7 @@ import { formatTopologyBytes } from "../../../../App/FeatureSet/Dashboard/src/Co
 import { formatMemoryValue } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
 import { formatBytes as formatDockerWidgetBytes } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardDockerContainerListComponent";
 import { formatBytes as formatPodmanWidgetBytes } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardPodmanContainerListComponent";
+import { formatVMwareHostBytes } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareHostListComponent";
 import { formatBytes as formatDockerSwarmBytes } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DockerSwarmResourceUtils";
 import { formatBytes as formatProxmoxBytes } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxResourceUtils";
 import { formatBytes as formatVMwareBytes } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/VMwareResourceUtils";
@@ -96,6 +97,12 @@ const FORMATTERS: ReadonlyArray<NamedFormatter> = [
   { name: "formatMemoryValue (resource tables)", format: formatMemoryValue },
   { name: "the Docker container list widget", format: formatDockerWidgetBytes },
   { name: "the Podman container list widget", format: formatPodmanWidgetBytes },
+  {
+    name: "the VMware host list widget",
+    format: (bytes: number): string => {
+      return formatVMwareHostBytes(bytes, ENGLISH);
+    },
+  },
   { name: "Docker Swarm formatBytes", format: formatDockerSwarmBytes },
   { name: "Proxmox formatBytes", format: formatProxmoxBytes },
   { name: "VMware formatBytes", format: formatVMwareBytes },
@@ -234,9 +241,12 @@ const HELD: Readonly<Record<string, Held>> = {
   "App/FeatureSet/Dashboard/src/Components/ContainerHost/ContainerHostContainerOverview.tsx":
     { wholeBytesRule: "value.toFixed(value >= 100 || index === 0 ? 0 : 1)" },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareHostListComponent.tsx":
-    { wholeBytesRule: "scaled.toFixed(unitIndex === 0 ? 0 : 1)" },
-  "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardHostListComponent.tsx":
-    { wholeBytesRule: "value.toFixed(value >= 100 || i === 0 ? 0 : 1)" },
+    { calledAs: "the VMware host list widget" },
+  "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/HostListFigures.ts":
+    {
+      wholeBytesRule: "decimals: value >= 100 || i === 0 ? 0 : 1",
+      provenBy: "Common/Tests/App/Dashboard/HostListWidgetInLocale.test.tsx",
+    },
   "App/FeatureSet/Dashboard/src/Pages/DataObservability/Spend.tsx": {
     wholeBytesRule: "scaled >= 100 || unit === 0 ? Math.round(scaled)",
   },

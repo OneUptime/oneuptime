@@ -52479,6 +52479,7 @@
   "There was no IPv6 route to the server. Most likely the probe has no IPv6 route rather than the server being down.": "هیچ مسیر IPv6 به سرور وجود نداشت. به احتمال زیاد پراب مسیر IPv6 ندارد، نه اینکه سرور از کار افتاده باشد.",
   "Until they are fixed, some pages won't reach the people they are meant for.": "تا وقتی رفع نشوند، برخی فراخوان‌ها به افرادی که برایشان در نظر گرفته شده‌اند نمی‌رسند.",
   "Virtualization & clusters": "مجازی‌سازی و خوشه‌ها",
+  "more sites not shown": "سایت‌های بیشتری نشان داده نشده است",
   "{{count}} callers": "{{count}} فراخواننده",
   "{{count}} callers_one": "{{count}} فراخواننده",
   "{{count}} connected for context": "{{count}} متصل برای زمینه",
@@ -52577,8 +52578,15 @@
   "Write a Test with OneUptime AI": "نوشتن آزمون با OneUptime AI",
   "For {{title}}, OneUptime AI writes a test that would have caught this incident and opens a pull request. The postmortem goes with the request.": "برای {{title}}، OneUptime AI آزمونی می‌نویسد که این حادثه را شناسایی می‌کرد و یک Pull Request باز می‌کند. گزارش پس از حادثه همراه درخواست فرستاده می‌شود.",
   "To Do": "باید انجام شود",
+  "{{count}} without coordinates": "{{count}} بدون مختصات",
+  "{{count}} without coordinates_one": "{{count}} بدون مختصات",
   "{{rate}}/min": "{{rate}}/دقیقه",
   "{{shown}} of {{count}} items": "{{shown}} از {{count}} مورد",
   "{{shown}} of {{count}} items_one": "{{shown}} از {{count}} مورد",
-  "{{type}} replicas": "رونوشت‌های {{type}}"
+  "{{type}} replicas": "رونوشت‌های {{type}}",
+  "{{used}} of {{capacity}}": "{{used}} از {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} هسته / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} هسته / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} در حال اجرا / {{stopped}} متوقف",
+  "per {{denominator}}": "بر {{denominator}}"
 }

@@ -52479,6 +52479,7 @@
   "There was no IPv6 route to the server. Most likely the probe has no IPv6 route rather than the server being down.": "لم يكن هناك مسار IPv6 إلى الخادم. الأرجح أن المسبار ليس لديه مسار IPv6، لا أن الخادم متوقف.",
   "Until they are fixed, some pages won't reach the people they are meant for.": "إلى أن تُصلَح، لن تصل بعض الاستدعاءات إلى الأشخاص المقصودين بها.",
   "Virtualization & clusters": "المحاكاة الافتراضية والعناقيد",
+  "more sites not shown": "مواقع أخرى غير معروضة",
   "{{count}} callers": "الجهات المستدعية: {{count}}",
   "{{count}} callers_one": "{{count}} جهة مستدعية",
   "{{count}} connected for context": "المتصلة لإيضاح السياق: {{count}}",
@@ -52577,8 +52578,15 @@
   "Write a Test with OneUptime AI": "كتابة اختبار باستخدام OneUptime AI",
   "For {{title}}, OneUptime AI writes a test that would have caught this incident and opens a pull request. The postmortem goes with the request.": "لبند العمل {{title}}، يكتب OneUptime AI اختبارًا كان سيكشف هذه الحادثة، ويفتح طلب سحب. ويُرسل تقرير ما بعد الحادثة مع الطلب.",
   "To Do": "لم يُنجز بعد",
+  "{{count}} without coordinates": "بلا إحداثيات: {{count}}",
+  "{{count}} without coordinates_one": "{{count}} بلا إحداثيات",
   "{{rate}}/min": "{{rate}}/دقيقة",
   "{{shown}} of {{count}} items": "العناصر المعروضة: {{shown}} من أصل {{count}}",
   "{{shown}} of {{count}} items_one": "العنصر المعروض: {{shown}} من أصل {{count}}",
-  "{{type}} replicas": "النسخ المتماثلة من {{type}}"
+  "{{type}} replicas": "النسخ المتماثلة من {{type}}",
+  "{{used}} of {{capacity}}": "{{used}} من {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} من الأنوية / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} نواة / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "قيد التشغيل: {{running}} / متوقفة: {{stopped}}",
+  "per {{denominator}}": "لكل {{denominator}}"
 }
