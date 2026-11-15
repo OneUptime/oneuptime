@@ -40,6 +40,27 @@ const RETIRED_FIELD_NAMES: Array<string> = [
   "Default Assignees",
 ];
 
+/*
+ * Owner Users and Owner Teams are also the settings of a workflow's Create
+ * One Incident and Create One Alert steps (OwnersOnCreateArgument,
+ * f64838646d6): a step takes the record's owners as two settings, which the
+ * workflow builder draws, not the dashboard's Owners picker. A line that
+ * names one of those steps may name the two settings.
+ */
+const WORKFLOW_OWNER_SETTINGS: ReadonlySet<string> = new Set<string>([
+  "Owner Users",
+  "Owner Teams",
+]);
+const NAMES_A_WORKFLOW_CREATE_STEP: RegExp =
+  /\*\*Create One (Incident|Alert)\*\*/;
+
+// Whether a line names `name` as a workflow step's setting rather than a dashboard field.
+export function namesWorkflowOwnerSetting(line: string, name: string): boolean {
+  return (
+    WORKFLOW_OWNER_SETTINGS.has(name) && NAMES_A_WORKFLOW_CREATE_STEP.test(line)
+  );
+}
+
 function listMarkdown(directory: string): Array<string> {
   return fs
     .readdirSync(directory, { withFileTypes: true })
@@ -87,16 +108,49 @@ describe("the docs on picking owners", () => {
     const hits: Array<string> = [];
 
     for (const page of pages) {
-      const markdown: string = fs.readFileSync(page, "utf8");
+      const lines: Array<string> = fs.readFileSync(page, "utf8").split("\n");
 
       for (const name of RETIRED_FIELD_NAMES) {
-        if (markdown.includes(`**${name}**`)) {
+        const named: boolean = lines.some((line: string): boolean => {
+          return (
+            line.includes(`**${name}**`) &&
+            !namesWorkflowOwnerSetting(line, name)
+          );
+        });
+
+        if (named) {
           hits.push(`${path.relative(CONTENT_DIR, page)}: **${name}**`);
         }
       }
     }
 
     expect(hits).toEqual([]);
+  });
+
+  test("let a workflow's create steps name their own two owner settings, and nothing else", () => {
+    expect(
+      namesWorkflowOwnerSetting(
+        "**Create One Incident** and **Create One Alert** have **Owner Users** and **Owner Teams** settings",
+        "Owner Users",
+      ),
+    ).toBe(true);
+    expect(
+      namesWorkflowOwnerSetting(
+        "A workflow's **Create One Alert** step takes them under **Owner Teams**",
+        "Owner Teams",
+      ),
+    ).toBe(true);
+    // The dashboard's old dropdowns, on a line with no create step.
+    expect(
+      namesWorkflowOwnerSetting("Pick them under **Owner Users**.", "Owner Users"),
+    ).toBe(false);
+    // Another retired name, even beside a create step.
+    expect(
+      namesWorkflowOwnerSetting(
+        "**Create One Incident** has **Owner - Users**",
+        "Owner - Users",
+      ),
+    ).toBe(false);
   });
 
   /*
