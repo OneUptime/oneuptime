@@ -166,12 +166,12 @@ describe("DatabaseService.readsEveryRecordInProject", () => {
   describe("incidents and alerts: private records are read by their owners and the project's owners and admins", () => {
     test.each([
       [
-        "a project owner",
+        "a Project Owner",
         propsWith([{ permission: Permission.ProjectOwner }]),
         true,
       ],
       [
-        "a project admin",
+        "a Project Admin",
         propsWith([{ permission: Permission.ProjectAdmin }]),
         true,
       ],
@@ -188,7 +188,7 @@ describe("DatabaseService.readsEveryRecordInProject", () => {
         false,
       ],
       [
-        "a project owner granted for some labels only",
+        "a Project Owner granted for some labels only",
         propsWith([
           {
             permission: Permission.ProjectOwner,

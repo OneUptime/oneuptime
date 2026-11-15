@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Exigir un secreto en cada solicitud
 
-Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un propietario o administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
+Cualquiera que tenga la URL de un monitor puede enviarle solicitudes. Un Propietario del proyecto o Administrador del proyecto puede hacer que cada monitor de solicitudes entrantes del proyecto exija además uno de los secretos propios del proyecto, sin importar quién configuró el monitor: active **Exigir un secreto en cada solicitud**. Una solicitud sin ninguno se rechaza con `401` y el motivo, antes de contar como latido, de guardarse como la última solicitud del monitor o de llegar a ningún criterio. Una solicitud con uno sigue hacia los criterios propios del monitor, como antes.
 
 :::steps
 ### Cree un secreto
@@ -201,6 +201,10 @@ Vaya a **Monitores → Ajustes → Secretos de solicitud entrante** y cree un se
 ### Envíelo desde cada remitente
 
 Envíe el secreto en la cabecera `X-OneUptime-Secret`, o como token Bearer en la cabecera `Authorization`, según lo que su remitente pueda establecer.
+
+### Encuentre los remitentes que faltan
+
+En cuanto el proyecto tiene un secreto, OneUptime comprueba cada solicitud, todavía sin rechazar ninguna. **Solicitudes sin secreto**, en la misma página, enumera cada monitor de solicitudes entrantes que recibió una solicitud sin un secreto válido en las últimas 24 horas, y por qué: no se envió ninguno, o se envió uno incorrecto. Corrija esos remitentes. Un monitor cuyos remitentes estén corregidos muestra en **Última con secreto** una hora posterior a la de **Última sin secreto**, y sale de la lista en menos de 24 horas.
 
 ### Active el requisito
 
@@ -429,6 +433,10 @@ El `200` se envía antes de validar la solicitud, así que no demuestra que se h
 
 :::details Mi remitente recibe un 401
 El proyecto exige un secreto en cada solicitud, y la solicitud no envió ninguno, o envió uno que no es del proyecto: la respuesta indica cuál de los dos. Envíe uno de los secretos del proyecto en la cabecera `X-OneUptime-Secret` o como token Bearer, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud). Una solicitud rechazada nunca llega al monitor.
+:::
+
+:::details El monitor dejó de recibir solicitudes desde que se exige un secreto
+Sus remitentes no envían ningún secreto, o envían uno incorrecto, así que cada solicitud que envían se rechaza. Una línea bajo la **URL de latido** del monitor indica cuándo llegó la última solicitud rechazada, y **Solicitudes sin secreto** enumera cada monitor que recibió una en las últimas 24 horas, y por qué. Envíe uno de los secretos del proyecto desde esos remitentes, como muestra [Exigir un secreto en cada solicitud](#exigir-un-secreto-en-cada-solicitud).
 :::
 
 :::details El monitor nunca queda sin conexión cuando cesan los latidos

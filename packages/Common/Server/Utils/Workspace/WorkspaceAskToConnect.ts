@@ -98,7 +98,7 @@ export const WORKSPACE_ASK_TO_CONNECT_PERMISSIONS: Array<Permission> = [
 ];
 
 export const WORKSPACE_ASK_TO_CONNECT_PERMISSION_MESSAGE: string =
-  "Only a project owner or admin can ask the project's members to connect their accounts.";
+  "Only a Project Owner or Project Admin can ask the project's members to connect their accounts.";
 
 export const WORKSPACE_ASK_TO_CONNECT_ALREADY_ASKING_MESSAGE: string =
   "OneUptime is already asking this project's members to connect their accounts. Wait for it to finish.";
@@ -439,7 +439,7 @@ export default class WorkspaceAskToConnect {
 
     const askedBy: MarkdownText = data.askedByName
       ? mdText`**${data.askedByName}**`
-      : mdText`A project admin`;
+      : mdText`A Project Admin`;
 
     const inProject: MarkdownText = data.projectName
       ? mdText` in the **${data.projectName}** project`

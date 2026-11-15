@@ -545,7 +545,7 @@ describe("the empty-state button is gated like the header's", () => {
     });
 
     expect(screen.getByTestId("table-empty-state-note")).toHaveTextContent(
-      "You don't have permission to create these. Ask a project admin for access.",
+      "You don't have permission to create these. Ask a Project Admin for access.",
     );
   });
 

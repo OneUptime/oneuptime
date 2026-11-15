@@ -198,7 +198,7 @@ describe("DeletedProject model", () => {
     }
   });
 
-  it("does not hand a project owner any permission over it", () => {
+  it("does not hand a Project Owner any permission over it", () => {
     expect(model.getReadPermissions()).not.toContain(Permission.ProjectOwner);
     expect(model.getReadPermissions()).not.toContain(Permission.ProjectAdmin);
   });

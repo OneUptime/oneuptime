@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8825
+    "keys": 54234,
+    "untranslated": 8629
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -119,6 +119,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Feedback",
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
@@ -359,6 +360,7 @@
     "Tip",
     "Token",
     "Tokens",
+    "Tolerance",
     "Top",
     "Top P",
     "Top {{count}}",

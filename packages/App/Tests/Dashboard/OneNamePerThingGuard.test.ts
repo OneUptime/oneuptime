@@ -104,7 +104,15 @@ const DOCS_NAV_DIR: string = path.join(APPS_DIR, "Docs/Locales");
  * reworded goes here, and comes off when they say the one name - the test
  * fails while one is listed and clean.
  */
-const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
+const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
+  /*
+   * #8435 settled the Dashboard's Italian, Portuguese and Norwegian words
+   * for an on-call policy; their docs pages still say the dropped ones.
+   */
+  { language: "it", title: "On-Call" },
+  { language: "pt", title: "On-Call" },
+  { language: "no", title: "On-Call" },
+];
 
 /*
  * Products whose Products-menu title (navbar.items.*Title) still names

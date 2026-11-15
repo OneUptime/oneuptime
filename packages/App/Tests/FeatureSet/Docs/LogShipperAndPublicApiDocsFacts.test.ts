@@ -3208,8 +3208,13 @@ describe("the Public API page", () => {
     expect(uptime).toContain(
       'if (OneUptimeDate.isAfter(startDate, endDate)) { throw new BadDataException("Start date cannot be after end date"); }',
     );
+    /*
+     * The range's days, counted as lengths of 24 hours and the day it
+     * starts on, so a server outside UTC counts the same 90 across a clock
+     * change (8876c082b44, #8473).
+     */
     expect(uptime).toContain(
-      "OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) > 90",
+      "OneUptimeDate.getWholeDaysOfTimeBetween(startDate, endDate) + 1 > 90",
     );
 
     expect(tableAfter(PUBLIC_API, "| Field | Default | Notes |")).toEqual([

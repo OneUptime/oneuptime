@@ -799,7 +799,7 @@ export const BALANCE_LESS_THAN_COST_SENTENCES: Readonly<
 };
 
 export const WHO_CAN_ADD_BALANCE_SENTENCE: string = translationKey(
-  "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
+  "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
 );
 
 /*
@@ -811,7 +811,7 @@ export const WORKSPACE_NOT_CONNECTED_SENTENCES: Readonly<{
   account: string;
 }> = {
   project: translationKey(
-    "This project is not connected to {{workspace}}, so nothing was sent there. A project admin can connect it in Project Settings → Workspace → {{workspace}}.",
+    "This project is not connected to {{workspace}}, so nothing was sent there. A Project Admin can connect it in Project Settings → Workspace → {{workspace}}.",
   ),
   account: translationKey(
     "This {{workspace}} account is not connected to OneUptime in this project, so nothing was sent to it. Its owner can connect it in User Settings → Workspace → {{workspace}}.",

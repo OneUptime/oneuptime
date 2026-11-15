@@ -395,7 +395,7 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.RepositoryNeedsOwnRunner,
     ]) {
       expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBe(
-        "A project admin can pick this repository's Runner in its settings.",
+        "A Project Admin can pick this repository's Runner in its settings.",
       );
       /*
        * The repository's settings, at its Runner: More settings, where the

@@ -46,6 +46,9 @@ export const SLO_WIDGET_SELECT: Select<ServiceLevelObjective> = {
   errorBudgetRemainingSeconds: true,
   currentBurnRate: true,
   sloStatus: true,
+  // A request SLO's budget line is in requests (#8441).
+  sliType: true,
+  errorBudgetRemainingEvents: true,
 };
 
 /*

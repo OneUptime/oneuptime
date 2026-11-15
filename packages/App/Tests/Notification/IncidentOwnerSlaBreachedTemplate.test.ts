@@ -229,7 +229,7 @@ describe("the SLA breached email", () => {
     expect(visibleText(html)).toContain("View on Dashboard");
   });
 
-  test("says why it came: as an owner, or as a project owner of an incident with none", () => {
+  test("says why it came: as an owner, or as a Project Owner of an incident with none", () => {
     expect(visibleText(render())).toContain(
       "You are receiving this email because you are the owner of this resource.",
     );

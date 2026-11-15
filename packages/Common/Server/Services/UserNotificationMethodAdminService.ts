@@ -1700,8 +1700,8 @@ export class UserNotificationMethodAdminService extends BaseService {
      * the only one of the two that can leave a responder silently unreachable.
      */
     const consequence: string = isAdd
-      ? "It cannot be used to notify you until you verify it, and only you can do that — a verification code has been sent to the address or device itself. If you were not expecting this, do not verify it, remove it from your notification methods, and tell your project owners."
-      : "Any notification rules that used it were removed with it, so you may no longer be paged the way you were. Check your notification methods and rules now, and tell your project owners if you were not expecting this.";
+      ? "It cannot be used to notify you until you verify it, and only you can do that — a verification code has been sent to the address or device itself. If you were not expecting this, do not verify it, remove it from your notification methods, and tell your Project Owners."
+      : "Any notification rules that used it were removed with it, so you may no longer be paged the way you were. Check your notification methods and rules now, and tell your Project Owners if you were not expecting this.";
 
     const message: string = `${this.escapeHtml(actorDescription)} ${
       isAdd ? "added" : "removed"

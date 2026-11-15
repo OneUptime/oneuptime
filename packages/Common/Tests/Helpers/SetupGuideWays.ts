@@ -12,6 +12,10 @@ import {
   PODMAN_INSTALL_METHODS,
   getPodmanSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/Utils/DocumentationMarkdown";
+import {
+  DOCKER_SWARM_INSTALL_METHODS,
+  getDockerSwarmSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 
 /*
  * EVERY WAY THROUGH A PRODUCT'S SETUP GUIDE (#8341).
@@ -117,6 +121,25 @@ export function getPodmanSetupGuideWays(): Array<SetupGuideWay> {
         apiKey: reader.apiKey,
         method: option,
         hostName: name,
+      });
+    },
+  });
+}
+
+export function getDockerSwarmSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: DOCKER_SWARM_INSTALL_METHODS,
+    names: ["swarm-1", "Prod Swarm 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof DOCKER_SWARM_INSTALL_METHODS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getDockerSwarmSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        method: option,
+        clusterName: name,
       });
     },
   });

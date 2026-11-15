@@ -732,14 +732,17 @@ then `npm run i18n:validate` from the root.
   `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
   (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
   says the sentence, and the detail page is handed the filters as stored. That formatter's text is
-  a key, never a line a person reads. And an empty dropdown says so in the reader's words ("No
-  matches found", "No options available"), never react-select's English "No options" (#7805).
-  Enforced by
+  a key, never a line a person reads. A monitor's criteria list words each filter the same way,
+  every part of it a sentence of the locale around the part it holds: it read `Check if "Response
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
   [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,

@@ -63,7 +63,7 @@ const rawParts: (clause: unknown) => RawParts = (clause: unknown): RawParts => {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 describe("shouldBypassAlertPrivacy", () => {
-  test("root, master-admin, project owner and project admin bypass", () => {
+  test("root, master-admin, Project Owner and Project Admin bypass", () => {
     expect(shouldBypassAlertPrivacy({ isRoot: true })).toBe(true);
     expect(shouldBypassAlertPrivacy({ isMasterAdmin: true })).toBe(true);
     expect(

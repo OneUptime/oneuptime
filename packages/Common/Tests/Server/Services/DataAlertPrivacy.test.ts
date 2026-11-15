@@ -202,7 +202,7 @@ describe("a data alert is read only by someone who may see its alerts", () => {
     }
   });
 
-  test("project owners and admins, OneUptime and master admins see every row", async () => {
+  test("Project Owners and Project Admins, OneUptime and master admins see every row", async () => {
     for (const props of [
       userProps(Permission.ProjectOwner),
       userProps(Permission.ProjectAdmin),

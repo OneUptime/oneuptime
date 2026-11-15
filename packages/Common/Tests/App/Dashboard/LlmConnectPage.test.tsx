@@ -1188,7 +1188,7 @@ describe("the three ways in", () => {
     expect(others.tagName).toBe("DETAILS");
     expect(others).not.toHaveAttribute("open");
     expect(tools).toHaveTextContent(
-      "Only project owners and admins can read them, unless you choose otherwise.",
+      "Only Project Owners and Project Admins can read them, unless you choose otherwise.",
     );
   });
 });

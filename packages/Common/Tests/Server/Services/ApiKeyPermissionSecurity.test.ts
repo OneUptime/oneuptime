@@ -265,7 +265,7 @@ describe("ApiKeyPermissionService create boundaries", () => {
     ).resolves.toBeDefined();
   });
 
-  test("a project admin may delegate the ProjectAdmin authority it holds", async () => {
+  test("a Project Admin may delegate the ProjectAdmin authority it holds", async () => {
     await expect(
       createAs(
         props([userPermission({ permission: Permission.ProjectAdmin })]),
@@ -279,7 +279,7 @@ describe("ApiKeyPermissionService create boundaries", () => {
     Permission.DeleteProject,
     Permission.ManageProjectBilling,
   ])(
-    "a project admin cannot mint the separately-gated %s authority",
+    "a Project Admin cannot mint the separately-gated %s authority",
     async (permission: Permission) => {
       await expect(
         createAs(
@@ -290,7 +290,7 @@ describe("ApiKeyPermissionService create boundaries", () => {
     },
   );
 
-  test("a project admin may delegate DeleteProject only when it is separately held", async () => {
+  test("a Project Admin may delegate DeleteProject only when it is separately held", async () => {
     await expect(
       createAs(
         props([
@@ -613,7 +613,7 @@ describe("ApiKeyPermissionService update boundaries", () => {
     jest.restoreAllMocks();
   });
 
-  test("changing a grant to ProjectOwner is denied to a project admin", async () => {
+  test("changing a grant to ProjectOwner is denied to a Project Admin", async () => {
     await expect(
       hooks().onBeforeUpdate({
         query: { _id: stored.id!.toString() },

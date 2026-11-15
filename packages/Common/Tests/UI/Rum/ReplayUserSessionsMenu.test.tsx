@@ -196,12 +196,12 @@ describe("ReplayUserSessionsMenu", () => {
 
     expect(items[1]).toHaveTextContent("3 hours ago");
     expect(items[1]).toHaveTextContent("/checkout?step=2");
-    expect(items[1]).toHaveTextContent("Chrome · desktop");
+    expect(items[1]).toHaveTextContent("Chrome · Desktop");
     expect(items[1]).toHaveTextContent("4m 12s");
 
     expect(items[2]).toHaveTextContent("2 days ago");
     expect(items[2]).toHaveTextContent("/orders/42");
-    expect(items[2]).toHaveTextContent("Safari · mobile");
+    expect(items[2]).toHaveTextContent("Safari · Mobile");
     expect(
       within(items[2] as HTMLElement).getByTestId("replay-user-session-errors"),
     ).toHaveTextContent("3");

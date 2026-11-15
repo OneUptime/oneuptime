@@ -191,7 +191,7 @@ Invoke-RestMethod -Method Post `
 
 ## Richiedere un segreto a ogni richiesta
 
-Chiunque abbia l'URL di un monitor può inviargli richieste. Un proprietario o un amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
+Chiunque abbia l'URL di un monitor può inviargli richieste. Un Proprietario del progetto o un Amministratore del progetto può far richiedere in più a ogni monitor di richieste in arrivo del progetto uno dei segreti propri del progetto, chiunque abbia configurato il monitor: attivate **Richiedi un segreto a ogni richiesta**. Una richiesta senza segreto viene rifiutata con `401` e il motivo, prima di contare come heartbeat, di essere conservata come ultima richiesta del monitor o di raggiungere qualsiasi criterio. Una richiesta con un segreto prosegue verso i criteri propri del monitor, come prima.
 
 :::steps
 ### Create un segreto
@@ -201,6 +201,10 @@ Andate in **Monitor → Impostazioni → Segreti per richieste in arrivo** e cre
 ### Inviatelo da ogni mittente
 
 Inviate il segreto nell'intestazione `X-OneUptime-Secret`, o come token Bearer nell'intestazione `Authorization`, secondo ciò che il vostro mittente sa impostare.
+
+### Trovate i mittenti dimenticati
+
+Non appena il progetto ha un segreto, OneUptime controlla ogni richiesta, senza ancora rifiutarne nessuna. **Richieste senza segreto**, nella stessa pagina, elenca ogni monitor di richieste in arrivo che ha ricevuto una richiesta senza un segreto valido nelle ultime 24 ore, e perché: non ne è stato inviato nessuno, o ne è stato inviato uno errato. Correggete quei mittenti. Un monitor i cui mittenti sono stati corretti mostra in **Ultima con segreto** un orario successivo a quello in **Ultima senza segreto**, ed esce dall'elenco entro 24 ore.
 
 ### Attivate il requisito
 
@@ -429,6 +433,10 @@ Il `200` viene inviato prima che la richiesta sia convalidata, quindi non dimost
 
 :::details Il mio mittente riceve un 401
 Il progetto richiede un segreto a ogni richiesta, e la richiesta non ne ha inviato nessuno, o ne ha inviato uno che non è del progetto: la risposta dice quale dei due. Inviate uno dei segreti del progetto nell'intestazione `X-OneUptime-Secret` o come token Bearer, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta). Una richiesta rifiutata non raggiunge mai il monitor.
+:::
+
+:::details Il monitor non riceve più richieste da quando è richiesto un segreto
+I suoi mittenti non inviano alcun segreto, o ne inviano uno errato, quindi ogni loro richiesta viene rifiutata. Una riga sotto l'**Heartbeat URL** del monitor dice quando è arrivata l'ultima richiesta rifiutata, e **Richieste senza segreto** elenca ogni monitor che ne ha ricevuta una nelle ultime 24 ore, e perché. Inviate uno dei segreti del progetto da quei mittenti, come mostra [Richiedere un segreto a ogni richiesta](#richiedere-un-segreto-a-ogni-richiesta).
 :::
 
 :::details Il monitor non va mai offline quando gli heartbeat si fermano

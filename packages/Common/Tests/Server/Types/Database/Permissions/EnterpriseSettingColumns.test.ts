@@ -719,7 +719,7 @@ describe("through the real permission entry points", () => {
     }) as never);
   });
 
-  test("Community Edition: a project owner's update that sets a status page's IP allow-list is refused", async () => {
+  test("Community Edition: a Project Owner's update that sets a status page's IP allow-list is refused", async () => {
     await expect(
       UpdatePermission.checkUpdatePermissions(
         StatusPage,

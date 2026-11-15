@@ -235,7 +235,7 @@ export default class ProjectAiDailyLimitOwnerNotice {
 
     paragraphs.push(
       SafeHtml.escape(
-        "Project owners get this email once a day for each limit, the first time it is reached.",
+        "Project Owners get this email once a day for each limit, the first time it is reached.",
       ),
     );
 

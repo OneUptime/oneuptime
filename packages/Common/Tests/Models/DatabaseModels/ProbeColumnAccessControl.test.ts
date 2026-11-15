@@ -59,7 +59,7 @@ describe("Probe column access control", () => {
     expect(column!.create).toContain(Permission.CreateProjectProbe);
   });
 
-  it("keeps every field on the probe edit form readable and writable by a project owner", () => {
+  it("keeps every field on the probe edit form readable and writable by a Project Owner", () => {
     /*
      * Every field the "Probe Details" card edits. If any of these stops
      * intersecting a project owner's permissions, editing a probe silently

@@ -65,7 +65,7 @@ export const NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE: string = translationKey(
 );
 
 export const NO_SECRET_VARIABLES_ASK_TEMPLATE: string = translationKey(
-  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.",
+  "No secret variables yet. Ask a Project Owner or Project Admin to add one under {{location}}, then pick it here.",
 );
 
 /*
@@ -78,7 +78,7 @@ export const NOT_FOR_RUNNER_EDIT_TEMPLATE: string = translationKey(
 );
 
 export const NOT_FOR_RUNNER_ASK_TEMPLATE: string = translationKey(
-  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a Project Owner or Project Admin to add this Runner to it under {{location}}.",
 );
 
 // The form's steps: what the variable is, then who may use a secret.

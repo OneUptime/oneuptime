@@ -230,7 +230,7 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
       [
         "This project&#39;s AI credits are used up, so OneUptime AI has stopped: Ask AI, investigations and the other AI features paid from them are refused until credits are added.",
         `Add AI credits in Project Settings → AI → AI Credits, or turn on Auto Recharge there so they do not run out. <br/> <br/> <a href="${AI_CREDITS_LINK}">${AI_CREDITS_LINK}</a>`,
-        "Project owners get this email once each time the AI credits run out.",
+        "Project Owners get this email once each time the AI credits run out.",
       ].join(" <br/> <br/> "),
     );
   });
@@ -269,7 +269,7 @@ describe("AiCreditsUsedUpOwnerNotice.getHtml", () => {
         isAutoRechargeOn,
       });
 
-      expect(html).not.toContain("A project owner or someone with");
+      expect(html).not.toContain("A Project Owner or someone with");
       expect(html).not.toMatch(/please/i);
     }
   });

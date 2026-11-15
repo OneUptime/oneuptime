@@ -264,7 +264,9 @@ describe("the quiet dash's sizes and words", () => {
     expect(screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID).className).toBe(
       TABLE_EMPTY_VALUE_SMALL_CLASS_NAME,
     );
+    // relative keeps the sr-only words in the dash's box (TableEmptyValue).
     expect(TABLE_EMPTY_VALUE_SMALL_CLASS_NAME.split(" ")).toEqual([
+      "relative",
       "text-xs",
       "text-gray-400",
     ]);

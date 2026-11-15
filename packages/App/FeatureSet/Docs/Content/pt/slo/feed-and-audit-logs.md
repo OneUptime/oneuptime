@@ -84,14 +84,14 @@ Vá para **Configurações do projeto**, abra **Registros de auditoria** no menu
 
 ### Editar as configurações
 
-Clique em **Edit Audit Log Settings** e ligue **Habilitar registros de auditoria**.
+Clique em **Editar as configurações dos registros de auditoria** e ligue **Habilitar registros de auditoria**.
 
 ### Escolher o que guardar
 
 Defina **Retenção (dias)**, de 7 (o padrão) a 180, e ligue **Armazenar Eventos do Sistema** para registrar também as mudanças que o próprio OneUptime faz. Salve. A mudança vale em cerca de um minuto.
 :::
 
-Enquanto o registro de auditoria está desligado, a página **Registros de auditoria** do SLO mostra **Audit logging is off**, com um link para ligá-lo. As entradas gravadas antes de ele ser desligado continuam visíveis. O registro de auditoria completo do projeto, de todos os recursos, fica em **Configurações do projeto** → **Registros de auditoria** → **Registros de auditoria**.
+Enquanto o registro de auditoria está desligado, a página **Registros de auditoria** do SLO mostra **Registro de auditoria desativado**, com um link para ligá-lo. As entradas gravadas antes de ele ser desligado continuam visíveis. O registro de auditoria completo do projeto, de todos os recursos, fica em **Configurações do projeto** → **Registros de auditoria** → **Registros de auditoria**.
 
 ## Próximos passos
 

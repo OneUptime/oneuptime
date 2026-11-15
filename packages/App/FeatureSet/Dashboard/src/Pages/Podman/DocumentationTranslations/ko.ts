@@ -24,7 +24,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Once the agent connects, the host appears automatically in the **Podman** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "에이전트가 연결되면 호스트가 **Podman** 섹션에 자동으로 표시됩니다. 보통 1분 정도 걸립니다. OneUptime AI 에이전트는 호스트의 **AI → AI 에이전트** 페이지와 **개요** 하단에 연결됨으로 표시됩니다.",
   "**Metrics but no logs?** Rootful Podman writes container logs to `journald` by default, which the agent cannot read. Run your containers with `--log-driver k8s-file` — see **Collect logs from every container (k8s-file log driver)** under Advanced.":
-    "**메트릭은 있는데 로그가 없나요?** rootful Podman은 기본적으로 컨테이너 로그를 `journald`에 기록하며, 에이전트는 이를 읽을 수 없습니다. 컨테이너를 `--log-driver k8s-file`로 실행하세요. 고급의 **모든 컨테이너에서 로그 수집(k8s-file 로그 드라이버)**을 참조하세요.",
+    "**메트릭은 있는데 로그가 없나요?** rootful Podman은 기본적으로 컨테이너 로그를 `journald`에 기록하며, 에이전트는 이를 읽을 수 없습니다. 컨테이너를 `--log-driver k8s-file`로 실행하세요. 고급의 **모든 컨테이너에서 로그 수집(k8s-file 로그 드라이버)** 항목을 참조하세요.",
   "| Variable | Required | Description |": "| 변수 | 필수 | 설명 |",
   "| `ONEUPTIME_URL` | Yes | Your OneUptime instance URL (e.g. `<YOUR_ONEUPTIME_URL>`) |":
     "| `ONEUPTIME_URL` | 예 | OneUptime 인스턴스의 URL(예: `<YOUR_ONEUPTIME_URL>`) |",
@@ -37,7 +37,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Pass each one to `podman run` as `-e NAME=value`. To change one later, remove the agent with `podman rm -f oneuptime-podman-agent` and run the command again with the new value.":
     "각각을 `-e NAME=value` 형식으로 `podman run`에 전달합니다. 나중에 하나를 바꾸려면 `podman rm -f oneuptime-podman-agent`로 에이전트를 제거하고 새 값으로 명령을 다시 실행합니다.",
   "The agent reads the files Podman's **`k8s-file`** log driver writes — `/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log` — so it only sees logs from containers that use it (or `json-file`, which Podman treats as the same file-based driver). Rootful Podman's default is **`journald`**, which it cannot read, and neither can it read a remote driver such as `syslog`.":
-    "에이전트는 Podman의 **`k8s-file`** 로그 드라이버가 쓰는 파일(`/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`)을 읽으므로, 이를 사용하는 컨테이너(또는 Podman이 같은 파일 기반 드라이버로 취급하는 `json-file`)의 로그만 봅니다. rootful Podman의 기본값은 **`journald`**이며 에이전트는 이를 읽을 수 없고, `syslog` 같은 원격 드라이버도 읽을 수 없습니다.",
+    "에이전트는 Podman의 **`k8s-file`** 로그 드라이버가 쓰는 파일(`/var/lib/containers/storage/overlay-containers/*/userdata/ctr.log`)을 읽으므로, 이를 사용하는 컨테이너(또는 Podman이 같은 파일 기반 드라이버로 취급하는 `json-file`)의 로그만 봅니다. rootful Podman의 기본값은 **`journald`** 드라이버이며 에이전트는 이를 읽을 수 없고, `syslog` 같은 원격 드라이버도 읽을 수 없습니다.",
   "Check a container's log driver, and Podman's default:":
     "컨테이너의 로그 드라이버와 Podman의 기본값을 확인합니다:",
   "Run a single container with `k8s-file`:":
@@ -121,7 +121,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The host's name comes from `PODMAN_HOST_NAME`. An agent started without it reports `podman-host`, so every host set up that way looks like the same host. Set `PODMAN_HOST_NAME` to a name of its own on each host and recreate the agent — `podman rm -f oneuptime-podman-agent`, then run the command from step 2 with the new name.":
     "호스트 이름은 `PODMAN_HOST_NAME`에서 옵니다. 이것 없이 시작한 에이전트는 `podman-host`를 보고하므로, 그렇게 설정한 호스트는 모두 같은 호스트처럼 보입니다. 각 호스트에서 `PODMAN_HOST_NAME`에 고유한 이름을 설정하고 에이전트를 다시 만드세요. `podman rm -f oneuptime-podman-agent`를 실행한 뒤 새 이름으로 2단계의 명령을 실행합니다.",
   "This installs the agent for **`web-1`** — keep `PODMAN_HOST_NAME` exactly as it is, or the data registers as a new host.":
-    "이 명령은 **`web-1`**용으로 에이전트를 설치합니다. `PODMAN_HOST_NAME`을 그대로 두세요. 바꾸면 데이터가 새 호스트로 등록됩니다.",
+    "이 명령은 **`web-1`** 호스트용으로 에이전트를 설치합니다. `PODMAN_HOST_NAME`을 그대로 두세요. 바꾸면 데이터가 새 호스트로 등록됩니다.",
   "A compose provider for `podman compose`: `podman-compose` or Docker Compose":
     "`podman compose`용 Compose 공급자: `podman-compose` 또는 Docker Compose",
   "The second service is the OneUptime AI agent, with the same URL, key and host name. **AI investigations are on by default**: while OneUptime AI investigates an incident or alert on this host, it runs read-only `docker` commands through the AI agent, against Podman's Docker-compatible socket, and it changes nothing unless you allow fixes — see **The OneUptime AI agent** under Advanced. Delete the `oneuptime-podman-ai-agent` service to run the collector without AI investigations.":

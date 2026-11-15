@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 8867
+    "keys": 54234,
+    "untranslated": 8675
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -248,6 +248,7 @@
     "Stack",
     "Stack trace",
     "Stacks",
+    "Staging",
     "Start",
     "Start import",
     "Status",
