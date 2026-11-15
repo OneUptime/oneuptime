@@ -2177,4 +2177,232 @@ describe("Realtime (server) ListenToModelEvent", () => {
       expect(socket.subscribedRooms()).toEqual([ROOM_ID]);
     });
   });
+
+  /*
+   * #8626: a project's usage room - where the Dashboard's products menu
+   * hears that what the project uses changed - is joined as a model's room
+   * is (RealtimeJoinAccess, the same refusals, the session kept), but asks
+   * no model's read: what is heard there is only "ask again", and every
+   * member's products menu asks for the project's products.
+   */
+  describe("a project's usage room (ListenToProjectUsage)", () => {
+    const USAGE_ROOM: string = RealtimeUtil.getProjectUsageRoomId(TENANT_ID);
+
+    const listenToUsage: (
+      socket: FakeServerSocket,
+      data?: unknown,
+    ) => Promise<ListenToModelEventOutcome> = async (
+      socket: FakeServerSocket,
+      data: unknown = { tenantId: TENANT_ID },
+    ): Promise<ListenToModelEventOutcome> => {
+      return await Realtime.handleListenToProjectUsageRequest(
+        socket.asSocket(),
+        data as JSONObject,
+      );
+    };
+
+    test("a project member joins it, and nothing is sent back", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+
+      expect(socket.joinedRooms).toEqual([USAGE_ROOM]);
+      expect(socket.emitted).toEqual([]);
+      // The session is kept, as a model's join keeps it.
+      expect(RealtimeSessions.getSession(socket)).toEqual(
+        expect.objectContaining({ userId: USER_ID, sessionId: SESSION_ID }),
+      );
+    });
+
+    test("no model's read is asked: a member whose roles read no model joins all the same", async () => {
+      memberOf([TENANT_ID]);
+      (
+        Realtime.hasPermissionsByModelName as unknown as jest.Mock
+      ).mockReturnValue(false);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+      expect(Realtime.hasPermissionsByModelName).not.toHaveBeenCalled();
+
+      // A model's room, for the same person, still asks it.
+      await expect(listen(socket)).resolves.toBe(
+        ListenToModelEventOutcome.NotAuthorized,
+      );
+    });
+
+    test("not a member: no room, and nothing sent back", async () => {
+      memberOf([OTHER_TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.NotAuthorized,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.emitted).toEqual([]);
+      expect(RealtimeSessions.size()).toBe(0);
+    });
+
+    test("no usable session: no room, and the client is told, naming the project", async () => {
+      memberOf([TENANT_ID]);
+
+      for (const socket of [
+        new FakeServerSocket(),
+        new FakeServerSocket(cookieWith(expiredToken())),
+      ]) {
+        await expect(listenToUsage(socket)).resolves.toBe(
+          ListenToModelEventOutcome.AuthenticationRequired,
+        );
+
+        expect(socket.joinedRooms).toEqual([]);
+        expect(socket.authenticationRequiredEvents()).toEqual([
+          { tenantId: TENANT_ID },
+        ]);
+      }
+    });
+
+    test("a project that requires SSO the handshake does not carry: no room, and the client is told which project", async () => {
+      memberOf([TENANT_ID]);
+      projectRequiresSso.mockResolvedValue(true);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.SsoRequired,
+      );
+
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.ssoRequiredEvents()).toEqual([{ tenantId: TENANT_ID }]);
+
+      // With the project's SSO sign-in, it is joined.
+      const signedIn: FakeServerSocket = new FakeServerSocket(
+        cookieWith(
+          validToken(),
+          ssoCookie(TENANT_ID, ssoToken({ projectId: TENANT_ID })),
+        ),
+      );
+
+      await expect(listenToUsage(signedIn)).resolves.toBe(
+        ListenToModelEventOutcome.Joined,
+      );
+    });
+
+    test("a request that names no project is refused, and nothing is looked up", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      for (const data of [
+        undefined,
+        null,
+        "a string",
+        {},
+        { tenantId: 42 },
+        { tenantId: "not-a-project" },
+      ]) {
+        await expect(
+          Realtime.handleListenToProjectUsageRequest(
+            socket.asSocket(),
+            data as JSONObject,
+          ),
+        ).resolves.toBe(ListenToModelEventOutcome.InvalidRequest);
+      }
+
+      expect(socket.joinedRooms).toEqual([]);
+      expect(socket.emitted).toEqual([]);
+      expect(tenantPermissionLookup).not.toHaveBeenCalled();
+    });
+
+    test("a lookup that fails is a failed join, not a rejection", async () => {
+      tenantPermissionLookup.mockRejectedValue(new Error("Redis is down"));
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.Failed,
+      );
+      expect(socket.joinedRooms).toEqual([]);
+    });
+
+    test("through the socket listener: joined, with nothing handed to socket.io that can reject", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      // The connection listener the server registered at init.
+      connectionListener(socket.asSocket());
+
+      const listener: Listener | undefined = socket.listener(
+        EventName.ListenToProjectUsage,
+      );
+      expect(listener).toBeDefined();
+
+      const returned: unknown = listener!({ tenantId: TENANT_ID });
+      await expect(Promise.resolve(returned)).resolves.toBeUndefined();
+      await settle();
+
+      expect(socket.joinedRooms).toEqual([USAGE_ROOM]);
+    });
+
+    test("a session that ended joins nothing more: the client must reconnect", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await listenToUsage(socket);
+      RealtimeSessions.end(socket);
+
+      expect(socket.subscribedRooms()).toEqual([]);
+
+      await expect(listenToUsage(socket)).resolves.toBe(
+        ListenToModelEventOutcome.AuthenticationRequired,
+      );
+      expect(socket.subscribedRooms()).toEqual([]);
+    });
+
+    test("the project's sign-in rules change after the join: the socket leaves the usage room with the others, and is told", async () => {
+      memberOf([TENANT_ID]);
+
+      const socket: FakeServerSocket = new FakeServerSocket(
+        cookieWith(validToken()),
+      );
+
+      await listen(socket);
+      await listenToUsage(socket);
+      expect(socket.subscribedRooms().sort()).toEqual(
+        [ROOM_ID, USAGE_ROOM].sort(),
+      );
+
+      heldSockets = [socket];
+      projectRequiresSso.mockResolvedValue(true);
+      await Realtime.recheckProjectAccess(TENANT_ID);
+
+      expect(socket.subscribedRooms()).toEqual([]);
+      expect(socket.ssoRequiredEvents()).toEqual([{ tenantId: TENANT_ID }]);
+    });
+  });
 });

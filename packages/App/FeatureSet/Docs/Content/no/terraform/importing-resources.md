@@ -104,7 +104,7 @@ For å importere alle overvåkere, statussider eller andre ressurser av én type
 :::steps
 ### Åpne listens Terraform-side
 
-Åpne listen, og deretter **Utvikler** og **Terraform** i sidemenyen dens, for eksempel **Overvåkere → Utvikler → Terraform**.
+Åpne listen, og deretter **Utvikler** og **Terraform** i sidemenyen dens, for eksempel **Monitorer → Utvikler → Terraform**.
 
 ### Kopier importblokkene
 

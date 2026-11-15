@@ -27,7 +27,7 @@ flowchart TB
 ## Before you begin
 
 - **A connected Google Cloud project.** Connect it under **Cloud → Connect** first: see [Connect a Cloud Account](/docs/telemetry/cloud-accounts).
-- **A project owner or admin.** Only they can make a stream key and stop streaming.
+- **A Project Owner or Project Admin.** Only they can make a stream key and stop streaming.
 - **Google Cloud Shell**, signed in as an **Owner** of the projects, or someone who may make service accounts, Pub/Sub topics and log sinks in them.
 - **An HTTPS address, on a self-hosted OneUptime.** Pub/Sub pushes only to `https://` addresses, with a certificate Google trusts, and the address must be reachable from Google Cloud.
 

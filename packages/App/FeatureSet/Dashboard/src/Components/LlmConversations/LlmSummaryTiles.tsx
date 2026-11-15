@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import { LlmConversationSummary } from "Common/Types/Telemetry/LlmConversationApi";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -28,7 +29,11 @@ export interface ComponentProps {
 
 export interface LlmTileProps {
   label: string;
-  value: string;
+  /*
+   * The figure. One the tile does not have - a total no provider reported -
+   * is no value: the tile draws the figure's quiet dash (EmptyFigure, #8264).
+   */
+  value?: string | null | undefined;
   hint?: string | undefined;
   /*
    * The hint wraps onto more lines instead of being cut short: for a hint
@@ -76,7 +81,7 @@ export const LlmTile: FunctionComponent<LlmTileProps> = (
             className="mt-0.5 truncate text-xl font-semibold text-gray-900"
             data-testid={`${props.dataTestId}-value`}
           >
-            {props.value}
+            {getFigure(props.value)}
           </div>
         )}
         {props.hint && !props.isLoading ? (
@@ -202,7 +207,7 @@ const LlmSummaryTiles: FunctionComponent<ComponentProps> = (
         value={
           summary && summary.medianAnswerMs !== null
             ? formatLlmDuration(summary.medianAnswerMs, translator)
-            : "—"
+            : undefined
         }
         hint={
           summary && summary.p95AnswerMs !== null

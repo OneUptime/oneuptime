@@ -151,6 +151,8 @@ const GLOSSARY_WORDS_IN_PROSE: Array<GlossaryWordInProse> = [
 // Texts that name one of them as code would, though no code marks it so.
 const NAMED_AS_CODE: Record<string, string> = {
   "e.g. latency": "an example of a log attribute's name",
+  "How the trend arrow is coloured. Auto reads the metric name (e.g. 'error_count' and 'latency' are treated as 'higher is worse'). Pick a value to override.":
+    "a word Auto finds in a metric's name, quoted as the name writes it",
 };
 
 // A function an English sentence names with its brackets: track(), grantConsent().
@@ -183,6 +185,8 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "https://outlook.office.com/webhook/...",
     "my-company-workspace",
     "subscriber@company.com",
+    // The unsubscribe page's channel before its address: Arabic's colon is the same.
+    "{{channel}}:",
   ],
   Server: [
     "{{first}} {{second}}",
@@ -224,8 +228,10 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "MinIO",
     "OneUptime",
     "OneUptimeAlertsBot",
+    "OpenID Connect (OIDC)",
     "OpenStack",
     "Option",
+    "PID",
     "Podman",
     "PostgreSQL",
     "Postgres",
@@ -252,6 +258,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "internal-probe",
     "member@company.com",
     "mm",
+    "pg {{version}}",
     "test@example.com",
     "vCenter",
     "you@company.com",
@@ -259,6 +266,7 @@ const SAME_AS_ENGLISH: Record<string, Array<string>> = {
     "{{size}} KB",
     "{{size}} MB",
     "{{time}} (UTC)",
+    "⌘ / Ctrl + ↵",
   ],
 };
 

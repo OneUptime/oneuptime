@@ -139,7 +139,7 @@ Erteilen Sie bei Copilot die Administratorzustimmung für die Graph-Berechtigung
 :::
 
 :::details Jemand sieht die Unterhaltungen nicht
-**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Projektadministratoren**. Ein Inhaber oder Admin kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
+**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Projektadministratoren**. Ein Projektinhaber oder Projektadministrator kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
 :::
 
 :::details Die Unterhaltungen zeigen, wer gefragt hat, aber keine Worte

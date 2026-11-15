@@ -33,7 +33,7 @@ flowchart TB
 
 ## Before you begin
 
-- **For the instance's and a project's budgets, the Admin Dashboard.** On a self-hosted installation, only the instance admin sets them. A project's owners and admins see its budgets, but cannot change them.
+- **For the instance's and a project's budgets, the Admin Dashboard.** On a self-hosted installation, only the instance admin sets them. Project Owners and Project Admins see a project's budgets, but cannot change them.
 - **For a key's own budget, a role that edits ingestion keys.** Project Owner or Project Admin, or a custom role with the Edit Ingestion Key permission.
 - **To see the budgets, a role that sees the project's usage.** The roles that see the [Telemetry Usage](/docs/telemetry/usage) page see its budgets on it.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## The warning and the reset
 
-- **The warning.** When a daily budget passes the warning threshold, 80% unless the instance admin changes it, the project's owners get an email, and the explorers show a banner above that signal's data. They get one more email when the budget is used up. Each budget sends each email at most once a day.
+- **The warning.** When a daily budget passes the warning threshold, 80% unless the instance admin changes it, the Project Owners get an email, and the explorers show a banner above that signal's data. They get one more email when the budget is used up. Each budget sends each email at most once a day.
 - **The reset.** Each budget day starts again at 00:00 UTC unless the instance admin changes it. The **Warning and Reset** card sets **Warning Threshold (%)**, from 1 to 99, **Reset Time**, as HH:MM, and **Reset Time Zone**: click **Edit Warning and Reset**.
 - **Daylight saving time.** The reset follows the time zone's clock, so the budget day the clocks change on is an hour shorter or longer. A reset time the clocks skip happens that long after the jump.
 - **A changed reset starts a new day.** Changing the reset time or the time zone starts a new budget day at once, with nothing counted yet.

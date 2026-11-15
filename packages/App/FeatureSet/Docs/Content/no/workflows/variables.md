@@ -195,7 +195,7 @@ Vis til utdataene fra en tidligere blokk slik:
 | Etter en blokk som …                                      | Les                                                                                    |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | En **API**-blokk med ID-en `lookup-user`                  | Statuskoden: `{{local.components.lookup-user.returnValues.response-status}}`. Bodyen: `{{local.components.lookup-user.returnValues.response-body}}`. |
-| En **Run Custom JavaScript**-blokk med ID-en `transform`  | Det den returnerte: `{{local.components.transform.returnValues.returnValue}}`.         |
+| En **Kjør egen JavaScript**-blokk med ID-en `transform`  | Det den returnerte: `{{local.components.transform.returnValues.returnValue}}`.         |
 | En **On Create Incident**-trigger med ID-en `incident-on-create-1` | Tittelen på hendelsen: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Posttriggere returnerer posten som `model`, som du går ned i. |
 
 Blokkverdier finnes bare under den gjeldende kjøringen. Hver ny kjøring starter på nytt.
@@ -208,22 +208,22 @@ Nesten alle tekstfelt tar imot variabler:
 - Meldingsteksten på Slack, Teams, Discord, Telegram, IRC, Mattermost, Email.
 - Emnet og bodyen i en e-post.
 - Headere og felt i bodyen (inne i strengverdier).
-- Begge sider av en **If / Else**-blokk.
+- Begge sider av en **Hvis / Ellers**-blokk.
 
-I JSON-felt — **Data (JSON Object)** og **Spørring** på postkomponentene, **Forespørselstekst** på en API-blokk, **Arguments** på **Run Custom JavaScript** — fylles en referanse ut etter hvor den står:
+I JSON-felt — **Data (JSON-objekt)** og **Spørring** på postkomponentene, **Forespørselstekst** på en API-blokk, **Argumenter** på **Kjør egen JavaScript** — fylles en referanse ut etter hvor den står:
 
 - **Innenfor anførselstegn er det tekst.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` setter verdien inn i strengen. Anførselstegn, omvendte skråstreker og linjeskift i verdien escapes, slik at JSON-en forblir gyldig og verdien forblir én streng.
 - **Alene er det selve verdien.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` setter inn hele objektet, en liste forblir en liste, og et tall forblir et tall. Tekst som selv er JSON — `5`, `true` eller et objekt som en blokk returnerte som JSON-tekst — settes inn som den verdien. All annen tekst settes inn som en streng.
 
-En referanse innenfor anførselstegnene til en nøkkel er også tekst. Må du bygge en struktur dynamisk, bygger du den med en **Run Custom JavaScript**-blokk og sender utdataene videre til neste blokk.
+En referanse innenfor anførselstegnene til en nøkkel er også tekst. Må du bygge en struktur dynamisk, bygger du den med en **Kjør egen JavaScript**-blokk og sender utdataene videre til neste blokk.
 
-**Run Custom JavaScript**-blokken får ikke variabler automatisk — ingenting injiseres i sandkassen. Sett `{{global.variables.NAME}}` (eller en hvilken som helst komponentreferanse) i JSON-feltet **Arguments** på blokken; de verdiene settes inn før skriptet kjører, og kommer frem som `args`.
+**Kjør egen JavaScript**-blokken får ikke variabler automatisk — ingenting injiseres i sandkassen. Sett `{{global.variables.NAME}}` (eller en hvilken som helst komponentreferanse) i JSON-feltet **Argumenter** på blokken; de verdiene settes inn før skriptet kjører, og kommer frem som `args`.
 
 ## Å gå gjennom lister
 
 I et tekstfelt kan du gjenta et stykke tekst for hvert element i en liste med `{{#each path}}…{{/each}}`. Inne i blokken leser `{{property}}` fra det gjeldende elementet, `{{@index}}` er posisjonen fra 0, og `{{this}}` er selve elementet i lister med enkle verdier. Navn inne i en `{{#each}}`-blokk trimmes, så ekstra mellomrom gjør ingen skade der — i motsetning til alle andre steder.
 
-For eksempel viser denne **Message Text** hvert varsel en webhook sendte:
+For eksempel viser denne **Meldingstekst** hvert varsel en webhook sendte:
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,7 +238,7 @@ For eksempel viser denne **Message Text** hvert varsel en webhook sendte:
 En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }`. For å gjøre den om til en OneUptime-hendelse:
 
 1. En **Webhook**-trigger med ID-en `ci-webhook`.
-2. En **If / Else**-blokk: **Verdi som skal sjekkes** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Sammenligning** er **er lik**, og **Sammenlign med** er `failed`.
+2. En **Hvis / Ellers**-blokk: **Verdi som skal sjekkes** er feltet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Sammenligning** er **er lik**, og **Sammenlign med** er `failed`.
 3. Fra grenen **Ja** en **Create One Incident**-blokk med:
    - Tittel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivelse: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
@@ -291,7 +291,7 @@ To ting å passe på:
 - **Bruk { } (eller skriv `{{`).** Det setter inn de nøyaktige komponent-, returverdi- og variabel-ID-ene kjøreren forventer, og tilbyr bare verdier som finnes når blokken kjører.
 - **Variabelnavn skiller mellom store og små bokstaver.** `{{global.variables.MyKey}}` og `{{global.variables.mykey}}` er forskjellige.
 - **En referanse som ikke kan oppløses, blir stående som den er, og blir ikke tom.** Å vise til noe som ikke finnes, er ikke en feil, og det gir deg heller ikke en tom streng: krøllparentesene sendes videre som de er, så `{{local.components.api-get-1.returnValues.body}}` med en feilstavet trinn-ID havner ordrett i Slack-meldingen, URL-en eller bodyen i forespørselen din, og kjøringen melder likevel **Utført**. Fanen **Trinn** for kjøringen viser en advarsel på trinnet som nevner hver referanse som slapp gjennom, og merker innstillingen den sto i, med **Did not resolve**; kjøringens logg har den samme advarselslinjen. Unntaket er en ID som en datakomponent leser eller skriver, som `_id` i dens **Spørring**: der stopper trinnet før det leser eller skriver noe, utløser utgangen **Feil** og sier hvilken referanse som ikke ble oppløst, og hva du bør sjekke.
-- **Et felt uten innhold kommer tomt frem.** Ikke alle poster har alle felt. Et varsel som ingen monitor har utløst, for eksempel fra et SLO eller opprettet for hånd, har ingen monitor, så `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` har ingenting å gi: i en melding står det ingenting, og alene i JSON er det `null`. Det samme gjelder en beskrivelse ingen har skrevet, et egendefinert felt posten ikke har, en **Find One** som ikke fant noen post, en liste uten det elementet og et felt blokken ikke sender videre, noe som også setter en advarsel på trinnet om hva som må legges til i **Fields to pass on**. En URL og en blokk som leser eller skriver poster er unntakene, fordi noe tomt ville endre hva blokken virker på: der blir referansen stående, og en ID stopper blokken. For å ta en annen vei sjekker du verdien med **er tom** i en **If / Else**. For å nevne SLO-et bak et varsel sender du navnet videre og bruker `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
+- **Et felt uten innhold kommer tomt frem.** Ikke alle poster har alle felt. Et varsel som ingen monitor har utløst, for eksempel fra et SLO eller opprettet for hånd, har ingen monitor, så `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` har ingenting å gi: i en melding står det ingenting, og alene i JSON er det `null`. Det samme gjelder en beskrivelse ingen har skrevet, et egendefinert felt posten ikke har, en **Find One** som ikke fant noen post, en liste uten det elementet og et felt blokken ikke sender videre, noe som også setter en advarsel på trinnet om hva som må legges til i **Felt som sendes videre**. En URL og en blokk som leser eller skriver poster er unntakene, fordi noe tomt ville endre hva blokken virker på: der blir referansen stående, og en ID stopper blokken. For å ta en annen vei sjekker du verdien med **er tom** i en **Hvis / Ellers**. For å nevne SLO-et bak et varsel sender du navnet videre og bruker `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Problempanelet kan ikke sjekke variabelnavn.** Det markerer komponentreferanser det ikke kan matche — en ukjent trinn-ID, en ukjent returverdi, en ugyldig rot — før du lagrer. Det kan ikke se om en variabel finnes. Innstillingene til en blokk kan: en referanse til en manglende variabel vises der som en oransje brikke. Ellers fanges en variabel med nytt navn bare opp av kjøringens logg.
 - **Mellomrom inne i krøllparentesene trimmes ikke.** `{{ local.variables.NAME }}` er et annet oppslag enn `{{local.variables.NAME}}` og oppløses aldri. Det eneste unntaket er inne i en `{{#each}}`-blokk, der navn trimmes.
 

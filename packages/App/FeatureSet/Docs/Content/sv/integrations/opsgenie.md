@@ -49,11 +49,11 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fields to pass on** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skapa larmet
 
-Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in **URL** på `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Ställ in **Begärandehuvuden** under **Fler fält** på:
+Klicka på **Lägg till komponent**, lägg till ett **API-anrop POST (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in **URL** på `https://api.opsgenie.com/v2/alerts`, eller `https://api.eu.opsgenie.com/v2/alerts` i Europa. Ställ in **Begärandehuvuden** under **Fler fält** på:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
@@ -73,7 +73,7 @@ Och **Begärandekropp** på:
 
 ### Testa det och slå sedan på det
 
-Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API Post (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
+Klicka på **Kör arbetsflöde**, välj en testincident under **Incident** och kör det. Steget **API-anrop POST (JSON)** visar ett `202`-svar, och larmet dyker upp i Opsgenie en stund senare. Slå sedan på **Aktiverad** högst upp i **Byggare**.
 :::
 
 Opsgenies schema är ordet `GenieKey`, ett blanksteg och sedan nyckeln. Opsgenie begränsar `message` till 130 tecken, och prioriteterna går från `P1` till `P5`: se [Koppla prioriteter](#koppla-prioriteter) för att skicka varje incidents egen.
@@ -85,7 +85,7 @@ Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för at
 :::steps
 ### Lägg till utlösaren On Update Incident
 
-Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fields to pass on** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
+Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -93,11 +93,11 @@ Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update I
 
 ### Kontrollera att incidenten är löst
 
-Lägg till ett **If / Else**-block efter utlösaren. Ställ in **Värde att kontrollera** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Jämförelse** på **är sant**.
+Lägg till ett **Om / Annars**-block efter utlösaren. Ställ in **Värde att kontrollera** på `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` och **Jämförelse** på **är sant**.
 
 ### Stäng larmet
 
-Lägg till ett **API Post (JSON)**-block efter **Ja**-sidan, med samma **Begärandehuvuden** och denna **URL**:
+Lägg till ett **API-anrop POST (JSON)**-block efter **Ja**-sidan, med samma **Begärandehuvuden** och denna **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
@@ -114,10 +114,10 @@ Slå på **Aktiverad** och lös sedan en testincident i OneUptime. Opsgenie stä
 
 ## Koppla prioriteter
 
-För att skicka varje incidents allvarlighetsgrad som en Opsgenie-prioritet lägger du till ett **Run Custom JavaScript**-block mellan utlösaren och **API Post (JSON)**-blocket.
+För att skicka varje incidents allvarlighetsgrad som en Opsgenie-prioritet lägger du till ett **Kör egen JavaScript**-block mellan utlösaren och **API-anrop POST (JSON)**-blocket.
 
-1. Klicka på **Lägg till fält** i utlösarens **Fields to pass on**, öppna **Incidentallvar** och välj **Namn**.
-2. Ställ in blockets **Arguments** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript-kod** på:
+1. Klicka på **Lägg till fält** i utlösarens **Fält att skicka vidare**, öppna **Incidentallvar** och välj **Namn**.
+2. Ställ in blockets **Argument** på `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` och dess **JavaScript-kod** på:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie svarar `202` innan den bearbetar begäran, så en begäran som den neka
 :::
 
 :::details Arbetsflödet körs aldrig
-Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Loggar → Körningar**: en körning som tog **Nej**-sidan av **If / Else**-blocket är en uppdatering som inte var en lösning.
+Kontrollera att det är påslaget: **Aktiverad**, högst upp i dess **Byggare**. Öppna sedan **Loggar → Körningar**: en körning som tog **Nej**-sidan av **Om / Annars**-blocket är en uppdatering som inte var en lösning.
 :::
 
 ## Nästa steg

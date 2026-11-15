@@ -127,15 +127,6 @@ const LANGUAGES: Array<string> = ["en", ...DASHBOARD_LANGUAGES];
 // The English a line must never show in another language.
 const ENGLISH_WORDS: RegExp = /\b(?:Active|Inactive|seen|ago|Runs on)\b/;
 
-/*
- * Where the line's state agrees with the machine it is about, which the
- * state alone ("Активно", the list's column) does not: Russian's "Активен"
- * beside "замечен".
- */
-const STATES_IN_THE_LINE: Record<string, [string, string]> = {
-  ru: ["Активен", "Неактивен"],
-};
-
 // Spaces as a reader sees them: a no-break space is a space.
 function asRead(text: string): string {
   return withoutIsolateMarks(text).replace(/[\u00A0\u202F]/g, " ");
@@ -359,8 +350,13 @@ describe("a machine's status line, one sentence of the locale", () => {
     },
   );
 
+  /*
+   * The line starts with the state as the list's Last seen column draws it,
+   * in every language: Russian's line read "Активен · замечен" over a
+   * column that said "Активно" (#8588).
+   */
   test.each(LANGUAGES)(
-    "in %s, an active and an inactive machine read apart, each with its state",
+    "in %s, an active and an inactive machine read apart, each with its state as the list words it",
     (language: string) => {
       const translator: Translator = dashboardTranslator(language);
       const active: string = asRead(
@@ -368,14 +364,34 @@ describe("a machine's status line, one sentence of the locale", () => {
       );
       const inactive: string = asRead(machineLine(THREE_DAYS_AGO, translator));
 
-      const states: [string, string] = STATES_IN_THE_LINE[language] || [
+      const states: [string, string] = [
         asRead(translator.translateText("Active") || "Active"),
         asRead(translator.translateText("Inactive") || "Inactive"),
       ];
 
       expect(active).not.toBe(inactive);
-      expect(active).toContain(states[0]);
-      expect(inactive).toContain(states[1]);
+      expect(active.startsWith(states[0])).toBe(true);
+      expect(inactive.startsWith(states[1])).toBe(true);
+    },
+  );
+
+  /*
+   * Russian words a resource's two states alike, neuter as the locale
+   * words a state on its own ("Включено", "Отключено"), and says when it
+   * last reported in words of no gender: "замечен" agreed with a machine,
+   * so beside "Активно" it read as two sentences about two things (#8588).
+   */
+  test.each([
+    [
+      "12 minutes ago",
+      TWELVE_MINUTES_AGO,
+      "Активно · последние данные 12 мин. назад",
+    ],
+    ["3 days ago", THREE_DAYS_AGO, "Неактивно · последние данные 3 дн. назад"],
+  ])(
+    "in Russian, a machine last seen %s reads as the list words its state",
+    (_seen: string, at: Date, line: string) => {
+      expect(asRead(machineLine(at, dashboardTranslator("ru")))).toBe(line);
     },
   );
 

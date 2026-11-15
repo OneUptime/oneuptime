@@ -1,4 +1,7 @@
-import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatRelativeAmount,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
 import { FORM_PUBLIC_API_URL } from "./ApiPaths";
 import FormAPI from "./FormAPI";
 import { getFormDomainPageOrigin } from "./FormDomainPage";
@@ -850,7 +853,7 @@ export const formatFormRetryAfter: FormatFormRetryAfterFunction = (
   }
 
   let value: number = Math.ceil(seconds);
-  let unit: Intl.RelativeTimeFormatUnit = "second";
+  let unit: RelativeDateUnit = "second";
 
   if (seconds >= 60 * 60) {
     value = Math.ceil(seconds / (60 * 60));
@@ -860,12 +863,14 @@ export const formatFormRetryAfter: FormatFormRetryAfterFunction = (
     unit = "minute";
   }
 
-  try {
-    return new Intl.RelativeTimeFormat(getNumberLocale(locale), {
-      numeric: "always",
-    }).format(value, unit);
-  } catch {
-    // An unknown language tag, or no Intl.RelativeTimeFormat at all.
-    return null;
-  }
+  /*
+   * The number held to its unit, "in 5\u00A0minutes" (#8456); null for an
+   * unknown language tag, or no Intl.RelativeTimeFormat at all.
+   */
+  return formatRelativeAmount({
+    count: value,
+    unit: unit,
+    isFuture: true,
+    locale: locale,
+  });
 };

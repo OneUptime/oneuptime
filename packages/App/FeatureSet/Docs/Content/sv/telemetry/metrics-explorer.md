@@ -41,7 +41,7 @@ Utforskaren har sex flikar:
 
 ## Hitta ett mätvärde
 
-Gå till **Produkter → Observerbarhet → Mått**. **Tittare** visar varje mätvärde som ditt projekt har tagit emot, efter namn, vart och ett med ett litet diagram över tidsintervallet och sitt senaste värde.
+Gå till **Produkter → Observerbarhet → Mätvärden**. **Tittare** visar varje mätvärde som ditt projekt har tagit emot, efter namn, vart och ett med ett litet diagram över tidsintervallet och sitt senaste värde.
 
 - Sök i namnen med lösa ord eller `name:`, till exempel hittar `name:http.server` mätvärdet `http.server.request.duration`. Se [Söksyntax](/docs/telemetry/search-syntax#mätvärden).
 - Filtrera på **Tjänst** i sidopanelen för att bara se de mätvärden som en tjänst rapporterar. Klicka på minustecknet bredvid en tjänst för att i stället dölja de mätvärden den rapporterar.
@@ -56,11 +56,11 @@ Klicka på mätvärdet i **Tittare**. Utforskaren öppnas med en fråga, `a`, f�
 
 ### Välj hur det ska aggregeras
 
-Under **Aggregate by** väljer du hur värdena i varje punkt i diagrammet kombineras: Avg, som är standard, Sum, Min, Max, Count, eller en percentil, P50, P75, P90, P95 eller P99. En percentil av ett histogram, till exempel varaktigheten för en förfrågan, räknas ut från dess hinkar.
+Under **Aggregera efter** väljer du hur värdena i varje punkt i diagrammet kombineras: Avg, som är standard, Sum, Min, Max, Count, eller en percentil, P50, P75, P90, P95 eller P99. En percentil av ett histogram, till exempel varaktigheten för en förfrågan, räknas ut från dess hinkar.
 
 ### Filtrera och gruppera det
 
-Öppna **Filters & grouping**. **Filter by attributes** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Gruppera efter** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
+Öppna **Filter och gruppering**. **Filtrera på attribut** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Gruppera efter** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
 
 ### Justera diagrammet
 
@@ -128,7 +128,7 @@ Ett fynd lagrar aldrig ett attributs värden: bara attributets namn, hur många 
 
 ### Slå på det
 
-**Mått → AI → Inställningar** har reglaget **Förbättra mätvärden och lägg till de som saknas**, som är på för nya projekt. När **Aktivera AI** är av hittas problem i dina mätvärden fortfarande, men OneUptime AI gör ingenting med dem. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+**Mätvärden → AI → Inställningar** har reglaget **Förbättra mätvärden och lägg till de som saknas**, som är på för nya projekt. När **Aktivera AI** är av hittas problem i dina mätvärden fortfarande, men OneUptime AI gör ingenting med dem. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
 
 OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
 
@@ -146,8 +146,8 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 
 ### Se vad den gjorde
 
-- **Mått → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
-- **Mått → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
+- **Mätvärden → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Mått**, som öppnar dess mätvärde för dess tjänst, från timmen då det hittades. En tjänst utan mätvärden, eller utan mätvärden för sina förfrågningar, erbjuder i stället **Öppna i Spår**: de spans som dess mätvärden skulle mäta.
+- **Mätvärden → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ### Registrera förfrågningsmätvärden utan att ändra kod
@@ -177,7 +177,7 @@ Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `t
 
 ## Vad som händer med mätvärden när de kommer in
 
-**Mått → Inställningar → Pipelineregler** ändrar mätvärden när de kommer in, innan de lagras. Reglerna körs i listans ordning, som du ändrar genom att dra; en regel för en tjänst körs före reglerna för alla tjänster.
+**Mätvärden → Inställningar → Pipelineregler** ändrar mätvärden när de kommer in, innan de lagras. Reglerna körs i listans ordning, som du ändrar genom att dra; en regel för en tjänst körs före reglerna för alla tjänster.
 
 | Regeltyp | Vad den gör |
 | --- | --- |
@@ -190,7 +190,7 @@ Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `t
 | Maskera attribut | Ersätter ett attributs värde med en platshållare. |
 | Stickprov | Behåller en procentandel av de matchande datapunkterna. |
 
-**Mått → Inställningar → Inspelningsregler** räknar ut nya mätvärden från andra mätvärden, varje minut. Se [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för hur inspelningsregler fungerar.
+**Mätvärden → Inställningar → Inspelningsregler** räknar ut nya mätvärden från andra mätvärden, varje minut. Se [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för hur inspelningsregler fungerar.
 
 ## Felsökning
 

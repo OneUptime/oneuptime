@@ -43,7 +43,7 @@ New Relic 워크플로는 필터로 보낼 이슈를 고르고, 이슈가 활성
 
 ### 워크플로가 하는 일
 
-**웹훅** 트리거 다음에는 **Check With JavaScript** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **Incident From Another Tool**(알림 템플릿에서는 **Alert From Another Tool**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
+**웹훅** 트리거 다음에는 **JavaScript로 확인** 단계 `read-event-1`이 New Relic이 보내는 `state`를 읽고, **다른 도구의 인시던트**(알림 템플릿에서는 **다른 도구의 경고**)이 이슈의 ID로 그 뜻대로 처리합니다. 인시던트는 ID를 사용자 지정 필드 `newRelicIssueId`에 보관합니다.
 
 | New Relic이 보내는 것 | 워크플로가 하는 일 |
 | --- | --- |

@@ -1751,6 +1751,8 @@ describe("the compliance types stay pure", () => {
         "./ComplianceNotificationChannel",
         "./ComplianceRuleType",
         "../NotificationRule/NotificationRuleType",
+        // The sentences in the reader's language (#8296): pure functions too.
+        "../Translator",
       ].sort(),
     );
     expect(importsOf("TeamComplianceStatus.ts")).toContain("./ComplianceRule");

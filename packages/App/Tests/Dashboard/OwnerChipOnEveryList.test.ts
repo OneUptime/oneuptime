@@ -74,6 +74,8 @@ const IDENTIFIER: RegExp = /^\w+$/;
  * file (from the Dashboard's src) and the table's id or name.
  */
 const NO_OWNER_CHIP: Record<string, string> = {
+  "Components/IncomingRequestSecret/RequestsWithoutSecretTable.tsx#incoming-request-monitors-without-secret-table":
+    "The monitors that received a request without the project's secret since it began checking: a short to-do on the secrets page, with no filters at all, not a list to search.",
   "Pages/DataProduct/View/Overview.tsx#data-product-tables":
     "The few tables one data product is made of, picked by hand: a part of its page, not a list to search.",
   "Pages/Global/ActiveIncidents.tsx#active-incidents-table":

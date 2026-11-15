@@ -92,27 +92,19 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
  * keeps them as written:
  *
  *   - the toolbar's ⋯ menu, a symbol in every language;
- *   - widget settings and options with no locale key, which the settings
- *     form and its dropdowns draw as the widget's code writes them;
  *   - the public dashboard's Access Denied page, an app with no locale.
+ *
+ * The widget settings and options (Chart Type, Reduce, ...) were here until
+ * every Dashboard locale worded them, as the settings form draws them now:
+ * each page names them as its Dashboard does.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [DASHBOARDS_INDEX]: ["⋯"],
     [AUTHORING]: ["⋯"],
-    [WIDGETS]: [
-      "Chart Type",
-      "Additional Queries",
-      "Trend Direction",
-      "Metrics & Columns",
-      "Reduce across time",
-      "Run JavaScript",
-      "Open links in a new tab",
-      "Allow forms to submit",
-      "Tile",
-    ],
+    [WIDGETS]: [],
     [VARIABLES]: [],
-    [DATA_SOURCES]: ["Reduce"],
+    [DATA_SOURCES]: [],
     [SHARING]: ["Access Denied"],
   };
 

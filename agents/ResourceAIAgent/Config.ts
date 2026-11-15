@@ -685,7 +685,7 @@ function resolveCloudIdentity(
     !CLOUD_ACCOUNT_FORMATS[provider].pattern.test(resolved.identifier)
   ) {
     resolved.problems.push(
-      `${resolved.source}="${resolved.identifier.slice(0, 64)}" is not ${CLOUD_ACCOUNT_FORMATS[provider].described}. Set it to the ${info.displayName} the agent serves, or leave it unset: the agent asks its cloud which one it is in.`,
+      `${resolved.source}="${resolved.identifier.slice(0, 64)}" is not ${CLOUD_ACCOUNT_FORMATS[provider].described}. Set it to the ${info.sentenceName} the agent serves, or leave it unset: the agent asks its cloud which one it is in.`,
     );
   }
 
@@ -758,7 +758,7 @@ export function resolveIdentity(
 
     if (!resolved.identifier && !isIdentityResolvedByAgent(type)) {
       resolved.problems.push(
-        `${info.identityEnvVars.join(" / ")} is not set. Set it ${WHERE_TO_SET} to the name the ${info.displayName}'s collector reports (or set ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}), so the agent serves the same ${info.displayName} in OneUptime.`,
+        `${info.identityEnvVars.join(" / ")} is not set. Set it ${WHERE_TO_SET} to the name the ${info.sentenceName}'s collector reports (or set ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV}), so the agent serves the same ${info.sentenceName} in OneUptime.`,
       );
     }
   }
@@ -768,7 +768,7 @@ export function resolveIdentity(
     resolved.identifier.length > MAX_POSTURE_STRING_LENGTH
   ) {
     resolved.problems.push(
-      `The ${info.displayName} identity from ${resolved.source} is ${resolved.identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}.`,
+      `The ${info.sentenceName} identity from ${resolved.source} is ${resolved.identifier.length} characters long; OneUptime accepts at most ${MAX_POSTURE_STRING_LENGTH}.`,
     );
   }
 
@@ -806,7 +806,7 @@ export function describeDefaultIdentity(data: {
   const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.type];
   const variable: string = data.source || info.identityEnvVars.join(" / ");
 
-  return `This ${info.displayName} is named "${data.identifier}", the collector's default (${variable}). Every ${info.displayName} installed with the default reports into the same OneUptime resource, so commands for it could reach any of them. Set ${variable} to a name unique to this ${info.displayName} on both the collector and the AI agent.`;
+  return `This ${info.sentenceName} is named "${data.identifier}", the collector's default (${variable}). Every ${info.sentenceName} installed with the default reports into the same OneUptime resource, so commands for it could reach any of them. Set ${variable} to a name unique to this ${info.sentenceName} on both the collector and the AI agent.`;
 }
 
 export function parseConfig(env: NodeJS.ProcessEnv): ParsedConfig {

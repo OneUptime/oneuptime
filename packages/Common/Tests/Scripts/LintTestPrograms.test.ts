@@ -49,6 +49,10 @@ const PARTS_OF_LINT_PROJECT: Record<string, Array<string>> = {
   ],
   "Tests/UI/tsconfig.json": ["tsconfig.tests.ui.json"],
   "Tests/Server/tsconfig.json": ["tsconfig.tests.server.json"],
+  "Tests/Server/Services/tsconfig.json": [
+    "tsconfig.tests.server-services-a-m.json",
+    "tsconfig.tests.server-services-n-z.json",
+  ],
   "Tests/Server/Utils/tsconfig.json": ["tsconfig.tests.server-utils.json"],
   "Tests/tsconfig.json": ["tsconfig.tests.rest.json"],
 };

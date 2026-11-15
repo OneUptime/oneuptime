@@ -546,10 +546,10 @@ describe("describeExceptionStatusChange", () => {
 describe("relative times in the reader's language", () => {
   test("Intl's words for a language other than English, the English ones otherwise", () => {
     expect(formatRelativeTime(ago(4 * MINUTE), NOW, "de")).toBe(
-      "vor 4 Minuten",
+      "vor 4\u00A0Minuten",
     );
     expect(formatRelativeTime(ago(2 * HOUR), NOW, "fr")).toBe(
-      "il y a 2 heures",
+      "il y a 2\u00A0heures",
     );
     expect(formatRelativeTime(ago(10 * SECOND), NOW, "de")).toBe("jetzt");
     expect(formatRelativeTime(ago(4 * MINUTE), NOW, "en")).toBe(
@@ -577,7 +577,7 @@ describe("relative times in the reader's language", () => {
 
     // A sentence the locale has: a German time.
     expect(german.translateTemplate("Resolved {{time}}", { time })).toBe(
-      "Behoben vor 4 Minuten",
+      "Behoben vor 4\u00A0Minuten",
     );
     // A sentence it does not have yet: English, all of it.
     expect(german.translateTemplate("Archived {{time}}", { time })).toBe(

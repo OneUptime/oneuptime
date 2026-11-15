@@ -28,6 +28,10 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { translationKey } from "Common/Types/Translator";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -38,6 +42,10 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many standby / slot / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
+
+// The statement that turns pg_stat_statements on: code, the same in every language.
+const ENABLE_STATEMENTS_COMMAND: string =
+  "CREATE EXTENSION pg_stat_statements;";
 
 /*
  * ~2.1B (2^31) is the transaction-ID wraparound limit. Postgres aggressively
@@ -136,9 +144,12 @@ const formatMilliseconds: (value: unknown) => string = (
 };
 
 // Relative "x ago" from an ISO timestamp, for last-autovacuum hints.
-const timeAgo: (value: unknown) => string = (value: unknown): string => {
+const timeAgo: (value: unknown, translator: Translator) => string = (
+  value: unknown,
+  translator: Translator,
+): string => {
   if (!value) {
-    return "never";
+    return translator.translateText("never") as string;
   }
 
   const time: number = new Date(String(value)).getTime();
@@ -147,7 +158,9 @@ const timeAgo: (value: unknown) => string = (value: unknown): string => {
     return "—";
   }
 
-  return `${formatDuration((Date.now() - time) / 1000)} ago`;
+  return translator.translateTemplate("{{duration}} ago", {
+    duration: formatDuration((Date.now() - time) / 1000),
+  });
 };
 
 /*
@@ -158,7 +171,12 @@ const timeAgo: (value: unknown) => string = (value: unknown): string => {
 const formatShareOfDatabase: (
   sizeInBytes: unknown,
   databaseSizeInBytes: number,
-) => string = (sizeInBytes: unknown, databaseSizeInBytes: number): string => {
+  translator: Translator,
+) => string = (
+  sizeInBytes: unknown,
+  databaseSizeInBytes: number,
+  translator: Translator,
+): string => {
   if (databaseSizeInBytes <= 0 || !isNum(sizeInBytes)) {
     return "";
   }
@@ -170,10 +188,14 @@ const formatShareOfDatabase: (
   }
 
   if (percent < 0.1) {
-    return "<0.1% of database";
+    return translator.translateTemplate("{{share}} of database", {
+      share: "<0.1%",
+    });
   }
 
-  return `${percent.toFixed(1)}% of database`;
+  return translator.translateTemplate("{{share}} of database", {
+    share: `${percent.toFixed(1)}%`,
+  });
 };
 
 /*
@@ -272,6 +294,7 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
 };
 
 const PostgresCluster: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [data, setData] = useState<JSONObject | null>(null);
   const [activity, setActivity] = useState<JSONObject | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
@@ -409,7 +432,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     return (
       <div className="rounded-lg border border-gray-200 p-3">
         <div className="text-xs text-gray-500 flex items-center">
-          {label}
+          {translator.translateText(label)}
           {info ? <MetricInfoTip info={info} /> : <></>}
         </div>
         <div className="text-base font-semibold text-gray-900 mt-1">
@@ -435,8 +458,12 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
       return (
         <div className="text-xs text-gray-500">
           {isInRecovery
-            ? "This node is a standby; replication is observed from the primary."
-            : "No standbys connected (single-node deployment, or streaming replication is not configured)."}
+            ? translator.translateText(
+                "This node is a standby; replication is observed from the primary.",
+              )
+            : translator.translateText(
+                "No standbys connected (single-node deployment, or streaming replication is not configured).",
+              )}
         </div>
       );
     }
@@ -451,7 +478,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             const streaming: boolean = state === "streaming";
             const lag: number = toNum(standby["replayLagSeconds"]);
 
-            let statusText: string = "Streaming";
+            let statusText: string = translationKey("Streaming");
             let statusColor: Color = Green;
             let shouldAnimate: boolean = true;
 
@@ -460,11 +487,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               statusColor = Yellow;
               shouldAnimate = false;
             } else if (lag > 60) {
-              statusText = "Lagging";
+              statusText = translationKey("Lagging");
               statusColor = Red;
               shouldAnimate = false;
             } else if (lag > 10) {
-              statusText = "Catching up";
+              statusText = translationKey("Catching up");
               statusColor = Yellow;
               shouldAnimate = false;
             }
@@ -486,11 +513,23 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                   <div className="text-xs text-gray-500">
                     {String(standby["syncState"] ?? "") || (
                       <TableEmptyValue isSmall={true} />
-                    )}{" "}
-                    · replay lag {formatDuration(lag)}
-                    {isNum(standby["bytesBehind"])
-                      ? ` · ${bytesToReadable(standby["bytesBehind"])} behind`
-                      : ""}
+                    )}
+                    {formatInline(
+                      [
+                        "",
+                        translator.translateTemplate("replay lag {{lag}}", {
+                          lag: formatDuration(lag),
+                        }),
+                        ...(isNum(standby["bytesBehind"])
+                          ? [
+                              translator.translateTemplate("{{size}} behind", {
+                                size: bytesToReadable(standby["bytesBehind"]),
+                              }),
+                            ]
+                          : []),
+                      ],
+                      translator,
+                    )}
                   </div>
                 </div>
                 <Statusbubble
@@ -511,7 +550,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (slots.length === 0) {
       return (
         <div className="text-xs text-gray-500">
-          No replication slots on this node.
+          {translator.translateText("No replication slots on this node.")}
         </div>
       );
     }
@@ -526,16 +565,16 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             const walStatus: string = String(slot["walStatus"] ?? "unknown");
             const lost: boolean = walStatus === "lost";
 
-            let statusText: string = "Active";
+            let statusText: string = translationKey("Active");
             let statusColor: Color = Green;
             let shouldAnimate: boolean = true;
 
             if (lost) {
-              statusText = "WAL lost";
+              statusText = translationKey("WAL lost");
               statusColor = Red;
               shouldAnimate = false;
             } else if (!active) {
-              statusText = "Inactive";
+              statusText = translationKey("Inactive");
               statusColor = Yellow;
               shouldAnimate = false;
             }
@@ -552,11 +591,22 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                   <div className="text-xs text-gray-500">
                     {String(slot["slotType"] ?? "") || (
                       <TableEmptyValue isSmall={true} />
-                    )}{" "}
-                    · wal_status {walStatus}
-                    {isNum(slot["retainedBytes"])
-                      ? ` · retains ${bytesToReadable(slot["retainedBytes"])}`
-                      : ""}
+                    )}
+                    {formatInline(
+                      [
+                        "",
+                        // The column's own name, as PostgreSQL writes it.
+                        `wal_status ${walStatus}`,
+                        ...(isNum(slot["retainedBytes"])
+                          ? [
+                              translator.translateTemplate("retains {{size}}", {
+                                size: bytesToReadable(slot["retainedBytes"]),
+                              }),
+                            ]
+                          : []),
+                      ],
+                      translator,
+                    )}
                   </div>
                 </div>
                 <Statusbubble
@@ -580,7 +630,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!connected) {
       return (
         <div className="text-sm text-gray-500">
-          PostgreSQL is not reachable from this instance.
+          {translator.translateText(
+            "PostgreSQL is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -637,11 +689,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
      * big numbers (commits, deadlocks) only mean something next to their age.
      */
     const statsResetHint: string | undefined = database["statsReset"]
-      ? `since stats reset ${timeAgo(database["statsReset"])}`
+      ? translator.translateTemplate("since stats reset {{time}}", {
+          time: timeAgo(database["statsReset"], translator),
+        })
       : undefined;
 
     // Overall verdict — red for a hard problem, yellow for a soft one.
-    let statusText: string = "Healthy";
+    let statusText: string = translationKey("Healthy");
     let statusColor: Color = Green;
     let shouldAnimate: boolean = true;
 
@@ -661,11 +715,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
       (cacheHit !== null && cacheHit < 90);
 
     if (hasRedSignal) {
-      statusText = "Needs attention";
+      statusText = translationKey("Needs attention");
       statusColor = Red;
       shouldAnimate = false;
     } else if (hasYellowSignal) {
-      statusText = "Degraded";
+      statusText = translationKey("Degraded");
       statusColor = Yellow;
       shouldAnimate = false;
     }
@@ -673,30 +727,54 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     // Topology summary line.
     let topology: string = "";
     if (role === "standby") {
-      topology = "standby node";
+      topology = translator.translateText("standby node") as string;
     } else if (replication.length > 0) {
-      topology = `1 primary + ${replication.length} ${
-        replication.length === 1 ? "standby" : "standbys"
-      }`;
+      topology = translator.translatePlural(
+        {
+          one: "1 primary + {{count}} standby",
+          other: "1 primary + {{count}} standbys",
+        },
+        replication.length,
+      );
     } else {
-      topology = "single-node";
+      topology = translator.translateText("single-node") as string;
     }
 
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Cluster{" "}
-            <span className="font-mono text-gray-900">
-              {String(data?.["clusterName"] || "") || <TableEmptyValue />}
-            </span>{" "}
-            · {topology}
-            {data?.["serverVersion"]
-              ? ` · pg ${String(data["serverVersion"])}`
-              : ""}
-            {isNum(data?.["uptimeSeconds"])
-              ? ` · up ${formatDuration(data?.["uptimeSeconds"])}`
-              : ""}
+            <TranslatedSentence
+              template="Cluster {{cluster}}"
+              slots={{
+                cluster: (
+                  <span className="font-mono text-gray-900">
+                    {String(data?.["clusterName"] || "") || <TableEmptyValue />}
+                  </span>
+                ),
+              }}
+            />
+            {formatInline(
+              [
+                "",
+                topology,
+                ...(data?.["serverVersion"]
+                  ? [
+                      translator.translateTemplate("pg {{version}}", {
+                        version: String(data["serverVersion"]),
+                      }),
+                    ]
+                  : []),
+                ...(isNum(data?.["uptimeSeconds"])
+                  ? [
+                      translator.translateTemplate("up {{duration}}", {
+                        duration: formatDuration(data?.["uptimeSeconds"]),
+                      }),
+                    ]
+                  : []),
+              ],
+              translator,
+            )}
           </div>
           <MetricInfoWrap info={METRIC_INFO.overallStatus}>
             <span className="inline-flex cursor-help">
@@ -732,7 +810,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
             "Temp files",
             formatNumber(database["tempFiles"]),
             isNum(database["tempBytes"])
-              ? `${bytesToReadable(database["tempBytes"])} written`
+              ? translator.translateTemplate("{{size}} written", {
+                  size: bytesToReadable(database["tempBytes"]),
+                })
               : undefined,
             METRIC_INFO.tempFiles,
           )}
@@ -764,7 +844,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           />
           {connPercent !== null ? (
             <ResourceUsageBar
-              label="Connections"
+              label={translator.translateText("Connections") as string}
               value={connPercent}
               valueLabel={`${connPercent.toFixed(0)}%`}
               secondaryLabel={`${formatNumber(totalConn)} / ${formatNumber(
@@ -788,7 +868,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               METRIC_INFO.idle,
             )}
             {renderStat(
-              "Idle in txn",
+              translationKey("Idle in txn"),
               formatNumber(connections["idleInTransaction"]),
               undefined,
               METRIC_INFO.idleInTransaction,
@@ -802,8 +882,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           </div>
           {blocked > 0 ? (
             <div className="text-xs text-red-700 mt-2">
-              {formatNumber(blocked)} session
-              {blocked === 1 ? "" : "s"} blocked waiting on a lock.
+              {translator.translatePlural(
+                {
+                  one: "{{count}} session blocked waiting on a lock.",
+                  other: "{{count}} sessions blocked waiting on a lock.",
+                },
+                blocked,
+              )}
             </div>
           ) : (
             <></>
@@ -859,8 +944,20 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         {String(table["name"])}
                       </span>
                       <span className="text-gray-500 whitespace-nowrap">
-                        {formatNumber(table["deadTuples"])} dead · vac{" "}
-                        {timeAgo(table["lastAutovacuum"])}
+                        {formatInline(
+                          [
+                            translator.translateTemplate("{{count}} dead", {
+                              count: formatNumber(table["deadTuples"]),
+                            }),
+                            translator.translateTemplate("vac {{time}}", {
+                              time: timeAgo(
+                                table["lastAutovacuum"],
+                                translator,
+                              ),
+                            }),
+                          ],
+                          translator,
+                        )}
                       </span>
                     </div>
                   );
@@ -888,7 +985,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!connected) {
       return (
         <div className="text-sm text-gray-500">
-          PostgreSQL is not reachable from this instance.
+          {translator.translateText(
+            "PostgreSQL is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -898,7 +997,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (tablesBySize.length === 0) {
       return (
         <div className="text-sm text-gray-500">
-          No table sizes were reported.
+          {translator.translateText("No table sizes were reported.")}
         </div>
       );
     }
@@ -918,71 +1017,71 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                 className="pb-2 pr-4"
                 resize={largestTableColumns.getResize(
                   "table",
-                  "Table",
+                  translator.translateText("Table") as string,
                   ColumnWidthKind.Name,
                 )}
               >
-                <span>Table</span>
+                <span>{translator.translateText("Table")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={largestTableColumns.getResize(
                   "total",
-                  "Total",
+                  translator.translateText("Total") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Total</span>
+                <span>{translator.translateText("Total")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={largestTableColumns.getResize(
                   "heap",
-                  "Heap",
+                  translator.translateText("Heap") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Heap</span>
+                <span>{translator.translateText("Heap")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={largestTableColumns.getResize(
                   "indexes",
-                  "Indexes",
+                  translator.translateText("Indexes") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Indexes</span>
+                <span>{translator.translateText("Indexes")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={largestTableColumns.getResize(
                   "toast",
-                  "Toast",
+                  translator.translateText("Toast") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Toast</span>
+                <span>{translator.translateText("Toast")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={largestTableColumns.getResize(
                   "liveRows",
-                  "Live rows",
+                  translator.translateText("Live rows") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Live rows</span>
+                <span>{translator.translateText("Live rows")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 pl-4 text-right"
                 resize={largestTableColumns.getResize(
                   "deadRows",
-                  "Dead rows",
+                  translator.translateText("Dead rows") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Dead rows</span>
+                <span>{translator.translateText("Dead rows")}</span>
               </ResizableHeaderCell>
             </tr>
           </thead>
@@ -994,6 +1093,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                 const share: string = formatShareOfDatabase(
                   table["totalSizeInBytes"],
                   databaseSizeInBytes,
+                  translator,
                 );
 
                 return (
@@ -1056,7 +1156,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!activity) {
       return (
         <div className="text-sm text-gray-500">
-          Live activity could not be loaded.
+          {translator.translateText("Live activity could not be loaded.")}
         </div>
       );
     }
@@ -1065,7 +1165,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!connected) {
       return (
         <div className="text-sm text-gray-500">
-          PostgreSQL is not reachable from this instance.
+          {translator.translateText(
+            "PostgreSQL is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -1079,11 +1181,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         {/* Blocked sessions first — when any exist, they are the story. */}
         <div>
           <div className="text-sm font-semibold text-gray-900 mb-2">
-            Blocked sessions
+            {translator.translateText("Blocked sessions")}
           </div>
           {blockedSessions.length === 0 ? (
             <div className="text-xs text-gray-500">
-              No sessions are blocked on locks.
+              {translator.translateText("No sessions are blocked on locks.")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -1097,11 +1199,24 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       className="rounded-md border border-red-200 bg-red-50 px-3 py-2 space-y-1"
                     >
                       <div className="text-xs font-medium text-red-800">
-                        PID {formatNumber(pair["blockedPid"])}
-                        {pair["blockedUser"]
-                          ? ` (${String(pair["blockedUser"])})`
-                          : ""}{" "}
-                        · waiting {formatDuration(pair["blockedForSeconds"])}
+                        {formatInline(
+                          [
+                            `PID ${formatNumber(pair["blockedPid"])}${
+                              pair["blockedUser"]
+                                ? ` (${String(pair["blockedUser"])})`
+                                : ""
+                            }`,
+                            translator.translateTemplate(
+                              "waiting {{duration}}",
+                              {
+                                duration: formatDuration(
+                                  pair["blockedForSeconds"],
+                                ),
+                              },
+                            ),
+                          ],
+                          translator,
+                        )}
                       </div>
                       <div
                         className="text-xs font-mono text-gray-900 truncate"
@@ -1112,10 +1227,17 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         )}
                       </div>
                       <div className="text-xs text-gray-600">
-                        blocked by PID {formatNumber(pair["blockingPid"])}
-                        {pair["blockingUser"]
-                          ? ` (${String(pair["blockingUser"])})`
-                          : ""}
+                        {translator.translateTemplate(
+                          "blocked by PID {{pid}}",
+                          {
+                            pid: `${formatNumber(pair["blockingPid"])}${
+                              pair["blockingUser"]
+                                ? ` (${String(pair["blockingUser"])})`
+                                : ""
+                            }`,
+                          },
+                          { setsValuesApart: true },
+                        )}
                         {pair["blockingState"]
                           ? ` · ${String(pair["blockingState"])}`
                           : ""}
@@ -1138,12 +1260,13 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         {/* Running queries, longest first — idle-in-transaction included. */}
         <div>
           <div className="text-sm font-semibold text-gray-900 mb-2">
-            Running queries
+            {translator.translateText("Running queries")}
           </div>
           {activeQueries.length === 0 ? (
             <div className="text-xs text-gray-500">
-              Nothing is running right now. (This page&apos;s own health probe
-              is excluded.)
+              {translator.translateText(
+                "Nothing is running right now. (This page's own health probe is excluded.)",
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -1158,51 +1281,51 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       className="pb-2 pr-4"
                       resize={runningQueryColumns.getResize(
                         "pid",
-                        "PID",
+                        translator.translateText("PID") as string,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>PID</span>
+                      <span>{translator.translateText("PID")}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       className="pb-2 px-4"
                       resize={runningQueryColumns.getResize(
                         "state",
-                        "State",
+                        translator.translateText("State") as string,
                         ColumnWidthKind.Text,
                       )}
                     >
-                      <span>State</span>
+                      <span>{translator.translateText("State")}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       className="pb-2 px-4 text-right"
                       resize={runningQueryColumns.getResize(
                         "running",
-                        "Running",
+                        translator.translateText("Running") as string,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>Running</span>
+                      <span>{translator.translateText("Running")}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       className="pb-2 px-4 text-right"
                       resize={runningQueryColumns.getResize(
                         "inTransaction",
-                        "In txn",
+                        translator.translateText("In txn") as string,
                         ColumnWidthKind.Whole,
                       )}
                     >
-                      <span>In txn</span>
+                      <span>{translator.translateText("In txn")}</span>
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       className="pb-2 pl-4"
                       resize={runningQueryColumns.getResize(
                         "query",
-                        "Query",
+                        translator.translateText("Query") as string,
                         ColumnWidthKind.Text,
                       )}
                     >
-                      <span>Query</span>
+                      <span>{translator.translateText("Query")}</span>
                     </ResizableHeaderCell>
                   </tr>
                 </thead>
@@ -1235,10 +1358,17 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                             </div>
                             {session["waitEventType"] ? (
                               <div className="text-xs text-gray-500 whitespace-nowrap">
-                                waits on {String(session["waitEventType"])}
-                                {session["waitEvent"]
-                                  ? `: ${String(session["waitEvent"])}`
-                                  : ""}
+                                {translator.translateTemplate(
+                                  "waits on {{event}}",
+                                  {
+                                    event: `${String(session["waitEventType"])}${
+                                      session["waitEvent"]
+                                        ? `: ${String(session["waitEvent"])}`
+                                        : ""
+                                    }`,
+                                  },
+                                  { setsValuesApart: true },
+                                )}
                               </div>
                             ) : (
                               <></>
@@ -1284,11 +1414,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         {/* Vacuum progress — pairs with the autovacuum hotspots list above. */}
         <div>
           <div className="text-sm font-semibold text-gray-900 mb-2">
-            Vacuum progress
+            {translator.translateText("Vacuum progress")}
           </div>
           {vacuumProgress.length === 0 ? (
             <div className="text-xs text-gray-500">
-              No vacuum is running right now.
+              {translator.translateText("No vacuum is running right now.")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -1341,7 +1471,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!activity) {
       return (
         <div className="text-sm text-gray-500">
-          Statement statistics could not be loaded.
+          {translator.translateText(
+            "Statement statistics could not be loaded.",
+          )}
         </div>
       );
     }
@@ -1350,7 +1482,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!connected) {
       return (
         <div className="text-sm text-gray-500">
-          PostgreSQL is not reachable from this instance.
+          {translator.translateText(
+            "PostgreSQL is not reachable from this instance.",
+          )}
         </div>
       );
     }
@@ -1358,15 +1492,19 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (!activity?.["statementsAvailable"]) {
       return (
         <div className="text-sm text-gray-500">
-          The <span className="font-mono">pg_stat_statements</span> extension is
-          not available on this instance. Add{" "}
-          <span className="font-mono">pg_stat_statements</span> to{" "}
-          <span className="font-mono">shared_preload_libraries</span>, restart
-          PostgreSQL, then run{" "}
-          <span className="font-mono">
-            CREATE EXTENSION pg_stat_statements;
-          </span>{" "}
-          to unlock cumulative query statistics.
+          <TranslatedSentence
+            template="The {{extension}} extension is not available on this instance. Add it to {{setting}}, restart PostgreSQL, then run {{command}} to unlock cumulative query statistics."
+            slots={{
+              // Names and a command, as PostgreSQL spells them.
+              extension: <span className="font-mono">pg_stat_statements</span>,
+              setting: (
+                <span className="font-mono">shared_preload_libraries</span>
+              ),
+              command: (
+                <span className="font-mono">{ENABLE_STATEMENTS_COMMAND}</span>
+              ),
+            }}
+          />
         </div>
       );
     }
@@ -1376,7 +1514,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
     if (topStatements.length === 0) {
       return (
         <div className="text-sm text-gray-500">
-          No statements have been recorded yet.
+          {translator.translateText("No statements have been recorded yet.")}
         </div>
       );
     }
@@ -1394,71 +1532,71 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                 className="pb-2 pr-4"
                 resize={statementColumns.getResize(
                   "query",
-                  "Query",
+                  translator.translateText("Query") as string,
                   ColumnWidthKind.Name,
                 )}
               >
-                <span>Query</span>
+                <span>{translator.translateText("Query")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={statementColumns.getResize(
                   "calls",
-                  "Calls",
+                  translator.translateText("Calls") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Calls</span>
+                <span>{translator.translateText("Calls")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={statementColumns.getResize(
                   "total",
-                  "Total",
+                  translator.translateText("Total") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Total</span>
+                <span>{translator.translateText("Total")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={statementColumns.getResize(
                   "mean",
-                  "Mean",
+                  translator.translateText("Mean") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Mean</span>
+                <span>{translator.translateText("Mean")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={statementColumns.getResize(
                   "max",
-                  "Max",
+                  translator.translateText("Max") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Max</span>
+                <span>{translator.translateText("Max")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 px-4 text-right"
                 resize={statementColumns.getResize(
                   "rows",
-                  "Rows",
+                  translator.translateText("Rows") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Rows</span>
+                <span>{translator.translateText("Rows")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="pb-2 pl-4 text-right"
                 resize={statementColumns.getResize(
                   "cacheHit",
-                  "Cache hit",
+                  translator.translateText("Cache hit") as string,
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Cache hit</span>
+                <span>{translator.translateText("Cache hit")}</span>
               </ResizableHeaderCell>
             </tr>
           </thead>

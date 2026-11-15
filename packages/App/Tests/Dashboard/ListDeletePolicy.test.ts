@@ -71,6 +71,8 @@ const BULK_WITHOUT_DELETE: Record<string, string> = {
     "Lists episodes from every project the person belongs to: a delete from here would be sent to whichever project is open, not to the episode's own.",
   "Dashboard/src/Pages/Monitor/View/Slos.tsx":
     "A monitor's SLOs: an SLO can measure several monitors, so it is deleted from the SLOs list, not from under one of its monitors.",
+  "Dashboard/src/Pages/Service/View/Slos.tsx":
+    "A service's SLOs, as a monitor's are: a request SLO can measure several services, so it is deleted from the SLOs list, not from under one of its services.",
   "Dashboard/src/Pages/NetworkDevice/View/Interfaces.tsx":
     "Interfaces are discovered from the device on every SNMP poll, so a deleted one comes back; Mute is how one stops being monitored.",
   "Dashboard/src/Pages/DataSecurity/DataStores.tsx":

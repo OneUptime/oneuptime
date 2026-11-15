@@ -215,7 +215,7 @@ describe("the contract every executor keeps", () => {
       assert.match(
         String(prepared.refusal),
         new RegExp(
-          `^Refused by the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName}: this command is for ${AI_RESOURCE_TYPE_INFO[type].displayName} "someone-else"`,
+          `^Refused by the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName}: this command is for ${AI_RESOURCE_TYPE_INFO[type].sentenceName} "someone-else"`,
         ),
       );
     });

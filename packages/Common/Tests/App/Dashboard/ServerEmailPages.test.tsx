@@ -58,7 +58,7 @@ const ON_CALL_STEP: {
   descriptionWithoutEmail: { forAdmin: string; forOthers: string };
 } = {
   description:
-    "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
+    "Page the right person when an incident or alert opens. Until then, the Project Owners get an email.",
   descriptionWithoutEmail: {
     forAdmin: SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin,
     forOthers: SERVER_EMAIL_COPY.onCallStepDescription,

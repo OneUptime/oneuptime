@@ -113,7 +113,6 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                 title: "Status",
                 type: FieldType.Dropdown,
                 filterDropdownOptions: getIssueStatusOptions(
-                  translator,
                   STATUSES.filter(
                     (status: DataSecurityIssueStatus): boolean => {
                       return props.statuses.includes(status);

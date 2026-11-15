@@ -63,6 +63,13 @@ import {
 } from "../../../Utils/Milliseconds";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 
+/*
+ * What a screen reader hears after "Took Yes": the steps it led to, in a
+ * sentence of the reader's language (#8570). Only {{steps}} is drawn; the
+ * words are read.
+ */
+export const LED_TO_SENTENCE: string = translationKey("which led to {{steps}}");
+
 export interface ComponentProps {
   trace: WorkflowStepTrace;
   /**
@@ -281,24 +288,51 @@ const StepOutcomeLine: FunctionComponent<StepOutcomeLineProps> = (
       {outcome.kind === StepOutcomeKind.LedTo && (
         <>
           {" "}
-          <DirectionArrow isDecorative={true} className="text-gray-400" />{" "}
-          <span className="sr-only">
-            {translator.translateText("which led to")}
-          </span>{" "}
-          {outcome.nextSteps.map(
-            (next: StepOutcomeNextStep, nextIndex: number) => {
+          {/*
+           * One sentence for a screen reader, the steps a slot in it, so a
+           * language whose verb comes after them (Japanese, Korean,
+           * Persian) reads them in its own order (#8570). Its words are
+           * read only; the eye sees the arrow and the steps.
+           */}
+          <TranslatedSentence
+            template={LED_TO_SENTENCE}
+            slots={{
+              steps: (
+                <>
+                  <DirectionArrow
+                    isDecorative={true}
+                    className="text-gray-400"
+                  />{" "}
+                  {outcome.nextSteps.map(
+                    (next: StepOutcomeNextStep, nextIndex: number) => {
+                      return (
+                        <React.Fragment key={next.componentId}>
+                          {nextIndex > 0 && " "}
+                          <NextStepLabel
+                            next={next}
+                            notRunLabel={props.notRunLabel}
+                            isFollowed={
+                              nextIndex < outcome.nextSteps.length - 1
+                            }
+                          />
+                        </React.Fragment>
+                      );
+                    },
+                  )}
+                </>
+              ),
+            }}
+            renderText={(text: string): ReactElement => {
               return (
-                <React.Fragment key={next.componentId}>
-                  {nextIndex > 0 && " "}
-                  <NextStepLabel
-                    next={next}
-                    notRunLabel={props.notRunLabel}
-                    isFollowed={nextIndex < outcome.nextSteps.length - 1}
-                  />
-                </React.Fragment>
+                <span
+                  className="sr-only"
+                  data-testid="workflow-run-step-led-to-words"
+                >
+                  {text}
+                </span>
               );
-            },
-          )}
+            }}
+          />
         </>
       )}
       {outcome.kind === StepOutcomeKind.NothingConnected && (

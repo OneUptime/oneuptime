@@ -5,6 +5,7 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * UPDATE ZABBIX PROBLEM.
@@ -28,7 +29,7 @@ import ComponentMetadata, {
  */
 
 // The step category it belongs to, and its group in the Add Component panel.
-export const ZABBIX_COMPONENT_CATEGORY: string = "Zabbix";
+export const ZABBIX_COMPONENT_CATEGORY: string = translationKey("Zabbix");
 
 /*
  * The flags of event.acknowledge's action, a bitmask: the step closes,
@@ -370,61 +371,73 @@ export const chooseZabbixUpdate: ChooseZabbixUpdateFunction = (data: {
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.ZabbixUpdateProblem,
-    title: "Update Zabbix Problem",
+    title: translationKey("Update Zabbix Problem"),
     category: ZABBIX_COMPONENT_CATEGORY,
-    description:
+    description: translationKey(
       "Acknowledge or close a problem in Zabbix, or add a message to it, through Zabbix's API.",
+    ),
     iconProp: IconProp.ServerStack,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.zabbixUrl,
-        name: "Zabbix URL",
-        description:
+        name: translationKey("Zabbix URL"),
+        description: translationKey(
           "The address you open Zabbix at, such as https://zabbix.example.com.",
+        ),
         type: ComponentInputType.URL,
         required: true,
         placeholder: "https://zabbix.example.com",
       },
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.apiToken,
-        name: "API Token",
-        description:
+        name: translationKey("API Token"),
+        description: translationKey(
           "A Zabbix API token of a user who may acknowledge, comment on and close problems. Keep it in a secret variable.",
+        ),
         type: ComponentInputType.Text,
         required: true,
         isSensitive: true,
       },
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.eventId,
-        name: "Event ID",
-        description:
+        name: translationKey("Event ID"),
+        description: translationKey(
           "The problem's event ID in Zabbix, usually from an earlier step.",
+        ),
         type: ComponentInputType.Text,
         required: true,
         placeholder: "40312",
       },
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.whatToDo,
-        name: "What To Do",
-        description:
+        name: translationKey("What To Do"),
+        description: translationKey(
           "One of acknowledge, close or message. Left empty, Zabbix is not updated.",
+        ),
         type: ComponentInputType.Text,
         required: false,
         placeholder: "close",
       },
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.message,
-        name: "Message",
-        description: `The message Zabbix keeps on the problem, at most ${ZABBIX_MESSAGE_MAX_LENGTH} characters.`,
+        name: translationKey("Message"),
+        /*
+         * Written out, so the Dashboard's locales can word it; a test holds
+         * the number to the constant it names (WorkflowStepWords).
+         */
+        description: translationKey(
+          "The message Zabbix keeps on the problem, at most 2048 characters.",
+        ),
         type: ComponentInputType.LongText,
         required: false,
       },
       {
         id: ZABBIX_UPDATE_ARGUMENT_IDS.zabbix60,
-        name: "Zabbix 6.0",
-        description:
+        name: translationKey("Zabbix 6.0"),
+        description: translationKey(
           "On for Zabbix 6.0, which reads the API token from the request body. Zabbix 6.4 and later read it from a header.",
+        ),
         type: ComponentInputType.Boolean,
         required: false,
         isAdvanced: true,
@@ -433,35 +446,39 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         id: "summary",
-        name: "Summary",
-        description: "What the step did, in a sentence.",
+        name: translationKey("Summary"),
+        description: translationKey("What the step did, in a sentence."),
         type: ComponentInputType.Text,
         required: false,
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description: "Connect the step that runs before this one.",
+        title: translationKey("In"),
+        description: translationKey(
+          "Connect the step that runs before this one.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Updated",
-        description: "Runs next when Zabbix took the update.",
+        title: translationKey("Updated"),
+        description: translationKey("Runs next when Zabbix took the update."),
         id: ZABBIX_UPDATE_PORT_IDS.updated,
       },
       {
-        title: "Unchanged",
-        description:
+        title: translationKey("Unchanged"),
+        description: translationKey(
           "Runs next when there was nothing to send: the problem is already resolved or acknowledged, or not found.",
+        ),
         id: ZABBIX_UPDATE_PORT_IDS.unchanged,
       },
       {
-        title: "Error",
-        description:
+        title: translationKey("Error"),
+        description: translationKey(
           "Runs next when Zabbix could not be reached, or refused the update.",
+        ),
         id: ZABBIX_UPDATE_PORT_IDS.error,
       },
     ],

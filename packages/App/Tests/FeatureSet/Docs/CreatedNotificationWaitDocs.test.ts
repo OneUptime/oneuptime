@@ -70,7 +70,7 @@ describe("the docs on when an incident's owners hear that it was created", () =>
       "| About a minute after the incident is declared.",
     );
     expect(page).toContain(
-      "The **Incident created** notification waits for the incident's owners first: it goes out about a minute after the incident is declared, to every owner it has by then, including owners a script, a workflow or the API adds right after creating it, and to the project's owners only if it still has none.",
+      "The **Incident created** notification waits for the incident's owners first: it goes out about a minute after the incident is declared, to every owner it has by then, including owners a script, a workflow or the API adds right after creating it, and to the Project Owners only if it still has none.",
     );
     expect(page).toContain(
       "If OneUptime restarts while the incident is being declared, the notification still goes out, a few minutes late at most.",

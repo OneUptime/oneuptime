@@ -95,7 +95,7 @@ Una chiamata può raggiungervi per un tipo e una gravità per cui non avete una 
 2. Se non ne avete nessuno, un solo metodo a pagamento, in questo ordine: SMS, una chiamata telefonica, WhatsApp, Telegram. È il primo che avete verificato, su un canale che il progetto ha attivato.
 3. Se non avete nemmeno questi, un webhook.
 
-Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o quelli del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Come contattarmi](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
+Ricevete un'e-mail al riguardo, e così i proprietari della politica di reperibilità, o i Proprietari del progetto se la politica non ne ha. Se non c'è nulla di verificato, la chiamata non può essere consegnata, e l'e-mail lo dice. Queste e-mail vengono trattenute finché continuano ad arrivare chiamate, così una tempesta di chiamate non diventa una tempesta di e-mail. Per aggiungere la regola mancante, vedete [Come contattarmi](/docs/notifications/on-call-rules#quando-una-gravità-non-ha-una-regola).
 
 ## La lingua delle vostre chiamate
 

@@ -29,7 +29,7 @@ L'esploratore ha cinque schede:
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | Cercare e filtrare gli span, e aprire le loro tracce. Si apre sull'ultima ora, prima i più recenti, 50 span per pagina. |
-| **Informazioni** | Frequenza delle richieste, tassi di errore e latenza per servizio, e le richieste che meritano uno sguardo. |
+| **Insight** | Frequenza delle richieste, tassi di errore e latenza per servizio, e le richieste che meritano uno sguardo. |
 | **IA** | Le operazioni lente o che falliscono e il tracciamento mancante che OneUptime trova nelle vostre tracce, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere le operazioni lente o che falliscono con l'IA](#trovare-e-correggere-le-operazioni-lente-o-che-falliscono-con-lia). |
 | **Guida alla configurazione** | Come inviare tracce con OpenTelemetry, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede agli span quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
@@ -107,7 +107,7 @@ Per altro, passate l'elenco da **Span** ad **Analisi**. Scegliete una serie temp
 
 ## Informazioni sulle tracce
 
-La scheda **Informazioni** riassume le richieste di un intervallo di tempo:
+La scheda **Insight** riassume le richieste di un intervallo di tempo:
 
 - il numero di richieste, il tasso di errore e la latenza P50, P95 e P99;
 - una tabella sullo stato dei vostri servizi, ordinata per tasso di errore, così i servizi che richiedono attenzione vengono per primi;
@@ -149,7 +149,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Tracce → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Su un'operazione che fallisce, **Crea monitor** imposta un monitor delle tracce sui suoi span falliti.
+- **Tracce → IA → Insight** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Su un'operazione che fallisce, **Crea monitor** imposta un monitor delle tracce sui suoi span falliti.
 - **Tracce → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna e ciò che ogni indagine ha trovato.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 

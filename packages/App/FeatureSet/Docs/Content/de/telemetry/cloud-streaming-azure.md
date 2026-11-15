@@ -28,7 +28,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ein verbundenes Azure-Abonnement.** Verbinden Sie es zuerst unter **Cloud → Verbinden**: siehe [Ein Cloud-Konto verbinden](/docs/telemetry/cloud-accounts).
-- **Ein Projektinhaber oder Admin.** Nur sie können das Lesen einschalten und das Streaming beenden.
+- **Ein Projektinhaber oder Projektadministrator.** Nur sie können das Lesen einschalten und das Streaming beenden.
 - **Azure Cloud Shell**, angemeldet als **Owner** der Abonnements oder als **Contributor**, der auch **User Access Administrator** ist: Der Befehl legt eine Ressourcengruppe und eine Rollenzuweisung an und ändert Diagnoseeinstellungen.
 - **Ein Weg nach Azure, bei einem selbst gehosteten OneUptime.** OneUptime liest jeden Namespace unter `<namespace>.servicebus.windows.net` auf Port 9093, und die Namespaces nehmen Verbindungen aus dem Internet an.
 

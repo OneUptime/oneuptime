@@ -193,7 +193,7 @@ Quattro obiettivi che la maggior parte delle installazioni può promettere, cias
 
 :::steps
 1. Apri l'[Esploratore metriche](/docs/telemetry/metrics-explorer) del progetto, e fai clic sulla prima metrica dell'obiettivo. La sua query è `a`.
-2. Scegli la sua aggregazione in **Aggregate by**. Poi apri **Filters & grouping**, e aggiungi ciascuna delle sue condizioni in **Filter by attributes**.
+2. Scegli la sua aggregazione in **Aggrega per**. Poi apri **Filtri e raggruppamento**, e aggiungi ciascuna delle sue condizioni in **Filtra per attributi**.
 3. Per una seconda query, fai clic su **Aggiungi metrica**, e configura `b` allo stesso modo.
 4. Per una formula, fai clic su **Aggiungi formula**, e scrivila in **Formula**.
 5. Per essere avvisato quando l'obiettivo non viene rispettato, fai clic su **Azioni → Crea monitor da questa vista**, e invia un avviso quando il valore supera l'obiettivo: vedi [Monitor metriche](/docs/monitor/metrics-monitor).

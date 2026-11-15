@@ -48,11 +48,11 @@ Ve a **Flujos de trabajo**, haz clic en **Crear flujo de trabajo** y luego en **
 
 ### Añadir el disparador
 
-Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Fields to pass on** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción**.
+Haz clic en el bloque discontinuo **Elige qué inicia este flujo de trabajo** y elige **On Create Incident**. Haz clic en el disparador: sus **Campos que pasar** empiezan con **Título**, así que haz clic en **Añadir campo** y elige **Descripción**.
 
 ### Enviar el evento de disparo
 
-Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://events.pagerduty.com/v2/enqueue` y su **Cuerpo de la solicitud** en:
+Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **URL** en `https://events.pagerduty.com/v2/enqueue` y su **Cuerpo de la solicitud** en:
 
 ```json
 {
@@ -72,7 +72,7 @@ Haz clic en **Añadir componente**, añade un bloque **API Post (JSON)** y conec
 
 ### Probarlo y luego activarlo
 
-Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **API Post (JSON)** muestra una respuesta `202` con `"status": "success"`, y PagerDuty abre un incidente. Después, activa **Habilitado** en la parte superior del **Constructor**.
+Haz clic en **Ejecutar flujo de trabajo**, elige un incidente de prueba en **Incidente** y ejecútalo. El paso **Llamada a API POST (JSON)** muestra una respuesta `202` con `"status": "success"`, y PagerDuty abre un incidente. Después, activa **Habilitado** en la parte superior del **Constructor**.
 :::
 
 El bloque envía JSON, así que no necesita cabecera `Content-Type`. La `severity` de PagerDuty es una de `critical`, `error`, `warning` e `info`: para enviar la de cada incidente, consulta [Asignar las gravedades](#asignar-las-gravedades).
@@ -84,7 +84,7 @@ Un flujo de trabajo tiene un solo disparador, así que resolver requiere un segu
 :::steps
 ### Añadir el disparador On Update Incident
 
-Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Update Incident** como disparador. En **Fields to watch**, haz clic en **Añadir campo** y elige **Estado actual del incidente**, para que solo se ejecute cuando cambie el estado. En **Fields to pass on**, pide si el nuevo estado es un estado resuelto: haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**. O haz clic en **Editar como JSON** y reemplaza el JSON por:
+Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Update Incident** como disparador. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**, para que solo se ejecute cuando cambie el estado. En **Campos que pasar**, pide si el nuevo estado es un estado resuelto: haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**. O haz clic en **Editar como JSON** y reemplaza el JSON por:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ Crea un flujo de trabajo llamado `Resolve PagerDuty incidents` y elige **On Upda
 
 ### Comprobar que el incidente está resuelto
 
-Añade un bloque **If / Else** después del disparador. Pon **Valor que comprobar** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparación** en **es verdadero**.
+Añade un bloque **Si / Si no** después del disparador. Pon **Valor que comprobar** en `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` y **Comparación** en **es verdadero**.
 
 ### Enviar el evento de resolución
 
-Añade un bloque **API Post (JSON)** después del lado **Sí**, con la misma **URL** y este **Cuerpo de la solicitud**:
+Añade un bloque **Llamada a API POST (JSON)** después del lado **Sí**, con la misma **URL** y este **Cuerpo de la solicitud**:
 
 ```json
 {
@@ -115,10 +115,10 @@ Comprobar `isResolvedState` en lugar del nombre de un estado sigue funcionando c
 
 ## Asignar las gravedades
 
-Para enviar la gravedad de cada incidente, añade un bloque **Run Custom JavaScript** entre el disparador y el bloque **API Post (JSON)**, y lee su respuesta en el cuerpo.
+Para enviar la gravedad de cada incidente, añade un bloque **Ejecutar JavaScript personalizado** entre el disparador y el bloque **Llamada a API POST (JSON)**, y lee su respuesta en el cuerpo.
 
-1. En los **Fields to pass on** del disparador, haz clic en **Añadir campo**, abre **Gravedad del incidente** y elige **Nombre**.
-2. Pon los **Arguments** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **Código JavaScript** en:
+1. En los **Campos que pasar** del disparador, haz clic en **Añadir campo**, abre **Gravedad del incidente** y elige **Nombre**.
+2. Pon los **Argumentos** del bloque en `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, y su **Código JavaScript** en:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ Los nombres de arriba son las tres gravedades con las que empieza un proyecto nu
 ## Solución de problemas
 
 :::details PagerDuty responde 400
-El cuerpo de la respuesta dice qué rechazó PagerDuty, y el paso **API Post (JSON)** de la ejecución lo muestra. Lo habitual es que la clave de enrutamiento no sea una clave de integración de Events API v2: vuelve a copiarla de las **Integrations** del servicio. Un evento sin `summary`, `source` o `severity` también se rechaza.
+El cuerpo de la respuesta dice qué rechazó PagerDuty, y el paso **Llamada a API POST (JSON)** de la ejecución lo muestra. Lo habitual es que la clave de enrutamiento no sea una clave de integración de Events API v2: vuelve a copiarla de las **Integrations** del servicio. Un evento sin `summary`, `source` o `severity` también se rechaza.
 :::
 
 :::details El evento de resolución no cierra nada
@@ -146,7 +146,7 @@ Ambos eventos deben llevar exactamente la misma `dedup_key`. Comprueba que los d
 :::
 
 :::details El flujo de trabajo nunca se ejecuta
-Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Registros → Ejecuciones**: una ejecución que tomó el lado **No** del bloque **If / Else** es una actualización que no era una resolución.
+Comprueba que está activado: **Habilitado**, en la parte superior de su **Constructor**. Después abre **Registros → Ejecuciones**: una ejecución que tomó el lado **No** del bloque **Si / Si no** es una actualización que no era una resolución.
 :::
 
 :::details PagerDuty muestra una referencia en lugar de un valor

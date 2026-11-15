@@ -11,11 +11,14 @@ import { CEPH_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Page
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
 import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
+import { KUBERNETES_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
 import { OPENSTACK_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getKubernetesSetupGuideWays,
   getIoTSetupGuideWays,
   getOpenStackSetupGuideWays,
   getCephSetupGuideWays,
@@ -172,6 +175,25 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Device Registry",
         "Metric conventions",
         "MQTT topics and payloads",
+      ],
+    }),
+    product({
+      name: "Kubernetes",
+      translations: KUBERNETES_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "KUBERNETES_DOCUMENTATION_TRANSLATIONS",
+      ways: getKubernetesSetupGuideWays,
+      options: KUBERNETES_PLATFORMS,
+      dashboardWords: [
+        "Kubernetes",
+        "AI",
+        "Agent",
+        "Application traces",
+        "Network flows",
+        "Upgrade or uninstall the agent",
+        "GKE Autopilot",
+        "EKS Fargate",
+        "OpenShift",
+        "Red Hat OpenShift",
       ],
     }),
     product({

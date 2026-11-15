@@ -1,5 +1,6 @@
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ModelSwitchConfirmation } from "Common/UI/Components/ModelSwitch/ModelSwitchRow";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * What Settings > Push Notifications says, apart from the page so a test can
@@ -26,8 +27,12 @@ export const getPushNotificationsSwitchDescription: (
   isOn: boolean,
 ) => string = (isOn: boolean): string => {
   return isOn
-    ? "People can register their phones and browsers, and on-call pages and notifications are pushed to them."
-    : "Nothing is pushed to phones or browsers, in any project, and no device can be registered. Reach people through a custom channel instead.";
+    ? translationKey(
+        "People can register their phones and browsers, and on-call pages and notifications are pushed to them.",
+      )
+    : translationKey(
+        "Nothing is pushed to phones or browsers, in any project, and no device can be registered. Reach people through a custom channel instead.",
+      );
 };
 
 // The confirmation for a move of the switch: only when it turns push off.

@@ -29,6 +29,7 @@ import {
 } from "./DocsContentSupport";
 import {
   drawnActionLabel,
+  drawnLabelOnPage,
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
@@ -309,7 +310,7 @@ function englishBoldDrawings(
 ): Array<[string, string]> {
   return [
     ...dashboardLabels(page).map((label: string): [string, string] => {
-      return [`**${label}**`, `**${drawnActionLabel(language, label)}**`];
+      return [`**${label}**`, `**${drawnLabelOnPage(language, page, label)}**`];
     }),
     ...listed(CREATE_BUTTONS, page).map((button: string): [string, string] => {
       return [`**${button}**`, `**${drawnCreateButton(language, button)}**`];
@@ -782,7 +783,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = [
         ...dashboardLabels(entry.page).map((label: string): string => {
-          return drawnActionLabel(language, label);
+          return drawnLabelOnPage(language, entry.page, label);
         }),
         ...listed(CREATE_BUTTONS, entry.page).map((button: string): string => {
           return drawnCreateButton(language, button);
@@ -903,8 +904,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnPathSegment("da", ["Monitors", "Create Monitor"], 0)).toBe(
       drawnMenuItem("da", "Monitors"),
     );
-    expect(drawnMenuItem("da", "Monitors")).not.toBe(
+    // The menu says its page's title since #8229 (it said Overvågninger).
+    expect(drawnMenuItem("da", "Monitors")).toBe(
       drawnActionLabel("da", "Monitors"),
+    );
+    // Chat's page draws no title, so its menu item is a word of its own.
+    expect(drawnPathSegment("fa", ["Chat", "Monitors"], 0)).toBe(
+      drawnMenuItem("fa", "Chat"),
+    );
+    expect(drawnMenuItem("fa", "Chat")).not.toBe(
+      drawnActionLabel("fa", "Chat"),
     );
   });
 

@@ -17,7 +17,9 @@ import * as ProjectProductsApi from "../../../../App/FeatureSet/Dashboard/src/Ut
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
 import { ProductUsage } from "../../../Types/Product/ProductUsage";
-import CreatedRecords from "../../../UI/Utils/ModelAPI/CreatedRecords";
+import RecordChanges, {
+  RecordChangeKind,
+} from "../../../UI/Utils/ModelAPI/RecordChanges";
 import { ProjectProductsChosenBy } from "../../../Types/Product/ProjectProducts";
 import {
   ProjectProductsAnswer,
@@ -409,7 +411,11 @@ describe("the answer follows what the project uses (#7465)", () => {
     projectId: string | null = PROJECT_A,
   ): void => {
     // What ModelAPI tells the page once the server confirms a create.
-    CreatedRecords.announce({ tableName: tableName, projectId: projectId });
+    RecordChanges.announce({
+      kind: RecordChangeKind.Created,
+      tableName: tableName,
+      projectId: projectId,
+    });
   };
 
   let now: number;

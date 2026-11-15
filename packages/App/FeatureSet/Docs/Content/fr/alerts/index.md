@@ -106,7 +106,7 @@ Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
 
 Une tâche en arrière-plan prévient les propriétaires de l'alerte environ une minute après sa création, tous ceux qu'elle a alors, et le déclencheur de flux de travail **On Create Alert** lance tout flux de travail construit dessus.
 
-Pour que des personnes et des équipes soient propriétaires de l'alerte dès sa création, afin que cette notification leur parvienne et non aux propriétaires du projet, transmettez-les avec la création : par l'API, envoyez leurs identifiants dans `miscDataProps`, sous la forme `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, avec `POST /api/alert` ; dans un flux de travail, choisissez-les sous **Utilisateurs propriétaires** et **Équipes propriétaires** de **Create One Alert** ; par MCP, passez `ownerUsers` et `ownerTeams` à `create_alert`. Une requête dont l'appelant n'a pas le droit d'ajouter ces propriétaires est refusée avant tout enregistrement. Les propriétaires qu'une requête distincte ajoute après la création n'en sont informés que s'ils sont ajoutés dans cette minute.
+Pour que des personnes et des équipes soient propriétaires de l'alerte dès sa création, afin que cette notification leur parvienne et non aux Propriétaires du projet, transmettez-les avec la création : par l'API, envoyez leurs identifiants dans `miscDataProps`, sous la forme `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, avec `POST /api/alert` ; dans un flux de travail, choisissez-les sous **Utilisateurs propriétaires** et **Équipes propriétaires** de **Create One Alert** ; par MCP, passez `ownerUsers` et `ownerTeams` à `create_alert`. Une requête dont l'appelant n'a pas le droit d'ajouter ces propriétaires est refusée avant tout enregistrement. Les propriétaires qu'une requête distincte ajoute après la création n'en sont informés que s'ils sont ajoutés dans cette minute.
 
 ### Créée déjà prise en compte ou résolue
 
@@ -152,7 +152,7 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 
 ## Alertes privées
 
-Une alerte privée n'est visible que par ses propriétaires, c'est-à-dire les utilisateurs propriétaires et les membres de ses équipes propriétaires, ainsi que par les administrateurs et propriétaires de votre projet. Personne d'autre dans le projet ne peut l'ouvrir.
+Une alerte privée n'est visible que par ses propriétaires, c'est-à-dire les utilisateurs propriétaires et les membres de ses équipes propriétaires, ainsi que par les Administrateurs du projet et les Propriétaires du projet. Personne d'autre dans le projet ne peut l'ouvrir.
 
 Rendez une alerte privée avec **Alerte privée** sous **Plus de champs** dans le formulaire de création ou dans les critères d'un moniteur, avec **Alertes → Règles → Règles de confidentialité**, ou plus tard sur sa page **Paramètres**, qui demande **Rendre cette alerte privée ?** avant de masquer l'alerte. Si vous ne faites partie d'aucune de ces personnes, vous perdez vous aussi l'accès.
 
@@ -161,7 +161,7 @@ Un épisode qu'ouvre une alerte privée n'est pas privé ; il n'affiche donc jam
 ## Qui est informé d'une alerte
 
 - **L'astreinte.** Les politiques d'astreinte de l'alerte alertent leurs personnes, chacune comme elle l'a configuré dans **Paramètres utilisateur → Comment me joindre**, dans l'onglet **Alertes**. Répondre à l'appel prend l'alerte en compte, et les appels s'arrêtent.
-- **Ses propriétaires.** Par e-mail, sauf s'ils ont choisi d'autres canaux dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes** : **Alerte créée**, **État de l'alerte modifié** et **Rappel d'alerte** sont activés par défaut, et **Note d'alerte publiée** et **Ajouté comme propriétaire de l'alerte** sont désactivés jusqu'à ce que quelqu'un les active. Une alerte sans propriétaire prévient à la place les propriétaires du projet. Si OneUptime s'arrête pendant qu'il envoie une notification, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
+- **Ses propriétaires.** Par e-mail, sauf s'ils ont choisi d'autres canaux dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes** : **Alerte créée**, **État de l'alerte modifié** et **Rappel d'alerte** sont activés par défaut, et **Note d'alerte publiée** et **Ajouté comme propriétaire de l'alerte** sont désactivés jusqu'à ce que quelqu'un les active. Une alerte sans propriétaire prévient à la place les Propriétaires du projet. Si OneUptime s'arrête pendant qu'il envoie une notification, les personnes qu'il n'avait pas encore atteintes la reçoivent quand OneUptime revient, quelques minutes plus tard, et personne ne la reçoit deux fois.
 - **Vos outils de chat.** **Alertes → Espace de travail** contient les règles Slack et Microsoft Teams qui publient les alertes et les épisodes dans des canaux. Voir [Slack](/docs/workspace-connections/slack) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Dépannage

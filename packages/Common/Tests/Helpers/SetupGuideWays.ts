@@ -25,6 +25,10 @@ import {
   getIoTSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
 import {
+  KUBERNETES_PLATFORMS,
+  getKubernetesSetupGuide,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
   OPENSTACK_CONNECT_METHODS,
   getOpenStackSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
@@ -203,6 +207,29 @@ export function getIoTSetupGuideWays(): Array<SetupGuideWay> {
         apiKey: reader.apiKey,
         method: option,
         fleetName: name,
+      });
+    },
+  });
+}
+
+/*
+ * Kubernetes's guide varies by platform (Helm, EKS, GKE, AKS, Autopilot,
+ * Fargate, OpenShift) and by the cluster a Documentation tab installs for.
+ */
+export function getKubernetesSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: KUBERNETES_PLATFORMS,
+    names: ["k8s-1", "Prod Cluster 01"],
+    build: (
+      reader: SetupGuideReader,
+      option: (typeof KUBERNETES_PLATFORMS)[number]["key"],
+      name: string | undefined,
+    ): SetupGuideContent => {
+      return getKubernetesSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        platform: option,
+        clusterName: name,
       });
     },
   });

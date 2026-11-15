@@ -621,6 +621,188 @@ describe("Markdown email renderer - a link's text across a cut, and a bare addre
   );
 });
 
+/*
+ * ISSUE #8238: on a line over 64 KB, a link whose text was in nested
+ * brackets, a code span or an escape exactly at a cut - or a reference
+ * whose text or label crossed one - showed as Markdown: the token stood
+ * inside what marked then read differently. Now the cut moves to where
+ * the text reads plainly as marked reads it, and a reference's label
+ * stays in view whole. Each renders as marked alone renders it - exactly,
+ * where the middle holds plain text of it.
+ */
+describe("Markdown email renderer - a link's text in nested brackets, code or an escape at a cut, and references across one (#8238)", () => {
+  const FILLER: string = "log line text ".repeat(5000);
+  const RUNS: string = "run ".repeat(400);
+  const ADDRESS: string = "https://example.com/runs/42";
+  const DEFINITION: string = `\n\n[run-42]: ${ADDRESS}`;
+  const LABEL: string = `run 42 ${"of the nightly build ".repeat(12)}`;
+  const LABEL_DEFINITION: string = `\n\n[${LABEL}]: ${ADDRESS}`;
+  // After a label across the end's cut: what keeps the cut inside it.
+  const PADDING: string = ` ${"z ".repeat(400)}now`;
+  const TAIL: string = `](${ADDRESS}) now`;
+
+  test.each([
+    [
+      "nested brackets at the end's cut",
+      `${FILLER}see [run [42 ${RUNS}run] x${TAIL}`,
+    ],
+    [
+      "nested brackets at the start's cut",
+      `[run [42 ${RUNS}run] x](${ADDRESS}) ${FILLER}`,
+    ],
+    [
+      "brackets nested two deep at the end's cut, a text marked reads no link of",
+      `${FILLER}see [run [a [42 ${RUNS}run] b] x${TAIL}`,
+    ],
+    [
+      "brackets nested two deep at the start's cut, a text marked reads no link of",
+      `[run [a [42 ${RUNS}run] b] x](/runs/42) ${FILLER}`,
+    ],
+    [
+      "a backslash right before the end's cut",
+      `${FILLER}see [${"a".repeat(600)}\\*${"b".repeat(1024 - 1 - TAIL.length)}${TAIL}`,
+    ],
+    [
+      "a full reference's text across the end",
+      `${FILLER}see [${RUNS}][run-42] now${DEFINITION}`,
+    ],
+    [
+      "a full reference's text across the start",
+      `[${RUNS}][run-42] ${FILLER}${DEFINITION}`,
+    ],
+    [
+      "a full reference's text with nested brackets at the end's cut",
+      `${FILLER}see [run [42 ${RUNS}run] x][run-42] now${DEFINITION}`,
+    ],
+    [
+      "a full reference's label across the end",
+      `${FILLER}see [${RUNS}][${LABEL}]${PADDING}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a full reference's label across the start",
+      `[a ${"b".repeat(964)}][${LABEL}] ${FILLER}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a collapsed reference across the end",
+      `${FILLER}see [${LABEL}][]${PADDING}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a collapsed reference across the start",
+      `${"x ".repeat(400)}[${LABEL}][] ${FILLER}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a shortcut reference across the end",
+      `${FILLER}see [${LABEL}]${PADDING}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a shortcut reference across the start",
+      `${"x ".repeat(400)}[${LABEL}] ${FILLER}${LABEL_DEFINITION}`,
+    ],
+    [
+      "a shortcut image across the end",
+      `${FILLER}see ![${LABEL}]${PADDING}\n\n[${LABEL}]: https://example.com/runs/42.png`,
+    ],
+  ])(
+    "renders exactly as marked alone does: %s",
+    async (_label: string, markdown: string) => {
+      const html: string = await render(markdown);
+      const expected: string = await renderWithMarkedAlone(markdown);
+
+      expect(markdown.split("\n")[0]!.length).toBeGreaterThan(
+        OVER_LONG_LINE_LENGTH,
+      );
+      // A boolean, so a failure does not print hundreds of kilobytes.
+      expect(html === expected).toBe(true);
+    },
+  );
+
+  test("each row a link is a link to its address, none of its Markdown shown; nested two deep, marked links none", async () => {
+    const nested: string = await render(
+      `${FILLER}see [run [42 ${RUNS}run] x${TAIL}`,
+    );
+    const reference: string = await render(
+      `[${RUNS}][run-42] ${FILLER}${DEFINITION}`,
+    );
+    const shortcut: string = await render(
+      `${FILLER}see [${LABEL}]${PADDING}${LABEL_DEFINITION}`,
+    );
+    const twoDeep: string = await render(
+      `${FILLER}see [run [a [42 ${RUNS}run] b] x${TAIL}`,
+    );
+
+    expect(
+      nested.endsWith(
+        ` see <a href="${ADDRESS}">run [42 ${RUNS}run] x</a> now</p>\n`,
+      ),
+    ).toBe(true);
+    expect(
+      reference.startsWith(`<p><a href="${ADDRESS}">${RUNS}</a> log line`),
+    ).toBe(true);
+    expect(shortcut).toContain(` see <a href="${ADDRESS}">${LABEL}</a> z z`);
+
+    for (const html of [nested, reference, shortcut]) {
+      expect(html).not.toContain("](");
+      expect(html).not.toContain("][");
+    }
+
+    /*
+     * As marked alone: it reads brackets nested in a link's text one deep,
+     * so the text shows as written, and the address after it is autolinked.
+     */
+    expect(twoDeep).not.toContain(`<a href="${ADDRESS}">run`);
+    expect(
+      twoDeep.endsWith(
+        `run] b] x](<a href="${ADDRESS}">${ADDRESS}</a>) now</p>\n`,
+      ),
+    ).toBe(true);
+  });
+
+  test.each([
+    [
+      "a code span at the end's cut",
+      `${FILLER}see [run \`code ${RUNS}code\` x${TAIL}`,
+      "run `code run",
+    ],
+    [
+      "a code span at the start's cut",
+      `[run \`code ${RUNS}code\` x](${ADDRESS}) ${FILLER}`,
+      "run `code run",
+    ],
+    [
+      "a code span of three backticks at the end's cut",
+      `${FILLER}see [run \`\`\`code ${RUNS}code\`\`\` x${TAIL}`,
+      "run ```code run",
+    ],
+    [
+      "a backslash right before the start's cut",
+      `[${"a".repeat(1022)}\\*${"b".repeat(600)}](${ADDRESS}) ${FILLER}`,
+      `${"a".repeat(1022)}\\*bbb`,
+    ],
+  ])(
+    "%s is a link to its address, the part of its text the middle holds as written",
+    async (_label: string, markdown: string, shown: string) => {
+      const html: string = await render(markdown);
+
+      expect(html).toContain(`<a href="${ADDRESS}">${shown}`);
+      expect(html).not.toContain("](");
+    },
+  );
+
+  test("a '[' in a code span of two backticks across the end opens no link, as with marked alone", async () => {
+    const markdown: string = `${FILLER}see \`\`x [y${RUNS}\`\` z${TAIL}`;
+    const html: string = await render(markdown);
+    const alone: string = await renderWithMarkedAlone(markdown);
+
+    // Both show the "](" as written after the code span, the address autolinked.
+    const after: string = ` z](<a href="${ADDRESS}">${ADDRESS}</a>) now</p>\n`;
+
+    expect(alone.endsWith(`</code>${after}`)).toBe(true);
+    // The code span the end's cut is inside of is held back: it shows as written.
+    expect(html.endsWith(`run \`\`${after}`)).toBe(true);
+    expect(html).not.toContain(`<a href="${ADDRESS}">y`);
+  });
+});
+
 describe("Markdown email renderer - the last resort", () => {
   test("if marked still runs out of stack, the Markdown is sent as text, escaped, and logged", async () => {
     mockMarkedState.failWith = new RangeError(

@@ -21,14 +21,15 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * What the record triggers' and Find steps' field lists are called, wherever
  * they are named: the settings dialog, the step's help, the run log, and the
  * value picker's note on a field a step does not pass on.
  */
-export const SELECT_FIELDS_NAME: string = "Fields to pass on";
-export const WATCHED_FIELDS_NAME: string = "Fields to watch";
+export const SELECT_FIELDS_NAME: string = translationKey("Fields to pass on");
+export const WATCHED_FIELDS_NAME: string = translationKey("Fields to watch");
 
 export default class BaseModelComponent {
   public static getComponents(model: BaseModel): Array<ComponentMetadata> {
@@ -136,7 +137,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -162,23 +163,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error fetching data from the database",
+            ),
             id: "error",
           },
         ],
@@ -195,7 +199,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -211,7 +215,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -219,7 +223,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -237,23 +241,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error fetching data from the database",
+            ),
             id: "error",
           },
         ],
@@ -283,7 +290,7 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
+            title: translationKey("Success"),
             // A trigger runs no query of its own; this fired on a delete.
             description: `This is executed when the ${model.singularName} is deleted.`,
             id: "success",
@@ -302,7 +309,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -312,7 +319,7 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-deleted",
-            name: "Items Deleted",
+            name: translationKey("Items Deleted"),
             description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
             type: ComponentInputType.Number,
             required: false,
@@ -320,23 +327,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error deleting data from the database",
+            ),
             id: "error",
           },
         ],
@@ -353,7 +363,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -361,7 +371,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -369,7 +379,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -379,7 +389,7 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-deleted",
-            name: "Items Deleted",
+            name: translationKey("Items Deleted"),
             description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
             type: ComponentInputType.Number,
             required: false,
@@ -387,23 +397,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error deleting data from the database",
+            ),
             id: "error",
           },
         ],
@@ -442,9 +455,10 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the model is created successfully.",
+            ),
             id: "success",
           },
         ],
@@ -464,7 +478,7 @@ export default class BaseModelComponent {
       const jsonArgument: Argument = {
         id: "json",
         placeholder: 'Example: {"columnName": "value", ...}',
-        name: "JSON Object",
+        name: translationKey("JSON Object"),
         description: templateArgument
           ? `${model.singularName} represented as JSON. With a template picked, only what should differ from it. ${columnHint}`
           : `${model.singularName} represented as JSON. ${columnHint}`,
@@ -522,23 +536,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error creating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -555,7 +572,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             id: "json-array",
-            name: "JSON Array",
+            name: translationKey("JSON Array"),
             placeholder: 'Example: [{"columnName": "value", ...}, {...}]',
             description: `List of ${model.pluralName} represented as a JSON array. ${columnHint}`,
             type: ComponentInputType.JSONArray,
@@ -573,23 +590,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error creating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -636,7 +656,7 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
+            title: translationKey("Success"),
             description: `This is executed when the ${model.singularName} is updated successfully.`,
             id: "success",
           },
@@ -654,7 +674,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -663,7 +683,7 @@ export default class BaseModelComponent {
           {
             id: "data",
             placeholder: 'Example: {"columnName": "value", ...}',
-            name: "Data (JSON Object)",
+            name: translationKey("Data (JSON Object)"),
             description: dataDescription,
             type: ComponentInputType.JSON,
             required: true,
@@ -672,7 +692,7 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-updated",
-            name: "Items Updated",
+            name: translationKey("Items Updated"),
             description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
             type: ComponentInputType.Number,
             required: false,
@@ -680,23 +700,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error updating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -713,7 +736,7 @@ export default class BaseModelComponent {
         arguments: [
           {
             type: ComponentInputType.Query,
-            name: "Query",
+            name: translationKey("Query"),
             description: queryDescription,
             required: true,
             id: "query",
@@ -721,7 +744,7 @@ export default class BaseModelComponent {
           },
           {
             id: "data",
-            name: "Data (JSON Object)",
+            name: translationKey("Data (JSON Object)"),
             placeholder: 'Example: {"columnName": "value", ...}',
             description: dataDescription,
             type: ComponentInputType.JSON,
@@ -729,7 +752,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Skip",
+            name: translationKey("Skip"),
             description: skipDescription,
             required: false,
             id: "skip",
@@ -737,7 +760,7 @@ export default class BaseModelComponent {
           },
           {
             type: ComponentInputType.Number,
-            name: "Limit",
+            name: translationKey("Limit"),
             description: limitDescription,
             required: false,
             id: "limit",
@@ -747,7 +770,7 @@ export default class BaseModelComponent {
         returnValues: [
           {
             id: "items-updated",
-            name: "Items Updated",
+            name: translationKey("Items Updated"),
             description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
             type: ComponentInputType.Number,
             required: false,
@@ -755,23 +778,26 @@ export default class BaseModelComponent {
         ],
         inPorts: [
           {
-            title: "In",
-            description:
+            title: translationKey("In"),
+            description: translationKey(
               "Please connect components to this port for this component to work.",
+            ),
             id: "in",
           },
         ],
         outPorts: [
           {
-            title: "Success",
-            description:
+            title: translationKey("Success"),
+            description: translationKey(
               "This is executed when the query executes successfully",
+            ),
             id: "success",
           },
           {
-            title: "Error",
-            description:
+            title: translationKey("Error"),
+            description: translationKey(
               "This is executed when there is an error updating data from the database",
+            ),
             id: "error",
           },
         ],
@@ -809,8 +835,14 @@ export default class BaseModelComponent {
             id: WHAT_HAPPENED_ID,
             // As Run Workflow words them (RunForm).
             choices: [
-              { value: WhatHappened.Created, label: "Just created" },
-              { value: WhatHappened.Updated, label: "Just updated" },
+              {
+                value: WhatHappened.Created,
+                label: translationKey("Just created"),
+              },
+              {
+                value: WhatHappened.Updated,
+                label: translationKey("Just updated"),
+              },
             ],
           },
           runRecordArgument(),
@@ -853,7 +885,7 @@ export default class BaseModelComponent {
         inPorts: [],
         outPorts: [
           {
-            title: "Success",
+            title: translationKey("Success"),
             description: `This is executed when the ${model.singularName} is created, and when it is updated.`,
             id: "success",
           },
