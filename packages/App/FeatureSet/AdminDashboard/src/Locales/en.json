@@ -175,7 +175,11 @@
       "noItems": "No enterprise licenses have been issued yet.",
       "settingsCardTitle": "License Notification Settings",
       "settingsCardDescription": "Who gets copied on license emails, and how far in advance expiry reminders go out. Reminders are emailed daily to the customer's master admins while a license is over its user limit or close to expiry.",
-      "settingsEditButton": "Edit Settings"
+      "settingsEditButton": "Edit Settings",
+      "cloudOnlyTitle": "Only available on OneUptime Cloud",
+      "cloudOnlyDescription": "Enterprise licenses are issued and tracked on the hosted oneuptime.com, where billing is enabled. This self-hosted instance does not manage licenses.",
+      "enterpriseEditionRequiredTitle": "Requires the OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "License management is part of the OneUptime Enterprise Edition. Deploy the Enterprise Edition image to issue and track licenses."
     },
     "enterpriseLicenseView": {
       "title": "Enterprise License",

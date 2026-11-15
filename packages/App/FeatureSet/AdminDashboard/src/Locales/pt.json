@@ -175,7 +175,11 @@
       "noItems": "Nenhuma licença Enterprise foi emitida ainda.",
       "settingsCardTitle": "Configurações de notificação de licença",
       "settingsCardDescription": "Quem recebe cópia dos e-mails de licença e com quanta antecedência os lembretes de expiração são enviados. Os lembretes são enviados diariamente por e-mail aos administradores principais do cliente enquanto uma licença estiver acima do limite de usuários ou perto de expirar.",
-      "settingsEditButton": "Editar configurações"
+      "settingsEditButton": "Editar configurações",
+      "cloudOnlyTitle": "Disponível apenas no OneUptime Cloud",
+      "cloudOnlyDescription": "As licenças Enterprise são emitidas e acompanhadas no oneuptime.com, a edição hospedada, onde a cobrança está habilitada. Esta instância auto-hospedada não gerencia licenças.",
+      "enterpriseEditionRequiredTitle": "Requer a Enterprise Edition do OneUptime",
+      "enterpriseEditionRequiredDescription": "O gerenciamento de licenças faz parte da Enterprise Edition do OneUptime. Implante a imagem da Enterprise Edition para emitir e acompanhar licenças."
     },
     "enterpriseLicenseView": {
       "title": "Licença Enterprise",

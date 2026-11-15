@@ -175,7 +175,11 @@
       "noItems": "Inga Enterprise-licenser har utfärdats ännu.",
       "settingsCardTitle": "Inställningar för licensaviseringar",
       "settingsCardDescription": "Vem som får kopia av licens-e-post och hur lång tid i förväg påminnelser om utgång skickas. Påminnelser skickas dagligen via e-post till kundens huvudadministratörer så länge en licens överskrider sin användargräns eller närmar sig utgång.",
-      "settingsEditButton": "Redigera inställningar"
+      "settingsEditButton": "Redigera inställningar",
+      "cloudOnlyTitle": "Endast tillgängligt på OneUptime Cloud",
+      "cloudOnlyDescription": "Enterprise-licenser utfärdas och följs upp på det hostade oneuptime.com, där fakturering är aktiverad. Den här självhostade instansen hanterar inte licenser.",
+      "enterpriseEditionRequiredTitle": "Kräver OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "Licenshantering ingår i OneUptime Enterprise Edition. Driftsätt Enterprise Edition-avbildningen för att utfärda och följa upp licenser."
     },
     "enterpriseLicenseView": {
       "title": "Enterprise-licens",

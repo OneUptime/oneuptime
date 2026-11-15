@@ -175,7 +175,11 @@
       "noItems": "아직 발급된 엔터프라이즈 라이선스가 없습니다.",
       "settingsCardTitle": "라이선스 알림 설정",
       "settingsCardDescription": "라이선스 이메일을 함께 받는 대상과 만료 알림을 며칠 전에 보낼지 설정합니다. 라이선스가 사용자 한도를 초과했거나 만료가 임박한 동안에는 고객의 마스터 관리자에게 매일 이메일로 알림이 발송됩니다.",
-      "settingsEditButton": "설정 편집"
+      "settingsEditButton": "설정 편집",
+      "cloudOnlyTitle": "OneUptime Cloud에서만 사용할 수 있습니다",
+      "cloudOnlyDescription": "엔터프라이즈 라이선스는 결제가 활성화된 호스팅 에디션인 oneuptime.com에서 발급되고 관리됩니다. 이 셀프 호스팅 인스턴스는 라이선스를 관리하지 않습니다.",
+      "enterpriseEditionRequiredTitle": "OneUptime Enterprise Edition이 필요합니다",
+      "enterpriseEditionRequiredDescription": "라이선스 관리는 OneUptime Enterprise Edition에 포함되어 있습니다. 라이선스를 발급하고 관리하려면 Enterprise Edition 이미지를 배포하세요."
     },
     "enterpriseLicenseView": {
       "title": "엔터프라이즈 라이선스",

@@ -41,19 +41,26 @@ const EnterpriseLicensesUnavailable: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
+      {/*
+       * In the reader's language, as the page's title is: handed over in
+       * English, the notice stayed English under a translated title in
+       * every language (#7962).
+       */}
       {props.isBillingEnabled ? (
         <EmptyState
           id="enterprise-licenses-not-available"
           icon={IconProp.Lock}
-          title="Requires the OneUptime Enterprise Edition"
-          description="License management is part of the OneUptime Enterprise Edition. Deploy the Enterprise Edition image to issue and track licenses."
+          title={t("pages.enterpriseLicenses.enterpriseEditionRequiredTitle")}
+          description={t(
+            "pages.enterpriseLicenses.enterpriseEditionRequiredDescription",
+          )}
         />
       ) : (
         <EmptyState
           id="enterprise-licenses-not-available"
           icon={IconProp.Lock}
-          title="Only available on OneUptime Cloud"
-          description="Enterprise licenses are issued and tracked on the hosted oneuptime.com, where billing is enabled. This self-hosted instance does not manage licenses."
+          title={t("pages.enterpriseLicenses.cloudOnlyTitle")}
+          description={t("pages.enterpriseLicenses.cloudOnlyDescription")}
         />
       )}
     </Page>

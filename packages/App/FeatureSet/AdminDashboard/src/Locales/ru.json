@@ -175,7 +175,11 @@
       "noItems": "Корпоративные лицензии ещё не выдавались.",
       "settingsCardTitle": "Настройки уведомлений о лицензиях",
       "settingsCardDescription": "Кому отправляются копии писем о лицензиях и за сколько времени заранее рассылаются напоминания об истечении срока. Напоминания ежедневно отправляются по электронной почте главным администраторам клиента, пока лицензия превышает лимит пользователей или срок её действия подходит к концу.",
-      "settingsEditButton": "Изменить настройки"
+      "settingsEditButton": "Изменить настройки",
+      "cloudOnlyTitle": "Доступно только в OneUptime Cloud",
+      "cloudOnlyDescription": "Корпоративные лицензии выдаются и отслеживаются на облачном oneuptime.com, где включён биллинг. Этот экземпляр с самостоятельным размещением лицензиями не управляет.",
+      "enterpriseEditionRequiredTitle": "Требуется OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "Управление лицензиями входит в OneUptime Enterprise Edition. Разверните образ Enterprise Edition, чтобы выдавать и отслеживать лицензии."
     },
     "enterpriseLicenseView": {
       "title": "Корпоративная лицензия",

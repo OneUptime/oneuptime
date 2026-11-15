@@ -175,7 +175,11 @@
       "noItems": "Aucune licence Enterprise n'a encore été délivrée.",
       "settingsCardTitle": "Paramètres de notification des licences",
       "settingsCardDescription": "Qui est mis en copie des e-mails de licence, et combien de temps à l'avance les rappels d'expiration sont envoyés. Les rappels sont envoyés quotidiennement par e-mail aux administrateurs principaux du client tant qu'une licence dépasse sa limite d'utilisateurs ou approche de son expiration.",
-      "settingsEditButton": "Modifier les paramètres"
+      "settingsEditButton": "Modifier les paramètres",
+      "cloudOnlyTitle": "Disponible uniquement sur OneUptime Cloud",
+      "cloudOnlyDescription": "Les licences Enterprise sont délivrées et suivies sur oneuptime.com, l'édition hébergée, où la facturation est activée. Cette instance auto-hébergée ne gère pas de licences.",
+      "enterpriseEditionRequiredTitle": "Nécessite l'Enterprise Edition de OneUptime",
+      "enterpriseEditionRequiredDescription": "La gestion des licences fait partie de l'Enterprise Edition de OneUptime. Déployez l'image de l'Enterprise Edition pour délivrer et suivre des licences."
     },
     "enterpriseLicenseView": {
       "title": "Licence Enterprise",

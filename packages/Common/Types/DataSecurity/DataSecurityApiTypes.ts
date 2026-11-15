@@ -72,7 +72,10 @@ export interface DataSecurityOverviewIssue {
 }
 
 export interface DataSecurityOverviewTrendDay {
-  // YYYY-MM-DD, UTC.
+  /*
+   * YYYY-MM-DD: a day of the reader's calendar, in the zone the overview
+   * was asked for (issue #7925), or a UTC day when it named none.
+   */
   day: string;
   opened: number;
   resolved: number;

@@ -96,7 +96,8 @@ jest.mock("Common/Server/Services/AlertService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
-      updateOneById: jest.fn(),
+      findCreatedNotificationsDue: jest.fn(),
+      takeCreatedNotification: jest.fn(),
       findOwners: jest.fn(),
       getAlertLinkInDashboard: jest.fn(),
       getAlertIdentifiedDate: jest.fn(),
@@ -164,7 +165,8 @@ import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendCreatedResourceNotif
 
 interface AlertServiceMock {
   findAllBy: jest.Mock;
-  updateOneById: jest.Mock;
+  findCreatedNotificationsDue: jest.Mock;
+  takeCreatedNotification: jest.Mock;
   findOwners: jest.Mock;
   getAlertLinkInDashboard: jest.Mock;
   getAlertIdentifiedDate: jest.Mock;
@@ -358,7 +360,17 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
 
     alertService.findAllBy.mockResolvedValue([]);
-    alertService.updateOneById.mockResolvedValue(undefined);
+    /*
+     * The job's own read answers what findAllBy is set to answer, as when
+     * the job read through findAllBy itself: the rows a test sets are the
+     * records due, and the relation reads after it.
+     */
+    alertService.findCreatedNotificationsDue.mockImplementation(
+      (args: unknown): Promise<unknown> => {
+        return alertService.findAllBy(args);
+      },
+    );
+    alertService.takeCreatedNotification.mockResolvedValue(true);
     alertService.findOwners.mockResolvedValue([]);
     alertService.getAlertLinkInDashboard.mockResolvedValue({
       toString: (): string => {
@@ -716,7 +728,7 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
 
     await runWorkerTick();
 
-    expect(alertService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(alertService.takeCreatedNotification).toHaveBeenCalledTimes(1);
     expect(markdownSpy).not.toHaveBeenCalled();
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
     expect(feedService.createAlertFeedItem).not.toHaveBeenCalled();
@@ -1187,6 +1199,167 @@ describe("AlertOwner:SendCreatedResourceEmail worker", () => {
       expect(sentVars()[0]!["resourcesAffected"]).toContain(
         "kubernetes-agent-logs-7t88f",
       );
+    });
+  });
+
+  /*
+   * WHICH ALERTS IT TELLS THEIR OWNERS ABOUT (#7571, #7573): the ones
+   * AlertService.findCreatedNotificationsDue reads as of the moment it runs -
+   * let go a minute after their create, or held so long that nobody will
+   * let them go - each taken first, in one write that matches only while
+   * the alert is as it was read (takeCreatedNotification). One another run
+   * took, or that was let go meanwhile, is not this run's.
+   */
+  describe("which alerts it tells their owners about", () => {
+    const NOW: Date = new Date("2026-11-15T10:02:00.000Z");
+    const OTHER_ALERT_ID: ObjectID = new ObjectID("alert-2");
+
+    function secondAlert(): Alert {
+      const alert: Alert = makeAlert({});
+      alert._id = OTHER_ALERT_ID.toString();
+      alert.title = "Error rate is up";
+      return alert;
+    }
+
+    // Who was sent what, by alert.
+    function sentFor(alertId: ObjectID): Array<string> {
+      return notificationService.sendUserNotification.mock.calls
+        .filter((args: Array<unknown>): boolean => {
+          return (
+            (args[0] as { alertId: ObjectID }).alertId.toString() ===
+            alertId.toString()
+          );
+        })
+        .map((args: Array<unknown>): string => {
+          return (args[0] as { userId: ObjectID }).userId.toString();
+        });
+    }
+
+    test("reads the alerts due as of the moment it runs, with every column its email needs", async () => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+
+      await runWorkerTick();
+
+      expect(alertService.findCreatedNotificationsDue).toHaveBeenCalledTimes(1);
+
+      const read: { now: Date; select: Record<string, unknown> } = alertService
+        .findCreatedNotificationsDue.mock.calls[0]![0] as {
+        now: Date;
+        select: Record<string, unknown>;
+      };
+
+      expect(read.now).toBe(NOW);
+      expect(read.select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          monitorId: true,
+          remediationNotes: true,
+          rootCause: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+          seriesLabels: true,
+          seriesFingerprint: true,
+          createdCriteriaId: true,
+        }),
+      );
+    });
+
+    test("takes each alert it read, as it read it, before reading its owners or telling anyone", async () => {
+      const first: Alert = makeAlert({});
+      const second: Alert = secondAlert();
+      alertService.findAllBy.mockResolvedValue([first, second] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+
+      await runWorkerTick();
+
+      expect(
+        alertService.takeCreatedNotification.mock.calls.map(
+          (args: Array<unknown>): unknown => {
+            return args[0];
+          },
+        ),
+      ).toEqual([first, second]);
+      expect(alertService.takeCreatedNotification.mock.calls[0]![0]).toBe(
+        first,
+      );
+
+      const takenFirst: number =
+        alertService.takeCreatedNotification.mock.invocationCallOrder[0]!;
+
+      expect(takenFirst).toBeLessThan(
+        alertService.findOwners.mock.invocationCallOrder[0]!,
+      );
+      expect(takenFirst).toBeLessThan(
+        notificationService.sendUserNotification.mock.invocationCallOrder[0]!,
+      );
+      expect(sentFor(ALERT_ID)).toEqual(["a"]);
+      expect(sentFor(OTHER_ALERT_ID)).toEqual(["a"]);
+    });
+
+    test("tells nobody of an alert it could not take - another run took it, or it was let go meanwhile - and goes on to the next", async () => {
+      alertService.findAllBy.mockResolvedValue([
+        makeAlert({}),
+        secondAlert(),
+      ] as never);
+      alertService.takeCreatedNotification
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+      projectService.getOwners.mockResolvedValue([makeOwner("owner-1")]);
+
+      await runWorkerTick();
+
+      expect(sentFor(ALERT_ID)).toEqual([]);
+      expect(sentFor(OTHER_ALERT_ID)).toEqual(["a"]);
+
+      // Nothing read or written for the one it did not take.
+      expect(alertService.findOwners).toHaveBeenCalledTimes(1);
+      expect(alertService.findOwners.mock.calls[0]![0].toString()).toBe(
+        OTHER_ALERT_ID.toString(),
+      );
+      expect(feedService.createAlertFeedItem).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          feedService.createAlertFeedItem.mock.calls[0]![0] as {
+            alertId: ObjectID;
+          }
+        ).alertId.toString(),
+      ).toBe(OTHER_ALERT_ID.toString());
+    });
+
+    test("an alert let go after the run read it is told once, by the run that takes it", async () => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+      alertService.takeCreatedNotification
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValue(false);
+
+      await runWorkerTick();
+      expect(sentFor(ALERT_ID)).toEqual([]);
+
+      await runWorkerTick();
+      expect(sentFor(ALERT_ID)).toEqual(["a"]);
+
+      // Taken: a later run that reads it again can take it no more.
+      await runWorkerTick();
+      expect(sentFor(ALERT_ID)).toEqual(["a"]);
+    });
+
+    test("an alert whose take fails is left for the next run, and nothing is sent for it", async () => {
+      alertService.findAllBy.mockResolvedValue([makeAlert({})] as never);
+      alertService.findOwners.mockResolvedValue([makeOwner("a")]);
+      alertService.takeCreatedNotification.mockRejectedValue(
+        new Error("The database is away"),
+      );
+
+      await expect(runWorkerTick()).rejects.toThrow("The database is away");
+
+      expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+      expect(feedService.createAlertFeedItem).not.toHaveBeenCalled();
     });
   });
 });
