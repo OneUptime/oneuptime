@@ -1,12 +1,15 @@
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import Link from "../Link/Link";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import { ADMIN_DASHBOARD_URL } from "../../Config";
 import {
   ErrorInSentenceWords,
   getErrorInSentenceWords,
+  isServerFailureKind,
 } from "../../Utils/ErrorInSentence";
 import { registerPageErrorReader } from "../../Utils/ErrorReader";
+import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { useSentenceLanguage } from "../../Utils/SentenceLanguage";
 import useTranslator from "../../Utils/UseTranslator";
 import URL from "../../../Types/API/URL";
@@ -88,6 +91,18 @@ export const ErrorWhereToLook: FunctionComponent<ErrorWhereToLookProps> = (
     return <></>;
   }
 
+  /*
+   * OneUptime Health beside the logs of a server failure. What was too
+   * large is a proxy's limit (#8278), which Health does not show.
+   */
+  if (!isServerFailureKind(words.kind)) {
+    return (
+      <span className="mt-1 block" data-testid="error-where-to-look">
+        {words.whereToLook}
+      </span>
+    );
+  }
+
   return (
     <span className="mt-1 block" data-testid="error-where-to-look">
       {words.whereToLook}{" "}
@@ -149,6 +164,23 @@ export const ErrorInSentence: FunctionComponent<ErrorInSentenceProps> = (
   );
 
   if (!words.isUnexplained) {
+    /*
+     * A message somebody wrote, drawn with no sentence of the page's around
+     * it - on its own under a button, or after words a card put before it
+     * by hand: when it reads the other way from the page (the server's
+     * English on an Arabic or Persian page, or a Persian message on an
+     * English one), it is set apart in an isolate of its own, so it keeps
+     * its full stop at its end (#8279), as ErrorMessageText and ErrorLine
+     * draw theirs. Inside a TranslatedSentence the sentence sets its slots
+     * apart itself; a message in the page's own way is drawn as it was.
+     */
+    if (
+      sentenceLanguage === null &&
+      getTranslatedLineDirection(words.text, pageTranslator.language)
+    ) {
+      return <IsolatedText text={words.text} />;
+    }
+
     return <>{words.text}</>;
   }
 

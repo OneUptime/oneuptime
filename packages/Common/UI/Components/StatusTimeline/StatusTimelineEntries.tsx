@@ -297,6 +297,7 @@ const StatusTimelineEntries: FunctionComponent<ComponentProps> = (
                   text={translator.translateTemplate("Times are in {{zone}}.", {
                     zone: day.heading.zoneName,
                   })}
+                  isTextTranslated={true}
                 >
                   <span className="text-xs text-gray-500">
                     {day.heading.zoneName}

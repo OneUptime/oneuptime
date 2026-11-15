@@ -744,12 +744,15 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
         status: translatableTerm(statusOf("Error")),
       }),
     );
+    // The status, then what it means, joined by the language's own colon.
     expect(within(failed).getByRole("img")).toHaveAttribute(
       "title",
-      `${word(language, "Error")}: ${word(
-        language,
-        getSpanStatusPresentation(SpanStatus.Error).description,
-      )}`,
+      sentence(language, "{{label}}: {{identifier}}", {
+        label: translatableTerm("Error"),
+        identifier: translatableTerm(
+          getSpanStatusPresentation(SpanStatus.Error).description,
+        ),
+      }),
     );
     expect(
       within(failed).getByText(asQuery(word(language, "Server"))),

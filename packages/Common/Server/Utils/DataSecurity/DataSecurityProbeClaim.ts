@@ -52,6 +52,27 @@ export interface ClaimedDataStore {
 }
 
 /*
+ * Whether the project `p` is served (ProjectService.getActiveProjectStatusQuery):
+ * not deleted, not blocked, not a sample, and its subscriptions not
+ * inactive, with the served subscription statuses bound as the parameter
+ * named. Every Data Security path that reads a store's content holds a
+ * project to it - the probe's claim, the workers' claim and their scan
+ * (DataSecurityWorkerClaim), and the hourly telemetry scan
+ * (DataSecurityTelemetryScanRule) - so nothing of a suspended, blocked or
+ * sample project is read. Read through a LEFT JOIN, a missing project is
+ * NULL here, never true.
+ */
+export function getServedProjectSql(statusesParameter: string): Array<string> {
+  return [
+    `p."deletedAt" IS NULL`,
+    `p."isBlocked" = false`,
+    `p."isSampleProject" = false`,
+    `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+    `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${statusesParameter}::text[]))`,
+  ];
+}
+
+/*
  * Whether a store's content may be handed to its probe to scan now, as SQL
  * over the aliases the claim's statements use - `ds` (the DataStore), `p`
  * (its Project), `pr` (its scan Probe) and `s` (the project's Data Security
@@ -66,9 +87,7 @@ export interface ClaimedDataStore {
  *   a probe samples, with the connection variable the probe reads.
  * - The project scans content (on unless its settings say otherwise).
  * - The project's own probe: a global probe never reads a store.
- * - The project is served (ProjectService.getActiveProjectStatusQuery):
- *   not deleted, not blocked, not a sample, and its subscriptions not
- *   inactive.
+ * - The project is served (getServedProjectSql).
  */
 export function getContentScannableSql(parameters: {
   providerParameter: string;
@@ -87,11 +106,7 @@ export function getContentScannableSql(parameters: {
     `pr."isGlobalProbe" = false`,
     `pr."projectId" = ds."projectId"`,
     `pr."deletedAt" IS NULL`,
-    `p."deletedAt" IS NULL`,
-    `p."isBlocked" = false`,
-    `p."isSampleProject" = false`,
-    `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
-    `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+    ...getServedProjectSql(parameters.statusesParameter),
   ].join("\n    AND ");
 }
 
@@ -125,6 +140,52 @@ SELECT "due"."_id" AS "_id", "due"."projectId" AS "projectId"
 FROM "due"
 INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
 ORDER BY "due"."dueAt" ASC`;
+
+/*
+ * The one store, if its probe may still scan its content: the claim's rule
+ * (getContentScannableSql) for the store named, through the probe named,
+ * whatever its due time. A probe scans in the customer's network for
+ * minutes after its claim (up to DATA_SECURITY_PROBE_SCAN_TIME_LIMIT_IN_
+ * SECONDS), and the result route asks this before it records anything of
+ * that scan (OneUptime issue #8391): a store whose Scan Content, or whose
+ * project's, was turned off in that time, or whose project was suspended,
+ * blocked or deleted, keeps no finding and no masked sample of it, as the
+ * workers' scan and the telemetry scan keep none (#8323, #8325).
+ * Parameters: $1 the store, $2 the probe, $3 the self-managed provider,
+ * $4 the kinds a probe samples, $5 the served subscription statuses.
+ */
+export const DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT: string = `SELECT ds."_id" AS "_id"
+FROM "DataStore" ds
+INNER JOIN "Project" p ON ds."projectId" = p."_id"
+INNER JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"
+LEFT JOIN "DataSecuritySetting" s
+  ON s."projectId" = ds."projectId" AND s."deletedAt" IS NULL
+WHERE ds."_id" = $1
+  AND ds."scanProbeId" = $2
+  AND ${getContentScannableSql({
+    providerParameter: "$3",
+    kindsParameter: "$4",
+    statusesParameter: "$5",
+  })}`;
+
+// Whether this probe may still scan this store's content, and keep what it found.
+export async function isDataStoreContentScannableByProbe(data: {
+  probeId: ObjectID;
+  dataStoreId: ObjectID;
+}): Promise<boolean> {
+  const rows: unknown = await DataStoreService.getRepository().manager.query(
+    DATA_STORE_SCANNABLE_BY_PROBE_STATEMENT,
+    [
+      data.dataStoreId.toString(),
+      data.probeId.toString(),
+      DataStoreProvider.SelfManaged,
+      [...PROBE_SCANNABLE_KINDS],
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+    ],
+  );
+
+  return Array.isArray(rows) && rows.length > 0;
+}
 
 /*
  * Sets aside the probe's due stores whose content nothing may scan now

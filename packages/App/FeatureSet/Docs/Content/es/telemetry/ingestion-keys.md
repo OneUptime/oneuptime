@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **La clave decide el proyecto.** Nunca envía un ID de proyecto: los datos enviados con una clave llegan al proyecto al que pertenece la clave.
-- **Los cambios llegan a todos los servidores en un minuto.** Desactivar una clave, restablecer su secreto o cambiar sus orígenes, su caducidad o su límite surte efecto en un minuto aproximadamente.
+- **Los cambios llegan a todos los servidores en pocos segundos.** Desactivar una clave, restablecer su secreto o cambiar sus orígenes, su caducidad o su límite surte efecto en todos los servidores en pocos segundos.
 - **Una clave puede tener presupuestos propios.** Un presupuesto diario y un límite de frecuencia por segundo para cada señal, dentro de los de su proyecto: consulte [Presupuestos de ingesta](/docs/telemetry/ingestion-budgets).
 - **Una clave de servidor es una contraseña.** Quien la tenga puede enviar telemetría a su proyecto. Guárdela en los secretos de sus servidores, nunca en el control de versiones ni en una página web.
 
@@ -139,8 +139,8 @@ La página de la clave también lleva la cuenta: **Telemetría rechazada** muest
 
 Para las demás respuestas que puede recibir un exportador OTLP, consulte [Respuestas](/docs/telemetry/open-telemetry#respuestas).
 
-:::details Siguen llegando datos un minuto después de desactivar la clave
-Cada servidor de OneUptime guarda lo que sabe de una clave durante un minuto como máximo, así que un cambio llega a todos en un minuto aproximadamente. Las solicitudes posteriores se rechazan.
+:::details Siguen llegando datos después de desactivar la clave
+Cada servidor de OneUptime comprueba al menos una vez por segundo si una clave ha cambiado, así que un cambio llega a todos en pocos segundos y las solicitudes posteriores se rechazan. Mientras un servidor no puede acceder a la caché de OneUptime, puede seguir usando lo que sabía de la clave durante un minuto como máximo. Un cliente MQTT que se conectó con la clave queda desconectado en pocos segundos.
 :::
 
 :::details Una clave de navegador funciona en mi portátil pero no en producción

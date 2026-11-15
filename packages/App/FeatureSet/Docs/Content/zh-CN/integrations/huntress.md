@@ -13,7 +13,7 @@
 
 ## 工作原理
 
-Huntress 会在报告发出时、有人评论时以及报告关闭时发送事件报告的事件。**Huntress Incident Report** 触发器会为每个事件启动一次工作流，它的 **Event** 说明是哪种事件：`created`、`comment-added` 或 `closed`。
+Huntress 会在报告发出时、有人评论时以及报告关闭时发送事件报告的事件。**Huntress Incident Report** 触发器会为每个事件启动一次工作流，它的 **事件** 说明是哪种事件：`created`、`comment-added` 或 `closed`。
 
 ```mermaid title="一份 Huntress 事件报告在工作流中"
 sequenceDiagram
@@ -79,19 +79,19 @@ sequenceDiagram
 
 ## 工作流做什么
 
-在触发器之后， **Incident From Another Tool** 按报告的编号执行每种 **Event** 要求的操作：
+在触发器之后， **Incident From Another Tool** 按报告的编号执行每种 **事件** 要求的操作：
 
 | Event | 工作流做什么 |
 | --- | --- |
-| `created` | 以触发器的 **Incident Severity ID** 创建事件，并带上其 **Organization Label ID** 标签。对于高或严重的报告，**Page an On-Call Policy** 会呼叫你的策略；低报告不呼叫任何人。已有事件的报告不会再创建另一个事件。 |
+| `created` | 以触发器的 **事件严重程度 ID** 创建事件，并带上其 **Organization Label ID** 标签。对于高或严重的报告，**Page an On-Call Policy** 会呼叫你的策略；低报告不呼叫任何人。已有事件的报告不会再创建另一个事件。 |
 | `comment-added` | 找到报告的事件，把评论作为私有备注添加到事件上。 |
 | `closed` | 找到报告的事件并解决它，除非它已经解决。原因记录在它的时间线上：Huntress 关闭了该报告。 |
 
-它和其他工作流一样，所以你可以修改它做的事：修改 **Incident From Another Tool** 之后的 **If / Else** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **Organization** 的 **Switch / Case** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
+它和其他工作流一样，所以你可以修改它做的事：修改 **Incident From Another Tool** 之后的 **If / Else** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **组织** 的 **Switch / Case** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
 
 ### 严重性
 
-Huntress 会给每份事件报告三种严重性之一。触发器的 **Incident Severity ID** 是报告创建事件时使用的事件严重性：由对应设置选择，否则按**事件 → 设置 → 事件严重性**中列出的事件严重性顺序决定：
+Huntress 会给每份事件报告三种严重性之一。触发器的 **事件严重程度 ID** 是报告创建事件时使用的事件严重性：由对应设置选择，否则按**事件 → 设置 → 事件严重性**中列出的事件严重性顺序决定：
 
 | Huntress 严重性 | Huntress 的含义 | 设置 | 设置为空时的事件严重性 |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ Huntress 会给每份事件报告三种严重性之一。触发器的 **Incident
 
 | 值 | 内容 |
 | --- | --- |
-| **Event** | `created`、`comment-added` 或 `closed`。已经关闭或驳回的报告，无论由哪个事件带来，都是 `closed`。 |
+| **事件** | `created`、`comment-added` 或 `closed`。已经关闭或驳回的报告，无论由哪个事件带来，都是 `closed`。 |
 | **Report ID** | 报告在 Huntress 中的编号。 |
-| **Severity** | `critical`、`high` 或 `low`。 |
-| **Status** | 报告在 Huntress 中的状态，例如 `sent`、`closed` 或 `dismissed`。 |
-| **Subject** | 报告的主题，即 Huntress 所写的原文。 |
-| **Summary** | SOC 分析师写的内容。 |
-| **Organization**、**Organization ID** | 报告涉及的 Huntress 组织。 |
-| **Affected** | 报告涉及的主机或身份。 |
-| **Platform**、**Indicators** | Huntress 在哪里发现，以及发现了什么。 |
-| **Comment** | 对于 `comment-added`，某人添加的评论。 |
+| **严重程度** | `critical`、`high` 或 `low`。 |
+| **状态** | 报告在 Huntress 中的状态，例如 `sent`、`closed` 或 `dismissed`。 |
+| **主题** | 报告的主题，即 Huntress 所写的原文。 |
+| **摘要** | SOC 分析师写的内容。 |
+| **组织**、**组织 ID** | 报告涉及的 Huntress 组织。 |
+| **受影响对象** | 报告涉及的主机或身份。 |
+| **平台**、**指标** | Huntress 在哪里发现，以及发现了什么。 |
+| **评论** | 对于 `comment-added`，某人添加的评论。 |
 | **Report URL** | 报告在 Huntress 中打开的位置。 |
-| **Incident Title**、**Incident Description** | 关于该报告的事件的标题和 Markdown 描述。 |
-| **Note** | 关于该事件的备注 Markdown：评论内容，或 Huntress 关闭了该报告。 |
-| **Incident Severity ID**、**Organization Label ID** | 上文所述的事件严重性和标签。 |
+| **事件标题**、**事件描述** | 关于该报告的事件的标题和 Markdown 描述。 |
+| **备注** | 关于该事件的备注 Markdown：评论内容，或 Huntress 关闭了该报告。 |
+| **事件严重程度 ID**、**Organization Label ID** | 上文所述的事件严重性和标签。 |
 | **Received At** | OneUptime 收到该事件的时间。 |
 
-**Summary** 和 **Comment** 是 Huntress 分析师写的文本。要把它们放进事件或备注，请使用 **Incident Description** 和 **Note**：它们会保留格式，而且其中的内容不会加载图片，也不会提及任何人。
+**摘要** 和 **评论** 是 Huntress 分析师写的文本。要把它们放进事件或备注，请使用 **事件描述** 和 **备注**：它们会保留格式，而且其中的内容不会加载图片，也不会提及任何人。
 
-要在没有 Huntress 的情况下试用工作流，请在**生成器**中点击**运行工作流**，输入 **Event**、**Report ID** 和你需要的字段。使用同一个 **Report ID** 可以把一份报告从 `created` 跟到 `closed`。
+要在没有 Huntress 的情况下试用工作流，请在**生成器**中点击**运行工作流**，输入 **事件**、**Report ID** 和你需要的字段。使用同一个 **Report ID** 可以把一份报告从 `created` 跟到 `closed`。
 
 ## 之前创建的 Huntress 连接
 

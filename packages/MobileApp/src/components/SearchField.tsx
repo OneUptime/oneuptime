@@ -3,6 +3,7 @@ import { View, TextInput, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { radius, spacing, typography } from "../theme/tokens";
+import { countTypingAsActivity } from "../auth/userActivity";
 
 interface SearchFieldProps {
   value: string;
@@ -46,7 +47,7 @@ export default function SearchField({
         ref={inputRef}
         testID={testID}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={countTypingAsActivity(onChangeText)}
         accessibilityLabel={accessibilityLabel ?? placeholder}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textTertiary}

@@ -1,6 +1,7 @@
 import AggregationType from "../BaseDatabase/AggregationType";
 import MonitorMetricType from "./MonitorMetricType";
 import SqlDatabaseType from "./SqlDatabaseType";
+import { translationKey } from "../Translator";
 
 /*
  * The single source of truth for the Database Health monitor.
@@ -86,8 +87,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-uptime-seconds",
     metricType: MonitorMetricType.DatabaseUptimeSeconds,
     friendlyName: "Uptime",
-    description:
+    description: translationKey(
       "Seconds since the database server started. A sudden drop means the server restarted - often the real story behind a burst of connection errors.",
+    ),
     category: DatabaseMetricCategory.Availability,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -98,8 +100,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-metric-groups-failed",
     metricType: MonitorMetricType.DatabaseMetricGroupsFailed,
     friendlyName: "Metric Groups Failed",
-    description:
+    description: translationKey(
       "How many collection groups failed on the last check, usually because the monitoring login is missing a grant or an engine feature is off. Alert on this to catch lost visibility - a partial failure never takes the monitor offline.",
+    ),
     category: DatabaseMetricCategory.Availability,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -112,8 +115,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-total",
     metricType: MonitorMetricType.DatabaseConnectionsTotal,
     friendlyName: "Connections",
-    description:
+    description: translationKey(
       "Client connections currently open to the server. Compare against the maximum to see how much headroom is left.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Avg,
@@ -124,8 +128,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-active",
     metricType: MonitorMetricType.DatabaseConnectionsActive,
     friendlyName: "Active Connections",
-    description:
+    description: translationKey(
       "Connections actually executing a statement right now, as opposed to sitting idle. Sustained growth here is the earliest sign of saturation.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Avg,
@@ -136,8 +141,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-max",
     metricType: MonitorMetricType.DatabaseConnectionsMax,
     friendlyName: "Maximum Connections",
-    description:
+    description: translationKey(
       "The server's configured connection ceiling. SQL Server leaves this unlimited by default, so it is not reported there.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -148,8 +154,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-used-percent",
     metricType: MonitorMetricType.DatabaseConnectionsUsedPercent,
     friendlyName: "Connections Used",
-    description:
+    description: translationKey(
       "Open connections as a percentage of the configured ceiling. The single best connection-exhaustion alert: page at 90%, warn at 75%.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -160,8 +167,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-idle-in-transaction",
     metricType: MonitorMetricType.DatabaseConnectionsIdleInTransaction,
     friendlyName: "Idle In Transaction",
-    description:
+    description: translationKey(
       "PostgreSQL backends holding an open transaction while doing nothing. These pin the xmin horizon, block vacuum, and quietly cause table bloat.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -172,8 +180,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-connections-aborted-total",
     metricType: MonitorMetricType.DatabaseConnectionsAbortedTotal,
     friendlyName: "Aborted Connects",
-    description:
+    description: translationKey(
       "Cumulative failed connection attempts since server start. A rising rate points at bad credentials, TLS problems, or a client pool misconfiguration.",
+    ),
     category: DatabaseMetricCategory.Connections,
     group: DatabaseMetricGroup.Connections,
     defaultAggregation: AggregationType.Max,
@@ -186,8 +195,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-transactions-total",
     metricType: MonitorMetricType.DatabaseTransactionsTotal,
     friendlyName: "Transactions",
-    description:
+    description: translationKey(
       "Cumulative committed plus rolled-back transactions. Difference two points in time to get transactions per second.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -198,8 +208,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-queries-total",
     metricType: MonitorMetricType.DatabaseQueriesTotal,
     friendlyName: "Queries",
-    description:
+    description: translationKey(
       "Cumulative statements (MySQL) or batch requests (SQL Server) executed since server start. Difference it to get throughput.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -210,8 +221,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-queries-slow-total",
     metricType: MonitorMetricType.DatabaseSlowQueriesTotal,
     friendlyName: "Slow Queries",
-    description:
+    description: translationKey(
       "Cumulative statements that exceeded MySQL's long_query_time. Requires the slow query log threshold to be set meaningfully.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -222,8 +234,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-rollback-percent",
     metricType: MonitorMetricType.DatabaseRollbackPercent,
     friendlyName: "Rollback Ratio",
-    description:
+    description: translationKey(
       "Share of transactions since the previous check that rolled back rather than committed. A step change usually means the application started throwing where it used to succeed.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Avg,
@@ -234,8 +247,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-query-longest-seconds",
     metricType: MonitorMetricType.DatabaseLongestQuerySeconds,
     friendlyName: "Longest Running Query",
-    description:
+    description: translationKey(
       "Age of the oldest statement currently executing. Catches a runaway report holding resources long before it shows up as a timeout somewhere else.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Activity,
     defaultAggregation: AggregationType.Max,
@@ -246,8 +260,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-transaction-longest-seconds",
     metricType: MonitorMetricType.DatabaseLongestTransactionSeconds,
     friendlyName: "Longest Open Transaction",
-    description:
+    description: translationKey(
       "Age of the oldest open transaction. Long transactions block vacuum on PostgreSQL and grow the log on MySQL and SQL Server.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Activity,
     defaultAggregation: AggregationType.Max,
@@ -258,7 +273,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-transaction-open-count",
     metricType: MonitorMetricType.DatabaseOpenTransactions,
     friendlyName: "Open Transactions",
-    description: "Transactions currently open against the InnoDB engine.",
+    description: translationKey(
+      "Transactions currently open against the InnoDB engine.",
+    ),
     category: DatabaseMetricCategory.Throughput,
     group: DatabaseMetricGroup.Activity,
     defaultAggregation: AggregationType.Max,
@@ -271,8 +288,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-sessions-blocked",
     metricType: MonitorMetricType.DatabaseSessionsBlocked,
     friendlyName: "Blocked Sessions",
-    description:
+    description: translationKey(
       "Sessions waiting on a lock held by another session. Anything sustained above zero is a user-visible stall.",
+    ),
     category: DatabaseMetricCategory.LocksAndBlocking,
     group: DatabaseMetricGroup.Locks,
     defaultAggregation: AggregationType.Max,
@@ -283,8 +301,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-locks-waiting",
     metricType: MonitorMetricType.DatabaseLocksWaiting,
     friendlyName: "Lock Waits",
-    description:
+    description: translationKey(
       "Lock requests that have not been granted yet. Rises before blocked sessions does, so it makes a good early warning.",
+    ),
     category: DatabaseMetricCategory.LocksAndBlocking,
     group: DatabaseMetricGroup.Locks,
     defaultAggregation: AggregationType.Max,
@@ -295,8 +314,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-deadlocks-total",
     metricType: MonitorMetricType.DatabaseDeadlocksTotal,
     friendlyName: "Deadlocks",
-    description:
+    description: translationKey(
       "Cumulative deadlocks detected and broken by the server. Stock MySQL exposes no deadlock counter, so this is PostgreSQL and SQL Server only.",
+    ),
     category: DatabaseMetricCategory.LocksAndBlocking,
     group: DatabaseMetricGroup.Locks,
     defaultAggregation: AggregationType.Max,
@@ -307,8 +327,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-table-locks-waited-total",
     metricType: MonitorMetricType.DatabaseTableLocksWaitedTotal,
     friendlyName: "Table Lock Waits",
-    description:
+    description: translationKey(
       "Cumulative table-level lock requests that had to wait. Typically points at MyISAM tables or explicit LOCK TABLES usage.",
+    ),
     category: DatabaseMetricCategory.LocksAndBlocking,
     group: DatabaseMetricGroup.Locks,
     defaultAggregation: AggregationType.Max,
@@ -321,8 +342,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-cache-hit-percent",
     metricType: MonitorMetricType.DatabaseCacheHitPercent,
     friendlyName: "Cache Hit Ratio",
-    description:
+    description: translationKey(
       "Share of block reads since the previous check served from the buffer cache instead of disk. A sustained fall means the working set no longer fits in memory.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Avg,
@@ -333,8 +355,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-disk-reads-total",
     metricType: MonitorMetricType.DatabaseDiskReadsTotal,
     friendlyName: "Disk Reads",
-    description:
+    description: translationKey(
       "Cumulative reads that had to go to disk rather than the cache. Difference it to get read rate.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -345,7 +368,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-disk-writes-total",
     metricType: MonitorMetricType.DatabaseDiskWritesTotal,
     friendlyName: "Disk Writes",
-    description: "Cumulative physical writes issued by the storage engine.",
+    description: translationKey(
+      "Cumulative physical writes issued by the storage engine.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -356,8 +381,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-io-read-time-ms",
     metricType: MonitorMetricType.DatabaseIoReadTimeMs,
     friendlyName: "I/O Read Time",
-    description:
+    description: translationKey(
       "Cumulative milliseconds spent waiting on read I/O. PostgreSQL only reports this when track_io_timing is on; the series is simply absent otherwise.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -368,8 +394,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-io-write-time-ms",
     metricType: MonitorMetricType.DatabaseIoWriteTimeMs,
     friendlyName: "I/O Write Time",
-    description:
+    description: translationKey(
       "Cumulative milliseconds spent waiting on write I/O. Same track_io_timing caveat as read time on PostgreSQL.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -380,8 +407,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-page-life-expectancy-seconds",
     metricType: MonitorMetricType.DatabasePageLifeExpectancySeconds,
     friendlyName: "Page Life Expectancy",
-    description:
+    description: translationKey(
       "How long SQL Server expects a page to stay in the buffer pool. Falling PLE is the classic memory-pressure signal.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Min,
@@ -392,8 +420,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-memory-grants-pending",
     metricType: MonitorMetricType.DatabaseMemoryGrantsPending,
     friendlyName: "Memory Grants Pending",
-    description:
+    description: translationKey(
       "Queries waiting for a memory grant before they can run. Anything above zero means queries are queueing on memory.",
+    ),
     category: DatabaseMetricCategory.CacheAndIo,
     group: DatabaseMetricGroup.Throughput,
     defaultAggregation: AggregationType.Max,
@@ -406,8 +435,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-size-bytes",
     metricType: MonitorMetricType.DatabaseSizeBytes,
     friendlyName: "Database Size",
-    description:
+    description: translationKey(
       "On-disk size of the monitored database. Chart it over weeks to turn capacity planning into arithmetic.",
+    ),
     category: DatabaseMetricCategory.Storage,
     group: DatabaseMetricGroup.Storage,
     defaultAggregation: AggregationType.Max,
@@ -418,8 +448,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-temp-bytes-total",
     metricType: MonitorMetricType.DatabaseTempBytesTotal,
     friendlyName: "Temp Bytes Written",
-    description:
+    description: translationKey(
       "Cumulative bytes PostgreSQL spilled to temporary files because work_mem was too small for a sort or hash.",
+    ),
     category: DatabaseMetricCategory.Storage,
     group: DatabaseMetricGroup.Storage,
     defaultAggregation: AggregationType.Max,
@@ -430,8 +461,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-temp-disk-tables-total",
     metricType: MonitorMetricType.DatabaseTempDiskTablesTotal,
     friendlyName: "Temp Disk Tables",
-    description:
+    description: translationKey(
       "Cumulative internal temporary tables MySQL had to materialize on disk instead of in memory.",
+    ),
     category: DatabaseMetricCategory.Storage,
     group: DatabaseMetricGroup.Storage,
     defaultAggregation: AggregationType.Max,
@@ -442,8 +474,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-log-space-used-percent",
     metricType: MonitorMetricType.DatabaseLogSpaceUsedPercent,
     friendlyName: "Log Space Used",
-    description:
+    description: translationKey(
       "Percentage of the SQL Server transaction log in use. A log that fills stops all writes, so this is worth paging on.",
+    ),
     category: DatabaseMetricCategory.Storage,
     group: DatabaseMetricGroup.Storage,
     defaultAggregation: AggregationType.Max,
@@ -454,8 +487,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-tempdb-free-bytes",
     metricType: MonitorMetricType.DatabaseTempDbFreeBytes,
     friendlyName: "TempDB Free Space",
-    description:
+    description: translationKey(
       "Unallocated space left in tempdb. Running tempdb dry takes down every session that needs a spill or a version store.",
+    ),
     category: DatabaseMetricCategory.Storage,
     group: DatabaseMetricGroup.Storage,
     defaultAggregation: AggregationType.Min,
@@ -468,8 +502,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-replica-count",
     metricType: MonitorMetricType.DatabaseReplicaCount,
     friendlyName: "Connected Replicas",
-    description:
+    description: translationKey(
       "Replicas currently streaming from this server. Alert on a drop to catch a replica that detached silently.",
+    ),
     category: DatabaseMetricCategory.Replication,
     group: DatabaseMetricGroup.Replication,
     defaultAggregation: AggregationType.Min,
@@ -480,8 +515,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-replication-lag-seconds",
     metricType: MonitorMetricType.DatabaseReplicationLagSeconds,
     friendlyName: "Replication Lag",
-    description:
+    description: translationKey(
       "How far behind the replica is, in seconds. Reported from whichever side of the replication link this monitor is connected to. SQL Server availability groups do not publish a delay in seconds - use Replication Lag (Bytes) there.",
+    ),
     category: DatabaseMetricCategory.Replication,
     group: DatabaseMetricGroup.Replication,
     defaultAggregation: AggregationType.Max,
@@ -492,8 +528,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-replication-lag-bytes",
     metricType: MonitorMetricType.DatabaseReplicationLagBytes,
     friendlyName: "Replication Lag (Bytes)",
-    description:
+    description: translationKey(
       "Bytes of WAL sent but not yet replayed, or the SQL Server send and redo queue. Survives an idle primary, where lag in seconds reads as zero.",
+    ),
     category: DatabaseMetricCategory.Replication,
     group: DatabaseMetricGroup.Replication,
     defaultAggregation: AggregationType.Max,
@@ -504,8 +541,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-is-in-recovery",
     metricType: MonitorMetricType.DatabaseIsInRecovery,
     friendlyName: "Is In Recovery",
-    description:
+    description: translationKey(
       "1 when this PostgreSQL server is a standby, 0 when it is a primary. Alert on a change to catch an unplanned failover.",
+    ),
     category: DatabaseMetricCategory.Replication,
     group: DatabaseMetricGroup.Replication,
     defaultAggregation: AggregationType.Max,
@@ -516,8 +554,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-replication-slots-inactive",
     metricType: MonitorMetricType.DatabaseReplicationSlotsInactive,
     friendlyName: "Inactive Replication Slots",
-    description:
+    description: translationKey(
       "PostgreSQL replication slots with no consumer attached. Each one pins WAL forever and will eventually fill the disk.",
+    ),
     category: DatabaseMetricCategory.Replication,
     group: DatabaseMetricGroup.Replication,
     defaultAggregation: AggregationType.Max,
@@ -530,8 +569,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-transaction-id-used-percent",
     metricType: MonitorMetricType.DatabaseTransactionIdUsedPercent,
     friendlyName: "Transaction ID Used",
-    description:
+    description: translationKey(
       "How far the oldest unfrozen transaction ID has advanced toward wraparound. PostgreSQL shuts down writes if this ever reaches 100%, which makes it the most important PostgreSQL metric almost nobody watches.",
+    ),
     category: DatabaseMetricCategory.Maintenance,
     group: DatabaseMetricGroup.Maintenance,
     defaultAggregation: AggregationType.Max,
@@ -542,8 +582,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-dead-tuples",
     metricType: MonitorMetricType.DatabaseDeadTuples,
     friendlyName: "Dead Tuples",
-    description:
+    description: translationKey(
       "Dead rows waiting to be reclaimed by vacuum across user tables. Growth without a matching vacuum means bloat and worsening plans.",
+    ),
     category: DatabaseMetricCategory.Maintenance,
     group: DatabaseMetricGroup.Maintenance,
     defaultAggregation: AggregationType.Max,
@@ -554,8 +595,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-tables-never-autovacuumed",
     metricType: MonitorMetricType.DatabaseTablesNeverAutovacuumed,
     friendlyName: "Tables Never Autovacuumed",
-    description:
+    description: translationKey(
       "User tables that have dead rows but have never been autovacuumed - usually a sign autovacuum is starved or disabled for them.",
+    ),
     category: DatabaseMetricCategory.Maintenance,
     group: DatabaseMetricGroup.Maintenance,
     defaultAggregation: AggregationType.Max,
@@ -566,8 +608,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-checkpoints-requested-total",
     metricType: MonitorMetricType.DatabaseCheckpointsRequestedTotal,
     friendlyName: "Requested Checkpoints",
-    description:
+    description: translationKey(
       "Cumulative checkpoints forced by WAL volume rather than by the timer. A high ratio against timed checkpoints means max_wal_size is too small.",
+    ),
     category: DatabaseMetricCategory.Maintenance,
     group: DatabaseMetricGroup.Maintenance,
     defaultAggregation: AggregationType.Max,
@@ -578,8 +621,9 @@ const databaseMetricCatalog: Array<DatabaseMetricDefinition> = [
     id: "database-checkpoints-timed-total",
     metricType: MonitorMetricType.DatabaseCheckpointsTimedTotal,
     friendlyName: "Timed Checkpoints",
-    description:
+    description: translationKey(
       "Cumulative checkpoints triggered on schedule. The healthy counterpart to requested checkpoints.",
+    ),
     category: DatabaseMetricCategory.Maintenance,
     group: DatabaseMetricGroup.Maintenance,
     defaultAggregation: AggregationType.Max,
@@ -605,22 +649,30 @@ const categoryOrder: Array<DatabaseMetricCategory> = [
 ];
 
 const categoryDescriptions: Record<DatabaseMetricCategory, string> = {
-  [DatabaseMetricCategory.Availability]:
+  [DatabaseMetricCategory.Availability]: translationKey(
     "Whether the database is reachable and whether collection is complete.",
-  [DatabaseMetricCategory.Connections]:
+  ),
+  [DatabaseMetricCategory.Connections]: translationKey(
     "Connection counts, headroom against the configured ceiling, and failed connects.",
-  [DatabaseMetricCategory.Throughput]:
+  ),
+  [DatabaseMetricCategory.Throughput]: translationKey(
     "Transaction and query volume, plus the age of the longest running work.",
-  [DatabaseMetricCategory.LocksAndBlocking]:
+  ),
+  [DatabaseMetricCategory.LocksAndBlocking]: translationKey(
     "Sessions waiting on each other: lock waits, blocked sessions, and deadlocks.",
-  [DatabaseMetricCategory.CacheAndIo]:
+  ),
+  [DatabaseMetricCategory.CacheAndIo]: translationKey(
     "How much work is served from memory rather than disk, and what the disk costs.",
-  [DatabaseMetricCategory.Storage]:
+  ),
+  [DatabaseMetricCategory.Storage]: translationKey(
     "Database size, temporary spill, and log or tempdb space.",
-  [DatabaseMetricCategory.Replication]:
+  ),
+  [DatabaseMetricCategory.Replication]: translationKey(
     "Replica connectivity and how far behind replicas are running.",
-  [DatabaseMetricCategory.Maintenance]:
+  ),
+  [DatabaseMetricCategory.Maintenance]: translationKey(
     "Vacuum, bloat, checkpoints, and transaction ID wraparound headroom.",
+  ),
 };
 
 export function getAllDatabaseMetrics(): Array<DatabaseMetricDefinition> {

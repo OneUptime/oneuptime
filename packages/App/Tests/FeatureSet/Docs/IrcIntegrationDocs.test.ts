@@ -757,8 +757,14 @@ describe("the IRC page names the step's settings as the step does", () => {
     expect(IRC_METADATA.componentType).toBe(ComponentType.Component);
   });
 
+  /*
+   * The settings form titles each setting with its name, looked up in the
+   * Dashboard's locale (ArgumentsForm hands arg.name to FieldLabel), so a
+   * page names Message Text, Port and Channel as its language's form draws
+   * them, and the settings no locale has a word for in English (#7511).
+   */
   test.each(LANGUAGES)(
-    "%s names every setting of the step, in English bold, as the form does",
+    "%s names every setting of the step, in bold, as its language's form draws it",
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readIrcPage(language));
 
@@ -768,7 +774,7 @@ describe("the IRC page names the step's settings as the step does", () => {
         expect({
           language,
           setting: argument.name,
-          named: bold.has(argument.name),
+          named: bold.has(dashboardWord(language, argument.name)),
         }).toEqual({
           language,
           setting: argument.name,
@@ -1462,7 +1468,8 @@ describe("the IRC page's diagram", () => {
 
       expect(lines[optAt]).toContain("Send Without Joining");
       expect(lines[optAt + 1]).toContain("JOIN");
-      expect(lines[loopAt]).toContain("Message Text");
+      // The setting, as the language's settings form names it.
+      expect(lines[loopAt]).toContain(dashboardWord(language, "Message Text"));
       expect(lines[loopAt]).toContain(String(IRC_MAX_LINES));
       expect(lines[loopAt + 1]).toContain("PRIVMSG");
     },

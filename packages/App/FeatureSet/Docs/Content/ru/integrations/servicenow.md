@@ -58,7 +58,7 @@ Table API принимает аутентификацию Basic: имя и па�
 
 ### Создайте запись
 
-Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **URL** значение `https://your-instance.service-now.com/api/now/table/incident`. В разделе **Дополнительные поля** задайте его **Request Headers** так:
+Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Успешно** триггера. Задайте его **URL** значение `https://your-instance.service-now.com/api/now/table/incident`. В разделе **Дополнительные поля** задайте его **Заголовки запроса** так:
 
 ```json
 {
@@ -67,7 +67,7 @@ Table API принимает аутентификацию Basic: имя и па�
 }
 ```
 
-А его **Request Body** — так:
+А его **Тело запроса** — так:
 
 ```json
 {
@@ -101,11 +101,11 @@ Table API принимает аутентификацию Basic: имя и па�
 
 ### Проверьте, что инцидент устранён
 
-Добавьте после триггера блок **If / Else**. Задайте **Value to check** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Comparison** — **is true**.
+Добавьте после триггера блок **If / Else**. Задайте **Проверяемое значение** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Сравнение** — **истинно**.
 
 ### Найдите запись
 
-Добавьте после стороны **Yes** блок **API Get (JSON)** с теми же **Request Headers** и таким **URL**:
+Добавьте после стороны **Да** блок **API Get (JSON)** с теми же **Заголовки запроса** и таким **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,13 +113,13 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Устраните запись
 
-Добавьте после **Success** блока поиска блок **API Patch (JSON)** с теми же **Request Headers** и таким **URL**:
+Добавьте после **Успешно** блока поиска блок **API Patch (JSON)** с теми же **Заголовки запроса** и таким **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}
 ```
 
-Задайте его **Request Body** так:
+Задайте его **Тело запроса** так:
 
 ```json
 {

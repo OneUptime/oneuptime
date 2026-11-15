@@ -92,6 +92,8 @@ Ogni log viene salvato con una di sette gravità. Per i log OpenTelemetry deriva
 | **Fatal** | 21–24 |
 | **Non specificato** | Tutto il resto |
 
+Un log senza numero di gravità prende la gravità dal suo testo di gravità, in maiuscolo o minuscolo: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` e `FATAL`, i loro livelli numerati come `WARN2` e grafie come `warning`, `notice`, `critical` ed `emerg`. Qualsiasi altro testo lascia la gravità non specificata.
+
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor log non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.

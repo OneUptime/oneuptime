@@ -2,7 +2,7 @@
 
 La télémétrie contient tout ce qu'écrit votre code : une adresse e-mail dans une ligne de journal, un numéro de carte dans un attribut de span, un jeton dans une trace de pile, la question d'un client dans un prompt. Sécurité des données traite les journaux, traces, exceptions et conversations IA de chaque service, ainsi que les sessions de chaque application RUM, comme des magasins de données à part entière. Elle les échantillonne toutes les heures, y trouve les données sensibles comme dans un bucket, et **Nettoyer** transforme une détection en une règle de nettoyage qui masque ces données à l'ingestion à partir de là.
 
-Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet.
+Il n'y a rien à configurer : la télémétrie de chaque service est analysée toutes les heures, sauf si **Analyser la télémétrie** est désactivé dans les paramètres du projet. Pour laisser de côté les journaux, les traces ou un autre signal d'un service, désactivez **Analyser le contenu** dans les **Paramètres** de ce magasin de données : dès l'analyse suivante, rien n'en est lu.
 
 :::cards
 - [Ce qui est lu](#ce-qui-est-lu): Les attributs, les corps, les messages et les prompts de chaque signal.

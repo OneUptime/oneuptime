@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **De sleutel bepaalt het project.** U stuurt nooit een project-ID mee: gegevens die met een sleutel worden verzonden, komen terecht in het project waar de sleutel bij hoort.
-- **Wijzigingen bereiken elke server binnen een minuut.** Een sleutel uitschakelen, zijn geheim opnieuw instellen of zijn origins, vervaldatum of limiet wijzigen werkt binnen ongeveer een minuut.
+- **Wijzigingen bereiken elke server binnen enkele seconden.** Een sleutel uitschakelen, zijn geheim opnieuw instellen of zijn origins, vervaldatum of limiet wijzigen werkt op elke server binnen enkele seconden.
 - **Een sleutel kan eigen budgetten hebben.** Een dagbudget en een snelheid per seconde voor elk signaal, binnen die van zijn project: zie [Ingestiebudgetten](/docs/telemetry/ingestion-budgets).
 - **Een serversleutel is een wachtwoord.** Iedereen die hem heeft, kan telemetrie naar uw project sturen. Bewaar hem in de geheimen van uw servers, nooit in versiebeheer of op een webpagina.
 
@@ -139,8 +139,8 @@ De pagina van de sleutel houdt ook de telling bij: **Geweigerde telemetrie** too
 
 Voor de andere antwoorden die een OTLP-exporter kan krijgen, zie [Antwoorden](/docs/telemetry/open-telemetry#antwoorden).
 
-:::details Er komen nog gegevens binnen een minuut nadat ik de sleutel uitzette
-Elke OneUptime-server onthoudt wat hij over een sleutel weet hooguit een minuut, dus een wijziging bereikt ze allemaal binnen ongeveer een minuut. Verzoeken daarna worden geweigerd.
+:::details Er komen nog gegevens binnen nadat ik de sleutel uitzette
+Elke OneUptime-server controleert minstens eens per seconde of een sleutel is gewijzigd, dus een wijziging bereikt ze allemaal binnen enkele seconden en verzoeken daarna worden geweigerd. Zolang een server de cache van OneUptime niet kan bereiken, kan hij hooguit een minuut uitgaan van wat hij over de sleutel wist. Een MQTT-client die met de sleutel verbonden is, wordt binnen een paar seconden afgesloten.
 :::
 
 :::details Een browsersleutel werkt op mijn laptop, maar niet in productie

@@ -581,6 +581,14 @@ enum Permission {
   EditOnCallDutyPolicyScheduleLayer = "EditOnCallDutyPolicyScheduleLayer",
   ReadOnCallDutyPolicyScheduleLayer = "ReadOnCallDutyPolicyScheduleLayer",
 
+  /*
+   * Retired: the people in a layer of an on-call schedule have been added,
+   * moved, taken out and read with the layer's own permissions (above)
+   * since the layers were made, so nothing checks these four. They grant
+   * nothing, are offered to no team, API key or custom role, and the
+   * migration RemovePermissionsThatGrantNothing took them from every one
+   * that held them. The values stay, so a stored or sent value still parses.
+   */
   CreateOnCallDutyPolicyScheduleLayerUser = "CreateOnCallDutyPolicyScheduleLayerUser",
   DeleteOnCallDutyPolicyScheduleLayerUser = "DeleteOnCallDutyPolicyScheduleLayerUser",
   EditOnCallDutyPolicyScheduleLayerUser = "EditOnCallDutyPolicyScheduleLayerUser",
@@ -1232,6 +1240,15 @@ enum Permission {
   EditProjectLabel = "EditProjectLabel",
   ReadProjectLabel = "ReadProjectLabel",
   DeleteProjectLabel = "DeleteProjectLabel",
+  /*
+   * Retired: a label is put on a monitor, an incident or any other resource
+   * with that resource's own Edit permission (its labels column's update
+   * list), and a label also decides what a grant limited to labels reaches,
+   * so labelling must not take less than editing. Nothing checks this. It
+   * grants nothing, is offered to no team, API key or custom role, and the
+   * migration RemovePermissionsThatGrantNothing took it from every one that
+   * held it. The value stays, so a stored or sent value still parses.
+   */
   AddLabelsToProjectResources = "AddLabelsToProjectResources",
 
   // Scheduled Maintenance
@@ -1293,6 +1310,16 @@ enum Permission {
   ReadIncidentStateTimeline = "ReadIncidentStateTimeline",
   DeleteIncidentStateTimeline = "DeleteIncidentStateTimeline",
 
+  /*
+   * A feed (an incident's, a monitor's, a cluster's and every other's below)
+   * only records what happened: its entries are written by OneUptime and
+   * are never edited (every feed model's update list is empty). So every
+   * Edit ... Feed permission is retired: it grants nothing, is offered to no
+   * team, API key or custom role (isAssignableToTenant: false), and the
+   * migration RemovePermissionsThatGrantNothing took it from every one that
+   * held it. The values stay, so a permission an API call still sends parses
+   * and shows its title.
+   */
   CreateIncidentFeed = "CreateIncidentFeed",
   EditIncidentFeed = "EditIncidentFeed",
   ReadIncidentFeed = "ReadIncidentFeed",
@@ -1430,6 +1457,15 @@ enum Permission {
   DeleteIncidentPublicNote = "DeleteIncidentPublicNote",
   ReadIncidentPublicNote = "ReadIncidentPublicNote",
 
+  /*
+   * Invoices come from the payment provider: OneUptime creates and deletes
+   * none (BillingInvoice's create and delete lists are empty), so Create
+   * Invoices and Delete Invoices are retired - they grant nothing, are
+   * offered to no team, API key or custom role, and the migration
+   * RemovePermissionsThatGrantNothing took them from every one that held
+   * them. Read Invoices reads them, and Edit Invoices pays an open one
+   * (PROJECT_INVOICE_PAY_PERMISSIONS).
+   */
   CreateInvoices = "CreateInvoices",
   EditInvoices = "EditInvoices",
   DeleteInvoices = "DeleteInvoices",
@@ -2207,7 +2243,7 @@ enum Permission {
   EditAlertEpisodeInternalNote = "EditAlertEpisodeInternalNote",
   ReadAlertEpisodeInternalNote = "ReadAlertEpisodeInternalNote",
 
-  // Alert Episode Feed Permissions
+  // Alert Episode Feed Permissions (Edit is retired, as every feed's is: see CreateIncidentFeed)
   CreateAlertEpisodeFeed = "CreateAlertEpisodeFeed",
   EditAlertEpisodeFeed = "EditAlertEpisodeFeed",
   ReadAlertEpisodeFeed = "ReadAlertEpisodeFeed",
@@ -2280,7 +2316,7 @@ enum Permission {
   EditIncidentEpisodeInternalNote = "EditIncidentEpisodeInternalNote",
   ReadIncidentEpisodeInternalNote = "ReadIncidentEpisodeInternalNote",
 
-  // Incident Episode Feed Permissions
+  // Incident Episode Feed Permissions (Edit is retired, as every feed's is: see CreateIncidentFeed)
   CreateIncidentEpisodeFeed = "CreateIncidentEpisodeFeed",
   EditIncidentEpisodeFeed = "EditIncidentEpisodeFeed",
   ReadIncidentEpisodeFeed = "ReadIncidentEpisodeFeed",
@@ -2430,7 +2466,7 @@ enum Permission {
   EditServiceLevelObjectiveMonitorRule = "EditServiceLevelObjectiveMonitorRule",
   ReadServiceLevelObjectiveMonitorRule = "ReadServiceLevelObjectiveMonitorRule",
 
-  // Service Level Objective Feed Permissions
+  // Service Level Objective Feed Permissions (Edit is retired, as every feed's is: see CreateIncidentFeed)
   CreateServiceLevelObjectiveFeed = "CreateServiceLevelObjectiveFeed",
   EditServiceLevelObjectiveFeed = "EditServiceLevelObjectiveFeed",
   ReadServiceLevelObjectiveFeed = "ReadServiceLevelObjectiveFeed",
@@ -2532,6 +2568,29 @@ export class PermissionHelper {
     return this.getAllPermissionProps().filter((item: PermissionProps) => {
       return item.isAssignableToTenant;
     });
+  }
+
+  /*
+   * The values a team, an API key or a custom role may be given: the
+   * tenant permissions, which every permission picker offers. The rest are
+   * OneUptime's own (Logged in User, Customer Support, User, Public and the
+   * markers with no props, which it gives where they apply), retired ones
+   * that grant nothing, or no permission at all.
+   */
+  public static getTenantPermissionValues(): Set<string> {
+    return new Set<string>(
+      this.getTenantPermissionProps().map((item: PermissionProps): string => {
+        return item.permission;
+      }),
+    );
+  }
+
+  // Whether `permission` is one a team, an API key or a custom role may be given.
+  public static isAssignableToTenant(permission: unknown): boolean {
+    return (
+      typeof permission === "string" &&
+      this.getTenantPermissionValues().has(permission)
+    );
   }
 
   public static getRolePermissionProps(): Array<PermissionProps> {
@@ -3666,12 +3725,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Settings,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.AddLabelsToProjectResources,
         title: "Add Label to Resources",
         description:
-          "This permission can add project labels to resources of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: a label is added to a resource with that resource's own Edit permission, such as Edit Monitor, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Settings,
@@ -4023,12 +4083,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Monitor,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditMonitorFeed,
         title: "Edit Monitor Feed",
         description:
-          "This permission can edit log of an monitor in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a monitor only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Monitor,
@@ -4054,12 +4115,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Incident,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditIncidentFeed,
         title: "Edit Incident Feed",
         description:
-          "This permission can edit log of an incident in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an incident only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
@@ -4085,12 +4147,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditOnCallDutyPolicyFeed,
         title: "Edit On-Call Policy Feed",
         description:
-          "This permission can edit log of an on-call policy in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an on-call policy only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
@@ -4116,12 +4179,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditKubernetesClusterFeed,
         title: "Edit Kubernetes Cluster Feed",
         description:
-          "This permission can edit the activity feed of a Kubernetes cluster in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Kubernetes cluster only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4147,12 +4211,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditDockerHostFeed,
         title: "Edit Docker Host Feed",
         description:
-          "This permission can edit the activity feed of a Docker host in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Docker host only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4178,12 +4243,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditDockerSwarmClusterFeed,
         title: "Edit Docker Swarm Cluster Feed",
         description:
-          "This permission can edit the activity feed of a Docker Swarm cluster in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Docker Swarm cluster only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4209,12 +4275,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditCephClusterFeed,
         title: "Edit Ceph Cluster Feed",
         description:
-          "This permission can edit the activity feed of a Ceph cluster in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Ceph cluster only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4239,12 +4306,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditStorageArrayFeed,
         title: "Edit Storage Array Feed",
         description:
-          "This permission can edit the activity feed of a storage array in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a storage array only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4270,12 +4338,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditVMwareVCenterFeed,
         title: "Edit vCenter Feed",
         description:
-          "This permission can edit the activity feed of a vCenter in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a vCenter only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4301,12 +4370,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditDatabaseServerFeed,
         title: "Edit Database Feed",
         description:
-          "This permission can edit the activity feed of a database in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a database only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4332,12 +4402,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditPodmanHostFeed,
         title: "Edit Podman Host Feed",
         description:
-          "This permission can edit the activity feed of a Podman host in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Podman host only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4373,22 +4444,24 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditProxmoxClusterFeed,
         title: "Edit Proxmox Cluster Feed",
         description:
-          "This permission can edit the activity feed of a Proxmox cluster in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a Proxmox cluster only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditOpenStackCloudFeed,
         title: "Edit OpenStack Cloud Feed",
         description:
-          "This permission can edit the activity feed of a OpenStack cloud in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an OpenStack cloud only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4424,12 +4497,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditHostFeed,
         title: "Edit Host Feed",
         description:
-          "This permission can edit the activity feed of a host in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a host only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4455,12 +4529,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditCloudResourceFeed,
         title: "Edit Cloud Resource Feed",
         description:
-          "This permission can edit the activity feed of a cloud resource in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a cloud resource only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Telemetry,
@@ -4486,12 +4561,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditServiceFeed,
         title: "Edit Service Feed",
         description:
-          "This permission can edit the activity feed of a service in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a service only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ServiceCatalog,
@@ -4517,12 +4593,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Alert,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditAlertFeed,
         title: "Edit Alert Feed",
         description:
-          "This permission can edit log of an alert in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an alert only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Alert,
@@ -4548,12 +4625,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.ScheduledMaintenance,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditScheduledMaintenanceFeed,
         title: "Edit Scheduled Maintenance Log",
         description:
-          "This permission can edit log of an scheduled maintenance in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of a maintenance event only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.ScheduledMaintenance,
@@ -6615,20 +6693,24 @@ export class PermissionHelper {
         group: PermissionGroup.Incident,
       },
 
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.CreateInvoices,
         title: "Create Invoices",
-        description: "This permission can create Invoices this project.",
-        isAssignableToTenant: true,
+        description:
+          "Grants nothing: invoices come from the payment provider, and OneUptime creates none, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Billing,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.DeleteInvoices,
         title: "Delete Invoices",
-        description: "This permission can delete Invoices of this project.",
-        isAssignableToTenant: true,
+        description:
+          "Grants nothing: invoices come from the payment provider, and none can be deleted in OneUptime, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Billing,
@@ -7880,7 +7962,7 @@ export class PermissionHelper {
         permission: Permission.CreateOnCallDutyPolicyScheduleLayer,
         title: "Create On-Call Schedule Layer",
         description:
-          "This permission can create On-Call Schedule Layer this project.",
+          "This permission can add layers to the on-call schedules of this project, and add people to a layer.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7890,7 +7972,7 @@ export class PermissionHelper {
         permission: Permission.DeleteOnCallDutyPolicyScheduleLayer,
         title: "Delete On-Call Schedule Layer",
         description:
-          "This permission can delete On-Call Schedule Layer of this project.",
+          "This permission can delete layers of the on-call schedules of this project, and take people out of a layer.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7900,7 +7982,7 @@ export class PermissionHelper {
         permission: Permission.EditOnCallDutyPolicyScheduleLayer,
         title: "Edit On-Call Schedule Layer",
         description:
-          "This permission can edit On-Call Schedule Layer of this project.",
+          "This permission can edit layers of the on-call schedules of this project, and change the order the people of a layer take turns in.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -7910,49 +7992,53 @@ export class PermissionHelper {
         permission: Permission.ReadOnCallDutyPolicyScheduleLayer,
         title: "Read On-Call Schedule Layer",
         description:
-          "This permission can read On-Call Schedule Layer of this project.",
+          "This permission can read the layers of the on-call schedules of this project, and who is in each.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
 
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.CreateOnCallDutyPolicyScheduleLayerUser,
         title: "Create On-Call Schedule Layer User",
         description:
-          "This permission can create On-Call Schedule Layer User this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: people are added to a layer of an on-call schedule with Create On-Call Schedule Layer, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
         title: "Delete On-Call Schedule Layer User",
         description:
-          "This permission can delete On-Call Schedule Layer User of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: people are taken out of a layer of an on-call schedule with Delete On-Call Schedule Layer, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditOnCallDutyPolicyScheduleLayerUser,
         title: "Edit On-Call Schedule Layer User",
         description:
-          "This permission can edit On-Call Schedule Layer User of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the order the people of a layer take turns in is changed with Edit On-Call Schedule Layer, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.ReadOnCallDutyPolicyScheduleLayerUser,
         title: "Read On-Call Schedule Layer User",
         description:
-          "This permission can read On-Call Schedule Layer User of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: who is in a layer of an on-call schedule is read with Read On-Call Schedule Layer, so no record checks this permission.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.OnCallDutyPolicy,
@@ -18078,12 +18164,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Alert,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditAlertEpisodeFeed,
         title: "Edit Alert Episode Feed",
         description:
-          "This permission can edit Alert Episode feed items of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an alert episode only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Alert,
@@ -18509,12 +18596,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.Incident,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditIncidentEpisodeFeed,
         title: "Edit Incident Episode Feed",
         description:
-          "This permission can edit Incident Episode feed items of this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an incident episode only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
@@ -19532,12 +19620,13 @@ export class PermissionHelper {
         isRolePermission: false,
         group: PermissionGroup.SLO,
       },
+      // Retired (see the enum): it grants nothing, so it is never offered.
       {
         permission: Permission.EditServiceLevelObjectiveFeed,
         title: "Edit SLO Feed",
         description:
-          "This permission can edit the activity feed of a Service Level Objective in this project.",
-        isAssignableToTenant: true,
+          "Grants nothing: the feed of an SLO only records what happened, so no entry of it can be edited.",
+        isAssignableToTenant: false,
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.SLO,

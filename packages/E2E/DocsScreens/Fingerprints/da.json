@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Hvad skal vi tjekke?",
-      "OneUptime tjekker den hvert 5. minut fra flere placeringer. Hvis der ikke kommer svar, eller svaret er en fejl, åbnes der en hændelse.",
+      "OneUptime tjekker den hvert 5. minut. Der åbnes en hændelse, når alle placeringer, der tjekker den, finder den nede: intet svar eller et svar med en fejl.",
       "Adresse på website eller API",
       "Dette er et API-endpoint",
       "Start tjekket",
@@ -165,7 +165,7 @@
       "Tilføj teammedlemmer",
       "AL",
       "Ada Lovelace",
-      "Det opretter vagtpolitikken \"Default on-call policy\", som tilkalder dem ved hver ny hændelse og hver ny advarsel i dette projekt.",
+      "Det opretter vagtpolitikken \"Standardvagtpolitik\", som tilkalder dem ved hver ny hændelse og hver ny advarsel i dette projekt.",
       "Gem og fortsæt"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Tjekket",
       "Hvert 5. minut, fra 2 placeringer.",
       "Når den går ned",
-      "Hvis der ikke kommer svar, eller svaret er en fejl, åbner OneUptime en hændelse (Critical Incident).",
+      "Hvis der ikke kommer svar, eller svaret er en fejl, åbner OneUptime en hændelse (Kritisk hændelse). En statusændring kræver, at begge forbundne sonder er enige.",
       "Hvem der får besked",
-      "Vagtpolitikken \"Default on-call policy\" tilkalder Ada Lovelace ved hver ny hændelse og hver ny advarsel. Du ejer denne overvågning, så du får en e-mail, når dens status ændres.",
+      "Vagtpolitikken \"Standardvagtpolitik\" tilkalder Ada Lovelace ved hver ny hændelse og hver ny advarsel. Du ejer denne overvågning, så du får en e-mail, når dens status ændres.",
       "Testet",
       "Ada Lovelace bekræftede den via e-mail efter 14 sekunder.",
       "Næste trin",
@@ -217,7 +217,7 @@
       "button: Tjek en anden adresse"
     ],
     "width": 768,
-    "height": 511
+    "height": 531
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Hvem har ellers vagt?",
-      "Det opretter vagtpolitikken \"Default on-call policy\". Den tilkalder først disse personer ved hver ny hændelse og advarsel i dette projekt.",
+      "Det opretter vagtpolitikken \"Standardvagtpolitik\". Den tilkalder først disse personer ved hver ny hændelse og advarsel i dette projekt.",
       "Tilkaldes først",
       "Tilføj teammedlemmer",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "Tilkaldelse er sat op",
       "Hvem der tilkaldes",
-      "Hver ny hændelse og advarsel kører \"Default on-call policy\", som tilkalder Ada Lovelace (E-mail, SMS, Telefonopkald).",
+      "Hver ny hændelse og advarsel kører \"Standardvagtpolitik\", som tilkalder Ada Lovelace (E-mail, SMS, Telefonopkald).",
       "Hvis ingen svarer",
       "Hvis ingen kvitterer inden for 30 minutter, tilkaldes Grace Hopper.",
       "Testet",
@@ -386,7 +386,7 @@
       "Ryd",
       "1 af 1 valgt",
       "Acme website",
-      "Operational",
+      "I drift",
       "Siden er offentlig, så snart du opretter den: alle med linket kan se status for de monitorer, du har valgt.",
       "Opret statussiden",
       "value: Status for Acme Commerce",
@@ -410,7 +410,7 @@
       "Status for Acme Commerce",
       "DEN VISER",
       "Acme website",
-      "Operational",
+      "I drift",
       "Offentligt link",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "En hændelse på en af disse monitorer vises her af sig selv, og abonnenterne får en e-mail.",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Løs",
-      "Oprettet",
+      "Created",
       "Bekræftet",
       "Løst",
       "I GANG I",

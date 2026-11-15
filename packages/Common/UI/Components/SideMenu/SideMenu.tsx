@@ -9,7 +9,11 @@ import React, {
   useEffect,
 } from "react";
 import PageTrailEndContext from "../Page/PageTrailEnd";
-import { getCrumbTitle, getRecordCrumbName } from "../Page/RecordNameInTrail";
+import {
+  getCrumbTitle,
+  getCrumbTitleEnglish,
+  getRecordCrumbName,
+} from "../Page/RecordNameInTrail";
 import {
   fitSideMenuCard,
   getSideMenuFadeClassName,
@@ -74,7 +78,10 @@ export interface SideMenuItemProps {
 }
 
 export interface SideMenuSectionProps {
+  // In English, looked up where it is drawn - unless isTitleTranslated says otherwise.
   title: string;
+  // The title is in the reader's words already (SideMenuSection's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   items: SideMenuItemProps[];
   icon?: IconProp;
   defaultCollapsed?: boolean;
@@ -333,18 +340,34 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
    */
   type ActiveMenuItem = {
     sectionTitle?: string;
-    itemTitle?: string;
+    /*
+     * The section's title is in the reader's words already
+     * (SideMenuSection's isTitleTranslated).
+     */
+    isSectionTitleTranslated?: boolean;
+    /*
+     * The entry's link, whose title is drawn as the entry draws it: looked
+     * up when English, as given when it is a record's name or in the
+     * reader's words already (getCrumbTitle, #8225).
+     */
+    itemLink?: Link;
     icon?: IconProp;
+  };
+
+  // The section an entry is found in, as its element says it.
+  type ActiveMenuSection = {
+    title: string;
+    isTitleTranslated?: boolean | undefined;
   };
 
   type FindActiveInChildrenFunction = (
     children: ReactElement | Array<ReactElement> | undefined,
-    sectionTitle?: string | undefined,
+    section?: ActiveMenuSection | undefined,
   ) => ActiveMenuItem;
 
   const findActiveInChildren: FindActiveInChildrenFunction = (
     children: ReactElement | Array<ReactElement> | undefined,
-    sectionTitle?: string | undefined,
+    section?: ActiveMenuSection | undefined,
   ): ActiveMenuItem => {
     if (!children) {
       return {};
@@ -360,12 +383,14 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         activeRoute?: Link["to"] | undefined;
         icon?: IconProp | undefined;
         title?: string | undefined;
+        isTitleTranslated?: boolean | undefined;
         children?: ReactElement | Array<ReactElement> | undefined;
       } = child.props as {
         link?: Link | undefined;
         activeRoute?: Link["to"] | undefined;
         icon?: IconProp | undefined;
         title?: string | undefined;
+        isTitleTranslated?: boolean | undefined;
         children?: ReactElement | Array<ReactElement> | undefined;
       };
 
@@ -376,10 +401,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
        * list holds the page as one of its rows is lit too (isEntryLit).
        */
       if (childProps.link && isEntryLit(childProps)) {
-        const result: ActiveMenuItem = { itemTitle: childProps.link.title };
+        const result: ActiveMenuItem = { itemLink: childProps.link };
 
-        if (sectionTitle) {
-          result.sectionTitle = sectionTitle;
+        if (section) {
+          result.sectionTitle = section.title;
+          result.isSectionTitleTranslated = Boolean(section.isTitleTranslated);
         }
         if (childProps.icon) {
           result.icon = childProps.icon;
@@ -391,10 +417,15 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       if (childProps.children) {
         const nested: ActiveMenuItem = findActiveInChildren(
           childProps.children,
-          childProps.title || sectionTitle,
+          childProps.title
+            ? {
+                title: childProps.title,
+                isTitleTranslated: childProps.isTitleTranslated,
+              }
+            : section,
         );
 
-        if (nested.itemTitle) {
+        if (nested.itemLink) {
           return nested;
         }
       }
@@ -404,27 +435,16 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
   };
 
   // Function to find the active menu item and section - much simpler now!
-  const findActiveMenuItem: () => {
-    sectionTitle?: string;
-    itemTitle?: string;
-    icon?: IconProp;
-  } = (): {
-    sectionTitle?: string;
-    itemTitle?: string;
-    icon?: IconProp;
-  } => {
+  const findActiveMenuItem: () => ActiveMenuItem = (): ActiveMenuItem => {
     // Check sections first
     if (props.sections) {
       for (const section of props.sections) {
         for (const item of section.items) {
           if (isEntryLit(item)) {
-            const result: {
-              sectionTitle: string;
-              itemTitle: string;
-              icon?: IconProp;
-            } = {
+            const result: ActiveMenuItem = {
               sectionTitle: section.title,
-              itemTitle: item.link.title,
+              isSectionTitleTranslated: Boolean(section.isTitleTranslated),
+              itemLink: item.link,
             };
             if (item.icon) {
               result.icon = item.icon;
@@ -439,11 +459,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     if (props.items) {
       for (const item of props.items) {
         if (isEntryLit(item)) {
-          const result: {
-            itemTitle: string;
-            icon?: IconProp;
-          } = {
-            itemTitle: item.link.title,
+          const result: ActiveMenuItem = {
+            itemLink: item.link,
           };
           if (item.icon) {
             result.icon = item.icon;
@@ -472,17 +489,18 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     return findActiveInChildren(props.children);
   };
 
-  const activeItem: {
-    sectionTitle?: string;
-    itemTitle?: string;
-    icon?: IconProp;
-  } = findActiveMenuItem();
-  const translatedSectionTitle: string | undefined = translateString(
-    activeItem.sectionTitle,
-  );
-  const translatedItemTitle: string | undefined = translateString(
-    activeItem.itemTitle,
-  );
+  const activeItem: ActiveMenuItem = findActiveMenuItem();
+  /*
+   * Looked up once, as the menu draws them (#8225): English here, a title
+   * in the reader's words already - and an entry's record name - as given.
+   */
+  const translatedSectionTitle: string | undefined =
+    activeItem.isSectionTitleTranslated
+      ? activeItem.sectionTitle
+      : translateString(activeItem.sectionTitle);
+  const translatedItemTitle: string | undefined = activeItem.itemLink
+    ? getCrumbTitle(activeItem.itemLink, translateString)
+    : undefined;
   /*
    * "Section / Page" names where the reader is - except when the page is
    * named like its section (a monitor's Overview, under Overview), which
@@ -515,17 +533,19 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     "Navigation";
   /*
    * The English the page's name was drawn from, to tell its language by. A
-   * crumb's title in the reader's words already (Link.isTitleTranslated)
-   * was drawn from none: it is in their language.
+   * title in the reader's words already (Link.isTitleTranslated) was drawn
+   * from none: it is in their language.
    */
-  const summaryPageEnglish: string | undefined = translatedItemTitle
-    ? activeItem.itemTitle
-    : pageTrailEnd
-      ? getRecordCrumbName(pageTrailEnd) ||
-        (pageTrailEnd.isTitleTranslated ? undefined : pageTrailEnd.title)
-      : "Navigation";
+  const summaryPageEnglish: string | undefined =
+    translatedItemTitle && activeItem.itemLink
+      ? getCrumbTitleEnglish(activeItem.itemLink)
+      : pageTrailEnd
+        ? getRecordCrumbName(pageTrailEnd) || getCrumbTitleEnglish(pageTrailEnd)
+        : "Navigation";
   const summarySectionLanguage: string | undefined = getDrawnLanguage({
-    english: activeItem.sectionTitle,
+    english: activeItem.isSectionTitleTranslated
+      ? undefined
+      : activeItem.sectionTitle,
     drawn: summarySection,
     language: language,
   });
@@ -644,6 +664,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           const sectionProps: {
             key: string;
             title: string;
+            isTitleTranslated?: boolean;
             icon?: IconProp;
             defaultCollapsed?: boolean;
             collapsible?: boolean;
@@ -656,6 +677,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             foldMemoryKey: foldMemoryKey,
           };
 
+          if (section.isTitleTranslated) {
+            sectionProps.isTitleTranslated = true;
+          }
           if (section.icon) {
             sectionProps.icon = section.icon;
           }

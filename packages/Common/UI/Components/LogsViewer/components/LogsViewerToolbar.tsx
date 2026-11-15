@@ -302,11 +302,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
           )}
 
         {props.onCreateMonitor && (
-          <Tooltip
-            text={translator.translateText(
-              "Create monitor: get alerted about logs like these.",
-            )}
-          >
+          <Tooltip text="Create monitor: get alerted about logs like these.">
             {/*
              * Its words show where the row has room for them: on a phone,
              * where the toolbar wraps onto rows of its own, and on a toolbar

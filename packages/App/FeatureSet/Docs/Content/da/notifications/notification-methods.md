@@ -36,8 +36,8 @@ Hver fane i **Notifikationsmetoder** indeholder et eller flere kort, ét pr. sla
 | **Telefonnumre til opkaldsnotifikationer** | **Direkte kontakt** | Et telefonnummer | En kode, der læses op i et opkald, eller ingen for et nummer, der er bekræftet til sms |
 | **WhatsApp-numre til notifikationer** | **Direkte kontakt** | Et WhatsApp-nummer | En kode via WhatsApp |
 | **Telegram-konti til notifikationer** | **Direkte kontakt** | Din Telegram-konto | En besked til OneUptime-botten |
-| **Slack Account for Notifications** | **Arbejdsområdeapps** | Din Slack-konto | At forbinde din konto med projektets arbejdsområde |
-| **Microsoft Teams Account for Notifications** | **Arbejdsområdeapps** | Din Microsoft Teams-konto | At forbinde din konto med projektets arbejdsområde |
+| **Slack-konto til notifikationer** | **Arbejdsområdeapps** | Din Slack-konto | At forbinde din konto med projektets arbejdsområde |
+| **Microsoft Teams-konto til notifikationer** | **Arbejdsområdeapps** | Din Microsoft Teams-konto | At forbinde din konto med projektets arbejdsområde |
 | **Mattermost-konto til notifikationer** | **Arbejdsområdeapps** | Din Mattermost-konto | At forbinde din konto med projektets arbejdsområde |
 | **Enheder til push-notifikationer** | **Push-notifikationer** | En telefon med appen OneUptime On-Call, eller en browser | At registrere enheden |
 | **Webhooks til notifikationer** | **Webhooks** | Et HTTPS-endpoint af dine egne | Ingen |
@@ -67,7 +67,7 @@ Rækken er nu markeret som **Bekræftet**. Lukkede du dialogen for tidligt? Klik
 :::
 
 - En kode gælder i 15 minutter. Fem forkerte forsøg annullerer den, og du skal bruge en ny.
-- **Send a new code**, eller **Call me with a new code** for et opkaldsnummer, findes i dialogen. Du kan bede om en ny et minut efter den forrige.
+- **Send en ny kode**, eller **Ring til mig med en ny kode** for et opkaldsnummer, findes i dialogen. Du kan bede om en ny et minut efter den forrige.
 - Et nummer, du har bekræftet til sms, er også bekræftet til opkald. At tilføje det under **Telefonnumre til opkaldsnotifikationer** kræver ingen kode, og at bekræfte et sms-nummer bekræfter også det opkaldsnummer, du har tilføjet til det.
 - Din login-e-mail er der allerede, bekræftet, fra den dag, du blev medlem af projektet.
 
@@ -80,11 +80,11 @@ Klik i **Telegram-konti til notifikationer** på **Tilføj Telegram-konto**. **T
 
 ### Skriv til botten
 
-Klik på **Bekræft** i den nye række. Dialogen **Bekræft Telegram-konto** giver dig tre måder at nå OneUptime-botten på: scan QR-koden med din telefon, klik på **Open in Telegram**, eller søg efter botten i Telegram, og send den `/start`-kommandoen, som dialogen viser.
+Klik på **Bekræft** i den nye række. Dialogen **Bekræft Telegram-konto** giver dig tre måder at nå OneUptime-botten på: scan QR-koden med din telefon, klik på **Åbn i Telegram**, eller søg efter botten i Telegram, og send den `/start`-kommandoen, som dialogen viser.
 
 ### Bekræft det
 
-Klik tilbage i OneUptime på **I've sent the message — check**. Så snart botten har din besked, er kontoen bekræftet.
+Klik tilbage i OneUptime på **Jeg har sendt beskeden – tjek**. Så snart botten har din besked, er kontoen bekræftet.
 :::
 
 **Rotér kode** laver en ny kode til en konto, der endnu ikke er bekræftet. QR-koden og linket, du åbnede før, holder så op med at virke. I en selvhostet OneUptime forbinder serverens administrator en Telegram-bot, før nogen kan forbinde en konto.
@@ -92,8 +92,8 @@ Klik tilbage i OneUptime på **I've sent the message — check**. Så snart bott
 ## Slack, Microsoft Teams og Mattermost
 
 1. Forbind din egen konto med projektets arbejdsområde: **Brugerindstillinger → Arbejdsområde → Slack**, **Microsoft Teams** eller **Mattermost**. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
-2. Klik på fanen **Arbejdsområdeapps** på **Add Slack Account**, **Add Microsoft Teams Account** eller **Tilføj Mattermost-konto**. Kontoen er bekræftet, så snart den er tilføjet.
-3. Klik på **Send Test Message** i dens række. Tilkald kommer som direkte beskeder fra OneUptime-appen, eller i Mattermost fra projektets bot.
+2. Klik på fanen **Arbejdsområdeapps** på **Tilføj Slack-konto**, **Tilføj Microsoft Teams-konto** eller **Tilføj Mattermost-konto**. Kontoen er bekræftet, så snart den er tilføjet.
+3. Klik på **Send testbesked** i dens række. Tilkald kommer som direkte beskeder fra OneUptime-appen, eller i Mattermost fra projektets bot.
 
 ## Push-notifikationer
 
@@ -186,11 +186,11 @@ Den kanal er slået fra i dette projekt. Kortet fortæller, hvem der kan slå de
 :::
 
 :::details Koden kom aldrig
-E-mails kan tage et par minutter og havner nogle gange i spam; sms'er kan tage et minut. Vent et minut, og klik så på **Send a new code** i dialogen. **Projektindstillinger → Notifikationer → Notifikationslogs** viser, hvad der skete med beskeden.
+E-mails kan tage et par minutter og havner nogle gange i spam; sms'er kan tage et minut. Vent et minut, og klik så på **Send en ny kode** i dialogen. **Projektindstillinger → Notifikationer → Notifikationslogs** viser, hvad der skete med beskeden.
 :::
 
 :::details Det mislykkes at tilføje min Slack-konto
-Forbind først din konto under **Brugerindstillinger → Arbejdsområde → Slack**, og klik så igen på **Add Slack Account**. Fejldialogen har en knap, der fører dig derhen.
+Forbind først din konto under **Brugerindstillinger → Arbejdsområde → Slack**, og klik så igen på **Tilføj Slack-konto**. Fejldialogen har en knap, der fører dig derhen.
 :::
 
 :::details Min telefon får ingen push-notifikationer

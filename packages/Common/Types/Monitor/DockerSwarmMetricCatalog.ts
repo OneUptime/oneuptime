@@ -1,4 +1,5 @@
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type DockerSwarmMetricCategory =
   | "CPU"
@@ -41,8 +42,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-cpu-utilization",
     friendlyName: "Container CPU Utilization",
-    description:
+    description: translationKey(
       "CPU utilization of a Swarm task's container as a percentage (100% = one full CPU core).",
+    ),
     metricName: "container.cpu.utilization",
     category: "CPU",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -53,7 +55,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-memory-usage-total",
     friendlyName: "Container Memory Usage",
-    description: "Total memory usage of a Swarm task's container.",
+    description: translationKey(
+      "Total memory usage of a Swarm task's container.",
+    ),
     metricName: "container.memory.usage.total",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -62,8 +66,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-memory-percent",
     friendlyName: "Container Memory Percent",
-    description:
+    description: translationKey(
       "Memory usage of a Swarm task's container as a percentage of its limit or the host total.",
+    ),
     metricName: "container.memory.percent",
     category: "Memory",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -74,8 +79,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-network-rx-bytes",
     friendlyName: "Container Network Received",
-    description:
+    description: translationKey(
       "Bytes received over the network by a Swarm task's container. Chart as a rate to see throughput.",
+    ),
     metricName: "container.network.io.usage.rx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -84,8 +90,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-network-tx-bytes",
     friendlyName: "Container Network Transmitted",
-    description:
+    description: translationKey(
       "Bytes transmitted over the network by a Swarm task's container. Chart as a rate to see throughput.",
+    ),
     metricName: "container.network.io.usage.tx_bytes",
     category: "Network",
     defaultAggregation: MetricsAggregationType.Sum,
@@ -96,8 +103,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-pids-count",
     friendlyName: "Container Process Count",
-    description:
+    description: translationKey(
       "Tasks in a Swarm task's container: processes and their threads, as the cgroup pids controller counts them. A sudden spike can indicate a fork bomb or a thread leak.",
+    ),
     metricName: "container.pids.count",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -106,8 +114,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "container-uptime",
     friendlyName: "Container Uptime",
-    description:
+    description: translationKey(
       "How long a Swarm task's container has been running. Drops to zero when the task is rescheduled, restarted, or crashes.",
+    ),
     metricName: "container.uptime",
     category: "Container",
     defaultAggregation: MetricsAggregationType.Max,
@@ -118,8 +127,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "swarm-node-ready",
     friendlyName: "Node Ready",
-    description:
+    description: translationKey(
       "Whether a Swarm node is ready, as the managers see it: 1 while it is, 0 while it is down, disconnected or unknown. One series per node.",
+    ),
     metricName: "docker.swarm.node.ready",
     category: "Swarm",
     defaultAggregation: MetricsAggregationType.Min,
@@ -127,8 +137,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "swarm-service-replicas-desired",
     friendlyName: "Service Desired Replicas",
-    description:
+    description: translationKey(
       "The tasks a replicated or global Swarm service wants running: its replica count, or for a global service the nodes it should run on. One series per service.",
+    ),
     metricName: "docker.swarm.service.replicas.desired",
     category: "Swarm",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -137,8 +148,9 @@ const dockerSwarmMetricCatalog: Array<DockerSwarmMetricDefinition> = [
   {
     id: "swarm-service-replicas-running",
     friendlyName: "Service Running Replicas",
-    description:
+    description: translationKey(
       "The tasks of a replicated or global Swarm service that are running. Below Service Desired Replicas, the service runs short. One series per service.",
+    ),
     metricName: "docker.swarm.service.replicas.running",
     category: "Swarm",
     defaultAggregation: MetricsAggregationType.Avg,

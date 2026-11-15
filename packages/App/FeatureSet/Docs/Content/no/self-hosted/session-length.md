@@ -52,7 +52,7 @@ flowchart TB
 
 - Serveren teller begge lengdene ut fra selve økten: når den logget inn, og når personen sist var aktiv. Den sjekker dem ved hver forespørsel, hver fornyelse og hver liveoppdatering, og overlater aldri utloggingen til nettleseren.
 - Inaktivitetsperioden teller fra siste klikk, tastetrykk eller rulling i en hvilken som helst fane på dashbordet eller Admin Dashboard. En fane som står åpen, holder ikke en økt i live. Å åpne OneUptime igjen gir den heller ikke tilbake: den som har vært borte lenger enn inaktivitetsperioden, med nettleseren lukket eller datamaskinen i dvale, logger inn igjen.
-- Mobilappen teller som aktiv hver gang den brukes.
+- I mobilappen teller inaktivitetsperioden fra siste trykk eller tastetrykk. Tiden appen er i bakgrunnen eller lukket, teller som tid uten bruk: den som åpner den igjen etter inaktivitetsperioden, logger inn igjen.
 - Når en økt slutter, går nettleseren til påloggingssiden, som sier hvorfor. Etter å ha logget inn igjen kommer personen tilbake til siden de var på.
 
 | Endring | Hva som skjer med dem som er pålogget nå |

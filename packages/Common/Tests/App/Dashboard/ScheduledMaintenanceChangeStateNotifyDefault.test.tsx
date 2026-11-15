@@ -1246,8 +1246,9 @@ describe("ChangeScheduledMaintenanceState note template", () => {
     );
 
     expect(templateField.showIf!()).toBe(true);
+    // A template's name is the project's, drawn as written (DropdownUtil).
     expect(templateField.dropdownOptions).toEqual([
-      { value: TEMPLATE_ID, label: "Drill started" },
+      { value: TEMPLATE_ID, label: "Drill started", isUserContent: true },
     ]);
   });
 

@@ -36,8 +36,8 @@ Elk tabblad van **Meldingsmethoden** bevat een of meer kaarten, één per soort 
 | **Telefoonnummers voor oproepmeldingen** | **Direct contact** | Een telefoonnummer | Een code die in een gesprek wordt voorgelezen, of geen voor een nummer dat voor sms is geverifieerd |
 | **WhatsApp-nummers voor meldingen** | **Direct contact** | Een WhatsApp-nummer | Een code via WhatsApp |
 | **Telegram-accounts voor meldingen** | **Direct contact** | Je Telegram-account | Een bericht aan de OneUptime-bot |
-| **Slack Account for Notifications** | **Werkruimte-apps** | Je Slack-account | Je account koppelen aan de werkruimte van het project |
-| **Microsoft Teams Account for Notifications** | **Werkruimte-apps** | Je Microsoft Teams-account | Je account koppelen aan de werkruimte van het project |
+| **Slack-account voor meldingen** | **Werkruimte-apps** | Je Slack-account | Je account koppelen aan de werkruimte van het project |
+| **Microsoft Teams-account voor meldingen** | **Werkruimte-apps** | Je Microsoft Teams-account | Je account koppelen aan de werkruimte van het project |
 | **Mattermost-account voor meldingen** | **Werkruimte-apps** | Je Mattermost-account | Je account koppelen aan de werkruimte van het project |
 | **Apparaten voor pushmeldingen** | **Pushmeldingen** | Een telefoon met de app OneUptime On-Call, of een browser | Het apparaat registreren |
 | **Webhooks voor meldingen** | **Webhooks** | Een eigen HTTPS-endpoint | Geen |
@@ -67,7 +67,7 @@ De rij staat nu op **Geverifieerd**. Het venster te vroeg gesloten? Klik op **Ve
 :::
 
 - Een code is 15 minuten geldig. Vijf foute pogingen maken hem ongeldig, en dan heb je een nieuwe nodig.
-- **Send a new code**, of **Call me with a new code** voor een oproepnummer, staat in het venster. Je kunt een nieuwe vragen een minuut na de vorige.
+- **Nieuwe code sturen**, of **Bel me met een nieuwe code** voor een oproepnummer, staat in het venster. Je kunt een nieuwe vragen een minuut na de vorige.
 - Een nummer dat je voor sms hebt geverifieerd, is ook voor oproepen geverifieerd. Het toevoegen onder **Telefoonnummers voor oproepmeldingen** vraagt geen code, en een sms-nummer verifiëren verifieert ook het oproepnummer dat je ervoor hebt toegevoegd.
 - Je aanmeld-e-mailadres staat er al, geverifieerd, sinds de dag dat je lid werd van het project.
 
@@ -80,11 +80,11 @@ Klik in **Telegram-accounts voor meldingen** op **Telegram-account toevoegen**. 
 
 ### De bot een bericht sturen
 
-Klik op **Verifiëren** in de nieuwe rij. Het venster **Telegram-account verifiëren** geeft je drie manieren om de OneUptime-bot te bereiken: scan de QR-code met je telefoon, klik op **Open in Telegram**, of zoek de bot in Telegram en stuur hem het `/start`-commando dat het venster toont.
+Klik op **Verifiëren** in de nieuwe rij. Het venster **Telegram-account verifiëren** geeft je drie manieren om de OneUptime-bot te bereiken: scan de QR-code met je telefoon, klik op **Openen in Telegram**, of zoek de bot in Telegram en stuur hem het `/start`-commando dat het venster toont.
 
 ### Bevestigen
 
-Klik terug in OneUptime op **I've sent the message — check**. Zodra de bot je bericht heeft, is het account geverifieerd.
+Klik terug in OneUptime op **Ik heb het bericht gestuurd: controleren**. Zodra de bot je bericht heeft, is het account geverifieerd.
 :::
 
 **Code roteren** maakt een nieuwe code voor een account dat nog niet geverifieerd is. De QR-code en de link die je eerder opende, werken dan niet meer. In een zelfgehoste OneUptime koppelt de beheerder van de server een Telegram-bot voordat iemand een account kan koppelen.
@@ -92,8 +92,8 @@ Klik terug in OneUptime op **I've sent the message — check**. Zodra de bot je 
 ## Slack, Microsoft Teams en Mattermost
 
 1. Koppel je eigen account aan de werkruimte van het project: **Gebruikersinstellingen → Werkruimte → Slack**, **Microsoft Teams** of **Mattermost**. Zie [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) en [Mattermost](/docs/workspace-connections/mattermost).
-2. Klik op het tabblad **Werkruimte-apps** op **Add Slack Account**, **Add Microsoft Teams Account** of **Mattermost-account toevoegen**. Het account is geverifieerd zodra het is toegevoegd.
-3. Klik op **Send Test Message** in de rij ervan. Oproepen komen binnen als directe berichten van de OneUptime-app, of in Mattermost van de bot van het project.
+2. Klik op het tabblad **Werkruimte-apps** op **Slack-account toevoegen**, **Microsoft Teams-account toevoegen** of **Mattermost-account toevoegen**. Het account is geverifieerd zodra het is toegevoegd.
+3. Klik op **Testbericht versturen** in de rij ervan. Oproepen komen binnen als directe berichten van de OneUptime-app, of in Mattermost van de bot van het project.
 
 ## Pushmeldingen
 
@@ -186,11 +186,11 @@ Dat kanaal staat in dit project uit. De kaart zegt wie het kan aanzetten; zie [E
 :::
 
 :::details De code kwam nooit aan
-E-mails kunnen een paar minuten duren, en komen soms in de spam terecht; sms'jes kunnen een minuut duren. Wacht een minuut en klik dan in het venster op **Send a new code**. **Projectinstellingen → Meldingen → Meldingslogboeken** laat zien wat er met het bericht is gebeurd.
+E-mails kunnen een paar minuten duren, en komen soms in de spam terecht; sms'jes kunnen een minuut duren. Wacht een minuut en klik dan in het venster op **Nieuwe code sturen**. **Projectinstellingen → Meldingen → Meldingslogboeken** laat zien wat er met het bericht is gebeurd.
 :::
 
 :::details Mijn Slack-account toevoegen mislukt
-Koppel eerst je account onder **Gebruikersinstellingen → Werkruimte → Slack**, en klik dan opnieuw op **Add Slack Account**. Het foutvenster heeft een knop die je erheen brengt.
+Koppel eerst je account onder **Gebruikersinstellingen → Werkruimte → Slack**, en klik dan opnieuw op **Slack-account toevoegen**. Het foutvenster heeft een knop die je erheen brengt.
 :::
 
 :::details Mijn telefoon krijgt geen pushmeldingen

@@ -216,7 +216,7 @@ For å reagere bare på tapte anrop, for eksempel for å legge dem ut i Slack el
 :::steps
 1. Legg til utløseren **On Update Incoming Call Log**. Sett **Fields to watch** til **Ended At**, og velg feltene du vil bruke, for eksempel **Status**, **Caller Phone Number** og **Routing Phone Number**.
 2. Legg til et steg **If / Else**. Sjekk utløserens **Status**, med sammenligningen **er ikke lik** og `Completed`.
-3. Koble stegene dine til porten **Yes**.
+3. Koble stegene dine til porten **Ja**.
 :::
 
 En arbeidsflyt kan lese anropslogger med **Find One** og **Find Many**, men kan ikke opprette eller endre dem.

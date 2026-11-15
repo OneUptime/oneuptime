@@ -59,6 +59,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 beforeAll(() => {
   Element.prototype.scrollIntoView = (): void => {};
@@ -108,7 +109,7 @@ describe("onMenuOpen", () => {
   });
 
   test("is not called while no menu is open", () => {
-    const onMenuOpen: jest.Mock = jest.fn();
+    const onMenuOpen: Mock = jest.fn();
 
     render(
       <Navbar
@@ -122,7 +123,7 @@ describe("onMenuOpen", () => {
   });
 
   test("is called once each time the products menu opens from its button, never as it closes", () => {
-    const onMenuOpen: jest.Mock = jest.fn();
+    const onMenuOpen: Mock = jest.fn();
 
     render(
       <Navbar
@@ -150,7 +151,7 @@ describe("onMenuOpen", () => {
   });
 
   test("Cmd/Ctrl+K opening the menu calls it, and closing it does not", () => {
-    const onMenuOpen: jest.Mock = jest.fn();
+    const onMenuOpen: Mock = jest.fn();
 
     render(
       <Navbar
@@ -175,7 +176,7 @@ describe("onMenuOpen", () => {
 
   test("the phone's menu opening calls it too", () => {
     setViewportWidth(PHONE_MENU_BELOW_WIDTH_IN_PX - 1);
-    const onMenuOpen: jest.Mock = jest.fn();
+    const onMenuOpen: Mock = jest.fn();
 
     render(
       <Navbar
@@ -196,8 +197,8 @@ describe("onMenuOpen", () => {
   });
 
   test("the latest callback is the one called, and a new one each render calls nothing more", () => {
-    const first: jest.Mock = jest.fn();
-    const second: jest.Mock = jest.fn();
+    const first: Mock = jest.fn();
+    const second: Mock = jest.fn();
 
     const { rerender } = render(
       <Navbar

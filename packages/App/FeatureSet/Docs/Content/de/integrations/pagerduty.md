@@ -52,7 +52,7 @@ Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsabla
 
 ### Das Auslöseereignis senden
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **URL** auf `https://events.pagerduty.com/v2/enqueue` und seinen **Request Body** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://events.pagerduty.com/v2/enqueue` und seinen **Anfragetext** auf:
 
 ```json
 {
@@ -92,11 +92,11 @@ Legen Sie einen Workflow namens `Resolve PagerDuty incidents` an und wählen Sie
 
 ### Prüfen, ob der Vorfall behoben ist
 
-Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Value to check** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Comparison** auf **is true**.
+Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
 ### Das Behebungsereignis senden
 
-Fügen Sie nach der Seite **Yes** einen **API Post (JSON)**-Baustein hinzu, mit derselben **URL** und diesem **Request Body**:
+Fügen Sie nach der Seite **Ja** einen **API Post (JSON)**-Baustein hinzu, mit derselben **URL** und diesem **Anfragetext**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Wer `isResolvedState` statt des Namens eines Status prüft, muss nach dem Umbene
 Um den Schweregrad jedes Vorfalls zu senden, fügen Sie zwischen dem Trigger und dem **API Post (JSON)**-Baustein einen **Run Custom JavaScript**-Baustein hinzu und lesen seine Antwort im Body.
 
 1. Klicken Sie in den **Fields to pass on** des Triggers auf **Feld hinzufügen**, öffnen Sie **Vorfallsschweregrad** und wählen Sie **Name**.
-2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript Code** auf:
+2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript-Code** auf:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Beide Ereignisse müssen genau denselben `dedup_key` tragen. Prüfen Sie, dass b
 :::
 
 :::details Der Workflow läuft nie
-Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **No** des **If / Else**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
+Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **Nein** des **If / Else**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
 :::
 
 :::details PagerDuty zeigt einen Verweis statt eines Werts

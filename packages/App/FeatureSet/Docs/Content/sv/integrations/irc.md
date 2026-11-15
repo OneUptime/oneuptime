@@ -57,7 +57,7 @@ Steget tar utgången **Framgång** så snart servern har tagit emot varje rad. D
 Bestäm vart meddelandena ska: serverns värdnamn, till exempel `irc.libera.chat`, och kanalen, till exempel `#your-channel`.
 
 - **IRC Server** tar värdnamnet och inget annat: inget `ircs://` och ingen port. Steget ansluter över TLS på port `6697`. Tar din server emot TLS på en annan port anger du den i **Port**, under **Fler fält**.
-- **Channel** måste vara en kanal. Ett nickname som skrivs där avvisas, så steget skickar aldrig ett privat meddelande till någon av misstag.
+- **Kanal** måste vara en kanal. Ett nickname som skrivs där avvisas, så steget skickar aldrig ett privat meddelande till någon av misstag.
 
 Servern måste vara en som OneUptime får ansluta till. Loopback-adresser (`localhost`, `127.0.0.1`), link-local-adresser och molnmetadataadresser avvisas alltid. På OneUptime Cloud avvisas även en server på en privat nätverksadress. En egenvärdad installation kan nå en IRC-server i sitt eget nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är satt till `true`.
 
@@ -89,7 +89,7 @@ Arbetsflödet öppnas i **Byggare** med två steg: **On Create Incident** och **
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde**, välj **Börja från grunden**, ge arbetsflödet ett namn och klicka på **Skapa arbetsflöde**.
 2. Klicka i **Byggare** på **Välj vad som startar det här arbetsflödet** och välj **On Create Incident** under **Populära**. Klicka på utlösaren och välj i **Fields to pass on** de fält från incidenten som ditt meddelande visar, till exempel dess titel.
 3. Klicka på **Lägg till komponent**, sök efter `irc` och klicka på **Send Message to IRC**. Koppla utlösarens utgång **Framgång** till steget.
-4. Klicka på det nya steget och fyll i **IRC Server**, **Channel** och **Message Text**. Knappen **{ }** i **Message Text** infogar fält från incidenten, till exempel dess titel.
+4. Klicka på det nya steget och fyll i **IRC Server**, **Kanal** och **Message Text**. Knappen **{ }** i **Message Text** infogar fält från incidenten, till exempel dess titel.
 5. Om du sparade lösenord i föregående steg öppnar du **Fler fält**. Klicka på **{ }** i **Server Password**, **SASL Password** eller **Channel Key** och välj variabeln under **Global variables**. Skriv ditt kontos namn i **SASL Username**.
 :::
 

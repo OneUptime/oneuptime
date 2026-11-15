@@ -52,7 +52,7 @@ flowchart TB
 
 ### Отправьте событие trigger
 
-Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Success** триггера. Задайте его **URL** значение `https://events.pagerduty.com/v2/enqueue`, а **Request Body** — следующее:
+Нажмите **Добавить компонент**, добавьте блок **API Post (JSON)** и соедините с ним точку **Успешно** триггера. Задайте его **URL** значение `https://events.pagerduty.com/v2/enqueue`, а **Тело запроса** — следующее:
 
 ```json
 {
@@ -92,11 +92,11 @@ flowchart TB
 
 ### Проверьте, что инцидент устранён
 
-Добавьте после триггера блок **If / Else**. Задайте **Value to check** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Comparison** — **is true**.
+Добавьте после триггера блок **If / Else**. Задайте **Проверяемое значение** значение `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, а **Сравнение** — **истинно**.
 
 ### Отправьте событие resolve
 
-Добавьте после стороны **Yes** блок **API Post (JSON)** с тем же **URL** и таким **Request Body**:
+Добавьте после стороны **Да** блок **API Post (JSON)** с тем же **URL** и таким **Тело запроса**:
 
 ```json
 {
@@ -118,7 +118,7 @@ flowchart TB
 Чтобы отправлять серьёзность каждого инцидента, добавьте между триггером и блоком **API Post (JSON)** блок **Run Custom JavaScript** и читайте его ответ в теле.
 
 1. В **Fields to pass on** триггера нажмите **Добавить поле**, откройте **Серьёзность инцидента** и выберите **Имя**.
-2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **JavaScript Code** — следующий код:
+2. Задайте **Arguments** блока значение `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, а его **Код JavaScript** — следующий код:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details Рабочий процесс никогда не запускается
-Убедитесь, что он включён: **Включено** вверху окна **Конструктор**. Затем откройте **Журналы → Запуски**: запуск, пошедший по стороне **No** блока **If / Else**, — это обновление, которое не было устранением.
+Убедитесь, что он включён: **Включено** вверху окна **Конструктор**. Затем откройте **Журналы → Запуски**: запуск, пошедший по стороне **Нет** блока **If / Else**, — это обновление, которое не было устранением.
 :::
 
 :::details PagerDuty показывает ссылку вместо значения

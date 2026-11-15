@@ -20,6 +20,7 @@ import TelemetryIngestRefusalRecorder from "Common/Server/Utils/Telemetry/Teleme
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import ProjectBlockedException from "Common/Types/Exception/ProjectBlockedException";
 import ObjectID from "Common/Types/ObjectID";
+import SecretDigest from "Common/Server/Utils/Telemetry/SecretDigest";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 
@@ -73,7 +74,11 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
 jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   return {
     __esModule: true,
-    default: { getPolicyFromSecretKey: jest.fn(), markUsed: jest.fn() },
+    default: {
+      getPolicyFromSecretKey: jest.fn(),
+      getCurrentPolicyById: jest.fn(),
+      markUsed: jest.fn(),
+    },
   };
 });
 
@@ -174,6 +179,47 @@ const resolverMock: () => MockFn = (): MockFn => {
 
 const markUsedMock: () => MockFn = (): MockFn => {
   return TelemetryIngestionKeyService.markUsed as unknown as MockFn;
+};
+
+const currentPolicyMock: () => MockFn = (): MockFn => {
+  return TelemetryIngestionKeyService.getCurrentPolicyById as unknown as MockFn;
+};
+
+/*
+ * The key as it is now, as the broker asks it at CONNECT and on every
+ * publish (issue #8147): the key the lookup by secret resolved, unchanged.
+ * Nothing in this suite changes a key after it connects;
+ * MqttServerKeyStopped.test.ts does.
+ */
+const keyAsResolved: (data: {
+  ingestionKeyId: ObjectID;
+}) => Promise<TelemetryIngestionKeyPolicy | null> = async (data: {
+  ingestionKeyId: ObjectID;
+}): Promise<TelemetryIngestionKeyPolicy | null> => {
+  const results: Array<jest.MockResult<unknown>> = resolverMock().mock.results;
+
+  for (let index: number = results.length - 1; index >= 0; index--) {
+    const result: jest.MockResult<unknown> = results[index]!;
+
+    if (result.type !== "return") {
+      continue;
+    }
+
+    const policy: TelemetryIngestionKeyPolicy | null = await Promise.resolve(
+      result.value as Promise<TelemetryIngestionKeyPolicy | null>,
+    ).catch((): null => {
+      return null;
+    });
+
+    if (
+      policy &&
+      policy.ingestionKeyId.toString() === data.ingestionKeyId.toString()
+    ) {
+      return policy;
+    }
+  }
+
+  return null;
 };
 
 const queueMock: () => MockFn = (): MockFn => {
@@ -334,6 +380,7 @@ beforeEach(() => {
     .spyOn(TelemetryIngestRefusalRecorder, "record")
     .mockImplementation(() => {});
   resolverMock().mockReset().mockResolvedValue(null);
+  currentPolicyMock().mockReset().mockImplementation(keyAsResolved);
   markUsedMock().mockReset().mockResolvedValue(undefined);
   queueMock().mockReset().mockResolvedValue(undefined);
   credentialMock().mockReset().mockResolvedValue(null);
@@ -771,7 +818,7 @@ describe("a device credential is not an ingestion key", () => {
   const arrangeCredential: () => void = (): void => {
     credentialMock().mockResolvedValue({
       credentialId,
-      secretKey,
+      secretKeyDigest: SecretDigest.of(secretKey),
       projectId: PROJECT_ID.toString(),
       iotFleetId: ObjectID.generate().toString(),
       fleetName: FLEET,

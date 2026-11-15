@@ -82,7 +82,7 @@ Un incidente nuevo avisa a las políticas de guardia que elegiste cuando su moni
 Con gravedades propias, P1, P2 y sin prioridad van a tu más grave, P3 a la del medio, y P4 y P5 a tu menos grave.
 
 - Para asignar una prioridad a una de las tuyas por su nombre, edita `SEVERITY_BY_NAME` en el paso `read-event-1`, como `{ P3: 'Minor Incident' }`.
-- Para avisar también con P3, pon **Compare with** del paso `if-page-1` **If / Else** a `3`.
+- Para avisar también con P3, pon **Comparar con** del paso `if-page-1` **If / Else** a `3`.
 
 ## Recibir alertas con un monitor
 

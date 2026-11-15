@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nøglen bestemmer projektet.** Du sender aldrig et projekt-ID: data, der sendes med en nøgle, havner i det projekt, nøglen tilhører.
-- **Ændringer når ud til alle servere inden for et minut.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft inden for cirka et minut.
+- **Ændringer når ud til alle servere inden for få sekunder.** At slå en nøgle fra, nulstille dens hemmelighed eller ændre dens origins, udløb eller grænse træder i kraft på alle servere inden for få sekunder.
 - **En nøgle kan have sine egne budgetter.** Et dagligt budget og en hastighed pr. sekund for hvert signal, inden for dens projekts: se [Indtagelsesbudgetter](/docs/telemetry/ingestion-budgets).
 - **En servernøgle er en adgangskode.** Alle, der har den, kan sende telemetri til dit projekt. Opbevar den i dine serveres hemmeligheder, aldrig i versionsstyring eller på en webside.
 
@@ -139,8 +139,8 @@ Nøglens side tæller også med: **Afvist telemetri** viser, hvad der er afvist 
 
 For de andre svar, en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Der kommer stadig data et minut efter, at jeg slog nøglen fra
-Hver OneUptime-server husker, hvad den ved om en nøgle, i op til et minut, så en ændring når ud til dem alle inden for cirka et minut. Anmodninger derefter afvises.
+:::details Der kommer stadig data, efter at jeg slog nøglen fra
+Hver OneUptime-server ser efter ændringer af en nøgle mindst én gang i sekundet, så en ændring når ud til dem alle inden for få sekunder, og anmodninger derefter afvises. Mens en server ikke kan nå OneUptimes cache, kan den gå ud fra det, den vidste om nøglen, i op til et minut. En MQTT-klient, der har forbundet med nøglen, afbrydes inden for få sekunder.
 :::
 
 :::details En browsernøgle virker på min bærbare, men ikke i produktion

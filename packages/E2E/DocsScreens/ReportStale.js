@@ -13,7 +13,9 @@
  *
  *   node packages/E2E/DocsScreens/ReportStale.js
  *
- * It never fails the job for stale shots: the issue is the report.
+ * It does not fail for a stale shot itself: the check before it already has
+ * (#7510), and this keeps the issue that says which shots, and how to draw
+ * them again.
  */
 const childProcess = require("child_process");
 const fs = require("fs");

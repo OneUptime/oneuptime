@@ -104,7 +104,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 
 除非你打开相应开关，否则 OneUptime → Dynamics 365 模板都不会把标记为 **私密事件** 的事件或标记为 **私密警报** 的警报发送到 Dynamics 365：记录本身、它的状态和备注都不会发送。参见 [更改模板的行为](#更改模板的行为)。
 
-**监视器会自行产生警报，而且可能产生很多。** **Create a Dynamics 365 case when an alert is created** 会为每一条警报创建案例。除非每条警报都值得一个案例，否则请在触发器和工作流的其余部分之间放一个 **If / Else** 块，例如基于 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` 判断，并且只把它的 **Yes** 一侧继续往后连接。
+**监视器会自行产生警报，而且可能产生很多。** **Create a Dynamics 365 case when an alert is created** 会为每一条警报创建案例。除非每条警报都值得一个案例，否则请在触发器和工作流的其余部分之间放一个 **If / Else** 块，例如基于 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}` 判断，并且只把它的 **是** 一侧继续往后连接。
 
 ### 模板需要的设置
 
@@ -133,7 +133,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 4. 点击 **创建工作流**。每个工作流创建时都处于关闭状态：在它的 **生成器** 顶部打开 **已启用**。
 :::
 
-先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **Response Body** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
+先从 **Create a Dynamics 365 case when an incident is declared** 开始，警报则从 **Create a Dynamics 365 case when an alert is created** 开始：同类的其他 OneUptime → Dynamics 365 模板都通过这个模板写入的关联找到案例。启用它，声明一个测试事件或创建一个测试警报，然后打开工作流的 **日志 → 运行记录**。这次运行应以 **已执行** 结束，其最后一步 `create-case-1` 的 **响应主体** 中会有新案例的 `ticketnumber`，例如 `CAS-01001-X1Y2Z3`。
 
 ### 连接 Dynamics 365 → OneUptime 模板
 
@@ -184,7 +184,7 @@ Dynamics 365 → OneUptime 模板（3 个事件模板和 3 个警报模板）从
 每次运行的 **步骤** 都会说明模板做了什么，因此请在 **日志 → 运行记录** 中打开这次运行，看看它是如何结束的：
 
 - **已执行**：完成了工作，最后一步会给出案例、事件或警报。
-- **已执行**，且 **Check With JavaScript** 步骤走了 **No**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
+- **已执行**，且 **Check With JavaScript** 步骤走了 **否**：有意跳过了该事件，该步骤会说明原因：案例没有关联到这类记录、备注来自另一边、记录是私密的，或者新状态不会关闭案例。
 - **错误**：某个步骤失败了，它在 **步骤** 中的条目会说明原因。对于 Dynamics 365 调用，其中包含 Dynamics 365 的回应。
 - 在 `link-case-1` 处 **错误**：根据案例创建记录的模板已经创建了记录，但 Dynamics 365 没有接受关联，因此其他模板暂时还找不到它。请手动在案例的列中输入关联。
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 更改模板的行为
 
-打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript Code** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
+打开工作流的 **生成器**，点击你想更改的块。你最可能想改的设置是脚本顶部附近的常量，位于 **Check With JavaScript** 块的 **JavaScript 代码** 中，就在共享的辅助代码块下面。事件版本和警报版本在相同的块中有相同的常量。
 
 | 常量 | 模板和块 | 控制的内容 |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 :::steps
 1. 从零开始创建一个名为 `Incidents to Dynamics 365` 的工作流。点击虚线块，添加 **On Create Incident** 触发器。它的 **Fields to pass on** 已经包含 **标题**：点击 **添加字段** 并选择 **描述** 和 **事件编号**。ID 总会被传递。
-2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **Success** 点连接到它。把它的 **Identifier** 设为 `create-case`，**URL** 设为 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
-3. 在 **更多字段** 下，把它的 **Request Headers** 设为：
+2. 点击 **添加组件**，添加一个 **API Post (JSON)** 块，并把触发器的 **成功** 点连接到它。把它的 **Identifier** 设为 `create-case`，**URL** 设为 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`。
+3. 在 **更多字段** 下，把它的 **请求标头** 设为：
 
    ```json
    {
@@ -284,7 +284,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
    }
    ```
 
-4. 把它的 **Request Body** 设为案例内容，并填入你的案例所属客户（account）的 GUID：
+4. 把它的 **请求主体** 设为案例内容，并填入你的案例所属客户（account）的 GUID：
 
    ```json
    {
@@ -324,8 +324,8 @@ Dynamics 365 自带的 `severitycode` 只有一个选项，所以请改为设置
 
 :::steps
 1. 创建一个名为 `Close Dynamics 365 cases` 的工作流，使用 **On Update Incident** 触发器。在 **Fields to watch** 中点击 **添加字段** 并选择 **Current Incident State**。在 **Fields to pass on** 中点击 **添加字段**，展开 **Current Incident State** 并选择 **Is Resolved State**。
-2. 添加一个 **If / Else** 块：**Value to check** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**Comparison** 为 **is true**。
-3. 在它的 **Yes** 一侧之后，添加一个 **API Get (JSON)** 块，**Identifier** 为 `find-case`，使用不含 `Prefer` 的相同请求头和以下 **URL**：
+2. 添加一个 **If / Else** 块：**要检查的值** 为 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`，**比较** 为 **为真**。
+3. 在它的 **是** 一侧之后，添加一个 **API Get (JSON)** 块，**Identifier** 为 `find-case`，使用不含 `Prefer` 的相同请求头和以下 **URL**：
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ URL 会按原样发送，因此 `$filter` 中的空格要写成 `%20`。查询�
 
    在自托管安装中，URL 使用你自己的主机。像对待密码一样对待这个 URL：任何拥有它的人都可以启动工作流。如果泄露，请在同一位置点击 **重置 URL**，旧 URL 会立即失效。
 
-3. 添加一个 **If / Else** 块，在做任何其他事之前先检查共享密钥：**Value to check** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**Comparison** 为 **is equal to**，**Compare with** 为你自己设定、保存在密钥全局变量中的值。
-4. 在它的 **Yes** 一侧之后，添加一个 **Update One Incident** 块。把它的 **Query** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**Data (JSON Object)** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **Find One Incident State** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
+3. 添加一个 **If / Else** 块，在做任何其他事之前先检查共享密钥：**要检查的值** 为 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`，**比较** 为 **等于**，**比较对象** 为你自己设定、保存在密钥全局变量中的值。
+4. 在它的 **是** 一侧之后，添加一个 **Update One Incident** 块。把它的 **查询** 设为 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`，**Data (JSON Object)** 设为要做的变更，例如新的 `currentIncidentStateId`。一个查询为 `{"name": "Resolved"}` 的 **Find One Incident State** 块会以 `{{local.components.incident-state-find-one-1.returnValues.model._id}}` 给出那个 ID。
 
 启用它，然后让 Dynamics 365 调用它：
 
@@ -395,7 +395,7 @@ Dataverse 只调用端口 80 和 443，最多等待 60 秒的响应，并且只�
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Dynamics 365 工作，请在一个使用 **Manual** 触发器的工作流中构建一次，然后在两边都用一个 **Execute Workflow** 块启动它。
+一个工作流恰好只有一个触发器，因此事件和警报各需要一个工作流。要为两者做同样的 Dynamics 365 工作，请在一个使用 **手动** 触发器的工作流中构建一次，然后在两边都用一个 **Execute Workflow** 块启动它。
 
 ## 故障排除
 

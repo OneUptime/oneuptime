@@ -135,7 +135,7 @@ const LayerUserAwayBadge: FunctionComponent<{
       });
 
   return (
-    <Tooltip text={who}>
+    <Tooltip text={who} isTextTranslated={true}>
       <span
         data-testid={
           props.away.isNow ? "layer-user-away-now" : "layer-user-away-soon"
@@ -413,11 +413,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                * Someone added on the page: in the previews already, in the
                * rotation once the page is saved.
                */
-              <Tooltip
-                text={translator.translateText(
-                  "Not saved yet. They join the rotation when you save.",
-                )}
-              >
+              <Tooltip text="Not saved yet. They join the rotation when you save.">
                 <span
                   data-testid="layer-user-new"
                   className="inline-flex flex-shrink-0 items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-emerald-700 ring-1 ring-inset ring-emerald-200"
@@ -431,11 +427,7 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                * Someone the page has put in another place in the turn
                * order: their turns change once the page is saved.
                */
-              <Tooltip
-                text={translator.translateText(
-                  "Not saved yet. They take this place in the rotation when you save.",
-                )}
-              >
+              <Tooltip text="Not saved yet. They take this place in the rotation when you save.">
                 <span
                   data-testid="layer-user-moved"
                   className="inline-flex flex-shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium leading-4 text-indigo-700 ring-1 ring-inset ring-indigo-200"

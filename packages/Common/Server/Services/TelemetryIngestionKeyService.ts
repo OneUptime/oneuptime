@@ -11,6 +11,7 @@ import OneUptimeDate from "../../Types/Date";
 import Model from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import CacheGenerations from "../Infrastructure/CacheGenerations";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProjectBlockedException from "../../Types/Exception/ProjectBlockedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
@@ -30,20 +31,29 @@ import {
   TelemetryIngestionBudgetStoredSettings,
 } from "../../Types/Telemetry/TelemetryIngestionBudget";
 import { noteTelemetryIngestRefusalKey } from "../Utils/Telemetry/TelemetryIngestRefusalRecorder";
+import TelemetryIngestionKeySecretDigest from "../Utils/Telemetry/TelemetryIngestionKeySecretDigest";
 import { createHash } from "crypto";
 
 /*
- * 60s is the worst-case staleness on any single API node after a key is
- * revoked from the dashboard. We invalidate in-process immediately on
- * delete/update; this TTL is the upper bound for *other* processes.
+ * How long the lookup by secret (getPolicyFromSecretKey: the HTTP and gRPC
+ * ingest paths, and MQTT's CONNECT) keeps a key it read.
  *
- * This bound now covers more than "which project does this token belong to":
- * it also covers the kill switch, the expiry, the origin allowlist and the
- * rate limit. That is a deliberate trade. Turning a compromised key off still
- * takes effect within a minute everywhere, which is fast enough for a control
- * whose whole point is to stop a leak that has already happened, and paying a
- * Postgres round trip per ingest request to shave that to zero would cost far
- * more than it buys on a path that runs thousands of times a second.
+ * A key's entry is kept under the key's generation (CacheGenerations), which
+ * an update or a delete through this service renews (forgetKeys): the
+ * process that made the change reads the key again at once, and every other
+ * one within CacheGenerations.SHARED_READ_TTL_MS - a second - through Redis
+ * (issue #8370). So turning a leaked key off, resetting its secret or
+ * deleting it stops HTTP and gRPC senders on every server within about a
+ * second, at the cost of one in-memory generation read per request (Redis is
+ * asked at most once per key per second per process, by all the requests
+ * that ask together) - never a Postgres read per request.
+ *
+ * This TTL is the bound for what the generation cannot reach: Redis being
+ * down, and a key deleted with its project, which the database does without
+ * hooks. A minute: the kill switch, the expiry, the origin allowlist and the
+ * rate limit all live in the entry, and paying a Postgres round trip per
+ * ingest request to shave even that to zero would cost far more than it
+ * buys on a path that runs thousands of times a second.
  */
 const POSITIVE_TTL_MS: number = 60 * 1000;
 /*
@@ -51,6 +61,59 @@ const POSITIVE_TTL_MS: number = 60 * 1000;
  * bounded cache for long while still absorbing repeat hits.
  */
 const NEGATIVE_TTL_MS: number = 10 * 1000;
+
+/*
+ * How long the lookup by secret keeps a key it read for the first time in
+ * this process for that secret. Which key a secret opens is only known once
+ * the row is read, so the key's generation can only be read after that read,
+ * not before it - and a change that landed between the two would be kept
+ * under the generation after it. So a first read is kept only this long, and
+ * then read again under the generation the key had before that second read:
+ * a second, the time a change takes to reach this process through Redis
+ * anyway. It costs one more read per key per process, once.
+ */
+const FIRST_READ_TTL_MS: number = CacheGenerations.SHARED_READ_TTL_MS;
+
+/*
+ * How long a process goes by a key's current state before it reads the key
+ * again. The state is read by the key's id, for a sender that proved it holds
+ * the key's secret once and keeps sending on that proof: an MQTT session,
+ * which is checked at CONNECT and may then stay open for weeks
+ * (getCurrentPolicyById, issue #8147).
+ *
+ * An update or a delete through this service starts a new generation of the
+ * key (forgetKeys), so this process reads the key again at once, and every
+ * other process within CacheGenerations.SHARED_READ_TTL_MS, through Redis.
+ * This bound covers what that cannot reach: Redis being down, and a key
+ * deleted with its project, which the database does without hooks. It is a
+ * few seconds, so turning a leaked key off stops a session that is already
+ * open within seconds. It costs one indexed read per connected key per
+ * process per window, whatever the publish rate, so the publish path never
+ * reads Postgres for each message.
+ */
+export const CURRENT_STATE_FRESH_MS: number = 5 * 1000;
+
+/*
+ * How long a process may keep serving a key's state as it last read it,
+ * while reading it again fails (Postgres down, or failing over). A blip must
+ * not throw a whole connected fleet off, but a key must not be trusted on an
+ * old read for ever either: a minute, the bound every other ingest path's
+ * cache holds a key for. Past it, the publish fails.
+ */
+export const CURRENT_STATE_STALE_GRACE_MS: number = POSITIVE_TTL_MS;
+
+// The Redis namespace of the keys' generations, and how long one is kept.
+export const TELEMETRY_INGESTION_KEY_GENERATION_NAMESPACE: string =
+  "telemetry-ingestion-key-generation";
+const GENERATION_TTL_SECONDS: number = 24 * 60 * 60;
+
+/*
+ * How long this process remembers which key a secret opened, by the
+ * secret's digest: so the next read of that secret reads the key's
+ * generation before it reads the row (FIRST_READ_TTL_MS). As long as a
+ * generation is kept: a secret opens one key for as long as it opens any.
+ */
+const KEY_ID_BY_SECRET_TTL_MS: number = GENERATION_TTL_SECONDS * 1000;
 
 /*
  * How often a single key's lastUsedAt column may be rewritten, per process.
@@ -114,6 +177,32 @@ interface CachedIngestionKeyPolicy {
   ingestionBudgets: TelemetryIngestionBudgetStoredSettings | null;
 }
 
+/*
+ * A key as the lookup by secret keeps it: the key's policy, and the key's
+ * generation (CacheGenerations) it was read under. It is served only while
+ * the key still has that generation: an update or a delete of the key
+ * through any server starts a new one, and the key is read again.
+ */
+interface CachedIngestionKeyLookup {
+  policy: CachedIngestionKeyPolicy;
+  generation: string;
+}
+
+/*
+ * A key's current state as getCurrentPolicyById keeps it: the key's policy
+ * and a digest of its secret, never the secret itself
+ * (TelemetryIngestionKeySecretDigest).
+ */
+interface CachedIngestionKeyCurrentState {
+  // The key as read, or null when no key has the id: it was deleted.
+  policy: CachedIngestionKeyPolicy | null;
+  // A digest of the key's secret as read; null when there is no key.
+  secretKeyDigest: string | null;
+  // When it was read (ms), and when it is read again.
+  readAt: number;
+  readAgainAt: number;
+}
+
 // The budget columns, for the policy read's select.
 const INGESTION_BUDGET_SELECT: Record<string, boolean> = Object.fromEntries(
   TELEMETRY_INGESTION_BUDGET_COLUMN_NAMES.map(
@@ -123,9 +212,36 @@ const INGESTION_BUDGET_SELECT: Record<string, boolean> = Object.fromEntries(
   ),
 );
 
+// Every column a policy is built from (toCachedPolicy).
+const POLICY_SELECT: Record<string, boolean> = {
+  _id: true,
+  projectId: true,
+  keyType: true,
+  allowedOrigins: true,
+  pinnedServiceName: true,
+  isEnabled: true,
+  expiresAt: true,
+  requestsPerMinuteLimit: true,
+  ...INGESTION_BUDGET_SELECT,
+};
+
 export class Service extends DatabaseService<Model> {
-  private policyCache: InMemoryTTLCache<CachedIngestionKeyPolicy | null> =
+  /*
+   * The lookup by secret, keyed on a digest of the secret: each key under
+   * the generation it was read under, and null for a secret no key has
+   * (kept for NEGATIVE_TTL_MS, with no generation: no key to have one).
+   */
+  private policyCache: InMemoryTTLCache<CachedIngestionKeyLookup | null> =
     new InMemoryTTLCache(10_000);
+
+  /*
+   * Which key each secret opened, by the secret's digest - never the
+   * secret - so a secret read again has its key's generation read first
+   * (FIRST_READ_TTL_MS).
+   */
+  private keyIdBySecret: InMemoryTTLCache<string> = new InMemoryTTLCache(
+    10_000,
+  );
 
   /*
    * Per-key throttle for the lastUsedAt stamp. Deliberately in-process rather
@@ -138,6 +254,33 @@ export class Service extends DatabaseService<Model> {
    */
   private lastUsedWriteThrottle: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(LAST_USED_THROTTLE_MAX_KEYS);
+
+  /*
+   * Each key's current state, under `<key id>|<generation>`, for
+   * getCurrentPolicyById: served for CURRENT_STATE_FRESH_MS, and kept for
+   * CURRENT_STATE_STALE_GRACE_MS in case reading it again fails.
+   */
+  private currentStateCache: InMemoryTTLCache<CachedIngestionKeyCurrentState> =
+    new InMemoryTTLCache(10_000);
+
+  // Reads of a key's current state under way: publishes that ask together share one.
+  private currentStateReads: Map<
+    string,
+    Promise<CachedIngestionKeyCurrentState>
+  > = new Map();
+
+  /*
+   * Each key's generation of current state: the shared part, from Redis, and
+   * this process's own (CacheGenerations). An update or a delete of a key
+   * starts a new one (forgetKeys), so nothing read before it is served
+   * again: in this process at once, and in every other within a second.
+   */
+  private generations: CacheGenerations = new CacheGenerations({
+    namespace: TELEMETRY_INGESTION_KEY_GENERATION_NAMESPACE,
+    ttlSeconds: GENERATION_TTL_SECONDS,
+    maxKeys: 10_000,
+    description: "telemetry ingestion keys",
+  });
 
   public constructor() {
     super(Model);
@@ -274,6 +417,23 @@ export class Service extends DatabaseService<Model> {
      */
     this.policyCache.clear();
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * The keys are gone: a session that connected with one is cut off on its
+   * next publish, in this process at once and in every other within a
+   * second (getCurrentPolicyById). The policy cache is cleared again too: a
+   * lookup that started before the DELETE landed may have put the row back
+   * after onBeforeDelete cleared it.
+   */
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    this.policyCache.clear();
+    await this.forgetKeys(itemIdsBeforeDelete);
+    return onDelete;
   }
 
   @CaptureSpan()
@@ -413,6 +573,48 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * The keys changed - switched off, a new expiry, a new secret, or any
+   * other edit: a session that connected with one is checked against the
+   * key as it is now on its next publish, in this process at once and in
+   * every other within a second (getCurrentPolicyById). The policy cache is
+   * cleared again too, for the same reason as after a delete.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    this.policyCache.clear();
+    await this.forgetKeys(updatedItemIds);
+    return onUpdate;
+  }
+
+  /*
+   * Starts a new generation of each key, so nothing read of it before is
+   * served again - its current state (getCurrentPolicyById) nor the lookup
+   * by secret (getPolicyFromSecretKey): in this process at once, and in
+   * every other through Redis within CacheGenerations.SHARED_READ_TTL_MS.
+   * Never throws (CacheGenerations): a change Redis does not take still
+   * counts here, and CURRENT_STATE_FRESH_MS and POSITIVE_TTL_MS bound it
+   * everywhere else.
+   */
+  private async forgetKeys(ingestionKeyIds: Array<ObjectID>): Promise<void> {
+    const keys: Array<string> = ingestionKeyIds
+      .map((ingestionKeyId: ObjectID): string => {
+        return ingestionKeyId ? ingestionKeyId.toString().toLowerCase() : "";
+      })
+      .filter((key: string): boolean => {
+        return Boolean(key);
+      });
+
+    if (keys.length === 0) {
+      return;
+    }
+
+    await this.generations.bump(keys);
+  }
+
   /**
    * Resolve an ingestion token to the full policy the ingest guards need,
    * with a short-lived in-process cache to keep the hot ingest path off
@@ -436,12 +638,26 @@ export class Service extends DatabaseService<Model> {
       .update(secretKey)
       .digest("hex");
 
-    const cached: CachedIngestionKeyPolicy | null | undefined =
+    const cached: CachedIngestionKeyLookup | null | undefined =
       this.policyCache.get(cacheKey);
-    if (cached !== undefined) {
-      return cached === null
-        ? null
-        : this.requireBillingForPolicy(this.hydratePolicy(cached));
+
+    if (cached === null) {
+      return null;
+    }
+
+    /*
+     * Served only while the key has the generation it was read under: a key
+     * switched off, reset or deleted through any server since is read again
+     * (issue #8370). The generation is in memory, asked of Redis at most
+     * once a second per key (CacheGenerations), and never throws.
+     */
+    if (
+      cached !== undefined &&
+      (await this.generations.get(
+        Service.generationKeyOf(cached.policy.ingestionKeyId),
+      )) === cached.generation
+    ) {
+      return this.requireBillingForPolicy(this.hydratePolicy(cached.policy));
     }
 
     let secretKeyObjectId: ObjectID;
@@ -453,19 +669,44 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
+    const snapshot: CachedIngestionKeyPolicy | null =
+      await this.readPolicyBySecret({
+        cacheKey: cacheKey,
+        secretKey: secretKeyObjectId,
+        knownKeyId: cached?.policy.ingestionKeyId,
+      });
+
+    if (!snapshot) {
+      return null;
+    }
+
+    return this.requireBillingForPolicy(this.hydratePolicy(snapshot));
+  }
+
+  /*
+   * Reads the key a secret opens, and keeps it under the generation the key
+   * had BEFORE the read: a change that lands during the read starts a newer
+   * generation, so what the read saw is never served after the change. The
+   * key is known before the read when this process read the secret before
+   * (keyIdBySecret); the first time, its generation can only be read after,
+   * and it is kept for FIRST_READ_TTL_MS only.
+   */
+  private async readPolicyBySecret(data: {
+    cacheKey: string;
+    secretKey: ObjectID;
+    knownKeyId: string | undefined;
+  }): Promise<CachedIngestionKeyPolicy | null> {
+    const knownKeyId: string | undefined = data.knownKeyId
+      ? Service.generationKeyOf(data.knownKeyId)
+      : this.keyIdBySecret.get(data.cacheKey);
+
+    const generationBefore: string | null = knownKeyId
+      ? await this.generations.get(knownKeyId)
+      : null;
+
     const token: Model | null = await this.findOneBy({
-      query: { secretKey: secretKeyObjectId },
-      select: {
-        _id: true,
-        projectId: true,
-        keyType: true,
-        allowedOrigins: true,
-        pinnedServiceName: true,
-        isEnabled: true,
-        expiresAt: true,
-        requestsPerMinuteLimit: true,
-        ...INGESTION_BUDGET_SELECT,
-      },
+      query: { secretKey: data.secretKey },
+      select: POLICY_SELECT,
       props: { isRoot: true },
     });
 
@@ -474,7 +715,7 @@ export class Service extends DatabaseService<Model> {
       | undefined;
 
     if (!token || !projectId) {
-      this.policyCache.set(cacheKey, null, NEGATIVE_TTL_MS);
+      this.policyCache.set(data.cacheKey, null, NEGATIVE_TTL_MS);
       return null;
     }
 
@@ -482,9 +723,31 @@ export class Service extends DatabaseService<Model> {
       token,
       projectId,
     );
+    const keyId: string = Service.generationKeyOf(snapshot.ingestionKeyId);
 
-    this.policyCache.set(cacheKey, snapshot, POSITIVE_TTL_MS);
-    return this.requireBillingForPolicy(this.hydratePolicy(snapshot));
+    this.keyIdBySecret.set(data.cacheKey, keyId, KEY_ID_BY_SECRET_TTL_MS);
+
+    if (generationBefore !== null && keyId === knownKeyId) {
+      this.policyCache.set(
+        data.cacheKey,
+        { policy: snapshot, generation: generationBefore },
+        POSITIVE_TTL_MS,
+      );
+      return snapshot;
+    }
+
+    // The first read of this secret here: kept briefly, then read again.
+    this.policyCache.set(
+      data.cacheKey,
+      { policy: snapshot, generation: await this.generations.get(keyId) },
+      FIRST_READ_TTL_MS,
+    );
+    return snapshot;
+  }
+
+  // A key's id as its generation is kept under: lower-cased (forgetKeys).
+  private static generationKeyOf(ingestionKeyId: string): string {
+    return ingestionKeyId.toLowerCase();
   }
 
   private async requireBillingForPolicy(
@@ -581,6 +844,177 @@ export class Service extends DatabaseService<Model> {
     }
 
     return policy.projectId;
+  }
+
+  /**
+   * The key's policy as it is now, for a sender that proved it held the
+   * key's secret earlier and is still sending on that proof: an MQTT session,
+   * checked at CONNECT and then open for as long as the device keeps it
+   * (issue #8147). `secretKeyDigest` is the digest of the secret the sender
+   * presented (TelemetryIngestionKeySecretDigest.of).
+   *
+   * Null when the key was deleted, or its secret was reset since: the sender
+   * no longer holds a secret that opens it. A disabled or expired key still
+   * resolves, so the caller refuses it as it refuses it at CONNECT
+   * (TelemetryIngestionKeyGuard), naming why. Billing and a blocked project
+   * are the caller's to ask, as on every publish.
+   *
+   * Kept per process for CURRENT_STATE_FRESH_MS under the key's generation,
+   * which an update or delete through this service renews: in this process
+   * at once, and in every other within a second. Reads that ask together
+   * share one. When reading again fails, the state last read is served for
+   * up to CURRENT_STATE_STALE_GRACE_MS, and asked for again once each
+   * CURRENT_STATE_FRESH_MS; with nothing read, or past that, it throws.
+   */
+  @CaptureSpan()
+  public async getCurrentPolicyById(data: {
+    ingestionKeyId: ObjectID;
+    secretKeyDigest: string;
+  }): Promise<TelemetryIngestionKeyPolicy | null> {
+    const state: CachedIngestionKeyCurrentState = await this.getCurrentState(
+      data.ingestionKeyId,
+    );
+
+    if (
+      !state.policy ||
+      !state.secretKeyDigest ||
+      !TelemetryIngestionKeySecretDigest.matches(
+        state.secretKeyDigest,
+        data.secretKeyDigest,
+      )
+    ) {
+      return null;
+    }
+
+    return this.hydratePolicy(state.policy);
+  }
+
+  private async getCurrentState(
+    ingestionKeyId: ObjectID,
+  ): Promise<CachedIngestionKeyCurrentState> {
+    const generationKey: string = ingestionKeyId.toString().toLowerCase();
+
+    // The key's generation as it stands before the read: never throws.
+    const generation: string = await this.generations.get(generationKey);
+    const cacheKey: string = `${generationKey}|${generation}`;
+
+    const kept: CachedIngestionKeyCurrentState | undefined =
+      this.currentStateCache.get(cacheKey);
+
+    if (kept && Date.now() < kept.readAgainAt) {
+      return kept;
+    }
+
+    try {
+      return await this.readCurrentState(cacheKey, ingestionKeyId);
+    } catch (err) {
+      const now: number = Date.now();
+      const keptForMs: number = kept
+        ? kept.readAt + CURRENT_STATE_STALE_GRACE_MS - now
+        : 0;
+
+      if (!kept || keptForMs <= 0) {
+        throw err;
+      }
+
+      /*
+       * Served as last read, and not asked for again until the next
+       * window: while Postgres is down, every publish must not wait on a
+       * read that fails.
+       */
+      const stillKept: CachedIngestionKeyCurrentState = {
+        ...kept,
+        readAgainAt: now + CURRENT_STATE_FRESH_MS,
+      };
+
+      this.currentStateCache.set(cacheKey, stillKept, keptForMs);
+
+      logger.warn(
+        `TelemetryIngestionKeyService: could not read ingestion key ${generationKey} again; serving what was read ${Math.round(
+          (now - kept.readAt) / 1000,
+        )}s ago.`,
+      );
+      logger.warn(err);
+
+      return stillKept;
+    }
+  }
+
+  // One read of a key's current state at a time, kept once it lands.
+  private readCurrentState(
+    cacheKey: string,
+    ingestionKeyId: ObjectID,
+  ): Promise<CachedIngestionKeyCurrentState> {
+    const underWay: Promise<CachedIngestionKeyCurrentState> | undefined =
+      this.currentStateReads.get(cacheKey);
+
+    if (underWay) {
+      return underWay;
+    }
+
+    const read: Promise<CachedIngestionKeyCurrentState> = this.findCurrentState(
+      ingestionKeyId,
+    )
+      .then(
+        (
+          state: CachedIngestionKeyCurrentState,
+        ): CachedIngestionKeyCurrentState => {
+          this.currentStateCache.set(
+            cacheKey,
+            state,
+            CURRENT_STATE_STALE_GRACE_MS,
+          );
+          return state;
+        },
+      )
+      .finally(() => {
+        if (this.currentStateReads.get(cacheKey) === read) {
+          this.currentStateReads.delete(cacheKey);
+        }
+      });
+
+    this.currentStateReads.set(cacheKey, read);
+
+    return read;
+  }
+
+  private async findCurrentState(
+    ingestionKeyId: ObjectID,
+  ): Promise<CachedIngestionKeyCurrentState> {
+    const token: Model | null = await this.findOneBy({
+      query: { _id: ingestionKeyId },
+      select: {
+        ...POLICY_SELECT,
+        secretKey: true,
+      },
+      props: { isRoot: true },
+    });
+
+    const readAt: number = Date.now();
+    const projectId: ObjectID | undefined = token?.projectId as
+      | ObjectID
+      | undefined;
+    const secretKey: ObjectID | undefined = token?.secretKey as
+      | ObjectID
+      | undefined;
+
+    if (!token || !projectId || !secretKey) {
+      return {
+        policy: null,
+        secretKeyDigest: null,
+        readAt: readAt,
+        readAgainAt: readAt + CURRENT_STATE_FRESH_MS,
+      };
+    }
+
+    return {
+      policy: this.toCachedPolicy(token, projectId),
+      secretKeyDigest: TelemetryIngestionKeySecretDigest.of(
+        secretKey.toString(),
+      ),
+      readAt: readAt,
+      readAgainAt: readAt + CURRENT_STATE_FRESH_MS,
+    };
   }
 
   /**

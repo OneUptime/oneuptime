@@ -6,6 +6,8 @@ import TelemetryUsageReads, {
   getSignalSumsSql,
 } from "../../../../Server/Utils/TelemetryUsage/TelemetryUsageReads";
 import TelemetryUsageResourceNames from "../../../../Server/Utils/TelemetryUsage/TelemetryUsageResourceNames";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../../Types/JSON";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../../Types/ObjectID";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
@@ -491,6 +493,32 @@ describe("every project's usage, for the instance admin", () => {
     expect(page.total.dataIngestedInGB).toBe(36);
     expect(page.total.totalCostInUSD).toBeCloseTo(3.6, 10);
     expect(page.projects[0]!.total.totalCostInUSD).toBeCloseTo(2, 10);
+  });
+
+  /*
+   * Issue #7794: the page says count, skip and limit about the projects it
+   * keeps under `projects`, and the browser's HTTPResponse took it for a
+   * list envelope with no rows - "array is not iterable", and Admin
+   * Dashboard > Telemetry Usage never loaded. Read here as the browser
+   * reads it, from the JSON on the wire.
+   */
+  test("reads back in the browser exactly as it was sent, every page of it", async () => {
+    for (const data of [
+      {},
+      { skip: 1, limit: 1 },
+      { skip: 50, limit: 50 },
+      { isCostIncluded: true },
+    ]) {
+      const page: TelemetryProjectUsagePage = await readPage(data);
+
+      const read: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
+        200,
+        JSON.parse(JSON.stringify(page)) as JSONObject,
+        {},
+      );
+
+      expect(read.data).toEqual(page);
+    }
   });
 });
 

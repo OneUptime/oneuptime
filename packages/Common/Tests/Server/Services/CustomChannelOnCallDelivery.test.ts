@@ -587,14 +587,20 @@ describe("a page a person asked for, through a custom channel", () => {
   const RUN_ID: ObjectID = ObjectID.generate();
   const ALICE_ID: ObjectID = ObjectID.generate();
 
-  function run(fields: { policyName?: string }): OnCallDutyPolicyExecutionLog {
+  // A run Alice started by hand, unless startedByHand is false.
+  function run(fields: {
+    policyName?: string;
+    startedByHand?: boolean;
+  }): OnCallDutyPolicyExecutionLog {
     const model: OnCallDutyPolicyExecutionLog =
       new OnCallDutyPolicyExecutionLog();
     model._id = RUN_ID.toString();
-    model.triggeredByUserId = ALICE_ID;
-    const user: User = new User();
-    user.name = new Name("Alice Kim");
-    model.triggeredByUser = user;
+    if (fields.startedByHand !== false) {
+      model.triggeredByUserId = ALICE_ID;
+      const user: User = new User();
+      user.name = new Name("Alice Kim");
+      model.triggeredByUser = user;
+    }
     model.pageMessage = "Can you check the database?";
     model.userNotificationEventType = UserNotificationEventType.IncidentCreated;
 
@@ -659,9 +665,8 @@ describe("a page a person asked for, through a custom channel", () => {
     jest.spyOn(IncidentService, "findOneById").mockResolvedValue(paged);
     const automatic: OnCallDutyPolicyExecutionLog = run({
       policyName: "Database escalation",
+      startedByHand: false,
     });
-    automatic.triggeredByUserId = undefined;
-    automatic.triggeredByUser = undefined;
     jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
       .mockResolvedValue(automatic as never);

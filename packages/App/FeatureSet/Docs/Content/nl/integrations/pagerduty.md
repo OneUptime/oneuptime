@@ -52,7 +52,7 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### De trigger-gebeurtenis sturen
 
-Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **URL** in op `https://events.pagerduty.com/v2/enqueue` en de **Request Body** op:
+Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **URL** in op `https://events.pagerduty.com/v2/enqueue` en de **Verzoeklichaam** op:
 
 ```json
 {
@@ -92,11 +92,11 @@ Maak een workflow met de naam `Resolve PagerDuty incidents` en kies **On Update 
 
 ### Controleren dat het incident is opgelost
 
-Voeg na de trigger een **If / Else**-blok toe. Stel **Value to check** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Comparison** op **is true**.
+Voeg na de trigger een **If / Else**-blok toe. Stel **Te controleren waarde** in op `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` en **Vergelijking** op **is waar**.
 
 ### De resolve-gebeurtenis sturen
 
-Voeg na de **Yes**-kant een **API Post (JSON)**-blok toe, met dezelfde **URL** en deze **Request Body**:
+Voeg na de **Ja**-kant een **API Post (JSON)**-blok toe, met dezelfde **URL** en deze **Verzoeklichaam**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Controleren op `isResolvedState` in plaats van op de naam van een status blijft 
 Om de ernst van elk incident mee te sturen, voeg je tussen de trigger en het **API Post (JSON)**-blok een **Run Custom JavaScript**-blok toe, en lees je het antwoord ervan in de body.
 
 1. Klik in de **Fields to pass on** van de trigger op **Veld toevoegen**, open **Ernst van incident** en kies **Naam**.
-2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript Code** op:
+2. Stel de **Arguments** van het blok in op `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`, en de **JavaScript-code** op:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Beide gebeurtenissen moeten precies dezelfde `dedup_key` hebben. Controleer of b
 :::
 
 :::details De workflow draait nooit
-Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **No**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
+Controleer of hij aan staat: **Ingeschakeld**, bovenaan zijn **Bouwer**. Open daarna **Logboeken → Uitvoeringen**: een uitvoering die de **Nee**-kant van het **If / Else**-blok nam, is een update die geen oplossing was.
 :::
 
 :::details PagerDuty toont een verwijzing in plaats van een waarde

@@ -23,6 +23,21 @@ URL and a router, so filtering, keyboard handling, links and recent products
 run without authentication, Docker or a database. It does not render the
 destination pages or test API authorization.
 
+Its locales are built as the Dashboard's own build ships them
+(`createRuntimeLocalesPlugin`, as in `App/FeatureSet/Dashboard/esbuild.config.js`):
+English, the fallback, in the bundle without the keys that map to
+themselves, and German and Arabic each a chunk of its own that only a page
+drawn in that language loads. Bundled whole, the three locales were 20 of the
+bundle's 31 MB, loaded again on every page load of every test, and with the
+config's tracing on (`retain-on-failure`) a test took three times as long as
+without it: on a loaded machine that alone took tests past their 30-second
+timeout (#7338). An English page now loads a bundle of under 4 MB, and a test
+of `OnCallNavbar.spec.ts` takes about a third of the time it did, tracing on.
+`LocaleChunks.spec.ts` holds that: an English page loads neither chunk from an
+entry under 8 MB, a German or Arabic page (the header's too) loads its own
+chunk and no other and reads in its language, and a language the fixture does
+not draw reads English.
+
 The suite covers RUM/k8s, case and surrounding whitespace, title and description
 matches, clearing, empty states, keyboard/click navigation, and recent products
 on desktop and mobile Chromium. Artifacts are saved under

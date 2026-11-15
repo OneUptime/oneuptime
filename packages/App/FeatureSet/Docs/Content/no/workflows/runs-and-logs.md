@@ -49,11 +49,11 @@ stateDiagram-v2
 | **Kjører**                          | Arbeidsflyten er i gang.                                                                                                                                                                                                                                              |
 | **Venter**                          | Kjøringen står parkert ved en **Sleep**-blokk og fortsetter av seg selv. Den holder ingen worker mens den venter.                                                                                                                                                    |
 | **Utført**                        | Kjøringen nådde slutten uten å mislykkes. Det er suksesstatusen: pillen sier **Utført**, ikke «Vellykket».                                                                                                                                                          |
-| **Feil**                            | En blokk stoppet kjøringen, eller mislyktes uten at noe var koblet til utgangen **Error**. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Sleep**-blokk. |
+| **Feil**                            | En blokk stoppet kjøringen, eller mislyktes uten at noe var koblet til utgangen **Feil**. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Sleep**-blokk. |
 | **Tidsavbrudd**                     | Kjøringen tok lengre tid enn tillatt: 2 minutter som standard. Se [Hvor lenge en kjøring kan vare](/docs/workflows/configuration#hvor-lenge-en-kjøring-kan-vare).                                                                                                          |
 | **Utførelse overskred gjeldende abonnement** | Prosjektet har brukt opp arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Kjøringen registreres, men utføres ikke. Bare OneUptime Cloud.                                                                                           |
 
-En blokk som tar utgangen **Error** — en API-blokk som fikk en 4xx, for eksempel — får bare kjøringen til å mislykkes når ingenting er koblet til **Error**. Er det koblet blokker dit, kjører de, og kjøringen kan likevel slutte som **Utført**. Er ingenting koblet dit, kjører resten av kjøringen videre, deretter slutter den som **Feil**, og den siste linjen i dens **Full Log** nevner blokken. Uansett tegnes selve trinnet i rødt, slik at du finner det.
+En blokk som tar utgangen **Feil** — en API-blokk som fikk en 4xx, for eksempel — får bare kjøringen til å mislykkes når ingenting er koblet til **Feil**. Er det koblet blokker dit, kjører de, og kjøringen kan likevel slutte som **Utført**. Er ingenting koblet dit, kjører resten av kjøringen videre, deretter slutter den som **Feil**, og den siste linjen i dens **Full Log** nevner blokken. Uansett tegnes selve trinnet i rødt, slik at du finner det.
 
 ## Les en kjøring
 
@@ -89,7 +89,7 @@ Verdiene som vises, er det blokken mottok etter at variablene ble fylt ut, og f�
 
 ### Fanen Full Log
 
-Den rå loggen linje for linje, slik kjøreren skrev den, inkludert alt blokkene logget selv, som verdien til en **Log**-blokk eller et skripts `console.log`. Bruk den når fanen Trinn ikke forklarer feilen.
+Den rå loggen linje for linje, slik kjøreren skrev den, inkludert alt blokkene logget selv, som verdien til en **Logg**-blokk eller et skripts `console.log`. Bruk den når fanen Trinn ikke forklarer feilen.
 
 ## Kopier og last ned en kjøring
 
@@ -121,7 +121,7 @@ Vises kjøringen, med statusen **Utførelse overskred gjeldende abonnement**, ha
 En blokk som ikke kjører, er vanligvis et koblingsproblem. Åpne **Bygger**, og sjekk:
 
 - Er utgangen til den tidligere blokken koblet til inngangen til denne blokken?
-- Tok den tidligere blokken en annen utgang enn du forventet — **Error** i stedet for **Success**, eller **No** i stedet for **Yes**? Fanen **Trinn** sier hvilken utgang den tok, og hvor den førte, eller at ingenting er koblet til den.
+- Tok den tidligere blokken en annen utgang enn du forventet — **Feil** i stedet for **Suksess**, eller **Nei** i stedet for **Ja**? Fanen **Trinn** sier hvilken utgang den tok, og hvor den førte, eller at ingenting er koblet til den.
 :::
 
 :::details En verdi kom tom frem, eller som {{…}}-tekst

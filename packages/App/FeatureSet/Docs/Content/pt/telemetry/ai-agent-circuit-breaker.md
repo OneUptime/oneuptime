@@ -129,22 +129,22 @@ Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e esco
 
 ### Verifique o título
 
-Clique em **Adicionar componente**, escolha **If / Else** e conecte a ele o ponto **Success** do gatilho. Defina **Valor a verificar** como o título do alerta (clique em **{ }** e escolha-o), **Comparação** como **contém** e **Comparar com** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
+Clique em **Adicionar componente**, escolha **If / Else** e conecte a ele o ponto **Sucesso** do gatilho. Defina **Valor a verificar** como o título do alerta (clique em **{ }** e escolha-o), **Comparação** como **contém** e **Comparar com** como o começo que os títulos dos seus gatilhos têm em comum, como `LLM budget exceeded`.
 
 ### Chame o seu endpoint
 
-Adicione **API Post (JSON)** e conecte a ele o ponto **Yes** do **If / Else**. Defina a sua **URL** como o seu endpoint, como `https://agents.example.com/circuit-breaker`, e preencha os cabeçalhos e o corpo abaixo.
+Adicione **API Post (JSON)** e conecte a ele o ponto **Sim** do **If / Else**. Defina a sua **URL** como o seu endpoint, como `https://agents.example.com/circuit-breaker`, e preencha os cabeçalhos e o corpo abaixo.
 
 ### Avise sobre uma falha
 
-Adicione **Send Message to Slack**, ou **Send Email**, e conecte a ele o ponto **Error** do bloco de API. Um disjuntor que não consegue desarmar é o alerta que uma pessoa precisa ver.
+Adicione **Send Message to Slack**, ou **Send Email**, e conecte a ele o ponto **Erro** do bloco de API. Um disjuntor que não consegue desarmar é o alerta que uma pessoa precisa ver.
 
 ### Ative-o
 
 Ative **Habilitado** no topo do **Construtor**.
 :::
 
-Os **Request Headers** do bloco de API:
+Os **Cabeçalhos da Requisição** do bloco de API:
 
 ```json title="Request Headers"
 {
@@ -153,7 +153,7 @@ Os **Request Headers** do bloco de API:
 }
 ```
 
-O seu **Request Body**:
+O seu **Corpo da Requisição**:
 
 ```json title="Request Body"
 {
@@ -164,7 +164,7 @@ O seu **Request Body**:
 }
 ```
 
-Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, ou encadeie mais blocos **If / Else** a partir do ponto **No**. Veja [Criar um fluxo de trabalho](/docs/workflows/authoring) para a tela e [Variáveis](/docs/workflows/variables) para as referências `{{…}}`.
+Para reagir a vários gatilhos, comece todos os títulos deles do mesmo jeito, ou encadeie mais blocos **If / Else** a partir do ponto **Não**. Veja [Criar um fluxo de trabalho](/docs/workflows/authoring) para a tela e [Variáveis](/docs/workflows/variables) para as referências `{{…}}`.
 
 ## Teste o disjuntor
 

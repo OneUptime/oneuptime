@@ -107,6 +107,20 @@ export function getCrumbTitle(
   return translateString(link.title) || link.title;
 }
 
+/*
+ * The English a link's title is drawn from (getCrumbTitle), to tell the
+ * language of what is drawn by (a menu's lang, getDrawnLanguage): none for
+ * a title in the reader's words already, which is in their language; the
+ * title itself for English and for a record's name, which reads as typed.
+ */
+export function getCrumbTitleEnglish(link: Link): string | undefined {
+  if (link.isTitleTranslated && !link.isRecordName) {
+    return undefined;
+  }
+
+  return link.title;
+}
+
 // The last segment of the path an address names, lower-cased.
 function getLastPathSegment(to: Route | URL): string {
   let address: string = to.toString();

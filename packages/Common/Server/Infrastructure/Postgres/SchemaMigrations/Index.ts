@@ -1004,7 +1004,10 @@ import { AddIncidentPostmortemActionItem1809174800000 } from "./1809174800000-Ad
 import { AddSavedAsRunbookToAutoRemediationSuggestion1809174900000 } from "./1809174900000-AddSavedAsRunbookToAutoRemediationSuggestion";
 import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000 } from "./1809174910000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
 import { RemoveServiceTelemetryLinkPermissions1809176500000 } from "./1809176500000-RemoveServiceTelemetryLinkPermissions";
-import { AddServiceLevelObjectiveRequestSli1809176600000 } from "./1809176600000-AddServiceLevelObjectiveRequestSli";
+import { RemovePermissionsTeamsCannotBeGiven1809178100000 } from "./1809178100000-RemovePermissionsTeamsCannotBeGiven";
+import { AddMeasurementBackfillCursorId1809178200000 } from "./1809178200000-AddMeasurementBackfillCursorId";
+import { RemovePermissionsThatGrantNothing1809178600000 } from "./1809178600000-RemovePermissionsThatGrantNothing";
+import { AddServiceLevelObjectiveRequestSli1809178700000 } from "./1809178700000-AddServiceLevelObjectiveRequestSli";
 
 export default [
   InitialMigration,
@@ -2013,5 +2016,8 @@ export default [
   AddSavedAsRunbookToAutoRemediationSuggestion1809174900000,
   AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000,
   RemoveServiceTelemetryLinkPermissions1809176500000,
-  AddServiceLevelObjectiveRequestSli1809176600000,
+  RemovePermissionsTeamsCannotBeGiven1809178100000,
+  AddMeasurementBackfillCursorId1809178200000,
+  RemovePermissionsThatGrantNothing1809178600000,
+  AddServiceLevelObjectiveRequestSli1809178700000,
 ];

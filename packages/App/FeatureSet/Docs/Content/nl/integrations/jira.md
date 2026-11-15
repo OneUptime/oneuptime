@@ -87,10 +87,10 @@ Elk sjabloon voor waarschuwingen is stap voor stap gebouwd zoals zijn tweeling v
 **Monitoren geven zelf waarschuwingen af, en soms heel veel.** **Create a Jira issue when an alert is created** opent voor elke waarschuwing een issue. Tenzij elke waarschuwing een ticket verdient, zet je een voorwaarde vóór de Jira-stap. Om alleen issues aan te maken voor waarschuwingen met High:
 
 1. Open de **Bouwer** van de workflow en voeg een **If / Else**-blok toe.
-2. Stel **Value to check** in op `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** op **is equal to** en **Compare with** op `High`.
-3. Verwijder de lijn van `alert-on-create-1` naar `prepare-issue-1` door het uiteinde ervan van de punt af te slepen (zie [Opruimen](/docs/workflows/authoring#opruimen)). Verbind de **Success** van de trigger met het **If / Else**-blok, en de **Yes** ervan met `prepare-issue-1`.
+2. Stel **Te controleren waarde** in op `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Vergelijking** op **is gelijk aan** en **Vergelijken met** op `High`.
+3. Verwijder de lijn van `alert-on-create-1` naar `prepare-issue-1` door het uiteinde ervan van de punt af te slepen (zie [Opruimen](/docs/workflows/authoring#opruimen)). Verbind de **Succes** van de trigger met het **If / Else**-blok, en de **Ja** ervan met `prepare-issue-1`.
 
-Een waarschuwing die de **No**-kant neemt, beëindigt daar de uitvoering, en er wordt geen issue voor aangemaakt.
+Een waarschuwing die de **Nee**-kant neemt, beëindigt daar de uitvoering, en er wordt geen issue voor aangemaakt.
 
 ### Wat de sjablonen vragen
 
@@ -129,7 +129,7 @@ Een Atlassian-**serviceaccount** werkt ook. Een organisatiebeheerder maakt het, 
 4. Klik op **Workflow maken**. Elke workflow wordt uitgeschakeld aangemaakt: zet **Ingeschakeld** aan bovenaan de **Bouwer** ervan.
 :::
 
-Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Response Body** van haar laatste stap, `create-issue-1`, noemt het nieuwe issue.
+Begin met **Create a Jira issue when an incident is declared**, of met **Create a Jira issue when an alert is created** voor waarschuwingen: elk ander sjabloon van OneUptime → Jira van dezelfde soort vindt het issue via het label dat dit sjabloon toevoegt. Zet het aan, meld een testincident of maak een testwaarschuwing aan, en open **Logboeken → Uitvoeringen** van de workflow. De uitvoering hoort te eindigen als **Uitgevoerd**, en de **Antwoordlichaam** van haar laatste stap, `create-issue-1`, noemt het nieuwe issue.
 
 Elke workflow houdt een eigen kopie van deze waarden bij. Wanneer je het token vervangt, werk je `jiraBasicAuthToken` bij onder **Workflow-variabelen** in elke Jira-workflow die erom vroeg. Verhuist Jira naar een ander adres, werk dan `jiraSiteUrl` en `jiraBaseUrl` op dezelfde manier bij.
 
@@ -183,7 +183,7 @@ Voordat je erop vertrouwt:
 De **Stappen** van elke uitvoering zeggen wat het sjabloon deed, dus open de uitvoering in **Logboeken → Uitvoeringen** en kijk hoe ze eindigde:
 
 - **Uitgevoerd**: het deed zijn werk, en de laatste stap noemt het issue, het incident of de waarschuwing.
-- **Uitgevoerd**, met de stap **Check With JavaScript** op **No**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: het issue is niet gekoppeld aan een record van deze soort, de notitie kwam uit Jira, het record is privé, of de nieuwe status heeft geen bijbehorende Jira-status.
+- **Uitgevoerd**, met de stap **Check With JavaScript** op **Nee**: het heeft de gebeurtenis bewust overgeslagen, en de stap zegt waarom: het issue is niet gekoppeld aan een record van deze soort, de notitie kwam uit Jira, het record is privé, of de nieuwe status heeft geen bijbehorende Jira-status.
 - **Fout**: een stap is mislukt, en zijn vermelding in **Stappen** zegt waarom. Bij een Jira-aanroep staat het antwoord van Jira erbij.
 - **Fout** bij `link-issue-1`: een sjabloon dat een record maakt uit een Jira-issue heeft het gemaakt, maar Jira nam de koppellabels niet aan, dus de andere sjablonen kunnen het nog niet vinden. Voeg de labels met de hand toe.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Wijzigen wat een sjabloon doet
 
-Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript Code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen van een sjabloon houden dezelfde constanten in dezelfde blokken:
+Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De instellingen die je het waarschijnlijkst wilt aanpassen, zijn constanten bovenaan een script, de **JavaScript-code** van een **Check With JavaScript**-blok, net onder het gedeelde hulpblok. De versies voor incidenten en voor waarschuwingen van een sjabloon houden dezelfde constanten in dezelfde blokken:
 
 | Constante | Sjabloon en blok | Wat het regelt |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ Open de **Bouwer** van de workflow en klik op het blok dat je wilt wijzigen. De 
 
 Status- en statusnamen die als sleutel worden gebruikt, moeten precies zo gespeld zijn als ze heten, hoofdletters inbegrepen. Houd `{{` uit de code: een script wordt vóór het draaien ingevuld zoals elke andere instelling, dus twee openingsaccolades achter elkaar zouden als een verwijzing worden gelezen.
 
-Om meer velden mee te sturen op nieuwe issues, bewerk je de **Request Body** van het blok `create-issue-1` van de sjablonen die een issue aanmaken. Die bevat het project, het type, de samenvatting, de labels en de beschrijving van het issue, en je kunt binnen `fields` een prioriteit, componenten, een toegewezen persoon of aangepaste velden toevoegen, in de vormen die [Meer velden invullen](#meer-velden-invullen) beschrijft. Houd beide labels. De tekst van de samenvatting en de beschrijving staat in het script `prepare-issue-1`. De beschrijving geeft de ernst, de status en de beschrijving van het record, en daarna de hoofdoorzaak en de herstelnotities als die er zijn: een monitor vult die in wanneer hij een incident of een waarschuwing afgeeft, en ze verklaren het vaak.
+Om meer velden mee te sturen op nieuwe issues, bewerk je de **Verzoeklichaam** van het blok `create-issue-1` van de sjablonen die een issue aanmaken. Die bevat het project, het type, de samenvatting, de labels en de beschrijving van het issue, en je kunt binnen `fields` een prioriteit, componenten, een toegewezen persoon of aangepaste velden toevoegen, in de vormen die [Meer velden invullen](#meer-velden-invullen) beschrijft. Houd beide labels. De tekst van de samenvatting en de beschrijving staat in het script `prepare-issue-1`. De beschrijving geeft de ernst, de status en de beschrijving van het record, en daarna de hoofdoorzaak en de herstelnotities als die er zijn: een monitor vult die in wanneer hij een incident of een waarschuwing afgeeft, en ze verklaren het vaak.
 
-Privénotities en bewerkingsopmerkingen worden als intern gemarkeerd door de `properties`-vermelding, `sd.public.comment`, in de **Request Body** van hun `post-comment-1`-blok. Alleen Jira Service Management leest die. Verwijder hem alleen als klanten die opmerkingen moeten zien.
+Privénotities en bewerkingsopmerkingen worden als intern gemarkeerd door de `properties`-vermelding, `sd.public.comment`, in de **Verzoeklichaam** van hun `post-comment-1`-blok. Alleen Jira Service Management leest die. Verwijder hem alleen als klanten die opmerkingen moeten zien.
 
 ### Beperkingen
 
@@ -307,8 +307,8 @@ Tokens verlopen standaard na een jaar en worden niet vernieuwd. Om er niet een m
 
 :::steps
 1. Maak vanaf nul een workflow met de naam `Incidents to Jira`. Klik op het gestippelde blok en voeg de trigger **On Create Incident** toe. De **Fields to pass on** ervan beginnen met **Titel**: klik op **Veld toevoegen** en kies **Beschrijving** en **Incidentnummer**. De ID wordt altijd doorgegeven. Laat de **Identifier** ervan op `incident-on-create-1` staan.
-2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Success**-punt van de trigger ermee. Stel de **Identifier** in op `create-issue`, de **URL** op `{{global.variables.JIRA_URL}}/rest/api/3/issue` en, onder **Meer velden**, de **Request Headers** op `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Stel de **Request Body** in op het issue, en vervang `OPS` en `Bug` door je projectsleutel en een issuetype van dat project:
+2. Klik op **Component toevoegen**, voeg een **API Post (JSON)**-blok toe en verbind de **Succes**-punt van de trigger ermee. Stel de **Identifier** in op `create-issue`, de **URL** op `{{global.variables.JIRA_URL}}/rest/api/3/issue` en, onder **Meer velden**, de **Aanvraagheaders** op `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Stel de **Verzoeklichaam** in op het issue, en vervang `OPS` en `Bug` door je projectsleutel en een issuetype van dat project:
 
    ```json
    {
@@ -391,8 +391,8 @@ Bouw dit als een tweede workflow, zodat een fout hier nooit verhindert dat er is
 
 :::steps
 1. Maak een workflow met de naam `Incident updates to Jira`, met de trigger **On Update Incident**. Klik in **Fields to watch** op **Veld toevoegen** en kies **Current Incident State**. Klik in **Fields to pass on** op **Veld toevoegen**, open **Current Incident State** en kies **Naam**.
-2. Voeg een **If / Else**-blok toe: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, of de naam van je opgeloste status.
-3. Zoek na de **Yes**-kant ervan het issue met een **API Post (JSON)**-blok waarvan de **Identifier** `find-issue` is, dat post naar `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
+2. Voeg een **If / Else**-blok toe: **Te controleren waarde** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Vergelijking** **is gelijk aan**, **Vergelijken met** `Resolved`, of de naam van je opgeloste status.
+3. Zoek na de **Ja**-kant ervan het issue met een **API Post (JSON)**-blok waarvan de **Identifier** `find-issue` is, dat post naar `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
    ```json
    {
@@ -447,7 +447,7 @@ Zet hem aan en laat Jira hem daarna aanroepen, vanuit een automatiseringsregel o
 
 4. Zet de regel aan en zet een testissue naar Done. Bekijk het auditlogboek van de regel in Jira, en **Logboeken → Uitvoeringen** in OneUptime.
 
-Om zeker te weten dat een verzoek van je regel komt, voeg je een tweede header toe, `X-OneUptime-Secret`, met een waarde die je zelf bedenkt, en gebruik je daarop de optie **Hide** van de actie. Zet in de workflow een **If / Else**-blok vóór de update: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** en **Compare with** dezelfde waarde, bewaard in een geheime globale variabele.
+Om zeker te weten dat een verzoek van je regel komt, voeg je een tweede header toe, `X-OneUptime-Secret`, met een waarde die je zelf bedenkt, en gebruik je daarop de optie **Hide** van de actie. Zet in de workflow een **If / Else**-blok vóór de update: **Te controleren waarde** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergelijking** **is gelijk aan** en **Vergelijken met** dezelfde waarde, bewaard in een geheime globale variabele.
 
 Send web request roept alleen de poorten 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 en 9900 aan. Jira Cloud telt regeluitvoeringen af van een maandelijks tegoed dat van je abonnement afhangt, dus een regel op elke transitie van een druk project loopt flink op.
 @tab Jira webhook
@@ -476,7 +476,7 @@ Begin met de sjablonen voor waarschuwingen in [Beginnen met een sjabloon](#begin
 | Label `oneuptime-incident-<incident id>` | Label `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Jira-werk voor beide te doen, bouw je het één keer in een workflow met een **Manual**-trigger, en start je die vanuit beide met een **Execute Workflow**-blok.
+Een workflow heeft precies één trigger, dus incidenten en waarschuwingen hebben elk een eigen workflow nodig. Om hetzelfde Jira-werk voor beide te doen, bouw je het één keer in een workflow met een **Handmatig**-trigger, en start je die vanuit beide met een **Execute Workflow**-blok.
 
 ## Jira Data Center
 

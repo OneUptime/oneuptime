@@ -142,7 +142,7 @@ sequenceDiagram
    - **Ytterligare parametrar**: extra formulärfält för tokenförfrågan, som `audience` för Auth0 (krävs för Client Credentials) eller `resource` för Azure AD v1. Alla som kan läsa variabeln kan läsa dem, så lägg inte hemligheter här.
    - **Klientautentisering**: om klient-ID och hemlighet skickas i en HTTP Basic-header (standard) eller i förfrågans body. Svarar din leverantör `invalid_client` provar du det andra.
 
-Under vissa fält lägger formuläret till en hjälprad för leverantören du valde, till exempel var Microsoft Entra ID visar ditt tenant-ID, och att dess klienthemlighet är hemlighetens **Value**, inte dess **Secret ID**.
+Under vissa fält lägger formuläret till en hjälprad för leverantören du valde, till exempel var Microsoft Entra ID visar ditt tenant-ID, och att dess klienthemlighet är hemlighetens **Värde**, inte dess **Secret ID**.
 
 När du sparar en ny OAuth 2.0-variabel hämtar OneUptime dess första token direkt och berättar vad leverantören svarade. Ett stavfel i hemligheten eller URL:en syns då, inte timmar senare i en misslyckad körning. Att hämta en token skriver till variabeln, så det kräver behörighet att redigera arbetsflödesvariabler; kan du skapa variabler men inte redigera dem är det den första arbetsflödeskörningen som använder variabeln som hämtar dess token.
 
@@ -210,7 +210,7 @@ Nästan alla textfält tar emot variabler:
 - Headers och fält i bodyn (inuti strängvärden).
 - Båda sidor av ett **If / Else**-block.
 
-I JSON-fält — **Data (JSON Object)** och **Query** på postkomponenterna, ett API-blocks **Request Body**, **Arguments** på **Run Custom JavaScript** — fylls en referens i beroende på var den står:
+I JSON-fält — **Data (JSON Object)** och **Fråga** på postkomponenterna, ett API-blocks **Begärandekropp**, **Arguments** på **Run Custom JavaScript** — fylls en referens i beroende på var den står:
 
 - **Inom citattecken är den text.** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` sätter in värdet i strängen. Citattecken, omvända snedstreck och radbrytningar i värdet escapas, så att JSON:en förblir giltig och värdet förblir en sträng.
 - **Ensam är den själva värdet.** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` infogar hela objektet, en lista förblir en lista och ett tal förblir ett tal. Text som själv är JSON — `5`, `true` eller ett objekt som ett block returnerade som JSON-text — infogas som det värdet. All annan text infogas som en sträng.
@@ -239,7 +239,7 @@ En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }
 
 1. En **Webhook**-utlösare med ID:t `ci-webhook`.
 2. Ett **If / Else**-block: **Värde att kontrollera** är fältet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Jämförelse** är **är lika med** och **Jämför med** är `failed`.
-3. Från grenen **Yes** ett **Create One Incident**-block med:
+3. Från grenen **Ja** ett **Create One Incident**-block med:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivning: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 
@@ -259,7 +259,7 @@ Det första anropet ger dig ett ID som det andra behöver:
 1. **API**-komponenten `lookup-order`: i dess **URL**, efter `/orders?email=`, använder du **{ }** för att infoga den manuella utlösarens JSON med sökvägen `email`.
 2. **API**-komponenten `cancel-order`: `POST /orders/{{local.components.lookup-order.returnValues.response-body.id}}/cancel`.
 
-Om `lookup-order` misslyckas aktiveras dess utgång **Error** i stället för **Success**. Koppla den till ett Email- eller Slack-block så att fel inte går obemärkta förbi.
+Om `lookup-order` misslyckas aktiveras dess utgång **Fel** i stället för **Framgång**. Koppla den till ett Email- eller Slack-block så att fel inte går obemärkta förbi.
 
 ## Uppdatera en variabel från ett arbetsflöde
 
@@ -290,7 +290,7 @@ Två saker att se upp med:
 
 - **Använd { } (eller skriv `{{`).** Det infogar de exakta komponent-, returvärdes- och variabel-ID:n som körmotorn förväntar sig och erbjuder bara värden som finns när blocket körs.
 - **Variabelnamn är skiftlägeskänsliga.** `{{global.variables.MyKey}}` och `{{global.variables.mykey}}` är olika.
-- **En referens som inte kan lösas upp lämnas som den är och blir inte tom.** Att hänvisa till något som inte finns är inget fel, och det ger dig inte heller en tom sträng: klammerparenteserna skickas vidare som de är, så `{{local.components.api-get-1.returnValues.body}}` med ett felstavat steg-ID hamnar ordagrant i ditt Slack-meddelande, din URL eller din förfrågans body, och körningen rapporterar ändå **Utförd**. Körningens flik **Steg** visar en varning på steget som nämner varje referens som slank igenom och markerar inställningen den stod i med **Did not resolve**; körningens logg har samma varningsrad. Undantaget är ett id som en datakomponent läser eller skriver, som `_id` i dess **Query**: där stannar steget innan det läser eller skriver något, aktiverar sin utgång **Error** och säger vilken referens som inte löstes upp och vad du ska kontrollera.
+- **En referens som inte kan lösas upp lämnas som den är och blir inte tom.** Att hänvisa till något som inte finns är inget fel, och det ger dig inte heller en tom sträng: klammerparenteserna skickas vidare som de är, så `{{local.components.api-get-1.returnValues.body}}` med ett felstavat steg-ID hamnar ordagrant i ditt Slack-meddelande, din URL eller din förfrågans body, och körningen rapporterar ändå **Utförd**. Körningens flik **Steg** visar en varning på steget som nämner varje referens som slank igenom och markerar inställningen den stod i med **Did not resolve**; körningens logg har samma varningsrad. Undantaget är ett id som en datakomponent läser eller skriver, som `_id` i dess **Fråga**: där stannar steget innan det läser eller skriver något, aktiverar sin utgång **Fel** och säger vilken referens som inte löstes upp och vad du ska kontrollera.
 - **Ett fält utan innehåll kommer fram tomt.** Alla poster har inte alla fält. Ett larm som ingen monitor har utlöst, till exempel från ett SLO eller skapat för hand, har ingen monitor, så `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` har inget att ge: i ett meddelande står det ingenting, och ensamt i JSON är det `null`. Detsamma gäller en beskrivning som ingen har skrivit, ett anpassat fält som posten inte har, en **Find One** som inte hittade någon post, en lista utan det objektet och ett fält som blocket inte skickar vidare, vilket också sätter en varning på steget om vad som ska läggas till i **Fields to pass on**. En URL och ett block som läser eller skriver poster är undantagen, eftersom något tomt skulle ändra vad blocket verkar på: där står referensen kvar, och ett id stoppar blocket. För att ta en annan väg kontrollerar du värdet med **är tom** i en **If / Else**. För att nämna SLO:t bakom ett larm skickar du vidare dess namn och använder `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`.
 - **Problempanelen kan inte kontrollera variabelnamn.** Den flaggar komponentreferenser som den inte kan matcha — ett okänt steg-ID, ett okänt returvärde, en ogiltig rot — innan du sparar. Den kan inte se om en variabel finns. Ett blocks inställningar kan det: en referens till en saknad variabel visas där som en orange bricka. Annars fångas en variabel som bytt namn bara av körningens logg.
 - **Mellanslag inom klammerparenteserna trimmas inte.** `{{ local.variables.NAME }}` är en annan uppslagning än `{{local.variables.NAME}}` och löses aldrig upp. Det enda undantaget är inne i ett `{{#each}}`-block, där namn trimmas.

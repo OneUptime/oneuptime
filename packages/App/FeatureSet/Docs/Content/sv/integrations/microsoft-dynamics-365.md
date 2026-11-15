@@ -104,7 +104,7 @@ Mallarna för larm gör samma jobb för larm. Det finns en färre, eftersom larm
 
 Ingen av mallarna OneUptime → Dynamics 365 skickar en incident markerad som **Privat incident**, eller ett larm markerat som **Privat larm**, till Dynamics 365: varken posten, dess status eller dess anteckningar, om du inte slår på det. Se [Ändra vad en mall gör](#ändra-vad-en-mall-gör).
 
-**Monitorer utlöser larm av sig själva, och det kan bli många.** **Create a Dynamics 365 case when an alert is created** skapar ett ärende för vart och ett. Om inte varje larm förtjänar ett ärende placerar du ett **If / Else**-block mellan utlösaren och resten av arbetsflödet, till exempel på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, och kopplar bara dess **Yes**-sida vidare.
+**Monitorer utlöser larm av sig själva, och det kan bli många.** **Create a Dynamics 365 case when an alert is created** skapar ett ärende för vart och ett. Om inte varje larm förtjänar ett ärende placerar du ett **If / Else**-block mellan utlösaren och resten av arbetsflödet, till exempel på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, och kopplar bara dess **Ja**-sida vidare.
 
 ### Vad mallarna frågar efter
 
@@ -133,7 +133,7 @@ Varje arbetsflöde har sin egen kopia. När du byter ut klienthemligheten öppna
 4. Klicka på **Skapa arbetsflöde**. Varje arbetsflöde skapas avstängt: slå på **Aktiverad** högst upp i dess **Byggare**.
 :::
 
-Börja med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** för larm: alla andra mallar OneUptime → Dynamics 365 av samma slag hittar ärendet via kopplingen som den här skriver. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Response Body** i dess sista steg, `create-case-1`, innehåller det nya ärendets `ticketnumber`, till exempel `CAS-01001-X1Y2Z3`.
+Börja med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** för larm: alla andra mallar OneUptime → Dynamics 365 av samma slag hittar ärendet via kopplingen som den här skriver. Slå på den, deklarera en testincident eller skapa ett testlarm, och öppna arbetsflödets **Loggar → Körningar**. Körningen ska sluta som **Utförd**, och **Svarstext** i dess sista steg, `create-case-1`, innehåller det nya ärendets `ticketnumber`, till exempel `CAS-01001-X1Y2Z3`.
 
 ### Anslut mallarna Dynamics 365 → OneUptime
 
@@ -184,7 +184,7 @@ Innan du förlitar dig på någon av dem:
 Varje körnings **Steg** säger vad mallen gjorde, så öppna körningen i **Loggar → Körningar** och se hur den slutade:
 
 - **Utförd**: den gjorde sitt jobb, och dess sista steg nämner ärendet, incidenten eller larmet.
-- **Utförd**, med steget **Check With JavaScript** på **No**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från den andra sidan, posten är privat, eller den nya statusen stänger inte ärendet.
+- **Utförd**, med steget **Check With JavaScript** på **Nej**: den hoppade över händelsen med flit, och steget säger varför: ärendet är inte kopplat till en post av det här slaget, anteckningen kom från den andra sidan, posten är privat, eller den nya statusen stänger inte ärendet.
 - **Fel**: ett steg misslyckades, och dess post under **Steg** säger varför. Vid ett Dynamics 365-anrop ingår svaret från Dynamics 365.
 - **Fel** vid `link-case-1`: en mall som skapar en post från ett ärende skapade den, men Dynamics 365 tog inte emot kopplingen, så de andra mallarna kan inte hitta den än. Skriv in kopplingen i ärendets kolumn för hand.
 
@@ -221,7 +221,7 @@ Behåll markörerna när du redigerar mallarna. De är konstanterna `FROM_ONEUPT
 
 ### Ändra vad en mall gör
 
-Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript Code** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm har samma konstanter i samma block.
+Öppna arbetsflödets **Byggare** och klicka på blocket du vill ändra. De inställningar du troligast vill ändra är konstanter högst upp i ett skript, **JavaScript-kod** i ett **Check With JavaScript**-block, precis under det delade hjälpblocket. Versionerna för incidenter och för larm har samma konstanter i samma block.
 
 | Konstant | Mall och block | Vad den styr |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ Scopet måste vara din miljö-URL följd av `/.default`. En felaktig miljö-URL 
 
 :::steps
 1. Skapa ett arbetsflöde från grunden som heter `Incidents to Dynamics 365`. Klicka på det streckade blocket och lägg till utlösaren **On Create Incident**. Dess **Fields to pass on** börjar med **Titel**: klicka på **Lägg till fält** och välj **Beskrivning** och **Incidentnummer**. ID:t skickas alltid vidare.
-2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Success**-punkt till det. Ställ in dess **Identifier** på `create-case` och dess **URL** på `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Ställ in dess **Request Headers** under **Fler fält** på:
+2. Klicka på **Lägg till komponent**, lägg till ett **API Post (JSON)**-block och koppla utlösarens **Framgång**-punkt till det. Ställ in dess **Identifier** på `create-case` och dess **URL** på `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Ställ in dess **Begärandehuvuden** under **Fler fält** på:
 
    ```json
    {
@@ -284,7 +284,7 @@ Scopet måste vara din miljö-URL följd av `/.default`. En felaktig miljö-URL 
    }
    ```
 
-4. Ställ in dess **Request Body** på ärendet, med GUID:t för kontot som dina ärenden hör till:
+4. Ställ in dess **Begärandekropp** på ärendet, med GUID:t för kontot som dina ärenden hör till:
 
    ```json
    {
@@ -324,8 +324,8 @@ Bygg detta som ett andra arbetsflöde, så att ett fel här aldrig hindrar att �
 
 :::steps
 1. Skapa ett arbetsflöde som heter `Close Dynamics 365 cases`, med utlösaren **On Update Incident**. Klicka på **Lägg till fält** i **Fields to watch** och välj **Current Incident State**. Klicka på **Lägg till fält** i **Fields to pass on**, öppna **Current Incident State** och välj **Is Resolved State**.
-2. Lägg till ett **If / Else**-block: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Lägg efter dess **Yes**-sida till ett **API Get (JSON)**-block med **Identifier** `find-case`, samma rubriker utan `Prefer` och denna **URL**:
+2. Lägg till ett **If / Else**-block: **Värde att kontrollera** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Jämförelse** **är sant**.
+3. Lägg efter dess **Ja**-sida till ett **API Get (JSON)**-block med **Identifier** `find-case`, samma rubriker utan `Prefer` och denna **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Bygg först det mottagande arbetsflödet:
 
    På en egenhostad installation har URL:en din egen värd. Behandla URL:en som ett lösenord: alla som har den kan starta arbetsflödet. Om den läcker klickar du på **Återställ URL** på samma ställe, och den gamla URL:en slutar fungera direkt.
 
-3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet före allt annat: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** ett värde som du hittar på, sparat i en hemlig global variabel.
-4. Lägg efter dess **Yes**-sida till ett **Update One Incident**-block. Ställ in dess **Query** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Lägg till ett **If / Else**-block som kontrollerar en delad hemlighet före allt annat: **Värde att kontrollera** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Jämförelse** **är lika med**, **Jämför med** ett värde som du hittar på, sparat i en hemlig global variabel.
+4. Lägg efter dess **Ja**-sida till ett **Update One Incident**-block. Ställ in dess **Fråga** på `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, och dess **Data (JSON Object)** på ändringen, t.ex. ett nytt `currentIncidentStateId`. Ett **Find One Incident State**-block med frågan `{"name": "Resolved"}` ger dig det ID:t som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå på det och låt sedan Dynamics 365 anropa det:
 
@@ -395,7 +395,7 @@ Larm fungerar på samma sätt. Byt posttyp, så ändras inget annat:
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Dynamics 365-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manual**-utlösare och startar det från båda med ett **Execute Workflow**-block.
+Ett arbetsflöde har exakt en utlösare, så incidenter och larm behöver ett arbetsflöde var. För att göra samma Dynamics 365-arbete för båda bygger du det en gång i ett arbetsflöde med en **Manuell**-utlösare och startar det från båda med ett **Execute Workflow**-block.
 
 ## Felsökning
 

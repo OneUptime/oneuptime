@@ -26,6 +26,7 @@ const EnterpriseLicensesUnavailable: FunctionComponent<ComponentProps> = (
   return (
     <Page
       title={t("pages.enterpriseLicenses.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

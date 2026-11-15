@@ -167,10 +167,11 @@ describe("ProcessTelemetry worker — Incoming Request jobs", () => {
 
 describe("isNonActionableIngestError", () => {
   /*
-   * An unknown monitor, and every refusal MonitorResource gives for a monitor
+   * An unknown monitor, every refusal MonitorResource gives for a monitor
    * that is not being monitored: archived, disabled, or paused while a
    * manually created incident is unresolved or a maintenance event it is
-   * attached to has not ended.
+   * attached to has not ended - and a probe's result for a monitor that probe
+   * does not check (issue #8161), which every retry is refused the same way.
    */
   test.each([
     ExceptionMessages.MonitorNotFound,
@@ -178,6 +179,7 @@ describe("isNonActionableIngestError", () => {
     ExceptionMessages.MonitorArchived,
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
     ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.ProbeNotAssignedToMonitor,
   ])("is true for a BadDataException '%s'", (message: string) => {
     expect(isNonActionableIngestError(new BadDataException(message))).toBe(
       true,
@@ -199,6 +201,7 @@ describe("isNonActionableIngestError", () => {
   test.each([
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
     ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    ExceptionMessages.ProbeNotAssignedToMonitor,
   ])(
     "is false for another kind of error with a paused monitor's refusal '%s'",
     (message: string) => {
@@ -215,6 +218,10 @@ describe("isNonActionableIngestError", () => {
     `${ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent} `,
     ExceptionMessages.MonitorDisabledBecauseOfManualIncident.toLowerCase(),
     "Monitor does not have a projectId",
+    // A probe that reports another probe's result is still retried and logged.
+    "A probe reports only its own results",
+    `${ExceptionMessages.ProbeNotAssignedToMonitor}.`,
+    ExceptionMessages.ProbeNotAssignedToMonitor.toUpperCase(),
   ])(
     "is false for a BadDataException that is not one of them: '%s'",
     (message: string) => {

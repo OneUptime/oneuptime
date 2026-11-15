@@ -61,6 +61,8 @@ De naam is standaard de hostnaam van vCenter. Klik op **vCenter koppelen** om op
 
 Het **Overzicht** van de vCenter toont een kaart **Gegevensverzameling**. Die toont **Bezig met controleren** tot de eerste verzameling, die binnen een minuut begint, daarna **Wordt verzameld**, en de inventaris vult zich.
 
+Als er 20 minuten lang geen sonde voor de vCenter komt, omdat hij offline of te oud is, staat er op de kaart **Wordt niet verzameld** en wordt dat gemeld, wat de laatste verzameling ook vond. Als geen enkele sonde de vCenter mag verzamelen, staat er meteen **Wordt niet verzameld**, met de reden en wat je moet aanpassen: er is geen wachtwoord opgeslagen, het adres of de gebruikersnaam van vCenter ontbreekt, er is geen sonde ingesteld om hem te verzamelen, zijn sonde mag hem niet verzamelen (een gedeelde sonde op OneUptime Cloud, of die van een ander project), of zijn sonde is losgekoppeld. **Volgende verzameling** is het tijdstip waarop een sonde hem de volgende keer verzamelt, **Nu aan de beurt** terwijl hij op een sonde wacht, **Te laat** zodra er 20 minuten lang geen is gekomen, en **Niet gepland** zolang geen enkele sonde hem mag verzamelen. Een gearchiveerde vCenter wordt nog steeds verzameld.
+
 ## Certificaten
 
 De sonde slaat de certificaatcontrole nooit over. Elke verbinding voltooit een volledige TLS-handshake, en daarna:

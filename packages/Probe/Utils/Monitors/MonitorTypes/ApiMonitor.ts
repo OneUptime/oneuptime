@@ -13,6 +13,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import RequestFailedDetails from "Common/Types/Probe/RequestFailedDetails";
 import API from "Common/Utils/API";
+import RequestFailedDetailsUtil from "Common/Utils/RequestFailedDetailsUtil";
 import HttpPhaseTimings from "Common/Types/Monitor/HttpPhaseTimings";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -406,7 +407,7 @@ export default class ApiMonitor {
        * being down, and it goes on to be the incident's root cause.
        */
       const failureCause: string =
-        API.getProbeNetworkFailureDescription(err) ||
+        RequestFailedDetailsUtil.getProbeNetworkFailureDescription(err) ||
         API.getFriendlyErrorMessage(err as Error);
 
       options.attempts.push({
@@ -467,7 +468,7 @@ export default class ApiMonitor {
 
       // Get detailed error information
       const requestFailedDetails: RequestFailedDetails =
-        API.getRequestFailedDetails(err);
+        RequestFailedDetailsUtil.getRequestFailedDetails(err);
 
       const apiResponse: APIResponse = {
         url: url,

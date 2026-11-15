@@ -51,7 +51,7 @@ Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-eve
 | `state` vaut `ACTIVATED` et `isAcknowledged` vaut `true` | Prend en compte l'incident du problème, ce qui arrête l'escalade de l'astreinte. La raison figure dans sa chronologie. |
 | `state` vaut `CLOSED` | Résout l'incident du problème, sauf s'il est déjà résolu. La raison figure dans sa chronologie. |
 
-Une prise en compte ou une fermeture pour un problème sans incident ne change rien. Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **No**, et les **Étapes** de l'exécution disent pourquoi. Rien ne repart vers New Relic : il ferme lui-même ses problèmes quand le signal se rétablit, et c'est ce qui résout l'incident.
+Une prise en compte ou une fermeture pour un problème sans incident ne change rien. Tout le reste, comme une requête d'un autre outil, est laissé tel quel : `read-event-1` prend **Non**, et les **Étapes** de l'exécution disent pourquoi. Rien ne repart vers New Relic : il ferme lui-même ses problèmes quand le signal se rétablit, et c'est ce qui résout l'incident.
 
 ### Priorités et astreinte
 
@@ -162,7 +162,7 @@ Testez ensuite depuis New Relic : ouvrez le message du webhook du workflow, et c
 :::
 
 :::details Le workflow s'exécute, mais n'ouvre rien
-Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **No**.
+Ouvrez l'exécution dans **Journaux → Exécutions**. L'entrée `read-event-1` de ses **Étapes** dit pourquoi il a pris **Non**.
 
 - `New Relic named no issue ID` : gardez la ligne `"id": {{ json issueId }},` dans la charge utile.
 - `is in no state` : gardez la ligne `"state": {{ json state }},` dans la charge utile.

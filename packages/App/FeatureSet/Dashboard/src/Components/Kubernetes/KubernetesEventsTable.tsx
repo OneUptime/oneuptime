@@ -321,7 +321,7 @@ const LastSeenTime: FunctionComponent<{
       : lastSeen;
 
   return (
-    <Tooltip text={tooltip}>
+    <Tooltip text={tooltip} isTextTranslated={true}>
       <time
         dateTime={lastSeenAt.toISOString()}
         className={props.className}

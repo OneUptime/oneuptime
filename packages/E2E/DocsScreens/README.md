@@ -35,6 +35,7 @@ the docs read and prints what it wrote and what the pictures weigh.
 | Each picture's fingerprint | `packages/E2E/DocsScreens/Fingerprints/<language>.json` |
 | The renderer | `DocsScreens.spec.ts` (a test per language), `ScreenDriver.ts` (the steps, the fingerprint and the crop) |
 | The staleness issue | `ReportStale.js`, run by `.github/workflows/docs-screens.yml` |
+| The release's gate | The `docs-screens` job of `.github/workflows/release.yml`, which `push-release-tags` needs |
 
 ## Showing a shot on a docs page
 
@@ -93,7 +94,8 @@ When a picture is drawn, its fingerprint is kept beside it: its words block by b
 browser's `innerText`, which does not depend on where a line wraps), what its fields hold, the
 order of its headings, buttons and fields, and its size. `npm run docs-screens:check` draws every
 shot again and compares, without writing anything in the repository. A shot is stale when its
-words or its outline changed, or its size moved by more than 10% (and 16 pixels).
+words or its outline changed, or its size moved by more than 10% (and 16 pixels). The check fails
+when a shot is stale or could not be drawn, and names them, language by language.
 
 Why not pixels? The same page draws different pixels on a Mac and on a Linux runner: fonts are
 rasterized differently, and Chinese, Japanese, Korean and Hindi are drawn in different fallback
@@ -102,11 +104,14 @@ renamed button. Words, outline and size give the same answer on any machine, and
 page a reader sees changes.
 
 The Docs Screenshots workflow (`.github/workflows/docs-screens.yml`) runs the check every night,
-when the shots or their list change on main, and by hand. It never runs on a pull request and
-never fails for a stale shot. Instead it opens, or rewrites, one issue titled
+when the shots, their list or the check change on main, by hand, and in every release run. It
+never runs on a pull request. A stale shot, or one that could not be drawn, fails it (#7510). A
+release run does not publish until it passes: `push-release-tags`, which everything the release
+publishes waits for, needs it. On main the workflow also opens, or rewrites, one issue titled
 **Docs screenshots are out of date**. The issue lists each stale shot with its languages and
 why, and any shot that could not be drawn. The workflow closes the issue once every shot is
-current again. To fix the shots, run `npm run docs-screens` and commit what it changes.
+current again. To fix the shots, run `npm run docs-screens` and commit what it changes; when a
+release run failed for them, do it in the release branch.
 
 ## What they weigh
 

@@ -2,7 +2,7 @@
 
 Telemetri indeholder alt, hvad din kode skriver: en e-mailadresse i en loglinje, et kortnummer i en span-attribut, et token i en stack trace, en kundes spørgsmål i en prompt. Datasikkerhed behandler hver tjenestes logs, traces, undtagelser og AI-samtaler og hver RUM-applikations sessioner som datalagre for sig. Den tager prøver af dem hver time, finder følsomme data i dem, ligesom den gør i en bucket, og **Rens** gør et fund til en rensningsregel, der fra da af maskerer de data ved indtagelse.
 
-Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre **Scan telemetri** er slået fra i projektets indstillinger.
+Der er intet at sætte op: hver tjenestes telemetri scannes hver time, medmindre **Scan telemetri** er slået fra i projektets indstillinger. Vil du udelade én tjenestes logs, spor eller et andet af dens signaler, så slå **Scan indhold** fra i det datalagers **Indstillinger**: fra næste scanning læses intet af det.
 
 :::cards
 - [Hvad der læses](#hvad-der-læses): Attributterne, brødteksterne, beskederne og prompterne i hvert signal.

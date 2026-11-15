@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Der Schlüssel bestimmt das Projekt.** Sie senden nie eine Projekt-ID: Daten, die mit einem Schlüssel gesendet werden, landen in dem Projekt, zu dem der Schlüssel gehört.
-- **Änderungen erreichen jeden Server innerhalb einer Minute.** Einen Schlüssel ausschalten, sein Geheimnis zurücksetzen oder seine Ursprünge, sein Ablaufdatum oder sein Limit ändern wirkt nach etwa einer Minute.
+- **Änderungen erreichen jeden Server innerhalb weniger Sekunden.** Einen Schlüssel ausschalten, sein Geheimnis zurücksetzen oder seine Ursprünge, sein Ablaufdatum oder sein Limit ändern wirkt auf jedem Server innerhalb weniger Sekunden.
 - **Ein Schlüssel kann eigene Budgets haben.** Ein Tagesbudget und ein Ratenlimit pro Sekunde für jedes Signal, innerhalb der Budgets seines Projekts: siehe [Ingestion-Budgets](/docs/telemetry/ingestion-budgets).
 - **Ein Server-Schlüssel ist ein Passwort.** Wer ihn hat, kann Telemetrie in Ihr Projekt senden. Bewahren Sie ihn in den Geheimnissen Ihrer Server auf, nie in der Versionsverwaltung oder auf einer Webseite.
 
@@ -139,8 +139,8 @@ Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in d
 
 Die übrigen Antworten, die ein OTLP-Exporter bekommen kann, finden Sie unter [Antworten](/docs/telemetry/open-telemetry#antworten).
 
-:::details Eine Minute nach dem Ausschalten des Schlüssels kommen noch Daten an
-Jeder OneUptime-Server merkt sich bis zu einer Minute lang, was er über einen Schlüssel weiß, daher erreicht eine Änderung alle Server innerhalb von etwa einer Minute. Anfragen danach werden abgelehnt.
+:::details Nach dem Ausschalten des Schlüssels kommen noch Daten an
+Jeder OneUptime-Server prüft mindestens einmal pro Sekunde, ob sich ein Schlüssel geändert hat, daher erreicht eine Änderung alle Server innerhalb weniger Sekunden, und Anfragen danach werden abgelehnt. Solange ein Server den Cache von OneUptime nicht erreicht, kann er bis zu einer Minute lang mit dem arbeiten, was er über den Schlüssel wusste. Ein MQTT-Client, der sich mit dem Schlüssel verbunden hat, wird innerhalb weniger Sekunden getrennt.
 :::
 
 :::details Ein Browser-Schlüssel funktioniert auf meinem Laptop, aber nicht in Produktion

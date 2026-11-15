@@ -66,7 +66,7 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Åpne issuet
 
-Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og koble utløserens punkt **Success** til den. Sett **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med eieren og navnet på repositoriet ditt. Sett **Request Headers** under **Flere felt** til:
+Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og koble utløserens punkt **Suksess** til den. Sett **URL** til `https://api.github.com/repos/your-org/your-repo/issues`, med eieren og navnet på repositoriet ditt. Sett **Forespørselshoder** under **Flere felt** til:
 
 ```json
 {
@@ -76,7 +76,7 @@ Klikk på **Legg til komponent**, legg til en blokk **API Post (JSON)**, og kobl
 }
 ```
 
-Og **Request Body** til:
+Og **Forespørselstekst** til:
 
 ```json
 {
@@ -97,11 +97,11 @@ Issuet forblir åpent når hendelsen er løst, siden oppfølgingsarbeidet vanlig
 
 - **GitHub Enterprise Server.** Send forespørselen til serveren din i stedet: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. En server på en privat nettverksadresse krever en selvdriftet OneUptime der administratoren tillater det: se [Utgående nettverkstilgang](/docs/workflows/configuration#utgående-nettverkstilgang).
 - **Tildel det.** Legg til `"assignees": ["octocat"]` eller `"milestone": 3` i bodyen. GitHub dropper etiketter, tildelte og milepæler uten et ord når tokenet ikke kan pushe til repositoriet.
-- **Bare noen hendelser.** Sett en blokk **If / Else** mellom utløseren og API-blokken, og åpne issues bare på **Yes**-siden, for eksempel for én alvorlighetsgrad.
+- **Bare noen hendelser.** Sett en blokk **If / Else** mellom utløseren og API-blokken, og åpne issues bare på **Ja**-siden, for eksempel for én alvorlighetsgrad.
 
 ## Feilsøking
 
-Trinnet **API Post (JSON)** tar **Error** når GitHub avviser forespørselen. **Response Status** og **Response Body** i kjøringen sier hvorfor.
+Trinnet **API Post (JSON)** tar **Feil** når GitHub avviser forespørselen. **Response Status** og **Svartekst** i kjøringen sier hvorfor.
 
 :::details GitHub svarer 401
 Tokenet er feil, utløpt eller tilbakekalt. Opprett et nytt, og erstatt innholdet i `GITHUB_TOKEN`.

@@ -66,7 +66,7 @@ flowchart TB
 
 ### 打开 issue
 
-点击 **添加组件**，添加一个 **API Post (JSON)** 块，然后把触发器的 **Success** 点连接到它。把它的 **URL** 设为 `https://api.github.com/repos/your-org/your-repo/issues`，并换成你的存储库的所有者和名称。在 **更多字段** 下，把它的 **Request Headers** 设为：
+点击 **添加组件**，添加一个 **API Post (JSON)** 块，然后把触发器的 **成功** 点连接到它。把它的 **URL** 设为 `https://api.github.com/repos/your-org/your-repo/issues`，并换成你的存储库的所有者和名称。在 **更多字段** 下，把它的 **请求标头** 设为：
 
 ```json
 {
@@ -76,7 +76,7 @@ flowchart TB
 }
 ```
 
-把 **Request Body** 设为：
+把 **请求主体** 设为：
 
 ```json
 {
@@ -97,11 +97,11 @@ flowchart TB
 
 - **GitHub Enterprise Server。** 改为把请求发送到你的服务器：`https://your-github-host/api/v3/repos/your-org/your-repo/issues`。位于私有网络地址上的服务器需要一个由管理员允许这样做的自托管 OneUptime：请参阅 [出站网络访问](/docs/workflows/configuration#出站网络访问)。
 - **指派它。** 在正文中添加 `"assignees": ["octocat"]` 或 `"milestone": 3`。当令牌无法推送到存储库时，GitHub 会悄无声息地丢弃标签、指派人和里程碑。
-- **只针对部分事件。** 在触发器和 API 块之间放一个 **If / Else** 块，只在它的 **Yes** 一侧打开 issue，例如只针对某一种严重程度。
+- **只针对部分事件。** 在触发器和 API 块之间放一个 **If / Else** 块，只在它的 **是** 一侧打开 issue，例如只针对某一种严重程度。
 
 ## 故障排除
 
-当 GitHub 拒绝请求时，**API Post (JSON)** 步骤会走 **Error**。运行中的 **Response Status** 和 **Response Body** 会说明原因。
+当 GitHub 拒绝请求时，**API Post (JSON)** 步骤会走 **错误**。运行中的 **Response Status** 和 **响应主体** 会说明原因。
 
 :::details GitHub 返回 401
 令牌错误、已过期或已被吊销。请创建一个新令牌，并替换 `GITHUB_TOKEN` 的内容。
