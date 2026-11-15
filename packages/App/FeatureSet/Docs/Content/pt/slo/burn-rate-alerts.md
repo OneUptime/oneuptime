@@ -235,7 +235,7 @@ Por exemplo, o título `{{ruleName}}: {{sloName}} is burning {{longWindowBurnRat
 - **Adicionar proprietários do SLO como proprietários** também adiciona os proprietários do SLO, seus usuários proprietários e os membros das equipes proprietárias, a tudo o que a regra cria. Os proprietários do SLO já ficam sabendo das mudanças de status do próprio SLO, então isso pode avisá-los duas vezes. Fica desligado por padrão.
 - Cada proprietário é adicionado uma vez: um usuário que já é proprietário do alerta ou do incidente, por exemplo pelas regras de proprietários do projeto, ou que está em uma equipe proprietária adicionada, não é adicionado de novo.
 - **Rótulos de alerta** e **Rótulos de incidentes** são adicionados ao alerta ou ao incidente, para que filtros, regras de proprietários e regras de notificação do workspace possam corresponder a eles.
-- Um alerta ou incidente privado só é visível para seus proprietários, para os administradores do projeto e para os proprietários do projeto.
+- Um alerta ou incidente privado só é visível para seus proprietários, para os Administradores do projeto e para os Proprietários do projeto.
 
 Rótulos, equipes proprietárias e políticas de plantão precisam pertencer ao projeto do SLO.
 

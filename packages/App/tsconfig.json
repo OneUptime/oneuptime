@@ -25,7 +25,8 @@
     // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
     /* Language and Environment */
-    "target": "es2017" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    // ES2018 or later, below ES2022: a spread then keeps a key named __proto__ (Common/Tests/Dependencies/TypeScriptTargets.test.ts).
+    "target": "es2018" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
     // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     "jsx": "react" /* Specify what JSX code is generated. */,
     "experimentalDecorators": true /* Enable experimental support for TC39 stage 2 draft decorators. */,
@@ -148,6 +149,12 @@
     // React Native publishes ambient platform globals that conflict with the
     // Node.js services compiled by App. The recorder is a standalone package
     // with its own strict tsconfig and dedicated compile workflow.
-    "FeatureSet/MobileRecorder"
+    "FeatureSet/MobileRecorder",
+    // The App's tests are type-checked as programs of their own
+    // (tsconfig.tests.json, in the parts scripts/compile-tests.js runs;
+    // `npm run compile` runs both). Sources and tests as one program
+    // outgrew the compile's 8 GiB heap on 2026-11-15 (16,441 files, about
+    // 9.7 GB, #8503); the sources alone use about 5.4 GB.
+    "Tests"
   ]
 }

@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - Microsoft Defender XDR のライセンスを持つ Microsoft Entra テナント。Defender for Endpoint、for Identity、for Office 365、for Cloud Apps など、Microsoft Defender ポータルにオンボードされた任意の Defender ワークロード。
 - アプリケーション管理者など、アプリケーションを登録できる Entra ロールと、管理者の同意を付与するためのグローバル管理者または特権ロール管理者。
 - OneUptime のアプリと worker から `login.microsoftonline.com` と `graph.microsoft.com`、Azure Government の場合は `login.microsoftonline.us` と `graph.microsoft.us` への送信 HTTPS。

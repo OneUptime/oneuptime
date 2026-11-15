@@ -104,7 +104,9 @@ Sobald eine Warnung erstellt wird, arbeitet OneUptime diese Schritte in dieser R
 7. **Gruppierungsregeln fügen sie einer Episode hinzu**, wenn eine zutrifft. Siehe [Warnungsepisoden & Gruppierungsregeln](/docs/alerts/episodes).
 8. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel zutrifft, und **OneUptime AI** untersucht die Warnung, wenn **Neue Warnungen untersuchen** unter **Warnungen → KI → Einstellungen** eingeschaltet ist, und behebt sie, wenn **Neue Warnungen automatisch beheben** eingeschaltet ist. Siehe [AI SRE](/docs/ai/ai-sre).
 
-Ein Hintergrundjob informiert die Eigentümer der Warnung innerhalb einer Minute, und der Workflow-Auslöser **On Create Alert** startet jeden Workflow, der darauf aufbaut.
+Ein Hintergrundjob informiert die Eigentümer der Warnung etwa eine Minute nach ihrer Erstellung, jeden Eigentümer, den sie bis dahin hat, und der Workflow-Auslöser **On Create Alert** startet jeden Workflow, der darauf aufbaut.
+
+Um Personen und Teams schon beim Erstellen zu Eigentümern der Warnung zu machen, damit diese Benachrichtigung sie erreicht und nicht die Eigentümer des Projekts, übergeben Sie sie mit der Erstellung: über die API senden Sie ihre IDs in `miscDataProps`, als `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, mit `POST /api/alert`; in einem Workflow wählen Sie sie unter **Eigentümer-Benutzer** und **Eigentümer-Teams** von **Create One Alert**; über MCP geben Sie `ownerUsers` und `ownerTeams` an `create_alert`. Eine Anfrage, deren Aufrufer diese Eigentümer nicht hinzufügen darf, wird abgelehnt, bevor etwas gespeichert wird. Eigentümer, die eine eigene Anfrage nach der Erstellung hinzufügt, erfahren davon nur, wenn sie innerhalb dieser Minute hinzugefügt werden.
 
 ### Bereits bestätigt oder behoben erstellt
 
@@ -159,7 +161,7 @@ Eine Episode, die eine private Warnung öffnet, ist nicht privat und zeigt desha
 ## Wer von einer Warnung erfährt
 
 - **Die Bereitschaft.** Die Bereitschaftsrichtlinien der Warnung alarmieren ihre Personen, jede so, wie sie es unter **Benutzereinstellungen → Wie ich erreichbar bin** auf dem Tab **Warnungen** eingerichtet hat. Wer auf die Alarmierung antwortet, bestätigt die Warnung, und die Alarmierung endet.
-- **Ihre Eigentümer.** Per E-Mail, sofern sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen** keine anderen Kanäle gewählt haben: **Warnung erstellt**, **Warnungsstatus geändert** und **Warnungserinnerung** sind standardmäßig eingeschaltet, **Warnungsnotiz veröffentlicht** und **Als Eigentümer der Warnung hinzugefügt** sind aus, bis jemand sie einschaltet. Eine Warnung ohne Eigentümer benachrichtigt stattdessen die Eigentümer des Projekts.
+- **Ihre Eigentümer.** Per E-Mail, sofern sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen** keine anderen Kanäle gewählt haben: **Warnung erstellt**, **Warnungsstatus geändert** und **Warnungserinnerung** sind standardmäßig eingeschaltet, **Warnungsnotiz veröffentlicht** und **Als Eigentümer der Warnung hinzugefügt** sind aus, bis jemand sie einschaltet. Eine Warnung ohne Eigentümer benachrichtigt stattdessen die Eigentümer des Projekts. Hält OneUptime an, während es eine Benachrichtigung sendet, bekommen die Personen, zu denen es noch nicht gekommen war, sie, sobald OneUptime wieder läuft, ein paar Minuten später, und niemand bekommt sie zweimal.
 - **Ihre Chat-Werkzeuge.** **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten. Siehe [Slack](/docs/workspace-connections/slack) und [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Fehlerbehebung
@@ -173,7 +175,7 @@ Ein Kriterium hält jeweils eine offene Warnung. Bis diese behoben ist, fügt de
 :::
 
 :::details Eine Kollegin kann eine Warnung öffnen, die ich nicht finde
-Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projekt-Admin, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
+Die Warnung ist wahrscheinlich privat. Bitten Sie einen Projektadministrator, Sie als Eigentümer hinzuzufügen oder **Private Warnung** auf der Seite **Einstellungen** der Warnung auszuschalten.
 :::
 
 ## Nächste Schritte

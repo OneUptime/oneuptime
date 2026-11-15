@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - ドメイン全体の委任を許可するための Google Workspace の特権管理者と、サービスアカウントが代わりに動作する、Reports 権限を持つ管理者。特権管理者はこの権限を持っています。
 - サービスアカウントを作成し、Admin SDK API をオンにできる Google Cloud プロジェクト。
 - ドライブのアクティビティには、Business Standard、Business Plus、Enterprise、Education など、ドライブの監査ログがあるエディション。

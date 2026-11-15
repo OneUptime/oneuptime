@@ -31,7 +31,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的日志或 Span。** 请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。
-- **能够修改遥测设置的角色。** Project Owner 或 Project Admin，或者拥有你所修改内容的权限（例如 Create Log Drop Filter 或 Create Trace Scrub Rule）的自定义角色。Telemetry 角色可以查看过滤器和规则，但不能修改它们。
+- **能够修改遥测设置的角色。** 项目所有者或项目管理员，或者拥有你所修改内容的权限（例如 Create Log Drop Filter 或 Create Trace Scrub Rule）的自定义角色。Telemetry 角色可以查看过滤器和规则，但不能修改它们。
 
 ## 丢弃或采样记录
 

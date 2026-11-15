@@ -163,7 +163,7 @@ return { host };
 
 ## トリガーを設定できるユーザー
 
-スケジュールや Webhook は人がいなくても実行を開始するため、設定するには Runbook を編集する権限と実行する権限が必要です。Project Owner、Project Admin、Runbook Admin、または **Edit Runbook** に加えて Project Member、Runbook Member、 **Create Runbook Execution** のいずれかです。 **今すぐ実行** と同じく、ロールが限定されているラベルも考慮されます。Webhook URL の表示やリセットにも同じ権限が必要です。
+スケジュールや Webhook は人がいなくても実行を開始するため、設定するには Runbook を編集する権限と実行する権限が必要です。プロジェクト所有者、プロジェクト管理者、Runbook 管理者、または **Edit Runbook** に加えてプロジェクトメンバー、Runbook メンバー、 **Create Runbook Execution** のいずれかです。 **今すぐ実行** と同じく、ロールが限定されているラベルも考慮されます。Webhook URL の表示やリセットにも同じ権限が必要です。
 
 スケジュールや Webhook をオフにしても何も開始されないため、Runbook を編集する権限だけで行えます。Runbook を編集できても実行できないユーザーには、 **スケジュールを設定** がロックされた **トリガー** ページが表示され、Webhook URL を表示できるのは誰かが案内されます。
 
@@ -178,7 +178,7 @@ Runbook がオフになっているか、ステップがありません。どち
 :::
 
 :::details スケジュールの保存が "You do not have permission to set up this runbook's schedule or webhook." で失敗する
-トリガーを設定するには、Runbook を編集する権限に加えて実行する権限が必要です。Runbook Admin を依頼するか、 **Edit Runbook** に加えて Runbook Member または **Create Runbook Execution** を依頼してください。
+トリガーを設定するには、Runbook を編集する権限に加えて実行する権限が必要です。Runbook 管理者を依頼するか、 **Edit Runbook** に加えて Runbook メンバーまたは **Create Runbook Execution** を依頼してください。
 :::
 
 :::details 呼び出しに "No runbook webhook answers at this URL." と応答される

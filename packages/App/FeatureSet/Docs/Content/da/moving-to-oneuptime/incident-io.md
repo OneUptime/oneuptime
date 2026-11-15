@@ -25,7 +25,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
+- **Et OneUptime-projekt og retten til at oprette det, du overfører.** Projektejere og Projektadministratorer kan overføre alt. Andre roller kan også køre en import og overføre de typer poster, de må oprette. Resten vises som ikke overført, med årsagen.
 - **En incident.io-API-nøgle, der kun kan se data.** Importen skriver aldrig til incident.io, så nøglen behøver ingen tilladelse til at oprette, redigere eller administrere noget.
 
 ## Importér din incident.io-konto
@@ -68,7 +68,7 @@ En rotation med flere personer på vagt samtidig bliver én OneUptime-vagtplan p
 ## Hvad overføres ikke
 
 - **Hændelser, alarmer og deres historik.** OneUptime starter med din opsætning, ikke med dine tidligere hændelser.
-- **Workflows, statussider, alert routes og integrationer.** Ret i stedet dine monitorer og alarmkilder mod OneUptime, som beskrevet i [Gør skiftet færdigt](#gør-skiftet-færdigt).
+- **Arbejdsgange, statussider, alert routes og integrationer.** Ret i stedet dine monitorer og alarmkilder mod OneUptime, som beskrevet i [Gør skiftet færdigt](#gør-skiftet-færdigt).
 - **Brugerdefinerede felter, hvis valgmuligheder kommer fra kataloget,** og statusser, som OneUptime ikke har en tilstand for: declined, merged, canceled og learning.
 - **Overstyringer af vagtplaner og ændringer af en rotation, der er planlagt til senere.** Forhåndsvisningen nævner hver planlagt ændring, så du kan foretage den i OneUptime, når den skal ske.
 - **Eskaleringstrin, som OneUptime ikke har et præcist modstykke til.** Et trin, der skriver i en Slack- eller Microsoft Teams-kanal, udelades, fordi arbejdsområdets notifikationsregler gør det i OneUptime, og det samme gælder et trin, der giver videre til en anden eskaleringssti. Et trin, der tilkalder den, der har vagt næste gang, overføres som det nærmeste, OneUptime har, og forhåndsvisningen fortæller, hvad der ændres.
@@ -79,7 +79,7 @@ En rotation med flere personer på vagt samtidig bliver én OneUptime-vagtplan p
 
 I OneUptime Cloud vises poster, som dit abonnement ikke omfatter, som ikke overført, med det abonnement, de kræver.
 
-En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan markere elementer og starte importen. Projektejere og projektadministratorer ser forløbet og rapporten for hver import.
+En forhåndsvisning gemmes i en dag. Kun den person, der læste kontoen, kan markere elementer og starte importen. Projektejere og Projektadministratorer ser forløbet og rapporten for hver import.
 
 ## Gør skiftet færdigt
 

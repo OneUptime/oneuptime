@@ -1,6 +1,6 @@
 # Panoramica dei Runbook
 
-Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta. Per scegliere tra un runbook, un workflow, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#workflow-runbook-playbook-o-regola-ia).
+Un runbook è una procedura di risposta riutilizzabile: un elenco ordinato di passaggi manuali e automatici che esegui su un incidente, un avviso o un evento di manutenzione. Trasforma il thread «e adesso che facciamo?» in una checklist che chiunque sia reperibile può seguire alle 3 di notte, con script, chiamate API e approvazioni già scritti. I runbook sono pensati per gli ingegneri reperibili che rispondono agli incidenti e per i team di piattaforma che automatizzano quella risposta. Per scegliere tra un runbook, un flusso di lavoro, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#flussi-di-lavoro-runbook-playbook-o-regola-ia).
 
 :::cards
 - [Scrivere un runbook](/docs/runbooks/authoring): Creare un runbook e scriverne i passaggi.

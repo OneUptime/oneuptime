@@ -37,7 +37,7 @@ flowchart TB
 ## 시작하기 전에
 
 - 서비스가 OneUptime으로 트레이스를 보내고 있어야 합니다. [OpenTelemetry](/docs/telemetry/open-telemetry)를 참고하세요. 각 서비스는 `service.name` 으로 [서비스 카탈로그](/docs/telemetry/services)에 등록되어 있습니다.
-- SLO를 만들 수 있는 역할이 필요합니다. Project Owner, Project Admin, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
+- SLO를 만들 수 있는 역할이 필요합니다. 프로젝트 소유자, 프로젝트 관리자, 또는 Create Service Level Objective 권한이 있는 사용자 지정 역할입니다.
 
 ## 요청 SLO 만들기
 
@@ -59,7 +59,7 @@ flowchart TB
 첫 평가는 5분 안에 이루어지며 최근 6시간의 요청을 세므로, SLO에 바로 숫자가 나타납니다. 그 뒤의 평가는 준수 기간이 다 채워질 때까지 더 오래된 요청도 셉니다.
 :::
 
-나중에 SLO의 측정 대상, 서비스, 임계값을 바꾸려면 SLO의 **설정** 을 열고 **측정 대상 편집** 을 클릭합니다.
+서비스 자체의 **SLOs** 페이지에는 그 서비스를 측정하는 SLO가 표시되며, 그곳의 **Service Level Objective 만들기** 는 서비스가 이미 선택된 같은 양식을 엽니다. 나중에 SLO의 측정 대상, 서비스, 임계값을 바꾸려면 SLO의 **설정** 을 열고 **측정 대상 편집** 을 클릭합니다.
 
 ## 요청을 세는 방식
 
@@ -86,7 +86,7 @@ OneUptime은 각 SLO의 좋은 요청과 전체 요청을 5분 단위로 세고 
 
 ## 문제 해결
 
-:::details SLO에 Waiting for requests가 표시됩니다
+:::details SLO에 요청 대기 중가 표시됩니다
 아직 기간 안에 요청을 처리한 서비스가 하나도 없습니다. 서비스가 OneUptime으로 트레이스를 보내는지, 그리고 스팬에 진입 스팬이 포함되어 있는지 확인하세요. 스팬이 모두 내부 스팬인 서비스에는 셀 요청이 없습니다.
 :::
 

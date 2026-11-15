@@ -41,7 +41,7 @@ Una firma a cui resta meno di un giorno conta già come interrotta, quindi lo sa
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una zona firmata.** La zona deve essere firmata, e il suo record DS pubblicato nella zona padre tramite il vostro registrar.
 - **DNS in uscita dalla sonda** verso i resolver che indicate e, per il controllo di coerenza dei nameserver, verso i nameserver autorevoli della zona. Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor.
 

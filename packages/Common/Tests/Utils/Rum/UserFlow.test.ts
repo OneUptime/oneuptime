@@ -284,6 +284,60 @@ describe("page keys", () => {
     expect(spansMultipleHosts([])).toBe(false);
   });
 
+  /*
+   * #8384: a React Native screen is "app://<app id>/<route>". The scrubber
+   * stored it as "null/<route>" until then, which keyed every mobile page
+   * "/null/...", apart from the same screen recorded since.
+   */
+  test("a mobile screen is one page, recorded before or after its app id was kept", () => {
+    const pathOnly: { groupDynamicSegments: boolean; includeHost: boolean } = {
+      groupDynamicSegments: false,
+      includeHost: false,
+    };
+
+    expect(
+      toUserFlowPageKey("app://com.example.shop/Checkout/42", pathOnly),
+    ).toBe("/Checkout/42");
+    expect(toUserFlowPageKey("null/Checkout/42", pathOnly)).toBe(
+      "/Checkout/42",
+    );
+    expect(toUserFlowPageKey("null/", pathOnly)).toBe("/");
+    expect(
+      toUserFlowPageKey("null/Orders/123", {
+        groupDynamicSegments: true,
+        includeHost: false,
+      }),
+    ).toBe("/Orders/:id");
+
+    // With the host, the app's id tells two apps apart; a lost one has none.
+    expect(
+      toUserFlowPageKey("app://com.example.shop/Home", {
+        groupDynamicSegments: false,
+        includeHost: true,
+      }),
+    ).toBe("com.example.shop/Home");
+    expect(
+      toUserFlowPageKey("null/Home", {
+        groupDynamicSegments: false,
+        includeHost: true,
+      }),
+    ).toBe("/Home");
+    expect(
+      spansMultipleHosts(["null/Home", "app://com.example.shop/Home"]),
+    ).toBe(false);
+    expect(
+      spansMultipleHosts([
+        "app://com.example.shop/Home",
+        "app://com.example.admin/Home",
+      ]),
+    ).toBe(true);
+
+    // A page whose own path starts "/null" is still that page.
+    expect(toUserFlowPageKey("https://a.example.com/null/x", pathOnly)).toBe(
+      "/null/x",
+    );
+  });
+
   test("the session-list prefix widens a grouped key to its static head", () => {
     expect(toSessionListUrlPrefix("/cart")).toBe("/cart");
     expect(toSessionListUrlPrefix("/orders/:id")).toBe("/orders/");

@@ -37,7 +37,7 @@ Derfra fungerer et anmodnings-SLO som ethvert andet SLO. Dets status, forbrugsra
 ## Før du begynder
 
 - Tjenesterne sender spor til OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Hver af dem findes i [tjenestekataloget](/docs/telemetry/services) under sit `service.name`.
-- En rolle, der må oprette SLO'er: Project Owner, Project Admin eller en tilpasset rolle med tilladelsen Create Service Level Objective.
+- En rolle, der må oprette SLO'er: Projektejer, Projektadministrator eller en tilpasset rolle med tilladelsen Create Service Level Objective.
 
 ## Opret et anmodnings-SLO
 
@@ -59,7 +59,7 @@ Angiv et **Navn**, for eksempel "Checkout requests", og et **Mål (%)**: den and
 Den første evaluering, inden for 5 minutter, tæller anmodningerne fra de seneste 6 timer, så SLO'et har tal med det samme. De efterfølgende evalueringer tæller også ældre anmodninger, indtil hele compliancevinduet er dækket.
 :::
 
-Vil du senere ændre, hvad et SLO måler, dets tjenester eller dets grænse, skal du åbne dets **Indstillinger** og klikke på **Rediger, hvad det måler**.
+En tjenestes egen side **SLOs** viser de SLO'er, der måler den, og dens **Opret Service Level Objective** åbner den samme formular med tjenesten allerede valgt. Vil du senere ændre, hvad et SLO måler, dets tjenester eller dets grænse, skal du åbne dets **Indstillinger** og klikke på **Rediger, hvad det måler**.
 
 ## Sådan tælles anmodninger
 
@@ -86,7 +86,7 @@ Et anmodnings-SLO får de samme regler, **Fast burn**, **Slow burn** og **Slow l
 
 ## Fejlfinding
 
-:::details SLO'et viser Waiting for requests
+:::details SLO'et viser Venter på anmodninger
 Ingen af SLO'ets tjenester har besvaret en anmodning i vinduet endnu. Tjek, at tjenesterne sender spor til OneUptime, og at deres spans omfatter indgangsspans: En tjeneste, hvis spans alle er interne, har ingen anmodninger at tælle.
 :::
 

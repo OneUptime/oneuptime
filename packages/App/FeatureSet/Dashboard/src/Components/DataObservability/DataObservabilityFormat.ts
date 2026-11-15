@@ -37,7 +37,7 @@ export function formatSize(bytes: number | null | undefined): string {
 
   const digits: number = value >= 100 || unit === 0 ? 0 : 1;
 
-  return `${value.toFixed(digits)} ${BYTE_UNITS[unit]}`;
+  return `${value.toFixed(digits)}\u00A0${BYTE_UNITS[unit]}`;
 }
 
 // "about every 5 minutes", from a learned interval in seconds.

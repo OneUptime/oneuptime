@@ -606,7 +606,7 @@ Um die Monitore des Ereignisses während seiner Dauer in einen Status zu versetz
 
 ## Probes
 
-Eine eigene Probe führt Prüfungen aus Ihrem Netzwerk aus. Geben Sie ihr einen Namen, und OneUptime erzeugt ihren `key`, das Geheimnis, mit dem sich die Probe anmeldet. Terraform hält den Schlüssel aus Plänen und Logs heraus, und eine Ausgabe davon muss als sensibel markiert sein:
+Eine eigene Sonde führt Prüfungen aus Ihrem Netzwerk aus. Geben Sie ihr einen Namen, und OneUptime erzeugt ihren `key`, das Geheimnis, mit dem sich die Sonde anmeldet. Terraform hält den Schlüssel aus Plänen und Logs heraus, und eine Ausgabe davon muss als sensibel markiert sein:
 
 ```hcl
 resource "oneuptime_probe" "eu_west" {
@@ -622,7 +622,7 @@ output "eu_west_probe_key" {
 }
 ```
 
-Starten Sie die Probe mit `PROBE_ID` auf die `id` der Probe und `PROBE_KEY` auf den Schlüssel gesetzt, den `terraform output -raw eu_west_probe_key` ausgibt: siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe). Um den Schlüssel selbst zu wählen, setzen Sie `key` aus einer sensiblen Variablen. Die End-to-End-Tests `23-probe-crud` und `61-name-only-and-choices` wenden Probes an.
+Starten Sie die Sonde mit `PROBE_ID` auf die `id` der Sonde und `PROBE_KEY` auf den Schlüssel gesetzt, den `terraform output -raw eu_west_probe_key` ausgibt: siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe). Um den Schlüssel selbst zu wählen, setzen Sie `key` aus einer sensiblen Variablen. Die End-to-End-Tests `23-probe-crud` und `61-name-only-and-choices` wenden Sonden an.
 
 ## Nächste Schritte
 

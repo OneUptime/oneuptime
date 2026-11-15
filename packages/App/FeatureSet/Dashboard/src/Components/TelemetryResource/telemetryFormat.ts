@@ -1,100 +1,96 @@
 import { Translator } from "Common/Types/Translator";
+import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import {
+  formatDurationInUnit,
   formatMilliseconds,
-  formatMillisecondsInEnglish,
-  MillisecondsOptions,
 } from "../../Utils/Milliseconds";
 /*
  * Number formatting for the telemetry overview pages. Pure and import-free,
  * so React-free helpers (and the node tests that exercise them) can share
  * the exact wording the tiles show. telemetryMetrics.ts re-exports these.
+ *
+ * Each figure is written as English writes it - "1.2k", "2.5%", "1.5 GiB",
+ * exactly as every test pins it - and, handed the reader's translator, in
+ * their digits, decimal sign and percent sign with its scale letter and
+ * unit kept: "1,2k", "2,5 %", "1,5 GiB" in German, "۱٫۲k", "۲٫۵٪" in
+ * Persian, Latin digits in Arabic. The Requests, Error rate and Memory
+ * tiles of a service's, a function's, a site's and a cloud app's Overview
+ * read in Latin digits beside a p95 tile and charts in the reader's
+ * (#8481, Docs/ux/README.md#numbers-dates-and-plurals).
  */
-
-export const formatCompact: (n: number | null) => string = (
-  n: number | null,
+const inLanguage: (english: string, translator?: Translator) => string = (
+  english: string,
+  translator?: Translator,
 ): string => {
+  return translator
+    ? writeFigureInLanguage(english, translator.language)
+    : english;
+};
+
+export const formatCompact: (
+  n: number | null,
+  translator?: Translator,
+) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
     return "—";
   }
   if (n < 1000) {
-    return String(Math.round(n));
+    return inLanguage(String(Math.round(n)), translator);
   }
   if (n < 1_000_000) {
-    return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    return inLanguage(
+      `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`,
+      translator,
+    );
   }
-  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  return inLanguage(
+    `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`,
+    translator,
+  );
 };
 
-export const formatPercent: (n: number | null) => string = (
+export const formatPercent: (
   n: number | null,
-): string => {
+  translator?: Translator,
+) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
     return "—";
   }
-  return `${n.toFixed(1)}%`;
+  return inLanguage(`${n.toFixed(1)}%`, translator);
 };
 
 /*
  * A span's duration in the unit that reads best ("850 µs", "12 ms", "1.25
- * s"). Its milliseconds are written by `writeMilliseconds`: the reader's
- * words on a tile (formatDurationMsInLanguage), English on a chart's value
- * axis (formatDurationMs).
- */
-const writeDurationMs: (
-  ms: number | null,
-  writeMilliseconds: (
-    milliseconds: number,
-    options: MillisecondsOptions,
-  ) => string,
-) => string = (
-  ms: number | null,
-  writeMilliseconds: (
-    milliseconds: number,
-    options: MillisecondsOptions,
-  ) => string,
-): string => {
-  if (ms === null || !Number.isFinite(ms)) {
-    return "—";
-  }
-  if (ms < 1) {
-    return `${(ms * 1000).toFixed(0)} µs`;
-  }
-  if (ms < 1000) {
-    // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
-    const decimals: number = ms < 10 ? 1 : 0;
-
-    return writeMilliseconds(ms, {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  }
-  return `${(ms / 1000).toFixed(2)} s`;
-};
-
-/*
- * A duration on a chart's value axis and in its tooltip: Latin digits and
- * the short "ms", as every chart's value axis writes its figures.
- */
-export const formatDurationMs: (ms: number | null) => string = (
-  ms: number | null,
-): string => {
-  return writeDurationMs(ms, formatMillisecondsInEnglish);
-};
-
-/*
- * A duration on a tile, in a row or in a sentence: its milliseconds in the
- * reader's language ("12 ms", "۱۲ میلی‌ثانیه", "12 ملي ث"; issue #7418).
+ * s"), in the reader's language: "۱۲ میلی‌ثانیه", "12 ملي ث", "1,25 Sek."
+ * (issue #7418). On a tile, in a row, in a sentence, and on a chart's value
+ * axis and in its tooltip alike, which write their figures as the tiles
+ * beside them do (#8349): there is no English-only variant to reach for.
+ * English reads exactly as it always did.
  */
 export const formatDurationMsInLanguage: (
   ms: number | null,
   translator: Translator,
 ) => string = (ms: number | null, translator: Translator): string => {
-  return writeDurationMs(
-    ms,
-    (milliseconds: number, options: MillisecondsOptions): string => {
-      return formatMilliseconds(translator, milliseconds, options);
-    },
-  );
+  if (ms === null || !Number.isFinite(ms)) {
+    return "—";
+  }
+  if (ms < 1) {
+    return formatDurationInUnit(translator, ms * 1000, "microsecond", {
+      decimals: 0,
+    });
+  }
+  if (ms < 1000) {
+    // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
+    const decimals: number = ms < 10 ? 1 : 0;
+
+    return formatMilliseconds(translator, ms, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return formatDurationInUnit(translator, ms / 1000, "second", {
+    decimals: 2,
+  });
 };
 
 /*
@@ -130,12 +126,16 @@ export const getBytesReading: (bytes: number) => BytesReading = (
   };
 };
 
-export const formatBytes: (bytes: number | null) => string = (
+export const formatBytes: (
   bytes: number | null,
-): string => {
+  translator?: Translator,
+) => string = (bytes: number | null, translator?: Translator): string => {
   if (bytes === null || !Number.isFinite(bytes)) {
     return "—";
   }
   const reading: BytesReading = getBytesReading(bytes);
-  return `${reading.value.toFixed(reading.decimals)} ${reading.unit}`;
+  return inLanguage(
+    `${reading.value.toFixed(reading.decimals)} ${reading.unit}`,
+    translator,
+  );
 };

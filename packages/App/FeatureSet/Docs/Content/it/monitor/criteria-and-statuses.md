@@ -176,7 +176,7 @@ Trascinate lo stato per la sua maniglia. Uno stato più in basso nell'elenco con
 Uno stato non fa nulla finché un criterio non vi porta dei monitor. Sceglietelo in **Cambia lo stato del monitor in** nel criterio che deve impostarlo.
 :::
 
-Gli stati operativo e offline sono contrassegnati come **Integrato**: potete rinominarli e cambiarne il colore, ma non eliminarli. Su OneUptime Cloud, creare o modificare uno stato richiede il piano Growth. Gestire gli stati richiede il ruolo Project Owner, Project Admin o Monitor Admin, oppure un ruolo personalizzato con il permesso corrispondente per gli stati dei monitor.
+Gli stati operativo e offline sono contrassegnati come **Integrato**: potete rinominarli e cambiarne il colore, ma non eliminarli. Su OneUptime Cloud, creare o modificare uno stato richiede il piano Growth. Gestire gli stati richiede il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore dei monitor, oppure un ruolo personalizzato con il permesso corrispondente per gli stati dei monitor.
 
 ### La cronologia degli stati
 

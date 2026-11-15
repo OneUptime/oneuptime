@@ -77,7 +77,7 @@ describe("AI SRE: a failed Auto Recharge shows on AI Credits", () => {
   test("AI Credits says so at the top, with what to do or who can", () => {
     expect(AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS).toBe(60 * 60);
     expect(page).toContain(
-      "Until then **AI Credits** says so at the top, to everyone who opens it: a project owner or someone with **Manage Billing** is asked to check the payment method or add credits, and everyone else is told who can.",
+      "Until then **AI Credits** says so at the top, to everyone who opens it: a Project Owner or someone with **Manage Billing** is asked to check the payment method or add credits, and everyone else is told who can.",
     );
   });
 });

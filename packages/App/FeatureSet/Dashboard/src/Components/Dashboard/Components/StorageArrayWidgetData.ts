@@ -20,7 +20,10 @@ import {
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
 import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -172,10 +175,9 @@ function writeFigure(
  * Pure reports latency in microseconds. Below a millisecond the µs figure is
  * the readable one ("420 µs"); from a millisecond up, milliseconds are
  * ("2.35 ms"). Given a translator, the figure is in its reader's digits and
- * decimal sign, as a drive's size and a temperature are (#7521), and its
- * milliseconds are the Dashboard's duration in the reader's words ("2,35
- * ms", "۲٫۳۵ میلی‌ثانیه": #7418); the microseconds keep the symbol every
- * language writes, as TiB is.
+ * decimal sign, as a drive's size and a temperature are (#7521), and both
+ * units are the Dashboard's duration in the reader's words ("420 µs",
+ * "۴۲۰ میکروثانیه", "2,35 ms", "۲٫۳۵ میلی‌ثانیه": #7418, #8348).
  */
 export function formatLatencyUsec(
   value: unknown,
@@ -186,7 +188,10 @@ export function formatLatencyUsec(
     return "—";
   }
   if (numeric < 1000) {
-    return `${writeFigure(Math.round(numeric), 0, translator)} µs`;
+    return formatDurationInUnit(translator || ENGLISH, numeric, "microsecond", {
+      decimals: 0,
+      dropTrailingZeros: true,
+    });
   }
   return formatMilliseconds(translator || ENGLISH, numeric / 1000, {
     minimumFractionDigits: 2,
@@ -324,7 +329,7 @@ export function formatStorageBytes(
         language: translator.language,
       })
     : scaled.toFixed(decimals);
-  return `${figure} ${units[unitIndex]}`;
+  return `${figure}\u00A0${units[unitIndex]}`;
 }
 
 /*
@@ -655,7 +660,7 @@ export function getHardwareDetail(
       input.temperatureCelsius,
     );
     if (temperature !== undefined) {
-      parts.push(`${translator.formatNumber(Math.round(temperature))} °C`);
+      parts.push(`${translator.formatNumber(Math.round(temperature))}\u00A0°C`);
     }
   }
 

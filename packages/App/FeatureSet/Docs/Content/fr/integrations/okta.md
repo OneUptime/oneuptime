@@ -23,7 +23,7 @@ Chaque minute, OneUptime interroge chaque connexion activée dont l'intervalle d
 
 ## Avant de commencer
 
-- Dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
+- Dans OneUptime, le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
 - Un administrateur Okta qui peut voir le System Log, pour créer le jeton. Un jeton peut faire ce que peut son administrateur : utilisez donc un Read-only Administrator, qui lit le System Log et ne modifie rien. Un administrateur en lecture seule voit aussi les utilisateurs, les groupes, les applications et les paramètres : gardez donc le jeton aussi précieusement qu'un mot de passe.
 - Idéalement, un compte de service pour cet administrateur. Okta désactive un jeton quand son administrateur est désactivé, et quand il reste 30 jours inutilisé. L'interrogation l'utilise toutes les quelques minutes, il reste donc utilisé tant que la connexion est activée.
 - Si votre organisation n'accepte les appels d'API que depuis une zone réseau, une zone qui contient les adresses depuis lesquelles OneUptime appelle : sur OneUptime Cloud, ses adresses sortantes, et sur une installation auto-hébergée, l'adresse publique de vos hôtes d'application et de workers.

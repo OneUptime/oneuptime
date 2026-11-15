@@ -144,11 +144,11 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 
 ## 볼 수 있는 사람
 
-이 페이지들을 읽으려면 세션 목록을 읽을 때와 같은 권한이 필요합니다: `ReadRumSessionReplay` (_List Session Replays_) 또는 `ReadRumSessionReplayPayload` (_Watch Session Replays_)이며, 프로젝트 소유자와 관리자가 가지고 있습니다. 로그인한 사용자가 누구인지 보고 이름으로 사람을 검색하려면 [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에 설명된 대로 `ReadRumSessionReplayPayload` (_Watch Session Replays_) 권한이 필요합니다.
+이 페이지들을 읽으려면 세션 목록을 읽을 때와 같은 권한이 필요합니다: `ReadRumSessionReplay` (_List Session Replays_) 또는 `ReadRumSessionReplayPayload` (_Watch Session Replays_)이며, 프로젝트 소유자와 프로젝트 관리자가 가지고 있습니다. 로그인한 사용자가 누구인지 보고 이름으로 사람을 검색하려면 [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에 설명된 대로 `ReadRumSessionReplayPayload` (_Watch Session Replays_) 권한이 필요합니다.
 
 저장된 퍼널과 리텐션 표를 저장하고, 이름을 바꾸고, 삭제하려면 이 페이지들을 읽을 때와 같은 권한이 필요하며, 대시보드 위젯은 그 권한이 있는 사람에게만 그것을 보여 줍니다.
 
-이벤트를 켜거나 끄려면 `EditRumApplication` (_Edit RUM Application_) 또는 프로젝트 소유자, 관리자, 멤버 역할이 필요합니다. 사용자 속성을 나열하려면 `EditRumApplication` 또는 소유자나 관리자 역할이 필요합니다. 로그인한 사람에 대해 무엇을 보관할지 정하기 때문입니다.
+이벤트를 켜거나 끄려면 `EditRumApplication` (_Edit RUM Application_) 또는 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원 역할이 필요합니다. 사용자 속성을 나열하려면 `EditRumApplication` 또는 소유자나 관리자 역할이 필요합니다. 로그인한 사람에 대해 무엇을 보관할지 정하기 때문입니다.
 
 ## 다음 단계
 

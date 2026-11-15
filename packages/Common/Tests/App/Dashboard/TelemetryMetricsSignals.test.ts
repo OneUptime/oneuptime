@@ -76,7 +76,7 @@ import {
   fetchWebVitals,
   formatBytes as reexportedFormatBytes,
   formatCompact as reexportedFormatCompact,
-  formatDurationMs as reexportedFormatDurationMs,
+  formatDurationMsInLanguage as reexportedFormatDurationMs,
   formatPercent as reexportedFormatPercent,
   LogAndExceptionSignals,
   RawHistogramBucket,
@@ -92,7 +92,7 @@ import {
 import {
   formatBytes,
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -110,6 +110,14 @@ import {
   WebVitalRouteAttributeKeys,
 } from "../../../Types/Rum/WebVitals";
 import { APP_API_URL } from "../../../UI/Config";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "../../../Types/Translator";
+
+// English, as the tiles and the charts read on an English page.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 const ENTITY_ID: string = "84858d6c-1111-4aaa-8bbb-000000000001";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -1329,18 +1337,21 @@ describe("telemetryFormat", () => {
   test.each([
     [null, "—"],
     [Number.NaN, "—"],
-    [0.25, "250 µs"],
-    [0, "0 µs"],
-    [5, "5.0 ms"],
-    [9.94, "9.9 ms"],
-    [50, "50 ms"],
-    [999, "999 ms"],
-    [1000, "1.00 s"],
-    [2340, "2.34 s"],
-    [65_000, "65.00 s"],
-  ])("formatDurationMs(%p) is %p", (ms: number | null, text: string) => {
-    expect(formatDurationMs(ms)).toBe(text);
-  });
+    [0.25, "250\u00A0µs"],
+    [0, "0\u00A0µs"],
+    [5, "5.0\u00A0ms"],
+    [9.94, "9.9\u00A0ms"],
+    [50, "50\u00A0ms"],
+    [999, "999\u00A0ms"],
+    [1000, "1.00\u00A0s"],
+    [2340, "2.34\u00A0s"],
+    [65_000, "65.00\u00A0s"],
+  ])(
+    "formatDurationMsInLanguage(%p) in English is %p",
+    (ms: number | null, text: string) => {
+      expect(formatDurationMsInLanguage(ms, ENGLISH)).toBe(text);
+    },
+  );
 
   test.each([
     [null, "—"],
@@ -1365,7 +1376,7 @@ describe("telemetryFormat", () => {
   test("telemetryMetrics re-exports the very same formatter functions", () => {
     expect(reexportedFormatCompact).toBe(formatCompact);
     expect(reexportedFormatPercent).toBe(formatPercent);
-    expect(reexportedFormatDurationMs).toBe(formatDurationMs);
+    expect(reexportedFormatDurationMs).toBe(formatDurationMsInLanguage);
     expect(reexportedFormatBytes).toBe(formatBytes);
   });
 });

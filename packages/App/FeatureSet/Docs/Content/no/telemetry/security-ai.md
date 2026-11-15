@@ -27,7 +27,7 @@ En vurdering leser bare. Den kjører på prosjektets egen KI: **Aktiver AI**, pr
 
 - **Aktiver AI** slått på, under **Prosjektinnstillinger → KI → AI-funksjoner**. Er den slått av, viser sikkerhet ingenting fra OneUptime AI, og ingenting kjører.
 - En LLM-leverandør som OneUptime AI kan bruke, under **Prosjektinnstillinger → KI → LLM-leverandører**. OneUptime Cloud har en.
-- En rolle som kan arbeide med sikkerhetssaker, for å starte en vurdering: Project Owner, Project Admin, Security Admin eller Security Member. Security Viewer leser alle vurderinger, men kan ikke starte noen. Se [Roller](/docs/permissions/reference#roller).
+- En rolle som kan arbeide med sikkerhetssaker, for å starte en vurdering: Prosjekteier, Prosjektadministrator, Sikkerhetsadministrator eller Sikkerhetsmedlem. Sikkerhetsleser leser alle vurderinger, men kan ikke starte noen. Se [Roller](/docs/permissions/reference#roller).
 
 ## Vurder en sak
 
@@ -40,7 +40,7 @@ En vurdering leser bare. Den kjører på prosjektets egen KI: **Aktiver AI**, pr
 | En vurdering som **Sannsynligvis ondsinnet** | Vurderingen er ferdig. **Vurder på nytt** leser saken på nytt. |
 | **Vurderingen ble ikke fullført** | Kjøringen stoppet. **Prøv igjen** starter en ny. |
 
-En Security Viewer ser det samme kortet: **Vurder med KI** og **Prøv igjen** forblir nedtonet ved siden av en linje som sier hvem som kan starte en vurdering, og **Vurder på nytt** og **Angi prioritet** tilbys ikke.
+En Sikkerhetsleser ser det samme kortet: **Vurder med KI** og **Prøv igjen** forblir nedtonet ved siden av en linje som sier hvem som kan starte en vurdering, og **Vurder på nytt** og **Angi prioritet** tilbys ikke.
 
 En vurdering leser:
 
@@ -51,7 +51,7 @@ En vurdering leser:
 - vertene i OneUptime som sakens verter og adresser samsvarer med, og hvem som eier dem;
 - hendelsen saken har erklært, notatene, de beskyttede entitetene og playbookene som er slått på.
 
-Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, metrikker, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
+Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, målinger, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
 
 ### Hva den konkluderer
 
@@ -82,7 +82,7 @@ Hendelser, varsler og verdier for entiteter kommer utenfra prosjektet, og en ang
 
 ## Vurder nye saker automatisk
 
-Åpne **Produkter → Sikkerhetshendelser → KI → Innstillinger** og slå på **Vurder nye saker**: da blir hver sak en deteksjon åpner, vurdert så snart den åpnes. Bryteren lagrer så snart du slår den om. Project Owner og Project Admin kan endre den.
+Åpne **Produkter → Sikkerhetshendelser → KI → Innstillinger** og slå på **Vurder nye saker**: da blir hver sak en deteksjon åpner, vurdert så snart den åpnes. Bryteren lagrer så snart du slår den om. Prosjekteier og Prosjektadministrator kan endre den.
 
 Nye prosjekter starter med den slått på; et prosjekt som ble opprettet før, har den slått av til noen slår den på. En sak som er åpnet for hånd, og saken fra testangrepet i **Send et testangrep**, blir vurdert når noen klikker på **Vurder med KI**.
 
@@ -123,7 +123,7 @@ Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense
-En prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
+En Prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
 :::
 
 :::details Kortet sier at tekst i saken leser som instruksjoner til en KI

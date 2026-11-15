@@ -40,7 +40,7 @@ Ein Fehlerbudget macht Zuverlässigkeit zu etwas, das Sie ausgeben können. Ist 
 
 ## Ein SLO erstellen
 
-Sie brauchen eine Rolle, die SLOs erstellen darf: Project Owner, Project Admin oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
+Sie brauchen eine Rolle, die SLOs erstellen darf: Projektinhaber, Projektadministrator oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
 
 :::steps
 ### SLOs öffnen
@@ -146,7 +146,7 @@ Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status ble
 
 ## Die SLO-Liste
 
-Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibendem Budget, Burn-Rate, Ziel, Zeitfenster, Monitoren, Beschriftungen und Eigentümern.
+Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibendem Budget, Burn-Rate, Ziel, Zeitfenster, Monitoren, Beschriftungen und Eigentümern. Die Spalte **Messgröße** nennt bei einem Anfrage-SLO seine Dienste, wo sie bei einem Uptime-SLO seine Monitore nennt, und der Filter **Dienste** findet die SLOs, die einen Dienst messen.
 
 - Die Kacheln über der Liste zählen SLOs nach Status: **Fehlerfrei**, **Gefährdet**, **Budget ausgeschöpft**, **Falsch konfiguriert**, **Pausiert** und **Deaktiviert**. Sie erscheinen, sobald es ein SLO gibt, das nicht archiviert ist. Klicken Sie auf eine Kachel, um nur diese SLOs anzuzeigen, und erneut, um wieder alle zu sehen.
 - Wählen Sie SLOs aus, um auf einmal Beschriftungen und Eigentümer hinzuzufügen oder zu entfernen, sie zu aktivieren oder zu deaktivieren, ihnen die [empfohlenen Burn-Rate-Regeln](/docs/slo/burn-rate-alerts#die-regeln-zu-vielen-slos-auf-einmal-hinzufügen) zu geben, die ihnen fehlen, sie zu archivieren oder zu löschen.
@@ -256,15 +256,15 @@ Ein Banner oben auf den Seiten des SLO sagt, was es am Messen hindert:
 | Banner | Bedeutung | Was zu tun ist |
 | --- | --- | --- |
 | **Keine Monitore verbunden** | Das SLO hat keine Monitore, es gibt also nichts zu messen. | Monitore zuordnen oder eine Monitor-Regel erstellen. |
-| **Waiting for SLO evaluation** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen. | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten. |
-| **Measurement is paused** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
-| **The target is out of range** | Das Ziel ist nicht größer als 0 und kleiner als 100. | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest. |
-| **This SLO is disabled** | Die Auswertung ist aus. | Klicken Sie auf **Auswertung einschalten**. |
-| **This SLO is archived** | Das SLO ist archiviert. | Holen Sie es unter **Einstellungen** aus dem Archiv. |
+| **Warten auf die SLO-Auswertung** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen. | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten. |
+| **Die Messung ist pausiert** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
+| **Das Ziel liegt außerhalb des gültigen Bereichs** | Das Ziel ist nicht größer als 0 und kleiner als 100. | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest. |
+| **Dieses SLO ist deaktiviert** | Die Auswertung ist aus. | Klicken Sie auf **Auswertung einschalten**. |
+| **Dieses SLO ist archiviert** | Das SLO ist archiviert. | Holen Sie es unter **Einstellungen** aus dem Archiv. |
 | **Noch nicht ausgewertet** | Das SLO wurde gerade erstellt. | Warten Sie auf die erste Auswertung, höchstens ein paar Minuten. |
 | **Keine Dienste ausgewählt** | Ein Anfrage-SLO hat keine Dienste und daher keine Anfragen, die es zählen könnte. | Wählen Sie seine Dienste unter **Einstellungen** → **Messgröße** aus. |
-| **No latency threshold** | Ein SLO der Anfrage-Latenz hat keine Schwelle, sodass keine Anfrage als schnell genug gelten kann. | Legen Sie die **Latenzschwelle (ms)** unter **Einstellungen** → **Messgröße** fest. |
-| **Waiting for requests** | Keiner der Dienste eines Anfrage-SLO hat in seinem Zeitfenster bisher eine Anfrage beantwortet. | Prüfen Sie, ob die Dienste Traces an OneUptime senden. Zahlen erscheinen nach der nächsten Auswertung, die eine Anfrage zählt. |
+| **Keine Latenzschwelle** | Ein SLO der Anfrage-Latenz hat keine Schwelle, sodass keine Anfrage als schnell genug gelten kann. | Legen Sie die **Latenzschwelle (ms)** unter **Einstellungen** → **Messgröße** fest. |
+| **Warten auf Anfragen** | Keiner der Dienste eines Anfrage-SLO hat in seinem Zeitfenster bisher eine Anfrage beantwortet. | Prüfen Sie, ob die Dienste Traces an OneUptime senden. Zahlen erscheinen nach der nächsten Auswertung, die eine Anfrage zählt. |
 
 ## Nächste Schritte
 

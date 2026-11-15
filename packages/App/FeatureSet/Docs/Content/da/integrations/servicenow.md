@@ -1,32 +1,32 @@
 # ServiceNow
 
-Opret en hændelse i [ServiceNow](https://www.servicenow.com) for hver OneUptime-hændelse, og løs den, når OneUptime-hændelsen er løst, så din servicedesk følger det, din overvågning ser. To workflows kalder ServiceNows [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI).
+Opret en hændelse i [ServiceNow](https://www.servicenow.com) for hver OneUptime-hændelse, og løs den, når OneUptime-hændelsen er løst, så din servicedesk følger det, din overvågning ser. To arbejdsgange kalder ServiceNows [Table API](https://developer.servicenow.com/dev.do#!/reference/api/latest/rest/c_TableAPI).
 
 :::cards
-- [Gem loginoplysningerne](#gem-loginoplysningerne): Hold ServiceNow-adgangskoden ude af dine workflows.
-- [Opret hændelser i ServiceNow](#opret-en-hændelse-i-servicenow-for-hver-hændelse): Ét workflow, to blokke.
+- [Gem loginoplysningerne](#gem-loginoplysningerne): Hold ServiceNow-adgangskoden ude af dine arbejdsgange.
+- [Opret hændelser i ServiceNow](#opret-en-hændelse-i-servicenow-for-hver-hændelse): én arbejdsgang, to blokke.
 - [Løs dem](#løs-hændelsen-i-servicenow): Find posten, og luk den derefter.
 - [Fejlfinding](#fejlfinding): Når ServiceNow afviser en anmodning.
 :::
 
 ## Sådan fungerer det
 
-```mermaid title="To workflows, én hændelse i ServiceNow"
+```mermaid title="To arbejdsgange, én hændelse i ServiceNow"
 flowchart TB
-    declared["Hændelse erklæret"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Hændelse erklæret"] --> create["Arbejdsgang 1:<br/>On Create Incident"]
     create -->|"POST incident"| sn["Hændelse i ServiceNow"]
-    resolved["Hændelse løst"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Hændelse løst"] --> update["Arbejdsgang 2:<br/>On Update Incident"]
     update --> find["Find posten<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
 
-Det første workflow skriver OneUptime-hændelsens ID i postens `correlation_id`. Det andet finder posten via det ID og løser den derefter.
+Den første arbejdsgang skriver OneUptime-hændelsens ID i postens `correlation_id`. Den anden finder posten via det ID og løser den derefter.
 
 ## Før du går i gang
 
 - En ServiceNow-instans, f.eks. `https://your-instance.service-now.com`.
 - En ServiceNow-bruger til integrationen, der kan oprette og opdatere poster i tabellen `incident`, som regel med rollen `itil`. Brugerens navn og adgangskode signerer anmodningerne.
-- I OneUptime rettigheden til at oprette workflows og globale variabler. På OneUptime Cloud kræver workflows **Growth**-abonnementet eller højere.
+- I OneUptime rettigheden til at oprette arbejdsgange og globale variabler. På OneUptime Cloud kræver arbejdsgange **Growth**-abonnementet eller højere.
 
 ## Gem loginoplysningerne
 
@@ -48,7 +48,7 @@ Table API accepterer Basic-godkendelse: brugerens navn og adgangskode, kodet sam
 ## Opret en hændelse i ServiceNow for hver hændelse
 
 :::steps
-### Opret workflowet
+### Opret arbejdsgangen
 
 Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv det navnet `Incidents to ServiceNow`, og klik på **Opret arbejdsgang**.
 
@@ -88,12 +88,12 @@ Klik på **Kør arbejdsgang**, vælg en testhændelse under **Hændelse**, og k�
 
 ## Løs hændelsen i ServiceNow
 
-Et workflow har én trigger, så det kræver et andet workflow at løse den, startet når en hændelses tilstand ændres.
+En arbejdsgang har én trigger, så det kræver en anden arbejdsgang at løse den, startet når en hændelses tilstand ændres.
 
 :::steps
 ### Tilføj triggeren On Update Incident
 
-Opret et workflow med navnet `Resolve ServiceNow incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
+Opret en arbejdsgang med navnet `Resolve ServiceNow incidents`, og vælg **On Update Incident** som trigger. Klik på **Tilføj felt** i **Fields to watch**, og vælg **Current Incident State**, så det kun kører, når tilstanden ændres. Spørg i **Fields to pass on**, om den nye tilstand er en løst tilstand: klik på **Tilføj felt**, åbn **Current Incident State**, og vælg **Is Resolved State**. Eller klik på **Rediger som JSON**, og erstat JSON'en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -151,14 +151,14 @@ Et kolonnenavn eller en værdi passer ikke til din instans: en tilpasset `state`
 :::
 
 :::details Løsningen svarer 404
-Søgetrinnet fandt ingen post, så URL'en beholdt referencen, som den er skrevet. Kontrollér, at det første workflow skrev `correlation_id`, og at begge workflows danner den på samme måde: `oneuptime-` efterfulgt af hændelsens `_id`.
+Søgetrinnet fandt ingen post, så URL'en beholdt referencen, som den er skrevet. Kontrollér, at den første arbejdsgang skrev `correlation_id`, og at begge arbejdsgange danner den på samme måde: `oneuptime-` efterfulgt af hændelsens `_id`.
 :::
 
 ## Næste trin
 
 :::cards
 - [Jira](/docs/integrations/jira): En tovejsintegration, holdt i takt af færdige skabeloner.
-- [Workflow-komponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
-- [Workflow-kørsler](/docs/workflows/runs-and-logs): Læs, hvad hver anmodning sendte og fik tilbage.
+- [Arbejdsgangskomponenter](/docs/workflows/components#api): Alle indstillinger for API-blokkene.
+- [Arbejdsgangskørsler](/docs/workflows/runs-and-logs): Læs, hvad hver anmodning sendte og fik tilbage.
 - [Oversigt over integrationer](/docs/integrations/index): Mønstrene bag hver integration.
 :::

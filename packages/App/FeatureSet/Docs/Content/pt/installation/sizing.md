@@ -82,7 +82,7 @@ O armazenamento cresce **de forma linear com a retenção**: uma janela de 90 di
 
 O PostgreSQL guarda a sua configuração e o seu estado operacional, não telemetria, então cresce devagar e fica pequeno perto do ClickHouse. Mesmo instalações grandes costumam ficar na casa das dezenas de GB. O volume padrão de **25 Gi** basta para instalações pequenas; planeje 50–100 GB para as maiores, com folga para o histórico de incidentes e alertas.
 
-Com muitas réplicas de app, workers e probes, as conexões com o banco podem acabar antes do armazenamento. Cada pod abre até 50 conexões por padrão, e o PostgreSQL incluído permite 500. Justamente para isso, o chart inclui um pooler de conexões **PgBouncer** opcional (`pgbouncer.enabled`): ative-o em instalações com muitas réplicas.
+Com muitas réplicas de app, workers e sondas, as conexões com o banco podem acabar antes do armazenamento. Cada pod abre até 50 conexões por padrão, e o PostgreSQL incluído permite 500. Justamente para isso, o chart inclui um pooler de conexões **PgBouncer** opcional (`pgbouncer.enabled`): ative-o em instalações com muitas réplicas.
 
 ## Valkey – cache, filas e sessões
 
@@ -100,7 +100,7 @@ Além dos armazenamentos de dados, dimensione as cargas de trabalho sem estado. 
 | Gateway de entrada | `nginx` | O volume de requisições |
 | Telemetry writer, quando ativado | `telemetryWriter` | Não com a carga: ele agrupa cada inserção de telemetria no ClickHouse, então é dimensionado pelo que o ClickHouse aguenta |
 
-O chart inclui o **KEDA**, para que o app, os workers, os probes e o Runner global escalem conforme a fila acumulada. Ative `keda.enabled` junto com o `keda.enabled` de cada serviço (por exemplo, `app.keda.enabled`). Num cluster que ainda não tem KEDA, a primeira instalação precisa de uma passagem extra: veja o [guia do KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) do chart. Serviços que o KEDA não gerencia podem usar em vez disso um autoscaler por CPU ou memória (`autoscaling`).
+O chart inclui o **KEDA**, para que o app, os workers, as sondas e o Runner global escalem conforme a fila acumulada. Ative `keda.enabled` junto com o `keda.enabled` de cada serviço (por exemplo, `app.keda.enabled`). Num cluster que ainda não tem KEDA, a primeira instalação precisa de uma passagem extra: veja o [guia do KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) do chart. Serviços que o KEDA não gerencia podem usar em vez disso um autoscaler por CPU ou memória (`autoscaling`).
 
 ## Camadas iniciais
 

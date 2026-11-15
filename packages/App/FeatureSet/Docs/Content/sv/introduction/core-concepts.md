@@ -46,7 +46,7 @@ En monitors **kriterier** avgör vad varje resultat betyder. De kontrolleras i o
 
 :::cards
 - [Skapa en monitor](/docs/monitor/create-monitor): Välj en typ, säg vad som ska kontrolleras och hur ofta.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera det som bara ditt eget nätverk når.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera det som bara ditt eget nätverk når.
 :::
 
 ## Det du övervakar

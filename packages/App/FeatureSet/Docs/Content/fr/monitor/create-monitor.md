@@ -3,7 +3,7 @@
 Un moniteur vérifie quelque chose que vous exploitez, comme un site web, une API, un hôte ou un cluster Kubernetes, et vous prévient quand cela cesse de fonctionner. **Créer un moniteur** demande d'abord quoi surveiller, puis quoi vérifier, puis à quelle fréquence. Tout, sauf le type, le nom et ce qu'il faut vérifier, commence avec des valeurs par défaut qui conviennent à la plupart des moniteurs.
 
 > [!NOTE]
-> Pour créer un moniteur, il vous faut le rôle Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou un rôle personnalisé avec l'autorisation Create Monitor.
+> Pour créer un moniteur, il vous faut le rôle Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des moniteurs ou Membre des moniteurs, ou un rôle personnalisé avec l'autorisation Create Monitor.
 
 ## Informations sur le moniteur
 

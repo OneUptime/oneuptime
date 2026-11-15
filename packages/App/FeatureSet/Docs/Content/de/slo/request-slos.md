@@ -37,7 +37,7 @@ Von da an funktioniert ein Anfrage-SLO wie jedes andere. Status, Burn-Rate-Regel
 ## Bevor Sie beginnen
 
 - Die Dienste senden Traces an OneUptime: siehe [OpenTelemetry](/docs/telemetry/open-telemetry). Jeder von ihnen steht im [Dienstkatalog](/docs/telemetry/services) unter seinem `service.name`.
-- Eine Rolle, die SLOs erstellen darf: Project Owner, Project Admin oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
+- Eine Rolle, die SLOs erstellen darf: Projektinhaber, Projektadministrator oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
 
 ## Ein Anfrage-SLO erstellen
 
@@ -59,7 +59,7 @@ Geben Sie einen **Name** ein, zum Beispiel „Checkout requests“, und ein **Zi
 Die erste Auswertung, innerhalb von 5 Minuten, zählt die Anfragen der letzten 6 Stunden, sodass das SLO sofort Zahlen hat. Die Auswertungen danach zählen auch ältere Anfragen, bis das Compliance-Zeitfenster abgedeckt ist.
 :::
 
-Um später zu ändern, was ein SLO misst, seine Dienste oder seine Schwelle, öffnen Sie seine **Einstellungen** und klicken Sie auf **Messgröße bearbeiten**.
+Die eigene Seite **SLOs** eines Dienstes listet die SLOs, die ihn messen, und ihr **Service Level Objective erstellen** öffnet dasselbe Formular mit dem Dienst bereits ausgewählt. Um später zu ändern, was ein SLO misst, seine Dienste oder seine Schwelle, öffnen Sie seine **Einstellungen** und klicken Sie auf **Messgröße bearbeiten**.
 
 ## Wie Anfragen gezählt werden
 
@@ -86,7 +86,7 @@ Ein Anfrage-SLO bekommt dieselben Regeln **Fast burn**, **Slow burn** und **Slow
 
 ## Fehlerbehebung
 
-:::details Das SLO zeigt Waiting for requests
+:::details Das SLO zeigt Warten auf Anfragen
 Keiner seiner Dienste hat im Zeitfenster bisher eine Anfrage beantwortet. Prüfen Sie, ob die Dienste Traces an OneUptime senden und ob ihre Spans Einstiegs-Spans enthalten: Ein Dienst, dessen Spans alle intern sind, hat keine Anfragen, die sich zählen ließen.
 :::
 

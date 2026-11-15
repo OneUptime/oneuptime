@@ -22,7 +22,7 @@ Cada camino normaliza lo que llega a [OCSF](https://schema.ocsf.io/), el Open Cy
 
 ## Antes de empezar
 
-- Para el conector gestionado, en OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden leer las conexiones, pero no crearlas.
+- Para el conector gestionado, en OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden leer las conexiones, pero no crearlas.
 - Para el webhook y el reenvío de UDM, una clave de ingesta: abre **Ajustes del proyecto → Telemetría y APM → Claves de ingesta** y haz clic en **Crear clave de ingesta**.
 - Para el conector gestionado, permiso para crear una cuenta de servicio de Google Cloud en el proyecto al que está vinculada tu instancia de SecOps.
 
@@ -173,7 +173,7 @@ Cada solicitud de una prueba tiene un plazo de 20 segundos. Las pruebas no tocan
 
 ## Previsualizar, ejecutar e importar a demanda
 
-Abre **Diagnósticos** en una conexión para ver las ejecuciones recientes y manejar el conector. Los propietarios del proyecto, los administradores del proyecto y los administradores de seguridad pueden iniciar operaciones. Los miembros y lectores de seguridad pueden leer el historial.
+Abre **Diagnósticos** en una conexión para ver las ejecuciones recientes y manejar el conector. Los Propietarios del proyecto, los Administradores del proyecto y los Administradores de seguridad pueden iniciar operaciones. Los miembros y lectores de seguridad pueden leer el historial.
 
 - **Ejecutar ahora** pone en cola un sondeo de inmediato, con el cursor y la ruta de ingesta normales, incluso cuando el sondeo programado está deshabilitado. Los estados en cola y en ejecución siguen visibles mientras el worker ejecuta la solicitud. Si una ejecución sigue en cola, comprueba que haya workers procesando la cola Worker; la comprobación **Background workers** de Probar conexión dice si algún proceso lo hace.
 - **Vista previa de detecciones** lee un intervalo de tiempo elegido sin importar ni cambiar el cursor. Usa la última hora, 24 horas, 7 días o un intervalo personalizado de hasta 7 días. El intervalo coincide con la vista de alertas de SecOps, que lee por hora de detección, y las dos pasadas de búsqueda leen las detecciones creadas en él además de las detecciones cuya hora de detección cae en él, así que previsualizar el día de ayer muestra también detecciones creadas ayer sobre eventos más antiguos. La vista previa muestra por separado la hora de detección y la hora de creación. Los resultados siguen la selección **Datos para importar** guardada de la conexión.

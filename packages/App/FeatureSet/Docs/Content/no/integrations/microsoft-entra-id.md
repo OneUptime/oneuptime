@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importer påloggingene, katalogendringene og risikoregistreringene i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) til sikkerhetshendelsene i OneUptime og, hvis du vil, påloggingene apper gjør i bakgrunnen og aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-revisjonsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i leieren din.
+Importer påloggingene, katalogendringene og risikoregistreringene i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) til sikkerhetshendelsene i OneUptime og, hvis du vil, påloggingene apper gjør i bakgrunnen og aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-revisjonsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i leieren din.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En appregistrering, tillatelsene dens og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - For pålogginger og risikoregistreringer: Microsoft Entra ID P1 eller P2, som Microsoft 365 E3, E5 og Business Premium inkluderer: Microsoft Graph gir dem bare til slike leiere, og P2 gir detaljene for hver risikoregistrering. Katalogendringer leses i alle leiere.
 - En Entra-rolle som kan registrere programmer, for eksempel Programadministrator, og en Global administrator eller Administrator for privilegerte roller for å gi administratorsamtykke.
 - For Microsoft 365-revisjonsloggen: revisjon slått på for leieren, slik den er som standard: i [Microsoft Purview-portalen](https://purview.microsoft.com) må **Audit** ikke tilby **Start recording user and admin activity**.

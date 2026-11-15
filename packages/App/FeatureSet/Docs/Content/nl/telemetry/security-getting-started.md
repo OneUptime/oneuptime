@@ -11,7 +11,7 @@ OneUptime vindt bedreigingen in gegevens die u al hebt - uw logs, de beveiliging
 
 ## Voordat u begint
 
-Voor het instellen van beveiliging is de rol Project Owner, Project Admin of Security Admin nodig. De rollen Security Member en Security Viewer lezen wat er gevonden wordt; zie [Rollen](/docs/permissions/reference#rollen).
+Voor het instellen van beveiliging is de rol Projecteigenaar, Projectbeheerder of Beveiligingsbeheerder nodig. De rollen Beveiligingslid en Beveiligingskijker lezen wat er gevonden wordt; zie [Rollen](/docs/permissions/reference#rollen).
 
 ## Instellen
 
@@ -84,7 +84,7 @@ Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. K
 ## Problemen oplossen
 
 :::details Turn on recommended is grijs
-Uw rol mag geen detectieregels, playbooks of de logbron toevoegen. Vraag het een Project Owner, een Project Admin of een Security Admin, of laat hen u de rol Security Admin geven.
+Uw rol mag geen detectieregels, playbooks of de logbron toevoegen. Vraag het een Projecteigenaar, een Projectbeheerder of een Beveiligingsbeheerder, of laat hen u de rol Beveiligingsbeheerder geven.
 :::
 
 :::details Turn on recommended kon niet alles inschakelen

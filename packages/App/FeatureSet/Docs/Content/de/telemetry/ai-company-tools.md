@@ -1,6 +1,6 @@
 # KI-Tools im Unternehmen
 
-Sehen Sie, was Ihre Leute die KI-Tools fragen, die Ihr Unternehmen bezahlt, als Unterhaltungen pro Person. Verbinden Sie Claude Enterprise oder Microsoft 365 Copilot mit Zugangsdaten, die nur lesen können, und OneUptime holt jeden neuen Chat alle 15 Minuten in **Unterhaltungen**. Nur Projektinhaber und Admins können sie lesen, es sei denn, Sie entscheiden anders.
+Sehen Sie, was Ihre Leute die KI-Tools fragen, die Ihr Unternehmen bezahlt, als Unterhaltungen pro Person. Verbinden Sie Claude Enterprise oder Microsoft 365 Copilot mit Zugangsdaten, die nur lesen können, und OneUptime holt jeden neuen Chat alle 15 Minuten in **Unterhaltungen**. Nur Projektinhaber und Projektadministratoren können sie lesen, es sei denn, Sie entscheiden anders.
 
 :::cards
 - [Zuerst Ihre Leute informieren](#zuerst-ihre-leute-informieren): Ihre Chats sind ihre eigenen Worte.
@@ -29,7 +29,7 @@ Die Chats kommen so an wie die KI-Aufrufe Ihrer Apps, also gelten Scrub-Regeln, 
 
 ## Bevor Sie beginnen
 
-- Die Rolle Project Owner oder Project Admin. Nur sie können ein Tool verbinden, ändern oder entfernen.
+- Die Rolle Projektinhaber oder Projektadministrator. Nur sie können ein Tool verbinden, ändern oder entfernen.
 - Eine Administratorin oder ein Administrator des Tools, um die Zugangsdaten zu erstellen: Der Abschnitt jedes Tools unten nennt, wer.
 - Ihre Leute informiert, und die Antwort Ihrer Rechts- oder Personalabteilung.
 

@@ -173,7 +173,7 @@ Every request in a test has a 20 second deadline. Tests leave the polling cursor
 
 ## Preview, run and import on demand
 
-Open **Diagnostics** on a connection to see recent runs and operate the connector. Project owners, project admins and security admins can start operations. Security members and viewers can read the history.
+Open **Diagnostics** on a connection to see recent runs and operate the connector. Project Owners, Project Admins and Security Admins can start operations. Security members and viewers can read the history.
 
 - **Run now** queues a poll immediately, using the normal cursor and ingestion path, even while scheduled polling is disabled. Queued and running states remain visible while the worker executes the request. If a run remains queued, check that workers are processing the Worker queue; the **Background workers** check in Test connection says whether any process is.
 - **Preview detections** reads a selected time range without importing or changing the cursor. Use the last hour, 24 hours, 7 days, or a custom range of up to 7 days. The range matches the SecOps alerts view, which reads by detection time, and the two search passes read detections created in it as well as detections whose detection time falls in it, so previewing yesterday shows detections created yesterday about older events as well. The preview shows detection time and creation time separately. Results reflect the connection's saved **Data to import** selection.

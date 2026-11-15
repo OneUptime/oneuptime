@@ -351,6 +351,97 @@ describe("matchesSessionReplayPagePattern", () => {
     expect(timed.result).toBe(0);
     expect(timed.inMs).toBeLessThan(2000);
   });
+
+  /*
+   * #8195: the browser escapes every letter beyond ASCII in a path - a
+   * visit to /café has the path "/caf%C3%A9" - and a link can write the
+   * same page "/caf%c3%a9" or "/cafe%CC%81". A pattern written as the page
+   * reads compared with the escaped path never matched.
+   */
+  describe("a page with letters beyond ASCII", () => {
+    const CAFE_PATHS: Array<string> = [
+      "/caf%C3%A9",
+      "/caf%c3%a9",
+      "/cafe%CC%81",
+      "/cafe%cc%81",
+      "/café",
+      `/cafe${String.fromCharCode(0x301)}`,
+    ];
+
+    it("matches a pattern written as it reads, in every spelling of the page", () => {
+      for (const path of CAFE_PATHS) {
+        expect([path, matchesSessionReplayPagePattern("/café", path)]).toEqual([
+          path,
+          true,
+        ]);
+      }
+    });
+
+    it("matches a pattern written escaped, in every spelling of the page", () => {
+      for (const pattern of ["/caf%C3%A9", "/caf%c3%a9", "/cafe%CC%81"]) {
+        for (const path of CAFE_PATHS) {
+          expect([
+            pattern,
+            path,
+            matchesSessionReplayPagePattern(pattern, path),
+          ]).toEqual([pattern, path, true]);
+        }
+      }
+    });
+
+    it("ignores case on the letters themselves", () => {
+      for (const path of [...CAFE_PATHS, "/CAF%C3%89", "/Caf%c3%89/"]) {
+        expect([path, matchesSessionReplayPagePattern("/CAFÉ", path)]).toEqual([
+          path,
+          true,
+        ]);
+      }
+    });
+
+    it("matches stars and pieces in the same spelling", () => {
+      expect(
+        matchesSessionReplayPagePattern("/café/*", "/caf%C3%A9/men%C3%BC"),
+      ).toBe(true);
+      expect(
+        matchesSessionReplayPagePattern("*/menü", "/cafe%CC%81/men%c3%bc/"),
+      ).toBe(true);
+      expect(
+        matchesSessionReplayPagePattern(
+          "/السلة*",
+          "/%D8%A7%D9%84%D8%B3%D9%84%D8%A9/checkout",
+        ),
+      ).toBe(true);
+      expect(matchesSessionReplayPagePattern("/café", "/cafe")).toBe(false);
+      expect(matchesSessionReplayPagePattern("/cafe", "/caf%C3%A9")).toBe(
+        false,
+      );
+    });
+
+    it("keeps what names another page apart", () => {
+      // An escaped slash is not a slash, whichever side writes it.
+      expect(matchesSessionReplayPagePattern("/a%2Fb", "/a/b")).toBe(false);
+      expect(matchesSessionReplayPagePattern("/a/b", "/a%2Fb")).toBe(false);
+      expect(matchesSessionReplayPagePattern("/a%2fb", "/a%2Fb")).toBe(true);
+      // Bytes that are not UTF-8 are matched as written, in either hex case.
+      expect(matchesSessionReplayPagePattern("/%E9t%E9", "/%e9t%e9")).toBe(
+        true,
+      );
+      expect(matchesSessionReplayPagePattern("/été", "/%e9t%e9")).toBe(false);
+    });
+
+    it("stays fast on a long path full of escapes", () => {
+      const path: string = `/${"caf%C3%A9-".repeat(20000)}`;
+      const timed: FastestRun<boolean> = fastestRun({
+        run: (): boolean => {
+          return matchesSessionReplayPagePattern(`/${"*é".repeat(50)}*x`, path);
+        },
+        limitInMs: 2000,
+      });
+
+      expect(timed.result).toBe(false);
+      expect(timed.inMs).toBeLessThan(2000);
+    });
+  });
 });
 
 describe("the error and event matchers", () => {

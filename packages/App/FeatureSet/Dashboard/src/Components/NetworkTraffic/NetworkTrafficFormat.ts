@@ -45,10 +45,10 @@ function scaled(value: number, units: Array<string>): string {
   }
 
   if (unitIndex === 0) {
-    return `${Math.round(scaledValue)} ${units[0]}`;
+    return `${Math.round(scaledValue)}\u00A0${units[0]}`;
   }
 
-  return `${significant(scaledValue)} ${units[unitIndex]}`;
+  return `${significant(scaledValue)}\u00A0${units[unitIndex]}`;
 }
 
 // 1234567 -> "1.23 MB".

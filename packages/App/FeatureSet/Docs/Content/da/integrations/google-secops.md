@@ -22,7 +22,7 @@ Hver vej normaliserer det, der kommer ind, til [OCSF](https://schema.ocsf.io/), 
 
 ## Før du går i gang
 
-- Til den administrerede connector i OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan læse forbindelser, men ikke oprette dem.
+- Til den administrerede connector i OneUptime rollen Projektejer, Projektadministrator eller Sikkerhedsadministrator. Sikkerhedsmedlem og Sikkerhedsseer kan læse forbindelser, men ikke oprette dem.
 - Til webhooken og UDM-videresendelsen en indtagelsesnøgle: åbn **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**, og klik på **Opret ingestion-nøgle**.
 - Til den administrerede connector retten til at oprette en Google Cloud-tjenestekonto i det projekt, din SecOps-instans er bundet til.
 
@@ -173,7 +173,7 @@ Hver anmodning i en test har en frist på 20 sekunder. Test rører hverken pollm
 
 ## Forhåndsvis, kør og importér efter behov
 
-Åbn **Diagnosticering** på en forbindelse for at se de seneste kørsler og betjene connectoren. Projektejere, projektadministratorer og sikkerhedsadministratorer kan starte handlinger. Sikkerhedsmedlemmer og -seere kan læse historikken.
+Åbn **Diagnosticering** på en forbindelse for at se de seneste kørsler og betjene connectoren. Projektejere, Projektadministratorer og Sikkerhedsadministratorer kan starte handlinger. Sikkerhedsmedlemmer og -seere kan læse historikken.
 
 - **Kør nu** sætter straks en poll i kø, med den normale markør og indtagelsesvej, også når planlagt polling er deaktiveret. Tilstandene i kø og kører forbliver synlige, mens workeren udfører anmodningen. Hvis en kørsel bliver stående i kø, så tjek, at workers behandler Worker-køen; kontrollen **Background workers** i Test forbindelse siger, om nogen proces gør det.
 - **Forhåndsvis detektioner** læser et valgt tidsinterval uden at importere eller ændre markøren. Brug den seneste time, 24 timer, 7 dage eller et brugerdefineret interval på op til 7 dage. Intervallet svarer til SecOps' advarselsvisning, som læser efter registreringstidspunkt, og de to søgegennemgange læser både registreringer, der er oprettet i det, og registreringer, hvis registreringstidspunkt falder i det, så en forhåndsvisning af i går også viser registreringer, der er oprettet i går om ældre begivenheder. Forhåndsvisningen viser registreringstidspunkt og oprettelsestid hver for sig. Resultaterne følger forbindelsens gemte valg **Data, der skal importeres**.

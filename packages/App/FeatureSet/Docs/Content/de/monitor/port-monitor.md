@@ -31,7 +31,7 @@ Schlägt eine Prüfung fehl, verfolgt die Sonde außerdem die Route zum Host, sc
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die den Port erreicht.** Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Steht eine Firewall vor dem Dienst, erlauben Sie den [Sonden-IP-Adressen von OneUptime Cloud](/docs/configuration/ip-addresses), sich mit dem Port zu verbinden. Ein Dienst in einem privaten Netzwerk, etwa eine Datenbank, braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk.
 
 ## Einen Port-Monitor erstellen
@@ -181,5 +181,5 @@ Port-Monitore öffnen nur TCP-Verbindungen. Verwenden Sie für einen DNS-Server 
 - [Ping-Überwachung](/docs/monitor/ping-monitor): Prüfen, ob der Host selbst erreichbar ist.
 - [SSL-Zertifikat-Überwachung](/docs/monitor/ssl-certificate-monitor): Das Zertifikat auf einem TLS-Port prüfen.
 - [Datenbank-Integritätsüberwachung](/docs/monitor/database-health-monitor): Über einen offenen Port hinausgehen und die Integrität einer Datenbank beobachten.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Ports in Ihrem eigenen Netzwerk prüfen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Ports in Ihrem eigenen Netzwerk prüfen.
 :::

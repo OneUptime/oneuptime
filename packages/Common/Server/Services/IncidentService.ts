@@ -453,6 +453,12 @@ export class Service extends ProjectReferencesService<Model> {
     templateId: ObjectID;
     data: Model;
     props: DatabaseCommonInteractionProps;
+    /*
+     * What the create carries beside the incident: the owners a workflow's
+     * Create One Incident names (Types/Workflow/OwnersOnCreateSetting),
+     * asked about and added as a REST create's are, beside the template's.
+     */
+    miscDataProps?: JSONObject | undefined;
   }): Promise<Model> {
     const projectId: ObjectID | undefined =
       data.props.tenantId || data.data.projectId;
@@ -500,6 +506,7 @@ export class Service extends ProjectReferencesService<Model> {
     const createBy: CreateBy<Model> = {
       data: data.data,
       props: data.props,
+      ...(data.miscDataProps ? { miscDataProps: data.miscDataProps } : {}),
     };
 
     this.templateDeclarations.set(createBy, data.templateId);
@@ -5978,10 +5985,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
               postmortemMetric.metricPointType = MetricPointType.Sum;
               const postmortemRetentionDays: number =
                 await this.getMetricRetentionDays();
-              postmortemMetric.retentionDate = OneUptimeDate.addRemoveDays(
-                OneUptimeDate.getCurrentDate(),
-                postmortemRetentionDays,
-              );
+              postmortemMetric.retentionDate =
+                OneUptimeDate.addRemoveDurationInDays(
+                  OneUptimeDate.getCurrentDate(),
+                  postmortemRetentionDays,
+                );
 
               await MutableMetricService.createMutableMetrics({
                 metrics: [postmortemMetric],
@@ -6198,10 +6206,11 @@ ${incidentSeverity.name}
               severityChangeMetric.metricPointType = MetricPointType.Sum;
               const severityRetentionDays: number =
                 await this.getMetricRetentionDays();
-              severityChangeMetric.retentionDate = OneUptimeDate.addRemoveDays(
-                OneUptimeDate.getCurrentDate(),
-                severityRetentionDays,
-              );
+              severityChangeMetric.retentionDate =
+                OneUptimeDate.addRemoveDurationInDays(
+                  OneUptimeDate.getCurrentDate(),
+                  severityRetentionDays,
+                );
 
               await MutableMetricService.createMutableMetrics({
                 metrics: [severityChangeMetric],
@@ -7115,7 +7124,7 @@ ${incidentSeverity.name}
             primaryEntityId: incident.id,
             primaryEntityType: ServiceType.Incident,
             metricNames: Object.values(IncidentMetricType),
-            retentionDate: OneUptimeDate.addRemoveDays(
+            retentionDate: OneUptimeDate.addRemoveDurationInDays(
               OneUptimeDate.getCurrentDate(),
               metricRetentionDays,
             ),
@@ -7530,7 +7539,7 @@ ${incidentSeverity.name}
       incident.createdAt || incident.declaredAt || now;
 
     const metricRetentionDays: number = await this.getMetricRetentionDays();
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
+    const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       metricRetentionDays,
     );
@@ -7700,10 +7709,11 @@ ${incidentSeverity.name}
       const itemsToSave: Array<MutableMetric> = [];
 
       const metricRetentionDays: number = await this.getMetricRetentionDays();
-      const incidentMetricRetentionDate: Date = OneUptimeDate.addRemoveDays(
-        OneUptimeDate.getCurrentDate(),
-        metricRetentionDays,
-      );
+      const incidentMetricRetentionDate: Date =
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          metricRetentionDays,
+        );
 
       // now we need to create new metrics for this incident - TimeToAcknowledge, TimeToResolve, IncidentCount, IncidentDuration
 

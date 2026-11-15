@@ -492,14 +492,14 @@ describe("buildReplayLogsAtMomentQueryParams / Route", () => {
  */
 describe("formatReplayMilliseconds", () => {
   test("milliseconds below a second, seconds below a minute, minutes beyond", () => {
-    expect(formatReplayMilliseconds(0)).toBe("0 ms");
-    expect(formatReplayMilliseconds(420)).toBe("420 ms");
-    expect(formatReplayMilliseconds(999)).toBe("999 ms");
+    expect(formatReplayMilliseconds(0)).toBe("0\u00A0ms");
+    expect(formatReplayMilliseconds(420)).toBe("420\u00A0ms");
+    expect(formatReplayMilliseconds(999)).toBe("999\u00A0ms");
     expect(formatReplayMilliseconds(1000)).toBe("1s");
     expect(formatReplayMilliseconds(1500)).toBe("1.5s");
     expect(formatReplayMilliseconds(12_400)).toBe("12s");
     expect(formatReplayMilliseconds(65_000)).toBe("1m 05s");
-    expect(formatReplayMilliseconds(-300)).toBe("-300 ms");
+    expect(formatReplayMilliseconds(-300)).toBe("-300\u00A0ms");
   });
 
   test("a non-finite value is unknown rather than NaN", () => {
@@ -509,7 +509,9 @@ describe("formatReplayMilliseconds", () => {
 
 describe("formatReplayClockSkew", () => {
   test("a sub-second skew is shown in milliseconds with its direction", () => {
-    expect(formatReplayClockSkew(300)).toBe("300 ms ahead (server-clamped)");
+    expect(formatReplayClockSkew(300)).toBe(
+      "300\u00A0ms ahead (server-clamped)",
+    );
     expect(formatReplayClockSkew(-2500)).toBe("2.5s behind (server-clamped)");
   });
 

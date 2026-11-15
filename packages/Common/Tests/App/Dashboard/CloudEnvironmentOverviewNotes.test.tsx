@@ -181,9 +181,10 @@ import CloudEnvironmentOverview from "../../../../App/FeatureSet/Dashboard/src/P
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   formatCompact,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
+import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import {
   CLOUD_APP_CHART_LOAD_FAILED,
   CLOUD_APP_LOAD_FAILED_SUBLABEL,
@@ -194,10 +195,20 @@ import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/D
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import ObjectID from "../../../Types/ObjectID";
 
+// The tile reads as an English page writes it.
+const formatDurationMs: (ms: number | null) => string = (
+  ms: number | null,
+): string => {
+  return formatDurationMsInLanguage(
+    ms,
+    createTranslator(undefined, DEFAULT_LANGUAGE),
+  );
+};
+
 const ENVIRONMENT_ID: string = "cccccccc-0000-4000-8000-000000000003";
 const MINUTE_MS: number = 60 * 1000;
 const NO_DATA: string = "No data in this time range";
-const LIVE_WINDOW_LINE: string = `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`;
+const LIVE_WINDOW_LINE: string = `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES}\u00A0min`;
 const TRACE_TILES: Array<string> = ["Requests", "Error rate", "p95 latency"];
 
 function minutesAgo(minutes: number): Date {

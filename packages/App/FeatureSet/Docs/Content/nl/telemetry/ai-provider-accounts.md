@@ -25,7 +25,7 @@ Het gebruik van een account is wat er in rekening is gebracht, dag voor dag. Het
 
 ## Voordat je begint
 
-- De rol Project Owner of Project Admin. Alleen zij kunnen een account koppelen, wijzigen of verwijderen; iedereen die de telemetrie van het project leest, ziet de verbindingen en het gebruik.
+- De rol Projecteigenaar of Projectbeheerder. Alleen zij kunnen een account koppelen, wijzigen of verwijderen; iedereen die de telemetrie van het project leest, ziet de verbindingen en het gebruik.
 - Inloggegevens voor het account, van iemand die het beheert. De sectie van elke provider hieronder zegt welke en waar je ze maakt.
 - Niets te installeren: OneUptime roept de API van de provider aan vanaf zijn eigen servers.
 

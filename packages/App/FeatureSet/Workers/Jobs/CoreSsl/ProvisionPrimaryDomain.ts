@@ -76,7 +76,7 @@ RunCron(
         });
 
       if (existingCertificate?.expiresAt) {
-        const renewalCheckDate: Date = OneUptimeDate.addRemoveDays(
+        const renewalCheckDate: Date = OneUptimeDate.addRemoveDurationInDays(
           OneUptimeDate.getCurrentDate(),
           30,
         );

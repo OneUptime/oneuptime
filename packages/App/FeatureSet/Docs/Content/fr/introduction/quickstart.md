@@ -56,7 +56,7 @@ Avec le forfait Free de OneUptime Cloud, les moniteurs sont facturés à l'usage
 
 ### Choisir qui est prévenu
 
-Sous **Qui faut-il prévenir ?**, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Enregistrer et continuer** : cela crée `Default on-call policy`, qui vous alerte pour chaque nouvel incident et chaque nouvelle alerte du projet, par e-mail pour commencer. Pour alerter aussi des membres de l'équipe qui font déjà partie du projet, cliquez d'abord sur **Ajouter des membres de l'équipe**.
+Sous **Qui faut-il prévenir ?**, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Enregistrer et continuer** : cela crée la **Politique d'astreinte par défaut**, qui vous alerte pour chaque nouvel incident et chaque nouvelle alerte du projet, par e-mail pour commencer. Pour alerter aussi des membres de l'équipe qui font déjà partie du projet, cliquez d'abord sur **Ajouter des membres de l'équipe**.
 
 ### Vous envoyer un test
 
@@ -69,7 +69,7 @@ Pour vérifier aussi une API, et savoir quoi faire quand la première vérificat
 
 ## Être alerté en cas de panne
 
-La configuration du site web a déjà créé `Default on-call policy`, qui vous alerte par e-mail pour chaque nouvel incident et chaque nouvelle alerte ; la liste de vérification coche donc **Configurez une politique d'astreinte** comme terminée. Sa configuration guidée ajoute tout de même votre téléphone, les personnes alertées avec vous et ce qui se passe quand personne ne répond.
+La configuration du site web a déjà créé la **Politique d'astreinte par défaut**, qui vous alerte par e-mail pour chaque nouvel incident et chaque nouvelle alerte ; la liste de vérification coche donc **Configurez une politique d'astreinte** comme terminée. Sa configuration guidée ajoute tout de même votre téléphone, les personnes alertées avec vous et ce qui se passe quand personne ne répond.
 
 :::steps
 ### Ouvrir la configuration de l'astreinte
@@ -84,7 +84,7 @@ Sous **Comment devons-nous vous joindre ?**, votre e-mail de connexion est déj�
 
 ### Choisir qui d'autre est alerté
 
-Sous **Qui d'autre est d'astreinte ?**, gardez `Default on-call policy` sous **Politique d'astreinte**. Pour alerter des membres de l'équipe avec vous, ajoutez-les sous **Ajouter à la première règle d'escalade**. Cliquez sur **Enregistrer et continuer**.
+Sous **Qui d'autre est d'astreinte ?**, gardez la **Politique d'astreinte par défaut** sous **Politique d'astreinte**. Pour alerter des membres de l'équipe avec vous, ajoutez-les sous **Ajouter à la première règle d'escalade**. Cliquez sur **Enregistrer et continuer**.
 
 ### Décider de ce qui se passe si personne ne répond
 
@@ -96,7 +96,7 @@ Sous **Envoyer un appel de test**, cliquez sur **Tester cette politique**, chois
 :::
 
 > [!NOTE]
-> Les SMS et les appels téléphoniques sont désactivés dans un nouveau projet. Un propriétaire du projet, un Billing Admin ou une personne disposant de Manage Billing les active dans la carte **Canaux de notification**, sous **Paramètres du projet → Notifications → Canaux de notification**.
+> Les SMS et les appels téléphoniques sont désactivés dans un nouveau projet. Un Propriétaire du projet, un Administrateur de la facturation ou une personne disposant de Manage Billing les active dans la carte **Canaux de notification**, sous **Paramètres du projet → Notifications → Canaux de notification**.
 
 Deux règles d'astreinte déclenchent la politique : une pour chaque nouvel incident et une pour chaque nouvelle alerte. Pour voir la première, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
 

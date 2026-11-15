@@ -151,6 +151,14 @@ import ServerSendingTopAlert, {
 } from "../../../UI/Components/ServerSending/ServerSendingTopAlert";
 import API from "../../../UI/Utils/API/API";
 import ServerSendingStatusLoader from "../../../UI/Utils/ServerSending";
+import ServerSetupChecklistLoader, {
+  SERVER_SETUP_CHECKLIST_ROUTE,
+} from "../../../UI/Utils/ServerSetupChecklist";
+import { SERVER_EMAIL_ENVIRONMENT_ROUTE } from "../../../Types/Email/ServerEmailEnvironment";
+import {
+  SERVER_EMAIL_ENVIRONMENT_CARD_TEST_ID,
+  SERVER_EMAIL_ENVIRONMENT_LOADING_TEST_ID,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Email/ServerEmailEnvironmentCard";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -469,11 +477,71 @@ beforeEach(() => {
 
   // Everyone in the admin dashboard is a master admin.
   getJestSpyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+
+  /*
+   * The network is a stand-in for every test, not only the ones that answer
+   * it. The page asks the server for its setup checklist and whether the
+   * GLOBAL_EMAIL_ variables set its mail server, and its cards wait on that
+   * answer. Sent for real, the answer depended on the machine: refused at
+   * once with config.env's HOST=localhost and no server there, a real answer
+   * from a local OneUptime, and a wait on a name that does not resolve
+   * ("http://api/...") with no config.env at all, long enough for the cards'
+   * waits to run out - so the suite passed for some and failed four or five
+   * tests for others. Here the server knows neither, at once, as it does
+   * when the variables are unset; a describe that answers them stubs
+   * API.fetch again. The checklist loader keeps its answer for the whole
+   * page, so it starts each test empty, as a page load does.
+   */
+  ServerSetupChecklistLoader.clear();
+  ServerSendingStatusLoader.clear();
+  getJestSpyOn(API, "fetch").mockImplementation((async (): Promise<unknown> => {
+    return new HTTPErrorResponse(404, { message: "Not found." }, {});
+  }) as never);
 });
 
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
+});
+
+describe("Admin > Settings > Email: the server's answers are stand-ins", () => {
+  test("the page asks for its checklist and its mail environment, and the stand-in answers both at once", async () => {
+    await renderPage();
+
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByTestId(SERVER_EMAIL_ENVIRONMENT_LOADING_TEST_ID),
+        ).toBeNull();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const asked: Array<string> = (
+      API.fetch as unknown as MockFunction
+    ).mock.calls.map((call: Array<unknown>): string => {
+      return String((call[0] as { url: unknown }).url);
+    });
+
+    expect(
+      asked.some((url: string): boolean => {
+        return url.endsWith(SERVER_EMAIL_ENVIRONMENT_ROUTE);
+      }),
+    ).toBe(true);
+    expect(
+      asked.some((url: string): boolean => {
+        return url.endsWith(SERVER_SETUP_CHECKLIST_ROUTE);
+      }),
+    ).toBe(true);
+
+    // With no answer the saved settings are shown, as on a server without the variables.
+    expect(
+      screen.queryByTestId(SERVER_EMAIL_ENVIRONMENT_CARD_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByText(text(ENGLISH, "pages.settings.email.serverCardTitle")),
+    ).toBeVisible();
+  });
 });
 
 describe("Admin > Settings > Email > Host Settings", () => {

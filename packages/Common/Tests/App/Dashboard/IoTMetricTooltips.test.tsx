@@ -779,7 +779,7 @@ describe("IoT fleet overview", () => {
       // Offline first; its stale 15% battery is not repeated.
       "Pump A|Offline",
       "Gate B|Battery 15%",
-      "Probe C|Signal -105 dBm",
+      "Probe C|Signal -105\u00A0dBm",
     ]);
     // Exactly 20% / -100 dBm is not "below"; a 20-minute-old 5% is too old.
     expect(within(card).queryByText("Meter D")).not.toBeInTheDocument();

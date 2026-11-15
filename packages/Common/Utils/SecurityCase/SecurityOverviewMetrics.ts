@@ -185,6 +185,29 @@ export function calendarDaysBetween(
 }
 
 /*
+ * The last `count` days of the reader's calendar, in `timezone` (UTC's when
+ * none is given), oldest first and today's the last: "the last 30 days" of
+ * a chart of a bar a day, each bar a whole day. The first starts at the
+ * reader's midnight `count` - 1 days before today's, stepped in that zone.
+ * Read from `now` - 30 x 24 hours instead, the Security overview drew 31
+ * bars, the first holding only the part of its day after that instant
+ * (issue #8474).
+ */
+export function getLastCalendarDays(
+  now: Date,
+  count: number,
+  timezone?: Timezone | undefined,
+): Array<CalendarDay> {
+  const days: number = Math.max(1, Math.trunc(count) || 1);
+
+  return calendarDaysBetween(
+    OneUptimeDate.addRemoveDays(now, -(days - 1), calendarZoneOf(timezone)),
+    now,
+    timezone,
+  ).slice(-days);
+}
+
+/*
  * Every day from the day of `start` to the day of `end`, oldest first: the
  * reader's days in `timezone`, UTC's when none is given.
  */
@@ -509,18 +532,22 @@ export function formatDurationInMinutes(minutes: number | null): string {
   const total: number = Math.max(0, Math.round(minutes));
 
   if (total < 60) {
-    return `${total} min`;
+    return `${total}\u00A0min`;
   }
 
   const hours: number = Math.floor(total / 60);
   const restMinutes: number = total % 60;
 
   if (hours < 24) {
-    return restMinutes > 0 ? `${hours} h ${restMinutes} min` : `${hours} h`;
+    return restMinutes > 0
+      ? `${hours}\u00A0h ${restMinutes}\u00A0min`
+      : `${hours}\u00A0h`;
   }
 
   const days: number = Math.floor(hours / 24);
   const restHours: number = hours % 24;
 
-  return restHours > 0 ? `${days} d ${restHours} h` : `${days} d`;
+  return restHours > 0
+    ? `${days}\u00A0d ${restHours}\u00A0h`
+    : `${days}\u00A0d`;
 }

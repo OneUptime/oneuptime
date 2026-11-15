@@ -1385,6 +1385,26 @@ export default class OneUptimeDate {
     return moment(date1).isSame(date2);
   }
 
+  /*
+   * Whole days of 24 hours from `startDate` to `endDate`, rounded toward
+   * zero as moment's diff rounds: a length of time, the same in every zone
+   * - an event's age, the days until a certificate expires. The calendar
+   * day counts below (getDaysBetweenTwoDates, getNumberOfDaysBetweenDates)
+   * read the runtime's own calendar, so on a server whose zone changes its
+   * clocks 7 x 24 hours across the change counted 6 days (issue #8473).
+   */
+  public static getWholeDaysOfTimeBetween(
+    startDate: Date | string,
+    endDate: Date | string,
+  ): number {
+    const ms: number =
+      this.fromString(endDate).getTime() - this.fromString(startDate).getTime();
+    const days: number = Math.trunc(ms / (24 * 60 * 60 * 1000));
+
+    // Never -0: a moment and itself are 0 days apart.
+    return days === 0 ? 0 : days;
+  }
+
   public static getDaysBetweenTwoDates(startDate: Date, endDate: Date): number {
     startDate = this.fromString(startDate);
     endDate = this.fromString(endDate);
@@ -2027,50 +2047,57 @@ export default class OneUptimeDate {
       .toDate();
   }
 
-  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+  /*
+   * THE getSomeDays FAMILY STEPS DAYS AS A LENGTH OF TIME: days x 24 hours,
+   * the same in every zone (addRemoveDurationInDays), as getSomeHoursAgo
+   * steps hours. Its callers ask for spans - a status page's last 90 days
+   * of uptime, a session that lasts 30 days, a link that expires in a day,
+   * rows older than 30 days - and stepped on the runtime's own calendar
+   * (moment's add(n, "days")) each was an hour short or long whenever the
+   * runtime's zone changed its clocks inside the span: on a self-hosted
+   * server outside UTC, and in a browser in the zone of the machine, which
+   * is not even the reader's (issue #8236, after #7623). CI runs in UTC,
+   * where every calendar day is 24 hours, so nothing failed there.
+   *
+   * A walk over calendar days - a strip of a bar a day - is not a span. It
+   * steps in the zone its days are in (addRemoveDays with a zone,
+   * addRemoveCalendarUnits), or on the runtime's own calendar with
+   * getSomeDaysAfterDate, as DayUptimeGraphUtil walks a strip with no zone.
+   */
+  private static toDayCount(days: PositiveNumber | number): number {
     if (!(days instanceof PositiveNumber)) {
       days = new PositiveNumber(days);
     }
-    return this.getCurrentMomentDate()
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+
+    return Number(days.toNumber());
+  }
+
+  public static getSomeDaysAgo(days: PositiveNumber | number): Date {
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      -this.toDayCount(days),
+    );
   }
 
   public static getSomeDaysAgoFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * days.toNumber(), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeDaysAfterFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date).add(Number(days.toNumber()), "days").toDate();
+    return this.addRemoveDurationInDays(date, this.toDayCount(days));
   }
 
   public static getSomeDaysBeforeFromDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    date = this.fromString(date);
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-    return moment(date)
-      .add(-1 * Number(days.toNumber()), "days")
-      .toDate();
+    return this.addRemoveDurationInDays(date, -this.toDayCount(days));
   }
 
   public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
@@ -2108,12 +2135,12 @@ export default class OneUptimeDate {
     return this.getCurrentMomentDate().add(hours.toNumber(), "hours").toDate();
   }
 
+  // A length of time, as the rest of the family (see getSomeDaysAgo).
   public static getSomeDaysAfter(days: PositiveNumber | number): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return this.getCurrentMomentDate().add(days.toNumber(), "days").toDate();
+    return this.addRemoveDurationInDays(
+      this.getCurrentMomentDate().toDate(),
+      this.toDayCount(days),
+    );
   }
 
   public static secondsToFormattedTimeString(seconds: number): string {
@@ -2239,15 +2266,19 @@ export default class OneUptimeDate {
     return duration.asSeconds();
   }
 
+  /*
+   * `days` days on, on the runtime's own calendar: the same wall clock on a
+   * later day, 23 or 25 hours on where its clocks change. Unlike the rest
+   * of the getSomeDays family, which steps lengths of time (getSomeDaysAgo),
+   * this walks calendar days: DayUptimeGraphUtil walks a strip with no zone
+   * a bar a day with it, and 24 hours on from a minute past midnight is the
+   * same day again where the clocks go back.
+   */
   public static getSomeDaysAfterDate(
     date: Date,
     days: PositiveNumber | number,
   ): Date {
-    if (!(days instanceof PositiveNumber)) {
-      days = new PositiveNumber(days);
-    }
-
-    return moment(date).add(days.toNumber(), "days").toDate();
+    return moment(date).add(this.toDayCount(days), "days").toDate();
   }
 
   public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {
@@ -3322,9 +3353,78 @@ export default class OneUptimeDate {
    * moment caches its guess, and the translation is a map read.
    */
   public static getCurrentTimezone(): Timezone {
-    return (
-      this.userTimezone || TimezoneAlias.getCanonicalTimezone(moment.tz.guess())
+    return this.userTimezone || this.getRuntimeTimezone();
+  }
+
+  /*
+   * The zone the browser (or the process) is in, in its current name:
+   * moment's guess, kept for each guess it gives, so this stays a lookup.
+   *
+   * moment trusts the zone Intl names only when its name is longer than
+   * three letters, so in a browser on UTC - Intl's "UTC" - it guessed from
+   * the offsets instead, and named Africa/Abidjan: zones read "GMT" (and
+   * "GMT+0" in German), a new user's profile was saved with Abidjan, and
+   * an Ask AI chart said "Days are in Africa/Abidjan." of a reader on UTC
+   * (issue #8475). Where Intl names such a zone, the Timezone list names it
+   * and moment's guess keeps its clock (the same offset now and half a year
+   * on), the zone is Intl's.
+   */
+  private static runtimeTimezoneOfGuess: {
+    guess: string;
+    timezone: Timezone;
+  } | null = null;
+
+  private static getRuntimeTimezone(): Timezone {
+    const guess: string = moment.tz.guess();
+
+    if (this.runtimeTimezoneOfGuess?.guess === guess) {
+      return this.runtimeTimezoneOfGuess.timezone;
+    }
+
+    const timezone: Timezone = TimezoneAlias.getCanonicalTimezone(
+      this.getShortIntlTimezoneFor(guess) || guess,
     );
+
+    this.runtimeTimezoneOfGuess = { guess, timezone };
+
+    return timezone;
+  }
+
+  // Intl's name for the runtime's zone, when moment passed it over for `guess`.
+  private static getShortIntlTimezoneFor(guess: string): string | undefined {
+    let intlName: string | undefined = undefined;
+
+    try {
+      intlName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return undefined;
+    }
+
+    if (
+      !intlName ||
+      intlName === guess ||
+      intlName.length > 3 ||
+      !TimezoneAlias.isListedName(intlName)
+    ) {
+      return undefined;
+    }
+
+    const intlZone: moment.MomentZone | null = moment.tz.zone(intlName);
+    const guessedZone: moment.MomentZone | null = moment.tz.zone(guess);
+
+    if (!intlZone || !guessedZone) {
+      return undefined;
+    }
+
+    const nowMs: number = Date.now();
+
+    for (const ms of [nowMs, nowMs + 182 * 24 * 60 * 60 * 1000]) {
+      if (intlZone.utcOffset(ms) !== guessedZone.utcOffset(ms)) {
+        return undefined;
+      }
+    }
+
+    return intlName;
   }
 
   /**

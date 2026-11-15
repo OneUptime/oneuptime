@@ -33,13 +33,13 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-Fälle und Playbooks folgen den drei Security-Rollen. Project Owner und Project Admin dürfen alles.
+Fälle und Playbooks folgen den drei Security-Rollen. Projektinhaber und Projektadministrator dürfen alles.
 
 | Rolle | Was sie darf |
 | --- | --- |
-| Security Admin | Alles, auch Fälle löschen, Belege entfernen und Playbooks einrichten |
-| Security Member | Fälle eröffnen, zuweisen, ändern und schließen, Notizen schreiben, Aufgaben bearbeiten, Belege hinzufügen, Playbooks ausführen und ihre Schritte genehmigen oder ablehnen |
-| Security Viewer | Fälle, Erkennungen, Notizen, Aufgaben, Belege, Playbooks und deren Ausführungen lesen |
+| Sicherheits-Administrator | Alles, auch Fälle löschen, Belege entfernen und Playbooks einrichten |
+| Sicherheits-Mitglied | Fälle eröffnen, zuweisen, ändern und schließen, Notizen schreiben, Aufgaben bearbeiten, Belege hinzufügen, Playbooks ausführen und ihre Schritte genehmigen oder ablehnen |
+| Sicherheits-Betrachter | Fälle, Erkennungen, Notizen, Aufgaben, Belege, Playbooks und deren Ausführungen lesen |
 
 Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls bis zum Genehmigen der Schritte eines Playbooks; siehe [Berechtigungsreferenz](/docs/permissions/reference).
 
@@ -101,11 +101,11 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 - **Auswirkungen**, auf der **Übersicht**: was der Fall gefährdet: ob OneUptime gesehen hat, dass seine Einträge aus dem Internet erreicht wurden, wem sie gehören, was sich zuletzt an ihnen geändert hat, und die gefährdeten Daten - die Datenspeicher mit sensiblen Daten, die der Fall nennt oder die seine Benutzer und Rollen erreichen können (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#security-operations)). Klappen Sie sie auf, um zu sehen, was jeder Eintrag aufruft und wovon er aufgerufen wird, welche Monitore und Statusseiten ihn beobachten und mit welchen Rechnern die Adressen des Falls kommuniziert haben.
 - **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
 - **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
-- **Hergang**: was geschehen ist, der Reihe nach und über ganz OneUptime hinweg: jede Erkennung und die Sicherheitsereignisse dahinter, wie weit ihre Anfragen kamen, die Ausnahmen, die sie auslösten, die Änderungen an den Einträgen, die der Fall nennt, die dort ausgelösten Vorfälle und Alarme, und was das Team getan hat. Die vielen Proben eines Scanners sind eine Zeile, und jede Zeile öffnet, was sie nennt, etwa den Trace der Anfrage oder die Ausnahme.
+- **Hergang**: was geschehen ist, der Reihe nach und über ganz OneUptime hinweg: jede Erkennung und die Sicherheitsereignisse dahinter, wie weit ihre Anfragen kamen, die Ausnahmen, die sie auslösten, die Änderungen an den Einträgen, die der Fall nennt, die dort ausgelösten Vorfälle und Alarme, und was das Team getan hat. Die vielen Sonden eines Scanners sind eine Zeile, und jede Zeile öffnet, was sie nennt, etwa den Trace der Anfrage oder die Ausnahme.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).
-- **Belege**: die Dateien, Links und Sicherheitsereignisse, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Security Admin kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde. Ein Sicherheitsereignis wird so aufbewahrt, wie es war, mit **Zum Fall hinzufügen** unter **Ereignisse** oder auf der Seite einer [Bedrohungssuche](/docs/telemetry/security-events#bedrohungssuchen), und **Ereignis anzeigen** öffnet es. Der Schritt **Preserve the evidence** eines Playbooks bewahrt hier auch die Ereignisse hinter den Erkennungen des Falls auf.
+- **Belege**: die Dateien, Links und Sicherheitsereignisse, die zum Fall aufbewahrt werden, jeweils mit Person und Zeitpunkt des Hinzufügens. Mit **Datei hinzufügen** laden Sie eine Datei mit bis zu 10 MB hoch, und der SHA-256 des Hochgeladenen wird festgehalten, damit jeder, der sie später herunterlädt, prüfen kann, dass es das Aufbewahrte ist; mit **Link hinzufügen** verweisen Sie auf Belege, die anderswo liegen. Nur ein Sicherheits-Administrator kann einen Beleg entfernen, und die **Zeitachse** des Falls zeigt, was hinzugefügt und entfernt wurde. Ein Sicherheitsereignis wird so aufbewahrt, wie es war, mit **Zum Fall hinzufügen** unter **Ereignisse** oder auf der Seite einer [Bedrohungssuche](/docs/telemetry/security-events#bedrohungssuchen), und **Ereignis anzeigen** öffnet es. Der Schritt **Preserve the evidence** eines Playbooks bewahrt hier auch die Ereignisse hinter den Erkennungen des Falls auf.
 - **Aufgaben**: was im Fall zu tun ist, wer es erledigt und ob es erledigt ist. Fügen Sie eine Aufgabe als Zeile hinzu, geben Sie sie jemandem und haken Sie sie ab, wenn sie erledigt ist. Wer die Aufgabe bekommt, wird benachrichtigt, außer er hat sie sich selbst genommen, und das Menü zeigt neben **Aufgaben**, wie viele Aufgaben offen sind. Der Schritt **Aufgaben hinzufügen** eines Playbooks fügt ebenfalls Aufgaben hinzu und lässt jede weg, die der Fall schon hat.
 - **Playbooks**: was jedes Playbook am Fall getan hat, Schritt für Schritt, und die Schritte, die auf Genehmigung warten. Solange Ausführungen warten, zeigt das Menü neben **Playbooks**, wie viele es sind.
 - **Private Notizen**: was das Team zum Fall geschrieben hat. Das Menü **Vorlagen** des Eingabefelds fügt eine der Notizvorlagen des Projekts in eine Notiz ein.
@@ -195,7 +195,7 @@ Drei weitere Einstellungen machen Fälle zu denen Ihres Projekts, unter **Produk
 - **Notiz-Vorlagen**: fertige Texte für die Notizen, die Ihr Team Fall für Fall schreibt, etwa eine Checkliste zur Eindämmung oder eine Übergabe an die nächste Schicht. Unter **Private Notizen** eines Falls fügt das Menü **Vorlagen** des Eingabefelds eine davon in die Notiz ein, die Sie vor dem Veröffentlichen anpassen, und **Vorlagen verwalten** öffnet die Liste.
 - **Nummerierung**: der Text vor den Fallnummern, `CASE-` in `CASE-42`, sofern Sie keinen eigenen festlegen, und die Nummer, die der nächste Fall erhält. Sie wechseln von einem anderen Tool? Beginnen Sie nach dessen letzter Fallnummer, damit eine Nummer nie zwei Fälle bezeichnet. Ein neues Präfix oder ein neuer Beginn gilt nur für neue Fälle, und ein Beginn muss höher sein als die bisher höchste Nummer.
 
-Ein Security Admin verwaltet die benutzerdefinierten Felder und Notizvorlagen, und ein Security Member füllt die Felder eines Falls aus; auf OneUptime Cloud setzen sie den Plan Growth oder höher voraus. Die Nummerierung legt ein Project Owner oder Project Admin fest, wie bei Vorfällen und Warnungen.
+Ein Sicherheits-Administrator verwaltet die benutzerdefinierten Felder und Notizvorlagen, und ein Sicherheits-Mitglied füllt die Felder eines Falls aus; auf OneUptime Cloud setzen sie den Plan Growth oder höher voraus. Die Nummerierung legt ein Projektinhaber oder Projektadministrator fest, wie bei Vorfällen und Warnungen.
 
 ## Benachrichtigungen
 
@@ -209,7 +209,7 @@ OneUptime informiert Personen über fünf Dinge an einem Fall. Niemand muss daf�
 | Reaktionsziel eines Sicherheitsfalls | Die Personen am Fall: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Ist niemand am Fall, die Personen, die über neue Fälle seiner Priorität informiert werden | Per E-Mail und Push |
 | Mir zugewiesene Aufgabe eines Sicherheitsfalls | Die Person, der eine Aufgabe des Falls gegeben wird, außer sie hat sie sich selbst genommen | Per E-Mail und Push |
 
-- Nur Personen, die den Fall sehen können, werden darüber informiert: Project Owner, Project Admin und die Rollen Security Admin, Security Member und Security Viewer. Eine Rolle, die auf bestimmte Labels beschränkt ist, wird nur über die Fälle mit diesen Labels informiert.
+- Nur Personen, die den Fall sehen können, werden darüber informiert: Projektinhaber, Projektadministrator und die Rollen Sicherheits-Administrator, Sicherheits-Mitglied und Sicherheits-Betrachter. Eine Rolle, die auf bestimmte Labels beschränkt ist, wird nur über die Fälle mit diesen Labels informiert.
 - Niemand wird über das informiert, was er selbst getan hat: Wer einen Fall per Hand eröffnet, ihn zuweist oder eine Ausführung startet, wird darüber nicht benachrichtigt.
 - Jede Person erfährt nur einmal von einem Fall. Ein Fall, der mit Medium eröffnet wird und später auf Kritisch steigt, erreicht beim Anstieg die Personen, die Hoch und Kritisch oder Nur Kritisch gewählt haben, und nicht noch einmal die Personen, die Mittel und höher gewählt und schon bei der Eröffnung davon erfahren haben.
 - Der Testangriff aus **Testangriff senden** eröffnet einen Fall, der niemanden benachrichtigt.
@@ -310,7 +310,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die acht Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
+- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die acht Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Sicherheits-Administrator schaltet das ab. **Run a runbook**, **Post a status page announcement** und die beiden Datenspeicher-Schritte beginnen mit eingeschalteter Genehmigung, denn sie führen Befehle auf Ihren Systemen aus, sprechen zu Ihren Kunden oder ändern die Einstellungen einer Cloud; wer den Schritt hinzufügt, kann sie abschalten.
 - **Diesen Schritt ausführen**: **Immer** oder nur nach Ergebnissen von Schritten davor, etwa wenn **Entitäten mit Threat Intel abgleichen** eine bekannt bösartige Entität findet; siehe [Nach dem Ergebnis eines Schritts verzweigen](#nach-dem-ergebnis-eines-schritts-verzweigen).
 - **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung. Die Option liegt unter **Weitere Felder**, zusammen mit **Diesen Schritt ausführen**.
 
@@ -365,11 +365,11 @@ Die beiden Datenspeicher-Schritte wirken auf die Datenspeicher, um die es im Fal
 
 #### Geschützte Entitäten
 
-**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer und Hosts, die kein Playbook eindämmt, etwa Notfallzugriffskonten, Domänencontroller und VPN-Gateways. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Security Admins pflegen die Liste.
+**Geschützte Entitäten**, im Menü unter **Playbooks**, listet die Benutzer und Hosts, die kein Playbook eindämmt, etwa Notfallzugriffskonten, Domänencontroller und VPN-Gateways. Ein Wert passt unabhängig von der Groß- und Kleinschreibung, und `*` steht für eine beliebige Folge von Zeichen: `svc-*` schützt jedes Dienstkonto. Ein Schritt meldet einen geschützten Benutzer oder Host als geschützt und lässt ihn unangetastet. Sicherheits-Administratoren pflegen die Liste.
 
 #### Genehmigung
 
-Die acht Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Security Admin kann **Genehmigung erforderlich** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Anwenden auf** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
+Die acht Schritte, die jemanden aussperren, warten auf Genehmigung. Nur ein Sicherheits-Administrator kann **Genehmigung erforderlich** für einen von ihnen abschalten, und OneUptime hält fest, wer das getan hat. Die Genehmigung listet unter **Anwenden auf** die Benutzer oder Hosts, auf die der Schritt wirken würde, alle angehakt: Entfernen Sie den Haken bei allen, die er unangetastet lassen soll. Geschützte werden nicht angeboten. Wer eine Ausführung gestartet hat, kann ihre Schritte nicht genehmigen: Das tut jemand anderes, ablehnen kann er sie aber weiterhin.
 
 #### Rückgängig machen
 
@@ -440,7 +440,7 @@ Prüfen Sie **Bei Treffer einen Fall eröffnen** im Schritt **Bei Treffer** der 
 :::
 
 :::details Niemand wurde über einen Fall informiert
-Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und höher** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
+Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und höher** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Projektinhaber bzw. Projektadministrator) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
 :::
 
 :::details Ein Fall zeigt keine Fälligkeit

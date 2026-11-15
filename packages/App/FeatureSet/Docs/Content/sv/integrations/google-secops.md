@@ -22,7 +22,7 @@ Varje väg normaliserar det som kommer in till [OCSF](https://schema.ocsf.io/), 
 
 ## Innan du börjar
 
-- För den hanterade anslutningen, i OneUptime, rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan läsa anslutningar, men inte skapa dem.
+- För den hanterade anslutningen, i OneUptime, rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan läsa anslutningar, men inte skapa dem.
 - För webhooken och UDM-vidarebefordran en intagningsnyckel: öppna **Projektinställningar → Telemetri och APM → Intagningsnycklar** och klicka på **Skapa ingestion-nyckel**.
 - För den hanterade anslutningen behörighet att skapa ett tjänstkonto i Google Cloud i det projekt som din SecOps-instans är kopplad till.
 
@@ -173,7 +173,7 @@ Varje begäran i ett test har en tidsgräns på 20 sekunder. Tester rör varken 
 
 ## Förhandsgranska, kör och importera vid behov
 
-Öppna **Diagnostik** på en anslutning för att se de senaste körningarna och styra anslutningen. Projektägare, projektadministratörer och säkerhetsadministratörer kan starta åtgärder. Säkerhetsmedlemmar och säkerhetsläsare kan läsa historiken.
+Öppna **Diagnostik** på en anslutning för att se de senaste körningarna och styra anslutningen. Projektägare, Projektadministratörer och Säkerhetsadministratörer kan starta åtgärder. Säkerhetsmedlemmar och säkerhetsläsare kan läsa historiken.
 
 - **Kör nu** köar en avsökning direkt, med den vanliga markören och inmatningsvägen, även när schemalagd avsökning är inaktiverad. Tillstånden köad och körs förblir synliga medan workern utför begäran. Om en körning blir kvar i kön kontrollerar du att workers bearbetar Worker-kön; kontrollen **Background workers** i Testa anslutningen säger om någon process gör det.
 - **Förhandsgranska detektioner** läser ett valt tidsintervall utan att importera eller ändra markören. Använd den senaste timmen, 24 timmar, 7 dagar eller ett anpassat intervall på upp till 7 dagar. Intervallet matchar larmvyn i SecOps, som läser efter identifieringstid, och de två sökgenomgångarna läser både identifieringar som har skapats i det och identifieringar vars identifieringstid infaller i det, så en förhandsgranskning av i går visar även identifieringar som skapades i går om äldre händelser. Förhandsgranskningen visar identifieringstid och skapandetid var för sig. Resultaten följer anslutningens sparade val **Data att importera**.

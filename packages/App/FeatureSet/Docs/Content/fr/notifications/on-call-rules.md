@@ -130,12 +130,12 @@ L'API peut enregistrer une règle de désinscription, avec `isOptOut` activé et
 :::
 
 :::details Désactiver le repli pour tout un projet
-Un propriétaire du projet, ou une personne disposant de **Manage Billing**, peut définir `disableOnCallNotificationFallback` du projet via l'API. Une alerte qui ne trouve pas de règle n'est alors pas livrée, et son journal indique que l'utilisateur doit ajouter des règles dans **Paramètres utilisateur → Comment me joindre**.
+Un Propriétaire du projet, ou une personne disposant de **Manage Billing**, peut définir `disableOnCallNotificationFallback` du projet via l'API. Une alerte qui ne trouve pas de règle n'est alors pas livrée, et son journal indique que l'utilisateur doit ajouter des règles dans **Paramètres utilisateur → Comment me joindre**.
 :::
 
 ## Les règles d'un coéquipier
 
-Les propriétaires et les admins du projet peuvent voir et modifier la même page pour toute personne du projet : dans **Utilisateurs**, ils ouvrent la personne, puis **Comment me joindre** dans la section **Astreinte**. **Disponibilité**, juste à côté, montre si chaque gravité la joint. Quand quelqu'un d'autre ajoute, modifie ou supprime vos règles, vous recevez un e-mail à ce sujet, et chaque changement figure dans le journal d'audit du projet.
+Les Propriétaires du projet et les Administrateurs du projet peuvent voir et modifier la même page pour toute personne du projet : dans **Utilisateurs**, ils ouvrent la personne, puis **Comment me joindre** dans la section **Astreinte**. **Disponibilité**, juste à côté, montre si chaque gravité la joint. Quand quelqu'un d'autre ajoute, modifie ou supprime vos règles, vous recevez un e-mail à ce sujet, et chaque changement figure dans le journal d'audit du projet.
 
 ## Dépannage
 

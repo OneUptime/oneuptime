@@ -113,7 +113,7 @@ MCP 인증을 지원하는 다른 클라이언트도 똑같이 동작합니다. 
 
 ### 연결된 클라이언트 관리하기
 
-로그인으로 연결된 모든 클라이언트는 **프로젝트 설정 → AI → MCP 서버** 의 **연결된 MCP 클라이언트** 아래에, 연결한 사람, 할 수 있는 일, 마지막 사용 시각과 함께 표시됩니다. 자신이 연결한 클라이언트가 보이며, 프로젝트 소유자와 관리자에게는 모든 사람의 클라이언트가 보입니다.
+로그인으로 연결된 모든 클라이언트는 **프로젝트 설정 → AI → MCP 서버** 의 **연결된 MCP 클라이언트** 아래에, 연결한 사람, 할 수 있는 일, 마지막 사용 시각과 함께 표시됩니다. 자신이 연결한 클라이언트가 보이며, 프로젝트 소유자와 프로젝트 관리자에게는 모든 사람의 클라이언트가 보입니다.
 
 클라이언트를 로그아웃시키려면 **연결 해제** 를 클릭합니다. 클라이언트는 즉시 동작을 멈춥니다.
 
@@ -430,7 +430,7 @@ curl https://oneuptime.com/mcp/tools
 | 에이전트가 하는 일 | **접근** 에서 고를 것 |
 | --- | --- |
 | 읽기만 함 | **뷰어**, 또는 키 페이지에서 읽기 권한 추가 |
-| 생성, 업데이트, 삭제도 함 | **프로젝트 관리자**, 또는 키 페이지에서 Project Admin 역할 추가 |
+| 생성, 업데이트, 삭제도 함 | **프로젝트 관리자**, 또는 키 페이지에서 프로젝트 관리자 역할 추가 |
 
 각 키에는 필요한 최소한의 권한만 주고, 키를 정기적으로 교체하고, 환경마다 별도의 키를 두고, 각 키가 하는 일을 OneUptime에서 지켜보세요.
 
@@ -497,7 +497,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 보안 | Security Event, Threat Intel Indicator |
 | 변경과 비용 | Change Event, Kubernetes Cost Allocation |
 
-도구 이름은 스네이크 케이스입니다: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`, 텔레메트리라면 `list_logs` 와 `count_spans` 입니다.
+도구 이름은 스네이크 케이스입니다: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident`, `count_incidents`, 텔레메트리라면 `list_logs` 와 `count_spans` 입니다. `create_incident`와 `create_alert`는 `ownerUsers`와 `ownerTeams`도 받습니다. 처음부터 레코드를 소유하는 사용자와 팀의 ID이며, 이들은 생성되었다는 알림을 받습니다.
 
 ## 다음 단계
 

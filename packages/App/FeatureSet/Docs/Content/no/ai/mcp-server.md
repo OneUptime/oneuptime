@@ -113,7 +113,7 @@ Hva en tilkoblet klient kan gjøre:
 
 ### Administrer tilkoblede klienter
 
-Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; prosjektets eiere og administratorer ser alles.
+Hver klient som er koblet til ved innlogging, står på **Prosjektinnstillinger → KI → MCP-server**, under **Tilkoblede MCP-klienter**, med hvem som koblet den til, hva den kan gjøre og når den sist ble brukt. Du ser klientene du har koblet til; Prosjekteiere og Prosjektadministratorer ser alles.
 
 Klikk **Koble fra** for å logge ut en klient. Den slutter å virke med en gang.
 
@@ -430,7 +430,7 @@ Disse fungerer uten påloggingsdetaljer, med bare verktøyene for offentlige sta
 | Hva agenten gjør | Velg under **Tilgang** |
 | --- | --- |
 | Leser bare | **Leser**, eller legg til lesetillatelser på nøkkelens side |
-| Oppretter, oppdaterer og sletter også | **Prosjektadministrator**, eller legg til rollen Project Admin på nøkkelens side |
+| Oppretter, oppdaterer og sletter også | **Prosjektadministrator**, eller legg til rollen Prosjektadministrator på nøkkelens side |
 
 Gi hver nøkkel det minste den trenger, roter nøkler jevnlig, ha en egen nøkkel for hvert miljø, og følg med på hva hver nøkkel gjør i OneUptime.
 
@@ -497,7 +497,7 @@ MCP-serveren er tilstandsløs: den verken utsteder eller sporer økt-ID-er, så 
 | Sikkerhet | Security Event, Threat Intel Indicator |
 | Endringer og kostnader | Change Event, Kubernetes Cost Allocation |
 
-Verktøyene har navn i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri.
+Verktøyene har navn i snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` og `count_incidents`, eller `list_logs` og `count_spans` for telemetri. `create_incident` og `create_alert` tar også `ownerUsers` og `ownerTeams`: id-ene til brukerne og teamene som eier posten fra starten, og som får beskjed om at den er opprettet.
 
 ## Neste steg
 

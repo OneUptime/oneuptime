@@ -56,7 +56,7 @@ flowchart TB
 ## 开始之前
 
 - **包含表单的套餐。** 在 OneUptime Cloud 上，表单需要 **Growth** 或更高的套餐。请参阅 [套餐](#套餐)。
-- **创建表单的权限。** **Create Form** 属于项目所有者和管理员，以及您授予该权限的角色。请参阅 [权限](#权限)。
+- **创建表单的权限。** **Create Form** 属于项目所有者和项目管理员，以及您授予该权限的角色。请参阅 [权限](#权限)。
 - **事件表单需要严重程度。** 每个事件都需要一个严重程度：来自某个问题、表单的设置或其事件模板。没有严重程度时，每次提交都会被拒绝。请参阅 [提交会创建什么](/docs/forms/on-submit#提交如何成为事件)。
 
 ## 创建您的第一个表单
@@ -127,22 +127,22 @@ flowchart TB
 
 ## 权限
 
-表单让团队以外的人可以在您的项目中创建事件和维护事件，因此表单由项目所有者和管理员，以及您授予 **Form** 权限的角色来管理。这些权限位于 [权限参考](/docs/permissions/reference) 的 **Form** 组中：
+表单让团队以外的人可以在您的项目中创建事件和维护事件，因此表单由项目所有者和项目管理员，以及您授予 **Form** 权限的角色来管理。这些权限位于 [权限参考](/docs/permissions/reference) 的 **Form** 组中：
 
 | 权限 | 允许的操作 | 默认拥有者 |
 | --- | --- | --- |
-| **Create Form** | 创建表单以及复制表单。 | Project Owner, Project Admin |
-| **Edit Form** | 更改表单：其问题、品牌、模板、提交时设置、**接受提交**、链接和 **IP 允许列表**。 | Project Owner, Project Admin |
-| **Delete Form** | 删除表单，其提交记录也随之删除。 | Project Owner, Project Admin |
-| **Read Form** | 查看表单及其问题、设置和链接。 | 以上角色，以及 Project Member、Viewer，和事件与计划维护相关角色 |
-| **Read Form Submission** | 查看提交及其答案。 | Project Owner, Project Admin |
-| **Delete Form Submission** | 删除提交。 | Project Owner, Project Admin |
-| **Create Form Domain** | 为表单添加 [自定义域名](/docs/forms/sharing-and-security#自定义域名)。 | Project Owner, Project Admin 和 **Edit Form** |
-| **Edit Form Domain** | 检查表单的自定义域名，以及订购、重新签发或更换它们的证书。 | Project Owner, Project Admin 和 **Edit Form** |
-| **Delete Form Domain** | 移除表单的自定义域名。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Create Form** | 创建表单以及复制表单。 | 项目所有者、项目管理员 |
+| **Edit Form** | 更改表单：其问题、品牌、模板、提交时设置、**接受提交**、链接和 **IP 允许列表**。 | 项目所有者、项目管理员 |
+| **Delete Form** | 删除表单，其提交记录也随之删除。 | 项目所有者、项目管理员 |
+| **Read Form** | 查看表单及其问题、设置和链接。 | 以上角色，以及项目成员、查看者，和事件与计划维护相关角色 |
+| **Read Form Submission** | 查看提交及其答案。 | 项目所有者、项目管理员 |
+| **Delete Form Submission** | 删除提交。 | 项目所有者、项目管理员 |
+| **Create Form Domain** | 为表单添加 [自定义域名](/docs/forms/sharing-and-security#自定义域名)。 | 项目所有者、项目管理员和 **Edit Form** |
+| **Edit Form Domain** | 检查表单的自定义域名，以及订购、重新签发或更换它们的证书。 | 项目所有者、项目管理员和 **Edit Form** |
+| **Delete Form Domain** | 移除表单的自定义域名。 | 项目所有者、项目管理员和 **Edit Form** |
 | **Read Form Domain** | 查看表单的自定义域名、它们的 DNS 记录，以及每个域名在通往 HTTPS 的路上走到了哪一步。 | 拥有 **Read Form** 的任何人 |
 
-提交中包含陌生人输入的内容（姓名、电子邮件地址，以及可能永远不会进入记录的答案），因此除非您授予 **Read Form Submission**，否则只有项目所有者和管理员能看到它们。任何能读取表单的人都能看到并分享其链接。提交表单不需要任何权限。关于角色和细粒度权限如何组合，请参阅 [用户、团队与权限](/docs/permissions/index)。
+提交中包含陌生人输入的内容（姓名、电子邮件地址，以及可能永远不会进入记录的答案），因此除非您授予 **Read Form Submission**，否则只有项目所有者和项目管理员能看到它们。任何能读取表单的人都能看到并分享其链接。提交表单不需要任何权限。关于角色和细粒度权限如何组合，请参阅 [用户、团队与权限](/docs/permissions/index)。
 
 ## 套餐
 

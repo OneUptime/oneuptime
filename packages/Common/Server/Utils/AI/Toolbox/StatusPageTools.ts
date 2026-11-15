@@ -44,6 +44,7 @@ import {
   AI_READ_CITATIONS,
   AI_READ_RECORD_TABLE_LINES,
   AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 
@@ -342,7 +343,10 @@ export const QueryStatusPagesTool: ObservabilityTool = {
         return {
           dataForLlm: serializedEmpty.text,
           rowCount: 0,
-          citationLabel: `Status page ${statusPageId.toString()}`,
+          // In the reader's language (issue #8311).
+          ...citationSentence(AI_TOOL_CITATIONS.statusPageById, {
+            id: statusPageId.toString(),
+          }),
           citationTarget: {
             type: AIChatCitationTargetType.StatusPageView,
             params: { statusPageId: statusPageId.toString() },
@@ -689,7 +693,7 @@ export const QueryStatusPageAnnouncementsTool: ObservabilityTool = {
     });
 
     const endTime: Date = OneUptimeDate.getCurrentDate();
-    const startTime: Date = OneUptimeDate.addRemoveDays(
+    const startTime: Date = OneUptimeDate.addRemoveDurationInDays(
       endTime,
       -1 * withinDays,
     );

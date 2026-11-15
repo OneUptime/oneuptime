@@ -473,7 +473,7 @@ Ein Typ bietet nur die Komponenten an, die sein Modell erlaubt. Ein schreibgesch
 
 So liest und ändert ein Workflow OneUptime-Daten. Zum Beispiel kann ein Webhook aus Ihrem CI-Tool mit **Create One Incident** einen Vorfall mit den Details des Fehlers eröffnen.
 
-Diese Komponenten handeln als Project Admin des Projekts des Workflows: Was ein Project Admin nicht darf oder Ihr Plan nicht enthält, wird abgelehnt, und das Protokoll der Ausführung sagt, warum. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
+Diese Komponenten handeln als Projektadministrator des Projekts des Workflows: Was ein Projektadministrator nicht darf oder Ihr Plan nicht enthält, wird abgelehnt, und das Protokoll der Ausführung sagt, warum. Siehe [Was Workflow-Schritte tun können](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 
 ### Einen Vorfall aus einer Vorlage melden
 
@@ -486,6 +486,12 @@ Der Vorfall hält die Vorlage, aus der er gemeldet wurde, in `createdIncidentTem
 **Create One Incident** und **Create One Alert** haben die Einstellung **Betroffene Ressourcen**: die Hosts, Netzwerkgeräte, Cluster, Datenbanken oder Dienste, um die es beim Datensatz geht, über Name, Adresse oder ID, durch Kommas getrennt – eingetippt oder aus einem früheren Schritt übernommen, etwa der Host, den eine Warnung aus einem anderen Tool nennt. Jeder Eintrag wird in jeder Art von Ressource gesucht, die der Datensatz halten kann, als ganzer Wert und ohne Rücksicht auf Groß- und Kleinschreibung: über den Namen, ein Netzwerkgerät auch über die Adresse, unter der es abgefragt wird, oder seinen DNS-Namen, ein Host über den Namen, den sein Agent meldet, oder eine seiner IP-Adressen, und eine Cloud-Ressource über die ID ihres Anbieters. Jede Ressource, auf die ein Eintrag passt, wird verknüpft, neben dem, was **JSON Object** und die Vorlage schon verknüpfen – bis zu 50 aus den ersten 25 Einträgen.
 
 Ein Eintrag, der auf nichts passt, hält den Schritt nicht auf: Der Datensatz wird trotzdem erstellt, und das Protokoll des Laufs sagt, was jeder Eintrag verknüpft hat und welche auf nichts passten. Archivierte Ressourcen werden nicht verknüpft. Monitore werden nicht nachgeschlagen: Nennen Sie sie in **JSON Object** (`monitors` bei einem Vorfall, `monitorId` bei einer Warnung), denn einen Monitor mit einem Vorfall zu verknüpfen, pausiert seine Überwachung.
+
+### Wem er von Anfang an gehört
+
+**Create One Incident** und **Create One Alert** haben die Einstellungen **Eigentümer-Benutzer** und **Eigentümer-Teams**: die Personen und Teams, denen der Datensatz ab seiner Erstellung gehört. Wählen Sie sie aus, oder übernehmen Sie sie aus einem früheren Schritt: die ID oder E-Mail-Adresse eines Benutzers, die ID eines Teams, mehrere durch Kommas getrennt oder eine Liste. Die Eigentümer des Datensatzes erfahren etwa eine Minute nach der Erstellung, dass er erstellt wurde, jeder Eigentümer, den er bis dahin hat: Die hier gewählten sind immer dabei, während Eigentümer, die ein späterer Schritt hinzufügt, es verpassen, wenn dieser Schritt mehr als eine Minute später läuft, und stattdessen die Eigentümer des Projekts informiert werden.
+
+Der Schritt fragt als Projektadministrator des Projekts des Workflows, ob er sie hinzufügen darf, bevor der Datensatz gespeichert wird: Eigentümer, die er nicht hinzufügen darf, lassen die Erstellung scheitern. Wer kein Mitglied des Projekts ist, oder ein Team, das nicht zum Projekt gehört, wird weggelassen, und das Protokoll des Laufs sagt es: Der Datensatz wird trotzdem erstellt. So hinzugefügte Eigentümer erfahren nicht, dass sie hinzugefügt wurden: Die Benachrichtigung, dass der Datensatz erstellt wurde, ist die, die sie bekommen.
 
 ## Mit Datensätzen arbeiten
 

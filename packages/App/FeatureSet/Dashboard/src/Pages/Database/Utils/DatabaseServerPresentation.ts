@@ -1,11 +1,21 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
-import { formatMillisecondsInEnglish } from "../../../Utils/Milliseconds";
-import { translationKey } from "Common/Types/Translator";
 import {
-  formatReaderFigure,
+  formatDurationInUnit,
+  formatMilliseconds,
+  MILLISECONDS_TEMPLATE,
+} from "../../../Utils/Milliseconds";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
+import {
   isEnglishDateLanguage,
+  writeFigureInLanguage,
 } from "Common/Types/DateLanguage";
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
@@ -602,10 +612,40 @@ export const DATABASE_RUNTIME_METRICS: Record<
 
 // ---- formatting ------------------------------------------------------
 
-export function formatDatabaseCount(value: number | null | undefined): string {
+/*
+ * Each formatter below writes its figure in English - "2.5k", "1.0 MiB",
+ * "4.2%" - exactly as every test and export has read it, and in the
+ * reader's digits, decimal sign and percent sign when it is handed the
+ * reader's translator: "2,5k", "1,0 MiB", "4,2 %" in German, "۲٫۵k" in
+ * Persian, on a tile, in a sentence and on a chart's value axis alike
+ * (#8283, Docs/ux/README.md#numbers-dates-and-plurals).
+ */
+// The figures as English writes them, where no reader is named.
+const ENGLISH_FIGURES: Translator = createTranslator(
+  undefined,
+  DEFAULT_LANGUAGE,
+);
+
+function inLanguage(
+  english: string,
+  translator: Translator | undefined,
+): string {
+  return translator
+    ? writeDatabaseFigureInLanguage(english, translator.language)
+    : english;
+}
+
+export function formatDatabaseCount(
+  value: number | null | undefined,
+  translator?: Translator | undefined,
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
+  return inLanguage(writeDatabaseCount(value), translator);
+}
+
+function writeDatabaseCount(value: number): string {
   const abs: number = Math.abs(value);
   if (abs < 10 && !Number.isInteger(value)) {
     return value.toFixed(2).replace(/\.?0+$/, "");
@@ -622,10 +662,17 @@ export function formatDatabaseCount(value: number | null | undefined): string {
   return `${(value / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
 }
 
-export function formatDatabaseBytes(value: number | null | undefined): string {
+export function formatDatabaseBytes(
+  value: number | null | undefined,
+  translator?: Translator | undefined,
+): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
+  return inLanguage(writeDatabaseBytes(value), translator);
+}
+
+function writeDatabaseBytes(value: number): string {
   const units: Array<string> = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
   let scaled: number = value;
   let index: number = 0;
@@ -634,25 +681,58 @@ export function formatDatabaseBytes(value: number | null | undefined): string {
     index++;
   }
   // Plain bytes are whole: "0 B", "512 B" - never "0.0 B" (issue #7417).
-  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)} ${units[index]}`;
+  return `${scaled.toFixed(index > 0 && Math.abs(scaled) < 10 ? 1 : 0)}\u00A0${units[index]}`;
 }
 
+/*
+ * "5.0 s", "2.5 min", "3 h", "1.5 d". In the reader's language the unit
+ * is the language's own short one, as every duration reads there: "5,0
+ * Sek.", "۲٫۵ دقیقه" (formatDurationInUnit).
+ */
 export function formatDatabaseSeconds(
   value: number | null | undefined,
+  translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
   }
+  // `words.english` is what an English reader reads, its figure held to its unit.
+  const write: (
+    figure: number,
+    unit: "second" | "minute" | "hour" | "day",
+    words: { english: string },
+  ) => string = (
+    figure: number,
+    unit: "second" | "minute" | "hour" | "day",
+    words: { english: string },
+  ): string => {
+    if (!translator) {
+      return words.english;
+    }
+    return formatDurationInUnit(translator, figure, unit, {
+      decimals: unit === "second" && figure >= 10 ? 0 : 1,
+      dropTrailingZeros: unit !== "second",
+      english: words.english,
+    });
+  };
   if (value < 60) {
-    return `${value < 10 ? value.toFixed(1) : Math.round(value)} s`;
+    return write(value, "second", {
+      english: `${value < 10 ? value.toFixed(1) : Math.round(value)}\u00A0s`,
+    });
   }
   if (value < 3600) {
-    return `${(value / 60).toFixed(1).replace(/\.0$/, "")} min`;
+    return write(value / 60, "minute", {
+      english: `${(value / 60).toFixed(1).replace(/\.0$/, "")}\u00A0min`,
+    });
   }
   if (value < 86400) {
-    return `${(value / 3600).toFixed(1).replace(/\.0$/, "")} h`;
+    return write(value / 3600, "hour", {
+      english: `${(value / 3600).toFixed(1).replace(/\.0$/, "")}\u00A0h`,
+    });
   }
-  return `${(value / 86400).toFixed(1).replace(/\.0$/, "")} d`;
+  return write(value / 86400, "day", {
+    english: `${(value / 86400).toFixed(1).replace(/\.0$/, "")}\u00A0d`,
+  });
 }
 
 /**
@@ -661,6 +741,7 @@ export function formatDatabaseSeconds(
  */
 export function formatDatabaseFraction(
   value: number | null | undefined,
+  translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
@@ -673,7 +754,7 @@ export function formatDatabaseFraction(
       : abs < 10
         ? percent.toFixed(1).replace(/\.0$/, "")
         : String(Math.round(percent));
-  return `${text || "0"}%`;
+  return inLanguage(`${text || "0"}%`, translator);
 }
 
 /*
@@ -712,6 +793,215 @@ function withUnitWord(countText: string, unit: string): string {
   return `${countText} ${countText === "1" ? getDatabaseUnitSingular(unit) : unit}`;
 }
 
+/*
+ * A COUNT OF A CATALOG UNIT, AS A SENTENCE OF THE READER'S LANGUAGE (#8482).
+ *
+ * A database's and a queue's engine metric tiles wrote their figure in the
+ * reader's digits (#8283) and the catalog's English unit word after it,
+ * made singular by English's rules: "۲۴ connections", "12,5 commits/s",
+ * "1 database" on every page. Each unit the catalogs count in
+ * (DatabaseServerMetricCatalog, MessageQueueMetricCatalog) is a plural
+ * sentence of the locale here, so a language words the count its way and
+ * agrees its noun with the number ("1 Verbindung", "24 Verbindungen");
+ * a unit that counts no things (a state, a share, a ratio) is a sentence
+ * of its own. A unit of neither list, which a new catalog entry may bring,
+ * reads as it always did, its figure in the reader's digits.
+ */
+export const DATABASE_UNIT_COUNTS: Readonly<Record<string, PluralTemplate>> = {
+  clients: {
+    one: "{{count}} client",
+    other: "{{count}} clients",
+  },
+  commands: {
+    one: "{{count}} command",
+    other: "{{count}} commands",
+  },
+  commits: {
+    one: "{{count}} commit",
+    other: "{{count}} commits",
+  },
+  compilations: {
+    one: "{{count}} compilation",
+    other: "{{count}} compilations",
+  },
+  connections: {
+    one: "{{count}} connection",
+    other: "{{count}} connections",
+  },
+  consumers: {
+    one: "{{count}} consumer",
+    other: "{{count}} consumers",
+  },
+  cursors: {
+    one: "{{count}} cursor",
+    other: "{{count}} cursors",
+  },
+  databases: {
+    one: "{{count}} database",
+    other: "{{count}} databases",
+  },
+  deadlocks: {
+    one: "{{count}} deadlock",
+    other: "{{count}} deadlocks",
+  },
+  documents: {
+    one: "{{count}} document",
+    other: "{{count}} documents",
+  },
+  evictions: {
+    one: "{{count}} eviction",
+    other: "{{count}} evictions",
+  },
+  executions: {
+    one: "{{count}} execution",
+    other: "{{count}} executions",
+  },
+  hits: {
+    one: "{{count}} hit",
+    other: "{{count}} hits",
+  },
+  items: {
+    one: "{{count}} item",
+    other: "{{count}} items",
+  },
+  keys: {
+    one: "{{count}} key",
+    other: "{{count}} keys",
+  },
+  messages: {
+    one: "{{count}} message",
+    other: "{{count}} messages",
+  },
+  misses: {
+    one: "{{count}} miss",
+    other: "{{count}} misses",
+  },
+  nodes: {
+    one: "{{count}} node",
+    other: "{{count}} nodes",
+  },
+  operations: {
+    one: "{{count}} operation",
+    other: "{{count}} operations",
+  },
+  pages: {
+    one: "{{count}} page",
+    other: "{{count}} pages",
+  },
+  processes: {
+    one: "{{count}} process",
+    other: "{{count}} processes",
+  },
+  queries: {
+    one: "{{count}} query",
+    other: "{{count}} queries",
+  },
+  reads: {
+    one: "{{count}} read",
+    other: "{{count}} reads",
+  },
+  requests: {
+    one: "{{count}} request",
+    other: "{{count}} requests",
+  },
+  rollbacks: {
+    one: "{{count}} rollback",
+    other: "{{count}} rollbacks",
+  },
+  rows: {
+    one: "{{count}} row",
+    other: "{{count}} rows",
+  },
+  sessions: {
+    one: "{{count}} session",
+    other: "{{count}} sessions",
+  },
+  shards: {
+    one: "{{count}} shard",
+    other: "{{count}} shards",
+  },
+  tasks: {
+    one: "{{count}} task",
+    other: "{{count}} tasks",
+  },
+  threads: {
+    one: "{{count}} thread",
+    other: "{{count}} threads",
+  },
+  transactions: {
+    one: "{{count}} transaction",
+    other: "{{count}} transactions",
+  },
+  waits: {
+    one: "{{count}} wait",
+    other: "{{count}} waits",
+  },
+  writesets: {
+    one: "{{count}} writeset",
+    other: "{{count}} writesets",
+  },
+};
+
+// A unit that counts no things: its figure and its word, as one sentence.
+export const DATABASE_UNIT_READINGS: Readonly<Record<string, string>> = {
+  ratio: translationKey("{{value}} ratio"),
+  share: translationKey("{{value}} share"),
+  state: translationKey("{{value}} state"),
+};
+
+// A rate, as one sentence: "12,5 Commits/s", "۱۲٫۵ کامیت/ثانیه".
+const PER_SECOND: string = translationKey("{{rate}}/s");
+
+// A figure written without a scale letter ("24", "12.5"): the number it says.
+const PLAIN_FIGURE_PATTERN: RegExp = /^-?\d+(\.\d+)?$/;
+
+/*
+ * A gauge whose unit is already a rate of a counted unit, in English's
+ * shorthand: Redis's "Commands per second" reads "12 ops/s" in English
+ * and "12 Vorgänge/s", "۱۲ عملیات/ثانیه" in German and Persian.
+ */
+export const DATABASE_RATE_UNITS: Readonly<Record<string, string>> = {
+  "ops/s": "operations",
+};
+
+/*
+ * `figure` (as English wrote it: "24", "1", "2.5k") of `unit`, in the
+ * reader's language: the unit's sentence, its noun agreeing with the
+ * number, the figure in their digits. English, or no translator, reads
+ * exactly as withUnitWord wrote it. Null for a unit of neither list.
+ */
+function writeUnitCount(
+  figure: string,
+  value: number,
+  unit: string,
+  translator: Translator | undefined,
+): string | null {
+  if (!translator || isEnglishDateLanguage(translator.language)) {
+    return null;
+  }
+
+  const count: string = writeDatabaseFigureInLanguage(
+    figure,
+    translator.language,
+  );
+  const template: PluralTemplate | undefined = DATABASE_UNIT_COUNTS[unit];
+
+  if (template) {
+    // The number the figure says ("1" for 1.004): the form agrees with it.
+    const shown: number = PLAIN_FIGURE_PATTERN.test(figure)
+      ? Number(figure)
+      : value;
+
+    return translator.translatePlural(template, shown, { count: count });
+  }
+
+  const reading: string | undefined = DATABASE_UNIT_READINGS[unit];
+
+  return reading
+    ? translator.translateTemplate(reading, { value: count })
+    : null;
+}
+
 /**
  * A catalog metric's value for its tile: bytes as KiB/MiB/GiB, seconds as
  * s/min/h/d, a "fraction" (a 0..1 share) as a percentage, other units as a
@@ -722,6 +1012,7 @@ export function formatDatabaseMetricValue(
   value: number | null | undefined,
   unit: string,
   kind: DatabaseServerMetricKind,
+  translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "—";
@@ -738,24 +1029,111 @@ export function formatDatabaseMetricValue(
           ? value.toFixed(1).replace(/\.0$/, "")
           : formatDatabaseCount(value);
     if (cleanUnit === "bytes") {
-      return `${formatDatabaseBytes(value)}/s`;
+      return `${formatDatabaseBytes(value, translator)}/s`;
     }
-    return `${withUnitWord(rate, cleanUnit)}/s`;
+    const perSecond: string | null = writeUnitCount(
+      rate,
+      value,
+      cleanUnit,
+      translator,
+    );
+    if (perSecond !== null && translator) {
+      return translator.translateTemplate(PER_SECOND, { rate: perSecond });
+    }
+    return inLanguage(`${withUnitWord(rate, cleanUnit)}/s`, translator);
   }
 
   if (cleanUnit === "bytes") {
-    return formatDatabaseBytes(value);
+    return formatDatabaseBytes(value, translator);
   }
   if (cleanUnit === "s") {
-    return formatDatabaseSeconds(value);
+    return formatDatabaseSeconds(value, translator);
   }
   if (cleanUnit === "fraction") {
-    return formatDatabaseFraction(value);
+    return formatDatabaseFraction(value, translator);
   }
   if (cleanUnit === "%") {
-    return `${formatDatabaseCount(value)}%`;
+    return inLanguage(`${formatDatabaseCount(value)}%`, translator);
   }
-  return withUnitWord(formatDatabaseCount(value), cleanUnit);
+  if (cleanUnit === "ms") {
+    return writeMillisecondsFigure(formatDatabaseCount(value), translator);
+  }
+  const ratedUnit: string | undefined = DATABASE_RATE_UNITS[cleanUnit];
+  const counted: string | null = writeUnitCount(
+    formatDatabaseCount(value),
+    value,
+    ratedUnit || cleanUnit,
+    translator,
+  );
+  if (counted !== null && ratedUnit && translator) {
+    return translator.translateTemplate(PER_SECOND, { rate: counted });
+  }
+  if (counted !== null) {
+    return counted;
+  }
+  return inLanguage(
+    withUnitWord(formatDatabaseCount(value), cleanUnit),
+    translator,
+  );
+}
+
+/*
+ * The share of a database's queries that failed, on its Overview's tile:
+ * "2.5%", in the reader's digits and percent sign when handed their
+ * translator ("2,5 %", "۲٫۵٪"); "—" when there is nothing to divide.
+ */
+export function formatDatabaseErrorRate(
+  value: number | null | undefined,
+  translator?: Translator | undefined,
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "—";
+  }
+  return inLanguage(`${value.toFixed(1)}%`, translator);
+}
+
+/*
+ * A query's latency in milliseconds - the Overview's p95 tile, and the
+ * value axis and tooltip of the p95 chart under it, which read the same:
+ * "5.0 ms", "42 ms", "1.25 s"; "۴۲ میلی‌ثانیه", "1,25 Sek." in the
+ * reader's language (#7418, #8283). Without a translator, English.
+ */
+export function formatDatabaseLatencyMs(
+  value: number | null | undefined,
+  translator?: Translator | undefined,
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "—";
+  }
+  const reader: Translator = translator || ENGLISH_FIGURES;
+  if (value < 1000) {
+    const decimals: number = value < 10 ? 1 : 0;
+
+    return formatMilliseconds(reader, value, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return formatDurationInUnit(reader, value / 1000, "second", {
+    decimals: 2,
+  });
+}
+
+/*
+ * Milliseconds whose figure a formatter above wrote ("250", "2.5k"), in the
+ * reader's language: "۲۵۰ میلی‌ثانیه", "250 ملي ث" - the words the p95
+ * tile beside a chart uses (formatMilliseconds' key, #8349). English, or
+ * no translator, reads "250 ms", "2.5k ms", exactly as it always did.
+ */
+function writeMillisecondsFigure(
+  figure: string,
+  translator: Translator | undefined,
+): string {
+  const reader: Translator = translator || ENGLISH_FIGURES;
+
+  return reader.translateTemplate(MILLISECONDS_TEMPLATE, {
+    value: writeDatabaseFigureInLanguage(figure, reader.language),
+  });
 }
 
 function trimDecimalZeros(textValue: string): string {
@@ -805,11 +1183,16 @@ const DATABASE_AXIS_SHORT_UNITS: ReadonlyArray<string> = ["ms", "%"];
  * A catalog metric's value on a chart axis (and in its tooltip, which
  * shares the formatter): bytes, seconds and shares in their compact form,
  * "ms" and "%" kept, a unit word dropped (the title names it), counters
- * without "/s" (their title says "per second").
+ * without "/s" (their title says "per second"). Given the reader's
+ * translator, a tick is written as the tiles beside the chart write their
+ * figures - their digits, decimal sign and percent sign, a duration in
+ * their words: "0,25", "2,5k", "12 %", "۲۵۰ میلی‌ثانیه" (#8283). Without
+ * one, English, exactly as it always read.
  */
 export function formatDatabaseMetricAxisValue(
   value: number | null | undefined,
   unit: string,
+  translator?: Translator | undefined,
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "";
@@ -817,24 +1200,34 @@ export function formatDatabaseMetricAxisValue(
   const cleanUnit: string = (unit || "").trim();
   if (cleanUnit === "bytes") {
     // A whole tick reads "0 B" or "5 GiB", not "0.0 B" or "5.0 GiB".
-    return formatDatabaseBytes(value).replace(/\.0 /, " ");
+    return inLanguage(
+      formatDatabaseBytes(value).replace(/\.0(?=[ \u00A0])/, ""),
+      translator,
+    );
   }
   if (cleanUnit === "s") {
     // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
-    return Math.abs(value) > 0 && Math.abs(value) < 1
-      ? formatMillisecondsInEnglish(
-          Number(formatDatabaseAxisNumber(value * 1000)),
-        )
-      : formatDatabaseSeconds(value);
+    if (Math.abs(value) > 0 && Math.abs(value) < 1) {
+      const milliseconds: string = formatDatabaseAxisNumber(value * 1000);
+
+      // English writes the figure as formatMilliseconds does, as it always read.
+      return !translator || isEnglishDateLanguage(translator.language)
+        ? formatMilliseconds(ENGLISH_FIGURES, Number(milliseconds))
+        : writeMillisecondsFigure(milliseconds, translator);
+    }
+    return formatDatabaseSeconds(value, translator);
   }
   if (cleanUnit === "fraction") {
-    return formatDatabaseFraction(value);
+    return formatDatabaseFraction(value, translator);
   }
   const number: string = formatDatabaseAxisNumber(value);
-  if (DATABASE_AXIS_SHORT_UNITS.includes(cleanUnit)) {
-    return cleanUnit === "%" ? `${number}%` : `${number} ${cleanUnit}`;
+  if (cleanUnit === "ms") {
+    return writeMillisecondsFigure(number, translator);
   }
-  return number;
+  if (DATABASE_AXIS_SHORT_UNITS.includes(cleanUnit)) {
+    return inLanguage(`${number}%`, translator);
+  }
+  return inLanguage(number, translator);
 }
 
 /**
@@ -906,6 +1299,8 @@ export function formatDatabaseMetricUnitAxisValue(
   options?: {
     isRate?: boolean | undefined;
     metricName?: string | undefined;
+    // The reader's: the tick in their digits, as the tiles write them.
+    translator?: Translator | undefined;
   },
 ): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
@@ -913,14 +1308,18 @@ export function formatDatabaseMetricUnitAxisValue(
   }
   const cleanUnit: string = (unit || "").trim();
   if (ANNOTATION_UNIT_PATTERN.test(cleanUnit)) {
-    return formatDatabaseAxisNumber(value);
+    return inLanguage(formatDatabaseAxisNumber(value), options?.translator);
   }
   if (!cleanUnit || cleanUnit === "1") {
     const number: string = formatDatabaseAxisNumber(value);
-    return options?.isRate ? `${number}/s` : number;
+    return inLanguage(
+      options?.isRate ? `${number}/s` : number,
+      options?.translator,
+    );
   }
   return ValueFormatter.formatValue(value, cleanUnit, {
     metricName: options?.metricName || "",
+    ...(options?.translator ? { language: options.translator.language } : {}),
   });
 }
 
@@ -1024,36 +1423,14 @@ export function getDatabaseChartYAxis(
  * with the decimals it was written with: "0,025", "12 %" and "1,0 MiB" in
  * German, "۰٫۰۲۵" and "۱۲٪" in Persian (#8060). Its letters - a size's
  * unit, a count's "k" - stay as written. English, no language, and
- * anything that is not such a figure come back as they came.
+ * anything that is not such a figure come back as they came. The rewrite
+ * is Common's (writeFigureInLanguage), which every chart's figures share.
  */
-const DATABASE_FIGURE: RegExp =
-  /^(-?\d{1,15}(?:\.(\d{1,10}))?)([kMB]?)(%|\s+\S.*)?$/;
-
 export function writeDatabaseFigureInLanguage(
   english: string,
   language: string | undefined,
 ): string {
-  if (!language || isEnglishDateLanguage(language)) {
-    return english;
-  }
-
-  const figure: RegExpMatchArray | null = english.match(DATABASE_FIGURE);
-
-  if (!figure) {
-    return english;
-  }
-
-  const suffix: string = figure[3] || "";
-  const unit: string = figure[4] || "";
-  // A percent of thousands ("2.5k%") keeps its sign as written.
-  const isPercent: boolean = unit === "%" && !suffix;
-  const number: string = formatReaderFigure(Number(figure[1]), {
-    decimals: (figure[2] || "").length,
-    isPercent: isPercent,
-    language: language,
-  });
-
-  return isPercent ? number : `${number}${suffix}${unit}`;
+  return writeFigureInLanguage(english, language);
 }
 
 /**

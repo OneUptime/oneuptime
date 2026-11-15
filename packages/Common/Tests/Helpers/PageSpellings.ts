@@ -16,7 +16,9 @@
  * of the application's own sends. All expect `page`.
  *
  * A second table (PAGES_WITH_PERSONAL_DATA, issue #8197) holds addresses
- * that name a person or a secret, which both sides scrub alike.
+ * that name a person or a secret, which both sides scrub alike, and a third
+ * (PAGES_WITH_SECRETS, issue #8385) the tokens and twice-escaped addresses
+ * the scrubber kept until then.
  *
  * Plain data, no imports: the recorder's suite runs without Node's types.
  */
@@ -290,6 +292,159 @@ export const PAGES_WITH_PERSONAL_DATA: ReadonlyArray<PageSpellingCase> = [
     location: { pathname: "/users/[redacted]/orders", hash: "" },
     sent: "/users/[redacted]/orders",
     page: "/users/[redacted]/orders",
+  },
+];
+
+/*
+ * #8385: secrets a page's path held that the scrubber kept until then, and
+ * the shapes beside them it must still keep. A JSON Web Token's dots kept it
+ * out of the token rule, and an address escaped twice
+ * ("someone%2540example.com") read once is "someone%40example.com", which
+ * has no "@". Both sides redact them now: the recorder before it sends
+ * (readProductAnalyticsPage), the server over whatever was sent
+ * (toProductAnalyticsPage), and Session Replay in every address it keeps
+ * (UrlScrubber.scrubPath). A table of its own, beside
+ * PAGES_WITH_PERSONAL_DATA, which RedactPersonalDataInProductAnalyticsPages
+ * (#8197) reads with the rule it shipped with; ScrubProductAnalyticsAddresses
+ * reads both.
+ */
+const JWT: string =
+  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
+
+export const PAGES_WITH_SECRETS: ReadonlyArray<PageSpellingCase> = [
+  {
+    name: "a signed JSON Web Token",
+    location: { pathname: `/auth/callback/${JWT}`, hash: "" },
+    sent: `/auth/callback/${JWT}`,
+    page: "/auth/callback/[redacted]",
+  },
+  {
+    name: "an unsigned JSON Web Token, its signature empty",
+    location: {
+      pathname: "/t/eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0./open",
+      hash: "",
+    },
+    sent: "/t/eyJhbGciOiJub25lIn0.eyJzdWIiOiIxIn0./open",
+    page: "/t/[redacted]/open",
+  },
+  {
+    name: "an encrypted JSON Web Token, in five parts",
+    location: {
+      pathname:
+        "/s/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4R0NNIn0..T8xa6fPSdTEQd7Qv.lGzN6s5CeqZXyO8I8.XFBoMYUZodetZdvTiFvSkQ",
+      hash: "",
+    },
+    sent: "/s/eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4R0NNIn0..T8xa6fPSdTEQd7Qv.lGzN6s5CeqZXyO8I8.XFBoMYUZodetZdvTiFvSkQ",
+    page: "/s/[redacted]",
+  },
+  {
+    name: "a JSON Web Token in a hash router's route",
+    location: { pathname: "/", hash: `#/verify/${JWT}?next=%2F` },
+    sent: `/verify/${JWT}`,
+    page: "/verify/[redacted]",
+  },
+  {
+    name: "a JSON Web Token in a hashbang route under the page's path",
+    location: { pathname: "/app/", hash: `#!/session/${JWT}` },
+    sent: `/app/session/${JWT}`,
+    page: "/app/session/[redacted]",
+  },
+  {
+    name: "an email escaped twice",
+    location: { pathname: "/users/someone%2540example.com/orders", hash: "" },
+    sent: "/users/someone%2540example.com/orders",
+    page: "/users/[redacted]/orders",
+  },
+  {
+    name: "an email with a tag and capitals, escaped twice",
+    location: {
+      pathname: "/invite/First.Last%252Bnews%2540Example.co.uk",
+      hash: "",
+    },
+    sent: "/invite/First.Last%252Bnews%2540Example.co.uk",
+    page: "/invite/[redacted]",
+  },
+  {
+    name: "a long run of digits escaped twice",
+    location: {
+      pathname: "/accounts/%2534%2531%2531%2531%2531%2531%2531%2531%2531",
+      hash: "",
+    },
+    sent: "/accounts/%2534%2531%2531%2531%2531%2531%2531%2531%2531",
+    page: "/accounts/[redacted]",
+  },
+  {
+    name: "an email escaped twice in a hash router's route",
+    location: { pathname: "/", hash: "#/u/someone%2540example.com" },
+    sent: "/u/someone%2540example.com",
+    page: "/u/[redacted]",
+  },
+  // #8489: a token in standard base64, which the token rule took only in base64url.
+  {
+    name: "a token in standard base64, with its padding",
+    location: {
+      pathname: "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+      hash: "",
+    },
+    sent: "/verify/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw==",
+    page: "/verify/[redacted]",
+  },
+  {
+    name: "a token in standard base64, with a plus",
+    location: {
+      pathname: "/reset/k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8",
+      hash: "",
+    },
+    sent: "/reset/k3J+vT9mL4pR7sW1yB6nC3dF5gH0jKq2Zx8",
+    page: "/reset/[redacted]",
+  },
+  {
+    name: "a token in standard base64, escaped as a link escapes it",
+    location: {
+      pathname: "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+      hash: "",
+    },
+    sent: "/confirm/k3J%2BvT9mL4pR7sW1yB6nC3dF5gH0jK%2Fq2Zx8%3D%3D/done",
+    page: "/confirm/[redacted]/done",
+  },
+  {
+    name: "a padded token in a hash router's route",
+    location: {
+      pathname: "/",
+      hash: "#/magic/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw=",
+    },
+    sent: "/magic/dGhpcyBpcyBhIHNlY3JldCB0b2tlbiBmb3IgdGVzdGluZw=",
+    page: "/magic/[redacted]",
+  },
+  {
+    name: "a word with a plus, and a filter with an equals sign, which name no one",
+    location: { pathname: "/learn/c++/filter/size=large", hash: "" },
+    sent: "/learn/c++/filter/size=large",
+    page: "/learn/c++/filter/size=large",
+  },
+  {
+    name: "a file name with dots, which names no one",
+    location: { pathname: "/files/report-2026-11-15.pdf", hash: "" },
+    sent: "/files/report-2026-11-15.pdf",
+    page: "/files/report-2026-11-15.pdf",
+  },
+  {
+    name: "a dotted version, which names no one",
+    location: { pathname: "/docs/v14.2.0/release-notes.html", hash: "" },
+    sent: "/docs/v14.2.0/release-notes.html",
+    page: "/docs/v14.2.0/release-notes.html",
+  },
+  {
+    name: "a word that starts as a token's header does, and is none",
+    location: { pathname: "/eyJ/eyJsb2.png", hash: "" },
+    sent: "/eyJ/eyJsb2.png",
+    page: "/eyJ/eyJsb2.png",
+  },
+  {
+    name: "an escaped percent sign, escaped twice, which names no one",
+    location: { pathname: "/sale/50%2525-off", hash: "" },
+    sent: "/sale/50%2525-off",
+    page: "/sale/50%2525-off",
   },
 ];
 

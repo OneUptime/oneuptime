@@ -3148,6 +3148,8 @@
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "El host es accesible, pero respondió que ningún servicio escucha en este puerto UDP: el demonio NTP está detenido o escucha en otro puerto.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "La sonda no pudo enviar la solicitud desde su propio lado, así que nunca se contactó con el servidor NTP. El fallo está en la sonda, no en el servidor.",
   "The NTP check failed because of a network error.": "La comprobación NTP falló por un error de red.",
+  "From (range start)": "Desde",
+  "To (range end)": "Hasta",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Lo que se envió era demasiado grande para que el servidor lo aceptara, así que la operación no terminó. Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",
   "What was sent was too large for the server to accept.": "Lo que se envió era demasiado grande para que el servidor lo aceptara.",
   "Try again with less at once, such as a smaller file.": "Vuelva a intentarlo con menos a la vez, por ejemplo con un archivo más pequeño.",

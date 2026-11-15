@@ -868,18 +868,18 @@ export function formatTracePercent(percent: number): string {
 // A duration, as the findings say it: "840 ms", "2.4 s", "12 s".
 export function formatTraceDuration(ms: number): string {
   if (!isFiniteNumber(ms) || ms < 0) {
-    return "0 ms";
+    return "0\u00A0ms";
   }
 
   if (ms < 1000) {
-    return `${Math.round(ms)} ms`;
+    return `${Math.round(ms)}\u00A0ms`;
   }
 
   const seconds: number = ms / 1000;
 
   return seconds >= 10
-    ? `${Math.round(seconds)} s`
-    : `${Math.round(seconds * 10) / 10} s`;
+    ? `${Math.round(seconds)}\u00A0s`
+    : `${Math.round(seconds * 10) / 10}\u00A0s`;
 }
 
 function formatCount(count: number): string {

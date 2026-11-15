@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - 这些服务向 OneUptime 发送追踪：请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。每个服务都以其 `service.name` 出现在 [服务目录](/docs/telemetry/services) 中。
-- 一个可以创建 SLO 的角色：Project Owner、Project Admin，或具有 Create Service Level Objective 权限的自定义角色。
+- 一个可以创建 SLO 的角色：项目所有者、项目管理员，或具有 Create Service Level Objective 权限的自定义角色。
 
 ## 创建请求 SLO
 
@@ -59,7 +59,7 @@ flowchart TB
 第一次评估在 5 分钟内进行，会统计过去 6 小时的请求，因此 SLO 立即就有数字。之后的评估还会统计更早的请求，直到覆盖整个合规窗口。
 :::
 
-之后若要更改 SLO 的衡量对象、服务或阈值，请打开它的 **设置** 并点击 **编辑衡量对象**。
+服务自己的 **SLOs** 页面列出衡量该服务的 SLO，其中的 **创建Service Level Objective** 会打开同一表单，并已选好该服务。之后若要更改 SLO 的衡量对象、服务或阈值，请打开它的 **设置** 并点击 **编辑衡量对象**。
 
 ## 请求如何计数
 
@@ -86,7 +86,7 @@ OneUptime 以 5 分钟为一个步长统计每个 SLO 的良好请求数和总�
 
 ## 故障排除
 
-:::details SLO 显示 Waiting for requests
+:::details SLO 显示 正在等待请求
 它的服务在窗口内都还没有处理过任何请求。请检查这些服务是否向 OneUptime 发送追踪，以及它们的 span 中是否包含入口 span：如果一个服务的 span 全部是内部 span，就没有可统计的请求。
 :::
 

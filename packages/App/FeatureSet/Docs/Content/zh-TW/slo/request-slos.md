@@ -37,7 +37,7 @@ flowchart TB
 ## 開始之前
 
 - 服務會把追蹤傳送到 OneUptime：請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。每個服務都以其 `service.name` 列在 [服務目錄](/docs/telemetry/services) 中。
-- 一個可以建立 SLO 的角色：Project Owner、Project Admin，或具有 Create Service Level Objective 權限的自訂角色。
+- 一個可以建立 SLO 的角色：專案擁有者、專案管理員，或具有 Create Service Level Objective 權限的自訂角色。
 
 ## 建立請求 SLO
 
@@ -59,7 +59,7 @@ flowchart TB
 第一次評估會在 5 分鐘內進行，計算過去 6 小時的請求，因此 SLO 立刻就有數字。之後的評估也會計算更早的請求，直到涵蓋整個合規時間窗。
 :::
 
-之後若要變更 SLO 的衡量對象、服務或臨界值，請開啟它的 **設定**，然後按一下 **編輯衡量對象**。
+服務自己的 **SLOs** 頁面列出衡量該服務的 SLO，其中的 **建立Service Level Objective** 會開啟同一表單，並已選好該服務。之後若要變更 SLO 的衡量對象、服務或臨界值，請開啟它的 **設定**，然後按一下 **編輯衡量對象**。
 
 ## 請求如何計數
 
@@ -86,7 +86,7 @@ OneUptime 以 5 分鐘為一段，計算每個 SLO 的良好請求數和總請�
 
 ## 疑難排解
 
-:::details SLO 顯示「Waiting for requests」
+:::details SLO 顯示「正在等待請求」
 它的服務都還沒有在時間窗內處理過任何請求。請檢查這些服務是否把追蹤傳送到 OneUptime，以及它們的 span 是否包含入口 span：所有 span 都是內部 span 的服務沒有可計算的請求。
 :::
 

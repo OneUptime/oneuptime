@@ -1,6 +1,6 @@
 # Sikkerhetshendelser (SIEM)
 
-OneUptime lagrer sikkerhetshendelser ved siden av loggene, trasene og metrikkene dine, og gir alle samme form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), uansett hvilket format de kom i. Send hendelser fra hvilken som helst kilde, søk i dem, og finn de viktige med Sigma-deteksjonsregler, trusseletterretning og monitorer. Det de finner, blir [saker](/docs/telemetry/security-cases) som skal behandles, og playbooks reagerer på dem.
+OneUptime lagrer sikkerhetshendelser ved siden av loggene, trasene og målingene dine, og gir alle samme form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), uansett hvilket format de kom i. Send hendelser fra hvilken som helst kilde, søk i dem, og finn de viktige med Sigma-deteksjonsregler, trusseletterretning og monitorer. Det de finner, blir [saker](/docs/telemetry/security-cases) som skal behandles, og playbooks reagerer på dem.
 
 :::cards
 - [Send hendelser](#send-sikkerhetshendelser): En HTTPS-POST, en Fluent Bit-utgang eller en tilkobling til et sikkerhetsprodukt.
@@ -67,13 +67,13 @@ flowchart TB
 
 ## Før du begynner
 
-Sikkerhetsdata kan bare leses av rollene Project Owner og Project Admin og av de tre Security-rollene; andre roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
+Sikkerhetsdata kan bare leses av rollene Prosjekteier og Prosjektadministrator og av de tre Security-rollene; andre roller ser ingenting i Security Events. Se [Roller](/docs/permissions/reference#roller).
 
 | Rolle | Hva den kan gjøre |
 | --- | --- |
-| Security Admin | Alt: hendelser, saker, playbooks, deteksjonsregler, threat intel-feeder og tilkoblinger |
-| Security Member | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
-| Security Viewer | Lese hendelser, saker, playbooks, regler, feeder, indikatorer og tilkoblinger |
+| Sikkerhetsadministrator | Alt: hendelser, saker, playbooks, deteksjonsregler, threat intel-feeder og tilkoblinger |
+| Sikkerhetsmedlem | Lese hendelser og threat intel, behandle saker, kjøre playbooks og godkjenne stegene deres, og opprette, endre og slette deteksjonsregler og feeder. Den kan ikke sette opp playbooks eller tilkoblinger, eller slette sikkerhetsdata. |
+| Sikkerhetsleser | Lese hendelser, saker, playbooks, regler, feeder, indikatorer og tilkoblinger |
 
 ## Send sikkerhetshendelser
 
@@ -305,7 +305,7 @@ En hunt er et søk i sikkerhetshendelsene dine, lagret med et navn: teksten i s�
 
 Søk og filtrer under **Hendelser** til listen viser det du leter etter, åpne så **Hunts** på verktøylinjen og velg **Lagre som hunt**. Gi den et navn, velg om den kjører etter en tidsplan, og siden dens åpnes. **Hendelser → Hunts** viser prosjektets hunts, hver med søket sitt, hvor ofte den kjører, hvem den varsler og hva den siste kjøringen fant; **Opprett Hunt** tar der søket slik du ville skrevet det under **Hendelser**. Et prosjekt kan ha opptil 200 hunts. Et søk kan lese en [overvåkingsliste](#overvåkingslister), slik `user:%vip_users%` gjør, og en hunt som leser en liste prosjektet ikke har, avvises når du lagrer den.
 
-Siden til en hunt er søket dens, åpnet i hendelsesutforskeren. Endre søket eller filtrene der, så tilbyr overskriften til hunten **Lagre endringer** og **Forkast endringer**. **Rediger** endrer navnet, søket, hvor langt tilbake den ser, tidsplanen og hvem den varsler, og **Slett hunt** ligger i menyen dens. Fra Security Member og oppover kan man lagre, endre og slette hunts, og en Security Viewer kan åpne dem.
+Siden til en hunt er søket dens, åpnet i hendelsesutforskeren. Endre søket eller filtrene der, så tilbyr overskriften til hunten **Lagre endringer** og **Forkast endringer**. **Rediger** endrer navnet, søket, hvor langt tilbake den ser, tidsplanen og hvem den varsler, og **Slett hunt** ligger i menyen dens. Fra Sikkerhetsmedlem og oppover kan man lagre, endre og slette hunts, og en Sikkerhetsleser kan åpne dem.
 
 En hunt som er lagret med filtre fra sidepanelet under Hendelser, viser dem i **Rediger** under **Filtre**, slik Hendelser tegner dem, hvert med en x for å fjerne det. Legg til filtre på siden til hunten, fra sidepanelet.
 
@@ -340,7 +340,7 @@ Hver planlagte kjøring tas vare på i 90 dager. **Kjøringshistorikk**, på slu
 
 Varselet **En hunt fant sikkerhetshendelser** nevner hunten og søket, hvor mange hendelser kjøringen fant og vinduet den leste, og lenker til siden til hunten på de hendelsene; ingen av hendelsenes egne ord står i det. Alle får det på e-post og push, og velger kanalene under **Brukerinnstillinger → Varselinnstillinger**. Som andre rutinemessige e-poster kan det holdes tilbake i en [e-postsamling](/docs/emails/notification-rollup).
 
-For å legge ut det hunts finner i Slack, Microsoft Teams eller Mattermost, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-microsoft-teams-og-mattermost-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Project Owner, Project Admin eller Security Admin.
+For å legge ut det hunts finner i Slack, Microsoft Teams eller Mattermost, legger du til en regel i **Regler for hunts** under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams** eller **Mattermost**), under reglene som legger ut [sikkerhetssaker](/docs/telemetry/security-cases#legg-ut-i-slack-microsoft-teams-og-mattermost-kanaler). En regel navngir kanalene det skal legges ut i (og i Microsoft Teams chattene) og, om du vil, hvilke hunts den gjelder for, etter **Navn på hunt**: et navn som er teksten din, inneholder den, begynner eller slutter med den. Hver gang en planlagt kjøring finner hendelser, legger den ut hunten, søket, hvor mange hendelser og når, med en lenke til dem, og ingen av en hendelses egne ord. En huntregel settes opp av en rolle som kan sette opp sikkerhets-playbooks, som Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator.
 
 ### Oppbevar hendelser på en sak
 

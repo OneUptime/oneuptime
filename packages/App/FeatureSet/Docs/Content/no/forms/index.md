@@ -56,7 +56,7 @@ Skjemaer starter med disse to, og flere typer poster kommer.
 ## Før du begynner
 
 - **En plan som omfatter skjemaer.** På OneUptime Cloud krever skjemaer planen **Growth** eller høyere. Se [Plan](#plan).
-- **Tillatelse til å opprette skjemaer.** **Create Form** har prosjekteiere og -administratorer, og rollene du gir den til. Se [Tillatelser](#tillatelser).
+- **Tillatelse til å opprette skjemaer.** **Create Form** har Prosjekteiere og Prosjektadministratorer, og rollene du gir den til. Se [Tillatelser](#tillatelser).
 - **For et hendelsesskjema, en alvorlighetsgrad.** Hver hendelse trenger en: fra et spørsmål, fra skjemaets innstillinger eller fra hendelsesmalen. Uten den avvises hver innsending. Se [Hva en innsending oppretter](/docs/forms/on-submit#slik-blir-en-innsending-til-en-hendelse).
 
 ## Opprett ditt første skjema
@@ -127,22 +127,22 @@ Innsendinger skrives av skjemaet, aldri for hånd, og kan ikke redigeres. Slette
 
 ## Tillatelser
 
-Skjemaer lar folk utenfor teamet ditt opprette hendelser og vedlikeholdshendelser i prosjektet ditt, så de styres av prosjekteiere og -administratorer, og av rollene du gir tillatelsene **Form**. De står i gruppen **Form** i [Tillatelsesreferanse](/docs/permissions/reference):
+Skjemaer lar folk utenfor teamet ditt opprette hendelser og vedlikeholdshendelser i prosjektet ditt, så de styres av Prosjekteiere og Prosjektadministratorer, og av rollene du gir tillatelsene **Form**. De står i gruppen **Form** i [Tillatelsesreferanse](/docs/permissions/reference):
 
 | Tillatelse | Hva den tillater | Hvem har den som standard |
 | --- | --- | --- |
-| **Create Form** | Opprette skjemaer og duplisere dem. | Project Owner, Project Admin |
-| **Edit Form** | Endre et skjema: spørsmålene, merkevaren, malene, innstillingene under Ved innsending, **Tar imot innsendinger**, lenken og **IP-tillatelsesliste**. | Project Owner, Project Admin |
-| **Delete Form** | Slette et skjema, og dermed innsendingene. | Project Owner, Project Admin |
-| **Read Form** | Se skjemaer, spørsmålene, innstillingene og lenkene deres. | De over, pluss Project Member, Viewer og rollene for hendelser og planlagt vedlikehold |
-| **Read Form Submission** | Se innsendingene og svarene. | Project Owner, Project Admin |
-| **Delete Form Submission** | Slette innsendinger. | Project Owner, Project Admin |
-| **Create Form Domain** | Legge til et [egendefinert domene](/docs/forms/sharing-and-security#egendefinerte-domener) på et skjema. | Project Owner, Project Admin og **Edit Form** |
-| **Edit Form Domain** | Sjekke et skjemas egendefinerte domener, og bestille, utstede på nytt eller bytte sertifikatene deres. | Project Owner, Project Admin og **Edit Form** |
-| **Delete Form Domain** | Fjerne et skjemas egendefinerte domener. | Project Owner, Project Admin og **Edit Form** |
+| **Create Form** | Opprette skjemaer og duplisere dem. | Prosjekteier, Prosjektadministrator |
+| **Edit Form** | Endre et skjema: spørsmålene, merkevaren, malene, innstillingene under Ved innsending, **Tar imot innsendinger**, lenken og **IP-tillatelsesliste**. | Prosjekteier, Prosjektadministrator |
+| **Delete Form** | Slette et skjema, og dermed innsendingene. | Prosjekteier, Prosjektadministrator |
+| **Read Form** | Se skjemaer, spørsmålene, innstillingene og lenkene deres. | De over, pluss Prosjektmedlem, Leser og rollene for hendelser og planlagt vedlikehold |
+| **Read Form Submission** | Se innsendingene og svarene. | Prosjekteier, Prosjektadministrator |
+| **Delete Form Submission** | Slette innsendinger. | Prosjekteier, Prosjektadministrator |
+| **Create Form Domain** | Legge til et [egendefinert domene](/docs/forms/sharing-and-security#egendefinerte-domener) på et skjema. | Prosjekteier, Prosjektadministrator og **Edit Form** |
+| **Edit Form Domain** | Sjekke et skjemas egendefinerte domener, og bestille, utstede på nytt eller bytte sertifikatene deres. | Prosjekteier, Prosjektadministrator og **Edit Form** |
+| **Delete Form Domain** | Fjerne et skjemas egendefinerte domener. | Prosjekteier, Prosjektadministrator og **Edit Form** |
 | **Read Form Domain** | Se et skjemas egendefinerte domener, DNS-postene deres og hvor langt hvert har kommet på veien mot HTTPS. | Alle med **Read Form** |
 
-Innsendinger inneholder det fremmede har skrevet (navn, e-postadresser og svar som kanskje aldri havner i posten), så bare prosjekteiere og -administratorer ser dem, med mindre du gir **Read Form Submission**. Alle som kan lese et skjema, kan se og dele lenken. Det krever ingen tillatelse å sende inn et skjema. Hvordan roller og detaljerte tillatelser spiller sammen, finner du i [Brukere, team og tillatelser](/docs/permissions/index).
+Innsendinger inneholder det fremmede har skrevet (navn, e-postadresser og svar som kanskje aldri havner i posten), så bare Prosjekteiere og Prosjektadministratorer ser dem, med mindre du gir **Read Form Submission**. Alle som kan lese et skjema, kan se og dele lenken. Det krever ingen tillatelse å sende inn et skjema. Hvordan roller og detaljerte tillatelser spiller sammen, finner du i [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Plan
 

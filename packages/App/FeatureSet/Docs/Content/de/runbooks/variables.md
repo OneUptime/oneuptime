@@ -33,7 +33,7 @@ Ein Name kommt unter den globalen Variablen des Projekts nur einmal vor, unabhä
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Variablen verwaltet.** Project Owner und Project Admin oder die Berechtigung **Create Runbook Variable**. Runbook Admin liest Variablen, um sie in den Schritten auszuwählen, die er schreibt, ändert sie aber nicht.
+- **Eine Rolle, die Variablen verwaltet.** Projektinhaber und Projektadministrator oder die Berechtigung **Create Runbook Variable**. Runbook-Administrator liest Variablen, um sie in den Schritten auszuwählen, die er schreibt, ändert sie aber nicht.
 - **Ein Tarif, der sie enthält.** In OneUptime Cloud brauchen Runbook-Variablen den Tarif **Growth** oder höher.
 
 ## Eine Variable erstellen

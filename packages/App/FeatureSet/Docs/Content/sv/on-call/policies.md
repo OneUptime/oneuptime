@@ -112,10 +112,10 @@ flowchart TB
 | --- | --- |
 | **Väntar** | En jourregel inställd på **Endast under arbetstid** låter körningen vänta tills arbetstiden börjar: den säger när larmningen börjar och larmar ingen fram till dess. Den avslutas utan larm om incidenten eller larmet bekräftas eller löses först. Den börjar larma genast om incidenten eller larmet ändras och nu matchar en jourregel som larmar direkt. |
 | **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter blev inte klar med att starta: den går vidare till **Utförs** och larmar därifrån starten stannade. En direkt utlarmning eller en testutlarmning som fortfarande står här stoppas som **Fel**. |
-| **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
+| **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. Ett steg som misslyckas en kort stund, till exempel för att databasen inte gick att nå, försöks igen en minut senare, sedan efter 2 och 4 minuter och därefter var 5:e minut. |
 | **Exekvering slutförd** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
 | **Exekvering slutförd - ingen aviserad** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |
-| **Fel** | Körningen misslyckades. **Visa statusmeddelande** säger varför. |
+| **Fel** | Körningen misslyckades: ett steg misslyckades på ett sätt som ett nytt försök inte kan rätta, till exempel en borttagen eskaleringsregel, eller misslyckades 10 försök i rad under ungefär 37 minuter. **Visa statusmeddelande** säger varför. |
 
 Du hittar exekveringsloggar på tre ställen:
 

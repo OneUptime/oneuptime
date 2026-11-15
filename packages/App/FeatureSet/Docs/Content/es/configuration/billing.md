@@ -35,7 +35,7 @@ La [página de precios](https://oneuptime.com/pricing) compara los planes.
 ## Antes de empezar
 
 - **OneUptime Cloud.** La sección **Facturación y facturas** de los **Ajustes del proyecto** solo existe en OneUptime Cloud, y empieza plegada: haga clic en su título para abrirla.
-- **Un rol que pueda leer la facturación.** Los Project Owners, las personas con **Manage Billing** y los tres roles de facturación leen todas las páginas de facturación. Consulte [Quién puede hacer qué](#quién-puede-hacer-qué).
+- **Un rol que pueda leer la facturación.** Los Propietarios del proyecto, las personas con **Manage Billing** y los tres roles de facturación leen todas las páginas de facturación. Consulte [Quién puede hacer qué](#quién-puede-hacer-qué).
 
 ## Su plan y sus asientos
 
@@ -144,13 +144,13 @@ Cuando un saldo no alcanza, el mensaje no se envía o OneUptime AI se detiene, y
 
 | Para | Se necesita |
 | --- | --- |
-| Leer las páginas de facturación: el plan, las facturas, el uso, los saldos y los métodos de pago | Project Owner, **Manage Billing**, **Administrador de facturación**, **Miembro de facturación** o **Visor de facturación** |
-| Descargar una factura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Administrador de facturación** o **Miembro de facturación** |
-| Cambiar la dirección de facturación y el correo de facturas | Project Owner, **Manage Billing**, **Administrador de facturación** o **Miembro de facturación** |
-| Activar o desactivar SMS, llamadas, WhatsApp o Telegram | Project Owner, **Manage Billing** o **Administrador de facturación** |
-| Añadir un método de pago | Project Owner, **Manage Billing** o **Create Payment Method** |
-| Pagar una factura | Project Owner, **Manage Billing** o **Edit Invoices** |
-| Cambiar el plan, recargar un saldo o cambiar la recarga automática | Project Owner o **Manage Billing** |
+| Leer las páginas de facturación: el plan, las facturas, el uso, los saldos y los métodos de pago | Propietario del proyecto, **Manage Billing**, **Administrador de facturación**, **Miembro de facturación** o **Visor de facturación** |
+| Descargar una factura | Propietario del proyecto, Administrador del proyecto, **Manage Billing**, **Read Invoices**, **Administrador de facturación** o **Miembro de facturación** |
+| Cambiar la dirección de facturación y el correo de facturas | Propietario del proyecto, **Manage Billing**, **Administrador de facturación** o **Miembro de facturación** |
+| Activar o desactivar SMS, llamadas, WhatsApp o Telegram | Propietario del proyecto, **Manage Billing** o **Administrador de facturación** |
+| Añadir un método de pago | Propietario del proyecto, **Manage Billing** o **Create Payment Method** |
+| Pagar una factura | Propietario del proyecto, **Manage Billing** o **Edit Invoices** |
+| Cambiar el plan, recargar un saldo o cambiar la recarga automática | Propietario del proyecto o **Manage Billing** |
 
 Un botón que no puede usar aparece bloqueado e indica quién puede. Consulte [Usuarios, equipos y permisos](/docs/permissions/index#equipos) para los roles de facturación.
 

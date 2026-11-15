@@ -821,10 +821,10 @@ describe("the VMware host list's figures", () => {
 
     expect(formatVMwareHostPercent(42.5, english)).toBe("42.5%");
     expect(formatVMwareHostPercent(7, english)).toBe("7.0%");
-    expect(formatVMwareHostMhz(2400, english)).toBe("2.4 GHz");
-    expect(formatVMwareHostMhz(850, english)).toBe("850 MHz");
-    expect(formatVMwareHostBytes(64 * GIB, english)).toBe("64.0 GiB");
-    expect(formatVMwareHostBytes(512, english)).toBe("512 B");
+    expect(formatVMwareHostMhz(2400, english)).toBe("2.4\u00A0GHz");
+    expect(formatVMwareHostMhz(850, english)).toBe("850\u00A0MHz");
+    expect(formatVMwareHostBytes(64 * GIB, english)).toBe("64.0\u00A0GiB");
+    expect(formatVMwareHostBytes(512, english)).toBe("512\u00A0B");
     expect(formatVMwareHostPercent(undefined, english)).toBe("—");
     expect(formatVMwareHostMhz("", english)).toBe("—");
     expect(formatVMwareHostBytes(null, english)).toBe("—");
@@ -834,9 +834,9 @@ describe("the VMware host list's figures", () => {
     const de: Translator = dashboardTranslator("de");
 
     expect(formatVMwareHostPercent(42.5, de)).toBe(`42,5${NBSP}%`);
-    expect(formatVMwareHostMhz(2400, de)).toBe("2,4 GHz");
-    expect(formatVMwareHostMhz(1850, de)).toBe("1,9 GHz");
-    expect(formatVMwareHostBytes(64 * GIB, de)).toBe("64,0 GiB");
+    expect(formatVMwareHostMhz(2400, de)).toBe("2,4\u00A0GHz");
+    expect(formatVMwareHostMhz(1850, de)).toBe("1,9\u00A0GHz");
+    expect(formatVMwareHostBytes(64 * GIB, de)).toBe("64,0\u00A0GiB");
   });
 
   test("in Persian: Persian digits; in Arabic: the Latin digits Arabic pages write", () => {
@@ -844,9 +844,9 @@ describe("the VMware host list's figures", () => {
     const ar: Translator = dashboardTranslator("ar");
 
     expect(formatVMwareHostPercent(42.5, fa)).toBe("۴۲٫۵٪");
-    expect(formatVMwareHostMhz(2400, fa)).toBe("۲٫۴ GHz");
-    expect(formatVMwareHostBytes(64 * GIB, fa)).toBe("۶۴٫۰ GiB");
-    expect(formatVMwareHostMhz(2400, ar)).toBe("2.4 GHz");
+    expect(formatVMwareHostMhz(2400, fa)).toBe("۲٫۴\u00A0GHz");
+    expect(formatVMwareHostBytes(64 * GIB, fa)).toBe("۶۴٫۰\u00A0GiB");
+    expect(formatVMwareHostMhz(2400, ar)).toBe("2.4\u00A0GHz");
     expect(formatVMwareHostPercent(42.5, ar)).toContain("42.5");
   });
 });
@@ -922,8 +922,8 @@ describe("the VMware host list widget, drawn", () => {
     const { container } = await drawHosts("honeycomb");
     const tooltip: HTMLElement = hoverTile(container);
 
-    expect(tooltip.textContent).toContain(`42,5${NBSP}% von 2,4 GHz`);
-    expect(tooltip.textContent).toContain(`61,3${NBSP}% von 64,0 GiB`);
+    expect(tooltip.textContent).toContain(`42,5${NBSP}% von 2,4\u00A0GHz`);
+    expect(tooltip.textContent).toContain(`61,3${NBSP}% von 64,0\u00A0GiB`);
     expect(tooltip.textContent).not.toContain(" of ");
   });
 
@@ -945,7 +945,7 @@ describe("the VMware host list widget, drawn", () => {
       expect(tooltip.textContent).not.toContain(" of ");
 
       if (language === "fa") {
-        expect(tooltip.textContent).toContain("۴۲٫۵٪ از ۲٫۴ GHz");
+        expect(tooltip.textContent).toContain("۴۲٫۵٪ از ۲٫۴\u00A0GHz");
         expect(tooltip.textContent).not.toContain("42.5");
       }
     },
@@ -966,9 +966,9 @@ describe("the VMware host list widget, drawn", () => {
     });
 
     expect(cpu).toBeDefined();
-    expect(cpu).toHaveAttribute("title", "Kapazität 2,4 GHz");
+    expect(cpu).toHaveAttribute("title", `Kapazität 2,4${NBSP}GHz`);
     expect(memory).toBeDefined();
-    expect(memory).toHaveAttribute("title", "Kapazität 64,0 GiB");
+    expect(memory).toHaveAttribute("title", `Kapazität 64,0${NBSP}GiB`);
   });
 
   test("as a list on an English board, as it always read", async () => {
@@ -978,7 +978,7 @@ describe("the VMware host list widget, drawn", () => {
     expect(
       Array.from(container.querySelectorAll("tbody td")).some(
         (cell: Element) => {
-          return cell.getAttribute("title") === "Capacity 2.4 GHz";
+          return cell.getAttribute("title") === `Capacity 2.4${NBSP}GHz`;
         },
       ),
     ).toBe(true);

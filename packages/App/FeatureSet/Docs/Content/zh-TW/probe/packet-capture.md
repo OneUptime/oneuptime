@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **你專案自己的探測器。** 全域探測器承載其他專案的流量，因此從不擷取。要安裝自己的探測器，請參閱 [自訂探測器](/docs/probe/custom-probe)。
 - **本版本或更新版本的探測器。** 舊版探測器不會回報它們可以在哪些介面上擷取。
-- **適當的權限。** 開始和停止擷取需要 **Start Packet Capture**，下載檔案需要 **Download Packet Capture**。專案擁有者和管理員兩者都有。請參閱 [權限](#權限)。
+- **適當的權限。** 開始和停止擷取需要 **Start Packet Capture**，下載檔案需要 **Download Packet Capture**。專案擁有者和專案管理員兩者都有。請參閱 [權限](#權限)。
 - **鏡像連接埠，用於到不了探測器的流量。** 探測器只看得到自己主機介面上的流量。要擷取其他裝置之間的流量，請將它們的交換器連接埠鏡像（SPAN）到探測器主機上的一個空閒介面。
 
 ## 開啟封包擷取
@@ -188,10 +188,10 @@ spec:
 
 | 權限 | 允許 | 預設擁有者 |
 | --- | --- | --- |
-| **Start Packet Capture** | 開始擷取以及停止擷取 | Project Owner, Project Admin |
-| **Download Packet Capture** | 下載擷取檔案 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 刪除擷取及其檔案 | Project Owner, Project Admin |
-| **Read Packet Capture** | 查看擷取：何時執行、在哪個探測器上、使用哪個篩選器 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 開始擷取以及停止擷取 | 專案擁有者、專案管理員 |
+| **Download Packet Capture** | 下載擷取檔案 | 專案擁有者、專案管理員 |
+| **Delete Packet Capture** | 刪除擷取及其檔案 | 專案擁有者、專案管理員 |
+| **Read Packet Capture** | 查看擷取：何時執行、在哪個探測器上、使用哪個篩選器 | 專案擁有者、專案管理員、專案成員、檢視者 |
 
 要給團隊 **Start Packet Capture** 或 **Download Packet Capture**，請在 **設定 → 團隊** 下開啟該團隊，並在其 **權限** 頁面上加入該權限。請參閱 [權限](/docs/permissions/index)。
 

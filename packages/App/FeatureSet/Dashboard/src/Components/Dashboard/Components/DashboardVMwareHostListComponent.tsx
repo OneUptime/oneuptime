@@ -27,8 +27,10 @@ import {
 import {
   getGlobalTranslator,
   Translator,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getStandaloneText,
   getUnnamedText,
@@ -84,12 +86,42 @@ const HOST_COLORS: {
   noData: "#9ca3af",
 };
 
-const HOST_LEGEND: Array<HoneycombLegendItem> = [
-  { label: "Under 70%", color: HOST_COLORS.healthy },
-  { label: "70–90%", color: HOST_COLORS.busy },
-  { label: "Over 90%", color: HOST_COLORS.saturated },
-  { label: "No data", color: HOST_COLORS.noData },
-];
+/*
+ * The load bands, as a tile's status and the legend's labels. The
+ * honeycomb draws each through translateText, so a band with words is a
+ * key of the locales, marked where it is written so the extractor sees it
+ * ("Under 70%" is "کمتر از ۷۰٪" in Persian). The busy band has no words to
+ * translate - the extractor keeps no key without a letter - so it read
+ * "70–90%" in Latin digits and an English percent sign on a Persian board
+ * beside the other two (#8270). It is written in the reader's digits and
+ * percent sign instead: "70–90%", "70–90 %", "۷۰–۹۰٪" (getHostLoadBusyBand).
+ */
+const HOST_LOAD_UNDER_70: string = translationKey("Under 70%");
+const HOST_LOAD_OVER_90: string = translationKey("Over 90%");
+const HOST_LOAD_NO_DATA: string = translationKey("No data");
+
+export function getHostLoadBusyBand(language?: string | undefined): string {
+  return `${formatReaderFigure(70, {
+    decimals: 0,
+    language: language,
+  })}–${formatReaderFigure(90, {
+    decimals: 0,
+    isPercent: true,
+    language: language,
+  })}`;
+}
+
+// The legend under the tiles, in the reader's digits (the honeycomb words it).
+export function getHostLegend(
+  language?: string | undefined,
+): Array<HoneycombLegendItem> {
+  return [
+    { label: HOST_LOAD_UNDER_70, color: HOST_COLORS.healthy },
+    { label: getHostLoadBusyBand(language), color: HOST_COLORS.busy },
+    { label: HOST_LOAD_OVER_90, color: HOST_COLORS.saturated },
+    { label: HOST_LOAD_NO_DATA, color: HOST_COLORS.noData },
+  ];
+}
 
 /*
  * Server select (PublicDashboardResourceListPolicy.selectForComponent,
@@ -160,12 +192,12 @@ export function formatVMwareHostMhz(
     return `${formatReaderFigure(numeric / 1000, {
       decimals: 1,
       language: translator.language,
-    })} GHz`;
+    })}\u00A0GHz`;
   }
   return `${formatReaderFigure(Math.round(numeric), {
     decimals: 0,
     language: translator.language,
-  })} MHz`;
+  })}\u00A0MHz`;
 }
 
 export function formatVMwareHostBytes(
@@ -186,7 +218,7 @@ export function formatVMwareHostBytes(
   return `${formatReaderFigure(scaled, {
     decimals: unitIndex === 0 ? 0 : 1,
     language: translator.language,
-  })} ${units[unitIndex]}`;
+  })}\u00A0${units[unitIndex]}`;
 }
 
 /*
@@ -220,7 +252,10 @@ function getHostDisplayName(r: VMwareResource): string {
   return (r.name as string) || (r.externalId as string) || getUnnamedText();
 }
 
-function getHostLoad(r: VMwareResource): {
+export function getHostLoad(
+  r: VMwareResource,
+  language?: string | undefined,
+): {
   text: string;
   color: string;
   textColor: string;
@@ -235,7 +270,7 @@ function getHostLoad(r: VMwareResource): {
 
   if (candidates.length === 0) {
     return {
-      text: "No data",
+      text: HOST_LOAD_NO_DATA,
       color: HOST_COLORS.noData,
       textColor: "var(--ou-text-muted, #6b7280)",
     };
@@ -244,20 +279,20 @@ function getHostLoad(r: VMwareResource): {
   const peak: number = Math.max(...candidates);
   if (peak >= 90) {
     return {
-      text: "Over 90%",
+      text: HOST_LOAD_OVER_90,
       color: HOST_COLORS.saturated,
       textColor: "var(--ou-danger-text, #b91c1c)",
     };
   }
   if (peak >= 70) {
     return {
-      text: "70–90%",
+      text: getHostLoadBusyBand(language),
       color: HOST_COLORS.busy,
       textColor: "var(--ou-warning-text, #b45309)",
     };
   }
   return {
-    text: "Under 70%",
+    text: HOST_LOAD_UNDER_70,
     color: HOST_COLORS.healthy,
     textColor: "var(--ou-success-text, #047857)",
   };
@@ -343,8 +378,10 @@ function buildHostTile(r: VMwareResource): HoneycombTile {
   const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getHostDisplayName(r);
-  const load: { text: string; color: string; textColor: string } =
-    getHostLoad(r);
+  const load: { text: string; color: string; textColor: string } = getHostLoad(
+    r,
+    translator.language,
+  );
 
   return {
     id: id || name,
@@ -387,6 +424,7 @@ function buildHostTile(r: VMwareResource): HoneycombTile {
 const DashboardVMwareHostListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const args: DashboardVMwareHostListComponent["arguments"] =
     props.component.arguments;
 
@@ -432,7 +470,7 @@ const DashboardVMwareHostListComponentElement: FunctionComponent<
       renderRow={renderHostRow}
       viewMode={viewMode}
       renderHoneycombTile={buildHostTile}
-      honeycombLegend={HOST_LEGEND}
+      honeycombLegend={getHostLegend(translator.language)}
     />
   );
 };

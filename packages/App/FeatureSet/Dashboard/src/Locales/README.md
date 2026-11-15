@@ -609,8 +609,9 @@ translated the same locale. Take either side, then run
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
   not keys yet, except a Database monitor's descriptions, which are its
   catalog's; the metric groups' titles and descriptions are. Every monitor
-  metric catalog's descriptions are keys (`Common/Types/Monitor/*MetricCatalog`,
-  #8014), but not the database, VMware, Kubernetes, Docker, Docker Swarm,
+  metric catalog's descriptions are keys that every language words
+  (`Common/Types/Monitor/*MetricCatalog`, #8014), but not the database,
+  VMware, Kubernetes, Docker, Docker Swarm,
   Podman, host and IoT catalogs' metric names, which their pickers and
   criteria draw in English, so the docs' metric tables keep them in English.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security

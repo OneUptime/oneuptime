@@ -41,7 +41,7 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres des 
 
 ### Configurer le SCIM de projet
 
-Seul un propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un projet, ou voir ou réinitialiser son jeton bearer : via SCIM, votre fournisseur d'identité peut ajouter des personnes à n'importe quelle équipe du projet.
+Seul un Propriétaire du projet peut ajouter ou modifier la connexion SCIM d'un projet, ou voir ou réinitialiser son jeton bearer : via SCIM, votre fournisseur d'identité peut ajouter des personnes à n'importe quelle équipe du projet.
 :::steps
 1. **Ouvrir les paramètres du projet**
 
@@ -88,7 +88,7 @@ Certains fournisseurs d'identité ne conservent pas de jeton bearer et demandent
 
 Votre fournisseur d'identité envoie l'ID client et le secret au point de terminaison de jeton, et obtient un jeton d'accès valable une heure. Le jeton bearer de la connexion continue de fonctionner à côté.
 
-Pour remplacer un secret, cliquez sur **Make New Client Secret**. Le secret précédent continue de fonctionner jusqu'à son expiration ou jusqu'à ce que vous cliquiez sur **Delete Previous Secret** : vous pouvez ainsi donner le nouveau à votre fournisseur d'identité sans interrompre le provisionnement. Supprimez l'ancien une fois que votre fournisseur utilise le nouveau. Un secret qui expire ou qui est supprimé met fin aussitôt aux jetons d'accès émis avec lui. Les personnes autorisées à modifier le jeton bearer d'une connexion peuvent créer et supprimer ses secrets : un propriétaire du projet ou, pour une page de statut, toute personne autorisée à modifier son authentification unique.
+Pour remplacer un secret, cliquez sur **Make New Client Secret**. Le secret précédent continue de fonctionner jusqu'à son expiration ou jusqu'à ce que vous cliquiez sur **Delete Previous Secret** : vous pouvez ainsi donner le nouveau à votre fournisseur d'identité sans interrompre le provisionnement. Supprimez l'ancien une fois que votre fournisseur utilise le nouveau. Un secret qui expire ou qui est supprimé met fin aussitôt aux jetons d'accès émis avec lui. Les personnes autorisées à modifier le jeton bearer d'une connexion peuvent créer et supprimer ses secrets : un Propriétaire du projet ou, pour une page de statut, toute personne autorisée à modifier son authentification unique.
 
 ## SCIM pour les pages de statut
 
@@ -394,7 +394,7 @@ Sur OneUptime Cloud, le provisionnement SCIM ne fonctionne pleinement que tant q
 
 Rien n'est supprimé. Passez au plan **Scale** et les connexions fonctionnent de nouveau pleinement, telles quelles, avec le même jeton bearer et rien à reconfigurer dans votre fournisseur d'identité ; un changement de plan prend effet en moins d'une minute. Les fournisseurs d'identité continuent d'appeler selon leur propre calendrier : Okta liste les refus parmi ses erreurs de provisionnement, et Entra ID les affiche dans ses journaux de provisionnement et peut mettre en quarantaine une tâche qui échoue sans cesse, ce qui ralentit ses synchronisations — retraits compris — à environ une par jour. Relancez-y le provisionnement après la mise à niveau, pour que les personnes ajoutées entre-temps soient provisionnées.
 
-En dessous de **Scale**, **Paramètres du projet** > **Sécurité** > **SCIM**, ainsi que la page **SCIM** d'une page de statut, listent les connexions sous l'offre de mise à niveau du plan (**Connexions SCIM encore configurées**) et indiquent qu'elles ne font que retirer des personnes. Supprimez une connexion pour la retirer. Ajouter une connexion, en modifier une ou remplacer son jeton bearer nécessite **Scale**. La liste n'affiche pas les jetons bearer, et seuls les propriétaires du projet peuvent lire un jeton, quel que soit le plan.
+En dessous de **Scale**, **Paramètres du projet** > **Sécurité** > **SCIM**, ainsi que la page **SCIM** d'une page de statut, listent les connexions sous l'offre de mise à niveau du plan (**Connexions SCIM encore configurées**) et indiquent qu'elles ne font que retirer des personnes. Supprimez une connexion pour la retirer. Ajouter une connexion, en modifier une ou remplacer son jeton bearer nécessite **Scale**. La liste n'affiche pas les jetons bearer, et seuls les Propriétaires du projet peuvent lire un jeton, quel que soit le plan.
 
 ## Dépannage
 

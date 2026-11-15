@@ -40,7 +40,7 @@ Un presupuesto de errores convierte la fiabilidad en algo que puedes gastar. Si 
 
 ## Crear un SLO
 
-Necesitas un rol que pueda crear SLO: Project Owner, Project Admin o un rol personalizado con el permiso Create Service Level Objective.
+Necesitas un rol que pueda crear SLO: Propietario del proyecto, Administrador del proyecto o un rol personalizado con el permiso Create Service Level Objective.
 
 :::steps
 ### Abrir los SLO
@@ -146,7 +146,7 @@ Un SLO desactivado o archivado no se evalúa, así que su estado se queda como e
 
 ## La lista de SLO
 
-La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios.
+La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios. Su columna **Qué mide** muestra los servicios de un SLO de solicitudes donde muestra los monitores de un SLO de disponibilidad, y el filtro **Servicios** encuentra los SLO que miden un servicio.
 
 - Los mosaicos sobre la lista cuentan los SLO por estado: **En buen estado**, **En riesgo**, **Presupuesto agotado**, **Mal configurado**, **Pausado** y **Deshabilitado**. Aparecen en cuanto hay un SLO que no está archivado. Haz clic en un mosaico para ver solo esos SLO, y otra vez para verlos todos.
 - Selecciona SLO para añadir o quitar etiquetas y propietarios, activarlos o desactivarlos, darles las [reglas de tasa de consumo recomendadas](/docs/slo/burn-rate-alerts#añadirlas-a-muchos-slo-a-la-vez) que les faltan, archivarlos o eliminarlos, todos a la vez.
@@ -256,15 +256,15 @@ Un aviso en la parte superior de las páginas del SLO dice qué le impide medir:
 | Aviso | Qué significa | Qué hacer |
 | --- | --- | --- |
 | **No hay monitores asociados** | El SLO no tiene monitores, así que no hay nada que medir. | Asocia monitores o crea una regla de monitores. |
-| **Waiting for SLO evaluation** | Hay monitores asociados, pero la última evaluación no tenía datos de estado de ellos. | Comprueba que los monitores se están comprobando. Las cifras aparecen tras la siguiente evaluación con datos. |
-| **Measurement is paused** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada. | Vuelve a activar la supervisión de al menos un monitor, o espera a que termine el mantenimiento. |
-| **The target is out of range** | El objetivo no es mayor que 0 y menor que 100. | Fija un objetivo como 99,9 en **Ajustes** → **Objetivo**. |
-| **This SLO is disabled** | La evaluación está desactivada. | Haz clic en **Activar la evaluación**. |
-| **This SLO is archived** | El SLO está archivado. | Desarchívalo en **Ajustes**. |
+| **Esperando la evaluación del SLO** | Hay monitores asociados, pero la última evaluación no tenía datos de estado de ellos. | Comprueba que los monitores se están comprobando. Las cifras aparecen tras la siguiente evaluación con datos. |
+| **La medición está en pausa** | Todos los monitores que mide están archivados o tienen la supervisión activa desactivada. | Vuelve a activar la supervisión de al menos un monitor, o espera a que termine el mantenimiento. |
+| **El objetivo está fuera de rango** | El objetivo no es mayor que 0 y menor que 100. | Fija un objetivo como 99,9 en **Ajustes** → **Objetivo**. |
+| **Este SLO está deshabilitado** | La evaluación está desactivada. | Haz clic en **Activar la evaluación**. |
+| **Este SLO está archivado** | El SLO está archivado. | Desarchívalo en **Ajustes**. |
 | **Aún no evaluado** | El SLO se acaba de crear. | Espera a la primera evaluación, unos minutos como mucho. |
 | **No se eligieron servicios** | Un SLO de solicitudes no tiene servicios, así que no tiene solicitudes que contar. | Elige sus servicios en **Ajustes** → **Qué mide**. |
-| **No latency threshold** | Un SLO de latencia de solicitudes no tiene umbral, así que ninguna solicitud puede contar como lo bastante rápida. | Fija el **Umbral de latencia (ms)** en **Ajustes** → **Qué mide**. |
-| **Waiting for requests** | Ninguno de los servicios de un SLO de solicitudes ha servido todavía una solicitud en su ventana. | Comprueba que los servicios envían trazas a OneUptime. Las cifras aparecen tras la siguiente evaluación que cuenta una solicitud. |
+| **No hay umbral de latencia** | Un SLO de latencia de solicitudes no tiene umbral, así que ninguna solicitud puede contar como lo bastante rápida. | Fija el **Umbral de latencia (ms)** en **Ajustes** → **Qué mide**. |
+| **Esperando solicitudes** | Ninguno de los servicios de un SLO de solicitudes ha servido todavía una solicitud en su ventana. | Comprueba que los servicios envían trazas a OneUptime. Las cifras aparecen tras la siguiente evaluación que cuenta una solicitud. |
 
 ## Próximos pasos
 

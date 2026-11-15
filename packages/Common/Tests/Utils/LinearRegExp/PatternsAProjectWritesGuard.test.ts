@@ -173,6 +173,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "a pattern whose syntax JavaScript checks, for its own error message; it is never run",
   },
   {
+    file: "packages/Common/Utils/PromQL/RE2UnicodeClass.ts",
+    count: 1,
+    builtFrom:
+      "a Unicode property escape, \\p{gc=...} or \\p{sc=...}, of a category or script name the file lists (Go's tables), never a pattern's text; run on one character at a time, to read which characters the table holds",
+  },
+  {
     file: "packages/Common/Utils/Telemetry/LogErrorPattern.ts",
     count: 1,
     builtFrom: "the rules LOG_ERROR_PATTERN_RULES lists",

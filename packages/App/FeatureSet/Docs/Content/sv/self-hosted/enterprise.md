@@ -54,7 +54,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | [Anpassade aviseringskanaler](/docs/self-hosted/custom-notification-channels): larma personer via din egen tjänst, till exempel ditt företags app | Nej | Ja | Inte tillämpligt |
 | [Sessionslängd](/docs/self-hosted/session-length): hur länge personer förblir inloggade, och hur länge utan att använda OneUptime | Nej | Ja | Inte tillämpligt |
 | Kapacitetsvy för ClickHouse, kapacitetslarm och automatisk rensning av disken | Ja | Ja | Inte tillämpligt |
-| Migreringsstatus, supportpaket och globala prober i administratörspanelen | Ja | Ja | Inte tillämpligt |
+| Migreringsstatus, supportpaket och globala sonder i administratörspanelen | Ja | Ja | Inte tillämpligt |
 | Hantering av Enterprise-licens, platser och instanser | Nej | Ja | Inte tillämpligt |
 
 Enkel inloggning omfattar "Require SSO for login" för projekt, privata statussidor och hela instansen, i båda utgåvorna.

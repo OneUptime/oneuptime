@@ -88,7 +88,7 @@ OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자�
 ## 시작하기 전에
 
 - 자체 인프라에 있는 **Docker가 설치된 호스트**. HTTPS로 OneUptime URL에 접근할 수 있고, 단계가 작업하는 시스템에도 접근할 수 있어야 합니다.
-- **Runner를 만들 수 있는 역할.** Project Owner, Project Admin, Project Member, Runbook Admin이 만들 수 있습니다. 설정 명령에 포함된 Runner의 키는 Project Owner, Project Admin, Runbook Admin만 볼 수 있습니다.
+- **Runner를 만들 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 런북 관리자가 만들 수 있습니다. 설정 명령에 포함된 Runner의 키는 프로젝트 소유자, 프로젝트 관리자, 런북 관리자만 볼 수 있습니다.
 
 ## Runner 설치
 
@@ -109,7 +109,7 @@ Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작
 
 Runner 행에서 **설정 지침 표시**를 클릭합니다. **런북 에이전트 설정** 대화 상자에 이 Runner의 ID와 키가 이미 들어 있는 `docker run` 명령이 표시됩니다. 같은 명령이 Runner 자체 페이지의 **설정 지침** 아래에도 있습니다.
 
-키를 읽을 수 있는 사람은 Project Owner, Project Admin, Runbook Admin뿐입니다. 다른 모든 사람에게는 명령 대신 "이 런북 에이전트의 키를 볼 수 있는 권한이 없습니다"가 표시됩니다.
+키를 읽을 수 있는 사람은 프로젝트 소유자, 프로젝트 관리자, 런북 관리자뿐입니다. 다른 모든 사람에게는 명령 대신 "이 런북 에이전트의 키를 볼 수 있는 권한이 없습니다"가 표시됩니다.
 
 ### 3. 자체 인프라의 호스트에서 실행
 
@@ -293,7 +293,7 @@ docker rm -f oneuptime-runner
 
 Runbook을 트리거하려면(즉 단계를 Runner에 보내려면) Runbook을 실행하는 역할(`ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin`, `RunbookMember`)이나 `CreateRunbookExecution`이 필요합니다. 실행을 완료, 건너뛰기, 취소할 때는 `EditRunbookExecution`도 받아들입니다. 역할은 그 범위가 미치는 Runbook만 실행합니다.
 
-Runner의 키는 Project Owner, Project Admin, Runbook Admin만 읽을 수 있습니다.
+Runner의 키는 프로젝트 소유자, 프로젝트 관리자, 런북 관리자만 읽을 수 있습니다.
 
 ## 에이전트용 API
 

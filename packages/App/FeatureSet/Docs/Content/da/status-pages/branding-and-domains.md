@@ -39,7 +39,7 @@ Det første kort, **Logo og forsidebillede**, har knappen **Rediger billeder**, 
 | **Logo** | Upload af logoet (pladsholder `Upload logo`), **Logo til mørkt tema** (pladsholder `Upload logo for the dark theme`), et valgfrit logo lavet til en mørk baggrund, og **Alternativ tekst til logo** (pladsholder `Logo of My Company`). Lad alt-teksten stå tom, så bruges statussidens titel i stedet. |
 | **Forsidebillede** | **Forside**, en upload (pladsholder `Upload cover image`) til det brede banner bag headeren, og **Alternativ tekst til forsidebillede**. Lad alt-teksten stå tom, hvis forsiden er ren dekoration. |
 
-Logoet, logoet til mørkt tema, forsidebilledet og faviconet er filer, der er uploadet i statussidens eget projekt, og det tjekkes, hver gang et af dem gemmes, fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." At uploade billedet igen fra siden løser det.
+Logoet, logoet til mørkt tema, forsidebilledet og faviconet er filer, der er uploadet i statussidens eget projekt, og det tjekkes, hver gang et af dem gemmes, fra dashboardet, API'et, Terraform eller en arbejdsgang. En fil, der er uploadet i et andet projekt, afvises med de ord, en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." eller "The favicon's file could not be found. Upload the favicon again." At uploade billedet igen fra siden løser det.
 
 Din statusside viser kun billeder fra sit eget projekt; et billede, den ikke kan vise, udelades, som om siden ikke havde noget. Dashboardet, API'et og Terraform læser sidens billeder på samme måde: et billede fra et andet projekt kommer tilbage som slet intet billede. De e-mails, siden sender (til abonnenter og til private brugere om deres login), viser dens logo på samme måde: et logo, siden ikke kan vise, udelades også fra dem i stedet for at blive vist som et ødelagt billede.
 
@@ -217,7 +217,7 @@ Klik på **Fortsæt**. Hvis projektet har bekræftet det domæne, adressen ligge
 
 Et domænes fulde navn ligger fast, når du tilføjer det, så **Rediger** ændrer kun dets certifikat. For at bruge en anden adresse tilføjer du den og sletter den gamle. Et navn, som et dashboard eller en formular allerede bruger, i et hvilket som helst projekt, afvises: ét domæne viser én statusside, ét dashboard eller én formular.
 
-At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Project Owner eller Project Admin), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
+At tilføje et domæne til projektet kræver tilladelse til at oprette projektdomæner (**Create Domain**, eller Projektejer eller Projektadministrator), og at bekræfte det kræver **Edit Domain**. Uden dem siger dialogen, hvem der kan gøre det.
 
 ### DNS-opsætning og bekræftelse
 
@@ -301,9 +301,9 @@ Se efter en CAA-post på dit domæne, der udelader `letsencrypt.org`, og tjek p�
 
 ### Hvem der kan tjekke og genudstede
 
-**Tjek nu**, bestilling af et domænes certifikat og **Reissue SSL** ændrer domænet, så de kræver tilladelse til at redigere det: **Edit Status Page Domain** eller en rolle, der indeholder den (Project Owner, Project Admin, Project Member, Status Page Admin eller Status Page Member).
+**Tjek nu**, bestilling af et domænes certifikat og **Reissue SSL** ændrer domænet, så de kræver tilladelse til at redigere det: **Edit Status Page Domain** eller en rolle, der indeholder den (Projektejer, Projektadministrator, Projektmedlem, Statussideadministrator eller Statussidemedlem).
 
-Den, der kun kan læse domænet, såsom en Viewer eller en Status Page Viewer, ser stadig kolonnen **Status** og den post, der skal tilføjes, i **DNS-opsætning**. For dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der kræves. OneUptime bliver under alle omstændigheder selv ved med at tjekke hvert domæne og bestille dets certifikat.
+Den, der kun kan læse domænet, såsom en Seer eller en Statussideseer, ser stadig kolonnen **Status** og den post, der skal tilføjes, i **DNS-opsætning**. For dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der kræves. OneUptime bliver under alle omstændigheder selv ved med at tjekke hvert domæne og bestille dets certifikat.
 
 Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, kan ikke kalde `verify-cname`, `check-dns`, `order-ssl` eller `reissue-ssl` på `/status-page-domain`. Giv den **Read Status Page Domain** og **Edit Status Page Domain**, hvis den har brug for det. Når posten ikke er fundet, afviser `verify-cname` med, hvad den slog op, og hvad der kom tilbage, med de samme ord, som **DNS-opsætning** viser; `check-dns` svarer for hver post, den slog op, uanset udfaldet.
 

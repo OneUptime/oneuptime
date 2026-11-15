@@ -57,6 +57,8 @@ import MonitorSettingsCustomFields from "../Pages/Monitor/Settings/MonitorCustom
 
 import MonitorSettingsSecrets from "../Pages/Monitor/Settings/MonitorSecrets";
 
+import MonitorSettingsIncomingRequestSecrets from "../Pages/Monitor/Settings/IncomingRequestSecrets";
+
 import MonitorSettingsTemplates from "../Pages/Monitor/Settings/MonitorTemplates";
 
 import MonitorSettingsTemplatesView from "../Pages/Monitor/Settings/MonitorTemplatesView";
@@ -261,6 +263,24 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
           <MonitorSettingsSecrets
             {...props}
             pageRoute={RouteMap[PageMap.MONITORS_SETTINGS_SECRETS] as Route}
+          />
+        }
+      />
+
+      <PageRoute
+        path={
+          MonitorsRoutePath[
+            PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS
+          ] || ""
+        }
+        element={
+          <MonitorSettingsIncomingRequestSecrets
+            {...props}
+            pageRoute={
+              RouteMap[
+                PageMap.MONITORS_SETTINGS_INCOMING_REQUEST_SECRETS
+              ] as Route
+            }
           />
         }
       />

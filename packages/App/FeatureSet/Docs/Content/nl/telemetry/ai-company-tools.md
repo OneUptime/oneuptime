@@ -1,6 +1,6 @@
 # AI-tools van je bedrijf
 
-Zie wat je mensen vragen aan de AI-tools waarvoor je bedrijf betaalt, als gesprekken per persoon. Koppel Claude Enterprise of Microsoft 365 Copilot met inloggegevens die alleen kunnen lezen, en OneUptime haalt elke nieuwe chat elke 15 minuten binnen in **Gesprekken**. Alleen eigenaren en beheerders van het project kunnen ze lezen, tenzij je anders kiest.
+Zie wat je mensen vragen aan de AI-tools waarvoor je bedrijf betaalt, als gesprekken per persoon. Koppel Claude Enterprise of Microsoft 365 Copilot met inloggegevens die alleen kunnen lezen, en OneUptime haalt elke nieuwe chat elke 15 minuten binnen in **Gesprekken**. Alleen Projecteigenaren en Projectbeheerders kunnen ze lezen, tenzij je anders kiest.
 
 :::cards
 - [Vertel het eerst je mensen](#vertel-het-eerst-je-mensen): Hun chats zijn hun eigen woorden.
@@ -29,7 +29,7 @@ De chats komen binnen zoals de AI-aanroepen van je apps, dus scrubregels, dropfi
 
 ## Voordat je begint
 
-- De rol Project Owner of Project Admin. Alleen zij kunnen een tool koppelen, wijzigen of verwijderen.
+- De rol Projecteigenaar of Projectbeheerder. Alleen zij kunnen een tool koppelen, wijzigen of verwijderen.
 - Een beheerder van de tool, om de inloggegevens te maken: de sectie van elke tool hieronder zegt wie.
 - Je mensen geïnformeerd, en het antwoord van je juridische afdeling of HR.
 

@@ -31,6 +31,7 @@ import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
 import {
   AI_READ_CITATIONS,
   AI_READ_TELEMETRY_TABLE_TITLES,
+  AI_READ_WIDGET_TITLES,
 } from "../../../../Types/AI/AIReadTableWords";
 import {
   citationSentence,
@@ -368,8 +369,11 @@ export const LogHistogramTool: ObservabilityTool = {
       widget:
         series.length > 0 && rows.length > 0
           ? WidgetBuilder.bars({
-              title: "Log volume by severity",
-              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              // In the reader's language and time (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.logVolume),
+                description: windowSentence(startTime, endTime),
+              },
               series: series,
               stacked: true,
               xIsTime: true,

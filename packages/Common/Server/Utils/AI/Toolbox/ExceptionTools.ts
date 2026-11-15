@@ -8,7 +8,12 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
-import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_WIDGET_LINES,
+  AI_READ_WIDGET_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
 import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
@@ -144,8 +149,16 @@ export const TopExceptionsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.exceptionList({
-              title: `Top exceptions (${rows.length})`,
-              description: `Last ${lastSeenWithinHours}h, by occurrence count`,
+              // In the reader's language (issue #8312).
+              words: {
+                title: aiActionSentence(AI_READ_WIDGET_TITLES.topExceptions, {
+                  count: countFigure(rows.length),
+                }),
+                description: aiActionSentence(
+                  AI_READ_WIDGET_LINES.exceptionsInHours,
+                  { hours: countFigure(lastSeenWithinHours) },
+                ),
+              },
               items: rows,
               link: { type: AIChatCitationTargetType.Exceptions },
             })

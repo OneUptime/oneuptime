@@ -39,6 +39,8 @@ import {
   TimeRangeSchemaProperties,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure, windowValues } from "./ReadTableWords";
 /*
  * Gate on Monitor read permissions. This is defense-in-depth only: every
  * source query below runs under the requesting user's props, so a user who
@@ -327,7 +329,11 @@ export const RecentChangesTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Changes ${startTime.toISOString()} → ${endTime.toISOString()} (${serialized.rowCount} events)`,
+      // In the reader's language and time (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.recentChanges, {
+        ...windowValues(startTime, endTime),
+        count: countFigure(serialized.rowCount),
+      }),
       ...(citationTarget ? { citationTarget } : {}),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,

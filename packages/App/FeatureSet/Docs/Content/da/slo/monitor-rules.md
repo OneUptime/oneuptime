@@ -129,7 +129,7 @@ En monitors side viser de SLO'er, der måler den: åbn monitoren, og gå til **S
 Tidligere versioner havde en indstilling **Auto-Add Monitors With Labels** på SLO-formularen. Ved opgraderingen får hvert SLO, der brugte den, en aktiveret monitorregel med navnet **Auto-add monitors with labels**, der matcher de samme etiketter, så det bliver ved med at måle præcis de samme monitorer. Feltet `monitorLabels` i SLO-API'en er forældet: brug SLO-monitorregler i stedet.
 
 :::details Hvad hvis noget stadig gemmer den gamle indstilling?
-En dashboardfane, der blev åbnet før opgraderingen, eller en API-klient eller et workflow, der er skrevet til den tidligere version, kan stadig gemme den gamle indstilling. Så et SLO ikke stille og roligt mister monitorer på den måde:
+En dashboardfane, der blev åbnet før opgraderingen, eller en API-klient eller en arbejdsgang, der er skrevet til den tidligere version, kan stadig gemme den gamle indstilling. Så et SLO ikke stille og roligt mister monitorer på den måde:
 
 - **Et SLO uden monitorregler** gør de gemte etiketter til en regel **Auto-add monitors with labels**, og dets monitorer vurderes igen med det samme. At gemme en tom liste frakobler de monitorer, som indstillingen havde tilknyttet, som før.
 - **Et SLO, der har monitorregler**, slået til eller ej, ignorerer etiketter, der er gemt via den gamle indstilling, fordi det er dets regler, der bestemmer, hvad det måler.

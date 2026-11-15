@@ -3,7 +3,7 @@
 Envoyez les alertes de [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) à OneUptime, pour que chaque alerte qui se déclenche devienne un incident qui prévient votre équipe d'astreinte et soit résolu quand l'alerte se rétablit. Alertmanager envoie ses notifications à un récepteur webhook, il n'y a donc rien à installer d'un côté comme de l'autre.
 
 :::cards
-- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un moniteur de requêtes entrantes, ou un workflow à vous.
+- [Choisir comment OneUptime reçoit les alertes](#choisir-comment-oneuptime-reçoit-les-alertes): Un moniteur de requêtes entrantes, ou un flux de travail à vous.
 - [Recevoir les alertes avec un moniteur](#recevoir-les-alertes-avec-un-moniteur): Un incident par alerte, résolu au rétablissement.
 - [Configurer Alertmanager](#configurer-alertmanager): Un récepteur webhook, et la route qui l'utilise.
 - [Dépannage](#dépannage): Quand les alertes n'arrivent pas, ou que les incidents restent ouverts.
@@ -25,7 +25,7 @@ Prometheus évalue vos règles d'alerte et envoie les alertes qui se déclenchen
 ## Avant de commencer
 
 - Un Alertmanager dont vous pouvez modifier le `alertmanager.yml`, et qui peut joindre votre OneUptime en HTTPS.
-- Dans OneUptime, le droit de créer des moniteurs, ou des workflows si vous prenez cette voie.
+- Dans OneUptime, le droit de créer des moniteurs, ou des flux de travail si vous prenez cette voie.
 
 ## Choisir comment OneUptime reçoit les alertes
 
@@ -34,7 +34,7 @@ Configurez d'abord OneUptime : il vous donne l'URL à laquelle Alertmanager envo
 | Façon | Utilisez-la quand |
 | --- | --- |
 | Un moniteur de requêtes entrantes (recommandé) | Vous voulez que chaque alerte devienne un incident qui prévient l'astreinte et soit résolu quand l'alerte se rétablit. Il n'y a rien à construire. |
-| Un workflow avec un déclencheur Webhook | Il vous faut une logique propre : filtrer les alertes, les remanier ou appeler d'abord d'autres systèmes. Un workflow ouvre un incident par notification, pas par alerte, et ne le résout pas au rétablissement. |
+| Un flux de travail avec un déclencheur Webhook | Il vous faut une logique propre : filtrer les alertes, les remanier ou appeler d'abord d'autres systèmes. Un flux de travail ouvre un incident par notification, pas par alerte, et ne le résout pas au rétablissement. |
 
 Les deux reçoivent le même JSON du même récepteur, vous pouvez donc commencer par l'un et changer plus tard en modifiant une URL dans `alertmanager.yml`.
 
@@ -178,12 +178,12 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## Recevoir les alertes avec un workflow
+## Recevoir les alertes avec un flux de travail
 
-Utilisez un [workflow](/docs/workflows/index) quand il vous faut vos propres étapes entre Alertmanager et l'incident.
+Utilisez un [flux de travail](/docs/workflows/index) quand il vous faut vos propres étapes entre Alertmanager et l'incident.
 
 :::steps
-### Créer le workflow
+### Créer le flux de travail
 
 Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis sur **Partir de zéro**. Nommez-le `Alertmanager alerts` et cliquez sur **Créer un flux de travail**.
 
@@ -208,9 +208,9 @@ Ajoutez un bloc **Create One Incident** et reliez-y le côté **Oui** du bloc **
 
 Sans modèle, **JSON Object** doit aussi contenir `incidentSeverityId`, l'ID de l'une des gravités d'incident du projet.
 
-### Activer le workflow
+### Activer le flux de travail
 
-Activez **Activé** en haut du **Constructeur**. Un workflow désactivé répond à Alertmanager par `400`.
+Activez **Activé** en haut du **Constructeur**. Un flux de travail désactivé répond à Alertmanager par `400`.
 :::
 
 Une exécution traite une notification, elle déclare donc un seul incident, quel que soit le nombre d'alertes de la notification. Une notification `resolved` prend le côté **Non** du bloc **If / Else**, où rien n'est relié, l'exécution s'arrête donc là. Pour un incident par alerte, résolu au rétablissement, utilisez le moniteur.
@@ -258,7 +258,7 @@ Quand l'alerte de surveillance n'est pas arrivée depuis dix minutes, le moniteu
 :::details Rien n'arrive dans OneUptime
 - Vérifiez dans le journal d'Alertmanager les erreurs de livraison au récepteur.
 - Le moniteur répond `200` immédiatement, avant de vérifier quoi que ce soit, même avec une clé secrète erronée. Consultez la chronologie du moniteur pour voir si les notifications arrivent.
-- Un workflow désactivé répond `400`. Activez **Activé** en haut de son **Constructeur**.
+- Un flux de travail désactivé répond `400`. Activez **Activé** en haut de son **Constructeur**.
 :::
 
 :::details Les incidents s'ouvrent mais ne sont jamais résolus
@@ -291,7 +291,7 @@ Quand une requête plus récente atteint un moniteur avant qu'une précédente s
 
 ## Sécurité
 
-- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur, ou **Réinitialiser l'URL** dans le déclencheur **Webhook** du workflow. Mettez ensuite à jour l'`url` du récepteur dans `alertmanager.yml`.
+- **Traitez l'URL comme un mot de passe.** Quiconque la possède peut ouvrir des incidents. Si elle fuit, réinitialisez-la : **Réinitialiser la clé secrète des requêtes entrantes** sur la page **Paramètres** du moniteur, ou **Réinitialiser l'URL** dans le déclencheur **Webhook** du flux de travail. Mettez ensuite à jour l'`url` du récepteur dans `alertmanager.yml`.
 - **Auto-hébergé ?** Laissez Alertmanager joindre votre OneUptime en HTTPS à travers votre pare-feu.
 
 ## Étapes suivantes

@@ -1,6 +1,6 @@
 # Google Workspace
 
-Importer revisjonsloggene i [Google Workspace](https://workspace.google.com) til sikkerhetshendelsene i OneUptime: pålogginger og det Google flagget ved dem, endringer fra administratorer, apper som fikk tilgang til data, enkel pålogging, kontoenes egne sikkerhetsinnstillinger og, hvis du vil, filer delt utenfor organisasjonen eller lastet ned i Google Disk. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en tjenestekonto som opptrer som en av administratorene dine, og endrer ingenting i Google Workspace.
+Importer revisjonsloggene i [Google Workspace](https://workspace.google.com) til sikkerhetshendelsene i OneUptime: pålogginger og det Google flagget ved dem, endringer fra administratorer, apper som fikk tilgang til data, enkel pålogging, kontoenes egne sikkerhetsinnstillinger og, hvis du vil, filer delt utenfor organisasjonen eller lastet ned i Google Disk. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en tjenestekonto som opptrer som en av administratorene dine, og endrer ingenting i Google Workspace.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En tjenestekonto, domenedekkende delegering og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En superadministrator i Google Workspace for å tillate domenedekkende delegering, og en administrator som tjenestekontoen opptrer som, med rettigheten Reports. En superadministrator har den.
 - Et Google Cloud-prosjekt der du kan opprette en tjenestekonto og slå på Admin SDK API.
 - For Disk-aktivitet: en utgave med revisjonsloggen for Disk, for eksempel Business Standard, Business Plus, Enterprise eller Education.

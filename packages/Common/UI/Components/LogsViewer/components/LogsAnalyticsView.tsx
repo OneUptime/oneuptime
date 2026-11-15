@@ -70,6 +70,11 @@ import {
   useChartTimeRangeZoom,
 } from "../../Charts/TimeRangeZoom/TimeRangeZoomContext";
 import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
+import { formatChartCount } from "../../Charts/Utils/ChartCount";
+import {
+  getChartRowValues,
+  getYAxisWidthForValuesInPx,
+} from "../../Charts/Utils/YAxisWidth";
 
 type AnalyticsChartType = "timeseries" | "toplist" | "table";
 type AnalyticsAggregation = "count" | "unique";
@@ -224,18 +229,6 @@ export function formatTooltipLabel(label: string | undefined): string {
   return OneUptimeDate.getDateAsLocalShortDateTimeString(date, {
     use12HourFormat: OneUptimeDate.getUserPrefers12HourFormat(),
   });
-}
-
-function formatYAxisTick(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
-  }
-
-  return value.toString();
 }
 
 function computeDefaultBucketSize(startTime: Date, endTime: Date): number {
@@ -934,6 +927,30 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
    * sit over the very buckets the reader is picking. Dropping the prop hands
    * control back to recharts once the drag ends.
    */
+  /*
+   * The value axis writes a count as the tooltip beside it does, in the
+   * reader's digits ("1,5K", "۱٫۵K"), and is as wide as its widest tick at
+   * its 11 px - a stack's total among them - never narrower than its 52 px
+   * (#8349). One formatter while the language stays: the axis keeps its
+   * series.
+   */
+  const formatYAxisTick: (value: number) => string = useMemo(() => {
+    return (value: number): string => {
+      return formatChartCount(value, translator.language);
+    };
+  }, [translator.language]);
+
+  const yAxisWidth: number = useMemo(() => {
+    return getYAxisWidthForValuesInPx({
+      values: getChartRowValues(pivotedData, seriesKeys, {
+        isStacked: seriesKeys.length !== 1,
+      }),
+      formatter: formatYAxisTick,
+      minWidthInPx: 52,
+      tickFontSizeInPx: 11,
+    });
+  }, [pivotedData, seriesKeys, formatYAxisTick]);
+
   const tooltipDragProps: { active?: boolean } = selection.isDragging
     ? { active: false }
     : {};
@@ -1026,7 +1043,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={52}
+                  width={yAxisWidth}
                   allowDecimals={false}
                   tickFormatter={formatYAxisTick}
                 />
@@ -1092,7 +1109,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={52}
+                  width={yAxisWidth}
                   allowDecimals={false}
                   tickFormatter={formatYAxisTick}
                 />

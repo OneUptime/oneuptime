@@ -21,9 +21,14 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
  * comes back, which for a closed laptop or an uninstalled app is never.
  *
  * Only sessions that are past saving: a refresh token that ran out (30 days
- * without use), and a session length a master admin set. A session past
- * its idle timeout alone is decided at its next renewal, which hears from
- * the browser how long its person has really been away.
+ * without use), a session length a master admin set, and an idle timeout a
+ * master admin set when no browser can still be using the session (issue
+ * #8188): its browser said it renews while its person uses OneUptime, and
+ * nothing has been heard of it for the idle timeout and a margin since its
+ * person's last activity - recorded as having run out at that activity plus
+ * the idle timeout. Any other session past its idle timeout alone (the
+ * mobile app, a tab of an earlier release) is decided at its next renewal,
+ * which hears from the browser how long its person has really been away.
  *
  * Only where something records the ends: on OneUptime Cloud, where any
  * project may be on the Enterprise plan, and on a self-hosted installation

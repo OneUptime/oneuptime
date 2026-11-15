@@ -67,7 +67,7 @@ Arbetsflöden öppnar också incidenter: arbetsflödet för [Huntress](/docs/int
 
 När incidenten skapas kör OneUptime den automatisering du har konfigurerat: sekretessregler, ägarregler, etikettregler, jourregler och runbook-regler. Alla jourpolicyer som är kopplade till incidenten — för hand, från en mall eller tillagda av en jourregel som matchar — körs parallellt.
 
-Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en incident inga ägare alls går aviseringen till projektets ägare i stället för att försvinna.
+Ägarna meddelas via de kanaler som var och en av dem har slagit på under **Användarinställningar → Aviseringsinställningar**: e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook. Har en incident inga ägare alls går aviseringen till Projektägare i stället för att försvinna.
 
 Är incidenten synlig på en statussida och är aviseringar till prenumeranter påslagna, får prenumeranterna också veta: prenumeranterna på varje statussida som visar någon av dess monitorer, eller bara de på sidorna du har begränsat den till. Se [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience) för att ge varje målgrupp en egen statussida.
 
@@ -157,7 +157,7 @@ Redigera eller lägg till allvarlighetsgrader under **Incidenter → Inställnin
 
 | Avsnitt       | Vad du gör där                                                                                                                                                             |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Översikt**  | **Alla incidenter**, **Aktiva incidenter** och **Efteranalyser** — den andra har ett rött märke med antalet incidenter i ett tillstånd ovanför det lösta tillståndet, och den tredje visar efteranalysen för varje incident, att filtrera på ägare, allvarlighetsgrad eller status. |
+| **Översikt**  | **Alla incidenter**, **Aktiva incidenter**, **Efteranalyser** och **Åtgärdspunkter** — den andra har ett rött märke med antalet incidenter i ett tillstånd ovanför det lösta tillståndet, den tredje visar efteranalysen för varje incident, att filtrera på ägare, allvarlighetsgrad eller status, och den fjärde visar åtgärdspunkterna från alla efteranalyser, med den tidigaste förfallodagen först. Se [Efteranalyser](/docs/incidents/postmortems#se-alla-åtgärdspunkter). |
 | **Episoder**  | Incidentepisoder, en separat grupperingsfunktion med egna sidor.                                                                                                          |
 | **AI**        | **Insikter**, **Loggar**, **Inställningar**: vad OneUptime AI har lärt sig av dina incidenter och allt den har gjort för dem, och vad den får göra på egen hand — med reglerna för vilka incidenter den utreder och åtgärdar. Se [AI SRE](/docs/ai/ai-sre). |
 | **Arbetsyta** | Chattarbetsytorna som projektet har anslutit: **Slack**, **Microsoft Teams** och **Mattermost**, var och en med sina aviseringsregler för incidenter. Är ingen av dem ansluten innehåller den **Anslut en arbetsyta**, en sida som visar alla tre och hur de ansluts. |

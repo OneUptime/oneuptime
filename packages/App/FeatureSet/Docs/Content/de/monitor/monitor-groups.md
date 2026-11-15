@@ -37,8 +37,8 @@ Eine Monitor-Gruppe ist keine Statusseitengruppe. Eine Statusseitengruppe ist ei
 ## Bevor Sie beginnen
 
 - **Ihr Plan.** In OneUptime Cloud erfordern Monitor-Gruppen den Scale-Plan.
-- **Der Schalter.** Monitor-Gruppen sind ausgeblendet, bis **Monitor-Gruppen** für das Projekt eingeschaltet ist (siehe unten). Das Einschalten erfordert die Rolle Project Owner oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Project oder Manage Billing.
-- **Ihre Rolle.** Gruppen erstellen, ändern und löschen können die Rollen Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit den passenden Berechtigungen für Monitor-Gruppen. Ein Viewer kann Gruppen sehen, aber nicht ändern.
+- **Der Schalter.** Monitor-Gruppen sind ausgeblendet, bis **Monitor-Gruppen** für das Projekt eingeschaltet ist (siehe unten). Das Einschalten erfordert die Rolle Projektinhaber oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Project oder Manage Billing.
+- **Ihre Rolle.** Gruppen erstellen, ändern und löschen können die Rollen Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit den passenden Berechtigungen für Monitor-Gruppen. Ein Betrachter kann Gruppen sehen, aber nicht ändern.
 
 ## Monitor-Gruppen einschalten
 

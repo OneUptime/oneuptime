@@ -16,7 +16,7 @@ OneUptime AI 在调查和修复事件与警报时，可以使用 OneUptime 之�
 - 项目已开启 **OneUptime AI**，并有它可以使用的 LLM 提供商：请参阅 [LLM 提供商](/docs/ai/llm-provider)。
 - **服务器的 MCP 地址。** Streamable HTTP 和较早的基于 SSE 的 HTTP 均可使用：OneUptime 会在连接时判断服务器使用哪一种。
 - **OneUptime 的登录方式：** API 令牌、服务器自己的请求头，或来自您的身份提供商的 OAuth 客户端凭据。
-- **Project Owner 或 Project Admin** 负责添加、更改、测试和删除服务器；Project Members 和 Viewers 可以查看。在 OneUptime Cloud 上，添加服务器需要 Growth 套餐或更高套餐。
+- **Project Owner 或 Project Admin** 负责添加、更改、测试和删除服务器；项目成员和查看者可以查看。在 OneUptime Cloud 上，添加服务器需要 Growth 套餐或更高套餐。
 
 ## 添加服务器
 

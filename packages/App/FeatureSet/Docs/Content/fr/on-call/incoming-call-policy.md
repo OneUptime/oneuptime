@@ -19,7 +19,7 @@ flowchart TB
 :::cards
 - [Configurer une politique](#configurer-une-politique): De votre compte Twilio à un appel de test, en sept étapes.
 - [Comment un appel est acheminé](#comment-un-appel-est-acheminé): Qui sonne, combien de temps, et ce qu'entend l'appelant.
-- [Appels manqués](#appels-manqués): Qui est prévenu, et comment y réagir dans un workflow.
+- [Appels manqués](#appels-manqués): Qui est prévenu, et comment y réagir dans un flux de travail.
 - [Dépannage](#dépannage): Les appels qui n'arrivent jamais, ou qui ne joignent jamais personne.
 :::
 
@@ -155,12 +155,12 @@ Une règle fait sonner une personne sur le numéro qu'elle a vérifié pour les 
 :::steps
 1. Ouvrez **Paramètres utilisateur** > **Politique d'appels entrants** > **Numéros de téléphone entrants**. **Politique d'appels entrants** est une section du menu latéral qui commence repliée.
 2. Dans la carte **Numéros de téléphone pour le routage des appels entrants**, cliquez sur **Ajouter : Numéro de téléphone pour le routage des appels entrants** et saisissez le numéro avec son indicatif de pays, par exemple `+15551234567`.
-3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Send a new code** en envoie un autre.
+3. Saisissez le code à 6 chiffres que OneUptime y envoie par SMS sous **Code de vérification**, et cliquez sur **Vérifier**. **Envoyer un nouveau code** en envoie un autre.
 :::
 
 Chaque personne peut avoir un numéro vérifié par projet. Pour le changer, supprimez d'abord l'ancien numéro. Ces numéros sont distincts des numéros de téléphone sous **Méthodes de notification**, qu'utilisent les alertes d'astreinte. Voir [Méthodes de notification](/docs/notifications/notification-methods).
 
-Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification**.
+Les numéros pour les appels entrants sont vérifiés par SMS ; les **SMS** doivent donc d'abord être activés pour le projet. Un Propriétaire du projet ou une personne disposant du rôle **Administrateur de la facturation** ou de l'autorisation **Manage Billing** les active dans la carte **Canaux de notification** de **Paramètres du projet > Notifications > Canaux de notification**.
 
 ## Messages vocaux et paramètres de la politique
 
@@ -198,15 +198,15 @@ Un appel est manqué lorsqu'il se termine sans joindre personne : son statut est
 
 ### Qui est prévenu
 
-Quand un appel est manqué, OneUptime prévient les propriétaires de la politique : les utilisateurs et les membres des équipes ajoutés sur la page **Propriétaires** de la politique. Si la politique n'a pas de propriétaires, ce sont les propriétaires du projet qui sont prévenus.
+Quand un appel est manqué, OneUptime prévient les propriétaires de la politique : les utilisateurs et les membres des équipes ajoutés sur la page **Propriétaires** de la politique. Si la politique n'a pas de propriétaires, ce sont les Propriétaires du projet qui sont prévenus.
 
 La notification indique qui a appelé, quel numéro a été composé, pourquoi personne n'a répondu, qui a sonné et comment chaque tentative s'est terminée. Elle renvoie vers l'appel dans le journal d'appels.
 
 Les propriétaires reçoivent un e-mail par défaut. Chacun peut choisir d'autres canaux (SMS, appel, push et plus) ou la désactiver dans **Paramètres utilisateur** > **Paramètres de notification**, sous **Astreinte** > **Politiques d'appels entrants** > **Appel manqué**. Voir [Paramètres de notification](/docs/notifications/notification-settings).
 
-### Réagir aux appels manqués dans un workflow
+### Réagir aux appels manqués dans un flux de travail
 
-Les journaux d'appels entrants sont disponibles comme déclencheurs de workflow :
+Les journaux d'appels entrants sont disponibles comme déclencheurs de flux de travail :
 
 - **On Create Incoming Call Log** s'exécute quand un appel arrive.
 - **On Update Incoming Call Log** s'exécute à mesure que l'appel progresse. La mise à jour qui définit **Ended At** marque la fin de l'appel.
@@ -219,7 +219,7 @@ Pour ne réagir qu'aux appels manqués, par exemple pour les publier dans Slack 
 3. Reliez vos étapes au port **Oui**.
 :::
 
-Un workflow peut lire les journaux d'appels avec **Find One** et **Find Many**, mais il ne peut ni en créer ni en modifier.
+Un flux de travail peut lire les journaux d'appels avec **Find One** et **Find Many**, mais il ne peut ni en créer ni en modifier.
 
 ## Qui peut ajouter et libérer des numéros de téléphone
 
@@ -275,7 +275,7 @@ Le compte ne peut changer que tant que la politique n'a aucun numéro de télép
 :::
 
 :::details Le code pour le numéro d'une personne n'arrive pas
-Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Send a new code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
+Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sans configuration Twilio par défaut à lui paie les SMS sur son solde, qui doit dépasser 1 USD. Les codes peuvent mettre une minute à arriver ; cliquez sur **Envoyer un nouveau code** pour en envoyer un autre, et **Paramètres du projet** > **Notifications** > **Journaux de notification** montre ce qu'il est devenu.
 :::
 
 ## Étapes suivantes
@@ -283,6 +283,6 @@ Les SMS doivent être activés pour le projet. Sur OneUptime Cloud, un projet sa
 :::cards
 - [Règles d'escalade](/docs/on-call/escalation-rules): Comment une politique d'astreinte alerte les personnes, niveau par niveau.
 - [Plannings d'astreinte](/docs/on-call/schedules): Construire les rotations que vos règles font sonner.
-- [Workflows](/docs/workflows/index): Réagir aux appels manqués : les publier dans un canal ou ouvrir un ticket.
+- [Flux de travail](/docs/workflows/index): Réagir aux appels manqués : les publier dans un canal ou ouvrir un ticket.
 - [Intégration Twilio pour les SMS et la voix](/docs/self-hosted/twilio-integration): Configurer Twilio pour une installation auto-hébergée.
 :::

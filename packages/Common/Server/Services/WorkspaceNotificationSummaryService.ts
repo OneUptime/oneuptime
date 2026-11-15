@@ -1894,7 +1894,7 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     );
     const type: WorkspaceNotificationSummaryType = summary.summaryType!;
 
-    const fromDate: Date = OneUptimeDate.addRemoveDays(
+    const fromDate: Date = OneUptimeDate.addRemoveDurationInDays(
       OneUptimeDate.getCurrentDate(),
       -days,
     );

@@ -47,7 +47,6 @@ import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh
 import {
   fetchSpanMetrics,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
   SpanMetrics,
@@ -288,7 +287,7 @@ const ServerlessFunctionOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Invocations",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : "—",
       icon: IconProp.Bolt,
       iconColor: "blue",
       loading: metricsLoading,
@@ -297,13 +296,13 @@ const ServerlessFunctionOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
       sublabel: m
         ? translator.translateTemplate("{{errors}} errored", {
-            errors: formatCompact(m.errors),
+            errors: formatCompact(m.errors, translator),
           })
         : undefined,
       percent: m ? m.errorRatePercent : null,
@@ -321,7 +320,8 @@ const ServerlessFunctionOverview: FunctionComponent<
     },
     {
       title: "Instances",
-      value: instanceCount === null ? "—" : formatCompact(instanceCount),
+      value:
+        instanceCount === null ? "—" : formatCompact(instanceCount, translator),
       icon: IconProp.Cube,
       iconColor: "amber",
       loading: instanceCount === null,
@@ -364,7 +364,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         syncId={`serverless-${modelId.toString()}`}
         yLegend="ms"
         yFormatter={(n: number): string => {
-          return formatDurationMs(n);
+          return formatDurationMsInLanguage(n, translator);
         }}
         loading={metricsLoading && !m}
         description={SERVERLESS_METRIC_DESCRIPTIONS.p95DurationChart}

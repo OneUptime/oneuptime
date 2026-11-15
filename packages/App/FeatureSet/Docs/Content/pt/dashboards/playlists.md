@@ -66,10 +66,10 @@ As playlists têm permissões próprias, obtidas por meio de uma equipe como as 
 
 | Para | É preciso |
 | --- | --- |
-| Ver e reproduzir playlists | `ReadDashboardPlaylist`, ou um papel no projeto: Project Owner, Project Admin, Project Member, Viewer ou um papel Settings |
-| Criar playlists | `CreateDashboardPlaylist`, Project Owner ou Project Admin |
-| Alterar uma playlist: o nome, os painéis e o tempo dela | `EditDashboardPlaylist`, Project Owner ou Project Admin |
-| Excluir uma playlist | `DeleteDashboardPlaylist`, Project Owner ou Project Admin |
+| Ver e reproduzir playlists | `ReadDashboardPlaylist`, ou um papel no projeto: Proprietário do projeto, Administrador do projeto, Membro do projeto, Visualizador ou um papel Settings |
+| Criar playlists | `CreateDashboardPlaylist`, Proprietário do projeto ou Administrador do projeto |
+| Alterar uma playlist: o nome, os painéis e o tempo dela | `EditDashboardPlaylist`, Proprietário do projeto ou Administrador do projeto |
+| Excluir uma playlist | `DeleteDashboardPlaylist`, Proprietário do projeto ou Administrador do projeto |
 
 Uma playlist nunca mostra a ninguém um painel que essa pessoa não pode ler. O player reproduz só os painéis que a pessoa conectada na tela pode ler e que não estão arquivados, e pula o resto: um painel excluído, um arquivado ou um que as permissões dela não deixam ver. A página da playlist diz por que pula cada um. Salvar uma playlist mantém os painéis que ela contém e que o editor não pode ver, então nada do que outra pessoa colocou nela se perde.
 
@@ -81,7 +81,7 @@ Uma playlist nunca mostra a ninguém um painel que essa pessoa não pode ler. O 
 | Uma leitura que falhou | **Não foi possível carregar esta playlist**, e ele tenta de novo a cada minuto, ou em **Tentar novamente**. |
 
 > [!NOTE]
-> O player é para alguém conectado ao OneUptime. Para rodar uma playlist em uma tela, entre nessa tela com uma conta que possa ler a playlist e os painéis dela, como um membro da equipe com o papel Viewer.
+> O player é para alguém conectado ao OneUptime. Para rodar uma playlist em uma tela, entre nessa tela com uma conta que possa ler a playlist e os painéis dela, como um membro da equipe com o papel Visualizador.
 
 ## Próximos passos
 

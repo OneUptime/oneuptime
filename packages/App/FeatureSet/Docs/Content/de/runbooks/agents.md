@@ -79,7 +79,7 @@ Wählen Sie einen Ihrer eigenen Runner für einen Schritt, der Ihr Netzwerk erre
 
 ### Woher globale Runner kommen
 
-In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Probes betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
+In OneUptime Cloud betreibt OneUptime sie. Eine selbst gehostete Installation betreibt standardmäßig einen eigenen, so wie sie ihre eigenen globalen Sonden betreibt: den Dienst `global-runner` in Docker Compose und das Deployment `globalRunner` im Helm-Chart. Er besitzt seinen eigenen Schlüssel, `GLOBAL_RUNNER_KEY`, und sonst nichts vom Server.
 
 Ein Master-Admin kann weitere hinzufügen, um Schritte und Codekorrekturen von anderen Hosts aus auszuführen: Öffnen Sie im Admin-Dashboard **Einstellungen**, dann **Globale Runner**, legen Sie einen an und führen Sie den Befehl, den sein **ID und Schlüssel anzeigen** liefert, auf einem Host aus, der das Internet erreicht.
 
@@ -88,7 +88,7 @@ Um den mitgelieferten auszuschalten, setzen Sie `GLOBAL_RUNNER_REPLICAS=0` in de
 ## Bevor Sie beginnen
 
 - **Ein Host mit Docker** in Ihrer Infrastruktur, der Ihre OneUptime-URL per HTTPS und die Systeme erreicht, auf die Ihre Schritte wirken.
-- **Eine Rolle, die Runner erstellt.** Project Owner, Project Admin, Project Member und Runbook Admin können einen erstellen. Nur ein Project Owner, Project Admin oder Runbook Admin sieht den Schlüssel eines Runners, den der Einrichtungsbefehl enthält.
+- **Eine Rolle, die Runner erstellt.** Projektinhaber, Projektadministrator, Projektmitglied und Runbook-Administrator können einen erstellen. Nur ein Projektinhaber, Projektadministrator oder Runbook-Administrator sieht den Schlüssel eines Runners, den der Einrichtungsbefehl enthält.
 
 ## Einen Runner installieren
 
@@ -109,7 +109,7 @@ Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbea
 
 Klicken Sie in der Zeile des Runners auf **Einrichtungsanweisungen anzeigen**. Der Dialog **Einrichtung des Runbook-Agenten** zeigt einen `docker run`-Befehl, in dem ID und Schlüssel dieses Runners bereits eingetragen sind. Derselbe Befehl steht auf der eigenen Seite des Runners unter **Einrichtungsanweisungen**.
 
-Nur ein Project Owner, Project Admin oder Runbook Admin kann den Schlüssel lesen. Alle anderen sehen statt des Befehls „Sie haben keine Berechtigung, den Schlüssel dieses Runbook-Agenten anzuzeigen“.
+Nur ein Projektinhaber, Projektadministrator oder Runbook-Administrator kann den Schlüssel lesen. Alle anderen sehen statt des Befehls „Sie haben keine Berechtigung, den Schlüssel dieses Runbook-Agenten anzuzeigen“.
 
 ### 3. Ihn auf einem Host in Ihrer Infrastruktur ausführen
 
@@ -293,7 +293,7 @@ Die Verwaltung von Agenten liegt in der vorhandenen Berechtigungsgruppe Runbooks
 
 Ein Runbook auszulösen (und damit seine Schritte an Runner zu verteilen), erfordert eine Rolle, die Runbooks ausführt — `ProjectOwner`, `ProjectAdmin`, `ProjectMember`, `RunbookAdmin` oder `RunbookMember` — oder `CreateRunbookExecution`; Abschließen, Überspringen oder Abbrechen eines Laufs akzeptiert zusätzlich `EditRunbookExecution`. Eine Rolle führt nur die Runbooks aus, die ihr Geltungsbereich erreicht.
 
-Den Schlüssel eines Runners können nur Project Owner, Project Admins und Runbook Admins lesen.
+Den Schlüssel eines Runners können nur Projektinhaber, Projektadministratoren und Runbook-Administratoren lesen.
 
 ## Agenten-API
 

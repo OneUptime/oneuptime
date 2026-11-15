@@ -180,7 +180,7 @@ Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallen
 - **I timestamp vengono dai log.** Un log finisce nel minuto del proprio timestamp. Un dispositivo il cui orologio sbaglia di più di poco mette i suoi log nel minuto sbagliato, o del tutto fuori dalla finestra.
 - **Nessun calcolo retroattivo.** Una nuova regola inizia dal minuto precedente alla sua prima esecuzione; i log più vecchi non vengono calcolati.
 - **Eliminare una regola** la ferma. I punti già scritti restano finché non scadono.
-- **Le regole di registrazione vedono tutti i log del progetto.** Chiunque possa leggere la metrica di output vede numeri calcolati da ogni log a cui corrisponde il filtro della regola, quindi creare e modificare regole di registrazione dei log è riservato a proprietari e amministratori del progetto e ai permessi **Create / Edit Log Recording Rule**.
+- **Le regole di registrazione vedono tutti i log del progetto.** Chiunque possa leggere la metrica di output vede numeri calcolati da ogni log a cui corrisponde il filtro della regola, quindi creare e modificare regole di registrazione dei log è riservato a Proprietari del progetto e Amministratori del progetto e ai permessi **Create / Edit Log Recording Rule**.
 
 ## Permessi
 
@@ -191,7 +191,7 @@ Con il raggruppamento impostato, ogni gateway è una serie a sé: se WAN2 rallen
 | Delete Log Recording Rule | Eliminare regole. |
 | Read Log Recording Rule | Vedere le regole e cosa calcolano. |
 
-Proprietari e amministratori del progetto possono fare tutto questo. I membri del progetto, i visualizzatori e i ruoli di telemetria possono leggere le regole.
+Proprietari del progetto e Amministratori del progetto possono fare tutto questo. I Membri del progetto, i Visualizzatori e i ruoli di telemetria possono leggere le regole.
 
 ## Passaggi successivi
 

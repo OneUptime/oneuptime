@@ -54,7 +54,7 @@ Klicka på **Spara ändringar**. Kortet visar anteckningen och bilagorna. Eftera
 
 Varje ändring av anteckningen registreras i incidentens flöde och postas i incidentens Slack- eller Microsoft Teams-kanal om den har en. Så länge efteranalysen inte är publicerad får ingen prenumerant på statussidan höra om den.
 
-Att skriva en efteranalys kräver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en anpassad roll med behörigheten Edit Incident. Alla som kan läsa incidenten kan läsa dess efteranalys.
+Att skriva en efteranalys kräver rollen Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör eller Incidentmedlem, eller en anpassad roll med behörigheten Edit Incident. Alla som kan läsa incidenten kan läsa dess efteranalys.
 
 ## Börja från en mall eller ett AI-utkast
 
@@ -72,7 +72,7 @@ Klicka på **Generate with AI**. Dialogen **Skapa efteranalys med AI** erbjuder 
 
 Klicka på **Generate with AI** längst ned i dialogen. OneUptime AI läser incidenten (dess beskrivning, grundorsak och åtgärd, dess statustidslinje, dess offentliga och privata anteckningar, meddelandena i dess Slack- eller Microsoft Teams-kanal och vad som sades i [dess samtal](/docs/workspace-connections/video-calls#transkriptioner-av-samtal)) och skriver efteranalysen enligt din disposition. Sedan öppnas redigeraren med resultatet.
 
-Att generera kräver att AI är påslaget för projektet, under **Projektinställningar → AI → AI-funktioner**, och en LLM-leverantör: se [LLM-leverantörer](/docs/ai/llm-provider). Det kräver också rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident: andra roller kan skriva efteranalysen men inte generera den.
+Att generera kräver att AI är påslaget för projektet, under **Projektinställningar → AI → AI-funktioner**, och en LLM-leverantör: se [LLM-leverantörer](/docs/ai/llm-provider). Det kräver också rollen Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Edit Incident: andra roller kan skriva efteranalysen men inte generera den.
 
 ### Låt OneUptime AI skriva ett utkast när en incident löses
 
@@ -92,7 +92,7 @@ Utan regler får varje löst incident ett utkast i OneUptime AI:s standardupplä
 - Dess **LLM-leverantör**, under **Fler fält**, är den leverantör som OneUptime AI skriver utkastet och väljer dess mall med. Med ingen vald är det projektets standardleverantör, annars den globala. Utkastets inlägg i flödet nämner den leverantör som en regel valde, eller den som användes i stället, och varför. Se [Vilken LLM-leverantör en regel använder](/docs/ai/ai-sre#vilken-llm-leverantör-en-regel-använder).
 - Den första aktiverade regeln som matchar incidenten avgör, räknat från toppen av listan: dra en regel för att flytta den. En incident som ingen regel matchar får inget utkast, och det får ingen incident så länge reglerna inte kan läsas.
 - **Skriv ett utkast till efteranalys när en incident är löst** är fortfarande den enda brytaren som stänger av utkast. Regler avgör bara de utkast som OneUptime AI skriver på egen hand: **Generate with AI** erbjuder alla upplägg, oavsett vad reglerna säger.
-- Att skapa, redigera och ordna om regler kräver rollen Project Owner eller Project Admin. På OneUptime Cloud kräver mallar Growth-planen: under den avgör reglerna fortfarande vilka incidenter som får ett utkast, och varje utkast följer standardupplägget.
+- Att skapa, redigera och ordna om regler kräver rollen Projektägare eller Projektadministratör. På OneUptime Cloud kräver mallar Growth-planen: under den avgör reglerna fortfarande vilka incidenter som får ett utkast, och varje utkast följer standardupplägget.
 
 ## Publicera den på din statussida
 
@@ -158,7 +158,7 @@ Har din process ett eget steg, till exempel en granskning, lägger du till en st
 
 Var en status står avgör vad den räknas som, vilket visas under **Räknas som**: ovanför **Utkast** som **Inte påbörjad**, från **Utkast** och nedåt som **Pågår**, från **Slutförd** och nedåt som **Klar**, och då saknas den inte längre. **Under granskning**, mellan dem, saknas fortfarande; **Behövs inte**, under **Slutförd**, gör det inte.
 
-**Inte påbörjad**, **Utkast** och **Slutförd** är inbyggda, eftersom OneUptime flyttar efteranalyser till dem: du kan byta namn och färg på dem, men inte ta bort eller arkivera dem, och de behåller sin ordning. Arkivera en status som du inte använder längre från menyn **⋯** på dess rad: ingen kan flytta en efteranalys dit igen, efteranalyserna i den stannar kvar tills någon flyttar dem, och listan filtrerar fortfarande på den. **Arkiverade efteranalysstatusar**, hopfällt under tabellen, visar dem, med **Avarkivera** för att hämta tillbaka en. Att skapa, redigera och ta bort statusar kräver rollen Project Owner, Project Admin eller Incident Admin, eller en anpassad roll med motsvarande behörighet för efteranalysstatusar.
+**Inte påbörjad**, **Utkast** och **Slutförd** är inbyggda, eftersom OneUptime flyttar efteranalyser till dem: du kan byta namn och färg på dem, men inte ta bort eller arkivera dem, och de behåller sin ordning. Arkivera en status som du inte använder längre från menyn **⋯** på dess rad: ingen kan flytta en efteranalys dit igen, efteranalyserna i den stannar kvar tills någon flyttar dem, och listan filtrerar fortfarande på den. **Arkiverade efteranalysstatusar**, hopfällt under tabellen, visar dem, med **Avarkivera** för att hämta tillbaka en. Att skapa, redigera och ta bort statusar kräver rollen Projektägare, Projektadministratör eller Incidentadministratör, eller en anpassad roll med motsvarande behörighet för efteranalysstatusar.
 
 ## Se alla efteranalyser
 
@@ -209,13 +209,13 @@ De två AI-åtgärderna kräver att AI är påslaget för projektet och ett repo
 
 **Incidenter → Åtgärdspunkter** visar åtgärdspunkterna från alla efteranalyser i projektet, den som förfaller först överst, med varje punkts incident, ägare, förfallodatum och status. Filtrera listan på **Status**, **Ägare** och **Förfallodatum**, och **Visa** på en rad öppnar incidentens sida **Efteranalys**.
 
-Att läsa åtgärdspunkter kräver samma sak som att läsa incidenten. Att lägga till, ändra och ta bort dem kräver rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en anpassad roll med motsvarande behörighet för åtgärdspunkter. En privat incidents åtgärdspunkter är, precis som incidenten, bara synliga för användarna som äger den, medlemmarna i teamen som äger den, projektadministratörer och projektägare.
+Att läsa åtgärdspunkter kräver samma sak som att läsa incidenten. Att lägga till, ändra och ta bort dem kräver rollen Projektägare, Projektadministratör, Projektmedlem, Incidentadministratör eller Incidentmedlem, eller en anpassad roll med motsvarande behörighet för åtgärdspunkter. En privat incidents åtgärdspunkter är, precis som incidenten, bara synliga för användarna som äger den, medlemmarna i teamen som äger den, Projektadministratörer och Projektägare.
 
 ## Efteranalyser för episoder
 
 En incidentepisod har också en sida **Efteranalys**, under **Utredning**: en genomgång för varje incident i episoden. Klicka på **Redigera obduktion** för att skriva den. **Tillämpa mall** och **Generate with AI** fungerar som på en incident, och AI läser episoden och dess medlemsincidenter.
 
-En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident Episode. Den har inte heller någon status, och listan över efteranalyser utelämnar den.
+En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Edit Incident Episode. Den har inte heller någon status, och listan över efteranalyser utelämnar den.
 
 Larm och underhållshändelser har ingen efteranalys.
 
@@ -242,7 +242,7 @@ Projektet har ännu ingen mall för efteranalys, eller så kan din roll inte lä
 :::
 
 :::details Generate with AI säger att AI är avstängt, eller att du saknar behörighet
-Slå på AI under **Projektinställningar → AI → AI-funktioner**. Att generera kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident, även för den som kan redigera efteranalysen.
+Slå på AI under **Projektinställningar → AI → AI-funktioner**. Att generera kräver rollen Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Edit Incident, även för den som kan redigera efteranalysen.
 :::
 
 :::details Efteranalysen visas inte på statussidan

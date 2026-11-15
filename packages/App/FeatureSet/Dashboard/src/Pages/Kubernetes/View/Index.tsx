@@ -159,7 +159,10 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import { figureInSentence } from "../../../Components/ResourcePart/SentenceDigits";
 import {
   BytesReading,
@@ -220,7 +223,9 @@ const formatBytesPerSec: (value: number | null) => string = (
   if (value === null || !isFinite(value)) {
     return "—";
   }
-  return ValueFormatter.formatValue(value, "By/s");
+  return ValueFormatter.formatValue(value, "By/s", {
+    language: getDateDisplayLanguage(),
+  });
 };
 
 const TILE_WINDOW_MINUTES: number = 5;
@@ -337,7 +342,10 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
       min: 0,
       max: 100,
       formatter: (value: number): string => {
-        return `${Math.round(value)}%`;
+        return formatReaderFigure(Math.round(value), {
+          decimals: 0,
+          isPercent: true,
+        });
       },
       precision: YAxisPrecision.NoDecimals,
     },
@@ -1691,7 +1699,9 @@ const KubernetesClusterOverview: FunctionComponent<
           value={
             netTotal === null
               ? "—"
-              : ValueFormatter.formatValue(netTotal, "By/s")
+              : ValueFormatter.formatValue(netTotal, "By/s", {
+                  language: getDateDisplayLanguage(),
+                })
           }
           sublabel={netSublabel}
           description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.network}
@@ -1761,7 +1771,9 @@ const KubernetesClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By");
+          return ValueFormatter.formatValue(value, "By", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1774,7 +1786,9 @@ const KubernetesClusterOverview: FunctionComponent<
         max: "auto",
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
-          return ValueFormatter.formatValue(value, "By/s");
+          return ValueFormatter.formatValue(value, "By/s", {
+            language: getDateDisplayLanguage(),
+          });
         },
       },
     };
@@ -1788,12 +1802,15 @@ const KubernetesClusterOverview: FunctionComponent<
         precision: YAxisPrecision.NoDecimals,
         formatter: (value: number): string => {
           if (value >= 100) {
-            return "Up";
+            return translator.translateText("Up") || "Up";
           }
           if (value <= 0) {
-            return "Down";
+            return translator.translateText("Down") || "Down";
           }
-          return `${Math.round(value)}%`;
+          return formatReaderFigure(Math.round(value), {
+            decimals: 0,
+            isPercent: true,
+          });
         },
       },
     };

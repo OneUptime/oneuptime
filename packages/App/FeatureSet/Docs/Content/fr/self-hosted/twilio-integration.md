@@ -49,7 +49,7 @@ Pour ajouter une configuration de projet :
 5. Enregistrez. Un projet a une configuration par défaut pour les SMS et une pour les appels : une configuration réglée sur **SMS uniquement** et une réglée sur **Appels uniquement** peuvent donc être toutes deux par défaut, voir [Un compte pour les SMS uniquement, ou pour les appels uniquement](#un-compte-pour-les-sms-uniquement-ou-pour-les-appels-uniquement). Les pages de statut utilisent la configuration explicitement attribuée à chacune d'elles.
 
 > [!IMPORTANT]
-> **SMS** et **Appels téléphoniques** sont désactivés au départ dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
+> **SMS** et **Appels téléphoniques** sont désactivés au départ dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un Propriétaire du projet, un **Administrateur de la facturation** ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
 :::
 
 Pour une configuration par défaut à l'échelle de l'installation, un administrateur peut plutôt ouvrir **Admin Dashboard > Paramètres > Appel et SMS**, choisir ce que le compte envoie, modifier les identifiants et les numéros de téléphone Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale quand leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
@@ -243,6 +243,6 @@ Un numéro vérifié pour les SMS l'est aussi pour les appels, sans second code.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Décider qui est alerté à chaque niveau, par SMS, appel ou toute autre méthode.
 - [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway): Envoyer les SMS et les appels par votre propre fournisseur au lieu de Twilio.
 - [SMTP](/docs/emails/smtp): Envoyer aussi les e-mails par votre propre serveur de messagerie.
-- [Accès aux réseaux privés](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre des outils internes.
+- [Accès aux réseaux privés](/docs/self-hosted/private-network-access): Permettre aux flux de travail et aux webhooks de joindre des outils internes.
 - [Métriques de distribution des notifications](/docs/self-hosted/notification-delivery-metrics): Mesurer combien de SMS et d'appels atteignent Twilio et le téléphone.
 :::

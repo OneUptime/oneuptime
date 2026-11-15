@@ -53,7 +53,7 @@ Sie sind mit Absicht getrennt. Jeden Kanal in den **Benachrichtigungseinstellung
 
 **Erste Schritte** und **Warnungen & Benachrichtigungen** sind geöffnet; die anderen Abschnitte starten eingeklappt, und ein Abschnitt öffnet sich von selbst, wenn Sie auf einer seiner Seiten sind. **Arbeitsbereich** erscheint nur, wenn das Projekt Slack, Microsoft Teams oder Mattermost verbunden hat.
 
-Projekteigentümer und Admins können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Wie ich erreichbar bin**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
+Projektinhaber und Projektadministratoren können Ihre Einrichtung ebenfalls ansehen: Unter **Benutzer** öffnen sie Ihre Zeile und deren Abschnitt **Bereitschaft**, mit **Einsatzbereitschaft**, **Benachrichtigungsmethoden** und **Wie ich erreichbar bin**. Sie können dort eine Methode für Sie hinzufügen, aber der Code geht an die Methode selbst, sodass nur Sie sie verifizieren können.
 
 ## Womit Sie starten
 
@@ -116,7 +116,7 @@ Was sich ändert, sind die Worte von OneUptime: Betreffzeilen, Überschriften, S
 :::
 
 :::details Ich bekomme E-Mails zu Datensätzen, nach denen ich nie gefragt habe
-Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Datensatz hat keine Eigentümer und Sie sind ein Projekteigentümer. Schalten Sie das Ereignis unter **Benutzereinstellungen → Benachrichtigungseinstellungen** aus, oder verringern Sie die Menge unter **Benutzereinstellungen → E-Mail-Einstellungen**.
+Sie sind Eigentümer des Datensatzes, direkt oder über ein Team, oder der Datensatz hat keine Eigentümer und Sie sind ein Projektinhaber. Schalten Sie das Ereignis unter **Benutzereinstellungen → Benachrichtigungseinstellungen** aus, oder verringern Sie die Menge unter **Benutzereinstellungen → E-Mail-Einstellungen**.
 :::
 
 :::details Meine Alarme sind auf Englisch, das Dashboard aber nicht

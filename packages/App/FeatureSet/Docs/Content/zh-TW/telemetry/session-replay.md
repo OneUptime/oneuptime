@@ -1064,7 +1064,7 @@ flowchart TB
 
 ### 抹除工作階段
 
-若要滿足刪除請求，請透過 OneUptime 的 API 提出抹除請求 — 資源為 `/rum-session-erasure-request` ；儀表板中目前還沒有用於此操作的表單。請求需要 `CreateRumSessionErasureRequest` （或專案擁有者 / 管理員），並接受：
+若要滿足刪除請求，請透過 OneUptime 的 API 提出抹除請求 — 資源為 `/rum-session-erasure-request` ；儀表板中目前還沒有用於此操作的表單。請求需要 `CreateRumSessionErasureRequest` （或專案擁有者或專案管理員），並接受：
 
 | 欄位 | 值 |
 | --- | --- |
@@ -1092,7 +1092,7 @@ flowchart TB
 
 ## 誰可以觀看錄製
 
-觀看錄製與列出工作階段是不同的權限，兩者都不由專案層級的 Viewer 角色授予。專案擁有者與管理員擁有全部權限。
+觀看錄製與列出工作階段是不同的權限，兩者都不由專案層級的檢視者角色授予。專案擁有者與專案管理員擁有全部權限。
 
 | 權限 | 解鎖 |
 | --- | --- |

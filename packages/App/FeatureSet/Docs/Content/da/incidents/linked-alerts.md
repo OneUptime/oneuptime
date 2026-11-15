@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Begge id'er er påkrævet. En anmodning om tilknytning afvises også, når advarslen eller hændelsen hører til et andet projekt eller er en, du ikke kan se. Fejlen lyder ens, uanset om advarslen eller hændelsen ikke findes eller bare er skjult for dig, så den aldrig afslører, at en privat findes.
 
-Den samme ressource driver de genererede workflow-komponenter — **On Create Incident Alert** udløses, når en advarsel knyttes, og **On Delete Incident Alert**, når den frakobles — og MCP-serverens Incident Alert-værktøjer. [API-referencen](/reference) har den fulde form på anmodning og svar.
+Den samme ressource driver de genererede arbejdsgangskomponenter — **On Create Incident Alert** udløses, når en advarsel knyttes, og **On Delete Incident Alert**, når den frakobles — og MCP-serverens Incident Alert-værktøjer. [API-referencen](/reference) har den fulde form på anmodning og svar.
 
 ## Frakobl
 

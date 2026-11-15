@@ -37,7 +37,7 @@ Verder werkt een SLO voor aanvragen zoals elke andere SLO. Zijn status, regels v
 ## Voordat u begint
 
 - De services sturen traces naar OneUptime: zie [OpenTelemetry](/docs/telemetry/open-telemetry). Elke service staat in de [servicecatalogus](/docs/telemetry/services) onder zijn `service.name`.
-- Een rol die SLO's mag aanmaken: Project Owner, Project Admin of een aangepaste rol met de machtiging Create Service Level Objective.
+- Een rol die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder of een aangepaste rol met de machtiging Create Service Level Objective.
 
 ## Een SLO voor aanvragen aanmaken
 
@@ -59,7 +59,7 @@ Vul een **Naam** in, bijvoorbeeld "Checkout requests", en een **Doel (%)**: het 
 De eerste evaluatie, binnen 5 minuten, telt de aanvragen van de laatste 6 uur, zodat de SLO meteen cijfers heeft. De evaluaties daarna tellen ook oudere aanvragen, totdat het hele compliancevenster gedekt is.
 :::
 
-Om later te wijzigen wat een SLO meet, welke services hij telt of wat zijn drempel is, opent u zijn **Instellingen** en klikt u op **Bewerken wat het meet**.
+De eigen pagina **SLOs** van een service toont de SLO's die hem meten, en zijn **Service Level Objective aanmaken** opent hetzelfde formulier met de service al gekozen. Om later te wijzigen wat een SLO meet, welke services hij telt of wat zijn drempel is, opent u zijn **Instellingen** en klikt u op **Bewerken wat het meet**.
 
 ## Hoe aanvragen worden geteld
 
@@ -86,7 +86,7 @@ Een SLO voor aanvragen krijgt dezelfde regels **Fast burn**, **Slow burn** en **
 
 ## Problemen oplossen
 
-:::details De SLO toont Waiting for requests
+:::details De SLO toont Wachten op aanvragen
 Geen van zijn services heeft in het venster al een aanvraag afgehandeld. Controleer of de services traces naar OneUptime sturen en of hun spans entry spans bevatten: een service waarvan alle spans interne spans zijn, heeft geen aanvragen om te tellen.
 :::
 

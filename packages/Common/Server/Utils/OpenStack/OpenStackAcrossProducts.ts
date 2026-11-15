@@ -563,7 +563,7 @@ export default class OpenStackAcrossProducts {
         [
           data.projectId.toString(),
           data.serviceName,
-          OneUptimeDate.addRemoveDays(
+          OneUptimeDate.addRemoveDurationInDays(
             OneUptimeDate.getCurrentDate(),
             -SERVICE_PLACEMENT_FRESH_DAYS,
           ),
@@ -828,7 +828,7 @@ export default class OpenStackAcrossProducts {
         data.hostIdentifiers.map((identifier: string): string => {
           return keyForHost(data.projectId.toString(), identifier);
         }),
-        OneUptimeDate.addRemoveDays(
+        OneUptimeDate.addRemoveDurationInDays(
           OneUptimeDate.getCurrentDate(),
           -SERVICE_PLACEMENT_FRESH_DAYS,
         ),

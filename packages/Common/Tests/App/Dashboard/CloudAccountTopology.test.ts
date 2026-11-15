@@ -581,7 +581,7 @@ describe("the numbers on a resource's card", () => {
         value: 3 * 1024 * 1024 * 1024,
         periodSeconds: 60,
       }),
-    ).toBe("3.0 GiB");
+    ).toBe("3.0\u00A0GiB");
     expect(
       formatCloudTopologyFigure({
         format: "count",
@@ -595,14 +595,14 @@ describe("the numbers on a resource's card", () => {
         value: 0.23,
         periodSeconds: 60,
       }),
-    ).toBe("230 ms");
+    ).toBe("230\u00A0ms");
     expect(
       formatCloudTopologyFigure({
         format: "milliseconds",
         value: 1800,
         periodSeconds: 60,
       }),
-    ).toBe("1.8 s");
+    ).toBe("1.8\u00A0s");
     // A sum over five minutes, drawn per minute.
     expect(
       formatCloudTopologyFigure({
@@ -625,21 +625,21 @@ describe("the numbers on a resource's card", () => {
         value: 300 * 1024 * 1024,
         periodSeconds: 300,
       }),
-    ).toBe("60.0 MiB/min");
+    ).toBe("60.0\u00A0MiB/min");
     expect(
       formatCloudTopologyFigure({
         format: "bytesPerSecond",
         value: 2048,
         periodSeconds: 60,
       }),
-    ).toBe("2.0 KiB/s");
+    ).toBe("2.0\u00A0KiB/s");
     expect(
       formatCloudTopologyFigure({
         format: "bitsPerSecond",
         value: 8 * 1024 * 1024,
         periodSeconds: 60,
       }),
-    ).toBe("1.0 MiB/s");
+    ).toBe("1.0\u00A0MiB/s");
     // Never a negative share or size.
     expect(
       formatCloudTopologyFigure({
@@ -658,10 +658,10 @@ describe("the numbers on a resource's card", () => {
     expect(formatCloudTopologyCount(250_000)).toBe("250k");
     expect(formatCloudTopologyCount(3_100_000)).toBe("3.1M");
     expect(formatCloudTopologyCount(2_000_000_000)).toBe("2B");
-    expect(formatCloudTopologySeconds(0.004)).toBe("4 ms");
-    expect(formatCloudTopologySeconds(42)).toBe("42 s");
-    expect(formatCloudTopologySeconds(720)).toBe("12 min");
-    expect(formatCloudTopologySeconds(5 * 3600)).toBe("5 h");
+    expect(formatCloudTopologySeconds(0.004)).toBe("4\u00A0ms");
+    expect(formatCloudTopologySeconds(42)).toBe("42\u00A0s");
+    expect(formatCloudTopologySeconds(720)).toBe("12\u00A0min");
+    expect(formatCloudTopologySeconds(5 * 3600)).toBe("5\u00A0h");
   });
 });
 

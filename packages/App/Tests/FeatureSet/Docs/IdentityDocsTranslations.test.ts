@@ -33,7 +33,10 @@ import {
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
+import {
+  isPermissionTitleKeptInEnglish,
+  namesRoleAsDrawn,
+} from "./DocsRoleNames";
 
 /*
  * Docs overhaul task 13: the Permission Reference, SSO, Global SSO, SCIM and
@@ -525,7 +528,10 @@ const DOCS_CHROME_CODE: Record<string, Record<string, string>> = {
   },
 };
 
-// The four roles the Permission Reference names, as the tables name them.
+/*
+ * The four roles the Permission Reference names. The tables name each as
+ * the reader's Dashboard draws it, and so does a translated page.
+ */
 const WHOLE_PROJECT_ROLES: Array<string> = [
   "Project Owner",
   "Project Admin",
@@ -1452,10 +1458,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   it("names the roles that reach the whole project as the permission tables do", () => {
     const translated: string = readPage(language, REFERENCE);
 
+    // The tables draw each role in the reader's language (#8315).
     for (const role of WHOLE_PROJECT_ROLES) {
       expect({ role, named: true }).toEqual({
         role,
-        named: translated.includes(role),
+        named: namesRoleAsDrawn(language, translated, role),
       });
     }
   });

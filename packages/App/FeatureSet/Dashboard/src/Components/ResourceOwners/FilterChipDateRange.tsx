@@ -27,6 +27,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { RANGE_END, RANGE_START } from "Common/UI/Components/Filters/RangeEnds";
 import React, { FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
@@ -229,7 +230,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0 flex-1">
                   {isBetween && (
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                      {translator.translateText("From")}
+                      {translator.translateText(RANGE_START)}
                     </label>
                   )}
                   <Input
@@ -243,7 +244,12 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                     key={`start-${operator}`}
                     type={InputType.DATE}
                     value={range.start || ""}
-                    placeholder={isBetween ? "From" : "Pick a date"}
+                    placeholder={
+                      isBetween
+                        ? translator.translateText(RANGE_START)
+                        : translator.translateText("Pick a date")
+                    }
+                    isPlaceholderTranslated={true}
                     outerDivClassName="relative rounded-md w-full"
                     onChange={(changed: string) => {
                       applyRange({ ...range, start: toFacetDate(changed) });
@@ -253,14 +259,15 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                 {isBetween && (
                   <div className="min-w-0 flex-1">
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
-                      {translator.translateText("To")}
+                      {translator.translateText(RANGE_END)}
                     </label>
                     <Input
                       isSearchOrFilter={true}
                       key={`end-${operator}`}
                       type={InputType.DATE}
                       value={range.end || ""}
-                      placeholder="To"
+                      placeholder={translator.translateText(RANGE_END)}
+                      isPlaceholderTranslated={true}
                       outerDivClassName="relative rounded-md w-full"
                       onChange={(changed: string) => {
                         applyRange({ ...range, end: toFacetDate(changed) });

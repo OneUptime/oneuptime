@@ -43,7 +43,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Une télémétrie qui arrive** avec un `service.name`. Voir [OpenTelemetry](/docs/telemetry/open-telemetry) : `OTEL_SERVICE_NAME` le définit.
-- **Un rôle qui peut lire les services.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member ou Settings Viewer, ou un rôle personnalisé avec la permission Read Service. Créer, modifier et supprimer des services demande Project Owner, Project Admin, Project Member, Settings Admin ou Settings Member, ou les permissions de service correspondantes.
+- **Un rôle qui peut lire les services.** Propriétaire du projet, Administrateur du projet, Membre du projet, Lecteur, Administrateur des paramètres, Membre des paramètres ou Lecteur des paramètres, ou un rôle personnalisé avec la permission Read Service. Créer, modifier et supprimer des services demande Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des paramètres ou Membre des paramètres, ou les permissions de service correspondantes.
 
 ## Trouver un service
 
@@ -61,7 +61,7 @@ Le menu latéral d'un service compte cinq sections :
 
 | Section | Pages |
 | --- | --- |
-| **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
+| **Basique** | **Vue d'ensemble** : requêtes, taux d'erreur et latence p95 tirés de ses spans, graphiques et détails. **Recommandations** : des moniteurs prêts à l'emploi pour le service, choisis selon son langage. **SLOs** : les SLO qui mesurent ses requêtes, où vous pouvez en créer un qui mesure déjà le service. **Propriétaires** : les personnes et les équipes qui en sont responsables. **Fil d'activité** : tout ce qui lui est arrivé, de sa création à chaque modification depuis. |
 | **Télémétrie** | Ses **Journaux**, **Traces**, **Métriques**, **Profils**, **Exceptions** et **Source Maps**, déjà filtrés sur ce service. |
 | **Activité** | Les **Incidents**, les **Alertes** et les événements de **Maintenance planifiée** qui le concernent. |
 | **Développeurs** | **Terraform**, **API**, **CLI** et **Assistants IA** : le service géré depuis du code. Cette section est d'abord repliée. |

@@ -43,7 +43,7 @@ Jedes Mal, wenn Telemetrie eintrifft, rückt **Zuletzt gesehen** des Dienstes vo
 ## Bevor Sie beginnen
 
 - **Eintreffende Telemetrie** mit einem `service.name`. Siehe [OpenTelemetry](/docs/telemetry/open-telemetry): `OTEL_SERVICE_NAME` setzt ihn.
-- **Eine Rolle, die Dienste lesen darf.** Project Owner, Project Admin, Project Member, Viewer, Settings Admin, Settings Member oder Settings Viewer, oder eine eigene Rolle mit der Berechtigung Read Service. Dienste anlegen, ändern und löschen dürfen Project Owner, Project Admin, Project Member, Settings Admin oder Settings Member, oder Rollen mit den passenden Dienst-Berechtigungen.
+- **Eine Rolle, die Dienste lesen darf.** Projektinhaber, Projektadministrator, Projektmitglied, Betrachter, Einstellungs-Administrator, Einstellungs-Mitglied oder Einstellungs-Betrachter, oder eine eigene Rolle mit der Berechtigung Read Service. Dienste anlegen, ändern und löschen dürfen Projektinhaber, Projektadministrator, Projektmitglied, Einstellungs-Administrator oder Einstellungs-Mitglied, oder Rollen mit den passenden Dienst-Berechtigungen.
 
 ## Einen Dienst finden
 
@@ -61,7 +61,7 @@ Das Seitenmenü eines Dienstes hat fünf Abschnitte:
 
 | Abschnitt | Seiten |
 | --- | --- |
-| **Grundlegend** | **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus seinen Spans, Diagramme und seine Details. **Empfehlungen**: fertige Monitore für den Dienst, passend zu seiner Sprache. **Eigentümer**: die Personen und Teams, die für ihn verantwortlich sind. **Feed**: alles, was ihm passiert ist, von seiner Entstehung bis zu jeder Änderung seitdem. |
+| **Grundlegend** | **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus seinen Spans, Diagramme und seine Details. **Empfehlungen**: fertige Monitore für den Dienst, passend zu seiner Sprache. **SLOs**: die SLOs, die seine Anfragen messen, und wo Sie eines erstellen können, das den Dienst bereits misst. **Eigentümer**: die Personen und Teams, die für ihn verantwortlich sind. **Feed**: alles, was ihm passiert ist, von seiner Entstehung bis zu jeder Änderung seitdem. |
 | **Telemetrie** | Seine **Protokolle**, **Traces**, **Metriken**, **Profile**, **Ausnahmen** und **Source Maps**, bereits auf diesen Dienst gefiltert. |
 | **Aktivität** | Die **Vorfälle**, **Warnungen** und Ereignisse der **Geplante Wartung**, die ihn betreffen. |
 | **Entwickler** | **Terraform**, **API**, **CLI** und **KI-Assistenten**: der Dienst, aus Code verwaltet. Der Abschnitt ist zunächst eingeklappt. |

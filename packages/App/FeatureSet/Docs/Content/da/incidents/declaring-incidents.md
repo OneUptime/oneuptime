@@ -21,7 +21,7 @@ Der er fem måder, en hændelse kommer ind i OneUptime på, og de ender alle sam
 | Åbne en fra din egen kode, et script eller et andet værktøj   | `POST /api/incident`                                                        |
 | Lade folk uden for dit team melde et problem via et link     | En [formular](/docs/forms/index)                                            |
 
-Alle fem skriver den samme model, så en hændelse, som en sonde åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Workflows skriver den også: [Huntress](/docs/integrations/huntress)-workflowet åbner én hændelse for hver hændelsesrapport, dens SOC sender.
+Alle fem skriver den samme model, så en hændelse, som en sonde åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Arbejdsgange skriver den også: [Huntress](/docs/integrations/huntress)-arbejdsgangen åbner én hændelse for hver hændelsesrapport, dens SOC sender.
 
 > [!TIP]
 > Du kan også erklære en hændelse fra advarsler: **Erklær hændelse** på en advarselsliste, i en advarsels hoved eller på en advarsels side **Tilknyttede hændelser** åbner den samme guide, udfyldt på forhånd fra advarslerne, og knytter dem til den nye hændelse. Et afkrydsningsfelt på formularen, markeret som standard, bekræfter også advarslerne, så de holder op med at eskalere. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
@@ -63,7 +63,7 @@ Under **Flere felter**:
 - **Erklæret den** — starter på det tidspunkt, du åbnede siden. Det er det tidspunkt, hver varighed på hændelsen måles fra, så sæt det tilbage, hvis du registrerer noget, der begyndte tidligere.
 - **Indledende tilstand** — valgfri og tom fra start. Lader du den være tom, starter hændelsen i tilstanden med flaget `isCreatedState`, som nye projekter opretter som **Identificeret** — eller i skabelonens starttilstand, når du erklærer fra en skabelon. Vælg kun en senere tilstand, når du registrerer en hændelse, der allerede var forbi det punkt, bekræftet eller løst. Sådan en hændelse tilkalder ingen — se [Erklæret allerede bekræftet eller løst](#erklæret-allerede-bekræftet-eller-løst).
 - **Etiketter** — valgfri. Etiketter samler beslægtede hændelser, så du kan filtrere på dem, og et team, hvis tilladelser er begrænset til etiketter, ser kun de hændelser, der har en af dets etiketter.
-- **Privat hændelse** — afkrydsningsfelt, slået fra som standard (`isPrivate`). En privat hændelse er kun synlig for de brugere, der ejer den, medlemmerne af de teams, der ejer den, projektadministratorer og projektejere — og den er skjult for alle statussider, uanset enhver anden indstilling, også de statussider, den er begrænset til. Listen over hændelser markerer dem med et rødt mærke **Privat**.
+- **Privat hændelse** — afkrydsningsfelt, slået fra som standard (`isPrivate`). En privat hændelse er kun synlig for de brugere, der ejer den, medlemmerne af de teams, der ejer den, Projektadministratorer og Projektejere — og den er skjult for alle statussider, uanset enhver anden indstilling, også de statussider, den er begrænset til. Listen over hændelser markerer dem med et rødt mærke **Privat**.
 - **Ejere** — valgfrit. Du bliver ejer af den hændelse, du erklærer, uanset hvad du vælger her; tilføj de personer og teams, der skal eje den sammen med dig. Under vælgeren er hvert team, du er medlem af, et enkelt klik væk, og **Tilføj alle** tilføjer dem alle: intet vælges for dig. Erklærer du fra en skabelon, starter feltet med skabelonens ejere, som du kan ændre.
 
 > [!NOTE]
@@ -227,9 +227,9 @@ Nyttige felter i anmodningens body:
 | `statusPages`            | Nej      | Id'erne på de statussider, hændelsen begrænses til, alle fra samme projekt. Udelad det for at nå hver statusside, der viser hændelsens monitorer. `isScopedToStatusPages` udledes af det, og en værdi, du sender til det, ignoreres. Se [Én statusside pr. målgruppe](/docs/status-pages/one-status-page-per-audience). |
 | `customFields`           | Nej      | Hændelsens værdier i brugerdefinerede felter med hvert felts navn som nøgle. Hver værdi, du sender, skal passe til sit felt — et tal til et felt **Tal**, en af mulighederne til en **Rullemenu (enkeltvalg)** — ellers afvises anmodningen med en fejl `400`, der nævner feltet. **Påkrævet ved oprettelse** kontrolleres ikke her. Se [Værdier i brugerdefinerede felter via API'et](/docs/incidents/settings#værdier-i-brugerdefinerede-felter-via-apiet). |
 
-For at tilføje ejere, når hændelsen erklæres, sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes; ellers tilføjes de, så snart hændelsen findes, uden notifikationen "du blev tilføjet". En API-nøgle er ikke en person: den bliver ikke ejer, og ingen ejerregel tilføjer et opretterteam for den. For at spørge, hvilke ejerregler der ville køre, sender du hændelsen, som formularen holder den — `title`, `description`, `severityId`, `labelIds`, `monitorIds` og de andre ressourcers id'er — til `POST /api/incident/owner-rule-preview`: svaret nævner hver regel, der ville tilføje nogen, med id'erne for dem, den tilføjer. For en advarsel er det `POST /api/alert/owner-rule-preview`.
+For at tilføje ejere, når hændelsen erklæres, sender du deres id'er i `miscDataProps` som `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`. En anmodning, hvis afsender ikke må tilføje de ejere, afvises, før noget gemmes; ellers tilføjes de, så snart hændelsen findes, uden notifikationen "du blev tilføjet". En API-nøgle er ikke en person: den bliver ikke ejer, og ingen ejerregel tilføjer et opretterteam for den. For at spørge, hvilke ejerregler der ville køre, sender du hændelsen, som formularen holder den — `title`, `description`, `severityId`, `labelIds`, `monitorIds` og de andre ressourcers id'er — til `POST /api/incident/owner-rule-preview`: svaret nævner hver regel, der ville tilføje nogen, med id'erne for dem, den tilføjer. For en advarsel er det `POST /api/alert/owner-rule-preview`. En arbejdsgangs trin **Create One Incident** tager dem under **Ejer-brugere** og **Ejer-teams**, og MCP-serverens værktøj `create_incident` som `ownerUsers` og `ownerTeams`. Ejere, der gives med, når hændelsen erklæres, får besked om, at den er erklæret; ejere, som en separat anmodning tilføjer mere end et minut senere, får kun besked om, at de er tilføjet.
 
-En API-nøgle kan ikke erklære fra en skabelon: en anmodning, der sender `createdIncidentTemplateId`, afvises. OneUptime sætter selv den kolonne, for hændelser, der meldes via en [formular](/docs/forms/on-submit), og for et workflows trin **Create One Incident**, som erklærer fra den skabelon, der er valgt under dets indstilling **Hændelsesskabelon** (se [Workflow-komponenter](/docs/workflows/components)). For at erklære fra en skabelon via API'et læser du skabelonen fra `/api/incident-templates` og sender dens værdier i anmodningen.
+En API-nøgle kan ikke erklære fra en skabelon: en anmodning, der sender `createdIncidentTemplateId`, afvises. OneUptime sætter selv den kolonne, for hændelser, der meldes via en [formular](/docs/forms/on-submit), og for en arbejdsgangs trin **Create One Incident**, som erklærer fra den skabelon, der er valgt under dets indstilling **Hændelsesskabelon** (se [Arbejdsgangskomponenter](/docs/workflows/components)). For at erklære fra en skabelon via API'et læser du skabelonen fra `/api/incident-templates` og sender dens værdier i anmodningen.
 
 Relaterede endpoints er `/api/incident-state`, `/api/incident-severity` og `/api/incident-state-timeline`. Den genererede [API-reference](/reference) har den præcise form på anmodning og svar for hver af dem, også hvordan relationsfelter som monitorer udtrykkes.
 
@@ -264,13 +264,13 @@ flowchart TB
     template --> rules["Regler, i denne rækkefølge:<br/>Privatliv, Ejer, Etiket,<br/>Vagt, Runbook"]
     rules --> policies["Vagtpolitikker udføres"]
     policies --> subscribers["Abonnenter sat i kø"]
-    subscribers --> workflows["Workflows udløses"]
+    subscribers --> workflows["Arbejdsgange udløses"]
 ```
 
 I rækkefølge:
 
 1. **Serveren udfylder hullerne.** `declaredAt` er som standard nu, den aktuelle tilstand er som standard projektets tilstand med `isCreatedState`, og hændelsesnummeret og nummeret med præfiks tildeles fra projektets tæller.
-2. **En skabelon anvendes**, når en formular eller et workflows trin **Create One Incident** erklærer hændelsen fra en (`createdIncidentTemplateId`) — og udfylder kun felter, kalderen lod være undefined; en tilstand, kalderen nævner, vinder over skabelonens. Dashboardet anvender i stedet en skabelon i formularen, før anmodningen sendes.
+2. **En skabelon anvendes**, når en formular eller en arbejdsgangs trin **Create One Incident** erklærer hændelsen fra en (`createdIncidentTemplateId`) — og udfylder kun felter, kalderen lod være undefined; en tilstand, kalderen nævner, vinder over skabelonens. Dashboardet anvender i stedet en skabelon i formularen, før anmodningen sendes.
 3. **Privatlivsregler kører** og markerer hændelsen som privat, når en matchende regel siger det. Det er den første regelmotor, der kører, så alt efter den ser den rigtige privatlivsindstilling.
 4. **Ejerregler kører** og tilføjer de brugere og teams som ejere, som matchende regler nævner. En regel, der nævner teams under **Opretterens team**, tilføjer også dem af dem, som den person, der erklærede hændelsen, er medlem af.
 5. **Etiketregler kører** og tilføjer de etiketter, der passer til hændelsen.
@@ -278,13 +278,13 @@ I rækkefølge:
 7. **Runbook-regler kører** og knytter matchende runbooks til og starter dem. Se [Runbooks](/docs/runbooks/index).
 8. **Vagtpolitikker udføres.** Hver politik på hændelsen — valgt i guiden, arvet fra en skabelon eller tilføjet af en regel — udføres parallelt med hændelsestypen `IncidentCreated`. Fejler én politik, stopper det ikke de andre. En arkiveret politik tilkalder ingen: dens udførelseslog på hændelsen siger, at den ikke blev udført, fordi politikken er arkiveret. En hændelse, der erklæres allerede bekræftet eller løst, kører ingen af dem; se [Erklæret allerede bekræftet eller løst](#erklæret-allerede-bekræftet-eller-løst) nedenfor.
 9. **Abonnenter sættes i kø**, hvis **Underret statussideabonnenter** blev stående slået til, og hændelsen er synlig på statussiden. Leveringen klares af et baggrundsjob, ikke inde i din anmodning, og går til de statussider, hændelsen når: dem, der viser dens monitorer, indsnævret af **Begræns til disse statussider**, og uden de sider, der kun viser hændelser, der er begrænset til dem, når den ikke er begrænset. En arkiveret statusside sender intet. Fremskridtet vises som **Abonnentnotifikationsstatus** på hændelsens **Oversigt**: hvad der blev sendt, og hvad der fejlede på hver statusside, og **Prøv igen** eller **Send igen**, når det er afsluttet. Se [Abonnenter og meddelelser](/docs/status-pages/subscribers#tjek-hvad-der-blev-sendt).
-10. **Workflows udløses.** Udløseren **On Create Incident** starter ethvert workflow, der er bygget på den. Se [Workflows – Oversigt](/docs/workflows/index).
+10. **Arbejdsgange udløses.** Udløseren **On Create Incident** starter enhver arbejdsgang, der er bygget på den. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 Derfra er hændelsen live: den tæller med i mærket **Aktive hændelser** i Hændelsers sidemenu (enhver tilstand over din løste tilstand tæller som aktiv), den vises på de statussider, der viser en af dens monitorer (kun de valgte, hvis du begrænsede den), og dens **Tilstandstidslinje** begynder at registrere.
 
 ### Erklæret allerede bekræftet eller løst
 
-At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand**, med `currentIncidentStateId` fra API'et, Terraform eller et workflow, eller ved at bede [Spørg AI](/docs/ai/ask-ai) om en hændelse, der allerede er bekræftet eller løst — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
+At vælge en senere **Indledende tilstand** — på formularen, via en skabelons **Indledende hændelsestilstand**, med `currentIncidentStateId` fra API'et, Terraform eller en arbejdsgang, eller ved at bede [Spørg AI](/docs/ai/ask-ai) om en hændelse, der allerede er bekræftet eller løst — registrerer en hændelse, som nogen allerede håndterer, eller som allerede er overstået. Den behandles ikke som en ny nødsituation:
 
 ```mermaid title="Hvad en ny hændelse sætter i gang, efter den tilstand den starter i"
 flowchart TB
@@ -325,6 +325,6 @@ Trinnet vises kun, når et felt har **Vis ved oprettelse** slået til, eller en 
 :::cards
 - [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities): Hvad tilstandsflagene gør, og hvordan du tilføjer dine egne.
 - [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed): Offentlige noter, private noter, ejere og aktivitetsfeedet.
-- [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Skabeloner, brugerdefinerede felter, roller, regler og workflow-udløsere.
+- [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Skabeloner, brugerdefinerede felter, roller, regler og arbejdsgangsudløsere.
 - [Abonnenter og meddelelser](/docs/status-pages/subscribers): Hvem der hører om den hændelse, du lige har erklæret.
 :::

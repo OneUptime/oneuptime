@@ -3,7 +3,7 @@
 En monitor sjekker noe du drifter, som et nettsted, et API, en vert eller en Kubernetes-klynge, og gir deg beskjed når det slutter å virke. **Opprett monitor** spør først hva som skal overvåkes, så hva som skal sjekkes, og deretter hvor ofte. Alt unntatt typen, navnet og hva som skal sjekkes, starter med standardverdier som passer for de fleste monitorer.
 
 > [!NOTE]
-> For å opprette en monitor trenger du rollen Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+> For å opprette en monitor trenger du rollen Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 
 ## Overvåkingsinfo
 
@@ -19,7 +19,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Skjemaet åpner på fø
 Det første spørsmålet er **Monitortype**: hva vil du overvåke?
 
 - De seks typene folk oppretter oftest, kommer først: **Nettsted**, **API**, **Ping**, **Port**, **SSL-sertifikat** og **Innkommende forespørsel**, for heartbeats fra cron-jobber og webhooks.
-- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manuell**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en probe mister forbindelsen, ligger under **Annet**.
+- **Flere monitortyper** viser alle andre typer under kategorien sin, som **Infrastruktur** (Kubernetes, Docker, vert) og **Telemetri** (logger, målinger, spor). **Manuell**, en monitor der du selv setter statusen, og **Sondestatus**, som gir beskjed når en sonde mister forbindelsen, ligger under **Annet**.
 - Eller skriv i søkefeltet. Det kjenner ordene du allerede bruker, som `k8s`, `postgres`, `heartbeat` eller `tls`, og **Enter** velger det første treffet.
 
 Den valgte typen krymper til én linje. Klikk på **Endre** for å velge en annen; trykk på **Escape** mens du velger for å beholde typen du hadde.
@@ -48,7 +48,7 @@ Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendel
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 
-En logg-, trase-, unntaks- eller metrikkmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
+En logg-, trase-, unntaks- eller målingsmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
 
 ### Gå til neste trinn
 
@@ -96,7 +96,7 @@ Alle andre typer unntatt Manual opprettes fra trinnet **Kriterier**.
 
 ## Start fra en mal eller en lenke
 
-En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et metrikkdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
+En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et målingsdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
 
 Hver monitortype har sin egen side med innstillingene sine, standardkriteriene og eksempler. Gode steder å gå videre:
 

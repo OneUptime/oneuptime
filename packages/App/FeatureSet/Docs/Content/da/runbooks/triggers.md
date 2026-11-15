@@ -163,7 +163,7 @@ return { host };
 
 ## Hvem må sætte udløsere op
 
-En tidsplan eller en webhook starter kørsler, uden at nogen er til stede, så det kræver tilladelse til at redigere runbooket og til at køre det at sætte en op: Project Owner, Project Admin eller Runbook Admin, eller **Edit Runbook** sammen med Project Member, Runbook Member eller **Create Runbook Execution**. De etiketter, en rolle er begrænset til, tæller med, som de gør for **Kør nu**. At se eller nulstille webhook-URL'en kræver det samme.
+En tidsplan eller en webhook starter kørsler, uden at nogen er til stede, så det kræver tilladelse til at redigere runbooket og til at køre det at sætte en op: Projektejer, Projektadministrator eller Runbook-administrator, eller **Edit Runbook** sammen med Projektmedlem, Runbook-medlem eller **Create Runbook Execution**. De etiketter, en rolle er begrænset til, tæller med, som de gør for **Kør nu**. At se eller nulstille webhook-URL'en kræver det samme.
 
 At slå en tidsplan eller en webhook fra starter intet, så det kræver kun tilladelse til at redigere runbooket. Den, der må redigere runbooket, men ikke køre det, ser siden **Udløsere** med **Opret tidsplan** låst og får at vide, hvem der kan se webhook-URL'en.
 
@@ -178,7 +178,7 @@ En kørsel var stadig i gang, og tidsplanen springer sådanne tidspunkter over, 
 :::
 
 :::details At gemme en tidsplan fejler med "You do not have permission to set up this runbook's schedule or webhook."
-At sætte en udløser op kræver tilladelse til at køre runbooket såvel som til at redigere det. Bed om Runbook Admin, eller om Runbook Member eller **Create Runbook Execution** ud over **Edit Runbook**.
+At sætte en udløser op kræver tilladelse til at køre runbooket såvel som til at redigere det. Bed om Runbook-administrator, eller om Runbook-medlem eller **Create Runbook Execution** ud over **Edit Runbook**.
 :::
 
 :::details Et kald får svaret "No runbook webhook answers at this URL."

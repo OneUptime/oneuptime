@@ -54,7 +54,7 @@ Klicken Sie auf **Änderungen speichern**. Die Karte zeigt die Notiz und die Anh
 
 Jede Änderung der Notiz wird im Feed des Vorfalls festgehalten und im Slack- oder Microsoft Teams-Kanal des Vorfalls gepostet, wenn er einen hat. Solange das Postmortem nicht veröffentlicht ist, erfährt kein Abonnent der Statusseite davon.
 
-Ein Postmortem schreiben können die Rollen Project Owner, Project Admin, Project Member, Incident Admin oder Incident Member oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident. Wer den Vorfall lesen kann, kann auch sein Postmortem lesen.
+Ein Postmortem schreiben können die Rollen Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator oder Vorfall-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident. Wer den Vorfall lesen kann, kann auch sein Postmortem lesen.
 
 ## Mit einer Vorlage oder einem KI-Entwurf beginnen
 
@@ -72,7 +72,7 @@ Klicken Sie auf **Mit KI generieren**. Der Dialog **Postmortem mit KI generieren
 
 Klicken Sie unten im Dialog auf **Mit KI generieren**. OneUptime AI liest den Vorfall (seine Beschreibung, Ursache und Behebung, seine Status-Zeitachse, seine öffentlichen und privaten Notizen, die Nachrichten in seinem Slack- oder Microsoft Teams-Kanal und was in [seinen Anrufen](/docs/workspace-connections/video-calls#anruf-transkripte) gesagt wurde) und schreibt das Postmortem in Ihrer Gliederung. Danach öffnet sich der Editor damit.
 
-Das Generieren erfordert, dass KI für das Projekt eingeschaltet ist, unter **Projekteinstellungen → KI → KI-Funktionen**, und einen LLM-Anbieter: siehe [LLM-Anbieter](/docs/ai/llm-provider). Außerdem erfordert es die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident: Andere Rollen können das Postmortem schreiben, aber nicht generieren.
+Das Generieren erfordert, dass KI für das Projekt eingeschaltet ist, unter **Projekteinstellungen → KI → KI-Funktionen**, und einen LLM-Anbieter: siehe [LLM-Anbieter](/docs/ai/llm-provider). Außerdem erfordert es die Rolle Projektinhaber oder Projektadministrator oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident: Andere Rollen können das Postmortem schreiben, aber nicht generieren.
 
 ### OneUptime AI den Entwurf schreiben lassen, wenn ein Vorfall behoben wird
 
@@ -92,7 +92,7 @@ Ohne Regel erhält jeder gelöste Vorfall einen Entwurf in der Standardgliederun
 - Ihr **LLM-Anbieter** unter **Weitere Felder** ist der Anbieter, mit dem OneUptime AI den Entwurf schreibt und seine Vorlage wählt. Ist keiner ausgewählt, ist es der Standardanbieter des Projekts, sonst der globale. Der Beitrag des Entwurfs im Feed nennt den Anbieter, den eine Regel gewählt hat, oder den, der stattdessen genutzt wurde, und warum. Siehe [Welchen LLM-Anbieter eine Regel nutzt](/docs/ai/ai-sre#welchen-llm-anbieter-eine-regel-nutzt).
 - Es entscheidet die erste aktivierte Regel, die auf den Vorfall passt, von oben in der Liste gezählt: Ziehen Sie eine Regel, um ihre Position zu ändern. Ein Vorfall, auf den keine Regel passt, erhält keinen Entwurf, und solange sich die Regeln nicht lesen lassen, erhält ihn kein Vorfall.
 - **Postmortem entwerfen, wenn ein Vorfall gelöst wird** bleibt der einzige Schalter, der Entwürfe ausschaltet. Regeln entscheiden nur über die Entwürfe, die OneUptime AI von sich aus schreibt: **Mit KI generieren** bietet jede Gliederung an, was auch immer sie sagen.
-- Regeln anlegen, bearbeiten und umsortieren erfordert die Rolle Project Owner oder Project Admin. In OneUptime Cloud erfordern Vorlagen den Growth-Plan: Darunter entscheiden Regeln weiterhin, welche Vorfälle einen Entwurf erhalten, und jeder Entwurf folgt der Standardgliederung.
+- Regeln anlegen, bearbeiten und umsortieren erfordert die Rolle Projektinhaber oder Projektadministrator. In OneUptime Cloud erfordern Vorlagen den Growth-Plan: Darunter entscheiden Regeln weiterhin, welche Vorfälle einen Entwurf erhalten, und jeder Entwurf folgt der Standardgliederung.
 
 ## Es auf Ihrer Statusseite veröffentlichen
 
@@ -158,7 +158,7 @@ Hat Ihr Prozess einen eigenen Schritt, etwa eine Prüfung, legen Sie einen Statu
 
 Die Position eines Status bestimmt, als was er zählt, angezeigt unter **Zählt als**: über **Entwurf** als **Nicht gestartet**, ab **Entwurf** abwärts als **Läuft gerade**, ab **Abgeschlossen** abwärts als **Fertig**, und dann steht er nicht mehr aus. **In Prüfung**, dazwischen, steht noch aus; **Nicht erforderlich**, unter **Abgeschlossen**, nicht.
 
-**Nicht gestartet**, **Entwurf** und **Abgeschlossen** sind vordefiniert, weil OneUptime Postmortems in sie verschiebt: Sie können sie umbenennen und umfärben, aber nicht löschen oder archivieren, und sie behalten ihre Reihenfolge. Archivieren Sie einen Status, den Sie nicht mehr nutzen, über das Menü **⋯** seiner Zeile: Niemand kann ein Postmortem mehr dorthin verschieben, die Postmortems darin bleiben, bis jemand sie verschiebt, und die Liste filtert weiterhin danach. **Archivierte Postmortem-Status**, eingeklappt unter der Tabelle, listet sie auf, mit **Aus dem Archiv holen**, um einen zurückzuholen. Status anzulegen, zu bearbeiten und zu löschen erfordert die Rolle Project Owner, Project Admin oder Incident Admin oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Status.
+**Nicht gestartet**, **Entwurf** und **Abgeschlossen** sind vordefiniert, weil OneUptime Postmortems in sie verschiebt: Sie können sie umbenennen und umfärben, aber nicht löschen oder archivieren, und sie behalten ihre Reihenfolge. Archivieren Sie einen Status, den Sie nicht mehr nutzen, über das Menü **⋯** seiner Zeile: Niemand kann ein Postmortem mehr dorthin verschieben, die Postmortems darin bleiben, bis jemand sie verschiebt, und die Liste filtert weiterhin danach. **Archivierte Postmortem-Status**, eingeklappt unter der Tabelle, listet sie auf, mit **Aus dem Archiv holen**, um einen zurückzuholen. Status anzulegen, zu bearbeiten und zu löschen erfordert die Rolle Projektinhaber, Projektadministrator oder Vorfall-Administrator oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Status.
 
 ## Alle Postmortems sehen
 
@@ -209,13 +209,13 @@ Die beiden KI-Aktionen erfordern, dass KI für das Projekt eingeschaltet ist, un
 
 **Vorfälle → Maßnahmen** listet die Maßnahmen aller Postmortems im ganzen Projekt auf, die am frühesten fälligen zuerst, jeweils mit Vorfall, Eigentümer, Fälligkeitsdatum und Status. Filtern Sie die Liste nach **Status**, **Eigentümer** und **Fälligkeitsdatum**; **Anzeigen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
 
-Maßnahmen zu lesen erfordert dasselbe, wie den Vorfall zu lesen. Sie hinzuzufügen, zu ändern und zu löschen erfordert die Rolle Project Owner, Project Admin, Project Member, Incident Admin oder Incident Member oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Maßnahmen. Die Maßnahmen eines privaten Vorfalls sind wie der Vorfall selbst nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadmins und Projekteigentümer sichtbar.
+Maßnahmen zu lesen erfordert dasselbe, wie den Vorfall zu lesen. Sie hinzuzufügen, zu ändern und zu löschen erfordert die Rolle Projektinhaber, Projektadministrator, Projektmitglied, Vorfall-Administrator oder Vorfall-Mitglied oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Maßnahmen. Die Maßnahmen eines privaten Vorfalls sind wie der Vorfall selbst nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadministratoren und Projektinhaber sichtbar.
 
 ## Postmortems von Episoden
 
 Eine Vorfallepisode hat ebenfalls eine Seite **Postmortem**, unter **Untersuchung**: eine Aufarbeitung für jeden Vorfall der Episode. Klicken Sie auf **Postmortem bearbeiten**, um sie zu schreiben. **Vorlage anwenden** und **Mit KI generieren** funktionieren wie bei einem Vorfall, und die KI liest die Episode und ihre zugehörigen Vorfälle.
 
-Das Postmortem einer Episode ist nur die Notiz: Es hat keine Anhänge, und keine Statusseite zeigt es. OneUptime AI entwirft keines von selbst, wenn eine Episode behoben wird. Das Generieren erfordert die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident Episode. Es hat auch keinen Status, und die Postmortem-Liste lässt es aus.
+Das Postmortem einer Episode ist nur die Notiz: Es hat keine Anhänge, und keine Statusseite zeigt es. OneUptime AI entwirft keines von selbst, wenn eine Episode behoben wird. Das Generieren erfordert die Rolle Projektinhaber oder Projektadministrator oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident Episode. Es hat auch keinen Status, und die Postmortem-Liste lässt es aus.
 
 Warnungen und Wartungsereignisse haben kein Postmortem.
 
@@ -242,7 +242,7 @@ Das Projekt hat noch keine Postmortem-Vorlage, oder Ihre Rolle kann sie nicht le
 :::
 
 :::details Mit KI generieren meldet, dass KI aus ist oder Ihnen die Berechtigung fehlt
-Schalten Sie KI unter **Projekteinstellungen → KI → KI-Funktionen** ein. Das Generieren erfordert die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident, auch für jemanden, der das Postmortem bearbeiten kann.
+Schalten Sie KI unter **Projekteinstellungen → KI → KI-Funktionen** ein. Das Generieren erfordert die Rolle Projektinhaber oder Projektadministrator oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident, auch für jemanden, der das Postmortem bearbeiten kann.
 :::
 
 :::details Das Postmortem steht nicht auf der Statusseite

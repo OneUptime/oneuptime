@@ -93,7 +93,7 @@ Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarv
 
 Een regel roept de mensen van zijn beleid op om te reageren: wie de oproep bevestigt, bevestigt de waarschuwing. Om een team op de hoogte te houden terwijl een ander reageert, beantwoord je **De mensen van dit beleid oproepen als** onder **Meer velden** met **Waarnemers**. Hun oproep zegt dat ze waarnemers zijn, en wie hem bevestigt, zegt daarmee alleen dat hij hem heeft gezien: de waarschuwing wordt niet bevestigd en geen andere oproep stopt. Hun oproep loopt door tot een van hen antwoordt of de waarschuwing is opgelost, en in de lijst zegt de regel onder zijn naam dat hij als waarnemers oproept. Beleid dat de ene passende regel oproept om te reageren en een andere als waarnemers, roept op om te reageren.
 
-Een regel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die regels zien, zien hem alleen-lezen. Een regel die bij geen enkel team hoort, kan worden gewijzigd door iedereen die bereikbaarheidsregels mag bewerken, en ook episoderegels kunnen bij teams horen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
+Een regel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden**, beperkt hem tot de teams die u kiest: alleen hun leden en Projectbeheerders kunnen hem bewerken of verwijderen, en alle anderen die regels zien, zien hem alleen-lezen. Een regel die bij geen enkel team hoort, kan worden gewijzigd door iedereen die bereikbaarheidsregels mag bewerken, en ook episoderegels kunnen bij teams horen. Zie [Regels die bij teams horen](/docs/permissions/index#regels-die-bij-teams-horen).
 
 ## Incidentregels
 
@@ -161,7 +161,7 @@ Eigenaren krijgen elke herinnering als **Waarschuwingsherinnering**, dat standaa
 
 ### Lidmaatschap van episodes
 
-**Waarschuwingen → Instellingen → Lidmaatschap van episodes** bepaalt of een waarschuwing in meer dan één episode kan zitten. Zet **Een waarschuwing kan maar in één episode zitten** aan, en een waarschuwing die in een episode zit, wordt aan geen andere toegevoegd, niet vanuit het dashboard en niet via de API, een workflow of een groeperingsregel, totdat ze uit die episode is gehaald. De schakelaar staat uit tot je hem aanzet, en alleen Project Owners en Project Admins kunnen hem wijzigen. Aanzetten haalt geen enkele waarschuwing uit een episode. Zie [Eén episode per incident](/docs/incidents/episodes#eén-episode-per-incident), wat voor waarschuwingen op dezelfde manier werkt.
+**Waarschuwingen → Instellingen → Lidmaatschap van episodes** bepaalt of een waarschuwing in meer dan één episode kan zitten. Zet **Een waarschuwing kan maar in één episode zitten** aan, en een waarschuwing die in een episode zit, wordt aan geen andere toegevoegd, niet vanuit het dashboard en niet via de API, een workflow of een groeperingsregel, totdat ze uit die episode is gehaald. De schakelaar staat uit tot je hem aanzet, en alleen Projecteigenaren en Projectbeheerders kunnen hem wijzigen. Aanzetten haalt geen enkele waarschuwing uit een episode. Zie [Eén episode per incident](/docs/incidents/episodes#eén-episode-per-incident), wat voor waarschuwingen op dezelfde manier werkt.
 
 ### Nummering
 
@@ -171,7 +171,7 @@ De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschu
 
 ### Gegevensbewaring
 
-**Waarschuwingen → Instellingen → Gegevensbewaring** verwijdert waarschuwingen zodra ze lang genoeg zijn opgelost, zoals [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring) dat voor incidenten doet. De kaart **Opgeloste waarschuwingen** vraagt om **Verwijderen na**, **Nooit** tot je een periode kiest, en vraagt om bevestiging voordat er meer wordt verwijderd, met **Oude waarschuwingen verwijderen**. Een waarschuwing blijft zolang ze niet is opgelost, zolang ze in een episode zit die nog open is of korter geleden is opgelost, en zolang een incident waaraan ze is gekoppeld blijft. Alleen Project Owners en Project Admins kunnen dit wijzigen; in de API is het `alertRetentionInDays` van het project.
+**Waarschuwingen → Instellingen → Gegevensbewaring** verwijdert waarschuwingen zodra ze lang genoeg zijn opgelost, zoals [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring) dat voor incidenten doet. De kaart **Opgeloste waarschuwingen** vraagt om **Verwijderen na**, **Nooit** tot je een periode kiest, en vraagt om bevestiging voordat er meer wordt verwijderd, met **Oude waarschuwingen verwijderen**. Een waarschuwing blijft zolang ze niet is opgelost, zolang ze in een episode zit die nog open is of korter geleden is opgelost, en zolang een incident waaraan ze is gekoppeld blijft. Alleen Projecteigenaren en Projectbeheerders kunnen dit wijzigen; in de API is het `alertRetentionInDays` van het project.
 
 > [!NOTE]
 > In OneUptime Cloud vragen notitie-sjablonen en aangepaste velden het abonnement **Growth** of hoger.
@@ -182,7 +182,7 @@ Elk waarschuwingsmodel heeft workflowtriggers en -acties die naar het model zijn
 
 ## Wie dit kan wijzigen
 
-Regels, aangepaste velden en metingen vragen een Project Owner of Project Admin, of een aangepaste rol met de eigen machtiging van die regel. **Waarschuwingslid** werkt met waarschuwingen en episodes, hun notities, eigenaren en statustijdlijnen, en notitie-sjablonen, en **Waarschuwingsbeheerder** beheert daarnaast waarschuwingsstatussen en ernstniveaus. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
+Regels, aangepaste velden en metingen vragen een Projecteigenaar of Projectbeheerder, of een aangepaste rol met de eigen machtiging van die regel. **Waarschuwingslid** werkt met waarschuwingen en episodes, hun notities, eigenaren en statustijdlijnen, en notitie-sjablonen, en **Waarschuwingsbeheerder** beheert daarnaast waarschuwingsstatussen en ernstniveaus. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Volgende stappen
 

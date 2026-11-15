@@ -27,7 +27,7 @@ flowchart TB
 
 ## Før du starter
 
-- **En rolle, der kan oprette skabeloner**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member eller en brugerdefineret rolle med tilladelsen Create Monitor Template. At ændre en skabelon kræver de samme roller eller tilladelsen Edit Monitor Template.
+- **En rolle, der kan oprette skabeloner**: Projektejer, Projektadministrator, Projektmedlem, Monitoradministrator eller Monitormedlem eller en brugerdefineret rolle med tilladelsen Create Monitor Template. At ændre en skabelon kræver de samme roller eller tilladelsen Edit Monitor Template.
 - **Tilladelse til at opdatere de tilknyttede monitorer.** En synkronisering skriver til hver tilknyttet monitor som dig og springer de monitorer over, som dine tilladelser ikke dækker.
 
 ## Opret en skabelon

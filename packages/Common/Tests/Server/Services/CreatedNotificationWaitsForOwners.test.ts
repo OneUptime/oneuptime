@@ -108,6 +108,11 @@ import PositiveNumber from "../../../Types/PositiveNumber";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { StartingStage } from "../../../Utils/StartingStage";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { useInMemoryOwnerNotificationDeliveries } from "../../Helpers/InMemoryOwnerNotificationDeliveries";
+import CreateOneBaseModel from "../../../Server/Types/Workflow/Components/BaseModel/CreateOneBaseModel";
+import { RunReturnType } from "../../../Server/Types/Workflow/ComponentCode";
+import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
+import Email from "../../../Types/Email";
 import RunCron from "../../../../App/FeatureSet/Workers/Utils/Cron";
 import "../../../../App/FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification";
 import "../../../../App/FeatureSet/Workers/Jobs/AlertOwners/SendCreatedResourceNotification";
@@ -1434,6 +1439,11 @@ beforeEach(() => {
   stubOwnerRules();
   stubJobs();
   stubTeamMembers();
+  /*
+   * Whom the Created job tells is written down before it takes the record,
+   * and each owner told through it (OwnerNotificationDeliveries, #8199).
+   */
+  useInMemoryOwnerNotificationDeliveries();
 });
 
 afterEach(() => {
@@ -2180,6 +2190,211 @@ describe.each(["incident", "alert"] as Array<Kind>)(
 
       at(1, 30);
       await addOwnerInASecondRequest(created, ANA);
+      at(2);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([PROJECT_OWNER]);
+    });
+  },
+);
+
+/*
+ * #8198: THE OWNERS HANDED OVER WITH THE CREATE. A caller that adds the
+ * owners by a request of its own after the minute - a slow MCP agent, a
+ * workflow with a delay in between - leaves the Created email with the
+ * project's owners. One that hands them over with the create - the REST
+ * create's miscDataProps, a workflow's Create One step's Owner Users and
+ * Owner Teams, an MCP create tool's ownerUsers and ownerTeams, which it
+ * sends as miscDataProps - has them in before the hold is let go, so the
+ * email reaches them however late the job runs, and nobody else.
+ */
+describe.each(["incident", "alert"] as Array<Kind>)(
+  "the Created email of an %s whose create hands its owners over",
+  (kind: Kind) => {
+    beforeEach(() => {
+      // Nobody else owns it: no rule, no criteria, only whom the create names.
+      owners = NOBODY;
+    });
+
+    test("over the API, in miscDataProps: reaches them, and not the project's owners, however long after the create the job runs", async () => {
+      await serviceOf(kind).create({
+        data: newRecordOf(kind),
+        miscDataProps: {
+          ownerUsers: [ANA],
+          ownerTeams: [PLATFORM_TEAM],
+        },
+        props: { isRoot: true },
+      });
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      // Far past the minute an owner a request of its own adds has.
+      at(10);
+      await runJob(kind);
+      at(11);
+      await runJob(kind);
+
+      // Dan through the Platform team.
+      expect(notified(kind)).toEqual([ANA, DAN].sort());
+      expect(errorsLogged()).toEqual([]);
+
+      // Added quietly: the Created email is the one they get.
+      expect(
+        ownerRows
+          .filter((row: OwnerRow): boolean => {
+            return row.recordId === onlyRecord(kind);
+          })
+          .map((row: OwnerRow): string => {
+            return row.userId || row.teamId || "";
+          })
+          .sort(),
+      ).toEqual([ANA, PLATFORM_TEAM].sort());
+    });
+
+    test("from a workflow's Create One step: by ID, by email address and by team - reaching them, and not the project's owners - and the run log names whom it left out", async () => {
+      const BEN_EMAIL: string = "ben@acme.test";
+      const DEPARTED_EMAIL: string = "departed@acme.test";
+
+      // People are found by email address as the step asks: Ben, and somebody who left.
+      jest.spyOn(UserService, "findBy").mockImplementation((async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<User>> => {
+        const byEmail: Record<string, string> = {
+          [BEN_EMAIL]: BEN,
+          [DEPARTED_EMAIL]: DEPARTED,
+        };
+
+        if (args.query["email"]) {
+          return idsAt(args.query, "email")
+            .filter((email: string): boolean => {
+              return Boolean(byEmail[email]);
+            })
+            .map((email: string): User => {
+              const user: User = personOf(byEmail[email]!);
+              user.email = new Email(email);
+              return user;
+            });
+        }
+
+        return idsAt(args.query, "_id").map((id: string): User => {
+          return personOf(id);
+        });
+      }) as never);
+
+      // The step's own props: a Project Admin of the workflow's project, never root.
+      jest
+        .spyOn(WorkflowPrincipal, "getProps")
+        .mockImplementation((async (data: {
+          projectId: ObjectID;
+          workflowId: ObjectID;
+        }) => {
+          return WorkflowPrincipal.getPropsWithoutPlan(data);
+        }) as never);
+
+      const step: CreateOneBaseModel<BaseModel> = new CreateOneBaseModel(
+        (kind === "incident"
+          ? IncidentService
+          : AlertService) as unknown as DatabaseService<BaseModel>,
+      );
+
+      const log: Array<string> = [];
+
+      const result: RunReturnType = await step.run(
+        {
+          json: {
+            title: "Checkout is down",
+            ...(kind === "incident"
+              ? { incidentSeverityId: INCIDENT_SEVERITY }
+              : { alertSeverityId: ALERT_SEVERITY }),
+          },
+          ownerUsers: [
+            ANA,
+            `${BEN_EMAIL}, ${DEPARTED_EMAIL}`,
+            // A name: entries are read as a Page step reads them, ids and addresses only.
+            "Jane",
+          ],
+          ownerTeams: [PLATFORM_TEAM],
+        },
+        {
+          log: (message: unknown): void => {
+            log.push(String(message));
+          },
+          workflowLogId: ObjectID.generate(),
+          workflowId: ObjectID.generate(),
+          projectId: PROJECT_ID,
+          onError: (exception: Error): Error => {
+            return exception;
+          },
+        } as never,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
+      at(10);
+      await runJob(kind);
+      at(11);
+      await runJob(kind);
+
+      expect(notified(kind)).toEqual([ANA, BEN, DAN].sort());
+      expect(errorsLogged()).toEqual([]);
+
+      // Whom it left out, and why: in the run log, never as a failure.
+      expect(log).toEqual(
+        expect.arrayContaining([
+          `Owner Users also held "Jane", which is not a user's ID or email address: left out.`,
+          `Owner Users: no member of this project has the ID or email address "${DEPARTED_EMAIL}": left out.`,
+        ]),
+      );
+    });
+
+    test("from a workflow's Create One step with no owners named: the project's owners, as before", async () => {
+      jest
+        .spyOn(WorkflowPrincipal, "getProps")
+        .mockImplementation((async (data: {
+          projectId: ObjectID;
+          workflowId: ObjectID;
+        }) => {
+          return WorkflowPrincipal.getPropsWithoutPlan(data);
+        }) as never);
+
+      const step: CreateOneBaseModel<BaseModel> = new CreateOneBaseModel(
+        (kind === "incident"
+          ? IncidentService
+          : AlertService) as unknown as DatabaseService<BaseModel>,
+      );
+
+      const result: RunReturnType = await step.run(
+        {
+          json: {
+            title: "Checkout is down",
+            ...(kind === "incident"
+              ? { incidentSeverityId: INCIDENT_SEVERITY }
+              : { alertSeverityId: ALERT_SEVERITY }),
+          },
+        },
+        {
+          log: (): void => {
+            // nothing to say
+          },
+          workflowLogId: ObjectID.generate(),
+          workflowId: ObjectID.generate(),
+          projectId: PROJECT_ID,
+          onError: (exception: Error): Error => {
+            return exception;
+          },
+        } as never,
+      );
+
+      expect(result.executePort?.id).toBe("success");
+      await waitUntil((): boolean => {
+        return !stored(kind).isNotified;
+      });
+
       at(2);
       await runJob(kind);
 

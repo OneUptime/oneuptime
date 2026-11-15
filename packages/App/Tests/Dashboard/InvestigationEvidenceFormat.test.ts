@@ -450,16 +450,16 @@ describe("getEvidenceEmptyRowsMessage", () => {
 
 describe("formatEvidenceDuration", () => {
   test.each([
-    [0, "0 ms"],
-    [340, "340 ms"],
-    [999.4, "999 ms"],
-    [1000, "1 s"],
-    [1234, "1.2 s"],
-    [59_949, "59.9 s"],
-    [59_999, "1 min"],
-    [60_000, "1 min"],
-    [125_000, "2 min 5 s"],
-    [3_600_000, "60 min"],
+    [0, "0\u00A0ms"],
+    [340, "340\u00A0ms"],
+    [999.4, "999\u00A0ms"],
+    [1000, "1\u00A0s"],
+    [1234, "1.2\u00A0s"],
+    [59_949, "59.9\u00A0s"],
+    [59_999, "1\u00A0min"],
+    [60_000, "1\u00A0min"],
+    [125_000, "2\u00A0min 5\u00A0s"],
+    [3_600_000, "60\u00A0min"],
   ])("%p ms reads as %p", (durationInMs: number, expected: string) => {
     expect(formatEvidenceDuration(durationInMs)).toBe(expected);
   });
@@ -840,7 +840,7 @@ describe("formatEvidenceLabel", () => {
     ])(
       "leaves an impossible timestamp (%s) as written",
       (_case: string, timestamp: string) => {
-        const label: string = `Logs ${timestamp} (1 shown)`;
+        const label: string = `Logs ${timestamp} (1\u00A0shown)`;
 
         expect(formatEvidenceLabel(label, H24)).toBe(label);
       },
@@ -1006,6 +1006,7 @@ describe("formatEvidenceArguments", () => {
     expect(valueOf(rows, "Limit")).toBe("25");
   });
 
+  // A lone start is a range's start (#8201): English reads it as "From".
   test("keeps a lone start or end as From / Until", () => {
     const onlyStart: Array<FormattedEvidenceArgument> = argumentsFor(
       "query_metrics",
@@ -1014,7 +1015,7 @@ describe("formatEvidenceArguments", () => {
     expect(onlyStart).toEqual([
       {
         key: "startTime",
-        label: "From",
+        label: "From (range start)",
         value: formatEvidenceDateTime("2026-09-14T17:20:00.000Z"),
       },
     ]);
@@ -1033,7 +1034,7 @@ describe("formatEvidenceArguments", () => {
     });
 
     expect(rows).toEqual([
-      { key: "startTime", label: "From", value: "1h ago" },
+      { key: "startTime", label: "From (range start)", value: "1h ago" },
       { key: "endTime", label: "Until", value: "now" },
     ]);
   });

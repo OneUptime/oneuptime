@@ -23,7 +23,7 @@ Chaque minute, OneUptime interroge chaque connexion activée dont l'intervalle d
 
 ## Avant de commencer
 
-- Dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
+- Dans OneUptime, le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
 - Un compte AWS où Security Hub est activé dans la région que vous connectez. Security Hub est régional : une connexion lit les constats qu'un compte détient dans une région.
 - Pour lire les constats de chaque compte et de chaque région via une seule connexion, le compte administrateur délégué de Security Hub, dans sa région d'origine, avec l'[agrégation entre régions](https://docs.aws.amazon.com/securityhub/latest/userguide/finding-aggregation.html) activée. **Security Hub → Settings → Regions** indique la région d'origine.
 - Du HTTPS sortant de l'application et des workers OneUptime vers `securityhub.<region>.amazonaws.com`, ou `securityhub.<region>.amazonaws.com.cn` en Chine, et une horloge exacte sur leurs hôtes : AWS refuse une requête signée avec plus de 5 minutes d'écart.

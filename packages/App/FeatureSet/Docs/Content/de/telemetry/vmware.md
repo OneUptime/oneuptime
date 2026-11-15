@@ -22,7 +22,7 @@ flowchart TB
     ai -->|"lesende<br/>govc-Befehle"| vsphere
 ```
 
-Das vCenter registriert sich mit seinen ersten Daten unter dem Namen, den der Agent als `vmware.vcenter.name` an jede Metrik hängt. Um ein vCenter ganz ohne Agent zu überwachen, siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless): Eine Ihrer Probes erfasst dieselben Daten mit einem schreibgeschützten Konto.
+Das vCenter registriert sich mit seinen ersten Daten unter dem Namen, den der Agent als `vmware.vcenter.name` an jede Metrik hängt. Um ein vCenter ganz ohne Agent zu überwachen, siehe [VMware ohne Agent](/docs/telemetry/vmware-agentless): Eine Ihrer Sonden erfasst dieselben Daten mit einem schreibgeschützten Konto.
 
 ## Bevor Sie beginnen
 
@@ -517,7 +517,7 @@ vSphere hat keinen eigenen OpenTelemetry-Push; der Agent (oder ein beliebiger Op
 
 :::cards
 - [VMware-Überwachung](/docs/monitor/vmware-monitor): Alarmieren bei Hosts, VMs, Datastores, Clustern, Rechenzentren und vSAN.
-- [VMware ohne Agent](/docs/telemetry/vmware-agentless): Stattdessen eine Probe das vCenter erfassen lassen.
+- [VMware ohne Agent](/docs/telemetry/vmware-agentless): Stattdessen eine Sonde das vCenter erfassen lassen.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Was der VMware-KI-Agent ausführen darf und wie Korrekturen funktionieren.
 - [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector): Die Sicht des Betriebssystems innerhalb der VMs oder auf den Rechner des Agents.
 :::

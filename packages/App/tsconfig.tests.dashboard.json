@@ -1,0 +1,16 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile` type-checks on its
+   * own (scripts/compile-tests.js): the tests in Tests/Dashboard, and the
+   * Dashboard sources they import. Tests/FeatureSet is
+   * tsconfig.tests.featureset.json, and every other App test is
+   * tsconfig.tests.rest.json. Everything but "include" is inherited, so
+   * these tests are held to exactly the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/Dashboard/**/*.ts",
+    "Tests/Dashboard/**/*.tsx",
+    "Typings/**/*.d.ts"
+  ]
+}

@@ -1,7 +1,8 @@
 import {
   FOLLOWS_FEED,
-  READ_BY_LABEL,
   READ_BY_MORE,
+  READ_BY_NAMES_AND_MORE_LINE,
+  READ_BY_NAMES_LINE,
   READ_BY_NO_RULE,
   READ_BY_UNKNOWN,
   READ_FROM_ADDRESS,
@@ -39,6 +40,7 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { useAreTableColumnsFolded } from "Common/UI/Components/Table/TableCellContext";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getListSeparator } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
@@ -215,27 +217,31 @@ export const WatchlistReadByLine: FunctionComponent<WatchlistReadersState> = (
     return <>{translator.translateText(READ_BY_NO_RULE)}</>;
   }
 
-  return (
+  const separator: string = getListSeparator(translator.language);
+  const names: ReactElement = (
     <>
-      {translator.translateText(READ_BY_LABEL)}
-      {": "}
       {readers.shown.map(
         (reader: ShownWatchlistReader, index: number): ReactElement => {
           return (
             <Fragment key={index}>
-              {index > 0 ? ", " : ""}
+              {index > 0 ? separator : ""}
               <IsolatedText text={reader.name} />
               <WatchlistReaderKindWord kind={reader.kind} />
             </Fragment>
           );
         },
       )}
-      {readers.more > 0
-        ? ` ${translator.translatePlural(READ_BY_MORE, readers.more, {
-            count: translator.formatNumber(readers.more),
-          })}`
-        : ""}
     </>
+  );
+
+  return readers.more > 0 ? (
+    <TranslatedSentence
+      template={READ_BY_NAMES_AND_MORE_LINE}
+      count={readers.more}
+      slots={{ names }}
+    />
+  ) : (
+    <TranslatedSentence template={READ_BY_NAMES_LINE} slots={{ names }} />
   );
 };
 

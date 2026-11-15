@@ -24,7 +24,7 @@ flowchart LR
 
 ## Voordat u begint
 
-- **Een rol die het project mag wijzigen.** Project Owners en Project Admins wijzigen de meeste van deze instellingen. Facturering, meldingskanalen en het verwijderen van het project vragen meer, zoals elke sectie zegt.
+- **Een rol die het project mag wijzigen.** Projecteigenaren en Projectbeheerders wijzigen de meeste van deze instellingen. Facturering, meldingskanalen en het verwijderen van het project vragen meer, zoals elke sectie zegt.
 - **In OneUptime Cloud: het abonnement dat een instelling omvat.** Sommige instellingen hebben een abonnement nodig: zie [Instellingen die een abonnement nodig hebben](/docs/configuration/billing#instellingen-die-een-abonnement-nodig-hebben).
 
 ## Een instelling vinden
@@ -50,11 +50,11 @@ flowchart LR
 
 **Projectdetails** toont de naam van het project en de ID:
 
-- **Projectnaam**: klik op **Project bewerken** om het project een andere naam te geven. Een naam heeft minstens 2 tekens. Hernoemen vraagt een Project Owner, of de machtiging om het project te bewerken of de facturering te beheren.
+- **Projectnaam**: klik op **Project bewerken** om het project een andere naam te geven. Een naam heeft minstens 2 tekens. Hernoemen vraagt een Projecteigenaar, of de machtiging om het project te bewerken of de facturering te beheren.
 - **Project-ID**: kopieer deze voor de API, de CLI en Terraform, of als u ondersteuning schrijft.
 - **Data Residency**: in OneUptime Cloud, waar de gegevens van uw project horen te staan, als OneUptime dat heeft vastgelegd. Alleen OneUptime stelt dit in.
 
-**Toegang voor klantenondersteuning** bepaalt in OneUptime Cloud of het ondersteuningsteam van OneUptime het project mag openen. Zet **OneUptime-ondersteuning toegang geven tot dit project** aan als u hulp wilt: OneUptime vraagt het eerst, omdat ondersteuning dan alles in het project kan zien en wijzigen, en u klikt op **Ondersteuning toelaten**. Zet het uit zodra ze klaar zijn: dat wordt meteen opgeslagen. Project Owners en Project Admins wijzigen het.
+**Toegang voor klantenondersteuning** bepaalt in OneUptime Cloud of het ondersteuningsteam van OneUptime het project mag openen. Zet **OneUptime-ondersteuning toegang geven tot dit project** aan als u hulp wilt: OneUptime vraagt het eerst, omdat ondersteuning dan alles in het project kan zien en wijzigen, en u klikt op **Ondersteuning toelaten**. Zet het uit zodra ze klaar zijn: dat wordt meteen opgeslagen. Projecteigenaren en Projectbeheerders wijzigen het.
 
 ## Producten
 
@@ -66,9 +66,9 @@ Op een zelf gehoste server kan een hoofdbeheerder een product ook voor alle proj
 
 Een nieuw project begint met waarvoor het volgens de eigenaar op Start bedoeld is: de essenties, de instellingen en wat die doelen nodig hebben worden getoond, de rest wordt verborgen. Een project dat de vraag oversloeg, of dat ervoor werd aangemaakt, toont alle producten. Zodra iemand de lijst hier wijzigt, wijzigen de doelen hem niet meer.
 
-Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld** of, in OneUptime Cloud, het abonnement dat het nodig heeft. Zodra een verborgen product gegevens ontvangt, meldt Start dat aan de projecteigenaren en -beheerders en biedt **Tonen** of **Verborgen houden** aan.
+Elk product zegt wat het voor dit project is: **In gebruik**, **Niet ingesteld** of, in OneUptime Cloud, het abonnement dat het nodig heeft. Zodra een verborgen product gegevens ontvangt, meldt Start dat aan de Projecteigenaren en Projectbeheerders en biedt **Tonen** of **Verborgen houden** aan.
 
-Projecteigenaren, projectbeheerders en iedereen die het project mag bewerken, wijzigen hem; alle anderen in het project kunnen hem zien.
+Projecteigenaren, Projectbeheerders en iedereen die het project mag bewerken, wijzigen hem; alle anderen in het project kunnen hem zien.
 
 ## Labels
 
@@ -96,7 +96,7 @@ Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in
 
 **Projectinstellingen → Meldingen** bevat hoe het project meldingen verstuurt:
 
-- **Meldingskanalen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Project Owner, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
+- **Meldingskanalen**: de kaart **Meldingskanalen** zet sms, telefoongesprekken, WhatsApp en Telegram aan of uit voor het project. Alle vier staan bij het begin uit. Een Projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** zet ze aan. De pagina bevat ook, ingeklapt onder **Meer instellingen**, de eigen mailservers van het project, in **Aangepaste SMTP-configuraties** (zie [SMTP](/docs/emails/smtp)), en het eigen Twilio-account (zie [Twilio-integratie](/docs/self-hosted/twilio-integration)). In OneUptime Cloud bevat ze het saldo waaruit deze berichten worden betaald: zie [Vooruitbetaalde saldi](/docs/configuration/billing#vooruitbetaalde-saldi).
 - **Meldingslogboeken**: elke melding die het project heeft verstuurd, met één tabblad per kanaal: **E-mail**, **SMS**, **WhatsApp**, **Telegram**, **Webhook**, **Oproep**, **Push** en **Werkruimte**.
 - **Mobiele apps**: waar u de apps voor iOS en Android vindt. Zie [Apps – Overzicht](/docs/mobile-desktop-apps/index).
 
@@ -127,7 +127,7 @@ Klik op **Project verwijderen**. OneUptime verwijdert het project en haalt u eru
 :::
 
 > [!CAUTION]
-> Het verwijderen van het project kan niet ongedaan worden gemaakt. Het vraagt een Project Owner, of de machtiging om het project te verwijderen.
+> Het verwijderen van het project kan niet ongedaan worden gemaakt. Het vraagt een Projecteigenaar, of de machtiging om het project te verwijderen.
 
 In OneUptime Cloud zegt u het abonnement van een project op door het te verwijderen: de facturering stopt wanneer het project is verwijderd. Een project dat via een cloudmarketplace wordt gefactureerd, krijgt een laatste afschrijving voor het gebruik, en de aankoop op de marketplace blijft actief tot u die daar opzegt.
 
@@ -138,7 +138,7 @@ Elke sectie behalve **Basis** is bij het begin ingeklapt. Klik op de titel van d
 :::
 
 :::details Project bewerken is vergrendeld
-Hernoemen vraagt een Project Owner, of de machtiging om het project te bewerken of de facturering te beheren. De vergrendelde knop noemt de machtiging die u nodig hebt.
+Hernoemen vraagt een Projecteigenaar, of de machtiging om het project te bewerken of de facturering te beheren. De vergrendelde knop noemt de machtiging die u nodig hebt.
 :::
 
 :::details Project verwijderen blijft vergrendeld in het dialoogvenster

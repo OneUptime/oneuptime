@@ -406,7 +406,7 @@ export default class RemediationTrackRecordReader {
               AutoRemediationVerificationStatus.Failed,
             ]),
             createdAt: QueryHelper.greaterThanEqualTo(
-              OneUptimeDate.addRemoveDays(
+              OneUptimeDate.addRemoveDurationInDays(
                 now,
                 -REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS,
               ),
@@ -604,7 +604,7 @@ export default class RemediationTrackRecordReader {
               AutoRemediationVerificationStatus.Failed,
             ]),
             createdAt: QueryHelper.greaterThanEqualTo(
-              OneUptimeDate.addRemoveDays(
+              OneUptimeDate.addRemoveDurationInDays(
                 now,
                 -REMEDIATION_TRACK_RECORD_LOOKBACK_DAYS,
               ),

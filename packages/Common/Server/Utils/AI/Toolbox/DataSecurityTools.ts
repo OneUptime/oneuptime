@@ -50,9 +50,26 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
-import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
-import { AI_READ_RECORD_TABLE_TITLES } from "../../../../Types/AI/AIReadTableWords";
-import { countFigure } from "./ReadTableWords";
+import {
+  aiActionSentence,
+  AI_READ_CARD_NAME,
+  AIActionSentence,
+  aiActionList,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_RECORD_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
+  AI_READ_DATA_SECURITY_TERMS,
+  AI_READ_OPEN_STATUS_TERM,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  countFigure,
+  citationSentence,
+  ToolCitation,
+  termCells,
+  termsByValue,
+} from "./ReadTableWords";
 
 /*
  * THE DATA SECURITY TOOLS: how OneUptime AI reads what Data Security found,
@@ -385,20 +402,52 @@ export const QueryDataStoresTool: ObservabilityTool = {
     const target: AIChatCitationTarget = {
       type: AIChatCitationTargetType.DataStores,
     };
-    const filters: Array<string> = [
-      sensitivity ? `${sensitivity} or above` : "",
-      dataTypeId ? `holding ${dataTypeName(dataTypeId)}` : "",
-      exposure ? exposure : "",
-      provider ? provider : "",
-      name ? `named like "${name}"` : "",
-    ].filter((part: string): boolean => {
-      return part.length > 0;
-    });
+    /*
+     * What the stores were filtered by, in the reader's language (issue
+     * #8311): a sensitivity and an exposure are words, a data type's name,
+     * a provider and a name are data.
+     */
+    const filters: Array<AIActionSentence> = [
+      ...(sensitivity
+        ? [
+            aiActionSentence(AI_TOOL_CITATIONS.dataStoreSensitivityOrAbove, {
+              sensitivity: aiActionTerm(sensitivity),
+            }),
+          ]
+        : []),
+      ...(dataTypeId
+        ? [
+            aiActionSentence(AI_TOOL_CITATIONS.dataStoreHolding, {
+              dataType: dataTypeName(dataTypeId),
+            }),
+          ]
+        : []),
+      ...(exposure
+        ? [
+            aiActionSentence(AI_READ_CARD_NAME, {
+              name: aiActionTerm(exposure),
+            }),
+          ]
+        : []),
+      ...(provider
+        ? [aiActionSentence(AI_READ_CARD_NAME, { name: provider })]
+        : []),
+      ...(name
+        ? [aiActionSentence(AI_TOOL_CITATIONS.dataStoreNamedLike, { name })]
+        : []),
+    ];
 
     return {
       dataForLlm: serialized.text,
       rowCount: stores.length,
-      citationLabel: `Data stores${filters.length > 0 ? ` (${filters.join(", ")})` : ""} - ${stores.length} found`,
+      ...(filters.length > 0
+        ? citationSentence(AI_TOOL_CITATIONS.dataStoresFiltered, {
+            filters: aiActionList(filters),
+            count: countFigure(stores.length),
+          })
+        : citationSentence(AI_TOOL_CITATIONS.dataStores, {
+            count: countFigure(stores.length),
+          })),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated || stores.length > rows.length,
@@ -413,6 +462,12 @@ export const QueryDataStoresTool: ObservabilityTool = {
                     count: countFigure(rows.length),
                   },
                 ),
+                // As Data Security's pills say them (issue #8313).
+                cells: termCells(rows, {
+                  kind: DATA_SECURITY_WORDS,
+                  sensitivity: DATA_SECURITY_WORDS,
+                  exposure: DATA_SECURITY_WORDS,
+                }),
               },
               columns: [
                 { key: "name", title: translationKey("Store"), type: "text" },
@@ -611,7 +666,10 @@ async function readOneStore(
   return {
     dataForLlm: text,
     rowCount: 1,
-    citationLabel: `Data store ${store.name || store.id.toString()}`,
+    // In the reader's language (issue #8311).
+    ...citationSentence(AI_TOOL_CITATIONS.dataStore, {
+      name: store.name || store.id.toString(),
+    }),
     citationTarget: {
       type: AIChatCitationTargetType.DataStoreView,
       params: { dataStoreId: store.id.toString() },
@@ -673,6 +731,71 @@ export function describeAccessRow(entry: DataStoreAccess): JSONObject {
  * query_data_security_issues
  * ---------------------------------------------------------------------------
  */
+/*
+ * What a list of issues names under Sources, in the reader's language
+ * (issue #8311): which status it lists, and the severity it narrows to.
+ */
+const ISSUES_CITATIONS: Readonly<
+  Record<string, { any: string; ofSeverity: string }>
+> = {
+  open: {
+    any: AI_TOOL_CITATIONS.openDataSecurityIssues,
+    ofSeverity: AI_TOOL_CITATIONS.openDataSecurityIssuesOfSeverity,
+  },
+  accepted: {
+    any: AI_TOOL_CITATIONS.acceptedDataSecurityIssues,
+    ofSeverity: AI_TOOL_CITATIONS.acceptedDataSecurityIssuesOfSeverity,
+  },
+  resolved: {
+    any: AI_TOOL_CITATIONS.resolvedDataSecurityIssues,
+    ofSeverity: AI_TOOL_CITATIONS.resolvedDataSecurityIssuesOfSeverity,
+  },
+  "not-an-issue": {
+    any: AI_TOOL_CITATIONS.notAnIssueDataSecurityIssues,
+    ofSeverity: AI_TOOL_CITATIONS.notAnIssueDataSecurityIssuesOfSeverity,
+  },
+  all: {
+    any: AI_TOOL_CITATIONS.allDataSecurityIssues,
+    ofSeverity: AI_TOOL_CITATIONS.allDataSecurityIssuesOfSeverity,
+  },
+};
+
+export function getDataSecurityIssuesCitation(data: {
+  status: string;
+  severity?: SecuritySeverity | undefined;
+  count: number;
+}): ToolCitation {
+  const templates: { any: string; ofSeverity: string } =
+    ISSUES_CITATIONS[data.status] || ISSUES_CITATIONS["open"]!;
+
+  return data.severity
+    ? citationSentence(templates.ofSeverity, {
+        severity: aiActionTerm(data.severity),
+        count: countFigure(data.count),
+      })
+    : citationSentence(templates.any, { count: countFigure(data.count) });
+}
+
+/*
+ * The words of Data Security's tables that are OneUptime's (issue #8313):
+ * a sensitivity, an exposure, a severity, an issue's status but Open, an
+ * access level and a kind of store that is OneUptime's own telemetry. A
+ * cloud's kind of store is a product's name: data.
+ */
+const DATA_SECURITY_WORDS: Readonly<Record<string, string>> = termsByValue(
+  AI_READ_DATA_SECURITY_TERMS,
+);
+
+/*
+ * An issue's status, as the issues list's pill says it: "Open" by its
+ * meaning key, "Open (status)", since "Open" alone is every Open button's
+ * verb in every language (#8512). Its English, stored, is "Open".
+ */
+export const ISSUE_STATUS_WORDS: Readonly<Record<string, string>> = {
+  ...DATA_SECURITY_WORDS,
+  [DataSecurityIssueStatus.Open]: AI_READ_OPEN_STATUS_TERM,
+};
+
 const STATUS_FILTERS: Readonly<
   Record<string, Array<DataSecurityIssueStatus> | null>
 > = {
@@ -838,7 +961,12 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Data security issues (${statusText}${severity ? `, ${severity}` : ""}) - ${serialized.rowCount} found`,
+      // In the reader's language (issue #8311).
+      ...getDataSecurityIssuesCitation({
+        status: statusText,
+        severity,
+        count: serialized.rowCount,
+      }),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -850,6 +978,10 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
                   AI_READ_RECORD_TABLE_TITLES.dataSecurityIssues,
                   { count: countFigure(rows.length) },
                 ),
+                cells: termCells(rows, {
+                  severity: DATA_SECURITY_WORDS,
+                  status: ISSUE_STATUS_WORDS,
+                }),
               },
               columns: [
                 { key: "title", title: translationKey("Issue"), type: "text" },
@@ -982,7 +1114,9 @@ async function readOneIssue(
   return {
     dataForLlm: serialized.text,
     rowCount: 1,
-    citationLabel: `Data security issue: ${issue.title || issue.checkId || issue.id.toString()}`,
+    ...citationSentence(AI_TOOL_CITATIONS.dataSecurityIssue, {
+      title: issue.title || issue.checkId || issue.id.toString(),
+    }),
     citationTarget: {
       type: AIChatCitationTargetType.DataSecurityIssueView,
       params: { dataSecurityIssueId: issue.id.toString() },
@@ -1108,7 +1242,9 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: sorted.length,
-        citationLabel: `Who can reach the data store - ${sorted.length} found`,
+        ...citationSentence(AI_TOOL_CITATIONS.whoCanReachDataStore, {
+          count: countFigure(sorted.length),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.DataStoreView,
           params: { dataStoreId: dataStoreId },
@@ -1225,7 +1361,10 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: reachable.length,
-      citationLabel: `Data stores "${principal}" can reach - ${reachable.length} found`,
+      ...citationSentence(AI_TOOL_CITATIONS.dataStoresPrincipalCanReach, {
+        principal: principal || "",
+        count: countFigure(reachable.length),
+      }),
       citationTarget: target,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated || reachable.length > listed.length,
@@ -1240,6 +1379,10 @@ export const QueryDataStoreAccessTool: ObservabilityTool = {
                     count: countFigure(listed.length),
                   },
                 ),
+                cells: termCells(listed, {
+                  sensitivity: DATA_SECURITY_WORDS,
+                  level: DATA_SECURITY_WORDS,
+                }),
               },
               columns: [
                 { key: "store", title: translationKey("Store"), type: "text" },

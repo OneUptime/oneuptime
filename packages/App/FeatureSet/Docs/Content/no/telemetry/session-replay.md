@@ -811,7 +811,7 @@ Under diagnosen deler siden et opptak opp i fire faser — **Opptaker lastet**, 
 
 ### Varsler for lagringsbudsjettet
 
-De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [metrikk-overvåkinger](/docs/monitor/metrics-monitor) varsler på dem.
+De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [målingsovervåkinger](/docs/monitor/metrics-monitor) varsler på dem.
 
 **Sette dem opp.** Fire ferdige varsler overvåker disse budsjettene, på applikasjonens fane **Anbefalinger** under **Øktavspilling**:
 
@@ -822,7 +822,7 @@ De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applik
 | **Session Replay Monthly Budget Nearly Spent** | Advarsel | Applikasjonen har brukt 80 % av det månedlige budsjettet sitt. |
 | **Session Replay Monthly Budget Spent** | Kritisk | Applikasjonens månedlige budsjett er brukt opp: opptakerne har fått beskjed om å stoppe til den 1. i neste måned (UTC) eller til budsjettet økes. |
 
-Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Avspillingspolicy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Lagringsbudsjett** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig metrikk-overvåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Avspillingspolicy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
+Så lenge øktavspilling er slått på for applikasjonen, tilbys det daglige paret så snart den har tatt opp en avspilling, og det månedlige paret så snart den også har et **Månedlig budsjett (GB)** på siden **Avspillingspolicy**; mangler ett av dem på en applikasjon der du bruker øktavspilling, sier fanen hvorfor. Så snart det daglige paret tilbys, åpner **Sett opp varsler** i panelet **Lagringsbudsjett** på siden **Helse** fanen filtrert på budsjettvarslene, inkludert dem du allerede har opprettet. Hvert varsel du oppretter, er en vanlig målingsovervåking på applikasjonen, og hendelsen og varselet den åpner, sier hva du skal gjøre. For å få et budsjett til å vare lenger senker du **Utvalgsprosent**, laster bare opp _On error or frustration_ eller snevrer inn **Tillatte opprinnelser** på **Avspillingspolicy** — hver av dem stopper en opplasting før den telles — eller øker **Månedlig budsjett (GB)**. Den daglige grensen kan ikke økes fra dashbordet; på en egenhostet installasjon er den `SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY` (se [Merknader om egen hosting](#merknader-om-egen-hosting)).
 
 **Én daglig overvåking dekker prosjektet.** Den daglige grensen tilhører prosjektet, ikke en applikasjon: alle applikasjonene bruker av den sammen, og hver applikasjon som tar opp, bærer prosjektets tall, så det daglige paret tilbys på hver av dem, og en daglig overvåking på en hvilken som helst av dem dekker dem alle. Opprett det daglige paret på én applikasjon, en som holder øktavspilling slått på (overvåkingen dens ser bare punktene som er skrevet for den applikasjonen), og avvis de daglige kortene på de andre; ellers gir én oppbrukt dag ett varsel per applikasjon. Det månedlige paret tilhører hver applikasjon: opprett det overalt der du setter et budsjett.
 
@@ -855,7 +855,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 - Applikasjonen har aldri tatt opp en avspilling.
 - Applikasjonen har ikke noe månedlig budsjett: ingenting telles mot et budsjett som ikke er satt, så det finnes ikke noe månedlig par i det hele tatt. Å fjerne budsjettet gjør de månedlige overvåkingene stille, og det månedlige tallet teller bare opplastinger som gjøres mens et budsjett er satt: et som settes første gang midt i måneden, teller fra det øyeblikket, ikke fra den 1., mens et som fjernes og settes igjen i samme måned, fortsetter månedens tidligere telling.
 
-**Lag din egen overvåking.** En [metrikk-overvåking](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
+**Lag din egen overvåking.** En [målingsovervåking](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
 
 - Finn målingene i prosjektets målingsutforsker (**Målinger** i hovednavigasjonen) og i en overvåkings målingsvelger når det første punktet deres er skrevet. De står ikke på applikasjonens egen fane **Målinger**.
 - Sett det [rullerende tidsvinduet](/docs/monitor/metrics-monitor#glidende-tidsvindu) til 15 minutter eller mer. Et punkt kommer hvert 5. minutt, så et kortere vindu kan inneholde ett punkt eller ingen, og et tomt vindu løser varselet: én forsinket kjøring ville fått det til å blafre.
@@ -1064,7 +1064,7 @@ Vær oppmerksom på at øktraden utløper sammen med opptaket: antall feil, frus
 
 ### Slett økter
 
-For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en prosjekteier / -administrator) og tar:
+For å etterkomme en sletteforespørsel sender du inn en sletteforespørsel via OneUptimes API — ressursen `/rum-session-erasure-request`; det finnes ennå ikke noe skjema i dashbordet for det. En forespørsel krever `CreateRumSessionErasureRequest` (eller en Prosjekteier / Prosjektadministrator) og tar:
 
 | Felt | Verdier |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Fordi merkingen når hver tjeneste en nettleserforespørsel gikk gjennom, fjerne
 
 ## Hvem kan se et opptak
 
-Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Viewer-rollen for hele prosjektet. Prosjekteiere og -administratorer har alle.
+Å se et opptak er en annen tillatelse enn å liste opp økter, og ingen av dem gis av Leser-rollen for hele prosjektet. Prosjekteiere og Prosjektadministratorer har alle.
 
 | Tillatelse | Låser opp |
 | --- | --- |
@@ -1138,5 +1138,5 @@ To ting forteller deg hvilken av dem du har foran deg:
 - [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting): Hver kode fra opptakeren, og hva du gjør med den.
 - [Nettleseroppsett](/docs/rum/browser-setup): Legg til OpenTelemetry-spor, -logger og Core Web Vitals på de samme sidene.
 - [Administrere applikasjoner](/docs/rum/applications): Oppbevaring, etiketter og hvem som kan se opptak.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
 :::
