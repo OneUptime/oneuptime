@@ -626,9 +626,28 @@ describe("DatadogIntake.logsToOtlp: status", () => {
     ["fail", 21, "FATAL"],
     ["warned", 13, "WARN"],
     ["dbg-detail", 5, "DEBUG"],
-    ["verbose2", 1, "TRACE"],
+    // Debug, as Datadog and Appendix B read verbose (issue #8536).
+    ["verbose2", 5, "DEBUG"],
     ["notable", 10, "INFO2"],
     ["started", 9, "INFO"],
+    /*
+     * Datadog's statuses are syslog's, so its critical stays syslog's
+     * Critical (ERROR2), below its alert - not the application logger's
+     * top level every other path reads `critical` as (issue #8536).
+     */
+    ["CRITICAL", 18, "ERROR2"],
+    [" Critical ", 18, "ERROR2"],
+    // The level words every log ingest reads, which the prefixes misread.
+    ["verbose", 5, "DEBUG"],
+    ["fine", 6, "DEBUG2"],
+    ["finest", 1, "TRACE"],
+    ["config", 7, "DEBUG3"],
+    ["severe", 17, "ERROR"],
+    ["panic", 19, "ERROR3"],
+    ["WARN2", 14, "WARN2"],
+    ["fatal4", 24, "FATAL4"],
+    ["ftl", 21, "FATAL"],
+    ["eror", 17, "ERROR"],
   ])(
     "status %p is severity %i (%s)",
     (status: unknown, severityNumber: number, severityText: string): void => {

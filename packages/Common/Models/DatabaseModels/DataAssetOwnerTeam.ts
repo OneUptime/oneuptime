@@ -245,7 +245,7 @@ export default class DataAssetOwnerTeam extends BaseModel {
     manyToOneRelationColumn: "dataAssetId",
     type: TableColumnType.Entity,
     modelType: DataAsset,
-    title: "Table",
+    title: "Table (database object)",
     description: "Relation to Table in which this object belongs",
   })
   @ManyToOne(

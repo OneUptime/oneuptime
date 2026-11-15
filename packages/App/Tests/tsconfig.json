@@ -1,0 +1,16 @@
+{
+  /*
+   * The project every file in this directory belongs to, unless a nearer
+   * tsconfig.json claims it (Dashboard, FeatureSet): exactly
+   * ../tsconfig.tests.rest.json, a part of the type-check `npm run compile`
+   * runs. Its "include" and "exclude" are inherited and resolve against
+   * packages/App, where they are written.
+   *
+   * It exists because TypeScript picks a file's project by the nearest
+   * tsconfig.json - editors, and ESLint's typed linting (projectService in
+   * eslint.config.js, Scripts/Lint/LintByProject.js). ../tsconfig.json
+   * leaves Tests out, and without this these files would fall through to the
+   * repository root's program, the whole monorepo.
+   */
+  "extends": "../tsconfig.tests.rest.json"
+}

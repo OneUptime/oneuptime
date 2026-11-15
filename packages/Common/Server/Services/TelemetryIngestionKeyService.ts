@@ -244,6 +244,28 @@ export class Service extends DatabaseService<Model> {
   );
 
   /*
+   * Reads by secret under way (issue #8426), so the lookups that miss a
+   * secret together share one read of its row rather than each reading
+   * Postgres: a pod's first requests for a busy key, a key's entry running
+   * out, or every entry missing at once after a key changed or Redis came
+   * back. Keyed on the secret's digest - never the secret - and on the key
+   * and generation the read started under (policyReadKeyOf), so a lookup
+   * only ever takes a read of its own secret, started under the generation
+   * it saw. Each entry is removed when its read settles, landed or failed:
+   * the map holds the reads in flight, nothing more.
+   */
+  private policyReads: Map<string, Promise<CachedIngestionKeyPolicy | null>> =
+    new Map();
+
+  /*
+   * How many writes through this service this process has finished
+   * (forgetLookupsBySecret): a first read by secret that a write landed
+   * during is not kept, since it cannot tell which side of the write it
+   * read (findPolicyBySecret).
+   */
+  private writesSeen: number = 0;
+
+  /*
    * Per-key throttle for the lastUsedAt stamp. Deliberately in-process rather
    * than in GlobalCache/Redis (which is how RumApplicationService throttles
    * its equivalent health columns): the cost of getting it wrong here is one
@@ -431,7 +453,7 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    this.policyCache.clear();
+    this.forgetLookupsBySecret();
     await this.forgetKeys(itemIdsBeforeDelete);
     return onDelete;
   }
@@ -585,9 +607,23 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    this.policyCache.clear();
+    this.forgetLookupsBySecret();
     await this.forgetKeys(updatedItemIds);
     return onUpdate;
+  }
+
+  /*
+   * After a write through this service: nothing the lookup by secret read
+   * before it is served again here. The keys it kept are dropped, a lookup
+   * from now on starts a read of its own rather than taking one under way
+   * (policyReads), and a first read under way when the write landed is not
+   * kept once it lands (writesSeen): it may have read the row from before
+   * the write, under the generation from after it.
+   */
+  private forgetLookupsBySecret(): void {
+    this.policyCache.clear();
+    this.policyReads.clear();
+    this.writesSeen++;
   }
 
   /*
@@ -618,8 +654,9 @@ export class Service extends DatabaseService<Model> {
   /**
    * Resolve an ingestion token to the full policy the ingest guards need,
    * with a short-lived in-process cache to keep the hot ingest path off
-   * Postgres. Returns null for unknown or malformed tokens (also cached, for a
-   * shorter TTL).
+   * Postgres, and one read shared by the lookups that miss it together
+   * (readPolicyBySecret). Returns null for unknown or malformed tokens (also
+   * cached, for a shorter TTL).
    *
    * A disabled or expired key still resolves so the caller can explain that
    * refusal. An otherwise usable key requires payment setup here, so every
@@ -690,6 +727,13 @@ export class Service extends DatabaseService<Model> {
    * key is known before the read when this process read the secret before
    * (keyIdBySecret); the first time, its generation can only be read after,
    * and it is kept for FIRST_READ_TTL_MS only.
+   *
+   * The lookups that miss together share one read (issue #8426): a lookup
+   * takes a read under way when it is of the same secret, and started under
+   * the key and generation this lookup sees. A lookup that sees a newer
+   * generation - the key changed while that read was in flight - never takes
+   * what the read saw: it reads again, and the lookups that see what it saw
+   * share that read in turn.
    */
   private async readPolicyBySecret(data: {
     cacheKey: string;
@@ -704,6 +748,69 @@ export class Service extends DatabaseService<Model> {
       ? await this.generations.get(knownKeyId)
       : null;
 
+    const readKey: string = Service.policyReadKeyOf({
+      cacheKey: data.cacheKey,
+      knownKeyId: knownKeyId,
+      generationBefore: generationBefore,
+    });
+
+    const underWay: Promise<CachedIngestionKeyPolicy | null> | undefined =
+      this.policyReads.get(readKey);
+
+    if (underWay) {
+      return underWay;
+    }
+
+    const read: Promise<CachedIngestionKeyPolicy | null> =
+      this.findPolicyBySecret({
+        cacheKey: data.cacheKey,
+        secretKey: data.secretKey,
+        knownKeyId: knownKeyId,
+        generationBefore: generationBefore,
+      }).finally(() => {
+        if (this.policyReads.get(readKey) === read) {
+          this.policyReads.delete(readKey);
+        }
+      });
+
+    this.policyReads.set(readKey, read);
+
+    return read;
+  }
+
+  /*
+   * A read by secret's place in policyReads: the secret's digest, and the
+   * key and generation the read started under ("" for a first read, which
+   * knows neither). A digest is hex, a key id a uuid and a generation
+   * tokens joined by "." (CacheGenerations), so "|" never occurs in any.
+   */
+  private static policyReadKeyOf(data: {
+    cacheKey: string;
+    knownKeyId: string | undefined;
+    generationBefore: string | null;
+  }): string {
+    return [
+      data.cacheKey,
+      data.knownKeyId || "",
+      data.generationBefore ?? "",
+    ].join("|");
+  }
+
+  /*
+   * One read of the row a secret opens, kept once it lands (readPolicyBySecret
+   * says under which generation). Nothing is kept when it fails: every lookup
+   * that shared it fails, and the next one reads again.
+   */
+  private async findPolicyBySecret(data: {
+    cacheKey: string;
+    secretKey: ObjectID;
+    knownKeyId: string | undefined;
+    generationBefore: string | null;
+  }): Promise<CachedIngestionKeyPolicy | null> {
+    const knownKeyId: string | undefined = data.knownKeyId;
+    const generationBefore: string | null = data.generationBefore;
+    const writesSeenBefore: number = this.writesSeen;
+
     const token: Model | null = await this.findOneBy({
       query: { secretKey: data.secretKey },
       select: POLICY_SELECT,
@@ -715,7 +822,13 @@ export class Service extends DatabaseService<Model> {
       | undefined;
 
     if (!token || !projectId) {
-      this.policyCache.set(data.cacheKey, null, NEGATIVE_TTL_MS);
+      /*
+       * Not kept when a write here landed during the read: it may be the
+       * write that gave a key this secret.
+       */
+      if (this.writesSeen === writesSeenBefore) {
+        this.policyCache.set(data.cacheKey, null, NEGATIVE_TTL_MS);
+      }
       return null;
     }
 
@@ -737,9 +850,21 @@ export class Service extends DatabaseService<Model> {
     }
 
     // The first read of this secret here: kept briefly, then read again.
+    const generationAfter: string = await this.generations.get(keyId);
+
+    /*
+     * Unless a write through this process landed while it was read: the
+     * generation after the read is the write's, and the row may be from
+     * before it. The lookups that shared it get what it read - they asked
+     * before the write - and the next one reads again.
+     */
+    if (this.writesSeen !== writesSeenBefore) {
+      return snapshot;
+    }
+
     this.policyCache.set(
       data.cacheKey,
-      { policy: snapshot, generation: await this.generations.get(keyId) },
+      { policy: snapshot, generation: generationAfter },
       FIRST_READ_TTL_MS,
     );
     return snapshot;

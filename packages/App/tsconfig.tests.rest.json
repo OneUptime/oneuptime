@@ -1,0 +1,12 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile` type-checks on its
+   * own (scripts/compile-tests.js): every App test but those in
+   * Tests/Dashboard (tsconfig.tests.dashboard.json) and Tests/FeatureSet
+   * (tsconfig.tests.featureset.json). Everything but which files it holds is
+   * inherited, so these tests are held to exactly the rules of the whole
+   * program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "exclude": ["node_modules", "build", "Tests/Dashboard", "Tests/FeatureSet"]
+}

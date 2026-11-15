@@ -560,6 +560,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The banner at the top of an SLO's pages: each notice's title, its
+   * sentence of what to do and its link (#8446). The banner looks them up;
+   * the worker's statuses they are read from stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No
    * recent data, Waiting for data - and what each means: the Serverless
@@ -872,6 +881,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   {
     directory:
       "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a data alert most likely happened (its Why This Happened card,
+   * #8343): each likely cause's title the server words, as a whole sentence
+   * with the names and counts it gives as values, for the Dashboard to word
+   * in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataAlertCauseTitles.ts",
     kind: "keys",
   },
 ];

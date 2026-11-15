@@ -144,10 +144,16 @@ export async function processSnmpTrapBatchFromQueue(
         throw err;
       }
 
-      // A trap that can never be processed (bad data): logged and dropped.
-      logger.warn(
-        `SNMP trap from ${sourceIpAddress} via probe ${probeId} dropped: ${err.message}`,
-      );
+      /*
+       * A trap that can never be processed (bad data): logged and dropped -
+       * once: a refusal the worker completes a job on was logged where it
+       * was refused (processSnmpTrapFromQueue).
+       */
+      if (!isNonActionableIngestError(err)) {
+        logger.warn(
+          `SNMP trap from ${sourceIpAddress} via probe ${probeId} dropped: ${err.message}`,
+        );
+      }
     }
 
     await SnmpTrapPendingStore.removeOldest(probeId, sourceIpAddress, trap.raw);
