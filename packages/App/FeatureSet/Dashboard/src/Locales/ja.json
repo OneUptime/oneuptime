@@ -53542,5 +53542,7 @@
   "This note stays until the monitor's next request arrives.": "この案内は、モニターに次のリクエストが届くまで表示されます。",
   "Topic": "トピック",
   "Validate Subscription": "サブスクリプションを検証",
-  "Validate the Azure Event Grid subscription": "Azure Event Grid のサブスクリプションを検証"
+  "Validate the Azure Event Grid subscription": "Azure Event Grid のサブスクリプションを検証",
+  "Collect logs from every container (json-file log driver)": "すべてのコンテナからログを収集 (json-file ログドライバー)",
+  "Collect logs from every container (k8s-file log driver)": "すべてのコンテナからログを収集 (k8s-file ログドライバー)"
 }

@@ -53542,5 +53542,7 @@
   "This note stays until the monitor's next request arrives.": "تبقى هذه الملاحظة حتى يصل الطلب التالي إلى المراقبة.",
   "Topic": "الموضوع",
   "Validate Subscription": "التحقق من صحة الاشتراك",
-  "Validate the Azure Event Grid subscription": "تحقّق من صحة اشتراك Azure Event Grid"
+  "Validate the Azure Event Grid subscription": "تحقّق من صحة اشتراك Azure Event Grid",
+  "Collect logs from every container (json-file log driver)": "جمع سجلات كل الحاويات (برنامج تشغيل السجلات json-file)",
+  "Collect logs from every container (k8s-file log driver)": "جمع سجلات كل الحاويات (برنامج تشغيل السجلات k8s-file)"
 }

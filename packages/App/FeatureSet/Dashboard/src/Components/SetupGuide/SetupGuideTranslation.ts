@@ -91,12 +91,20 @@ const CODE_SPAN: RegExp = /`[^`\n]+`/g;
 // A link's target: "](/docs/...)".
 const LINK_TARGET: RegExp = /\]\([^)\s]*\)/g;
 
-// Where a piece's code span or link target stood, in its shape.
-const CODE_IN_SHAPE: string = "``";
-const LINK_IN_SHAPE: string = "]()";
+/*
+ * Where a piece's code span or link target stood, in its shape: a
+ * character of Unicode's private use area, which no guide writes.
+ */
+const CODE_IN_SHAPE: string = "`\uE000`";
+const LINK_IN_SHAPE: string = "](\uE001)";
 
-// A word: two letters, outside code and link targets.
-const A_WORD: RegExp = /\p{L}{2}/u;
+/*
+ * A word, outside code and link targets: a letter and the letter or mark
+ * after it (Devanagari writes its vowels as marks: "डेटा"), or one
+ * character of a script that writes a word in one (是, 例).
+ */
+const A_WORD: RegExp =
+  /\p{L}[\p{L}\p{M}]|[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 type LineKind = "fence" | "blank" | "marker" | "quote" | "single" | "paragraph";
 
