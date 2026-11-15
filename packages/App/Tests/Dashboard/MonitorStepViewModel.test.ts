@@ -592,7 +592,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
 
   it("shows configured retries and names the inherited default when omitted", () => {
     expect(getRow(MonitorType.API, "requestTimeoutInMs")?.value).toBe(
-      "5,000 ms",
+      "5,000\u00A0ms",
     );
     expect(getRow(MonitorType.API, "retryCount")?.value).toBe(2);
 
@@ -637,7 +637,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
     ).toEqual([
       ["monitorDestination", "NTP Server", "time.example.com"],
       ["monitorDestinationPort", "Port", "123"],
-      ["requestTimeoutInMs", "Request Timeout", "2,000 ms"],
+      ["requestTimeoutInMs", "Request Timeout", "2,000\u00A0ms"],
       ["retryCount", "Retry Count", 1],
     ]);
   });
@@ -660,7 +660,7 @@ describe("MonitorStepViewModel.getRows — probe monitors", () => {
 
     expect(byKey("monitorDestination")?.value).toBe("192.0.2.10");
     expect(byKey("monitorDestinationPort")?.value).toBe("123");
-    expect(byKey("requestTimeoutInMs")?.value).toBe("5,000 ms");
+    expect(byKey("requestTimeoutInMs")?.value).toBe("5,000\u00A0ms");
     expect(byKey("retryCount")).toMatchObject({
       value: undefined,
       placeholder: "Probe default (usually 3)",
@@ -863,7 +863,7 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
     );
     expect(
       getRow(MonitorType.Database, "databaseStatementTimeoutInMs")?.value,
-    ).toBe("5,000 ms");
+    ).toBe("5,000\u00A0ms");
   });
 
   /*

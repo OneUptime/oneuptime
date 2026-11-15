@@ -57,10 +57,13 @@ const PUBLIC_FACING_READERS: ReadonlyArray<{ file: string; reads: number }> = [
     file: "App/FeatureSet/Workers/Jobs/IncidentEpisodePublicNote/SendNotificationToSubscribers.ts",
     reads: 3,
   },
-  // Owners told a note was posted.
+  /*
+   * Owners told a note was posted: the notes not told of yet, and the one
+   * whose owners a stopped run left to be told (#8199).
+   */
   {
     file: "App/FeatureSet/Workers/Jobs/IncidentOwners/SendNotePostedNotification.ts",
-    reads: 1,
+    reads: 2,
   },
   {
     file: "App/FeatureSet/Workers/Jobs/ScheduledMaintenanceOwners/SendNotePostedNotification.ts",

@@ -164,6 +164,8 @@ import UserService from "Common/Server/Services/UserService";
 import Markdown from "Common/Server/Types/Markdown";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
+import { useInMemoryOwnerNotificationDeliveries } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
+
 import "../../../../FeatureSet/Workers/Jobs/AlertOwners/SendStateChangeNotification";
 
 const alertService: {
@@ -246,9 +248,9 @@ function makeAlert(data: { seriesLabels?: JSONObject | undefined }): Alert {
   return alert;
 }
 
-function makeOwner(): User {
+function makeOwner(id: string = "user-1"): User {
   const user: User = new User();
-  user.id = new ObjectID("user-1");
+  user.id = new ObjectID(id);
   return user;
 }
 
@@ -292,6 +294,12 @@ function answerRelationReadsWithFetchedAlert(): void {
 describe("AlertOwner:SendStateChangeEmail email content", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    /*
+     * Whom each record tells is written down before it is taken, and each
+     * owner told through it (OwnerNotificationDeliveries, #8199).
+     */
+    useInMemoryOwnerNotificationDeliveries();
 
     markdownMock.convertToHTML.mockImplementation((markdown: string) => {
       return Promise.resolve(`<p data-md>${markdown}</p>`);
@@ -371,10 +379,14 @@ describe("AlertOwner:SendStateChangeEmail email content", () => {
         makeTimeline({ rootCause: RECOVERY_ROOT_CAUSE }),
       ]);
       alertService.findOneById.mockResolvedValue(makeAlert({}));
+      /*
+       * Three different people: the same person named three times is told
+       * once (OwnerNotificationDeliveries).
+       */
       alertService.findOwners.mockResolvedValue([
-        makeOwner(),
-        makeOwner(),
-        makeOwner(),
+        makeOwner("user-1"),
+        makeOwner("user-2"),
+        makeOwner("user-3"),
       ]);
 
       await runWorkerTick();

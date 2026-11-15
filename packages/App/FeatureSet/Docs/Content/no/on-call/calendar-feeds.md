@@ -315,7 +315,7 @@ Lenken er ukjent, er slettet, eller karensperioden er over. Generer en ny og abo
 :::
 
 :::details Lenken svarer 503
-Enten er `DISABLE_ON_CALL_CALENDAR_FEED` satt, eller serveren er opptatt: høyst noen få feeder bygges om gangen, og en vaktplan som tar svært lang tid å regne ut, avbrytes. Finnes det en tidligere kopi av feeden, leverer serveren den i stedet, med en `Warning: 110`-header, så en 503 betyr at det ikke fantes noe å falle tilbake på. Klienter beholder sin siste kopi og prøver igjen etter intervallet i `Retry-After`. Fastmail deaktiverer et abonnement etter fem feil på rad; legg det til igjen når serveren er frisk. Metrikken `oncall_calendar_render_duration_ms` viser driftsfolk hvilke feeder som er trege.
+Enten er `DISABLE_ON_CALL_CALENDAR_FEED` satt, eller serveren er opptatt: høyst noen få feeder bygges om gangen, og en vaktplan som tar svært lang tid å regne ut, avbrytes. Finnes det en tidligere kopi av feeden, leverer serveren den i stedet, med en `Warning: 110`-header, så en 503 betyr at det ikke fantes noe å falle tilbake på. Klienter beholder sin siste kopi og prøver igjen etter intervallet i `Retry-After`. Fastmail deaktiverer et abonnement etter fem feil på rad; legg det til igjen når serveren er frisk. Målingen `oncall_calendar_render_duration_ms` viser driftsfolk hvilke feeder som er trege.
 :::
 
 :::details 429 eller "too many requests"

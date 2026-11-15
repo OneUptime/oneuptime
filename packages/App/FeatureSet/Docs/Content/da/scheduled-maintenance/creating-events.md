@@ -7,7 +7,7 @@ Planlæg vedligeholdelse i to korte trin: sig, hvad der sker og hvornår, og der
 - [Hvad der sker, når du opretter den](#hvad-der-sker-når-du-opretter-den): Dens nummer, regler, ejere og de første beskeder.
 - [Offentliggør den senere](#offentliggør-den-senere): Hold den væk fra dine statussider indtil en dato og et klokkeslæt.
 - [Ændr en begivenhed senere](#ændr-en-begivenhed-senere): Dens vindue, ressourcer, statussider og noter.
-- [Opret begivenheder fra kode](#opret-begivenheder-fra-kode): API'et, Terraform, workflows og chat.
+- [Opret begivenheder fra kode](#opret-begivenheder-fra-kode): API'et, Terraform, arbejdsgange og chat.
 :::
 
 ## Sådan fungerer det
@@ -90,7 +90,7 @@ I det øjeblik du klikker på **Opret vedligeholdelseshændelse**, gennemgår On
 5. **Runbook-regler starter** de runbooks, der matcher begivenheden.
 6. **Påmindelser planlægges**, når en påmindelsesregel matcher, for dens ejere.
 
-Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Workflow-triggeren **On Create Maintenance Event** starter ethvert workflow, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
+Inden for et minut efter dens offentliggørelse, som sker med det samme, medmindre du har valgt et **Offentliggør den**, får abonnenterne på dens statussider besked om, at den er planlagt, medmindre du har slået **Når begivenheden planlægges** fra. Arbejdsgangstriggeren **On Create Maintenance Event** starter enhver arbejdsgang, der er bygget på den, og dens ejere hører om den, hvis de har slået den notifikation til: se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
 ## Offentliggør den senere
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Kontakten **Når begivenheden planlægges**. De to andre tidspunkter har deres egne felter. |
 | `publishOnStatusPageAt`                               | Hvornår begivenheden offentliggøres på sine statussider, og dens abonnenter får besked om, at den er planlagt. Udeladt: med det samme. |
 
-Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). Et workflow opretter én med sit trin **Create One Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
+Den samme begivenhed som kode er Terraform-ressourcen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedligeholdelse). En arbejdsgang opretter én med sit trin **Create One Maintenance Event**, og `/oneuptime maintenance` åbner formularen i Slack: se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 
 ## Fejlfinding
 

@@ -113,7 +113,7 @@ O que um cliente conectado pode fazer:
 
 ### Gerenciar os clientes conectados
 
-Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os proprietários e administradores do projeto veem os de todos.
+Todo cliente conectado por login aparece em **Configurações do projeto → IA → Servidor MCP**, em **Clientes MCP conectados**, com quem o conectou, o que ele pode fazer e quando foi usado pela última vez. Você vê os clientes que você conectou; os Proprietários do projeto e Administradores do projeto veem os de todos.
 
 Clique em **Desconectar** para desconectar um cliente. Ele para de funcionar na hora.
 
@@ -497,7 +497,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Segurança | Security Event, Threat Intel Indicator |
 | Mudanças e custos | Change Event, Kubernetes Cost Allocation |
 
-As ferramentas têm nomes em snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, ou `list_logs` e `count_spans` para a telemetria.
+As ferramentas têm nomes em snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` e `count_incidents`, ou `list_logs` e `count_spans` para a telemetria. `create_incident` e `create_alert` também recebem `ownerUsers` e `ownerTeams`: os ids dos usuários e equipes que são donos do registro desde o início, que são avisados de que ele foi criado.
 
 ## Próximos passos
 

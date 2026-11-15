@@ -455,5 +455,5 @@ Eine Gruppe kann bei keiner Prüfung erfasst werden, daher wiederholt sich dasse
 - [SQL-Abfrage-Überwachung](/docs/monitor/sql-monitor): Auf das Ergebnis Ihrer eigenen Abfrage alarmieren, neben der Gesundheit des Servers.
 - [Datenbanken](/docs/telemetry/databases): Die Metriken, Logs und Aufrufer jeder Datenbank auf einer Seite sehen.
 - [Überwachungs-Geheimnisse](/docs/monitor/monitor-secrets): Das Passwort des Überwachungsbenutzers verschlüsselt aufbewahren.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Eine Datenbank in Ihrem Netzwerk erreichen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Eine Datenbank in Ihrem Netzwerk erreichen.
 :::

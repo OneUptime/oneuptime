@@ -60,8 +60,9 @@ import {
   AI_READ_PROFILE_KINDS,
   AI_READ_TELEMETRY_TABLE_LINES,
   AI_READ_TELEMETRY_TABLE_TITLES,
+  AI_TOOL_CITATIONS,
 } from "../../../../Types/AI/AIReadTableWords";
-import { windowValues } from "./ReadTableWords";
+import { windowValues, citationSentence, ToolCitation } from "./ReadTableWords";
 
 /*
  * CONTINUOUS PROFILING, FOR THE AI.
@@ -180,14 +181,15 @@ function profilesTarget(data: {
 function noProfilesResult(data: {
   serviceId: ObjectID | undefined;
   window: ProfileWindow;
-  label: string;
+  // What the chip names, in the reader's language (issue #8311).
+  label: ToolCitation;
 }): ToolExecutionResult {
   return {
     dataForLlm: `No profiles were received ${
       data.serviceId ? "for this service " : ""
     }between ${windowText(data.window)}. The service may not be profiled (see the setup guide in Profiles), or this window may be before profiling started or past the data retention.`,
     rowCount: 0,
-    citationLabel: data.label,
+    ...data.label,
     citationTarget: profilesTarget({
       serviceId: data.serviceId,
       kind: null,
@@ -276,7 +278,11 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
 
     const { serviceId, serviceFilter } = await getScopedFilter(args, ctx);
 
-    const label: string = `Profile hotspots, ${windowText(window)}`;
+    // In the reader's language and time (issue #8311).
+    const label: ToolCitation = citationSentence(
+      AI_TOOL_CITATIONS.profileHotspots,
+      windowValues(window.startTime, window.endTime),
+    );
 
     const kind: ProfileKind | null = await ProfileEvidence.resolveKind({
       projectId: ctx.projectId,
@@ -362,7 +368,7 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
     return {
       dataForLlm: `${header}\n${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: label,
+      ...label,
       citationTarget: profilesTarget({ serviceId, kind, window }),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -565,7 +571,15 @@ export const CompareProfilesTool: ObservabilityTool = {
 
     const { serviceId, serviceFilter } = await getScopedFilter(args, ctx);
 
-    const label: string = `Profile comparison, ${windowText(before)} vs ${windowText(after)}`;
+    const label: ToolCitation = citationSentence(
+      AI_TOOL_CITATIONS.profileComparison,
+      {
+        beforeStart: aiActionMoment(before.startTime),
+        beforeEnd: aiActionMoment(before.endTime),
+        afterStart: aiActionMoment(after.startTime),
+        afterEnd: aiActionMoment(after.endTime),
+      },
+    );
 
     const kind: ProfileKind | null = await ProfileEvidence.resolveKind({
       projectId: ctx.projectId,
@@ -641,7 +655,7 @@ export const CompareProfilesTool: ObservabilityTool = {
     return {
       dataForLlm,
       rowCount: slower.length + faster.length + ownGrowth.length,
-      citationLabel: label,
+      ...label,
       citationTarget: profilesTarget({ serviceId, kind, window: after }),
       redactionCount:
         slowerText.redactionCount +
@@ -763,7 +777,13 @@ export const GetProfileFunctionTool: ObservabilityTool = {
 
     const { serviceId, serviceFilter } = await getScopedFilter(args, ctx);
 
-    const label: string = `Profile of ${functionName}, ${windowText(window)}`;
+    const label: ToolCitation = citationSentence(
+      AI_TOOL_CITATIONS.profileOfFunction,
+      {
+        function: functionName,
+        ...windowValues(window.startTime, window.endTime),
+      },
+    );
 
     const kind: ProfileKind | null = await ProfileEvidence.resolveKind({
       projectId: ctx.projectId,
@@ -794,7 +814,7 @@ export const GetProfileFunctionTool: ObservabilityTool = {
           serviceId ? " in this service" : ""
         }. Check its name against get_profile_hotspots, or try a wider window.`,
         rowCount: 0,
-        citationLabel: label,
+        ...label,
         citationTarget: profilesTarget({ serviceId, kind, window }),
         redactionCount: 0,
         isTruncated: false,
@@ -809,7 +829,7 @@ export const GetProfileFunctionTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: 1,
-      citationLabel: label,
+      ...label,
       citationTarget: profilesTarget({ serviceId, kind, window }),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,

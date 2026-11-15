@@ -51,7 +51,7 @@ En vurdering leser:
 - vertene i OneUptime som sakens verter og adresser samsvarer med, og hvem som eier dem;
 - hendelsen saken har erklært, notatene, de beskyttede entitetene og playbookene som er slått på.
 
-Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, metrikker, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
+Den kan også lese resten av OneUptime slik undersøkelsen av en hendelse gjør: logger, traces, målinger, verter og de skrivebeskyttede verktøyene på prosjektets MCP-servere.
 
 ### Hva den konkluderer
 
@@ -123,7 +123,7 @@ Sjekk at **Aktiver AI** er slått på, og **Vurder nye saker** under **Produkter
 :::
 
 :::details Kortet sier at prosjektet er tomt for AI-kreditter, eller har nådd sin daglige KI-grense
-En prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
+En Prosjekteier eller noen med Manage Billing kan legge til kreditter under **Prosjektinnstillinger → KI → AI-kreditter**, eller heve eller fjerne grensen under **Prosjektinnstillinger → KI → AI-funksjoner**. Klikk deretter på **Vurder med KI** på saken.
 :::
 
 :::details Kortet sier at tekst i saken leser som instruksjoner til en KI

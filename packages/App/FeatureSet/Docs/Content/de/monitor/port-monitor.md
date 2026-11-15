@@ -181,5 +181,5 @@ Port-Monitore öffnen nur TCP-Verbindungen. Verwenden Sie für einen DNS-Server 
 - [Ping-Überwachung](/docs/monitor/ping-monitor): Prüfen, ob der Host selbst erreichbar ist.
 - [SSL-Zertifikat-Überwachung](/docs/monitor/ssl-certificate-monitor): Das Zertifikat auf einem TLS-Port prüfen.
 - [Datenbank-Integritätsüberwachung](/docs/monitor/database-health-monitor): Über einen offenen Port hinausgehen und die Integrität einer Datenbank beobachten.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Ports in Ihrem eigenen Netzwerk prüfen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Ports in Ihrem eigenen Netzwerk prüfen.
 :::

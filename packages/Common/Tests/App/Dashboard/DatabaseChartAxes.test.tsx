@@ -262,11 +262,15 @@ describe("getDatabaseChartYAxis", () => {
   });
 
   test("its two ticks read '0 B' and '1 B', not '0.0 B' and '1.0 B'", () => {
-    expect(formatDatabaseMetricAxisValue(0, "bytes")).toBe("0 B");
-    expect(formatDatabaseMetricAxisValue(1, "bytes")).toBe("1 B");
-    expect(formatDatabaseMetricAxisValue(5 * 1024 ** 3, "bytes")).toBe("5 GiB");
-    expect(formatDatabaseMetricAxisValue(1536, "bytes")).toBe("1.5 KiB");
-    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe("128 MiB");
+    expect(formatDatabaseMetricAxisValue(0, "bytes")).toBe("0\u00A0B");
+    expect(formatDatabaseMetricAxisValue(1, "bytes")).toBe("1\u00A0B");
+    expect(formatDatabaseMetricAxisValue(5 * 1024 ** 3, "bytes")).toBe(
+      "5\u00A0GiB",
+    );
+    expect(formatDatabaseMetricAxisValue(1536, "bytes")).toBe("1.5\u00A0KiB");
+    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe(
+      "128\u00A0MiB",
+    );
   });
 });
 
@@ -342,7 +346,7 @@ describe("the Overview's engine charts", () => {
     expect(chartFor(memory.title).allowDecimals).toBe(false);
     expect(chartFor(memory.title).minValue).toBe(0);
     expect(chartFor(memory.title).maxValue).toBe(1);
-    expect(chartFor(memory.title).valueFormatter!(1)).toBe("1 B");
+    expect(chartFor(memory.title).valueFormatter!(1)).toBe("1\u00A0B");
 
     expect(chartFor(commits.title).allowDecimals).toBe(true);
     expect(chartFor(commits.title).maxValue).toBeUndefined();

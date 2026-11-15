@@ -38,7 +38,7 @@ sequenceDiagram
 
 - **Una sonda del tuo progetto.** Le sonde globali trasportano il traffico di altri progetti, quindi non catturano mai. Per installare una sonda tua, vedi [Sonde personalizzate](/docs/probe/custom-probe).
 - **Una sonda di questa versione o successiva.** Le sonde precedenti non segnalano su cosa possono catturare.
-- **Le autorizzazioni giuste.** Per avviare e fermare una cattura serve **Start Packet Capture**, per scaricare un file **Download Packet Capture**. I proprietari e gli amministratori del progetto le hanno entrambe. Vedi [Autorizzazioni](#autorizzazioni).
+- **Le autorizzazioni giuste.** Per avviare e fermare una cattura serve **Start Packet Capture**, per scaricare un file **Download Packet Capture**. I Proprietari del progetto e gli Amministratori del progetto le hanno entrambe. Vedi [Autorizzazioni](#autorizzazioni).
 - **Una porta replicata, per il traffico che non raggiunge la sonda.** Una sonda vede solo il traffico delle interfacce del proprio host. Per catturare il traffico tra altri dispositivi, replica la loro porta dello switch (SPAN) su un'interfaccia libera dell'host della sonda.
 
 ## Attivare la cattura dei pacchetti

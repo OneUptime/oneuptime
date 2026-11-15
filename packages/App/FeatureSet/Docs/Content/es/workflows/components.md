@@ -487,6 +487,12 @@ El incidente guarda la plantilla de la que se declaró en `createdIncidentTempla
 
 Una entrada que no coincide con nada no detiene el paso: el registro se crea igualmente, y el registro de la ejecución indica qué vinculó cada entrada y cuáles no coincidieron con nada. Los recursos archivados no se vinculan. Los monitores no se buscan: nómbralos en **JSON Object** (`monitors` en un incidente, `monitorId` en una alerta), porque vincular un monitor a un incidente pausa su supervisión.
 
+### Quién lo posee desde el principio
+
+**Create One Incident** y **Create One Alert** tienen los ajustes **Usuarios propietarios** y **Equipos propietarios**: las personas y los equipos que poseen el registro desde que se crea. Elígelos, o tómalos de un paso anterior: el ID o la dirección de correo de un usuario, el ID de un equipo, varios separados por comas o una lista. Los propietarios del registro se enteran de que se creó alrededor de un minuto después de la creación, todos los que tenga para entonces: los elegidos aquí siempre están entre ellos, mientras que los que añade un paso posterior se lo pierden cuando ese paso se ejecuta más de un minuto después, y en su lugar se avisa a los propietarios del proyecto.
+
+El paso pregunta si puede añadirlos, como Administrador del proyecto en el proyecto del flujo de trabajo, antes de guardar el registro: los propietarios que no puede añadir hacen que se rechace la creación. Quien no es miembro del proyecto, o un equipo que no es del proyecto, se deja fuera, y el registro de la ejecución lo dice: el registro se crea igualmente. Los propietarios añadidos así no reciben el aviso de que los añadieron: el aviso de que se creó el registro es el que reciben.
+
 ## Trabajar con registros
 
 Cada campo de un componente de datos se basa en los nombres de **columna** del propio registro: los mismos nombres que usa la API, no las etiquetas del formulario del panel. La columna de ID es `_id`. La forma `id` se acepta como alias en cualquier sitio donde puedas escribir un nombre de columna, pero `_id` es lo que devuelve un registro, así que es lo que debes leer a la salida:

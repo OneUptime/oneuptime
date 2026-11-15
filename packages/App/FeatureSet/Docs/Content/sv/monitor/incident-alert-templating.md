@@ -226,10 +226,10 @@ I en titel kapas var och en till en rad på högst 150 tecken. Beskrivningar och
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
-| `isOnline` | Om tidsservern svarade på probens förfrågan. | `boolean` |
+| `isOnline` | Om tidsservern svarade på sondens förfrågan. | `boolean` |
 | `isSynchronized` | Om den svarade med stratum 1 till 15, utan leap-larmet och med riktiga tidsstämplar. | `boolean` |
 | `stratum` | Det stratum servern rapporterade: 1 för en primär server, 16 när den inte är synkroniserad, 0 för en kiss-o'-death. | `number` |
-| `clockOffsetInMs` | Hur långt serverns klocka är från probens, i millisekunder. Positivt betyder att servern ligger före. | `number` |
+| `clockOffsetInMs` | Hur långt serverns klocka är från sondens, i millisekunder. Positivt betyder att servern ligger före. | `number` |
 | `referenceId` | Vad servern synkroniserar mot: en källa som `GPS` på stratum 1, eller adressen till servern ovanför den. | `string` |
 | `leapIndicator` | 0 till 2 när allt är i ordning, 3 när servern säger att klockan inte är synkroniserad. | `number` |
 | `kissCode` | Med stratum 0 den kod på fyra bokstäver som servern skickade i stället för tiden, som `RATE`. | `string` |
@@ -423,7 +423,7 @@ En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |
-| `isOnline` | Om proben kunde ansluta och köra basfrågan. Saknade mätvärden gör den aldrig falsk. | `boolean` |
+| `isOnline` | Om sonden kunde ansluta och köra basfrågan. Saknade mätvärden gör den aldrig falsk. | `boolean` |
 | `responseTimeInMs` | Tiden det tog att ansluta och köra basfrågan, i millisekunder. | `number` |
 | `failureCause` | Varför kontrollen misslyckades, när den gjorde det. | `string` |
 | `connectionError` | Anslutningsfelet, utan inloggningsuppgifter eller anslutningssträngen. | `string` |

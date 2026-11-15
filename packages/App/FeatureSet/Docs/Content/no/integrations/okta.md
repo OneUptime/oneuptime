@@ -1,6 +1,6 @@
 # Okta-systemlogg
 
-Importer [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) til sikkerhetshendelsene i OneUptime: pålogginger, MFA-utfordringer, konto- og gruppeendringer og Oktas egne trusseldeteksjoner. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med et API-token du selv oppretter, og endrer ingenting i Okta.
+Importer [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) til sikkerhetshendelsene i OneUptime: pålogginger, MFA-utfordringer, konto- og gruppeendringer og Oktas egne trusseldeteksjoner. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med et API-token du selv oppretter, og endrer ingenting i Okta.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): Et API-token og skjemaet for tilkoblingen.

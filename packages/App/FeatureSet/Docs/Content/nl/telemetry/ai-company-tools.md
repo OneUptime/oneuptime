@@ -1,6 +1,6 @@
 # AI-tools van je bedrijf
 
-Zie wat je mensen vragen aan de AI-tools waarvoor je bedrijf betaalt, als gesprekken per persoon. Koppel Claude Enterprise of Microsoft 365 Copilot met inloggegevens die alleen kunnen lezen, en OneUptime haalt elke nieuwe chat elke 15 minuten binnen in **Gesprekken**. Alleen eigenaren en beheerders van het project kunnen ze lezen, tenzij je anders kiest.
+Zie wat je mensen vragen aan de AI-tools waarvoor je bedrijf betaalt, als gesprekken per persoon. Koppel Claude Enterprise of Microsoft 365 Copilot met inloggegevens die alleen kunnen lezen, en OneUptime haalt elke nieuwe chat elke 15 minuten binnen in **Gesprekken**. Alleen Projecteigenaren en Projectbeheerders kunnen ze lezen, tenzij je anders kiest.
 
 :::cards
 - [Vertel het eerst je mensen](#vertel-het-eerst-je-mensen): Hun chats zijn hun eigen woorden.

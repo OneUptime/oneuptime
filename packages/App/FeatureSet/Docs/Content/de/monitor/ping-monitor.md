@@ -152,6 +152,6 @@ Die Sonde, die die Prüfung ausgeführt hat, kann keine Pings senden und hat des
 :::cards
 - [IP-Überwachung](/docs/monitor/ip-monitor): Eine feste IPv4- oder IPv6-Adresse beobachten.
 - [Port-Überwachung](/docs/monitor/port-monitor): Einen Dienst auf dem Host prüfen, nicht nur den Host.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Hosts in Ihrem eigenen Netzwerk anpingen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Hosts in Ihrem eigenen Netzwerk anpingen.
 - [Vorfälle](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

@@ -321,7 +321,7 @@ Als Log-Ereignisse gesendete Prompts und Antworten werden als Logs gespeichert, 
 
 In beiden Fällen liest eine Regel jeden Text in einer Liste oder einem strukturierten Wert, etwa Nachrichten, die eine Instrumentierung als Liste statt als JSON-Text sendet, und behält die Form des Werts bei: Eine E-Mail-Adresse in einem Prompt wird maskiert, wo immer sie steht. Siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen).
 
-Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst. Die Unterhaltungen eines KI-Tools des Unternehmens sind die Ausnahme: Nur Projektinhaber und Admins können sie lesen, es sei denn, seine Verbindung sagt etwas anderes ([KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools#datenschutz)).
+Unterhaltungen werden mit derselben Berechtigung gelesen wie Traces: Wer die Traces des Projekts lesen darf, darf seine Unterhaltungen lesen, und niemand sonst. Die Unterhaltungen eines KI-Tools des Unternehmens sind die Ausnahme: Nur Projektinhaber und Projektadministratoren können sie lesen, es sei denn, seine Verbindung sagt etwas anderes ([KI-Tools im Unternehmen](/docs/telemetry/ai-company-tools#datenschutz)).
 
 ## Attribute, die OneUptime liest
 

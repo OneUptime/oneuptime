@@ -344,7 +344,7 @@ Vedi [Condivisione e dashboard pubbliche](/docs/dashboards/sharing).
 
 Un'automazione senza codice: blocchi su una tela che vengono eseguiti quando scatta il loro trigger, per esempio per pubblicare un messaggio su Slack quando viene dichiarato un incidente, o per chiamare un altro strumento.
 
-Vedi [Panoramica dei workflow](/docs/workflows/index).
+Vedi [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
 ### Runbook
 
@@ -491,7 +491,7 @@ Vedi [Impostazioni notifiche](/docs/notifications/notification-settings).
 ## Passaggi successivi
 
 :::cards
-- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili fianco a fianco.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, flussi di lavoro o runbook, e gli altri elementi simili fianco a fianco.
 - [Concetti fondamentali](/docs/introduction/core-concepts): Come si collegano i pezzi, in una sola pagina.
 - [Guida rapida](/docs/introduction/quickstart): Metti in pratica queste parole in quindici minuti.
 :::

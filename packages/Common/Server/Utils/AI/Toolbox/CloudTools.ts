@@ -38,6 +38,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 /*
  * What a connected cloud says about its resources, for OneUptime AI: one
  * resource as its cloud's inventory lists it (query_cloud_resource), and
@@ -290,7 +292,12 @@ export const QueryCloudResourceTool: ObservabilityTool = {
     return {
       dataForLlm: [serialized.text, ...notes].join("\n"),
       rowCount: serialized.rowCount,
-      citationLabel: `${resource.name || "Cloud resource"} (inventory)`,
+      // In the reader's language (issue #8311).
+      ...(resource.name
+        ? citationSentence(AI_TOOL_CITATIONS.cloudResourceInventory, {
+            name: resource.name,
+          })
+        : citationSentence(AI_TOOL_CITATIONS.cloudResourceInventoryUnnamed)),
       citationTarget: {
         type: AIChatCitationTargetType.TelemetryResourceView,
         params: {
@@ -438,7 +445,9 @@ export const QueryCloudAccountsTool: ObservabilityTool = {
             : "No cloud account is connected, or none matches. A cloud is connected under Cloud > Connect."
           : serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Cloud accounts (${rows.length})`,
+      ...citationSentence(AI_TOOL_CITATIONS.cloudAccounts, {
+        count: countFigure(rows.length),
+      }),
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
     };

@@ -1,24 +1,24 @@
-# Exécutions de workflow
+# Exécutions de flux de travail
 
-Chaque fois qu'un workflow s'exécute, OneUptime enregistre ce qui s'est passé — quand il s'est exécuté, s'il a réussi, et ce que chaque bloc a reçu et renvoyé. Cet enregistrement s'appelle une **exécution**. Les exécutions vous permettent de confirmer qu'un workflow a fonctionné, de déboguer celui qui n'a pas fonctionné et de revenir sur l'activité passée.
+Chaque fois qu'un flux de travail s'exécute, OneUptime enregistre ce qui s'est passé — quand il s'est exécuté, s'il a réussi, et ce que chaque bloc a reçu et renvoyé. Cet enregistrement s'appelle une **exécution**. Les exécutions vous permettent de confirmer qu'un flux de travail a fonctionné, de déboguer celui qui n'a pas fonctionné et de revenir sur l'activité passée.
 
 :::cards
 - [Statuts d'exécution](#statuts-dexécution): Ce que signifient Planifié, En attente, Exécuté et les autres statuts.
 - [Lire une exécution](#lire-une-exécution): Suivez le chemin pris par une exécution, bloc par bloc.
-- [Dépannage](#dépannage): Un workflow qui ne s'est pas exécuté, un bloc qui n'a jamais tourné, une valeur arrivée vide.
+- [Dépannage](#dépannage): Un flux de travail qui ne s'est pas exécuté, un bloc qui n'a jamais tourné, une valeur arrivée vide.
 :::
 
 ## Où les trouver
 
 | Page                                                 | Ce que vous voyez                                                                                          |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Flux de travail → Journaux → Exécutions** (menu Flux de travail) | Chaque exécution de chaque workflow du projet. Filtrez par nom de workflow, statut et date.  |
-| **Flux de travail → Journaux → Exécutions** (menu d'un workflow) | Uniquement les exécutions de ce workflow. Celle-ci a un filtre **ID d'exécution** au lieu d'un filtre de workflow. |
+| **Flux de travail → Journaux → Exécutions** (menu Flux de travail) | Chaque exécution de chaque flux de travail du projet. Filtrez par nom de flux de travail, statut et date.  |
+| **Flux de travail → Journaux → Exécutions** (menu d'un flux de travail) | Uniquement les exécutions de ce flux de travail. Celle-ci a un filtre **ID d'exécution** au lieu d'un filtre de flux de travail. |
 | **Une exécution précise**                            | Ouverte avec le bouton **Voir les journaux** sur la ligne d'une exécution — les lignes elles-mêmes ne sont pas cliquables. |
 
 Lancer une exécution depuis le **Constructeur** ouvre la même vue **Exécution du flux de travail**, qui suit déjà l'exécution : vous la regardez se dérouler au lieu de la chercher ensuite.
 
-Pour réessayer une exécution avec les mêmes valeurs, appuyez sur Exécuter à nouveau dans sa vue, ou dans le menu ⋯ de sa ligne. Une nouvelle exécution démarre depuis le déclencheur avec ce avec quoi cette exécution a commencé : la charge utile d'un webhook n'a donc pas besoin d'être renvoyée. Elle exécute le workflow tel qu'il est maintenant, vous pouvez donc modifier une étape et réessayer aussitôt. Ses étapes s'exécutent pour de vrai et, tant que le workflow est désactivé, c'est une exécution de test. Le panneau d'exécution du workflow dans le Builder propose les valeurs de la dernière exécution de la même façon. Le test d'une seule étape se relance depuis l'étape. Une exécution qui a commencé avec plus de 1 Mo de valeurs ne peut pas être relancée, pas plus qu'une exécution antérieure à la conservation de ces valeurs par OneUptime. Elles sont chiffrées et personne ne peut les lire via l'API.
+Pour réessayer une exécution avec les mêmes valeurs, appuyez sur Exécuter à nouveau dans sa vue, ou dans le menu ⋯ de sa ligne. Une nouvelle exécution démarre depuis le déclencheur avec ce avec quoi cette exécution a commencé : la charge utile d'un webhook n'a donc pas besoin d'être renvoyée. Elle exécute le flux de travail tel qu'il est maintenant, vous pouvez donc modifier une étape et réessayer aussitôt. Ses étapes s'exécutent pour de vrai et, tant que le flux de travail est désactivé, c'est une exécution de test. Le panneau d'exécution du flux de travail dans le Builder propose les valeurs de la dernière exécution de la même façon. Le test d'une seule étape se relance depuis l'étape. Une exécution qui a commencé avec plus de 1 Mo de valeurs ne peut pas être relancée, pas plus qu'une exécution antérieure à la conservation de ces valeurs par OneUptime. Elles sont chiffrées et personne ne peut les lire via l'API.
 
 ## Statuts d'exécution
 
@@ -46,12 +46,12 @@ stateDiagram-v2
 | Statut                              | Ce que cela signifie                                                                                                                                                                                                                                                  |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Planifié**                        | Le déclencheur s'est produit et l'exécution attend un moteur d'exécution dans la file. En général une fraction de seconde. Une exécution toujours planifiée au bout de 5 minutes échoue : rien ne l'a prise en charge.                                                |
-| **En cours d'exécution**            | Le workflow est en cours.                                                                                                                                                                                                                                             |
+| **En cours d'exécution**            | Le flux de travail est en cours.                                                                                                                                                                                                                                             |
 | **En attente**                      | L'exécution est garée sur un bloc **Sleep** et reprendra d'elle-même. Elle n'occupe aucun worker pendant l'attente.                                                                                                                                                   |
 | **Exécuté**                         | L'exécution est allée jusqu'au bout sans échouer. C'est le statut de réussite : la pastille indique **Exécuté**, pas « Réussite ».                                                                                                                                    |
-| **Erreur**                          | Un bloc a arrêté l'exécution, ou a échoué sans que rien ne soit relié à sa sortie **Erreur**. Ce statut sert aussi quand une exécution en file n'est jamais prise en charge, quand la reprise d'une exécution endormie se perd, quand une expression de planification ne peut pas être résolue, et quand le workflow a été désactivé ou archivé pendant que l'exécution attendait sur un bloc **Sleep**. |
+| **Erreur**                          | Un bloc a arrêté l'exécution, ou a échoué sans que rien ne soit relié à sa sortie **Erreur**. Ce statut sert aussi quand une exécution en file n'est jamais prise en charge, quand la reprise d'une exécution endormie se perd, quand une expression de planification ne peut pas être résolue, et quand le flux de travail a été désactivé ou archivé pendant que l'exécution attendait sur un bloc **Sleep**. |
 | **Délai dépassé**                   | L'exécution a duré plus longtemps que permis : 2 minutes par défaut. Voir [Combien de temps peut durer une exécution](/docs/workflows/configuration#combien-de-temps-peut-durer-une-exécution).                                                                                          |
-| **Exécution au-delà du forfait actuel** | Le projet a utilisé toutes ses exécutions de workflow des 30 derniers jours, ou l'abonnement est impayé. L'exécution est enregistrée mais pas exécutée. OneUptime Cloud uniquement.                                                                                  |
+| **Exécution au-delà du forfait actuel** | Le projet a utilisé toutes ses exécutions de flux de travail des 30 derniers jours, ou l'abonnement est impayé. L'exécution est enregistrée mais pas exécutée. OneUptime Cloud uniquement.                                                                                  |
 
 Un bloc qui prend sa sortie **Erreur** — un bloc API qui a reçu une réponse 4xx, par exemple — ne fait échouer l'exécution que si rien n'est relié à **Erreur**. Si des blocs y sont reliés, ils s'exécutent, et l'exécution peut quand même se terminer avec **Exécuté**. Si rien n'y est relié, le reste de l'exécution continue, puis elle se termine avec **Erreur**, et la dernière ligne de son **Full Log** nomme le bloc. Dans les deux cas, l'étape elle-même est dessinée en rouge, pour que vous la trouviez.
 
@@ -78,7 +78,7 @@ Les étapes en échec, les étapes avec un avertissement et l'unique étape d'un
 
 Quelques exécutions se lisent différemment :
 
-- **Une exécution de test.** Une exécution que quelqu'un a lancée avec **Exécuter le flux de travail** ou **Run just this step** pendant que le workflow était désactivé indique **Exécution de test** en haut, avec la personne qui l'a lancée, et les deux listes d'exécutions la marquent **Exécution de test** à côté de son statut. Ses blocs se sont exécutés pour de vrai ; seul le déclencheur du workflow était en pause. Filtrez sur **Exécution de test** pour ne lister que les exécutions de test, ou que les autres.
+- **Une exécution de test.** Une exécution que quelqu'un a lancée avec **Exécuter le flux de travail** ou **Run just this step** pendant que le flux de travail était désactivé indique **Exécution de test** en haut, avec la personne qui l'a lancée, et les deux listes d'exécutions la marquent **Exécution de test** à côté de son statut. Ses blocs se sont exécutés pour de vrai ; seul le déclencheur du flux de travail était en pause. Filtrez sur **Exécution de test** pour ne lister que les exécutions de test, ou que les autres.
 - **Un test d'une seule étape.** Une exécution lancée avec **Run just this step** indique **Seule cette étape s'est exécutée** en haut. Les étapes précédentes ne se sont pas exécutées : les valeurs qu'elle y lit manquent donc (attendez-vous à un avertissement **Non résolu** pour celles-ci), et les étapes suivantes indiquent **(not run in this test)**. Utilisez **Exécuter le flux de travail** pour essayer tout le chemin.
 - **Une exécution arrêtée entre deux étapes.** Si l'exécution s'est arrêtée pour une raison qu'aucune étape n'explique — elle a dépassé son délai entre deux étapes, ou a échoué avant sa première étape —, le chemin se termine par **The run stopped here** et la raison.
 - **Une exécution endormie.** Une exécution qui attend sur un bloc **Sleep** se termine par **Sleeping** et l'heure à laquelle elle reprendra d'elle-même ; les étapes après le Sleep indiquent **(not run yet)**.
@@ -97,24 +97,24 @@ En haut de la vue **Exécution du flux de travail**, à côté de son bouton de 
 
 | Téléchargement                     | Ce que vous obtenez                                                                                                                                                                                                                    |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Télécharger le journal**         | Un fichier `.txt` avec le journal complet exactement tel que le moteur d'exécution l'a écrit, quelle que soit sa longueur, sous un court en-tête : le nom et l'ID du workflow, l'ID de l'exécution, son statut, et les moments où elle a été planifiée, a démarré et s'est terminée. |
+| **Télécharger le journal**         | Un fichier `.txt` avec le journal complet exactement tel que le moteur d'exécution l'a écrit, quelle que soit sa longueur, sous un court en-tête : le nom et l'ID du flux de travail, l'ID de l'exécution, son statut, et les moments où elle a été planifiée, a démarré et s'est terminée. |
 | **Télécharger l'exécution en JSON** | Un fichier `.json` avec les mêmes informations sous forme de données, les étapes que montre l'onglet **Étapes** (ce que chacune a reçu et renvoyé, et la sortie qu'elle a prise), et le journal sous forme de liste de lignes. Les étapes ont la même forme que le `stepTrace` d'une exécution renvoyé par l'API et, comme l'onglet **Étapes**, ce sont les 100 dernières de l'exécution. Le journal est toujours complet. |
 
 Les deux mêmes téléchargements se trouvent dans le menu **⋯** de chaque exécution, dans les deux listes d'exécutions : vous pouvez donc enregistrer une exécution sans l'ouvrir. Une exécution lancée depuis le **Constructeur** peut être copiée ou téléchargée pendant qu'elle est encore en cours ; vous obtenez ce qu'elle a journalisé jusque-là.
 
-Les fichiers portent le nom du workflow, de l'exécution et de son heure de début, en UTC, si bien qu'un dossier de ces fichiers se trie par workflow puis par heure : `nightly-sync-run-<run id>-2026-09-30T10-00-01.txt`.
+Les fichiers portent le nom du flux de travail, de l'exécution et de son heure de début, en UTC, si bien qu'un dossier de ces fichiers se trie par flux de travail puis par heure : `nightly-sync-run-<run id>-2026-09-30T10-00-01.txt`.
 
 Un téléchargement ne contient rien que vous ne pourriez déjà lire dans l'exécution. Les secrets et les champs qu'un bloc marque comme sensibles sont masqués au moment où l'exécution est enregistrée : ils le sont donc aussi dans le fichier, et toute personne qui peut ouvrir une exécution peut la télécharger.
 
 ## Dépannage
 
-:::details Mon workflow ne s'est pas exécuté
-1. Assurez-vous que le workflow est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le workflow est désactivé. Les nouveaux workflows démarrent désactivés, et tant qu'un workflow est désactivé, son déclencheur ne le lance pas : seuls **Exécuter le flux de travail** et **Run just this step** le font, en tant qu'exécutions de test. Un appel de webhook vers lui reçoit HTTP 400 avec un message expliquant comment l'activer.
+:::details Mon flux de travail ne s'est pas exécuté
+1. Assurez-vous que le flux de travail est **Activé** : l'interrupteur se trouve en haut de son **Constructeur**, qui l'indique au-dessus du canevas quand le flux de travail est désactivé. Les nouveaux flux de travail démarrent désactivés, et tant qu'un flux de travail est désactivé, son déclencheur ne le lance pas : seuls **Exécuter le flux de travail** et **Run just this step** le font, en tant qu'exécutions de test. Un appel de webhook vers lui reçoit HTTP 400 avec un message expliquant comment l'activer.
 2. Pour un déclencheur d'événement OneUptime, vérifiez que l'événement a bien eu lieu : ouvrez l'enregistrement et consultez son historique. Un déclencheur **On Update** avec **Fields to watch** ne se produit que si l'un de ces champs a changé.
 3. Pour un déclencheur webhook, vérifiez que l'autre système envoie bien vers la bonne URL. La plupart des outils journalisent l'envoi d'un webhook — regardez-y.
 4. Pour un déclencheur de planification, vérifiez que l'expression cron correspond à l'heure attendue. Les planifications s'exécutent en UTC.
 
-Si l'exécution apparaît, avec le statut **Exécution au-delà du forfait actuel**, le projet a utilisé toutes ses exécutions de workflow des 30 derniers jours, ou l'abonnement est impayé. Le journal de l'exécution indique le décompte et la limite de votre forfait. Cela ne concerne que OneUptime Cloud.
+Si l'exécution apparaît, avec le statut **Exécution au-delà du forfait actuel**, le projet a utilisé toutes ses exécutions de flux de travail des 30 derniers jours, ou l'abonnement est impayé. Le journal de l'exécution indique le décompte et la limite de votre forfait. Cela ne concerne que OneUptime Cloud.
 :::
 
 :::details Un bloc suivant ne s'est jamais exécuté
@@ -127,7 +127,7 @@ Un bloc qui ne s'exécute pas révèle en général un problème de liaison. Ouv
 :::details Une valeur est arrivée vide, ou sous forme de texte {{…}}
 Ouvrez l'exécution et regardez l'étape. Une référence qui ne s'est pas résolue est signalée sur l'étape elle-même par un avertissement, et son paramètre dans le bloc **Reçu** est marqué **Non résolu**.
 
-- Si vous voyez le texte littéral `{{local.components.…}}`, la référence ne s'est pas résolue. C'est en général une faute de frappe dans l'ID du composant ou dans l'ID de la valeur de retour — rappelez-vous qu'il s'agit de l'**Identifiant** du bloc, pas du nom affiché dessus. Vérifiez aussi l'orthographe de `local.components` lui-même : `{{local.componets.api-get-1.returnValues.response-body}}` est envoyé comme texte littéral et l'exécution indique quand même **Exécuté**. Si l'exécution était un test **Run just this step**, le bloc précédent ne s'est pas exécuté du tout — exécutez plutôt tout le workflow.
+- Si vous voyez le texte littéral `{{local.components.…}}`, la référence ne s'est pas résolue. C'est en général une faute de frappe dans l'ID du composant ou dans l'ID de la valeur de retour — rappelez-vous qu'il s'agit de l'**Identifiant** du bloc, pas du nom affiché dessus. Vérifiez aussi l'orthographe de `local.components` lui-même : `{{local.componets.api-get-1.returnValues.response-body}}` est envoyé comme texte littéral et l'exécution indique quand même **Exécuté**. Si l'exécution était un test **Run just this step**, le bloc précédent ne s'est pas exécuté du tout — exécutez plutôt tout le flux de travail.
 - Si vous voyez **Texte vide**, ou un trou dans un message, le bloc précédent s'est exécuté mais n'a rien dans ce champ. Soit l'enregistrement n'y contient aucune valeur, ce que l'onglet **Full Log** note sur une ligne à part, soit le bloc ne transmet pas le champ, ce dont l'étape avertit.
 
 Le même avertissement figure dans l'onglet **Full Log**, sur une ligne qui commence par `Warning:`.
@@ -137,13 +137,13 @@ Le même avertissement figure dans l'onglet **Full Log**, sur une ligne qui comm
 Ouvrez le **Constructeur**, cliquez sur **Exécuter le flux de travail** et remplissez les champs du déclencheur avec des valeurs qui ressemblent à ce qu'envoie le vrai déclencheur. Comparez ensuite les valeurs **Reçu** de cette exécution avec celles de la vraie exécution, côte à côte. La différence tient en général à un seul nom ou type de champ.
 :::
 
-## Réexécuter un workflow
+## Réexécuter un flux de travail
 
-Il n'y a pas de bouton « réessayer cette exécution ». Les anciennes exécutions ne sont jamais réexécutées automatiquement, car leurs effets de bord — messages Slack, appels d'API, tickets — ne sont pas forcément sûrs à répéter. Pour refaire le travail, corrigez le workflow et laissez le prochain vrai déclencheur le lancer, ou ouvrez le **Constructeur** et cliquez sur **Exécuter le flux de travail** avec les mêmes valeurs.
+Il n'y a pas de bouton « réessayer cette exécution ». Les anciennes exécutions ne sont jamais réexécutées automatiquement, car leurs effets de bord — messages Slack, appels d'API, tickets — ne sont pas forcément sûrs à répéter. Pour refaire le travail, corrigez le flux de travail et laissez le prochain vrai déclencheur le lancer, ou ouvrez le **Constructeur** et cliquez sur **Exécuter le flux de travail** avec les mêmes valeurs.
 
 ## Combien de temps les exécutions sont-elles conservées ?
 
-Sur OneUptime Cloud, les exécutions sont conservées **30 jours** puis supprimées — c'est pourquoi les deux listes d'exécutions indiquent qu'elles couvrent les 30 derniers jours. Les installations auto-hébergées conservent les exécutions jusqu'à ce que vous les supprimiez ; si un workflow s'exécute très souvent et encombre votre historique, désactivez-le ou supprimez-le.
+Sur OneUptime Cloud, les exécutions sont conservées **30 jours** puis supprimées — c'est pourquoi les deux listes d'exécutions indiquent qu'elles couvrent les 30 derniers jours. Les installations auto-hébergées conservent les exécutions jusqu'à ce que vous les supprimiez ; si un flux de travail s'exécute très souvent et encombre votre historique, désactivez-le ou supprimez-le.
 
 Les exécutions enregistrées avant l'ajout du suivi des étapes n'ont pas de contenu dans **Étapes** et ne montrent que leur **Full Log**.
 

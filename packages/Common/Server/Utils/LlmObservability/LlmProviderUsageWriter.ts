@@ -460,7 +460,10 @@ export default class LlmProviderUsageWriter {
     );
     const createdAt: string = OneUptimeDate.toClickhouseDateTime(data.now);
     const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(data.now, data.target.retentionInDays),
+      OneUptimeDate.addRemoveDurationInDays(
+        data.now,
+        data.target.retentionInDays,
+      ),
     );
 
     return data.deltas.map((delta: LlmProviderSeriesPoint): JSONObject => {

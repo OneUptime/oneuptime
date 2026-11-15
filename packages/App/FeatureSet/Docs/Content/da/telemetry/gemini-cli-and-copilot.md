@@ -162,7 +162,7 @@ GitHub dokumenterer kun OpenTelemetry for Copilots agentflader:
 | Copilot Chat og agenttilstand i VS Code | Ja |
 | Copilot CLI | Ja |
 | Copilot SDK | Ja |
-| Agentworkflows i JetBrains-IDE'er | Ja, angivet i indstillingerne for Copilot-pluginnet |
+| Agentarbejdsgange i JetBrains-IDE'er | Ja, angivet i indstillingerne for Copilot-pluginnet |
 | Inline-fuldførelser, Copilot på github.com, kodegennemgang med Copilot | Ikke dokumenteret |
 
 Et team, der mest bruger inline-fuldførelser, ser derfor inaktivt ud i OneUptime, uanset hvordan eksporten er sat op.

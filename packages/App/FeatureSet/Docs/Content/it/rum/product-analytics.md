@@ -144,11 +144,11 @@ Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: 
 
 ## Chi può vederla
 
-Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), che i proprietari e gli amministratori del progetto hanno. Vedere chi è un utente autenticato, e cercare persone per nome, richiede `ReadRumSessionReplayPayload` (_Watch Session Replays_), come descrive [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione).
+Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), che i Proprietari del progetto e gli Amministratori del progetto hanno. Vedere chi è un utente autenticato, e cercare persone per nome, richiede `ReadRumSessionReplayPayload` (_Watch Session Replays_), come descrive [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione).
 
 Salvare, rinominare ed eliminare funnel e tabelle di fidelizzazione salvati richiede gli stessi permessi della lettura di queste pagine, e un widget della dashboard ne mostra uno solo a chi li ha.
 
-Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo di proprietario, amministratore o membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate.
+Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo Proprietario del progetto, Amministratore del progetto o Membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate.
 
 ## Passaggi successivi
 

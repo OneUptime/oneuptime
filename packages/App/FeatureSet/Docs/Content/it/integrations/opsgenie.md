@@ -1,11 +1,11 @@
 # Opsgenie
 
-Invia gli incidenti di OneUptime a [Opsgenie](https://www.atlassian.com/software/opsgenie). Un workflow crea un alert Opsgenie quando viene dichiarato un incidente di OneUptime, e un secondo lo chiude quando l'incidente di OneUptime viene risolto. Usalo finché è Opsgenie a chiamare il tuo team e OneUptime a sorvegliare i tuoi sistemi.
+Invia gli incidenti di OneUptime a [Opsgenie](https://www.atlassian.com/software/opsgenie). Un flusso di lavoro crea un alert Opsgenie quando viene dichiarato un incidente di OneUptime, e un secondo lo chiude quando l'incidente di OneUptime viene risolto. Usalo finché è Opsgenie a chiamare il tuo team e OneUptime a sorvegliare i tuoi sistemi.
 
 :::cards
-- [Salvare la chiave API](#salvare-la-chiave-api): Tieni la chiave di Opsgenie fuori dai tuoi workflow.
-- [Creare alert Opsgenie](#creare-un-alert-opsgenie-per-ogni-incidente): Un workflow, due blocchi.
-- [Chiuderli](#chiudere-lalert-opsgenie): Un secondo workflow che segue lo stato dell'incidente.
+- [Salvare la chiave API](#salvare-la-chiave-api): Tieni la chiave di Opsgenie fuori dai tuoi flussi di lavoro.
+- [Creare alert Opsgenie](#creare-un-alert-opsgenie-per-ogni-incidente): Un flusso di lavoro, due blocchi.
+- [Chiuderli](#chiudere-lalert-opsgenie): Un secondo flusso di lavoro che segue lo stato dell'incidente.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando Opsgenie rifiuta una richiesta.
 :::
 
@@ -14,21 +14,21 @@ Invia gli incidenti di OneUptime a [Opsgenie](https://www.atlassian.com/software
 
 ## Come funziona
 
-```mermaid title="Due workflow, un alert Opsgenie"
+```mermaid title="Due flussi di lavoro, un alert Opsgenie"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
     create -->|"POST /v2/alerts"| og["Alert Opsgenie"]
-    resolved["Incidente risolto"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
     update -->|"chiudi per alias"| og
 ```
 
-Entrambi i workflow chiamano la [Alert API di Opsgenie](https://docs.opsgenie.com/docs/alert-api). Il primo dà all'alert un `alias` ricavato dall'ID dell'incidente di OneUptime, e il secondo chiude l'alert tramite quell'alias.
+Entrambi i flussi di lavoro chiamano la [Alert API di Opsgenie](https://docs.opsgenie.com/docs/alert-api). Il primo dà all'alert un `alias` ricavato dall'ID dell'incidente di OneUptime, e il secondo chiude l'alert tramite quell'alias.
 
 ## Prima di iniziare
 
 - Un'integrazione Opsgenie di tipo **API** e la sua **API Key**. Aggiungine una in **Settings → Integrations** in Opsgenie, o nelle **Integrations** di un team per inviare gli alert a quel team.
 - La tua regione Opsgenie. Gli account in Europa, che accedono da `app.eu.opsgenie.com`, usano `api.eu.opsgenie.com`. Tutti gli altri usano `api.opsgenie.com`.
-- In OneUptime, il permesso di creare workflow e variabili globali. Su OneUptime Cloud, i workflow richiedono il piano **Growth** o superiore.
+- In OneUptime, il permesso di creare flussi di lavoro e variabili globali. Su OneUptime Cloud, i flussi di lavoro richiedono il piano **Growth** o superiore.
 
 ## Salvare la chiave API
 
@@ -43,7 +43,7 @@ Una variabile segreta viene sostituita da `[REDACTED]` nei log delle esecuzioni,
 ## Creare un alert Opsgenie per ogni incidente
 
 :::steps
-### Creare il workflow
+### Creare il flusso di lavoro
 
 Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Parti da zero**. Chiamalo `Incidents to Opsgenie` e fai clic su **Crea flusso di lavoro**.
 
@@ -80,12 +80,12 @@ Lo schema di Opsgenie è la parola `GenieKey`, uno spazio, poi la chiave. Opsgen
 
 ## Chiudere l'alert Opsgenie
 
-Un workflow ha un solo trigger, quindi per chiudere serve un secondo workflow, avviato quando cambia lo stato di un incidente.
+Un flusso di lavoro ha un solo trigger, quindi per chiudere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
 ### Aggiungere il trigger On Update Incident
 
-Crea un workflow chiamato `Close Opsgenie alerts` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Close Opsgenie alerts` e scegli **On Update Incident** come trigger. In **Fields to watch**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Fields to pass on**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -141,14 +141,14 @@ La chiave è sbagliata, o appartiene all'altra regione. Verifica che l'intestazi
 :::
 
 :::details La chiusura risponde 404
-Nessun alert ha quell'alias. Entrambi i workflow devono costruire l'alias allo stesso modo, `oneuptime-` seguito dall'`_id` dell'incidente, e l'URL deve terminare con `?identifierType=alias`.
+Nessun alert ha quell'alias. Entrambi i flussi di lavoro devono costruire l'alias allo stesso modo, `oneuptime-` seguito dall'`_id` dell'incidente, e l'URL deve terminare con `?identifierType=alias`.
 :::
 
 :::details L'alert non compare mai, anche se il passaggio mostra 202
 Opsgenie risponde `202` prima di elaborare la richiesta, quindi una richiesta che rifiuta in seguito mostra comunque `202`. Cerca la richiesta nei log di Opsgenie per vedere perché è stata rifiutata, ad esempio un'integrazione disattivata.
 :::
 
-:::details Il workflow non viene mai eseguito
+:::details Il flusso di lavoro non viene mai eseguito
 Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Registri → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **If / Else** è un aggiornamento che non era una risoluzione.
 :::
 
@@ -157,6 +157,6 @@ Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri
 :::cards
 - [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie): Porta qui il tuo team, i turni e le escalation prima della fine di Opsgenie.
 - [Regole di escalation](/docs/on-call/escalation-rules): Chiama le persone direttamente da OneUptime.
-- [PagerDuty](/docs/integrations/pagerduty): Gli stessi due workflow per PagerDuty.
+- [PagerDuty](/docs/integrations/pagerduty): Gli stessi due flussi di lavoro per PagerDuty.
 - [Panoramica delle integrazioni](/docs/integrations/index): Gli schemi dietro ogni integrazione.
 :::

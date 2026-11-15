@@ -384,7 +384,7 @@ export default class ProductAnalyticsEventIngestService {
           explicitBounds: [],
           value: metric.value,
           retentionDate: OneUptimeDate.toClickhouseDateTime(
-            OneUptimeDate.addRemoveDays(time, data.retentionInDays),
+            OneUptimeDate.addRemoveDurationInDays(time, data.retentionInDays),
           ),
         } as JSONObject;
       },

@@ -208,7 +208,8 @@ const CASES: ReadonlyArray<Case> = [
     name: "a response time, in milliseconds",
     filter: RESPONSE_TIME,
     condition: FilterCondition.All,
-    english: 'Check if "Response Time (in ms)" is greater than 3,000 ms and,',
+    english:
+      'Check if "Response Time (in ms)" is greater than 3,000\u00A0ms and,',
   },
   {
     name: "a disk's highest share over a window",
@@ -342,7 +343,7 @@ describe("the threshold, as the reader's language writes it", () => {
     const german: Translator = translatorIn("de");
     const summary: string = summaryIn(CASES[0]!, german);
 
-    expect(summary).toContain("3.000 ms");
+    expect(summary).toContain("3.000\u00A0ms");
     expect(summary).not.toContain("3000ms");
     expect(summary).toContain(
       `"${german.translateTerm("Response Time (in ms)")}"`,
@@ -361,7 +362,7 @@ describe("the threshold, as the reader's language writes it", () => {
   });
 
   test("Arabic: its own unit for milliseconds, in Latin digits", () => {
-    expect(summaryIn(CASES[0]!, translatorIn("ar"))).toMatch(/3,000\sملي ث/);
+    expect(summaryIn(CASES[0]!, translatorIn("ar"))).toMatch(/3,000\sملي\sث/);
   });
 
   test("a threshold that is not a plain number is put in as typed", () => {
@@ -416,7 +417,9 @@ describe("the parts of a summary are one language", () => {
         undefined,
         unworded,
       ),
-    ).toBe('Check if "Response Time (in ms)" is greater than 3,000 ms and,');
+    ).toBe(
+      'Check if "Response Time (in ms)" is greater than 3,000\u00A0ms and,',
+    );
   });
 
   test("a forecast's horizon is written in the sentence's language", () => {

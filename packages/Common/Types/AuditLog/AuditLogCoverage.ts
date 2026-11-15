@@ -107,6 +107,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   IncomingCallLog: AuditLogExemptionKind.MessageLog,
   IncomingCallLogItem: AuditLogExemptionKind.MessageLog,
   OpenStackProjectNoticeDelivery: AuditLogExemptionKind.MessageLog,
+  OwnerNotificationDelivery: AuditLogExemptionKind.MessageLog,
   PushNotificationLog: AuditLogExemptionKind.MessageLog,
   SmsLog: AuditLogExemptionKind.MessageLog,
   TelegramLog: AuditLogExemptionKind.MessageLog,

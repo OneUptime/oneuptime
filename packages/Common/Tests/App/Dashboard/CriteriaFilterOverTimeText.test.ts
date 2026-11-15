@@ -283,7 +283,7 @@ describe("the criteria list quotes the text a comparison looks for", () => {
         filterType: FilterType.GreaterThan,
         value: 3000,
       }),
-    ).toBe('Check if "Response Time (in ms)" is greater than 3,000 ms');
+    ).toBe('Check if "Response Time (in ms)" is greater than 3,000\u00A0ms');
     expect(
       CriteriaFilterUtil.translateFilterToText({
         checkOn: CheckOn.ResponseStatusCode,

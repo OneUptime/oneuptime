@@ -96,9 +96,9 @@ describe("formatReplayMilliseconds, in each language", () => {
     const english: Translator = translatorIn("en");
 
     for (const translator of [undefined, english]) {
-      expect(formatReplayMilliseconds(0, translator)).toBe("0 ms");
-      expect(formatReplayMilliseconds(420, translator)).toBe("420 ms");
-      expect(formatReplayMilliseconds(999, translator)).toBe("999 ms");
+      expect(formatReplayMilliseconds(0, translator)).toBe("0\u00A0ms");
+      expect(formatReplayMilliseconds(420, translator)).toBe("420\u00A0ms");
+      expect(formatReplayMilliseconds(999, translator)).toBe("999\u00A0ms");
       expect(formatReplayMilliseconds(1000, translator)).toBe("1s");
       expect(formatReplayMilliseconds(1500, translator)).toBe("1.5s");
       expect(formatReplayMilliseconds(12_400, translator)).toBe("12s");
@@ -118,9 +118,9 @@ describe("formatReplayMilliseconds, in each language", () => {
   test("German: its own unit and decimal comma", () => {
     const german: Translator = translatorIn("de");
 
-    expect(formatReplayMilliseconds(420, german)).toBe("420 ms");
-    expect(formatReplayMilliseconds(1500, german)).toBe("1,5 Sek.");
-    expect(formatReplayMilliseconds(12_400, german)).toBe("12 Sek.");
+    expect(formatReplayMilliseconds(420, german)).toBe("420\u00A0ms");
+    expect(formatReplayMilliseconds(1500, german)).toBe("1,5\u00A0Sek.");
+    expect(formatReplayMilliseconds(12_400, german)).toBe("12\u00A0Sek.");
 
     const minute: string = formatReplayMilliseconds(65_000, german);
 
@@ -132,8 +132,8 @@ describe("formatReplayMilliseconds, in each language", () => {
   test("Persian: its own digits, decimal sign and units", () => {
     const persian: Translator = translatorIn("fa");
 
-    expect(formatReplayMilliseconds(1500, persian)).toBe("۱٫۵ ثانیه");
-    expect(formatReplayMilliseconds(12_400, persian)).toBe("۱۲ ثانیه");
+    expect(formatReplayMilliseconds(1500, persian)).toBe("۱٫۵\u00A0ثانیه");
+    expect(formatReplayMilliseconds(12_400, persian)).toBe("۱۲\u00A0ثانیه");
 
     for (const ms of [420, 1500, 12_400, 65_000, 119_600, 3_725_000]) {
       const written: string = withoutIsolateMarks(
@@ -154,7 +154,7 @@ describe("formatReplayMilliseconds, in each language", () => {
   test("Arabic: its own units, in Latin digits", () => {
     const arabic: Translator = translatorIn("ar");
 
-    expect(formatReplayMilliseconds(1500, arabic)).toBe("1.5 ث");
+    expect(formatReplayMilliseconds(1500, arabic)).toBe("1.5\u00A0ث");
 
     for (const ms of [420, 1500, 65_000]) {
       const written: string = formatReplayMilliseconds(ms, arabic);
@@ -181,14 +181,16 @@ describe("formatReplayMilliseconds, in each language", () => {
     ).toBe(true);
     expect(german.startsWith("-")).toBe(true);
     expect(formatReplayMilliseconds(-1500, translatorIn("de"))).toBe(
-      "-1,5 Sek.",
+      "-1,5\u00A0Sek.",
     );
   });
 });
 
 describe("formatReplayClockSkew, one sentence in each language", () => {
   test("English reads exactly as it always did", () => {
-    expect(formatReplayClockSkew(300)).toBe("300 ms ahead (server-clamped)");
+    expect(formatReplayClockSkew(300)).toBe(
+      "300\u00A0ms ahead (server-clamped)",
+    );
     expect(formatReplayClockSkew(-2500)).toBe("2.5s behind (server-clamped)");
     expect(formatReplayClockSkew(0)).toBe("None");
     expect(formatReplayClockSkew(Number.NaN)).toBe("None");
@@ -201,10 +203,14 @@ describe("formatReplayClockSkew, one sentence in each language", () => {
     const german: Translator = translatorIn("de");
 
     expect(formatReplayClockSkew(1500, german)).toBe(
-      german.translateTemplate(REPLAY_CLOCK_AHEAD, { duration: "1,5 Sek." }),
+      german.translateTemplate(REPLAY_CLOCK_AHEAD, {
+        duration: "1,5\u00A0Sek.",
+      }),
     );
     expect(formatReplayClockSkew(-300, german)).toBe(
-      german.translateTemplate(REPLAY_CLOCK_BEHIND, { duration: "300 ms" }),
+      german.translateTemplate(REPLAY_CLOCK_BEHIND, {
+        duration: "300\u00A0ms",
+      }),
     );
     expect(formatReplayClockSkew(1500, german)).not.toContain("ahead");
     expect(formatReplayClockSkew(1500, german)).not.toContain("server-clamped");
@@ -343,7 +349,7 @@ describe("the details panel's Timing and Gaps, drawn", () => {
 
     const skew: string = skewText();
 
-    expect(skew).toContain("۱٫۵ ثانیه");
+    expect(skew).toContain("۱٫۵\u00A0ثانیه");
     expect(LATIN_DIGIT.test(skew)).toBe(false);
     cleanup();
 
@@ -354,7 +360,7 @@ describe("the details panel's Timing and Gaps, drawn", () => {
 
     const gap: string = gapText();
 
-    expect(gap).toContain("۱٫۵ ثانیه");
+    expect(gap).toContain("۱٫۵\u00A0ثانیه");
     expect(gap).toContain("۳");
     expect(gap).toContain("۵");
     expect(LATIN_DIGIT.test(gap)).toBe(false);
@@ -369,7 +375,7 @@ describe("the details panel's Timing and Gaps, drawn", () => {
 
     expect(skewText()).toBe(
       translatorIn("de").translateTemplate(REPLAY_CLOCK_BEHIND, {
-        duration: "1,5 Sek.",
+        duration: "1,5\u00A0Sek.",
       }),
     );
     cleanup();
@@ -389,7 +395,7 @@ describe("the details panel's Timing and Gaps, drawn", () => {
 
     const skew: string = skewText();
 
-    expect(skew).toContain("1.5 ث");
+    expect(skew).toContain("1.5\u00A0ث");
     expect(PERSIAN_DIGIT.test(skew)).toBe(false);
     expect(ARABIC_INDIC_DIGIT.test(skew)).toBe(false);
   });

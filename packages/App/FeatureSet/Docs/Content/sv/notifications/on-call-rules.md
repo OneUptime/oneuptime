@@ -130,12 +130,12 @@ API:et kan spara en avregistreringsregel, med `isOptOut` satt och utan metod: d�
 :::
 
 :::details Stäng av reservlösningen för ett helt projekt
-En projektägare, eller någon med **Manage Billing**, kan ställa in projektets `disableOnCallNotificationFallback` via API:et. Ett larm som inte hittar någon regel levereras då inte, och dess logg säger att användaren ska lägga till regler under **Användarinställningar → Så når man mig**.
+En Projektägare, eller någon med **Manage Billing**, kan ställa in projektets `disableOnCallNotificationFallback` via API:et. Ett larm som inte hittar någon regel levereras då inte, och dess logg säger att användaren ska lägga till regler under **Användarinställningar → Så når man mig**.
 :::
 
 ## En kollegas regler
 
-Projektägare och administratörer kan se och ändra samma sida för alla i projektet: under **Användare** öppnar de personen och sedan **Så når man mig** i avsnittet **Jour**. **Beredskap**, bredvid, visar om varje allvarlighetsgrad når personen. När någon annan lägger till, ändrar eller tar bort dina regler får du ett e-postmeddelande om det, och varje ändring finns i projektets granskningslogg.
+Projektägare och Projektadministratörer kan se och ändra samma sida för alla i projektet: under **Användare** öppnar de personen och sedan **Så når man mig** i avsnittet **Jour**. **Beredskap**, bredvid, visar om varje allvarlighetsgrad når personen. När någon annan lägger till, ändrar eller tar bort dina regler får du ett e-postmeddelande om det, och varje ändring finns i projektets granskningslogg.
 
 ## Felsökning
 

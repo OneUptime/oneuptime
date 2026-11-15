@@ -144,11 +144,11 @@ Um funil ou uma tabela de retenção salvos também vão para um painel: os widg
 
 ## Quem pode vê-la
 
-Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que os proprietários e administradores do projeto têm. Ver quem é um usuário conectado, e pesquisar pessoas por nome, exige `ReadRumSessionReplayPayload` (_Watch Session Replays_), como descreve [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação).
+Ler estas páginas exige o mesmo que ler a lista de sessões: `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que os Proprietários do projeto e Administradores do projeto têm. Ver quem é um usuário conectado, e pesquisar pessoas por nome, exige `ReadRumSessionReplayPayload` (_Watch Session Replays_), como descreve [Quem pode assistir a uma gravação](/docs/telemetry/session-replay#quem-pode-assistir-a-uma-gravação).
 
 Salvar, renomear e excluir funis e tabelas de retenção salvos exige as mesmas permissões que ler estas páginas, e um widget de painel só mostra um a quem as tem.
 
-Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função de proprietário, administrador ou membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas.
+Ativar ou desativar os eventos exige `EditRumApplication` (_Edit RUM Application_) ou a função Proprietário do projeto, Administrador do projeto ou Membro do projeto. Listar propriedades de usuário exige `EditRumApplication` ou a função de proprietário ou administrador, já que isso decide o que é guardado sobre as pessoas conectadas.
 
 ## Próximos passos
 

@@ -1,6 +1,6 @@
 /** @timezone UTC */
 
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import {
@@ -170,14 +170,10 @@ describe("a chart's time on an AI chat's PDF", () => {
 
 describe("a security connection's local time", () => {
   /*
-   * In the reader's zone (issue #8231): here they picked UTC, where the
-   * browser is. With no zone picked, a UTC browser's is Africa/Abidjan's
-   * to moment, which names it "GMT".
+   * In the reader's zone (issue #8231): here they picked none, and the
+   * browser is on UTC, which reads as UTC (issue #8475), not as moment's
+   * Africa/Abidjan ("GMT").
    */
-  beforeEach(() => {
-    OneUptimeDate.setUserTimezone(Timezone.UTC);
-  });
-
   afterEach(() => {
     OneUptimeDate.setUserTimezone(null);
   });

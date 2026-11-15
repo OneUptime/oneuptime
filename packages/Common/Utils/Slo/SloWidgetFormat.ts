@@ -379,7 +379,7 @@ export const formatErrorBudgetRemainingSeconds: FormatErrorBudgetRemainingSecond
     }
 
     if (!translator) {
-      return `${isOverBudget ? MINUS_SIGN : ""}${minutes} min ${
+      return `${isOverBudget ? MINUS_SIGN : ""}${minutes}\u00A0min ${
         isOverBudget ? "over budget" : "remaining"
       }`;
     }

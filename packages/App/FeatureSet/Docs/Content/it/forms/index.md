@@ -56,7 +56,7 @@ I moduli partono con questi due, e seguiranno altri tipi di record.
 ## Prima di iniziare
 
 - **Un piano che includa i moduli.** Su OneUptime Cloud, i moduli richiedono il piano **Growth** o superiore. Vedi [Piano](#piano).
-- **L'autorizzazione a creare moduli.** **Create Form** spetta ai proprietari e agli amministratori del progetto, e ai ruoli a cui la assegni. Vedi [Autorizzazioni](#autorizzazioni).
+- **L'autorizzazione a creare moduli.** **Create Form** spetta ai Proprietari del progetto e agli Amministratori del progetto, e ai ruoli a cui la assegni. Vedi [Autorizzazioni](#autorizzazioni).
 - **Per un modulo di incidenti, una gravità.** Ogni incidente ne richiede una: da una domanda, dalle impostazioni del modulo o dal suo modello di incidente. Senza, ogni invio viene rifiutato. Vedi [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-incidente).
 
 ## Creare il primo modulo
@@ -127,7 +127,7 @@ Gli invii li scrive il modulo, mai una persona, e non si possono modificare. Eli
 
 ## Autorizzazioni
 
-I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi di manutenzione nel tuo progetto, quindi sono gestiti dai proprietari e dagli amministratori del progetto, e dai ruoli a cui assegni le autorizzazioni **Form**. Si trovano nel gruppo **Form** del [Riferimento autorizzazioni](/docs/permissions/reference):
+I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi di manutenzione nel tuo progetto, quindi sono gestiti dai Proprietari del progetto e dagli Amministratori del progetto, e dai ruoli a cui assegni le autorizzazioni **Form**. Si trovano nel gruppo **Form** del [Riferimento autorizzazioni](/docs/permissions/reference):
 
 | Autorizzazione | Cosa consente | Chi ce l'ha per impostazione predefinita |
 | --- | --- | --- |
@@ -142,7 +142,7 @@ I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi 
 | **Delete Form Domain** | Rimuovere i domini personalizzati di un modulo. | Proprietario del progetto, Amministratore del progetto e **Edit Form** |
 | **Read Form Domain** | Vedere i domini personalizzati di un modulo, i loro record DNS e a che punto è ciascuno sulla strada verso HTTPS. | Chiunque abbia **Read Form** |
 
-Gli invii contengono ciò che hanno scritto degli sconosciuti (nomi, indirizzi e-mail e risposte che forse non arrivano mai al record), quindi li vedono solo i proprietari e gli amministratori del progetto, a meno che tu non conceda **Read Form Submission**. Chi può leggere un modulo può vederne e condividerne il link. Inviare un modulo non richiede alcuna autorizzazione. Per come si combinano ruoli e autorizzazioni granulari, vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
+Gli invii contengono ciò che hanno scritto degli sconosciuti (nomi, indirizzi e-mail e risposte che forse non arrivano mai al record), quindi li vedono solo i Proprietari del progetto e gli Amministratori del progetto, a meno che tu non conceda **Read Form Submission**. Chi può leggere un modulo può vederne e condividerne il link. Inviare un modulo non richiede alcuna autorizzazione. Per come si combinano ruoli e autorizzazioni granulari, vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Piano
 
@@ -231,7 +231,7 @@ I modelli di un modulo sono la sua colonna `templates`, un elenco JSON nell'ordi
 }
 ```
 
-Domande, modelli e impostazioni vengono controllati a ogni salvataggio (dalla dashboard, dall'API, da Terraform o da un workflow), e un elenco che viola una regola viene rifiutato con un messaggio che indica cosa non va. `shareKey`, la chiave nel link del modulo, viene impostata da OneUptime alla creazione del modulo, e cambiarla è ciò che fa **Reimposta link**.
+Domande, modelli e impostazioni vengono controllati a ogni salvataggio (dalla dashboard, dall'API, da Terraform o da un flusso di lavoro), e un elenco che viola una regola viene rifiutato con un messaggio che indica cosa non va. `shareKey`, la chiave nel link del modulo, viene impostata da OneUptime alla creazione del modulo, e cambiarla è ciò che fa **Reimposta link**.
 
 ### Il branding nell'API
 
@@ -255,9 +255,9 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 La risposta a una domanda di file sono i file così come sono stati salvati, ciascuno con i suoi `fileId`, `name`, `fileType` e `size`. I file veri e propri sono su ciò che l'invio ha creato: nel suo campo personalizzato file, o allegati alla sua nota privata.
 
-### Workflow
+### Flussi di lavoro
 
-I moduli hanno i componenti di workflow generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Maintenance Event**.
+I moduli hanno i componenti dei flussi di lavoro generati: **On Create Form**, **On Update Form** e così via. Per agire su ciò che un modulo ha creato, usa **On Create Incident** o **On Create Maintenance Event**.
 
 ### Gli endpoint propri della pagina pubblica
 

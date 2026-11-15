@@ -56,7 +56,7 @@ En el plan Free de OneUptime Cloud, los monitores se cobran según su uso, así 
 
 ### Elegir a quién se avisa
 
-En **¿A quién hay que avisar?**, ya estás en **A quién se avisa**. Haz clic en **Guardar y continuar**: así se crea `Default on-call policy`, que te avisa con cada nuevo incidente y cada nueva alerta del proyecto, por correo para empezar. Para avisar también a miembros del equipo que ya están en el proyecto, haz clic antes en **Añadir miembros del equipo**.
+En **¿A quién hay que avisar?**, ya estás en **A quién se avisa**. Haz clic en **Guardar y continuar**: así se crea la **Política de guardia predeterminada**, que te avisa con cada nuevo incidente y cada nueva alerta del proyecto, por correo para empezar. Para avisar también a miembros del equipo que ya están en el proyecto, haz clic antes en **Añadir miembros del equipo**.
 
 ### Enviarte una prueba
 
@@ -69,7 +69,7 @@ Para comprobar también una API, y saber qué hacer cuando la primera comprobaci
 
 ## Recibir un aviso cuando caiga
 
-La configuración del sitio web ya creó `Default on-call policy`, que te avisa por correo con cada nuevo incidente y cada nueva alerta, así que la lista marca **Configura una política de guardia** como hecho. Su configuración guiada añade aun así tu teléfono, las personas a las que se avisa contigo y lo que pasa cuando nadie responde.
+La configuración del sitio web ya creó la **Política de guardia predeterminada**, que te avisa por correo con cada nuevo incidente y cada nueva alerta, así que la lista marca **Configura una política de guardia** como hecho. Su configuración guiada añade aun así tu teléfono, las personas a las que se avisa contigo y lo que pasa cuando nadie responde.
 
 :::steps
 ### Abrir la configuración de guardia
@@ -84,7 +84,7 @@ En **¿Cómo debemos localizarte?**, tu correo de inicio de sesión ya aparece. 
 
 ### Elegir a quién más se avisa
 
-En **¿Quién más está de guardia?**, deja `Default on-call policy` en **Política de guardia**. Para avisar a miembros del equipo contigo, añádelos en **Añadir a la primera regla de escalado**. Haz clic en **Guardar y continuar**.
+En **¿Quién más está de guardia?**, deja la **Política de guardia predeterminada** en **Política de guardia**. Para avisar a miembros del equipo contigo, añádelos en **Añadir a la primera regla de escalado**. Haz clic en **Guardar y continuar**.
 
 ### Decidir qué pasa si nadie responde
 
@@ -96,7 +96,7 @@ En **Enviar un aviso de prueba**, haz clic en **Probar esta política**, elige u
 :::
 
 > [!NOTE]
-> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un propietario del proyecto, un Administrador de facturación o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Canales de notificación**.
+> Los SMS y las llamadas están desactivados en un proyecto nuevo. Un Propietario del proyecto, un Administrador de facturación o alguien con Manage Billing los activa en la tarjeta **Canales de notificación**, en **Ajustes del proyecto → Notificaciones → Canales de notificación**.
 
 Dos reglas de guardia activan la política: una con cada nuevo incidente y otra con cada nueva alerta. Para ver la primera, abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**: coincide con **Todos los incidentes**. Para activar la política solo con algunos incidentes, como los críticos, edita ahí la regla, o haz clic en **Crear Regla de guardia de incidentes** para añadir una propia.
 

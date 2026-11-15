@@ -1064,7 +1064,7 @@ Saiba que a linha da sessão expira com a gravação dela: as contagens de erros
 
 ### Apagar sessões
 
-Para atender a uma solicitação de exclusão, registre uma solicitação de apagamento pela API do OneUptime — o recurso `/rum-session-erasure-request`; ainda não há um formulário no painel para isso. Uma solicitação exige `CreateRumSessionErasureRequest` (ou um proprietário / administrador do projeto) e recebe:
+Para atender a uma solicitação de exclusão, registre uma solicitação de apagamento pela API do OneUptime — o recurso `/rum-session-erasure-request`; ainda não há um formulário no painel para isso. Uma solicitação exige `CreateRumSessionErasureRequest` (ou um Proprietário do projeto ou um Administrador do projeto) e recebe:
 
 | Campo | Valores |
 | --- | --- |
@@ -1092,7 +1092,7 @@ Como a marcação alcança cada serviço por onde uma requisição do navegador 
 
 ## Quem pode assistir a uma gravação
 
-Assistir a uma gravação é uma permissão separada de listar sessões, e nenhuma das duas é concedida pela função Visualizador do projeto inteiro. Os proprietários e administradores do projeto têm todas elas.
+Assistir a uma gravação é uma permissão separada de listar sessões, e nenhuma das duas é concedida pela função Visualizador do projeto inteiro. Os Proprietários do projeto e Administradores do projeto têm todas elas.
 
 | Permissão | Libera |
 | --- | --- |

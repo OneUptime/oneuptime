@@ -1639,9 +1639,9 @@ La page **Agent IA** du cloud propose un runbook pour chacune de ces défaillanc
 | Partition RabbitMQ | À la main, sur les machines : RabbitMQ est en dessous d'OpenStack, et aucune commande dont dispose l'IA de OneUptime ne l'atteint |
 | Galera a perdu le quorum | À la main, sur les machines, à partir du nœud ayant le `wsrep_last_committed` le plus élevé |
 
-### Correctifs à partir d'un workflow
+### Correctifs à partir d'un flux de travail
 
-Un workflow peut partir d'une alerte OpenStack et proposer un correctif : l'étape **Propose an OpenStack fix** prend l'alerte ou l'incident, et la commande. Elle passe par la même politique, la même portée d'écriture et la même lecture de ce qu'une modification touche qu'un correctif proposé par l'IA de OneUptime, n'a besoin d'aucun modèle d'IA, et une personne l'approuve sur l'alerte. Un workflow ne peut ni effectuer la modification lui-même ni approuver ce qu'il propose, quel que soit le mode de correctif du cloud. Le modèle **Propose taking a failing OpenStack compute service out of scheduling** est un point de départ.
+Un flux de travail peut partir d'une alerte OpenStack et proposer un correctif : l'étape **Propose an OpenStack fix** prend l'alerte ou l'incident, et la commande. Elle passe par la même politique, la même portée d'écriture et la même lecture de ce qu'une modification touche qu'un correctif proposé par l'IA de OneUptime, n'a besoin d'aucun modèle d'IA, et une personne l'approuve sur l'alerte. Un flux de travail ne peut ni effectuer la modification lui-même ni approuver ce qu'il propose, quel que soit le mode de correctif du cloud. Le modèle **Propose taking a failing OpenStack compute service out of scheduling** est un point de départ.
 
 ## Exécuter comme service systemd
 

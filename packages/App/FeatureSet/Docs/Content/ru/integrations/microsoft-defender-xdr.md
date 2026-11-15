@@ -23,7 +23,7 @@ flowchart TB
 
 ## Перед началом работы
 
-- В OneUptime роль Project Owner, Project Admin или Security Admin. Роли Security Member и Security Viewer видят подключения и историю их запусков, но не могут их менять.
+- В OneUptime роль Владелец проекта, Администратор проекта или Администратор безопасности. Роли Участник безопасности и Зритель безопасности видят подключения и историю их запусков, но не могут их менять.
 - Тенант Microsoft Entra с лицензией Microsoft Defender XDR: любая рабочая нагрузка Defender, подключённая к порталу Microsoft Defender, например Defender for Endpoint, for Identity, for Office 365 или for Cloud Apps.
 - Роль Entra, которая может регистрировать приложения, например Администратор приложений, и Глобальный администратор или Администратор привилегированных ролей для предоставления согласия администратора.
 - Исходящий HTTPS от приложения и worker OneUptime к `login.microsoftonline.com` и `graph.microsoft.com` или к `login.microsoftonline.us` и `graph.microsoft.us` для Azure Government.

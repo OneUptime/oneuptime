@@ -3,6 +3,7 @@ import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
 import { getCreateFromTemplateArgument } from "../CreateFromTemplate";
 import { getAffectedResourcesArgument } from "../AffectedResourcesSetting";
+import { getOwnersOnCreateArguments } from "../OwnersOnCreateSetting";
 import {
   WHAT_HAPPENED_ID,
   WHAT_HAPPENED_NAME,
@@ -485,10 +486,20 @@ export default class BaseModelComponent {
       const affectedResourcesArgument: Argument | null =
         getAffectedResourcesArgument(model.tableName || undefined);
 
+      /*
+       * And who owns it from the start, so its Created notification reaches
+       * them (Types/Workflow/OwnersOnCreateSetting). Last: who owns it is
+       * picked once what it is has been said.
+       */
+      const ownersArguments: Array<Argument> = getOwnersOnCreateArguments(
+        model.tableName || undefined,
+      );
+
       const createOneArguments: Array<Argument> = [
         ...(templateArgument ? [templateArgument] : []),
         jsonArgument,
         ...(affectedResourcesArgument ? [affectedResourcesArgument] : []),
+        ...ownersArguments,
       ];
 
       components.push({

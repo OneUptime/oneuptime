@@ -8,7 +8,10 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The Docker agent install guide. The agent is one container
@@ -268,8 +271,13 @@ function getKeyNotes(apiKey: string): Array<string> {
   ];
 }
 
-const LOG_DRIVER_TOPIC_TITLE: string =
-  "Collect logs from every container (json-file log driver)";
+/*
+ * A key, so the topic's title and the steps that send the reader to it are
+ * in the reader's language (#8341).
+ */
+const LOG_DRIVER_TOPIC_TITLE: string = translationKey(
+  "Collect logs from every container (json-file log driver)",
+);
 
 function getPrerequisites(data: GuideData): Array<string> {
   const lines: Array<string> = [

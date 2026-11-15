@@ -93,7 +93,7 @@ Une règle alerte dès qu'une alerte lui correspond. Pour qu'elle attende plutô
 
 Une règle alerte les personnes de ses politiques pour qu'elles interviennent : prendre en compte leur notification prend en compte l'alerte. Pour tenir une équipe informée pendant qu'une autre intervient, répondez **Observateurs** à **Alerter les personnes de ces politiques en tant que** sous **Plus de champs**. Leur notification précise qu'elles sont alertées comme observateurs, et la prendre en compte indique seulement qu'elles l'ont vue : l'alerte n'est pas prise en compte, et la notification de personne d'autre ne s'arrête. Leur notification continue jusqu'à ce que l'une d'elles réponde ou que l'alerte soit résolue, et dans la liste, la règle indique sous son nom qu'elle alerte comme observateurs. Une politique qu'une règle correspondante alerte pour intervenir et une autre comme observateurs alerte pour intervenir.
 
-Une règle peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Une règle qui n'appartient à aucune équipe peut être modifiée par tous ceux qui peuvent modifier les règles d'astreinte, et les règles d'épisode peuvent aussi appartenir à des équipes. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
+Une règle peut appartenir à des équipes. **Équipes responsables**, sous **Plus de champs**, la réserve aux équipes que vous choisissez : seuls leurs membres et les Administrateurs du projet peuvent la modifier ou la supprimer, et tous les autres qui voient les règles la voient en lecture seule. Une règle qui n'appartient à aucune équipe peut être modifiée par tous ceux qui peuvent modifier les règles d'astreinte, et les règles d'épisode peuvent aussi appartenir à des équipes. Voir [Règles appartenant à des équipes](/docs/permissions/index#règles-appartenant-à-des-équipes).
 
 ## Règles d'incident
 
@@ -161,7 +161,7 @@ La mesure **Délai de prise en compte après l'alerte** compte à partir de **Qu
 
 ### Appartenance aux épisodes
 
-**Alertes → Paramètres → Appartenance aux épisodes** décide si une alerte peut faire partie de plusieurs épisodes. Activez **Une alerte ne peut faire partie que d'un seul épisode**, et une alerte qui fait partie d'un épisode n'est ajoutée à aucun autre, ni depuis le tableau de bord, ni par l'API, un workflow ou une règle de regroupement, si elle n'est pas d'abord retirée de cet épisode. L'interrupteur est désactivé tant que vous ne l'activez pas, et seuls les Propriétaires du projet et les Administrateurs du projet peuvent le changer. L'activer ne retire aucune alerte d'un épisode. Voir [Un seul épisode par incident](/docs/incidents/episodes#un-seul-épisode-par-incident), qui fonctionne de la même façon pour les alertes.
+**Alertes → Paramètres → Appartenance aux épisodes** décide si une alerte peut faire partie de plusieurs épisodes. Activez **Une alerte ne peut faire partie que d'un seul épisode**, et une alerte qui fait partie d'un épisode n'est ajoutée à aucun autre, ni depuis le tableau de bord, ni par l'API, un flux de travail ou une règle de regroupement, si elle n'est pas d'abord retirée de cet épisode. L'interrupteur est désactivé tant que vous ne l'activez pas, et seuls les Propriétaires du projet et les Administrateurs du projet peuvent le changer. L'activer ne retire aucune alerte d'un épisode. Voir [Un seul épisode par incident](/docs/incidents/episodes#un-seul-épisode-par-incident), qui fonctionne de la même façon pour les alertes.
 
 ### Numérotation
 
@@ -176,9 +176,9 @@ La carte **Prochain numéro** en dessous fixe le numéro que recevront la procha
 > [!NOTE]
 > Sur OneUptime Cloud, les modèles de notes et les champs personnalisés nécessitent l'offre **Growth** ou supérieure.
 
-## Workflows
+## Flux de travail
 
-Chaque modèle d'alerte a des déclencheurs et des actions de workflow, nommés d'après lui : **On Create Alert**, **On Update Alert**, **On Create or Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de workflow. Voir [Présentation des workflows](/docs/workflows/index).
+Chaque modèle d'alerte a des déclencheurs et des actions de flux de travail, nommés d'après lui : **On Create Alert**, **On Update Alert**, **On Create or Update Alert** et **On Delete Alert**, de même pour **Épisode d'alerte**, **Chronologie des états de l'alerte** et les autres, et des actions comme **Create One Alert** et **Update One Alert**. Les définitions de champs personnalisés d'alerte sont la seule exception : elles n'ont pas de déclencheurs de flux de travail. Voir [Présentation des flux de travail](/docs/workflows/index).
 
 ## Qui peut les modifier
 

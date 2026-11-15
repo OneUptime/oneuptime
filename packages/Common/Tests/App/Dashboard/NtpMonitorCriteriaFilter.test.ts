@@ -147,7 +147,7 @@ describe("an NTP monitor's criteria form", () => {
 
     expect(
       CriteriaFilterUtil.translateFilterToText(filter, FilterCondition.All),
-    ).toContain("100 ms");
+    ).toContain("100\u00A0ms");
   });
 
   test("a stratum threshold has no unit", () => {

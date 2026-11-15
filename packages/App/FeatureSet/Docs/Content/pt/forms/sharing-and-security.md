@@ -98,7 +98,7 @@ O servidor precisa responder na porta 80, onde a Let's Encrypt verifica cada dom
 
 ### Quem pode gerenciar os domínios
 
-Os proprietários e administradores do projeto, e qualquer pessoa com **Edit Form**, podem adicionar os domínios de um formulário, verificá-los, reemitir os seus certificados e excluí-los. As permissões só para os domínios de um formulário também podem, como **Edit Form Domain**: a [Visão geral dos formulários](/docs/forms/index#permissões) as lista. Quem pode ler um formulário vê os seus domínios, o **Status** deles e o registro em **Configuração de DNS**; para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados e dizem qual permissão é preciso ter. Uma chave de API funciona do mesmo jeito em `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` precisam de **Edit Form Domain** ou **Edit Form**.
+Os Proprietários do projeto e Administradores do projeto, e qualquer pessoa com **Edit Form**, podem adicionar os domínios de um formulário, verificá-los, reemitir os seus certificados e excluí-los. As permissões só para os domínios de um formulário também podem, como **Edit Form Domain**: a [Visão geral dos formulários](/docs/forms/index#permissões) as lista. Quem pode ler um formulário vê os seus domínios, o **Status** deles e o registro em **Configuração de DNS**; para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados e dizem qual permissão é preciso ter. Uma chave de API funciona do mesmo jeito em `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` precisam de **Edit Form Domain** ou **Edit Form**.
 
 ## O que protege um formulário
 

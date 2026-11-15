@@ -30,7 +30,7 @@ sequenceDiagram
 ## Voordat u begint
 
 - **Het Growth-abonnement, op OneUptime Cloud.** Een sonde aanmaken vereist het. Een zelf gehoste installatie heeft geen abonnementslimieten.
-- **Toestemming om sondes aan te maken.** Projecteigenaren, -beheerders en -leden hebben die, en ook iedereen wiens rol het aanmaken van sondes toestaat.
+- **Toestemming om sondes aan te maken.** Projecteigenaren, Projectbeheerders en Projectleden hebben die, en ook iedereen wiens rol het aanmaken van sondes toestaat.
 - **Een machine in het netwerk dat u wilt bewaken.** Die heeft Docker, Docker Compose of Kubernetes nodig, een route naar de diensten die de sonde controleert, en uitgaand HTTPS naar `ONEUPTIME_URL`.
 
 ## Een sonde installeren
@@ -42,9 +42,9 @@ Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Ge
 
 ### De ID en sleutel kopiëren
 
-De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste sondes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan projecteigenaren en -beheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
+De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste sondes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan Projecteigenaren en Projectbeheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
 
-Projecteigenaren en -beheerders kunnen ook op de sonde klikken: de kaart **Set up your Custom Probe** op de pagina ervan toont de Docker-opdracht met de ID en sleutel al ingevuld.
+Projecteigenaren en Projectbeheerders kunnen ook op de sonde klikken: de kaart **Set up your Custom Probe** op de pagina ervan toont de Docker-opdracht met de ID en sleutel al ingevuld.
 
 ### De sonde starten
 

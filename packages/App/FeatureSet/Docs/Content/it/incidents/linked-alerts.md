@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Entrambi gli id sono obbligatori. Una richiesta di collegamento viene rifiutata anche quando l'avviso o l'incidente appartengono a un altro progetto o sono tra quelli che non potete vedere. L'errore è lo stesso sia che l'avviso o l'incidente non esistano sia che siano solo nascosti a voi, così non rivela mai che ne esiste uno privato.
 
-La stessa risorsa alimenta i componenti di workflow generati — **On Create Incident Alert** scatta quando viene collegato un avviso e **On Delete Incident Alert** quando viene scollegato — e gli strumenti Incident Alert del server MCP. Il [riferimento API](/reference) riporta la forma completa di richieste e risposte.
+La stessa risorsa alimenta i componenti dei flussi di lavoro generati — **On Create Incident Alert** scatta quando viene collegato un avviso e **On Delete Incident Alert** quando viene scollegato — e gli strumenti Incident Alert del server MCP. Il [riferimento API](/reference) riporta la forma completa di richieste e risposte.
 
 ## Scollegare
 

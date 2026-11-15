@@ -22,7 +22,7 @@ flowchart TB
 
 | | Gemini CLI | GitHub Copilot |
 | --- | --- | --- |
-| Sender | Traser, metrikker og logger | Traser, metrikker og hendelser, bare fra agentflatene sine |
+| Sender | Traser, målinger og logger | Traser, målinger og hendelser, bare fra agentflatene sine |
 | Navngir personen | `user.email`, når noen er logget inn | Ingen: du angir `enduser.id` og `user.email` |
 | Prompttekst | Sendes, med mindre du slår av `logPrompts` | Sendes ikke, med mindre du slår på `captureContent` |
 | Sender som standard til | `http://localhost:4317`, over gRPC | `http://localhost:4318`, over HTTP |
@@ -35,7 +35,7 @@ flowchart TB
 
 ## Sett opp Gemini CLI
 
-Gemini CLI sender traser, metrikker og logghendelser, og setter `user.email` på hver post når noen er logget inn. OneUptime leser `user.email` som den ansatte, så forbruket til hver person vises uten tilordningstabell og uten oppsett per maskin.
+Gemini CLI sender traser, målinger og logghendelser, og setter `user.email` på hver post når noen er logget inn. OneUptime leser `user.email` som den ansatte, så forbruket til hver person vises uten tilordningstabell og uten oppsett per maskin.
 
 :::steps
 ### Slå på telemetri
@@ -70,7 +70,7 @@ Gemini CLI leser innstillingene sine når den starter, så start den på nytt og
 Tre innstillinger i den blokken betyr mer enn resten:
 
 - `otlpProtocol: "http"`. Gemini CLI bruker gRPC med mindre du sier noe annet. Over HTTP legger den selv til `/v1/traces`, `/v1/metrics` og `/v1/logs` i basis-URL-en. OneUptime tar også imot gRPC på port 443 (se [OTLP over gRPC](/docs/telemetry/open-telemetry#otlp-over-grpc)), men HTTP er enklere.
-- `traces: true`. Den er av som standard, og uten den bærer spanene til Gemini CLI verken modell eller tokentellinger, så ingenting kan prises. Gemini CLI sender heller ingen kostnadsmetrikk: slå på traser for å se hva kallene koster.
+- `traces: true`. Den er av som standard, og uten den bærer spanene til Gemini CLI verken modell eller tokentellinger, så ingenting kan prises. Gemini CLI sender heller ingen kostnadsmåling: slå på traser for å se hva kallene koster.
 - `logPrompts: false`. Les advarselen nedenfor.
 
 > [!WARNING]
@@ -139,7 +139,7 @@ Se [OpenTelemetry](/docs/telemetry/open-telemetry) for hvordan du kjører en col
 
 ### Hva Gemini CLI sender
 
-| Metrikk | Hva den bærer |
+| Måling | Hva den bærer |
 | --- | --- |
 | `gen_ai.client.token.usage` | Inn- og utdatatokens: serien OneUptime teller |
 | `gemini_cli.token.usage` | De samme tokenene under Gemini CLIs eget navn, pluss tokenene `thought`, `cache` og `tool`; telles ikke, så tokens aldri telles to ganger |
@@ -151,7 +151,7 @@ Se [OpenTelemetry](/docs/telemetry/open-telemetry) for hvordan du kjører en col
 
 Logghendelsene omfatter `gemini_cli.user_prompt`, `gemini_cli.api_request`, `gemini_cli.api_response`, `gemini_cli.api_error`, `gemini_cli.tool_call` og `gemini_cli.file_operation`. Hver post bærer `session.id`, `installation.id`, `active_approval_mode` og, når noen er logget inn, `user.email`. OneUptime leser `session.id` som en samtale-ID, så en hel økt i Gemini CLI vises som én samtale under **Samtaler**, uansett hvor mange traser den brukte.
 
-Metrikkene er vanlige OpenTelemetry-metrikker: vis hvilken som helst av dem i et diagram på et dashbord, eller varsle på en med en [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+Målingene er vanlige OpenTelemetry-målinger: vis hvilken som helst av dem i et diagram på et dashbord, eller varsle på en med en [Målingsovervåking](/docs/monitor/metrics-monitor).
 
 ## Sett opp GitHub Copilot
 
@@ -238,7 +238,7 @@ Copilot følger OpenTelemetrys GenAI-konvensjoner, så kallene vises i **Kall**,
 | `execute_tool` | Verktøykall |
 | `execute_hook` | Hook-kjøring |
 
-Spanene bærer modellen, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` og `gen_ai.conversation.id`, så en hel agenttur vises som én samtale. Begge flatene sender også metrikkene `gen_ai.client.token.usage` og `gen_ai.client.operation.duration`, og hendelser på OTLP-loggsignalet: behold en pipeline `logs` i alle collectorer du setter imellom.
+Spanene bærer modellen, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` og `gen_ai.conversation.id`, så en hel agenttur vises som én samtale. Begge flatene sender også målingene `gen_ai.client.token.usage` og `gen_ai.client.operation.duration`, og hendelser på OTLP-loggsignalet: behold en pipeline `logs` i alle collectorer du setter imellom.
 
 OneUptime priser hvert kall ut fra modellen og tokenene, med satsene under **Priser**. Det er hva tokenene ville kostet til listepris, ikke hva GitHub fakturerer deg: Copilot betales per lisens og per premium-forespørsel.
 
@@ -251,7 +251,7 @@ Den vanlige årsaken er at `otlpProtocol` står på standardverdien `grpc` mens 
 :::
 
 :::details Kallene fra Gemini CLI kommer uten modell, tokens eller kostnad
-`traces` er av. Slå den på: uten den bærer spanene til Gemini CLI verken modell eller tokentellinger, og den sender ingen kostnadsmetrikk.
+`traces` er av. Slå den på: uten den bærer spanene til Gemini CLI verken modell eller tokentellinger, og den sender ingen kostnadsmåling.
 :::
 
 :::details Forbruket til Copilot vises som Ikke tilordnet

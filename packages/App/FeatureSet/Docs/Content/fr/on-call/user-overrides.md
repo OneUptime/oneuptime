@@ -70,7 +70,7 @@ Un remplacement terminé ne peut plus être modifié : son **Modifier** est verr
 
 Deux remplacements pour la même personne ne peuvent pas se chevaucher sur la même politique, ni quand les deux sont globaux. Le formulaire le signale dès que les heures sont choisies, avec **Modifier ce remplacement** pour modifier plutôt celui-là. L'un peut se terminer quand le suivant commence.
 
-Le remplacement propre à une politique peut chevaucher un remplacement global de la même personne : sur cette politique, c'est le sien qui est utilisé tant que les deux s'appliquent, et le formulaire le signale. Une alerte envoyée sans politique, depuis un workflow ou depuis le chat, ne suit que les remplacements globaux.
+Le remplacement propre à une politique peut chevaucher un remplacement global de la même personne : sur cette politique, c'est le sien qui est utilisé tant que les deux s'appliquent, et le formulaire le signale. Une alerte envoyée sans politique, depuis un flux de travail ou depuis le chat, ne suit que les remplacements globaux.
 
 Les remplacements qui se chevauchaient avant cette règle restent tels quels. Les deux sont marqués **Chevauchement**, qui indique lequel est utilisé : celui qui désigne un remplaçant plutôt qu'un saut, puis celui qui commence en premier, puis celui ajouté en premier.
 

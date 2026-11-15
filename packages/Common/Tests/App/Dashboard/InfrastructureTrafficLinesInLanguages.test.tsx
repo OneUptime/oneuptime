@@ -259,7 +259,7 @@ describe("a line's label, metric by metric", () => {
       ).toBe("0.5% errors");
       expect(
         trafficMetricLabel(blob, "latency", WINDOW_SECONDS, translator),
-      ).toBe("45 ms");
+      ).toBe("45\u00A0ms");
     }
   });
 
@@ -289,7 +289,7 @@ describe("a line's label, metric by metric", () => {
       trafficMetricLabel(blob, "errors", WINDOW_SECONDS, german),
     ).not.toContain("errors");
     expect(trafficMetricLabel(edh, "latency", WINDOW_SECONDS, german)).toBe(
-      "1,25 Sek.",
+      "1,25\u00A0Sek.",
     );
   });
 
@@ -346,7 +346,7 @@ describe("a line's description", () => {
         linkFor(layout, "pod-backend", "pod-blob"),
         WINDOW_SECONDS,
       ),
-    ).toBe("backend → blob: 80/min · 0.5% errors · 45 ms avg");
+    ).toBe("backend → blob: 80/min · 0.5% errors · 45\u00A0ms avg");
     expect(
       describeTrafficLink(
         model,
@@ -376,7 +376,7 @@ describe("a line's description", () => {
           rate: formatErrorRate(1200, 6, german),
         },
       )} · ${german.translateTemplate(TRAFFIC_AVERAGE_DURATION, {
-        duration: "45 ms",
+        duration: "45\u00A0ms",
       })}`,
     );
   });
@@ -577,7 +577,7 @@ describe("the map, drawn in each language", () => {
 
     expect(
       screen.getByRole("button", {
-        name: "backend → blob: 80/min · 0.5% errors · 45 ms avg",
+        name: "backend → blob: 80/min · 0.5% errors · 45\u00A0ms avg",
       }),
     ).toBeInTheDocument();
   });
@@ -591,9 +591,9 @@ describe("formatDurationMs, from a second up", () => {
   });
 
   test("another language writes its own seconds", () => {
-    expect(formatDurationMs(1250, translatorIn("de"))).toBe("1,25 Sek.");
-    expect(formatDurationMs(1250, translatorIn("fa"))).toBe("۱٫۲۵ ثانیه");
-    expect(formatDurationMs(1250, translatorIn("ar"))).toBe("1.25 ث");
+    expect(formatDurationMs(1250, translatorIn("de"))).toBe("1,25\u00A0Sek.");
+    expect(formatDurationMs(1250, translatorIn("fa"))).toBe("۱٫۲۵\u00A0ثانیه");
+    expect(formatDurationMs(1250, translatorIn("ar"))).toBe("1.25\u00A0ث");
   });
 
   test("the check would find a Latin digit in a Persian line", () => {
