@@ -41,12 +41,17 @@ import OnCallReadinessService, {
   ReadinessMethod,
   UserReadiness,
 } from "./OnCallReadinessService";
-import OnCallTestPageService from "./OnCallTestPageService";
+import OnCallTestPageService, {
+  getPreviewMethodsOfRule,
+} from "./OnCallTestPageService";
 import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import TeamService from "./TeamService";
+import UserNotificationRuleService, {
+  FallbackRule,
+} from "./UserNotificationRuleService";
 import UserService from "./UserService";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
@@ -93,6 +98,7 @@ import {
   getWhoIsToldPersonReach,
   redactWhoIsTold,
 } from "../../Types/Monitor/WhoIsTold";
+import NotificationRuleType from "../../Types/NotificationRule/NotificationRuleType";
 import ObjectID from "../../Types/ObjectID";
 import { OnCallPageChannel } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
@@ -100,6 +106,7 @@ import {
   OnCallTestPagePreviewPerson,
   OnCallTestPageReachedThrough,
   OnCallTestPageRecordKind,
+  getOnCallTestPageRuleType,
 } from "../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   ServerChannelStatus,
@@ -132,8 +139,10 @@ import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
  *     policies they and the criteria run;
  *   - who each policy's first level reaches right now, read as a test of the
  *     policy reads it (OnCallTestPageService.readFirstLevel), and how a page
- *     of the severity reaches each of them: their rules for it, or their
- *     verified methods (OnCallReadinessService) when the project falls back;
+ *     of the severity reaches each of them: their rules for it, or, when the
+ *     project falls back, what the fallback picks of their methods - read
+ *     by the fallback's own chooser (UserNotificationRuleService
+ *     .getFallbackRules), so it never drifts from what a page sends (#7528);
  *   - the project's channels, its balance on OneUptime Cloud, and on a
  *     self-hosted server whether it can send email, SMS and calls;
  *   - the status pages an incident shows on, as IncidentStatusPageScope
@@ -182,6 +191,12 @@ interface ProjectContext {
   people: Map<string, WhoIsToldPerson>;
   previews: Map<string, OnCallTestPagePreviewPerson>;
   verifiedChannels: Map<string, Array<OnCallPageChannel>>;
+  /*
+   * What the fallback picks of a person's methods, by person and kind of
+   * page (readFallbackChannels): read once however many severities,
+   * policies and monitors reach them.
+   */
+  fallbackChannels: Map<string, Array<OnCallPageChannel>>;
   /*
    * Set when the whole project is resolved at once (resolveProject): its
    * enabled on-call rules, read once, and its monitors in the cache the
@@ -475,6 +490,30 @@ export function canServerSendBy(
     status.state === ServerSendingState.NotSetUp ||
     status.state === ServerSendingState.Failing
   );
+}
+
+/*
+ * The channels of what the fallback picked (getFallbackRules), in the order
+ * it sends them: each picked rule read as a test page's preview reads a
+ * rule (getPreviewMethodsOfRule), each channel once.
+ */
+export function getFallbackRuleChannels(
+  rules: ReadonlyArray<FallbackRule>,
+): Array<OnCallPageChannel> {
+  const channels: Array<OnCallPageChannel> = [];
+
+  for (const picked of rules) {
+    for (const method of getPreviewMethodsOfRule({
+      rule: picked.rule,
+      showAddresses: false,
+    })) {
+      if (!channels.includes(method.channel)) {
+        channels.push(method.channel);
+      }
+    }
+  }
+
+  return channels;
 }
 
 export class WhoIsToldService {
@@ -877,6 +916,7 @@ export class WhoIsToldService {
       people: new Map<string, WhoIsToldPerson>(),
       previews: new Map<string, OnCallTestPagePreviewPerson>(),
       verifiedChannels: new Map<string, Array<OnCallPageChannel>>(),
+      fallbackChannels: new Map<string, Array<OnCallPageChannel>>(),
       matching: data.matching,
       isForBreaksOnly: data.isForBreaksOnly,
     };
@@ -954,6 +994,8 @@ export class WhoIsToldService {
         channels: context.channels,
         projectHasIncidentOnCallRules: context.projectHasIncidentOnCallRules,
         projectHasAlertOnCallRules: context.projectHasAlertOnCallRules,
+        // The project's policies, every one of them, are read once (readPolicyNames).
+        projectHasOnCallPolicies: context.policyNames.size > 0,
       }),
     };
   }
@@ -1426,9 +1468,10 @@ export class WhoIsToldService {
   }
 
   /*
-   * Every verified method of these people, by channel - what a page falls
-   * back to when no rule of theirs covers its severity - read once, from
-   * Readiness.
+   * Every verified method of these people, by channel, read once from
+   * Readiness: for somebody with no rule for a severity whose fallback picks
+   * nothing, a verified method on a channel the project switched off names
+   * the switch to turn on (getWhoIsToldPersonReach).
    */
   private static async readVerifiedChannels(data: {
     context: ResolveContext;
@@ -1462,7 +1505,7 @@ export class WhoIsToldService {
     }
   }
 
-  // A person's verified methods, by channel: what the fallback pages.
+  // A person's verified methods, by channel.
   private static verifiedChannelsOf(
     person: UserReadiness,
   ): Array<OnCallPageChannel> {
@@ -1512,6 +1555,20 @@ export class WhoIsToldService {
       data.context.previews.set(previewKey, preview);
     }
 
+    /*
+     * No rule of theirs covers the severity, they did not opt out, and the
+     * project falls back: a page goes to what the fallback picks of their
+     * methods (#7528), read only then.
+     */
+    const fallbackChannels: Array<OnCallPageChannel> =
+      preview.hasNoRule && !preview.isOptedOut && data.context.isFallbackEnabled
+        ? await this.readFallbackChannels({
+            context: data.context,
+            userId: data.userId,
+            kind: data.kind,
+          })
+        : [];
+
     const person: WhoIsToldPerson = {
       userId: data.userId.toString(),
       name: preview.userName,
@@ -1523,6 +1580,7 @@ export class WhoIsToldService {
         ruleMethods: preview.methods,
         hasNoRule: preview.hasNoRule,
         isOptedOut: preview.isOptedOut,
+        fallbackChannels: fallbackChannels,
         verifiedChannels:
           data.context.verifiedChannels.get(data.userId.toString()) || [],
         isFallbackEnabled: data.context.isFallbackEnabled,
@@ -1537,6 +1595,42 @@ export class WhoIsToldService {
     data.context.people.set(key, person);
 
     return person;
+  }
+
+  /*
+   * WHAT THE FALLBACK PICKS OF A PERSON'S METHODS for a kind of page, read
+   * by the fallback's own chooser (UserNotificationRuleService
+   * .getFallbackRules, what executeFallbackNotification then sends), so the
+   * card can never say more or less than a page sends: every free verified
+   * method, or else one paid one on a channel the project has on, or else a
+   * webhook (#7528). Read without sending anything, once per person and
+   * kind - a page's severity does not change what it picks.
+   */
+  private static async readFallbackChannels(data: {
+    context: ResolveContext;
+    userId: ObjectID;
+    kind: OnCallTestPageRecordKind;
+  }): Promise<Array<OnCallPageChannel>> {
+    const ruleType: NotificationRuleType = getOnCallTestPageRuleType(data.kind);
+    const key: string = `${data.userId.toString()}|${ruleType}`;
+    const known: Array<OnCallPageChannel> | undefined =
+      data.context.fallbackChannels.get(key);
+
+    if (known) {
+      return known;
+    }
+
+    const channels: Array<OnCallPageChannel> = getFallbackRuleChannels(
+      await UserNotificationRuleService.getFallbackRules({
+        projectId: data.context.projectId,
+        userId: data.userId,
+        ruleType: ruleType,
+      }),
+    );
+
+    data.context.fallbackChannels.set(key, channels);
+
+    return channels;
   }
 
   /*

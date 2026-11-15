@@ -53,7 +53,9 @@ import OnCallReadinessService, {
   ReadinessStatus,
   UserReadiness,
 } from "../../../Server/Services/OnCallReadinessService";
-import OnCallTestPageService from "../../../Server/Services/OnCallTestPageService";
+import OnCallTestPageService, {
+  getPreviewMethodsOfRule,
+} from "../../../Server/Services/OnCallTestPageService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ServiceOwnerTeamService from "../../../Server/Services/ServiceOwnerTeamService";
@@ -63,13 +65,38 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageSubscriberService from "../../../Server/Services/StatusPageSubscriberService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
+import CustomNotificationChannelService from "../../../Server/Services/CustomNotificationChannelService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
+import UserCallService from "../../../Server/Services/UserCallService";
+import UserEmailService from "../../../Server/Services/UserEmailService";
+import UserMattermostService from "../../../Server/Services/UserMattermostService";
+import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
+import UserNotificationRuleService, {
+  ExecuteFallbackNotificationOptions,
+  ExecuteNotificationRuleOptions,
+  FallbackRule,
+} from "../../../Server/Services/UserNotificationRuleService";
+import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import UserPushService from "../../../Server/Services/UserPushService";
 import UserService from "../../../Server/Services/UserService";
+import UserSlackService from "../../../Server/Services/UserSlackService";
+import UserSmsService from "../../../Server/Services/UserSmsService";
+import UserTelegramService from "../../../Server/Services/UserTelegramService";
+import UserWebhookService from "../../../Server/Services/UserWebhookService";
+import UserWhatsAppService from "../../../Server/Services/UserWhatsAppService";
 import WhoIsToldService, {
   canServerSendBy,
+  getFallbackRuleChannels,
   getMonitorCriteria,
   getMonitorCriteriaInstances,
   pickSeverity,
 } from "../../../Server/Services/WhoIsToldService";
+import ProjectMembership from "../../../Server/Utils/TeamMember/ProjectMembership";
+import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
+import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
+import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
+import Email from "../../../Types/Email";
+import Phone from "../../../Types/Phone";
 import MonitorResourceContextUtil from "../../../Server/Utils/Monitor/MonitorResourceContext";
 import { SeriesResolvedResourceIds } from "../../../Server/Utils/Monitor/SeriesResourceLinker";
 import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
@@ -82,7 +109,9 @@ import {
   WhoIsToldBreak,
   WhoIsToldBreakKind,
   WhoIsToldEvent,
+  WhoIsToldFix,
   WhoIsToldOwnersSource,
+  WhoIsToldPerson,
   WhoIsToldPersonProblem,
   WhoIsToldResult,
   WhoIsToldServerChannel,
@@ -92,6 +121,7 @@ import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageCha
 import {
   OnCallTestPageNotPaged,
   OnCallTestPageNotPagedCode,
+  OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
   OnCallTestPageReachedThrough,
   OnCallTestPageReachedThroughCode,
@@ -434,6 +464,34 @@ function alertOwnerRule(facts: OwnerRuleFacts): AlertOwnerRule {
   return rule;
 }
 
+// The verified methods a person has, as the fallback reads them.
+interface FallbackMethods {
+  push?: boolean;
+  email?: boolean;
+  slack?: boolean;
+  teams?: boolean;
+  mattermost?: boolean;
+  sms?: boolean;
+  call?: boolean;
+  whatsApp?: boolean;
+  telegram?: boolean;
+  webhook?: boolean;
+}
+
+// The readiness method type of each, for the same person's Readiness.
+const FALLBACK_METHOD_TYPES: Record<keyof FallbackMethods, string> = {
+  push: "Push",
+  email: "Email",
+  slack: "Slack",
+  teams: "Microsoft Teams",
+  mattermost: "Mattermost",
+  sms: "SMS",
+  call: "Call",
+  whatsApp: "WhatsApp",
+  telegram: "Telegram",
+  webhook: "Webhook",
+};
+
 // A status page resource: the page lists the monitor, or a group it is in.
 interface StatusPageLink {
   resourceId: string;
@@ -496,6 +554,13 @@ interface World {
   teamMemberIds: Record<string, Array<string>>;
   previews: Record<string, OnCallTestPagePreviewPerson>;
   verified: Record<string, Array<string>>;
+  /*
+   * Each person's verified methods as the fallback's own reader finds them
+   * (UserNotificationRuleService.getFallbackRules), run for real (#7528).
+   */
+  fallbackMethods: Record<string, FallbackMethods>;
+  // The project's on-call policies, by id and name.
+  projectPolicies: Array<[string, string]>;
   serverStatuses: Array<ServerChannelStatus>;
   // What the caller may read.
   callerReadsMonitor: boolean;
@@ -619,6 +684,14 @@ function defaultWorld(): World {
       [BEN]: preview({ userId: BEN, userName: "Ben Ito", hasNoRule: true }),
     },
     verified: { [ANA]: ["SMS", "Email"], [BEN]: ["Push"] },
+    fallbackMethods: {
+      [ANA]: { sms: true, email: true },
+      [BEN]: { push: true },
+    },
+    projectPolicies: [
+      [PRIMARY, "Primary"],
+      [SECONDARY, "Secondary"],
+    ],
     serverStatuses: [
       serverStatus(ServerSendingChannel.Email, ServerSendingState.Working),
       serverStatus(ServerSendingChannel.SMS, ServerSendingState.Working),
@@ -765,14 +838,13 @@ function stubWorld(): void {
       props: DatabaseCommonInteractionProps;
     }) => {
       if (args.props.isRoot) {
-        return [
-          [PRIMARY, "Primary"],
-          [SECONDARY, "Secondary"],
-        ].map(([id, name]: Array<string>): OnCallDutyPolicy => {
-          const item: OnCallDutyPolicy = withId(new OnCallDutyPolicy(), id!);
-          item.name = name!;
-          return item;
-        });
+        return world.projectPolicies.map(
+          ([id, name]: [string, string]): OnCallDutyPolicy => {
+            const item: OnCallDutyPolicy = withId(new OnCallDutyPolicy(), id);
+            item.name = name;
+            return item;
+          },
+        );
       }
 
       return readable(
@@ -1112,6 +1184,128 @@ function stubWorld(): void {
     .mockImplementation((async () => {
       return world.serverStatuses;
     }) as never);
+
+  stubFallbackReads();
+}
+
+/*
+ * THE FALLBACK'S OWN READER, run for real (#7528): only its reads of a
+ * person's verified methods are stood in for, each from
+ * world.fallbackMethods, and the project's switches are world.project's
+ * (ProjectService.findOneById, above). So what the card says a person with
+ * no rule is reached by is what UserNotificationRuleService picks.
+ */
+function fallbackRow(
+  kind: keyof FallbackMethods,
+  row: Record<string, unknown>,
+): (args: { query: Record<string, unknown> }) => Promise<unknown> {
+  return async (args: { query: Record<string, unknown> }): Promise<unknown> => {
+    const userId: string = String(args.query["userId"]).toLowerCase();
+
+    if (
+      String(args.query["projectId"]) !== PROJECT_ID.toString() ||
+      !world.fallbackMethods[userId]?.[kind]
+    ) {
+      return null;
+    }
+
+    return {
+      id: new ObjectID(
+        `68101111-0000-4000-8000-${userId.slice(-4)}000000${String(
+          Object.keys(FALLBACK_METHOD_TYPES).indexOf(kind),
+        ).padStart(2, "0")}`,
+      ),
+      isVerified: true,
+      ...row,
+    };
+  };
+}
+
+function stubFallbackReads(): void {
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false as never);
+  jest.spyOn(UserPushService, "findOneBy").mockImplementation(
+    fallbackRow("push", {
+      deviceName: "Pixel 8",
+      deviceType: "android",
+    }) as never,
+  );
+  jest
+    .spyOn(UserEmailService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("email", { email: new Email("ben@example.com") }) as never,
+    );
+  jest
+    .spyOn(UserSlackService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("slack", { slackUserName: "ben" }) as never,
+    );
+  jest
+    .spyOn(UserMicrosoftTeamsService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("teams", { microsoftTeamsUserName: "Ben Ito" }) as never,
+    );
+  jest
+    .spyOn(UserMattermostService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("mattermost", { mattermostUserName: "ben" }) as never,
+    );
+  jest
+    .spyOn(CustomNotificationChannelService, "getChannelsPagingEveryone")
+    .mockResolvedValue([] as never);
+  jest
+    .spyOn(UserSmsService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("sms", { phone: new Phone("+15550300") }) as never,
+    );
+  jest
+    .spyOn(UserCallService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("call", { phone: new Phone("+15550301") }) as never,
+    );
+  jest
+    .spyOn(UserWhatsAppService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("whatsApp", { phone: new Phone("+15550302") }) as never,
+    );
+  jest
+    .spyOn(UserTelegramService, "findOneBy")
+    .mockImplementation(
+      fallbackRow("telegram", { telegramUserHandle: "@ben" }) as never,
+    );
+  jest.spyOn(UserWebhookService, "findOneBy").mockImplementation(
+    fallbackRow("webhook", {
+      name: "Ben's pager bridge",
+      webhookUrl: "https://hooks.example.com/ben",
+    }) as never,
+  );
+  jest.spyOn(UserNotificationRuleService, "getFallbackRules");
+}
+
+// Ben, with no rule for the severity, has these methods and only these.
+function benHas(methods: FallbackMethods): void {
+  world.fallbackMethods[BEN] = methods;
+  world.verified[BEN] = (Object.keys(methods) as Array<keyof FallbackMethods>)
+    .filter((kind: keyof FallbackMethods): boolean => {
+      return Boolean(methods[kind]);
+    })
+    .map((kind: keyof FallbackMethods): string => {
+      return FALLBACK_METHOD_TYPES[kind];
+    });
+}
+
+// Ben's line of the first policy the first incident runs.
+function benOf(result: WhoIsToldResult): WhoIsToldPerson {
+  const ben: WhoIsToldPerson | undefined = firstEvent(
+    result,
+  ).policies[0]!.people.find((person: WhoIsToldPerson): boolean => {
+    return person.userId === BEN;
+  });
+
+  expect(ben).toBeDefined();
+
+  return ben!;
 }
 
 async function resolve(): Promise<WhoIsToldResult> {
@@ -1890,6 +2084,535 @@ describe("WhoIsToldService", () => {
     expect(OnCallReadinessService.getReadinessForUsers).toHaveBeenCalledTimes(
       1,
     );
+  });
+
+  /*
+   * #7528: somebody with no rule for the severity was listed with every
+   * method they verified - "Email, SMS and Phone call" - while a page of it
+   * goes to what the project's fallback picks: every free verified method,
+   * or else ONE paid one, or else a webhook. Ben has no rule for Critical.
+   * The fallback's own reader runs here; only its reads are stood in for.
+   */
+  describe("a person with no rule for the severity: what the fallback picks (#7528)", () => {
+    function fallbackCalls(): Array<{ userId: string; ruleType: string }> {
+      return jest
+        .mocked(UserNotificationRuleService.getFallbackRules)
+        .mock.calls.map(
+          (
+            call: Parameters<
+              typeof UserNotificationRuleService.getFallbackRules
+            >,
+          ): { userId: string; ruleType: string } => {
+            return {
+              userId: call[0].userId.toString(),
+              ruleType: call[0].ruleType,
+            };
+          },
+        );
+    }
+
+    test("a verified email, number and phone: Email only - never the text and the call a page does not send", async () => {
+      benHas({ email: true, sms: true, call: true });
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(benOf(result)).toEqual({
+        userId: BEN,
+        name: "Ben Ito",
+        reachedThrough: "Schedule Primary",
+        reachedThroughCode: {
+          code: OnCallTestPageReachedThroughCode.Schedule,
+          name: "Primary",
+        },
+        channels: [OnCallPageChannel.Email],
+        isFallback: true,
+        isReachable: true,
+      });
+      expect(result.breaks).toEqual([]);
+    });
+
+    test("no free method: the one paid method it picks, a text, and not the call", async () => {
+      benHas({ sms: true, call: true });
+
+      expect(benOf(await resolve()).channels).toEqual([OnCallPageChannel.SMS]);
+    });
+
+    test("texts off in the project: the call it picks instead, and no switch is a break", async () => {
+      world.project.enableSmsNotifications = false;
+      benHas({ sms: true, call: true });
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(benOf(result)).toMatchObject({
+        channels: [OnCallPageChannel.Call],
+        isFallback: true,
+        isReachable: true,
+      });
+      expect(kinds(result)).toEqual([]);
+    });
+
+    test("WhatsApp, with texts and calls off: WhatsApp", async () => {
+      world.project.enableSmsNotifications = false;
+      world.project.enableCallNotifications = false;
+      benHas({ sms: true, call: true, whatsApp: true });
+
+      expect(benOf(await resolve()).channels).toEqual([
+        OnCallPageChannel.WhatsApp,
+      ]);
+    });
+
+    test("only a webhook: the webhook", async () => {
+      benHas({ webhook: true });
+
+      expect(benOf(await resolve())).toMatchObject({
+        channels: [OnCallPageChannel.Webhook],
+        isReachable: true,
+      });
+    });
+
+    test("every free method, in the order the fallback sends them, and none of the paid", async () => {
+      benHas({
+        push: true,
+        email: true,
+        slack: true,
+        teams: true,
+        mattermost: true,
+        sms: true,
+        call: true,
+      });
+
+      expect(benOf(await resolve()).channels).toEqual([
+        OnCallPageChannel.Push,
+        OnCallPageChannel.Email,
+        OnCallPageChannel.Slack,
+        OnCallPageChannel.MicrosoftTeams,
+        OnCallPageChannel.Mattermost,
+      ]);
+    });
+
+    test("nothing verified: can't be paged, with no verified method", async () => {
+      benHas({});
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(benOf(result)).toMatchObject({
+        channels: [],
+        isFallback: true,
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+      });
+      expect(kinds(result)).toEqual([WhoIsToldBreakKind.PersonUnreachable]);
+      expect(result.breaks[0]).toMatchObject({
+        userName: "Ben Ito",
+        problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+      });
+    });
+
+    test("their only method is a number, with texts off: the switch is the break, as for a rule", async () => {
+      world.project.enableSmsNotifications = false;
+      benHas({ sms: true });
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(benOf(result)).toMatchObject({
+        channels: [OnCallPageChannel.SMS],
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.ChannelsOff,
+      });
+      expect(
+        result.breaks.map((brk: WhoIsToldBreak): Array<unknown> => {
+          return [brk.kind, brk.channel];
+        }),
+      ).toEqual([[WhoIsToldBreakKind.ChannelOff, OnCallPageChannel.SMS]]);
+    });
+
+    test("the project's fallback off: unchanged, and the fallback is never asked", async () => {
+      world.project.disableOnCallNotificationFallback = true;
+      benHas({ email: true });
+
+      expect(benOf(await resolve())).toMatchObject({
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.NoRuleNoFallback,
+      });
+      expect(
+        UserNotificationRuleService.getFallbackRules,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("opted out of the severity: unchanged, and the fallback is never asked", async () => {
+      world.previews[BEN] = preview({
+        userId: BEN,
+        userName: "Ben Ito",
+        hasNoRule: true,
+        isOptedOut: true,
+      });
+      benHas({ email: true });
+
+      expect(benOf(await resolve())).toMatchObject({
+        isReachable: false,
+        problem: WhoIsToldPersonProblem.OptedOut,
+      });
+      expect(
+        UserNotificationRuleService.getFallbackRules,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("somebody with a rule is reached by it, and the fallback is never asked about them", async () => {
+      benHas({ email: true });
+
+      await resolve();
+
+      expect(fallbackCalls()).toEqual([
+        {
+          userId: BEN,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        },
+      ]);
+    });
+
+    test("read once a person and kind of page, however many severities and policies reach them", async () => {
+      benHas({ email: true, sms: true });
+      world.monitorSteps = opensIncidents(
+        incidentTemplate(),
+        incidentTemplate({
+          id: "minor-template",
+          incidentSeverityId: new ObjectID(MINOR),
+        }),
+      );
+      world.incidentRules = [
+        rule(RULE, "Every incident", [PRIMARY]),
+        rule(ObjectID.generate().toString(), "Again", [PRIMARY]),
+      ];
+
+      const result: WhoIsToldResult = await resolve();
+
+      // His rules are read for each severity; what the fallback picks, once.
+      expect(
+        jest
+          .mocked(OnCallTestPageService.getPersonPreview)
+          .mock.calls.filter((call: Array<unknown>): boolean => {
+            return (call[0] as { userId: ObjectID }).userId.toString() === BEN;
+          }),
+      ).toHaveLength(2);
+      expect(fallbackCalls()).toHaveLength(1);
+
+      for (const event of events(result)) {
+        expect(
+          event.policies[0]!.people.find((person: WhoIsToldPerson) => {
+            return person.userId === BEN;
+          })!.channels,
+        ).toEqual([OnCallPageChannel.Email]);
+      }
+    });
+
+    test("an alert is read for alerts: a kind of page of its own", async () => {
+      benHas({ email: true });
+      world.monitorSteps = stepsOf([
+        criteriaInstance({
+          id: "offline",
+          name: "Offline",
+          createIncidents: true,
+          incidents: [incidentTemplate()],
+          createAlerts: true,
+          alerts: [alertTemplate()],
+        }),
+      ]);
+      world.alertRules = [
+        rule(ObjectID.generate().toString(), "Every alert", [
+          PRIMARY,
+        ]) as unknown as AlertOnCallRule,
+      ];
+
+      await resolve();
+
+      expect(
+        fallbackCalls().map((call: { ruleType: string }): string => {
+          return call.ruleType;
+        }),
+      ).toEqual([
+        NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+      ]);
+    });
+
+    test("self-hosted, the server can't send SMS: no SMS break for somebody the fallback emails", async () => {
+      world.previews[ANA] = preview({
+        methods: [
+          {
+            channel: OnCallPageChannel.Email,
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+      });
+      benHas({ email: true, sms: true });
+      world.serverStatuses = [
+        serverStatus(ServerSendingChannel.Email, ServerSendingState.Working),
+        serverStatus(ServerSendingChannel.SMS, ServerSendingState.NotSetUp),
+        serverStatus(ServerSendingChannel.Call, ServerSendingState.NotSetUp),
+      ];
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(benOf(result).channels).toEqual([OnCallPageChannel.Email]);
+      // Nobody's page is a text or a call: what the server can't send stops nothing.
+      expect(kinds(result)).toEqual([]);
+    });
+
+    test("the whole project at once reads what the fallback picks the same way, once a person", async () => {
+      benHas({ email: true, sms: true, call: true });
+      jest
+        .spyOn(IncidentOnCallRuleEngineService, "readEnabledRules")
+        .mockResolvedValue(world.incidentRules as never);
+      jest
+        .spyOn(AlertOnCallRuleEngineService, "readEnabledRules")
+        .mockResolvedValue(world.alertRules as never);
+
+      const monitor: (id: string, name: string) => Monitor = (
+        id: string,
+        name: string,
+      ): Monitor => {
+        const item: Monitor = withId(new Monitor(), id);
+        item.name = name;
+        item.monitorType = MonitorType.Website;
+        item.projectId = PROJECT_ID;
+        item.monitorSteps = world.monitorSteps;
+        item.labels = [];
+        return item;
+      };
+
+      const results: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [
+            monitor(MONITOR_ID.toString(), "Checkout API"),
+            monitor(ObjectID.generate().toString(), "Payments API"),
+          ],
+        });
+
+      expect(results).toHaveLength(2);
+
+      for (const each of results) {
+        expect(benOf(each).channels).toEqual([OnCallPageChannel.Email]);
+      }
+
+      expect(fallbackCalls()).toHaveLength(1);
+    });
+
+    /*
+     * THE CARD SAYS WHAT A PAGE SENDS: for the same person and project, the
+     * channels Ben's line lists are the channels the real fallback
+     * (executeFallbackNotification) hands a sender - its claim and the
+     * membership check stood in for, each rule it would deliver recorded.
+     */
+    describe("what the card lists is what a page sends", () => {
+      async function sentByTheFallback(): Promise<Array<OnCallPageChannel>> {
+        const delivered: Array<UserNotificationRule> = [];
+
+        jest
+          .spyOn(UserOnCallLogService, "claimNotificationExecution")
+          .mockResolvedValue(true as never);
+        jest
+          .spyOn(ProjectMembership, "isMember")
+          .mockResolvedValue(true as never);
+        jest
+          .spyOn(
+            UserNotificationRuleService as unknown as {
+              deliverNotificationForRule: (
+                rule: UserNotificationRule,
+                options: ExecuteNotificationRuleOptions,
+              ) => Promise<boolean>;
+            },
+            "deliverNotificationForRule",
+          )
+          .mockImplementation((async (sent: UserNotificationRule) => {
+            delivered.push(sent);
+            return true;
+          }) as never);
+
+        const options: ExecuteFallbackNotificationOptions = {
+          userId: new ObjectID(BEN),
+          projectId: PROJECT_ID,
+          userOnCallLogId: ObjectID.generate(),
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          severityName: "Critical",
+          userNotificationLogId: ObjectID.generate(),
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+          onCallPolicyId: new ObjectID(PRIMARY),
+        };
+
+        await UserNotificationRuleService.executeFallbackNotification(options);
+
+        return delivered.flatMap(
+          (sent: UserNotificationRule): Array<OnCallPageChannel> => {
+            return getPreviewMethodsOfRule({
+              rule: sent,
+              showAddresses: false,
+            }).map((method: OnCallTestPagePreviewMethod): OnCallPageChannel => {
+              return method.channel;
+            });
+          },
+        );
+      }
+
+      const cases: Array<[string, FallbackMethods, Partial<Project>]> = [
+        [
+          "an email, a number and a phone",
+          { email: true, sms: true, call: true },
+          {},
+        ],
+        ["a number and a phone", { sms: true, call: true }, {}],
+        [
+          "a number and a phone, texts off",
+          { sms: true, call: true },
+          { enableSmsNotifications: false },
+        ],
+        [
+          "WhatsApp and Telegram, WhatsApp off",
+          { whatsApp: true, telegram: true },
+          { enableWhatsAppNotifications: false },
+        ],
+        [
+          "every free method and a phone",
+          {
+            push: true,
+            email: true,
+            slack: true,
+            teams: true,
+            mattermost: true,
+            call: true,
+          },
+          {},
+        ],
+        ["an email and a webhook", { email: true, webhook: true }, {}],
+        ["a webhook alone", { webhook: true }, {}],
+        [
+          "only methods on channels that are off",
+          { sms: true, call: true },
+          { enableSmsNotifications: false, enableCallNotifications: false },
+        ],
+        ["nothing at all", {}, {}],
+      ];
+
+      test.each(cases)(
+        "%s: the card lists exactly the channels the fallback hands a sender",
+        async (
+          _name: string,
+          methods: FallbackMethods,
+          switches: Partial<Project>,
+        ) => {
+          benHas(methods);
+          Object.assign(world.project, switches);
+
+          const ben: WhoIsToldPerson = benOf(await resolve());
+          const sent: Array<OnCallPageChannel> = await sentByTheFallback();
+
+          expect(ben.isReachable ? ben.channels : []).toEqual(sent);
+          expect(ben.isReachable).toBe(sent.length > 0);
+        },
+      );
+    });
+  });
+
+  test("the channels of what the fallback picked, in its order, each once", () => {
+    const picked: (fields: Partial<UserNotificationRule>) => FallbackRule = (
+      fields: Partial<UserNotificationRule>,
+    ): FallbackRule => {
+      return {
+        channelName: "",
+        rule: Object.assign(new UserNotificationRule(), fields),
+      };
+    };
+
+    expect(
+      getFallbackRuleChannels([
+        picked({ userPush: { isVerified: true } as never }),
+        picked({ userEmail: { isVerified: true } as never }),
+        picked({ userEmail: { isVerified: true } as never }),
+        picked({ userWebhook: { name: "Pager" } as never }),
+      ]),
+    ).toEqual([
+      OnCallPageChannel.Push,
+      OnCallPageChannel.Email,
+      OnCallPageChannel.Webhook,
+    ]);
+    expect(getFallbackRuleChannels([])).toEqual([]);
+  });
+
+  /*
+   * #7369: a new project's first monitor, before any on-call policy, was
+   * told to Set Up Paging in the incident on-call rules builder, whose
+   * rules page policies it does not have. With no policy, the fix is the
+   * on-call guided setup; with one, the rules.
+   */
+  describe("nobody paged, with no on-call policy yet (#7369)", () => {
+    test("a project with no policy: the fix is the on-call guided setup", async () => {
+      world.projectPolicies = [];
+      world.incidentRules = [];
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(kinds(result)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+      expect(result.breaks[0]).toMatchObject({
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+        recordKind: OnCallTestPageRecordKind.Incident,
+      });
+      expect(result.breaks[0]!.message).toContain(
+        "this project has no on-call policy yet",
+      );
+    });
+
+    test("a project with a policy no rule runs for this monitor: the rules, as before", async () => {
+      world.incidentRules = [];
+
+      const result: WhoIsToldResult = await resolve();
+
+      expect(result.breaks[0]).toMatchObject({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.IncidentOnCallRules,
+      });
+    });
+
+    test("one policy is enough, whatever it is called", async () => {
+      world.projectPolicies = [[SECONDARY, ""]];
+      world.incidentRules = [];
+
+      expect((await resolve()).breaks[0]!.fix).toBe(
+        WhoIsToldFix.IncidentOnCallRules,
+      );
+    });
+
+    test("the whole project at once says the same", async () => {
+      world.projectPolicies = [];
+      world.incidentRules = [];
+      jest
+        .spyOn(IncidentOnCallRuleEngineService, "readEnabledRules")
+        .mockResolvedValue([] as never);
+      jest
+        .spyOn(AlertOnCallRuleEngineService, "readEnabledRules")
+        .mockResolvedValue([] as never);
+
+      const monitor: Monitor = withId(new Monitor(), MONITOR_ID.toString());
+      monitor.name = "Checkout API";
+      monitor.monitorType = MonitorType.Website;
+      monitor.projectId = PROJECT_ID;
+      monitor.monitorSteps = world.monitorSteps;
+      monitor.labels = [];
+
+      const [result]: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [monitor],
+        });
+
+      expect(result!.breaks).toEqual([
+        expect.objectContaining({
+          kind: WhoIsToldBreakKind.NobodyPaged,
+          fix: WhoIsToldFix.OnCallGuidedSetup,
+        }),
+      ]);
+    });
   });
 
   test("an answer is kept a minute, and a refresh works it out again", async () => {

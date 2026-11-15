@@ -675,6 +675,7 @@ describe("the monitors' chains, as findings", () => {
       channels: channels(),
       projectHasIncidentOnCallRules: true,
       projectHasAlertOnCallRules: false,
+      projectHasOnCallPolicies: true,
     });
 
     const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
