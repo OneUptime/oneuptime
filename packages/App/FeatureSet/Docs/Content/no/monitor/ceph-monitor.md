@@ -275,7 +275,7 @@ En helsesjekk som aldri har slått til, har ingen serie, `ceph_daemon_health_met
 :::
 
 :::details Tellere som ceph_pool_wr_bytes bare vokser
-Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Convert to per-second rate** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
+Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Gjør om til rate per sekund** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
 :::
 
 ## Neste steg
