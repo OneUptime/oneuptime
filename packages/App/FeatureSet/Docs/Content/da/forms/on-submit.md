@@ -73,7 +73,7 @@ En hændelse, der er oprettet via en formular, er en almindelig hændelse med no
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slået fra, og det samme er **Underret statussideabonnenter**. Indtil en responder offentliggør den, når intet om hændelsen en statusside eller en abonnent — bortset fra en skabelons ændring af monitorstatus, ovenfor.
 - **Oprettet af ingen.** Indsenderen er ikke en OneUptime-bruger, så ingen bruger registreres som den, der oprettede hændelsen.
-- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til projektets ejere.
+- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere.
 - **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
 
 Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **On Create Incident**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.

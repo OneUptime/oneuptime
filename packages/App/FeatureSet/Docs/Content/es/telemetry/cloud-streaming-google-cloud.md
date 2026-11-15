@@ -27,7 +27,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Un proyecto de Google Cloud conectado.** Conéctalo primero en **Nube → Conectar**: consulta [Conectar una cuenta en la nube](/docs/telemetry/cloud-accounts).
-- **Un propietario o administrador del proyecto.** Solo ellos pueden crear una clave de flujo y detener la transmisión.
+- **Un Propietario del proyecto o un Administrador del proyecto.** Solo ellos pueden crear una clave de flujo y detener la transmisión.
 - **Google Cloud Shell**, con la sesión iniciada como **Owner** de los proyectos, o como alguien que pueda crear en ellos cuentas de servicio, temas de Pub/Sub y receptores de registros.
 - **Una dirección HTTPS, en un OneUptime autoalojado.** Pub/Sub solo envía a direcciones `https://`, con un certificado en el que Google confíe, y la dirección debe ser accesible desde Google Cloud.
 

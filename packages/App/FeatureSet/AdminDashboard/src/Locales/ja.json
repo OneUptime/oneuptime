@@ -2417,6 +2417,7 @@
   "Sign people out after inactivity": "操作がない場合にサインアウトするまでの時間",
   "People who have not used OneUptime for 30 days sign in again.": "30 日間 OneUptime を使っていない人は、もう一度サインインします。",
   "Counted from the last time each person clicked, typed or scrolled in OneUptime.": "各ユーザーが OneUptime で最後にクリック、入力、スクロールした時点から数えます。",
+  "Counted from the last time each person clicked, typed or scrolled in OneUptime. The mobile app needs a version newer than 1.6.0: earlier versions are signed out every 15 minutes.": "各ユーザーが OneUptime で最後にクリック、入力、スクロールした時点から数えます。モバイルアプリは 1.6.0 より新しいバージョンが必要です。それ以前のバージョンは 15 分ごとにサインアウトされます。",
   "SSO Sign-ins": "SSO サインイン",
   "Sign-ins through a project's SAML or OpenID Connect provider, or the server's own.": "プロジェクトの SAML または OpenID Connect プロバイダー、またはサーバー自体のプロバイダーによるサインインです。",
   "Separate lengths for SSO sign-ins": "SSO サインインに別の長さを使う",

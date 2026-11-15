@@ -13,7 +13,7 @@
 
 ## 工作原理
 
-Huntress 会在报告发出时、有人评论时以及报告关闭时发送事件报告的事件。**Huntress Incident Report** 触发器会为每个事件启动一次工作流，它的 **事件** 说明是哪种事件：`created`、`comment-added` 或 `closed`。
+Huntress 会在报告发出时、有人评论时以及报告关闭时发送事件报告的事件。**Huntress 事件报告** 触发器会为每个事件启动一次工作流，它的 **事件** 说明是哪种事件：`created`、`comment-added` 或 `closed`。
 
 ```mermaid title="一份 Huntress 事件报告在工作流中"
 sequenceDiagram
@@ -55,11 +55,11 @@ sequenceDiagram
 
 ### 选择呼叫谁
 
-接着对话框会询问呼叫谁：在 **Who to page for high and critical reports** 下选择要呼叫的值班策略，不选则不呼叫任何人，然后点击**创建工作流**。工作流会在**生成器**中打开，处于关闭状态。之后要更改呼叫谁，请点击它的 **Page an On-Call Policy** 步骤，更改其**值班策略**。
+接着对话框会询问呼叫谁：在 **Who to page for high and critical reports** 下选择要呼叫的值班策略，不选则不呼叫任何人，然后点击**创建工作流**。工作流会在**生成器**中打开，处于关闭状态。之后要更改呼叫谁，请点击它的 **启动值班策略** 步骤，更改其**值班策略**。
 
 ### 在 Huntress 中添加 Webhook 端点
 
-点击 **Huntress Incident Report** 触发器，在**在 Huntress 中添加 Webhook 端点**下点击**复制 URL**。URL 形如 `https://oneuptime.com/workflow/huntress/<key>`；自托管安装的 URL 以你自己的主机开头。
+点击 **Huntress 事件报告** 触发器，在**在 Huntress 中添加 Webhook 端点**下点击**复制 URL**。URL 形如 `https://oneuptime.com/workflow/huntress/<key>`；自托管安装的 URL 以你自己的主机开头。
 
 在 Huntress 中打开右上角的菜单，选择 **Integrations**。点击 **Add an Integration**，选择 **Webhooks**，然后点击 **Add Endpoint**。粘贴 URL，开启 **Incident Reports**，然后保存。让 **Escalations**、**Platform Actions** 和 **Account Notices** 保持关闭：触发器会接收这些事件，但不会为它们启动任何内容。
 
@@ -79,15 +79,15 @@ sequenceDiagram
 
 ## 工作流做什么
 
-在触发器之后， **Incident From Another Tool** 按报告的编号执行每种 **事件** 要求的操作：
+在触发器之后， **来自其他工具的事件** 按报告的编号执行每种 **事件** 要求的操作：
 
 | Event | 工作流做什么 |
 | --- | --- |
-| `created` | 以触发器的 **事件严重程度 ID** 创建事件，并带上其 **Organization Label ID** 标签。对于高或严重的报告，**Page an On-Call Policy** 会呼叫你的策略；低报告不呼叫任何人。已有事件的报告不会再创建另一个事件。 |
+| `created` | 以触发器的 **事件严重程度 ID** 创建事件，并带上其 **组织标签 ID** 标签。对于高或严重的报告，**启动值班策略** 会呼叫你的策略；低报告不呼叫任何人。已有事件的报告不会再创建另一个事件。 |
 | `comment-added` | 找到报告的事件，把评论作为私有备注添加到事件上。 |
 | `closed` | 找到报告的事件并解决它，除非它已经解决。原因记录在它的时间线上：Huntress 关闭了该报告。 |
 
-它和其他工作流一样，所以你可以修改它做的事：修改 **Incident From Another Tool** 之后的 **If / Else** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **组织** 的 **Switch / Case** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
+它和其他工作流一样，所以你可以修改它做的事：修改 **来自其他工具的事件** 之后的 **如果 / 否则** 比较的内容，只为严重报告呼叫；用 Slack 或 Microsoft Teams 步骤把每份报告发到聊天频道；或用基于 **组织** 的 **分支选择** 把每个组织发给它自己的值班策略。每次运行都会列在工作流的运行记录中，并显示每个步骤做了什么。
 
 ### 严重性
 
@@ -103,7 +103,7 @@ Huntress 会给每份事件报告三种严重性之一。触发器的 **事件�
 
 ### 组织
 
-触发器的 **Organization Label ID** 是一个以报告所属 Huntress 组织命名的标签，例如 _Acme Corp_，该组织的第一份报告到达时会创建它。一个工作流会接收你 Huntress 账户中所有组织的报告，触发器的**仅限这些组织**可以缩小范围：每行一个组织名称或 ID，名称不区分大小写。
+触发器的 **组织标签 ID** 是一个以报告所属 Huntress 组织命名的标签，例如 _Acme Corp_，该组织的第一份报告到达时会创建它。一个工作流会接收你 Huntress 账户中所有组织的报告，触发器的**仅限这些组织**可以缩小范围：每行一个组织名称或 ID，名称不区分大小写。
 
 > [!TIP]
 > 要呼叫每个客户自己的团队，请为每个组织添加一条事件值班规则，例如“如果**事件标签**包含任一 _Acme Corp_”，执行该客户的策略。参见[事件值班规则](/docs/incidents/settings#事件值班规则)。
@@ -115,7 +115,7 @@ Huntress 会给每份事件报告三种严重性之一。触发器的 **事件�
 | 值 | 内容 |
 | --- | --- |
 | **事件** | `created`、`comment-added` 或 `closed`。已经关闭或驳回的报告，无论由哪个事件带来，都是 `closed`。 |
-| **Report ID** | 报告在 Huntress 中的编号。 |
+| **报告 ID** | 报告在 Huntress 中的编号。 |
 | **严重程度** | `critical`、`high` 或 `low`。 |
 | **状态** | 报告在 Huntress 中的状态，例如 `sent`、`closed` 或 `dismissed`。 |
 | **主题** | 报告的主题，即 Huntress 所写的原文。 |
@@ -124,15 +124,15 @@ Huntress 会给每份事件报告三种严重性之一。触发器的 **事件�
 | **受影响对象** | 报告涉及的主机或身份。 |
 | **平台**、**指标** | Huntress 在哪里发现，以及发现了什么。 |
 | **评论** | 对于 `comment-added`，某人添加的评论。 |
-| **Report URL** | 报告在 Huntress 中打开的位置。 |
+| **报告 URL** | 报告在 Huntress 中打开的位置。 |
 | **事件标题**、**事件描述** | 关于该报告的事件的标题和 Markdown 描述。 |
 | **备注** | 关于该事件的备注 Markdown：评论内容，或 Huntress 关闭了该报告。 |
-| **事件严重程度 ID**、**Organization Label ID** | 上文所述的事件严重性和标签。 |
-| **Received At** | OneUptime 收到该事件的时间。 |
+| **事件严重程度 ID**、**组织标签 ID** | 上文所述的事件严重性和标签。 |
+| **接收时间** | OneUptime 收到该事件的时间。 |
 
 **摘要** 和 **评论** 是 Huntress 分析师写的文本。要把它们放进事件或备注，请使用 **事件描述** 和 **备注**：它们会保留格式，而且其中的内容不会加载图片，也不会提及任何人。
 
-要在没有 Huntress 的情况下试用工作流，请在**生成器**中点击**运行工作流**，输入 **事件**、**Report ID** 和你需要的字段。使用同一个 **Report ID** 可以把一份报告从 `created` 跟到 `closed`。
+要在没有 Huntress 的情况下试用工作流，请在**生成器**中点击**运行工作流**，输入 **事件**、**报告 ID** 和你需要的字段。使用同一个 **报告 ID** 可以把一份报告从 `created` 跟到 `closed`。
 
 ## 之前创建的 Huntress 连接
 
@@ -170,15 +170,15 @@ Huntress 与你的 OneUptime 服务器的时钟相差超过五分钟，或者该
 :::
 
 :::details "No Huntress workflow has this address."
-工作流已被删除或归档，它的触发器不再是 **Huntress Incident Report**，或者 Huntress 中端点的 URL 不是该工作流的 URL。从触发器复制 URL，然后把它重新粘贴到 Huntress 的端点中。
+工作流已被删除或归档，它的触发器不再是 **Huntress 事件报告**，或者 Huntress 中端点的 URL 不是该工作流的 URL。从触发器复制 URL，然后把它重新粘贴到 Huntress 的端点中。
 :::
 
 :::details 没有创建事件
-打开工作流的运行记录，以及该报告的那次运行。如果 **Incident From Another Tool** 以 `This project has no incident severities to put the incident at.` 失败，请在**事件 → 设置 → 事件严重性**中添加一个。
+打开工作流的运行记录，以及该报告的那次运行。如果 **来自其他工具的事件** 以 `This project has no incident severities to put the incident at.` 失败，请在**事件 → 设置 → 事件严重性**中添加一个。
 :::
 
 :::details 没有呼叫任何人
-低报告会创建事件但不呼叫。其他情况下，该报告的运行会显示 **Page an On-Call Policy** 做了什么，事件的**值班执行**页面会显示每个策略做了什么。
+低报告会创建事件但不呼叫。其他情况下，该报告的运行会显示 **启动值班策略** 做了什么，事件的**值班执行**页面会显示每个策略做了什么。
 :::
 
 ## 后续步骤

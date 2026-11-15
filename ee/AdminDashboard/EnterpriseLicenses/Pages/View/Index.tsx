@@ -1,4 +1,5 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
@@ -455,11 +456,13 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
                   {translator.translateText("Seats in use")}
                 </div>
                 <div className="mt-1 text-4xl font-semibold text-gray-900">
-                  {license
-                    ? translator.formatNumber(
-                        usageSnapshot?.currentUserCount || 0,
-                      )
-                    : "—"}
+                  {license ? (
+                    translator.formatNumber(
+                      usageSnapshot?.currentUserCount || 0,
+                    )
+                  ) : (
+                    <EmptyFigure />
+                  )}
                   {license?.userLimit ? (
                     <span className="ml-2 text-lg font-normal text-gray-500">
                       {translator.translatePlural(

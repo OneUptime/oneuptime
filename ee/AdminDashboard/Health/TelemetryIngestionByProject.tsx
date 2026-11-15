@@ -19,6 +19,7 @@ import {
   TelemetrySortDirection,
 } from "./TelemetryIngestionUtils";
 import URL from "Common/Types/API/URL";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Gray500 } from "Common/Types/BrandColors";
@@ -75,7 +76,7 @@ const StatTile: FunctionComponent<{
         {translator.translateText(props.label) || props.label}
       </div>
       <div className="mt-1 text-xl font-semibold tabular-nums text-gray-900">
-        {props.value}
+        {getFigure(props.value)}
       </div>
       {props.hint ? (
         <div

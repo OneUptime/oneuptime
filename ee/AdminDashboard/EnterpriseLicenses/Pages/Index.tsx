@@ -1,4 +1,5 @@
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import EmptyFigure from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import PageMap from "@oneuptime/admin-dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/admin-dashboard/Utils/RouteMap";
 import {
@@ -72,7 +73,11 @@ const StatTile: FunctionComponent<StatTileProps> = (
       <div>
         <div className="text-sm text-gray-500">{props.label}</div>
         <div className="text-2xl font-semibold text-gray-900">
-          {props.value === null ? "—" : props.value.toLocaleString()}
+          {props.value === null ? (
+            <EmptyFigure />
+          ) : (
+            props.value.toLocaleString()
+          )}
         </div>
       </div>
     </div>

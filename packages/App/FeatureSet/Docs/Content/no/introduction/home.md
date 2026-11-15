@@ -6,7 +6,7 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 - [Hva Hjem viser](#hva-hjem-viser): Om noe er galt, hva som trenger deg, hva prosjektet inneholder og alle produktene.
 - [Finn frem](#finn-frem): Menyen Produkter og linjene øverst på hver side.
 - [Søk](#søk-etter-en-side-en-innstilling-eller-en-handling): Finn enhver side, innstilling eller handling ved å skrive navnet.
-- [Hurtigtaster](#hurtigtaster): Gå til Hjem, Overvåkere eller Hendelser med to taster.
+- [Hurtigtaster](#hurtigtaster): Gå til Hjem, Monitorer eller Hendelser med to taster.
 :::
 
 ## Hva Hjem viser
@@ -109,7 +109,7 @@ Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krev
 
 ## Finn frem
 
-Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Overvåkere, Hendelser, Varsler, Vakt, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
+Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene sine som radene i én liste, og åpner alltid med den første av dem, det grunnleggende, utvidet: Monitorer, Hendelser, Varsler, Vakt, Statussider, Planlagt vedlikehold og SLOs. Hver annen gruppe (Observerbarhet, Sikkerhet, AI, Kode, Ressurser, Infrastruktur, Sky, Dashbord og automatisering og Innstillinger) er slått sammen til en rad i den samme listen. Hver rad nevner produktene i gruppen og sier hvor mange det er. Klikk på en rad for å utvide eller slå den sammen, eller gå til den med piltastene og trykk **Enter**.
 
 - **Søk finner alt.** Skriv i menyens søkefelt for å finne ethvert produkt etter navn, etter hva det gjør, eller etter et kjent ord som `k8s` eller `RUM`. Søket ser også inni de sammenslåtte gruppene.
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.
@@ -182,7 +182,7 @@ Trykk `g` og deretter en bokstav for å gå rett til et produkt. Trykk bokstaven
 | Taster | Går til |
 | --- | --- |
 | `g` deretter `h` | Hjem |
-| `g` deretter `m` | Overvåkere |
+| `g` deretter `m` | Monitorer |
 | `g` deretter `i` | Hendelser |
 | `g` deretter `a` | Varsler |
 | `g` deretter `o` | Vakt |

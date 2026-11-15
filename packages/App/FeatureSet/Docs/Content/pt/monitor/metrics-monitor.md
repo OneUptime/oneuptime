@@ -41,7 +41,7 @@ Em **Tipo de monitor**, clique em **Mais tipos de monitor** e escolha **Métrica
 
 ### Adicionar as consultas de métricas
 
-Em **Métrica a observar**, escolha uma **Métrica** e como agregá-la com **Aggregate by**. Abra **Filters & grouping** para filtrar por atributos ou para agrupar com **Agrupar por**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra as últimas horas, com o valor da regra como uma linha vermelha, para você ver os valores que a regra vai verificar.
+Em **Métrica a observar**, escolha uma **Métrica** e como agregá-la com **Agregar por**. Abra **Filtros e agrupamento** para filtrar por atributos ou para agrupar com **Agrupar por**. Clique em **Adicionar métrica** para outra consulta, ou em **Adicionar fórmula** para combiná-las. O gráfico abaixo das consultas mostra as últimas horas, com o valor da regra como uma linha vermelha, para você ver os valores que a regra vai verificar.
 
 ### Dizer quando alertar
 
@@ -63,9 +63,9 @@ Clique em **Criar monitor**. O monitor abre na sua página **Visão geral**, e s
 | Campo | O que faz | Padrão |
 | --- | --- | --- |
 | **Métrica** | A métrica a consultar. | Obrigatório |
-| **Aggregate by** | Como os valores de cada intervalo de tempo são combinados em um ponto de dados: Méd, Soma, Min, Max, Contagem, ou um percentil (P50, P75, P90, P95 ou P99). | Méd |
-| **Filter by attributes** (em **Filters & grouping**) | Somente as séries cujos atributos atendem a estas condições. | Nenhum filtro |
-| **Agrupar por** (em **Filters & grouping**) | Uma série por valor único destes atributos (veja [Alertas por série](#alertas-por-série-group-by)). | Uma só série |
+| **Agregar por** | Como os valores de cada intervalo de tempo são combinados em um ponto de dados: Méd, Soma, Min, Max, Contagem, ou um percentil (P50, P75, P90, P95 ou P99). | Méd |
+| **Filtrar por atributos** (em **Filtros e agrupamento**) | Somente as séries cujos atributos atendem a estas condições. | Nenhum filtro |
+| **Agrupar por** (em **Filtros e agrupamento**) | Uma série por valor único destes atributos (veja [Alertas por série](#alertas-por-série-group-by)). | Uma só série |
 
 Cada consulta e cada fórmula recebe uma variável (`a`, `b`, `c` e assim por diante), na ordem em que você as adiciona.
 
@@ -97,7 +97,7 @@ Quanto maior a janela, mais largo é cada intervalo de agrupamento, então um po
 ## Como ele é avaliado
 
 - **A cada minuto.** Um monitor de métricas não é verificado por sondas, por isso não tem intervalo para configurar nem página **Sondas e intervalo**.
-- **Primeiro as consultas, depois as fórmulas.** Cada consulta retorna um ponto de dados por intervalo de agrupamento do intervalo de tempo, de acordo com o seu **Aggregate by**. As fórmulas são calculadas para cada intervalo a partir dos pontos de dados das consultas.
+- **Primeiro as consultas, depois as fórmulas.** Cada consulta retorna um ponto de dados por intervalo de agrupamento do intervalo de tempo, de acordo com o seu **Agregar por**. As fórmulas são calculadas para cada intervalo a partir dos pontos de dados das consultas.
 - **Depois, a medida da regra.** A regra reduz os pontos de dados da sua métrica ao que compara com o seu valor, como diz **Medido como**:
 
 | Medido como | Nos critérios personalizados | A condição é verificada contra… |
@@ -160,7 +160,7 @@ Um novo monitor de métricas criado pela API ou pelo Terraform sem critérios co
 
 ## Exemplo prático: uma fila que cresce
 
-Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Aggregate by** Max, e a **Janela de tempo** é **Últimos 5 minutos**. Uma avaliação vê estes cinco pontos de dados de um minuto:
+Você quer um incidente quando a fila de checkout continua longa. A consulta `a` é o gauge `checkout.queue.depth`, com **Agregar por** Max, e a **Janela de tempo** é **Últimos 5 minutos**. Uma avaliação vê estes cinco pontos de dados de um minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

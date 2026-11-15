@@ -1,6 +1,6 @@
 # 审计日志导出
 
-在审计日志记录时，将其发送到你选择的存储或服务：Amazon S3 或 S3 兼容存储、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog。条目可以在那里保存到合规审查需要的时长，并在你的 SIEM 中搜索。项目的所有者和管理员在项目设置中导出该项目的审计日志，主管理员在 Admin Dashboard 中导出所有项目的审计日志。在 OneUptime Cloud 上它属于 Enterprise 套餐，自托管时属于 Enterprise Edition。
+在审计日志记录时，将其发送到你选择的存储或服务：Amazon S3 或 S3 兼容存储、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog。条目可以在那里保存到合规审查需要的时长，并在你的 SIEM 中搜索。项目所有者和项目管理员在项目设置中导出该项目的审计日志，主管理员在 Admin Dashboard 中导出所有项目的审计日志。在 OneUptime Cloud 上它属于 Enterprise 套餐，自托管时属于 Enterprise Edition。
 
 :::cards
 - [设置导出](#设置导出): 选择目标，测试，然后保存。

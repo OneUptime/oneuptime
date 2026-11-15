@@ -193,7 +193,7 @@ Fyra mål som de flesta installationer kan lova, vart och ett byggt av en eller 
 
 :::steps
 1. Öppna projektets [Måttutforskare](/docs/telemetry/metrics-explorer) och klicka på målets första mått. Dess fråga är `a`.
-2. Välj dess aggregering under **Aggregate by**. Öppna sedan **Filters & grouping** och lägg till vart och ett av dess villkor under **Filter by attributes**.
+2. Välj dess aggregering under **Aggregera efter**. Öppna sedan **Filter och gruppering** och lägg till vart och ett av dess villkor under **Filtrera på attribut**.
 3. För en andra fråga klickar du på **Lägg till mätvärde** och ställer in `b` på samma sätt.
 4. För en formel klickar du på **Lägg till formel** och skriver den i **Formel**.
 5. För att få veta när målet missas klickar du på **Åtgärder → Skapa monitor från den här vyn** och larmar när värdet passerar målet: se [Metrikövervakning](/docs/monitor/metrics-monitor).

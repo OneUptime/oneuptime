@@ -189,7 +189,7 @@ Premi `g` e poi una lettera per andare direttamente a un prodotto. Premi la lett
 | `g` poi `s` | Pagine di stato |
 | `g` poi `e` | Manutenzione programmata |
 | `g` poi `d` | Dashboard |
-| `g` poi `l` | Log |
+| `g` poi `l` | Registri |
 | `g` poi `t` | Tracce |
 
 Le scorciatoie non ti intralciano. `?`, `/` e `g` non fanno nulla mentre digiti in un campo, e nulla ti porta via dalla pagina mentre una finestra di dialogo è aperta, così un tasto premuto per sbaglio non può farti perdere un modulo compilato a metà. Ogni altro prodotto è a una ricerca di distanza con `Mod` + `K`.

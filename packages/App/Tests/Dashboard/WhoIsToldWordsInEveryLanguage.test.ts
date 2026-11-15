@@ -225,7 +225,7 @@ describe("When this goes down's words in every language", () => {
       "Status pages",
       "A rule you can't see",
       // Its first words, and what would stop anybody being told.
-      "It emails the project's owners ({{names}}).",
+      "It emails the Project Owners ({{names}}).",
       ...NEW_KEYS,
     ]) {
       expect({ key, scanned: KEYS.has(key) }).toEqual({ key, scanned: true });

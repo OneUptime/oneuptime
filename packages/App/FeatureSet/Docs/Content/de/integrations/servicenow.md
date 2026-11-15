@@ -54,11 +54,11 @@ Gehen Sie zu **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen** un
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Fields to pass on** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident**. Klicken Sie auf den Trigger: Seine **Weiterzugebende Felder** beginnen mit **Titel**, also klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung**.
 
 ### Den Datensatz anlegen
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://your-instance.service-now.com/api/now/table/incident`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://your-instance.service-now.com/api/now/table/incident`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
 ```json
 {
@@ -81,7 +81,7 @@ Und seinen **Anfragetext** auf:
 
 ### Testen und dann einschalten
 
-Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API Post (JSON)** zeigt eine `201`-Antwort mit dem neuen Datensatz, seiner `sys_id` und seiner `number`, etwa `INC0012345`. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
+Klicken Sie auf **Arbeitsablauf ausführen**, wählen Sie unter **Vorfall** einen Testvorfall aus und führen Sie ihn aus. Der Schritt **API-Aufruf POST (JSON)** zeigt eine `201`-Antwort mit dem neuen Datensatz, seiner `sys_id` und seiner `number`, etwa `INC0012345`. Schalten Sie danach oben im **Editor** **Aktiviert** ein.
 :::
 
 `urgency` und `impact` nehmen `1` für hoch, `2` für mittel und `3` für niedrig, und ServiceNow errechnet aus beiden die Priorität. Jede andere Spalte der Tabelle `incident` kann unter ihrem Spaltennamen in den Body.
@@ -93,7 +93,7 @@ Ein Workflow hat einen Trigger, das Beheben braucht also einen zweiten Workflow,
 :::steps
 ### Den Trigger On Update Incident hinzufügen
 
-Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Fields to pass on** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
+Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Sie **On Update Incident** als Trigger. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**, damit er nur läuft, wenn sich der Status ändert. Fragen Sie in **Weiterzugebende Felder** ab, ob der neue Status ein behobener ist: Klicken Sie auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**. Oder klicken Sie auf **Als JSON bearbeiten** und ersetzen Sie das JSON durch:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -101,11 +101,11 @@ Legen Sie einen Workflow namens `Resolve ServiceNow incidents` an und wählen Si
 
 ### Prüfen, ob der Vorfall behoben ist
 
-Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
+Fügen Sie nach dem Trigger einen **Wenn / Sonst**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
 ### Den Datensatz finden
 
-Fügen Sie nach der Seite **Ja** einen **API Get (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
+Fügen Sie nach der Seite **Ja** einen **API-Aufruf GET (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}&sysparm_fields=sys_id&sysparm_limit=1
@@ -113,7 +113,7 @@ https://your-instance.service-now.com/api/now/table/incident?sysparm_query=corre
 
 ### Den Datensatz beheben
 
-Fügen Sie nach dem Punkt **Erfolg** des Suchbausteins einen **API Patch (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
+Fügen Sie nach dem Punkt **Erfolg** des Suchbausteins einen **API-Aufruf PATCH (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
 ```text
 https://your-instance.service-now.com/api/now/table/incident/{{local.components.api-get-1.returnValues.response-body.result[0].sys_id}}

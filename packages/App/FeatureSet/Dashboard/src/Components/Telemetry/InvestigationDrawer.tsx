@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -901,7 +902,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                         {stat.label}
                       </p>
                       <p className="mt-1 text-lg font-semibold tabular-nums text-gray-900">
-                        {stat.value}
+                        {getFigure(stat.value)}
                       </p>
                     </div>
                   );

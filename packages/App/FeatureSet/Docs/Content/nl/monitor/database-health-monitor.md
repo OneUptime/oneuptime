@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` is een ingebouwde rol (PostgreSQL 10 en later) die leestoegang geeft tot de statistiek- en monitoringviews. Hij geeft geen toegang tot je tabellen.
 
 > [!IMPORTANT]
-> **Waarom `pg_monitor` op PostgreSQL niet optioneel is.** Zonder deze rol mislukt `pg_stat_activity` niet — de query slaagt en geeft alleen de eigen rij van de monitoringsessie terug. Het aantal verbindingen zou dan voor altijd op `1` staan, geblokkeerde sessies op `0` en de replicatievertraging op `0`, op een server die in werkelijkheid in brand staat. Daarom controleert de sonde, **voordat** hij die query's uitvoert, of de login lid is van `pg_monitor` (of `pg_read_all_stats`) of een superuser is. Is het geen van deze, dan rapporteert de sonde de groepen Connections, Activity en Locks als niet beschikbaar, samen met de `GRANT` die je nodig hebt. Niets rapporteren is het eerlijke antwoord; `1` rapporteren is dat niet.
+> **Waarom `pg_monitor` op PostgreSQL niet optioneel is.** Zonder deze rol mislukt `pg_stat_activity` niet — de query slaagt en geeft alleen de eigen rij van de monitoringsessie terug. Het aantal verbindingen zou dan voor altijd op `1` staan, geblokkeerde sessies op `0` en de replicatievertraging op `0`, op een server die in werkelijkheid in brand staat. Daarom controleert de sonde, **voordat** hij die query's uitvoert, of de login lid is van `pg_monitor` (of `pg_read_all_stats`) of een superuser is. Is het geen van deze, dan rapporteert de sonde de groepen **Verbindingen**, **Activiteit** en **Vergrendelingen en blokkeringen** als niet beschikbaar, samen met de `GRANT` die je nodig hebt. Niets rapporteren is het eerlijke antwoord; `1` rapporteren is dat niet.
 
 Op een beheerde dienst waar `pg_monitor` niet beschikbaar is, dekt `pg_read_all_stats` dezelfde views. Op Amazon RDS is `GRANT rds_superuser` niet nodig — `GRANT pg_monitor TO oneuptime_health;` werkt als lid van `rds_superuser`.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-Het `performance_schema` van MySQL moet ingeschakeld zijn (`performance_schema = ON`, de standaard sinds 5.6). Staat het uit, dan worden de groepen Connections, Throughput en Locks als niet beschikbaar gerapporteerd, en de oplossing is een herstart van de server, geen recht.
+Het `performance_schema` van MySQL moet ingeschakeld zijn (`performance_schema = ON`, de standaard sinds 5.6). Staat het uit, dan worden de groepen **Verbindingen**, **Doorvoer** en **Vergrendelingen en blokkeringen** als niet beschikbaar gerapporteerd, en de oplossing is een herstart van de server, geen recht.
 
 ### Microsoft SQL Server en Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 Vanuit elke andere database mislukt `GRANT VIEW SERVER STATE` met Msg 4621, "Permissions at the server scope can only be granted when the current database is master".
 
 > [!WARNING]
-> **Leestoegang tot je tabellen is niet genoeg.** Een login die alleen gegevens kan lezen — `db_datareader` of een andere rol met "leestoegang" — kan verbinding maken en krijgt de databasegrootte, verder niets. SQL Server weigert de views die de monitor leest met `The user does not have permission to perform this action.` (Msg 297). Het bericht ervoor noemt wat er geweigerd is: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` op 2022) voor de serverviews, inclusief de ruimte van het transactielogboek en de vrije ruimte van tempdb, of Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` op 2022) voor de replicatieview. De monitor blijft online, meldt dat de groepen Connections, Activity, Throughput, Locks, Storage en Replication een recht missen, en toont de `GRANT` van hierboven ernaast. `VIEW SERVER STATE` dekt ze allemaal.
+> **Leestoegang tot je tabellen is niet genoeg.** Een login die alleen gegevens kan lezen — `db_datareader` of een andere rol met "leestoegang" — kan verbinding maken en krijgt de databasegrootte, verder niets. SQL Server weigert de views die de monitor leest met `The user does not have permission to perform this action.` (Msg 297). Het bericht ervoor noemt wat er geweigerd is: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` op 2022) voor de serverviews, inclusief de ruimte van het transactielogboek en de vrije ruimte van tempdb, of Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` op 2022) voor de replicatieview. De monitor blijft online, meldt dat de groepen **Verbindingen**, **Activiteit**, **Doorvoer**, **Vergrendelingen en blokkeringen**, **Opslag** en **Replicatie** een recht missen, en toont de `GRANT` van hierboven ernaast. `VIEW SERVER STATE` dekt ze allemaal.
 >
 > Twee views weigeren niet: zonder het recht tonen `sys.dm_exec_sessions` en `sys.dm_exec_requests` stilletjes alleen de eigen sessie van de monitor. De monitor leest ze nooit los, altijd samen met een view die wel weigert, dus een ontbrekend recht kan nooit als "1 verbinding" worden vastgelegd.
 
@@ -151,7 +151,7 @@ Een ingesloten databasegebruiker (`CREATE USER oneuptime_health WITH PASSWORD = 
 
 De sonde herkent Azure SQL Database aan `SERVERPROPERTY('EngineEdition')` en niet aan de versie — Azure SQL Database rapporteert `12.0.2000.8`, wat er ook echt draait, en dat leest als SQL Server 2014. De **Engine** van de monitor toont daarom `Azure SQL Database 12.0.2000.8`, en een ontbrekend recht wordt getoond als de Azure-statement hierboven, nooit als `VIEW SERVER STATE`.
 
-- **Replicatie wordt op Azure SQL Database niet verzameld.** Azure SQL Database heeft geen `sys.dm_hadr_database_replica_states`, dus de groep Replication wordt daar overgeslagen in plaats van bij elke controle als mislukt gerapporteerd. De eigen replicaviews van Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) worden nog niet gelezen.
+- **Replicatie wordt op Azure SQL Database niet verzameld.** Azure SQL Database heeft geen `sys.dm_hadr_database_replica_states`, dus de groep **Replicatie** wordt daar overgeslagen in plaats van bij elke controle als mislukt gerapporteerd. De eigen replicaviews van Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) worden nog niet gelezen.
 - **Verbindingen gelden per database.** Met `VIEW DATABASE STATE` toont Azure SQL Database alleen de sessies van de bewaakte database, dus **Verbindingen** telt die database in plaats van de logische server. Bewaak elke database die belangrijk voor je is.
 - **In een elastische pool is "Vrije ruimte in TempDB" die van de pool.** De databases in een pool delen één tempdb.
 
@@ -221,17 +221,17 @@ Het geheim wordt aan de serverkant opgelost voordat de configuratie aan een sond
 
 ## Metricgroepen
 
-Een groep is één eenheid die je aan- of uitzet, en de eenheid waarvoor een ontbrekend recht wordt gemeld. Groepen bestaan zodat een ontbrekend recht je één groep kost in plaats van de hele monitor. De statements van een groep draaien één voor één, dus een groep kan gedeeltelijk verzameld zijn: hij staat dan zowel in `collectedGroups` als in `unavailableGroups`. Het gebruikelijke geval is de groep Storage van SQL Server voor een login zonder `VIEW SERVER STATE` — de databasegrootte wordt verzameld, de logruimte en de vrije ruimte van tempdb niet.
+Een groep is één eenheid die je aan- of uitzet, en de eenheid waarvoor een ontbrekend recht wordt gemeld. Groepen bestaan zodat een ontbrekend recht je één groep kost in plaats van de hele monitor. De statements van een groep draaien één voor één, dus een groep kan gedeeltelijk verzameld zijn: hij staat dan zowel in `collectedGroups` als in `unavailableGroups`. Het gebruikelijke geval is de groep **Opslag** van SQL Server voor een login zonder `VIEW SERVER STATE` — de databasegrootte wordt verzameld, de logruimte en de vrije ruimte van tempdb niet.
 
 | Groep | Wat hij verzamelt | Vereist |
 |---|---|---|
 | Verbindingen | Aantallen verbindingen, het ingestelde plafond, afgebroken verbindingen, uptime van de server | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Activity | Langst lopende query, langst openstaande transactie, open transacties | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
+| Activiteit | Langst lopende query, langst openstaande transactie, open transacties | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Doorvoer | Transacties, query's, cache-hitratio, schijflezingen en -schrijfacties, I/O-tijd | PostgreSQL: niets naast `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Locks | Geblokkeerde sessies, lock-wachttijden, deadlocks, wachttijden voor tabellocks | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | Databasegrootte, uitwijken naar tijdelijke bestanden, logruimte, vrije ruimte van tempdb | PostgreSQL: niets naast `CONNECT`. MySQL: `SELECT` op de database. SQL Server: niets voor de databasegrootte; `VIEW SERVER STATE` voor logruimte en vrije ruimte van tempdb |
-| Replication | Verbonden replica's, replicatievertraging in seconden en bytes, inactieve slots, herstelstatus | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; niet verzameld op Azure SQL Database |
-| Maintenance | Ruimte tot de transactie-ID-wraparound, dode tuples, tabellen die nooit door autovacuum zijn behandeld, checkpoints | PostgreSQL: `pg_monitor` |
+| Vergrendelingen en blokkeringen | Geblokkeerde sessies, lock-wachttijden, deadlocks, wachttijden voor tabellocks | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Opslag | Databasegrootte, uitwijken naar tijdelijke bestanden, logruimte, vrije ruimte van tempdb | PostgreSQL: niets naast `CONNECT`. MySQL: `SELECT` op de database. SQL Server: niets voor de databasegrootte; `VIEW SERVER STATE` voor logruimte en vrije ruimte van tempdb |
+| Replicatie | Verbonden replica's, replicatievertraging in seconden en bytes, inactieve slots, herstelstatus | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; niet verzameld op Azure SQL Database |
+| Onderhoud | Ruimte tot de transactie-ID-wraparound, dode tuples, tabellen die nooit door autovacuum zijn behandeld, checkpoints | PostgreSQL: `pg_monitor` |
 
 Lees op Azure SQL Database `VIEW DATABASE STATE` overal waar deze tabel `VIEW SERVER STATE` zegt — of `##MS_ServerStateReader##` bij Basic, S0, S1 en elastische pools. Zie [Azure SQL Database](#azure-sql-database).
 
@@ -264,7 +264,7 @@ Dit is het bericht van SQL Server (Msg 297) voor een login die verbinding kan ma
 - **SQL Server of Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, uitgevoerd in `master` (de monitor toont hem als `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, uitgevoerd in de bewaakte database; bij Basic, S0, S1 en elastische pools in plaats daarvan lidmaatschap van `##MS_ServerStateReader##`. Zie [Azure SQL Database](#azure-sql-database).
 
-De databasegrootte wordt intussen gewoon verzameld, omdat dat de enige metric van de groep Storage is die elke login kan lezen.
+De databasegrootte wordt intussen gewoon verzameld, omdat dat de enige metric van de groep **Opslag** is die elke login kan lezen.
 
 ## Verzamelde metrics
 
@@ -296,18 +296,18 @@ Eenenveertig reeksen in acht categorieën. Engines noemt de engines die de reeks
 | **Query's** | `oneuptime.monitor.database.queries.total` | Doorvoer | MySQL, SQL Server |
 | **Trage query's** | `oneuptime.monitor.database.queries.slow.total` | Doorvoer | MySQL |
 | **Rollback-verhouding** (%) | `oneuptime.monitor.database.rollback.percent` | Doorvoer | PostgreSQL |
-| **Langst lopende query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Langst openstaande transactie** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open transacties** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Langst lopende query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activiteit | PostgreSQL, MySQL, SQL Server |
+| **Langst openstaande transactie** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activiteit | PostgreSQL, MySQL, SQL Server |
+| **Open transacties** | `oneuptime.monitor.database.transaction.open.count` | Activiteit | MySQL |
 
-### Locks en blokkades
+### Vergrendelingen en blokkeringen
 
 | Metric | Reeks | Group | Engines |
 |---|---|---|---|
-| **Geblokkeerde sessies** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Wachten op vergrendelingen** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Wachten op tabelvergrendelingen** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Geblokkeerde sessies** | `oneuptime.monitor.database.sessions.blocked` | Vergrendelingen en blokkeringen | PostgreSQL, MySQL, SQL Server |
+| **Wachten op vergrendelingen** | `oneuptime.monitor.database.locks.waiting` | Vergrendelingen en blokkeringen | PostgreSQL, MySQL, SQL Server |
+| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Vergrendelingen en blokkeringen | PostgreSQL, SQL Server |
+| **Wachten op tabelvergrendelingen** | `oneuptime.monitor.database.table.locks.waited.total` | Vergrendelingen en blokkeringen | MySQL |
 
 Standaard-MySQL biedt geen enkele deadlockteller, daarom bestaat **Deadlocks** alleen op PostgreSQL en SQL Server.
 
@@ -325,25 +325,25 @@ Standaard-MySQL biedt geen enkele deadlockteller, daarom bestaat **Deadlocks** a
 
 PostgreSQL meet de lees- en schrijftijd van I/O alleen als `track_io_timing` aan staat. Standaard staat het uit, en dan rapporteert PostgreSQL beide als `0` — op PostgreSQL betekent een vlakke nul in die twee reeksen dus meestal "niet gemeten", niet "snel". Dat is een serverinstelling, geen rechtenprobleem.
 
-### Opslagruimte
+### Opslag
 
 | Metric | Reeks | Group | Engines |
 |---|---|---|---|
-| **Databasegrootte** (bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Geschreven tijdelijke bytes** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Tijdelijke tabellen op schijf** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Gebruikte logruimte** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **Vrije ruimte in TempDB** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Databasegrootte** (bytes) | `oneuptime.monitor.database.size.bytes` | Opslag | PostgreSQL, MySQL, SQL Server |
+| **Geschreven tijdelijke bytes** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Opslag | PostgreSQL |
+| **Tijdelijke tabellen op schijf** | `oneuptime.monitor.database.temp.disk.tables.total` | Opslag | MySQL |
+| **Gebruikte logruimte** (%) | `oneuptime.monitor.database.log.space.used.percent` | Opslag | SQL Server |
+| **Vrije ruimte in TempDB** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Opslag | SQL Server |
 
 ### Replicatie
 
 | Metric | Reeks | Group | Engines |
 |---|---|---|---|
-| **Verbonden replica's** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replicatieachterstand** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replicatieachterstand (bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **In herstel** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactieve replicatieslots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Verbonden replica's** | `oneuptime.monitor.database.replica.count` | Replicatie | PostgreSQL, SQL Server |
+| **Replicatieachterstand** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replicatie | PostgreSQL, MySQL |
+| **Replicatieachterstand (bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replicatie | PostgreSQL, SQL Server |
+| **In herstel** | `oneuptime.monitor.database.is.in.recovery` | Replicatie | PostgreSQL |
+| **Inactieve replicatieslots** | `oneuptime.monitor.database.replication.slots.inactive` | Replicatie | PostgreSQL |
 
 Replicatiemetrics worden gerapporteerd vanaf de kant van de koppeling waarmee de monitor verbonden is. Richt een monitor op de primaire server om verbonden replica's en de verzendwachtrij te zien; richt er een op elke standby om te zien hoe ver die standby echt achterloopt.
 
@@ -353,11 +353,11 @@ De vertraging in seconden staat op een inactieve primaire server op nul, ook als
 
 | Metric | Reeks | Group | Engines |
 |---|---|---|---|
-| **Gebruikte transactie-ID's** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dode tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tabellen nooit door autovacuum verwerkt** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Aangevraagde checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Geplande checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Gebruikte transactie-ID's** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Onderhoud | PostgreSQL |
+| **Dode tuples** | `oneuptime.monitor.database.dead.tuples` | Onderhoud | PostgreSQL |
+| **Tabellen nooit door autovacuum verwerkt** | `oneuptime.monitor.database.tables.never.autovacuumed` | Onderhoud | PostgreSQL |
+| **Aangevraagde checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Onderhoud | PostgreSQL |
+| **Geplande checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Onderhoud | PostgreSQL |
 
 > [!IMPORTANT]
 > **Gebruikte transactie-ID's** verdient een criterium op elke PostgreSQL-monitor die je maakt. PostgreSQL weigert alle schrijfacties zodra de waarde 100% bereikt, herstel betekent een vacuum in single-usermodus met de database plat, en bijna niemand houdt het in de gaten. Alarmeer ruim voor de afgrond — 80% laat bij de meeste workloads dagen speling.
@@ -371,7 +371,7 @@ Tellers die op `total` eindigen zijn cumulatief sinds de server is gestart. Verg
 | Filtertype | Wat het controleert |
 |---|---|
 | **Database is online** | Of de database bereikbaar was en de testquery slaagde. Dit is het offline-criterium waarmee de monitor wordt gemaakt, en de enige controle die de bereikbaarheid weergeeft. |
-| **Databasemetriek** | Kies een metric en vergelijk hem: Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Gelijk aan of Niet gelijk aan. De metrickiezer biedt alleen de metrics aan die je gekozen engine kan leveren, dus je kunt geen criterium bouwen dat voorgoed onvervuld blijft (één uitzondering: de Replication-metrics die voor Microsoft SQL Server worden aangeboden, worden op Azure SQL Database nooit verzameld). Als de metric bij een controle niet is verzameld — de groep mislukte of de engine rapporteert hem niet — komt het filter niet overeen, en ook niet als "false": het wordt overgeslagen. Een rechtenprobleem kan niemand oproepen. |
+| **Databasemetriek** | Kies een metric en vergelijk hem: Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan, Gelijk aan of Niet gelijk aan. De metrickiezer biedt alleen de metrics aan die je gekozen engine kan leveren, dus je kunt geen criterium bouwen dat voorgoed onvervuld blijft (één uitzondering: de metrics van de groep **Replicatie** die voor Microsoft SQL Server worden aangeboden, worden op Azure SQL Database nooit verzameld). Als de metric bij een controle niet is verzameld — de groep mislukte of de engine rapporteert hem niet — komt het filter niet overeen, en ook niet als "false": het wordt overgeslagen. Een rechtenprobleem kan niemand oproepen. |
 | **Verzamelfout van database** | De samenvatting van de verzamelproblemen van de controle, één "groep: bericht" per niet-beschikbare groep. Alarmeer als die niet leeg is om verloren zicht op te merken, of gebruik Bevat om op één specifieke groep te letten. |
 | **JavaScript-expressie** | Volledige controle. Zie [JavaScript-expressies](/docs/monitor/javascript-expression). |
 
@@ -433,11 +433,11 @@ Koppel een on-callbeleid aan het offline-criterium en laat alles wat is afgeleid
 Offline betekent dat de sonde geen verbinding kon maken of dat de testquery mislukte: de host of poort is vanaf de sonde niet bereikbaar, de login werd geweigerd, TLS mislukte of de verbinding liep in een time-out. De samenvatting van de monitor toont de fout. Controleer of de sonde de database kan bereiken (een door OneUptime gehoste sonde heeft een openbaar adres nodig; gebruik anders een [aangepaste sonde](/docs/probe/custom-probe)), controleer de gebruikersnaam en het wachtwoord of het monitorgeheim ervan, en zet **Verify server certificate** uit voor een zelfondertekend certificaat. Klik dan op **Monitor testen** om opnieuw te controleren.
 :::
 
-:::details Connections, Activity en Locks ontbreken op PostgreSQL
+:::details **Verbindingen**, **Activiteit** en **Vergrendelingen en blokkeringen** ontbreken op PostgreSQL
 De login is geen lid van `pg_monitor` of `pg_read_all_stats` en is geen superuser, dus de sonde slaat die groepen over in plaats van verkeerde getallen vast te leggen. Voer `GRANT pg_monitor TO oneuptime_health;` uit zoals beschreven onder [PostgreSQL](#postgresql).
 :::
 
-:::details Connections, Throughput en Locks ontbreken op MySQL
+:::details **Verbindingen**, **Doorvoer** en **Vergrendelingen en blokkeringen** ontbreken op MySQL
 Ofwel mist de login `SELECT` op `performance_schema`, ofwel staat `performance_schema` op de server uit; de samenvatting van de monitor toont het bericht van MySQL. Voer bij een ontbrekend recht de statements onder [MySQL](#mysql) uit. Een uitgeschakeld `performance_schema` heeft `performance_schema = ON` in de serverconfiguratie en een herstart nodig.
 :::
 

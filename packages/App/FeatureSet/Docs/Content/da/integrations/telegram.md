@@ -1,6 +1,6 @@
 # Telegram
 
-Send en besked til en [Telegram](https://telegram.org)-chat, -gruppe eller -kanal, når en advarsel udløses eller en hændelse åbnes. OneUptimes arbejdsgangstrin **Send Message to Telegram** sender den som en bot, du selv opretter, og en færdig skabelon bygger arbejdsgangen til advarsler. Denne integration er **udgående**: botten sender beskeder og læser ikke, hvad der bliver sagt i chatten.
+Send en besked til en [Telegram](https://telegram.org)-chat, -gruppe eller -kanal, når en advarsel udløses eller en hændelse åbnes. OneUptimes arbejdsgangstrin **Send besked til Telegram** sender den som en bot, du selv opretter, og en færdig skabelon bygger arbejdsgangen til advarsler. Denne integration er **udgående**: botten sender beskeder og læser ikke, hvad der bliver sagt i chatten.
 
 :::cards
 - [Sådan fungerer det](#sådan-fungerer-det): Hvad arbejdsgangen gør, når en advarsel udløses.
@@ -19,7 +19,7 @@ flowchart TB
     step -->|"Fejl"| failed["Kørslen mislykkes<br/>og siger hvorfor"]
 ```
 
-Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Succes**, når Telegram tager imod beskeden, og sin udgang **Fejl**, med Telegrams begrundelse, når Telegram afviser den. Er intet forbundet til **Fejl**, som i skabelonen, mislykkes en kørsel, der ikke kunne sende, og dens **Trin** siger hvorfor.
+Trinnet sender **Beskedtekst** til chatten som din bot via Telegrams Bot API. Det tager sin udgang **Succes**, når Telegram tager imod beskeden, og sin udgang **Fejl**, med Telegrams begrundelse, når Telegram afviser den. Er intet forbundet til **Fejl**, som i skabelonen, mislykkes en kørsel, der ikke kunne sende, og dens **Trin** siger hvorfor.
 
 ## Før du går i gang
 
@@ -51,15 +51,15 @@ Start fra skabelonen, der bygger hele arbejdsgangen til advarsler, eller fra bun
 1. Åbn **Arbejdsgange**, og klik på **Opret arbejdsgang**.
 2. Skriv `Telegram` i **Søg i skabeloner…**, klik på **Tell Telegram when an alert fires**, og klik derefter på **Brug denne skabelon**.
 3. Behold navnet **Notify Telegram on new alert**, eller ændr det, og klik på **Næste**.
-4. Indsæt tokenet i **Telegram Bot Token** og ID'et i **Telegram Chat ID**, og klik på **Opret arbejdsgang**.
+4. Indsæt tokenet i **Telegram-bottoken** og ID'et i **Telegram Chat ID**, og klik på **Opret arbejdsgang**.
 
-Arbejdsgangen åbner i **Bygger** med to trin: **On Create Alert** og **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som arbejdsgangens hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
+Arbejdsgangen åbner i **Bygger** med to trin: **On Create Alert** og **Send besked til Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som arbejdsgangens hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
 @tab Fra bunden
 1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
-3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** under **Populære**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Alert Number With Prefix**.
-4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send Message to Telegram**. Forbind triggerens udgang **Succes** til den.
-5. Klik på det nye trin. Klik i **Telegram Bot Token** på **{ }**, og vælg `TELEGRAM_BOT_TOKEN` under **Global variables**. Angiv chattens ID i **Chat ID**, skriv beskeden i **Message Text**, og indsæt advarslens felter med **{ }**.
+3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** under **Populære**. Klik på triggeren: dens **Felter, der sendes videre** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Alert Number With Prefix**.
+4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send besked til Telegram**. Forbind triggerens udgang **Succes** til den.
+5. Klik på det nye trin. Klik i **Telegram-bottoken** på **{ }**, og vælg `TELEGRAM_BOT_TOKEN` under **Global variables**. Angiv chattens ID i **Chat-ID**, skriv beskeden i **Beskedtekst**, og indsæt advarslens felter med **{ }**.
 :::
 
 En besked bygget fra bunden læser advarslens felter med referencer som disse:
@@ -80,7 +80,7 @@ For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og 
 
 - **Ren tekst.** Trinnet sender teksten, som den er skrevet, uden Telegrams formatering, så `*` og `_` vises, som de er.
 - **Hold øje med grænsen på 4.096 tegn.** Telegram tager imod beskeder på op til 4.096 tegn. En længere bliver afkortet og slutter med "… (truncated — see OneUptime for the full text)" i stedet for at blive afvist.
-- **Også hændelser.** Byg den samme arbejdsgang på **On Create Incident**, eller på **On Update Incident** til tilstandsændringer. For kun at sende nogle advarsler sætter du en blok **If / Else** før trinnet.
+- **Også hændelser.** Byg den samme arbejdsgang på **On Create Incident**, eller på **On Update Incident** til tilstandsændringer. For kun at sende nogle advarsler sætter du en blok **Hvis / Ellers** før trinnet.
 - **Tokenets form kontrolleres.** Et token, der ikke har formen `123456789:ABCdef…`, stopper kørslen, før noget sendes, og tokenet skrives aldrig til loggen.
 
 ## Fejlfinding
@@ -88,7 +88,7 @@ For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og 
 Når trinnet tager **Fejl**, mislykkes kørslen, og trinnets post under kørslens **Trin** giver Telegrams begrundelse. Botten skal være i chatten, så tjek det først.
 
 :::details Telegram svarer "Bad Request: chat not found"
-**Chat ID** er forkert, eller botten kan ikke se chatten: føj botten til gruppen, gør den til administrator af kanalen, eller bed personen om at starte en chat med botten. En gruppes ID starter med `-`.
+**Chat-ID** er forkert, eller botten kan ikke se chatten: føj botten til gruppen, gør den til administrator af kanalen, eller bed personen om at starte en chat med botten. En gruppes ID starter med `-`.
 :::
 
 :::details Telegram svarer "Forbidden: bot was blocked by the user" eller "bot is not a member"

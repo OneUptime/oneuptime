@@ -108,7 +108,7 @@ const StoreOverviewPage: FunctionComponent<
               ? OneUptimeDate.fromNow(
                   OneUptimeDate.fromString(store.collectedAt),
                 )
-              : "-"
+              : undefined
           }
           icon={IconProp.Refresh}
           description={translator.translateText(

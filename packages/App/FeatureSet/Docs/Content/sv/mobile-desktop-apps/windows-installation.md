@@ -61,7 +61,7 @@ Appen visar aviseringar genom sin webbläsare, när du har registrerat webbläsa
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Edge on Windows`, eller ändra det, och klicka på **Registrera enhet** igen. När webbläsaren frågar om OneUptime får visa aviseringar väljer du **Tillåt**.
 
 ### Skicka ett test
-Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på Windows egna aviseringsinställningar: se [Felsökning](#felsökning).
+Klicka på **Skicka testavisering** i dialogrutan **Webbläsare registrerad**. Visas ingenting, titta på Windows egna aviseringsinställningar: se [Felsökning](#felsökning).
 :::
 
 En webbläsare ringer inte högre än Windows tillåter: den kan inte åsidosätta Stör ej. Använd mobilappen med kritiska larm för larm som måste väcka dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igenom-tyst-läge) eller [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).

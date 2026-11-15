@@ -35,7 +35,7 @@ flowchart TB
 
 ## 开始之前
 
-- **项目所有者或管理员。** 只有他们可以连接、测试和编辑云账户。
+- **项目所有者或项目管理员。** 只有他们可以连接、测试和编辑云账户。
 - **你的云的终端**（AWS CloudShell、Azure Cloud Shell 或 Google Cloud Shell），并以可以创建 IAM 角色或用户、应用注册或服务账号的身份登录。
 
 ## Amazon Web Services

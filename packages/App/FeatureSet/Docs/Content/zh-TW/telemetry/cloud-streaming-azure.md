@@ -28,7 +28,7 @@ flowchart TB
 ## 開始之前
 
 - **一個已連線的 Azure 訂用帳戶。** 先在 **雲端 → 連線** 中連線：請參閱 [連線雲端帳戶](/docs/telemetry/cloud-accounts)。
-- **專案擁有者或管理員。** 只有他們可以開啟讀取和停止串流。
+- **專案擁有者或專案管理員。** 只有他們可以開啟讀取和停止串流。
 - **Azure Cloud Shell**，以訂用帳戶的 **Owner** 身分登入，或以同時是 **User Access Administrator** 的 **Contributor** 身分登入：指令會建立資源群組和角色指派，並變更診斷設定。
 - **在自行託管的 OneUptime 上，能連到 Azure 的出口。** OneUptime 透過連接埠 9093 在 `<namespace>.servicebus.windows.net` 讀取每個命名空間，命名空間接受來自網際網路的連線。
 

@@ -56,11 +56,11 @@ Klik op de metriek in de **Kijker**. De verkenner opent met één query, `a`, vo
 
 ### Kiezen hoe u aggregeert
 
-Kies onder **Aggregate by** hoe de waarden in elk punt van de grafiek worden gecombineerd: Avg, de standaard, Sum, Min, Max, Count, of een percentiel, P50, P75, P90, P95 of P99. Een percentiel van een histogrammetriek, zoals de duur van een verzoek, wordt berekend uit de buckets.
+Kies onder **Aggregeren op** hoe de waarden in elk punt van de grafiek worden gecombineerd: Avg, de standaard, Sum, Min, Max, Count, of een percentiel, P50, P75, P90, P95 of P99. Een percentiel van een histogrammetriek, zoals de duur van een verzoek, wordt berekend uit de buckets.
 
 ### Filteren en groeperen
 
-Open **Filters & grouping**. **Filter by attributes** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Groeperen op** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
+Open **Filters en groepering**. **Filteren op attributen** houdt de datapunten waarvan de attributen overeenkomen, zoals één `http.route`, en **Groeperen op** tekent één lijn per waarde van de attributen die u kiest, zoals één lijn per host.
 
 ### De grafiek aanpassen
 

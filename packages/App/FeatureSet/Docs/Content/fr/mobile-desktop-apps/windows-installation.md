@@ -61,7 +61,7 @@ Dans l'application, ouvrez **Paramètres utilisateur → Méthodes de notificati
 Cliquez sur **Enregistrer l'appareil**, gardez la valeur proposée dans **Nom de l'appareil**, par exemple `Edge on Windows`, ou modifiez-la, puis cliquez de nouveau sur **Enregistrer l'appareil**. Quand le navigateur demande si OneUptime peut afficher des notifications, choisissez **Autoriser**.
 
 ### Envoyer un test
-Dans la boîte de dialogue **Browser Registered**, cliquez sur **Send Test Notification**. Si rien n'apparaît, regardez les réglages de notification de Windows : voir [Dépannage](#dépannage).
+Dans la boîte de dialogue **Navigateur enregistré**, cliquez sur **Envoyer une notification de test**. Si rien n'apparaît, regardez les réglages de notification de Windows : voir [Dépannage](#dépannage).
 :::
 
 Un navigateur ne sonne pas plus fort que Windows ne le permet : il ne peut pas outrepasser Ne pas déranger. Pour les alertes qui doivent vous réveiller, utilisez l'application mobile avec les alertes critiques : voir [Installation Android](/docs/mobile-desktop-apps/android-installation#sonner-malgré-le-mode-silencieux) ou [Installation iOS](/docs/mobile-desktop-apps/ios-installation#sonner-malgré-le-mode-silencieux).

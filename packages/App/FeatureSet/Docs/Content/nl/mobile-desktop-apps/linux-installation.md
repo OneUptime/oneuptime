@@ -60,7 +60,7 @@ Open in de app **Gebruikersinstellingen → Meldingsmethoden** en het tabblad **
 Klik op **Apparaat registreren**, houd de voorgestelde **Apparaatnaam**, zoals `Chrome on Linux`, of wijzig hem, en klik opnieuw op **Apparaat registreren**. Wanneer de browser vraagt of OneUptime meldingen mag tonen, kiest u **Toestaan**.
 
 ### Een test sturen
-Klik in het dialoogvenster **Browser Registered** op **Send Test Notification**. Uw desktop toont de melding via zijn meldingsdienst; verschijnt er niets, zie dan [Probleemoplossing](#probleemoplossing).
+Klik in het dialoogvenster **Browser geregistreerd** op **Testmelding versturen**. Uw desktop toont de melding via zijn meldingsdienst; verschijnt er niets, zie dan [Probleemoplossing](#probleemoplossing).
 :::
 
 Een browser kan niet door de Niet storen-modus van uw desktop heen klinken. Gebruik voor oproepen die u moeten wekken de mobiele app met kritieke meldingen: zie [Android-installatie](/docs/mobile-desktop-apps/android-installation#door-de-stille-modus-heen-klinken).

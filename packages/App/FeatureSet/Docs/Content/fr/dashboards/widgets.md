@@ -49,13 +49,13 @@ Ces quatre widgets lisent une requête de métriques, construite comme dans l'ex
 
 ### Graphique
 
-Une série temporelle d'une ou plusieurs requêtes de métriques sur la plage temporelle du tableau de bord. **Chart Type** la dessine en lignes, en barres, en aires, en aires empilées ou en secteurs. **Additional Queries** superposent d'autres métriques sur les mêmes axes, et **Formules** les combinent avec `+`, `-`, `*`, `/`, `%`, `^` et des parenthèses, comme `(1 - a) * 100`. Les réglages d'affichage de chaque requête ajoutent une légende et une unité, une couleur, des lignes d'avertissement et critique, et un taux par seconde pour les compteurs qui ne font que croître.
+Une série temporelle d'une ou plusieurs requêtes de métriques sur la plage temporelle du tableau de bord. **Type de graphique** la dessine en lignes, en barres, en aires, en aires empilées ou en secteurs. **Requêtes supplémentaires** superposent d'autres métriques sur les mêmes axes, et **Formules** les combinent avec `+`, `-`, `*`, `/`, `%`, `^` et des parenthèses, comme `(1 - a) * 100`. Les réglages d'affichage de chaque requête ajoutent une légende et une unité, une couleur, des lignes d'avertissement et critique, et un taux par seconde pour les compteurs qui ne font que croître.
 
 Utilisez-le quand la forme de la courbe raconte l'histoire : latence, erreurs, débit ou profondeur de file d'attente.
 
 ### Valeur
 
-Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, chaque moitié calculée de la même façon, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. Pointez sur la flèche pour voir la valeur de chaque moitié, et sur la sparkline pour lire la valeur et l'heure de n'importe quel point. **Seuil d'avertissement** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
+Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, chaque moitié calculée de la même façon, colorée selon **Sens de la tendance** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. Pointez sur la flèche pour voir la valeur de chaque moitié, et sur la sparkline pour lire la valeur et l'heure de n'importe quel point. **Seuil d'avertissement** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
 
 Utilisez-la quand un nombre répond à la question : le taux d'erreur, la latence P95 ou les requêtes servies aujourd'hui.
 
@@ -67,7 +67,7 @@ Utilisez-la quand la valeur se situe dans une plage connue : l'utilisation du CP
 
 ### Tableau
 
-Des valeurs de métriques en lignes. **Regrouper par attributs** donne une ligne par valeur, par exemple une par `host.name` ; sans regroupement, chaque ligne est un intervalle de temps. **Metrics & Columns** définit les colonnes : des métriques, et des formules sur elles, comme la disponibilité en pourcentage. Quand vous regroupez, **Reduce across time** ramène la série de chaque ligne à une valeur : la dernière valeur, la moyenne, la somme, le minimum ou le maximum.
+Des valeurs de métriques en lignes. **Regrouper par attributs** donne une ligne par valeur, par exemple une par `host.name` ; sans regroupement, chaque ligne est un intervalle de temps. **Métriques et colonnes** définit les colonnes : des métriques, et des formules sur elles, comme la disponibilité en pourcentage. Quand vous regroupez, **Réduire dans le temps** ramène la série de chaque ligne à une valeur : la dernière valeur, la moyenne, la somme, le minimum ou le maximum.
 
 Activez **Colorer selon les seuils** dans une colonne pour colorer ses valeurs : une valeur qui atteint le **Seuil d'avertissement** devient ambre, avec un triangle, et une valeur qui atteint le **Seuil critique** devient rouge et grasse, avec un cercle. Une colonne en pourcentage commence à 80 et 90. Pour une colonne où les valeurs basses posent problème, comme l'espace disque libre, choisissez **Plus bas est pire** sous **Direction**.
 
@@ -120,11 +120,11 @@ Le widget se recharge à chaque actualisation du tableau de bord, si bien qu'un 
 
 #### Autorisations
 
-**Run JavaScript** (activé par défaut) exécute votre script. Désactivez-le pour n'afficher que le balisage et les styles — le script est alors entièrement retiré du widget, et pas seulement bloqué.
+**Exécuter JavaScript** (activé par défaut) exécute votre script. Désactivez-le pour n'afficher que le balisage et les styles — le script est alors entièrement retiré du widget, et pas seulement bloqué.
 
-**Open links in a new tab** (activé par défaut) permet aux liens et à `window.open` d'ouvrir un onglet du navigateur. Les liens s'ouvrent toujours dans un nouvel onglet ; le widget ne peut jamais faire naviguer le tableau de bord lui-même.
+**Ouvrir les liens dans un nouvel onglet** (activé par défaut) permet aux liens et à `window.open` d'ouvrir un onglet du navigateur. Les liens s'ouvrent toujours dans un nouvel onglet ; le widget ne peut jamais faire naviguer le tableau de bord lui-même.
 
-**Allow forms to submit** (désactivé par défaut) permet à un `<form>` du widget d'être envoyé.
+**Autoriser l'envoi de formulaires** (désactivé par défaut) permet à un `<form>` du widget d'être envoyé.
 
 Quiconque peut modifier le tableau de bord décide de ce que ce widget exécute, et toute personne qui consulte le tableau de bord l'exécute — sur un tableau de bord public, cela inclut les visiteurs anonymes. Traitez l'accès en modification à un tableau de bord qui porte un widget HTML comme l'accès à n'importe quel autre code que vous livrez.
 
@@ -160,7 +160,7 @@ Un objectif de niveau de service, dessiné soit comme un seul nombre, soit comme
 
 **Paramètres** : quel SLO, ou le SLO choisi dans une variable du tableau de bord ; lequel de ses trois nombres (SLI, Error Budget Remaining ou Burn Rate) ; l'affichage en Tile ou en Graphique ; et un titre facultatif.
 
-- **Tile** affiche le nombre actuel, plus une seconde ligne quand il y en a une — l'objectif sous le SLI, les minutes restantes sous le budget d'erreur. Une pastille de statut colore l'ensemble.
+- **Tuile** affiche le nombre actuel, plus une seconde ligne quand il y en a une — l'objectif sous le SLI, les minutes restantes sous le budget d'erreur. Une pastille de statut colore l'ensemble.
 - **Graphique** dessine le même nombre sur la plage temporelle du tableau de bord, avec l'objectif marqué en pointillés sur la série du SLI. L'historique est écrit toutes les quelques minutes par le worker d'évaluation, donc un SLO tout neuf apparaît vide jusqu'à sa première évaluation.
 
 Utilisez-le quand le tableau de bord répond à « tenons-nous ce que nous avons promis ? » plutôt qu'à « que se passe-t-il en ce moment ? ».

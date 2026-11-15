@@ -506,9 +506,7 @@ const AlertEpisodeView: FunctionComponent<
           value={
             timing.durationStartsAt ? (
               <EventStartTileValue startedAt={timing.durationStartsAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           description={getEventStartedByText(
             {
@@ -548,7 +546,7 @@ const AlertEpisodeView: FunctionComponent<
           variant="segment"
           label="Alerts"
           icon={IconProp.Alert}
-          value={alertCount === undefined ? "-" : alertCount.toString()}
+          value={alertCount === undefined ? undefined : alertCount.toString()}
         />
       </EventStatBar>
 

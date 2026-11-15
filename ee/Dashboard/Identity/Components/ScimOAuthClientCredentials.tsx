@@ -12,7 +12,8 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
-import { inEnglishDates } from "Common/Types/DateLanguage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { JSONObject } from "Common/Types/JSON";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
@@ -66,10 +67,13 @@ const toDate: (value: unknown) => Date | null = (
 };
 
 // In English, as the sentences around it are.
+/*
+ * A date as the sentence around it takes it: each sentence below is looked
+ * up whole, and the date is one of its values, so it reads in the reader's
+ * language with the sentence (#8461).
+ */
 const formatDate: (date: Date) => string = (date: Date): string => {
-  return inEnglishDates((): string => {
-    return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date, true);
-  });
+  return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date, true);
 };
 
 export interface ComponentProps {
@@ -86,6 +90,7 @@ export interface ComponentProps {
 const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [expiresAt, setExpiresAt] = useState<Date | null>(
     toDate(props.clientSecretExpiresAt),
   );
@@ -165,48 +170,66 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
   return (
     <div className="border-t pt-4" data-testid="scim-oauth-client-credentials">
       <p className="font-medium text-gray-700 mb-1">
-        OAuth 2.0 Client Credentials:
+        {translator.translateText("OAuth 2.0 Client Credentials:")}
       </p>
       <p className="text-xs text-gray-500 mb-3">
-        For identity providers that ask for a token endpoint, client ID and
-        client secret instead of a bearer token.
+        {translator.translateText(
+          "For identity providers that ask for a token endpoint, client ID and client secret instead of a bearer token.",
+        )}
       </p>
 
       <div className="space-y-3">
         <div>
-          <p className="text-sm text-gray-700 mb-1">Token Endpoint:</p>
+          <p className="text-sm text-gray-700 mb-1">
+            {translator.translateText("Token Endpoint:")}
+          </p>
           <code className="block p-2 bg-gray-100 rounded text-sm break-all">
             {getScimTokenEndpoint()}
           </code>
         </div>
 
         <div>
-          <p className="text-sm text-gray-700 mb-1">Client ID:</p>
+          <p className="text-sm text-gray-700 mb-1">
+            {translator.translateText("Client ID:")}
+          </p>
           <code className="block p-2 bg-gray-100 rounded text-sm break-all">
             {props.connectionId}
           </code>
         </div>
 
         <div>
-          <p className="text-sm text-gray-700 mb-1">Client Secret:</p>
+          <p className="text-sm text-gray-700 mb-1">
+            {translator.translateText("Client Secret:")}
+          </p>
           {newSecret ? (
             <div data-testid="scim-oauth-new-client-secret">
               <div className="mb-2">
                 <HiddenText text={newSecret} isCopyable={true} />
               </div>
               <p className="text-xs text-gray-500">
-                Copy it now: OneUptime keeps only a hash of it and cannot show
-                it again.
-                {expiresAt ? ` It works until ${formatDate(expiresAt)}.` : ""}
+                {expiresAt
+                  ? translator.translateTemplate(
+                      "Copy it now: OneUptime keeps only a hash of it and cannot show it again. It works until {{date}}.",
+                      { date: formatDate(expiresAt) },
+                    )
+                  : translator.translateText(
+                      "Copy it now: OneUptime keeps only a hash of it and cannot show it again.",
+                    )}
               </p>
             </div>
           ) : (
             <p className="text-sm text-gray-500">
               {hasLiveSecret && expiresAt
-                ? `Set. It works until ${formatDate(expiresAt)}, and is never shown again.`
+                ? translator.translateTemplate(
+                    "Set. It works until {{date}}, and is never shown again.",
+                    { date: formatDate(expiresAt) },
+                  )
                 : expiresAt
-                  ? `Expired on ${formatDate(expiresAt)}. No access token is issued with it: make a new one.`
-                  : "None yet."}
+                  ? translator.translateTemplate(
+                      "Expired on {{date}}. No access token is issued with it: make a new one.",
+                      { date: formatDate(expiresAt) },
+                    )
+                  : translator.translateText("None yet.")}
             </p>
           )}
         </div>
@@ -214,10 +237,10 @@ const ScimOAuthClientCredentials: FunctionComponent<ComponentProps> = (
         {hasLivePreviousSecret && previousExpiresAt ? (
           <div data-testid="scim-oauth-previous-client-secret">
             <p className="text-sm text-gray-500">
-              The secret it replaced keeps working until{" "}
-              {formatDate(previousExpiresAt)}, so the identity provider can be
-              moved to the new one without a gap. Delete it once the identity
-              provider uses the new secret.
+              {translator.translateTemplate(
+                "The secret it replaced keeps working until {{date}}, so the identity provider can be moved to the new one without a gap. Delete it once the identity provider uses the new secret.",
+                { date: formatDate(previousExpiresAt) },
+              )}
             </p>
             {props.canChange ? (
               <div className="mt-2">

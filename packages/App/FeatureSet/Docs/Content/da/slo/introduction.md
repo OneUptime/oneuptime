@@ -45,7 +45,7 @@ Du skal have en rolle, der må oprette SLO'er: Projektejer, Projektadministrator
 :::steps
 ### Åbn SLO'er
 
-Åbn **SLOs** fra menuen **Produkter** i topbjælken. Det ligger i den første gruppe, ved siden af monitorer og hændelser. Klik på **Opret Service Level Objective**.
+Åbn **SLOs** fra menuen **Produkter** i topbjælken. Det ligger i den første gruppe, ved siden af monitorer og hændelser. Klik på **Opret Serviceniveaumål**.
 
 ### Vælg, hvad det måler
 
@@ -61,7 +61,7 @@ Angiv et **Navn**, for eksempel "API Availability", og et **Mål (%)**: den ande
 
 ### Gem SLO'et
 
-Klik på **Opret Service Level Objective**. OneUptime åbner det nye SLO. **Oversigt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det endnu ikke har nogen monitorer.
+Klik på **Opret Serviceniveaumål**. OneUptime åbner det nye SLO. **Oversigt** for et SLO for monitoroppetid viser **Choose what this SLO measures**, fordi det endnu ikke har nogen monitorer.
 
 ### Tilknyt monitorer
 
@@ -201,7 +201,7 @@ Siden **Indstillinger** samler, hvordan et SLO måler, med ét kort til hver tin
 
 | Kort | Det, du ændrer | Godt at vide |
 | --- | --- | --- |
-| **Hvad det måler** | **Hvad det måler**, **Tjenester** og **Latensgrænse (ms)**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
+| **Hvad det måler** | **Hvad det måler**, **Tjenester**, **Latensgrænse (ms)** og **Anmodningsfilter**, med **Rediger, hvad det måler**. | Et anmodnings-SLO tæller sine anmodninger forfra efter en ændring. |
 | **Mål** | **Mål (%)** og **Risikotærskel (%)**, med **Rediger mål**. | Viser den nedetid, målet tillader, for eksempel "43 min. og 12 sek. nedetid pr. vindue på 30 dage". |
 | **Overholdelsesperiode** | **Vinduestype**, **Vindue (dage)** og **Tidszone**, med **Rediger periode**. | Forbrugsrateregler beholder deres tærskler, når vinduet ændres, så gennemgå dem bagefter. |
 | **Beregning af nedetid** | **Tilstand for flere monitorer** og **Nedetidsovervågningsstatusser**, med **Rediger beregning af nedetid**. | Kun SLO'er for monitoroppetid. Uden statusser tæller alle ikke-operationelle statusser, også dem, der tilføjes senere. |

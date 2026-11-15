@@ -96,7 +96,7 @@ Vai su **Prodotti → Risorse → Inventario**, poi su **Tutti gli elementi**.
 
 ### Aggiungere l'elemento
 
-Fai clic su **Aggiungi: Item**. Scegli il suo **Tipo**, dagli un **Nome** e, se vuoi, una **Descrizione**. Nome e tipo insieme sono l'identità dell'elemento, quindi due elementi dello stesso tipo non possono avere lo stesso nome.
+Fai clic su **Aggiungi: Elemento**. Scegli il suo **Tipo**, dagli un **Nome** e, se vuoi, una **Descrizione**. Nome e tipo insieme sono l'identità dell'elemento, quindi due elementi dello stesso tipo non possono avere lo stesso nome.
 
 ### Compilare i suoi campi personalizzati
 

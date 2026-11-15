@@ -78,9 +78,17 @@ export interface ComponentProps<TValue extends string> {
   isLocked?: boolean | undefined;
   /*
    * Every choice locked, with why: someone who may not change the setting.
-   * Already translated, or English.
+   * English, looked up here - unless isLockedReasonTranslated says it is in
+   * the reader's words already.
    */
   lockedReason?: string | undefined;
+  /*
+   * The locked reason is in the reader's words already - a permission
+   * check's reason (PermissionGate words it): drawn as given, never looked
+   * up again (#8586). Looked up again, a translation that is itself an
+   * English key reads as another word.
+   */
+  isLockedReasonTranslated?: boolean | undefined;
   /*
    * Shown beside the checked choice, in a live region ("Saved"). Already
    * translated.
@@ -324,7 +332,9 @@ const ChoiceRows: <TValue extends string>(
             props.dataTestId ? `${props.dataTestId}-locked-reason` : undefined
           }
         >
-          {translator.translateText(props.lockedReason)}
+          {props.isLockedReasonTranslated
+            ? props.lockedReason
+            : translator.translateText(props.lockedReason)}
         </p>
       ) : (
         <></>

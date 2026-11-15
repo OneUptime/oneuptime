@@ -35,7 +35,7 @@ flowchart TB
 
 ## Avant de commencer
 
-- **Un propriétaire ou un administrateur du projet.** Eux seuls peuvent connecter, tester et modifier des comptes cloud.
+- **Un Propriétaire du projet ou un Administrateur du projet.** Eux seuls peuvent connecter, tester et modifier des comptes cloud.
 - **Le terminal de votre cloud** (AWS CloudShell, Azure Cloud Shell ou Google Cloud Shell), connecté en tant que personne autorisée à créer un rôle ou un utilisateur IAM, une inscription d'application ou un compte de service.
 
 ## Amazon Web Services

@@ -139,7 +139,7 @@ For Copilot giver du administratorsamtykke til appens Graph-tilladelser, og ogs�
 :::
 
 :::details Nogen kan ikke se samtalerne
-**Hvem der kan læse samtaler** står på **Projektejere og Projektadministratorer**. En ejer eller administrator kan ændre det med **Rediger** i forbindelsens række.
+**Hvem der kan læse samtaler** står på **Projektejere og Projektadministratorer**. En Projektejer eller Projektadministrator kan ændre det med **Rediger** i forbindelsens række.
 :::
 
 :::details Samtalerne viser, hvem der spurgte, men ingen ord

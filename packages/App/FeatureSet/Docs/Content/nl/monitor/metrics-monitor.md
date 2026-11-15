@@ -41,7 +41,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Metrieken** onder 
 
 ### De metriekquery's toevoegen
 
-Kies in **Te bewaken metriek** een **Metriek** en hoe u die aggregeert met **Aggregate by**. Open **Filters & grouping** om op attributen te filteren of om te groeperen met **Groeperen op**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont de afgelopen uren, met de waarde van de regel als rode lijn, zodat u de waarden ziet die de regel gaat controleren.
+Kies in **Te bewaken metriek** een **Metriek** en hoe u die aggregeert met **Aggregeren op**. Open **Filters en groepering** om op attributen te filteren of om te groeperen met **Groeperen op**. Klik op **Metriek toevoegen** voor nog een query, of op **Formule toevoegen** om ze te combineren. De grafiek onder de query's toont de afgelopen uren, met de waarde van de regel als rode lijn, zodat u de waarden ziet die de regel gaat controleren.
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
@@ -63,9 +63,9 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
 | **Metriek** | De metriek die wordt opgevraagd. | Verplicht |
-| **Aggregate by** | Hoe de waarden in elk tijdsinterval tot één datapunt worden gecombineerd: Gem., Som, Min, Max, Aantal, of een percentiel (P50, P75, P90, P95 of P99). | Gem. |
-| **Filter by attributes** (onder **Filters & grouping**) | Alleen reeksen waarvan de attributen aan deze voorwaarden voldoen. | Geen filter |
-| **Groeperen op** (onder **Filters & grouping**) | Eén reeks per unieke waarde van deze attributen (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)). | Eén reeks |
+| **Aggregeren op** | Hoe de waarden in elk tijdsinterval tot één datapunt worden gecombineerd: Gem., Som, Min, Max, Aantal, of een percentiel (P50, P75, P90, P95 of P99). | Gem. |
+| **Filteren op attributen** (onder **Filters en groepering**) | Alleen reeksen waarvan de attributen aan deze voorwaarden voldoen. | Geen filter |
+| **Groeperen op** (onder **Filters en groepering**) | Eén reeks per unieke waarde van deze attributen (zie [Waarschuwingen per reeks](#waarschuwingen-per-reeks-group-by)). | Eén reeks |
 
 Elke query en formule krijgt een variabele (`a`, `b`, `c` enzovoort), in de volgorde waarin u ze toevoegt.
 
@@ -97,7 +97,7 @@ Hoe langer het venster, hoe breder elk tijdsinterval, dus één datapunt staat v
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een metrics-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
-- **Eerst de query's, dan de formules.** Elke query levert één datapunt per tijdsinterval van het tijdsbereik op, volgens zijn **Aggregate by**. Formules worden voor elk interval berekend uit de datapunten van de query's.
+- **Eerst de query's, dan de formules.** Elke query levert één datapunt per tijdsinterval van het tijdsbereik op, volgens zijn **Aggregeren op**. Formules worden voor elk interval berekend uit de datapunten van de query's.
 - **Dan de maat van de regel.** De regel brengt de datapunten van zijn metriek terug tot wat hij met zijn waarde vergelijkt, zoals **Gemeten als** zegt:
 
 | Gemeten als | In de eigen criteria | De voorwaarde wordt getoetst aan… |
@@ -160,7 +160,7 @@ Een nieuwe metrics-monitor die via de API of Terraform zonder criteria is aangem
 
 ## Uitgewerkt voorbeeld: een groeiende wachtrij
 
-U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregate by** Max, en het **Tijdvenster** is **Laatste 5 minuten**. Eén evaluatie ziet deze vijf datapunten van één minuut:
+U wilt een incident wanneer de checkout-wachtrij diep blijft. Query `a` is de gauge `checkout.queue.depth`, met **Aggregeren op** Max, en het **Tijdvenster** is **Laatste 5 minuten**. Eén evaluatie ziet deze vijf datapunten van één minuut:
 
 | Minuut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

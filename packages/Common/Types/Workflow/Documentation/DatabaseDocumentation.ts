@@ -392,7 +392,7 @@ const ownersTopic: (data: {
   return {
     title: "Who owns it from the start",
     paragraphs: [
-      `Pick the ${data.words.one}'s owners under **${data.users.name}** and **${data.teams.name}**, or take them from an earlier step: a user's ID or email address, a team's ID. They own the ${data.words.one} as it is created, so its created notification reaches them, and the project's owners are not told in their place - which owners a later step adds can miss.`,
+      `Pick the ${data.words.one}'s owners under **${data.users.name}** and **${data.teams.name}**, or take them from an earlier step: a user's ID or email address, a team's ID. They own the ${data.words.one} as it is created, so its created notification reaches them, and the Project Owners are not told in their place - which owners a later step adds can miss.`,
       `The step is asked whether it may add them, as a Project Admin of this project, before the ${data.words.one} is saved. Somebody who is not a member of this project, or a team that is not one of its teams, is left out, and the run's log says so: the ${data.words.one} is still created.`,
     ],
   };
