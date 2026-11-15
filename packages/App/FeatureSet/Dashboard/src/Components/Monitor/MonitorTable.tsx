@@ -929,6 +929,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 dropdownOptions: probes.map((probe: Probe) => {
                   return {
                     label: probe.name || "",
+                    isUserContent: true,
                     value: probe.id?.toString() || "",
                   };
                 }),
@@ -966,6 +967,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 dropdownOptions: probes.map((probe: Probe) => {
                   return {
                     label: probe.name || "",
+                    isUserContent: true,
                     value: probe.id?.toString() || "",
                   };
                 }),

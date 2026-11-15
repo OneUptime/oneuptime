@@ -22,6 +22,8 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -50,9 +52,10 @@ interface OpenEventRow {
   title: string;
   to: Route;
   startedAt: Date | undefined;
-  severityName: string | undefined;
+  // Its severity and state in the reader's words, read by their lists.
+  severityText: string | undefined;
   severityColor: Color | undefined;
-  stateName: string | undefined;
+  stateText: string | undefined;
 }
 
 interface OpenEvents {
@@ -271,9 +274,22 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               { modelId: new ObjectID(incident._id.toString()) },
             ),
             startedAt: toDate(incident.declaredAt || incident.createdAt),
-            severityName: incident.incidentSeverity?.name,
+            /*
+             * Its severity and state by their lists
+             * (Common/Utils/DefaultRecordNames): the ones a project starts
+             * with in the reader's words, a project's own as written.
+             */
+            severityText: translateRecordName(
+              translator,
+              StateListType.IncidentSeverity,
+              incident.incidentSeverity?.name,
+            ),
             severityColor: incident.incidentSeverity?.color,
-            stateName: incident.currentIncidentState?.name,
+            stateText: translateRecordName(
+              translator,
+              StateListType.IncidentState,
+              incident.currentIncidentState?.name,
+            ),
           });
         }
 
@@ -292,9 +308,17 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
               { modelId: new ObjectID(alert._id.toString()) },
             ),
             startedAt: toDate(alert.createdAt),
-            severityName: alert.alertSeverity?.name,
+            severityText: translateRecordName(
+              translator,
+              StateListType.AlertSeverity,
+              alert.alertSeverity?.name,
+            ),
             severityColor: alert.alertSeverity?.color,
-            stateName: alert.currentAlertState?.name,
+            stateText: translateRecordName(
+              translator,
+              StateListType.AlertState,
+              alert.currentAlertState?.name,
+            ),
           });
         }
 
@@ -464,7 +488,7 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
                     <span className="font-medium text-gray-700">
                       {translator.translateText(row.kind)}
                     </span>
-                    {row.severityName ? (
+                    {row.severityText ? (
                       <span className="inline-flex items-center gap-1">
                         <span
                           aria-hidden="true"
@@ -475,12 +499,12 @@ const SloActiveBurnEventsCard: FunctionComponent<ComponentProps> = (
                               : undefined,
                           }}
                         ></span>
-                        {row.severityName}
+                        {row.severityText}
                       </span>
                     ) : (
                       <></>
                     )}
-                    {row.stateName ? <span>{row.stateName}</span> : <></>}
+                    {row.stateText ? <span>{row.stateText}</span> : <></>}
                   </div>
                 </li>
               );

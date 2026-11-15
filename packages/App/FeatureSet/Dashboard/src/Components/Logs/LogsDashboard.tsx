@@ -530,6 +530,8 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
               knownName: serviceById.get(value.value)?.name?.toString(),
               facetDisplayName: value.displayName,
             }),
+            // A resource's name, or its id: drawn as written.
+            isUserContent: true,
           };
         }),
       });
@@ -574,6 +576,7 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
             nameMap: resourceNames,
             knownName: serviceById.get(decoded.id)?.name?.toString(),
           }),
+          isUserContent: true,
         };
       })
       .filter(

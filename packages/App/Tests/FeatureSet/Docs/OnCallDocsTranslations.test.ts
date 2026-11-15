@@ -9,6 +9,7 @@ import {
   drawnCreateButton,
   drawnDashboardLabel,
   isDashboardLabel,
+  writtenDashboardLabel,
 } from "./DocsDashboardLabels";
 import {
   CARD_LINE,
@@ -136,11 +137,11 @@ const TABLE_CREATE_BUTTONS: Record<string, Array<string>> = {
   "on-call/incoming-call-policy": ["Create Twilio Config"],
 };
 
-// How this language's Dashboard draws a bold label of a page.
+// How this language's Dashboard draws a bold label of a page, a plan's name as written.
 function drawnLabel(language: string, page: string, label: string): string {
   return (TABLE_CREATE_BUTTONS[page] || []).includes(label)
     ? drawnCreateButton(language, label)
-    : drawnDashboardLabel(language, label);
+    : writtenDashboardLabel(language, label);
 }
 
 /*

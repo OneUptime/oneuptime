@@ -406,6 +406,7 @@ const AddNeighborToMonitoringModal: FunctionComponent<ComponentProps> = (
           .map((probe: Probe) => {
             return {
               label: probe.name!,
+              isUserContent: true,
               value: probe._id!,
             };
           }),

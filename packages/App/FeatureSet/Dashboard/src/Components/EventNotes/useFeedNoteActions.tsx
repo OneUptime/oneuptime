@@ -125,6 +125,8 @@ export default function useFeedNoteActions(
         icon={AUDIENCE_STYLES[entry.visibility].icon}
         isDisabled={gate.isDisabled}
         tooltip={gate.tooltip}
+        // The gate's reason, in the reader's words already.
+        isTooltipUserContent={true}
         onClick={() => {
           setOpenDialog({
             visibility: entry.visibility,

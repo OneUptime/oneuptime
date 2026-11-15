@@ -80,9 +80,17 @@ import {
   aiActionCardFact,
   AIActionCardWords,
   AIActionSentence,
+  aiActionPluralSentence,
   aiActionSentence,
   aiActionTerm,
+  AIActionTableCell,
 } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_RECORD_TABLE_PLURAL_SENTENCES,
+  AI_READ_RECORD_TABLE_TERMS,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { countFigure } from "./ReadTableWords";
 import {
   getRecordTitleName,
   prepareRecordNamesInTitle,
@@ -381,7 +389,13 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Security cases (${rows.length})`,
+              // In the reader's language (issue #7977).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.securityCases,
+                  { count: countFigure(rows.length) },
+                ),
+              },
               columns: [
                 { key: "case", title: translationKey("Case"), type: "text" },
                 { key: "title", title: translationKey("Title"), type: "text" },
@@ -685,7 +699,24 @@ export const LookupThreatIntelTool: ObservabilityTool = {
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget: WidgetBuilder.table({
-        title: `Threat intel (${best.size} of ${values.length} known-bad)`,
+        // In the reader's language (issue #7977), with each match's verdict.
+        words: {
+          title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.threatIntel, {
+            known: countFigure(best.size),
+            count: countFigure(values.length),
+          }),
+          cells: rows.map(
+            (row: JSONObject): Record<string, AIActionTableCell> => {
+              return {
+                match: aiActionTerm(
+                  row["match"] === "known-bad"
+                    ? AI_READ_RECORD_TABLE_TERMS.knownBad
+                    : AI_READ_RECORD_TABLE_TERMS.noMatch,
+                ),
+              };
+            },
+          ),
+        },
         columns: [
           { key: "value", title: translationKey("Value"), type: "text" },
           { key: "match", title: translationKey("Match"), type: "text" },
@@ -815,8 +846,13 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget: WidgetBuilder.table({
-        title: "Entity activity",
-        description: `The last ${hours} ${hours === 1 ? "hour" : "hours"}`,
+        words: {
+          title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.entityActivity),
+          description: aiActionPluralSentence(
+            AI_READ_RECORD_TABLE_PLURAL_SENTENCES.entityActivityHours,
+            hours,
+          ),
+        },
         columns: [
           { key: "value", title: translationKey("Value"), type: "text" },
           { key: "events", title: translationKey("Events"), type: "number" },
