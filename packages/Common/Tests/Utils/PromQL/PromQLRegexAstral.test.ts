@@ -15,6 +15,7 @@ import {
   PatternProblemError,
   PatternProblemReason,
 } from "../../../Utils/LinearRegExp/PatternProblem";
+import { v8Tests } from "../../Helpers/V8RegExpAnswers";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -154,9 +155,12 @@ describe("a character beyond U+FFFF is one character, as in Prometheus", () => {
       expect(compiled.test(value)).toBe(matches);
       // JavaScript's own RegExp reads the written pattern the same way.
       expect(
-        new RegExp(compiled.regex.source, compiled.regex.flags).test(
-          compiled.textOf(value),
-        ),
+        v8Tests({
+          source: compiled.regex.source,
+          flags: compiled.regex.flags,
+          text: compiled.textOf(value),
+          expected: matches,
+        }),
       ).toBe(matches);
     },
   );

@@ -15,6 +15,7 @@ import {
 } from "../../../Utils/PromQL/RE2UnicodeClass";
 import { MAX_PATTERN_LENGTH } from "../../../Utils/LinearRegExp/LinearRegExp";
 import { PatternProblemError } from "../../../Utils/LinearRegExp/PatternProblem";
+import { v8Tests } from "../../Helpers/V8RegExpAnswers";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -699,9 +700,12 @@ describe("a Unicode class matches what Prometheus' does", () => {
 
       expect(compiled.test(value)).toBe(matches);
       expect(
-        new RegExp(compiled.regex.source, compiled.regex.flags).test(
-          compiled.textOf(value),
-        ),
+        v8Tests({
+          source: compiled.regex.source,
+          flags: compiled.regex.flags,
+          text: compiled.textOf(value),
+          expected: matches,
+        }),
       ).toBe(matches);
       // label_replace() reads the class the same way.
       expect(
