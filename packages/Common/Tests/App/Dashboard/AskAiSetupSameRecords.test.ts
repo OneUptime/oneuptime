@@ -573,9 +573,9 @@ describe("the same records, for the same answers", () => {
           comparable(fromGuidedSetup.model),
         );
         expect(fromAskAi.miscDataProps).toEqual(fromGuidedSetup.miscDataProps);
-        expect(fromAskAi.miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY]).toBe(
-          language,
-        );
+        expect(
+          fromAskAi.miscDataProps[EVERY_NEW_EVENT_RULES_LANGUAGE_KEY],
+        ).toBe(language);
 
         const name: string = fromAskAi.data.name!;
 

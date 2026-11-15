@@ -478,9 +478,8 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
       ).toBeInTheDocument();
     });
 
-    const name: string = readDashboardLocale(language)[
-      "Default on-call policy"
-    ]!;
+    const name: string =
+      readDashboardLocale(language)["Default on-call policy"]!;
 
     expect(name).toBeTruthy();
     expect(name).not.toBe("Default on-call policy");
@@ -496,8 +495,8 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
       expect(api["createPolicy"]).toHaveBeenCalled();
     });
 
-    const call: { translator: { language: string } } = api["createPolicy"]!
-      .mock.calls[0]![0] as { translator: { language: string } };
+    const call: { translator: { language: string } } = api["createPolicy"]!.mock
+      .calls[0]![0] as { translator: { language: string } };
 
     // The reader's translator: the policy and its rules are worded in their language.
     expect(call.translator.language).toBe(language);

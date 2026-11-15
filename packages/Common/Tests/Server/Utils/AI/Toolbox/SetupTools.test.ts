@@ -1479,11 +1479,11 @@ describe("set_up_paging", () => {
         { ...ctx, language: language },
       );
 
-      const args: { data: OnCallDutyPolicy; miscDataProps: JSONObject } =
-        create.mock.calls[0]![0] as {
-          data: OnCallDutyPolicy;
-          miscDataProps: JSONObject;
-        };
+      const args: { data: OnCallDutyPolicy; miscDataProps: JSONObject } = create
+        .mock.calls[0]![0] as {
+        data: OnCallDutyPolicy;
+        miscDataProps: JSONObject;
+      };
       const name: string = getFirstOnCallPolicyName(
         dashboardTranslator(language),
       );
@@ -1501,7 +1501,9 @@ describe("set_up_paging", () => {
         policyName: name,
       });
       expect(result.citationLabel).toBe(`Created on-call policy "${name}"`);
-      expect(result.dataForLlm).toContain(`Created the on-call policy "${name}"`);
+      expect(result.dataForLlm).toContain(
+        `Created the on-call policy "${name}"`,
+      );
     },
   );
 

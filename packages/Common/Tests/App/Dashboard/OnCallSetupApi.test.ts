@@ -278,8 +278,7 @@ describe("the policy it makes", () => {
         createSpy,
         OnCallDutyPolicy,
       )[0]!;
-      const name: string | undefined = (args["model"] as OnCallDutyPolicy)
-        .name;
+      const name: string | undefined = (args["model"] as OnCallDutyPolicy).name;
 
       expect(name).toBe(
         dashboardTranslator(language).translateText("Default on-call policy"),

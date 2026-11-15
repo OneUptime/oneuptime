@@ -868,10 +868,7 @@ describe.each(["fa", "ar"])(
       await renderIn(language, ownLinesResult(true));
 
       for (const name of OWN_LINE_NAMES) {
-        expect([name, ownLine(name).getAttribute("dir")]).toEqual([
-          name,
-          null,
-        ]);
+        expect([name, ownLine(name).getAttribute("dir")]).toEqual([name, null]);
         expect(ownLine(name).className).not.toContain(
           CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
         );

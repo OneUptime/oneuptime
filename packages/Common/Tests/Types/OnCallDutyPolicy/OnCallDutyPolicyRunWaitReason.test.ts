@@ -34,7 +34,9 @@ describe("the English messages, word for word as they were written before", () =
         now: NOW,
         isWaitingForWorkingHours: true,
       }),
-    ).toBe("Waiting for working hours. Paging starts Wed 09:00 (Europe/London).");
+    ).toBe(
+      "Waiting for working hours. Paging starts Wed 09:00 (Europe/London).",
+    );
   });
 
   test("waiting for OneUptime AI", () => {
@@ -63,7 +65,11 @@ describe("the English messages, word for word as they were written before", () =
 
 describe("readOnCallPolicyRunWaitReason", () => {
   const cases: Array<
-    [string, { isWaitingForWorkingHours: boolean; isAi?: boolean }, OnCallPolicyRunWaitReason]
+    [
+      string,
+      { isWaitingForWorkingHours: boolean; isAi?: boolean },
+      OnCallPolicyRunWaitReason,
+    ]
   > = [
     [
       "working hours",

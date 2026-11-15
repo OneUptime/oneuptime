@@ -57,7 +57,7 @@ jest.mock("../../../UI/Components/Pill/Pill", () => {
 import ExecutionLogsTable, {
   ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable";
-import WaitingRunLine, {
+import {
   getWaitingRunSentence,
   WAITING_RUN_SENTENCES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ExecutionLogs/WaitingRunLine";
@@ -136,9 +136,8 @@ function waitingRun(
 
 // The reader's sentence for `reason`, the time as the reader writes it.
 function worded(language: string, reason: OnCallPolicyRunWaitReason): string {
-  const sentence: string = readDashboardLocale(language)[
-    WAITING_RUN_SENTENCES[reason]
-  ]!;
+  const sentence: string =
+    readDashboardLocale(language)[WAITING_RUN_SENTENCES[reason]]!;
 
   expect(sentence).toBeTruthy();
 
@@ -324,7 +323,9 @@ describe.each(RIGHT_TO_LEFT)(
 
     test("the time is a value of the sentence, set apart so it keeps its own order", () => {
       const line: HTMLElement = waitingLine(
-        statusCell(waitingRun(MESSAGES[OnCallPolicyRunWaitReason.WorkingHours])),
+        statusCell(
+          waitingRun(MESSAGES[OnCallPolicyRunWaitReason.WorkingHours]),
+        ),
       );
 
       expect(line.textContent).toContain(isolated(readerTime()));
