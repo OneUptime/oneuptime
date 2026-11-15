@@ -1,8 +1,10 @@
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import {
   DeclaredIncident,
   EntityActivity,
@@ -151,8 +153,18 @@ export default class SecurityCaseApi {
     };
   }
 
+  /*
+   * In the reader's zone: the cases-opened and detections bars count the
+   * reader's days, as every other day chart does (issue #7925). A zone the
+   * list does not name is not sent, and those days stay UTC's.
+   */
   public static async getOverview(): Promise<SecurityOverview> {
-    return parseOverview(await post("/security-case/overview", {}));
+    const timezone: Timezone | undefined =
+      AggregationIntervalUtil.getListedReaderTimezone();
+
+    return parseOverview(
+      await post("/security-case/overview", timezone ? { timezone } : {}),
+    );
   }
 
   public static async getEntityActivity(data: {
