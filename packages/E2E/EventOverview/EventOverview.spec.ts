@@ -10,7 +10,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
-import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
+import { NO_BREAK_SPACE, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -15299,7 +15299,9 @@ test.describe("Escalate to a level the person picks", () => {
       .evaluate((input: Element): string => {
         return (input as HTMLInputElement).labels![0]!.textContent || "";
       });
-    expect(label).toBe("DBA leads (Level\u00a03\u00a0of\u00a04)");
+    expect(label).toBe(
+      `DBA leads (Level${NO_BREAK_SPACE}3${NO_BREAK_SPACE}of${NO_BREAK_SPACE}4)`,
+    );
 
     await screenshotElement(
       escalateDialog(page),
@@ -18172,8 +18174,6 @@ test.describe("time to acknowledge after paging", () => {
  * after the impact began, and by whom. Each is said once. ?owners=,
  * ?commander= and ?what= pick what there is to show (Fixture.js).
  */
-
-const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
 /*
  * Where "+3 more" leads: the record's Owners page, which manages the whole
