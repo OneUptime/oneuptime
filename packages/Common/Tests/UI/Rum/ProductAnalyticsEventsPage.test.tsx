@@ -499,28 +499,28 @@ describe("ProductAnalyticsEvents: the event", () => {
       undefined,
       "en",
     );
-    const empty: Array<ResourceOverviewTile> =
-      buildProductAnalyticsEventTiles({
-        trend: {
-          timeZone: "UTC",
-          days: [],
-          totalEvents: 0,
-          totalUsers: 0,
-          totalSessions: 0,
-        },
-        isLoading: false,
-        translator: english,
-      });
+    const empty: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles({
+      trend: {
+        timeZone: "UTC",
+        days: [],
+        totalEvents: 0,
+        totalUsers: 0,
+        totalSessions: 0,
+      },
+      isLoading: false,
+      translator: english,
+    });
 
     expect(empty[0]!.value).toBe("0");
     expect(empty[0]!.sublabel).toBeUndefined();
 
-    const unread: Array<ResourceOverviewTile> =
-      buildProductAnalyticsEventTiles({
+    const unread: Array<ResourceOverviewTile> = buildProductAnalyticsEventTiles(
+      {
         trend: null,
         isLoading: true,
         translator: english,
-      });
+      },
+    );
 
     expect(
       unread.map((tile: ResourceOverviewTile): string | undefined => {
