@@ -288,7 +288,7 @@ describe("the Label and Owner Rules page", () => {
       "monitors",
       "incidents and incident episodes",
       "alerts and alert episodes",
-      "scheduled maintenance events",
+      "maintenance events",
       "status pages",
       "network devices and SLOs",
     ]) {

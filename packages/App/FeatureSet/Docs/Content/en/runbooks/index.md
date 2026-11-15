@@ -1,6 +1,6 @@
 # Runbooks Overview
 
-A runbook is a reusable response procedure: an ordered list of manual and automated steps that you run on an incident, an alert or a scheduled maintenance event. It turns the "what do we do now?" thread into a checklist anyone on call can follow at 3am, with the scripts, API calls and approvals already written. Runbooks are for the on-call engineers who respond to incidents and for the platform teams who automate that response. To choose between a runbook, a workflow, a playbook and an AI rule, see [Which One Do I Use?](/docs/introduction/which-one#workflow-runbook-playbook-or-ai-rule).
+A runbook is a reusable response procedure: an ordered list of manual and automated steps that you run on an incident, an alert or a maintenance event. It turns the "what do we do now?" thread into a checklist anyone on call can follow at 3am, with the scripts, API calls and approvals already written. Runbooks are for the on-call engineers who respond to incidents and for the platform teams who automate that response. To choose between a runbook, a workflow, a playbook and an AI rule, see [Which One Do I Use?](/docs/introduction/which-one#workflow-runbook-playbook-or-ai-rule).
 
 :::cards
 - [Authoring a Runbook](/docs/runbooks/authoring): Create a runbook and write its steps.
@@ -46,7 +46,7 @@ The words used across OneUptime are in the [Glossary](/docs/introduction/glossar
 | --- | --- |
 | **Runbook** | The template. A named, reusable procedure with an ordered list of steps and a **Run this runbook** switch. |
 | **Step** | One item in a runbook. It has a type (Manual, JavaScript, HTTP request, Bash, SSH, kubectl or AI), a title, a description and type-specific settings. |
-| **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description. |
+| **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description. |
 | **Execution** | One run of a runbook. Created when a rule fires, when someone clicks **Run Runbook** on an event, or when someone clicks **Run Now** on the runbook itself. It holds a snapshot of the steps and each step's status and output. |
 | **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. You can edit the runbook later without rewriting the history of past runs. |
 | **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and kubectl steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none, unless the project has a default Runner. |
@@ -74,7 +74,7 @@ A runbook can mix all of them. The strength of runbooks is interleaving human ch
 | How | Where | The execution is attached to |
 | --- | --- | --- |
 | A runbook rule | **Incidents**, **Alerts** or **Scheduled Maintenance** → **Rules** → **Runbook Rules** | The new incident, alert or event |
-| **Run Runbook** | The **Runbooks** page of an incident, alert or scheduled maintenance event | That event |
+| **Run Runbook** | The **Runbooks** page of an incident, alert or maintenance event | That event |
 | **Run Now** | The runbook's **Overview** page | Nothing: an ad-hoc run |
 | An AI rule | See [AI SRE](/docs/ai/ai-sre) | The incident or alert |
 | The runbook's schedule | The runbook's **Triggers** page, see [Runbook Triggers](/docs/runbooks/triggers#run-on-a-schedule) | Nothing: an unattended run |

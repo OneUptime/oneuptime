@@ -183,7 +183,7 @@ La mayoría de los proyectos necesitan un solo paso. Añade otro cuando una nota
 - **Los cambios cuentan al instante.** Quién puede aprobar se lee cuando alguien decide, y las notas que ya esperan siguen tus cambios. Cuando añades, eliminas o reordenas pasos, o cambias a quién nombra un paso, a quien ahora puede aprobar una nota que espera y aún no fue preguntado por ella se le pregunta mediante sus ajustes de notificación, y lo mismo a quien se une a un equipo que nombra el paso al que espera una nota. A nadie se le pregunta dos veces por el mismo paso de una nota. Quien sale del paso, o de su equipo, ya no puede decidir sobre la nota, y su mensaje sobre ella en Slack, Microsoft Teams o Mattermost lo dice. Una nota conserva las aprobaciones que tiene.
 - **Nadie aprueba su propia nota, ni dos pasos de una misma nota.** Quien envió una nota para aprobación no puede aprobarla ni rechazarla, y quien aprobó uno de sus pasos no puede aprobar otro.
 
-Solo los propietarios y los administradores del proyecto pueden cambiar estos ajustes, y todos los que leen las notas ven quién las aprueba. **Mantenimiento programado → Ajustes → Aprobación de notas públicas** es la misma página para los eventos de mantenimiento programado, con su propio interruptor y sus propios pasos. Lo que hace una nota mientras espera, y cómo deciden quienes aprueban, se explica en [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
+Solo los propietarios y los administradores del proyecto pueden cambiar estos ajustes, y todos los que leen las notas ven quién las aprueba. **Mantenimiento programado → Ajustes → Aprobación de notas públicas** es la misma página para los eventos de mantenimiento, con su propio interruptor y sus propios pasos. Lo que hace una nota mientras espera, y cómo deciden quienes aprueban, se explica en [Aprobación de notas públicas](/docs/incidents/notes-owners-and-feed#aprobación-de-notas-públicas).
 
 ## Notificaciones a suscriptores
 
@@ -236,7 +236,7 @@ Cada definición tiene:
 - **Incluir en las notificaciones a suscriptores** — en **Más campos**. Envía el campo y su valor a los suscriptores de la página de estado con los mensajes del incidente: el correo, los mensajes de Slack y Microsoft Teams y los webhooks predeterminados, pero no los SMS. Los suscriptores suelen ser ajenos a tu equipo, así que actívalo solo para campos que se puedan compartir sin riesgo. Consulta [Suscriptores y anuncios](/docs/status-pages/subscribers#incidentes).
 - **Variable de plantilla** — la clave con la que una plantilla llega al campo, `{{incident.customFields.<key>}}`, en las plantillas de notas y en las plantillas personalizadas de notificación a suscriptores. Se forma a partir del nombre del campo cuando se crea —letras minúsculas, dígitos y guiones bajos, así que `Expected Resolution` se convierte en `expected_resolution`, con `_2`, `_3` y así sucesivamente cuando otro campo ya tiene la clave— y no cambia cuando se renombra el campo. Nadie la define a mano: la API ignora un valor enviado para ella. Las plantillas escritas con el antiguo `{{customFields.<key>}}` siguen funcionando. Nunca necesitas buscarla: los editores que la insertan —la **Nota** de una plantilla de nota y las plantillas personalizadas de notificación a suscriptores de una página de estado para eventos de incidente— listan la variable de cada campo en **Variables de plantilla**, con el nombre del campo. El formulario **Editar** de un campo también la muestra, de solo lectura, al final de **Más campos**, con un botón que la copia.
 
-**Orden**, **Mostrar al crear**, **Obligatorio al crear**, **Incluir en las notificaciones a suscriptores** y **Variable de plantilla** solo existen en los campos personalizados de incidente. Los campos personalizados de los monitores, las alertas, los eventos de mantenimiento programado y los demás recursos no los tienen.
+**Orden**, **Mostrar al crear**, **Obligatorio al crear**, **Incluir en las notificaciones a suscriptores** y **Variable de plantilla** solo existen en los campos personalizados de incidente. Los campos personalizados de los monitores, las alertas, los eventos de mantenimiento y los demás recursos no los tienen.
 
 Las definiciones viven en su propio modelo; los valores viven en el propio incidente, en la columna `customFields`. En un incidente concreto los rellenas desde **Campos personalizados** en el menú lateral del incidente (`/dashboard/{projectId}/incidents/{incidentId}/custom-fields`), donde los campos se listan en su **Orden**. Las plantillas de incidente guardan valores para los mismos campos en sus propios `customFields`.
 
@@ -362,7 +362,7 @@ Al guardar, una opción renombrada y un valor para el que eliges una opción se 
 
 Un incidente cuyo valor ya no ofrece su campo muestra el valor, marcado como _ya no es una opción_, en su página **Campos personalizados** y en la lista de incidentes. Editar sus otros campos lo conserva; elige otra opción para cambiarlo.
 
-Los campos personalizados de todos los demás recursos funcionan igual: monitores, alertas, eventos de mantenimiento programado, páginas de estado, políticas de guardia, equipos, miembros de equipo y elementos del inventario. Renombrar una opción de un campo de monitor, o añadir una, hace lo mismo en los campos de incidente, de alerta y de mantenimiento programado que lo copian (consulta [Campos copiados de un monitor](#campos-copiados-de-un-monitor)), para que sigan ofreciendo cada valor que copian.
+Los campos personalizados de todos los demás recursos funcionan igual: monitores, alertas, eventos de mantenimiento, páginas de estado, políticas de guardia, equipos, miembros de equipo y elementos del inventario. Renombrar una opción de un campo de monitor, o añadir una, hace lo mismo en los campos de incidente, de alerta y de mantenimiento programado que lo copian (consulta [Campos copiados de un monitor](#campos-copiados-de-un-monitor)), para que sigan ofreciendo cada valor que copian.
 
 Por la API, envía la nueva lista como `dropdownOptions`, y los renombrados en `miscDataProps`:
 
@@ -396,7 +396,7 @@ flowchart TB
     resolved -->|"Tiempo hasta el post mortem"| postmortem["Se publica el post mortem"]
 ```
 
-Las alertas y los eventos de mantenimiento programado tienen la misma función, en **Alertas → Ajustes → Mediciones** y **Mantenimiento programado → Ajustes → Mediciones**. Todo lo que sigue se aplica a los tres, cada uno con sus propios momentos.
+Las alertas y los eventos de mantenimiento tienen la misma función, en **Alertas → Ajustes → Mediciones** y **Mantenimiento programado → Ajustes → Mediciones**. Todo lo que sigue se aplica a los tres, cada uno con sus propios momentos.
 
 ### Mediciones listas para usar
 
@@ -477,7 +477,7 @@ La página de cada incidente muestra sus propias mediciones en una tarjeta **Med
 
 Una medición cuyo inicio o fin cambias sigue mostrando su valor antiguo en cada incidente hasta que OneUptime la vuelve a calcular, igual que su gráfico. Justo después de un cambio de estado desde la cabecera del incidente, la tarjeta muestra los nuevos valores en cuanto OneUptime los ha calculado, normalmente al instante.
 
-Las alertas y los eventos de mantenimiento programado tienen la misma tarjeta en sus páginas. Para un evento de mantenimiento, **No alcanzado** llega una vez terminado el evento: cuando está en el estado finalizado o en el completado, o en un estado propio situado después del estado finalizado. Sus momentos siguen las mismas posiciones: **Empieza el mantenimiento**, **Termina el mantenimiento** y **Se completa el mantenimiento** son los pasos a un estado en el que el evento está en curso, terminado o completado desde uno en el que no lo estaba; así, un evento completado directamente desde el estado en curso termina ahí, un evento que pasa del estado finalizado directamente a un estado propio situado después del estado completado se completa ahí, y pasar del estado completado a un estado así no vuelve a completar nada. Consulta [Eventos de mantenimiento programado](/docs/status-pages/subscribers#eventos-de-mantenimiento-programado). La tarjeta se omite cuando ninguna medición habilitada tiene **Mostrar en las páginas de incidentes** activado, y para quien no puede leer mediciones.
+Las alertas y los eventos de mantenimiento tienen la misma tarjeta en sus páginas. Para un evento de mantenimiento, **No alcanzado** llega una vez terminado el evento: cuando está en el estado finalizado o en el completado, o en un estado propio situado después del estado finalizado. Sus momentos siguen las mismas posiciones: **Empieza el mantenimiento**, **Termina el mantenimiento** y **Se completa el mantenimiento** son los pasos a un estado en el que el evento está en curso, terminado o completado desde uno en el que no lo estaba; así, un evento completado directamente desde el estado en curso termina ahí, un evento que pasa del estado finalizado directamente a un estado propio situado después del estado completado se completa ahí, y pasar del estado completado a un estado así no vuelve a completar nada. Consulta [Eventos de mantenimiento](/docs/status-pages/subscribers#eventos-de-mantenimiento). La tarjeta se omite cuando ninguna medición habilitada tiene **Mostrar en las páginas de incidentes** activado, y para quien no puede leer mediciones.
 
 ### Inicio del impacto, y por qué está vacío
 
@@ -563,7 +563,7 @@ El diálogo dice qué está mal antes de guardar, y la API rechaza los mismos pr
 
 Los Project Owners, los Project Admins y cualquiera con **Edit Project** pueden cambiar los prefijos. Los demás los ven con el botón **Actualizar** bloqueado.
 
-Las alertas y los eventos de mantenimiento programado tienen la misma página: **Alertas → Ajustes → Numeración** para los números de alerta y de episodio de alerta (`ALT-` y `AE-` en los proyectos nuevos), y **Mantenimiento programado → Ajustes → Numeración** para los números de evento (`SM-`). En los tres, las antiguas direcciones de la página siguen funcionando y abren **Numeración**: **Más Ajustes** (`…/settings/more`) y **Prefijo de número** (`…/settings/number-prefix`).
+Las alertas y los eventos de mantenimiento tienen la misma página: **Alertas → Ajustes → Numeración** para los números de alerta y de episodio de alerta (`ALT-` y `AE-` en los proyectos nuevos), y **Mantenimiento programado → Ajustes → Numeración** para los números de evento (`SM-`). En los tres, las antiguas direcciones de la página siguen funcionando y abren **Numeración**: **Más Ajustes** (`…/settings/more`) y **Prefijo de número** (`…/settings/number-prefix`).
 
 ## Próximos números
 
@@ -589,7 +589,7 @@ El diálogo dice qué está mal antes de guardar, y solo se guardan los números
 
 Los Project Owners, los Project Admins y cualquiera con **Edit Project** pueden cambiar los próximos números, igual que los prefijos. Los demás los ven con el botón **Actualizar** bloqueado.
 
-Las alertas y los eventos de mantenimiento programado tienen la misma tarjeta en sus páginas **Numeración**: **Próximo número de alerta** y **Próximo número de episodio de alerta**, y **Próximo número de mantenimiento programado**. [Importar desde otra herramienta](/docs/moving-to-oneuptime/incident-io) trae tu configuración, no tus incidentes pasados, así que deja los números como están: fija los próximos números antes de declarar el primer incidente en OneUptime.
+Las alertas y los eventos de mantenimiento tienen la misma tarjeta en sus páginas **Numeración**: **Próximo número de alerta** y **Próximo número de episodio de alerta**, y **Próximo número de mantenimiento programado**. [Importar desde otra herramienta](/docs/moving-to-oneuptime/incident-io) trae tu configuración, no tus incidentes pasados, así que deja los números como están: fija los próximos números antes de declarar el primer incidente en OneUptime.
 
 ## Interruptores de alertas vinculadas
 

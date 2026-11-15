@@ -172,7 +172,7 @@ Der Status einer Komponente ist der Wert, für den ihr Status auf der Seite steh
 
 Eine Ressource, die die Seite als **Nicht überwacht** zeigt, prüft nichts, also zählt sie für keinen Gesamtstatus, wie auf dem Banner der Seite selbst. Wird keine der Komponenten, die der Monitor beobachtet, überwacht und hat keine einen offenen Vorfall, ist der Gesamtstatus `unknown`.
 
-Solange ein laufendes geplantes Wartungsereignis eine Ressource betrifft, weil es einen ihrer Monitore oder einen Monitor ihrer Monitorgruppe nennt, ist die Komponente `under_maintenance`, gleich in welchem Status ihre Monitore sind: Ein Monitor wird nicht geprüft, solange ein Ereignis ihn festhält. Ein Ereignis, das noch bevorsteht oder schon vorbei ist, ändert nichts. Die aktiven Vorfälle der Seite zählen für die Ressourcen, die sie betreffen.
+Solange ein laufendes Wartungsereignis eine Ressource betrifft, weil es einen ihrer Monitore oder einen Monitor ihrer Monitorgruppe nennt, ist die Komponente `under_maintenance`, gleich in welchem Status ihre Monitore sind: Ein Monitor wird nicht geprüft, solange ein Ereignis ihn festhält. Ein Ereignis, das noch bevorsteht oder schon vorbei ist, ändert nichts. Die aktiven Vorfälle der Seite zählen für die Ressourcen, die sie betreffen.
 
 Die [Standardkriterien](#standardkriterien) halten Wartung nie für einen Ausfall: Der Monitor bleibt während der geplanten Arbeiten des anderen Projekts online.
 

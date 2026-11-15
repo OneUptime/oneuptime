@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Acknowledge, resolve and add notes
 
-Incidents, alerts, their episodes and scheduled maintenance events have commands for what the dashboard's buttons do on them:
+Incidents, alerts, their episodes and maintenance events have commands for what the dashboard's buttons do on them:
 
 | Command | What it does | Resources |
 | --- | --- | --- |

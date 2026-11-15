@@ -4,7 +4,7 @@ Every submission through a form creates one record in your project: an **inciden
 
 :::cards
 - [How a submission becomes an incident](#how-a-submission-becomes-an-incident): Every field of the new incident, and where its value comes from.
-- [How a submission becomes a scheduled maintenance event](#how-a-submission-becomes-a-scheduled-maintenance-event): The same, for a maintenance request.
+- [How a submission becomes a maintenance event](#how-a-submission-becomes-a-maintenance-event): The same, for a maintenance request.
 - [The On Submit settings](#the-on-submit-settings): Defaults, what always attaches, owners and publishing.
 - [The private note](#the-private-note): Who sent it, and the answers no field holds.
 :::
@@ -92,7 +92,7 @@ Turn **Visible on Status Page** on from the incident's **Settings** page.
 Because the incident was declared with **Notify Status Page Subscribers** off, publishing it does not send the "incident created" notification. To tell subscribers, post a public note with **Notify Status Page Subscribers** ticked — see [Posting a public note](/docs/incidents/notes-owners-and-feed#posting-a-public-note).
 :::
 
-## How a submission becomes a scheduled maintenance event
+## How a submission becomes a maintenance event
 
 | Field | Comes from |
 | --- | --- |

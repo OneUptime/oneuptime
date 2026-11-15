@@ -49,7 +49,7 @@ Cada número conta algo, diz se isso precisa de você e abre a lista por trás d
 | **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** | **Incidentes → Incidentes ativos** |
 | **Alertas ativos** | Alertas não resolvidos | **Tudo certo** | **Alertas → Alertas ativos** |
 | **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** | **Monitores → Não operacional** |
-| **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** | **Manutenção programada → Eventos de manutenção em andamento** |
+| **Manutenção em andamento** | Eventos de manutenção em andamento | **Nenhuma em andamento** | **Manutenção programada → Eventos de manutenção em andamento** |
 | **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** | **SLOs** |
 
 Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Enquanto algum SLO estiver em risco, **SLOs em risco** abre a lista **SLOs** filtrada para esses SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
@@ -142,7 +142,7 @@ Acima do título de cada página, uma trilha como *Projeto › Docker › Config
 - A opção **Colunas** no menu **⋯** de uma lista escolhe quais colunas a lista mostra e em que ordem, e as guarda para você neste navegador. Um proprietário ou um administrador do projeto também pode marcar ali **Mostrar estas colunas a todos neste projeto**: quem não escolheu as próprias colunas para essa lista vê essas, e **Redefinir para o padrão do projeto** volta as suas para elas.
 - A opção **Linhas compactas**, no mesmo menu, deixa mais baixas as linhas de todas as listas, então uma lista longa mostra cerca de um quinto a mais delas. A escolha fica guardada neste navegador.
 - **No celular, ou em um cartão estreito demais para as suas linhas, uma lista aparece como cartões, um por linha.** A faixa acima deles diz em que ordem estão, como **Ordenado por Nome**: toque nela para escolher a coluna da ordenação, e **Crescente** ou **Decrescente**.
-- **As páginas de um incidente começam pelo número dele.** O título, o passo dele na trilha e a aba do navegador mostram `INC-42 Checkout is down`, assim como as caixas de diálogo que o nomeiam, para que incidentes com o mesmo título se distingam. Alertas, eventos de manutenção programada e episódios fazem o mesmo.
+- **As páginas de um incidente começam pelo número dele.** O título, o passo dele na trilha e a aba do navegador mostram `INC-42 Checkout is down`, assim como as caixas de diálogo que o nomeiam, para que incidentes com o mesmo título se distingam. Alertas, eventos de manutenção e episódios fazem o mesmo.
 
 ## Pesquisar uma página, uma configuração ou uma ação
 

@@ -92,7 +92,7 @@ Een vraag **Bestand** of **Meerdere bestanden** neemt bestanden van de computer 
 
 ### Velden van wat het formulier aanmaakt
 
-De velden van een incident, of van een geplande onderhoudsgebeurtenis, die een inzender kan beantwoorden. Het antwoord wordt de waarde van het veld.
+De velden van een incident, of van een onderhoudsgebeurtenis, die een inzender kan beantwoorden. Het antwoord wordt de waarde van het veld.
 
 | Incidentveld | Beantwoord met |
 | --- | --- |

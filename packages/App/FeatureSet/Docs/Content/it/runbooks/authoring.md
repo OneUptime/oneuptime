@@ -198,7 +198,7 @@ Chiedi all'IA di analizzare, riassumere o decidere qualcosa durante l'esecuzione
 | **Prompt** | Cosa deve fare l'IA. Ad esempio: «Esamina l'output dei passaggi precedenti e di' se è sicuro procedere con il rimedio.» |
 | **Provider LLM** | Facoltativo. **Predefinito del progetto** usa il provider predefinito del progetto. Fissa un provider quando il passaggio ha bisogno di un modello specifico, ad esempio uno self-hosted per dati che non devono lasciare la tua rete. Vedi [Provider LLM](/docs/ai/llm-provider). |
 | **Includi il contesto del passaggio precedente** | Se attivo, l'IA vede tutto dei passaggi eseguiti prima di questo: titolo, tipo, stato, output e messaggi di errore. Riceve fino a 4.000 caratteri dell'output di ogni passaggio. |
-| **Includi il contesto del trigger** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione programmata collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
+| **Includi il contesto del trigger** | Se attivo, l'IA vede cosa ha avviato l'esecuzione: l'incidente, l'avviso o l'evento di manutenzione collegato (descrizione, gravità, stato attuale, monitor coinvolti, causa principale, cronologia degli stati e note pubbliche), oppure chi ha avviato il runbook a mano. |
 
 Per tenere una persona nel processo, attiva **Richiedi approvazione** sul passaggio che segue un passaggio IA: l'IA analizza, qualcuno legge la risposta, e il passaggio di rimedio viene eseguito solo dopo che quella persona lo ha approvato.
 

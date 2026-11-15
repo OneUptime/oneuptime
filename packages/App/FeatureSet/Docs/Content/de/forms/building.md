@@ -92,7 +92,7 @@ Eine Frage vom Typ **Datei** oder **Mehrere Dateien** nimmt Dateien vom Computer
 
 ### Felder dessen, was das Formular erstellt
 
-Die Felder eines Vorfalls oder eines geplanten Wartungsereignisses, die eine einreichende Person beantworten kann. Die Antwort wird zum Wert des Felds.
+Die Felder eines Vorfalls oder eines Wartungsereignisses, die eine einreichende Person beantworten kann. Die Antwort wird zum Wert des Felds.
 
 | Vorfallfeld | Beantwortet mit |
 | --- | --- |
