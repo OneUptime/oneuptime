@@ -53527,5 +53527,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Om en proxy framför OneUptime avvisade det, höj proxyns gräns för en begärans storlek till 50 MB, lika mycket som OneUptime självt tar emot (i nginx, client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "Försök igen med mindre åt gången, till exempel en mindre fil.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det som skickades var för stort för att servern skulle ta emot det, så åtgärden slutfördes inte. Försök igen med mindre åt gången, till exempel en mindre fil.",
-  "What was sent was too large for the server to accept.": "Det som skickades var för stort för att servern skulle ta emot det."
+  "What was sent was too large for the server to accept.": "Det som skickades var för stort för att servern skulle ta emot det.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "Amazon SNS skickar ingenting till den här monitorn förrän du bekräftar prenumerationen.",
+  "Confirm Subscription": "Bekräfta prenumeration",
+  "Confirm the Amazon SNS subscription": "Bekräfta Amazon SNS-prenumerationen",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "Event Grid skickar inga händelser till den här monitorn förrän du validerar händelseprenumerationen.",
+  "Restore Subscription": "Återställ prenumeration",
+  "The Amazon SNS subscription was deleted": "Amazon SNS-prenumerationen har tagits bort",
+  "The link works until {{time}}.": "Länken fungerar till {{time}}.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "Den här länken kan inte längre öppnas. Markera prenumerationen i AWS-konsolen och välj Request confirmation, eller skapa prenumerationen igen om den är borta.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "Den här länken kan inte längre öppnas. Skapa prenumerationen igen i AWS-konsolen för att åter få meddelanden från ämnet.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "Den här länken kan inte längre öppnas: den fungerar i 10 minuter efter att Event Grid har skickat den. Skapa händelseprenumerationen igen för att få en ny.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "Den här monitorn får inga fler meddelanden från ämnet. Återställ prenumerationen för att få dem igen.",
+  "This note stays until the monitor's next request arrives.": "Den här rutan ligger kvar tills monitorns nästa förfrågan kommer in.",
+  "Topic": "Ämne",
+  "Validate Subscription": "Validera prenumeration",
+  "Validate the Azure Event Grid subscription": "Validera Azure Event Grid-prenumerationen"
 }

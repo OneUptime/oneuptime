@@ -470,6 +470,7 @@
     "Top",
     "Top P",
     "Top {{count}}",
+    "Topic",
     "Trace",
     "Trace {{traceId}}",
     "Trace {{traceId}} ({{count}} spans)",

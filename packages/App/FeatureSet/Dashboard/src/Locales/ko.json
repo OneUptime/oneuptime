@@ -53527,5 +53527,20 @@
   "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "OneUptime 앞에 있는 프록시가 거부했다면 그 프록시의 요청 크기 제한을 OneUptime 자체가 받는 만큼인 50 MB로 늘리세요(nginx에서는 client_max_body_size 50M).",
   "Try again with less at once, such as a smaller file.": "더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "보낸 내용이 너무 커서 서버가 받아들이지 못해 작업을 마치지 못했습니다. 더 작은 파일처럼 한 번에 보내는 양을 줄여 다시 시도하세요.",
-  "What was sent was too large for the server to accept.": "보낸 내용이 너무 커서 서버가 받아들이지 못했습니다."
+  "What was sent was too large for the server to accept.": "보낸 내용이 너무 커서 서버가 받아들이지 못했습니다.",
+  "Amazon SNS sends nothing to this monitor until you confirm the subscription.": "구독을 확인할 때까지 Amazon SNS는 이 모니터에 아무것도 보내지 않습니다.",
+  "Confirm Subscription": "구독 확인",
+  "Confirm the Amazon SNS subscription": "Amazon SNS 구독 확인",
+  "Event Grid sends no events to this monitor until you validate the event subscription.": "이벤트 구독을 검증할 때까지 Event Grid는 이 모니터에 이벤트를 보내지 않습니다.",
+  "Restore Subscription": "구독 복원",
+  "The Amazon SNS subscription was deleted": "Amazon SNS 구독이 삭제되었습니다",
+  "The link works until {{time}}.": "이 링크는 {{time}}까지 유효합니다.",
+  "This link can no longer be opened. In the AWS console, select the subscription and choose Request confirmation, or create the subscription again if it is gone.": "이 링크는 더 이상 열 수 없습니다. AWS 콘솔에서 구독을 선택한 뒤 \"Request confirmation\"을 선택하거나, 구독이 사라졌다면 다시 만드세요.",
+  "This link can no longer be opened. To get messages from the topic again, create the subscription again in the AWS console.": "이 링크는 더 이상 열 수 없습니다. 토픽의 메시지를 다시 받으려면 AWS 콘솔에서 구독을 다시 만드세요.",
+  "This link can no longer be opened: it works for 10 minutes after Event Grid sends it. Create the event subscription again to get a new one.": "이 링크는 더 이상 열 수 없습니다. 링크는 Event Grid가 보낸 뒤 10분 동안만 작동합니다. 새 링크를 받으려면 이벤트 구독을 다시 만드세요.",
+  "This monitor gets no more messages from the topic. To get them again, restore the subscription.": "이 모니터는 더 이상 토픽의 메시지를 받지 않습니다. 다시 받으려면 구독을 복원하세요.",
+  "This note stays until the monitor's next request arrives.": "이 안내는 모니터에 다음 요청이 도착할 때까지 표시됩니다.",
+  "Topic": "토픽",
+  "Validate Subscription": "구독 검증",
+  "Validate the Azure Event Grid subscription": "Azure Event Grid 구독 검증"
 }
