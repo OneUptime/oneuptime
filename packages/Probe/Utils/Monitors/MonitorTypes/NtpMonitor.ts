@@ -678,7 +678,9 @@ export default class NtpMonitor {
       requestFailedDetails: {
         failedPhase: RequestFailedPhase.RequestTimeout,
         errorCode: "TIMEOUT",
-        errorDescription: writeRequestFailureDescription(RequestFailureDescription.NtpNoReply),
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NtpNoReply,
+        ),
       },
     });
   }
@@ -766,7 +768,9 @@ export default class NtpMonitor {
       requestFailedDetails: {
         failedPhase: RequestFailedPhase.NetworkError,
         errorCode: code,
-        errorDescription: writeRequestFailureDescription(RequestFailureDescription.NtpNetworkError),
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NtpNetworkError,
+        ),
         rawErrorMessage: rawErrorMessage,
       },
     });

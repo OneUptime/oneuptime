@@ -299,7 +299,9 @@ const getRequestFailedDetails: (data: {
   return {
     failedPhase: RequestFailedPhase.NetworkError,
     errorCode,
-    errorDescription: writeRequestFailureDescription(RequestFailureDescription.PortNetworkError),
+    errorDescription: writeRequestFailureDescription(
+      RequestFailureDescription.PortNetworkError,
+    ),
     rawErrorMessage,
   };
 };

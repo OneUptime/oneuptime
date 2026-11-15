@@ -1616,9 +1616,12 @@ export default class API {
     return {
       failedPhase: RequestFailedPhase.Unknown,
       errorCode: errorCode,
-      errorDescription: writeRequestFailureDescription(RequestFailureDescription.RequestFailed, {
-        message: API.getFriendlyErrorMessage(error as Error),
-      }),
+      errorDescription: writeRequestFailureDescription(
+        RequestFailureDescription.RequestFailed,
+        {
+          message: API.getFriendlyErrorMessage(error as Error),
+        },
+      ),
       rawErrorMessage,
     };
   }
