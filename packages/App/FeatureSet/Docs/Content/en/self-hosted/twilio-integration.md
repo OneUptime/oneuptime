@@ -49,7 +49,7 @@ To add a project configuration:
 5. Save. A project has one default for SMS and one for calls, so a configuration used for **SMS only** and one used for **Calls only** can both be the default: see [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only). Status pages use the configuration explicitly assigned to each status page.
 
 > [!IMPORTANT]
-> **SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A project owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the **Notification Channels** card on the same page.
+> **SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A Project Owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the **Notification Channels** card on the same page.
 :::
 
 For an installation-wide default, an administrator can instead open **Admin Dashboard > Settings > Call and SMS**, pick what the account sends, edit the Twilio credentials and phone numbers, and save. Member notifications use this global configuration when their project has no default. Keep the Auth Token confidential.

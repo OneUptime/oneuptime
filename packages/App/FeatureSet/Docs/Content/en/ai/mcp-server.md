@@ -113,7 +113,7 @@ What a connected client can do:
 
 ### Managing Connected Clients
 
-Every client connected by signing in is listed on **Project Settings → AI → MCP Server**, under **Connected MCP Clients**, with who connected it, what it may do and when it was last used. You see the clients you connected; project owners and admins see everyone's.
+Every client connected by signing in is listed on **Project Settings → AI → MCP Server**, under **Connected MCP Clients**, with who connected it, what it may do and when it was last used. You see the clients you connected; Project Owners and Project Admins see everyone's.
 
 Click **Disconnect** to sign a client out. It stops working at once.
 

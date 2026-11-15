@@ -96,7 +96,7 @@ Under **Send a test page**, click **Test this policy**, pick a **Severity** and 
 :::
 
 > [!NOTE]
-> SMS and phone calls are off in a new project. A project owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
+> SMS and phone calls are off in a new project. A Project Owner, a Billing Admin or someone with Manage Billing turns them on in the **Notification Channels** card, under **Project Settings → Notifications → Notification Channels**.
 
 Two on-call rules run the policy: one for every new incident and one for every new alert. To see the first, open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**. To page the policy for only some incidents, such as critical ones, edit the rule there, or click **Create Incident On-Call Rule** to add one of your own.
 

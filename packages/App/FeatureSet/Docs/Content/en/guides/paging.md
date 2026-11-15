@@ -83,7 +83,7 @@ If the policy pages someone else, you can watch the escalation too: click **Open
 ## What can go wrong
 
 :::details There is no Text me a code button
-SMS is off, or cannot be sent, and the step says why. Only a project owner, or someone who manages billing, sees **Turn on SMS and phone calls**. On OneUptime Cloud, a balance of 1.00 USD or less hides the field. On a self-hosted server that cannot send SMS, its master admin sees **Set up SMS and calls**, which opens the Admin Dashboard to add Twilio, as [Twilio Integration](/docs/self-hosted/twilio-integration) shows.
+SMS is off, or cannot be sent, and the step says why. Only a Project Owner, or someone who manages billing, sees **Turn on SMS and phone calls**. On OneUptime Cloud, a balance of 1.00 USD or less hides the field. On a self-hosted server that cannot send SMS, its master admin sees **Set up SMS and calls**, which opens the Admin Dashboard to add Twilio, as [Twilio Integration](/docs/self-hosted/twilio-integration) shows.
 :::
 
 :::details Add balance says no payment method was found
