@@ -13,7 +13,7 @@ Deze integratie is **inkomend**: Huntress stuurt elke gebeurtenis van een incide
 
 ## Hoe het werkt
 
-Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding wordt verstuurd, wanneer iemand er een opmerking bij plaatst en wanneer ze wordt gesloten. De trigger **Huntress Incident Report** start de workflow één keer voor elke gebeurtenis, en zijn **Gebeurtenis** zegt welke het was: `created`, `comment-added` of `closed`.
+Huntress stuurt een gebeurtenis over een incidentmelding wanneer de melding wordt verstuurd, wanneer iemand er een opmerking bij plaatst en wanneer ze wordt gesloten. De trigger **Huntress-incidentrapport** start de workflow één keer voor elke gebeurtenis, en zijn **Gebeurtenis** zegt welke het was: `created`, `comment-added` of `closed`.
 
 ```mermaid title="Eén Huntress-incidentmelding in een workflow"
 sequenceDiagram
@@ -55,11 +55,11 @@ Open **Workflows** en klik op **Workflow maken**. Kies onder **Of begin met een 
 
 ### Kiezen wie wordt opgeroepen
 
-Het dialoogvenster vraagt daarna wie er moet worden opgeroepen: kies onder **Who to page for high and critical reports** het bereikbaarheidsbeleid om op te roepen, of niets om niemand op te roepen, en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld. Om later te wijzigen wie hij oproept, klik je op zijn stap **Page an On-Call Policy** en wijzig je zijn **Bereikbaarheidsbeleid**.
+Het dialoogvenster vraagt daarna wie er moet worden opgeroepen: kies onder **Who to page for high and critical reports** het bereikbaarheidsbeleid om op te roepen, of niets om niemand op te roepen, en klik op **Workflow maken**. De workflow opent in de **Bouwer**, uitgeschakeld. Om later te wijzigen wie hij oproept, klik je op zijn stap **Een bereikbaarheidsbeleid starten** en wijzig je zijn **Bereikbaarheidsbeleid**.
 
 ### Een webhook-endpoint toevoegen in Huntress
 
-Klik op de trigger **Huntress Incident Report** en klik onder **Voeg in Huntress een webhook-endpoint toe** op **URL kopiëren**. De URL ziet eruit als `https://oneuptime.com/workflow/huntress/<key>`; bij een zelf gehoste installatie begint hij met uw eigen host.
+Klik op de trigger **Huntress-incidentrapport** en klik onder **Voeg in Huntress een webhook-endpoint toe** op **URL kopiëren**. De URL ziet eruit als `https://oneuptime.com/workflow/huntress/<key>`; bij een zelf gehoste installatie begint hij met uw eigen host.
 
 Open in Huntress het menu rechtsboven en kies **Integrations**. Klik op **Add an Integration**, kies **Webhooks** en klik op **Add Endpoint**. Plak de URL, zet **Incident Reports** aan en sla op. Laat **Escalations**, **Platform Actions** en **Account Notices** uit: de trigger neemt die gebeurtenissen aan en start er niets voor.
 
@@ -79,15 +79,15 @@ Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Open in Huntress het menu van h
 
 ## Wat de workflow doet
 
-Na de trigger doet **Incident From Another Tool** wat elk **Gebeurtenis** vraagt, via het nummer van de melding:
+Na de trigger doet **Incident uit een andere tool** wat elk **Gebeurtenis** vraagt, via het nummer van de melding:
 
 | Event | Wat de workflow doet |
 | --- | --- |
-| `created` | Opent een incident met de **ID van incidentenernst** van de trigger, met het label van zijn **Organization Label ID**. Bij een hoge of kritieke melding roept **Page an On-Call Policy** uw beleid op; een lage melding roept niemand op. Een melding die al een incident heeft, opent er geen tweede. |
+| `created` | Opent een incident met de **ID van incidentenernst** van de trigger, met het label van zijn **ID van het organisatielabel**. Bij een hoge of kritieke melding roept **Een bereikbaarheidsbeleid starten** uw beleid op; een lage melding roept niemand op. Een melding die al een incident heeft, opent er geen tweede. |
 | `comment-added` | Zoekt het incident van de melding en voegt de opmerking eraan toe als privénotitie. |
 | `closed` | Zoekt het incident van de melding en lost het op, tenzij het al is opgelost. De reden staat op de tijdlijn: Huntress sloot de melding. |
 
-Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **If / Else** na **Incident From Another Tool** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Switch / Case** op **Organisatie**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
+Het is een workflow zoals elke andere, dus u kunt aanpassen wat hij doet: alleen voor kritieke meldingen oproepen door te wijzigen wat de **Als / Anders** na **Incident uit een andere tool** vergelijkt, elke melding in een chatkanaal plaatsen met een Slack- of Microsoft Teams-stap, of elke organisatie naar haar eigen bereikbaarheidsbeleid sturen met een **Keuze / Geval** op **Organisatie**. Elke uitvoering staat bij de uitvoeringen van de workflow, met wat elke stap deed.
 
 ### Ernst
 
@@ -103,7 +103,7 @@ Een project met minder ernstniveaus gebruikt zijn laagste voor de rest. Een meld
 
 ### Organisaties
 
-De **Organization Label ID** van de trigger is een label met de naam van de Huntress-organisatie van de melding, zoals _Acme Corp_, dat hij maakt wanneer de eerste melding van die organisatie aankomt. Eén workflow ontvangt de meldingen van alle organisaties in uw Huntress-account, en **Alleen deze organisaties** van de trigger beperkt dat: één organisatienaam of -ID per regel, namen zonder onderscheid tussen hoofdletters en kleine letters.
+De **ID van het organisatielabel** van de trigger is een label met de naam van de Huntress-organisatie van de melding, zoals _Acme Corp_, dat hij maakt wanneer de eerste melding van die organisatie aankomt. Eén workflow ontvangt de meldingen van alle organisaties in uw Huntress-account, en **Alleen deze organisaties** van de trigger beperkt dat: één organisatienaam of -ID per regel, namen zonder onderscheid tussen hoofdletters en kleine letters.
 
 > [!TIP]
 > Om het eigen team van elke klant op te roepen, voegt u per organisatie een bereikbaarheidsregel voor incidenten toe, zoals "Als **Incident-labels** een van _Acme Corp_ heeft", die het beleid van die klant uitvoert. Zie [Bereikbaarheidsregels voor incidenten](/docs/incidents/settings#bereikbaarheidsregels-voor-incidenten).
@@ -115,7 +115,7 @@ De trigger opent op Huntress: zijn URL, een vinkje naast elke afgeronde stap van
 | Waarde | Wat ze bevat |
 | --- | --- |
 | **Gebeurtenis** | `created`, `comment-added` of `closed`. Een melding die al gesloten of afgewezen is, is `closed`, welke gebeurtenis haar ook bracht. |
-| **Report ID** | Het nummer van de melding in Huntress. |
+| **Rapport-ID** | Het nummer van de melding in Huntress. |
 | **Ernst** | `critical`, `high` of `low`. |
 | **Status** | De status van de melding in Huntress, zoals `sent`, `closed` of `dismissed`. |
 | **Onderwerp** | Het onderwerp van de melding, zoals Huntress het schrijft. |
@@ -124,15 +124,15 @@ De trigger opent op Huntress: zijn URL, een vinkje naast elke afgeronde stap van
 | **Getroffen** | De host of identiteit waarover de melding gaat. |
 | **Platform**, **Indicatoren** | Waar Huntress het vond, en wat het vond. |
 | **Opmerking** | De opmerking die iemand toevoegde, bij `comment-added`. |
-| **Report URL** | Waar de melding in Huntress opent. |
+| **Rapport-URL** | Waar de melding in Huntress opent. |
 | **Incidenttitel**, **Incidentbeschrijving** | Een titel en een Markdown-beschrijving voor een incident over de melding. |
 | **Notitie** | Markdown voor een notitie over de gebeurtenis: de opmerking, of dat Huntress de melding sloot. |
-| **ID van incidentenernst**, **Organization Label ID** | De incidenternst en het label, zoals hierboven. |
-| **Received At** | Wanneer OneUptime de gebeurtenis ontving. |
+| **ID van incidentenernst**, **ID van het organisatielabel** | De incidenternst en het label, zoals hierboven. |
+| **Ontvangen op** | Wanneer OneUptime de gebeurtenis ontving. |
 
 **Samenvatting** en **Opmerking** zijn tekst die de analisten van Huntress schreven. Gebruik **Incidentbeschrijving** en **Notitie** om ze in een incident of een notitie te zetten: die behouden de opmaak, en niets erin laadt een afbeelding of noemt iemand.
 
-Om de workflow zonder Huntress te proberen, klikt u op **Workflow uitvoeren** in de **Bouwer** en typt u een **Gebeurtenis**, een **Report ID** en de velden die u nodig hebt. Gebruik hetzelfde **Report ID** om één melding van `created` tot `closed` te volgen.
+Om de workflow zonder Huntress te proberen, klikt u op **Workflow uitvoeren** in de **Bouwer** en typt u een **Gebeurtenis**, een **Rapport-ID** en de velden die u nodig hebt. Gebruik hetzelfde **Rapport-ID** om één melding van `created` tot `closed` te volgen.
 
 ## Eerder gemaakte Huntress-koppelingen
 
@@ -170,15 +170,15 @@ Zet **Ingeschakeld** aan bovenaan de **Bouwer**. Huntress stuurt het geweigerde 
 :::
 
 :::details "No Huntress workflow has this address."
-De workflow is verwijderd of gearchiveerd, zijn trigger is niet meer **Huntress Incident Report**, of de URL van het endpoint in Huntress is niet die van de workflow. Kopieer de URL uit de trigger en plak hem opnieuw in het endpoint in Huntress.
+De workflow is verwijderd of gearchiveerd, zijn trigger is niet meer **Huntress-incidentrapport**, of de URL van het endpoint in Huntress is niet die van de workflow. Kopieer de URL uit de trigger en plak hem opnieuw in het endpoint in Huntress.
 :::
 
 :::details Er werd geen incident geopend
-Open de uitvoeringen van de workflow en de uitvoering van de melding. Mislukte **Incident From Another Tool** met `This project has no incident severities to put the incident at.`, voeg er dan een toe onder **Incidenten → Instellingen → Ernst van incident**.
+Open de uitvoeringen van de workflow en de uitvoering van de melding. Mislukte **Incident uit een andere tool** met `This project has no incident severities to put the incident at.`, voeg er dan een toe onder **Incidenten → Instellingen → Ernst van incident**.
 :::
 
 :::details Niemand werd opgeroepen
-Een lage melding opent een incident zonder iemand op te roepen. Anders zegt de uitvoering van de melding wat **Page an On-Call Policy** deed, en de pagina **Bereikbaarheidsuitvoeringen** van het incident toont wat elk beleid deed.
+Een lage melding opent een incident zonder iemand op te roepen. Anders zegt de uitvoering van de melding wat **Een bereikbaarheidsbeleid starten** deed, en de pagina **Bereikbaarheidsuitvoeringen** van het incident toont wat elk beleid deed.
 :::
 
 ## Volgende stappen

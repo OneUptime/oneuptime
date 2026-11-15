@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54785,
-    "untranslated": 8471
+    "keys": 55552,
+    "untranslated": 8369
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -54,6 +54,7 @@
     "Bucket",
     "Buckets",
     "Budget",
+    "CC",
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",

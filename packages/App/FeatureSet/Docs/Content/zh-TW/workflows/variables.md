@@ -195,7 +195,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 | 在這樣的區塊之後……                                        | 讀取                                                                                   |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID 為 `lookup-user` 的 **API** 區塊                       | 它的狀態碼：`{{local.components.lookup-user.returnValues.response-status}}`。它的內文：`{{local.components.lookup-user.returnValues.response-body}}`。 |
-| ID 為 `transform` 的 **Run Custom JavaScript** 區塊       | 它傳回的內容：`{{local.components.transform.returnValues.returnValue}}`。              |
+| ID 為 `transform` 的 **執行自訂 JavaScript** 區塊       | 它傳回的內容：`{{local.components.transform.returnValues.returnValue}}`。              |
 | ID 為 `incident-on-create-1` 的 **On Create Incident** 觸發器 | 事件的標題：`{{local.components.incident-on-create-1.returnValues.model.title}}`。記錄觸發器會以 `model` 傳回記錄，你深入其中讀取。 |
 
 區塊的值只在目前這次執行期間存在。每次新的執行都從頭開始。
@@ -208,22 +208,22 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 - Slack、Teams、Discord、Telegram、IRC、Mattermost、Email 上的訊息文字。
 - 電子郵件的主旨和內文。
 - 標頭和內文欄位（在字串值內）。
-- **If / Else** 區塊的兩側。
+- **如果 / 否則** 區塊的兩側。
 
-在 JSON 欄位中——記錄元件上的 **Data (JSON Object)** 和 **查詢**，API 區塊的 **請求內文**，**Run Custom JavaScript** 上的 **Arguments**——參照會依它所在的位置被填入：
+在 JSON 欄位中——記錄元件上的 **資料（JSON 物件）** 和 **查詢**，API 區塊的 **請求內文**，**執行自訂 JavaScript** 上的 **參數**——參照會依它所在的位置被填入：
 
 - **在引號內，它是文字。** `{"title": "Down: {{local.components.ci-webhook.returnValues.request-body.service}}"}` 會把值放進字串裡。值中的引號、反斜線和換行會被跳脫，所以 JSON 仍然有效，值仍是一個字串。
 - **單獨出現時，它就是值本身。** `{"customFields": {{local.components.transform.returnValues.returnValue}}}` 會插入整個物件，清單仍是清單，數字仍是數字。本身就是 JSON 的文字——`5`、`true`，或區塊以 JSON 文字傳回的物件——會作為那個值插入。其他任何文字都會作為字串插入。
 
-位於鍵之引號內的參照也是文字。如果需要動態建構結構，就用 **Run Custom JavaScript** 區塊建構，再把它的輸出傳給下一個區塊。
+位於鍵之引號內的參照也是文字。如果需要動態建構結構，就用 **執行自訂 JavaScript** 區塊建構，再把它的輸出傳給下一個區塊。
 
-**Run Custom JavaScript** 區塊不會自動取得變數——沙箱中什麼都不會被注入。把 `{{global.variables.NAME}}`（或任何元件參照）放進區塊的 JSON 欄位 **Arguments**；這些值會在指令碼執行前填好，並以 `args` 形式到達。
+**執行自訂 JavaScript** 區塊不會自動取得變數——沙箱中什麼都不會被注入。把 `{{global.variables.NAME}}`（或任何元件參照）放進區塊的 JSON 欄位 **參數**；這些值會在指令碼執行前填好，並以 `args` 形式到達。
 
 ## 走訪陣列
 
 在文字欄位中，可以用 `{{#each path}}…{{/each}}` 為清單中的每一項重複一段文字。在區塊內部，`{{property}}` 會從目前這一項讀取，`{{@index}}` 是它從 0 開始的位置，`{{this}}` 在簡單值的清單中是該項本身。`{{#each}}` 區塊內的名稱會去除前後空白，所以多餘的空格在那裡沒有影響——與其他所有地方不同。
 
-例如，這段 **Message Text** 會列出 Webhook 傳送的每則警示：
+例如，這段 **訊息文字** 會列出 Webhook 傳送的每則警示：
 
 ```text title="Message Text"
 {{#each local.components.ci-webhook.returnValues.request-body.alerts}}
@@ -238,7 +238,7 @@ OAuth 2.0 變數頁面上的 **存取權杖** 卡片會顯示以下狀態之一�
 一個 Webhook 帶著類似 `{ "service": "checkout", "status": "failed" }` 的內文到達。要把它變成一個 OneUptime 事件：
 
 1. 一個 ID 為 `ci-webhook` 的 **Webhook** 觸發器。
-2. 一個 **If / Else** 區塊：**要檢查的值** 是 Webhook 的 Request Body 中的 `status` 欄位（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比較** 是 **等於**，**比較對象** 是 `failed`。
+2. 一個 **如果 / 否則** 區塊：**要檢查的值** 是 Webhook 的 Request Body 中的 `status` 欄位（`{{local.components.ci-webhook.returnValues.request-body.status}}`），**比較** 是 **等於**，**比較對象** 是 `failed`。
 3. 從 **是** 分支接一個 **Create One Incident** 區塊，其中：
    - 標題：`CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 描述：`See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
@@ -291,7 +291,7 @@ API 金鑰需要 **Edit Workflow Variables**。不需要讀取權限——更新
 - **使用 { }（或輸入 `{{`）。** 它會插入執行器預期的確切元件、傳回值和變數 ID，並且只提供區塊執行時會存在的值。
 - **變數名稱區分大小寫。** `{{global.variables.MyKey}}` 和 `{{global.variables.mykey}}` 是不同的。
 - **無法解析的參照會原樣保留，而不是變成空的。** 參照不存在的東西不是錯誤，也不會得到空字串：大括號會原樣往下傳，所以步驟 ID 拼錯的 `{{local.components.api-get-1.returnValues.body}}` 會一字不差地出現在你的 Slack 訊息、URL 或請求內文中，而執行仍然回報 **已執行**。執行的 **步驟** 分頁會在該步驟上顯示一則警告，列出每個漏過去的參照，並把它所在的設定標記為 **Did not resolve**；執行的日誌中也有同樣的警告行。例外是資料元件讀取或寫入的 ID，例如其 **查詢** 中的 `_id`：這時該步驟會在讀取或寫入任何內容之前停止，走 **錯誤** 輸出，並說明哪個參照沒有解析以及要檢查什麼。
-- **沒有內容的欄位到達時為空。** 並非每筆記錄都有每個欄位。不是由監測器產生的警示（例如來自 SLO 或手動建立的警示）沒有監測器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 沒有值可給：在訊息中那裡什麼也沒有，單獨作為 JSON 值時是 `null`。沒人寫的描述、記錄沒有的自訂欄位、沒有找到記錄的 **Find One**、沒有該項目的清單，以及區塊沒有傳下去的欄位也是如此；對於區塊沒有傳下去的欄位，步驟上還會顯示警告，說明要往 **Fields to pass on** 新增什麼。URL 和讀寫記錄的區塊是例外，因為空值會改變區塊所作用的對象：那裡的參照會原樣保留，而 ID 會使區塊停止。要走另一條路徑，請在 **If / Else** 中用 **為空** 檢查該值。要寫出警示背後的 SLO，請傳下它的名稱並使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
+- **沒有內容的欄位到達時為空。** 並非每筆記錄都有每個欄位。不是由監測器產生的警示（例如來自 SLO 或手動建立的警示）沒有監測器，所以 `{{local.components.alert-on-create-1.returnValues.model.monitor.name}}` 沒有值可給：在訊息中那裡什麼也沒有，單獨作為 JSON 值時是 `null`。沒人寫的描述、記錄沒有的自訂欄位、沒有找到記錄的 **Find One**、沒有該項目的清單，以及區塊沒有傳下去的欄位也是如此；對於區塊沒有傳下去的欄位，步驟上還會顯示警告，說明要往 **要傳遞的欄位** 新增什麼。URL 和讀寫記錄的區塊是例外，因為空值會改變區塊所作用的對象：那裡的參照會原樣保留，而 ID 會使區塊停止。要走另一條路徑，請在 **如果 / 否則** 中用 **為空** 檢查該值。要寫出警示背後的 SLO，請傳下它的名稱並使用 `{{#each local.components.alert-on-create-1.returnValues.model.serviceLevelObjectives}}{{name}}{{/each}}`。
 - **問題面板無法檢查變數名稱。** 它會在你儲存前標出它無法比對的元件參照——未知的步驟 ID、未知的傳回值、無效的根——但看不出變數是否存在。區塊的設定可以：對缺少之變數的參照會在那裡顯示為橘色標籤。除此之外，改了名稱的變數只有執行的日誌才能發現。
 - **大括號內的空格不會被去除。** `{{ local.variables.NAME }}` 與 `{{local.variables.NAME}}` 是不同的查詢，永遠不會被解析。唯一的例外是在 `{{#each}}` 區塊內，那裡的名稱會去除前後空白。
 

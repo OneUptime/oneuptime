@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54785,
-    "untranslated": 1930
+    "keys": 55552,
+    "untranslated": 1923
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -100,6 +100,7 @@
     "Burkina Faso",
     "Burundi",
     "Bytes",
+    "CC",
     "CIDR",
     "CPU / Mem",
     "CPU Ready",

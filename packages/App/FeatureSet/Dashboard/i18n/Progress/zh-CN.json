@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54785,
-    "untranslated": 8305
+    "keys": 55552,
+    "untranslated": 8204
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -152,6 +152,7 @@
     "Web",
     "Webhook",
     "Webhook URL",
+    "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

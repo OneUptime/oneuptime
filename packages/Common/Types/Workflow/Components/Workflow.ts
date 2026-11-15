@@ -4,31 +4,35 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.WorkflowRun,
-    title: "Execute Workflow",
-    category: "Utils",
-    description:
+    title: translationKey("Execute Workflow"),
+    category: translationKey("Utils"),
+    description: translationKey(
       "Execute another workflow in the same project (fire-and-forget)",
+    ),
     iconProp: IconProp.Workflow,
     componentType: ComponentType.Component,
     arguments: [
       {
         type: ComponentInputType.WorkflowSelect,
-        name: "Workflow",
-        description:
+        name: translationKey("Workflow"),
+        description: translationKey(
           "Pick the workflow to execute. The workflow must be in the same project and be enabled. It must have a Manual trigger to receive the arguments passed below.",
+        ),
         required: true,
         id: "workflowId",
-        placeholder: "Select a workflow",
+        placeholder: translationKey("Select a workflow"),
       },
       {
         type: ComponentInputType.JSON,
-        name: "Arguments",
-        description:
+        name: translationKey("Arguments"),
+        description: translationKey(
           "JSON payload to pass to the target workflow. The target workflow's Manual trigger will emit this object on its output port.",
+        ),
         required: false,
         id: "arguments",
         placeholder: '{ "key": "value" }',
@@ -37,23 +41,26 @@ const components: Array<ComponentMetadata> = [
     returnValues: [],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Out",
-        description:
+        title: translationKey("Out"),
+        description: translationKey(
           "Connect to this port if you want other components to execute after the workflow is triggered. This component is fire-and-forget — it does not wait for the child workflow to finish.",
+        ),
         id: "out",
       },
       {
-        title: "Error",
-        description:
+        title: translationKey("Error"),
+        description: translationKey(
           "Executes if the child workflow could not be enqueued (e.g. not found, disabled, or in a different project).",
+        ),
         id: "error",
       },
     ],

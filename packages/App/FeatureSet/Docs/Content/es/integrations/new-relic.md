@@ -43,7 +43,7 @@ Después [configura New Relic](#configurar-new-relic) para que envíe sus incide
 
 ### Qué hace el flujo de trabajo
 
-Tras el disparador **Webhook**, el paso **Check With JavaScript** `read-event-1` lee el `state` que envía New Relic, e **Incident From Another Tool**, o **Alert From Another Tool** en la plantilla de alertas, hace lo que significa, por el ID de la incidencia. El incidente guarda el ID en su campo personalizado `newRelicIssueId`.
+Tras el disparador **Webhook**, el paso **Comprobar con JavaScript** `read-event-1` lee el `state` que envía New Relic, e **Incidente desde otra herramienta**, o **Alerta desde otra herramienta** en la plantilla de alertas, hace lo que significa, por el ID de la incidencia. El incidente guarda el ID en su campo personalizado `newRelicIssueId`.
 
 | Lo que envía New Relic | Qué hace el flujo de trabajo |
 | --- | --- |

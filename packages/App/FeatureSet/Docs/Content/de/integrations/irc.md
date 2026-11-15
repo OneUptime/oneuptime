@@ -2,7 +2,7 @@
 
 Posten Sie Vorfallsaktualisierungen in einen Kanal eines beliebigen IRC-Netzwerks: Libera.Chat, OFTC oder ein eigener Server.
 
-IRC kennt keine Webhooks, deshalb verbindet sich der Workflow-Schritt **Send Message to IRC** von OneUptime selbst mit dem Server, wie jeder IRC-Client. Es gibt nichts zu installieren und keine App zu registrieren. Diese Integration ist **ausgehend**: OneUptime schreibt in den Kanal und liest nicht mit, was dort gesagt wird.
+IRC kennt keine Webhooks, deshalb verbindet sich der Workflow-Schritt **Nachricht an IRC senden** von OneUptime selbst mit dem Server, wie jeder IRC-Client. Es gibt nichts zu installieren und keine App zu registrieren. Diese Integration ist **ausgehend**: OneUptime schreibt in den Kanal und liest nicht mit, was dort gesagt wird.
 
 :::cards
 - [So funktioniert es](#so-funktioniert-es): Was ein Lauf des Schritts mit dem Server bespricht.
@@ -22,7 +22,7 @@ sequenceDiagram
     O->>S: Verbindung über TLS, auf Port 6697
     O->>S: NICK und USER, mit SASL, falls gesetzt
     S-->>O: Willkommen
-    opt Außer Send Without Joining ist an
+    opt Außer Ohne Beitritt senden ist an
         O->>S: JOIN in den Kanal
         S-->>O: Beigetreten
     end
@@ -35,8 +35,8 @@ sequenceDiagram
 ```
 
 1. **Verbinden.** Der Schritt verbindet sich über TLS auf Port `6697` und prüft das Zertifikat des Servers.
-2. **Registrieren.** Er registriert sich als `OneUptime`, sofern Sie keinen anderen **Nickname** setzen, und meldet sich per SASL an, wenn **SASL Username** und **SASL Password** ausgefüllt sind.
-3. **Beitreten.** Er betritt den Kanal, außer **Send Without Joining** ist an, und zwar mit dem **Channel Key**, falls der Kanal einen hat.
+2. **Registrieren.** Er registriert sich als `OneUptime`, sofern Sie keinen anderen **Spitzname** setzen, und meldet sich per SASL an, wenn **SASL-Benutzername** und **SASL-Passwort** ausgefüllt sind.
+3. **Beitreten.** Er betritt den Kanal, außer **Ohne Beitritt senden** ist an, und zwar mit dem **Kanalschlüssel**, falls der Kanal einen hat.
 4. **Senden.** Jede Zeile von **Nachrichtentext** geht als eigene IRC-Nachricht hinaus, als `PRIVMSG`.
 5. **Bestätigen.** IRC meldet nie „zugestellt“, deshalb sendet der Schritt ein `PING` und wartet auf das `PONG` des Servers. Ein Server antwortet der Reihe nach, also ist bis dahin jede Ablehnung der Nachricht eingetroffen.
 6. **Beenden.** Er verlässt den Server.
@@ -56,7 +56,7 @@ Der Schritt nimmt seinen Ausgang **Erfolg**, sobald der Server jede Zeile angeno
 
 Legen Sie fest, wohin die Nachrichten gehen: den Hostnamen des Servers, etwa `irc.libera.chat`, und den Kanal, etwa `#your-channel`.
 
-- **IRC Server** nimmt den Hostnamen und sonst nichts: kein `ircs://` und kein Port. Der Schritt verbindet sich über TLS auf Port `6697`. Nimmt Ihr Server TLS auf einem anderen Port an, tragen Sie ihn in **Port** ein, unter **Weitere Felder**.
+- **IRC-Server** nimmt den Hostnamen und sonst nichts: kein `ircs://` und kein Port. Der Schritt verbindet sich über TLS auf Port `6697`. Nimmt Ihr Server TLS auf einem anderen Port an, tragen Sie ihn in **Port** ein, unter **Weitere Felder**.
 - **Kanal** muss ein Kanal sein. Ein dort eingetragener Nickname wird abgelehnt, sodass der Schritt nie versehentlich jemandem eine private Nachricht schickt.
 
 Der Server muss einer sein, mit dem sich OneUptime verbinden darf. Loopback-Adressen (`localhost`, `127.0.0.1`), Link-Local-Adressen und Cloud-Metadaten-Adressen werden immer abgelehnt. In OneUptime Cloud wird auch ein Server auf einer privaten Netzwerkadresse abgelehnt. Eine selbst gehostete Installation kann einen IRC-Server in ihrem eigenen Netzwerk erreichen, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist auf `true` gesetzt.
@@ -67,9 +67,9 @@ Der Server muss einer sein, mit dem sich OneUptime verbinden darf. Loopback-Adre
 
 | Einstellung         | Ausfüllen, wenn                                                                                     | Variable, zum Beispiel |
 | ------------------- | --------------------------------------------------------------------------------------------------- | ---------------------- |
-| **Server Password** | der Server oder Ihr Bouncer beim Verbinden ein Passwort verlangt.                                   | `IRC_SERVER_PASSWORD`  |
-| **SASL Password**   | das Netzwerk eine Anmeldung bei Ihrem Konto verlangt. **SASL Username** nimmt den Namen des Kontos. | `IRC_SASL_PASSWORD`    |
-| **Channel Key**     | der Kanal einen Schlüssel hat (Modus `+k`).                                                         | `IRC_CHANNEL_KEY`      |
+| **Serverpasswort** | der Server oder Ihr Bouncer beim Verbinden ein Passwort verlangt.                                   | `IRC_SERVER_PASSWORD`  |
+| **SASL-Passwort**   | das Netzwerk eine Anmeldung bei Ihrem Konto verlangt. **SASL-Benutzername** nimmt den Namen des Kontos. | `IRC_SASL_PASSWORD`    |
+| **Kanalschlüssel**     | der Kanal einen Schlüssel hat (Modus `+k`).                                                         | `IRC_CHANNEL_KEY`      |
 
 Zum Speichern öffnen Sie **Arbeitsabläufe → Globale Variablen** und klicken auf **Arbeitsablaufvariable erstellen**. Tragen Sie den Namen in **Name** ein und klicken Sie auf **Weiter**. Fügen Sie das Passwort in **Inhalt** ein, schalten Sie **Geheimnis** ein und klicken Sie auf **Arbeitsablaufvariable erstellen**. Ausführungsprotokolle zeigen `[REDACTED]` anstelle des Werts einer geheimen Variablen.
 
@@ -82,15 +82,15 @@ Beginnen Sie mit der Vorlage, die den ganzen Workflow für Sie baut, oder von Gr
 1. Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**.
 2. Geben Sie `IRC` in **Vorlagen durchsuchen…** ein, klicken Sie auf **Tell IRC when an incident opens** und dann auf **Diese Vorlage verwenden**.
 3. Behalten Sie den Namen **Notify IRC on new incident** oder ändern Sie ihn, und klicken Sie auf **Weiter**.
-4. Geben Sie **IRC Server** und **IRC Channel** ein und klicken Sie auf **Arbeitsablauf erstellen**.
+4. Geben Sie **IRC-Server** und **IRC Channel** ein und klicken Sie auf **Arbeitsablauf erstellen**.
 
-Der Workflow öffnet sich im **Editor** mit zwei Schritten: **On Create Incident** und **Send Message to IRC**, der Nummer, Titel, Schweregrad und Status des Vorfalls in zwei Zeilen postet. Eine Nachricht, die nicht zugestellt wird, lässt die Ausführung fehlschlagen, und das Protokoll der Ausführung sagt, warum. Server und Kanal werden als die Variablen `ircServer` und `ircChannel` des Workflows gespeichert. Haben Sie im vorigen Schritt Passwörter gespeichert, klicken Sie auf **Send Message to IRC**, öffnen **Weitere Felder** und wählen jede Variable mit der Schaltfläche **{ }** ihrer Einstellung.
+Der Workflow öffnet sich im **Editor** mit zwei Schritten: **On Create Incident** und **Nachricht an IRC senden**, der Nummer, Titel, Schweregrad und Status des Vorfalls in zwei Zeilen postet. Eine Nachricht, die nicht zugestellt wird, lässt die Ausführung fehlschlagen, und das Protokoll der Ausführung sagt, warum. Server und Kanal werden als die Variablen `ircServer` und `ircChannel` des Workflows gespeichert. Haben Sie im vorigen Schritt Passwörter gespeichert, klicken Sie auf **Nachricht an IRC senden**, öffnen **Weitere Felder** und wählen jede Variable mit der Schaltfläche **{ }** ihrer Einstellung.
 @tab Von Grund auf
 1. Öffnen Sie **Arbeitsabläufe**, klicken Sie auf **Arbeitsablauf erstellen**, wählen Sie **Ohne Vorlage beginnen**, geben Sie dem Workflow einen Namen und klicken Sie auf **Arbeitsablauf erstellen**.
-2. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Fields to pass on** die Felder des Vorfalls, die Ihre Nachricht zeigt, etwa seinen Titel.
-3. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `irc` und klicken Sie auf **Send Message to IRC**. Verbinden Sie den Ausgang **Erfolg** des Auslösers mit diesem Schritt.
-4. Klicken Sie auf den neuen Schritt und füllen Sie **IRC Server**, **Kanal** und **Nachrichtentext** aus. Die Schaltfläche **{ }** in **Nachrichtentext** fügt Felder des Vorfalls ein, etwa seinen Titel.
-5. Haben Sie im vorigen Schritt Passwörter gespeichert, öffnen Sie **Weitere Felder**. Klicken Sie in **Server Password**, **SASL Password** oder **Channel Key** auf **{ }** und wählen Sie die Variable unter **Globale Variablen**. Tragen Sie den Namen Ihres Kontos in **SASL Username** ein.
+2. Klicken Sie im **Editor** auf **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Incident** unter **Beliebt**. Klicken Sie auf den Auslöser und wählen Sie in **Weiterzugebende Felder** die Felder des Vorfalls, die Ihre Nachricht zeigt, etwa seinen Titel.
+3. Klicken Sie auf **Komponente hinzufügen**, suchen Sie nach `irc` und klicken Sie auf **Nachricht an IRC senden**. Verbinden Sie den Ausgang **Erfolg** des Auslösers mit diesem Schritt.
+4. Klicken Sie auf den neuen Schritt und füllen Sie **IRC-Server**, **Kanal** und **Nachrichtentext** aus. Die Schaltfläche **{ }** in **Nachrichtentext** fügt Felder des Vorfalls ein, etwa seinen Titel.
+5. Haben Sie im vorigen Schritt Passwörter gespeichert, öffnen Sie **Weitere Felder**. Klicken Sie in **Serverpasswort**, **SASL-Passwort** oder **Kanalschlüssel** auf **{ }** und wählen Sie die Variable unter **Globale Variablen**. Tragen Sie den Namen Ihres Kontos in **SASL-Benutzername** ein.
 :::
 
 ### Einschalten und testen
@@ -102,36 +102,36 @@ Um zu testen, ohne einen Vorfall zu eröffnen, klicken Sie auf **Arbeitsablauf a
 
 ## Tipps
 
-- **Ohne Beitritt posten.** Die meisten Kanäle nehmen Nachrichten nur von ihren Mitgliedern an (Modus `+n`), deshalb betritt der Schritt den Kanal vor dem Posten und verlässt ihn gleich danach. Ein Kanal mit `-n` nimmt Nachrichten von außen an: Schalten Sie **Send Without Joining** unter **Weitere Felder** ein, dann sieht der Kanal den Schritt nicht kommen und gehen.
-- **Mit SASL anmelden.** In Netzwerken mit SASL, etwa Libera.Chat, füllen Sie **SASL Username** und **SASL Password** aus, um sich bei Ihrem Konto anzumelden. Libera.Chat verlangt das bei Verbindungen von manchen Cloud- und VPN-Adressen. Siehe [die SASL-Anleitung von Libera.Chat](https://libera.chat/guides/sasl).
+- **Ohne Beitritt posten.** Die meisten Kanäle nehmen Nachrichten nur von ihren Mitgliedern an (Modus `+n`), deshalb betritt der Schritt den Kanal vor dem Posten und verlässt ihn gleich danach. Ein Kanal mit `-n` nimmt Nachrichten von außen an: Schalten Sie **Ohne Beitritt senden** unter **Weitere Felder** ein, dann sieht der Kanal den Schritt nicht kommen und gehen.
+- **Mit SASL anmelden.** In Netzwerken mit SASL, etwa Libera.Chat, füllen Sie **SASL-Benutzername** und **SASL-Passwort** aus, um sich bei Ihrem Konto anzumelden. Libera.Chat verlangt das bei Verbindungen von manchen Cloud- und VPN-Adressen. Siehe [die SASL-Anleitung von Libera.Chat](https://libera.chat/guides/sasl).
 - **Die Grenze von 15 Zeilen beachten.** Jede Zeile von **Nachrichtentext** ist eine eigene IRC-Nachricht, eine lange Zeile wird passend geteilt, und leere Zeilen fallen weg. Eine Nachricht wird als höchstens 15 IRC-Zeilen gesendet: Eine längere wird gekürzt, und ihre letzte Zeile sagt das. Die ersten vier Zeilen gehen sofort hinaus und der Rest eine pro Sekunde, im Takt von IRC-Clients, also dauern 15 Zeilen etwa 11 Sekunden.
 - **Viele Läufe zu einer Nachricht bündeln.** Jeder Lauf ist eine eigene Verbindung, und IRC-Netzwerke begrenzen, wie oft sich eine Adresse verbinden darf. Viele Läufe kurz hintereinander können mit einem Grund wie `Reconnecting too fast` abgelehnt werden und nehmen wie jede Ablehnung **Fehler**. Bei einem Workflow, der viele Male pro Minute auslösen kann, fassen Sie zusammen, was er mitzuteilen hat, in einer Nachricht, oder senden Sie über einen eigenen Server.
 - **Mit den Codes von IRC formatieren.** IRC kennt kein Markdown, der Text wird also gesendet, wie er geschrieben ist. Die Formatierungscodes von IRC, etwa Fett und Farben, funktionieren.
-- **Ein Server ohne TLS.** Schalten Sie **Disable TLS** nur für einen Server ein, der kein TLS anbietet: Der Schritt verbindet sich dann auf Port `6667`, und jedes Passwort wird unverschlüsselt gesendet. Um dem Zertifikat eines Servers aus Ihrer eigenen Zertifizierungsstelle zu vertrauen, setzt eine selbst gehostete Installation stattdessen `NODE_EXTRA_CA_CERTS`.
-- **Ein anderer Nickname.** Nachrichten kommen von `OneUptime`, sofern Sie keinen **Nickname** setzen. Ist der Nickname vergeben, hängt der Schritt einen Unterstrich oder eine Zahl an.
+- **Ein Server ohne TLS.** Schalten Sie **TLS deaktivieren** nur für einen Server ein, der kein TLS anbietet: Der Schritt verbindet sich dann auf Port `6667`, und jedes Passwort wird unverschlüsselt gesendet. Um dem Zertifikat eines Servers aus Ihrer eigenen Zertifizierungsstelle zu vertrauen, setzt eine selbst gehostete Installation stattdessen `NODE_EXTRA_CA_CERTS`.
+- **Ein anderer Nickname.** Nachrichten kommen von `OneUptime`, sofern Sie keinen **Spitzname** setzen. Ist der Nickname vergeben, hängt der Schritt einen Unterstrich oder eine Zahl an.
 
 ## Fehlerbehebung
 
 Wenn der Schritt **Fehler** nimmt, sagt das Ausführungsprotokoll, warum, in einem Satz, der wie einer dieser beginnt.
 
 :::details "The IRC server refused the connection"
-Der Server oder Ihr Bouncer hat die Verbindung abgewiesen, und die Meldung endet mit seinem Grund. Wenn der Server ein Passwort verlangt, sagt die Meldung das: Füllen Sie **Server Password** aus oder prüfen Sie es.
+Der Server oder Ihr Bouncer hat die Verbindung abgewiesen, und die Meldung endet mit seinem Grund. Wenn der Server ein Passwort verlangt, sagt die Meldung das: Füllen Sie **Serverpasswort** aus oder prüfen Sie es.
 :::
 
 :::details "SASL sign-in failed"
-Das Netzwerk hat das Konto oder das Passwort abgelehnt. Prüfen Sie **SASL Username** und **SASL Password**.
+Das Netzwerk hat das Konto oder das Passwort abgelehnt. Prüfen Sie **SASL-Benutzername** und **SASL-Passwort**.
 :::
 
 :::details "Could not join #your-channel"
-Der Kanal hat den Schritt abgewiesen, aus dem Grund, den die Meldung nennt. Ein Kanal mit Schlüssel braucht ihn in **Channel Key**.
+Der Kanal hat den Schritt abgewiesen, aus dem Grund, den die Meldung nennt. Ein Kanal mit Schlüssel braucht ihn in **Kanalschlüssel**.
 :::
 
 :::details "Could not send to #your-channel"
-Der Server hat die Nachricht abgelehnt, aus dem Grund, den die Meldung nennt. Ist **Send Without Joining** an, nimmt der Kanal womöglich nur Nachrichten seiner Mitglieder an: Schalten Sie es aus.
+Der Server hat die Nachricht abgelehnt, aus dem Grund, den die Meldung nennt. Ist **Ohne Beitritt senden** an, nimmt der Kanal womöglich nur Nachrichten seiner Mitglieder an: Schalten Sie es aus.
 :::
 
 :::details "The TLS certificate of the IRC server … is not trusted"
-Das Zertifikat des Servers ist keines, dem OneUptime vertraut. Eine selbst gehostete Installation kann ihrer eigenen Zertifizierungsstelle mit `NODE_EXTRA_CA_CERTS` vertrauen. Schalten Sie **Disable TLS** nur für einen Server ein, der kein TLS anbietet.
+Das Zertifikat des Servers ist keines, dem OneUptime vertraut. Eine selbst gehostete Installation kann ihrer eigenen Zertifizierungsstelle mit `NODE_EXTRA_CA_CERTS` vertrauen. Schalten Sie **TLS deaktivieren** nur für einen Server ein, der kein TLS anbietet.
 :::
 
 ## Nächste Schritte

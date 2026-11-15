@@ -1,3 +1,4 @@
+import { translationKey } from "../Translator";
 import UserNotificationStatus from "../UserNotification/UserNotificationStatus";
 
 /*
@@ -103,73 +104,73 @@ export const ACTIVATION_MILESTONE_DETAILS: ReadonlyArray<ActivationMilestoneDeta
   [
     {
       milestone: ActivationMilestone.FirstMonitorCreated,
-      title: "First monitor created",
-      missingText: "No monitor yet",
+      title: translationKey("First monitor created"),
+      missingText: translationKey("No monitor yet"),
     },
     {
       milestone: ActivationMilestone.FirstCheckResultReceived,
-      title: "First check result received",
-      missingText: "No check result yet",
+      title: translationKey("First check result received"),
+      missingText: translationKey("No check result yet"),
     },
     {
       milestone: ActivationMilestone.FirstNotificationDelivered,
-      title: "First on-call page delivered",
-      missingText: "Nobody reachable yet",
+      title: translationKey("First on-call page delivered"),
+      missingText: translationKey("Nobody reachable yet"),
     },
     {
       milestone: ActivationMilestone.FirstTestPageAcknowledged,
-      title: "First test page acknowledged",
-      missingText: "No test page acknowledged yet",
+      title: translationKey("First test page acknowledged"),
+      missingText: translationKey("No test page acknowledged yet"),
     },
     {
       milestone: ActivationMilestone.FirstIncidentOrAlertAcknowledged,
-      title: "First incident or alert acknowledged",
-      missingText: "Nothing acknowledged yet",
+      title: translationKey("First incident or alert acknowledged"),
+      missingText: translationKey("Nothing acknowledged yet"),
     },
     {
       milestone: ActivationMilestone.SecondMemberJoined,
-      title: "Second person joined",
-      missingText: "Only one person",
+      title: translationKey("Second person joined"),
+      missingText: translationKey("Only one person"),
     },
     {
       milestone: ActivationMilestone.FirstStatusPageMonitorAdded,
-      title: "First status page that shows a monitor",
-      missingText: "No status page with a monitor yet",
+      title: translationKey("First status page that shows a monitor"),
+      missingText: translationKey("No status page with a monitor yet"),
     },
     {
       milestone: ActivationMilestone.FirstStatusPageSubscriberAdded,
-      title: "First status page subscriber",
-      missingText: "No status page subscriber yet",
+      title: translationKey("First status page subscriber"),
+      missingText: translationKey("No status page subscriber yet"),
     },
     {
       milestone: ActivationMilestone.FirstOnCallPolicyExecuted,
-      title: "First on-call policy run",
-      missingText: "No on-call policy has run yet",
+      title: translationKey("First on-call policy run"),
+      missingText: translationKey("No on-call policy has run yet"),
     },
     {
       milestone: ActivationMilestone.FirstLogsReceived,
-      title: "First logs received",
-      missingText: "No logs yet",
+      title: translationKey("First logs received"),
+      missingText: translationKey("No logs yet"),
     },
     {
       milestone: ActivationMilestone.FirstTracesReceived,
-      title: "First traces received",
-      missingText: "No traces yet",
+      title: translationKey("First traces received"),
+      missingText: translationKey("No traces yet"),
     },
     {
       milestone: ActivationMilestone.FirstMetricsReceived,
-      title: "First metrics received",
-      missingText: "No metrics yet",
+      title: translationKey("First metrics received"),
+      missingText: translationKey("No metrics yet"),
     },
     {
       milestone: ActivationMilestone.FirstExceptionsReceived,
-      title: "First exceptions received",
-      missingText: "No exceptions yet",
+      title: translationKey("First exceptions received"),
+      missingText: translationKey("No exceptions yet"),
     },
     {
       milestone: ActivationMilestone.FirstProfilesReceived,
-      title: "First profiles received",
-      missingText: "No profiles yet",
+      title: translationKey("First profiles received"),
+      missingText: translationKey("No profiles yet"),
     },
   ];
 
@@ -245,7 +246,7 @@ export interface ActivationSetupSummary {
   text: string;
 }
 
-export const ACTIVATION_SET_UP_TEXT: string = "Set up";
+export const ACTIVATION_SET_UP_TEXT: string = translationKey("Set up");
 
 export const getActivationSetupSummary: (
   reached: ReadonlyArray<ActivationMilestone> | Set<ActivationMilestone>,

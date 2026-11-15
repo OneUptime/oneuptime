@@ -1,6 +1,9 @@
 import CacheGenerations from "../../Infrastructure/CacheGenerations";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import logger from "../Logger";
+import RealtimeAccessChanges, {
+  RealtimeAccessChangeKind,
+} from "../Realtime/RealtimeAccessChanges";
 import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import ObjectID from "../../../Types/ObjectID";
 import ProductKey from "../../../Types/Product/ProductKey";
@@ -49,9 +52,19 @@ import { PRODUCT_USAGE_MILESTONES } from "../../../Types/Product/ProductUsage";
  * product emptied in one process and set up again in another within
  * NOTED_TTL_MS.
  *
+ * Every new generation is announced too (#8626): the Dashboard pages open
+ * in the project, on every server, hear that what it uses changed and ask
+ * for its products again (RealtimeAccessChanges.ProjectUsageChanged, which
+ * Realtime hands to the project's usage room). So the products menu
+ * follows a teammate's first monitor or an agent's first host without
+ * waiting for the next look at it. A burst - a bulk delete, a retention
+ * purge - is announced at most once per ANNOUNCE_EVERY_MS per project: the
+ * first change at once, and one more once that time has passed, for those
+ * that came meanwhile.
+ *
  * While Redis cannot be reached, a change made here still counts here at
- * once (CacheGenerations), and one made elsewhere within TTL_MS. Nothing
- * here throws. The usage handed out is a copy: no caller changes what the
+ * once (CacheGenerations), and one made elsewhere within TTL_MS; the pages
+ * held here still hear of it. Nothing here throws. The usage handed out is a copy: no caller changes what the
  * next one reads.
  */
 
@@ -86,6 +99,17 @@ export default class ProjectUsageCache {
 
   // How long a project's generation is kept, many times an entry's life.
   public static readonly GENERATION_TTL_SECONDS: number = 24 * 60 * 60;
+
+  // The least time between two announcements of a project's usage changing.
+  public static readonly ANNOUNCE_EVERY_MS: number = 1_000;
+
+  // The projects announced within ANNOUNCE_EVERY_MS, and when.
+  private static announced: InMemoryTTLCache<number> =
+    new InMemoryTTLCache<number>(ProjectUsageCache.MAX_PROJECTS);
+
+  // The announcements waiting for ANNOUNCE_EVERY_MS to pass, by project.
+  private static announcing: Map<string, ReturnType<typeof setTimeout>> =
+    new Map<string, ReturnType<typeof setTimeout>>();
 
   // The usage read, by `<projectId>|<generation>`.
   private static entries: InMemoryTTLCache<ProjectUsage> =
@@ -193,6 +217,70 @@ export default class ProjectUsageCache {
       await ProjectUsageCache.generations.bump(keys);
     } catch (err) {
       // CacheGenerations does not throw; this is only ever a safety net.
+      logger.error(err);
+    }
+
+    // Once the new generation is there: whoever asks then reads it.
+    for (const key of keys) {
+      ProjectUsageCache.announce(key);
+    }
+  }
+
+  /*
+   * Tells every server's pages in the project that its usage changed: at
+   * once, unless it was told within ANNOUNCE_EVERY_MS - then once more when
+   * that time is over, for every change in between. Never throws.
+   */
+  private static announce(projectKey: string): void {
+    try {
+      // One already waits: it covers this change too.
+      if (ProjectUsageCache.announcing.has(projectKey)) {
+        return;
+      }
+
+      const announcedAt: number | undefined =
+        ProjectUsageCache.announced.get(projectKey);
+
+      if (announcedAt === undefined) {
+        ProjectUsageCache.sendAnnouncement(projectKey);
+        return;
+      }
+
+      const timer: ReturnType<typeof setTimeout> = setTimeout(
+        (): void => {
+          ProjectUsageCache.announcing.delete(projectKey);
+          ProjectUsageCache.sendAnnouncement(projectKey);
+        },
+        Math.max(
+          0,
+          announcedAt + ProjectUsageCache.ANNOUNCE_EVERY_MS - Date.now(),
+        ),
+      );
+
+      // An announcement waiting never keeps the process up.
+      if (typeof timer === "object" && timer && "unref" in timer) {
+        timer.unref();
+      }
+
+      ProjectUsageCache.announcing.set(projectKey, timer);
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  private static sendAnnouncement(projectKey: string): void {
+    try {
+      ProjectUsageCache.announced.set(
+        projectKey,
+        Date.now(),
+        ProjectUsageCache.ANNOUNCE_EVERY_MS,
+      );
+
+      RealtimeAccessChanges.announce({
+        kind: RealtimeAccessChangeKind.ProjectUsageChanged,
+        projectId: projectKey,
+      });
+    } catch (err) {
       logger.error(err);
     }
   }
@@ -310,6 +398,12 @@ export default class ProjectUsageCache {
 
   // Drops everything this process keeps. For tests.
   public static clear(): void {
+    for (const timer of ProjectUsageCache.announcing.values()) {
+      clearTimeout(timer);
+    }
+
+    ProjectUsageCache.announcing.clear();
+    ProjectUsageCache.announced.clear();
     ProjectUsageCache.entries.clear();
     ProjectUsageCache.inFlight.clear();
     ProjectUsageCache.noted.clear();

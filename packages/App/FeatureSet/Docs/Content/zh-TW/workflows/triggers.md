@@ -21,25 +21,25 @@
 | 依週期排程執行                                 | **排程**                    |
 | 讓另一個系統把資料送進來                       | **Webhook**                 |
 | 從一封電子郵件開始                             | **傳入電子郵件**          |
-| 處理 Huntress 的事件報告                       | **Huntress Incident Report** |
+| 處理 Huntress 的事件報告                       | **Huntress 事件報告** |
 | 對 OneUptime 中的事做出反應                    | **OneUptime 事件**          |
 
-一個工作流程只能有一個觸發器。如果你需要兩種方式來啟動同一段自動化，就把共用的邏輯建構在一個帶有 **手動** 觸發器的工作流程中，再從兩個很精簡的「包裝」工作流程用 **Execute Workflow** 區塊啟動它。
+一個工作流程只能有一個觸發器。如果你需要兩種方式來啟動同一段自動化，就把共用的邏輯建構在一個帶有 **手動** 觸發器的工作流程中，再從兩個很精簡的「包裝」工作流程用 **執行另一個工作流程** 區塊啟動它。
 
 ## Manual
 
-隨時執行工作流程：在 **建構器** 頁面點選 **執行工作流程**，填寫觸發器的 **JSON**，點選 **手動執行工作流程**，然後用 **執行** 確認。另一個工作流程也可以用 **Execute Workflow** 區塊啟動它。
+隨時執行工作流程：在 **建構器** 頁面點選 **執行工作流程**，填寫觸發器的 **JSON**，點選 **手動執行工作流程**，然後用 **執行** 確認。另一個工作流程也可以用 **執行另一個工作流程** 區塊啟動它。
 
 適用於：你想用一個按鈕觸發的一鍵式自動化，例如「輪替這個金鑰」或「傳送一則測試警示」，以及在工作流程之間共用的邏輯。
 
 **Returns**: **JSON** —— 啟動這次執行時傳入的內容。
 
 - 從 **執行工作流程** 啟動時，它是你輸入的 JSON。要讀取其中的欄位，把欄位名稱加到參照後面，例如 `{{local.components.manual-1.returnValues.value.name}}`。
-- 從 **Execute Workflow** 區塊啟動時，區塊的 **Arguments** 中的每個鍵都是一個獨立的值。對於 `{"customerId": "42"}`，後續區塊會讀取 `{{local.components.manual-1.returnValues.customerId}}`，其中 `manual-1` 是 Manual 觸發器的 ID。
+- 從 **執行另一個工作流程** 區塊啟動時，區塊的 **參數** 中的每個鍵都是一個獨立的值。對於 `{"customerId": "42"}`，後續區塊會讀取 `{{local.components.manual-1.returnValues.customerId}}`，其中 `manual-1` 是 Manual 觸發器的 ID。
 
 ## Schedule
 
-依週期排程執行工作流程。在 **Schedule at** 中設定頻率：從 **Common schedules** 中選一個，輸入一個 **Custom cron** 運算式，或選擇一個包含運算式的 **變數**。欄位下方會用文字描述這個排程，並顯示 **下次執行**。
+依週期排程執行工作流程。在 **排程時間** 中設定頻率：從 **Common schedules** 中選一個，輸入一個 **Custom cron** 運算式，或選擇一個包含運算式的 **變數**。欄位下方會用文字描述這個排程，並顯示 **下次執行**。
 
 適用於：夜間清理、每小時同步、每週報告。
 
@@ -93,7 +93,7 @@ sequenceDiagram
 | 值                       | 包含的內容                                                                                                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **請求標頭**      | 請求的每個標頭，依小寫名稱列出，例如 `content-type`。                                                                  |
-| **Request Query Params** | URL 中的查詢參數，依名稱列出。                                                                                         |
+| **請求查詢參數** | URL 中的查詢參數，依名稱列出。                                                                                         |
 | **請求內文**         | 呼叫端傳送的內文。以 `Content-Type: application/json` 傳送的 JSON 內文可以逐一讀取欄位，像 Amazon SNS 那樣以純文字傳送的 JSON 也可以。 |
 
 要讀取單一欄位，把它的名稱加到參照後面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
@@ -127,13 +127,13 @@ OneUptime 會給工作流程一個專屬的電子郵件地址。每封寄到這�
 | --------------- | -------------------------------------------------------------------------------------------------------- |
 | **來自**        | 寄件者的地址。                                                                                           |
 | **收件者**          | 郵件的所有收件者，寫在一行中，例如 `ops@example.com, oncall@example.com`。                               |
-| **CC**          | 郵件副本的所有收件者，寫在一行中。                                                                       |
+| **副本**          | 郵件副本的所有收件者，寫在一行中。                                                                       |
 | **主旨**     | 主旨行。                                                                                                 |
 | **本文**        | 郵件的純文字。                                                                                           |
-| **HTML Body**   | 郵件的 HTML（如果有）。Body 和 HTML Body 各自在 1 MB 處截斷。                                            |
-| **Headers**     | 郵件的每個標頭，依小寫名稱列出，例如 `message-id`。                                                      |
+| **HTML 內文**   | 郵件的 HTML（如果有）。Body 和 HTML Body 各自在 1 MB 處截斷。                                            |
+| **標頭**     | 郵件的每個標頭，依小寫名稱列出，例如 `message-id`。                                                      |
 | **附件** | 每個附件的名稱、類型和大小。檔案本身不會儲存。                                                           |
-| **Received At** | OneUptime 收到這封郵件的時間。                                                                           |
+| **接收時間** | OneUptime 收到這封郵件的時間。                                                                           |
 
 郵件到達後，觸發器之後每個區塊中的值選擇器都會知道裡面有什麼：它會列出郵件帶有的每個標頭和每個附件及其內容，因此你可以選擇 `headers.message-id`，而不必輸入路徑。在那之前，它會說明還沒有郵件到達這個地址。請參閱 [使用前面區塊的值](/docs/workflows/authoring#使用前面區塊的值)。
 
@@ -159,7 +159,7 @@ OneUptime 會為工作流程提供一個專用於 Huntress（託管偵測與回�
 
 適用於：為每份 Huntress 事件報告建立一個事件、呼叫待命人員，並追蹤報告直到關閉。**Open an incident for each Huntress incident report** 範本會完成這三件事。
 
-要連接 Huntress，點選畫布上的 **Huntress Incident Report** 觸發器：它會顯示要提供給 Huntress 的 URL，儲存端點的簽署密鑰，並顯示 Huntress 最近一次到達工作流程的時間。未用該密鑰簽署的請求不會啟動任何內容，因此這個 URL 不是密碼。有關在 Huntress 中的設定、觸發器傳回的值及其設定，請參閱 [Huntress](/docs/integrations/huntress)。
+要連接 Huntress，點選畫布上的 **Huntress 事件報告** 觸發器：它會顯示要提供給 Huntress 的 URL，儲存端點的簽署密鑰，並顯示 Huntress 最近一次到達工作流程的時間。未用該密鑰簽署的請求不會啟動任何內容，因此這個 URL 不是密碼。有關在 Huntress 中的設定、觸發器傳回的值及其設定，請參閱 [Huntress](/docs/integrations/huntress)。
 
 ## OneUptime 事件觸發器
 
@@ -172,7 +172,7 @@ OneUptime 中幾乎所有東西——監測器、事件、警示、維護事件�
 
 如此一來，你就能建構「當 OneUptime 中發生 X 時，就做 Y」，而不必在迴圈中反覆檢查。
 
-**On Update** 可以用 **Fields to watch** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。**On Create or Update** 也有同樣的 **Fields to watch**，只作用於它的更新：每筆新記錄仍然會觸發它。
+**On Update** 可以用 **要關注的欄位** 限定在某些欄位上：這樣只有在更新把其中某個欄位改成任何值時才會觸發——關閉開關或清空欄位也算。**On Create or Update** 也有同樣的 **要關注的欄位**，只作用於它的更新：每筆新記錄仍然會觸發它。
 
 ```mermaid title="On Update 觸發器何時觸發"
 flowchart TB
@@ -185,11 +185,11 @@ flowchart TB
     field -->|"否"| nothing
 ```
 
-**On Create**、**On Update** 和 **On Create or Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **Fields to pass on** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。記錄中沒有內容的欄位也是如此，例如不是由監測器產生的警示的監測器。
+**On Create**、**On Update** 和 **On Create or Update** 會把記錄傳給下一個區塊，並帶上你在觸發器的 **要傳遞的欄位** 中選擇的欄位。例如，**Incident → On Create** 觸發器會傳下新的事件，下一個區塊就能讀取它的標題、描述、嚴重程度或你選擇的任何其他欄位，例如 `{{local.components.incident-on-create-1.returnValues.model.title}}`。你沒有選擇的欄位到達時為空。記錄中沒有內容的欄位也是如此，例如不是由監測器產生的警示的監測器。
 
-**On Create or Update** 還會傳下 **發生了什麼**：由新記錄啟動執行時為 `created`，由變更啟動時為 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要區別處理這兩種情況，可以在 **If / Else** 區塊中比較它，或用 **Switch / Case** 為每種情況走一條路徑。
+**On Create or Update** 還會傳下 **發生了什麼**：由新記錄啟動執行時為 `created`，由變更啟動時為 `updated`，例如 `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`。要區別處理這兩種情況，可以在 **如果 / 否則** 區塊中比較它，或用 **分支選擇** 為每種情況走一條路徑。
 
-一次儲存只觸發一次。OneUptime 在建立記錄時填寫的內容屬於建立的一部分，所以新記錄只以 `created` 觸發一次。OneUptime 之後做的變更，例如連結事件的 Slack 頻道，和其他更新一樣：要排除它們，只把你在意的欄位加到 **Fields to watch** 中。
+一次儲存只觸發一次。OneUptime 在建立記錄時填寫的內容屬於建立的一部分，所以新記錄只以 `created` 觸發一次。OneUptime 之後做的變更，例如連結事件的 Slack 頻道，和其他更新一樣：要排除它們，只把你在意的欄位加到 **要關注的欄位** 中。
 
 **On Delete** 只會傳下被刪除記錄的 ID：工作流程執行時記錄已經不在了，所以無法讀取它的其他欄位。
 

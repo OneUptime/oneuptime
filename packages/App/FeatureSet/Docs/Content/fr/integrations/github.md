@@ -62,11 +62,11 @@ Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, puis 
 
 ### Ajouter le déclencheur
 
-Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
+Cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident**. Cliquez sur le déclencheur : ses **Champs à transmettre** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident avec préfixe**.
 
 ### Ouvrir l'issue
 
-Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
+Cliquez sur **Ajouter un composant**, ajoutez un bloc **Appel d'API POST (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **URL** sur `https://api.github.com/repos/your-org/your-repo/issues`, avec le propriétaire et le nom de votre dépôt. Sous **Plus de champs**, réglez ses **En-têtes de la requête** sur :
 
 ```json
 {
@@ -88,7 +88,7 @@ Et son **Corps de la requête** sur :
 
 ### Tester, puis activer
 
-Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **API Post (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `number` et son `html_url`. Activez ensuite **Activé** en haut du **Constructeur**.
+Cliquez sur **Exécuter le flux de travail**, choisissez un incident de test sous **Incident** et lancez-le. L'étape **Appel d'API POST (JSON)** affiche une réponse `201` contenant la nouvelle issue, avec son `number` et son `html_url`. Activez ensuite **Activé** en haut du **Constructeur**.
 :::
 
 L'issue reste ouverte quand l'incident est résolu, car le travail qui en découle survit généralement à l'incident. Pour des tickets synchronisés avec l'incident dans les deux sens, voir [Jira](/docs/integrations/jira).
@@ -97,11 +97,11 @@ L'issue reste ouverte quand l'incident est résolu, car le travail qui en décou
 
 - **GitHub Enterprise Server.** Envoyez plutôt la requête à votre serveur : `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. Un serveur sur une adresse de réseau privé exige un OneUptime auto-hébergé dont l'administrateur l'autorise : voir [Accès réseau sortant](/docs/workflows/configuration#accès-réseau-sortant).
 - **L'assigner.** Ajoutez `"assignees": ["octocat"]` ou `"milestone": 3` au corps. GitHub ignore sans un mot les labels, les assignés et les jalons quand le jeton ne peut pas pousser dans le dépôt.
-- **Seulement certains incidents.** Placez un bloc **If / Else** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
+- **Seulement certains incidents.** Placez un bloc **Si / Sinon** entre le déclencheur et le bloc d'API, et n'ouvrez des issues que sur son côté **Oui**, par exemple pour une gravité.
 
 ## Dépannage
 
-L'étape **API Post (JSON)** prend **Erreur** quand GitHub refuse la requête. Ses **Response Status** et **Corps de la réponse** dans l'exécution disent pourquoi.
+L'étape **Appel d'API POST (JSON)** prend **Erreur** quand GitHub refuse la requête. Ses **Statut de la réponse** et **Corps de la réponse** dans l'exécution disent pourquoi.
 
 :::details GitHub répond 401
 Le jeton est faux, expiré ou révoqué. Créez-en un nouveau, et remplacez le contenu de `GITHUB_TOKEN`.

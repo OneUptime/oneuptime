@@ -86,9 +86,9 @@ Jede Vorlage für Warnungen ist wie ihr Gegenstück für Vorfälle gebaut, Schri
 
 **Monitore lösen Warnungen von selbst aus, und es können viele sein.** **Create a Jira issue when an alert is created** legt für jede ein Issue an. Sofern nicht jede Warnung ein Ticket verdient, setzen Sie eine Bedingung vor den Jira-Schritt. Um Issues nur für Warnungen mit High anzulegen:
 
-1. Öffnen Sie den **Editor** des Workflows und fügen Sie einen **If / Else**-Baustein hinzu.
+1. Öffnen Sie den **Editor** des Workflows und fügen Sie einen **Wenn / Sonst**-Baustein hinzu.
 2. Setzen Sie **Zu prüfender Wert** auf `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Vergleich** auf **ist gleich** und **Vergleichen mit** auf `High`.
-3. Entfernen Sie die Linie vom Trigger `alert-on-create-1` zu `prepare-issue-1`, indem Sie ihr Ende vom Punkt wegziehen (siehe [Aufräumen](/docs/workflows/authoring#aufräumen)). Verbinden Sie dann **Erfolg** des Triggers mit dem **If / Else**-Baustein und dessen **Ja** mit `prepare-issue-1`.
+3. Entfernen Sie die Linie vom Trigger `alert-on-create-1` zu `prepare-issue-1`, indem Sie ihr Ende vom Punkt wegziehen (siehe [Aufräumen](/docs/workflows/authoring#aufräumen)). Verbinden Sie dann **Erfolg** des Triggers mit dem **Wenn / Sonst**-Baustein und dessen **Ja** mit `prepare-issue-1`.
 
 Eine Warnung, die die Seite **Nein** nimmt, beendet die Ausführung dort, und für sie wird kein Issue angelegt.
 
@@ -183,7 +183,7 @@ Bevor Sie sich darauf verlassen:
 Die **Schritte** jeder Ausführung sagen, was die Vorlage getan hat, öffnen Sie also die Ausführung in **Protokolle → Ausführungen** und sehen Sie nach, wie sie geendet hat:
 
 - **Ausgeführt**: Sie hat ihre Aufgabe erledigt, und ihr letzter Schritt nennt das Issue, den Vorfall oder die Warnung.
-- **Ausgeführt**, mit dem Schritt **Check With JavaScript** auf **Nein**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Das Issue ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam aus Jira, der Datensatz ist privat, oder dem neuen Status ist kein Jira-Status zugeordnet.
+- **Ausgeführt**, mit dem Schritt **Mit JavaScript prüfen** auf **Nein**: Sie hat das Ereignis absichtlich übersprungen, und der Schritt sagt, warum: Das Issue ist mit keinem Datensatz dieser Art verknüpft, die Notiz kam aus Jira, der Datensatz ist privat, oder dem neuen Status ist kein Jira-Status zugeordnet.
 - **Fehler**: Ein Schritt ist fehlgeschlagen, und sein Eintrag unter **Schritte** sagt, warum. Bei einem Jira-Aufruf enthält er die Antwort von Jira.
 - **Fehler** bei `link-issue-1`: Eine Vorlage, die aus einem Jira-Issue einen Datensatz anlegt, hat ihn angelegt, aber Jira hat die Verknüpfungslabels nicht angenommen, die anderen Vorlagen finden ihn also noch nicht. Fügen Sie die Labels von Hand hinzu.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Ändern, was eine Vorlage tut
 
-Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript-Code** eines **Check With JavaScript**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen einer Vorlage für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen:
+Öffnen Sie den **Editor** des Workflows und klicken Sie auf den Baustein, den Sie ändern möchten. Die Einstellungen, die Sie am ehesten brauchen, sind Konstanten nahe dem Anfang eines Skripts, im **JavaScript-Code** eines **Mit JavaScript prüfen**-Bausteins, direkt unter dem gemeinsamen Hilfsblock. Die Versionen einer Vorlage für Vorfälle und Warnungen haben dieselben Konstanten in denselben Bausteinen:
 
 | Konstante | Vorlage und Baustein | Was sie steuert |
 | --- | --- | --- |
@@ -271,7 +271,7 @@ Private Notizen und Bearbeitungskommentare werden durch den Eintrag `properties`
 ### Einschränkungen
 
 - **Nur Jira Cloud.** Die Vorlagen rufen die REST-API v3 von Jira Cloud mit Basic-Auth auf. Data Center hat keine v3 und nimmt ein persönliches Zugriffstoken als `Bearer` an, also braucht jeder API-Baustein die Änderungen aus [Jira Data Center](#jira-data-center): Pfade mit `/rest/api/2/...`, einfache Zeichenketten statt Bodies im Atlassian Document Format, und den Header. Die Bausteine `find-issue-1` ändern sich am meisten: Data Center hat kein `/search/jql`, sie müssen also stattdessen per `POST` an `/rest/api/2/search` senden.
-- **Aus Jira gemeldete Vorfälle sind still.** Sie werden vor Ihren Statusseiten verborgen angelegt, ohne Abonnenten der Statusseite zu benachrichtigen, weil der Text eines Issues nicht für Kunden geschrieben wurde. Um einen zu zeigen, schalten Sie **Auf Statusseite sichtbar** auf der Seite **Einstellungen** des Vorfalls ein (siehe [Einen Vorfall von der Statusseite fernhalten](/docs/incidents/states-and-severities#einen-vorfall-von-der-statusseite-fernhalten)), oder schalten Sie **Show On Status Pages** unter **Weitere Felder** im Baustein `incident-from-another-tool-1` der Vorlage ein.
+- **Aus Jira gemeldete Vorfälle sind still.** Sie werden vor Ihren Statusseiten verborgen angelegt, ohne Abonnenten der Statusseite zu benachrichtigen, weil der Text eines Issues nicht für Kunden geschrieben wurde. Um einen zu zeigen, schalten Sie **Auf Statusseite sichtbar** auf der Seite **Einstellungen** des Vorfalls ein (siehe [Einen Vorfall von der Statusseite fernhalten](/docs/incidents/states-and-severities#einen-vorfall-von-der-statusseite-fernhalten)), oder schalten Sie **Auf Statusseiten anzeigen** unter **Weitere Felder** im Baustein `incident-from-another-tool-1` der Vorlage ein.
 - **Private Vorfälle und Warnungen bleiben in OneUptime.** Die Vorlagen von OneUptime zu Jira überspringen sie, und jedes Überspringen steht in **Protokolle → Ausführungen**. Um sie trotzdem zu senden, setzen Sie `SYNC_PRIVATE_INCIDENTS` oder `SYNC_PRIVATE_ALERTS` auf `true`. Wird ein Datensatz später privat, stoppt der Abgleich von da an, nimmt aber nicht zurück, was Jira schon hat. Die Vorlagen von Jira zu OneUptime prüfen das nicht, Kommentare, Bearbeitungen und Statusänderungen an einem verknüpften Issue erreichen also auch einen privaten Datensatz.
 - **Nichts bewegt sich rückwärts.** Das Wiedereröffnen eines Jira-Issues ändert nichts in OneUptime, und ein Status der Kategorie To Do wird keinem Status zugeordnet. Siehe [Die Reihenfolge ist eine echte Einschränkung](/docs/incidents/states-and-severities#die-reihenfolge-ist-eine-echte-einschränkung-keine-anzeigevorliebe). Die Übergangsvorlagen bewegen ein Issue ebenfalls nie in eine frühere Statuskategorie.
 - **Jede Warnung bekommt ein Issue.** Außer für private Warnungen legt die Anlegevorlage für Warnungen für jede Warnung ein Issue an, auch für jede, die ein Monitor auslöst. [Was bei Warnungen anders ist](#was-bei-warnungen-anders-ist) zeigt, wie Sie eine Bedingung hinzufügen.
@@ -306,8 +306,8 @@ Tokens laufen standardmäßig nach einem Jahr ab und erneuern sich nicht. Damit 
 ### Für jeden Vorfall ein Jira-Issue anlegen
 
 :::steps
-1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Fields to pass on** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
-2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **Kennung** auf `create-issue`, seine **URL** auf `{{global.variables.JIRA_URL}}/rest/api/3/issue` und unter **Weitere Felder** seine **Anfrage-Header** auf `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Jira` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Weiterzugebende Felder** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben. Lassen Sie seine **Kennung** bei `incident-on-create-1`.
+2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **Kennung** auf `create-issue`, seine **URL** auf `{{global.variables.JIRA_URL}}/rest/api/3/issue` und unter **Weitere Felder** seine **Anfrage-Header** auf `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Setzen Sie seinen **Anfragetext** auf das Issue, und ersetzen Sie `OPS` und `Bug` durch Ihren Projektschlüssel und einen Issue-Typ dieses Projekts:
 
    ```json
@@ -371,7 +371,7 @@ Jede Hälfte eines Zwei-Wege-Abgleichs braucht ein System, das die ID des andere
 
 Ein Jira-Administrator kann stattdessen ein kurzes benutzerdefiniertes Textfeld hinzufügen, etwa OneUptime Incident ID genannt, und Sie setzen es als `"customfield_10050": "{{local.components.incident-on-create-1.returnValues.model._id}}"`. Es lässt sich leichter zurücklesen als ein Label.
 
-Um allen in Jira einen Weg zurück zu geben, fügen Sie nach `create-issue` einen **API Post (JSON)**-Baustein hinzu, der einen Remote-Link an `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink` sendet:
+Um allen in Jira einen Weg zurück zu geben, fügen Sie nach `create-issue` einen **API-Aufruf POST (JSON)**-Baustein hinzu, der einen Remote-Link an `{{global.variables.JIRA_URL}}/rest/api/3/issue/{{local.components.create-issue.returnValues.response-body.key}}/remotelink` sendet:
 
 ```json
 {
@@ -383,16 +383,16 @@ Um allen in Jira einen Weg zurück zu geben, fügen Sie nach `create-issue` eine
 }
 ```
 
-Klicken Sie dafür in den **Fields to pass on** des Triggers auf **Feld hinzufügen** und wählen Sie **Projekt-ID**, und behalten Sie das `.value`: Eine Spalte, die die ID eines anderen Datensatzes hält, kommt als `{"_type": "ObjectID", "value": "..."}` an. Die `globalId` macht den Aufruf wiederholbar: Jira aktualisiert den Link, der sie trägt, statt einen zweiten hinzuzufügen.
+Klicken Sie dafür in den **Weiterzugebende Felder** des Triggers auf **Feld hinzufügen** und wählen Sie **Projekt-ID**, und behalten Sie das `.value`: Eine Spalte, die die ID eines anderen Datensatzes hält, kommt als `{"_type": "ObjectID", "value": "..."}` an. Die `globalId` macht den Aufruf wiederholbar: Jira aktualisiert den Link, der sie trägt, statt einen zweiten hinzuzufügen.
 
 ### Kommentieren und übergehen, während sich der Vorfall bewegt
 
 Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von Issues stoppt.
 
 :::steps
-1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Fields to watch** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Fields to pass on** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Name**.
-2. Fügen Sie einen **If / Else**-Baustein hinzu: **Zu prüfender Wert** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Vergleich** **ist gleich**, **Vergleichen mit** `Resolved` oder der Name Ihres behobenen Status.
-3. Suchen Sie nach seiner Seite **Ja** das Issue mit einem **API Post (JSON)**-Baustein, dessen **Kennung** `find-issue` ist und der an `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` sendet:
+1. Legen Sie einen Workflow namens `Incident updates to Jira` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Weiterzugebende Felder** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Name**.
+2. Fügen Sie einen **Wenn / Sonst**-Baustein hinzu: **Zu prüfender Wert** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Vergleich** **ist gleich**, **Vergleichen mit** `Resolved` oder der Name Ihres behobenen Status.
+3. Suchen Sie nach seiner Seite **Ja** das Issue mit einem **API-Aufruf POST (JSON)**-Baustein, dessen **Kennung** `find-issue` ist und der an `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` sendet:
 
    ```json
    {
@@ -407,8 +407,8 @@ Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von I
 
 Senden Sie die JQL per POST, statt sie in die URL zu setzen: Eine URL wird genau so gesendet, wie sie geschrieben ist, nicht für Sie kodiert, und JQL ist voller Leerzeichen, Anführungszeichen und `=`-Zeichen. Eine Abfrage muss begrenzt sein, deshalb steht die Klausel `project =` dabei. In der Cloud ist der Endpunkt `/rest/api/3/search/jql`; das ältere `/rest/api/3/search` gibt es nicht mehr.
 
-- **Kommentar**: ein **API Post (JSON)**-Baustein an `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, mit einem Dokument als `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
-- **Übergang**: Ein **API Get (JSON)**-Baustein auf `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` listet die Übergänge, die vom Status des Issues aus offenstehen, jeden mit einer `id`, einem `name` und dem Status, zu dem er führt, `to`. Ein **API Post (JSON)**-Baustein an dieselbe URL mit `{"transition": {"id": "31"}}` führt einen aus und antwortet mit `204`.
+- **Kommentar**: ein **API-Aufruf POST (JSON)**-Baustein an `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/comment`, mit einem Dokument als `body`: `{"body": {"type": "doc", "version": 1, "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Resolved in OneUptime."}]}]}}`.
+- **Übergang**: Ein **API-Aufruf GET (JSON)**-Baustein auf `{{global.variables.JIRA_URL}}/rest/api/3/issue/<id>/transitions` listet die Übergänge, die vom Status des Issues aus offenstehen, jeden mit einer `id`, einem `name` und dem Status, zu dem er führt, `to`. Ein **API-Aufruf POST (JSON)**-Baustein an dieselbe URL mit `{"transition": {"id": "31"}}` führt einen aus und antwortet mit `204`.
 
 Eine Übergangs-ID gehört zum Jira-Workflow des Issues, ein Jira-Administrator, der diesen Workflow bearbeitet, kann eine fest eingetragene also brechen. Die Liste zur Laufzeit zu lesen, wie es die Vorlagen tun, vermeidet das.
 
@@ -425,7 +425,7 @@ Bauen Sie zuerst den empfangenden Workflow:
 
    Eine selbst gehostete Installation nutzt ihren eigenen Host. Behandeln Sie die URL wie ein Passwort: Wer sie hat, kann den Workflow starten. Wird sie bekannt, klicken Sie an derselben Stelle auf **URL zurücksetzen**, und die alte URL funktioniert sofort nicht mehr.
 
-3. Fügen Sie nach dem Trigger einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Data (JSON Object)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Fügen Sie nach dem Trigger einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Daten (JSON-Objekt)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Schalten Sie ihn ein und lassen Sie Jira ihn dann aufrufen, aus einer Automatisierungsregel oder aus einem Webhook:
 
@@ -443,17 +443,17 @@ Schalten Sie ihn ein und lassen Sie Jira ihn dann aufrufen, aus einer Automatisi
    }
    ```
 
-   Mit einem Label statt eines benutzerdefinierten Feldes senden Sie `"labels": "{{issue.labels}}"` und holen die ID mit einem **Run Custom JavaScript**-Baustein heraus.
+   Mit einem Label statt eines benutzerdefinierten Feldes senden Sie `"labels": "{{issue.labels}}"` und holen die ID mit einem **Eigenes JavaScript ausführen**-Baustein heraus.
 
 4. Schalten Sie die Regel ein und verschieben Sie ein Test-Issue auf Done. Prüfen Sie das Audit-Protokoll der Regel in Jira und **Protokolle → Ausführungen** in OneUptime.
 
-Um sicherzugehen, dass eine Anfrage von Ihrer Regel kommt, fügen Sie einen zweiten Header hinzu, `X-OneUptime-Secret`, mit einem Wert, den Sie sich ausdenken, und nutzen Sie dafür die Option **Hide** der Aktion. Setzen Sie im Workflow vor die Aktualisierung einen **If / Else**-Baustein: **Zu prüfender Wert** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergleich** **ist gleich** und **Vergleichen mit** denselben Wert, in einer geheimen globalen Variable aufbewahrt.
+Um sicherzugehen, dass eine Anfrage von Ihrer Regel kommt, fügen Sie einen zweiten Header hinzu, `X-OneUptime-Secret`, mit einem Wert, den Sie sich ausdenken, und nutzen Sie dafür die Option **Hide** der Aktion. Setzen Sie im Workflow vor die Aktualisierung einen **Wenn / Sonst**-Baustein: **Zu prüfender Wert** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergleich** **ist gleich** und **Vergleichen mit** denselben Wert, in einer geheimen globalen Variable aufbewahrt.
 
 Send web request ruft nur die Ports 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 und 9900 auf. Jira Cloud zählt Regelausführungen gegen ein monatliches Kontingent, das von Ihrem Tarif abhängt, eine Regel bei jedem Übergang eines lebhaften Projekts summiert sich also.
 @tab Jira webhook
 1. Gehen Sie als Jira-Administrator zu **Settings → System → WebHooks** (unter **Advanced**) und klicken Sie auf **Create a WebHook**.
 2. Fügen Sie die URL des Workflows ein, kreuzen Sie **Issue updated** an und geben Sie einen JQL-Filter ein, etwa `project = OPS AND labels = oneuptime`.
-3. Lesen Sie im Workflow die eigene Nutzlast von Jira: `issue` enthält das Issue, und `changelog.items` enthält jedes geänderte Feld, vorher und nachher. Für eine Statusänderung nehmen Sie den Eintrag, dessen `field` `status` ist. Ein **Run Custom JavaScript**-Baustein ist der einfachste Weg, sie zu lesen.
+3. Lesen Sie im Workflow die eigene Nutzlast von Jira: `issue` enthält das Issue, und `changelog.items` enthält jedes geänderte Feld, vorher und nachher. Für eine Statusänderung nehmen Sie den Eintrag, dessen `field` `status` ist. Ein **Eigenes JavaScript ausführen**-Baustein ist der einfachste Weg, sie zu lesen.
 
 Ein Webhook kann ein Secret tragen, und Jira signiert den Body dann in einem `X-Hub-Signature`-Header. Ein Workflow kann das nicht prüfen, weil der Webhook-Trigger einen bereits als JSON gelesenen Body übergibt. Jira wiederholt eine fehlgeschlagene Zustellung bis zu fünfmal, der Workflow muss also mit demselben Ereignis zweimal zurechtkommen.
 :::
@@ -476,7 +476,7 @@ Beginnen Sie mit den Vorlagen für Warnungen unter [Mit einer Vorlage beginnen](
 | Label `oneuptime-incident-<incident id>` | Label `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je einen Workflow. Um dieselbe Jira-Arbeit für beide zu erledigen, bauen Sie sie einmal in einem Workflow mit einem **Manuell**-Trigger und starten ihn aus beiden mit einem **Execute Workflow**-Baustein.
+Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je einen Workflow. Um dieselbe Jira-Arbeit für beide zu erledigen, bauen Sie sie einmal in einem Workflow mit einem **Manuell**-Trigger und starten ihn aus beiden mit einem **Anderen Arbeitsablauf ausführen**-Baustein.
 
 ## Jira Data Center
 
@@ -532,7 +532,7 @@ Prüfen Sie die Basis-URL und die API-Version: `/rest/api/3/...` in der Cloud, `
 :::
 
 :::details 429 Too Many Requests
-Jira begrenzt, wie schnell Sie es aufrufen. Die Antwort trägt `Retry-After`, in Sekunden. Schreibzugriffe auf ein einzelnes Issue sind eng begrenzt, ein Workflow, der kurz hintereinander kommentiert und übergeht, kann die Grenze also auslösen. Setzen Sie einen **Sleep**-Baustein zwischen die Aufrufe oder verlegen Sie Massenarbeit in einen geplanten Workflow.
+Jira begrenzt, wie schnell Sie es aufrufen. Die Antwort trägt `Retry-After`, in Sekunden. Schreibzugriffe auf ein einzelnes Issue sind eng begrenzt, ein Workflow, der kurz hintereinander kommentiert und übergeht, kann die Grenze also auslösen. Setzen Sie einen **Pause**-Baustein zwischen die Aufrufe oder verlegen Sie Massenarbeit in einen geplanten Workflow.
 :::
 
 :::details Der Übergangsaufruf antwortet mit 400

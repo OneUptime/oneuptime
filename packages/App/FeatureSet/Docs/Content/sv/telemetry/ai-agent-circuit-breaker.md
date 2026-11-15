@@ -125,19 +125,19 @@ Spara först slutpunktens token där arbetsflödet kan använda den utan att vis
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fields to pass on** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Alert** i panelen **Lägg till utlösare**. Klicka på utlösaren: **Fält att skicka vidare** börjar med titeln, så klicka på **Lägg till fält**, markera beskrivningen och klicka på **Spara**. ID:t på blocket, `alert-on-create-1`, är hur senare block hänvisar till det.
 
 ### Kontrollera titeln
 
-Klicka på **Lägg till komponent**, välj **If / Else** och koppla utlösarens punkt **Framgång** till den. Sätt **Värde att kontrollera** till larmets titel (klicka på **{ }** och välj den), **Jämförelse** till **innehåller** och **Jämför med** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
+Klicka på **Lägg till komponent**, välj **Om / Annars** och koppla utlösarens punkt **Framgång** till den. Sätt **Värde att kontrollera** till larmets titel (klicka på **{ }** och välj den), **Jämförelse** till **innehåller** och **Jämför med** till början som dina snubbeltrådars titlar har gemensamt, till exempel `LLM budget exceeded`.
 
 ### Anropa din slutpunkt
 
-Lägg till **API Post (JSON)** och koppla punkten **Ja** på **If / Else** till den. Sätt dess **URL** till din slutpunkt, till exempel `https://agents.example.com/circuit-breaker`, och fyll i huvudena och kroppen nedan.
+Lägg till **API-anrop POST (JSON)** och koppla punkten **Ja** på **Om / Annars** till den. Sätt dess **URL** till din slutpunkt, till exempel `https://agents.example.com/circuit-breaker`, och fyll i huvudena och kroppen nedan.
 
 ### Rapportera ett fel
 
-Lägg till **Send Message to Slack** eller **Send Email** och koppla API-blockets punkt **Fel** till den. En circuit breaker som inte lyckas lösa ut är det enda larm som en människa måste se.
+Lägg till **Skicka meddelande till Slack** eller **Skicka e-post** och koppla API-blockets punkt **Fel** till den. En circuit breaker som inte lyckas lösa ut är det enda larm som en människa måste se.
 
 ### Slå på det
 
@@ -164,7 +164,7 @@ Dess **Begärandekropp**:
 }
 ```
 
-För att reagera på flera snubbeltrådar låter du alla deras titlar börja på samma sätt, eller kedjar fler **If / Else**-block från punkten **Nej**. Se [Bygga ett arbetsflöde](/docs/workflows/authoring) för arbetsytan och [Variabler](/docs/workflows/variables) för `{{…}}`-referenserna.
+För att reagera på flera snubbeltrådar låter du alla deras titlar börja på samma sätt, eller kedjar fler **Om / Annars**-block från punkten **Nej**. Se [Bygga ett arbetsflöde](/docs/workflows/authoring) för arbetsytan och [Variabler](/docs/workflows/variables) för `{{…}}`-referenserna.
 
 ## Testa circuit breakern
 
@@ -180,7 +180,7 @@ För att reagera på flera snubbeltrådar låter du alla deras titlar börja på
 - En budget räknar UTC-dygnet, så procenten börjar om från 0 vid midnatt UTC. Ett budgetlarm kan då lösas, och nästa dåliga dag öppnar ett nytt larm som löser ut circuit breakern igen.
 - En monitor håller sitt larm öppet så länge kriterierna är uppfyllda. Med **Lös larm automatiskt** påslaget löses larmet när de inte längre är det, och nästa överskridning öppnar ett nytt larm.
 - Att återställa är en människas beslut på båda sidor: lös larmet i OneUptime och återställ circuit breakern i din runner.
-- Varje nytt larm i projektet startar arbetsflödet. Det är **If / Else** som håller andra larm borta från circuit breakern: utelämna den inte.
+- Varje nytt larm i projektet startar arbetsflödet. Det är **Om / Annars** som håller andra larm borta från circuit breakern: utelämna den inte.
 
 ## Felsökning
 
@@ -189,7 +189,7 @@ Kontrollera att **Aktiverad** är påslaget högst upp i **Byggare**: arbetsflö
 :::
 
 :::details Arbetsflödet körs men tar alltid grenen No
-Titeln är tom eller matchar inte. Ett fält som inte finns i utlösarens **Fields to pass on** kommer fram tomt, så lägg till titeln där. Jämför sedan larmets titel med **Jämför med**: **innehåller** måste hitta exakt den texten i den.
+Titeln är tom eller matchar inte. Ett fält som inte finns i utlösarens **Fält att skicka vidare** kommer fram tomt, så lägg till titeln där. Jämför sedan larmets titel med **Jämför med**: **innehåller** måste hitta exakt den texten i den.
 :::
 
 :::details Din slutpunkt svarar 401
@@ -201,7 +201,7 @@ Monitorns **Tidsintervall** är kortare än budgetens 15 minuter mellan två pun
 :::
 
 :::details Anropet når aldrig fram till din slutpunkt
-Öppna körningen under **Arbetsflöden → Loggar → Körningar** och steget **API Post (JSON)**: där står varför anropet misslyckades. På OneUptime Cloud måste slutpunkten gå att nå från internet; en självhostad installation avvisar privata nätverksadresser om inte en administratör tillåter dem.
+Öppna körningen under **Arbetsflöden → Loggar → Körningar** och steget **API-anrop POST (JSON)**: där står varför anropet misslyckades. På OneUptime Cloud måste slutpunkten gå att nå från internet; en självhostad installation avvisar privata nätverksadresser om inte en administratör tillåter dem.
 :::
 
 ## Nästa steg

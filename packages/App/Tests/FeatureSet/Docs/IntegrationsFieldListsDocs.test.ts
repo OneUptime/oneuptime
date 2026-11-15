@@ -614,9 +614,11 @@ describe.each(TRANSLATED_LANGUAGES)("%s", (language: string) => {
         const line: string = lines[instruction.line - 1] || "";
         const spans: Array<string> = boldSpansOf(line);
 
-        // The list itself, as the step names it in every language.
-        if (!spans.includes(instruction.setting)) {
-          missing.push(`${instruction.line}: ${instruction.setting}`);
+        // The list itself, as the step's settings name it in this language (#8359).
+        const setting: string = drawnActionLabel(language, instruction.setting);
+
+        if (!spans.includes(setting)) {
+          missing.push(`${instruction.line}: ${setting}`);
         }
 
         for (const label of pickerLabels(instruction)) {

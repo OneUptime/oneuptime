@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"No"| saved["Esecuzione salvata con i suoi passaggi e il registro"]
 ```
 
-Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei flussi di lavoro non richiede codice; quando serve, un blocco **Run Custom JavaScript** esegue qualche riga di JavaScript.
+Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei flussi di lavoro non richiede codice; quando serve, un blocco **Esegui JavaScript personalizzato** esegue qualche riga di JavaScript.
 
 ## Cosa puoi fare con i flussi di lavoro
 
@@ -44,7 +44,7 @@ Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei flussi
 - **Reagire a ciò che succede in OneUptime** — quando viene creato un incidente, avvisare il canale giusto e aprire automaticamente un ticket.
 - **Eseguire lavori a intervalli regolari** — ogni cinque minuti, ogni notte, ogni lunedì mattina.
 - **Ricevere dati dall'esterno** — lasciare che altri sistemi avviino un flusso di lavoro chiamando il suo URL o scrivendo al suo indirizzo email.
-- **Riutilizzare automazioni comuni** — costruiscila una volta e avviala da qualsiasi altro flusso di lavoro con un blocco **Execute Workflow**.
+- **Riutilizzare automazioni comuni** — costruiscila una volta e avviala da qualsiasi altro flusso di lavoro con un blocco **Esegui un altro flusso di lavoro**.
 
 ## Termini chiave
 
@@ -107,7 +107,7 @@ Questo flusso di lavoro invia un riepilogo JSON di ogni nuovo incidente a un tuo
 
 ```mermaid title="L'esempio completo"
 flowchart TB
-    trigger["On Create Incident"] -->|"Successo"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Successo"| post["Chiamata API POST (JSON)"]
     post -->|"Errore"| log["Registro"]
     post -->|"Successo"| done["L'esecuzione termina"]
 ```
@@ -130,13 +130,13 @@ Il trigger prende il posto del blocco tratteggiato. L'ID che compare su di esso,
 
 ### Scegli i campi dell'incidente
 
-Fai clic sul trigger. **Fields to pass on** parte con il titolo: fai clic su **Aggiungi campo**, seleziona la descrizione e ogni altro campo che la richiesta deve contenere, e fai clic su **Salva**.
+Fai clic sul trigger. **Campi da passare** parte con il titolo: fai clic su **Aggiungi campo**, seleziona la descrizione e ogni altro campo che la richiesta deve contenere, e fai clic su **Salva**.
 
 Il trigger passa il nuovo incidente con quei campi. Un campo che non selezioni arriva vuoto.
 
 ### Aggiungi il blocco API
 
-Fai clic su **Aggiungi componente**, poi su **API Post (JSON)** sotto **Popolari**. Trascina dal punto **Successo** del trigger fino al punto superiore del nuovo blocco.
+Fai clic su **Aggiungi componente**, poi su **Chiamata API POST (JSON)** sotto **Popolari**. Trascina dal punto **Successo** del trigger fino al punto superiore del nuovo blocco.
 
 ### Compila la richiesta
 
@@ -162,7 +162,7 @@ Una richiesta che non va a buon fine — un URL irraggiungibile o una risposta c
 
 Fai clic su **Esegui flusso di lavoro** e scegli un incidente di questo progetto sotto **Incidente**: sono elencati i più recenti, e digitando il suo numero o parte del suo titolo ne trovi un altro. Fai clic su **Esegui manualmente il flusso di lavoro** e conferma con **Esegui**. Il flusso di lavoro è ancora disattivato, quindi è un'**Esecuzione di prova**, e la richiesta viene inviata davvero.
 
-Si apre un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. Apri il passaggio **API Post (JSON)** per vedere il corpo che ha inviato e la risposta che ha ricevuto.
+Si apre un pannello **Esecuzione del flusso di lavoro** che segue l'esecuzione. Apri il passaggio **Chiamata API POST (JSON)** per vedere il corpo che ha inviato e la risposta che ha ricevuto.
 
 ### Attivalo
 
