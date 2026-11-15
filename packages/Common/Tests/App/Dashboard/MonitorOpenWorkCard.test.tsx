@@ -309,9 +309,12 @@ describe("MonitorOpenWorkCard", () => {
     const incidentCount: HTMLElement = screen.getByTestId(
       "monitor-open-incident-count",
     );
-    expect(incidentCount).toHaveTextContent("—");
+    // The figure's quiet dash: "—" for the eye, "Not set" read out (#8264).
+    expect(incidentCount).toHaveTextContent("—Not set");
     expect(incidentCount).not.toHaveTextContent("0");
-    expect(incidentCount).toHaveClass("text-gray-400");
+    expect(within(incidentCount).getByTestId("empty-figure")).toHaveClass(
+      "text-gray-400",
+    );
 
     expect(screen.getByTestId("monitor-open-work-footer")).toHaveTextContent(
       "Incidents are hidden: you need permission to read incidents.",

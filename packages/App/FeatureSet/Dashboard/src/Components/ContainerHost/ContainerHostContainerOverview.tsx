@@ -288,7 +288,9 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
             title="Restarts"
             icon={IconProp.Refresh}
             iconColor="amber"
-            value={restarts === null ? "—" : translator.formatNumber(restarts)}
+            value={
+              restarts === null ? undefined : translator.formatNumber(restarts)
+            }
             /*
              * The window the count is of, whatever the count: the hero and
              * Needs attention already say when it is a restart loop.
@@ -311,7 +313,7 @@ const ContainerHostContainerOverview: FunctionComponent<ComponentProps> = (
                     now: props.readAt,
                     language: translator.language,
                   })
-                : "—"
+                : undefined
             }
             sublabel={
               container.startedAt

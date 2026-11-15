@@ -193,7 +193,7 @@ Vier doelen die de meeste installaties kunnen beloven, elk opgebouwd uit een of 
 
 :::steps
 1. Open de [Metriekverkenner](/docs/telemetry/metrics-explorer) van het project, en klik op de eerste metric van het doel. De query daarvan is `a`.
-2. Kies de aggregatie onder **Aggregate by**. Open daarna **Filters & grouping**, en voeg elk van de voorwaarden toe onder **Filter by attributes**.
+2. Kies de aggregatie onder **Aggregeren op**. Open daarna **Filters en groepering**, en voeg elk van de voorwaarden toe onder **Filteren op attributen**.
 3. Voor een tweede query klikt u op **Metriek toevoegen**, en stelt u `b` op dezelfde manier in.
 4. Voor een formule klikt u op **Formule toevoegen**, en schrijft u die in **Formule**.
 5. Om te horen wanneer het doel wordt gemist, klikt u op **Acties → Monitor maken vanuit deze weergave**, en laat u waarschuwen als de waarde het doel overschrijdt: zie [Metrics-monitor](/docs/monitor/metrics-monitor).

@@ -30,6 +30,9 @@ import {
   DatabaseMetricDefinition,
   DatabaseMetricGroup,
   getAllDatabaseMetrics,
+  getDatabaseMetricCategoryLabel,
+  getDatabaseMetricCategoryOrder,
+  getDatabaseMetricGroupLabel,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import { describe, expect, it } from "@jest/globals";
 
@@ -104,9 +107,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {};
  * The lines of the English Database Health page that name a metric of the
  * catalog plain, in running text, and the names: each translation names
  * them in bold, as its Dashboard draws them, on the same line. The page's
- * other plain "Connections" name the collection group (the Group column,
- * the troubleshooting headings), which the summary's collection issues
- * print as the group's English value, and stay as they are.
+ * other plain "Connections" name the collection group (GROUPS_NAMED_IN_PROSE).
  */
 const METRICS_NAMED_IN_PROSE: ReadonlyArray<{
   line: number;
@@ -122,31 +123,138 @@ const METRICS_NAMED_IN_PROSE: ReadonlyArray<{
   { line: 448, names: ["Metric Groups Failed"] },
 ];
 
-// The collection groups' names, which the catalog's "Connections" shares.
-const COLLECTION_GROUP_NAMES: ReadonlyArray<string> = Object.values(
-  DatabaseMetricGroup,
-) as Array<string>;
+/*
+ * The English page names a collection group by its value (Locks), as the
+ * Group column, the Metric groups table and the troubleshooting titles do,
+ * and the server's Database Collection Error text still does. The form's
+ * Metric Groups switches and the summary's collection issues draw the
+ * group's own name (getDatabaseMetricGroupLabel: Locks and Blocking), so a
+ * translation names the group as its Dashboard draws that name (#8609).
+ */
+const COLLECTION_GROUPS: ReadonlyArray<DatabaseMetricGroup> =
+  Object.values(DatabaseMetricGroup);
+
+function drawnGroup(language: string, group: DatabaseMetricGroup): string {
+  return drawnDashboardLabel(language, getDatabaseMetricGroupLabel(group));
+}
+
+// The English lines (1-based) that name collection groups in running text.
+const GROUPS_NAMED_IN_PROSE: ReadonlyArray<{
+  line: number;
+  groups: Array<DatabaseMetricGroup>;
+}> = [
+  {
+    line: 88,
+    groups: [
+      DatabaseMetricGroup.Connections,
+      DatabaseMetricGroup.Activity,
+      DatabaseMetricGroup.Locks,
+    ],
+  },
+  {
+    line: 105,
+    groups: [
+      DatabaseMetricGroup.Connections,
+      DatabaseMetricGroup.Throughput,
+      DatabaseMetricGroup.Locks,
+    ],
+  },
+  {
+    line: 124,
+    groups: [
+      DatabaseMetricGroup.Connections,
+      DatabaseMetricGroup.Activity,
+      DatabaseMetricGroup.Throughput,
+      DatabaseMetricGroup.Locks,
+      DatabaseMetricGroup.Storage,
+      DatabaseMetricGroup.Replication,
+    ],
+  },
+  { line: 154, groups: [DatabaseMetricGroup.Replication] },
+  { line: 224, groups: [DatabaseMetricGroup.Storage] },
+  { line: 267, groups: [DatabaseMetricGroup.Storage] },
+  { line: 374, groups: [DatabaseMetricGroup.Replication] },
+  {
+    line: 436,
+    groups: [
+      DatabaseMetricGroup.Connections,
+      DatabaseMetricGroup.Activity,
+      DatabaseMetricGroup.Locks,
+    ],
+  },
+  {
+    line: 440,
+    groups: [
+      DatabaseMetricGroup.Connections,
+      DatabaseMetricGroup.Throughput,
+      DatabaseMetricGroup.Locks,
+    ],
+  },
+];
+
+// The Group column of a page's metric tables, row by row.
+function groupColumn(markdown: string): Array<string> {
+  return markdown
+    .split("\n")
+    .filter((line: string): boolean => {
+      return (
+        line.startsWith("| **") && line.includes("`oneuptime.monitor.database.")
+      );
+    })
+    .map((line: string): string => {
+      return (line.split("|")[3] as string).trim();
+    });
+}
+
+// The first cells of a page's Metric groups table, found by the English page's lines.
+function groupTable(markdown: string): Array<string> {
+  const header: number = englishPage(DATABASE_PAGE)
+    .split("\n")
+    .indexOf("| Group | What it collects | Needs |");
+  const lines: Array<string> = markdown.split("\n");
+
+  return COLLECTION_GROUPS.map((_group: DatabaseMetricGroup, index: number) => {
+    return (
+      (lines[header + 2 + index] as string).split("|")[1] as string
+    ).trim();
+  });
+}
+
+// A name written in English: no Latin letter or digit on either side.
+function namesInEnglish(text: string, name: string): boolean {
+  return new RegExp(
+    `(?<![A-Za-z0-9])${escapeRegExp(name)}(?![A-Za-z0-9])`,
+  ).test(text);
+}
 
 /*
- * The catalog's names a text still writes in English, where the language's
- * Dashboard words them; the collection groups' names left out. A name ends
+ * The catalog's names, and the collection groups' values, a text still
+ * writes in English where the language's Dashboard words them. A name ends
  * where a Latin letter or digit does not follow, so a particle written onto
  * it ("TempDB Free Space는") cannot hide it.
  */
 function englishMetricNamesIn(text: string, language: string): Array<string> {
-  return getAllDatabaseMetrics()
+  const metricNames: Array<string> = getAllDatabaseMetrics()
     .map((metric: DatabaseMetricDefinition): string => {
       return metric.friendlyName;
     })
     .filter((name: string): boolean => {
       return (
         drawnDashboardLabel(language, name) !== name &&
-        !COLLECTION_GROUP_NAMES.includes(name) &&
-        new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(name)}(?![A-Za-z0-9])`).test(
-          text,
-        )
+        namesInEnglish(text, name)
       );
     });
+  const groupNames: Array<string> = COLLECTION_GROUPS.filter(
+    (group: DatabaseMetricGroup): boolean => {
+      return (
+        drawnGroup(language, group) !== group && namesInEnglish(text, group)
+      );
+    },
+  ).map((group: DatabaseMetricGroup): string => {
+    return `${group} (group)`;
+  });
+
+  return Array.from(new Set<string>([...metricNames, ...groupNames]));
 }
 
 /*
@@ -351,6 +459,36 @@ describe("the lists this test keeps", () => {
         });
       }
     }
+  });
+
+  it("find each collection group the English page names in prose, plain, on its line", () => {
+    const lines: Array<string> = englishPage(DATABASE_PAGE).split("\n");
+
+    for (const entry of GROUPS_NAMED_IN_PROSE) {
+      const line: string = (lines[entry.line - 1] as string).replace(
+        /\*\*[^*]+\*\*/g,
+        " ",
+      );
+
+      for (const group of entry.groups) {
+        expect({ line: entry.line, group, named: true }).toEqual({
+          line: entry.line,
+          group,
+          named: namesInEnglish(line, group),
+        });
+      }
+    }
+  });
+
+  it("find every collection group in the English Group column and the Metric groups table", () => {
+    expect(
+      Array.from(
+        new Set<string>(groupColumn(englishPage(DATABASE_PAGE))),
+      ).sort(),
+    ).toEqual([...COLLECTION_GROUPS].sort());
+    expect(groupTable(englishPage(DATABASE_PAGE))).toEqual([
+      ...COLLECTION_GROUPS,
+    ]);
   });
 
   it("find every Ceph template's name in the English tables", () => {
@@ -562,6 +700,60 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("heads each group of its metrics as the summary heads it", () => {
+      const lines: Array<string> = readPage(language, DATABASE_PAGE).split(
+        "\n",
+      );
+      const english: Array<string> = englishPage(DATABASE_PAGE).split("\n");
+
+      for (const category of getDatabaseMetricCategoryOrder()) {
+        const heading: string = `### ${drawnDashboardLabel(
+          language,
+          getDatabaseMetricCategoryLabel(category),
+        )}`;
+
+        expect({
+          category,
+          heading: lines[english.indexOf(`### ${category}`)],
+        }).toEqual({ category, heading });
+      }
+    });
+
+    it("names each collection group in its tables as the form's Metric Groups switch draws it", () => {
+      const page: string = readPage(language, DATABASE_PAGE);
+      const english: string = englishPage(DATABASE_PAGE);
+
+      expect(groupColumn(page)).toEqual(
+        groupColumn(english).map((group: string): string => {
+          return drawnGroup(language, group as DatabaseMetricGroup);
+        }),
+      );
+      expect(groupTable(page)).toEqual(
+        COLLECTION_GROUPS.map((group: DatabaseMetricGroup): string => {
+          return drawnGroup(language, group);
+        }),
+      );
+    });
+
+    it("names a collection group in prose in bold, as its Dashboard draws it, on the English line's line", () => {
+      const lines: Array<string> = readPage(language, DATABASE_PAGE).split(
+        "\n",
+      );
+      const missing: Array<string> = [];
+
+      for (const entry of GROUPS_NAMED_IN_PROSE) {
+        for (const group of entry.groups) {
+          const drawn: string = drawnGroup(language, group);
+
+          if (!(lines[entry.line - 1] || "").includes(`**${drawn}**`)) {
+            missing.push(`line ${entry.line}: ${drawn}`);
+          }
+        }
+      }
+
+      expect(missing).toEqual([]);
+    });
+
     it("names no metric in English where its Dashboard words the name", () => {
       // Outside code, where a series' name is written as it is.
       const text: string = prose(readPage(language, DATABASE_PAGE)).replace(
@@ -658,7 +850,7 @@ describe("the helpers, on these pages' shapes", () => {
     expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(english));
   });
 
-  it("find a metric named in English, a particle written onto it, but not a group's name or another word", () => {
+  it("find a metric or a group named in English, a particle written onto it, but not another word", () => {
     expect(
       englishMetricNamesIn(
         "탄력적 풀에서 TempDB Free Space는 풀의 값입니다.",
@@ -671,11 +863,23 @@ describe("the helpers, on these pages' shapes", () => {
         "ko",
       ),
     ).toEqual([]);
-    // Connections is a collection group's name too; Deadlocks reads so in German.
+    // Connections is a metric and a group; Deadlocks reads so in German.
     expect(
       englishMetricNamesIn(
         "die Gruppen Connections, Activity und Locks; **Deadlocks**",
         "de",
+      ),
+    ).toEqual([
+      "Connections",
+      "Connections (group)",
+      "Activity (group)",
+      "Locks (group)",
+    ]);
+    // Throughput reads so in Italian.
+    expect(
+      englishMetricNamesIn(
+        "i gruppi **Connessioni**, Throughput e **Lock e blocchi**",
+        "it",
       ),
     ).toEqual([]);
     expect(englishMetricNamesIn("SlowQueries, Slow Queriesx", "de")).toEqual(

@@ -1,3 +1,5 @@
+import { Translator } from "Common/Types/Translator";
+
 /*
  * Pure data helpers behind the security-event dashboard widgets. No React,
  * no fetches — everything here is a function over plain data so the unit
@@ -16,6 +18,15 @@ export interface SecurityEventFlowRecord {
 
 export interface SecurityEventsFlowNode {
   name: string;
+  /*
+   * The severity layer's nodes only: OCSF's word for the severity, as the
+   * event stores it ("High"). It picks the node's colour, and the widget
+   * draws it in the reader's language (getSecurityEventsFlowInLanguage),
+   * as the Security Events page's severity pill does (#8295). A source's
+   * and a class's node has none: a source is a vendor or a host, and a
+   * class is drawn as the Security Events page draws it, as stored.
+   */
+  severityName?: string | undefined;
 }
 
 export interface SecurityEventsFlowLink {
@@ -120,6 +131,47 @@ export function getSecurityEventSeverityColor(severityName: string): string {
   }
 
   return "#64748b";
+}
+
+/*
+ * A security event's severity as the widgets draw it: OCSF's word in the
+ * reader's language ("Hoch", "Alta"), as the Security Events page's
+ * severity pill draws it (SecurityEventSeverityPill). Every OCSF severity
+ * is a product word, never a record of a project's list, so it is looked
+ * up; a word OCSF does not have reads as stored (#8295).
+ */
+export function getSecurityEventSeverityText(
+  severityName: string,
+  translator: Translator,
+): string {
+  return translator.translateText(severityName) || severityName;
+}
+
+/*
+ * The flow with its severity layer in the reader's language: each severity
+ * node's name (what its label and the chart's tooltip draw) is the word
+ * the Security Events page uses, and its stored English stays on
+ * severityName for its colour. The other layers are left as they are.
+ */
+export function getSecurityEventsFlowInLanguage(
+  flow: SecurityEventsFlowData,
+  translator: Translator,
+): SecurityEventsFlowData {
+  return {
+    nodes: flow.nodes.map(
+      (node: SecurityEventsFlowNode): SecurityEventsFlowNode => {
+        if (!node.severityName) {
+          return node;
+        }
+
+        return {
+          ...node,
+          name: getSecurityEventSeverityText(node.severityName, translator),
+        };
+      },
+    ),
+    links: flow.links,
+  };
 }
 
 /**
@@ -234,7 +286,7 @@ export function buildSecurityEventsFlow(
 
   for (const severityName of severityNames) {
     severityIndexByName.set(severityName, nodes.length);
-    nodes.push({ name: severityName });
+    nodes.push({ name: severityName, severityName: severityName });
   }
 
   const links: Array<SecurityEventsFlowLink> = [];

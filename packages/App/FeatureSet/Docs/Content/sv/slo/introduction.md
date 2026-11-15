@@ -45,7 +45,7 @@ Du behöver en roll som får skapa SLO:er: Projektägare, Projektadministratör 
 :::steps
 ### Öppna SLO:er
 
-Öppna **SLOs** från menyn **Produkter** i det övre fältet. Det ligger i den första gruppen, bredvid monitorer och incidenter. Klicka på **Skapa Service Level Objective**.
+Öppna **SLOs** från menyn **Produkter** i det övre fältet. Det ligger i den första gruppen, bredvid monitorer och incidenter. Klicka på **Skapa Tjänstenivåmål**.
 
 ### Välj vad SLO:et mäter
 
@@ -61,7 +61,7 @@ Ange ett **Namn**, till exempel ”API Availability”, och ett **Mål (%)**: de
 
 ### Spara SLO:et
 
-Klicka på **Skapa Service Level Objective**. OneUptime öppnar det nya SLO:et. Ett SLO för monitorernas drifttid visar **Choose what this SLO measures** i sin **Översikt**, eftersom det ännu inte har några monitorer.
+Klicka på **Skapa Tjänstenivåmål**. OneUptime öppnar det nya SLO:et. Ett SLO för monitorernas drifttid visar **Choose what this SLO measures** i sin **Översikt**, eftersom det ännu inte har några monitorer.
 
 ### Koppla monitorer
 
@@ -140,7 +140,7 @@ OneUptime ger varje utvärderat SLO en status:
 | **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
 | **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
 | **Felkonfigurerad** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. Ett SLO för begäranden är felkonfigurerat utan tjänster, utan latensgräns eller innan dess tjänster har besvarat en begäran i fönstret. |
-| **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av planerat underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
+| **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av schemalagt underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
 Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
 
@@ -201,7 +201,7 @@ Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 
 | Kort | Det du ändrar | Bra att veta |
 | --- | --- | --- |
-| **Vad den mäter** | **Vad den mäter**, **Tjänster** och **Latensgräns (ms)**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
+| **Vad den mäter** | **Vad den mäter**, **Tjänster**, **Latensgräns (ms)** och **Begäransfilter**, med **Redigera vad den mäter**. | Ett SLO för begäranden räknar om sina begäranden från början efter en ändring. |
 | **Mål** | **Mål (%)** och **Tröskel för riskzon (%)**, med **Redigera mål**. | Visar det driftstopp som målet tillåter, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”. |
 | **Efterlevnadsperiod** | **Fönstertyp**, **Fönster (dagar)** och **Tidszon**, med **Redigera period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
 | **Beräkning av driftstopp** | **Läge för flera monitorer** och **Monitorstatusar för driftstopp**, med **Redigera beräkning av driftstopp**. | Bara SLO:er för monitorernas drifttid. Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |

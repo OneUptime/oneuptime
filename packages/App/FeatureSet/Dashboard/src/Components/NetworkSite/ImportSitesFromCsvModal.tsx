@@ -14,7 +14,7 @@ import {
   SiteImportSummary,
   runSiteImport,
 } from "../../Utils/NetworkSiteImportRunner";
-import { getCreatedImportResultLabel } from "../../Utils/ImportResultWords";
+import { CREATED_IMPORT_RESULT } from "../../Utils/ImportResultWords";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -659,7 +659,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {getCreatedImportResultLabel(translator)}
+                              {translator.translateText(CREATED_IMPORT_RESULT)}
                             </span>
                           )}
                           {result.status === "failed" && (

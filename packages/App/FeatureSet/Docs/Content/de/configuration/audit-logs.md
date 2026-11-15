@@ -43,7 +43,7 @@ Gehen Sie zu **Projekteinstellungen → Audit-Protokolle → Einstellungen**. **
 
 ### Die Einstellungen bearbeiten
 
-Klicken Sie auf **Edit Audit Log Settings**.
+Klicken Sie auf **Audit-Protokoll-Einstellungen bearbeiten**.
 
 ### Sie einschalten
 

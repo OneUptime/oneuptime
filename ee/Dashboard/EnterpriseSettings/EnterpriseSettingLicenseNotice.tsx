@@ -7,7 +7,15 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * What the custom role, IP allowlist, status page, custom channel and
@@ -26,8 +34,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Nothing is shown with a valid license, on OneUptime Cloud (the plan
  * decides there) or while the license state is Unknown.
  *
- * Plain English, like the rest of these screens: Alert translates them when
- * a locale has an entry under the same English key.
+ * Each title is a key, which Alert looks up. Each description is worded
+ * here with the reader's Translator (#8296): what stays after the lapse is
+ * a sentence of its own, and the way back is another; the grace period's
+ * days are values of one whole sentence.
  */
 
 export type EnterpriseSettingFeature =
@@ -48,64 +58,88 @@ interface FeatureSentences {
 
 const FEATURE_SENTENCES: Record<EnterpriseSettingFeature, FeatureSentences> = {
   [LicensedFeature.CustomRoles]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: custom roles cannot be created or changed.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include custom roles: they cannot be created or changed.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: custom roles become read-only when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "The custom roles you have keep giving teams their permissions, and you can still take them away from teams or delete them.",
+    ),
   },
   [LicensedFeature.IpAllowlists]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: this IP allowlist cannot be set or changed.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include IP allowlists: this one cannot be set or changed.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: IP allowlists become read-only when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "An allowlist already set is still enforced, and you can still remove it.",
+    ),
   },
   [LicensedFeature.StatusPageAccessControls]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: these access controls cannot be set or changed.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include status page access controls: these cannot be set or changed.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: status page access controls become read-only when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "The access controls already set still apply, and you can still remove them.",
+    ),
   },
   [LicensedFeature.CustomNotificationChannels]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: custom channels cannot be added or changed, and nothing is sent to them.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include custom channels: they cannot be added or changed, and nothing is sent to them.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: custom channels stop when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "Your channels and the on-call rules that use them are kept, but no page or notification is sent to them. You can still delete a channel.",
+    ),
   },
   [LicensedFeature.SessionLength]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: session lengths cannot be set or changed.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include session lengths: they cannot be set or changed.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: session lengths become read-only when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "The lengths already set still sign people out, and you can still remove them.",
+    ),
   },
   [LicensedFeature.StatusPageBranding]: {
-    readOnlyTitle:
+    readOnlyTitle: translationKey(
       "Enterprise license required: Powered by OneUptime is shown on every status page.",
-    notIncludedTitle:
+    ),
+    notIncludedTitle: translationKey(
       "Your Enterprise license does not include removing Powered by OneUptime: every status page shows it.",
-    graceTitle:
+    ),
+    graceTitle: translationKey(
       "No valid Enterprise license: status pages show Powered by OneUptime again when the trial or grace period ends.",
-    afterTheLapse:
+    ),
+    afterTheLapse: translationKey(
       "Every status page shows Powered by OneUptime, whatever this switch says. The switch is kept, and the line is hidden again as soon as a license is activated.",
+    ),
   },
 };
 
@@ -120,20 +154,46 @@ export interface EnterpriseSettingNoticeCopy {
  * What to say for a license mode, or null when there is nothing to say (a
  * valid license, OneUptime Cloud, or an unknown license state).
  */
+// The language of a caller that hands no translator: English, word for word.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+const READ_ONLY_WAY_BACK: string = translationKey(
+  "Activate or renew the Enterprise license in the Admin Dashboard to change this again.",
+);
+
+const NOT_INCLUDED_WAY_BACK: string = translationKey(
+  "Activate a license that includes it in the Admin Dashboard to change this again.",
+);
+
+const GRACE_DESCRIPTION: string = translationKey(
+  "Everything here can be changed during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends: {{afterTheLapse}}",
+);
+
+/*
+ * What to say for a license mode, or null when there is nothing to say (a
+ * valid license, OneUptime Cloud, or an unknown license state). The title
+ * is English, a key Alert looks up; the description is in the language of
+ * `translator` (English without one), drawn as given.
+ */
 export const getEnterpriseSettingNoticeCopy: (
   mode: EnterpriseLicenseMode,
   feature: EnterpriseSettingFeature,
+  translator?: Translator,
 ) => EnterpriseSettingNoticeCopy | null = (
   mode: EnterpriseLicenseMode,
   feature: EnterpriseSettingFeature,
+  translator: Translator = ENGLISH,
 ): EnterpriseSettingNoticeCopy | null => {
   const sentences: FeatureSentences = FEATURE_SENTENCES[feature];
+  const text: (english: string) => string = (english: string): string => {
+    return translator.translateText(english) || english;
+  };
 
   if (mode === EnterpriseLicenseMode.ReadOnly) {
     return {
       type: AlertType.DANGER,
       title: sentences.readOnlyTitle,
-      description: `${sentences.afterTheLapse} Activate or renew the Enterprise license in the Admin Dashboard to change this again.`,
+      description: `${text(sentences.afterTheLapse)} ${text(READ_ONLY_WAY_BACK)}`,
       dataTestId: `enterprise-setting-license-read-only-notice-${feature}`,
     };
   }
@@ -142,7 +202,7 @@ export const getEnterpriseSettingNoticeCopy: (
     return {
       type: AlertType.DANGER,
       title: sentences.notIncludedTitle,
-      description: `${sentences.afterTheLapse} Activate a license that includes it in the Admin Dashboard to change this again.`,
+      description: `${text(sentences.afterTheLapse)} ${text(NOT_INCLUDED_WAY_BACK)}`,
       dataTestId: `enterprise-setting-license-not-included-notice-${feature}`,
     };
   }
@@ -151,7 +211,20 @@ export const getEnterpriseSettingNoticeCopy: (
     return {
       type: AlertType.WARNING,
       title: sentences.graceTitle,
-      description: `Everything here can be changed during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial of an installation with no license, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires. When it ends: ${sentences.afterTheLapse}`,
+      description: translator.translateTemplate(GRACE_DESCRIPTION, {
+        trialDays: translator.formatNumber(
+          ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+        ),
+        graceDays: translator.formatNumber(
+          ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+        ),
+        afterTheLapse: composedValue((sentence: Translator): string => {
+          return (
+            sentence.translateText(sentences.afterTheLapse) ||
+            sentences.afterTheLapse
+          );
+        }),
+      }),
       dataTestId: `enterprise-setting-license-grace-notice-${feature}`,
     };
   }
@@ -167,8 +240,9 @@ export interface ComponentProps {
 const EnterpriseSettingLicenseNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const copy: EnterpriseSettingNoticeCopy | null =
-    getEnterpriseSettingNoticeCopy(props.mode, props.feature);
+    getEnterpriseSettingNoticeCopy(props.mode, props.feature, translator);
 
   if (!copy) {
     return <></>;
@@ -178,7 +252,8 @@ const EnterpriseSettingLicenseNotice: FunctionComponent<ComponentProps> = (
     <Alert
       type={copy.type}
       strongTitle={copy.title}
-      title={copy.description}
+      // In the reader's words already: an element, drawn as given.
+      title={<Fragment>{copy.description}</Fragment>}
       dataTestId={copy.dataTestId}
       className="mb-5"
     />

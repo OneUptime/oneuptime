@@ -15,6 +15,10 @@ import {
   getDatabaseMetricsByCategory,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
+import {
+  DatabaseCollectionIssueText,
+  getDatabaseCollectionIssueText,
+} from "Common/Utils/Monitor/DatabaseCollectionIssueReading";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import Link from "Common/UI/Components/Link/Link";
 import URL from "Common/Types/API/URL";
@@ -256,14 +260,30 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * One group the check could not read: its name as the form's Metric
+   * Groups switch says it, OneUptime's words about it, and the database's
+   * own error as written, in a line of its own direction (#8609).
+   */
   const renderGroupStatus: (
     status: DatabaseMetricGroupStatus,
   ) => ReactElement = (status: DatabaseMetricGroupStatus): ReactElement => {
+    const issue: DatabaseCollectionIssueText = getDatabaseCollectionIssueText({
+      translator: translator,
+      status: status,
+    });
+
     return (
-      <div key={status.group}>
-        <span className="font-medium">{status.group}</span>
+      <div key={status.group} data-testid="database-collection-issue">
+        <span className="font-medium">{issue.group}</span>
         <span className="mx-2 text-gray-400">—</span>
-        <span>{status.message}</span>
+        <span>{issue.words}</span>
+        {issue.asWritten && (
+          <ProbeMessageLine
+            message={issue.asWritten}
+            dataTestId="database-collection-issue-message"
+          />
+        )}
       </div>
     );
   };

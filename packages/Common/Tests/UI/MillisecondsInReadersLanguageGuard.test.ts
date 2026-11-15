@@ -70,8 +70,9 @@ import {
  * `${minutes}m ${rest}s`, an uptime `${days}d ${hours}h`, a call's
  * `{minutes}m {seconds}s` in JSX - English letters and Latin digits in
  * every language. They are formatCompactDuration (or formatCompactDurationAgo
- * for "5m ago") now, and every Dashboard file and every shared UI component
- * (packages/Common/UI) is held to it: a compact unit ("s", "m", "h", "d",
+ * for "5m ago") now, and every Dashboard file, every shared UI component
+ * (packages/Common/UI) and the Common/Types files a page draws one from
+ * (COMPACT_SHARED_FILES, #8617) is held to it: a compact unit ("s", "m", "h", "d",
  * "mo") glued to a figure, in a template, after a JSX figure or joined with
  * +, fails, and so does a compact key looked up by hand ("{{count}}s",
  * "{{count}}m ago": a trace's age read "12 ثانیه پیش", Latin digits in a
@@ -724,16 +725,28 @@ const isHeldToEveryRule: (relativeFile: string) => boolean = (
 const SHARED_UI_SCOPE: string = "packages/Common/UI";
 
 /*
+ * Common's own files a Dashboard page draws a compact duration from, read
+ * on their own and held to the compact rule (#8617): a span's humanized
+ * duration ("2h 5m") and the on-call schedule timeline's bars and legend
+ * ("3d 12h"). Relative to the repository.
+ */
+const COMPACT_SHARED_FILES: ReadonlyArray<string> = [
+  "packages/Common/Types/Date.ts",
+  "packages/Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout.ts",
+];
+
+/*
  * Whether `file` (relative to the repository) is held to the compact
- * duration's rules (#8455): every Dashboard file and monitor summary, and
- * every shared UI component the Dashboard draws.
+ * duration's rules (#8455): every Dashboard file and monitor summary, every
+ * shared UI component the Dashboard draws, and the shared files above.
  */
 const isHeldToTheCompactRule: (relativeFile: string) => boolean = (
   relativeFile: string,
 ): boolean => {
   return (
     isHeldToEveryRule(relativeFile) ||
-    relativeFile.startsWith(`${SHARED_UI_SCOPE}/`)
+    relativeFile.startsWith(`${SHARED_UI_SCOPE}/`) ||
+    COMPACT_SHARED_FILES.includes(relativeFile)
   );
 };
 
@@ -786,6 +799,25 @@ const readAllFindings: () => ScanResult = (): ScanResult => {
         }),
       );
     }
+  }
+
+  // Common's own files a page draws a compact duration from (#8617).
+  for (const file of COMPACT_SHARED_FILES) {
+    if (seen.has(file)) {
+      continue;
+    }
+
+    seen.add(file);
+    filesRead++;
+
+    findings.push(
+      ...findHandWrittenMilliseconds({
+        file: file,
+        source: fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
+        isHeldToEveryRule: isHeldToEveryRule(file),
+        isHeldToTheCompactRule: isHeldToTheCompactRule(file),
+      }),
+    );
   }
 
   scanResult = { findings, filesRead, dashboardFilesRead, summaryFilesRead };
@@ -1596,6 +1628,53 @@ describe("negative controls: a compact duration written by hand", () => {
         held: false,
       });
     }
+  });
+
+  test("Common's own files a page draws a compact duration from are read, and held to the compact rule (#8617)", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of COMPACT_SHARED_FILES) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        held: isHeldToTheCompactRule(file),
+        heldToEveryRule: isHeldToEveryRule(file),
+        writesOneByHand: findings.some(
+          (finding: MillisecondsFinding): boolean => {
+            return finding.file === file;
+          },
+        ),
+      }).toEqual({
+        file,
+        exists: true,
+        held: true,
+        heldToEveryRule: false,
+        writesOneByHand: false,
+      });
+    }
+
+    // How the two wrote theirs, before: each caught where it lives.
+    expect(
+      compactRulesOf(
+        [
+          "const a: string = hours > 0 ? `${days}d ${hours}h` : `${days}d`;",
+          "const b: string = `${minutes}m`;",
+        ].join("\n"),
+        "packages/Common/Types/OnCallDutyPolicy/ScheduleTimelineLayout.ts",
+      ),
+    ).toEqual([
+      "1 compact unit after a template's figure",
+      "1 compact unit after a template's figure",
+      "2 compact unit after a template's figure",
+    ]);
+    expect(
+      compactRulesOf(
+        "parts.push(`${OneUptimeDate.formatDurationValue(leftoverSeconds)}s`);",
+        "packages/Common/Types/Date.ts",
+      ),
+    ).toEqual(["1 compact unit after a template's figure"]);
+    // The rest of Common/Types is not read here.
+    expect(isHeldToTheCompactRule("packages/Common/Types/Made.ts")).toBe(false);
   });
 
   test("a shared UI file is held to the compact rule only, not to every rule", () => {

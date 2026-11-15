@@ -108,7 +108,7 @@ En origin er et skema, en vært og en valgfri port: `https://app.example.com` d�
 
 ## Udskift, slå fra eller slet en nøgle
 
-En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Last Used At**: sidste gang OneUptime accepterede data, der blev sendt med den.
+En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for at vise** og dens **Senest brugt den**: sidste gang OneUptime accepterede data, der blev sendt med den.
 
 | For at | Gør dette | Hvad afsendere ser |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ En nøgles side viser dens **Status**, dens **Hemmelig nøgle** bag **Klik for a
 | Erstatte en lækket hemmelighed | Klik på **Nulstil hemmelig nøgle**, og bekræft. Nøglen beholder sine indstillinger og får en ny hemmelighed. | `401`, indtil de sender den nye hemmelighed |
 | Stoppe en nøgle for altid | Klik på **Slet Indtagelsesnøgle** nederst på dens side. | `401` |
 
-For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Last Used At** holder op med at ændre sig. **Last Used At** opdateres hvert par minutter, ikke ved hver anmodning.
+For at skifte en hemmelighed uden at miste data skal du oprette en ny nøgle, flytte dine afsendere over til den og slette den gamle nøgle, når dens **Senest brugt den** holder op med at ændre sig. **Senest brugt den** opdateres hvert par minutter, ikke ved hver anmodning.
 
 ## Fejlfinding
 

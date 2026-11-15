@@ -1,4 +1,6 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
 import { useDefaultSsoTeamsInitialValues } from "@oneuptime/dashboard/Components/Sso/UseDefaultSsoTeams";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -66,6 +68,7 @@ import ScimOAuthClientCredentials from "../../Components/ScimOAuthClientCredenti
 const SCIMPage: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showSCIMUrlId, setShowSCIMUrlId] = useState<string>("");
   const [currentSCIMConfig, setCurrentSCIMConfig] =
     useState<ProjectSCIM | null>(null);
@@ -286,29 +289,33 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
       {showSCIMUrlId && currentSCIMConfig && (
         <ConfirmModal
-          title={`SCIM Configuration URLs`}
+          title="SCIM Configuration URLs"
           description={
             <div>
               <p className="text-gray-500 mb-4">
-                Use these URLs to configure SCIM in your identity provider:
+                {translator.translateText(
+                  "Use these URLs to configure SCIM in your identity provider:",
+                )}
               </p>
 
               <div className="space-y-4">
                 <div>
                   <p className="font-medium text-gray-700 mb-1">
-                    SCIM Base URL:
+                    {translator.translateText("SCIM Base URL:")}
                   </p>
                   <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
                   </code>
                   <p className="text-xs text-gray-500 mt-1">
-                    Use this as the SCIM endpoint URL in your identity provider
+                    {translator.translateText(
+                      "Use this as the SCIM endpoint URL in your identity provider",
+                    )}
                   </p>
                 </div>
 
                 <div>
                   <p className="font-medium text-gray-700 mb-1">
-                    Service Provider Config URL:
+                    {translator.translateText("Service Provider Config URL:")}
                   </p>
                   <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}
@@ -318,7 +325,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
                 <div>
                   <p className="font-medium text-gray-700 mb-1">
-                    Users Endpoint:
+                    {translator.translateText("Users Endpoint:")}
                   </p>
                   <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     {IDENTITY_URL.toString()}/scim/v2/{showSCIMUrlId}/Users
@@ -327,14 +334,17 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
 
                 <div>
                   <p className="font-medium text-gray-700 mb-1">
-                    Unique identifier field for users:
+                    {translator.translateText(
+                      "Unique identifier field for users:",
+                    )}
                   </p>
                   <code className="block p-2 bg-gray-100 rounded text-sm break-all">
                     userName
                   </code>
                   <p className="text-xs text-gray-500 mt-1">
-                    Use this field as the unique identifier for users in your
-                    identity provider SCIM configuration
+                    {translator.translateText(
+                      "Use this field as the unique identifier for users in your identity provider SCIM configuration",
+                    )}
                   </p>
                 </div>
 
@@ -344,7 +354,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                     data-testid="scim-bearer-token-section"
                   >
                     <p className="font-medium text-gray-700 mb-1">
-                      Bearer Token:
+                      {translator.translateText("Bearer Token:")}
                     </p>
                     <div className="mb-2">
                       <HiddenText
@@ -353,8 +363,9 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
                       />
                     </div>
                     <p className="text-xs text-gray-500">
-                      Use this bearer token for authentication in your identity
-                      provider SCIM configuration.
+                      {translator.translateText(
+                        "Use this bearer token for authentication in your identity provider SCIM configuration.",
+                      )}
                     </p>
                   </div>
                 )}
@@ -427,12 +438,18 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
           title="New Bearer Token"
           description={
             <div>
-              <p className="mb-3">Your new Bearer Token has been generated:</p>
+              <p className="mb-3">
+                {translator.translateText(
+                  "Your new Bearer Token has been generated:",
+                )}
+              </p>
               <div className="mb-2">
                 <HiddenText text={newBearerToken} isCopyable={true} />
               </div>
               <p className="text-sm text-gray-500">
-                Please update your identity provider with this new token.
+                {translator.translateText(
+                  "Please update your identity provider with this new token.",
+                )}
               </p>
             </div>
           }

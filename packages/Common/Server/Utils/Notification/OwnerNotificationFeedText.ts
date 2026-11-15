@@ -125,7 +125,7 @@ export default class OwnerNotificationFeedText {
       ? mdText`, as this ${data.recordNoun} has no owners yet`
       : mdText`, as it has no owners yet`;
 
-    return mdText`The project's owners ${data.sentence}${reason}.`.toString();
+    return mdText`The Project Owners ${data.sentence}${reason}.`.toString();
   }
 
   /*

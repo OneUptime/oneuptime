@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54285,
-    "untranslated": 8577
+    "keys": 54327,
+    "untranslated": 8526
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -25,6 +25,7 @@
     "Agent",
     "Alarm",
     "Alias",
+    "Amazon EKS",
     "Amphora",
     "Amphorae",
     "Analog",
@@ -38,6 +39,8 @@
     "Array",
     "Atmosphere",
     "Auto",
+    "Azure AKS",
+    "Azure Kubernetes Service.",
     "Backend",
     "Backup",
     "Backups",
@@ -110,6 +113,7 @@
     "Download CSV",
     "Download pprof",
     "Driver",
+    "EKS Fargate",
     "Edge",
     "Element",
     "Embedding",
@@ -134,10 +138,12 @@
     "Format",
     "Frustration",
     "Fuchsia",
+    "GKE Autopilot",
     "Gateway",
     "Gigahertz",
     "Global",
     "Golden Signals",
+    "Google GKE",
     "Google SecOps",
     "Google UDM",
     "Goroutines",

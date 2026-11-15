@@ -171,7 +171,9 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   icon={IconProp.Disc}
                   iconColor="emerald"
                   value={
-                    percent === null ? "—" : formatOpenStackPercent(percent)
+                    percent === null
+                      ? undefined
+                      : formatOpenStackPercent(percent)
                   }
                   percent={percent}
                   thresholds={{
@@ -191,12 +193,10 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   title="In state for"
                   icon={IconProp.Clock}
                   iconColor="slate"
-                  value={
-                    getOpenStackTimeInState(
-                      row,
-                      OneUptimeDate.getCurrentDate(),
-                    ) || "—"
-                  }
+                  value={getOpenStackTimeInState(
+                    row,
+                    OneUptimeDate.getCurrentDate(),
+                  )}
                   description="How long since OneUptime saw this database's status change. One already in this state when OneUptime first saw it counts from then."
                 />
               </>

@@ -139,7 +139,7 @@ No Copilot, conceda o consentimento do administrador para as permissões do Grap
 :::
 
 :::details Alguém não consegue ver as conversas
-**Quem pode ler as conversas** está em **Proprietários do projeto e Administradores do projeto**. Um proprietário ou administrador pode mudar isso com **Editar** na linha da conexão.
+**Quem pode ler as conversas** está em **Proprietários do projeto e Administradores do projeto**. Um Proprietário do projeto ou um Administrador do projeto pode mudar isso com **Editar** na linha da conexão.
 :::
 
 :::details As conversas mostram quem perguntou, mas não as palavras

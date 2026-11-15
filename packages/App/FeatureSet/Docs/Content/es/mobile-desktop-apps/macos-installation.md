@@ -67,7 +67,7 @@ En la aplicación, abra **Ajustes de usuario → Métodos de notificación** y l
 Haga clic en **Registrar dispositivo**, mantenga el valor sugerido en **Nombre del dispositivo**, por ejemplo `Safari on macOS`, o cámbielo, y vuelva a hacer clic en **Registrar dispositivo**. Cuando macOS o el navegador pregunten si OneUptime puede enviar notificaciones, elija **Permitir**.
 
 ### Enviar una prueba
-En el cuadro de diálogo **Browser Registered**, haga clic en **Send Test Notification**. Si no aparece nada, revise los ajustes de notificaciones del Mac: consulte [Solución de problemas](#solución-de-problemas).
+En el cuadro de diálogo **Navegador registrado**, haga clic en **Enviar notificación de prueba**. Si no aparece nada, revise los ajustes de notificaciones del Mac: consulte [Solución de problemas](#solución-de-problemas).
 :::
 
 Un navegador no puede sonar pese a un modo de concentración como No molestar. Para los avisos que deben despertarle, use la aplicación móvil con alertas críticas: consulte [Instalación en iOS](/docs/mobile-desktop-apps/ios-installation#sonar-pese-al-modo-silencio).

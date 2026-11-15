@@ -377,7 +377,7 @@ const InstanceOverview: FunctionComponent<{
           title="In state for"
           icon={IconProp.Clock}
           iconColor="slate"
-          value={timeInState || "—"}
+          value={timeInState}
           sublabel={row.status ? undefined : "Not reported"}
           description="How long since OneUptime saw this instance's status change. One already in this state when OneUptime first saw it counts from then."
         />
@@ -388,7 +388,7 @@ const InstanceOverview: FunctionComponent<{
             iconColor="blue"
             value={
               flavor.vcpuCapacity === undefined || flavor.vcpuCapacity === null
-                ? "—"
+                ? undefined
                 : translator.formatNumber(flavor.vcpuCapacity)
             }
             sublabel="from its flavor"
@@ -405,7 +405,7 @@ const InstanceOverview: FunctionComponent<{
             value={
               flavor.memoryCapacityBytes === undefined ||
               flavor.memoryCapacityBytes === null
-                ? "—"
+                ? undefined
                 : formatOpenStackBytes(flavor.memoryCapacityBytes)
             }
             sublabel="from its flavor"
@@ -422,7 +422,7 @@ const InstanceOverview: FunctionComponent<{
             value={
               flavor.diskCapacityBytes === undefined ||
               flavor.diskCapacityBytes === null
-                ? "—"
+                ? undefined
                 : formatOpenStackBytes(flavor.diskCapacityBytes)
             }
             sublabel="from its flavor"

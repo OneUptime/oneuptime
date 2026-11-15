@@ -224,7 +224,7 @@ Veja [Topologia](/docs/telemetry/topology).
 
 Uma meta de confiabilidade para o que você monitora, como estar no ar 99,9% do tempo em 30 dias. O OneUptime mede cada SLO a partir dos seus monitores a cada 5 minutos.
 
-Também chamado: **Service Level Objective**. Veja [Visão geral dos SLOs](/docs/slo/introduction).
+Também chamado: **Objetivo de nível de serviço**. Veja [Visão geral dos SLOs](/docs/slo/introduction).
 
 ### Orçamento de erros
 

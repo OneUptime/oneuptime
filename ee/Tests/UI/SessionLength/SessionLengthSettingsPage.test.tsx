@@ -457,6 +457,38 @@ describe("what the page reads and shows", () => {
     expect(description(IDLE)).toBe(SessionLengthCopy.idleSetDescription);
   });
 
+  /*
+   * The mobile app up to 1.6.0 is signed out at every renewal under the
+   * shortest idle timeout (issue #8593): said under it, and not at 30.
+   */
+  test("at 15 minutes without use, it says which mobile app that needs", async () => {
+    stored = { sessionIdleTimeoutInMinutes: 15 };
+
+    await openPage();
+
+    expect(shown(IDLE)).toBe("15 minutes");
+    expect(description(IDLE)).toBe(SessionLengthCopy.idleShortestDescription);
+    expect(description(IDLE)).toContain(
+      "The mobile app needs a version newer than 1.6.0",
+    );
+    expect(description(LENGTH)).not.toContain("1.6.0");
+  });
+
+  test("and the same under SSO sign-ins' own idle timeout", async () => {
+    stored = {
+      useSeparateSsoSessionLengths: true,
+      ssoSessionIdleTimeoutInMinutes: 15,
+      sessionIdleTimeoutInMinutes: 30,
+    };
+
+    await openPage();
+
+    expect(description(SSO_IDLE)).toBe(
+      SessionLengthCopy.idleShortestDescription,
+    );
+    expect(description(IDLE)).toBe(SessionLengthCopy.idleSetDescription);
+  });
+
   test("offers No limit, then 1 hour to 90 days; and 15 minutes to 14 days without use, then the 30 days of the default", async () => {
     await openPage();
 

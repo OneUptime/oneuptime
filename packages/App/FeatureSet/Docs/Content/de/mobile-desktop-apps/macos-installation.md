@@ -67,7 +67,7 @@ Die App zeigt Mitteilungen, sobald Sie sie in jedem Projekt, aus dem Sie sie bek
 Klicken Sie auf **Gerät registrieren**, behalten Sie im Feld **Gerätename** den Vorschlag, etwa `Safari on macOS`, oder ändern Sie ihn, und klicken Sie erneut auf **Gerät registrieren**. Wenn macOS oder der Browser fragt, ob OneUptime Mitteilungen senden darf, wählen Sie **Erlauben**.
 
 ### Einen Test senden
-Klicken Sie im Dialog **Browser Registered** auf **Send Test Notification**. Erscheint nichts, sehen Sie sich die Mitteilungseinstellungen des Mac an: siehe [Fehlerbehebung](#fehlerbehebung).
+Klicken Sie im Dialog **Browser registriert** auf **Testbenachrichtigung senden**. Erscheint nichts, sehen Sie sich die Mitteilungseinstellungen des Mac an: siehe [Fehlerbehebung](#fehlerbehebung).
 :::
 
 Ein Browser kann einen Fokus wie „Nicht stören“ nicht durchbrechen. Für Alarme, die Sie wecken müssen, nutzen Sie die mobile App mit kritischen Warnungen: siehe [iOS-Installation](/docs/mobile-desktop-apps/ios-installation#den-stummmodus-durchbrechen).

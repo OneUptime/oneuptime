@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` 是內建角色（PostgreSQL 10 及更新版本），授予對統計檢視和監控檢視的讀取權限。它不會授予任何對你資料表的存取權。
 
 > [!IMPORTANT]
-> **為什麼 `pg_monitor` 在 PostgreSQL 上不可省略。** 沒有它，`pg_stat_activity` 不會失敗——查詢會成功，但只傳回監控工作階段自己的那一列。於是，即使伺服器其實已經著火，連線數也會一直顯示 `1`，被封鎖的工作階段顯示 `0`，複寫延遲顯示 `0`。因此，探測器會在執行這些查詢**之前**檢查登入是否為 `pg_monitor`（或 `pg_read_all_stats`）的成員，或是超級使用者。如果都不是，探測器會把 Connections、Activity 和 Locks 群組回報為無法使用，並附上你需要的 `GRANT`。什麼都不回報才是誠實的答案；回報 `1` 則不是。
+> **為什麼 `pg_monitor` 在 PostgreSQL 上不可省略。** 沒有它，`pg_stat_activity` 不會失敗——查詢會成功，但只傳回監控工作階段自己的那一列。於是，即使伺服器其實已經著火，連線數也會一直顯示 `1`，被封鎖的工作階段顯示 `0`，複寫延遲顯示 `0`。因此，探測器會在執行這些查詢**之前**檢查登入是否為 `pg_monitor`（或 `pg_read_all_stats`）的成員，或是超級使用者。如果都不是，探測器會把 **連線**、**活動** 和 **鎖與阻塞** 群組回報為無法使用，並附上你需要的 `GRANT`。什麼都不回報才是誠實的答案；回報 `1` 則不是。
 
 在無法使用 `pg_monitor` 的代管服務上，`pg_read_all_stats` 涵蓋相同的檢視。在 Amazon RDS 上，不需要 `GRANT rds_superuser`——`GRANT pg_monitor TO oneuptime_health;` 以 `rds_superuser` 成員的身分即可執行。
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-MySQL 的 `performance_schema` 必須啟用（`performance_schema = ON`，自 5.6 起為預設值）。如果它被關閉，Connections、Throughput 和 Locks 群組會回報為無法使用，解決方法是重新啟動伺服器，而不是授予權限。
+MySQL 的 `performance_schema` 必須啟用（`performance_schema = ON`，自 5.6 起為預設值）。如果它被關閉，**連線**、**輸送量** 和 **鎖與阻塞** 群組會回報為無法使用，解決方法是重新啟動伺服器，而不是授予權限。
 
 ### Microsoft SQL Server 與 Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 如果從其他任何資料庫執行，`GRANT VIEW SERVER STATE` 會失敗並傳回 Msg 4621：「Permissions at the server scope can only be granted when the current database is master」。
 
 > [!WARNING]
-> **只有資料表的讀取權限是不夠的。** 只能讀取資料的登入（`db_datareader` 或任何其他「讀取權限」角色）可以連線，也能取得資料庫大小，但僅止於此。SQL Server 會以 `The user does not have permission to perform this action.`（Msg 297）拒絕監測器讀取的檢視。它前面的那則訊息會說明被拒絕的是什麼：伺服器檢視（包括交易記錄空間和 tempdb 可用空間）對應 Msg 300 `VIEW SERVER STATE`（在 2022 上為 `VIEW SERVER PERFORMANCE STATE`），複寫檢視對應 Msg 262 `VIEW DATABASE STATE`（在 2022 上為 `VIEW DATABASE PERFORMANCE STATE`）。監測器會保持上線，回報 Connections、Activity、Throughput、Locks、Storage 和 Replication 群組缺少權限，並在旁邊顯示上面的 `GRANT`。`VIEW SERVER STATE` 可以涵蓋所有這些群組。
+> **只有資料表的讀取權限是不夠的。** 只能讀取資料的登入（`db_datareader` 或任何其他「讀取權限」角色）可以連線，也能取得資料庫大小，但僅止於此。SQL Server 會以 `The user does not have permission to perform this action.`（Msg 297）拒絕監測器讀取的檢視。它前面的那則訊息會說明被拒絕的是什麼：伺服器檢視（包括交易記錄空間和 tempdb 可用空間）對應 Msg 300 `VIEW SERVER STATE`（在 2022 上為 `VIEW SERVER PERFORMANCE STATE`），複寫檢視對應 Msg 262 `VIEW DATABASE STATE`（在 2022 上為 `VIEW DATABASE PERFORMANCE STATE`）。監測器會保持上線，回報 **連線**、**活動**、**輸送量**、**鎖與阻塞**、**儲存空間** 和 **複寫** 群組缺少權限，並在旁邊顯示上面的 `GRANT`。`VIEW SERVER STATE` 可以涵蓋所有這些群組。
 >
 > 有兩個檢視不會拒絕：缺少該權限時，`sys.dm_exec_sessions` 和 `sys.dm_exec_requests` 會悄悄地只顯示監測器自己的工作階段。監測器從不單獨讀取它們，總是和一個會拒絕的檢視一起讀取，因此缺少權限永遠不會被記錄成「1 個連線」。
 
@@ -151,7 +151,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 探測器是透過 `SERVERPROPERTY('EngineEdition')` 而不是版本來識別 Azure SQL Database——無論實際執行的是什麼，Azure SQL Database 都會回報 `12.0.2000.8`，看起來就像 SQL Server 2014。因此，監測器的 **引擎** 會顯示 `Azure SQL Database 12.0.2000.8`，缺少的權限會顯示為上面的 Azure 陳述式，而絕不會顯示為 `VIEW SERVER STATE`。
 
-- **在 Azure SQL Database 上不收集複寫資訊。** Azure SQL Database 沒有 `sys.dm_hadr_database_replica_states`，因此 Replication 群組在那裡會被略過，而不是每次檢查都回報失敗。Azure 自己的複本檢視（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）目前尚未讀取。
+- **在 Azure SQL Database 上不收集複寫資訊。** Azure SQL Database 沒有 `sys.dm_hadr_database_replica_states`，因此 **複寫** 群組在那裡會被略過，而不是每次檢查都回報失敗。Azure 自己的複本檢視（`sys.dm_database_replica_states`、`sys.dm_geo_replication_link_status`）目前尚未讀取。
 - **連線以資料庫為單位計算。** 使用 `VIEW DATABASE STATE` 時，Azure SQL Database 只會顯示受監控資料庫的工作階段，所以 **連線** 計算的是該資料庫，而不是邏輯伺服器。請分別監控你在意的每個資料庫。
 - **在彈性集區中，「TempDB 可用空間」是整個集區的值。** 集區中的資料庫共用同一個 tempdb。
 
@@ -221,17 +221,17 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ## 指標群組
 
-群組是你開啟或關閉的單位，也是回報缺少權限的單位。設計群組，是為了讓缺少一個權限只損失一個群組，而不是整個監測器。一個群組的陳述式會逐一執行，因此一個群組可能只被部分收集：這時它會同時出現在 `collectedGroups` 和 `unavailableGroups` 中。常見的情況是沒有 `VIEW SERVER STATE` 的登入在 SQL Server 上的 Storage 群組——資料庫大小會被收集，記錄空間和 tempdb 可用空間則不會。
+群組是你開啟或關閉的單位，也是回報缺少權限的單位。設計群組，是為了讓缺少一個權限只損失一個群組，而不是整個監測器。一個群組的陳述式會逐一執行，因此一個群組可能只被部分收集：這時它會同時出現在 `collectedGroups` 和 `unavailableGroups` 中。常見的情況是沒有 `VIEW SERVER STATE` 的登入在 SQL Server 上的 **儲存空間** 群組——資料庫大小會被收集，記錄空間和 tempdb 可用空間則不會。
 
 | 群組 | 收集的內容 | 需要 |
 |---|---|---|
 | 連線 | 連線數、設定的上限、中止的連線、伺服器運作時間 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
-| Activity | 執行最久的查詢、開啟最久的交易、開啟中的交易 | PostgreSQL：`pg_monitor`。MySQL：`PROCESS`。SQL Server：`VIEW SERVER STATE` |
+| 活動 | 執行最久的查詢、開啟最久的交易、開啟中的交易 | PostgreSQL：`pg_monitor`。MySQL：`PROCESS`。SQL Server：`VIEW SERVER STATE` |
 | 輸送量 | 交易、查詢、快取命中率、磁碟讀寫、I/O 時間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
-| Locks | 被封鎖的工作階段、鎖定等待、死結、資料表鎖定等待 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
-| Storage | 資料庫大小、溢出到暫存檔、記錄空間、tempdb 可用空間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：對該資料庫的 `SELECT`。SQL Server：資料庫大小不需權限；記錄空間和 tempdb 可用空間需要 `VIEW SERVER STATE` |
-| Replication | 已連線的複本、以秒和位元組計的複寫延遲、非作用中的槽位、復原狀態 | PostgreSQL：`pg_monitor`。MySQL：`REPLICATION CLIENT`。SQL Server：`VIEW SERVER STATE`；在 Azure SQL Database 上不收集 |
-| Maintenance | 距交易 ID 迴繞的餘裕、死元組、從未被 autovacuum 處理過的資料表、檢查點 | PostgreSQL：`pg_monitor` |
+| 鎖與阻塞 | 被封鎖的工作階段、鎖定等待、死結、資料表鎖定等待 | PostgreSQL：`pg_monitor`。MySQL：`performance_schema`。SQL Server：`VIEW SERVER STATE` |
+| 儲存空間 | 資料庫大小、溢出到暫存檔、記錄空間、tempdb 可用空間 | PostgreSQL：除 `CONNECT` 外不需其他權限。MySQL：對該資料庫的 `SELECT`。SQL Server：資料庫大小不需權限；記錄空間和 tempdb 可用空間需要 `VIEW SERVER STATE` |
+| 複寫 | 已連線的複本、以秒和位元組計的複寫延遲、非作用中的槽位、復原狀態 | PostgreSQL：`pg_monitor`。MySQL：`REPLICATION CLIENT`。SQL Server：`VIEW SERVER STATE`；在 Azure SQL Database 上不收集 |
+| 維護 | 距交易 ID 迴繞的餘裕、死元組、從未被 autovacuum 處理過的資料表、檢查點 | PostgreSQL：`pg_monitor` |
 
 在 Azure SQL Database 上，凡是此表寫著 `VIEW SERVER STATE` 的地方，都請改看成 `VIEW DATABASE STATE`——在 Basic、S0、S1 和彈性集區上則是 `##MS_ServerStateReader##`。請參閱 [Azure SQL Database](#azure-sql-database)。
 
@@ -264,7 +264,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - **SQL Server 或 Azure SQL Managed Instance**——`GRANT VIEW SERVER STATE TO oneuptime_health;`，在 `master` 中執行（監測器會將它顯示為 `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`）。
 - **Azure SQL Database**——`GRANT VIEW DATABASE STATE TO oneuptime_health;`，在受監控的資料庫中執行；在 Basic、S0、S1 和彈性集區上，則改為加入 `##MS_ServerStateReader##`。請參閱 [Azure SQL Database](#azure-sql-database)。
 
-在這段期間，資料庫大小仍會持續被收集，因為它是 Storage 群組中唯一任何登入都能讀取的指標。
+在這段期間，資料庫大小仍會持續被收集，因為它是 **儲存空間** 群組中唯一任何登入都能讀取的指標。
 
 ## 收集的指標
 
@@ -296,18 +296,18 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **查詢** | `oneuptime.monitor.database.queries.total` | 輸送量 | MySQL, SQL Server |
 | **慢查詢** | `oneuptime.monitor.database.queries.slow.total` | 輸送量 | MySQL |
 | **回滾比率** (%) | `oneuptime.monitor.database.rollback.percent` | 輸送量 | PostgreSQL |
-| **執行時間最長的查詢** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **開啟時間最長的交易** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **開啟的交易** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **執行時間最長的查詢** (s) | `oneuptime.monitor.database.query.longest.seconds` | 活動 | PostgreSQL, MySQL, SQL Server |
+| **開啟時間最長的交易** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | 活動 | PostgreSQL, MySQL, SQL Server |
+| **開啟的交易** | `oneuptime.monitor.database.transaction.open.count` | 活動 | MySQL |
 
-### 鎖定與封鎖
+### 鎖與阻塞
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **被阻塞的工作階段** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **鎖等待** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **死結** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **表鎖等待** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **被阻塞的工作階段** | `oneuptime.monitor.database.sessions.blocked` | 鎖與阻塞 | PostgreSQL, MySQL, SQL Server |
+| **鎖等待** | `oneuptime.monitor.database.locks.waiting` | 鎖與阻塞 | PostgreSQL, MySQL, SQL Server |
+| **死結** | `oneuptime.monitor.database.deadlocks.total` | 鎖與阻塞 | PostgreSQL, SQL Server |
+| **表鎖等待** | `oneuptime.monitor.database.table.locks.waited.total` | 鎖與阻塞 | MySQL |
 
 標準 MySQL 不提供任何形式的死結計數器，所以 **死結** 只存在於 PostgreSQL 和 SQL Server 上。
 
@@ -325,25 +325,25 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 只有在 `track_io_timing` 開啟時，PostgreSQL 才會測量 I/O 讀寫時間。它預設是關閉的，這時 PostgreSQL 會把兩者都回報為 `0`——所以在 PostgreSQL 上，這兩個序列一直是零通常表示「沒有測量」，而不是「很快」。這是伺服器設定，不是權限問題。
 
-### 儲存容量
+### 儲存空間
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **資料庫大小** (位元組) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **寫入的臨時位元組** (位元組) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **磁碟臨時表** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **已用日誌空間** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB 可用空間** (位元組) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **資料庫大小** (位元組) | `oneuptime.monitor.database.size.bytes` | 儲存空間 | PostgreSQL, MySQL, SQL Server |
+| **寫入的臨時位元組** (位元組) | `oneuptime.monitor.database.temp.bytes.total` | 儲存空間 | PostgreSQL |
+| **磁碟臨時表** | `oneuptime.monitor.database.temp.disk.tables.total` | 儲存空間 | MySQL |
+| **已用日誌空間** (%) | `oneuptime.monitor.database.log.space.used.percent` | 儲存空間 | SQL Server |
+| **TempDB 可用空間** (位元組) | `oneuptime.monitor.database.tempdb.free.bytes` | 儲存空間 | SQL Server |
 
 ### 複寫
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **已連線的副本** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **複寫延遲** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **複寫延遲（位元組）** (位元組) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **處於恢復中** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **不活動的複寫槽** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **已連線的副本** | `oneuptime.monitor.database.replica.count` | 複寫 | PostgreSQL, SQL Server |
+| **複寫延遲** (s) | `oneuptime.monitor.database.replication.lag.seconds` | 複寫 | PostgreSQL, MySQL |
+| **複寫延遲（位元組）** (位元組) | `oneuptime.monitor.database.replication.lag.bytes` | 複寫 | PostgreSQL, SQL Server |
+| **處於恢復中** | `oneuptime.monitor.database.is.in.recovery` | 複寫 | PostgreSQL |
+| **不活動的複寫槽** | `oneuptime.monitor.database.replication.slots.inactive` | 複寫 | PostgreSQL |
 
 複寫指標會從監測器所連線的那一端回報。把一個監測器指向主要伺服器，可以看到已連線的複本和傳送佇列；為每個待命伺服器各指向一個監測器，可以看到該待命伺服器實際落後了多少。
 
@@ -353,11 +353,11 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | 指標 | 序列 | Group | Engines |
 |---|---|---|---|
-| **已用交易 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **死元群組** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **從未執行 autovacuum 的表** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **請求的檢查點** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **定時檢查點** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **已用交易 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | 維護 | PostgreSQL |
+| **死元群組** | `oneuptime.monitor.database.dead.tuples` | 維護 | PostgreSQL |
+| **從未執行 autovacuum 的表** | `oneuptime.monitor.database.tables.never.autovacuumed` | 維護 | PostgreSQL |
+| **請求的檢查點** | `oneuptime.monitor.database.checkpoints.requested.total` | 維護 | PostgreSQL |
+| **定時檢查點** | `oneuptime.monitor.database.checkpoints.timed.total` | 維護 | PostgreSQL |
 
 > [!IMPORTANT]
 > **已用交易 ID** 值得在你建立的每個 PostgreSQL 監測器上設定一個條件。它達到 100% 時，PostgreSQL 會拒絕所有寫入，復原需要在資料庫停機的情況下以單一使用者模式執行 vacuum，而幾乎沒有人關注它。請在離懸崖還很遠時就發出警示——對大多數工作負載而言，80% 還留有好幾天的餘裕。
@@ -371,7 +371,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | 篩選器類型 | 檢查的內容 |
 |---|---|
 | **資料庫是否在線** | 資料庫是否可連線，以及探測查詢是否成功。這是監測器建立時附帶的離線條件，也是唯一反映可連線性的檢查。 |
-| **資料庫指標** | 選擇一個指標並進行比較：大於、小於、大於或等於、小於或等於、等於或不等於。指標選擇器只會提供所選引擎能產生的指標，所以你無法建立一個永遠不會滿足的條件（有一個例外：為 Microsoft SQL Server 提供的 Replication 指標在 Azure SQL Database 上從不收集）。如果某次檢查沒有收集到該指標——群組失敗了，或引擎不回報它——篩選器不會符合，也不會以「false」符合：它會被略過。權限問題不會呼叫任何人。 |
+| **資料庫指標** | 選擇一個指標並進行比較：大於、小於、大於或等於、小於或等於、等於或不等於。指標選擇器只會提供所選引擎能產生的指標，所以你無法建立一個永遠不會滿足的條件（有一個例外：為 Microsoft SQL Server 提供的 **複寫** 指標在 Azure SQL Database 上從不收集）。如果某次檢查沒有收集到該指標——群組失敗了，或引擎不回報它——篩選器不會符合，也不會以「false」符合：它會被略過。權限問題不會呼叫任何人。 |
 | **資料庫收集錯誤** | 這次檢查的收集問題摘要，每個無法使用的群組一則「群組: 訊息」。在它不為空時發出警示，可以察覺可見度的喪失；也可以用「包含」盯住某個特定群組。 |
 | **JavaScript 運算式** | 完全掌控。請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。 |
 
@@ -433,11 +433,11 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 離線表示探測器無法連線，或探測查詢失敗：探測器連不到主機或連接埠、登入被拒、TLS 失敗，或連線逾時。監測器摘要會顯示錯誤。請確認探測器能連到資料庫（OneUptime 代管的探測器需要公開位址；否則請使用[自訂探測器](/docs/probe/custom-probe)），檢查使用者名稱和密碼或其監測器密鑰，並在使用自我簽署憑證時關閉 **Verify server certificate**。然後按一下**測試監測器**再檢查一次。
 :::
 
-:::details PostgreSQL 上缺少 Connections、Activity 和 Locks
+:::details PostgreSQL 上缺少 **連線**、**活動** 和 **鎖與阻塞**
 登入既不是 `pg_monitor` 也不是 `pg_read_all_stats` 的成員，也不是超級使用者，因此探測器會略過這些群組，而不是記錄錯誤的數值。請依 [PostgreSQL](#postgresql) 中的說明執行 `GRANT pg_monitor TO oneuptime_health;`。
 :::
 
-:::details MySQL 上缺少 Connections、Throughput 和 Locks
+:::details MySQL 上缺少 **連線**、**輸送量** 和 **鎖與阻塞**
 要不是登入缺少對 `performance_schema` 的 `SELECT`，就是伺服器上的 `performance_schema` 被關閉了；監測器摘要會顯示 MySQL 的訊息。如果是缺少權限，請執行 [MySQL](#mysql) 中的陳述式。被關閉的 `performance_schema` 需要在伺服器設定中設為 `performance_schema = ON` 並重新啟動。
 :::
 

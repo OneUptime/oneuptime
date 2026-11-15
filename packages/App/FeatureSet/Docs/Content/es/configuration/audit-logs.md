@@ -43,7 +43,7 @@ Vaya a **Ajustes del proyecto → Registros de auditoría → Ajustes**. **Regis
 
 ### Editar los ajustes
 
-Haga clic en **Edit Audit Log Settings**.
+Haga clic en **Editar los ajustes de los registros de auditoría**.
 
 ### Activarlo
 

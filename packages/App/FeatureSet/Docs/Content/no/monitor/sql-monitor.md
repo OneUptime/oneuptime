@@ -151,7 +151,7 @@ Velg **Sonder** som når databasen, og et **Overvåkingsintervall**, og klikk de
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor lenge det ventes på å opprette en tilkobling. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den harde grensen for hvor lenge spørringen kan kjøre. |
-| **Max Rows** | `100` | `1000` | Den øvre grensen for hvor mange rader som leses tilbake fra databasen. |
+| **Maks. rader** | `100` | `1000` | Den øvre grensen for hvor mange rader som leses tilbake fra databasen. |
 
 En verdi over maksimum senkes til maksimum.
 

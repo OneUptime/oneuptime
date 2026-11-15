@@ -68,6 +68,7 @@ import {
   getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { NO_NOTIFICATION_RULES_STATUS_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallPageLine";
+import { getUserOnCallLogRecordAcknowledgedMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageEnding";
 import {
   PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS,
   WHO_MAY_TURN_THEM_ON,
@@ -922,7 +923,7 @@ describe("when a page finds no rule", () => {
       "const NOTIFICATION_WINDOW_IN_MS: number = 24 * 60 * 60 * 1000;",
     );
     expect(english(REACHING_YOU)).toContain(
-      "You get an email saying so, and so do the on-call policy's owners, or the project's owners when the policy has none.",
+      "You get an email saying so, and so do the on-call policy's owners, or the Project Owners when the policy has none.",
     );
   });
 
@@ -1718,6 +1719,10 @@ describe("personal on-call rules", () => {
     );
 
     expect(pending).toContain("EVERY_MINUTE");
+    /*
+     * The page's ending is written by the shared builder (dc9e9009f7a),
+     * once for each kind of record a page can be about.
+     */
     for (const record of [
       "incident",
       "alert",
@@ -1725,7 +1730,10 @@ describe("personal on-call rules", () => {
       "incident episode",
     ]) {
       expect(pending).toContain(
-        `"Execution completed because ${record} is acknowledged."`,
+        `getUserOnCallLogRecordAcknowledgedMessage("${record}")`,
+      );
+      expect(getUserOnCallLogRecordAcknowledgedMessage(record)).toBe(
+        `Execution completed because ${record} is acknowledged.`,
       );
     }
     expect(rules).toContain(
@@ -2252,7 +2260,7 @@ describe("notification settings", () => {
       "AlertOwnerTeamService.findBy(",
     );
     expect(settings).toContain(
-      "When a record has no owners, it goes to the project's owners instead.",
+      "When a record has no owners, it goes to the Project Owners instead.",
     );
   });
 

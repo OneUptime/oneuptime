@@ -312,7 +312,7 @@ To tilfeller sender med vilje ingenting, og registrerer hvorfor:
 - **Det opprinnelige varselet er ikke sendt ennå.** Hvis en kunngjøring eller et notat fortsatt venter på å bli kunngjort, leser det varselet elementet når det sendes, og har allerede redigeringen din, så en egen melding om "oppdatert" ville bare forvirret folk. Hvis originalen sendes akkurat da, venter oppdateringen i stedet og sendes når originalen er ferdig: den utsendingen leste elementet før redigeringen din, så abonnentene kan ha fått teksten fra før den.
 - **Kunngjøringen er planlagt til senere.** Til **Begynn å vise kunngjøring fra** er passert, er den ikke på noen statusside, og den som blir varslet når den går live, ser den redigerte versjonen.
 
-Det redigerte elementet viser en **Oppdateringsvarselsstatus** ved siden av den opprinnelige, med de samme tilstandene (**Sending Soon**, **Varsler sendt**, **Mislyktes** og så videre). **Prøv på nytt** på et mislykket oppdateringsvarsel sender oppdateringen på nytt, aldri den opprinnelige meldingen om "publisert". Hver statusside kan tilpasse disse meldingene med malhendelsestypene **Subscriber Announcement Updated**, **Subscriber Incident Note Updated**, **Subscriber Scheduled Maintenance Note Updated** og **Subscriber Episode Note Updated**; uten en egendefinert mal brukes den innebygde oppdateringsteksten.
+Det redigerte elementet viser en **Oppdateringsvarselsstatus** ved siden av den opprinnelige, med de samme tilstandene (**Sending Soon**, **Varsler sendt**, **Mislyktes** og så videre). **Prøv på nytt** på et mislykket oppdateringsvarsel sender oppdateringen på nytt, aldri den opprinnelige meldingen om "publisert". Hver statusside kan tilpasse disse meldingene med malhendelsestypene **Kunngjøring oppdatert**, **Hendelsesnotat oppdatert**, **Notat for vedlikeholdshendelse oppdatert** og **Notat for hendelsesepisode oppdatert**; uten en egendefinert mal brukes den innebygde oppdateringsteksten.
 
 Via API-et sender du valget ved siden av feltene du endrer, i `miscDataProps`:
 
@@ -399,7 +399,7 @@ En statusside kan sende abonnentene sine en rapport via e-post etter en tidsplan
 - **Å slå av rapporter** beholder tidsplanen. Slått på igjen sendes rapporter etter den igjen fra neste dato, så en side som var av i en måned, sender ikke rapporten den gikk glipp av.
 - **Send testrapport**, under kortet, sender en rapport via e-post til en adresse du oppgir, slik at du kan se hva abonnenter får, uansett om rapporter er på eller ikke. Den krever det samme som å slå på rapporter: tillatelse til å redigere siden og, på OneUptime Cloud, abonnementet **Growth**.
 
-Rapporter går til sidens e-postabonnenter; abonnenter via SMS, Slack, Microsoft Teams og webhook får dem ikke. En mal **Subscriber Report** som er knyttet til siden, erstatter den innebygde e-posten når siden har en **Egendefinert SMTP-konfigurasjon** (se [Å tilpasse varselmaler](#å-tilpasse-varselmaler)). På OneUptime Cloud krever det abonnementet **Growth** eller høyere å slå på rapporter, og på et lavere abonnement står abonnementets navn ved bryteren. Å slå dem av fungerer på alle abonnementer, så en side som en prøveperiode lot sende rapporter, alltid kan stoppe: bryteren sier det under seg, og å slå på rapporter igjen krever **Growth**.
+Rapporter går til sidens e-postabonnenter; abonnenter via SMS, Slack, Microsoft Teams og webhook får dem ikke. En mal **Rapport til abonnenter** som er knyttet til siden, erstatter den innebygde e-posten når siden har en **Egendefinert SMTP-konfigurasjon** (se [Å tilpasse varselmaler](#å-tilpasse-varselmaler)). På OneUptime Cloud krever det abonnementet **Growth** eller høyere å slå på rapporter, og på et lavere abonnement står abonnementets navn ved bryteren. Å slå dem av fungerer på alle abonnementer, så en side som en prøveperiode lot sende rapporter, alltid kan stoppe: bryteren sier det under seg, og å slå på rapporter igjen krever **Growth**.
 
 **Via API-et eller Terraform** gir det siden den samme standardtidsplanen å slå på `isReportEnabled` uten `reportStartDateTime` eller `reportRecurringInterval`, i stedet for å la rapporter være på uten noe planlagt. En tidsplan du sender med, beholdes, og det samme gjør en siden allerede har. Send `reportRecurringInterval` uten `reportStartDateTime`, så sendes den første rapporten kl. 09:00 ved starten av neste periode i det intervallet: neste dag for en daglig tidsplan, neste mandag for en ukentlig, den 1. i neste måned for en månedlig og 1. januar for en årlig; en tidsplan per time starter ved neste hele time. Serveren beregner `sendNextReportBy`, tidspunktet neste rapport sendes, og avviser en `reportStartDateTime` eller `reportRecurringInterval` den ikke kan lese.
 
@@ -425,7 +425,7 @@ Ingenting av dette trengs for å få egendefinerte hendelsesfelt med i meldinger
 
 ### Hendelsesvariabler
 
-Maler for de fem hendelsestypene for hendelser — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** og **Subscriber Incident Postmortem Published** — kan bruke disse i tillegg til sine egne variabler:
+Maler for de fem hendelsestypene for hendelser — **Hendelse opprettet**, **Hendelsestilstand endret**, **Hendelsesnotat opprettet**, **Hendelsesnotat oppdatert** og **Etteranalyse for hendelse publisert** — kan bruke disse i tillegg til sine egne variabler:
 
 | Variabel | Fylles med |
 | --- | --- |
@@ -441,7 +441,7 @@ Nøkkelen er feltets **Malvariabel**, som ikke endres når feltet får nytt navn
 
 ### Tilstanden i notatmaler
 
-Maler for **Subscriber Incident Note Created** og **Subscriber Scheduled Maintenance Note Created** kan nevne hendelsens tilstand med `{{incidentState}}` og `{{scheduledMaintenanceState}}`. For et notat som publiseres med en tilstandsendring, er det tilstanden endringen gikk til, selv om hendelsen har gått videre når meldingen sendes; for alle andre notater er det hendelsens tilstand når meldingen sendes. Malene **Note Updated** får hendelsens tilstand når oppdateringen sendes. En egendefinert e-postmal uten eget emne faller for et notat som publiseres med en tilstandsendring, tilbake på tilstandsendringens emne: `[Incident Resolved] <title>` eller `[Scheduled Maintenance Ongoing] <title>`.
+Maler for **Hendelsesnotat opprettet** og **Notat for vedlikeholdshendelse opprettet** kan nevne hendelsens tilstand med `{{incidentState}}` og `{{scheduledMaintenanceState}}`. For et notat som publiseres med en tilstandsendring, er det tilstanden endringen gikk til, selv om hendelsen har gått videre når meldingen sendes; for alle andre notater er det hendelsens tilstand når meldingen sendes. Malene **Note Updated** får hendelsens tilstand når oppdateringen sendes. En egendefinert e-postmal uten eget emne faller for et notat som publiseres med en tilstandsendring, tilbake på tilstandsendringens emne: `[Incident Resolved] <title>` eller `[Scheduled Maintenance Ongoing] <title>`.
 
 ### Sett inn variabler
 

@@ -138,7 +138,7 @@ Nella scheda **Saldo attuale** della pagina, fai clic su **Ricarica saldo**. Ins
 Nella scheda **Ricarica automatica**, fai clic su **Modifica: Ricarica automatica** e attiva **Abilita ricarica automatica**. All'inizio è disattivata. Una volta attiva, OneUptime aggiunge $20 ogni volta che il saldo scende a $10, oppure gli importi che scegli.
 :::
 
-Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si ferma, e i proprietari del progetto ricevono un'email. Vedi [Quando una chiamata non viene inviata](/docs/on-call/escalation-rules#quando-un-avviso-non-viene-inviato) e [Quando i crediti IA finiscono](/docs/ai/ai-sre#quando-i-crediti-ia-si-esauriscono).
+Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si ferma, e i Proprietari del progetto ricevono un'email. Vedi [Quando una chiamata non viene inviata](/docs/on-call/escalation-rules#quando-un-avviso-non-viene-inviato) e [Quando i crediti IA finiscono](/docs/ai/ai-sre#quando-i-crediti-ia-si-esauriscono).
 
 ## Chi può fare che cosa
 

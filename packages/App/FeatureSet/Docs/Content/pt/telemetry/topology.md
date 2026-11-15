@@ -51,12 +51,12 @@ Cada serviço mostra o seu estado, calculado a partir das chamadas que recebeu n
 | Estado | Quando |
 | --- | --- |
 | **Íntegro** | No máximo 1% das chamadas recebidas falhou. |
-| **Some errors** | Mais de 1% e menos de 5% falharam. |
-| **High error rate** | 5% ou mais falharam. |
-| **Entry point** | Não recebeu chamadas, mas fez algumas: um frontend web ou uma tarefa agendada. |
-| **No calls observed** | Não fez nem recebeu nenhuma chamada. |
+| **Alguns erros** | Mais de 1% e menos de 5% falharam. |
+| **Taxa de erros alta** | 5% ou mais falharam. |
+| **Ponto de entrada** | Não recebeu chamadas, mas fez algumas: um frontend web ou uma tarefa agendada. |
+| **Nenhuma chamada observada** | Não fez nem recebeu nenhuma chamada. |
 
-Um serviço com um incidente ou um alerta ativo mostra quantos tem, e, como um serviço com **Some errors** ou com **High error rate**, conta como um que requer atenção.
+Um serviço com um incidente ou um alerta ativo mostra quantos tem, e, como um serviço com o estado **Alguns erros** ou **Taxa de erros alta**, conta como um que requer atenção.
 
 :::steps
 ### Encontrar os serviços que requerem atenção

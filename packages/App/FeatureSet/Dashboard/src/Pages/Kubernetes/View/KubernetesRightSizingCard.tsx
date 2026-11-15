@@ -367,7 +367,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             iconColor="emerald"
             value={
               isLoading || !summary
-                ? "—"
+                ? undefined
                 : formatCost(summary.totalMonthlySavings)
             }
             sublabel="per month, if applied"
@@ -381,7 +381,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             iconColor="amber"
             value={
               isLoading || !summary
-                ? "—"
+                ? undefined
                 : translator.formatNumber(summary.overprovisionedCount)
             }
             sublabel="containers asking for too much"
@@ -395,7 +395,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             iconColor="violet"
             value={
               isLoading || !summary
-                ? "—"
+                ? undefined
                 : translator.formatNumber(summary.underprovisionedCount)
             }
             sublabel="throttle or OOM risk"
@@ -409,7 +409,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             iconColor="slate"
             value={
               isLoading || !summary
-                ? "—"
+                ? undefined
                 : translator.formatNumber(summary.analyzedCount)
             }
             sublabel="containers with cost data"

@@ -824,7 +824,7 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(feedService.createAlertFeedItem).toHaveBeenCalledWith(
       expect.objectContaining({
         feedInfoInMarkdown:
-          "The project's owners were notified that this alert is now **Acknowledged**, as it has no owners yet.",
+          "The Project Owners were notified that this alert is now **Acknowledged**, as it has no owners yet.",
       }),
     );
   });
