@@ -283,5 +283,5 @@ De sonde heeft een Microsoft ODBC Driver for SQL Server nodig en een identiteit 
 - [Databasegezondheid-monitor](/docs/monitor/database-health-monitor): Verbindingen, vergrendelingen en replicatie bewaken zonder SQL te schrijven.
 - [Monitor-geheimen](/docs/monitor/monitor-secrets): Het databasewachtwoord versleuteld bewaren.
 - [JavaScript-expressies](/docs/monitor/javascript-expression): Criteria schrijven die meerdere waarden combineren.
-- [Aangepaste probes](/docs/probe/custom-probe): Controles vanuit uw eigen netwerk uitvoeren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Controles vanuit uw eigen netwerk uitvoeren.
 :::

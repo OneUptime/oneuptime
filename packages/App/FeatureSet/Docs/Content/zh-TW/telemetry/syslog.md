@@ -28,7 +28,7 @@ flowchart TB
 OneUptime 一讀完要求中的訊息就會回應，稍後再剖析並儲存它們。訊息文字會保留在日誌內文中，其他所有內容都會成為屬性。
 
 > [!TIP]
-> 網路設備可以不經轉送站、直接透過 UDP 或 TCP 把 syslog 傳送到 OneUptime 探針，隨後 OneUptime 會把各廠商的訊息讀取為該設備上的事件。請參閱[網路事件](/docs/monitor/network-events)。
+> 網路設備可以不經轉送站、直接透過 UDP 或 TCP 把 syslog 傳送到 OneUptime 探測器，隨後 OneUptime 會把各廠商的訊息讀取為該設備上的事件。請參閱[網路事件](/docs/monitor/network-events)。
 
 ## 開始之前
 

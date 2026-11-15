@@ -164,7 +164,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## De service-YAML met een sidecar
 
-De collector leest zijn hele configuratie uit `OTEL_COLLECTOR_CONFIG` (`--config=env:OTEL_COLLECTOR_CONFIG`), en het token uit het geheim via `${env:ONEUPTIME_TOKEN}`. De annotatie `run.googleapis.com/container-dependencies` laat Cloud Run eerst de collector starten en op zijn startup probe wachten voordat de applicatie start:
+De collector leest zijn hele configuratie uit `OTEL_COLLECTOR_CONFIG` (`--config=env:OTEL_COLLECTOR_CONFIG`), en het token uit het geheim via `${env:ONEUPTIME_TOKEN}`. De annotatie `run.googleapis.com/container-dependencies` laat Cloud Run eerst de collector starten en op zijn startup sonde wachten voordat de applicatie start:
 
 ```yaml title="service.yaml"
 apiVersion: serving.knative.dev/v1
@@ -282,7 +282,7 @@ Het runtime-serviceaccount mist `roles/secretmanager.secretAccessor` op het gehe
 :::
 
 :::details Cloud Run weigert container-dependencies
-De annotatie noemt een container die niet bestaat, of de collector heeft geen startup probe, zodat Cloud Run niet kan zien wanneer hij klaar is.
+De annotatie noemt een container die niet bestaat, of de collector heeft geen startup sonde, zodat Cloud Run niet kan zien wanneer hij klaar is.
 :::
 
 :::details De service staat onder Serverless functies, maar er bestaat geen omgeving

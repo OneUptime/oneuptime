@@ -1,4 +1,4 @@
-# Aangepaste probes
+# Aangepaste sondes
 
 Een aangepaste sonde is een kleine agent die u in uw eigen netwerk draait. Hij controleert de monitors waaraan u hem toevoegt, zoals interne websites, API's en servers achter uw firewall, en stuurt de resultaten naar OneUptime. Hij maakt alleen uitgaande verbindingen, via HTTPS, dus niets in uw netwerk hoeft verbindingen vanaf internet te accepteren. Om te kiezen tussen een sonde, een agent, een collector en een Runner, zie [Welke gebruik ik?](/docs/introduction/which-one#sonde-agent-collector-of-runner).
 
@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **De sonde maakt verbinding naar buiten.** Elk verzoek gaat van de sonde naar `ONEUPTIME_URL` via HTTPS. Niets hoeft de sonde van buiten uw netwerk te bereiken.
 - **Hij controleert alleen zijn eigen monitors.** De sonde vraagt OneUptime om de monitors waaraan hij is toegevoegd, controleert elk ervan wanneer het aan de beurt is en stuurt het resultaat terug. OneUptime beslist aan de hand van de resultaten of de status van een monitor verandert.
-- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de eigenaren van het project bericht. Om net als bij elke storing gewaarschuwd te worden, met één incident tot de sonde terug is, voegt u een [probestatusmonitor](/docs/monitor/probe-status-monitor) toe: **Deze probe bewaken** op de pagina van de sonde maakt er een.
+- **OneUptime let erop dat hij draait.** Elk verzoek van de sonde telt als levensteken, en de sonde stuurt er minstens één per minuut. Na ongeveer drie minuten zonder verzoek toont de sonde **Verbinding verbroken**, en krijgen zijn eigenaren bericht. Heeft een sonde geen eigenaren, dan krijgen de eigenaren van het project bericht. Om net als bij elke storing gewaarschuwd te worden, met één incident tot de sonde terug is, voegt u een [sondestatusmonitor](/docs/monitor/probe-status-monitor) toe: **Deze sonde bewaken** op de pagina van de sonde maakt er een.
 
 ## Voordat u begint
 
@@ -42,7 +42,7 @@ Open **Monitoren → Instellingen → Sondes** en klik op **Sonde aanmaken**. Ge
 
 ### De ID en sleutel kopiëren
 
-De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste probes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan projecteigenaren en -beheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
+De sonde heeft zijn ID en sleutel nodig om verbinding te maken. Om ze te kopiëren opent u het menu van de sonde in de tabel **Aangepaste sondes** en kiest u **ID en sleutel tonen**. Iedereen die de tabel ziet, kan de ID van een sonde kopiëren; de sleutel wordt alleen getoond aan projecteigenaren en -beheerders, die **ID en sleutel tonen** zien waar de anderen **ID weergeven** zien.
 
 Projecteigenaren en -beheerders kunnen ook op de sonde klikken: de kaart **Set up your Custom Probe** op de pagina ervan toont de Docker-opdracht met de ID en sleutel al ingevuld.
 
@@ -108,7 +108,7 @@ Met hostnetwerk (`--network host`, `network_mode: host`) gebruikt de sonde het e
 
 ### Controleren of hij verbinding maakt
 
-Binnen een minuut of twee toont de **Status** van de sonde in de tabel **Aangepaste probes** **Verbonden**. Toont hij nog steeds **Verbinding verbroken**, dan staat in het log van de sonde waarom: zie [Een verbroken sonde onderzoeken](#een-verbroken-sonde-onderzoeken).
+Binnen een minuut of twee toont de **Status** van de sonde in de tabel **Aangepaste sondes** **Verbonden**. Toont hij nog steeds **Verbinding verbroken**, dan staat in het log van de sonde waarom: zie [Een verbroken sonde onderzoeken](#een-verbroken-sonde-onderzoeken).
 
 ### Een monitor door de sonde laten controleren
 

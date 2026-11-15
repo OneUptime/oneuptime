@@ -103,7 +103,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 
 ## 完成伺服器設定
 
-Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要程度列出新伺服器需要的東西。電子郵件、HTTPS 和誰可以註冊是必要的。簡訊和電話、一個全域探針、備份和更新檢查是建議的。每一項都有一個按鈕，開啟設定它的地方，而 `npm start` 最後會輸出這個頁面的位址。
+Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要程度列出新伺服器需要的東西。電子郵件、HTTPS 和誰可以註冊是必要的。簡訊和電話、一個全域探測器、備份和更新檢查是建議的。每一項都有一個按鈕，開啟設定它的地方，而 `npm start` 最後會輸出這個頁面的位址。
 
 :::steps
 ### 設定電子郵件
@@ -137,7 +137,7 @@ Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要�
 npm run doctor
 ```
 
-它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探針。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#檢查你的安裝)。
+它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探測器。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#檢查你的安裝)。
 @tab Kubernetes
 依 [chart 的疑難排解指南](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it)中的步驟，針對你的叢集執行 chart 的診斷指令碼。它只讀取，最後依嚴重程度列出它發現的問題摘要。
 :::

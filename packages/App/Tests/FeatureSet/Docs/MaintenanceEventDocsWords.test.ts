@@ -6,6 +6,8 @@ import {
   SAYS_MAINTENANCE,
   droppedMaintenanceWordIn,
 } from "../../Dashboard/MaintenanceEventWords";
+import { DocsBlock, blocksOf, proseOf } from "./DocsBlocks";
+import { stripHtmlTags } from "./DocsHtmlText";
 import {
   TRANSLATED_LANGUAGES,
   listPages,
@@ -47,88 +49,15 @@ import { describe, expect, test } from "@jest/globals";
  * targets and markup.
  */
 
-export interface DocsBlock {
-  // 0-based line the block starts on.
-  line: number;
-  // The block's lines, joined with spaces.
-  text: string;
-  // Inside a code sample (a diagram is not code: its labels are prose).
-  code: boolean;
-}
-
-const FENCE: RegExp = /^\s*```/;
-const BLOCK_START: RegExp = /^\s*(?:[-*+] |\d+[.)] |\||#|:::|```|>|<|$)/;
-const LIST_ITEM: RegExp = /^\s*(?:[-*+] |\d+[.)] )/;
-const INDENTED: RegExp = /^\s{2,}\S/;
-
-/*
- * A page's blocks: a paragraph, a list item or a quote with the lines it
- * wraps onto; a table row, a heading or a code line on its own.
- */
-export function blocksOf(markdown: string): Array<DocsBlock> {
-  const blocks: Array<DocsBlock> = [];
-  let inFence: boolean = false;
-  let fenceIsCode: boolean = false;
-  let afterBlank: boolean = true;
-
-  markdown.split("\n").forEach((line: string, index: number) => {
-    if (FENCE.test(line)) {
-      inFence = !inFence;
-      fenceIsCode = inFence && !line.includes("mermaid");
-      blocks.push({ line: index, text: line, code: true });
-      afterBlank = false;
-      return;
-    }
-
-    if (inFence) {
-      blocks.push({ line: index, text: line, code: fenceIsCode });
-      return;
-    }
-
-    if (line.trim() === "") {
-      afterBlank = true;
-      return;
-    }
-
-    const last: DocsBlock | undefined = blocks[blocks.length - 1];
-    const continues: boolean =
-      !afterBlank &&
-      last !== undefined &&
-      (!BLOCK_START.test(line) ||
-        (INDENTED.test(line) && !LIST_ITEM.test(line)) ||
-        (line.startsWith(">") && last.text.startsWith(">")));
-
-    if (continues) {
-      last!.text = `${last!.text} ${line.trim()}`;
-    } else {
-      blocks.push({ line: index, text: line, code: false });
-    }
-
-    afterBlank = false;
-  });
-
-  return blocks;
-}
-
-// What a block says: no bold labels, code, link targets or markup.
-export function proseOf(text: string): string {
-  return text
-    .replace(/-<br\s*\/?>/g, "")
-    .replace(/<br\s*\/?>/g, " ")
-    .replace(/\*\*[^*]+\*\*/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/\]\([^)]*\)/g, "]")
-    .replace(/<[^>]+>/g, " ");
-}
-
 // What a block says with its bold labels, for the words of maintenance.
 function wordsOf(text: string): string {
-  return text
-    .replace(/-<br\s*\/?>/g, "")
-    .replace(/<br\s*\/?>/g, " ")
-    .replace(/`[^`]*`/g, " ")
-    .replace(/\]\([^)]*\)/g, "]")
-    .replace(/<[^>]+>/g, " ");
+  return stripHtmlTags(
+    text
+      .replace(/-<br\s*\/?>/g, "")
+      .replace(/<br\s*\/?>/g, " ")
+      .replace(/`[^`]*`/g, " ")
+      .replace(/\]\([^)]*\)/g, "]"),
+  );
 }
 
 function count(pattern: RegExp, text: string): number {
