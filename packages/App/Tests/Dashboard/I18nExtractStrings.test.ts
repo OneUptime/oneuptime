@@ -1709,6 +1709,10 @@ describe("the real source roots", () => {
       // A session's events in an audit log entry ("Signed in with") - not the stored values.
       "keys packages/Common/Types/AuditLog/AuditLogSessionEvent.ts",
       "keys packages/Common/Types/Workflow/WorkflowStatus.ts",
+      // The workflow builder's step catalogue (#8359).
+      "keys packages/Common/Types/Workflow/Components",
+      "keys packages/Common/Types/Workflow/Components.ts",
+      "keys packages/Common/Types/Workflow/AffectedResourcesSetting.ts",
       // A naming rule's placeholders and what is wrong with a pattern or table.
       "keys packages/Common/Utils/NetworkDevice/Naming/NamePattern.ts",
       "keys packages/Common/Utils/NetworkDevice/Naming/NamingLookup.ts",

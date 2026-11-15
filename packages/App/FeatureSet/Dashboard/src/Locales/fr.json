@@ -54678,7 +54678,7 @@
   "Controls variation from 0 to 1. Defaults to 0.2 for predictable workflow output.": "Contrôle la variation de 0 à 1. 0.2 par défaut pour une sortie prévisible du flux de travail.",
   "Converts JSON Object to Text": "Convertit un objet JSON en texte",
   "Converts Text to JSON Object": "Convertit du texte en objet JSON",
-  "Create a channel webhook with Teams Workflows. See: https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams": "Créez un webhook de canal avec les workflows de Teams. Voir : https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams",
+  "Create a channel webhook with Teams Workflows. See: https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams": "Créez un webhook de canal avec les flux de travail de Teams. Voir : https://support.microsoft.com/en-us/teams/apps-service/create-incoming-webhooks-with-workflows-for-microsoft-teams",
   "Create, acknowledge or resolve an alert for a problem in another tool, or add a note to it, matched by that tool's ID.": "Créer, prendre en compte ou résoudre une alerte pour un problème dans un autre outil, ou y ajouter une note, reconnue par l'ID de cet outil.",
   "Data (JSON Object)": "Données (objet JSON)",
   "Disable TLS": "Désactiver TLS",
