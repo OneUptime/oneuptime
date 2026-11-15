@@ -241,7 +241,9 @@ describe("in German", () => {
       withoutIsolateMarks(
         screen.getByTestId("resource-status-reason").textContent || "",
       ),
-    ).toBe(sentence(DE, "Last reported {{time}}", { time: "vor 3 Stunden" }));
+    ).toBe(
+      sentence(DE, "Last reported {{time}}", { time: "vor 3\u00A0Stunden" }),
+    );
   });
 
   test("the hero's health pill", () => {

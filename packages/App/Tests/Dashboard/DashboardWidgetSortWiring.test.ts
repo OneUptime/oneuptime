@@ -497,8 +497,9 @@ describe("the security events table", () => {
     expect(code).toContain(
       'className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-500 tabular-nums"',
     );
+    // Its hover title is the severity in the reader's words, as its pill (#8295).
     expect(code).toContain(
-      '<td className="whitespace-nowrap px-3 py-1.5" title={severity}>',
+      '<td className="whitespace-nowrap px-3 py-1.5" title={severityText}>',
     );
   });
 
