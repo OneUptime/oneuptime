@@ -340,6 +340,7 @@ const HuntHeader: FunctionComponent<ComponentProps> = (
                         ? undefined
                         : deleteGate.disabledReason
                     }
+                    isTooltipTranslated={true}
                     dataTestId={HUNTS_TEST_IDS.delete}
                     onClick={props.onDelete}
                   />,
