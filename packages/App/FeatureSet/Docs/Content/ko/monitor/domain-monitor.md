@@ -11,11 +11,11 @@
 
 ## 작동 방식
 
-확인할 때마다 프로브는 **Lookup Method**에 따라 RDAP 또는 WHOIS로 도메인의 등록 레코드를 조회하고, 찾은 내용을 정규화합니다. 만료일, 등록 대행자, 네임서버, 상태 코드입니다. 실패한 조회는 설정한 재시도 횟수만큼 다시 시도합니다. 그런 다음 OneUptime이 레코드를 모니터의 기준에 통과시킵니다.
+확인할 때마다 프로브는 **조회 방법**에 따라 RDAP 또는 WHOIS로 도메인의 등록 레코드를 조회하고, 찾은 내용을 정규화합니다. 만료일, 등록 대행자, 네임서버, 상태 코드입니다. 실패한 조회는 설정한 재시도 횟수만큼 다시 시도합니다. 그런 다음 OneUptime이 레코드를 모니터의 기준에 통과시킵니다.
 
 ```mermaid title="조회가 등록 정보를 읽는 방식"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto 또는 RDAP"| rdap["TLD의<br/>RDAP 서버에 묻기"]
+    method{"조회 방법"} -->|"Auto 또는 RDAP"| rdap["TLD의<br/>RDAP 서버에 묻기"]
     method -->|"WHOIS"| whois["TLD의<br/>WHOIS 서버에 묻기"]
     rdap -->|"레코드 찾음"| record["등록 레코드"]
     rdap -->|"RDAP 없음 또는 오류,<br/>Auto일 때"| whois
@@ -56,7 +56,7 @@ RDAP 요청은 프로브의 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` �
 
 ### 도메인 입력
 
-**도메인 이름**(예: `example.com`)을 입력합니다. 다른 이유가 없다면 **Lookup Method**는 **Auto**로 둡니다([조회 방법](#조회-방법) 참고).
+**도메인 이름**(예: `example.com`)을 입력합니다. 다른 이유가 없다면 **조회 방법**는 **Auto**로 둡니다([조회 방법](#조회-방법) 참고).
 
 ### 테스트
 
@@ -76,7 +76,7 @@ RDAP 요청은 프로브의 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` �
 | 필드 | 기본값 | 입력할 내용 |
 | --- | --- | --- |
 | **도메인 이름** | 없음 | 등록된 도메인(예: `example.com`). 붙여 넣은 주소도 됩니다. `https://example.com/pricing`은 `example.com`으로 읽습니다. |
-| **Lookup Method** | **Auto** | **Auto**, **RDAP**, **WHOIS** 중 하나. [조회 방법](#조회-방법)을 참고하세요. |
+| **조회 방법** | **Auto** | **Auto**, **RDAP**, **WHOIS** 중 하나. [조회 방법](#조회-방법)을 참고하세요. |
 | **타임아웃 (ms)** (**추가 필드** 아래) | `10000` | 각 등록 조회를 기다리는 시간(밀리초). |
 | **재시도**(**추가 필드** 아래) | `3` | 첫 시도가 실패한 뒤의 재시도 횟수. `0`은 한 번만 시도한다는 뜻입니다. |
 
@@ -163,11 +163,11 @@ OneUptime이 이 경고를 추가하기 전에 만든 모니터에는 "곧 만�
 ## 문제 해결
 
 :::details WHOIS 서버가 "answered without any registration data"로 응답함
-TLD의 WHOIS 호스트가 폐지되었거나, 프로브에 속도 제한을 걸고 있거나, 잠시 고장 났습니다. Identity Digital TLD에 아직 대응되어 있는 호스트 같은 폐지된 호스트는 매번 `TLD is not supported.`라고 답합니다. **Lookup Method**가 **WHOIS**인 상태로 실패가 계속되면 **Auto**로 바꿔, RDAP 서비스가 있는 TLD에서는 프로브가 그 서비스를 읽게 합니다.
+TLD의 WHOIS 호스트가 폐지되었거나, 프로브에 속도 제한을 걸고 있거나, 잠시 고장 났습니다. Identity Digital TLD에 아직 대응되어 있는 호스트 같은 폐지된 호스트는 매번 `TLD is not supported.`라고 답합니다. **조회 방법**가 **WHOIS**인 상태로 실패가 계속되면 **Auto**로 바꿔, RDAP 서비스가 있는 TLD에서는 프로브가 그 서비스를 읽게 합니다.
 :::
 
 :::details 확인이 "No RDAP service is published"로 실패함
-모니터가 **RDAP**를 사용하는데, 많은 ccTLD처럼 TLD가 RDAP 서비스를 게시하지 않습니다. **Lookup Method**를 WHOIS로 대체하는 **Auto**로 바꿉니다.
+모니터가 **RDAP**를 사용하는데, 많은 ccTLD처럼 TLD가 RDAP 서비스를 게시하지 않습니다. **조회 방법**를 WHOIS로 대체하는 **Auto**로 바꿉니다.
 :::
 
 :::details 도메인이 등록되지 않았다고 보고됨

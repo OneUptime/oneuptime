@@ -185,6 +185,7 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Stable object identity, because ModelTable decides whether to refetch by
@@ -1703,7 +1704,7 @@ const NetworkDevices: FunctionComponent<
                     to={route}
                     className="text-sm font-medium text-gray-900 hover:underline"
                   >
-                    {(item.name as string) || "—"}
+                    {(item.name as string) || <TableEmptyValue />}
                   </AppLink>
                   {/*
                    * The SNMP name under the name, when it is a different
@@ -1742,13 +1743,13 @@ const NetworkDevices: FunctionComponent<
                 getNetworkDeviceAssetFacts(item);
 
               if (!facts.manufacturer && !facts.model) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               return (
                 <div>
                   <div className="text-sm text-gray-900">
-                    {facts.manufacturer || "—"}
+                    {facts.manufacturer || <TableEmptyValue />}
                   </div>
                   {facts.model && (
                     <div className="text-xs text-gray-500">{facts.model}</div>
@@ -1844,7 +1845,7 @@ const NetworkDevices: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: NetworkDevice): ReactElement => {
               if (!item.site?.name || !item.site?._id) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               const route: Route = RouteUtil.populateRouteParams(
@@ -1931,14 +1932,11 @@ const NetworkDevices: FunctionComponent<
                 )
               ) {
                 return (
-                  <span
-                    className="text-sm text-gray-400"
+                  <TableEmptyValue
                     title={translator.translateText(
                       "Interface inventory comes from an SNMP walk, which does not run on a monitor-backed device.",
                     )}
-                  >
-                    —
-                  </span>
+                  />
                 );
               }
 
@@ -1962,14 +1960,11 @@ const NetworkDevices: FunctionComponent<
 
               if (!item.lastPolledAt) {
                 return (
-                  <span
-                    className="text-sm text-gray-400"
+                  <TableEmptyValue
                     title={translator.translateText(
                       "Interfaces are collected by the first successful SNMP walk. This device has not been polled yet.",
                     )}
-                  >
-                    —
-                  </span>
+                  />
                 );
               }
 
@@ -2007,14 +2002,11 @@ const NetworkDevices: FunctionComponent<
                 )
               ) {
                 return (
-                  <span
-                    className="text-sm text-gray-400"
+                  <TableEmptyValue
                     title={translator.translateText(
                       "Last contact is stamped by a probe's poll, which does not run on a monitor-backed device. Its status comes from the monitor bound to it.",
                     )}
-                  >
-                    —
-                  </span>
+                  />
                 );
               }
 

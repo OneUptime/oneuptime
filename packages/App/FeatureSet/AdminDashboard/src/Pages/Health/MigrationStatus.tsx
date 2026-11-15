@@ -23,6 +23,8 @@ import {
   getReaderDateLocale,
   getReaderNumberLocale,
 } from "Common/Types/DateLanguage";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // Maximum number of pending migration names to list before collapsing the rest.
 const MAX_PENDING_TO_SHOW: number = 10;
@@ -88,7 +90,9 @@ const renderFailureDetail: (failure: JSONObject) => ReactElement = (
     <div className="rounded-md border border-red-200 bg-red-50 p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
         <span className="font-mono font-medium text-red-800 break-all">
-          {String(failure["migrationName"] || "—")}
+          {String(failure["migrationName"] || "") || (
+            <EmptyValue isSmall={true} />
+          )}
         </span>
         <span className="text-red-600">
           Failed {formatDateTime(failure["attemptedAt"])}
@@ -259,7 +263,9 @@ const MigrationStatus: FunctionComponent = (): ReactElement => {
           <div className="flex justify-between gap-4">
             <span className="text-gray-500">Latest in build</span>
             <span className="font-mono truncate">
-              {String(latestDefined["name"] || "—")}
+              {String(latestDefined["name"] || "") || (
+                <TableEmptyValue isSmall={true} />
+              )}
             </span>
           </div>
           <div className="flex justify-between gap-4">

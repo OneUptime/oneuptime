@@ -28,6 +28,7 @@ import {
   translateText,
 } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardProxmoxGuestListComponent;
@@ -182,10 +183,14 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
         {detailLink}
       </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {r.vmid !== undefined && r.vmid !== null ? String(r.vmid) : "—"}
+        {r.vmid !== undefined && r.vmid !== null ? (
+          String(r.vmid)
+        ) : (
+          <TableEmptyValue isSmall={true} />
+        )}
       </td>
       <td className="px-3 py-2 text-xs text-gray-500 uppercase">
-        {(r.guestType as string) || "—"}
+        {(r.guestType as string) || <TableEmptyValue isSmall={true} />}
       </td>
       <td className="px-3 py-2">
         <span

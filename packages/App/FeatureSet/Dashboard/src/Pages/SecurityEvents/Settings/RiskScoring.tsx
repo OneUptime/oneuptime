@@ -59,6 +59,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * An entry's kind and why it matters: optional, so they wait under More
@@ -293,7 +294,7 @@ const SecurityRiskScoringPage: FunctionComponent<
               return criticality ? (
                 <EntityCriticalityPill criticality={criticality} />
               ) : (
-                <span className="text-sm text-gray-400">-</span>
+                <TableEmptyValue />
               );
             },
           },

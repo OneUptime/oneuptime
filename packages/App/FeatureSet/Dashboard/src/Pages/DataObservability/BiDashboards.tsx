@@ -42,6 +42,7 @@ import URL from "Common/Types/API/URL";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { getReaderDateLocale } from "Common/Types/DateLanguage";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The BI tools Data Observability reads dashboards from, and the dashboards
@@ -75,7 +76,7 @@ function getViewsElement(
   item: DataDashboard,
 ): ReactElement {
   if (typeof item.viewCount !== "number") {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const summary: DataDashboardUsageSummary | null =
@@ -102,7 +103,7 @@ function getViewsElement(
 // The last refresh: how it went, when, and a failed one's error.
 function getLastRefreshElement(item: DataDashboard): ReactElement {
   if (!item.lastRefreshStatus) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   const history: DataDashboardRefreshHistory | null =
@@ -143,7 +144,7 @@ function getTopViewersElement(
   const viewers: Array<DataDashboardViewer> = getTopViewers(item).slice(0, 3);
 
   if (viewers.length === 0) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -172,7 +173,7 @@ function getRefreshesElement(
   const counts: string | null = getRefreshCountText(translator, history);
 
   if (!history || (!counts && history.refreshes.length === 0)) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -448,11 +449,13 @@ const BiDashboardsPage: FunctionComponent<
               return (
                 <div className="min-w-0">
                   <span className="block text-sm text-gray-700">
-                    {item.lastSyncedAt
-                      ? new Date(item.lastSyncedAt).toLocaleString(
-                          getReaderDateLocale(),
-                        )
-                      : "-"}
+                    {item.lastSyncedAt ? (
+                      new Date(item.lastSyncedAt).toLocaleString(
+                        getReaderDateLocale(),
+                      )
+                    ) : (
+                      <TableEmptyValue />
+                    )}
                   </span>
                   {item.lastSyncWarning ? (
                     <span className="block text-xs text-yellow-700 [overflow-wrap:anywhere]">
@@ -563,7 +566,7 @@ const BiDashboardsPage: FunctionComponent<
                   className="text-sm text-gray-700"
                 />
               ) : (
-                <span className="text-sm text-gray-400">-</span>
+                <TableEmptyValue />
               );
             },
           },

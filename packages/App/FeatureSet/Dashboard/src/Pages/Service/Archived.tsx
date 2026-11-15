@@ -17,6 +17,7 @@ import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ServiceArchivedPage: FunctionComponent<
   PageComponentProps
@@ -180,7 +181,7 @@ const ServiceArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: Service): ReactElement => {
               if (!item["archivedByUser"]) {
-                return <span className="text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item["archivedByUser"] as User} />;
             },

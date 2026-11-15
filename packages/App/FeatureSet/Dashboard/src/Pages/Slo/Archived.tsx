@@ -21,6 +21,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Distinct from the live list's key, so the two tables never share saved
@@ -197,7 +198,7 @@ const SlosArchived: FunctionComponent<
                * or whose archiving user has since been deleted (SET NULL).
                */
               if (!item.archivedByUser) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <TableEmptyValue />;
               }
 
               return <UserElement user={item.archivedByUser as User} />;

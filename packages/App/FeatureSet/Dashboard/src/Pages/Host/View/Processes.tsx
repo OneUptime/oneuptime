@@ -62,6 +62,7 @@ import { formatHostBytes } from "../Utils/HostFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 // In the reader's digits: "۱۲٫۵٪" in Persian, "12,5 %" in German (#7106).
 const formatPercent: (value: number | null) => string = (
@@ -368,7 +369,7 @@ const HostProcesses: FunctionComponent<
         getElement: (row: ProcessRow): ReactElement => {
           return (
             <span className="text-sm font-mono tabular-nums text-gray-600">
-              {row.pid || "—"}
+              {row.pid || <TableEmptyValue />}
             </span>
           );
         },
@@ -427,9 +428,11 @@ const HostProcesses: FunctionComponent<
                 )}
               </div>
               <span className="text-xs font-mono tabular-nums text-gray-500 w-12 text-right">
-                {row.memoryPercent !== null
-                  ? formatPercent(row.memoryPercent)
-                  : "—"}
+                {row.memoryPercent !== null ? (
+                  formatPercent(row.memoryPercent)
+                ) : (
+                  <TableEmptyValue isSmall={true} />
+                )}
               </span>
             </div>
           );

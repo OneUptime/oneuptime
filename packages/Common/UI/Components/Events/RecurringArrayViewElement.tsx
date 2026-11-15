@@ -1,6 +1,7 @@
 import Recurring from "../../../Types/Events/Recurring";
 import React, { FunctionComponent, ReactElement } from "react";
 import RecurringViewElement from "./RecurringViewElement";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   value?: Array<Recurring> | undefined;
@@ -12,7 +13,7 @@ const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (!props.value) {
-    return <p>-</p>;
+    return <TableEmptyValue />;
   }
 
   const items: Array<Recurring> = Recurring.fromJSONArray(props.value);
@@ -30,7 +31,9 @@ const RecurringArrayViewElement: FunctionComponent<ComponentProps> = (
             />
           );
         })}
-      {(!items || items.length === 0) && <p>{props.noItemsMessage || "-"}</p>}
+      {(!items || items.length === 0) && (
+        <p>{props.noItemsMessage || <TableEmptyValue />}</p>
+      )}
     </div>
   );
 };

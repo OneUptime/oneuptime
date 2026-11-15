@@ -33,6 +33,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * THE EVENTS OF A KUBERNETES VIEW, AS A TABLE - the cluster's Events page
@@ -304,7 +305,7 @@ const LastSeenTime: FunctionComponent<{
   const firstSeenAt: Date | null = props.row.firstSeenAt;
 
   if (!lastSeenAt) {
-    return <span className="text-gray-500">-</span>;
+    return <TableEmptyValue />;
   }
 
   const lastSeen: string = formatFeedFullTime(lastSeenAt, clock);

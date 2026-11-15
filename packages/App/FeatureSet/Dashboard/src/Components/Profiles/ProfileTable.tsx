@@ -67,6 +67,7 @@ import {
   TelemetryFirstStepsSignal,
 } from "../Telemetry/TelemetryFirstSteps";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -911,7 +912,7 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                    * Most profiles today aren't attached to a specific
                    * request; show nothing rather than a confusing em-dash.
                    */
-                  return <span className="text-xs text-gray-300">—</span>;
+                  return <TableEmptyValue isSmall={true} />;
                 }
 
                 const traceRoute: Route = RouteUtil.populateRouteParams(

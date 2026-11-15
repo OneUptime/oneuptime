@@ -237,3 +237,30 @@ export const DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME: string =
 // The error line's element, whatever the widget.
 export const DASHBOARD_WIDGET_ERROR_LINE_TEST_ID: string =
   "dashboard-widget-error-line";
+
+/*
+ * A WIDGET'S NO-DATA LINE (issue #8038): it read, and found nothing in the
+ * time range - "No logs for the selected time range and filters", "No rows
+ * returned." The Log Chart, the Trace Chart and Table, the Security Events
+ * Flow, the Data Source Table, the Log Stream, a list in honeycomb view and
+ * the Network Map drew it as bare gray-400 words (2.5:1 on white) with no
+ * icon, so a widget that read fine and found nothing looked like no other
+ * state on its board. It is the setup line's and the error line's look now:
+ * gray-500 (4.5:1 on white; Theme.css's text-subtle on the dark card),
+ * centred, balanced, as wide as a line reads well, under the widget's icon
+ * (DashboardWidgetEmpty), as the Value and Gauge widgets already drew it.
+ */
+export const DASHBOARD_WIDGET_EMPTY_LINE_CLASS_NAME: string =
+  DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME;
+
+// The no-data line's element, whatever the widget.
+export const DASHBOARD_WIDGET_EMPTY_LINE_TEST_ID: string =
+  "dashboard-widget-empty-line";
+
+/*
+ * A list's or a table's no-data row, under the column headers it keeps
+ * (a list widget in list view, the metric Table): the same readable gray as
+ * the line, in a cell as wide as the table.
+ */
+export const DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME: string =
+  "px-4 py-8 text-center text-sm text-gray-500";

@@ -42,6 +42,7 @@ import { TABLE_STICKY_END_ATTRIBUTE } from "./TableStickyEndFocus";
 import TableEmptyValue, {
   getTableNoValue,
   isDashPlaceholder,
+  isEmptyValueElement,
 } from "./TableEmptyValue";
 import { showFullValueWhenCutShort } from "./FullValueTitle";
 import Columns from "./Types/Columns";
@@ -706,12 +707,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                         : null
                       : getCellContent(column, foldedValues);
 
-                  // A card leaves out the fields that have nothing to say.
+                  /*
+                   * A card leaves out the fields that have nothing to say -
+                   * the quiet dash too when a page wrapped it in an element
+                   * of its own (isEmptyValueElement).
+                   */
                   if (
                     !value ||
                     (typeof value === "string" && value.trim() === "") ||
-                    (React.isValidElement(value) &&
-                      value.type === TableEmptyValue)
+                    isEmptyValueElement(value)
                   ) {
                     return null;
                   }

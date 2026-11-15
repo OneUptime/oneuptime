@@ -19,6 +19,7 @@ import {
   UnattendedTriggerText,
   getUnattendedTriggerText,
 } from "./RunbookExecutionTrigger";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The "Triggered by" column of both Executions lists - a runbook's and the
@@ -142,7 +143,7 @@ const RunbookExecutionTriggerCell: FunctionComponent<ComponentProps> = (
             <span>{sm.title || translator.translateText("View")}</span>
           </AppLink>
         ) : (
-          <span>{sm.title || "—"}</span>
+          <span>{sm.title || <TableEmptyValue />}</span>
         )}
       </div>
     );

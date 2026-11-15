@@ -33,6 +33,7 @@ import {
   isOpenStackProbeCollected,
   readOpenStackNames,
 } from "./OpenStackProbeCollectionView";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * How this cloud's data reaches OneUptime, on its Settings page: collected by a probe with the
@@ -228,8 +229,7 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
                     return (
                       <span>
                         {item.collectionProbe?.name ||
-                          item.collectionProbeId?.toString() ||
-                          "—"}
+                          item.collectionProbeId?.toString() || <EmptyValue />}
                       </span>
                     );
                   },
@@ -292,7 +292,7 @@ const OpenStackDataCollectionCard: FunctionComponent<ComponentProps> = (
                       <span className="break-words">
                         {readOpenStackNames(item.collectionRegions).join(
                           ", ",
-                        ) || "—"}
+                        ) || <EmptyValue />}
                       </span>
                     );
                   },
