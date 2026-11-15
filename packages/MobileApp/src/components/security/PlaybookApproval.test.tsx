@@ -3,8 +3,13 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react-native";
+import {
+  listenForUserActivity,
+  type HeardUserActivity,
+} from "../../__tests__/userActivityHeard";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
   PlaybookApprovalCard,
@@ -367,6 +372,28 @@ describe("approving a step", () => {
       comment: "Alice confirmed she did not sign in.",
       targets: ["alice@acme.test", "Mallory@acme.test"],
     });
+  });
+
+  test("typing the comment counts as using the app, which the idle timeout counts from", async () => {
+    const activity: HeardUserActivity = listenForUserActivity();
+
+    try {
+      await render(approve());
+
+      await fireEvent.changeText(
+        screen.getByTestId("playbook-decision-comment"),
+        "Alice confirmed.",
+      );
+
+      await waitFor((): void => {
+        expect(activity.heard.length).toBeGreaterThan(0);
+      });
+      expect(screen.getByTestId("playbook-decision-comment").props.value).toBe(
+        "Alice confirmed.",
+      );
+    } finally {
+      activity.stop();
+    }
   });
 
   test("an unticked target is left out of what the step acts on", async () => {
