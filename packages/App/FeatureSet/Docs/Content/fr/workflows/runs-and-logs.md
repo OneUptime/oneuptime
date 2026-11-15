@@ -29,7 +29,7 @@ stateDiagram-v2
     state "En attente" as Waiting
     state "Exécuté" as Executed
     state "Erreur" as Failed
-    state "Timeout" as TimedOut
+    state "Délai dépassé" as TimedOut
     [*] --> Scheduled: le déclencheur<br/>se produit
     Scheduled --> Running: un moteur<br/>d'exécution<br/>la prend<br/>en charge
     Scheduled --> Failed: pas prise<br/>en charge<br/>en 5 minutes

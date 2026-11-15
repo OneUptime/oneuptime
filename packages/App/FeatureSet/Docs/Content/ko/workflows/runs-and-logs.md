@@ -3,7 +3,7 @@
 워크플로가 실행될 때마다 OneUptime은 무슨 일이 있었는지 기록을 저장합니다. 언제 실행되었는지, 성공했는지, 각 블록이 무엇을 받고 반환했는지입니다. 이 기록을 **실행**이라고 합니다. 실행을 보면 워크플로가 작동했는지 확인하고, 작동하지 않은 워크플로를 디버깅하고, 지난 활동을 되돌아볼 수 있습니다.
 
 :::cards
-- [실행 상태](#실행-상태): 예정됨, 대기 중, Executed 등 각 상태의 의미.
+- [실행 상태](#실행-상태): 예정됨, 대기 중, 실행됨 등 각 상태의 의미.
 - [실행 읽기](#실행-읽기): 실행이 거쳐 간 경로를 블록별로 따라갑니다.
 - [문제 해결](#문제-해결): 실행되지 않은 워크플로, 끝내 실행되지 않은 블록, 비어서 도착한 값.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "예정됨" as Scheduled
     state "실행 중" as Running
     state "대기 중" as Waiting
-    state "Executed" as Executed
+    state "실행됨" as Executed
     state "오류" as Failed
-    state "Timeout" as TimedOut
+    state "시간 초과" as TimedOut
     [*] --> Scheduled: 트리거가 발생함
     Scheduled --> Running: 실행기가 가져감
     Scheduled --> Failed: 5분 안에 가져가지 않음

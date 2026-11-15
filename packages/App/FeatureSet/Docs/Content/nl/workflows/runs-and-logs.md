@@ -3,7 +3,7 @@
 Elke keer dat een workflow draait, slaat OneUptime op wat er gebeurde — wanneer hij draaide, of het lukte en wat elk blok ontving en teruggaf. Dat verslag heet een **uitvoering**. Met uitvoeringen bevestig je dat een workflow werkte, spoor je fouten op in een workflow die niet werkte en kijk je terug op eerdere activiteit.
 
 :::cards
-- [Statussen van een uitvoering](#statussen-van-een-uitvoering): Wat Gepland, Wachten, Executed en de andere statussen betekenen.
+- [Statussen van een uitvoering](#statussen-van-een-uitvoering): Wat Gepland, Wachten, Uitgevoerd en de andere statussen betekenen.
 - [Een uitvoering lezen](#een-uitvoering-lezen): Volg het pad dat een uitvoering nam, blok voor blok.
 - [Problemen oplossen](#problemen-oplossen): Een workflow die niet draaide, een blok dat nooit draaide, een waarde die leeg binnenkwam.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Gepland" as Scheduled
     state "Actief" as Running
     state "Wachten" as Waiting
-    state "Executed" as Executed
+    state "Uitgevoerd" as Executed
     state "Fout" as Failed
-    state "Timeout" as TimedOut
+    state "Time-out" as TimedOut
     [*] --> Scheduled: de trigger<br/>gaat af
     Scheduled --> Running: een uitvoerder<br/>pakt haar op
     Scheduled --> Failed: niet binnen<br/>5 minuten<br/>opgepakt

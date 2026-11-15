@@ -29,7 +29,7 @@ stateDiagram-v2
     state "Wartet" as Waiting
     state "Ausgeführt" as Executed
     state "Fehler" as Failed
-    state "Timeout" as TimedOut
+    state "Zeitüberschreitung" as TimedOut
     [*] --> Scheduled: der Trigger<br/>löst aus
     Scheduled --> Running: ein Runner<br/>übernimmt sie
     Scheduled --> Failed: nicht innerhalb<br/>von 5 Minuten<br/>übernommen

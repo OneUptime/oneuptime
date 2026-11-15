@@ -3,7 +3,7 @@
 每當工作流程執行一次，OneUptime 都會儲存一份發生了什麼的紀錄——它何時執行、是否成功，以及每個區塊接收和傳回了什麼。這份紀錄稱為一次 **執行**。透過執行，你可以確認工作流程是否正常運作，排查沒有正常運作的工作流程，並回顧過去的活動。
 
 :::cards
-- [執行狀態](#執行狀態): 已排定、等待中、Executed 等狀態的意義。
+- [執行狀態](#執行狀態): 已排定、等待中、已執行 等狀態的意義。
 - [閱讀一次執行](#閱讀一次執行): 一個區塊一個區塊地跟著執行走過的路徑。
 - [疑難排解](#疑難排解): 沒有執行的工作流程、一直沒有執行的區塊、到達時為空的值。
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "已排定" as Scheduled
     state "執行中" as Running
     state "等待中" as Waiting
-    state "Executed" as Executed
+    state "已執行" as Executed
     state "錯誤" as Failed
-    state "Timeout" as TimedOut
+    state "逾時" as TimedOut
     [*] --> Scheduled: 觸發器觸發
     Scheduled --> Running: 執行器接手
     Scheduled --> Failed: 5 分鐘內沒人接手

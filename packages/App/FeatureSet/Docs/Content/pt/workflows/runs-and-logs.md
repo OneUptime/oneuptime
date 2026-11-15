@@ -3,7 +3,7 @@
 Toda vez que um workflow roda, o OneUptime guarda um registro do que aconteceu — quando rodou, se deu certo e o que cada bloco recebeu e devolveu. Esse registro se chama **execução**. As execuções servem para confirmar que um workflow funcionou, depurar um que não funcionou e rever a atividade passada.
 
 :::cards
-- [Status de uma execução](#status-de-uma-execução): O que significam Agendado, Aguardando, Executed e os outros status.
+- [Status de uma execução](#status-de-uma-execução): O que significam Agendado, Aguardando, Executado e os outros status.
 - [Ler uma execução](#ler-uma-execução): Siga o caminho que uma execução percorreu, bloco a bloco.
 - [Solução de problemas](#solução-de-problemas): Um workflow que não rodou, um bloco que nunca rodou, um valor que chegou vazio.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Agendado" as Scheduled
     state "Em execução" as Running
     state "Aguardando" as Waiting
-    state "Executed" as Executed
+    state "Executado" as Executed
     state "Erro" as Failed
-    state "Timeout" as TimedOut
+    state "Tempo esgotado" as TimedOut
     [*] --> Scheduled: o gatilho<br/>dispara
     Scheduled --> Running: um executor<br/>a pega
     Scheduled --> Failed: ninguém<br/>a pegou<br/>em 5 minutos

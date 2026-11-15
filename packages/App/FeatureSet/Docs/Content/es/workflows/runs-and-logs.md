@@ -29,7 +29,7 @@ stateDiagram-v2
     state "Esperando" as Waiting
     state "Ejecutado" as Executed
     state "Error" as Failed
-    state "Timeout" as TimedOut
+    state "Tiempo de espera agotado" as TimedOut
     [*] --> Scheduled: salta el<br/>disparador
     Scheduled --> Running: un ejecutor<br/>la recoge
     Scheduled --> Failed: nadie la<br/>recoge<br/>en 5 minutos

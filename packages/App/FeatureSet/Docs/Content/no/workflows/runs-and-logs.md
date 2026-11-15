@@ -3,7 +3,7 @@
 Hver gang en arbeidsflyt kjører, lagrer OneUptime en oversikt over hva som skjedde — når den kjørte, om den lyktes, og hva hver blokk mottok og returnerte. Den oversikten kalles en **kjøring**. Med kjøringer bekrefter du at en arbeidsflyt fungerte, finner feil i en som ikke gjorde det, og ser tilbake på tidligere aktivitet.
 
 :::cards
-- [Status for en kjøring](#status-for-en-kjøring): Hva Planlagt, Venter, Executed og de andre statusene betyr.
+- [Status for en kjøring](#status-for-en-kjøring): Hva Planlagt, Venter, Utført og de andre statusene betyr.
 - [Les en kjøring](#les-en-kjøring): Følg veien en kjøring tok, blokk for blokk.
 - [Feilsøking](#feilsøking): En arbeidsflyt som ikke kjørte, en blokk som aldri kjørte, en verdi som kom tom frem.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Planlagt" as Scheduled
     state "Kjører" as Running
     state "Venter" as Waiting
-    state "Executed" as Executed
+    state "Utført" as Executed
     state "Feil" as Failed
-    state "Timeout" as TimedOut
+    state "Tidsavbrudd" as TimedOut
     [*] --> Scheduled: triggeren<br/>utløses
     Scheduled --> Running: en kjører<br/>plukker den opp
     Scheduled --> Failed: ikke plukket opp<br/>innen 5 minutter

@@ -29,7 +29,7 @@ stateDiagram-v2
     state "待機中" as Waiting
     state "実行済み" as Executed
     state "エラー" as Failed
-    state "Timeout" as TimedOut
+    state "タイムアウト" as TimedOut
     [*] --> Scheduled: トリガーが発火する
     Scheduled --> Running: ランナーが<br/>引き受ける
     Scheduled --> Failed: 5 分以内に引き<br/>受けられない

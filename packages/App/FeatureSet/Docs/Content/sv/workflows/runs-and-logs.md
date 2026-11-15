@@ -3,7 +3,7 @@
 Varje gång ett arbetsflöde körs sparar OneUptime en redogörelse för vad som hände — när det kördes, om det lyckades och vad varje block tog emot och returnerade. Den redogörelsen kallas en **körning**. Med körningar bekräftar du att ett arbetsflöde fungerade, felsöker ett som inte gjorde det och ser tillbaka på tidigare aktivitet.
 
 :::cards
-- [Status för en körning](#status-för-en-körning): Vad Schemalagd, Väntar, Executed och de andra statusarna betyder.
+- [Status för en körning](#status-för-en-körning): Vad Schemalagd, Väntar, Utförd och de andra statusarna betyder.
 - [Läs en körning](#läs-en-körning): Följ vägen en körning tog, block för block.
 - [Felsökning](#felsökning): Ett arbetsflöde som inte kördes, ett block som aldrig kördes, ett värde som kom fram tomt.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Schemalagd" as Scheduled
     state "Körs" as Running
     state "Väntar" as Waiting
-    state "Executed" as Executed
+    state "Utförd" as Executed
     state "Fel" as Failed
-    state "Timeout" as TimedOut
+    state "Tidsgränsen överskreds" as TimedOut
     [*] --> Scheduled: utlösaren<br/>aktiveras
     Scheduled --> Running: körmotorn<br/>plockar upp den
     Scheduled --> Failed: inte upplockad<br/>inom 5 minuter

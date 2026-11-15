@@ -3,7 +3,7 @@
 每当工作流运行一次，OneUptime 都会保存一份发生了什么的记录——它何时运行、是否成功，以及每个块接收和返回了什么。这份记录称为一次 **运行**。通过运行，你可以确认工作流是否正常工作，排查没有正常工作的工作流，并回顾过去的活动。
 
 :::cards
-- [运行状态](#运行状态): 已计划、正在等待、Executed 等状态的含义。
+- [运行状态](#运行状态): 已计划、正在等待、已执行 等状态的含义。
 - [阅读一次运行](#阅读一次运行): 一个块一个块地跟随运行走过的路径。
 - [故障排除](#故障排除): 没有运行的工作流、一直没有运行的块、到达时为空的值。
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "已计划" as Scheduled
     state "正在运行" as Running
     state "正在等待" as Waiting
-    state "Executed" as Executed
+    state "已执行" as Executed
     state "错误" as Failed
-    state "Timeout" as TimedOut
+    state "超时" as TimedOut
     [*] --> Scheduled: 触发器触发
     Scheduled --> Running: 运行器接手
     Scheduled --> Failed: 5 分钟内无人接手

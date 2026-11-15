@@ -3,7 +3,7 @@
 Hver gang et workflow kører, gemmer OneUptime en registrering af, hvad der skete — hvornår det kørte, om det lykkedes, og hvad hver blok modtog og returnerede. Den registrering hedder en **kørsel**. Med kørsler bekræfter du, at et workflow virkede, finder fejl i et, der ikke gjorde, og ser tilbage på tidligere aktivitet.
 
 :::cards
-- [Status for en kørsel](#status-for-en-kørsel): Hvad Planlagt, Venter, Executed og de andre statusser betyder.
+- [Status for en kørsel](#status-for-en-kørsel): Hvad Planlagt, Venter, Udført og de andre statusser betyder.
 - [Læs en kørsel](#læs-en-kørsel): Følg den vej, en kørsel tog, blok for blok.
 - [Fejlfinding](#fejlfinding): Et workflow, der ikke kørte, en blok, der aldrig kørte, en værdi, der kom tom frem.
 :::
@@ -27,9 +27,9 @@ stateDiagram-v2
     state "Planlagt" as Scheduled
     state "Kører" as Running
     state "Venter" as Waiting
-    state "Executed" as Executed
+    state "Udført" as Executed
     state "Fejl" as Failed
-    state "Timeout" as TimedOut
+    state "Tidsgrænse overskredet" as TimedOut
     [*] --> Scheduled: triggeren udløses
     Scheduled --> Running: en afvikler<br/>tager den
     Scheduled --> Failed: ikke taget inden<br/>for 5 minutter
