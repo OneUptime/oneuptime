@@ -691,11 +691,15 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       expect(rows[4]?.[1]).toMatch(/^Incidents and alerts only: /);
       expect(rows[0]?.[1]).toBe("**Rule Name** and **Rule Description**.");
 
-      // The Updates row: who has the step, and its three choices by name.
+      /*
+       * The Updates row: who has the step, and its three choices by name.
+       * It lists kinds of record, so the maintenance one is a maintenance
+       * event, as the rest of the page calls it (#8090).
+       */
       const updates: string = rows[3]?.[1] || "";
 
       expect(updates).toMatch(
-        /^Incidents, alerts, episodes, scheduled maintenance and on-call policies only: /,
+        /^Incidents, alerts, episodes, maintenance events and on-call policies only: /,
       );
       expect(boldSpans(updates)).toEqual([
         EVERY_UPDATE_TITLE,

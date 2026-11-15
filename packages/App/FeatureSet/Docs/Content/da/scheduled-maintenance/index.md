@@ -13,7 +13,7 @@ En vedligeholdelseshændelse fortæller alle om planlagt arbejde, før det sker:
 
 Hver begivenhed har et planlagt tidsvindue, sit **Begynder den** og **Slutter den**, og bevæger sig ned gennem din liste over vedligeholdelsestilstande. Et job, der kører hvert minut, flytter den videre i begge ender af vinduet, så du planlægger arbejdet én gang, og OneUptime klarer resten.
 
-```mermaid title="En vedligeholdelsesbegivenheds liv"
+```mermaid title="En vedligeholdelseshændelses liv"
 flowchart TB
     created["Du planlægger<br/>begivenheden"] --> scheduled["Planlagt<br/>vist som kommende"]
     scheduled -->|"dens Begynder den"| ongoing["Igangværende<br/>monitorer<br/>kontrolleres ikke"]
@@ -27,7 +27,7 @@ Du kan starte eller afslutte en begivenhed tidligt eller tilføje dine egne tils
 
 ## Vedligeholdelse og meddelelser
 
-Begge informerer de besøgende på dine statussider. Brug en vedligeholdelsesbegivenhed til arbejde med en start og en slutning, og en meddelelse til alt andet, de bør læse.
+Begge informerer de besøgende på dine statussider. Brug en vedligeholdelseshændelse til arbejde med en start og en slutning, og en meddelelse til alt andet, de bør læse.
 
 |                              | Planlagt vedligeholdelse                                                | Meddelelse                                     |
 | ---------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
@@ -41,10 +41,10 @@ Meddelelser beskrives i [Abonnenter og meddelelser](/docs/status-pages/subscribe
 
 ## Hvor begivenheder kommer fra
 
-- **Formularen.** Klik på **Opret vedligeholdelseshændelse** på listen over begivenheder eller på fanen **Planlagt vedligeholdelse** for en vært, en klynge, en tjeneste, en netværkslokation eller en anden ressource, som vælger den ressource for dig. Se [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events).
+- **Formularen.** Klik på **Opret vedligeholdelseshændelse** på listen over begivenheder eller på fanen **Planlagt vedligeholdelse** for en vært, en klynge, en tjeneste, en netværkslokation eller en anden ressource, som vælger den ressource for dig. Se [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events).
 - **En skabelon.** **Opret fra skabelon** udfylder formularen fra en skabelon, du har gemt til arbejde, du ofte udfører. Se [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates).
 - **En tidsplan.** En tilbagevendende skabelon opretter en ny begivenhed efter en tidsplan, for eksempel hver uge eller hver måned, uden at nogen åbner formularen.
-- **En formular.** En formular, hvis indsendelser opretter vedligeholdelsesbegivenheder, gør en ændringsanmodning til en begivenhed. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-vedligeholdelseshændelse).
+- **En formular.** En formular, hvis indsendelser opretter vedligeholdelseshændelser, gør en ændringsanmodning til en begivenhed. Se [Hvad en indsendelse opretter](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-vedligeholdelseshændelse).
 - **Chat.** `/oneuptime maintenance` i Slack, eller `maintenance` skrevet til OneUptime-botten i Microsoft Teams, åbner formularen i dit chatværktøj. Se [Slack](/docs/workspace-connections/slack#opret-hændelser-og-vedligeholdelse-fra-slack).
 - **Kode.** API'et på `/api/scheduled-maintenance`, Terraform-ressourcen `oneuptime_scheduled_maintenance_event` og trinnet **Create One Maintenance Event** i et workflow.
 
@@ -114,7 +114,7 @@ Kontrollér, at begivenheden nævner siden under **Vis begivenhed på disse stat
 ## Næste skridt
 
 :::cards
-- [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt, og hvad der sker bagefter.
+- [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt, og hvad der sker bagefter.
 - [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states): Hvad der starter og afslutter en begivenhed, og egne tilstande.
 - [Skabeloner og tilbagevendende begivenheder](/docs/scheduled-maintenance/templates): Genbrug en begivenhed, eller planlæg den hver uge.
 - [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings): Ejere, etiketter, runbooks og påmindelser, automatisk.

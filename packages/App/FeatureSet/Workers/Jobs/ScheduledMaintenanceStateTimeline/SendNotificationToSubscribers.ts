@@ -57,6 +57,7 @@ import ScheduledMaintenancePublication, {
 } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
+import { StateListType } from "Common/Utils/StateOrder";
 import SubscriberMessageText, {
   SubscriberChatText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
@@ -427,6 +428,7 @@ RunCron(
               scheduledMaintenanceTitle: event.title || "",
               // A default state name, and the date, in the page's language.
               scheduledMaintenanceState: SubscriberTemplateValues.stateName(
+                StateListType.ScheduledMaintenanceState,
                 scheduledEventStateTimeline.scheduledMaintenanceState?.name,
               ),
               scheduledAt: SubscriberTemplateValues.date(event.startsAt),
@@ -539,6 +541,7 @@ RunCron(
                       STATE_CHANGE_TEXT.chatStateChangedTo,
                       SubscriberMessageText.nameInLanguage(
                         translator,
+                        StateListType.ScheduledMaintenanceState,
                         stateName,
                       ),
                     ).toString(),
@@ -594,7 +597,10 @@ RunCron(
                           {
                             title: event.title || "",
                             statusPageName: statusPageName,
-                            state: SubscriberMessageText.stateName(stateName),
+                            state: SubscriberMessageText.stateName(
+                              StateListType.ScheduledMaintenanceState,
+                              stateName,
+                            ),
                           },
                         ),
                       ],
@@ -779,6 +785,7 @@ RunCron(
                         (translator: Translator): string => {
                           return SubscriberMessageText.nameInLanguage(
                             translator,
+                            StateListType.ScheduledMaintenanceState,
                             stateName,
                           );
                         },

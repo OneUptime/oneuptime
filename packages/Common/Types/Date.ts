@@ -2317,6 +2317,20 @@ export default class OneUptimeDate {
   }
 
   /*
+   * The last millisecond of the minute `date` falls in: 11:15:59.999 for
+   * anything from 11:15:00.000 on, as getEndOfDay is a day's 23:59:59.999.
+   * With getStartOfMinute, the whole minute a field shows (11:15), so a
+   * filter on "11:15" holds a row stamped 11:15:42 (#7719).
+   */
+  public static getEndOfMinute(date: Date | string): Date {
+    const millisecondsInAMinute: number = 60 * 1000;
+
+    return new Date(
+      this.getStartOfMinute(date).getTime() + millisecondsInAMinute - 1,
+    );
+  }
+
+  /*
    * Calendar arithmetic - "the previous calendar month", "add 3 calendar
    * months" - as opposed to the fixed-length arithmetic the rest of this class
    * does. A calendar month is 28-31 days long and a calendar day is 23-25 hours

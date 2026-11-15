@@ -32,7 +32,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 | --- | --- |
 | En hendelse er åpen | Hvor mange hendelser som er aktive, i rødt |
 | Ingen hendelse er åpen, men det finnes åpne varsler, monitorer som ikke er i drift, eller SLO-er i faresonen | Hvor mange problemer som krever oppmerksomhet, i gult |
-| Ingenting er galt, og vedlikehold pågår | Hvor mange vedlikehold som pågår |
+| Ingenting er galt, og vedlikehold pågår | Hvor mange vedlikeholdshendelser som pågår |
 | Monitorer kjører, og ingenting er åpent | **Alle systemer er i drift** |
 | Prosjektet har ingen monitorer ennå | **Ingenting overvåkes ennå** |
 

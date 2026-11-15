@@ -131,7 +131,7 @@ En skabelon tager værter, Kubernetes-klynger, Docker-værter, Podman-værter og
 ## Næste skridt
 
 :::cards
-- [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events): Formularen, som en skabelon udfylder.
+- [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events): Formularen, som en skabelon udfylder.
 - [Vedligeholdelsestilstande](/docs/scheduled-maintenance/states): Hvordan hver begivenhed går videre, når den er oprettet.
 - [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings): Giv hver ny begivenhed ejere og etiketter automatisk.
 - [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index): Hvor skabeloner passer ind i resten af vedligeholdelsen.

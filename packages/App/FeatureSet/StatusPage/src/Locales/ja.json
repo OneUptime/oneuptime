@@ -149,7 +149,7 @@
       "subscribeTitle": "計画メンテナンスを購読",
       "subscribeDescription": "このページの計画メンテナンスをカレンダーアプリで受け取れます。自動で最新の状態に保たれます。",
       "eventTitle": "カレンダーに追加",
-      "eventDescription": "このメンテナンスをカレンダーアプリに追加します。",
+      "eventDescription": "このメンテナンスイベントをカレンダーアプリに追加します。",
       "addToCalendar": "カレンダーに追加",
       "addHeading": "カレンダーに追加",
       "google": "Google カレンダー",

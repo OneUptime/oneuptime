@@ -167,7 +167,7 @@ Headerens knapper starter og afslutter begivenheden. At fuldføre den findes i m
 
 :::cards
 - [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index): Hvor alt findes, og hvad en begivenhed påvirker.
-- [Opret vedligeholdelsesbegivenheder](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt.
+- [Opret vedligeholdelseshændelser](/docs/scheduled-maintenance/creating-events): Formularen, felt for felt.
 - [Vedligeholdelsesregler og indstillinger](/docs/scheduled-maintenance/settings): Påmind ejere, indtil en begivenhed er fuldført.
 - [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities): Den samme ordnede liste, for hændelser.
 :::

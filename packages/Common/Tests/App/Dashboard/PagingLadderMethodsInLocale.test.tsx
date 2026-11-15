@@ -1,24 +1,23 @@
 import "@testing-library/jest-dom";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import fs from "fs";
 import { createInstance, i18n } from "i18next";
 import path from "path";
-import React, { ReactElement } from "react";
+import React from "react";
 import { I18nextProvider } from "react-i18next";
 
 /*
  * HOW TO REACH ME'S LADDER NAMES A METHOD AS THE CARDS BELOW IT DO (#7178).
  *
- * A step of the ladder, a method still waiting for its code and the "Add a
- * step" menu name each method by its own phrase in the reader's language -
+ * A step of the ladder, a method still waiting for its code and the Add
+ * menus name each method by its own phrase in the reader's language -
  * "Phone call", never the shared "Call", which is a function call in
  * Chinese; "Push notification", never the shared "Push", a payment in
  * Arabic - in one sentence of that language ("{{label}}: {{identifier}}",
@@ -27,30 +26,6 @@ import { I18nextProvider } from "react-i18next";
  * name is an unknown device in the reader's words. Read from the
  * Dashboard's locale files, so a value put back into English fails here.
  */
-
-interface RecordedOption {
-  label: string;
-  value: string | number;
-  isUserContent?: boolean | undefined;
-  isInPageDirection?: boolean | undefined;
-}
-
-// What each dropdown, by its test id, was last handed.
-const recordedOptions: Record<string, Array<RecordedOption>> = {};
-
-jest.mock("../../../UI/Components/Dropdown/Dropdown", () => {
-  return {
-    __esModule: true,
-    DROPDOWN_MENU_Z_INDEX: 60,
-    default: (props: {
-      options: Array<RecordedOption>;
-      dataTestId?: string;
-    }): ReactElement => {
-      recordedOptions[props.dataTestId || ""] = props.options;
-      return <div data-testid={props.dataTestId} />;
-    },
-  };
-});
 
 import PagingLadderEditor from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderEditor";
 import { PagingMethodChoice } from "../../../../App/FeatureSet/Dashboard/src/Components/NotificationRule/PagingLadder/PagingLadderMethods";
@@ -127,10 +102,6 @@ beforeAll(async () => {
 afterEach(() => {
   cleanup();
   document.documentElement.removeAttribute("dir");
-
-  for (const key of Object.keys(recordedOptions)) {
-    delete recordedOptions[key];
-  }
 });
 
 const choice: (
@@ -401,18 +372,21 @@ describe("a device registered without a name", () => {
   });
 });
 
-describe("the Add a step menu", () => {
+describe("the Add Step menu", () => {
   test.each(LANGUAGES)(
     "%s: offers each method by its line in this language, drawn as written in the page's direction",
     (language: string) => {
       renderEditor(language);
 
-      const options: Array<RecordedOption> =
-        recordedOptions["paging-ladder-add-step"] || [];
+      fireEvent.click(screen.getByTestId("paging-ladder-add-step-button"));
+
+      const options: Array<HTMLElement> = screen.getAllByTestId(
+        /^paging-ladder-add-option-/,
+      );
 
       expect(
-        options.map((option: RecordedOption): string => {
-          return withoutIsolateMarks(option.label);
+        options.map((option: HTMLElement): string => {
+          return withoutIsolateMarks(option.textContent || "");
         }),
       ).toEqual([
         lineIn(language, OnCallPageChannel.Push, DEVICE),
@@ -424,16 +398,51 @@ describe("the Add a step menu", () => {
 
       /*
        * Never looked up again, and the page's way: on a Persian page every
-       * option reads from the right, a "WhatsApp: ..." under a "پیامک: ..."
-       * as much as the Persian ones (Dropdown's isInPageDirection).
+       * option reads from the right, a "WhatsApp: ..." under a Persian
+       * line as much as the Persian ones - no item sets a direction of its
+       * own.
        */
       for (const option of options) {
         expect([
-          option.label,
-          option.isUserContent,
-          option.isInPageDirection,
-        ]).toEqual([option.label, true, true]);
+          withoutIsolateMarks(option.textContent || ""),
+          option.closest("[dir]")?.getAttribute("dir") ?? null,
+        ]).toEqual([
+          withoutIsolateMarks(option.textContent || ""),
+          RIGHT_TO_LEFT.includes(language) ? "rtl" : null,
+        ]);
       }
+    },
+  );
+});
+
+describe("the steps' times", () => {
+  test.each(LANGUAGES)(
+    "%s: each step's time is the reader's, on its heading and in its menu",
+    (language: string) => {
+      renderEditor(language);
+
+      const atOnce: string = locales[language]!["At once"] || "At once";
+      const heading: HTMLElement = screen.getAllByTestId(
+        "paging-ladder-step-wait",
+      )[0]!;
+
+      expect(withoutIsolateMarks(heading.textContent || "")).toBe(atOnce);
+
+      fireEvent.click(heading);
+
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("paging-ladder-wait-option-0").textContent || "",
+        ),
+      ).toBe(atOnce);
+
+      // Said whole to a screen reader, in the reader's language.
+      expect([
+        language,
+        (heading.getAttribute("aria-label") || "").includes(
+          "Change when this step is sent",
+        ),
+      ]).toEqual([language, language === "en"]);
     },
   );
 });

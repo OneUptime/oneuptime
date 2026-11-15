@@ -90,7 +90,7 @@ Ein Vorfall, eine Warnung oder eine Episode führt jede ihrer Richtlinien für s
 
 Manche Alarmierungen gehen nach der Bestätigung weiter, bis jemand antwortet, den sie alarmiert haben, oder bis behoben ist: eine erneute Alarmierung, eine Alarmierung an Beobachter, eine Alarmierung, die jemand aus Slack oder Microsoft Teams an Personen geschickt hat, und eine von Hand gestartete Richtlinie.
 
-Eine von Hand gestartete Richtlinie ist eine, die mit **Bereitschaftsdienst-Richtlinie ausführen** gestartet wurde oder durch eine Alarmierung aus Slack oder Microsoft Teams, die sie nennt. Sie alarmiert Stufe für Stufe wie jeder Lauf, mit Anrufen und wiederholten Push-Benachrichtigungen, und dass jemand anderes den Vorfall bestätigt, beendet sie nicht: So alarmieren Sie ein weiteres Team zu einem Vorfall, an dem schon jemand arbeitet. Wen sie alarmiert hat, antwortet aus der Nachricht seiner Alarmierung, per Anruf oder SMS oder indem er den Vorfall selbst bestätigt; sobald der Vorfall bestätigt ist, bietet die Seite des Vorfalls **Erneut bestätigen** an. **Eskalieren** gibt sie an die nächste Stufe weiter. Bei einem Vorfall, einer Warnung oder einer Episode, die behoben ist, wird nichts gestartet, und Sie erfahren, warum.
+Eine von Hand gestartete Richtlinie ist eine, die mit **Bereitschaftsdienst-Richtlinie ausführen** gestartet wurde oder durch eine Alarmierung aus Slack oder Microsoft Teams, die sie nennt. Sie alarmiert Stufe für Stufe wie jeder Lauf, mit Anrufen und wiederholten Push-Benachrichtigungen, und dass jemand anderes den Vorfall bestätigt, beendet sie nicht: So alarmieren Sie ein weiteres Team zu einem Vorfall, an dem schon jemand arbeitet. Wen sie alarmiert hat, antwortet aus der Nachricht seiner Alarmierung, per Anruf oder SMS oder indem er den Vorfall selbst bestätigt; sobald der Vorfall bestätigt ist, bietet die Seite des Vorfalls **Erneut bestätigen** an. **Eskalieren** gibt sie an die nächste Stufe weiter. Bei einem Vorfall, einer Warnung oder einer Episode, die behoben ist, wird nichts gestartet, und Sie erfahren, warum. Ihre Benachrichtigungen sagen, wer welche Richtlinie gestartet hat, und enthalten die Nachricht, die mit einer Alarmierung aus Slack oder Microsoft Teams geschickt wurde.
 
 ## Ausführungsprotokolle
 
@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Wartet** | Eine Bereitschaftsregel mit **Nur während der Arbeitszeiten** lässt den Lauf warten, bis diese Zeiten beginnen: Er sagt, wann die Alarmierung beginnt, und alarmiert bis dahin niemanden. Er endet ohne Alarmierung, wenn der Vorfall oder die Warnung vorher bestätigt oder behoben wird. Er beginnt umgehend zu alarmieren, wenn sich der Vorfall oder die Warnung ändert und nun zu einer Bereitschaftsregel passt, die sofort alarmiert. |
 | **Geplant**, **Begonnen** | Der Lauf wird vorbereitet. Einer, der nach 5 Minuten noch hier steht, wird mit **Fehler** beendet. |
-| **Executing** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
-| **Execution Completed** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |
-| **Execution Completed - No One Notified** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat, oder eine Stufe ohne Empfänger. |
+| **Wird ausgeführt** | Der Lauf alarmiert. OneUptime bringt ihn jede Minute einen Schritt weiter. |
+| **Ausführung abgeschlossen** | Jemand hat bestätigt, der Vorfall oder die Warnung wurde behoben, jede Regel und Wiederholung wurde genutzt, oder die Richtlinie wurde archiviert. |
+| **Ausführung abgeschlossen - niemand benachrichtigt** | Der Lauf ist durch jede Regel gegangen und hat niemanden alarmiert: meist ein Plan, in dem niemand Bereitschaft hat, oder eine Stufe ohne Empfänger. |
 | **Fehler** | Der Lauf ist fehlgeschlagen. **Statusmeldung anzeigen** sagt, warum. |
 
 Ausführungsprotokolle finden Sie an drei Stellen:
@@ -160,7 +160,7 @@ Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen
 ## Fehlerbehebung
 
 :::details Eine Richtlinie ist gelaufen, aber niemand wurde alarmiert
-Ihr Lauf zeigt **Execution Completed - No One Notified**. Öffnen Sie **Zeitachse anzeigen**: Eine Zeile mit **Niemand hatte Bereitschaft** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaft → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
+Ihr Lauf zeigt **Ausführung abgeschlossen - niemand benachrichtigt**. Öffnen Sie **Zeitachse anzeigen**: Eine Zeile mit **Niemand hatte Bereitschaft** verweist auf einen Plan mit einer Lücke, und die Statusmeldung einer Zeile **Übersprungen** sagt, warum, etwa weil jemand abwesend war und niemand ihn vertreten hat. **Bereitschaft → Einsatzbereitschaft** zeigt, wer nicht erreichbar war.
 :::
 
 :::details Die nächste Stufe wurde eine Minute nach ihrer Wartezeit alarmiert

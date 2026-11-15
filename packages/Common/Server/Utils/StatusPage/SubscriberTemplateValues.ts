@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../../Types/Date";
+import { StatusPageNameList } from "../../../Types/StatusPage/DefaultStatusNames";
 import { translationKey, Translator } from "../../../Types/Translator";
 import { writeInLanguage } from "../ServerTranslation";
 import SubscriberLanguage, {
@@ -17,8 +18,9 @@ import SubscriberMessageText from "./SubscriberMessageText";
  * German template does not read "Status: Resolved":
  *
  *   - OneUptime's default names of states and severities ("Resolved",
- *     "Major Incident", "Ongoing"; Types/StatusPage/DefaultStatusNames) -
- *     a project's own names read as written;
+ *     "Major Incident", "Ongoing"; Types/StatusPage/DefaultStatusNames),
+ *     each read against its own list's - a project's own names read as
+ *     written;
  *   - a fixed word, such as "None" for a resource list that lists none, and
  *     "Yes" or "No" for a Yes / No custom field;
  *   - a date and time, as the notifications write one (when a note was
@@ -52,16 +54,18 @@ export const SubscriberTemplateValueText: {
 
 export default class SubscriberTemplateValues {
   /*
-   * A state's or a severity's name: OneUptime's default ones in the page's
-   * language, a project's own as written, `whenEmpty` for none.
+   * A state's or a severity's name: OneUptime's default ones of its `list`
+   * in the page's language, a project's own as written, `whenEmpty` for
+   * none.
    */
   public static stateName(
+    list: StatusPageNameList,
     name: string | null | undefined,
     whenEmpty: string = "",
   ): SubscriberTemplateValue {
     return (translator: Translator): string => {
       return name
-        ? SubscriberMessageText.nameInLanguage(translator, name)
+        ? SubscriberMessageText.nameInLanguage(translator, list, name)
         : whenEmpty;
     };
   }

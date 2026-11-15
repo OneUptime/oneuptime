@@ -118,6 +118,10 @@ describe("email subjects", () => {
     ],
     [
       "App/FeatureSet/Identity/API/Authentication.ts",
+      "subject: `Welcome to ${ProductBrandingText.getProductName()}. Your account is ready.`",
+    ],
+    [
+      "App/FeatureSet/Identity/API/Authentication.ts",
       "subject: `Password Reset Request for ${ProductBrandingText.getProductName()}`",
     ],
     [
