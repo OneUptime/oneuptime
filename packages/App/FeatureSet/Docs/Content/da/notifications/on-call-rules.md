@@ -29,25 +29,25 @@ De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsA
 
 ## Én rækkefølge til alt
 
-**Brugerindstillinger → Sådan når man mig** åbner med din rækkefølge: de trin, hvert kald prøver, for hændelser, advarsler og episoder af enhver alvorlighed. Hvert trin er en af dine bekræftede metoder og hvornår den bruges, for eksempel en SMS med det samme og et opkald efter 5 minutter. Trin med samme ventetid sendes samtidig, så rækkefølgen læses i den orden, den kalder.
+**Brugerindstillinger → Sådan når man mig** åbner med din rækkefølge: nummererede trin, som hvert kald prøver efter tur, for hændelser, advarsler og episoder af enhver alvorlighed. Hvert trin er et tidspunkt, for eksempel med det samme eller efter 5 minutter, med de bekræftede metoder, der sendes samtidig da. Et senere trin sendes kun, hvis ingen har bekræftet kaldet inden da.
 
 :::steps
 ### Tilføj en måde at nå dig på
 
-Vælg en af dine bekræftede metoder i **Tilføj en måde at nå dig på**. Et nummer eller en adresse, der stadig venter på sin kode, står under **Ikke bekræftet endnu**, med **Bekræft**.
+Klik på **Tilføj** ved et trin for at sende en af dine bekræftede metoder på trinnets tidspunkt, eller på **Tilføj trin** for at starte et nyt trin efter det sidste. Et nummer eller en adresse, der stadig venter på sin kode, står under **Ikke bekræftet endnu**, med **Bekræft**.
 
 ### Vælg, hvornår den bruges
 
-Vælg ved hvert trin en ventetid fra **Med det samme** til **1 time**. Et push-trin siger også, hvordan det lyder, og om det gentages: se [Push-regler](#push-regler).
+Klik på et trins tidspunkt, for eksempel **Med det samme**, og vælg et andet, op til en time: hele trinnet flytter med. Et push-trin siger også, hvordan det lyder, og om det gentages: se [Push-regler](#push-regler).
 
 ### Gem den
 
-Klik på **Gem rækkefølge**. Det skriver de samme regler i hvert kort på hver fane: de regler, du ville tilføje til hvert kort i hånden.
+Klik på **Gem ændringer**, som vises, så snart noget er ændret. Det skriver de samme regler i hvert kort på hver fane: de regler, du ville tilføje til hvert kort i hånden.
 :::
 
 **Test dine kald**, nederst på siden, sender dig et testkald gennem dem.
 
-Når en alvorlighed fortjener noget andet, åbner **Anderledes for nogle alvorligheder** fanerne og kortene, der er beskrevet nedenfor. Et kort, der afviger fra din rækkefølge, er markeret med **Afviger fra rækkefølgen**, og rækkefølgen viser, hvad hvert kort gør i stedet. Afviger dine regler allerede, åbner siden på kortene med **Brug én rækkefølge til alt**: når du gemmer, nævner den først de kort, der mister deres afvigelse. En alvorlighed, dit projekt har arkiveret, beholder sine egne regler.
+Når en alvorlighed fortjener noget andet, åbner **Anderledes for nogle alvorligheder** under trinnene fanerne og kortene, der er beskrevet nedenfor. Et kort, der afviger fra din rækkefølge, er markeret med **Afviger fra rækkefølgen**, og rækkefølgen viser, hvad hvert kort gør i stedet. Afviger dine regler allerede, åbner siden på kortene med **Brug én rækkefølge til alt**: når du gemmer, nævner den først de kort, der mister deres afvigelse. En alvorlighed, dit projekt har arkiveret, beholder sine egne regler.
 
 En vagtpolitik bestemmer, hvem der kaldes, og hvornår dens næste niveau kommer. Hvordan du nås, er denne rækkefølge, for hver politik, der kalder dig.
 

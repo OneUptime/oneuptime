@@ -29,25 +29,25 @@ A maioria das mensagens pode confirmar o acionamento: e-mails, SMS e mensagens d
 
 ## Uma só sequência para tudo
 
-**Configurações do usuário → Como me contatar** abre na sua sequência: as etapas que cada chamada tenta, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um dos seus métodos verificados e quando usá-lo, por exemplo um SMS na hora e uma ligação após 5 minutos. Etapas com a mesma espera saem juntas, então a sequência se lê na ordem em que chama.
+**Configurações do usuário → Como me contatar** abre na sua sequência: etapas numeradas que cada chamada tenta, uma após a outra, para incidentes, alertas e episódios de qualquer gravidade. Cada etapa é um momento, por exemplo na hora ou após 5 minutos, com os métodos verificados que saem juntos nesse momento. Uma etapa seguinte só sai se ninguém tiver confirmado a chamada até lá.
 
 :::steps
 ### Adicionar uma forma de contatar você
 
-Escolha um dos seus métodos verificados em **Adicionar uma forma de contatar você**. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
+Clique em **Adicionar** em uma etapa para enviar um dos seus métodos verificados no momento dessa etapa, ou em **Adicionar etapa** para começar uma nova etapa depois da última. Um número ou endereço que ainda espera o código aparece em **Ainda não verificado**, com **Verificar**.
 
 ### Escolher quando usar
 
-Ao lado de cada etapa, escolha uma espera de **Imediatamente** a **1 hora**. Uma etapa de push também diz como toca e se repete: veja [Regras de push](#regras-de-push).
+Clique no momento de uma etapa, por exemplo **Na hora**, e escolha outro, até uma hora: a etapa inteira se move. Uma etapa de push também diz como toca e se repete: veja [Regras de push](#regras-de-push).
 
 ### Salvar
 
-Clique em **Salvar sequência**. As mesmas regras são gravadas em cada cartão de cada aba: as regras que você adicionaria à mão em cada cartão.
+Clique em **Salvar alterações**, que aparece assim que algo muda. As mesmas regras são gravadas em cada cartão de cada aba: as regras que você adicionaria à mão em cada cartão.
 :::
 
 **Teste suas chamadas**, no pé da página, envia a você uma chamada de teste por elas.
 
-Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades** abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
+Quando uma gravidade merece outra coisa, **Diferente para algumas gravidades**, abaixo das etapas, abre as abas e os cartões descritos abaixo. Um cartão que difere da sua sequência é marcado com **Difere da sequência**, e a sequência diz o que cada um faz no lugar. Se suas regras já diferem, a página abre nos cartões, com **Usar uma só sequência para tudo**: ao salvar, ela primeiro nomeia os cartões que perdem a diferença. Uma gravidade que seu projeto arquivou mantém as próprias regras.
 
 Uma política de plantão decide quem é chamado e quando vem o próximo nível. Como você é contatado é esta sequência, para cada política que chama você.
 

@@ -29,25 +29,25 @@ De fleste meldinger kan bekrefte tilkallingen: e-post, SMS og meldinger i WhatsA
 
 ## Én rekkefølge for alt
 
-**Brukerinnstillinger → Slik når man meg** åpner med rekkefølgen din: trinnene hvert oppkall prøver, for hendelser, varsler og episoder av enhver alvorlighetsgrad. Hvert trinn er en av de verifiserte metodene dine og når den brukes, for eksempel en SMS med en gang og en samtale etter 5 minutter. Trinn med samme ventetid sendes samtidig, så rekkefølgen leses i den rekkefølgen den kaller opp.
+**Brukerinnstillinger → Slik når man meg** åpner med rekkefølgen din: nummererte trinn som hvert oppkall prøver etter tur, for hendelser, varsler og episoder av enhver alvorlighetsgrad. Hvert trinn er et tidspunkt, for eksempel med en gang eller etter 5 minutter, med de verifiserte metodene som sendes samtidig da. Et senere trinn sendes bare hvis ingen har bekreftet oppkallet innen da.
 
 :::steps
 ### Legg til en måte å nå deg på
 
-Velg en av de verifiserte metodene dine i **Legg til en måte å nå deg på**. Et nummer eller en adresse som fortsatt venter på koden, står under **Ikke verifisert ennå**, med **Verifiser**.
+Klikk på **Legg til** ved et trinn for å sende en av de verifiserte metodene dine på trinnets tidspunkt, eller på **Legg til trinn** for å starte et nytt trinn etter det siste. Et nummer eller en adresse som fortsatt venter på koden, står under **Ikke verifisert ennå**, med **Verifiser**.
 
 ### Velg når den brukes
 
-Velg ved hvert trinn en ventetid fra **Umiddelbart** til **1 time**. Et push-trinn sier også hvordan det høres ut og om det gjentas: se [Push-regler](#push-regler).
+Klikk på tidspunktet til et trinn, for eksempel **Med en gang**, og velg et annet, opptil en time: hele trinnet flyttes. Et push-trinn sier også hvordan det høres ut og om det gjentas: se [Push-regler](#push-regler).
 
 ### Lagre den
 
-Klikk på **Lagre rekkefølge**. Det skriver de samme reglene i hvert kort på hver fane: reglene du ville lagt til hvert kort for hånd.
+Klikk på **Lagre endringer**, som vises så snart noe er endret. Det skriver de samme reglene i hvert kort på hver fane: reglene du ville lagt til hvert kort for hånd.
 :::
 
 **Test oppkallene dine**, nederst på siden, sender deg et testoppkall gjennom dem.
 
-Når en alvorlighetsgrad fortjener noe annet, åpner **Annerledes for noen alvorlighetsgrader** fanene og kortene som beskrives nedenfor. Et kort som avviker fra rekkefølgen din, er merket **Avviker fra rekkefølgen**, og rekkefølgen viser hva hvert kort gjør i stedet. Avviker reglene dine allerede, åpner siden på kortene, med **Bruk én rekkefølge for alt**: når du lagrer, nevner den først kortene som mister avviket sitt. En alvorlighetsgrad prosjektet ditt har arkivert, beholder sine egne regler.
+Når en alvorlighetsgrad fortjener noe annet, åpner **Annerledes for noen alvorlighetsgrader** under trinnene fanene og kortene som beskrives nedenfor. Et kort som avviker fra rekkefølgen din, er merket **Avviker fra rekkefølgen**, og rekkefølgen viser hva hvert kort gjør i stedet. Avviker reglene dine allerede, åpner siden på kortene, med **Bruk én rekkefølge for alt**: når du lagrer, nevner den først kortene som mister avviket sitt. En alvorlighetsgrad prosjektet ditt har arkivert, beholder sine egne regler.
 
 En vaktpolicy bestemmer hvem som kalles opp og når neste nivå kommer. Hvordan du nås, er denne rekkefølgen, for hver policy som kaller deg opp.
 

@@ -29,25 +29,25 @@ De meeste berichten kunnen de oproep bevestigen: e-mails, sms'jes en berichten v
 
 ## Eén reeks voor alles
 
-**Gebruikersinstellingen → Hoe ik bereikbaar ben** opent met uw reeks: de stappen die elke oproep probeert, voor incidenten, waarschuwingen en episodes van elk ernstniveau. Elke stap is een van uw geverifieerde methoden en wanneer die wordt gebruikt, zoals meteen een sms en na 5 minuten een oproep. Stappen met dezelfde wachttijd gaan samen uit, dus de reeks leest in de volgorde waarin ze oproept.
+**Gebruikersinstellingen → Hoe ik bereikbaar ben** opent met uw reeks: genummerde stappen die elke oproep op volgorde probeert, voor incidenten, waarschuwingen en episodes van elk ernstniveau. Elke stap is een moment, zoals meteen of na 5 minuten, met de geverifieerde methoden die dan samen uitgaan. Een latere stap gaat alleen uit als niemand de oproep tegen die tijd heeft bevestigd.
 
 :::steps
 ### Een manier toevoegen om u te bereiken
 
-Kies een van uw geverifieerde methoden bij **Een manier toevoegen om u te bereiken**. Een nummer of adres dat nog op zijn code wacht, staat onder **Nog niet geverifieerd**, met **Verifiëren**.
+Klik bij een stap op **Toevoegen** om een van uw geverifieerde methoden op het moment van die stap te sturen, of op **Stap toevoegen** om na de laatste stap een nieuwe te beginnen. Een nummer of adres dat nog op zijn code wacht, staat onder **Nog niet geverifieerd**, met **Verifiëren**.
 
 ### Kiezen wanneer die wordt gebruikt
 
-Kies naast elke stap een wachttijd van **Onmiddellijk** tot **1 uur**. Een push-stap zegt ook hoe die klinkt en of die herhaalt: zie [Pushregels](#pushregels).
+Klik op het moment van een stap, zoals **Meteen**, en kies een ander, tot een uur: de hele stap verschuift. Een push-stap zegt ook hoe die klinkt en of die herhaalt: zie [Pushregels](#pushregels).
 
 ### Opslaan
 
-Klik op **Reeks opslaan**. Dat schrijft dezelfde regels in elke kaart van elk tabblad: de regels die u met de hand aan elke kaart zou toevoegen.
+Klik op **Wijzigingen opslaan**, dat verschijnt zodra er iets is veranderd. Dat schrijft dezelfde regels in elke kaart van elk tabblad: de regels die u met de hand aan elke kaart zou toevoegen.
 :::
 
 **Test uw oproepen**, onderaan de pagina, stuurt u een testoproep via deze regels.
 
-Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus** de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**, en de reeks vermeldt wat elke kaart in plaats daarvan doet. Wijken uw regels al af, dan opent de pagina op de kaarten, met **Eén reeks voor alles gebruiken**: bij opslaan noemt die eerst de kaarten die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
+Verdient een ernstniveau iets anders, dan opent **Anders voor sommige ernstniveaus**, onder de stappen, de tabbladen en kaarten die hieronder staan beschreven. Een kaart die van uw reeks afwijkt, is gemarkeerd met **Wijkt af van de reeks**, en de reeks vermeldt wat elke kaart in plaats daarvan doet. Wijken uw regels al af, dan opent de pagina op de kaarten, met **Eén reeks voor alles gebruiken**: bij opslaan noemt die eerst de kaarten die hun afwijking verliezen. Een ernstniveau dat uw project heeft gearchiveerd, houdt zijn eigen regels.
 
 Een dienstbeleid bepaalt wie wordt opgeroepen en wanneer het volgende niveau komt. Hoe u wordt bereikt, is deze reeks, voor elk beleid dat u oproept.
 
