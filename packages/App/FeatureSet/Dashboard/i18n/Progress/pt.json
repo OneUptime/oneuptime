@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 8651
+    "keys": 54327,
+    "untranslated": 8548
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -84,6 +84,7 @@
     "Deployment",
     "DeploymentConfigs",
     "Desktop",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Docs",

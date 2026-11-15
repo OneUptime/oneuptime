@@ -553,7 +553,7 @@ export default class ConsentEndpoint {
         );
       case ConsentProjectRefusal.Blocked:
         return new NotAuthorizedException(
-          "Your project administrator does not allow you to connect MCP clients to this project.",
+          "Your Project Admin does not allow you to connect MCP clients to this project.",
         );
       default:
         return new NotAuthorizedException(

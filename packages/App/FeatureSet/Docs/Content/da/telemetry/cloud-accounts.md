@@ -35,7 +35,7 @@ flowchart TB
 
 ## Før du begynder
 
-- **En projektejer eller -administrator.** Kun de kan forbinde, teste og redigere cloudkonti.
+- **En Projektejer eller Projektadministrator.** Kun de kan forbinde, teste og redigere cloudkonti.
 - **Din clouds terminal** (AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell), logget ind som en, der må oprette en IAM-rolle eller -bruger, en appregistrering eller en tjenestekonto.
 
 ## Amazon Web Services

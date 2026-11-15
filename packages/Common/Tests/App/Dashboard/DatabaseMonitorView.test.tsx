@@ -7,6 +7,7 @@ import {
   DatabaseMetricDefinition,
   DatabaseMetricGroup,
   getDatabaseMetricByMetricType,
+  getDatabaseMetricGroupLabel,
 } from "../../../Types/Monitor/DatabaseMetricCatalog";
 import DatabaseMonitorResponse, {
   DatabaseMetricGroupStatus,
@@ -194,9 +195,12 @@ describe("DatabaseMonitorView - a SQL Server login with read access only (issue 
     expect(blocks).toHaveLength(1);
     expect(blocks[0]).toHaveTextContent(SQL_SERVER_MONITORING_REMEDIATION);
 
+    // Each group by its name, as the form's Metric Groups switch says it (#8609).
     for (const group of [...DMV_GROUPS, DatabaseMetricGroup.Replication]) {
       expect(
-        within(collectionPanel(view)).getByText(group),
+        within(collectionPanel(view)).getByText(
+          getDatabaseMetricGroupLabel(group),
+        ),
       ).toBeInTheDocument();
     }
   });

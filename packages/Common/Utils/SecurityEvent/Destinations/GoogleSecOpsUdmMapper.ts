@@ -8,6 +8,7 @@ import {
 } from "../../../Types/SecurityEvent/OcsfProcessActivity";
 import { ProcessReading, fileNameOfPath } from "../NormalizerHelpers";
 import { SecurityEventRecord } from "./SecurityEventRecord";
+import { readOwnValue, writeOwnValue } from "../../LookupTable";
 
 /*
  * A OneUptime security event as a Google SecOps UDM event - what the
@@ -441,6 +442,13 @@ function additionalFields(record: SecurityEventRecord): JSONObject {
 
   let count: number = Object.keys(additional).length;
 
+  /*
+   * The event's attributes, each read and written as the map's own key: a
+   * plain read answered an attribute named "constructor", "toString" or
+   * "__proto__" with what every object inherits, as if one of OneUptime's
+   * own fields already held it, so each was left out of what Google SecOps
+   * was sent.
+   */
   for (const key of Object.keys(record.attributes).sort()) {
     if (count >= MAX_ADDITIONAL_FIELDS) {
       break;
@@ -448,11 +456,15 @@ function additionalFields(record: SecurityEventRecord): JSONObject {
 
     const value: string = record.attributes[key] || "";
 
-    if (!value || additional[key] !== undefined) {
+    if (!value || readOwnValue(additional, key) !== undefined) {
       continue;
     }
 
-    additional[cut(key, 128)] = cut(value, MAX_ADDITIONAL_VALUE_LENGTH);
+    writeOwnValue(
+      additional,
+      cut(key, 128),
+      cut(value, MAX_ADDITIONAL_VALUE_LENGTH),
+    );
     count++;
   }
 

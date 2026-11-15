@@ -489,7 +489,7 @@ An entry that matches nothing does not stop the step: the record is still create
 
 ### Who owns it from the start
 
-**Create One Incident** and **Create One Alert** have **Owner Users** and **Owner Teams** settings: the people and teams who own the record from the moment it is created. Pick them, or take them from an earlier step: a user's ID or email address, a team's ID, several separated by commas, or a list. The record's owners hear it was created about a minute after the create, every owner it has by then: the ones picked here are always among them, while owners a later step adds miss it whenever that step runs more than a minute later, and the project's owners are told in their place.
+**Create One Incident** and **Create One Alert** have **Owner Users** and **Owner Teams** settings: the people and teams who own the record from the moment it is created. Pick them, or take them from an earlier step: a user's ID or email address, a team's ID, several separated by commas, or a list. The record's owners hear it was created about a minute after the create, every owner it has by then: the ones picked here are always among them, while owners a later step adds miss it whenever that step runs more than a minute later, and the Project Owners are told in their place.
 
 The step asks whether it may add them, as a Project Admin of the workflow's project, before the record is saved: owners it may not add refuse the create. Somebody who is not a member of the project, or a team that is not one of the project's, is left out, and the run log says so: the record is still created. Owners added this way are not told they were added: the notification that the record was created is the one they get.
 

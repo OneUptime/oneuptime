@@ -56,6 +56,14 @@ Fluent Bit 會從 `/etc/fluent-bit/fluent-bit.yaml` 這類檔案讀取 YAML 設�
 加入一個傳送到 OneUptime 的 `opentelemetry` 輸出。如果想在本機查看記錄，測試期間可以保留 `stdout` 輸出：
 
 ```yaml title="fluent-bit.yaml"
+service:
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
+
 pipeline:
   outputs:
     - name: stdout
@@ -70,7 +78,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
+
+`retry_limit: 8640` 會在 OneUptime 忙碌（`429`）或正在重新啟動（`502`、`503`、`504`）時重新傳送一個區塊，大約每 30 秒一次（`scheduler.base` 和 `scheduler.cap`），持續約 72 小時；Fluent Bit 預設只再試一次，然後丟棄它。`storage.path` 把尚未傳送的區塊保存在磁碟上，因此重新啟動 Fluent Bit 不會遺失其中任何一個，這適用於每個設定了 `storage.type: filesystem` 的輸入，如下一步所示。Fluent Bit 必須能寫入該資料夾：套件的服務以 root 身分執行，手動執行時請用 `sudo`。`storage.total_limit_size: 512M` 為該輸出最多保存 512 MB；滿了之後，最早的區塊會被丟棄。
 
 ### 把日誌包進 OpenTelemetry 信封並為服務命名
 
@@ -81,6 +95,10 @@ pipeline:
   inputs:
     - name: tail # or any other input
       path: /var/log/my-app/*.log
+      # Keep its place in each file, so a restart reads on from there
+      db: /var/lib/fluent-bit/tail.db
+      # Keep its chunks on disk until OneUptime takes them
+      storage.type: filesystem
 
       processors:
         logs:
@@ -93,25 +111,45 @@ pipeline:
             value: YOUR_SERVICE_NAME
 ```
 
+`db` 記住 tail 在每個檔案中的位置，因此重新啟動後會從那裡接著讀；沒有它，Fluent Bit 會從每個檔案的結尾重新開始，停機期間寫入的行永遠不會傳送。`storage.type: filesystem` 把輸入的區塊保存在 `storage.path` 中。
+
 ### 重新啟動 Fluent Bit
 
-重新啟動 Fluent Bit 服務，或用 `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` 啟動它。幾秒內，日誌就會出現在 **產品 → 日誌** 中，服務也會列在 **產品 → 服務** 下。
+`fluent-bit` 套件的服務讀取的是套件內附的範例 `/etc/fluent-bit/fluent-bit.conf`，而不是這個檔案。用一個 drop-in 讓它改讀 `/etc/fluent-bit/fluent-bit.yaml`，然後讓它現在啟動，並在每次開機時啟動：
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+空的 `ExecStart=` 會清掉套件內附的啟動行。若要先在前景試一試這個檔案，請執行 `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`：套件把程式放在 `/opt/fluent-bit/bin`，它不在 `PATH` 中。幾秒內，日誌就會出現在 **產品 → 日誌** 中，服務也會列在 **產品 → 服務** 下。
 :::
 
 ## 完整範例
 
-這份設定在連接埠 `8888` 上透過 HTTP 接收日誌，並轉送到 OneUptime：
+這份設定在連接埠 `8888` 上透過 HTTP 只接收來自本主機的日誌，並轉送到 OneUptime：
 
 ```yaml title="fluent-bit.yaml"
 service:
   flush: 1
   log_level: info
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
 
 pipeline:
   inputs:
     - name: http
-      listen: 0.0.0.0
+      # This host alone may send here
+      listen: 127.0.0.1
       port: 8888
+      storage.type: filesystem
 
       processors:
         logs:
@@ -136,9 +174,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
-把 `http` 輸入換成你需要的輸入，例如日誌檔案用 `tail`、journal 用 `systemd`，並在每個輸入上保留這兩個處理器。
+`listen: 127.0.0.1` 只接收來自本主機的日誌：`http` 輸入不要求任何金鑰，所以使用 `listen: 0.0.0.0` 時，任何能連到該連接埠的人都可以用你的擷取金鑰向 OneUptime 傳送日誌。把 `http` 輸入換成你需要的輸入，例如日誌檔案用 `tail`、journal 用 `systemd`，並在每個輸入上保留這兩個處理器和 `storage.type: filesystem`。
 
 ## 自行託管的 OneUptime
 
@@ -158,6 +200,10 @@ pipeline:
       traces_uri: "/otlp/v1/traces"
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
 ## 疑難排解
@@ -176,6 +222,10 @@ pipeline:
 
 :::details 什麼都沒有收到，Fluent Bit 記錄了連線錯誤
 檢查 HTTPS 端點是否設定了 `tls: On` 與 `port: 443`，以及執行 Fluent Bit 的主機能否透過該連接埠連到你的 OneUptime 主機。
+:::
+
+:::details Fluent Bit 記錄了 `cannot be retried`
+Fluent Bit 丟棄了一個無法傳送的區塊。像上面的設定那樣設定 `retry_limit: 8640` 後，OneUptime 以 `429`、`502`、`503` 或 `504` 回應的區塊，會大約每 30 秒重新傳送一次，持續約 72 小時；使用 Fluent Bit 的預設值時，它只再試一次。`400`、`401`、`402`、`413`、`422` 或 `500` 會被立即丟棄，因為每次的回應都一樣：請檢查金鑰、方案和請求大小。
 :::
 
 如果對設定有任何問題或需要協助，請寄信至 support@oneuptime.com。

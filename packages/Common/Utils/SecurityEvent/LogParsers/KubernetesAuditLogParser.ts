@@ -17,6 +17,7 @@ import {
   readAttribute,
   readIpAddress,
 } from "./SecurityLogLine";
+import { writeOwnValue } from "../../LookupTable";
 
 /*
  * Kubernetes API server audit events (audit.k8s.io), one JSON document per
@@ -212,10 +213,14 @@ function boundedAttributes(record: JSONObject): JSONObject {
     }
 
     const value: string = String(flattened[key]);
-    bounded[key] =
+    // The record's field, as the event's own attribute, "__proto__" too.
+    writeOwnValue<JSONValue>(
+      bounded,
+      key,
       value.length > MAX_AUDIT_ATTRIBUTE_VALUE_LENGTH
         ? value.slice(0, MAX_AUDIT_ATTRIBUTE_VALUE_LENGTH)
-        : value;
+        : value,
+    );
     count++;
   }
 

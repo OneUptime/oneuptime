@@ -165,7 +165,7 @@ Um acionamento não enviado diz o motivo nos **Registros de plantão** da pessoa
 - o saldo do projeto não pôde pagá-lo, e quem pode adicionar saldo;
 - o canal está desligado no projeto, e quem pode ligá-lo.
 
-Os proprietários do projeto recebem um e-mail sobre isso uma vez, até o saldo ser recarregado ou o canal ser ligado de novo.
+Os Proprietários do projeto recebem um e-mail sobre isso uma vez, até o saldo ser recarregado ou o canal ser ligado de novo.
 
 Um acionamento que não conseguiu chegar ao serviço de notificações do OneUptime diz `Could not reach the Notification service to send this (ECONNREFUSED).`, com o código do erro de rede entre os parênteses. Um acionamento cujo envio nunca terminou, por exemplo porque um servidor reiniciou durante o envio, diz `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se o envio terminar afinal, o resultado substitui essa mensagem.
 

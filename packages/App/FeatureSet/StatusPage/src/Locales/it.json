@@ -275,6 +275,7 @@
       "channelSlack": "Workspace Slack",
       "channelMicrosoftTeams": "Workspace Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Questa iscrizione è stata aggiunta dal team che gestisce questa pagina di stato. Se si tratta di un indirizzo condiviso, come una mailing list, annullandola queste notifiche non arriveranno più a nessuno di chi le riceve, e il team ne sarà informato.",
       "confirmButton": "Annulla iscrizione",
       "manageInstead": "Scegli invece quali notifiche ricevere",

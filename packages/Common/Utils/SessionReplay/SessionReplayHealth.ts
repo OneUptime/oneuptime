@@ -26,6 +26,10 @@ import {
   translationKey,
   Translator,
 } from "../../Types/Translator";
+import {
+  formatCompactDuration,
+  formatCompactDurationAgo,
+} from "../Milliseconds";
 
 /*
  * diagnoseRecordingHealth: one pure function that turns the ingest-status
@@ -117,30 +121,34 @@ export function formatRelativeAge(
     return translateWord("just now", translator);
   }
 
+  // The reader's units and digits: "۵ دقیقه پیش", "vor 5 Min." (#8455).
   if (ageMs < MINUTE_MS) {
-    return translator.translateTemplate("{{count}}s ago", {
-      count: Math.floor(ageMs / SECOND_MS),
+    return formatCompactDurationAgo(translator, {
+      seconds: Math.floor(ageMs / SECOND_MS),
     });
   }
 
   if (ageMs < HOUR_MS) {
-    return translator.translateTemplate("{{count}}m ago", {
-      count: Math.floor(ageMs / MINUTE_MS),
+    return formatCompactDurationAgo(translator, {
+      minutes: Math.floor(ageMs / MINUTE_MS),
     });
   }
 
   if (ageMs < DAY_MS) {
-    return translator.translateTemplate("{{count}}h ago", {
-      count: Math.floor(ageMs / HOUR_MS),
+    return formatCompactDurationAgo(translator, {
+      hours: Math.floor(ageMs / HOUR_MS),
     });
   }
 
-  return translator.translateTemplate("{{count}}d ago", {
-    count: Math.floor(ageMs / DAY_MS),
+  return formatCompactDurationAgo(translator, {
+    days: Math.floor(ageMs / DAY_MS),
   });
 }
 
-/* "1h", "6h", "3d" - a duration rather than an age, for "no chunk for 7h". */
+/*
+ * "1h", "6h", "3d" - a duration rather than an age, for "no chunk for 7h".
+ * In the reader's units and digits ("۷ ساعت"; #8455).
+ */
 export function formatDurationForCopy(
   durationMs: number,
   translator: Translator = ENGLISH,
@@ -150,25 +158,25 @@ export function formatDurationForCopy(
   }
 
   if (durationMs < MINUTE_MS) {
-    return translator.translateTemplate("{{count}}s", {
-      count: Math.floor(durationMs / SECOND_MS),
+    return formatCompactDuration(translator, {
+      seconds: Math.floor(durationMs / SECOND_MS),
     });
   }
 
   if (durationMs < HOUR_MS) {
-    return translator.translateTemplate("{{count}}m", {
-      count: Math.floor(durationMs / MINUTE_MS),
+    return formatCompactDuration(translator, {
+      minutes: Math.floor(durationMs / MINUTE_MS),
     });
   }
 
   if (durationMs < DAY_MS) {
-    return translator.translateTemplate("{{count}}h", {
-      count: Math.floor(durationMs / HOUR_MS),
+    return formatCompactDuration(translator, {
+      hours: Math.floor(durationMs / HOUR_MS),
     });
   }
 
-  return translator.translateTemplate("{{count}}d", {
-    count: Math.floor(durationMs / DAY_MS),
+  return formatCompactDuration(translator, {
+    days: Math.floor(durationMs / DAY_MS),
   });
 }
 

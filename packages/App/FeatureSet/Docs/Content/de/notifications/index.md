@@ -95,7 +95,7 @@ Ein Alarm kann Sie für eine Art und einen Schweregrad erreichen, für die Sie k
 2. Wenn Sie keine davon haben, eine kostenpflichtige Methode, in dieser Reihenfolge: SMS, ein Telefonanruf, WhatsApp, Telegram. Es ist die erste, die Sie verifiziert haben, auf einem Kanal, den das Projekt eingeschaltet hat.
 3. Wenn Sie auch davon keine haben, ein Webhook.
 
-Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Eigentümer des Projekts, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
+Sie erhalten darüber eine E-Mail, ebenso die Eigentümer der Bereitschaftsrichtlinie, oder die Projektinhaber, wenn die Richtlinie keine hat. Ist gar nichts verifiziert, kann der Alarm nicht zugestellt werden, und die E-Mail sagt stattdessen das. Diese E-Mails werden zurückgehalten, solange weitere Alarme eintreffen, sodass ein Sturm von Alarmen kein Sturm von E-Mails wird. Wie Sie die fehlende Regel hinzufügen, steht unter [Wie ich erreichbar bin](/docs/notifications/on-call-rules#wenn-ein-schweregrad-keine-regel-hat).
 
 ## Die Sprache Ihrer Alarme
 

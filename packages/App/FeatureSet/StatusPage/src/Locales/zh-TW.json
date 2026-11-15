@@ -275,6 +275,7 @@
       "channelSlack": "Slack 工作區",
       "channelMicrosoftTeams": "Microsoft Teams 工作區",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}：",
       "addedByTeamWarning": "此訂閱由營運此狀態頁的團隊新增。如果這是共用地址（例如郵寄清單），取消訂閱後，所有收件者都將不再收到這些通知，團隊也會收到通知。",
       "confirmButton": "取消訂閱",
       "manageInstead": "改為選擇您要接收的通知",

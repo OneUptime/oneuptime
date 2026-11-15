@@ -23,20 +23,28 @@ import apiClient, {
   setOnAuthFailure,
   waitForSessionRenewal,
 } from "./client";
+import type { SessionEndReason as AppSessionEndReason } from "../auth/sessionEnded";
 import {
+  ACTIVITY_REPORTED_WITHIN_IN_MINUTES,
   decideSessionRenewal,
+  getIdleTimeoutSweepCutoff,
   getSessionEnd,
+  IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES,
   INACTIVE_FOR_IN_SECONDS_FIELD,
   LONGEST_INACTIVITY_FIELD,
   NO_RENEWAL_REPORT,
   readReportedInactivityInSeconds,
   readReportedLongestInactivity,
+  readReportsActivityWhileInUse,
+  REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+  SessionEndReason,
   type RenewalReport,
   type SessionEnd,
   type SessionFacts,
   type SessionLengths,
   type SessionRenewalOutcome,
 } from "../../../Common/Types/UserSession/SessionLength";
+import { SESSION_ENDED_MESSAGES } from "../../../Common/Types/Exception/SessionEndedException";
 
 /*
  * ISSUE #8187, FROM THE APP TO THE SERVER'S DECISION AND BACK.
@@ -68,6 +76,16 @@ import {
  *   - an app updated to this one, with nothing kept yet, still counts the
  *     time since the session's last renewal;
  *   - longer idle timeouts, and none, keep working as they did.
+ *
+ * And the server's five-minute sweep (issue #8458,
+ * UserSessionService.endSessionsThatRanOut): every renewal of the app says
+ * it renews while in use, so the stand-in ends, every five minutes, a
+ * session whose last renewal said so and that it has heard nothing of for
+ * its idle timeout and the margin (getIdleTimeoutSweepCutoff) - the real
+ * rule. An app in use is never swept, a phone put away is swept within
+ * the idle timeout and 35 minutes, and either way the app, opened again,
+ * says why it was signed out (issue #8381): the stand-in refuses an ended
+ * session with the server's own words (SessionEndedException).
  */
 
 const SERVER_URL: string = "https://test.oneuptime.local";
@@ -89,6 +107,26 @@ let nowMs: number = T0;
 let appStateHandler: ((state: AppStateStatus) => void) | null = null;
 
 let authFailures: number = 0;
+
+// Why each end of the session the app was told of happened, as it was told.
+let authFailureReasons: Array<AppSessionEndReason | null> = [];
+
+// How often the server's sweep runs (EndSessionsThatRanOut: every five minutes).
+const SWEEP_EVERY_MS: number = 5 * MINUTE;
+
+/*
+ * The reasons the app was told, leaving out the ends that said none: the
+ * requests still in flight when the session ended come back refused one by
+ * one, with nothing left to renew, and say no reason (the AuthProvider
+ * keeps the one that did).
+ */
+function reasonsSaid(): Array<AppSessionEndReason> {
+  return authFailureReasons.filter(
+    (reason: AppSessionEndReason | null): reason is AppSessionEndReason => {
+      return reason !== null;
+    },
+  );
+}
 
 const lengthsOf: (rule: {
   length?: number;
@@ -123,12 +161,55 @@ class IdentityServer {
 
   public endedFor: string | null = null;
 
+  // When the sweep ended it, when it did.
+  public sweptAtMs: number | null = null;
+
   public renewals: Array<Record<string, unknown>> = [];
+
+  // What the last renewal said of renewing while in use (UserSession.additionalInfo).
+  public reportsActivityWhileInUse: boolean = false;
+
+  // When the sweep last ran.
+  private lastSweepAtMs: number;
 
   public constructor(public readonly lengths: SessionLengths | null) {
     this.signedInAtMs = nowMs;
     this.lastActiveAtMs = nowMs;
+    this.lastSweepAtMs = nowMs;
     this.sign();
+  }
+
+  /*
+   * The five-minute sweep, run for every five minutes up to `untilMs`
+   * (UserSessionService.endSessionsPastIdleTimeout): a live session whose
+   * last renewal said it renews while in use, last active at or before its
+   * idle timeout and the margin ago, is ended as its idle timeout.
+   */
+  public sweepUntil(untilMs: number): void {
+    const idleTimeoutInMinutes: number | null =
+      this.lengths?.standard.idleTimeoutInMinutes ?? null;
+
+    while (this.lastSweepAtMs + SWEEP_EVERY_MS <= untilMs) {
+      this.lastSweepAtMs += SWEEP_EVERY_MS;
+
+      if (
+        this.endedFor !== null ||
+        idleTimeoutInMinutes === null ||
+        !this.reportsActivityWhileInUse
+      ) {
+        continue;
+      }
+
+      const cutoff: Date = getIdleTimeoutSweepCutoff({
+        idleTimeoutInMinutes,
+        now: new Date(this.lastSweepAtMs),
+      });
+
+      if (this.lastActiveAtMs <= cutoff.getTime()) {
+        this.endedFor = SessionEndReason.Inactive;
+        this.sweptAtMs = this.lastSweepAtMs;
+      }
+    }
   }
 
   public facts(): SessionFacts {
@@ -141,6 +222,8 @@ class IdentityServer {
 
   // A request: answered while its token lives and the session has not ended.
   public isServed(authorization: string): boolean {
+    this.sweepUntil(nowMs);
+
     return (
       this.endedFor === null &&
       authorization === `Bearer ${this.accessToken}` &&
@@ -150,10 +233,16 @@ class IdentityServer {
 
   // POST /identity/refresh-token, as Authentication.ts reads and decides it.
   public renew(body: Record<string, unknown>): AxiosResponse {
+    this.sweepUntil(nowMs);
     this.renewals.push(body);
 
-    if (this.endedFor !== null || body["refreshToken"] !== this.refreshToken) {
-      throw refusal();
+    // An ended session is refused with why it ended (Authentication.ts refuseEndedSession).
+    if (this.endedFor !== null) {
+      throw refusal(this.endedFor as SessionEndReason);
+    }
+
+    if (body["refreshToken"] !== this.refreshToken) {
+      throw refusal(null);
     }
 
     const report: RenewalReport = {
@@ -174,10 +263,13 @@ class IdentityServer {
 
     if (outcome.hasEnded) {
       this.endedFor = outcome.reason;
-      throw refusal();
+      throw refusal(outcome.reason);
     }
 
     this.lastActiveAtMs = outcome.lastActiveAt.getTime();
+    this.reportsActivityWhileInUse = readReportsActivityWhileInUse(
+      body[REPORTS_ACTIVITY_WHILE_IN_USE_FIELD],
+    );
     this.refreshToken = `refresh-${this.renewals.length}`;
     this.sign();
 
@@ -212,7 +304,12 @@ class IdentityServer {
   }
 }
 
-function refusal(): AxiosError {
+/*
+ * The server's 401 for a refused renewal: the session lengths' own words
+ * (SessionEndedException) when they ended it, or the plain refusal of a
+ * refresh token that matches no session.
+ */
+function refusal(reason: SessionEndReason | null): AxiosError {
   const config: InternalAxiosRequestConfig = {
     headers: {},
   } as InternalAxiosRequestConfig;
@@ -223,7 +320,11 @@ function refusal(): AxiosError {
     config,
     undefined,
     {
-      data: { message: "Your session ended." },
+      data: {
+        message: reason
+          ? SESSION_ENDED_MESSAGES[reason]
+          : "Session expired. Please login again.",
+      },
       status: 401,
       statusText: "Unauthorized",
       headers: {},
@@ -278,14 +379,17 @@ async function request(): Promise<boolean> {
   }
 }
 
+// Time passes to `atMs`, the server sweeping every five minutes on the way.
 async function at(atMs: number): Promise<void> {
   nowMs = atMs;
+  identity.sweepUntil(atMs);
   await settleEventLoop();
 }
 
 // The person touches the app.
 async function touch(atMs: number): Promise<void> {
   nowMs = atMs;
+  identity.sweepUntil(atMs);
   recordUserActivity(atMs);
   await settleEventLoop();
 }
@@ -298,6 +402,7 @@ async function pullToRefresh(atMs: number): Promise<boolean> {
 
 async function appState(state: AppStateStatus, atMs: number): Promise<void> {
   nowMs = atMs;
+  identity.sweepUntil(atMs);
   (AppState as unknown as { currentState: unknown }).currentState = state;
   appStateHandler!(state);
   await settleEventLoop();
@@ -308,6 +413,7 @@ async function appState(state: AppStateStatus, atMs: number): Promise<void> {
 // The app starts, on the screen.
 async function launch(atMs: number): Promise<void> {
   nowMs = atMs;
+  identity.sweepUntil(atMs);
   (AppState as unknown as { currentState: unknown }).currentState = "active";
   startUserActivityTracking();
   await settleEventLoop();
@@ -371,8 +477,10 @@ beforeEach(async () => {
     );
 
   authFailures = 0;
-  setOnAuthFailure((): void => {
+  authFailureReasons = [];
+  setOnAuthFailure((reason: AppSessionEndReason | null): void => {
     authFailures++;
+    authFailureReasons.push(reason);
   });
 });
 
@@ -414,13 +522,155 @@ describe("an app in use stays signed in under the shortest idle timeout (#8187)"
       await touch(T0 + minute * MINUTE);
     }
 
-    // No touch in the token's last two minutes: nothing renewed it ahead.
-    expect(identity.renewals).toHaveLength(0);
+    // Renewed only to tell the server of the person, every five minutes (#8458).
+    expect(identity.renewals).toHaveLength(2);
 
     await touch(T0 + 15 * MINUTE + 10 * SECOND);
 
     expect(await request()).toBe(true);
     expect(await isSignedIn()).toBe(true);
+  });
+});
+
+/*
+ * ISSUE #8458: THE SWEEP RECORDS AN IDLE TIMEOUT WITHIN MINUTES, AND NEVER
+ * SIGNS OUT AN APP IN USE.
+ *
+ * The sweep ends a session whose last renewal said it renews while in use
+ * once it has heard nothing of it for its idle timeout and the margin. The
+ * app keeps the promise, so someone using it is never swept, however they
+ * use it; one put away is swept within the idle timeout and 35 minutes,
+ * rather than at the next renewal - 30 days later for a phone never opened
+ * again.
+ */
+describe("the server's sweep, with an app that renews while in use (#8458)", () => {
+  // The latest the sweep ends a session: the margin, and one sweep after it.
+  const SWEPT_WITHIN_MS: number =
+    (IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES + 5) * MINUTE;
+
+  test("every renewal says the app renews while in use, and the server keeps it", async () => {
+    await signIn(lengthsOf({ idle: 15 }));
+    await touch(T0 + ACTIVITY_REPORTED_WITHIN_IN_MINUTES * MINUTE);
+
+    expect(identity.renewals).toHaveLength(1);
+    expect(identity.renewals[0]![REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]).toBe(
+      true,
+    );
+    expect(identity.reportsActivityWhileInUse).toBe(true);
+  });
+
+  test("touched every 30 seconds for three hours, asking the server nothing: never swept, never signed out", async () => {
+    await signIn(lengthsOf({ idle: 15 }));
+
+    for (
+      let at: number = T0 + 30 * SECOND;
+      at <= T0 + 3 * HOUR;
+      at += 30 * SECOND
+    ) {
+      await touch(at);
+
+      // Never longer than the interval without the server hearing of the person.
+      expect(nowMs - identity.lastActiveAtMs).toBeLessThan(
+        ACTIVITY_REPORTED_WITHIN_IN_MINUTES * MINUTE,
+      );
+    }
+
+    expect(identity.endedFor).toBeNull();
+    expect(await request()).toBe(true);
+    expect(await isSignedIn()).toBe(true);
+  });
+
+  test("touched every four minutes, a list pulled now and then: never swept", async () => {
+    await signIn(lengthsOf({ idle: 15 }));
+
+    for (let minute: number = 4; minute <= 180; minute += 4) {
+      if (minute % 20 === 0) {
+        expect(await pullToRefresh(T0 + minute * MINUTE)).toBe(true);
+      } else {
+        await touch(T0 + minute * MINUTE);
+      }
+    }
+
+    expect(identity.endedFor).toBeNull();
+    expect(await isSignedIn()).toBe(true);
+  });
+
+  test.each([15, 30, 60])(
+    "under a %i-minute idle timeout, a phone put away is swept within the idle timeout and 35 minutes of the last touch, and says why when it is opened",
+    async (idle: number) => {
+      await signIn(lengthsOf({ idle }));
+      await pullToRefresh(T0 + 6 * MINUTE);
+
+      const lastTouchAt: number = T0 + 6 * MINUTE;
+      await appState("background", lastTouchAt + SECOND);
+
+      // Nobody opens it again: only the sweep runs.
+      await at(
+        lastTouchAt +
+          idle * MINUTE +
+          IDLE_TIMEOUT_SWEEP_MARGIN_IN_MINUTES * MINUTE -
+          MINUTE,
+      );
+
+      expect(identity.endedFor).toBeNull();
+
+      await at(lastTouchAt + idle * MINUTE + SWEPT_WITHIN_MS);
+
+      expect(identity.endedFor).toBe(SessionEndReason.Inactive);
+      expect(identity.sweptAtMs! - lastTouchAt).toBeLessThanOrEqual(
+        idle * MINUTE + SWEPT_WITHIN_MS,
+      );
+
+      // Opened hours later: refused, and the sign-in screen is told why.
+      await appState("active", lastTouchAt + 5 * HOUR);
+
+      expect(await request()).toBe(false);
+      expect(await isSignedIn()).toBe(false);
+      expect(reasonsSaid()).toEqual(["inactive"]);
+    },
+  );
+
+  test("a phone put away and opened again inside the idle timeout and the margin is not swept, and the server hears of it at once", async () => {
+    await signIn(lengthsOf({ idle: 60 }));
+    await pullToRefresh(T0 + 6 * MINUTE);
+    await appState("background", T0 + 6 * MINUTE);
+
+    // Back 50 minutes later: inside the 60-minute idle timeout.
+    await appState("active", T0 + 56 * MINUTE);
+
+    expect(identity.endedFor).toBeNull();
+    expect(await request()).toBe(true);
+    expect(identity.lastActiveAtMs).toBe(T0 + 56 * MINUTE);
+  });
+
+  test("no idle timeout: never swept, however long the phone is put away", async () => {
+    await signIn(lengthsOf({}));
+    await pullToRefresh(T0 + 6 * MINUTE);
+    await appState("background", T0 + 6 * MINUTE);
+    await at(T0 + 10 * HOUR);
+
+    expect(identity.endedFor).toBeNull();
+  });
+
+  test("a session length ended at a renewal says so on the way to the sign-in", async () => {
+    await signIn(lengthsOf({ length: 60, idle: 15 }));
+
+    for (let minute: number = 1; minute < 60; minute++) {
+      expect(await pullToRefresh(T0 + minute * MINUTE)).toBe(true);
+    }
+
+    expect(await pullToRefresh(T0 + 60 * MINUTE)).toBe(false);
+    expect(reasonsSaid()).toEqual(["length-reached"]);
+  });
+
+  test("an idle timeout ended at a renewal says so too", async () => {
+    await signIn(lengthsOf({ idle: 15 }));
+    await pullToRefresh(T0 + 2 * MINUTE);
+    await appState("background", T0 + 2 * MINUTE + 5 * SECOND);
+    await appState("active", T0 + 20 * MINUTE);
+
+    expect(await request()).toBe(false);
+    expect(reasonsSaid()).toEqual(["inactive"]);
   });
 });
 
@@ -577,6 +827,7 @@ describe("what the renewals said", () => {
     expect(identity.renewals[0]).toEqual({
       refreshToken: "refresh-at-sign-in",
       [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
     });
 
     await appState("background", T0 + 14 * MINUTE);
@@ -586,6 +837,7 @@ describe("what the renewals said", () => {
       refreshToken: "refresh-1",
       [INACTIVE_FOR_IN_SECONDS_FIELD]: 0,
       [LONGEST_INACTIVITY_FIELD]: { forSeconds: 20 * 60, endedSecondsAgo: 0 },
+      [REPORTS_ACTIVITY_WHILE_IN_USE_FIELD]: true,
     });
   });
 

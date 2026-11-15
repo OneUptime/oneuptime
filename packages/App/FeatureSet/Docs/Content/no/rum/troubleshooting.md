@@ -57,7 +57,7 @@ SDK-et startet aldri. Det er nesten alltid en av disse årsakene:
 
 ### Nettleseren blokkerer forespørselen
 
-- **En Content Security Policy-feil i konsollen.** Sidens retningslinje tillater ikke OneUptime ennå. Legg det til i det eksisterende `connect-src`-direktivet ditt, eller bruk din egen vert hvis du hoster OneUptime selv:
+- **En Content Security Policy-feil i konsollen.** Sidens policy tillater ikke OneUptime ennå. Legg det til i det eksisterende `connect-src`-direktivet ditt, eller bruk din egen vert hvis du hoster OneUptime selv:
 
   ```text
   connect-src 'self' https://oneuptime.com;
@@ -169,9 +169,9 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-Applikasjonens side **Helse**, i delen **Øktavspilling**, og panelet **Test installasjonen din** på **Avspillingspolicy** sjekker nøkkelen, listene over tillatte opprinnelser og retningslinjen fra serversiden og sier hvorfor ingenting kommer inn. Nettleserkonsollen gir deg halvdelen som serveren ikke kan se.
+Applikasjonens side **Helse**, i delen **Øktavspilling**, og panelet **Test installasjonen din** på **Avspillingspolicy** sjekker nøkkelen, listene over tillatte opprinnelser og policyen fra serversiden og sier hvorfor ingenting kommer inn. Nettleserkonsollen gir deg halvdelen som serveren ikke kan se.
 
-Med standardretningslinjen sender en opptaker en chunk omtrent hvert 15. sekund mens brukeren samhandler med siden. En inaktiv fane har ingenting å sende, så klikk eller beveg musen først; hvis det da ikke finnes noen chunk-forespørsel, er noe galt. Hvis appen bare laster opp _On error or frustration_, er stillhet forventet til noe feiler. Kall `OneUptimeReplay.captureSession()` for å tvinge frem en opplasting og teste veien likevel.
+Med standardpolicyen sender en opptaker en chunk omtrent hvert 15. sekund mens brukeren samhandler med siden. En inaktiv fane har ingenting å sende, så klikk eller beveg musen først; hvis det da ikke finnes noen chunk-forespørsel, er noe galt. Hvis appen bare laster opp _On error or frustration_, er stillhet forventet til noe feiler. Kall `OneUptimeReplay.captureSession()` for å tvinge frem en opplasting og teste veien likevel.
 
 De to pipelinene er uavhengige. Du trenger ingen fungerende RUM-applikasjon for at opptakeren skal lastes inn, og en fungerende opptaker betyr ikke at RUM-telemetri kommer inn: hver av dem kan feile for seg.
 

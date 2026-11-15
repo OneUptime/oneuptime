@@ -114,8 +114,14 @@ export interface HeaderAction {
   icon: IconProp;
   isPrimary?: boolean | undefined;
   isDisabled: boolean;
-  // Why it is locked, for who may not press it; undefined when it is not.
+  /*
+   * Why it is locked, for who may not press it; undefined when it is not.
+   * English, looked up here - unless isTooltipTranslated says it is in the
+   * reader's words already, as a permission check (PermissionGate) words
+   * its reason: drawn as given then, never looked up again (#8423).
+   */
   tooltip?: string | undefined;
+  isTooltipTranslated?: boolean | undefined;
   dataTestId: string;
   onClick: () => void;
 }
@@ -135,7 +141,9 @@ export const HeaderActionButton: FunctionComponent<{
   const action: HeaderAction = props.action;
   const title: string = translator.translateText(action.title) || action.title;
   const tooltip: string | undefined = action.tooltip
-    ? translator.translateText(action.tooltip) || action.tooltip
+    ? action.isTooltipTranslated
+      ? action.tooltip
+      : translator.translateText(action.tooltip) || action.tooltip
     : undefined;
   const hasReachableTooltip: boolean = action.isDisabled && Boolean(tooltip);
 
@@ -259,6 +267,10 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
       },
     );
 
+  /*
+   * Why a move is locked, as the permission check words it: in the reader's
+   * language already, so each action says so (isTooltipTranslated).
+   */
   const disabledTooltip: string | undefined = updateGate.isAllowed
     ? undefined
     : updateGate.disabledReason;
@@ -272,6 +284,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
       icon: IconProp.User,
       isDisabled: isUpdateLocked,
       tooltip: disabledTooltip,
+      isTooltipTranslated: true,
       dataTestId: SECURITY_CASE_HEADER_TEST_IDS.assignToMe,
       onClick: props.onAssignToMe,
     });
@@ -282,6 +295,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
     icon: IconProp.Play,
     isDisabled: !runGate.isAllowed || props.isWorking,
     tooltip: runGate.isAllowed ? undefined : runGate.disabledReason,
+    isTooltipTranslated: true,
     dataTestId: SECURITY_CASE_HEADER_TEST_IDS.runPlaybook,
     onClick: props.onRunPlaybook,
   });
@@ -292,6 +306,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
       icon: IconProp.Alert,
       isDisabled: isUpdateLocked,
       tooltip: disabledTooltip,
+      isTooltipTranslated: true,
       dataTestId: SECURITY_CASE_HEADER_TEST_IDS.declareIncident,
       onClick: props.onDeclareIncident,
     });
@@ -304,6 +319,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
       isPrimary: true,
       isDisabled: isUpdateLocked,
       tooltip: disabledTooltip,
+      isTooltipTranslated: true,
       dataTestId: SECURITY_CASE_HEADER_TEST_IDS.close,
       onClick: () => {
         props.onChangeStatus(closedStatus);
@@ -317,6 +333,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
       icon: IconProp.Refresh,
       isDisabled: isUpdateLocked,
       tooltip: disabledTooltip,
+      isTooltipTranslated: true,
       dataTestId: SECURITY_CASE_HEADER_TEST_IDS.reopen,
       onClick: () => {
         props.onChangeStatus(reopenStatus);
@@ -369,6 +386,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                         }
                         isDisabled={!updateGate.isAllowed}
                         tooltip={disabledTooltip}
+                        isTooltipTranslated={true}
                         dataTestId={
                           SECURITY_CASE_HEADER_TEST_IDS.priorityOption
                         }
@@ -392,6 +410,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                 text="Assign to Someone Else"
                 isDisabled={isUpdateLocked}
                 tooltip={disabledTooltip}
+                isTooltipTranslated={true}
                 dataTestId={SECURITY_CASE_HEADER_TEST_IDS.assignToSomeoneElse}
                 onClick={props.onAssignToSomeoneElse}
               />,
@@ -403,6 +422,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           text="Change Status"
           isDisabled={isUpdateLocked}
           tooltip={disabledTooltip}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.changeStatus}
           onClick={props.onPickStatus}
         />,
@@ -412,6 +432,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           text="Edit Case"
           isDisabled={!updateGate.isAllowed}
           tooltip={disabledTooltip}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.edit}
           onClick={props.onEdit}
         />,
@@ -424,6 +445,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           isDestructive={true}
           isDisabled={!deleteGate.isAllowed}
           tooltip={deleteGate.isAllowed ? undefined : deleteGate.disabledReason}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.delete}
           onClick={props.onDelete}
         />,

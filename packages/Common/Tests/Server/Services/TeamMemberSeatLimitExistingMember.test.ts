@@ -35,7 +35,6 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import Email from "../../../Types/Email";
-import EmailMessage from "../../../Types/Email/EmailMessage";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -718,9 +717,11 @@ describe("TeamMemberService.create - inviting by email at the seat limit", () =>
     // Looked up once, before the limit check, and that answer reused.
     expect(findUserSpy).toHaveBeenCalledTimes(1);
 
-    expect(sendMailSpy).toHaveBeenCalledTimes(1);
-    const mail: EmailMessage = sendMailSpy.mock.calls[0]![0] as EmailMessage;
-    expect(mail.toEmail.toString()).toBe(MEMBER_EMAIL.toString());
+    /*
+     * A member who has signed up is in the project already, and is not
+     * emailed about another of its teams (#8568).
+     */
+    expect(sendMailSpy).not.toHaveBeenCalled();
   });
 
   test.each([

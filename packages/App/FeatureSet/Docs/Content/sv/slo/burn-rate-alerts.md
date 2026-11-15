@@ -132,7 +132,7 @@ Under **Regel** anger du ett **Namn**, som ”Fast burn”. En ny regel är pås
 
 ### Ange förbrukningsfönstret
 
-Under **Förbrukningsfönster** anger du **Tröskel för förbrukningstakt** (till exempel `14.4`), **Långt fönster (minuter)** och **Kort fönster (minuter)**, och om du vill **Undertryckning av ny utlösning (minuter)**.
+Under **Förbrukningsfönster** anger du **Tröskel för förbrukningstakt** (till exempel `14.4`), **Långt fönster (minuter)** och **Kort fönster (minuter)**, och om du vill **Undertryckning av ny utlösning (minuter)**. En regel för ett SLO för begäranden tar också **Minsta antal begäranden**, till exempel `100`: regeln hoppar över ett långt fönster som innehåller färre begäranden än så.
 
 ### Välj vad den deklarerar
 
@@ -151,10 +151,11 @@ OneUptime kontrollerar en regels siffror när du sparar den:
 | **Kort fönster (minuter)** | Större än 0. |
 | **Långt fönster (minuter)** | Längre än det korta fönstret. |
 | **Undertryckning av ny utlösning (minuter)** | 0 eller mer. Tomt betyder det långa fönstrets längd. |
+| **Minsta antal begäranden** | Ett heltal, 0 eller mer. Tomt betyder inget minimum. |
 
 Varje svar på **När den utlöses** öppnar något. API:et avvisar en regel som varken skulle skapa ett larm eller deklarera en incident, eftersom den skulle kontrolleras vid varje utvärdering utan att någonsin deklarera något.
 
-Regeltabellen visar för varje regel tröskeln, fönstren och undertryckningen, vad den deklarerar (och om larmet eller incidenten bara löses för hand, eller är privat), allvarlighetsgraderna, jourpolicyerna, ägarna och etiketterna.
+Regeltabellen visar för varje regel tröskeln, fönstren och undertryckningen, vad den deklarerar (och om larmet eller incidenten bara löses för hand, eller är privat), allvarlighetsgraderna, jourpolicyerna, ägarna och etiketterna. För ett SLO för begäranden visar den också varje regels minimum under dess fönster.
 
 > [!TIP]
 > En bra början: behåll de tre standardreglerna, skicka regeln för snabb förbrukning till den jourpolicy som larmar folk, med hög allvarlighetsgrad, låt regeln för långsam förbrukning utlösa ett larm med lägre allvarlighetsgrad för kontorstid, och låt regeln för långsamt läckage vara ett ärende för det ansvariga teamet. Arbetar ditt team med incidenter väljer du **Deklarera en incident** för regeln för snabb förbrukning, eller **Båda** för att också få ett larm.
@@ -276,7 +277,7 @@ Regler för förbrukningstakt är tysta medan någon av SLO:ets monitorer ingår
 :::
 
 :::details Finns det ett minsta antal mätningar?
-Inte för SLO:er som mäts på monitorernas tillgänglighet. Tillgänglighet mäts i sekunder, så varje sekund i fönstret är en mätning och det finns inget fall med låg trafik att skydda sig mot. Ett minsta antal mätningar spelar bara roll för händelsebaserade SLI:er, som ännu inte finns.
+Inte för SLO:er som mäts på monitorernas tillgänglighet. Tillgänglighet mäts i sekunder, så varje sekund i fönstret är en mätning och det finns inget fall med låg trafik att skydda sig mot. En regel för ett SLO för begäranden har ett: ange dess **Minsta antal begäranden**, så hoppar regeln över ett långt fönster med färre begäranden än så, och en lugn timme med en misslyckad begäran av fem larmar ingen.
 :::
 
 ## Nästa steg

@@ -16,7 +16,6 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -318,18 +317,7 @@ export function describeReplayDuration(
   durationMs: number,
   translator: Translator,
 ): string {
-  if (
-    !Number.isFinite(durationMs) ||
-    durationMs <= 0 ||
-    translator.language.toLowerCase().startsWith("en")
-  ) {
-    return formatSessionDuration(durationMs);
-  }
-
-  return formatDurationCompactInLanguage(
-    Math.round(durationMs / 1000),
-    translator.language,
-  );
+  return formatSessionDuration(durationMs, translator);
 }
 
 /*

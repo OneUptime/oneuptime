@@ -130,6 +130,14 @@ import { getCodeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Uti
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { RouteUtil } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ObjectID from "../../../Types/ObjectID";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/code-repository/*/get-item"]);
 
 const REPOSITORY_ID: string = "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f";
 const TASK_ID: string = "7d8e9f0a-1b2c-4d3e-8f4a-5b6c7d8e9f0a";

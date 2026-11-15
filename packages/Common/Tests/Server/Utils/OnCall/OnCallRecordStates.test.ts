@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 /*
  * WHERE A PAGE OF ON-CALL RUNS' RECORDS STAND, READ TOGETHER
@@ -45,7 +46,7 @@ import {
  * read gave.
  */
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 function uuid(prefix: string, index: number): ObjectID {
   return new ObjectID(

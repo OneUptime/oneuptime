@@ -14,6 +14,7 @@ import {
   buildLogSecurityEvent,
   readIpAddress,
 } from "./SecurityLogLine";
+import { writeOwnValue } from "../../LookupTable";
 
 /*
  * AWS CloudTrail records, as a log line: one record, or a CloudTrail log
@@ -154,10 +155,14 @@ function boundedAttributes(record: JSONObject): JSONObject {
     }
 
     const value: string = String(flattened[key]);
-    bounded[key] =
+    // The record's field, as the event's own attribute, "__proto__" too.
+    writeOwnValue<JSONValue>(
+      bounded,
+      key,
       value.length > MAX_CLOUDTRAIL_ATTRIBUTE_VALUE_LENGTH
         ? value.slice(0, MAX_CLOUDTRAIL_ATTRIBUTE_VALUE_LENGTH)
-        : value;
+        : value,
+    );
     count++;
   }
 

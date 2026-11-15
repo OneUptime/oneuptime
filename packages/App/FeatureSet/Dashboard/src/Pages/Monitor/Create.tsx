@@ -1965,7 +1965,7 @@ const MonitorCreate: FunctionComponent<
             ? serverEmail.isMasterAdmin
               ? SERVER_EMAIL_COPY.createMonitorDescriptionForAdmin
               : SERVER_EMAIL_COPY.createMonitorDescription
-            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
+            : "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the Project Owners."
         }
         className="mb-10"
       >

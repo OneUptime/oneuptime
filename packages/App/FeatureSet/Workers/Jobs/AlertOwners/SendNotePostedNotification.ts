@@ -220,6 +220,7 @@ async function planOwnersOfNote(data: {
     },
     owners: owners,
     isProjectOwners: isProjectOwners,
+    writesFeedItem: true,
   });
 }
 
@@ -237,7 +238,7 @@ async function notifyOwnersOfNote(data: {
   const alert: Alert = data.alert;
   const delivery: OwnerNotificationDelivery = data.delivery;
 
-  if (delivery.owners.length === 0) {
+  if (!delivery.hasWorkToDo) {
     return;
   }
 
@@ -385,8 +386,12 @@ async function notifyOwnersOfNote(data: {
     }
   }
 
-  // Every owner was told already: the run that told them said so.
-  if (!delivery.hasSetOutToTellAnyone) {
+  /*
+   * Written by the run that set out to tell the owners, or by the one
+   * that took up the feed item a run that told them all left unwritten
+   * (#8510): a run that found every owner told already writes none.
+   */
+  if (!delivery.isFeedItemToWrite) {
     return;
   }
 
@@ -407,4 +412,6 @@ async function notifyOwnersOfNote(data: {
       sendWorkspaceNotification: false,
     },
   });
+
+  await delivery.feedItemWritten();
 }

@@ -33,7 +33,7 @@ flowchart TB
 
 ## Antes de começar
 
-- **Para os orçamentos da instância e de um projeto, o Admin Dashboard.** Em uma instalação de hospedagem própria, só o administrador da instância os define. Os proprietários e administradores de um projeto veem os orçamentos dele, mas não podem alterá-los.
+- **Para os orçamentos da instância e de um projeto, o Admin Dashboard.** Em uma instalação de hospedagem própria, só o administrador da instância os define. Os Proprietários do projeto e os Administradores do projeto veem os orçamentos de um projeto, mas não podem alterá-los.
 - **Para o orçamento próprio de uma chave, uma função que edite chaves de ingestão.** Proprietário do projeto ou Administrador do projeto, ou uma função personalizada com a permissão Edit Ingestion Key.
 - **Para ver os orçamentos, uma função que veja o uso do projeto.** As funções que veem a página [Uso de telemetria](/docs/telemetry/usage) veem nela os orçamentos do projeto.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## O aviso e a redefinição
 
-- **O aviso.** Quando um orçamento diário passa do limite de aviso, 80% a menos que o administrador da instância o mude, os proprietários do projeto recebem um e-mail, e os exploradores mostram um banner acima dos dados desse sinal. Eles recebem mais um e-mail quando o orçamento se esgota. Cada orçamento envia cada e-mail no máximo uma vez por dia.
+- **O aviso.** Quando um orçamento diário passa do limite de aviso, 80% a menos que o administrador da instância o mude, os Proprietários do projeto recebem um e-mail, e os exploradores mostram um banner acima dos dados desse sinal. Eles recebem mais um e-mail quando o orçamento se esgota. Cada orçamento envia cada e-mail no máximo uma vez por dia.
 - **A redefinição.** Cada dia de orçamento recomeça às 00:00 UTC, a menos que o administrador da instância mude isso. O cartão **Aviso e redefinição** define **Limite de aviso (%)**, de 1 a 99, **Horário de redefinição**, como HH:MM, e **Fuso horário de redefinição**: clique em **Editar aviso e redefinição**.
 - **Horário de verão.** A redefinição segue o relógio do fuso horário, então o dia de orçamento em que os relógios mudam fica uma hora mais curto ou mais longo. Um horário de redefinição que os relógios pulam acontece esse mesmo intervalo depois do salto.
 - **Mudar a redefinição inicia um novo dia.** Mudar o horário de redefinição ou o fuso horário inicia na hora um novo dia de orçamento, ainda sem nada contado.

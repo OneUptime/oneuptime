@@ -138,7 +138,7 @@ Klicka på **Fyll på saldo** på sidans kort **Aktuellt saldo**. Ange ett belop
 Klicka på **Redigera Automatisk påfyllning** på kortet **Automatisk påfyllning** och slå på **Aktivera automatisk påfyllning**. Den är avstängd från början. När den är påslagen lägger OneUptime till $20 varje gång saldot sjunker till $10, eller de belopp du väljer.
 :::
 
-När ett saldo inte räcker skickas inte meddelandet, eller så stoppas OneUptime AI, och projektets ägare får ett e-postmeddelande. Se [När ett larm inte skickas](/docs/on-call/escalation-rules#när-ett-larm-inte-skickas) och [När AI-krediterna tar slut](/docs/ai/ai-sre#när-ai-krediterna-tar-slut).
+När ett saldo inte räcker skickas inte meddelandet, eller så stoppas OneUptime AI, och Projektägare får ett e-postmeddelande. Se [När ett larm inte skickas](/docs/on-call/escalation-rules#när-ett-larm-inte-skickas) och [När AI-krediterna tar slut](/docs/ai/ai-sre#när-ai-krediterna-tar-slut).
 
 ## Vem får göra vad
 

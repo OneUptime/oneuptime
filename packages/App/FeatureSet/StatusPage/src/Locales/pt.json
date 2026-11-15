@@ -275,6 +275,7 @@
       "channelSlack": "Workspace do Slack",
       "channelMicrosoftTeams": "Workspace do Microsoft Teams",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Esta inscrição foi adicionada pela equipe que administra esta página de status. Se for um endereço compartilhado, como uma lista de e-mails, cancelar a inscrição interrompe estas notificações para todos que as recebem, e a equipe será avisada.",
       "confirmButton": "Cancelar inscrição",
       "manageInstead": "Em vez disso, escolher quais notificações você recebe",

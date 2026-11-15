@@ -21,7 +21,7 @@ flowchart TB
 - Hver række er en begivenhed, og hver kolonne en kanal: E-mail, SMS, Opkald, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost og Webhook. Slack, Microsoft Teams og Mattermost er kun kolonner, når projektet har forbundet dem.
 - En kanal, der er slået til, sender til hver bekræftet metode, du har på den i dette projekt, ikke kun til én.
 - En kanal, der er slået til uden en bekræftet metode bagved, sender intet. **Your setup checklist** siger det under **Staying informed**.
-- En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til projektets ejere. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet.
+- En nyhed går til tingens ejere: de personer, der er angivet som ejere, og medlemmerne af dens ejerteams. Har en ting ingen ejere, går den i stedet til Projektejere. En begivenhed om at være blevet tilføjet som ejer går kun til den person, der blev tilføjet. Hvis OneUptime stopper, mens den sender en nyhed til en tings ejere, får de personer, den endnu ikke var nået til, den, når OneUptime er tilbage, et par minutter forsinket, og ingen får den to gange.
 - Sikkerhedssager har ingen ejere. En ny sag går til alle, der kan se projektets sager, ved den prioritet, hver af dem vælger, og en tildelt sag går til de personer, den er tildelt. Se [Sikkerhedssager](/docs/telemetry/security-cases#notifikationer).
 - Hver e-mail til ejere slutter med et link, "Manage notification preferences", der fører tilbage hertil.
 

@@ -256,3 +256,109 @@ describe("formatLastSeenInLanguage", () => {
     }
   });
 });
+
+/*
+ * The infrastructure map's status line is a narrow line: it takes the
+ * time as each language shortens it ("vor 12 Min."), as English's "12 min
+ * ago" is short (#8418). The list's Last seen keeps the long form.
+ */
+describe("formatLastSeenInLanguage, shortened", () => {
+  const now: Date = new Date("2026-09-07T10:00:00Z");
+  const SHORT: { style: "short" } = { style: "short" };
+
+  // Spaces as a reader sees them: a no-break space is a space.
+  const asRead: (text: string) => string = (text: string): string => {
+    return text.replace(/[\u00A0\u202F]/g, " ");
+  };
+
+  test.each([
+    ["de", "2026-09-07T09:48:00Z", "vor 12 Min."],
+    ["de", "2026-09-07T05:00:00Z", "vor 5 Std."],
+    ["de", "2026-09-04T10:00:00Z", "vor 3 Tagen"],
+    ["es", "2026-09-07T09:48:00Z", "hace 12 min"],
+    ["fr", "2026-09-07T09:48:00Z", "il y a 12 min"],
+    ["nl", "2026-09-07T09:48:00Z", "12 min. geleden"],
+    ["ar", "2026-09-07T09:48:00Z", "قبل 12 دقيقة"],
+    ["fa", "2026-09-07T09:48:00Z", "۱۲ دقیقه پیش"],
+  ])("%s: %s reads %s", (language: string, at: string, expected: string) => {
+    expect(
+      asRead(formatLastSeenInLanguage(new Date(at), now, language, SHORT)),
+    ).toBe(expected);
+  });
+
+  test("left out, or long, the style is the list's long one", () => {
+    const at: Date = new Date("2026-09-07T09:48:00Z");
+
+    expect(formatLastSeenInLanguage(at, now, "de")).toBe("vor 12 Minuten");
+    expect(formatLastSeenInLanguage(at, now, "de", { style: "long" })).toBe(
+      "vor 12 Minuten",
+    );
+    expect(formatLastSeenInLanguage(at, now, "de", {})).toBe("vor 12 Minuten");
+  });
+
+  test("English reads as formatLastSeen does, whatever the style", () => {
+    for (const at of [
+      "2026-09-07T09:59:30Z",
+      "2026-09-07T09:48:00Z",
+      "2026-09-07T05:00:00Z",
+      "2026-09-04T10:00:00Z",
+    ]) {
+      expect(formatLastSeenInLanguage(new Date(at), now, "en", SHORT)).toBe(
+        formatLastSeen(new Date(at), now),
+      );
+    }
+  });
+
+  test("now is now, short or long; no time is a dash", () => {
+    const at: Date = new Date("2026-09-07T09:59:30Z");
+
+    expect(formatLastSeenInLanguage(at, now, "de", SHORT)).toBe("jetzt");
+    expect(formatLastSeenInLanguage(at, now, "fa", SHORT)).toBe(
+      formatLastSeenInLanguage(at, now, "fa"),
+    );
+    expect(formatLastSeenInLanguage(undefined, now, "de", SHORT)).toBe("—");
+  });
+
+  test("a short time is never longer than the long one, in any language", () => {
+    const locales: string = path.resolve(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Locales",
+    );
+    const languages: Array<string> = fs
+      .readdirSync(locales)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(/\.json$/, "");
+      });
+
+    expect(languages.length).toBeGreaterThan(15);
+
+    for (const language of languages) {
+      for (const at of [
+        "2026-09-07T09:48:00Z",
+        "2026-09-07T05:00:00Z",
+        "2026-09-04T10:00:00Z",
+      ]) {
+        const short: string = formatLastSeenInLanguage(
+          new Date(at),
+          now,
+          language,
+          SHORT,
+        );
+        const long: string = formatLastSeenInLanguage(
+          new Date(at),
+          now,
+          language,
+        );
+
+        expect({
+          language,
+          at,
+          isShorter: short.length <= long.length,
+        }).toEqual({ language, at, isShorter: true });
+      }
+    }
+  });
+});

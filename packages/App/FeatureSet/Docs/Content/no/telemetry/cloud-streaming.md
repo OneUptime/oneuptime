@@ -30,7 +30,7 @@ flowchart TB
 ## Før du begynner
 
 - **En tilkoblet AWS-konto.** Koble den til først under **Sky → Koble til**: se [Koble til en skykonto](/docs/telemetry/cloud-accounts).
-- **En prosjekteier eller administrator.** Bare de kan lage en strømnøkkel og stoppe strømmingen.
+- **En Prosjekteier eller Prosjektadministrator.** Bare de kan lage en strømnøkkel og stoppe strømmingen.
 - **AWS CloudShell i den kontoen**, logget inn som en som har lov til å opprette CloudFormation-stakker og IAM-roller.
 - **En HTTPS-adresse, på en selvdriftet OneUptime.** Firehose leverer bare til `https://`-adresser på port 443, med et sertifikat AWS stoler på, og adressen må kunne nås fra AWS.
 

@@ -42,6 +42,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * AN ON-CALL RULE PAGES ITS POLICIES AS RESPONDERS OR AS OBSERVERS
@@ -70,7 +71,7 @@ interface EngineCase {
   newRecord: () => BaseModel;
   ruleService: { findBy: unknown };
   recordService: { getRepository: unknown };
-  stubFeed: () => jest.SpiedFunction<(...args: Array<unknown>) => unknown>;
+  stubFeed: () => SpyInstance<(...args: Array<unknown>) => unknown>;
   apply: (record: BaseModel) => Promise<OnCallRulesPaging>;
 }
 
@@ -90,10 +91,10 @@ function withProject<T extends BaseModel>(record: T): T {
 function spyFeed(
   service: unknown,
   method: string,
-): jest.SpiedFunction<(...args: Array<unknown>) => unknown> {
+): SpyInstance<(...args: Array<unknown>) => unknown> {
   return jest
     .spyOn(service as never, method as never)
-    .mockResolvedValue(undefined as never) as unknown as jest.SpiedFunction<
+    .mockResolvedValue(undefined as never) as unknown as SpyInstance<
     (...args: Array<unknown>) => unknown
   >;
 }
@@ -205,7 +206,7 @@ function policyIdsOf(record: BaseModel): Array<string> {
 
 describe.each(ENGINES)("$label", (engine: EngineCase) => {
   let attached: Array<string> = [];
-  let feed: jest.SpiedFunction<(...args: Array<unknown>) => unknown>;
+  let feed: SpyInstance<(...args: Array<unknown>) => unknown>;
 
   function rule(data: {
     name: string;
@@ -238,10 +239,10 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
 
   function stubRules(
     rules: Array<BaseModel>,
-  ): jest.SpiedFunction<(...args: Array<unknown>) => unknown> {
+  ): SpyInstance<(...args: Array<unknown>) => unknown> {
     return jest
       .spyOn(engine.ruleService as never, "findBy" as never)
-      .mockResolvedValue(rules as never) as unknown as jest.SpiedFunction<
+      .mockResolvedValue(rules as never) as unknown as SpyInstance<
       (...args: Array<unknown>) => unknown
     >;
   }
@@ -310,8 +311,9 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
   });
 
   test("reads what each rule pages as along with the rest of it", async () => {
-    const findBy: jest.SpiedFunction<(...args: Array<unknown>) => unknown> =
-      stubRules([]);
+    const findBy: SpyInstance<(...args: Array<unknown>) => unknown> = stubRules(
+      [],
+    );
 
     await engine.apply(engine.newRecord());
 
@@ -503,7 +505,7 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
 });
 
 describe("incident on-call rules that run again on a change (IncidentRulesOnChange)", () => {
-  let feed: jest.SpiedFunction<(...args: Array<unknown>) => unknown>;
+  let feed: SpyInstance<(...args: Array<unknown>) => unknown>;
 
   beforeEach(() => {
     stubProjectDirectory({
@@ -584,12 +586,12 @@ describe("incident on-call rules that run again on a change (IncidentRulesOnChan
       .spyOn(IncidentOnCallRuleService, "findBy")
       .mockResolvedValue([item] as never);
 
-    const decide: jest.SpiedFunction<
+    const decide: SpyInstance<
       typeof AiFirstResponderEligibility.decideForIncident
     > = jest.spyOn(
       AiFirstResponderEligibility,
       "decideForIncident",
-    ) as unknown as jest.SpiedFunction<
+    ) as unknown as SpyInstance<
       typeof AiFirstResponderEligibility.decideForIncident
     >;
 

@@ -69,7 +69,7 @@ Ein Banner sagt dann, wie viele Erinnerungen gesendet, übersprungen oder fehlge
 
 ## Die wöchentliche E-Mail zur Einsatzbereitschaft
 
-Einmal pro Woche prüft OneUptime jedes Projekt, das eine Bereitschaftsrichtlinie hat. Ist darin jemand **Nicht erreichbar** oder **Einrichtung erforderlich**, bekommen die Eigentümer des Projekts eine E-Mail, die diese Personen in zwei Gruppen auflistet, wer gar nicht alarmiert werden kann und wer mit Lücken erreichbar ist, bis zu 20 Namen je Gruppe, mit einem Link zur Seite Einsatzbereitschaft.
+Einmal pro Woche prüft OneUptime jedes Projekt, das eine Bereitschaftsrichtlinie hat. Ist darin jemand **Nicht erreichbar** oder **Einrichtung erforderlich**, bekommen die Projektinhaber eine E-Mail, die diese Personen in zwei Gruppen auflistet, wer gar nicht alarmiert werden kann und wer mit Lücken erreichbar ist, bis zu 20 Namen je Gruppe, mit einem Link zur Seite Einsatzbereitschaft.
 
 Eine Woche, in der alle bereit sind, verschickt nichts, also bedeutet die E-Mail immer, dass etwas zu beheben ist. Kann jemand gar nicht alarmiert werden, beginnt ihr Betreff mit `[Action Required]`.
 
@@ -100,7 +100,7 @@ Die Liste enthält nur Personen, die eine Bereitschaftsrichtlinie alarmieren kan
 :::
 
 :::details Die Eigentümer bekommen die wöchentliche E-Mail nie
-Sie wird nur in einer Woche gesendet, in der jemand **Nicht erreichbar** oder **Einrichtung erforderlich** ist, und nur an die Eigentümer des Projekts.
+Sie wird nur in einer Woche gesendet, in der jemand **Nicht erreichbar** oder **Einrichtung erforderlich** ist, und nur an die Projektinhaber.
 :::
 
 ## Nächste Schritte

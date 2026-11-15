@@ -33,7 +33,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Für die Budgets der Instanz und eines Projekts das Admin Dashboard.** Auf einer selbst gehosteten Installation legt nur der Instanzadministrator sie fest. Die Inhaber und Administratoren eines Projekts sehen seine Budgets, können sie aber nicht ändern.
+- **Für die Budgets der Instanz und eines Projekts das Admin Dashboard.** Auf einer selbst gehosteten Installation legt nur der Instanzadministrator sie fest. Die Projektinhaber und Projektadministratoren eines Projekts sehen seine Budgets, können sie aber nicht ändern.
 - **Für das eigene Budget eines Schlüssels eine Rolle, die Ingestion-Schlüssel bearbeiten darf.** Projektinhaber oder Projektadministrator, oder eine eigene Rolle mit der Berechtigung Edit Ingestion Key.
 - **Um die Budgets zu sehen, eine Rolle, die die Nutzung des Projekts sieht.** Die Rollen, die die Seite [Telemetrie-Nutzung](/docs/telemetry/usage) sehen, sehen dort auch die Budgets des Projekts.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Die Warnung und das Zurücksetzen
 
-- **Die Warnung.** Überschreitet ein Tagesbudget die Warnschwelle, 80%, sofern der Instanzadministrator sie nicht ändert, erhalten die Inhaber des Projekts eine E-Mail, und die Explorer zeigen über den Daten dieses Signals ein Banner. Eine weitere E-Mail erhalten sie, wenn das Budget aufgebraucht ist. Jedes Budget sendet jede E-Mail höchstens einmal am Tag.
+- **Die Warnung.** Überschreitet ein Tagesbudget die Warnschwelle, 80%, sofern der Instanzadministrator sie nicht ändert, erhalten die Projektinhaber eine E-Mail, und die Explorer zeigen über den Daten dieses Signals ein Banner. Eine weitere E-Mail erhalten sie, wenn das Budget aufgebraucht ist. Jedes Budget sendet jede E-Mail höchstens einmal am Tag.
 - **Das Zurücksetzen.** Jeder Budgettag beginnt um 00:00 UTC neu, sofern der Instanzadministrator das nicht ändert. Auf der Karte **Warnung und Zurücksetzen** werden **Warnschwelle (%)**, von 1 bis 99, **Rücksetzzeit**, als HH:MM, und **Zeitzone der Rücksetzzeit** festgelegt: Klicken Sie auf **Warnung und Zurücksetzen bearbeiten**.
 - **Sommerzeit.** Das Zurücksetzen folgt der Uhr der Zeitzone, daher ist der Budgettag, an dem die Uhren umgestellt werden, eine Stunde kürzer oder länger. Eine Rücksetzzeit, die bei der Umstellung übersprungen wird, tritt entsprechend lange nach dem Sprung ein.
 - **Ein geändertes Zurücksetzen startet einen neuen Tag.** Eine Änderung der Rücksetzzeit oder der Zeitzone startet sofort einen neuen Budgettag, an dem noch nichts gezählt ist.

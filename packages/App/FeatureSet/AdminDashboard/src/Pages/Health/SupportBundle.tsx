@@ -9,6 +9,9 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import { APP_API_URL } from "Common/UI/Config";
+import { translationKey } from "Common/Types/Translator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -16,16 +19,16 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * know exactly what leaves their instance before they download it.
  */
 const BUNDLE_CONTENTS: Array<string> = [
-  "Instance version & build",
-  "Runtime & resource usage",
-  "Effective configuration (secrets redacted)",
-  "Component health & datastore capacity",
-  "Database migration status",
-  "Queue stats & failed jobs (full body, options & logs)",
-  "Application, Postgres, ClickHouse & Valkey logs",
-  "Postgres diagnostics (connections, table stats)",
-  "ClickHouse diagnostics (mutations, parts)",
-  "Postgres & ClickHouse schema (structure only)",
+  translationKey("Instance version & build"),
+  translationKey("Runtime & resource usage"),
+  translationKey("Effective configuration (secrets redacted)"),
+  translationKey("Component health & datastore capacity"),
+  translationKey("Database migration status"),
+  translationKey("Queue stats & failed jobs (full body, options & logs)"),
+  translationKey("Application, Postgres, ClickHouse & Valkey logs"),
+  translationKey("Postgres diagnostics (connections, table stats)"),
+  translationKey("ClickHouse diagnostics (mutations, parts)"),
+  translationKey("Postgres & ClickHouse schema (structure only)"),
 ];
 
 // Trigger a client-side download of the given text content as a file.
@@ -46,6 +49,7 @@ const downloadFile: (
 };
 
 const SupportBundle: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -101,7 +105,7 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                What&apos;s included
+                {translator.translateText("What's included")}
               </div>
               <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                 {BUNDLE_CONTENTS.map(
@@ -116,7 +120,9 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
                           size={SizeProp.Small}
                           className="h-4 w-4 flex-shrink-0 text-green-500"
                         />
-                        <span className="truncate">{item}</span>
+                        <span className="truncate">
+                          {translator.translateText(item)}
+                        </span>
                       </div>
                     );
                   },
@@ -133,9 +139,9 @@ const SupportBundle: FunctionComponent = (): ReactElement => {
                 className="h-4 w-4 flex-shrink-0 text-gray-400"
               />
               <span>
-                Credentials are scrubbed (config, schema, connection strings).
-                Failed-job bodies and logs may contain customer data — review
-                before sharing externally.
+                {translator.translateText(
+                  "Credentials are scrubbed (config, schema, connection strings). Failed-job bodies and logs may contain customer data — review before sharing externally.",
+                )}
               </span>
             </div>
             <Button

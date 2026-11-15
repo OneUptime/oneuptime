@@ -418,6 +418,12 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - re-evaluation on what a
       label: "the latency threshold",
       data: { latencyThresholdInMilliseconds: 450 },
     },
+    // Which of the services' requests count (#8444).
+    {
+      label: "the request filter",
+      data: { requestFilter: "@http.route:/checkout*" },
+    },
+    { label: "the request filter cleared", data: { requestFilter: null } },
   ];
 
   for (const change of changes) {
@@ -446,5 +452,131 @@ describe("ServiceLevelObjectiveService.onUpdateSuccess - re-evaluation on what a
     await callHook("onUpdateSuccess", onUpdate, [SLO_ID]);
 
     expect(stamps()).toHaveLength(0);
+  });
+});
+
+/*
+ * A request SLO's request filter (#8444): a traces search of span
+ * attributes and the span's name. Stored trimmed, empty as no filter, and
+ * refused with what to write instead when the counting could not read it -
+ * from the dashboard, the API, Terraform or a workflow alike.
+ */
+describe("ServiceLevelObjectiveService - a request filter", () => {
+  beforeEach(() => {
+    jest.spyOn(MonitorStatusService, "findBy").mockResolvedValue([]);
+    stubProjectDirectory({});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("keeps a filter on create, trimmed", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.RequestSuccess,
+      requestFilter: "  @http.route:/checkout* -@http.route:/health  ",
+    });
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.requestFilter).toBe(
+      "@http.route:/checkout* -@http.route:/health",
+    );
+  });
+
+  it("stores an empty filter as no filter", async () => {
+    const createBy: CreateBy<ServiceLevelObjective> = makeCreateBy({
+      sliType: SliType.RequestSuccess,
+      requestFilter: "   ",
+    });
+
+    await callHook("onBeforeCreate", createBy);
+
+    expect(createBy.data.requestFilter).toBeNull();
+  });
+
+  it("refuses free text on create, saying what a filter is", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: "checkout",
+        }),
+      ),
+      '"checkout" is neither',
+    );
+  });
+
+  it("refuses the Traces explorer's status field, which would match no span's attributes", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: "@http.route:/checkout* status:error",
+        }),
+      ),
+      '"status:error" is neither',
+    );
+  });
+
+  it("refuses a filter that is not text", async () => {
+    await expectBadData(
+      callHook(
+        "onBeforeCreate",
+        makeCreateBy({
+          sliType: SliType.RequestSuccess,
+          requestFilter: 42,
+        }),
+      ),
+      "The request filter must be text",
+    );
+  });
+
+  it("validates a filter on update, and clears one to null", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      requestFilter: ' name:"POST /checkout" ',
+    });
+
+    await callHook("onBeforeUpdate", updateBy);
+
+    expect(updateBy.data.requestFilter).toBe('name:"POST /checkout"');
+
+    const cleared: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      requestFilter: "",
+    });
+
+    await callHook("onBeforeUpdate", cleared);
+
+    expect(cleared.data.requestFilter).toBeNull();
+  });
+
+  it("refuses a filter too long to count with on update", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    await expectBadData(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy({ requestFilter: `@k:${"a".repeat(600)}` }),
+      ),
+      "at most 500 characters",
+    );
+  });
+
+  it("leaves an update that names no filter alone", async () => {
+    stubStoredRows([{ sliType: SliType.RequestSuccess }]);
+
+    const updateBy: UpdateBy<ServiceLevelObjective> = makeUpdateBy({
+      name: "Checkout",
+    });
+
+    await callHook("onBeforeUpdate", updateBy);
+
+    expect("requestFilter" in (updateBy.data as Record<string, unknown>)).toBe(
+      false,
+    );
   });
 });

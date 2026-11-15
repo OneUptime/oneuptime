@@ -25,6 +25,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import PublicFormLogo from "Common/UI/Components/PublicForm/PublicFormLogo";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
+import { translatableTerm } from "Common/UI/Utils/TranslateTemplate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
   FunctionComponent,
@@ -87,7 +89,7 @@ export interface ComponentProps {
 const FormBrandingSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateTemplate } = useTranslateValue();
 
   const tx: (text: string) => string = (text: string): string => {
     return translateString(text) || text;
@@ -147,10 +149,16 @@ const FormBrandingSection: FunctionComponent<ComponentProps> = (
             >
               {preview.logo ? (
                 <>
+                  {/*
+                   * The label with its own colon, as the reader's language
+                   * writes it ("Texte alternatif du logo :"). The colon was
+                   * English's, written after the label (#8571).
+                   */}
                   <span className="font-medium text-gray-700">
-                    {tx("Logo Alt Text")}
-                  </span>
-                  {": "}
+                    {translateTemplate(LABEL_WITH_COLON, {
+                      label: translatableTerm("Logo Alt Text"),
+                    })}
+                  </span>{" "}
                   {preview.logoAltText || tx(FormsCopy.logoAltTextEmpty)}
                 </>
               ) : (

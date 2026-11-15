@@ -275,6 +275,7 @@
       "channelSlack": "Slack-arbetsyta",
       "channelMicrosoftTeams": "Microsoft Teams-arbetsyta",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Den här prenumerationen lades till av teamet som driver den här statussidan. Om det är en delad adress, till exempel en e-postlista, slutar aviseringarna att komma till alla som tar emot dem när du avslutar, och teamet meddelas.",
       "confirmButton": "Avsluta prenumeration",
       "manageInstead": "Välj i stället vilka aviseringar du får",

@@ -132,7 +132,7 @@ In **Regola**, inserisci un **Nome**, come «Fast burn». Una nuova regola è at
 
 ### Impostare la finestra di consumo
 
-In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**.
+In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**. La regola di uno SLO di richieste prevede anche un **Numero minimo di richieste**, per esempio `100`: la regola salta una finestra lunga che ha meno richieste di quel numero.
 
 ### Scegliere cosa dichiara
 
@@ -151,10 +151,11 @@ OneUptime controlla i numeri di una regola quando la salvi:
 | **Finestra breve (minuti)** | Maggiore di 0. |
 | **Finestra lunga (minuti)** | Più lunga della finestra breve. |
 | **Soppressione della riattivazione (minuti)** | 0 o più. Vuoto significa la durata della finestra lunga. |
+| **Numero minimo di richieste** | Un numero intero, 0 o più. Vuoto significa nessun minimo. |
 
 Ogni risposta a **Quando scatta** apre qualcosa. L'API rifiuta una regola che non creerebbe alcun avviso né dichiarerebbe alcun incidente, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
 
-La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppressione, cosa dichiara (e se l'avviso o l'incidente si risolve solo a mano, o è privato), le gravità, le politiche di reperibilità, i proprietari e le etichette.
+La tabella delle regole mostra per ogni regola la soglia, le finestre e la soppressione, cosa dichiara (e se l'avviso o l'incidente si risolve solo a mano, o è privato), le gravità, le politiche di reperibilità, i proprietari e le etichette. Per uno SLO di richieste indica anche, sotto le finestre, il minimo di ogni regola.
 
 > [!TIP]
 > Un buon punto di partenza: tieni le tre regole predefinite, manda la regola di consumo rapido alla tua politica di reperibilità che avvisa, con gravità alta, lascia che la regola di consumo lento generi un avviso di gravità più bassa per l'orario di lavoro, e usa la regola di perdita lenta come ticket per il team responsabile. Se il tuo team gestisce tutto con gli incidenti, scegli **Dichiara un incidente** per la regola di consumo rapido, o **Entrambi** per ricevere anche un avviso.
@@ -276,7 +277,7 @@ Le regole del tasso di consumo restano in silenzio mentre uno dei monitor dello 
 :::
 
 :::details Esiste un numero minimo di campioni?
-Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si misura in secondi, quindi ogni secondo della finestra è un campione e non c'è un caso di traffico basso da cui proteggersi. Un numero minimo di campioni conta solo per gli SLI basati su eventi, che non sono ancora disponibili.
+Non per gli SLO misurati dalla disponibilità dei monitor. La disponibilità si misura in secondi, quindi ogni secondo della finestra è un campione e non c'è un caso di traffico basso da cui proteggersi. La regola di uno SLO di richieste ne ha uno: imposta il suo **Numero minimo di richieste**, e la regola salta una finestra lunga con meno richieste di quel numero, così un'ora tranquilla con una richiesta fallita su cinque non avvisa nessuno.
 :::
 
 ## Passi successivi

@@ -120,7 +120,7 @@ describe("AI SRE: when AI credits run out", () => {
 
   test("the owners are emailed once each time the credits run out, with a link to AI Credits", () => {
     expect(credits).toContain(
-      "**The project's owners are emailed** the first time OneUptime AI stops for want of credits",
+      "**Project Owners are emailed** the first time OneUptime AI stops for want of credits",
     );
     expect(credits).toContain("links to **AI Credits**");
     expect(credits).toContain("It comes once each time the credits run out");

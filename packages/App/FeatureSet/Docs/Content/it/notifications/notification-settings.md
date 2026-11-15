@@ -21,7 +21,7 @@ flowchart TB
 - Ogni riga è un evento, e ogni colonna un canale: E-mail, SMS, Chiamata, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost e Webhook. Slack, Microsoft Teams e Mattermost sono colonne solo se il progetto li ha collegati.
 - Un canale attivo invia a ogni metodo verificato che avete su di esso in questo progetto, non a uno solo.
 - Un canale attivo senza un metodo verificato dietro non invia nulla. **Your setup checklist** lo segnala in **Staying informed**.
-- Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai proprietari del progetto. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta.
+- Un aggiornamento va ai proprietari dell'elemento: le persone indicate come proprietari e i membri dei suoi team proprietari. Quando un elemento non ha proprietari, va invece ai Proprietari del progetto. Un evento sull'essere stati aggiunti come proprietari va solo alla persona aggiunta. Se OneUptime si ferma mentre sta inviando un aggiornamento ai proprietari di un elemento, le persone a cui non era ancora arrivato lo ricevono quando OneUptime torna, qualche minuto dopo, e nessuno lo riceve due volte.
 - I casi di sicurezza non hanno proprietari. Un nuovo caso va a tutti coloro che possono vedere i casi del progetto, a partire dalla priorità che ciascuno sceglie, e un caso assegnato alle persone a cui è assegnato. Vedete [Casi di sicurezza](/docs/telemetry/security-cases#notifiche).
 - Ogni e-mail ai proprietari termina con un link "Manage notification preferences" che riporta a questa pagina.
 
@@ -52,7 +52,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 | **Monitoraggio** | **Stato della sonda modificato per il tuo monitor**, **Il monitor non ha sonde attive**, **Stato dell'SLO modificato**, **Aggiunto come proprietario dell'SLO**, **Eccezione assegnata a me**, **Stato della sonda modificato**, **Aggiunto come proprietario della sonda** | **Monitor creato**, **Stato del monitor modificato**, **Aggiunto come proprietario del monitor**, **Stato dell'agente IA modificato**, **Aggiunto come proprietario dell'agente IA** |
 | **Pagine di stato** | **La mia nota pubblica approvata o rifiutata**, e anche via push: **Nota pubblica in attesa della mia approvazione** | **Pagina di stato creata**, **Annuncio della pagina di stato pubblicato**, **Aggiunto come proprietario della pagina di stato** |
 | **Manutenzione programmata** | **Promemoria manutenzione** | **Evento di manutenzione creato**, **Stato della manutenzione modificato**, **Nota di manutenzione pubblicata**, **Aggiunto come proprietario della manutenzione** |
-| **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto al criterio di reperibilità**, **Rimosso dal criterio di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
+| **Reperibilità** | **Inizi la reperibilità**, **Sei il prossimo in reperibilità**, **Termini la reperibilità**, **Aggiunto alla policy di reperibilità**, **Rimosso dalla policy di reperibilità**, **Chiamata persa**, e anche via push: **Prima dell'inizio del mio turno di reperibilità**, **Il mio prossimo turno di reperibilità viene riassegnato** | Nessuno |
 | **Sicurezza** | Anche via push: **Nuovo caso di sicurezza** (casi con priorità Alta e Critica), **Caso di sicurezza assegnato a me**, **Passaggio di playbook in attesa della mia approvazione**, **Obiettivo di risposta di un caso di sicurezza**, **Attività di un caso di sicurezza assegnata a me**, **Una caccia ha trovato eventi di sicurezza** | Nessuno |
 
 > [!IMPORTANT]
@@ -63,7 +63,7 @@ Quando entrate in un progetto, questi eventi partono attivi, via e-mail. Tutto i
 La scheda **Reperibilità** riguarda voi, non gli elementi vostri:
 
 - **Inizi la reperibilità**, **Sei il prossimo in reperibilità** e **Termini la reperibilità** seguono i vostri turni nelle pianificazioni di reperibilità di cui fate parte.
-- **Aggiunto al criterio di reperibilità** e **Rimosso dal criterio di reperibilità** vi dicono quando una politica di reperibilità inizia o smette di nominarvi.
+- **Aggiunto alla policy di reperibilità** e **Rimosso dalla policy di reperibilità** vi dicono quando una politica di reperibilità inizia o smette di nominarvi.
 - **Prima dell'inizio del mio turno di reperibilità** invia promemoria agli orari che scegliete in **Impostazioni utente → Calendario → Feed calendario**, e **Il mio prossimo turno di reperibilità viene riassegnato** vi dice quando qualcun altro copre un turno di cui avevate ricevuto il promemoria. Vedete [Feed calendario](/docs/on-call/calendar-feeds#promemoria-e-avvisi-di-riassegnazione).
 - **Chiamata persa**, nel riquadro **Policy chiamate in entrata**, dice ai proprietari di una policy di chiamate in entrata che chi ha chiamato non ha raggiunto nessuno. Vedete [Politica chiamate in arrivo](/docs/on-call/incoming-call-policy#chiamate-perse).
 

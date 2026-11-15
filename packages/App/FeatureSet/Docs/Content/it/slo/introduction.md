@@ -45,7 +45,7 @@ Ti serve un ruolo che possa creare SLO: Proprietario del progetto, Amministrator
 :::steps
 ### Aprire gli SLO
 
-Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Service Level Objective**.
+Apri **SLOs** dal menu **Prodotti** nella barra in alto. Si trova nel primo gruppo, accanto a monitor e incidenti. Fai clic su **Crea: Obiettivo del livello di servizio**.
 
 ### Scegliere cosa misura
 
@@ -61,7 +61,7 @@ Inserisci un **Nome**, per esempio «API Availability», e un **Obiettivo (%)**:
 
 ### Salvare lo SLO
 
-Fai clic su **Crea: Service Level Objective**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
+Fai clic su **Crea: Obiettivo del livello di servizio**. OneUptime apre il nuovo SLO. La **Panoramica** di uno SLO di disponibilità dei monitor mostra **Choose what this SLO measures**, perché non ha ancora monitor.
 
 ### Collegare i monitor
 
@@ -201,7 +201,7 @@ La pagina **Impostazioni** raccoglie come misura uno SLO, una scheda per ciascun
 
 | Scheda | Cosa cambi | Da sapere |
 | --- | --- | --- |
-| **Cosa misura** | **Cosa misura**, **Servizi** e **Soglia di latenza (ms)**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
+| **Cosa misura** | **Cosa misura**, **Servizi**, **Soglia di latenza (ms)** e **Filtro delle richieste**, con **Modifica cosa misura**. | Dopo una modifica, uno SLO di richieste riconta le sue richieste dall'inizio. |
 | **Obiettivo** | **Obiettivo (%)** e **Soglia a rischio (%)**, con **Modifica l'obiettivo**. | Mostra l'inattività che l'obiettivo consente, per esempio «43 min 12 s di downtime per finestra di 30 giorni». |
 | **Periodo di conformità** | **Tipo di finestra**, **Finestra (giorni)** e **Fuso orario**, con **Modifica il periodo**. | Le regole del tasso di consumo mantengono le loro soglie quando cambia la finestra, quindi rivedile dopo. |
 | **Calcolo del downtime** | **Modalità multi-monitor** e **Stati del monitor per i tempi di inattività**, con **Modifica il calcolo del downtime**. | Solo per gli SLO di disponibilità dei monitor. Senza stati si contano tutti gli stati non operativi, compresi quelli aggiunti dopo. |
