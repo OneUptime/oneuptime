@@ -1,4 +1,5 @@
 import Dictionary from "../../Types/Dictionary";
+import { normalizeLogSeverity as toLogSeverity } from "../../Types/Log/LogSeverity";
 import {
   RESOURCE_ENTITY_FACET_KEYS,
   ResourceEntityFacetSelections,
@@ -130,24 +131,14 @@ export interface CrossSignalQueryParams {
 }
 
 /*
- * Same canonicalization table as the logs search DSL
- * (Common/Types/Log/LogQueryToFilter.ts). Unknown values pass through
- * verbatim, matching that module's `|| value` fallback.
+ * A severity as the logs explorer's filter spells it: the LogSeverity
+ * member the word names, as the logs search DSL reads it
+ * (Common/Types/Log/LogQueryToFilter.ts) and as ingest reads a sender's
+ * level - one table of level words (normalizeLogSeverity, issue #8538).
+ * Unknown values pass through verbatim, matching that module.
  */
-const LOG_SEVERITY_CANONICAL: Dictionary<string> = {
-  fatal: "Fatal",
-  error: "Error",
-  warning: "Warning",
-  warn: "Warning",
-  information: "Information",
-  info: "Information",
-  debug: "Debug",
-  trace: "Trace",
-  unspecified: "Unspecified",
-};
-
 function normalizeLogSeverity(value: string): string {
-  return LOG_SEVERITY_CANONICAL[value.toLowerCase()] || value;
+  return toLogSeverity(value) || value;
 }
 
 /*
