@@ -103,6 +103,8 @@ const ExceptionMoreActions: FunctionComponent<ComponentProps> = (
         key="resolve-next-release"
         text={nextReleaseAction.label}
         icon={EXCEPTION_TRIAGE_ACTION_ICONS["resolve-next-release"]}
+        // A sentence the page wrote, or the gate's reason: in the reader's words already.
+        isTooltipTranslated={true}
         tooltip={
           updateGate.isAllowed
             ? translator.translateTemplate(

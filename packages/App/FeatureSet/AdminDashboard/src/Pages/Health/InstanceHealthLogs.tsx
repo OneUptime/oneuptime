@@ -355,6 +355,7 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
                     </div>
                     <Statusbubble
                       text={getStatusName(status)}
+                      isUserContent={false}
                       color={getStatusColor(status)}
                       shouldAnimate={false}
                     />
