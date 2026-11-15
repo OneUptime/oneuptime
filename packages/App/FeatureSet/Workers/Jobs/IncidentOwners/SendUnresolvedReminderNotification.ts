@@ -21,6 +21,7 @@ import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -33,11 +34,79 @@ import logger from "Common/Server/Utils/Logger";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+
+// What a reminder is made of, read for each incident.
+const INCIDENT_SELECT: Select<Incident> = {
+  _id: true,
+  createdAt: true,
+  declaredAt: true,
+  title: true,
+  description: true,
+  projectId: true,
+  project: {
+    name: true,
+  },
+  incidentSeverityId: true,
+  incidentSeverity: {
+    name: true,
+    color: true,
+  },
+  labels: {
+    _id: true,
+  },
+  currentIncidentState: {
+    name: true,
+    color: true,
+  },
+  incidentNumber: true,
+  incidentNumberWithPrefix: true,
+  enableReminders: true,
+  reminderNotificationSentCount: true,
+};
 
 RunCron(
   "IncidentOwner:SendUnresolvedReminderNotification",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between moving the reminder on and the last owner (#8199) - told
+     * first, exactly them, while the incident is still to be reminded of
+     * (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentReminder],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const incident: Incident | null = await IncidentService.findOneById({
+          id: delivery.notification.resourceId,
+          select: INCIDENT_SELECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (!incident) {
+          await delivery.giveUp("the incident is gone");
+          return;
+        }
+
+        /*
+         * Late, so asked again: a reminder that an incident resolved since
+         * is still open would be wrong.
+         */
+        if ((await getReminderIntervalFor(incident)) === null) {
+          await delivery.giveUp("the incident's reminders stopped since");
+          return;
+        }
+
+        await notifyOwnersOfReminder(incident, delivery);
+      },
+    });
+
     // get all incidents where the next reminder notification is due.
 
     const incidents: Array<Incident> = await IncidentService.findAllBy({
@@ -50,33 +119,7 @@ RunCron(
         isRoot: true,
       },
       skip: 0,
-      select: {
-        _id: true,
-        createdAt: true,
-        declaredAt: true,
-        title: true,
-        description: true,
-        projectId: true,
-        project: {
-          name: true,
-        },
-        incidentSeverityId: true,
-        incidentSeverity: {
-          name: true,
-          color: true,
-        },
-        labels: {
-          _id: true,
-        },
-        currentIncidentState: {
-          name: true,
-          color: true,
-        },
-        incidentNumber: true,
-        incidentNumberWithPrefix: true,
-        enableReminders: true,
-        reminderNotificationSentCount: true,
-      },
+      select: INCIDENT_SELECT,
     });
 
     for (const incident of incidents) {
@@ -95,11 +138,15 @@ RunCron(
   },
 );
 
-type SendReminderForIncidentFunction = (incident: Incident) => Promise<void>;
-
-const sendReminderForIncident: SendReminderForIncidentFunction = async (
+/*
+ * How often the incident is to be reminded of now, in minutes - or null
+ * when it is not to be reminded of at all: no rule matches it any more, it
+ * has reminders turned off, it is resolved, or it is acknowledged and its
+ * rule stops there.
+ */
+async function getReminderIntervalFor(
   incident: Incident,
-): Promise<void> => {
+): Promise<number | null> {
   const incidentId: ObjectID = incident.id!;
   const projectId: ObjectID = incident.projectId!;
 
@@ -116,18 +163,6 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       }),
     });
 
-  const stopReminders: () => Promise<void> = async (): Promise<void> => {
-    await IncidentService.updateOneById({
-      id: incidentId,
-      data: {
-        nextReminderNotificationAt: null,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-  };
-
   /*
    * A rule with no interval a reminder can follow - none, or one below a
    * minute, which only a rule saved before the check can hold - reminds
@@ -142,7 +177,7 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
     intervalInMinutes === null ||
     incident.enableReminders === false
   ) {
-    return await stopReminders();
+    return null;
   }
 
   // Resolved incidents never get reminders.
@@ -160,8 +195,50 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
   }
 
   if (shouldStop) {
+    return null;
+  }
+
+  return intervalInMinutes;
+}
+
+type SendReminderForIncidentFunction = (incident: Incident) => Promise<void>;
+
+const sendReminderForIncident: SendReminderForIncidentFunction = async (
+  incident: Incident,
+): Promise<void> => {
+  const incidentId: ObjectID = incident.id!;
+
+  const stopReminders: () => Promise<void> = async (): Promise<void> => {
+    await IncidentService.updateOneById({
+      id: incidentId,
+      data: {
+        nextReminderNotificationAt: null,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  };
+
+  const intervalInMinutes: number | null =
+    await getReminderIntervalFor(incident);
+
+  if (intervalInMinutes === null) {
     return await stopReminders();
   }
+
+  const reminderNumber: number =
+    (incident.reminderNotificationSentCount || 0) + 1;
+
+  /*
+   * Whom this reminder is to tell, written before the reminder is moved
+   * on: a worker stopped from here on leaves them to be told by a later
+   * run, and one stopped before the move leaves the reminder due.
+   */
+  const delivery: OwnerNotificationDelivery = await planOwnersOfReminder({
+    incident: incident,
+    reminderNumber: reminderNumber,
+  });
 
   /*
    * Advance the next reminder time BEFORE sending notifications so a
@@ -174,30 +251,78 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
         OneUptimeDate.getCurrentDate(),
         intervalInMinutes,
       ),
-      reminderNotificationSentCount:
-        (incident.reminderNotificationSentCount || 0) + 1,
+      reminderNotificationSentCount: reminderNumber,
     },
     props: {
       isRoot: true,
     },
   });
 
-  // now find owners.
+  await notifyOwnersOfReminder(incident, delivery);
+};
 
-  let doesResourceHasOwners: boolean = true;
+/*
+ * Whom the reminder tells - the incident's owners, or the project's when it
+ * has none - written down before the reminder is moved on
+ * (OwnerNotificationDeliveries.plan): the reminder's number tells one
+ * reminder from the next. A failure to read them tells nobody, as it did
+ * when it came after the move.
+ */
+async function planOwnersOfReminder(data: {
+  incident: Incident;
+  reminderNumber: number;
+}): Promise<OwnerNotificationDelivery> {
+  let owners: Array<User> = [];
+  let isProjectOwners: boolean = false;
 
-  let owners: Array<User> = await IncidentService.findOwners(incidentId);
+  try {
+    owners = await IncidentService.findOwners(data.incident.id!);
 
-  if (owners.length === 0) {
-    doesResourceHasOwners = false;
+    if (owners.length === 0) {
+      isProjectOwners = true;
 
-    // find project owners.
-    owners = await ProjectService.getOwners(projectId);
+      // find project owners.
+      owners = await ProjectService.getOwners(data.incident.projectId!);
+    }
+  } catch (e) {
+    logger.error("Error in reading the owners of an incident to remind", {
+      projectId: data.incident.projectId?.toString(),
+      incidentId: data.incident.id?.toString(),
+    });
+    logger.error(e);
+    owners = [];
   }
 
-  if (owners.length === 0) {
+  return await OwnerNotificationDeliveries.plan({
+    notification: {
+      kind: OwnerNotificationKind.IncidentReminder,
+      projectId: data.incident.projectId!,
+      resourceId: data.incident.id!,
+      eventId: data.incident.id!,
+      occurrence: data.reminderNumber,
+    },
+    owners: owners,
+    isProjectOwners: isProjectOwners,
+  });
+}
+
+/*
+ * Reminds the delivery's owners that the incident is still open, each once
+ * (OwnerNotificationDelivery.tell), and says in the incident's feed whom it
+ * reached - those a stopped run told first among them.
+ */
+async function notifyOwnersOfReminder(
+  incident: Incident,
+  delivery: OwnerNotificationDelivery,
+): Promise<void> {
+  if (delivery.owners.length === 0) {
     return;
   }
+
+  const incidentId: ObjectID = incident.id!;
+  const projectId: ObjectID = incident.projectId!;
+
+  const doesResourceHasOwners: boolean = !delivery.isProjectOwners;
 
   const openedAt: Date = incident.declaredAt || incident.createdAt!;
 
@@ -241,106 +366,128 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
 
   let moreIncidentFeedInformationInMarkdown: string = "";
 
-  for (const user of owners) {
-    const vars: Dictionary<string> = {
-      incidentTitle: incident.title!,
-      incidentNumber: incidentNumberStr,
-      projectName: incident.project!.name!,
-      currentState: currentStateName,
-      ...EmailColorUtil.getTemplateVariables(
-        "currentState",
-        incident.currentIncidentState?.color,
-      ),
-      openDuration: openDuration,
-      declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
-        date: openedAt,
-        timezones: user.timezone ? [user.timezone] : [],
-      }),
-      incidentDescription: incidentDescriptionHtml,
-      resourcesAffected: resourcesAffected || "None",
-      incidentSeverity: incident.incidentSeverity?.name || "",
-      ...EmailColorUtil.getTemplateVariables(
-        "incidentSeverity",
-        incident.incidentSeverity?.color,
-      ),
-      incidentViewLink: incidentViewLink,
-    };
-
-    if (doesResourceHasOwners === true) {
-      vars["isOwner"] = "true";
-    }
-
-    const incidentIdentifier: string =
-      incident.incidentNumber !== undefined
-        ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
-        : incident.title!;
-
-    const emailMessage: EmailEnvelope = {
-      templateType: EmailTemplateType.IncidentOwnerUnresolvedReminder,
-      vars: vars,
-      subject: `[Reminder] Incident ${incidentNumberStr} is still ${currentStateName} - ${incident.title!}`,
-      isSubjectLiteral: true,
-    };
-
-    const sms: SMSMessage = {
-      message: buildNotificationSms(
-        `Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
-      ),
-    };
-
-    const callMessage: CallRequestMessage = {
-      data: [
-        {
-          sayMessage: `This is a message from OneUptime. Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
-        },
-      ],
-    };
-
-    const pushMessage: PushNotificationMessage =
-      PushNotificationUtil.createGenericNotification({
-        title: `Reminder: Incident ${incidentNumberStr} is still open`,
-        body: `${incident.title!} is still ${currentStateName}. Open for ${openDuration}.`,
-        clickAction: incidentViewLink,
-        tag: "incident-reminder",
-        requireInteraction: true,
-      });
-
-    const eventType: NotificationSettingEventType =
-      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION;
-
-    const whatsAppMessage: WhatsAppMessagePayload =
-      createWhatsAppMessageFromTemplate({
-        eventType,
-        templateVariables: {
-          incident_title: incident.title!,
-          incident_state: currentStateName,
-          incident_number:
-            incident.incidentNumber !== undefined
-              ? incident.incidentNumber.toString()
-              : "",
-          elapsed_time: openDuration,
-          incident_link: incidentViewLink,
-        },
-      });
-
-    await UserNotificationSettingService.sendUserNotification({
-      userId: user.id!,
-      projectId: projectId,
-      emailEnvelope: emailMessage,
-      smsMessage: sms,
-      callRequestMessage: callMessage,
-      pushNotificationMessage: pushMessage,
-      whatsAppMessage,
-      incidentId: incidentId,
-      eventType,
-    });
-
+  // Whom a run that stopped part way told already.
+  for (const user of delivery.toldEarlier) {
     moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
       {
         userId: user.id!,
         projectId: projectId,
       },
     )}\n`;
+  }
+
+  for (const user of delivery.owners) {
+    const isTold: boolean = await delivery.tell(
+      user,
+      async (): Promise<void> => {
+        const vars: Dictionary<string> = {
+          incidentTitle: incident.title!,
+          incidentNumber: incidentNumberStr,
+          projectName: incident.project!.name!,
+          currentState: currentStateName,
+          ...EmailColorUtil.getTemplateVariables(
+            "currentState",
+            incident.currentIncidentState?.color,
+          ),
+          openDuration: openDuration,
+          declaredAt: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+            date: openedAt,
+            timezones: user.timezone ? [user.timezone] : [],
+          }),
+          incidentDescription: incidentDescriptionHtml,
+          resourcesAffected: resourcesAffected || "None",
+          incidentSeverity: incident.incidentSeverity?.name || "",
+          ...EmailColorUtil.getTemplateVariables(
+            "incidentSeverity",
+            incident.incidentSeverity?.color,
+          ),
+          incidentViewLink: incidentViewLink,
+        };
+
+        if (doesResourceHasOwners === true) {
+          vars["isOwner"] = "true";
+        }
+
+        const incidentIdentifier: string =
+          incident.incidentNumber !== undefined
+            ? `${incident.incidentNumberWithPrefix || "#" + incident.incidentNumber} (${incident.title})`
+            : incident.title!;
+
+        const emailMessage: EmailEnvelope = {
+          templateType: EmailTemplateType.IncidentOwnerUnresolvedReminder,
+          vars: vars,
+          subject: `[Reminder] Incident ${incidentNumberStr} is still ${currentStateName} - ${incident.title!}`,
+          isSubjectLiteral: true,
+        };
+
+        const sms: SMSMessage = {
+          message: buildNotificationSms(
+            `Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}.`,
+          ),
+        };
+
+        const callMessage: CallRequestMessage = {
+          data: [
+            {
+              sayMessage: `This is a message from OneUptime. Reminder: Incident ${incidentIdentifier} is still ${currentStateName} and has been open for ${openDuration}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+            },
+          ],
+        };
+
+        const pushMessage: PushNotificationMessage =
+          PushNotificationUtil.createGenericNotification({
+            title: `Reminder: Incident ${incidentNumberStr} is still open`,
+            body: `${incident.title!} is still ${currentStateName}. Open for ${openDuration}.`,
+            clickAction: incidentViewLink,
+            tag: "incident-reminder",
+            requireInteraction: true,
+          });
+
+        const eventType: NotificationSettingEventType =
+          NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION;
+
+        const whatsAppMessage: WhatsAppMessagePayload =
+          createWhatsAppMessageFromTemplate({
+            eventType,
+            templateVariables: {
+              incident_title: incident.title!,
+              incident_state: currentStateName,
+              incident_number:
+                incident.incidentNumber !== undefined
+                  ? incident.incidentNumber.toString()
+                  : "",
+              elapsed_time: openDuration,
+              incident_link: incidentViewLink,
+            },
+          });
+
+        await UserNotificationSettingService.sendUserNotification({
+          userId: user.id!,
+          projectId: projectId,
+          emailEnvelope: emailMessage,
+          smsMessage: sms,
+          callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
+          whatsAppMessage,
+          incidentId: incidentId,
+          eventType,
+        });
+      },
+    );
+
+    if (isTold) {
+      moreIncidentFeedInformationInMarkdown += mdText`**Notified:** ${await UserService.getUserMarkdownString(
+        {
+          userId: user.id!,
+          projectId: projectId,
+        },
+      )}\n`;
+    }
+  }
+
+  // Every owner was told already: the run that told them said so.
+  if (!delivery.hasSetOutToTellAnyone) {
+    return;
   }
 
   const incidentNumberDisplayValue: string =
@@ -358,4 +505,4 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       sendWorkspaceNotification: true,
     },
   });
-};
+}
