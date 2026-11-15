@@ -134,10 +134,10 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
    * Website Monitor 99th (#7875).
    */
   /*
-   * Two-factor authentication is "totrinsgodkendelse" in the Danish docs
-   * and "totrinnsbekreftelse" on the Norwegian account page, while many
-   * readers say "tofaktor...": "Hvordan slår jeg på tofaktorautentisering?"
-   * did not find the account page at all (#8335).
+   * Two-factor authentication is "totrinsgodkendelse" in the Danish docs,
+   * while many readers say "tofaktor..." (#8335). The Norwegian docs say
+   * "tofaktorautentisering", as the Norwegian Dashboard does (#8701), and
+   * read "totrinnsbekreftelse", which Google and banks say, as it.
    */
   da: {
     pager: ["vagt*"],
@@ -155,8 +155,8 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     outage: ["hendelse*"],
     uptime: ["overvåking*"],
     hjemmeside: ["nettsted"],
-    "2fa": ["totrinnsbekreftelse"],
-    tofaktorautentisering: ["totrinnsbekreftelse"],
+    "2fa": ["tofaktorautentisering"],
+    totrinnsbekreftelse: ["tofaktorautentisering"],
   },
   sv: {
     hemsida: ["webbplats"],

@@ -28,6 +28,10 @@
  * Runner three ways, two of them with the runbook word they dropped
  * (агент сценария, 操作手冊代理程式), where 200 of their strings say
  * "Runner" (#8706).
+ * Norwegian called two-factor authentication "totrinnsbekreftelse" on
+ * the docs page that turns it on, and "totrinnsautentisering" in three
+ * Dashboard strings, where the Dashboard's page and 12 strings say
+ * "tofaktorautentisering" (#8701).
  *
  * Each language now says one word. A word like 알림 or "overvågning" also
  * has a meaning of its own (a notification, the act of monitoring), so a
@@ -166,6 +170,21 @@ export const ONE_WORD_RULES: ReadonlyArray<SentenceRule> = [
     english: /\bmetrics?\b/i,
     word: /måling/i,
     dropped: /metrikk/i,
+  },
+  {
+    /*
+     * Its Dashboard draws "tofaktorautentisering" (Two Factor
+     * Authentication) in 12 strings; three said "totrinnsautentisering",
+     * and the docs' account page, whose step says how to turn it on, said
+     * "totrinnsbekreftelse" (#8701). Google's own "2-Step Verification",
+     * which the Google Workspace page names as Google does, is not
+     * OneUptime's two-factor authentication.
+     */
+    language: "no",
+    thing: "Two-factor authentication",
+    english: /\btwo[- ]factor\b/i,
+    word: /tofaktor/i,
+    dropped: /totrinn/i,
   },
   {
     // Runner, declined as its other strings decline it: Runner-а, Runner-ы.

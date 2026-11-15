@@ -308,6 +308,9 @@ describe("the single keys and the titles", () => {
     ["fr", "SLOs", "SLO"],
     ["fa", "SLOs", "SLOها"],
     ["sv", "Monitor Group", "Monitorgrupp"],
+    // Norwegian's two-factor authentication, as its account docs now say it too (#8701).
+    ["no", "Two Factor Authentication", "Tofaktorautentisering"],
+    ["no", "Enable Two Factor Authentication", "Aktiver tofaktorautentisering"],
     // Norwegian's noun alone, which is also its verb (it monitors).
     ["no", "Assign Monitor", "Tildel monitor"],
     [

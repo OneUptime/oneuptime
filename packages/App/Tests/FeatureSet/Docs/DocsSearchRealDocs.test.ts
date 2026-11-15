@@ -75,7 +75,7 @@ const NOT_IN_THE_BOX_FIRST_TEN: Record<string, string> = {
   "da Hvordan slår jeg totrinsgodkendelse til?":
     'A section of Your Account ("Slå totrinsgodkendelse til"): "slår" (present) is not its "slå", and the box lifts pages, not sections.',
   "no Hvordan slår jeg på tofaktorautentisering?":
-    'A section of Your Account ("Slå på totrinnsbekreftelse"): "slår" is not its "slå", and the box lifts pages, not sections.',
+    'A section of Your Account ("Slå på tofaktorautentisering"): "slår" is not its "slå", and the box lifts pages, not sections.',
   "sv Hur aktiverar jag tvåfaktorsautentisering?":
     'A section of Your Account ("Slå på tvåfaktorsautentisering"), which says "slå på" (turn on), not "aktivera"; the box lifts pages, not sections.',
   "ja 二要素認証を有効にするにはどうすればいいですか？":
