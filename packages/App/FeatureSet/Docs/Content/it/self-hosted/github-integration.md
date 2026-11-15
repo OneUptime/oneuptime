@@ -291,5 +291,5 @@ Dai all'app **Issues: Read and write** e iscrivila agli eventi interattivi di [I
 :::cards
 - [Lavorare con OneUptime da GitHub](/docs/ai/github-app): I comandi che si possono dare all'app, e chi può darli.
 - [Codice](/docs/ai/ai-agent): Come l'agente IA apre pull request di correzione.
-- [Accesso alla rete privata](/docs/self-hosted/private-network-access): Permetti a workflow e webhook di raggiungere gli strumenti interni.
+- [Accesso alla rete privata](/docs/self-hosted/private-network-access): Permetti a flussi di lavoro e webhook di raggiungere gli strumenti interni.
 :::

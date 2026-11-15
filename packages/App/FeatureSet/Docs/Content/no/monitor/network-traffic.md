@@ -241,7 +241,7 @@ Et navn kommer fra den første av disse kildene som navngir adressen:
 | 3 | Verter | En vert der agenten rapporterer adressen |
 | 4 | Skyressurser | En skyressurs som skykontoen deres oppgir adressen for |
 | 5 | Kubernetes | En node med adressen, deretter en pod (en pod på nodens eget nettverk har adressen til noden) |
-| 6 | DNS | Reverse-DNS-navnet til adressen, slått opp av proben som mottok flytene |
+| 6 | DNS | Reverse-DNS-navnet til adressen, slått opp av sonden som mottok flytene |
 
 En post navngir bare trafikken fra en tid da den fantes: en vert som først ble sett etter tidsrommet, eller en pod som forsvant før det, navngir ikke trafikken i det tidsrommet. Et navn noen ga et delnett - `10.18.167.0/24` er «Kontoret i Mumbai» - vises ved siden av hver adresse i det, aldri i stedet for adressens eget navn; der navngitte delnett overlapper, vises det smaleste.
 
@@ -259,11 +259,11 @@ Klikk på en adresse, eller finn den, så snevres siden inn til den, med et kort
 
 **Nettverk** -> **Innstillinger** -> **Adressenavn** viser navnene folk har gitt adresser og delnett som ingenting annet navngir: VPN-gatewayen til en partner, et SaaS-endepunkt, gjeste-wifien. **Opprett Adressenavn** ber om navnet og om én IP-adresse (`10.0.0.5`, `2001:db8::5`) eller et delnett (`10.18.167.0/24`). Et delnett lagres som den første adressen og lengden, så `10.18.167.35/24` lagres som `10.18.167.0/24`. Hver adresse eller hvert delnett har ett navn.
 
-### DNS-navn fra proben
+### DNS-navn fra sonden
 
-DNS-navn slås opp av proben som mottok flytene, med resolveren verten dens bruker: inne i nettverket deres, der private adresser har navn. Proben beholder bare et navn når navnets egne A- eller AAAA-poster peker tilbake på adressen, så en utdatert eller forfalsket reverse-post navngir ingenting, og et navn i hosts-filen på verten til proben brukes som det er. Den sender navnene med flytene, og de lagres sammen med dem: et tidsrom viser navnene adressene hadde da.
+DNS-navn slås opp av sonden som mottok flytene, med resolveren verten dens bruker: inne i nettverket deres, der private adresser har navn. Sonden beholder bare et navn når navnets egne A- eller AAAA-poster peker tilbake på adressen, så en utdatert eller forfalsket reverse-post navngir ingenting, og et navn i hosts-filen på verten til sonden brukes som det er. Den sender navnene med flytene, og de lagres sammen med dem: et tidsrom viser navnene adressene hadde da.
 
-Oppslagene holder aldri flytene tilbake. De travleste adressene slås opp først, høyst 300 i minuttet og åtte om gangen; et navn huskes i en time, en adresse uten navn i 30 minutter, og et oppslag som mislyktes, prøves igjen etter 5 minutter. Loopback-, link-local-, multicast- og broadcast-adresser slås aldri opp. De globale probene i en driftet OneUptime, som alle kontoer deler, slår bare opp offentlige adresser; deres egne prober, og probene i deres egen OneUptime-installasjon, slår også opp private adresser.
+Oppslagene holder aldri flytene tilbake. De travleste adressene slås opp først, høyst 300 i minuttet og åtte om gangen; et navn huskes i en time, en adresse uten navn i 30 minutter, og et oppslag som mislyktes, prøves igjen etter 5 minutter. Loopback-, link-local-, multicast- og broadcast-adresser slås aldri opp. De globale sondene i en driftet OneUptime, som alle kontoer deler, slår bare opp offentlige adresser; deres egne sonder, og sondene i deres egen OneUptime-installasjon, slår også opp private adresser.
 
 | Variabel                            | Hva den gjør                                                        | Standard |
 | ----------------------------------- | ------------------------------------------------------------------- | -------- |
@@ -302,7 +302,7 @@ Hvis en adresse ikke viser noe navn:
 
 - **Gi den et.** Klikk på adressen og deretter på **Gi adressen et navn** på kortet over tallene.
 - **DNS-navnene dens.** Navnets egen A- eller AAAA-post må peke tilbake på adressen; en reverse-post alene er ikke nok. Et navn som legges til i DNS, navngir flytene som kommer etter det.
-- **Probens resolver.** Hvis verten til proben ikke ser den interne DNS-en deres, setter dere `PROBE_FLOW_NAME_DNS_SERVERS` til en DNS-server som har reverse-sonene deres.
+- **Sondens resolver.** Hvis verten til sonden ikke ser den interne DNS-en deres, setter dere `PROBE_FLOW_NAME_DNS_SERVERS` til en DNS-server som har reverse-sonene deres.
 
 Hvis en Meraki-tilkobling sier at den ikke kan lese:
 

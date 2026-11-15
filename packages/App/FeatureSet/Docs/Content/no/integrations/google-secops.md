@@ -1,6 +1,6 @@
 # Google SecOps
 
-Hent varsler og deteksjoner fra [Google SecOps](https://cloud.google.com/security/products/security-operations) (tidligere Chronicle) inn i sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe.
+Hent varsler og deteksjoner fra [Google SecOps](https://cloud.google.com/security/products/security-operations) (tidligere Chronicle) inn i sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe.
 
 :::cards
 - [Velg hvordan du kobler til](#velg-hvordan-du-kobler-til): En webhook fra en SOAR-playbook, den administrerte koblingen eller UDM-videresending.
@@ -361,7 +361,7 @@ Google SecOps hadde tidligere sitt eget tilkoblingskort, sitt eget API og sin eg
 ## Hva du får
 
 - **Søk.** Filtrer hendelser etter alvorlighetsgrad, OCSF-klasse, aktør, mål eller en hvilken som helst observable i utforskeren for sikkerhetshendelser.
-- **Korrelasjon.** Brukerne, vertene, IP-ene og domenene i hver hendelse indekseres som observables, så ett søk finner alt som nevner en vert, ved siden av loggene og metrikkene for den verten.
+- **Korrelasjon.** Brukerne, vertene, IP-ene og domenene i hver hendelse indekseres som observables, så ett søk finner alt som nevner en vert, ved siden av loggene og målingene for den verten.
 - **Deteksjonsregler.** Sigma-regler som kjører etter en tidsplan over sikkerhetshendelsene dine, åpner varsler som varsler vakten, og skriver hendelser av typen Detection Finding.
 - **Monitorer.** Monitorer for sikkerhetshendelser teller samsvarende hendelser, og åpner hendelser eller varsler over en terskel.
 - **Dashbord og KI.** Widgeter for sikkerhetshendelser på dashbord, blant dem en Sankey-flytvisning, og KI-verktøyene `search_security_events` og `security_event_summary` for spørsmål på vanlig språk.

@@ -51,7 +51,7 @@ Escribe tu número de móvil con el prefijo de país en **Tu número de teléfon
 
 ![El paso «¿Quién más está de guardia?», con «Guardar y continuar» resaltado](screen:paging-who-else)
 
-En **¿Quién más está de guardia?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas contigo y, después, en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea `Default on-call policy`, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
+En **¿Quién más está de guardia?**, ya estás en **Avisados primero**. Haz clic en **Añadir miembros del equipo** para avisar a otras personas contigo y, después, en **Guardar y continuar**. En un proyecto que aún no tiene ninguna política de guardia, esto crea la **Política de guardia predeterminada**, que avisa a todos con cada nuevo incidente y cada nueva alerta. En un proyecto que ya tiene una, elígela en **Política de guardia** y añade a las personas en **Añadir a la primera regla de escalado**. Si aún no se puede localizar a alguien, el paso se queda abierto en **¿Les llega un aviso?**: haz clic en **Enviar recordatorio de configuración** para esa persona y, después, en **Continuar**.
 
 ### Decidir qué pasa si nadie responde
 

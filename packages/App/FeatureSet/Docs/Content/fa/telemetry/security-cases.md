@@ -285,7 +285,7 @@ OneUptime افراد را از پنج رویداد در یک پرونده باخ
 | Notify | Post to Slack | خلاصه‌ای از پرونده را در یک کانال Slack می‌فرستد |
 | Notify | Post to Microsoft Teams | خلاصه‌ای از پرونده را در یک کانال Microsoft Teams می‌فرستد |
 | Notify | Post a status page announcement | اطلاعیه‌ای را که نوشته‌اید روی صفحه‌های وضعیتی که انتخاب می‌کنید منتشر می‌کند |
-| Escalate | Page on-call | یک سیاست کشیک را اجرا می‌کند |
+| Escalate | Page on-call | یک سیاست آنکال را اجرا می‌کند |
 | Escalate | Declare an incident | یک حادثهٔ OneUptime پیوندخورده با پرونده باز می‌کند |
 | Contain | Suspend the user in Okta | کاربری را که پرونده دربارهٔ اوست در Okta معلق می‌کند |
 | Contain | End the user's Okta sessions | کاربری را که پرونده دربارهٔ اوست از Okta بیرون می‌برد و توکن‌هایش را باطل می‌کند |

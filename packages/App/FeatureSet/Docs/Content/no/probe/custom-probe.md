@@ -1,4 +1,4 @@
-# Egendefinerte probes
+# Egendefinerte sonder
 
 En egendefinert sonde er en liten agent som du kjører i ditt eget nettverk. Den sjekker overvåkerne du legger den til, for eksempel interne nettsteder, API-er og servere bak brannmuren din, og sender resultatene til OneUptime. Den åpner bare utgående tilkoblinger over HTTPS, så ingenting i nettverket ditt trenger å ta imot tilkoblinger fra internett. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner) for å velge mellom en sonde, en agent, en collector og en Runner.
 
@@ -25,7 +25,7 @@ sequenceDiagram
 
 - **Sonden kobler seg utover.** Hver forespørsel går fra sonden til `ONEUPTIME_URL` over HTTPS. Ingenting utenfra trenger å nå sonden.
 - **Den sjekker bare sine egne overvåkere.** Sonden spør OneUptime om overvåkerne den er lagt til, sjekker hver av dem når det er tid, og sender resultatet tilbake. OneUptime avgjør ut fra resultatene om statusen til en overvåker endres.
-- **OneUptime passer på at den kjører.** Hver forespørsel fra sonden teller som et livstegn, og sonden sender minst én i minuttet. Etter omtrent tre minutter uten noen viser sonden **Frakoblet**, og eierne dens får beskjed. Har en sonde ingen eiere, får prosjektets eiere beskjed. For å bli varslet som ved ethvert avbrudd, med én hendelse til sonden er tilbake, legger du til en [probestatusmonitor](/docs/monitor/probe-status-monitor): **Overvåk denne proben** på sondens side oppretter en.
+- **OneUptime passer på at den kjører.** Hver forespørsel fra sonden teller som et livstegn, og sonden sender minst én i minuttet. Etter omtrent tre minutter uten noen viser sonden **Frakoblet**, og eierne dens får beskjed. Har en sonde ingen eiere, får prosjektets eiere beskjed. For å bli varslet som ved ethvert avbrudd, med én hendelse til sonden er tilbake, legger du til en [sondestatusmonitor](/docs/monitor/probe-status-monitor): **Overvåk denne sonden** på sondens side oppretter en.
 
 ## Før du begynner
 
@@ -42,7 +42,7 @@ sequenceDiagram
 
 ### Kopier ID-en og nøkkelen
 
-Sonden trenger ID-en og nøkkelen sin for å koble til. For å kopiere dem åpner du sondens meny i tabellen **Egendefinerte probes** og velger **Vis ID og nøkkel**. Alle som ser tabellen kan kopiere ID-en til en sonde; nøkkelen vises bare for Prosjekteiere og Prosjektadministratorer, som ser **Vis ID og nøkkel** der de andre ser **Vis ID**.
+Sonden trenger ID-en og nøkkelen sin for å koble til. For å kopiere dem åpner du sondens meny i tabellen **Egendefinerte sonder** og velger **Vis ID og nøkkel**. Alle som ser tabellen kan kopiere ID-en til en sonde; nøkkelen vises bare for Prosjekteiere og Prosjektadministratorer, som ser **Vis ID og nøkkel** der de andre ser **Vis ID**.
 
 Prosjekteiere og Prosjektadministratorer kan også klikke på sonden: kortet **Set up your Custom Probe** på siden dens viser Docker-kommandoen med ID og nøkkel allerede fylt inn.
 
@@ -108,7 +108,7 @@ Med vertsnettverk (`--network host`, `network_mode: host`) bruker sonden vertens
 
 ### Sjekk at den kobler til
 
-I løpet av et minutt eller to viser sondens **Status** i tabellen **Egendefinerte probes** **Tilkoblet**. Viser den fortsatt **Frakoblet**, står årsaken i sondens logg: se [Undersøk en frakoblet sonde](#undersøk-en-frakoblet-sonde).
+I løpet av et minutt eller to viser sondens **Status** i tabellen **Egendefinerte sonder** **Tilkoblet**. Viser den fortsatt **Frakoblet**, står årsaken i sondens logg: se [Undersøk en frakoblet sonde](#undersøk-en-frakoblet-sonde).
 
 ### La sonden sjekke en overvåker
 

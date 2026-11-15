@@ -233,7 +233,7 @@ Un post-mortem è un insieme di campi dell'incidente, letti e scritti tramite `/
 
 Scrivere `showPostmortemOnStatusPage` come `true` su una `postmortemNote` già scritta pubblica il post-mortem, come fa il dialogo. Sposta anche il post-mortem in **Completato**, a meno che la stessa scrittura non imposti `postmortemStatusId`.
 
-Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/incident-postmortem-action-item`: ciascuna con i suoi `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` e `status` (`Open`, `Done` o `WontDo`). I workflow possono partire quando una di esse viene creata, modificata o eliminata.
+Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/incident-postmortem-action-item`: ciascuna con i suoi `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` e `status` (`Open`, `Done` o `WontDo`). I flussi di lavoro possono partire quando una di esse viene creata, modificata o eliminata.
 
 ## Risoluzione dei problemi
 

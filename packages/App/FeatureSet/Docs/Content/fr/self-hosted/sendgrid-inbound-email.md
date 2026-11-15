@@ -2,7 +2,7 @@
 
 Le **Incoming Email Monitor** de OneUptime vous permet de créer et de résoudre des alertes à partir d'e-mails envoyés à des adresses uniques, propres à chaque moniteur. C'est utile pour intégrer des systèmes anciens, des outils d'alerte ou tout service capable d'envoyer des e-mails.
 
-La même configuration permet aussi aux workflows de recevoir des e-mails : un workflow doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le workflow. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
+La même configuration permet aussi aux flux de travail de recevoir des e-mails : un flux de travail doté du déclencheur **E-mail entrant** reçoit sa propre adresse sur le même domaine, et chaque e-mail qui lui est envoyé démarre le flux de travail. Voir [Déclencheurs](/docs/workflows/triggers#incoming-email).
 
 Ce guide explique comment configurer SendGrid Inbound Parse pour transférer les e-mails entrants vers votre instance OneUptime auto-hébergée. OneUptime Cloud n'en a pas besoin : ses adresses fonctionnent d'emblée.
 
@@ -22,7 +22,7 @@ sequenceDiagram
     participant OneUptime as OneUptime
     Sender->>SendGrid: E-mail à<br/>l'adresse du<br/>moniteur (votre<br/>enregistrement<br/>MX)
     SendGrid->>OneUptime: POST …/sendgrid/YOUR_SECRET
-    OneUptime->>OneUptime: Associer<br/>l'adresse à<br/>un moniteur ou<br/>à un workflow
+    OneUptime->>OneUptime: Associer<br/>l'adresse à<br/>un moniteur ou<br/>à un flux de travail
     OneUptime-->>SendGrid: 200 OK
 ```
 
@@ -60,7 +60,7 @@ Inbound Parse est distinct de l'envoi d'e-mails sortants. Recevoir les e-mails d
 :::steps
 ### Choisir votre domaine de réception
 
-Choisissez un sous-domaine dédié à la réception des e-mails pour OneUptime, comme `inbound.yourdomain.com`, `email.yourdomain.com` ou `monitor.yourdomain.com`. Il ne sert qu'aux e-mails destinés aux moniteurs et workflows OneUptime : aucune de vos boîtes aux lettres n'y vit.
+Choisissez un sous-domaine dédié à la réception des e-mails pour OneUptime, comme `inbound.yourdomain.com`, `email.yourdomain.com` ou `monitor.yourdomain.com`. Il ne sert qu'aux e-mails destinés aux moniteurs et flux de travail OneUptime : aucune de vos boîtes aux lettres n'y vit.
 
 ### Faire pointer son enregistrement MX vers SendGrid
 
@@ -122,7 +122,7 @@ Appliquez-les ensuite : exécutez `npm run start` sous Docker Compose, ce qui re
 
 [Créez un moniteur Incoming Email](/docs/monitor/incoming-email-monitor#créer-un-moniteur-de-mails-entrants). Sa page **Vue d'ensemble** affiche son adresse, par exemple `monitor-abc123def456@inbound.yourdomain.com`, et ses critères décident quels e-mails créent une alerte et lesquels la résolvent.
 
-Les workflows utilisent le même domaine. Ajoutez le déclencheur **E-mail entrant** à un workflow et cliquez dessus : son adresse (`workflow-…@inbound.yourdomain.com`) figure en haut de ses paramètres. Tant que les variables de réception ci-dessus ne sont pas définies, le déclencheur indique que le serveur n'est pas configuré pour recevoir des e-mails.
+Les flux de travail utilisent le même domaine. Ajoutez le déclencheur **E-mail entrant** à un flux de travail et cliquez dessus : son adresse (`workflow-…@inbound.yourdomain.com`) figure en haut de ses paramètres. Tant que les variables de réception ci-dessus ne sont pas définies, le déclencheur indique que le serveur n'est pas configuré pour recevoir des e-mails.
 
 ### Envoyer un e-mail de test
 
@@ -161,7 +161,7 @@ Ce sur quoi un moniteur Incoming Email peut porter – l'objet, l'expéditeur, l
 :::
 
 :::details Le déclencheur indique que le serveur n'est pas configuré pour recevoir des e-mails
-`INBOUND_EMAIL_DOMAIN` est vide sur le serveur. Définissez-la, appliquez la modification, puis rouvrez le déclencheur du workflow.
+`INBOUND_EMAIL_DOMAIN` est vide sur le serveur. Définissez-la, appliquez la modification, puis rouvrez le déclencheur du flux de travail.
 :::
 
 ## Bonnes pratiques de sécurité
@@ -176,7 +176,7 @@ Ce sur quoi un moniteur Incoming Email peut porter – l'objet, l'expéditeur, l
 
 :::cards
 - [Incoming Email Monitor](/docs/monitor/incoming-email-monitor): Critères, formats d'adresse et exemples.
-- [Déclencheurs de workflow](/docs/workflows/triggers): Démarrer un workflow à partir d'un e-mail.
+- [Déclencheurs de flux de travail](/docs/workflows/triggers): Démarrer un flux de travail à partir d'un e-mail.
 - [Accès au réseau privé](/docs/self-hosted/private-network-access): Ce que votre serveur peut joindre sur votre propre réseau.
 - [Architecture](/docs/self-hosted/architecture): Où arrive le webhook dans une installation auto-hébergée.
 :::

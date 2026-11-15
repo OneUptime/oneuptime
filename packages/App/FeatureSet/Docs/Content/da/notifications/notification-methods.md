@@ -167,7 +167,7 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 }
 ```
 
-En webhook kræver ingen bekræftelse, så når du tilføjer den, tilføjes dens regler med det samme. Private og interne adresser afvises, medmindre administratoren af en selvhostet server tillader dem: se [Adgang til privat netværk](/docs/self-hosted/private-network-access#webhooks-og-workflows).
+En webhook kræver ingen bekræftelse, så når du tilføjer den, tilføjes dens regler med det samme. Private og interne adresser afvises, medmindre administratoren af en selvhostet server tillader dem: se [Adgang til privat netværk](/docs/self-hosted/private-network-access#webhooks-og-arbejdsgange).
 
 ## Slå en kanal til for dit projekt
 

@@ -7,7 +7,7 @@ flowchart TB
     token["Sjekk tokenet"] --> appear["Vises miljøet?<br/>Sjekk cloud.platform og<br/>utgående trafikk"]
     appear --> place["Under Verter eller<br/>Serverless?<br/>Rett detektorene"]
     place --> instances["Tomme instanser?<br/>Legg til en instansidentitet"]
-    instances --> usage["Ingen CPU eller minne?<br/>Send containermetrikker"]
+    instances --> usage["Ingen CPU eller minne?<br/>Send containermålinger"]
     usage --> status["Frakoblet eller dobbelt?<br/>Sjekk klokken og nøkkelen"]
 ```
 
@@ -87,15 +87,15 @@ En instans vises innen ett minutt etter det første signalet som bærer attribut
 
 ## CPU og minne er tomme
 
-Instansene er oppført, men flisene **CPU** og **Minne** i oversikten, og kolonnene for CPU og minne i **Instanser**, er tomme. De kommer fra metrikker, ikke spor: datapunkter fra `container.cpu.utilization` og `container.memory.usage` (eller `container.memory.usage.total`) der ressursen bærer den samme instansidentiteten som sporene, og `cloud.platform`.
+Instansene er oppført, men flisene **CPU** og **Minne** i oversikten, og kolonnene for CPU og minne i **Instanser**, er tomme. De kommer fra målinger, ikke spor: datapunkter fra `container.cpu.utilization` og `container.memory.usage` (eller `container.memory.usage.total`) der ressursen bærer den samme instansidentiteten som sporene, og `cloud.platform`.
 
-- **På ECS** leverer receiveren `awsecscontainermetrics` i en sidecar-collector dem som `ecs.task.cpu.utilized` og `ecs.task.memory.utilized`. Behold den i pipelinen `metrics`, og behold også `resourcedetection` i den pipelinen, ellers kommer metrikkene uten `cloud.platform` og arkiveres et annet sted.
-- **På Cloud Run, Container Apps og de andre plattformene** viser ikke plattformen containerbruken til en sidecar. Flisene forblir tomme med mindre du sender de metrikkene selv: les flisene for forespørsler i stedet. På App Service kobler du til abonnementet under **Sky → Koble til**: appens side viser da nettstedets CPU-tid og minne fra **Azure Monitor**.
-- **Med SDK direct** sender ingenting containermetrikker, så tomme fliser er forventet.
+- **På ECS** leverer receiveren `awsecscontainermetrics` i en sidecar-collector dem som `ecs.task.cpu.utilized` og `ecs.task.memory.utilized`. Behold den i pipelinen `metrics`, og behold også `resourcedetection` i den pipelinen, ellers kommer målingene uten `cloud.platform` og arkiveres et annet sted.
+- **På Cloud Run, Container Apps og de andre plattformene** viser ikke plattformen containerbruken til en sidecar. Flisene forblir tomme med mindre du sender de målingene selv: les flisene for forespørsler i stedet. På App Service kobler du til abonnementet under **Sky → Koble til**: appens side viser da nettstedets CPU-tid og minne fra **Azure Monitor**.
+- **Med SDK direct** sender ingenting containermålinger, så tomme fliser er forventet.
 
 ## Miljøet viser Frakoblet
 
-Et miljø viser **Frakoblet** når det ikke har kommet telemetri for det på 15 minutter, og det neste spennet, den neste loggen eller metrikken bringer det tilbake. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med. Mens telemetrien strømmer, kan tidspunktet for sist sett ligge opptil fem minutter etter, og derfor er terskelen 15.
+Et miljø viser **Frakoblet** når det ikke har kommet telemetri for det på 15 minutter, og det neste spennet, den neste loggen eller målingen bringer det tilbake. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med. Mens telemetrien strømmer, kan tidspunktet for sist sett ligge opptil fem minutter etter, og derfor er terskelen 15.
 
 - **Et travelt miljø viser Frakoblet:** eksportøren stoppet. Sjekk collectorens logger for feilene `401` og feilene med utgående trafikk ovenfor.
 - **Et testmiljø som skalerer til null om natten,** viser Frakoblet fram til den første forespørselen om morgenen, og det er riktig.

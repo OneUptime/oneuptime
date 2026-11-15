@@ -243,7 +243,7 @@ La suite dépend des autres personnes encore alertées :
 
 Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend toujours que quelqu'un en accuse réception, et la personne qui l'a escaladée peut encore en accuser réception elle-même. Cette exécution ne l'alerte plus à ce sujet : un niveau suivant, ou une répétition, qui la nomme la passe. Une fois que tous ceux qu'elle a alertés l'ont escaladée et qu'il ne reste personne à alerter, les alertes s'arrêtent, et le fil d'activité de l'incident l'indique.
 
-Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
+Une alerte qu'un flux de travail envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
 Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at Level 1 of 3. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**. Un niveau sauté pour un niveau plus loin est marqué **Ignoré** dans la **Chronologie d'exécution**, et le fil d'activité indique « On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it. »
 

@@ -1,9 +1,9 @@
 # Agente OpenStack
 
-O agente OpenStack do OneUptime monitora uma nuvem OpenStack: seus serviços e agentes, hipervisores, instâncias, redes, roteadores, volumes, pools de armazenamento, imagens e projetos, em todas as regiões. Ele lê as APIs da nuvem com uma credencial que você escolhe e envia o que encontra ao OneUptime, onde a nuvem aparece com suas regiões, hipervisores e projetos. Os [monitores OpenStack](/docs/monitor/openstack-monitor) geram alertas sobre o que chega, e uma [probe](/docs/telemetry/openstack-agentless) pode coletar uma nuvem sem nada para instalar.
+O agente OpenStack do OneUptime monitora uma nuvem OpenStack: seus serviços e agentes, hipervisores, instâncias, redes, roteadores, volumes, pools de armazenamento, imagens e projetos, em todas as regiões. Ele lê as APIs da nuvem com uma credencial que você escolhe e envia o que encontra ao OneUptime, onde a nuvem aparece com suas regiões, hipervisores e projetos. Os [monitores OpenStack](/docs/monitor/openstack-monitor) geram alertas sobre o que chega, e uma [sonda](/docs/telemetry/openstack-agentless) pode coletar uma nuvem sem nada para instalar.
 
 :::cards
-- [Probe ou agente?](/docs/telemetry/openstack-agentless#sonda-ou-agente): Qual escolher, para uma nuvem que poderia usar qualquer um dos dois.
+- [Sonda ou agente?](/docs/telemetry/openstack-agentless#sonda-ou-agente): Qual escolher, para uma nuvem que poderia usar qualquer um dos dois.
 - [Escolha quanto ele enxerga](#escolha-quanto-o-agente-enxerga): O OpenStack não tem uma função global somente leitura, então há três níveis.
 - [Instale o agente](#instale-o-agente): Uma credencial e depois o script de instalação, o Docker Compose ou nenhum Docker.
 - [Quanto custa para a sua nuvem](#quanto-custa-para-a-sua-nuvem): O que cada configuração lê e como alterá-la.
@@ -11,10 +11,10 @@ O agente OpenStack do OneUptime monitora uma nuvem OpenStack: seus serviços e a
 - [Gastos](#gastos): Quem está usando o quê, quanto isso representa nos seus preços ou conforme o CloudKitty tarifou, e o que poderia ser recuperado.
 - [Páginas de status e avisos aos projetos](#páginas-de-status-e-avisos-aos-projetos): Uma página por região em uma única etapa, e avisar apenas os projetos que uma falha atinge.
 - [Logs de serviço](#logs-de-serviço): Interpretados, com uma requisição acompanhada entre os serviços.
-- [Eventos de ciclo de vida](#eventos-de-ciclo-de-vida): Ações em instâncias no feed e nos gráficos, a partir de notificações ou de uma probe.
+- [Eventos de ciclo de vida](#eventos-de-ciclo-de-vida): Ações em instâncias no feed e nos gráficos, a partir de notificações ou de uma sonda.
 - [Quem fez o quê](#quem-fez-o-quê): Trilhas de auditoria em Eventos de segurança.
 - [Rastrear uma requisição](#rastreie-requisições-pelo-plano-de-controle): Uma requisição assinada, acompanhada pelo plano de controle.
-- [Verifique de fora](#verifique-a-nuvem-de-fora): Se alguém consegue de fato iniciar uma instância, a partir de uma probe fora da nuvem.
+- [Verifique de fora](#verifique-a-nuvem-de-fora): Se alguém consegue de fato iniciar uma instância, a partir de uma sonda fora da nuvem.
 - [Sem internet](#sem-internet): As quatro imagens do agente e como copiá-las para um registry seu.
 - [Por ferramenta de implantação](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible, OpenStack-Ansible, OpenStack-Helm, Atmosphere, Sunbeam, Red Hat e Mirantis.
 - [Solução de problemas](#solução-de-problemas): Um script de diagnóstico e os problemas mais comuns.
@@ -244,7 +244,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 O agente enxerga as linhas desse projeto no Cinder e no Neutron e nenhuma infraestrutura. Três coisas a saber antes de escolher este nível:
 
-- **Pelo agente, não aparece nenhuma instância.** O exporter pede ao Nova os servidores de todos os projetos, o Nova recusa um reader simples, e essa leitura falha por inteiro. Somente uma probe do OneUptime, coletando sem este agente, consegue listar as instâncias de um projeto.
+- **Pelo agente, não aparece nenhuma instância.** O exporter pede ao Nova os servidores de todos os projetos, o Nova recusa um reader simples, e essa leitura falha por inteiro. Somente uma sonda do OneUptime, coletando sem este agente, consegue listar as instâncias de um projeto.
 - **Pode ser capaz de escrever.** Em uma nuvem onde o Cinder tem `enforce_new_defaults` desativado, o `reader` simples também pode criar volumes no seu projeto. No Epoxy, no Flamingo e no Gazpacho ele criou (`202`), e no Hibiscus foi recusado (`403`), porque o DevStack só ativa `enforce_new_defaults` ali. O padrão do próprio Cinder é desativado.
 - **O Placement é lido como se não respondesse.** Toda chamada que ele faz é recusada, e o exporter relata isso da mesma forma que relata um Placement parado: `openstack_placement_up 0`, nas cinco nuvens que registramos. As páginas conseguem perceber, pelo que mais está fechado a essa credencial, e dizem isso. O template [Placement API Down](/docs/monitor/openstack-monitor#templates-de-alerta-prontos) não consegue, então deixe esse de fora neste nível.
 :::
@@ -517,8 +517,8 @@ O que precisa de alguém, nas mesmas linhas dos [templates de alerta](/docs/moni
 Cada um destes foi registrado em um DevStack real, e cada página diz isso onde importa:
 
 - **O Ironic mostra a um projeto apenas os nós que ele possui.** O Placement responde a todos, então, onde ele tem um nó que o Ironic não listou, a página diz que a lista não é a da nuvem inteira. Pela política padrão do Ironic, somente uma credencial com escopo de sistema lê todos os nós, ou uma cuja função tenha `baremetal:node:list_all`.
-- **O exporter não traz o motivo pelo qual um nó falhou.** Ele tem um motivo de manutenção e nenhum `last_error`, e o Ironic pode esvaziar `last_error` em cerca de um minuto de qualquer forma, com o nó ainda em falha: isso aconteceu com uma limpeza que falhou e deixou o de uma implantação que falhou. Então olhe imediatamente com `openstack baremetal node show <node> -c last_error`, ou no log do conductor. Uma [probe](/docs/telemetry/openstack-agentless) lê `last_error` e guarda o último que viu.
-- **O exporter não tem conductors.** Somente uma probe os lê, e o Ironic recusa a lista à credencial de um projeto, a menos que sua política diga outra coisa (`baremetal:conductor:get`).
+- **O exporter não traz o motivo pelo qual um nó falhou.** Ele tem um motivo de manutenção e nenhum `last_error`, e o Ironic pode esvaziar `last_error` em cerca de um minuto de qualquer forma, com o nó ainda em falha: isso aconteceu com uma limpeza que falhou e deixou o de uma implantação que falhou. Então olhe imediatamente com `openstack baremetal node show <node> -c last_error`, ou no log do conductor. Uma [sonda](/docs/telemetry/openstack-agentless) lê `last_error` e guarda o último que viu.
+- **O exporter não tem conductors.** Somente uma sonda os lê, e o Ironic recusa a lista à credencial de um projeto, a menos que sua política diga outra coisa (`baremetal:conductor:get`).
 - **Um Ironic parado é lido como nenhum Ironic.** Perguntado sobre um que está parado, o exporter responde um 200 vazio, como faz para uma nuvem que nunca o teve. Por isso uma página diz apenas que não teve notícias do Ironic e que os nós estão como foram lidos pela última vez. Ela nunca diz fora do ar. Duas semanas depois que o restante da nuvem reportou pela última vez sem ele, essas linhas somem, e voltam se ele voltar.
 
 ## Capacidade
@@ -529,19 +529,19 @@ Tudo nela é alocação: o que foi prometido, não o que está ocupado. Uma inst
 
 **O que é capacidade.** Para cada resource provider e classe de recurso, a capacidade é `(total - reserved) x allocation_ratio`, e o alocado é o que o Placement prometeu. Isso é somado por zona, agregado, região e nuvem. Um host cujo `nova-compute` está fora do ar continua reportando seus últimos números, e um desativado não aceita nada novo, então nenhum dos dois conta como espaço. O que eles contêm continua lá, e uma previsão o conta.
 
-**Bare metal.** Um nó recebe uma instância inteira, então uma nuvem com Ironic ganha uma tabela própria, por classe de recurso: quantos nós, quantos poderiam receber uma instância, quantos estão em uso e quantos estão retidos, porque o driver Ironic do Nova não consegue usá-los agora. São números do próprio Placement, então são os da nuvem inteira mesmo onde o Ironic mostra a um projeto apenas o que ele possui, e não estão nas vCPUs e na memória acima. Uma probe lê qual classe um flavor pede e a conta contra eles. O exporter do agente não informa isso, então, no agente, um flavor de bare metal conta como suas vCPUs, memória e disco, nos hosts.
+**Bare metal.** Um nó recebe uma instância inteira, então uma nuvem com Ironic ganha uma tabela própria, por classe de recurso: quantos nós, quantos poderiam receber uma instância, quantos estão em uso e quantos estão retidos, porque o driver Ironic do Nova não consegue usá-los agora. São números do próprio Placement, então são os da nuvem inteira mesmo onde o Ironic mostra a um projeto apenas o que ele possui, e não estão nas vCPUs e na memória acima. Uma sonda lê qual classe um flavor pede e a conta contra eles. O exporter do agente não informa isso, então, no agente, um flavor de bare metal conta como suas vCPUs, memória e disco, nos hosts.
 
 **Quantos a mais cabem.** Cada flavor é contado host a host, porque uma instância precisa de tudo o que pede em um único host. Ao lado da contagem está o que ela seria se tudo o que está livre estivesse em um só host, que é como se distingue uma nuvem cheia de uma fragmentada. Um flavor que nenhum host comportaria nem vazio diz **Grande demais para qualquer host**, e nada alerta sobre isso. As contagens são para uma instância iniciada a partir de uma imagem: uma iniciada a partir de um volume não pede disco raiz.
 
 A página diz de onde veio cada contagem:
 
-| | Por uma probe | Pelo agente |
+| | Por uma sonda | Pelo agente |
 | --- | --- | --- |
 | **Contado desde** | `GET /allocation_candidates`, que é o que o scheduler do Nova pergunta, como faz o [os-capacity do StackHPC](https://github.com/stackhpc/os-capacity). Os inventários preenchem até chegar a vez de um flavor | As séries do Placement que o exporter já envia: `openstack_placement_resource_{total,reserved,allocation_ratio,usage}` |
 | **Enxerga traits e providers aninhados** | Sim. As extra specs de um flavor também são consultadas, então `trait:` e `resources:` contam | Não: a série de flavors do exporter não tem extra specs, então um flavor que precisa de um trait conta todos os hosts, e a página diz isso |
 | **O `max_unit` de um host** | O do próprio Placement | Considerado o total do host, que é o que o Nova define |
 
-Uma probe pergunta com delicadeza, porque esta é a única leitura que dá trabalho ao Placement. Ela pergunta sobre um formato de flavor por vez, então flavors que pedem a mesma coisa são uma só pergunta, e no máximo 4 por coleta, em rodízio, seja qual for o número de flavors. Assim, uma nuvem de 40 flavors coletada a cada 2 minutos custa 2 chamadas por minuto e completa a volta em 20 minutos. Cada resposta é limitada a 1.000 hosts, que é o `max_placement_results` do próprio Nova: o trabalho de uma inicialização. Uma contagem tirada de uma resposta tão longa é um piso, e a página diz **Pelo menos**. Ela não pergunta nada na primeira coleta, nada quando o Placement esteve lento naquela coleta e, por uma hora, nada depois que uma credencial foi recusada, porque a contagem pelos inventários está lá de qualquer forma. Uma credencial de aplicação ou a função `oneuptime_monitoring` precisa que `/allocation_candidates` seja permitido: ele está em `access/application-credential-access-rules.json` e em `access/policy/placement.yaml`.
+Uma sonda pergunta com delicadeza, porque esta é a única leitura que dá trabalho ao Placement. Ela pergunta sobre um formato de flavor por vez, então flavors que pedem a mesma coisa são uma só pergunta, e no máximo 4 por coleta, em rodízio, seja qual for o número de flavors. Assim, uma nuvem de 40 flavors coletada a cada 2 minutos custa 2 chamadas por minuto e completa a volta em 20 minutos. Cada resposta é limitada a 1.000 hosts, que é o `max_placement_results` do próprio Nova: o trabalho de uma inicialização. Uma contagem tirada de uma resposta tão longa é um piso, e a página diz **Pelo menos**. Ela não pergunta nada na primeira coleta, nada quando o Placement esteve lento naquela coleta e, por uma hora, nada depois que uma credencial foi recusada, porque a contagem pelos inventários está lá de qualquer forma. Uma credencial de aplicação ou a função `oneuptime_monitoring` precisa que `/allocation_candidates` seja permitido: ele está em `access/application-credential-access-rules.json` e em `access/policy/placement.yaml`.
 
 **Ao lado do que os hosts realmente usam.** Onde o [uso real](#uso-real) chega ao OneUptime, a página coloca a razão que você definiu ao lado do que os hosts realmente usam em seu pico ao longo de um dia, e a razão na qual chegariam à linha de 90% que **Hypervisor CPU Saturated** e **Hypervisor Memory Pressure** traçam. É uma reta a partir de um dia de uma carga de trabalho, então diz até onde uma razão poderia ir, não que você deva movê-la. Ela não diz nada até que mais da metade dos hosts de uma zona reporte.
 
@@ -558,7 +558,7 @@ nova-manage placement audit --verbose --delete
 
 **Alertas.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days** e **Reserved Headroom Gone** leem séries que o OneUptime grava a partir do mesmo resumo. Eles estão nos [templates do monitor](/docs/monitor/openstack-monitor#templates-de-alerta-prontos) e na página **Recomendações** da nuvem.
 
-**Quanto custa.** Nada no agente. Uma probe acrescenta as chamadas acima. O OneUptime grava cerca de 2 séries para cada classe de recurso de zona, rede externa e pool de armazenamento, e uma para cada flavor que as pessoas podem pedir, a cada dois minutos, cobradas como qualquer outra métrica.
+**Quanto custa.** Nada no agente. Uma sonda acrescenta as chamadas acima. O OneUptime grava cerca de 2 séries para cada classe de recurso de zona, rede externa e pool de armazenamento, e uma para cada flavor que as pessoas podem pedir, a cada dois minutos, cobradas como qualquer outra métrica.
 
 ## Gastos
 
@@ -587,9 +587,9 @@ Um preço zero significa sem preço, não uma nuvem gratuita. O que não tem pre
 
 ### CloudKitty
 
-Se a nuvem executa o [CloudKitty](https://github.com/openstack/cloudkitty), o que ele tarifou substitui o cálculo, projeto a projeto, e a página diz qual foi usado. Uma probe pergunta uma vez por hora, para este mês e o anterior, e pergunta a `GET /v2/summary`, ou a `GET /v1/report/summary` em um CloudKitty antigo demais para ele. São no máximo duas requisições por 1.000 projetos por hora, mais uma requisição pela versão dele a cada leitura.
+Se a nuvem executa o [CloudKitty](https://github.com/openstack/cloudkitty), o que ele tarifou substitui o cálculo, projeto a projeto, e a página diz qual foi usado. Uma sonda pergunta uma vez por hora, para este mês e o anterior, e pergunta a `GET /v2/summary`, ou a `GET /v1/report/summary` em um CloudKitty antigo demais para ele. São no máximo duas requisições por 1.000 projetos por hora, mais uma requisição pela versão dele a cada leitura.
 
-- **Somente uma [probe](/docs/telemetry/openstack-agentless) consegue lê-lo.** O exporter do agente não tem séries para o CloudKitty, então uma nuvem conectada por um agente calcula, e diz isso.
+- **Somente uma [sonda](/docs/telemetry/openstack-agentless) consegue lê-lo.** O exporter do agente não tem séries para o CloudKitty, então uma nuvem conectada por um agente calcula, e diz isso.
 - **O que ele enxerga é o que a credencial pode ver.** A política do próprio CloudKitty mostra a uma credencial de admin todos os projetos, com regras de acesso ou sem, e a qualquer coisa menos que isso apenas o próprio projeto. Os projetos que ele não tarifa continuam sendo calculados a partir dos seus preços.
 - **Um CloudKitty por região se soma.** Cada um é lido no seu tempo, e a cifra de um projeto é o que eles tarifaram entre si. Um CloudKitty que o catálogo lista para várias regiões é consultado uma vez.
 - **As cifras dele são a única parte disto que é telemetria.** Elas chegam ao OneUptime como `openstack_cloudkitty_rated`, um ponto de dados por projeto e mês, uma vez por hora: 20.000 por hora com 10.000 projetos, o que é quase nada ao lado do restante de uma nuvem desse tamanho.
@@ -610,11 +610,11 @@ A página **Recomendações** da nuvem lista o que foi deixado sem uso, o que ca
 | Hipervisores que poderiam ser esvaziados | 20% ou menos das vCPUs e da memória alocadas, tudo nele cabe nos outros hosts da sua zona e agregados, e a zona ainda poderia perder um host depois | O host inteiro | `openstack hypervisor list --long` |
 | Instâncias desligadas há muito tempo | Desligadas por 30 dias | Suas vCPUs, memória e disco local | `openstack server list --all-projects --status SHUTOFF --long` |
 | Volumes anexados a nada | Disponíveis por 30 dias, anexados a nada, e que não sejam volumes `image-<id>` do próprio Cinder, que o comando também lista | Seu armazenamento | `openstack volume list --all-projects --status available --long` |
-| Snapshots de volume antigos | Criados há 90 dias. Somente probe | Seu armazenamento | `openstack volume snapshot list --all-projects --long` |
-| Imagens a partir das quais nada foi iniciado | Privadas ou compartilhadas, com 30 dias, não protegidas, e nenhuma instância ou volume veio dela. Somente probe | Seu armazenamento | `openstack image list --long` |
+| Snapshots de volume antigos | Criados há 90 dias. Somente sonda | Seu armazenamento | `openstack volume snapshot list --all-projects --long` |
+| Imagens a partir das quais nada foi iniciado | Privadas ou compartilhadas, com 30 dias, não protegidas, e nenhuma instância ou volume veio dela. Somente sonda | Seu armazenamento | `openstack image list --long` |
 | IPs flutuantes que ninguém usa | Sem associação por 7 dias | Um endereço | `openstack floating ip list --status DOWN --long` |
 
-Nada em uso é nomeado. Há quanto tempo algo está assim vem do relógio da própria nuvem, onde uma probe informa um. Por um agente, é há quanto tempo o OneUptime o vê assim, então no dia em que você conecta uma nuvem nada é antigo ainda. Uma regra que não pode ter certeza diz isso em vez de adivinhar: o agente não sabe de qual imagem uma instância foi iniciada, então uma imagem em uso pareceria sem uso, e ele não consegue listar snapshots, então essas duas regras esperam por uma probe. Um host é nomeado pelo que está alocado e não pelo quanto está ocupado, nunca é nomeado em uma zona com um host perdido ou desativado, e os hosts são tomados do mais vazio ao menos vazio para que tudo o que for nomeado possa ser feito. Ele não enxerga traits nem qualquer outra coisa de que uma instância precise de um host.
+Nada em uso é nomeado. Há quanto tempo algo está assim vem do relógio da própria nuvem, onde uma sonda informa um. Por um agente, é há quanto tempo o OneUptime o vê assim, então no dia em que você conecta uma nuvem nada é antigo ainda. Uma regra que não pode ter certeza diz isso em vez de adivinhar: o agente não sabe de qual imagem uma instância foi iniciada, então uma imagem em uso pareceria sem uso, e ele não consegue listar snapshots, então essas duas regras esperam por uma sonda. Um host é nomeado pelo que está alocado e não pelo quanto está ocupado, nunca é nomeado em uma zona com um host perdido ou desativado, e os hosts são tomados do mais vazio ao menos vazio para que tudo o que for nomeado possa ser feito. Ele não enxerga traits nem qualquer outra coisa de que uma instância precise de um host.
 
 ### Em cada tamanho
 
@@ -740,7 +740,7 @@ O raio de impacto de uma parte é o que ela leva junto, por contagem e por proje
 
 A página de uma parte o mostra. Um alerta ou incidente na parte o diz na descrição, como "3 instances in 2 projects", com seus nomes.
 
-O exporter não diz em qual rede uma instância está nem qual pool contém um volume, então nenhum dos dois é desenhado para uma nuvem que o agente coleta. O mapa diz isso, e o raio de impacto de um pool de armazenamento diz que não consegue saber em vez de responder nenhum. Uma [probe](/docs/telemetry/openstack-agentless) diz os dois. O mapa então liga um volume ao seu pool, quando o Cinder trata a credencial como admin, e o raio de impacto de um pool conta seus volumes e as instâncias às quais eles estão anexados. Ele também liga uma instância a cada rede em que ela tem um endereço. O Nova nomeia essas redes apenas pelo nome, e o Neutron permite duas com o mesmo nome, então o mapa procura uma no projeto da instância, depois uma compartilhada com ele, depois qualquer uma com esse nome, e não desenha ligação quando duas são igualmente prováveis. O que ainda é desconhecido permanece no aviso do mapa.
+O exporter não diz em qual rede uma instância está nem qual pool contém um volume, então nenhum dos dois é desenhado para uma nuvem que o agente coleta. O mapa diz isso, e o raio de impacto de um pool de armazenamento diz que não consegue saber em vez de responder nenhum. Uma [sonda](/docs/telemetry/openstack-agentless) diz os dois. O mapa então liga um volume ao seu pool, quando o Cinder trata a credencial como admin, e o raio de impacto de um pool conta seus volumes e as instâncias às quais eles estão anexados. Ele também liga uma instância a cada rede em que ela tem um endereço. O Nova nomeia essas redes apenas pelo nome, e o Neutron permite duas com o mesmo nome, então o mapa procura uma no projeto da instância, depois uma compartilhada com ele, depois qualquer uma com esse nome, e não desenha ligação quando duas são igualmente prováveis. O que ainda é desconhecido permanece no aviso do mapa.
 
 ## Páginas de status e avisos aos projetos
 
@@ -823,7 +823,7 @@ O que cada fonte diz sobre um pool decide como ele é ligado:
 
 | Fonte | O que diz | O que acontece |
 | --- | --- | --- |
-| Uma [probe](/docs/telemetry/openstack-agentless) no nível Visão completa | O driver RBD do Cinder nomeia o fsid e o pool do cluster Ceph em `location_info` | Liga sozinho, quando um [cluster Ceph](/docs/telemetry/ceph) daqui reporta esse fsid. Um cluster Ceph só o reporta com `ceph.cluster.fsid` definido na configuração do seu agente |
+| Uma [sonda](/docs/telemetry/openstack-agentless) no nível Visão completa | O driver RBD do Cinder nomeia o fsid e o pool do cluster Ceph em `location_info` | Liga sozinho, quando um [cluster Ceph](/docs/telemetry/ceph) daqui reporta esse fsid. Um cluster Ceph só o reporta com `ceph.cluster.fsid` definido na configuração do seu agente |
 | O exporter do agente | O nome do pool, o nome do seu backend e o seu fornecedor, que aparece como `Open Source` tanto para LVM quanto para RBD | Nada diz que ele está no Ceph. Um pool Ceph de mesmo nome em exatamente um cluster é oferecido, para alguém confirmar uma vez na página do pool, a menos que outro pool do Cinder também tenha esse nome. Sem essa correspondência, é possível escolher um cluster ou dizer que não está no Ceph |
 
 Depois de ligado, a página do pool diz como o seu cluster aparece, e `HEALTH_WARN` ou `HEALTH_ERR` aparece em **Requer atenção** da nuvem. Uma sugestão que ninguém confirmou não gera nada. Uma resposta que alguém deu pode ser alterada na página do pool. Somente a credencial Visão completa consegue ver pools: veja [Escolha quanto o agente enxerga](#escolha-quanto-o-agente-enxerga).
@@ -838,7 +838,7 @@ Uma nuvem com Heat ganha **Stacks** em **Orquestração**, e uma com Magnum ganh
 
 O exporter diz menos sobre esses serviços do que uma leitura das suas APIs, e nenhum dos dois serviços mostra a nuvem inteira a ninguém além de um admin. Por isso cada página diz o que o coletor da sua nuvem não consegue ver.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Qualquer coisa menos que isso |
 | --- | --- | --- | --- |
 | As stacks de todos os projetos e seu status | Sim | Sim | No máximo as do próprio projeto, sem projeto nelas, e nenhum erro avisa |
 | De quem é uma stack | Sim | Sim | Não |
@@ -852,9 +852,9 @@ O exporter diz menos sobre esses serviços do que uma leitura das suas APIs, e n
 Duas falhas aparecem de forma diferente, e ambas são o que uma nuvem real faz:
 
 - **Um `heat-engine` parado** aparece como **Orchestration API Down**, em qualquer um dos coletores. A API do Heat pede suas listas a um engine, então sem nenhum restante ela não consegue respondê-las, após uma espera de um minuto por um timeout de RPC. Uma stack que um engine deixou em andamento pode continuar em andamento depois que o engine volta, e aparece como **Stack Stuck In Progress** depois de passadas duas horas.
-- **Um `magnum-conductor` parado** não aparece em lugar nenhum em uma nuvem que o agente coleta, porque a API do Magnum continua respondendo sem um e o exporter não lê conductors. Os clusters dele apenas param de se mover. Uma probe com uma credencial Visão completa os lê, que é a única forma de ver isso, ou execute `openstack coe service list`.
+- **Um `magnum-conductor` parado** não aparece em lugar nenhum em uma nuvem que o agente coleta, porque a API do Magnum continua respondendo sem um e o exporter não lê conductors. Os clusters dele apenas param de se mover. Uma sonda com uma credencial Visão completa os lê, que é a única forma de ver isso, ou execute `openstack coe service list`.
 
-Quais instâncias e volumes uma stack possui depende de mais uma leitura dessa stack, que o exporter do agente não faz. Em uma nuvem que uma probe coleta, a página de uma stack os lista, e a página e os alertas de uma instância ou de um volume nomeiam a stack. Uma credencial Visão completa recebe resposta sobre as stacks de todos os projetos. Qualquer coisa menos que isso tem as de outro projeto recusadas, e a página de uma stack diz quando nada a leu. Em uma nuvem que o agente coleta, execute `openstack stack resource list`.
+Quais instâncias e volumes uma stack possui depende de mais uma leitura dessa stack, que o exporter do agente não faz. Em uma nuvem que uma sonda coleta, a página de uma stack os lista, e a página e os alertas de uma instância ou de um volume nomeiam a stack. Uma credencial Visão completa recebe resposta sobre as stacks de todos os projetos. Qualquer coisa menos que isso tem as de outro projeto recusadas, e a página de uma stack diz quando nada a leu. Em uma nuvem que o agente coleta, execute `openstack stack resource list`.
 
 ### Um cluster com o agente do Kubernetes
 
@@ -876,7 +876,7 @@ Se um serviço sai do catálogo do Keystone, suas linhas somem cerca de 15 minut
 
 Se a sua nuvem executa o Manila, ela ganha **Shares** em **Armazenamento** por conta própria, e uma que não executa não mostra vestígio dele. Cada share tem seu status na palavra do próprio Manila, o espaço que comporta, seu protocolo e de quem é, e uma página própria. Um share em estado de erro chega a **Requer atenção** pelo nome, e o mesmo vale para um que ainda está a caminho depois de uma hora: o Manila não tem timeout próprio para um backend lento, então um que travou aparece igual a um lento até lá. Um share sendo migrado ou copiado é deixado em paz, porque essas operações duram o quanto os dados levarem para ser copiados.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Qualquer coisa menos que isso |
 | --- | --- | --- | --- |
 | Os shares de todos os projetos e seu status | Sim | Sim | No máximo os do próprio projeto, e a função de monitoramento nenhum, e nenhum erro avisa |
 | Qual backend contém um share, e se suas regras de acesso estão em vigor | Não. Execute `openstack share show` | Sim | Não |
@@ -884,7 +884,7 @@ Se a sua nuvem executa o Manila, ela ganha **Shares** em **Armazenamento** por c
 | Quanto de um share está em uso | Não: somente o backend sabe | Não | Não |
 | `manila-share`, `manila-scheduler` e `manila-data` em **Serviços** | Não. Execute `openstack share service list` | Sim | Não |
 
-A API do Manila continua respondendo sem seus outros serviços, então, em uma nuvem que o agente coleta, um `manila-share` parado não aparece em lugar nenhum: seus shares apenas deixam de mudar, e **Share Stuck** é o que acaba avisando. Uma probe com uma credencial Visão completa os lê, e **Manila Service Down** então avisa. O Manila diz `stopped` para um serviço que foi desligado de forma limpa, e `down` só para um que morreu, depois que o seu heartbeat envelheceu.
+A API do Manila continua respondendo sem seus outros serviços, então, em uma nuvem que o agente coleta, um `manila-share` parado não aparece em lugar nenhum: seus shares apenas deixam de mudar, e **Share Stuck** é o que acaba avisando. Uma sonda com uma credencial Visão completa os lê, e **Manila Service Down** então avisa. O Manila diz `stopped` para um serviço que foi desligado de forma limpa, e `down` só para um que morreu, depois que o seu heartbeat envelheceu.
 
 Uma nuvem sem Manila não paga nada por ele: o exporter responde com nada, e isso não cria linha. Se o Manila sai do catálogo do Keystone, suas linhas somem cerca de 15 minutos depois que isso começa, [como as do Heat e do Magnum](#heat-e-magnum).
 
@@ -898,8 +898,8 @@ Um balanceador de carga em `ERROR`, um preso em `PENDING_UPDATE` ou `PENDING_CRE
 | --- | --- | --- |
 | Os balanceadores de carga e pools de todos os projetos, com os dois status | Sim | No máximo os do próprio projeto, e a função de monitoramento nenhum |
 | Amphorae, sua função, sua instância e seu certificado | Sim | Não: o Octavia só permite a um admin listá-las |
-| Listeners e membros | Não: o exporter não tem séries para eles. Uma [probe](/docs/telemetry/openstack-agentless) os lê | Uma probe: os do próprio projeto |
-| Tráfego: conexões, bytes, erros de requisição | Não: o exporter não tem séries `stats_*`, e a API do Octavia é o único lugar que informa. Uma probe a lê e traça a taxa entre duas leituras | Uma probe: a do próprio projeto |
+| Listeners e membros | Não: o exporter não tem séries para eles. Uma [sonda](/docs/telemetry/openstack-agentless) os lê | Uma sonda: os do próprio projeto |
+| Tráfego: conexões, bytes, erros de requisição | Não: o exporter não tem séries `stats_*`, e a API do Octavia é o único lugar que informa. Uma sonda a lê e traça a taxa entre duas leituras | Uma sonda: a do próprio projeto |
 | Os workers do próprio Octavia em **Serviços** | Não: nada que o agente lê os lista | Não |
 
 Um pool cujos membros todos falham na verificação de saúde fica `ERROR` no status operacional enquanto ele e seu balanceador de carga permanecem `ACTIVE` no provisionamento, registrado, então uma página que lesse apenas o provisionamento não mostraria nada de errado. Um balanceador de carga em `ERROR` de provisionamento aparece como `OFFLINE` operacional. O provider OVN reporta 0 em todo contador de tráfego, o que não é uma falha.
@@ -912,7 +912,7 @@ Uma nuvem que executa o Designate ganha **Zonas DNS** em **Rede** por conta pró
 
 Uma zona em `ERROR` chega a **Requer atenção** pelo nome, e o mesmo vale para uma `PENDING` depois de meia hora. O worker do Designate desiste sozinho bem antes disso, então o que permanece `PENDING` não tem nada trabalhando nele. Os `SOA` e `NS` da própria zona aparecem como `ERROR` junto com ela, então isso é dito uma vez, pela zona.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Qualquer coisa menos que isso |
 | --- | --- | --- | --- |
 | As zonas de todos os projetos e seu status | Sim | Sim | Nada: veja abaixo |
 | Recordsets que não estão `ACTIVE` | Sim | Sim, de até 50 zonas por coleta | Não |
@@ -922,7 +922,7 @@ Uma zona em `ERROR` chega a **Requer atenção** pelo nome, e o mesmo vale para 
 
 Duas coisas aparecem de forma diferente de todo outro serviço aqui, ambas registradas:
 
-- **Uma API do Designate parada não diz nada.** O exporter lê primeiro suas versões, não obtém resposta e responde um `200` vazio, exatamente como para uma nuvem sem Designate. Então nada vindo do exporter consegue distinguir os dois, e o OneUptime não afirma que consegue. Uma nuvem que tinha Designate aparece como se tivesse ficado em silêncio depois de 20 minutos, em **Serviços** e em **Requer atenção**. Suas linhas somem depois de duas semanas disso, e voltam se ele voltar. Nenhum alerta consegue dizer isso em uma nuvem que o agente coleta. Uma probe lê o catálogo do Keystone por conta própria, então **DNS API Down** consegue.
+- **Uma API do Designate parada não diz nada.** O exporter lê primeiro suas versões, não obtém resposta e responde um `200` vazio, exatamente como para uma nuvem sem Designate. Então nada vindo do exporter consegue distinguir os dois, e o OneUptime não afirma que consegue. Uma nuvem que tinha Designate aparece como se tivesse ficado em silêncio depois de 20 minutos, em **Serviços** e em **Requer atenção**. Suas linhas somem depois de duas semanas disso, e voltam se ele voltar. Nenhum alerta consegue dizer isso em uma nuvem que o agente coleta. Uma sonda lê o catálogo do Keystone por conta própria, então **DNS API Down** consegue.
 - **`openstack_designate_up` com leitura 0 significa uma recusa.** O exporter pede as zonas de todos os projetos, o que só um admin pode. Então uma credencial que nunca as leu recebe essa informação, em vez de que o Designate está fora do ar, e não lhe são oferecidos os alertas do Designate.
 
 Um `designate-worker` parado deixa a API do Designate respondendo e a própria lista dele indicando `UP` por um tempo, porque ele se guia por um heartbeat. As mudanças são aceitas e não executadas, e **DNS Zone Stuck Pending** é o que avisa.
@@ -931,14 +931,14 @@ Um `designate-worker` parado deixa a API do Designate respondendo e a própria l
 
 Uma nuvem que executa o Trove ganha **Bancos de dados** por conta própria, e uma que não executa não mostra vestígio dele. Cada banco de dados tem seu status na palavra do próprio Trove, o que ele executa, seu volume e de quem é, e uma página própria. Um em estado de erro chega a **Requer atenção** pelo nome, e o mesmo vale para um ainda a caminho depois de uma hora, ou um acima de 85% do seu volume.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Qualquer coisa menos que isso |
 | --- | --- | --- | --- |
 | Os bancos de dados de todos os projetos e seu status | Sim | Sim | Nada: veja abaixo |
 | Quão cheio está o volume de um banco de dados em execução | Sim | Sim | Não |
 | Por que um banco de dados falhou e o que estava fazendo | Não. Execute `openstack database instance show` | Sim | Não |
 | `trove-taskmanager` e `trove-conductor` | Não: o Trove não tem uma lista deles | Não | Não |
 
-O exporter lê a API mgmt do Trove, que só um admin pode. O Trove recusa qualquer coisa menos que isso, e o exporter lê uma recusa exatamente como lê o Trove parado: `openstack_trove_up` mostra 0 e nada mais é dito. Então uma credencial que nunca leu o Trove recebe essa informação, em vez de que o Trove está fora do ar, e não lhe são oferecidos os alertas do Trove. Uma probe lê a mesma lista e distingue os dois: o Trove respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada. Depois que ele leu o Trove, um 0 aparece como fora do ar, que é também como aparece uma credencial que depois perdeu o acesso.
+O exporter lê a API mgmt do Trove, que só um admin pode. O Trove recusa qualquer coisa menos que isso, e o exporter lê uma recusa exatamente como lê o Trove parado: `openstack_trove_up` mostra 0 e nada mais é dito. Então uma credencial que nunca leu o Trove recebe essa informação, em vez de que o Trove está fora do ar, e não lhe são oferecidos os alertas do Trove. Uma sonda lê a mesma lista e distingue os dois: o Trove respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada. Depois que ele leu o Trove, um 0 aparece como fora do ar, que é também como aparece uma credencial que depois perdeu o acesso.
 
 Um `trove-taskmanager` parado não aparece em lugar nenhum, porque as listas do Trove respondem sem ele e ele não tem lista de workers: o que ele estava fazendo apenas para de se mover, e **Database Instance Stuck** é o que avisa. O Trove desiste de um guest sozinho bem antes dessa hora.
 
@@ -950,12 +950,12 @@ Uma nuvem que executa o Gnocchi ganha sua API em **Serviços** por conta própri
 
 Nenhum processador chega a **Requer atenção**, e o mesmo vale para um backlog acima de 10.000 medições. A API do Gnocchi continua respondendo e aceitando medições com o `gnocchi-metricd` parado, registrado, então seus processadores são o único lugar que mostra. Nada se perde enquanto isso dura, mas nada mais recente pode ser lido.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Qualquer coisa menos que isso |
 | --- | --- | --- | --- |
 | Se sua API responde | Sim | Sim | Nada: veja abaixo |
 | Quantas medições e métricas estão esperando e quantos processadores ele tem | Sim | Sim | Não |
 
-O exporter lê o status do Gnocchi, que só um admin pode. O Gnocchi recusa qualquer coisa menos que isso, e o exporter lê uma recusa exatamente como lê o Gnocchi parado: `openstack_gnocchi_up` mostra 0. Então uma credencial que nunca leu o Gnocchi recebe essa informação, em vez de que o Gnocchi está fora do ar, e não lhe são oferecidos os alertas dele. Uma probe distingue os dois: o Gnocchi respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada.
+O exporter lê o status do Gnocchi, que só um admin pode. O Gnocchi recusa qualquer coisa menos que isso, e o exporter lê uma recusa exatamente como lê o Gnocchi parado: `openstack_gnocchi_up` mostra 0. Então uma credencial que nunca leu o Gnocchi recebe essa informação, em vez de que o Gnocchi está fora do ar, e não lhe são oferecidos os alertas dele. Uma sonda distingue os dois: o Gnocchi respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada.
 
 **Gnocchi Backlog Growing** lê uma reta pelas últimas duas horas. O backlog de uma nuvem ocupada nunca mostra 0, então um grande que está diminuindo está bem, e um que não está diminuindo é o que ele avisa. Nossas nuvens de teste só chegaram a um backlog de 10 medições, então a sua reta só foi verificada com números inventados.
 
@@ -963,28 +963,28 @@ O exporter lê o status do Gnocchi, que só um admin pode. O Gnocchi recusa qual
 
 Uma nuvem que executa o Swift ganha **Armazenamento de objetos** em **Armazenamento** por conta própria, e uma que não executa não mostra vestígio dele. Ele lista os containers do projeto da própria credencial, quanto cada um contém e quantos objetos, e cada um tem uma página própria.
 
-| O quê | Agente, Visão completa | Probe, Visão completa | Probe, com `ResellerAdmin` | Qualquer coisa menos que isso |
+| O quê | Agente, Visão completa | Sonda, Visão completa | Sonda, com `ResellerAdmin` | Qualquer coisa menos que isso |
 | --- | --- | --- | --- | --- |
 | Os containers do projeto desta credencial e quanto cada um contém | Sim, sem projeto | Sim | Sim | Nada: veja abaixo |
 | Se seu proxy responde | Sim | Sim | Sim | Não |
 | Os containers de outro projeto | Não | Não | Sim, até 200 projetos por coleta | Não |
 | Um servidor de objetos, containers ou contas parado | Não | Não | Não | Não |
 
-O Swift mantém a conta de cada projeto fora do alcance das credenciais de todos os outros, registrado, então sem `ResellerAdmin` esta lista nunca é a da nuvem inteira. O exporter pede apenas a própria conta de qualquer forma. Uma probe cuja credencial tem essa função lê a de cada projeto em sequência, uma leitura por conta, e diz de quem é cada container.
+O Swift mantém a conta de cada projeto fora do alcance das credenciais de todos os outros, registrado, então sem `ResellerAdmin` esta lista nunca é a da nuvem inteira. O exporter pede apenas a própria conta de qualquer forma. Uma sonda cuja credencial tem essa função lê a de cada projeto em sequência, uma leitura por conta, e diz de quem é cada container.
 
-Uma credencial que o Swift recusa mostra `openstack_object_store_up` 0, exatamente como um proxy parado. Então uma credencial que nunca leu o Swift recebe essa informação, em vez de que o Swift está fora do ar, e não lhe são oferecidos os alertas dele. Uma probe distingue os dois: o Swift respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada. Uma credencial de aplicação com regras de acesso também precisa de `include_service_catalog = True` no `proxy-server.conf`.
+Uma credencial que o Swift recusa mostra `openstack_object_store_up` 0, exatamente como um proxy parado. Então uma credencial que nunca leu o Swift recebe essa informação, em vez de que o Swift está fora do ar, e não lhe são oferecidos os alertas dele. Uma sonda distingue os dois: o Swift respondeu, então sua API aparece como no ar, e o teste de conexão diz que foi recusada. Uma credencial de aplicação com regras de acesso também precisa de `include_service_catalog = True` no `proxy-server.conf`.
 
 Um servidor de objetos parado não muda nada do que o exporter diz, registrado: as listas do Swift vêm de seus servidores de contas e de containers, e seu proxy continua respondendo. Somente o que cada servidor de armazenamento diz por meio do próprio `/recon` avisa, e isso não está no catálogo do Keystone.
 
-Então uma probe o lê onde você os nomeia: em **O que ela lê além do padrão**, no card **Coleta de dados**, liste a porta `/recon` de cada servidor de armazenamento como `host:port`. Isso custa 5 chamadas por servidor a cada coleta, e nenhuma credencial vai para eles. Você passa então a ter **Swift Storage Server Not Answering**, **Swift Rings Differ** e **Swift Replication Stale**, e o que eles somam na página do próprio Swift. Uma gravação só tinha um servidor para ler, então anéis que diferem só foram verificados com números inventados. O mesmo vale para a replicação ter ficado obsoleta, que em uma nuvem de teste termina a cada poucos minutos.
+Então uma sonda o lê onde você os nomeia: em **O que ela lê além do padrão**, no card **Coleta de dados**, liste a porta `/recon` de cada servidor de armazenamento como `host:port`. Isso custa 5 chamadas por servidor a cada coleta, e nenhuma credencial vai para eles. Você passa então a ter **Swift Storage Server Not Answering**, **Swift Rings Differ** e **Swift Replication Stale**, e o que eles somam na página do próprio Swift. Uma gravação só tinha um servidor para ler, então anéis que diferem só foram verificados com números inventados. O mesmo vale para a replicação ter ficado obsoleta, que em uma nuvem de teste termina a cada poucos minutos.
 
 **Object Container Growth Forecast** lê uma reta pela última semana de cada container e olha uma semana adiante. O Swift não diz aqui nada sobre quanto espaço uma nuvem tem, então sua linha de 1 TiB é uma sobre a qual ser avisado, não uma em que algo quebra. Altere-a para se adequar à sua nuvem. Nenhuma nuvem de teste contém uma semana de crescimento, então só foi verificado com números inventados.
 
 ## Barbican
 
-O exporter não tem leitor para o Barbican: pedir a ele `key-manager` resulta em um `400`, registrado. Então uma nuvem que o agente coleta não mostra vestígio dele, quer o execute ou não, e somente uma [probe](/docs/telemetry/openstack-agentless) diz alguma coisa.
+O exporter não tem leitor para o Barbican: pedir a ele `key-manager` resulta em um `400`, registrado. Então uma nuvem que o agente coleta não mostra vestígio dele, quer o execute ou não, e somente uma [sonda](/docs/telemetry/openstack-agentless) diz alguma coisa.
 
-Uma probe lê o Barbican onde o catálogo do Keystone o nomeia e o coloca em **Serviços**: se sua API responde e quantos segredos, pedidos e containers o projeto da própria credencial contém. O Barbican responde sobre um projeto por vez, também a um admin, então esses números nunca são os da nuvem. O OneUptime não lê nenhum segredo: uma lista diz apenas que um existe, e ele pede a única linha necessária para obter o total.
+Uma sonda lê o Barbican onde o catálogo do Keystone o nomeia e o coloca em **Serviços**: se sua API responde e quantos segredos, pedidos e containers o projeto da própria credencial contém. O Barbican responde sobre um projeto por vez, também a um admin, então esses números nunca são os da nuvem. O OneUptime não lê nenhum segredo: uma lista diz apenas que um existe, e ele pede a única linha necessária para obter o total.
 
 O Barbican recusa um reader simples, e isso aparece como o que é: sua API respondeu, então aparece como no ar, e as contagens não dizem nada.
 
@@ -1116,9 +1116,9 @@ Deixe `notify_on_state_change` como está. Ele só acrescenta linhas `instance.u
 
 ### Sem notificações
 
-Uma nuvem cuja configuração não é sua para alterar ainda pode ter ações com falha. Uma [probe](/docs/telemetry/openstack-agentless) lê `os-instance-actions` das instâncias que mudaram desde a última vez que olhou e diz cada coisa como a notificação que o Nova teria enviado, com o motivo que o Nova dá. Custa uma chamada por instância que mudou, algumas por coleta no máximo, e nenhuma em uma nuvem quieta. Ela fica quieta quando as notificações da própria nuvem chegam, então nada é dito duas vezes.
+Uma nuvem cuja configuração não é sua para alterar ainda pode ter ações com falha. Uma [sonda](/docs/telemetry/openstack-agentless) lê `os-instance-actions` das instâncias que mudaram desde a última vez que olhou e diz cada coisa como a notificação que o Nova teria enviado, com o motivo que o Nova dá. Custa uma chamada por instância que mudou, algumas por coleta no máximo, e nenhuma em uma nuvem quieta. Ela fica quieta quando as notificações da própria nuvem chegam, então nada é dito duas vezes.
 
-O Nova mantém isso apenas por instância, e sem um registro que tenha mudado nada a traz à tona. Um attach de volume que falhou pode deixar sua instância como estava, então uma probe não consegue ver. As notificações conseguem.
+O Nova mantém isso apenas por instância, e sem um registro que tenha mudado nada a traz à tona. Um attach de volume que falhou pode deixar sua instância como estava, então uma sonda não consegue ver. As notificações conseguem.
 
 O Nova também pode dar baixa em uma criação sem nada em sua ação: em nossas nuvens de teste, uma criação que falhou no host de computação deixou a ação com aparência normal e o motivo na falha da instância. Então a ação mais recente de uma instância em `ERROR` conta como falha, com essa falha como motivo.
 
@@ -1428,7 +1428,7 @@ Isto foi executado em DevStack na 2026.2, de uma inicialização real até um On
 
 ## Verifique a nuvem de fora
 
-Todo serviço pode reportar saúde enquanto ninguém consegue iniciar uma instância, então o teste mais fiel é fazer o que os usuários fazem, de onde eles estão. Uma probe faz isso de fora da nuvem, porque uma verificação dentro de uma nuvem que falhou não diz nada. Execute estas em [uma probe sua](/docs/probe/custom-probe), em algum lugar que alcance os endpoints públicos da nuvem como os seus usuários alcançam. No OneUptime Cloud, as probes compartilhadas nunca recebem credenciais do OpenStack.
+Todo serviço pode reportar saúde enquanto ninguém consegue iniciar uma instância, então o teste mais fiel é fazer o que os usuários fazem, de onde eles estão. Uma sonda faz isso de fora da nuvem, porque uma verificação dentro de uma nuvem que falhou não diz nada. Execute estas em [uma sonda sua](/docs/probe/custom-probe), em algum lugar que alcance os endpoints públicos da nuvem como os seus usuários alcançam. No OneUptime Cloud, as sondas compartilhadas nunca recebem credenciais do OpenStack.
 
 As duas estão na página **Verificações** da nuvem. [Os templates do monitor OpenStack](/docs/monitor/openstack-monitor#verificações-externas) transformam o que elas encontram em incidentes.
 
@@ -1436,7 +1436,7 @@ As duas estão na página **Verificações** da nuvem. [Os templates do monitor 
 
 A cada minuto por padrão, e somente leitura. O Keystone emite um token, cada serviço do catálogo responde a uma leitura autenticada de uma linha, e o certificado de cada endpoint é lido para saber quando expira. O que o catálogo nomeia é o que é perguntado, então não há lista para manter.
 
-Uma nuvem que uma probe já coleta precisa de um clique: **Ativar verificações de API** usa a mesma probe, endereço e credencial. Uma nuvem que o agente coleta não tem nada disso em uma probe, então ele os pede. Qualquer credencial capaz de fazer login serve, porque um serviço que a recusa ainda assim respondeu.
+Uma nuvem que uma sonda já coleta precisa de um clique: **Ativar verificações de API** usa a mesma sonda, endereço e credencial. Uma nuvem que o agente coleta não tem nada disso em uma sonda, então ele os pede. Qualquer credencial capaz de fazer login serve, porque um serviço que a recusa ainda assim respondeu.
 
 Custa um login e uma pequena leitura por serviço por região, a cada minuto, sem novas tentativas. Uma credencial que o Keystone recusa é perguntada de novo mais tarde, e não a cada minuto, porque repeti-la é o que bloqueia uma conta.
 
@@ -1519,11 +1519,11 @@ Uma credencial de aplicação é melhor que uma senha aqui, porque não pode ter
 
 #### Rastreie uma inicialização lenta
 
-Salve a sua chave do [OSProfiler](#rastreie-requisições-pelo-plano-de-controle) na página **Verificações** e as escritas de cada etapa são assinadas, cada etapa em seu próprio trace, de modo que uma inicialização lenta tem um trace contendo a inicialização e nada mais. As esperas não são assinadas, porque uma requisição assinada faz mais trabalho em cada serviço que atravessa. A chave é criptografada e somente para escrita, como a credencial: vai para esta probe e para cada assinatura, e não volta de lugar nenhum.
+Salve a sua chave do [OSProfiler](#rastreie-requisições-pelo-plano-de-controle) na página **Verificações** e as escritas de cada etapa são assinadas, cada etapa em seu próprio trace, de modo que uma inicialização lenta tem um trace contendo a inicialização e nada mais. As esperas não são assinadas, porque uma requisição assinada faz mais trabalho em cada serviço que atravessa. A chave é criptografada e somente para escrita, como a credencial: vai para esta sonda e para cada assinatura, e não volta de lugar nenhum.
 
 #### Desativando
 
-Desative a verificação e nenhuma execução nova começa. Até não restar nada com o nome dela, a probe continua executando apenas o janitor, e é por isso que a credencial é mantida por esse tempo. Depois o OneUptime esquece a credencial e a chave, e você pode excluir o projeto. Excluir a nuvem no OneUptime as esquece de imediato e não limpa nada, então desative a verificação primeiro e espere a página parar de dizer que está limpando. Se a credencial sumir antes, encontre o que sobrou pelo nome:
+Desative a verificação e nenhuma execução nova começa. Até não restar nada com o nome dela, a sonda continua executando apenas o janitor, e é por isso que a credencial é mantida por esse tempo. Depois o OneUptime esquece a credencial e a chave, e você pode excluir o projeto. Excluir a nuvem no OneUptime as esquece de imediato e não limpa nada, então desative a verificação primeiro e espere a página parar de dizer que está limpando. Se a credencial sumir antes, encontre o que sobrou pelo nome:
 
 ```bash
 openstack server list --name '^oneuptime-check-'
@@ -1779,7 +1779,7 @@ O Neutron e o Cinder respondem a qualquer um que não seja admin com um `200` e 
 :::
 
 :::details Nenhuma instância no nível 3
-O exporter pede ao Nova os servidores de todos os projetos, o Nova recusa um reader simples, e essa leitura falha por inteiro. Use o nível 1 ou 2, ou uma [probe](/docs/telemetry/openstack-agentless), que consegue listar as instâncias de um projeto.
+O exporter pede ao Nova os servidores de todos os projetos, o Nova recusa um reader simples, e essa leitura falha por inteiro. Use o nível 1 ou 2, ou uma [sonda](/docs/telemetry/openstack-agentless), que consegue listar as instâncias de um projeto.
 :::
 
 :::details Os dados de um serviço estão faltando
@@ -1799,13 +1799,13 @@ O OneUptime lê os formatos próprios do oslo.log. Uma nuvem que alterou `loggin
 :::
 
 :::details O Feed continua vazio
-Cada serviço precisa de `driver = log` e de uma reinicialização, e o Nova também de `notification_format = versioned`: veja [Ative as notificações](#ative-as-notificações). Para verificar um serviço, use grep no log dele por `oslo.messaging.notification`. Se não houver nada, olhe `default_log_levels`: um nível acima de `INFO` para `oslo.messaging` silencia a maioria delas. Uma nuvem cuja configuração não é sua para alterar pode usar uma [probe](#sem-notificações).
+Cada serviço precisa de `driver = log` e de uma reinicialização, e o Nova também de `notification_format = versioned`: veja [Ative as notificações](#ative-as-notificações). Para verificar um serviço, use grep no log dele por `oslo.messaging.notification`. Se não houver nada, olhe `default_log_levels`: um nível acima de `INFO` para `oslo.messaging` silencia a maioria delas. Uma nuvem cuja configuração não é sua para alterar pode usar uma [sonda](#sem-notificações).
 :::
 
 ## Próximos passos
 
 :::cards
 - [Monitor OpenStack](/docs/monitor/openstack-monitor): Alerte sobre serviços, hipervisores, instâncias, redes e pools de armazenamento.
-- [OpenStack sem agente](/docs/telemetry/openstack-agentless): Colete uma nuvem a partir de uma probe, sem nada para instalar.
+- [OpenStack sem agente](/docs/telemetry/openstack-agentless): Colete uma nuvem a partir de uma sonda, sem nada para instalar.
 - [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): A visão no nível do SO de cada controller e hipervisor.
 :::

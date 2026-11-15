@@ -88,7 +88,7 @@ Ajoutez ceci à votre configuration MCP (voir [VS Code avec GitHub Copilot](#vs-
 
 Tout autre client qui prend en charge l'autorisation MCP fonctionne de la même façon : donnez-lui l'adresse et il découvre tout le reste. Voir [Se connecter (OAuth 2.1)](#se-connecter-oauth-21) pour le protocole.
 
-Le tableau de bord propose aussi ces étapes, avec l'adresse de votre instance déjà renseignée : **Paramètres du projet → IA → Serveur MCP**. Et depuis n'importe quelle ressource (un moniteur, un incident, une page de statut, etc.), dépliez **Développeurs** dans son menu latéral et choisissez **Assistants IA** : cette page suggère aussi des prompts qui nomment la ressource et son ID, pour que l'assistant la trouve tout de suite. Pour une ressource pour laquelle le serveur MCP n'a pas encore d'outils, comme un workflow, la page montre comment un assistant capable d'exécuter des commandes peut travailler avec elle par l'API REST.
+Le tableau de bord propose aussi ces étapes, avec l'adresse de votre instance déjà renseignée : **Paramètres du projet → IA → Serveur MCP**. Et depuis n'importe quelle ressource (un moniteur, un incident, une page de statut, etc.), dépliez **Développeurs** dans son menu latéral et choisissez **Assistants IA** : cette page suggère aussi des prompts qui nomment la ressource et son ID, pour que l'assistant la trouve tout de suite. Pour une ressource pour laquelle le serveur MCP n'a pas encore d'outils, comme un flux de travail, la page montre comment un assistant capable d'exécuter des commandes peut travailler avec elle par l'API REST.
 
 ## Se connecter avec OneUptime
 

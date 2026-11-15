@@ -94,6 +94,8 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Who is paged",
       "Add teammates",
       "Save and continue",
+      // The policy the step makes, named as the reader's setup names it (#8329).
+      "Default on-call policy",
       "Send a test",
       "Send me a test page",
       "Severity",
@@ -148,6 +150,8 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
       "Paged first",
       "Add teammates",
       "Save and continue",
+      // The policy the step makes, named as the reader's setup names it (#8329).
+      "Default on-call policy",
       "On-call policy",
       "Add to the first escalation rule",
       "Can a page reach them?",

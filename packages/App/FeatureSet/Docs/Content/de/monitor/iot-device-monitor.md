@@ -1,6 +1,6 @@
 # IoT-Geräte-Überwachung
 
-Ein IoT-Geräte-Monitor beobachtet eine Flotte von Geräten und meldet Ihnen, wenn ein Gerät offline geht, sein Akku schwach wird, sein Signal nachlässt, es überhitzt oder seine CPU dauerhaft ausgelastet bleibt. Er liest die `iot_*`-Metriken, die Ihre Geräte über OpenTelemetry oder MQTT an OneUptime senden, sodass nichts von außen geprüft wird und keine Probe beteiligt ist.
+Ein IoT-Geräte-Monitor beobachtet eine Flotte von Geräten und meldet Ihnen, wenn ein Gerät offline geht, sein Akku schwach wird, sein Signal nachlässt, es überhitzt oder seine CPU dauerhaft ausgelastet bleibt. Er liest die `iot_*`-Metriken, die Ihre Geräte über OpenTelemetry oder MQTT an OneUptime senden, sodass nichts von außen geprüft wird und keine Sonde beteiligt ist.
 
 :::cards
 - [Den Monitor erstellen](#einen-iot-geräte-monitor-erstellen): Sechs Schritte im Dashboard.

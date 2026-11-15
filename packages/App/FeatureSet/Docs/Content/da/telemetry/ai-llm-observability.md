@@ -307,7 +307,7 @@ Opret en [metrik-monitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budg
 Sæt monitorens rullende vindue til 30 minutter. Et budget udgiver ét punkt hvert 15. minut, så standardvinduet på 1 minut ville ikke finde noget mellem to punkter.
 :::
 
-En budgetadvarsel kan også køre en workflow, der stopper en løbsk agent: se [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
+En budgetadvarsel kan også køre en arbejdsgang, der stopper en løbsk agent: se [Circuit breakers til AI-agenter](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Dashboards og advarsler på metrikker
 

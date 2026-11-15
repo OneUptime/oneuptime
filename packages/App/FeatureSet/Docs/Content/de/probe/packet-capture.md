@@ -36,7 +36,7 @@ sequenceDiagram
 
 ## Bevor Sie beginnen
 
-- **Eine eigene Sonde Ihres Projekts.** Globale Sonden transportieren den Datenverkehr anderer Projekte, daher schneiden sie nie mit. Wie Sie eine eigene Sonde installieren, steht unter [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+- **Eine eigene Sonde Ihres Projekts.** Globale Sonden transportieren den Datenverkehr anderer Projekte, daher schneiden sie nie mit. Wie Sie eine eigene Sonde installieren, steht unter [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 - **Eine Sonde aus diesem Release oder neuer.** Ältere Sonden melden nicht, worauf sie mitschneiden können.
 - **Die richtigen Berechtigungen.** Zum Starten und Stoppen eines Mitschnitts braucht man **Start Packet Capture**, zum Herunterladen einer Datei **Download Packet Capture**. Projektinhaber und Projektadministratoren haben beide. Siehe [Berechtigungen](#berechtigungen).
 - **Ein gespiegelter Port für Datenverkehr, der die Sonde nicht erreicht.** Eine Sonde sieht nur den Datenverkehr auf den Schnittstellen ihres eigenen Hosts. Um Datenverkehr zwischen anderen Geräten mitzuschneiden, spiegeln Sie deren Switch-Port (SPAN) auf eine freie Schnittstelle des Sonden-Hosts.
@@ -234,7 +234,7 @@ Eine Sonde führt 2 Mitschnitte gleichzeitig aus. Warten Sie, bis einer fertig i
 ## Nächste Schritte
 
 :::cards
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Eine Sonde in dem Netzwerk installieren, in dem Sie mitschneiden möchten.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Eine Sonde in dem Netzwerk installieren, in dem Sie mitschneiden möchten.
 - [Netzwerkgeräte-Monitor](/docs/monitor/network-device-monitor): Die Geräte überwachen, deren Datenverkehr Sie mitschneiden.
 - [Berechtigungen](/docs/permissions/index): Einem Team die Berechtigungen für Paketmitschnitte geben.
 :::

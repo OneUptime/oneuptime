@@ -1,4 +1,4 @@
-# Benutzerdefinierte Probes
+# Benutzerdefinierte Sonden
 
 Eine benutzerdefinierte Sonde ist ein kleiner Agent, den Sie in Ihrem eigenen Netzwerk betreiben. Sie prüft die Monitore, denen Sie sie hinzufügen, etwa interne Websites, APIs und Server hinter Ihrer Firewall, und sendet die Ergebnisse an OneUptime. Sie baut nur ausgehende Verbindungen über HTTPS auf, sodass in Ihrem Netzwerk nichts Verbindungen aus dem Internet annehmen muss. Um zwischen einer Sonde, einem Agenten, einem Collector und einem Runner zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#sonde-agent-collector-oder-runner).
 

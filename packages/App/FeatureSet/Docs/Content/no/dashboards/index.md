@@ -1,6 +1,6 @@
 # Oversikt over dashbord
 
-Et dashbord er én side med widgets som du ordner selv: diagrammer over metrikkene, loggene og sporene dine, lister over hendelser, varsler og overvåkinger, SLO-ene og infrastrukturen din, til og med data fra systemer utenfor OneUptime. Lag ett til vaktskjermen, til et teams morgensjekk eller som en side for kundene dine, og del det med prosjektet ditt eller med alle som har lenken. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom et dashbord, et offentlig dashbord og en statusside.
+Et dashbord er én side med widgets som du ordner selv: diagrammer over målingene, loggene og sporene dine, lister over hendelser, varsler og overvåkinger, SLO-ene og infrastrukturen din, til og med data fra systemer utenfor OneUptime. Lag ett til vaktskjermen, til et teams morgensjekk eller som en side for kundene dine, og del det med prosjektet ditt eller med alle som har lenken. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom et dashbord, et offentlig dashbord og en statusside.
 
 :::cards
 - [Slik fungerer et dashbord](#slik-fungerer-et-dashbord): Hvor dataene kommer fra, og hvem som ser dem.
@@ -83,7 +83,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hendelsene og de nyeste loggene, som også fungerer for alle andre tjenester.
 
 1. Klikk på **Opprett dashbord**, velg **Start fra bunnen**, og gi dashbordet navnet "Checkout-vakt".
-2. Klikk på **Legg til widget**, og legg til et **Diagram** over metrikken for forespørslenes ventetid, aggregert som P95.
+2. Klikk på **Legg til widget**, og legg til et **Diagram** over målingen for forespørslenes ventetid, aggregert som P95.
 3. Ved siden av legger du til en **Verdi** for feilraten, med en varselterskel på 1 og en kritisk terskel på 5.
 4. Under dem legger du til en **Hendelsesliste** filtrert på uløste hendelser, og en **Loggstrøm** med tjenestens logger.
 5. Åpne **Variabler**, legg til en variabel med navnet `service` med kilden Telemetry Attribute og attributtnøkkelen `service.name`, og gi den standardverdien `checkout`.
@@ -91,7 +91,7 @@ Målet: én side for checkout-tjenesten med ventetiden, feilraten, de åpne hend
 
 ## Slik passer dashbord inn i resten av OneUptime
 
-- **Overvåkinger og telemetri** er der dataene kommer fra. Alle metrikker, logger og spor du sender, kan havne på en widget.
+- **Overvåkinger og telemetri** er der dataene kommer fra. Alle målinger, logger og spor du sender, kan havne på en widget.
 - **Hendelser og varsler** vises i widgetene **Hendelsesliste** og **Varselliste**. Et dashbord viser dem bare: du arbeider med dem på deres egne sider.
 - **Statussider** forteller kundene dine om tjenesten din er oppe. Dashbord viser i detalj hvordan den oppfører seg. De to arbeider side om side.
 - **Arbeidsflyter** handler på det som skjer. Dashbord er der du leser det.

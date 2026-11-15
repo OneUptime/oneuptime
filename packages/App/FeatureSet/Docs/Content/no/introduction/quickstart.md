@@ -56,7 +56,7 @@ På Free-planen i OneUptime Cloud faktureres monitorer etter bruk, så prosjekte
 
 ### Velg hvem som får beskjed
 
-Under **Hvem skal få beskjed?** står du allerede i **Hvem som tilkalles**. Klikk på **Lagre og fortsett**: Det oppretter `Default on-call policy`, som tilkaller deg ved hver nye hendelse og hvert nye varsel i prosjektet, til å begynne med på e-post. For også å tilkalle teammedlemmer som allerede er i prosjektet, klikker du først på **Legg til teammedlemmer**.
+Under **Hvem skal få beskjed?** står du allerede i **Hvem som tilkalles**. Klikk på **Lagre og fortsett**: Det oppretter **Standard vaktpolicy**, som tilkaller deg ved hver nye hendelse og hvert nye varsel i prosjektet, til å begynne med på e-post. For også å tilkalle teammedlemmer som allerede er i prosjektet, klikker du først på **Legg til teammedlemmer**.
 
 ### Send deg selv en test
 
@@ -69,7 +69,7 @@ For også å sjekke et API, og se hva du gjør når den første sjekken aldri ko
 
 ## Bli varslet når det går ned
 
-Oppsettet for nettstedet har allerede opprettet `Default on-call policy`, som tilkaller deg på e-post ved hver nye hendelse og hvert nye varsel, så sjekklisten krysser av **Sett opp en vaktpolicy** som gjort. Det veiledede oppsettet for det legger likevel til telefonen din, personene som tilkalles sammen med deg, og hva som skjer når ingen svarer.
+Oppsettet for nettstedet har allerede opprettet **Standard vaktpolicy**, som tilkaller deg på e-post ved hver nye hendelse og hvert nye varsel, så sjekklisten krysser av **Sett opp en vaktpolicy** som gjort. Det veiledede oppsettet for det legger likevel til telefonen din, personene som tilkalles sammen med deg, og hva som skjer når ingen svarer.
 
 :::steps
 ### Åpne vaktoppsettet
@@ -84,7 +84,7 @@ Under **Hvordan skal vi nå deg?** står e-posten du logger inn med, allerede. F
 
 ### Velg hvem andre som tilkalles
 
-Under **Hvem andre har vakt?** beholder du `Default on-call policy` under **Vaktpolicy**. For å tilkalle teammedlemmer sammen med deg legger du dem til under **Legg til i den første eskaleringsregelen**. Klikk på **Lagre og fortsett**.
+Under **Hvem andre har vakt?** beholder du **Standard vaktpolicy** under **Vaktpolicy**. For å tilkalle teammedlemmer sammen med deg legger du dem til under **Legg til i den første eskaleringsregelen**. Klikk på **Lagre og fortsett**.
 
 ### Bestem hva som skjer hvis ingen svarer
 
@@ -176,5 +176,5 @@ En statusside viser en hendelse når en av hendelsens monitorer er på siden. Sj
 - [Ordliste](/docs/introduction/glossary): Hvert ord du møtte underveis, forklart med en setning eller to.
 - [Vaktplaner](/docs/on-call/schedules): Del vaktene med teamet ditt.
 - [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains): Gjør statussiden til din egen.
-- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
 :::

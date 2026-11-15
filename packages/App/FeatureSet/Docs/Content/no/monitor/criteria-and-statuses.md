@@ -30,7 +30,7 @@ Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det 
 Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard overvåkingsstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
 
 > [!NOTE]
-> En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en metrikk- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
+> En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en målings- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
 
 ## Hva et kriterium inneholder
 
@@ -39,13 +39,13 @@ Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrol
 | Del | Hva den inneholder |
 | --- | --- |
 | **Kriterienavn** | Navnet i listen over kriterier og i rotårsaken til hver hendelse og hvert varsel kriteriet åpner. **Legg til kriterier** gir et nytt kriterium navn etter filtrene, og navnet følger dem til du skriver ditt eget. |
-| **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og metrikkmonitorer kaller dem **Varselsregler**. |
+| **Filtre** | Hva kontrollen må vise, som ett eller flere filtre. Kubernetes- og målingsmonitorer kaller dem **Varselsregler**. |
 | **Handlinger** | Hva som skjer når filtrene samsvarer: endre statusen, opprette et varsel, erklære en hendelse eller en kombinasjon. |
 | **Innstillinger** | **Aktiver disse kriteriene**, en valgfri **Beskrivelse** og, på monitorer for innkommende forespørsler, **Group incidents and alerts by a payload field**. |
 
 ### Filtre
 
-Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (hva som leses, som **Statuskode for svar**), et **Filtervilkår** (hvordan det sammenlignes, som **Større enn**) og en **Verdi**. Monitorer som sammenligner metrikker, som Kubernetes- og metrikkmonitorer, ber i stedet om en **Betingelse** og en **Terskel**. Hver monitortype tilbyr sine egne filtertyper, som står på siden for typen, for eksempel [Nettsted-overvåking](/docs/monitor/website-monitor#overvåkingskriterier).
+Et filter leser én ting fra kontrollen og sammenligner den: en **Filtertype** (hva som leses, som **Statuskode for svar**), et **Filtervilkår** (hvordan det sammenlignes, som **Større enn**) og en **Verdi**. Monitorer som sammenligner målinger, som Kubernetes- og målingsmonitorer, ber i stedet om en **Betingelse** og en **Terskel**. Hver monitortype tilbyr sine egne filtertyper, som står på siden for typen, for eksempel [Nettsted-overvåking](/docs/monitor/website-monitor#overvåkingskriterier).
 
 Fra to filtre og oppover vises **Samsvarsbetingelse** under dem: **Alle** betyr at hvert filter må samsvare, **Hvilken som helst** at ett er nok. Et nytt kriterium starter på **Alle**.
 

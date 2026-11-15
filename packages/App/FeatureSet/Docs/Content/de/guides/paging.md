@@ -51,7 +51,7 @@ Geben Sie Ihre Mobilnummer mit Ländervorwahl in **Deine Telefonnummer** ein, et
 
 ![Der Schritt „Wer hat sonst Bereitschaft?“, „Speichern und weiter“ ist markiert](screen:paging-who-else)
 
-Unter **Wer hat sonst Bereitschaft?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um außer Ihnen weitere Personen zu alarmieren, und dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die Richtlinie `Default on-call policy` angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
+Unter **Wer hat sonst Bereitschaft?** stehen Sie bereits in **Zuerst alarmiert**. Klicken Sie auf **Teammitglieder hinzufügen**, um außer Ihnen weitere Personen zu alarmieren, und dann auf **Speichern und weiter**. Hat das Projekt noch keine Bereitschaftsrichtlinie, wird dabei die **Standard-Bereitschaftsrichtlinie** angelegt, die alle diese Personen bei jedem neuen Vorfall und jeder neuen Warnung alarmiert. Hat es schon eine, wählen Sie sie stattdessen unter **Bereitschaftsrichtlinie** und nehmen Personen unter **Zur ersten Eskalationsregel hinzufügen** auf. Ist jemand noch nicht erreichbar, bleibt der Schritt bei **Erreicht sie eine Alarmierung?** offen: Klicken Sie für diese Person auf **Einrichtungserinnerung senden** und dann auf **Weiter**.
 
 ### Festlegen, was passiert, wenn niemand antwortet
 

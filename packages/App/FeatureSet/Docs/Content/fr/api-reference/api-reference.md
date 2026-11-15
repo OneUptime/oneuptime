@@ -151,7 +151,7 @@ Les autorisations habituelles décident toujours qui peut faire quoi, exactement
 
 Sur OneUptime Cloud, les clés API d'un projet ne fonctionnent que tant que le projet est sur **Growth** ou au-delà, et ses connexions SCIM - celles du projet et celles de ses pages d'état - ne fonctionnent pleinement que tant qu'il est sur **Scale** ou au-delà. Quand le projet passe sous cette offre :
 
-- Chaque requête faite avec l'une des clés API du projet est refusée avec `402 Payment Required`, quoi qu'elle demande : l'API REST, et tout ce qui l'appelle avec une clé API - Terraform, la CLI `oneuptime`, les clients MCP connectés avec une clé API, les workflows qui en envoient une dans un en-tête de requête, et vos propres scripts. Le message nomme l'offre : `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
+- Chaque requête faite avec l'une des clés API du projet est refusée avec `402 Payment Required`, quoi qu'elle demande : l'API REST, et tout ce qui l'appelle avec une clé API - Terraform, la CLI `oneuptime`, les clients MCP connectés avec une clé API, les flux de travail qui en envoient une dans un en-tête de requête, et vos propres scripts. Le message nomme l'offre : `API keys need the Growth plan. This project's plan does not include them, so its API keys stopped working. The keys are kept: upgrade the project to Growth in Project Settings > Billing and Invoices > Billing and they work again.`
 - Ses connexions SCIM ne font plus que retirer des personnes. Désactiver et supprimer des personnes, et les retirer de groupes, fonctionne toujours, donc quiconque part perd quand même son accès ; chaque requête SCIM qui ajouterait ou modifierait des personnes ou des groupes est refusée avec `402`, au format d'erreur SCIM, pour que votre fournisseur d'identité montre pourquoi ([SCIM sous l'offre Scale](/docs/identity/scim#en-dessous-du-plan-scale)).
 
 Rien n'est supprimé ni désactivé. Les clés et les connexions sont conservées, et elles refonctionnent pleinement, telles quelles, dès que le projet revient sur l'offre : aucune nouvelle clé à créer, rien à reconfigurer dans votre fournisseur d'identité. Un changement d'offre prend effet en moins d'une minute.
@@ -168,7 +168,7 @@ Les requêtes qui lisent, modifient ou suppriment une ressource la nomment par s
 
 ### Les enregistrements qu'une requête nomme
 
-De nombreuses ressources nomment d'autres enregistrements : un moniteur ses étiquettes et ses sondes, un abonné d'une page d'état sa page d'état, un équipement réseau son site, un membre d'un incident l'incident et le rôle. Chaque règle ci-dessous vaut pour l'API, Terraform et les workflows :
+De nombreuses ressources nomment d'autres enregistrements : un moniteur ses étiquettes et ses sondes, un abonné d'une page d'état sa page d'état, un équipement réseau son site, un membre d'un incident l'incident et le rôle. Chaque règle ci-dessous vaut pour l'API, Terraform et les flux de travail :
 
 | Quand une requête | elle doit | Sinon |
 | --- | --- | --- |
@@ -182,7 +182,7 @@ De nombreuses ressources nomment d'autres enregistrements : un moniteur ses éti
 
 #### Chaque ID doit appartenir à votre projet
 
-Chaque ID que vous envoyez pour un enregistrement qu'une ressource nomme doit être un enregistrement de votre projet — les sélecteurs du tableau de bord ne proposent rien d'autre — et les requêtes de Terraform et des workflows sont soumises à la même règle. Un ID d'un enregistrement d'un autre projet et un ID qui n'existe pas sont refusés de la même façon, avec un `400` qui nomme le champ et l'ID :
+Chaque ID que vous envoyez pour un enregistrement qu'une ressource nomme doit être un enregistrement de votre projet — les sélecteurs du tableau de bord ne proposent rien d'autre — et les requêtes de Terraform et des flux de travail sont soumises à la même règle. Un ID d'un enregistrement d'un autre projet et un ID qui n'existe pas sont refusés de la même façon, avec un `400` qui nomme le champ et l'ID :
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -246,13 +246,13 @@ Les deux noms sont vérifiés de la même façon. Les règles sur l'enregistreme
 
 ### Interrupteurs
 
-Un champ activé ou désactivé - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` et tout autre champ `true` ou `false` - prend `true` ou `false`. Le texte et les nombres que la base de données lit comme l'une de ces valeurs sont pris comme cette valeur, de la même façon pour l'API, Terraform et les workflows : `"true"`, `"yes"`, `"on"`, `"1"` et `1` valent `true`, et `"false"`, `"no"`, `"off"`, `"0"` et `0` valent `false`, quelle que soit la casse. Tout ce que OneUptime fait de l'enregistrement le traite aussi comme cette valeur : un événement de maintenance envoyé avec `"isVisibleOnStatusPage": "true"` montre ses images sur la page d'état, et `"isEnabled": "false"` désactive une ressource sous son offre comme le fait `false`. Toute autre valeur, comme `"maybe"`, `""` ou `2`, est refusée avec un `400` qui nomme le champ :
+Un champ activé ou désactivé - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` et tout autre champ `true` ou `false` - prend `true` ou `false`. Le texte et les nombres que la base de données lit comme l'une de ces valeurs sont pris comme cette valeur, de la même façon pour l'API, Terraform et les flux de travail : `"true"`, `"yes"`, `"on"`, `"1"` et `1` valent `true`, et `"false"`, `"no"`, `"off"`, `"0"` et `0` valent `false`, quelle que soit la casse. Tout ce que OneUptime fait de l'enregistrement le traite aussi comme cette valeur : un événement de maintenance envoyé avec `"isVisibleOnStatusPage": "true"` montre ses images sur la page d'état, et `"isEnabled": "false"` désactive une ressource sous son offre comme le fait `false`. Toute autre valeur, comme `"maybe"`, `""` ou `2`, est refusée avec un `400` qui nomme le champ :
 
 ```text
 isVisibleOnStatusPage must be true or false.
 ```
 
-Une mise à jour qui écrit les valeurs d'un enregistrement telles qu'elles sont déjà ne change rien : elle ne lance pas les workflows **On Update** de l'enregistrement, n'envoie pas de mises à jour en direct et n'ajoute pas d'entrée au journal d'audit. `false` écrit par-dessus `false` compte comme la même valeur, tout comme `"false"` écrit par-dessus `false`, un nombre écrit sous forme de texte, une heure écrite comme le même instant dans un autre format, et des étiquettes écrites comme les mêmes étiquettes dans n'importe quel ordre. Quand une mise à jour modifie certaines valeurs et en réécrit d'autres telles quelles, son entrée de journal d'audit ne liste que les valeurs modifiées, et le **Fields to watch** d'un workflow n'entend que celles-là.
+Une mise à jour qui écrit les valeurs d'un enregistrement telles qu'elles sont déjà ne change rien : elle ne lance pas les flux de travail **On Update** de l'enregistrement, n'envoie pas de mises à jour en direct et n'ajoute pas d'entrée au journal d'audit. `false` écrit par-dessus `false` compte comme la même valeur, tout comme `"false"` écrit par-dessus `false`, un nombre écrit sous forme de texte, une heure écrite comme le même instant dans un autre format, et des étiquettes écrites comme les mêmes étiquettes dans n'importe quel ordre. Quand une mise à jour modifie certaines valeurs et en réécrit d'autres telles quelles, son entrée de journal d'audit ne liste que les valeurs modifiées, et le **Fields to watch** d'un flux de travail n'entend que celles-là.
 
 ### Où un projet a été acheté
 
@@ -264,7 +264,7 @@ User is not allowed to create on resellerId column of Project. No permission all
 
 ### Qui a créé un enregistrement
 
-OneUptime enregistre qui a créé un enregistrement — et qui l'a archivé, résolu, acquitté ou déclenché — à partir de la requête elle-même : la personne connectée, ou personne quand la requête vient avec une clé API ou d'un workflow. Ces champs (`createdByUserId` et les autres champs qui se terminent par `ByUserId`, avec leurs relations comme `createdByUser`) sont en lecture seule, tout comme le moment où un enregistrement a été archivé ou résolu (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`) : activer `isArchived` ou `isResolved` enregistre qui l'a fait et quand, et le désactiver efface les deux. Envoyer un interrupteur tel qu'il est déjà conserve qui l'a basculé, et quand.
+OneUptime enregistre qui a créé un enregistrement — et qui l'a archivé, résolu, acquitté ou déclenché — à partir de la requête elle-même : la personne connectée, ou personne quand la requête vient avec une clé API ou d'un flux de travail. Ces champs (`createdByUserId` et les autres champs qui se terminent par `ByUserId`, avec leurs relations comme `createdByUser`) sont en lecture seule, tout comme le moment où un enregistrement a été archivé ou résolu (`archivedAt`, `markedAsResolvedAt`, `markedAsArchivedAt`) : activer `isArchived` ou `isResolved` enregistre qui l'a fait et quand, et le désactiver efface les deux. Envoyer un interrupteur tel qu'il est déjà conserve qui l'a basculé, et quand.
 
 La référence de l'API marque ces champs en lecture seule. Une valeur qu'une requête envoie pour l'un d'eux à côté d'autres modifications est ignorée, donc le reste de la modification passe ; une mise à jour qui n'envoie rien d'autre est refusée avec un message qui nomme les champs. Les enregistrements que OneUptime crée lui-même au nom de quelqu'un — une note publiée depuis Slack ou Microsoft Teams, un compte créé par une invitation — nomment cette personne.
 
@@ -286,7 +286,7 @@ Un état défini par erreur se corrige en supprimant sa ligne de la chronologie 
 
 ### L'épisode dans lequel se trouve un incident ou une alerte
 
-`incidentEpisodeId` d'un incident et `alertEpisodeId` d'une alerte — et leurs relations `incidentEpisode` et `alertEpisode` — nomment le dernier épisode auquel l'enregistrement a été ajouté et dont il est encore membre, ou rien. Ils sont en lecture seule : OneUptime les définit à partir des membres de l'épisode. Pour mettre un incident dans un épisode, créez un Incident Episode Member (`POST /api/incident-episode-member` avec `incidentEpisodeId` et `incidentId`) ; pour l'en retirer, supprimez ce membre, et l'incident nomme alors le dernier épisode dans lequel il se trouve encore, ou aucun. Les alertes fonctionnent de la même façon avec les Alert Episode Members (`/api/alert-episode-member`, avec `alertEpisodeId` et `alertId`). Les règles de regroupement ajoutent les incidents et les alertes aux épisodes de la même façon. Une création ou une mise à jour d'un incident ou d'une alerte qui envoie son épisode est refusée, quel que soit l'expéditeur — l'API, Terraform, les outils MCP ou un workflow. Dans Terraform, `incident_episode_id` et `alert_episode_id` peuvent être lus mais pas définis ; les ressources `oneuptime_incident_episode_member` et `oneuptime_alert_episode_member` gèrent l'appartenance.
+`incidentEpisodeId` d'un incident et `alertEpisodeId` d'une alerte — et leurs relations `incidentEpisode` et `alertEpisode` — nomment le dernier épisode auquel l'enregistrement a été ajouté et dont il est encore membre, ou rien. Ils sont en lecture seule : OneUptime les définit à partir des membres de l'épisode. Pour mettre un incident dans un épisode, créez un Incident Episode Member (`POST /api/incident-episode-member` avec `incidentEpisodeId` et `incidentId`) ; pour l'en retirer, supprimez ce membre, et l'incident nomme alors le dernier épisode dans lequel il se trouve encore, ou aucun. Les alertes fonctionnent de la même façon avec les Alert Episode Members (`/api/alert-episode-member`, avec `alertEpisodeId` et `alertId`). Les règles de regroupement ajoutent les incidents et les alertes aux épisodes de la même façon. Une création ou une mise à jour d'un incident ou d'une alerte qui envoie son épisode est refusée, quel que soit l'expéditeur — l'API, Terraform, les outils MCP ou un flux de travail. Dans Terraform, `incident_episode_id` et `alert_episode_id` peuvent être lus mais pas définis ; les ressources `oneuptime_incident_episode_member` et `oneuptime_alert_episode_member` gèrent l'appartenance.
 
 ## Ce qu'une requête peut atteindre
 
@@ -308,7 +308,7 @@ Incident not found.
 You do not have permission to update this incident.
 ```
 
-Une suppression qui n'atteignait rien répondait autrefois `200`. Les mises à jour et suppressions par requête, comme les étapes de mise à jour et de suppression d'un workflow, répondent avec le nombre d'enregistrements modifiés, `0` quand elles n'en ont atteint aucun. Terraform lit un `404` lors de `terraform destroy` comme une ressource déjà disparue.
+Une suppression qui n'atteignait rien répondait autrefois `200`. Les mises à jour et suppressions par requête, comme les étapes de mise à jour et de suppression d'un flux de travail, répondent avec le nombre d'enregistrements modifiés, `0` quand elles n'en ont atteint aucun. Terraform lit un `404` lors de `terraform destroy` comme une ressource déjà disparue.
 
 La télémétrie suit la même règle. Une suppression de journaux, de traces, de métriques, d'exceptions, de profils ou d'enregistrements de session atteint les lignes des ressources - services, hôtes, clusters et autres - dont vous pouvez à la fois lire et supprimer la télémétrie, et se fait un projet à la fois : une requête sur tous vos projets est refusée. Une suppression d'une ligne par son ID qui n'atteint rien répond `404` ou `422` comme ci-dessus.
 

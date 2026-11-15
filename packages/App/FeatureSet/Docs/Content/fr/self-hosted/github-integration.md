@@ -291,5 +291,5 @@ Donnez à l'application **Issues: Read and write** et abonnez-la aux événement
 :::cards
 - [Travailler avec OneUptime depuis GitHub](/docs/ai/github-app): Les commandes qu'on peut donner à l'application, et qui peut les donner.
 - [Code](/docs/ai/ai-agent): Comment l'agent IA ouvre des pull requests de correction.
-- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre les outils internes.
+- [Accès au réseau privé](/docs/self-hosted/private-network-access): Permettre aux flux de travail et aux webhooks de joindre les outils internes.
 :::

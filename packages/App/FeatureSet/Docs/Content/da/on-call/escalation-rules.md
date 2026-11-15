@@ -243,7 +243,7 @@ Hvad der sker bagefter, afhænger af, hvem der ellers bliver tilkaldt:
 
 At eskalere et tilkald kvitterer ikke for det: hændelsen eller advarslen venter stadig på, at nogen kvitterer, og den, der eskalerede det, kan stadig selv kvittere. Denne kørsel tilkalder ikke vedkommende om det igen: et senere niveau eller en gentagelse, der nævner vedkommende, springer vedkommende over. Når alle, den tilkaldte, har eskaleret det, og der ikke er nogen tilbage at tilkalde, stopper tilkaldet, og hændelsens feed siger det.
 
-Et tilkald, som et workflow sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
+Et tilkald, som en arbejdsgang sender direkte til personer, har ingen niveauer: eskalerer du det, bliver du ikke tilkaldt mere, og når alle, det tilkaldte, har eskaleret det, stopper tilkaldet.
 
 Hver gang et tilkald eskaleres, bliver det registreret. Kørslens **Tidslinje for udførelsen** markerer personens linje **Eskaleret**, hændelsens feed siger "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", kørslens besked i Slack og Microsoft Teams siger, at vedkommende eskalerede det, og vedkommendes **Vagtlogs** viser tilkaldet som **Eskaleret**. Et niveau, der blev sprunget over for et senere, er markeret **Sprunget over** i **Tidslinje for udførelsen**, og feedet siger "On-call policy Payments skipped Platform leads (Level 2 of 3): the page was escalated past it."
 

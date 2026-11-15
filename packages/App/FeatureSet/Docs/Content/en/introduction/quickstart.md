@@ -56,7 +56,7 @@ On OneUptime Cloud's Free plan, monitors are billed as they are used, so the pro
 
 ### Choose who is told
 
-Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes `Default on-call policy`, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
+Under **Who should be told?**, you are already in **Who is paged**. Click **Save and continue**: this makes **Default on-call policy**, which pages you for every new incident and alert in the project, by email to start with. To page teammates who are already in the project as well, click **Add teammates** first.
 
 ### Send yourself a test
 
@@ -69,7 +69,7 @@ To check an API too, and to see what to do when the first check never comes back
 
 ## Get paged when it goes down
 
-The website setup already made `Default on-call policy`, which pages you by email for every new incident and alert, so the checklist ticks **Set up an on-call policy** as done. Its guided setup still adds your phone, the people paged with you and what happens when nobody answers.
+The website setup already made **Default on-call policy**, which pages you by email for every new incident and alert, so the checklist ticks **Set up an on-call policy** as done. Its guided setup still adds your phone, the people paged with you and what happens when nobody answers.
 
 :::steps
 ### Open the on-call setup
@@ -84,7 +84,7 @@ Under **How should we reach you?**, your sign-in email is listed already. For pu
 
 ### Choose who else is paged
 
-Under **Who else is on call?**, keep `Default on-call policy` under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
+Under **Who else is on call?**, keep **Default on-call policy** under **On-call policy**. To page teammates with you, add them under **Add to the first escalation rule**. Click **Save and continue**.
 
 ### Decide what happens if nobody answers
 

@@ -151,7 +151,7 @@ service:
 
 Его события журнала включают `gemini_cli.user_prompt`, `gemini_cli.api_request`, `gemini_cli.api_response`, `gemini_cli.api_error`, `gemini_cli.tool_call` и `gemini_cli.file_operation`. Каждая запись несёт `session.id`, `installation.id`, `active_approval_mode` и, когда выполнен вход, `user.email`. OneUptime читает `session.id` как ID разговора, поэтому весь сеанс Gemini CLI отображается как один разговор в **Разговоры**, сколько бы трассировок он ни занял.
 
-Это обычные метрики OpenTelemetry: выведите любую из них на график дашборда или настройте по ней оповещение с помощью [монитора метрик](/docs/monitor/metrics-monitor).
+Это обычные метрики OpenTelemetry: выведите любую из них на график панели или настройте по ней оповещение с помощью [монитора метрик](/docs/monitor/metrics-monitor).
 
 ## Настройте GitHub Copilot
 

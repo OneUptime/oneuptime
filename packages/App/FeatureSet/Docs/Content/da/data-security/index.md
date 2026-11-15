@@ -96,5 +96,5 @@ Et datalagers **Tidslinje** fortæller, hvad der er sket med det, og hvem der gj
 - [Konfigurer Datasikkerhed](/docs/data-security/setup): De tre niveauer, de tilladelser hvert af dem giver, og scanning af dine egne databaser.
 - [Følsomme datatyper](/docs/data-security/data-types): Hvordan en værdi findes, og hver datatype, Datasikkerhed kender.
 - [Datasikkerhedskontroller og problemer](/docs/data-security/checks-and-issues): Hver kontrol, risikoscoren, og hvad der sker med et problem.
-- [Datasikkerhedsintegrationer](/docs/data-security/integrations): Sikkerhedssager, advarsler, ejere, workflows og OneUptime AI.
+- [Datasikkerhedsintegrationer](/docs/data-security/integrations): Sikkerhedssager, advarsler, ejere, arbejdsgange og OneUptime AI.
 :::

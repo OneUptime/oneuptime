@@ -51,7 +51,7 @@ Digite seu número de celular com o código do país em **Seu número de telefon
 
 ![O passo "Quem mais está de plantão?", com "Salvar e continuar" destacado](screen:paging-who-else)
 
-Em **Quem mais está de plantão?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas junto com você e depois em **Salvar e continuar**. Num projeto que ainda não tem nenhuma política de plantão, isso cria a `Default on-call policy`, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
+Em **Quem mais está de plantão?**, você já está em **Acionados primeiro**. Clique em **Adicionar membros da equipe** para acionar outras pessoas junto com você e depois em **Salvar e continuar**. Num projeto que ainda não tem nenhuma política de plantão, isso cria a **Política de plantão padrão**, que aciona todos vocês a cada novo incidente e a cada novo alerta. Num projeto que já tem uma, escolha-a em **Política de plantão** e adicione as pessoas em **Adicionar à primeira regra de escalonamento**. Se ainda não for possível contatar alguém, o passo fica aberto em **Um acionamento chega até eles?**: clique em **Enviar lembrete de configuração** para essa pessoa e depois em **Continuar**.
 
 ### Decidir o que acontece se ninguém responder
 

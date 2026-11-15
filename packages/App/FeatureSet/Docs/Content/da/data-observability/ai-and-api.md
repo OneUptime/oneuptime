@@ -42,7 +42,7 @@ De virker begge med et skrivebeskyttet login og svarer som den person eller API-
 | `POST /api/data-observability/checks/apply` | Få projektets tjek til at matche en fil, som `oneuptime data-checks apply` gør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøgle |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Et dataprodukts "data as of"-badge | Badgets eget token |
 
-Tabeller, tjek, afstemninger, pipelines, dataprodukter, BI-forbindelser og warehouse-jobs er også almindelige ressourcer i [API'et](/docs/api-reference/api-reference), som læses og ændres med en API-nøgle, der har de tilsvarende tilladelser, og i MCP-serveren og workflows.
+Tabeller, tjek, afstemninger, pipelines, dataprodukter, BI-forbindelser og warehouse-jobs er også almindelige ressourcer i [API'et](/docs/api-reference/api-reference), som læses og ændres med en API-nøgle, der har de tilsvarende tilladelser, og i MCP-serveren og arbejdsgange.
 
 ## Metrikker
 

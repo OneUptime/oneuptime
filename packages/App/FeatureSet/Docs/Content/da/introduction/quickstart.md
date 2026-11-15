@@ -56,7 +56,7 @@ På Free-planen i OneUptime Cloud faktureres monitorer efter forbrug, så projek
 
 ### Vælg, hvem der får besked
 
-Under **Hvem skal have besked?** står du allerede i **Hvem der tilkaldes**. Klik på **Gem og fortsæt**: Det opretter `Default on-call policy`, som tilkalder dig ved hver ny hændelse og hver ny advarsel i projektet, til at begynde med via e-mail. Vil du også tilkalde teammedlemmer, der allerede er i projektet, så klik først på **Tilføj teammedlemmer**.
+Under **Hvem skal have besked?** står du allerede i **Hvem der tilkaldes**. Klik på **Gem og fortsæt**: Det opretter **Standardvagtpolitik**, som tilkalder dig ved hver ny hændelse og hver ny advarsel i projektet, til at begynde med via e-mail. Vil du også tilkalde teammedlemmer, der allerede er i projektet, så klik først på **Tilføj teammedlemmer**.
 
 ### Send dig selv en test
 
@@ -69,7 +69,7 @@ Vil du også tjekke et API, og se, hvad du gør, når det første tjek aldrig ko
 
 ## Bliv tilkaldt, når det går ned
 
-Opsætningen af webstedet har allerede oprettet `Default on-call policy`, som tilkalder dig via e-mail ved hver ny hændelse og hver ny advarsel, så tjeklisten markerer **Opsæt en vagtpolitik** som udført. Dens guidede opsætning tilføjer alligevel din telefon, de personer, der tilkaldes sammen med dig, og hvad der sker, når ingen svarer.
+Opsætningen af webstedet har allerede oprettet **Standardvagtpolitik**, som tilkalder dig via e-mail ved hver ny hændelse og hver ny advarsel, så tjeklisten markerer **Opsæt en vagtpolitik** som udført. Dens guidede opsætning tilføjer alligevel din telefon, de personer, der tilkaldes sammen med dig, og hvad der sker, når ingen svarer.
 
 :::steps
 ### Åbn vagtopsætningen
@@ -84,7 +84,7 @@ Under **Hvordan skal vi nå dig?** står din login-e-mail allerede. For push-not
 
 ### Vælg, hvem der ellers tilkaldes
 
-Under **Hvem har ellers vagt?** beholder du `Default on-call policy` under **Vagtpolitik**. Vil du tilkalde teammedlemmer sammen med dig, så tilføj dem under **Føj til den første eskaleringsregel**. Klik på **Gem og fortsæt**.
+Under **Hvem har ellers vagt?** beholder du **Standardvagtpolitik** under **Vagtpolitik**. Vil du tilkalde teammedlemmer sammen med dig, så tilføj dem under **Føj til den første eskaleringsregel**. Klik på **Gem og fortsæt**.
 
 ### Beslut, hvad der sker, hvis ingen svarer
 

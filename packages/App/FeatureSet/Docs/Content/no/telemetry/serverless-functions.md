@@ -1,6 +1,6 @@
 # Serverløse funksjoner
 
-OneUptime gjenkjenner en serverløs funksjon i det øyeblikket den mottar OpenTelemetry-data fra den, og viser den under **Serverløse funksjoner** med sporene, loggene og metrikkene dens. Det fungerer for AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers og alle andre FaaS-kjøretider som kan sende OpenTelemetry. Det er ingenting å opprette for hånd: instrumenter funksjonen med OpenTelemetry SDK-en for kjøretiden dens, og rett OTLP-eksportøren dens mot OneUptime.
+OneUptime gjenkjenner en serverløs funksjon i det øyeblikket den mottar OpenTelemetry-data fra den, og viser den under **Serverløse funksjoner** med sporene, loggene og målingene dens. Det fungerer for AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers og alle andre FaaS-kjøretider som kan sende OpenTelemetry. Det er ingenting å opprette for hånd: instrumenter funksjonen med OpenTelemetry SDK-en for kjøretiden dens, og rett OTLP-eksportøren dens mot OneUptime.
 
 :::cards
 - [Slik identifiserer OneUptime en funksjon](#slik-identifiserer-oneuptime-en-funksjon): `faas.name`, eller en FaaS-`cloud.platform` med et `service.name`.
@@ -28,7 +28,7 @@ flowchart TB
 
 ## Slik identifiserer OneUptime en funksjon
 
-OneUptime identifiserer hver funksjon ut fra ressursattributtet `faas.name`. Ressursdetektorene på noen plattformer setter det aldri ([Azure Functions](#azure-functions) er det vanlige tilfellet), så når en ressurs ikke har noe `faas.name`, men `cloud.platform` er en FaaS-plattform, bruker OneUptime i stedet `service.name` som funksjonens identitet, og fyller inn `faas.name` med den verdien på hvert span, hver logg, hver metrikk og hver profil det lagrer, slik at sidene til funksjonen finner all telemetrien dens:
+OneUptime identifiserer hver funksjon ut fra ressursattributtet `faas.name`. Ressursdetektorene på noen plattformer setter det aldri ([Azure Functions](#azure-functions) er det vanlige tilfellet), så når en ressurs ikke har noe `faas.name`, men `cloud.platform` er en FaaS-plattform, bruker OneUptime i stedet `service.name` som funksjonens identitet, og fyller inn `faas.name` med den verdien på hvert span, hver logg, hver måling og hver profil det lagrer, slik at sidene til funksjonen finner all telemetrien dens:
 
 | Attributt | Påkrevd | Formål |
 | --- | --- | --- |
@@ -84,12 +84,12 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyr at OneUptime godtar nøkkelen; `401` betyr at den er ukjent, tilbakekalt, deaktivert eller utløpt. Kall deretter funksjonen. Så snart den sender et span, en logg eller en metrikk, vises den under **Produkter → Sky → Serverløs → Alle funksjoner**.
+`200` med `"valid": true` betyr at OneUptime godtar nøkkelen; `401` betyr at den er ukjent, tilbakekalt, deaktivert eller utløpt. Kall deretter funksjonen. Så snart den sender et span, en logg eller en måling, vises den under **Produkter → Sky → Serverløs → Alle funksjoner**.
 :::
 
 ## Azure Functions
 
-Azure Functions-verten kan sende OpenTelemetry selv, slik at en Function App rapporterer kallene sine (spor, logger og metrikker) uten kodeendringer, uansett hvilket språk den er skrevet i. Microsofts veiledning er [Use OpenTelemetry with Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/opentelemetry-howto).
+Azure Functions-verten kan sende OpenTelemetry selv, slik at en Function App rapporterer kallene sine (spor, logger og målinger) uten kodeendringer, uansett hvilket språk den er skrevet i. Microsofts veiledning er [Use OpenTelemetry with Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/opentelemetry-howto).
 
 ### Slik vises en Function App
 
@@ -107,7 +107,7 @@ Azures ressursdetektorer (Functions-vertens egen, den isolerte .NET-workerens i 
 Derfor identifiserer OneUptime funksjonen ut fra `service.name`, fyller inn `faas.name` med navnet på Function App-en og viser **én serverløs funksjon per Function App**. Ressursen beskriver appen, ikke én av funksjonene dens: hver instans rapporterer de samme attributtene på appnivå, uansett hvilken av appens funksjoner den kjører, og på Flex Consumption-planen skalerer noen funksjoner til og med ut på egne instanser. De enkelte funksjonene ligger i selve telemetrien:
 
 - Verten starter et span for hvert kall, oppkalt etter funksjonen den kjørte: søk etter det navnet på funksjonens side **Spor**.
-- Verten registrerer `faas.invoke_duration`, et histogram i sekunder, med funksjonens navn i datapunktattributtet `faas.name`: grupper metrikken etter det på siden **Målinger** eller i et dashbord for latensen til hver funksjon.
+- Verten registrerer `faas.invoke_duration`, et histogram i sekunder, med funksjonens navn i datapunktattributtet `faas.name`: grupper målingen etter det på siden **Målinger** eller i et dashbord for latensen til hver funksjon.
 
 Ikke legg til `faas.name` i `OTEL_RESOURCE_ATTRIBUTES` på en Function App, slik det generelle eksempelet i [første trinn](#sett-miljøvariablene-for-otlp-eksportøren) gjør. Programinnstillinger når alle prosessene i appen, så telemetrien fra alle funksjonene ville bære det ene navnet, og OneUptime erstatter aldri et `faas.name` det får. Microsofts veiledning sier det samme: ikke legg funksjonsspesifikke verdier på ressursen. La det være usatt, så får funksjonen navn etter appen.
 
@@ -125,7 +125,7 @@ Legg til `"telemetryMode": "OpenTelemetry"` i roten av appens `host.json`:
 }
 ```
 
-Verten sender da, uansett appens språk, sine egne spor (et span per kall, pluss prosessor-spans fra Service Bus og Event Hubs bak utløste funksjoner), loggene sine og metrikker, blant annet `faas.invoke_duration`.
+Verten sender da, uansett appens språk, sine egne spor (et span per kall, pluss prosessor-spans fra Service Bus og Event Hubs bak utløste funksjoner), loggene sine og målinger, blant annet `faas.invoke_duration`.
 
 ### Rett verten mot OneUptime
 
@@ -183,7 +183,7 @@ Sett `OTEL_SERVICE_NAME` til Function App-ens eget navn. Det er navnet verten og
 
 ## Hva du får
 
-Så snart funksjonen sender et span, en logg eller en metrikk, vises den under **Serverløse funksjoner**. **Oversikt** for funksjonen viser:
+Så snart funksjonen sender et span, en logg eller en måling, vises den under **Serverløse funksjoner**. **Oversikt** for funksjonen viser:
 
 - **Anrop**, **feilrate** og **p95-varighet**, beregnet ut fra sporene dine over et tidsrom du velger, med trenddiagrammer.
 - **Instanser**: en direkteliste over `faas.instance`-verdiene funksjonen rapporterer.
@@ -224,7 +224,7 @@ En funksjon viser **Ingen nylige anrop** når OneUptime ikke har mottatt noe fra
 ## Neste trinn
 
 :::cards
-- [OpenTelemetry](/docs/telemetry/open-telemetry): Send spor, logger og metrikker fra et hvilket som helst program.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send spor, logger og målinger fra et hvilket som helst program.
 - [Køer](/docs/telemetry/queues): Køene og emnene funksjonene dine publiserer til og konsumerer fra.
 - [Trase-overvåking](/docs/monitor/traces-monitor): Varsle om mislykkede eller trege kall til en funksjon.
 :::
