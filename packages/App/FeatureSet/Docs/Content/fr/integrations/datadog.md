@@ -55,7 +55,7 @@ Ensuite, [configurez Datadog](#configurer-datadog) pour qu'il envoie ses alertes
 
 ### Ce que fait le flux de travail
 
-Après le déclencheur **Webhook**, l'étape **Check With JavaScript** `read-event-1` lit la `transition` qu'envoie Datadog, et **Incident From Another Tool**, ou **Alert From Another Tool** dans le modèle des alertes, fait ce qu'elle signifie, d'après la clé de cycle de l'alerte. Datadog garde cette clé depuis le moment où une alerte se déclenche jusqu'à son rétablissement, et la fois suivante où elle se déclenche, la clé est nouvelle : chaque fois a donc son propre incident. L'incident garde la clé dans son champ personnalisé `datadogAlertCycleKey`.
+Après le déclencheur **Webhook**, l'étape **Vérifier avec JavaScript** `read-event-1` lit la `transition` qu'envoie Datadog, et **Incident depuis un autre outil**, ou **Alerte depuis un autre outil** dans le modèle des alertes, fait ce qu'elle signifie, d'après la clé de cycle de l'alerte. Datadog garde cette clé depuis le moment où une alerte se déclenche jusqu'à son rétablissement, et la fois suivante où elle se déclenche, la clé est nouvelle : chaque fois a donc son propre incident. L'incident garde la clé dans son champ personnalisé `datadogAlertCycleKey`.
 
 | Transition | Ce que fait le flux de travail |
 | --- | --- |
@@ -82,7 +82,7 @@ Un nouvel incident prévient les politiques d'astreinte que vous avez choisies q
 Avec vos propres gravités, P1, P2 et l'absence de priorité vont à la plus grave, P3 à celle du milieu, et P4 et P5 à la moins grave.
 
 - Pour faire correspondre une priorité à l'une de vos gravités par son nom, modifiez `SEVERITY_BY_NAME` dans l'étape `read-event-1`, par exemple `{ P3: 'Minor Incident' }`.
-- Pour prévenir aussi pour P3, mettez **Comparer avec** de l'étape `if-page-1` **If / Else** à `3`.
+- Pour prévenir aussi pour P3, mettez **Comparer avec** de l'étape `if-page-1` **Si / Sinon** à `3`.
 
 ## Recevoir les alertes avec un moniteur
 

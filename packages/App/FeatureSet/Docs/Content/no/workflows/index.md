@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Nei"| saved["Kjøringen lagres med trinn og logg"]
 ```
 
-Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen kode i det hele tatt; når én gjør det, kjører en **Run Custom JavaScript**-blokk noen linjer JavaScript.
+Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen kode i det hele tatt; når én gjør det, kjører en **Kjør egen JavaScript**-blokk noen linjer JavaScript.
 
 ## Hva du kan bruke arbeidsflyter til
 
@@ -44,7 +44,7 @@ Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen
 - **Reager på det som skjer i OneUptime** — når en hendelse opprettes, gi beskjed i riktig kanal og åpne en sak automatisk.
 - **Kjør jobber etter en tidsplan** — hvert femte minutt, hver natt, hver mandag morgen.
 - **Ta imot data utenfra** — la andre systemer starte en arbeidsflyt ved å kalle URL-en dens eller sende e-post til adressen dens.
-- **Gjenbruk felles automatisering** — bygg den én gang, og start den fra en hvilken som helst annen arbeidsflyt med en **Execute Workflow**-blokk.
+- **Gjenbruk felles automatisering** — bygg den én gang, og start den fra en hvilken som helst annen arbeidsflyt med en **Kjør en annen arbeidsflyt**-blokk.
 
 ## Sentrale begreper
 
@@ -107,7 +107,7 @@ Denne arbeidsflyten sender et JSON-sammendrag av hver ny hendelse til en URL du 
 
 ```mermaid title="Det ferdige eksempelet"
 flowchart TB
-    trigger["On Create Incident"] -->|"Suksess"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Suksess"| post["API-kall POST (JSON)"]
     post -->|"Feil"| log["Logg"]
     post -->|"Suksess"| done["Kjøringen slutter"]
 ```
@@ -130,13 +130,13 @@ Triggeren tar plassen til den stiplede blokken. ID-en på den, `incident-on-crea
 
 ### Velg feltene til hendelsen
 
-Klikk på triggeren. **Fields to pass on** starter med tittelen: klikk på **Legg til felt**, kryss av for beskrivelsen og de andre feltene forespørselen skal ha med, og klikk på **Lagre**.
+Klikk på triggeren. **Felt som sendes videre** starter med tittelen: klikk på **Legg til felt**, kryss av for beskrivelsen og de andre feltene forespørselen skal ha med, og klikk på **Lagre**.
 
 Triggeren sender den nye hendelsen videre med disse feltene. Et felt du ikke velger, kommer tomt frem.
 
 ### Legg til API-blokken
 
-Klikk på **Legg til komponent**, og klikk deretter på **API Post (JSON)** under **Populære**. Dra fra triggerens punkt **Suksess** ned til det øverste punktet på den nye blokken.
+Klikk på **Legg til komponent**, og klikk deretter på **API-kall POST (JSON)** under **Populære**. Dra fra triggerens punkt **Suksess** ned til det øverste punktet på den nye blokken.
 
 ### Fyll ut forespørselen
 
@@ -162,7 +162,7 @@ En forespørsel som mislykkes — en URL som ikke kan nås, eller et svar som ik
 
 Klikk på **Kjør arbeidsflyt**, og velg en hendelse i dette prosjektet under **Hendelse**: de nyeste er listet opp, og når du skriver inn nummeret eller en del av tittelen, finner du en annen. Klikk på **Kjør arbeidsflyten manuelt**, og bekreft med **Kjør**. Arbeidsflyten er fortsatt slått av, så dette er en **Testkjøring**, og forespørselen blir virkelig sendt.
 
-Et panel **Arbeidsflytkjøring** åpnes og følger kjøringen. Åpne trinnet **API Post (JSON)** for å se bodyen det sendte, og svaret det fikk.
+Et panel **Arbeidsflytkjøring** åpnes og følger kjøringen. Åpne trinnet **API-kall POST (JSON)** for å se bodyen det sendte, og svaret det fikk.
 
 ### Slå den på
 

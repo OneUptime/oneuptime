@@ -1469,7 +1469,10 @@ describe("the IRC page's diagram", () => {
         return line.trim().startsWith("loop ");
       });
 
-      expect(lines[optAt]).toContain("Send Without Joining");
+      // As the settings form names it in this language (#8359).
+      expect(lines[optAt]).toContain(
+        dashboardWord(language, "Send Without Joining"),
+      );
       expect(lines[optAt + 1]).toContain("JOIN");
       // The setting, as the language's settings form names it.
       expect(lines[loopAt]).toContain(dashboardWord(language, "Message Text"));

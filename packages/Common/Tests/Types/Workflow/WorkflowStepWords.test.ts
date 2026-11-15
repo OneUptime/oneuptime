@@ -201,9 +201,11 @@ describe("the incident and the alert step, each in its own words", () => {
     },
   };
 
-  test.each(FROM_ANOTHER_TOOL_KINDS.map((kind: FromAnotherToolKind) => {
-    return [kind.Noun, kind];
-  }))(
+  test.each(
+    FROM_ANOTHER_TOOL_KINDS.map((kind: FromAnotherToolKind) => {
+      return [kind.Noun, kind];
+    }),
+  )(
     "%s From Another Tool says what it said, for its kind",
     (_noun: string, kind: FromAnotherToolKind) => {
       const old: { n: string; opens: string; Opens: string; opened: string } =
@@ -344,8 +346,8 @@ describe("marking a word changes nothing a workflow reads", () => {
     expect(
       returnValueOf(stepOf(ComponentID.ApiPost), "response-status").name,
     ).toBe("Response Status");
-    expect(argumentOf(stepOf(ComponentID.IRCSendMessageToChannel), "server").name).toBe(
-      "IRC Server",
-    );
+    expect(
+      argumentOf(stepOf(ComponentID.IRCSendMessageToChannel), "server").name,
+    ).toBe("IRC Server");
   });
 });

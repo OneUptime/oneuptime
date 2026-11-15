@@ -48,11 +48,11 @@ flowchart TB
 
 ### 트리거 추가하기
 
-점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **Fields to pass on**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
+점선으로 된 **이 워크플로를 시작할 항목 선택** 블록을 클릭하고 **On Create Incident**를 고릅니다. 트리거를 클릭합니다. **넘겨줄 필드**에는 **제목**이 이미 들어 있으므로, **필드 추가**를 클릭하고 **설명**을 고릅니다.
 
 ### trigger 이벤트 보내기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://events.pagerduty.com/v2/enqueue`로, **요청 본문**을 다음으로 설정합니다:
+**구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **URL**을 `https://events.pagerduty.com/v2/enqueue`로, **요청 본문**을 다음으로 설정합니다:
 
 ```json
 {
@@ -72,7 +72,7 @@ flowchart TB
 
 ### 테스트한 다음 켜기
 
-**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API Post (JSON)** 단계에 `"status": "success"`가 담긴 `202` 응답이 표시되고, PagerDuty가 인시던트를 엽니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
+**워크플로 실행**을 클릭하고 **인시던트**에서 테스트 인시던트를 고른 다음 실행합니다. **API 호출 POST (JSON)** 단계에 `"status": "success"`가 담긴 `202` 응답이 표시되고, PagerDuty가 인시던트를 엽니다. 그런 다음 **빌더** 상단에서 **활성화됨**을 켭니다.
 :::
 
 블록은 JSON을 보내므로 `Content-Type` 헤더가 필요 없습니다. PagerDuty의 `severity`는 `critical`, `error`, `warning`, `info` 중 하나입니다. 인시던트마다 그 심각도를 보내려면 [심각도 매핑](#심각도-매핑)을 참고하세요.
@@ -84,7 +84,7 @@ flowchart TB
 :::steps
 ### On Update Incident 트리거 추가하기
 
-`Resolve PagerDuty incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **Fields to pass on**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
+`Resolve PagerDuty incidents`라는 워크플로를 만들고 트리거로 **On Update Incident**를 고릅니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 골라 상태가 바뀔 때만 실행되게 합니다. **넘겨줄 필드**에서 새 상태가 해결된 상태인지 요청합니다. **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다. 또는 **JSON으로 편집**을 클릭하고 JSON을 다음으로 바꿉니다:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }
@@ -92,11 +92,11 @@ flowchart TB
 
 ### 인시던트가 해결되었는지 확인하기
 
-트리거 뒤에 **If / Else** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
+트리거 뒤에 **조건 분기** 블록을 추가합니다. **확인할 값**을 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`로, **비교**를 **참임**으로 설정합니다.
 
 ### resolve 이벤트 보내기
 
-**예** 쪽 뒤에 같은 **URL**과 다음 **요청 본문**을 가진 **API Post (JSON)** 블록을 추가합니다:
+**예** 쪽 뒤에 같은 **URL**과 다음 **요청 본문**을 가진 **API 호출 POST (JSON)** 블록을 추가합니다:
 
 ```json
 {
@@ -115,10 +115,10 @@ flowchart TB
 
 ## 심각도 매핑
 
-인시던트마다 그 심각도를 보내려면 트리거와 **API Post (JSON)** 블록 사이에 **Run Custom JavaScript** 블록을 추가하고, 그 응답을 본문에서 읽습니다.
+인시던트마다 그 심각도를 보내려면 트리거와 **API 호출 POST (JSON)** 블록 사이에 **사용자 지정 JavaScript 실행** 블록을 추가하고, 그 응답을 본문에서 읽습니다.
 
-1. 트리거의 **Fields to pass on**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
-2. 블록의 **Arguments**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript 코드**를 다음으로 설정합니다:
+1. 트리거의 **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **인시던트 심각도**를 연 다음 **이름**을 고릅니다.
+2. 블록의 **인수**를 `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }`로, **JavaScript 코드**를 다음으로 설정합니다:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -138,7 +138,7 @@ flowchart TB
 ## 문제 해결
 
 :::details PagerDuty가 400으로 응답함
-응답 본문에 PagerDuty가 거부한 내용이 있으며, 실행의 **API Post (JSON)** 단계에 표시됩니다. 대개 라우팅 키가 Events API v2 통합 키가 아닌 경우입니다. 서비스의 **Integrations**에서 다시 복사하세요. `summary`, `source`, `severity`가 없는 이벤트도 거부됩니다.
+응답 본문에 PagerDuty가 거부한 내용이 있으며, 실행의 **API 호출 POST (JSON)** 단계에 표시됩니다. 대개 라우팅 키가 Events API v2 통합 키가 아닌 경우입니다. 서비스의 **Integrations**에서 다시 복사하세요. `summary`, `source`, `severity`가 없는 이벤트도 거부됩니다.
 :::
 
 :::details resolve 이벤트가 아무것도 닫지 않음
@@ -146,7 +146,7 @@ flowchart TB
 :::
 
 :::details 워크플로가 실행되지 않음
-켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **If / Else** 블록의 **아니오** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
+켜져 있는지 확인하세요. **빌더** 상단의 **활성화됨**입니다. 그런 다음 **로그 → 실행 기록**을 여세요. **조건 분기** 블록의 **아니오** 쪽으로 간 실행은 해결이 아닌 업데이트입니다.
 :::
 
 :::details PagerDuty에 값 대신 참조가 표시됨

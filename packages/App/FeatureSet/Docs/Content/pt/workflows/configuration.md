@@ -11,7 +11,7 @@ O que saber antes de colocar um workflow diante de tráfego real: como ligá-lo 
 
 ## Ligar e desligar um workflow
 
-Todo workflow tem uma chave **Habilitado** no topo do **Construtor** dele e na página **Visão geral**. Quando está desligado, o gatilho dele fica pausado — chamadas de webhook, e-mails recebidos, horários agendados, eventos do OneUptime e os passos **Execute Workflow** de outros workflows não o iniciam. **Executar fluxo de trabalho** e **Run just this step** iniciam: uma execução que você mesmo inicia enquanto o workflow está desligado é uma **Execução de teste**. Os novos workflows começam desabilitados.
+Todo workflow tem uma chave **Habilitado** no topo do **Construtor** dele e na página **Visão geral**. Quando está desligado, o gatilho dele fica pausado — chamadas de webhook, e-mails recebidos, horários agendados, eventos do OneUptime e os passos **Executar outro fluxo de trabalho** de outros workflows não o iniciam. **Executar fluxo de trabalho** e **Run just this step** iniciam: uma execução que você mesmo inicia enquanto o workflow está desligado é uma **Execução de teste**. Os novos workflows começam desabilitados.
 
 Use essa chave como o seu sinal de «pronto para rodar»:
 
@@ -22,14 +22,14 @@ Use essa chave como o seu sinal de «pronto para rodar»:
 4. Ligue **Habilitado** quando estiver pronto: a partir daí, o gatilho dispara com eventos reais.
 :::
 
-Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Sleep** é cancelada ao acordar. As execuções de teste continuam. Para ligar ou desligar vários de uma vez, selecione-os na lista **Fluxos de trabalho** e escolha **Ativar** ou **Desativar** em **Ações em massa**.
+Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Pausa** é cancelada ao acordar. As execuções de teste continuam. Para ligar ou desligar vários de uma vez, selecione-os na lista **Fluxos de trabalho** e escolha **Ativar** ou **Desativar** em **Ações em massa**.
 
 ## Arquivar um workflow
 
 Arquive um workflow de que você não precisa mais, mas quer guardar. Um workflow arquivado:
 
-- **Nunca roda**, por nenhum gatilho. Execuções manuais e **Run just this step**, chamadas de webhook, agendamentos, eventos do OneUptime, e-mails recebidos e passos **Execute Workflow** de outros workflows são todos recusados. Uma chamada de webhook para um workflow arquivado recebe um erro dizendo que o workflow está arquivado.
-- **Para as execuções que estão esperando.** Uma execução adormecida em um passo **Sleep** é cancelada ao acordar, e uma execução que estava na fila mas ainda não tinha começado termina com "Workflow was archived before this run started, so it did not run."
+- **Nunca roda**, por nenhum gatilho. Execuções manuais e **Run just this step**, chamadas de webhook, agendamentos, eventos do OneUptime, e-mails recebidos e passos **Executar outro fluxo de trabalho** de outros workflows são todos recusados. Uma chamada de webhook para um workflow arquivado recebe um erro dizendo que o workflow está arquivado.
+- **Para as execuções que estão esperando.** Uma execução adormecida em um passo **Pausa** é cancelada ao acordar, e uma execução que estava na fila mas ainda não tinha começado termina com "Workflow was archived before this run started, so it did not run."
 - **Sai da lista de workflows.** Você o encontra em **Fluxos de trabalho → Avançado → Arquivado**.
 - **Mantém tudo.** Os passos, as variáveis, os proprietários, os rótulos e o histórico de execuções dele continuam como estavam.
 
@@ -96,7 +96,7 @@ Os gatilhos de webhook dão a você uma URL única. Qualquer pessoa que conheça
 - Trate a URL como uma senha. Não a compartilhe publicamente nem a coloque em um repositório público. O gatilho Webhook oculta a chave secreta da URL até você clicar em **Mostrar**, e **Copiar URL** copia a URL sem mostrá-la.
 - Se a URL vazar, clique no gatilho Webhook no **Construtor** e depois em **Redefinir URL**. O workflow recebe uma URL nova e a antiga para de funcionar na hora.
 - Se o gatilho disser que a URL dele termina com o ID do workflow, redefina-a. Workflows criados antes de as URLs de webhook terem uma chave secreta própria usam o ID do workflow no lugar dela, e qualquer pessoa que pode abrir o workflow consegue vê-lo.
-- Para workflows sensíveis, peça ao sistema que chama que envie um token compartilhado em um cabeçalho (como `X-Webhook-Token`) e verifique-o com um bloco **If / Else** antes de fazer qualquer coisa importante. Salve o token esperado como variável secreta.
+- Para workflows sensíveis, peça ao sistema que chama que envie um token compartilhado em um cabeçalho (como `X-Webhook-Token`) e verifique-o com um bloco **Se / Senão** antes de fazer qualquer coisa importante. Salve o token esperado como variável secreta.
 - Para workflows muito sensíveis, prefira um gatilho de evento do OneUptime e um passo de importação manual a um webhook público.
 
 Só quem pode editar o workflow — **Proprietário do projeto**, **Administrador do projeto**, **Administrador de fluxos de trabalho** ou **Edit Workflow** — pode ver ou redefinir a URL de webhook dele. Qualquer pessoa com a URL pode iniciar o workflow de qualquer lugar, sem fazer login, então todos os outros veem uma nota dizendo a quem pedir. Isso inclui um **Membro de fluxos de trabalho**, que roda o workflow manualmente pelo **Construtor**.
@@ -107,7 +107,7 @@ O gatilho Incoming Email dá ao workflow um endereço próprio, e qualquer pesso
 
 - Não o publique nem o coloque em um repositório público. O gatilho oculta a chave até você clicar em **Mostrar**, e **Copiar endereço** copia o endereço sem mostrá-lo.
 - Se o endereço vazar, clique no gatilho Incoming Email no **Construtor** e depois em **Redefinir endereço**. O workflow recebe um endereço novo, e e-mails para o antigo passam a ser ignorados.
-- Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **De** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **If / Else**. Salve o token esperado como variável secreta.
+- Qualquer pessoa pode colocar qualquer remetente em um e-mail, então **De** não prova quem o enviou. Antes que um workflow faça algo importante, verifique algo que só o remetente real saiba — um token no assunto ou em um cabeçalho — com um bloco **Se / Senão**. Salve o token esperado como variável secreta.
 - A chave fica oculta em tudo o que a execução recebe — **Para**, **CC**, os cabeçalhos e os corpos —, porque o log da execução fica visível para qualquer pessoa que pode ler as execuções do workflow.
 
 Só quem pode editar o workflow — **Proprietário do projeto**, **Administrador do projeto**, **Administrador de fluxos de trabalho** ou **Edit Workflow** — pode ver ou redefinir o endereço dele. Todos os outros veem uma nota dizendo a quem pedir.
@@ -120,27 +120,27 @@ Os endereços que um bloco pode alcançar dependem do bloco:
 
 | Blocos                                                     | Loopback, link-local, metadados de nuvem                                      | Endereços de rede privada                                                                                                                 |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Os blocos **API** e **Mattermost**, e as requisições de **Run Custom JavaScript** | Recusados, a menos que o host exato esteja em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Recusados, a menos que um administrador self-hosted os permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** e as URLs de token OAuth 2.0       | Recusados                                                                     | Recusados no OneUptime Cloud. Permitidos em uma instalação self-hosted, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`     |
+| Os blocos **API** e **Mattermost**, e as requisições de **Executar JavaScript personalizado** | Recusados, a menos que o host exato esteja em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Recusados, a menos que um administrador self-hosted os permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Enviar e-mail**, **IRC** e as URLs de token OAuth 2.0       | Recusados                                                                     | Recusados no OneUptime Cloud. Permitidos em uma instalação self-hosted, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`     |
 | Slack, Microsoft Teams, Discord e Telegram                 | Recusados                                                                     | Recusados: cada um só envia para os endereços do próprio serviço                                                                          |
 
 Veja [Acesso a redes privadas](/docs/self-hosted/private-network-access) para saber como um administrador self-hosted os libera.
 
 ## Componentes de AI
 
-**Generate Text with AI** envia uma requisição a um LLM: o provedor de LLM padrão do projeto, ou o provedor global da instalação quando o projeto não tem um. Configure os provedores em **Configurações do projeto → IA → Provedores LLM**, e nunca coloque a chave de API de um provedor ou um endpoint seu em um workflow.
+**Gerar texto com IA** envia uma requisição a um LLM: o provedor de LLM padrão do projeto, ou o provedor global da instalação quando o projeto não tem um. Configure os provedores em **Configurações do projeto → IA → Provedores LLM**, e nunca coloque a chave de API de um provedor ou um endpoint seu em um workflow.
 
 O que o provedor recebe, e o que o modelo pode fazer com isso:
 
-- **Só o que você coloca no bloco.** O OneUptime envia uma instrução de segurança fixa e depois as **System Instructions**, o **Prompt** e o **Contexto** do bloco, com as referências preenchidas. **Contexto** vem por último, depois de um marcador, e a instrução de segurança diz ao modelo que tudo o que vem depois do marcador são dados não confiáveis, mesmo um texto que pareça instruções.
+- **Só o que você coloca no bloco.** O OneUptime envia uma instrução de segurança fixa e depois as **Instruções do sistema**, o **Prompt** e o **Contexto** do bloco, com as referências preenchidas. **Contexto** vem por último, depois de um marcador, e a instrução de segurança diz ao modelo que tudo o que vem depois do marcador são dados não confiáveis, mesmo um texto que pareça instruções.
 - **Nada mais.** Os dados do gatilho, o histórico do workflow, as saídas de outros blocos, os registros do projeto, a telemetria e os segredos nunca são anexados. Eles só saem do OneUptime quando você faz referência a eles em uma dessas três configurações.
 - **Texto, e nenhuma ferramenta.** O modelo não consegue consultar o OneUptime, fazer requisições HTTP nem alterar dados. Os parâmetros adicionais de um provedor só deixam passar uma lista permitida de campos de ajuste da geração: eles não podem substituir as mensagens, acrescentar ferramentas, busca na web ou outras fontes de dados, pedir algo além de texto ou várias respostas, ativar streaming, fazer o provedor guardar a requisição nem aumentar o limite de saída do bloco. Os campos que o OneUptime não conhece são descartados.
 - **O modelo é escolha do seu administrador.** Se a geração precisa ficar offline, escolha um modelo que não busque nada por conta própria do lado do provedor.
 
 O que é registrado:
 
-- O log da execução oculta as **System Instructions**, o **Prompt**, o **Contexto** e a **Resposta** do bloco. Os blocos seguintes ainda podem usá-los durante a execução, e um bloco em que você insere um deles o registra pelas regras dele, então inseri-lo é uma escolha de mostrá-lo.
-- O provedor, o modelo, as contagens de tokens, o **LLM Log ID** e uma mensagem de erro segura continuam visíveis, para operação e cobrança. O erro bruto de um provedor fica fora de todos os logs, porque um provedor pode repetir a requisição nele.
+- O log da execução oculta as **Instruções do sistema**, o **Prompt**, o **Contexto** e a **Resposta** do bloco. Os blocos seguintes ainda podem usá-los durante a execução, e um bloco em que você insere um deles o registra pelas regras dele, então inseri-lo é uma escolha de mostrá-lo.
+- O provedor, o modelo, as contagens de tokens, o **ID do log de LLM** e uma mensagem de erro segura continuam visíveis, para operação e cobrança. O erro bruto de um provedor fica fora de todos os logs, porque um provedor pode repetir a requisição nele.
 - Cada chamada aparece em **Configurações do projeto → IA → Registros de IA** com o provedor, o modelo, o status, os tokens, o custo e a cobrança, sem o prompt, a resposta nem o erro bruto.
 
 Do que o bloco precisa, e quanto ele custa:
@@ -151,9 +151,9 @@ Do que o bloco precisa, e quanto ele custa:
 
 | Limite                                                       | Valor                                                                     |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** e **Contexto** juntos     | 50.000 caracteres                                                         |
+| **Instruções do sistema**, **Prompt** e **Contexto** juntos     | 50.000 caracteres                                                         |
 | **Temperatura**                                              | De `0` a `1`                                                              |
-| **Maximum Output Tokens**                                    | De `1` a `4096`, `1024` por padrão                                        |
+| **Máximo de tokens de saída**                                    | De `1` a `4096`, `1024` por padrão                                        |
 | Uma requisição                                               | Uma única tentativa, de no máximo 60 segundos                             |
 | Chamadas ao mesmo tempo                                      | 3 por projeto. As demais tomam **Erro**, e uma execução posterior pode tentar de novo. |
 
@@ -220,24 +220,24 @@ A janela é móvel: cada execução que o projeto registra, manual ou por um gat
 
 | Limite                                                       | Padrão             | Configuração self-hosted        |
 | ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Uma execução, desde o início ou desde que acorda depois de um **Sleep** | 2 minutos | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Um bloco **Run Custom JavaScript**                           | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Um bloco **Sleep**                                           | No máximo 30 dias  | —                               |
+| Uma execução, desde o início ou desde que acorda depois de um **Pausa** | 2 minutos | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Um bloco **Executar JavaScript personalizado**                           | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Um bloco **Pausa**                                           | No máximo 30 dias  | —                               |
 
-O executor verifica o prazo antes e depois de cada bloco, e marca uma execução atrasada como **Tempo esgotado** assim que retoma o controle. Ele não consegue interromper um bloco no meio, então os blocos que esperam pela rede têm limites de tempo próprios: uma requisição de Generate Text with AI desiste depois de no máximo 60 segundos, e uma requisição de token OAuth 2.0 depois de 20. Uma espera em um bloco **Sleep** não conta para o tempo de uma execução: a execução é deixada de lado e recebe 2 minutos novos ao acordar.
+O executor verifica o prazo antes e depois de cada bloco, e marca uma execução atrasada como **Tempo esgotado** assim que retoma o controle. Ele não consegue interromper um bloco no meio, então os blocos que esperam pela rede têm limites de tempo próprios: uma requisição de Generate Text with AI desiste depois de no máximo 60 segundos, e uma requisição de token OAuth 2.0 depois de 20. Uma espera em um bloco **Pausa** não conta para o tempo de uma execução: a execução é deixada de lado e recebe 2 minutos novos ao acordar.
 
 ## Limite para chamar outros workflows
 
-O componente **Execute Workflow** permite que um workflow inicie outro. Para evitar loops em que o workflow A inicia o B, que inicia o A de novo, uma cadeia de workflows que se iniciam uns aos outros é recusada quando voltaria a um workflow que já está nela, ou passaria de 10 workflows de profundidade. O bloco **Execute Workflow** então toma a saída **Erro**, e o erro mostra a cadeia.
+O componente **Executar outro fluxo de trabalho** permite que um workflow inicie outro. Para evitar loops em que o workflow A inicia o B, que inicia o A de novo, uma cadeia de workflows que se iniciam uns aos outros é recusada quando voltaria a um workflow que já está nela, ou passaria de 10 workflows de profundidade. O bloco **Executar outro fluxo de trabalho** então toma a saída **Erro**, e o erro mostra a cadeia.
 
-Se você precisa mesmo de uma cadeia longa (como um job que processa um item por execução), normalmente é mais simples fazer o loop dentro de um único workflow com **Run Custom JavaScript**.
+Se você precisa mesmo de uma cadeia longa (como um job que processa um item por execução), normalmente é mais simples fazer o loop dentro de um único workflow com **Executar JavaScript personalizado**.
 
 ## Quando workflow não é a ferramenta certa
 
 Alguns casos em que vale usar outra coisa:
 
 - **Processamento pesado ou grandes volumes de dados** — os workflows foram feitos para um trabalho leve de integração, não para processar números em massa. Rode o trabalho pesado na sua própria infraestrutura e deixe um workflow dispará-lo.
-- **Processamento ativo de longa duração** — uma execução tem 2 minutos por padrão. Para uma espera passiva como «faça A, espere duas horas, faça B», use o componente **Sleep**; ele deixa a execução de lado e a retoma depois, sem ocupar um worker.
+- **Processamento ativo de longa duração** — uma execução tem 2 minutos por padrão. Para uma espera passiva como «faça A, espere duas horas, faça B», use o componente **Pausa**; ele deixa a execução de lado e a retoma depois, sem ocupar um worker.
 - **Resposta a incidentes passo a passo com pessoas envolvidas** — é para isso que existem os [Runbooks](/docs/runbooks/index). Os workflows são para automação sem supervisão.
 
 ## Próximos passos

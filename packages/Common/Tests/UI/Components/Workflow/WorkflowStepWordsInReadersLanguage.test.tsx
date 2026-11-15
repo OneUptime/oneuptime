@@ -264,7 +264,11 @@ describe("the locales word the step words these draw", () => {
       expect(LOCALES["en"]![english]).toBe(english);
 
       for (const language of TRANSLATED) {
-        expect({ language, english, worded: drawn(language, english) !== english }).toEqual({
+        expect({
+          language,
+          english,
+          worded: drawn(language, english) !== english,
+        }).toEqual({
           language,
           english,
           worded: true,
@@ -302,9 +306,9 @@ describe("the canvas card", () => {
         expect(title).toHaveTextContent("API Post (JSON)");
       } else {
         expect(title).not.toHaveTextContent("API Post (JSON)");
-        expect(screen.getByTestId("workflow-node-description")).not.toHaveTextContent(
-          "Send a POST Request",
-        );
+        expect(
+          screen.getByTestId("workflow-node-description"),
+        ).not.toHaveTextContent("Send a POST Request");
       }
 
       if (RIGHT_TO_LEFT.includes(language)) {
@@ -321,7 +325,10 @@ describe("the canvas card", () => {
       expect(screen.getByTestId("workflow-node-title")).toHaveTextContent(
         drawn(language, "If / Else"),
       );
-      expect(outputNames()).toEqual([drawn(language, "Yes"), drawn(language, "No")]);
+      expect(outputNames()).toEqual([
+        drawn(language, "Yes"),
+        drawn(language, "No"),
+      ]);
 
       cleanup();
       drawCard(language, IRC);
@@ -356,8 +363,17 @@ describe("the settings form", () => {
 
       const labels: string = fieldLabels();
 
-      for (const name of ["IRC Server", "Channel", "Message Text", "Nickname"]) {
-        expect({ language, name, drawn: labels.includes(drawn(language, name)) }).toEqual({
+      for (const name of [
+        "IRC Server",
+        "Channel",
+        "Message Text",
+        "Nickname",
+      ]) {
+        expect({
+          language,
+          name,
+          drawn: labels.includes(drawn(language, name)),
+        }).toEqual({
           language,
           name,
           drawn: true,
@@ -376,7 +392,10 @@ describe("the settings form", () => {
     async (language: string) => {
       drawSettings(language, IRC);
 
-      const help: string = drawn(language, argumentOf(IRC, "server").description);
+      const help: string = drawn(
+        language,
+        argumentOf(IRC, "server").description,
+      );
 
       await waitFor(() => {
         expect(document.body.textContent).toContain(help);

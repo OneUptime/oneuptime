@@ -11,7 +11,7 @@ Cosa sapere prima di mettere un flusso di lavoro davanti al traffico reale: come
 
 ## Accendere o spegnere un flusso di lavoro
 
-Ogni flusso di lavoro ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il suo trigger è in pausa: chiamate webhook, email in arrivo, orari pianificati, eventi di OneUptime e i passaggi **Execute Workflow** di altri flussi di lavoro non lo avviano. **Esegui flusso di lavoro** e **Run just this step** invece sì: un'esecuzione che avvii tu stesso mentre il flusso di lavoro è spento è un'**Esecuzione di prova**. I nuovi flussi di lavoro partono disabilitati.
+Ogni flusso di lavoro ha un interruttore **Abilitato** in cima al suo **Costruttore** e nella sua pagina **Panoramica**. Quando è spento, il suo trigger è in pausa: chiamate webhook, email in arrivo, orari pianificati, eventi di OneUptime e i passaggi **Esegui un altro flusso di lavoro** di altri flussi di lavoro non lo avviano. **Esegui flusso di lavoro** e **Run just this step** invece sì: un'esecuzione che avvii tu stesso mentre il flusso di lavoro è spento è un'**Esecuzione di prova**. I nuovi flussi di lavoro partono disabilitati.
 
 Usa questo interruttore come via libera per la produzione:
 
@@ -22,14 +22,14 @@ Usa questo interruttore come via libera per la produzione:
 4. Accendi **Abilitato** quando è pronto: da quel momento, il suo trigger scatta sugli eventi reali.
 :::
 
-Spegnere un flusso di lavoro impedisce al suo trigger di avviare nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione avviata dal suo trigger e in attesa su un blocco **Sleep** viene annullata al risveglio. Le esecuzioni di prova continuano. Per accenderne o spegnerne diversi insieme, selezionali nell'elenco **Flussi di lavoro** e scegli **Attiva** o **Disattiva** in **Azioni di massa**.
+Spegnere un flusso di lavoro impedisce al suo trigger di avviare nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione avviata dal suo trigger e in attesa su un blocco **Pausa** viene annullata al risveglio. Le esecuzioni di prova continuano. Per accenderne o spegnerne diversi insieme, selezionali nell'elenco **Flussi di lavoro** e scegli **Attiva** o **Disattiva** in **Azioni di massa**.
 
 ## Archiviare un flusso di lavoro
 
 Archivia un flusso di lavoro che non ti serve più ma che vuoi conservare. Un flusso di lavoro archiviato:
 
-- **Non viene mai eseguito**, da nessun trigger. Le esecuzioni manuali e **Run just this step**, le chiamate webhook, le pianificazioni, gli eventi di OneUptime, le email in arrivo e i passaggi **Execute Workflow** di altri flussi di lavoro vengono tutti rifiutati. Una chiamata webhook a un flusso di lavoro archiviato riceve un errore che dice che il flusso di lavoro è archiviato.
-- **Ferma le esecuzioni in attesa.** Un'esecuzione in pausa in un passaggio **Sleep** viene annullata al risveglio, e un'esecuzione in coda non ancora avviata termina con "Workflow was archived before this run started, so it did not run."
+- **Non viene mai eseguito**, da nessun trigger. Le esecuzioni manuali e **Run just this step**, le chiamate webhook, le pianificazioni, gli eventi di OneUptime, le email in arrivo e i passaggi **Esegui un altro flusso di lavoro** di altri flussi di lavoro vengono tutti rifiutati. Una chiamata webhook a un flusso di lavoro archiviato riceve un errore che dice che il flusso di lavoro è archiviato.
+- **Ferma le esecuzioni in attesa.** Un'esecuzione in pausa in un passaggio **Pausa** viene annullata al risveglio, e un'esecuzione in coda non ancora avviata termina con "Workflow was archived before this run started, so it did not run."
 - **Esce dall'elenco dei flussi di lavoro.** Lo trovi in **Flussi di lavoro → Avanzato → Archiviato**.
 - **Conserva tutto.** I suoi passaggi, variabili, proprietari, etichette e la cronologia delle esecuzioni restano com'erano.
 
@@ -96,7 +96,7 @@ I trigger webhook ti danno un URL univoco. Chiunque conosca l'URL può chiamarlo
 - Tratta l'URL come una password. Non condividerlo pubblicamente e non inserirlo in un repository pubblico. Il trigger Webhook nasconde la chiave segreta dell'URL finché non fai clic su **Mostra**, e **Copia URL** copia l'URL senza mostrarlo.
 - Se l'URL trapela, fai clic sul trigger Webhook nel **Costruttore** e poi su **Reimposta URL**. Il flusso di lavoro riceve un nuovo URL e quello vecchio smette subito di funzionare.
 - Se il trigger dice che il suo URL termina con l'ID del flusso di lavoro, reimpostalo. I flussi di lavoro creati prima che gli URL di webhook avessero una propria chiave segreta usano invece l'ID del flusso di lavoro, che chiunque possa aprire il flusso di lavoro può vedere.
-- Per i flussi di lavoro sensibili, chiedi al sistema chiamante di inviare un token condiviso in un header (come `X-Webhook-Token`) e verificalo con un blocco **If / Else** prima di fare qualcosa di importante. Salva il token atteso come variabile segreta.
+- Per i flussi di lavoro sensibili, chiedi al sistema chiamante di inviare un token condiviso in un header (come `X-Webhook-Token`) e verificalo con un blocco **Se / Altrimenti** prima di fare qualcosa di importante. Salva il token atteso come variabile segreta.
 - Per i flussi di lavoro molto sensibili, preferisci un trigger di evento OneUptime e un passaggio di importazione manuale a un webhook pubblico.
 
 Solo le persone che possono modificare il flusso di lavoro — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo URL di webhook. Chiunque abbia l'URL può avviare il flusso di lavoro da qualsiasi luogo, senza accedere, quindi tutti gli altri vedono una nota che dice a chi chiederlo. Questo include un **Membro dei flussi di lavoro**, che esegue il flusso di lavoro a mano dal **Costruttore**.
@@ -107,7 +107,7 @@ Il trigger Incoming Email dà al flusso di lavoro un indirizzo tutto suo, e chiu
 
 - Non pubblicarlo e non inserirlo in un repository pubblico. Il trigger nasconde la chiave finché non fai clic su **Mostra**, e **Copia indirizzo** copia l'indirizzo senza mostrarlo.
 - Se l'indirizzo trapela, fai clic sul trigger Incoming Email nel **Costruttore** e poi su **Reimposta indirizzo**. Il flusso di lavoro riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
-- Chiunque può mettere qualsiasi mittente su un'email, quindi **Da** non prova chi l'ha inviata. Prima che un flusso di lavoro faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **If / Else**. Salva il token atteso come variabile segreta.
+- Chiunque può mettere qualsiasi mittente su un'email, quindi **Da** non prova chi l'ha inviata. Prima che un flusso di lavoro faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **Se / Altrimenti**. Salva il token atteso come variabile segreta.
 - La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **A**, **CC**, gli header e i corpi — perché il registro dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del flusso di lavoro.
 
 Solo le persone che possono modificare il flusso di lavoro — **Proprietario del progetto**, **Amministratore del progetto**, **Amministratore dei flussi di lavoro** o **Edit Workflow** — possono vedere o reimpostare il suo indirizzo. Tutti gli altri vedono una nota che dice a chi chiederlo.
@@ -120,27 +120,27 @@ Gli indirizzi che un blocco può raggiungere dipendono dal blocco:
 
 | Blocchi                                                    | Loopback, link-local, metadati cloud                                          | Indirizzi di rete privata                                                                                                                 |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| I blocchi **API** e **Mattermost**, e le richieste di **Run Custom JavaScript** | Rifiutati, a meno che l'host esatto non sia indicato in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rifiutati, a meno che un amministratore self-hosted non li consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** e gli URL dei token OAuth 2.0      | Rifiutati                                                                     | Rifiutati su OneUptime Cloud. Consentiti su un'installazione self-hosted, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia `true` |
+| I blocchi **API** e **Mattermost**, e le richieste di **Esegui JavaScript personalizzato** | Rifiutati, a meno che l'host esatto non sia indicato in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rifiutati, a meno che un amministratore self-hosted non li consenta con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Invia email**, **IRC** e gli URL dei token OAuth 2.0      | Rifiutati                                                                     | Rifiutati su OneUptime Cloud. Consentiti su un'installazione self-hosted, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia `true` |
 | Slack, Microsoft Teams, Discord e Telegram                 | Rifiutati                                                                     | Rifiutati: ognuno invia solo agli indirizzi del proprio servizio                                                                          |
 
 Vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access) per come un amministratore self-hosted li apre.
 
 ## Componenti AI
 
-**Generate Text with AI** invia una richiesta a un LLM: il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. Configura i provider in **Impostazioni del progetto → IA → Provider LLM**, e non mettere mai la chiave API di un provider o un tuo endpoint in un flusso di lavoro.
+**Genera testo con l'IA** invia una richiesta a un LLM: il provider LLM predefinito del progetto, o il provider globale dell'installazione quando il progetto non ne ha uno. Configura i provider in **Impostazioni del progetto → IA → Provider LLM**, e non mettere mai la chiave API di un provider o un tuo endpoint in un flusso di lavoro.
 
 Cosa riceve il provider, e cosa può farne il modello:
 
-- **Solo ciò che metti nel blocco.** OneUptime invia un'istruzione di sicurezza fissa, poi le **System Instructions**, il **Prompt** e il **Contesto** del blocco, con i riferimenti compilati. **Contesto** viene per ultimo, dopo un marcatore, e l'istruzione di sicurezza dice al modello che tutto ciò che segue il marcatore sono dati non attendibili, anche un testo che sembra un'istruzione.
+- **Solo ciò che metti nel blocco.** OneUptime invia un'istruzione di sicurezza fissa, poi le **Istruzioni di sistema**, il **Prompt** e il **Contesto** del blocco, con i riferimenti compilati. **Contesto** viene per ultimo, dopo un marcatore, e l'istruzione di sicurezza dice al modello che tutto ciò che segue il marcatore sono dati non attendibili, anche un testo che sembra un'istruzione.
 - **Nient'altro.** I dati del trigger, la cronologia del flusso di lavoro, gli output degli altri blocchi, i record del progetto, la telemetria e i segreti non vengono mai allegati. Lasciano OneUptime solo quando vi fai riferimento in una di quelle tre impostazioni.
 - **Testo, e nessuno strumento.** Il modello non può interrogare OneUptime, fare richieste HTTP o modificare dati. I parametri aggiuntivi di un provider lasciano passare solo un elenco consentito di campi di regolazione della generazione: non possono sostituire i messaggi, aggiungere strumenti, ricerca web o altre fonti di dati, chiedere altro che testo o più risposte, attivare lo streaming, far conservare la richiesta al provider o alzare il limite di output del blocco. I campi che OneUptime non conosce vengono scartati.
 - **Il modello lo sceglie il tuo amministratore.** Se la generazione deve restare offline, scegli un modello che non recuperi nulla da solo dal lato del provider.
 
 Cosa viene registrato:
 
-- Il registro dell'esecuzione nasconde le **System Instructions**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
-- Il provider, il modello, il numero di token, il **LLM Log ID** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
+- Il registro dell'esecuzione nasconde le **Istruzioni di sistema**, il **Prompt**, il **Contesto** e la **Risposta** del blocco. I blocchi successivi possono comunque usarli durante l'esecuzione, e un blocco in cui ne inserisci uno lo registra secondo le proprie regole, quindi inserirlo è una scelta di mostrarlo.
+- Il provider, il modello, il numero di token, il **ID del log LLM** e un messaggio di errore sicuro restano visibili, per l'operatività e la fatturazione. L'errore grezzo di un provider resta fuori da ogni registro, perché un provider può ripetervi la richiesta.
 - Ogni chiamata compare in **Impostazioni del progetto → IA → Registri IA** con provider, modello, stato, token, costo e fatturazione, senza il prompt, la risposta o l'errore grezzo.
 
 Di cosa ha bisogno il blocco, e quanto costa:
@@ -151,9 +151,9 @@ Di cosa ha bisogno il blocco, e quanto costa:
 
 | Limite                                                       | Valore                                                                    |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** e **Contesto** insieme    | 50.000 caratteri                                                          |
+| **Istruzioni di sistema**, **Prompt** e **Contesto** insieme    | 50.000 caratteri                                                          |
 | **Temperatura**                                              | Da `0` a `1`                                                              |
-| **Maximum Output Tokens**                                    | Da `1` a `4096`, `1024` per impostazione predefinita                      |
+| **Numero massimo di token di output**                                    | Da `1` a `4096`, `1024` per impostazione predefinita                      |
 | Una richiesta                                                | Un solo tentativo, al massimo 60 secondi                                  |
 | Chiamate contemporanee                                       | 3 per progetto. Le altre prendono **Errore**, e un'esecuzione successiva può riprovare. |
 
@@ -220,24 +220,24 @@ La finestra scorre: ogni esecuzione registrata dal progetto, a mano o da un trig
 
 | Limite                                                       | Predefinito        | Impostazione self-hosted        |
 | ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Un'esecuzione, dal suo avvio o dal risveglio dopo uno **Sleep** | 2 minuti        | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Un blocco **Run Custom JavaScript**                          | 5 secondi          | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Un blocco **Sleep**                                          | Al massimo 30 giorni | —                             |
+| Un'esecuzione, dal suo avvio o dal risveglio dopo uno **Pausa** | 2 minuti        | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Un blocco **Esegui JavaScript personalizzato**                          | 5 secondi          | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Un blocco **Pausa**                                          | Al massimo 30 giorni | —                             |
 
-L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzione in ritardo come **Tempo scaduto** non appena riprende il controllo. Non può interrompere un blocco a metà, quindi i blocchi che attendono la rete hanno limiti di tempo propri: una richiesta di Generate Text with AI si arrende dopo al massimo 60 secondi, e una richiesta di token OAuth 2.0 dopo 20. Un'attesa su un blocco **Sleep** non conta nel tempo di un'esecuzione: l'esecuzione viene messa da parte e riceve 2 nuovi minuti al risveglio.
+L'esecutore controlla la scadenza prima e dopo ogni blocco, e segna un'esecuzione in ritardo come **Tempo scaduto** non appena riprende il controllo. Non può interrompere un blocco a metà, quindi i blocchi che attendono la rete hanno limiti di tempo propri: una richiesta di Generate Text with AI si arrende dopo al massimo 60 secondi, e una richiesta di token OAuth 2.0 dopo 20. Un'attesa su un blocco **Pausa** non conta nel tempo di un'esecuzione: l'esecuzione viene messa da parte e riceve 2 nuovi minuti al risveglio.
 
 ## Limite alle chiamate tra flussi di lavoro
 
-Il componente **Execute Workflow** permette a un flusso di lavoro di avviarne un altro. Per evitare cicli in cui il flusso di lavoro A avvia B, che avvia di nuovo A, una catena di flussi di lavoro che si avviano a vicenda viene rifiutata quando tornerebbe a un flusso di lavoro che ne fa già parte, o supererebbe i 10 flussi di lavoro di profondità. Il blocco **Execute Workflow** prende allora la sua uscita **Errore**, e l'errore mostra la catena.
+Il componente **Esegui un altro flusso di lavoro** permette a un flusso di lavoro di avviarne un altro. Per evitare cicli in cui il flusso di lavoro A avvia B, che avvia di nuovo A, una catena di flussi di lavoro che si avviano a vicenda viene rifiutata quando tornerebbe a un flusso di lavoro che ne fa già parte, o supererebbe i 10 flussi di lavoro di profondità. Il blocco **Esegui un altro flusso di lavoro** prende allora la sua uscita **Errore**, e l'errore mostra la catena.
 
-Se ti serve davvero una catena lunga (come un job che elabora un elemento per esecuzione), di solito è più semplice ciclare all'interno di un solo flusso di lavoro con **Run Custom JavaScript**.
+Se ti serve davvero una catena lunga (come un job che elabora un elemento per esecuzione), di solito è più semplice ciclare all'interno di un solo flusso di lavoro con **Esegui JavaScript personalizzato**.
 
 ## Quando i flussi di lavoro non sono lo strumento giusto
 
 Alcuni casi in cui conviene usare altro:
 
 - **Calcoli pesanti o grandi volumi di dati** — i flussi di lavoro sono pensati per un lavoro di collegamento leggero, non per macinare numeri. Esegui il lavoro pesante nella tua infrastruttura e lascia che un flusso di lavoro lo avvii.
-- **Calcoli attivi di lunga durata** — un'esecuzione ha 2 minuti per impostazione predefinita. Per un'attesa passiva come «fai A, aspetta due ore, fai B», usa il componente **Sleep**; mette da parte l'esecuzione e la riprende più tardi senza occupare un worker.
+- **Calcoli attivi di lunga durata** — un'esecuzione ha 2 minuti per impostazione predefinita. Per un'attesa passiva come «fai A, aspetta due ore, fai B», usa il componente **Pausa**; mette da parte l'esecuzione e la riprende più tardi senza occupare un worker.
 - **Risposta agli incidenti passo per passo con persone coinvolte** — a questo servono i [Runbook](/docs/runbooks/index). I flussi di lavoro servono all'automazione senza supervisione.
 
 ## Prossimi passi

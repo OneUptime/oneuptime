@@ -55,7 +55,7 @@ Después [configura Datadog](#configurar-datadog) para que envíe sus alertas a 
 
 ### Qué hace el flujo de trabajo
 
-Tras el disparador **Webhook**, el paso **Check With JavaScript** `read-event-1` lee el `transition` que envía Datadog, e **Incident From Another Tool**, o **Alert From Another Tool** en la plantilla de alertas, hace lo que significa, por la clave de ciclo de la alerta. Datadog guarda esa clave desde que una alerta se dispara hasta que se recupera, y la próxima vez que se dispara la clave es nueva, así que cada vez tiene su propio incidente. El incidente guarda la clave en su campo personalizado `datadogAlertCycleKey`.
+Tras el disparador **Webhook**, el paso **Comprobar con JavaScript** `read-event-1` lee el `transition` que envía Datadog, e **Incidente desde otra herramienta**, o **Alerta desde otra herramienta** en la plantilla de alertas, hace lo que significa, por la clave de ciclo de la alerta. Datadog guarda esa clave desde que una alerta se dispara hasta que se recupera, y la próxima vez que se dispara la clave es nueva, así que cada vez tiene su propio incidente. El incidente guarda la clave en su campo personalizado `datadogAlertCycleKey`.
 
 | Transición | Qué hace el flujo de trabajo |
 | --- | --- |
@@ -82,7 +82,7 @@ Un incidente nuevo avisa a las políticas de guardia que elegiste cuando su moni
 Con gravedades propias, P1, P2 y sin prioridad van a tu más grave, P3 a la del medio, y P4 y P5 a tu menos grave.
 
 - Para asignar una prioridad a una de las tuyas por su nombre, edita `SEVERITY_BY_NAME` en el paso `read-event-1`, como `{ P3: 'Minor Incident' }`.
-- Para avisar también con P3, pon **Comparar con** del paso `if-page-1` **If / Else** a `3`.
+- Para avisar también con P3, pon **Comparar con** del paso `if-page-1` **Si / Si no** a `3`.
 
 ## Recibir alertas con un monitor
 

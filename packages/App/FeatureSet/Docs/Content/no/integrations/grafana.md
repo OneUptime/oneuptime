@@ -125,11 +125,11 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Kontroller at varslingen er utløst
 
-Klikk på **Legg til komponent**, legg til en blokk **If / Else**, og koble triggerens punkt **Ut** til den. Sett **Verdi som skal sjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `firing`.
+Klikk på **Legg til komponent**, legg til en blokk **Hvis / Ellers**, og koble triggerens punkt **Ut** til den. Sett **Verdi som skal sjekkes** til `{{local.components.webhook-1.returnValues.request-body.status}}`, **Sammenligning** til **er lik** og **Sammenlign med** til `firing`.
 
 ### Erklær hendelsen
 
-Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If / Else** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON Object** hva som kommer fra Grafana:
+Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **Hvis / Ellers** til den. Velg en mal under **Hendelsesmal** som setter alvorlighetsgraden og vaktpolicyene som skal varsles (se [Hendelsesmaler](/docs/incidents/settings#hendelsesmaler)). Angi under **JSON-objekt** hva som kommer fra Grafana:
 
 ```json
 {
@@ -138,14 +138,14 @@ Legg til en blokk **Create One Incident**, og koble siden **Ja** av blokken **If
 }
 ```
 
-Uten en mal må **JSON Object** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
+Uten en mal må **JSON-objekt** også inneholde `incidentSeverityId`, ID-en til en av prosjektets hendelsesalvorlighetsgrader.
 
 ### Slå på arbeidsflyten
 
 Slå på **Aktivert** øverst i **Bygger**. En arbeidsflyt som er slått av, svarer Grafana med `400`.
 :::
 
-En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **Nei** av blokken **If / Else**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
+En kjøring håndterer én varsling, så den erklærer én hendelse uansett hvor mange varsler varslingen inneholder. En varsling som er `resolved`, tar siden **Nei** av blokken **Hvis / Ellers**, der ingenting er koblet til, så kjøringen slutter der. Bruk monitoren for én hendelse per varsel som løses ved gjenoppretting.
 
 ## Feilsøking
 

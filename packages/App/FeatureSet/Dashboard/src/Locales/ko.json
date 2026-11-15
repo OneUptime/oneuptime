@@ -54075,7 +54075,7 @@
   "e.g. %, ms, Bytes, requests": "예: %, ms, Bytes, requests",
   "h2 { color: #111827; }": "h2 { color: #111827; }",
   "nginx": "nginx",
-  "Limit": "한도",
+  "Limit": "제한",
   "Max Events": "최대 이벤트 수",
   "Message Contains": "메시지에 포함",
   "Reduce": "집계",

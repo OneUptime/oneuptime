@@ -61,6 +61,9 @@ const CATALOGUE_ROOTS: Array<SourceRoot> = [
 
 const LETTER: RegExp = /\p{L}/u;
 
+// What an id has and a word has not: "request-body", "page_as".
+const ID_SEPARATOR: RegExp = /[-_]/;
+
 /*
  * The line a setting's help is drawn in, on the settings form
  * (ArgumentsForm's REQUIRED_ARGUMENT_HELP and OPTIONAL_ARGUMENT_HELP).
@@ -150,7 +153,8 @@ function drawnWordsOf(component: ComponentMetadata): Array<DrawnWord> {
   return words;
 }
 
-const CATALOGUE: Array<ComponentMetadata> = Components as Array<ComponentMetadata>;
+const CATALOGUE: Array<ComponentMetadata> =
+  Components as Array<ComponentMetadata>;
 
 const DRAWN_WORDS: Array<DrawnWord> = [
   ...CATALOGUE.flatMap(drawnWordsOf),
@@ -224,9 +228,7 @@ describe("the step catalogue's words are keys", () => {
     for (const root of CATALOGUE_ROOTS) {
       expect(
         SOURCE_ROOTS.some((entry: SourceRoot): boolean => {
-          return (
-            entry.directory === root.directory && entry.kind === root.kind
-          );
+          return entry.directory === root.directory && entry.kind === root.kind;
         }),
       ).toBe(true);
     }
@@ -374,7 +376,7 @@ describe("the step catalogue's words are keys", () => {
       },
     ).filter((id: string): boolean => {
       // A few ids read as a word too ("json", "text"); a key of their own is not this one.
-      return /[-_]/.test(id);
+      return ID_SEPARATOR.test(id);
     });
 
     expect(ids.length).toBeGreaterThan(50);
@@ -415,10 +417,7 @@ describe.each(DASHBOARD_LANGUAGES)("%s", (language: string) => {
    */
   test("words the line every setting's help is drawn in", () => {
     expect(
-      unwordedIn(language, [
-        REQUIRED_ARGUMENT_HELP,
-        OPTIONAL_ARGUMENT_HELP,
-      ]),
+      unwordedIn(language, [REQUIRED_ARGUMENT_HELP, OPTIONAL_ARGUMENT_HELP]),
     ).toEqual([]);
   });
 

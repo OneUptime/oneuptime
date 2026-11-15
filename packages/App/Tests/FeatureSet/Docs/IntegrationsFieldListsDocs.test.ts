@@ -615,10 +615,7 @@ describe.each(TRANSLATED_LANGUAGES)("%s", (language: string) => {
         const spans: Array<string> = boldSpansOf(line);
 
         // The list itself, as the step's settings name it in this language (#8359).
-        const setting: string = drawnActionLabel(
-          language,
-          instruction.setting,
-        );
+        const setting: string = drawnActionLabel(language, instruction.setting);
 
         if (!spans.includes(setting)) {
           missing.push(`${instruction.line}: ${setting}`);

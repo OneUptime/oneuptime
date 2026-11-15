@@ -54075,7 +54075,7 @@
   "e.g. %, ms, Bytes, requests": "t.ex. %, ms, Bytes, requests",
   "h2 { color: #111827; }": "h2 { color: #111827; }",
   "nginx": "nginx",
-  "Limit": "Maxantal",
+  "Limit": "Gräns",
   "Max Events": "Max antal händelser",
   "Message Contains": "Meddelandet innehåller",
   "Reduce": "Slå ihop",

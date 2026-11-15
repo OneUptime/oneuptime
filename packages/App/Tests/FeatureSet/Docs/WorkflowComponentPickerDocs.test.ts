@@ -163,7 +163,10 @@ describe("docs for the Add Component and Add Trigger panels", () => {
       const page: string = readPage(language, "workflows/components.md");
 
       // The block's own name, as the Add Component panel draws it (#8359).
-      lineWith(page, [drawn(language, "If / Else"), drawn(language, "Popular")]);
+      lineWith(page, [
+        drawn(language, "If / Else"),
+        drawn(language, "Popular"),
+      ]);
       lineWith(page, [
         drawn(language, "OneUptime resources"),
         drawn(language, "Browse all resources"),
