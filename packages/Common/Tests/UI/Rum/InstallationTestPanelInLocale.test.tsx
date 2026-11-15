@@ -402,7 +402,7 @@ describe("buildInstallationCheckRows in the reader's language", () => {
       "⟦Uploads are paused: a byte budget was exhausted ⟦30m ago⟧⟧",
     );
     expect(rowByKey(reported, "bytes").detail).toBe(
-      "⟦10 MB of 1 GB used today across this project.⟧ ⟦3 GB of this application's 2 GB monthly budget used.⟧",
+      "⟦10 MB of 1 GB used today across this project.⟧ ⟦3 GB of this application's 2\u00A0GB monthly budget used.⟧",
     );
 
     const switchedOff: Array<CheckRow> = rowsOf(

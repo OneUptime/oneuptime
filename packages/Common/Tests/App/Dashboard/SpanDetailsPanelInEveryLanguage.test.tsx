@@ -126,6 +126,11 @@ import {
   word,
 } from "./TracesLanguageHarness";
 
+// A text query folds the page's spaces, a no-break one too: so does its matcher.
+const asQuery: (text: string) => string = (text: string): string => {
+  return text.replace(/\s+/g, " ").trim();
+};
+
 jest.setTimeout(180000);
 
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
@@ -442,7 +447,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
     expect(replay).toHaveAttribute("title", word(language, WATCH_SESSION_HINT));
 
     const fullTrace: HTMLElement = screen
-      .getByText(word(language, "See full trace"))
+      .getByText(asQuery(word(language, "See full trace")))
       .closest("a") as HTMLElement;
 
     expect(fullTrace).toHaveAttribute(
@@ -489,12 +494,14 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
       "Status Message",
       "Attributes",
     ]) {
-      expect(screen.getByText(word(language, english))).toBeVisible();
+      expect(screen.getByText(asQuery(word(language, english)))).toBeVisible();
     }
 
     // The entity's type, and the span's kind in the language's word for it.
-    expect(screen.getByText(word(language, "Service"))).toBeVisible();
-    expect(screen.getAllByText(word(language, "Client")).length).toBe(1);
+    expect(screen.getByText(asQuery(word(language, "Service")))).toBeVisible();
+    expect(screen.getAllByText(asQuery(word(language, "Client"))).length).toBe(
+      1,
+    );
 
     expect(screen.getByTestId("span-details-status-message")).toHaveTextContent(
       "card declined",
@@ -502,9 +509,11 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        sentence(language, "Exceptions ({{count}})", {
-          count: (2).toLocaleString(language),
-        }),
+        asQuery(
+          sentence(language, "Exceptions ({{count}})", {
+            count: (2).toLocaleString(language),
+          }),
+        ),
       ),
     ).toBeVisible();
 
@@ -522,13 +531,15 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(screen.getByText("http.method")).toBeVisible();
     expect(screen.getByText("POST")).toBeVisible();
-    expect(screen.getByText(word(language, "empty"))).toBeVisible();
+    expect(screen.getByText(asQuery(word(language, "empty")))).toBeVisible();
 
     const filter: HTMLElement = screen.getByTitle(
-      sentence(language, "Filter by {{key}}: {{value}}", {
-        key: "http.method",
-        value: "POST",
-      }),
+      asQuery(
+        sentence(language, "Filter by {{key}}: {{value}}", {
+          key: "http.method",
+          value: "POST",
+        }),
+      ),
     );
 
     fireEvent.click(filter);
@@ -536,7 +547,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(
       screen.getByTitle(
-        sentence(language, "Copy {{key}}", { key: "http.method" }),
+        asQuery(sentence(language, "Copy {{key}}", { key: "http.method" })),
       ),
     ).toBeInTheDocument();
   });
@@ -549,7 +560,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
     expect(screen.getByText("ERROR")).toBeVisible();
 
     // A line with no severity reads as the word for the default one.
-    expect(screen.getByText(word(language, "info"))).toBeVisible();
+    expect(screen.getByText(asQuery(word(language, "info")))).toBeVisible();
 
     cleanup();
 
@@ -577,9 +588,11 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        word(
-          language,
-          "No logs are tagged with this span — showing logs from the whole trace.",
+        asQuery(
+          word(
+            language,
+            "No logs are tagged with this span — showing logs from the whole trace.",
+          ),
         ),
       ),
     ).toBeVisible();
@@ -594,7 +607,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        word(language, "No logs found for this span or its trace."),
+        asQuery(word(language, "No logs found for this span or its trace.")),
       ),
     ).toBeVisible();
   });
@@ -605,7 +618,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(screen.getAllByText("out of stock").length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText(word(language, "View exception group")),
+      screen.getAllByText(asQuery(word(language, "View exception group"))),
     ).toHaveLength(2);
 
     // No message and no type: the word for an exception.
@@ -623,7 +636,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        word(language, "No exceptions were recorded on this span."),
+        asQuery(word(language, "No exceptions were recorded on this span.")),
       ),
     ).toBeVisible();
   });
@@ -640,15 +653,17 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
       service: undefined,
     });
 
-    expect(screen.getByText(word(language, "(unnamed span)"))).toBeVisible();
+    expect(
+      screen.getByText(asQuery(word(language, "(unnamed span)"))),
+    ).toBeVisible();
     expect(screen.getByTestId("span-details-status")).toHaveTextContent(
       word(language, "Unset (no error)"),
     );
     expect(
-      screen.getAllByText(word(language, "unknown service")).length,
+      screen.getAllByText(asQuery(word(language, "unknown service"))).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText(word(language, "No attributes on this span.")),
+      screen.getByText(asQuery(word(language, "No attributes on this span."))),
     ).toBeVisible();
   });
 });

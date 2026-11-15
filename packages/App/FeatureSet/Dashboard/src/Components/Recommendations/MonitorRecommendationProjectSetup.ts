@@ -198,11 +198,11 @@ export async function loadMonitorRecommendationProjectSetup(
     ),
     onCallPolicyDropdownOptions: onCallPolicyList.data.map(
       (item: OnCallDutyPolicy): DropdownOption => {
-        return { value: item._id!, label: item.name! };
+        return { value: item._id!, label: item.name!, isUserContent: true };
       },
     ),
     labelDropdownOptions: labelList.data.map((item: Label): DropdownOption => {
-      return { value: item._id!, label: item.name! };
+      return { value: item._id!, label: item.name!, isUserContent: true };
     }),
   };
 }

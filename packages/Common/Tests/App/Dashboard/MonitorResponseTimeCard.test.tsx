@@ -424,10 +424,10 @@ describe("the latest response times in the reader's language", () => {
     const german: Translator = dashboardTranslator("de");
 
     expect(getLatestResponseTimeText(SOME_RESPONDED, german)).toBe(
-      "Zuletzt: Median 1.234 ms über 12 von 13 Sonden (950–1.800 ms)",
+      "Zuletzt: Median 1.234\u00A0ms über 12 von 13 Sonden (950–1.800\u00A0ms)",
     );
     expect(getLatestResponseTimeText(ONE_PROBE, german)).toBe(
-      "Zuletzt: Median 95 ms über 1 Sonde (95–95 ms)",
+      "Zuletzt: Median 95\u00A0ms über 1 Sonde (95–95\u00A0ms)",
     );
   });
 
@@ -450,7 +450,7 @@ describe("the latest response times in the reader's language", () => {
     );
 
     expect(line).toBe(
-      "الأحدث: الوسيط 1,234 ملي ث عبر 12 من 13 من المسابير (950–1,800 ملي ث)",
+      "الأحدث: الوسيط 1,234\u00A0ملي ث عبر 12 من 13 من المسابير (950–1,800\u00A0ملي ث)",
     );
     expect(line).not.toMatch(/[A-Za-z]/);
   });

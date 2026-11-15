@@ -139,6 +139,8 @@ async function fetchNetworkDeviceMonitorTemplates(): Promise<
     return {
       value: template.id?.toString() || "",
       label: template.templateName || "Unnamed Network Device template",
+      // Its own name as written; the word for none in the reader's words.
+      isUserContent: Boolean(template.templateName),
     };
   });
 }

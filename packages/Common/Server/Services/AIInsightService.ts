@@ -7,7 +7,8 @@ import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import BadDataException from "../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../Types/Exception/AiRunRefusalException";
+import { AiRunRefusalCode } from "../../Types/AI/AiRunRefusal";
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "../../Types/AI/AIInsightStatus";
@@ -78,7 +79,7 @@ export class Service extends DatabaseService<AIInsight> {
     });
 
     if (!insight || !insight.id) {
-      throw new BadDataException("AI insight not found.");
+      throw new AiRunRefusalException(AiRunRefusalCode.InsightNotFound);
     }
 
     let nextStatus: AIInsightStatus | null = null;
@@ -138,7 +139,7 @@ export class Service extends DatabaseService<AIInsight> {
     });
 
     if (!insight || !insight.id) {
-      throw new BadDataException("AI insight not found.");
+      throw new AiRunRefusalException(AiRunRefusalCode.InsightNotFound);
     }
 
     if (
@@ -187,7 +188,7 @@ export class Service extends DatabaseService<AIInsight> {
     });
 
     if (!insight || !insight.id) {
-      throw new BadDataException("AI insight not found.");
+      throw new AiRunRefusalException(AiRunRefusalCode.InsightNotFound);
     }
 
     /*
@@ -196,15 +197,16 @@ export class Service extends DatabaseService<AIInsight> {
      * re-file cooldown is keyed on the current terminal status, so the flip
      * would silently trade a dismissal's 7-day quiet for a resolve's 24-hour
      * one and let a finding a human called noise come back. The dashboard
-     * hides both actions on terminal insights; this closes the API path.
+     * hides both actions on terminal insights; this closes the API path -
+     * and a page left open while someone closed the insight elsewhere
+     * says why in the reader's language (#8052).
      */
-    if (
-      insight.status &&
-      AIInsightStatusHelper.isTerminalStatus(insight.status)
-    ) {
-      throw new BadDataException(
-        `This AI insight is already ${insight.status.toLowerCase()} and cannot be resolved again.`,
-      );
+    if (insight.status === AIInsightStatus.Resolved) {
+      throw new AiRunRefusalException(AiRunRefusalCode.InsightAlreadyResolved);
+    }
+
+    if (insight.status === AIInsightStatus.Dismissed) {
+      throw new AiRunRefusalException(AiRunRefusalCode.InsightAlreadyDismissed);
     }
 
     await this.updateOneById({

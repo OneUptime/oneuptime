@@ -286,7 +286,7 @@ describe("a notification method's line", () => {
     );
 
     expect(withoutIsolateMarks(line.textContent || "")).toBe(
-      `${locales["fr"]!["SMS"]} : ${UK}`,
+      `${locales["fr"]!["SMS"]}\u00A0: ${UK}`,
     );
   });
 

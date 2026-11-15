@@ -485,7 +485,7 @@ const ToolImportReview: FunctionComponent<ComponentProps> = (
 
   const teamOptions: Array<DropdownOption> = plan.inviteTeams.map(
     (team: ToolImportInviteTeam): DropdownOption => {
-      return { value: team.id, label: team.name };
+      return { value: team.id, label: team.name, isUserContent: true };
     },
   );
 

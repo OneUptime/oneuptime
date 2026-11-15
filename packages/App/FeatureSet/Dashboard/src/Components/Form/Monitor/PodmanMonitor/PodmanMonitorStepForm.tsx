@@ -144,6 +144,8 @@ const PodmanMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (host: PodmanHost): DropdownOption => {
         return {
           label: host.name || host.hostIdentifier || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(host.name || host.hostIdentifier),
           value: host.hostIdentifier || "",
         };
       },

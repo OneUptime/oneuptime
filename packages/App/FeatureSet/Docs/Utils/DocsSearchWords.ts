@@ -15,7 +15,12 @@
  *   - the start of a word: "kube" finds "kubernetes" (DocsVocabulary);
  *   - a word a question is phrased with, not about: "Wie überwache ich
  *     meine Website?" looks for "überwache" and "Website"
- *     (DOCS_SEARCH_QUESTION_WORDS, a list per language).
+ *     (DOCS_SEARCH_QUESTION_WORDS, a list per language);
+ *   - a word's endings: "nettstedet" is "nettsted", "сайта" is "сайт",
+ *     "웹사이트를" is "웹사이트" (DOCS_SEARCH_WORD_ENDINGS, per language,
+ *     taken off a page's words and a question's alike);
+ *   - a compound the question's words make: "övervaka" and "webbplats" are
+ *     "Webbplatsövervakning" (DOCS_SEARCH_COMPOUNDING_LANGUAGES).
  *
  * Nothing here reads a file or a network: it is the same on an air-gapped
  * server as on OneUptime Cloud.
@@ -122,19 +127,28 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     uptime: ["monitor"],
     "2fa": ["tweestapsverificatie"],
   },
+  /*
+   * A website is a "hjemmeside" or "hemsida" to most who ask, and a
+   * "websted", "nettsted" or "webbplats" in the docs: no Danish page says
+   * "hjemmeside", so "Hvordan overvåger jeg min hjemmeside?" found
+   * Website Monitor 99th (#7875).
+   */
   da: {
     pager: ["vagt*"],
     nedbrud: ["hændelse*"],
     outage: ["hændelse*"],
     uptime: ["overvågning*"],
+    hjemmeside: ["websted"],
   },
   no: {
     pager: ["vakt*"],
     nedetid: ["hendelse*"],
     outage: ["hendelse*"],
     uptime: ["overvåking*"],
+    hjemmeside: ["nettsted"],
   },
   sv: {
+    hemsida: ["webbplats"],
     pager: ["jour*"],
     avbrott: ["incident"],
     driftstopp: ["incident"],
@@ -153,6 +167,11 @@ export const DOCS_SEARCH_SYNONYMS: Readonly<
     "2fa": ["двухфактор*"],
   },
   fa: {
+    /*
+     * A page is "صفحه", pages are "صفحات": a plural no ending makes, and
+     * the name of the status pages' overview, "نمای کلی صفحات وضعیت".
+     */
+    صفحه: ["صفحات"],
     pager: ["آنکال"],
     قطعی: ["حادثه"],
     outage: ["حادثه"],
@@ -308,11 +327,24 @@ export const getDocsSearchSynonyms: (
  * Only what is asked leaves them out: the index keeps them, so that page
  * is still found by its name.
  *
- * By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES). A language with
- * no list here is read word for word; one more entry gives a language's
- * list to both searches. English has none here: AIDocsReader's
- * QUESTION_WORDS leaves English's out of every page and every question.
- * Written as a reader types them; compared folded (foldDocsSearchWord).
+ * Every docs language has a list (#7875): outside German too, "how", "I"
+ * and "my" were read as what is asked. A Persian question's "چطور" (how),
+ * "را" (its object's mark, on 357 of the 361 pages) and "کنم" (I do) gave
+ * the Ask AI page, which quotes example questions, 63% of its points, and
+ * Website Monitor came 4th. A Korean question's "어떻게" (how), and a
+ * Norwegian one's "hvordan", "jeg" and "mitt", did the same.
+ *
+ * By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES). English has none
+ * here: AIDocsReader's QUESTION_WORDS leaves English's out of every page
+ * and every question. Written as a reader types them; compared folded
+ * (foldDocsSearchWord). A word that takes an ending of its own (Korean
+ * "무엇을", what with its object's mark) is listed with it.
+ *
+ * Chinese and Japanese are written without spaces: their entries are cut
+ * out of what is typed wherever they stand ("如何监控我的网站" is "监控" and
+ * "网站"), longest first (getDocsSearchQuestionPhrases). Japanese ends a
+ * question with its own words ("するには", "どうすればいいですか") and marks
+ * what is asked about with "を", which is never part of a word.
  */
 export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
   Record<string, ReadonlyArray<string>>
@@ -423,6 +455,1114 @@ export const DOCS_SEARCH_QUESTION_WORDS: Readonly<
     "im",
     "am",
   ],
+  fr: [
+    // how, what, where, when, why, who, which
+    "comment",
+    "quoi",
+    "que",
+    "qu",
+    "quel",
+    "quelle",
+    "quels",
+    "quelles",
+    "où",
+    "quand",
+    "pourquoi",
+    "qui",
+    "lequel",
+    "laquelle",
+    "est-ce",
+    // I, me, my, we, our
+    "je",
+    "me",
+    "moi",
+    "mon",
+    "ma",
+    "mes",
+    "nous",
+    "notre",
+    "nos",
+    // you, your, one
+    "vous",
+    "votre",
+    "vos",
+    "tu",
+    "te",
+    "toi",
+    "ton",
+    "ta",
+    "tes",
+    "on",
+    // a, the, some
+    "le",
+    "la",
+    "les",
+    "un",
+    "une",
+    "des",
+    "du",
+    "de",
+    // it, this, that, there
+    "il",
+    "elle",
+    "ce",
+    "cela",
+    "ça",
+    "cet",
+    "cette",
+    "ces",
+    "y",
+    // and, or, if
+    "et",
+    "ou",
+    "si",
+    // am, is, are, be, can, do, must
+    "suis",
+    "est",
+    "sont",
+    "être",
+    "puis",
+    "puis-je",
+    "peux",
+    "peut",
+    "peut-on",
+    "pouvons",
+    "pouvez",
+    "faire",
+    "fais",
+    "fait",
+    "faut",
+    "faut-il",
+    "dois",
+    "dois-je",
+    "doit",
+    // for, of, on, to, with, in
+    "pour",
+    "par",
+    "sur",
+    "à",
+    "au",
+    "aux",
+    "avec",
+    "dans",
+    "en",
+  ],
+  es: [
+    // how, what, where, when, why, who, which
+    "cómo",
+    "qué",
+    "cuál",
+    "cuáles",
+    "dónde",
+    "cuándo",
+    "porqué",
+    "quién",
+    "quiénes",
+    // I, me, my, we, our
+    "yo",
+    "me",
+    "mi",
+    "mis",
+    "nosotros",
+    "nosotras",
+    "nuestro",
+    "nuestra",
+    "nuestros",
+    "nuestras",
+    // you, your, one
+    "tú",
+    "tus",
+    "te",
+    "usted",
+    "ustedes",
+    "su",
+    "sus",
+    "se",
+    "uno",
+    // a, the
+    "el",
+    "la",
+    "los",
+    "las",
+    "lo",
+    "un",
+    "una",
+    "unos",
+    "unas",
+    "del",
+    "al",
+    "de",
+    // it, this, that, there
+    "esto",
+    "esta",
+    "este",
+    "estos",
+    "estas",
+    "eso",
+    "esa",
+    "ese",
+    "ahí",
+    "allí",
+    // and, or, if
+    "y",
+    "o",
+    "si",
+    // am, is, are, be, can, do, must
+    "soy",
+    "es",
+    "son",
+    "ser",
+    "estar",
+    "está",
+    "puedo",
+    "puede",
+    "podemos",
+    "pueden",
+    "hago",
+    "hacer",
+    "hace",
+    "debo",
+    "debe",
+    "tengo",
+    "hay",
+    // for, of, on, to, with, in
+    "para",
+    "por",
+    "en",
+    "con",
+    "sobre",
+    "a",
+  ],
+  it: [
+    // how, what, where, when, why, who, which
+    "come",
+    "cosa",
+    "che",
+    "quale",
+    "quali",
+    "dove",
+    "quando",
+    "perché",
+    "chi",
+    // I, me, my, we, our
+    "io",
+    "mi",
+    "me",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "noi",
+    "ci",
+    "nostro",
+    "nostra",
+    "nostri",
+    "nostre",
+    // you, your, one
+    "tu",
+    "ti",
+    "tuo",
+    "tua",
+    "tuoi",
+    "tue",
+    "voi",
+    "vostro",
+    "vostra",
+    "lei",
+    "suo",
+    "sua",
+    "si",
+    // a, the, of the, in the, on the
+    "il",
+    "lo",
+    "la",
+    "gli",
+    "le",
+    "un",
+    "uno",
+    "una",
+    "del",
+    "dello",
+    "della",
+    "dei",
+    "degli",
+    "delle",
+    "al",
+    "allo",
+    "alla",
+    "ai",
+    "agli",
+    "alle",
+    "nel",
+    "nello",
+    "nella",
+    "nei",
+    "negli",
+    "nelle",
+    "sul",
+    "sulla",
+    "dal",
+    "dalla",
+    // it, this, that, there
+    "questo",
+    "questa",
+    "questi",
+    "queste",
+    "quello",
+    "quella",
+    "ce",
+    // and, or, if
+    "ed",
+    "o",
+    "se",
+    // am, is, are, be, can, do, must
+    "sono",
+    "è",
+    "essere",
+    "posso",
+    "può",
+    "possiamo",
+    "potete",
+    "faccio",
+    "fare",
+    "fa",
+    "devo",
+    "deve",
+    // for, of, on, to, with, in
+    "per",
+    "di",
+    "da",
+    "in",
+    "con",
+    "su",
+    "a",
+    "tra",
+    "fra",
+  ],
+  pt: [
+    // how, what, where, when, why, who, which
+    "como",
+    "que",
+    "quê",
+    "qual",
+    "quais",
+    "onde",
+    "quando",
+    "porque",
+    "quem",
+    // I, me, my, we, our
+    "eu",
+    "me",
+    "mim",
+    "meu",
+    "minha",
+    "meus",
+    "minhas",
+    "nós",
+    "nosso",
+    "nossa",
+    "nossos",
+    "nossas",
+    // you, your, one
+    "você",
+    "vocês",
+    "seu",
+    "sua",
+    "seus",
+    "suas",
+    "te",
+    "tu",
+    "teu",
+    "tua",
+    "se",
+    // a, the, of the, in the
+    "o",
+    "a",
+    "os",
+    "as",
+    "um",
+    "uma",
+    "uns",
+    "umas",
+    "do",
+    "da",
+    "dos",
+    "das",
+    "no",
+    "na",
+    "nas",
+    "ao",
+    "aos",
+    "à",
+    "pelo",
+    "pela",
+    // it, this, that, there
+    "isso",
+    "isto",
+    "este",
+    "esta",
+    "esse",
+    "essa",
+    "aquele",
+    "aquela",
+    "lá",
+    "aí",
+    // and, or, if
+    "e",
+    "ou",
+    // am, is, are, be, can, do, must
+    "sou",
+    "é",
+    "são",
+    "ser",
+    "estar",
+    "está",
+    "posso",
+    "pode",
+    "podemos",
+    "faço",
+    "fazer",
+    "faz",
+    "devo",
+    "deve",
+    "tenho",
+    "há",
+    // for, of, on, to, with, in
+    "para",
+    "pra",
+    "por",
+    "de",
+    "em",
+    "com",
+    "sobre",
+  ],
+  nl: [
+    // how, what, where, when, why, who, which
+    "hoe",
+    "wat",
+    "waar",
+    "wanneer",
+    "waarom",
+    "wie",
+    "welk",
+    "welke",
+    // I, me, my, we, our
+    "ik",
+    "me",
+    "mij",
+    "mijn",
+    "we",
+    "wij",
+    "ons",
+    "onze",
+    // you, your, one
+    "u",
+    "uw",
+    "je",
+    "jij",
+    "jou",
+    "jouw",
+    "jullie",
+    "men",
+    // a, the
+    "de",
+    "het",
+    "een",
+    // it, this, that, there
+    "dit",
+    "dat",
+    "deze",
+    "die",
+    "er",
+    "daar",
+    "hier",
+    // and, or, if
+    "en",
+    "of",
+    "als",
+    // am, is, are, be, can, do, must
+    "ben",
+    "is",
+    "zijn",
+    "kan",
+    "kun",
+    "kunt",
+    "kunnen",
+    "doe",
+    "doen",
+    "moet",
+    "moeten",
+    // for, of, on, to, with, in ("stel ... in": the rest of a verb)
+    "voor",
+    "van",
+    "op",
+    "aan",
+    "met",
+    "in",
+    "naar",
+    "bij",
+    "om",
+    "te",
+  ],
+  da: [
+    // how, what, where, when, why, who, which
+    "hvordan",
+    "hvad",
+    "hvor",
+    "hvornår",
+    "hvorfor",
+    "hvem",
+    "hvilken",
+    "hvilket",
+    "hvilke",
+    "når",
+    // I, me, my, we, our
+    "jeg",
+    "mig",
+    "min",
+    "mit",
+    "mine",
+    "vi",
+    "os",
+    "vores",
+    // you, your, one
+    "du",
+    "dig",
+    "din",
+    "dit",
+    "dine",
+    "jer",
+    "jeres",
+    "man",
+    "sig",
+    // a, the
+    "en",
+    "et",
+    "den",
+    "det",
+    "de",
+    // it, this, that, there
+    "dette",
+    "denne",
+    "disse",
+    "der",
+    "her",
+    // and, or, if
+    "og",
+    "eller",
+    "hvis",
+    "om",
+    // am, is, are, be, can, do, must
+    "er",
+    "være",
+    "kan",
+    "gør",
+    "gøre",
+    "skal",
+    "vil",
+    "må",
+    // for, of, on, to, with, in
+    "for",
+    "af",
+    "på",
+    "til",
+    "med",
+    "i",
+    "fra",
+    "ved",
+  ],
+  no: [
+    // how, what, where, when, why, who, which
+    "hvordan",
+    "hva",
+    "hvor",
+    "når",
+    "hvorfor",
+    "hvem",
+    "hvilken",
+    "hvilket",
+    "hvilke",
+    // I, me, my, we, our
+    "jeg",
+    "meg",
+    "min",
+    "mitt",
+    "mine",
+    "vi",
+    "oss",
+    "vår",
+    "vårt",
+    "våre",
+    // you, your, one
+    "du",
+    "deg",
+    "din",
+    "ditt",
+    "dine",
+    "dere",
+    "deres",
+    "man",
+    "seg",
+    // a, the
+    "en",
+    "ei",
+    "et",
+    "den",
+    "det",
+    "de",
+    // it, this, that, there
+    "dette",
+    "denne",
+    "disse",
+    "der",
+    "her",
+    // and, or, if
+    "og",
+    "eller",
+    "hvis",
+    "om",
+    // am, is, are, be, can, do, must
+    "er",
+    "være",
+    "kan",
+    "gjør",
+    "gjøre",
+    "skal",
+    "vil",
+    "må",
+    "bør",
+    // for, of, on, to, with, in
+    "for",
+    "av",
+    "på",
+    "til",
+    "med",
+    "i",
+    "fra",
+    "ved",
+  ],
+  sv: [
+    // how, what, where, when, why, who, which
+    "hur",
+    "vad",
+    "var",
+    "när",
+    "varför",
+    "vem",
+    "vilken",
+    "vilket",
+    "vilka",
+    // I, me, my, we, our
+    "jag",
+    "mig",
+    "mej",
+    "min",
+    "mitt",
+    "mina",
+    "vi",
+    "oss",
+    "vår",
+    "vårt",
+    "våra",
+    // you, your, one
+    "du",
+    "dig",
+    "din",
+    "ditt",
+    "dina",
+    "ni",
+    "er",
+    "ert",
+    "era",
+    "man",
+    "sig",
+    // a, the
+    "en",
+    "ett",
+    "den",
+    "det",
+    "de",
+    // it, this, that, there
+    "detta",
+    "denna",
+    "dessa",
+    "där",
+    "här",
+    // and, or, if
+    "och",
+    "eller",
+    "om",
+    // am, is, are, be, can, do, must
+    "är",
+    "vara",
+    "kan",
+    "gör",
+    "göra",
+    "ska",
+    "skall",
+    "vill",
+    "måste",
+    "bör",
+    // for, of, on, to, with, in ("ställa in": the rest of a verb)
+    "för",
+    "av",
+    "på",
+    "till",
+    "med",
+    "i",
+    "in",
+    "från",
+    "vid",
+  ],
+  ru: [
+    // how, what, where, when, why, who, which
+    "как",
+    "что",
+    "чем",
+    "где",
+    "куда",
+    "когда",
+    "почему",
+    "зачем",
+    "кто",
+    "какой",
+    "какая",
+    "какое",
+    "какие",
+    "каким",
+    "какую",
+    "каком",
+    "который",
+    "которая",
+    "которое",
+    "которые",
+    // I, me, my, we, our, one's own
+    "я",
+    "меня",
+    "мне",
+    "мной",
+    "мой",
+    "моя",
+    "моё",
+    "мои",
+    "моего",
+    "моей",
+    "моему",
+    "моим",
+    "моих",
+    "моими",
+    "моём",
+    "мы",
+    "нас",
+    "нам",
+    "нами",
+    "наш",
+    "наша",
+    "наше",
+    "наши",
+    "нашего",
+    "нашей",
+    "нашему",
+    "нашим",
+    "наших",
+    "свой",
+    "своя",
+    "своё",
+    "свои",
+    "своего",
+    "своей",
+    "своему",
+    "своим",
+    "своих",
+    "свою",
+    // you, your
+    "вы",
+    "вас",
+    "вам",
+    "вами",
+    "ваш",
+    "ваша",
+    "ваше",
+    "ваши",
+    "вашего",
+    "вашей",
+    "вашим",
+    "ваших",
+    "ты",
+    "тебя",
+    "тебе",
+    "твой",
+    "твоя",
+    "твоё",
+    "твои",
+    // it, this, that, there
+    "это",
+    "этот",
+    "эта",
+    "эти",
+    "этого",
+    "этой",
+    "тот",
+    "там",
+    "тут",
+    "здесь",
+    // and, or, if, whether
+    "и",
+    "или",
+    "а",
+    "если",
+    "ли",
+    "же",
+    "бы",
+    // is, be, can, must, do
+    "есть",
+    "быть",
+    "можно",
+    "могу",
+    "может",
+    "можем",
+    "нужно",
+    "надо",
+    "делать",
+    "сделать",
+    // for, of, on, to, with, in
+    "в",
+    "во",
+    "на",
+    "с",
+    "со",
+    "к",
+    "ко",
+    "о",
+    "об",
+    "по",
+    "для",
+    "из",
+    "за",
+    "у",
+    "от",
+    "до",
+    "при",
+  ],
+  ja: [
+    // how do I, how should I, what should I do
+    "どうすればいいですか",
+    "どうすればよいですか",
+    "どうすればいいでしょうか",
+    "どうすればよいでしょうか",
+    "どうすればいい",
+    "どうすればよい",
+    "どうすれば",
+    "どうしたらいいですか",
+    "どうしたらいい",
+    "どうしたら",
+    "どうやったら",
+    "どうやって",
+    "どのようにして",
+    "どのように",
+    // in order to, I want to, please tell me
+    "するには",
+    "には",
+    "したいです",
+    "したい",
+    "教えてください",
+    "教えて",
+    "ください",
+    // the marks a question ends with
+    "でしょうか",
+    "ですか",
+    "ますか",
+    // what is asked about: "ウェブサイトを監視" (monitor the website)
+    "を",
+    // I, my, one's own
+    "私の",
+    "私は",
+    "私",
+    "自分の",
+    "自分",
+    // what, who, the way to
+    "何",
+    "誰",
+    "方法",
+  ],
+  ko: [
+    // how, what, where, when, why, who, which
+    "어떻게",
+    "어떡하나요",
+    "무엇",
+    "무엇을",
+    "무엇이",
+    "뭐",
+    "뭘",
+    "어디",
+    "어디서",
+    "어디에",
+    "어디에서",
+    "언제",
+    "왜",
+    "누가",
+    "누구",
+    "어떤",
+    "어느",
+    "무슨",
+    // I, me, my, we, our
+    "나",
+    "나는",
+    "내",
+    "내가",
+    "나의",
+    "나에게",
+    "저",
+    "저는",
+    "제",
+    "제가",
+    "저의",
+    "저에게",
+    "우리",
+    "우리는",
+    "우리가",
+    "우리의",
+    "저희",
+    "저희는",
+    "저희의",
+    // you
+    "당신",
+    "당신의",
+    // can, must, do, is: the words a question ends with
+    "해야",
+    "하나요",
+    "하려면",
+    "할",
+    "수",
+    "있나요",
+    "있습니까",
+    "있어요",
+    "있을까요",
+    "합니까",
+    "하죠",
+    "하면",
+    "되나요",
+    "됩니까",
+    "돼요",
+    "좋을까요",
+    "좋나요",
+    "되는",
+    "방법",
+    "방법은",
+    "방법이",
+    "알려주세요",
+    "주세요",
+  ],
+  "zh-CN": [
+    // how, what, where, why, who, which
+    "如何",
+    "怎么",
+    "怎么样",
+    "怎样",
+    "怎么做",
+    "什么",
+    "哪里",
+    "哪儿",
+    "哪个",
+    "为什么",
+    "为何",
+    "谁",
+    // I, my, we, our, you
+    "我的",
+    "我们的",
+    "我们",
+    "我",
+    "你的",
+    "您的",
+    "你",
+    "您",
+    // can, should, a
+    "可以",
+    "能否",
+    "应该",
+    "一个",
+    "请问",
+    // the marks a question ends with
+    "吗",
+    "呢",
+    "吧",
+  ],
+  "zh-TW": [
+    // how, what, where, why, who, which
+    "如何",
+    "怎麼",
+    "怎麼樣",
+    "怎樣",
+    "怎麼做",
+    "什麼",
+    "哪裡",
+    "哪兒",
+    "哪個",
+    "為什麼",
+    "為何",
+    "誰",
+    // I, my, we, our, you
+    "我的",
+    "我們的",
+    "我們",
+    "我",
+    "你的",
+    "您的",
+    "你",
+    "您",
+    // can, should, a
+    "可以",
+    "能否",
+    "應該",
+    "一個",
+    "請問",
+    // the marks a question ends with
+    "嗎",
+    "呢",
+    "吧",
+  ],
+  hi: [
+    // how, what, where, when, why, who, which
+    "कैसे",
+    "क्या",
+    "कहाँ",
+    "कहां",
+    "कब",
+    "क्यों",
+    "कौन",
+    "कौनसा",
+    "कौन-सा",
+    "किस",
+    "किसे",
+    // I, me, my, we, our, one's own
+    "मैं",
+    "मुझे",
+    "मेरा",
+    "मेरी",
+    "मेरे",
+    "हम",
+    "हमें",
+    "हमारा",
+    "हमारी",
+    "हमारे",
+    "अपना",
+    "अपनी",
+    "अपने",
+    // you, your
+    "आप",
+    "आपका",
+    "आपकी",
+    "आपके",
+    "तुम",
+    // a, it, this, that, there
+    "एक",
+    "यह",
+    "ये",
+    "वह",
+    "वे",
+    "इस",
+    "उस",
+    "इसे",
+    "उसे",
+    "यहाँ",
+    "वहाँ",
+    // and, or, if
+    "और",
+    "या",
+    "अगर",
+    "तो",
+    // am, is, be, can, do, must
+    "है",
+    "हैं",
+    "हूँ",
+    "हूं",
+    "हो",
+    "होना",
+    "कर",
+    "करूँ",
+    "करूं",
+    "करें",
+    "करना",
+    "करते",
+    "करता",
+    "करती",
+    "सकता",
+    "सकती",
+    "सकते",
+    "सकूँ",
+    "सकूं",
+    "चाहिए",
+    // of, to, in, from, on, for, with
+    "को",
+    "का",
+    "की",
+    "के",
+    "में",
+    "से",
+    "पर",
+    "लिए",
+    "तक",
+    "साथ",
+    "ने",
+  ],
+  fa: [
+    // how, what, where, when, why, who, which
+    "چطور",
+    "چطوری",
+    "چگونه",
+    "چه",
+    "چی",
+    "چیست",
+    "کجا",
+    "کجاست",
+    "کی",
+    "چرا",
+    "کدام",
+    "کدوم",
+    // I, me, we, you, one's own
+    "من",
+    "مرا",
+    "ما",
+    "شما",
+    "تو",
+    "خودم",
+    "خودمان",
+    "خود",
+    // a, this, that, there
+    "یک",
+    "این",
+    "آن",
+    "اینجا",
+    "آنجا",
+    // and, or, if, that
+    "و",
+    "یا",
+    "اگر",
+    "که",
+    // is, can, must, do: "می‌توانم" is read as "می" and "توانم"
+    "است",
+    "هست",
+    "باید",
+    "می",
+    "توانم",
+    "تونم",
+    "میشه",
+    "شود",
+    "کنم",
+    "کنیم",
+    "بکنم",
+    "کرد",
+    // the object's mark, and to, from, in, with, for, on
+    "را",
+    "رو",
+    "به",
+    "از",
+    "در",
+    "با",
+    "برای",
+    "روی",
+    "تا",
+  ],
 };
 
 const questionWordCache: Map<string, ReadonlySet<string>> = new Map();
@@ -455,6 +1595,490 @@ export const getDocsSearchQuestionWords: (
 
   return folded;
 };
+
+const UNSPACED_QUESTION_WORD: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const questionPhraseCache: Map<string, ReadonlyArray<string>> = new Map();
+
+/*
+ * A language's question words that are written without spaces (Chinese,
+ * Japanese), longest first: cut out of what is typed wherever they stand,
+ * since they are not words of their own there.
+ */
+export const getDocsSearchQuestionPhrases: (
+  language: string,
+) => ReadonlyArray<string> = (language: string): ReadonlyArray<string> => {
+  const cached: ReadonlyArray<string> | undefined =
+    questionPhraseCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const phrases: ReadonlyArray<string> = Array.from(
+    getDocsSearchQuestionWords(language),
+  )
+    .filter((word: string): boolean => {
+      return UNSPACED_QUESTION_WORD.test(word);
+    })
+    .sort((a: string, b: string): number => {
+      return Array.from(b).length - Array.from(a).length || a.localeCompare(b);
+    });
+
+  questionPhraseCache.set(language, phrases);
+
+  return phrases;
+};
+
+/*
+ * THE ENDINGS A WORD IS COMPARED WITHOUT, per language (#7875).
+ *
+ * A page's words and a question's are both read without one ending, so
+ * the forms of a word meet: Norwegian "nettstedet" (the website) is
+ * "nettsted", Russian "сайта" (of the site) "сайт", Portuguese "monitorar"
+ * (to monitor) "monitor", Korean "웹사이트를" (website, with its object's
+ * mark) "웹사이트" and Persian "سایتم" (my site) "سایت". Read with
+ * English's endings, "Nettsted-overvåking" lost "ed" and read as "nettst",
+ * and "Hvordan overvåker jeg nettstedet mitt?" found Website Monitor 9th.
+ *
+ * The index is built per language (AIDocsReader.build), so a language's
+ * endings are taken off every word of its index in its script, and off
+ * what is typed in it: the two always meet. A Latin-script word in a
+ * language of another script (an English product name on a Russian page)
+ * loses English's endings, as every word did before.
+ *
+ * English and German keep the endings every language had (ENGLISH_ENDINGS),
+ * so their results are as they were. Chinese and Japanese have no endings
+ * to take off: their words are compared as written.
+ */
+export interface DocsWordEndings {
+  // Tried longest first; one is taken off.
+  endings: ReadonlyArray<string>;
+  // The fewest letters a word keeps once one is.
+  shortestStem: number;
+  // An ending that needs more of the word left: Danish "opret" keeps its "et".
+  longerStems?: Readonly<Record<string, number>> | undefined;
+  /*
+   * The letters it is taken off. Latin-script words are compared without
+   * their accents, so their endings are written without them.
+   */
+  script: RegExp;
+  /*
+   * A doubled consonant at the end is read as one, so the forms of a verb
+   * meet: Danish "opretter" and "oprette" are "oprett", and "opret" is too.
+   */
+  undoublesConsonants?: boolean | undefined;
+  // A doubled vowel before the last consonant is read as one: Dutch "maak" is "mak", as "maken" is.
+  undoublesVowels?: boolean | undefined;
+}
+
+export const LATIN_SCRIPT_WORD: RegExp = /^[\p{Script=Latin}\p{M}\p{N}]+$/u;
+const CYRILLIC_WORD: RegExp = /^[\p{Script=Cyrillic}\p{M}\p{N}]+$/u;
+const HANGUL_WORD: RegExp = /^[\p{Script=Hangul}\p{N}]+$/u;
+const ARABIC_WORD: RegExp = /^[\p{Script=Arabic}\p{M}\p{N}]+$/u;
+const DEVANAGARI_WORD: RegExp = /^[\p{Script=Devanagari}\p{M}\p{N}]+$/u;
+
+// Plural and verb endings: "monitors", "paging", "paged".
+export const ENGLISH_ENDINGS: DocsWordEndings = {
+  endings: ["ing", "ers", "ed", "es", "en", "er", "s", "e"],
+  shortestStem: 3,
+  script: LATIN_SCRIPT_WORD,
+};
+
+// Danish and Norwegian: definite forms, plurals, verbs and verbal nouns.
+const NORDIC_ENDINGS: ReadonlyArray<string> = [
+  "ingene",
+  "ingen",
+  "inger",
+  "ninger",
+  "ningen",
+  "ning",
+  "erne",
+  "ende",
+  "ede",
+  "ene",
+  "eten",
+  "ing",
+  "er",
+  "en",
+  "et",
+  "e",
+  "a",
+  "s",
+];
+
+// "opret" (create) is not "opr" with a definite "-et"; "webstedet" is "websted".
+const NORDIC_LONGER_STEMS: Readonly<Record<string, number>> = { et: 4 };
+
+export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
+  Record<string, DocsWordEndings>
+> = {
+  en: ENGLISH_ENDINGS,
+  de: ENGLISH_ENDINGS,
+  // "maak", "maakt" and "maken"; "stel" and "stellen"; "instellingen".
+  nl: {
+    endings: [...ENGLISH_ENDINGS.endings, "ingen"],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+    undoublesConsonants: true,
+    undoublesVowels: true,
+  },
+  // "surveiller" and "surveillance", "configurer" and "configuration".
+  fr: {
+    endings: [
+      "ications",
+      "ication",
+      "ations",
+      "ation",
+      "ements",
+      "ement",
+      "ances",
+      "ance",
+      "ences",
+      "ence",
+      "euses",
+      "euse",
+      "eurs",
+      "eur",
+      "iers",
+      "ier",
+      "ees",
+      "ee",
+      "er",
+      "ez",
+      "es",
+      "e",
+      "s",
+    ],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+  },
+  // "monitorear", "monitoreo" and "monitor"; "configuro" and "configuración".
+  es: {
+    endings: [
+      "aciones",
+      "acion",
+      "amientos",
+      "amiento",
+      "ear",
+      "eo",
+      "ar",
+      "er",
+      "ir",
+      "es",
+      "os",
+      "as",
+      "o",
+      "a",
+      "e",
+      "s",
+    ],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+  },
+  // "monitorare", "monitoraggio" and "monitor"; "imposto" and "impostazione".
+  it: {
+    endings: [
+      "azioni",
+      "azione",
+      "aggi",
+      "aggio",
+      "are",
+      "ere",
+      "ire",
+      "i",
+      "o",
+      "a",
+      "e",
+    ],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+  },
+  // "monitorar", "monitoramento" and "monitor"; "agendo" and "agendamento".
+  pt: {
+    endings: [
+      "amentos",
+      "amento",
+      "acoes",
+      "acao",
+      "oes",
+      "ao",
+      "ar",
+      "er",
+      "ir",
+      "es",
+      "os",
+      "as",
+      "o",
+      "a",
+      "e",
+      "s",
+    ],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+  },
+  // "nettstedet" and "nettsted", "overvåker" and "overvåking".
+  da: {
+    endings: NORDIC_ENDINGS,
+    shortestStem: 3,
+    longerStems: NORDIC_LONGER_STEMS,
+    script: LATIN_SCRIPT_WORD,
+    undoublesConsonants: true,
+  },
+  no: {
+    endings: NORDIC_ENDINGS,
+    shortestStem: 3,
+    longerStems: NORDIC_LONGER_STEMS,
+    script: LATIN_SCRIPT_WORD,
+    undoublesConsonants: true,
+  },
+  // "övervakar", "övervaka" and "övervakning"; "statussida" and "statussidor".
+  sv: {
+    endings: [
+      "ningarna",
+      "ningar",
+      "ningen",
+      "ning",
+      "arna",
+      "erna",
+      "orna",
+      "ande",
+      "ade",
+      "ar",
+      "er",
+      "or",
+      "en",
+      "et",
+      "an",
+      "at",
+      "na",
+      "a",
+      "e",
+      "s",
+    ],
+    shortestStem: 3,
+    script: LATIN_SCRIPT_WORD,
+    undoublesConsonants: true,
+  },
+  // Cases, and verbs with their nouns: "сайта" and "сайт", "отслеживать" and "отслеживание".
+  ru: {
+    endings: [
+      "ированием",
+      "ирования",
+      "ирование",
+      "ировать",
+      "ениями",
+      "аниями",
+      "ением",
+      "анием",
+      "ения",
+      "ание",
+      "ение",
+      "ании",
+      "ении",
+      "анию",
+      "ению",
+      "ания",
+      "иться",
+      "аться",
+      "ться",
+      "тся",
+      "ами",
+      "ями",
+      "ого",
+      "его",
+      "ому",
+      "ему",
+      "ыми",
+      "ими",
+      "ать",
+      "ять",
+      "ить",
+      "еть",
+      "ует",
+      "уют",
+      "ает",
+      "яет",
+      "ают",
+      "яют",
+      "ах",
+      "ях",
+      "ов",
+      "ев",
+      "ей",
+      "ой",
+      "ий",
+      "ый",
+      "ая",
+      "яя",
+      "ое",
+      "ее",
+      "ые",
+      "ие",
+      "ым",
+      "им",
+      "ом",
+      "ем",
+      "ам",
+      "ям",
+      "ую",
+      "юю",
+      "ых",
+      "их",
+      "ет",
+      "ит",
+      "ют",
+      "ят",
+      "ут",
+      "ь",
+      "а",
+      "я",
+      "о",
+      "е",
+      "ы",
+      "и",
+      "у",
+      "ю",
+    ],
+    shortestStem: 3,
+    script: CYRILLIC_WORD,
+  },
+  // Particles and the endings of a verb made with 하다: "웹사이트를", "모니터링하나요".
+  ko: {
+    endings: [
+      "했습니다",
+      "하도록",
+      "하거나",
+      "하려면",
+      "하나요",
+      "하세요",
+      "합니다",
+      "합니까",
+      "했나요",
+      "하는지",
+      "됩니다",
+      "되나요",
+      "입니다",
+      "인가요",
+      "에서는",
+      "에서도",
+      "에게서",
+      "에게는",
+      "으로는",
+      "하는",
+      "하기",
+      "하고",
+      "하면",
+      "하여",
+      "해서",
+      "해야",
+      "하지",
+      "되는",
+      "되면",
+      "되어",
+      "나요",
+      "려면",
+      "세요",
+      "에서",
+      "에게",
+      "께서",
+      "한테",
+      "으로",
+      "로는",
+      "에는",
+      "에도",
+      "까지",
+      "부터",
+      "보다",
+      "처럼",
+      "마다",
+      "이나",
+      "한",
+      "할",
+      "함",
+      "해",
+      "된",
+      "돼",
+      "로",
+      "을",
+      "를",
+      "이",
+      "가",
+      "은",
+      "는",
+      "의",
+      "에",
+      "와",
+      "과",
+      "도",
+    ],
+    shortestStem: 2,
+    script: HANGUL_WORD,
+  },
+  // The possessive "my": "سایتم" is "سایت".
+  fa: { endings: ["م"], shortestStem: 3, script: ARABIC_WORD },
+  /*
+   * A verb's forms, and the plural a noun takes before a postposition:
+   * "बनाऊँ" (may I make), "बनाएँ" (make) and "बनाना" (making) are "बना";
+   * "घटनाएँ" and "घटनाओं" (incidents) are "घट", as "घटना" is.
+   */
+  hi: {
+    endings: [
+      "नाएँ",
+      "नाएं",
+      "नाओं",
+      "ऊँ",
+      "ऊं",
+      "ूँ",
+      "ूं",
+      "एँ",
+      "एं",
+      "ओं",
+      "ें",
+      "ों",
+      "ना",
+      "ने",
+    ],
+    shortestStem: 2,
+    script: DEVANAGARI_WORD,
+  },
+};
+
+/*
+ * The endings `language`'s words are compared without, for a word of the
+ * given script: its own for its own script, English's for a Latin-script
+ * word in a language of another script (or a language the docs do not
+ * have), and none otherwise.
+ */
+export const getDocsWordEndings: (
+  word: string,
+  language?: string | undefined,
+) => DocsWordEndings | null = (
+  word: string,
+  language?: string | undefined,
+): DocsWordEndings | null => {
+  const own: DocsWordEndings | undefined =
+    language &&
+    Object.prototype.hasOwnProperty.call(DOCS_SEARCH_WORD_ENDINGS, language)
+      ? DOCS_SEARCH_WORD_ENDINGS[language]
+      : undefined;
+
+  if (own && own.script.test(word)) {
+    return own;
+  }
+
+  return LATIN_SCRIPT_WORD.test(word) ? ENGLISH_ENDINGS : null;
+};
+
+/*
+ * Languages that write a thing's name as one word made of others, which a
+ * question asks with the words apart: Swedish "Webbplatsövervakning" for
+ * "övervaka min webbplats", Norwegian "nettstedsmonitor". The question's
+ * words are also read joined, in either order and with the "s" that links
+ * them, where the docs hold the word they make (AIDocsReader.readQuestion).
+ */
+export const DOCS_SEARCH_COMPOUNDING_LANGUAGES: ReadonlySet<string> =
+  new Set<string>(["da", "no", "sv"]);
 
 /*
  * How many wrong letters a word may have and still find what it meant:

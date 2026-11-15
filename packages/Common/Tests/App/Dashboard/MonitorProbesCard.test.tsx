@@ -989,7 +989,7 @@ describe("MonitorProbesCard in the reader's language", () => {
     for (const text of texts) {
       expect(text).not.toMatch(/[A-Za-z0-9]/);
     }
-    expect(texts[4]).toBe("فعال \u2022 ۱۱۹ میلی\u200cثانیه");
+    expect(texts[4]).toBe("فعال \u2022 ۱۱۹\u00A0میلی\u200cثانیه");
   });
 
   test("Arabic: the unit as Arabic writes it, never a Latin ms", () => {
@@ -997,7 +997,7 @@ describe("MonitorProbesCard in the reader's language", () => {
 
     const texts: Array<string> = healthTexts();
 
-    expect(texts[4]).toBe("يعمل · 119 ملي ث");
+    expect(texts[4]).toBe("يعمل · 119\u00A0ملي ث");
     expect(texts[6]).toBe("معطّل لهذه المراقبة");
     for (const text of texts) {
       expect(text).not.toMatch(/[A-Za-z]/);
@@ -1146,7 +1146,7 @@ describe("MonitorProbesCard in the reader's language", () => {
       `span.${PROBE_HEALTH_FIGURE_CLASS_NAME}`,
     );
 
-    expect(figure?.textContent).toBe("۱۱۹ میلی\u200cثانیه");
+    expect(figure?.textContent).toBe("۱۱۹\u00A0میلی\u200cثانیه");
     expect(london.textContent).toBe(
       getProbeHealthText(
         {
@@ -1217,7 +1217,7 @@ describe("getProbeHealthText and getProbeAgreementText write in the translator's
     ).toEqual(["Up", "182 ms"]);
     expect(
       getProbeHealthParts(row(MonitorOverviewProbeHealth.Up, 182.4), persian),
-    ).toEqual([persian.translateTemplate("Up"), "۱۸۲ میلی\u200cثانیه"]);
+    ).toEqual([persian.translateTemplate("Up"), "۱۸۲\u00A0میلی\u200cثانیه"]);
     // An up probe whose result had no time, and every other state: one part.
     expect(
       getProbeHealthParts(row(MonitorOverviewProbeHealth.Up), english),
@@ -1234,7 +1234,9 @@ describe("getProbeHealthText and getProbeAgreementText write in the translator's
     // The one line is the parts set apart as the language sets two facts.
     expect(
       getProbeHealthText(row(MonitorOverviewProbeHealth.Up, 182.4), persian),
-    ).toBe(`${persian.translateTemplate("Up")} \u2022 ۱۸۲ میلی\u200cثانیه`);
+    ).toBe(
+      `${persian.translateTemplate("Up")} \u2022 ۱۸۲\u00A0میلی\u200cثانیه`,
+    );
   });
 
   test("an up probe's time in German grouping; only an up probe shows one", () => {

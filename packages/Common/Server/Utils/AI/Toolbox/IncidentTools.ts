@@ -18,6 +18,8 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import OneUptimeDate from "../../../../Types/Date";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -265,7 +267,12 @@ export const QueryIncidentsTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Incident ${incident?.incidentNumber ? `#${incident.incidentNumber}` : incidentId.toString()}`,
+        // In the reader's language (issue #7980).
+        ...citationSentence(AI_READ_CITATIONS.incident, {
+          incident: incident?.incidentNumber
+            ? `#${incident.incidentNumber}`
+            : incidentId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentId.toString() },
@@ -411,21 +418,35 @@ export const QueryIncidentsTool: ObservabilityTool = {
       dataForLlm = `No rows at skip=${skip}; there are ${total} total. Lower skip to page back.\n${dataForLlm}`;
     }
 
-    const windowLabel: string = applyTimeFilter
-      ? `, last ${createdWithinHours}h`
-      : "";
-
+    /*
+     * What the chip under the answer names, in the reader's language (issue
+     * #7980): which incidents, over how many hours, and how many in all.
+     */
     let stateLabel: string = "Incidents";
+    let citationTemplate: string;
     if (stateFilter === "active") {
       stateLabel = "Active incidents";
+      citationTemplate = applyTimeFilter
+        ? AI_READ_CITATIONS.activeIncidentsInHours
+        : AI_READ_CITATIONS.activeIncidents;
     } else if (stateFilter === "resolved") {
       stateLabel = "Resolved incidents";
+      citationTemplate = applyTimeFilter
+        ? AI_READ_CITATIONS.resolvedIncidentsInHours
+        : AI_READ_CITATIONS.resolvedIncidents;
+    } else {
+      citationTemplate = applyTimeFilter
+        ? AI_READ_CITATIONS.incidentsInHours
+        : AI_READ_CITATIONS.incidents;
     }
 
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `${stateLabel}${windowLabel} (${total} total)`,
+      ...citationSentence(citationTemplate, {
+        ...(applyTimeFilter ? { hours: countFigure(createdWithinHours) } : {}),
+        count: countFigure(total),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Incidents,
       },
@@ -570,7 +591,10 @@ export const SearchIncidentsTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Incident search "${searchText}" (${serialized.rowCount} found)`,
+      ...citationSentence(AI_READ_CITATIONS.incidentSearch, {
+        query: searchText,
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Incidents,
       },

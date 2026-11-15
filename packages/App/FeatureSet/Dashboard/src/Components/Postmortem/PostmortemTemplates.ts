@@ -66,6 +66,8 @@ export function toAITemplates(
     const aiTemplate: AITemplate = {
       id: template.id,
       name: template.name || "Unnamed Template",
+      // The project's own template: its name as written, "Unnamed" looked up.
+      isNameUserContent: Boolean(template.name),
     };
 
     if (template.note) {

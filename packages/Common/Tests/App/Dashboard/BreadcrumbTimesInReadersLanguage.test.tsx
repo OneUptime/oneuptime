@@ -237,9 +237,9 @@ describe("in German", () => {
     [-1234, "-1,2 s"],
     [3000, "+3,0 s"],
     [-12500, "-12 s"],
-    [-60000, "-1 Min."],
-    [-125000, "-2 Min. 5 s"],
-    [200000, "+3 Min. 20 s"],
+    [-60000, "-1\u00A0Min."],
+    [-125000, "-2\u00A0Min. 5\u00A0s"],
+    [200000, "+3\u00A0Min. 20\u00A0s"],
   ])(
     "%d ms from the exception reads %s: a decimal comma, German's minutes",
     (ms: number, expected: string) => {
@@ -249,8 +249,8 @@ describe("in German", () => {
 
   test.each([
     [1500, "1,5 s"],
-    [120000, "2 Min."],
-    [200000, "3 Min. 20 s"],
+    [120000, "2\u00A0Min."],
+    [200000, "3\u00A0Min. 20\u00A0s"],
   ])("a span of %d ms reads %s", (ms: number, expected: string) => {
     expect(formatBreadcrumbSpan(ms, german)).toBe(expected);
   });
@@ -271,7 +271,7 @@ describe("in German", () => {
     [
       "events in minutes",
       { shownCount: 1234, msBefore: 200000 },
-      "1.234 Ereignisse in 3 Min. 20 s vor der Ausnahme",
+      "1.234 Ereignisse in 3\u00A0Min. 20\u00A0s vor der Ausnahme",
     ],
     [
       "one event at the exception",
@@ -302,11 +302,11 @@ describe("in Persian", () => {
   });
 
   test.each([
-    [-1234, `${LRM}${MINUS}۱٫۲ ثانیه`],
-    [3000, `${LRM}+۳٫۰ ثانیه`],
-    [-12500, `${LRM}${MINUS}۱۲ ثانیه`],
-    [-125000, `${LRM}${MINUS}۲ دقیقه ۵ ثانیه`],
-    [200000, `${LRM}+۳ دقیقه ۲۰ ثانیه`],
+    [-1234, `${LRM}${MINUS}۱٫۲\u00A0ثانیه`],
+    [3000, `${LRM}+۳٫۰\u00A0ثانیه`],
+    [-12500, `${LRM}${MINUS}۱۲\u00A0ثانیه`],
+    [-125000, `${LRM}${MINUS}۲\u00A0دقیقه ۵\u00A0ثانیه`],
+    [200000, `${LRM}+۳\u00A0دقیقه ۲۰\u00A0ثانیه`],
   ])(
     "%d ms from the exception: Persian digits, decimal sign and units",
     (ms: number, expected: string) => {
@@ -340,17 +340,17 @@ describe("in Persian", () => {
     [
       "events in seconds",
       { shownCount: 8, msBefore: 12000 },
-      "۸ رویداد در ۱۲ ثانیه پیش از استثنا",
+      "۸ رویداد در ۱۲\u00A0ثانیه پیش از استثنا",
     ],
     [
       "events in minutes",
       { shownCount: 8, msBefore: 125000 },
-      "۸ رویداد در ۲ دقیقه ۵ ثانیه پیش از استثنا",
+      "۸ رویداد در ۲\u00A0دقیقه ۵\u00A0ثانیه پیش از استثنا",
     ],
     [
       "the latest of more",
       { shownCount: 50, totalCount: 72, msBefore: 12000 },
-      "۵۰ رویداد در ۱۲ ثانیه پیش از استثنا (آخرین ۵۰ مورد از ۷۲)",
+      "۵۰ رویداد در ۱۲\u00A0ثانیه پیش از استثنا (آخرین ۵۰ مورد از ۷۲)",
     ],
     [
       "a filter",
@@ -604,7 +604,7 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
     await renderIn("de");
 
     expect(times()).toEqual([
-      "-2 Min. 5 s",
+      "-2\u00A0Min. 5\u00A0s",
       "-12 s",
       "-1,2 s",
       "bei der Ausnahme",
@@ -618,9 +618,9 @@ describe("the Breadcrumbs card, drawn in the reader's language", () => {
     await renderIn("fa");
 
     expect(times()).toEqual([
-      `${LRM}${MINUS}۲ دقیقه ۵ ثانیه`,
-      `${LRM}${MINUS}۱۲ ثانیه`,
-      `${LRM}${MINUS}۱٫۲ ثانیه`,
+      `${LRM}${MINUS}۲\u00A0دقیقه ۵\u00A0ثانیه`,
+      `${LRM}${MINUS}۱۲\u00A0ثانیه`,
+      `${LRM}${MINUS}۱٫۲\u00A0ثانیه`,
       "هنگام استثنا",
     ]);
     expect(

@@ -26,6 +26,11 @@ import {
   getPillDotStyle,
 } from "Common/UI/Components/Pill/PillColors";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  isRecordNameAsWritten,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getLineDirection,
@@ -79,7 +84,12 @@ export interface AttentionRow {
   subtitle?: string | undefined;
   // The colour of the bar at the row's left edge.
   accentColor: Color;
-  pill?: { text: string; color: Color } | undefined;
+  /*
+   * The record's state or status, as its badge reads it: a name the
+   * project gave it as written (isUserContent), one of OneUptime's own in
+   * the reader's language (Common/Utils/DefaultRecordNames).
+   */
+  pill?: { text: string; color: Color; isUserContent: boolean } | undefined;
   time?: AttentionRowTime | undefined;
   to: Route;
 }
@@ -174,8 +184,12 @@ const viewRoute: ViewRouteFunction = (pageMap: PageMap, id: string): Route => {
   });
 };
 
-const incidentRow: (incident: Incident) => AttentionRow = (
+const incidentRow: (
   incident: Incident,
+  translator: Translator,
+) => AttentionRow = (
+  incident: Incident,
+  translator: Translator,
 ): AttentionRow => {
   const id: string = incident._id?.toString() || "";
   const number: string | undefined =
@@ -187,7 +201,15 @@ const incidentRow: (incident: Incident) => AttentionRow = (
   return {
     id,
     title: incident.title || "",
-    subtitle: joinParts([number, incident.incidentSeverity?.name]),
+    // Its severity by its list: "Critical Incident" in the reader's words.
+    subtitle: joinParts([
+      number,
+      translateRecordName(
+        translator,
+        StateListType.IncidentSeverity,
+        incident.incidentSeverity?.name,
+      ),
+    ]),
     accentColor: colorOf(
       incident.incidentSeverity?.color || incident.currentIncidentState?.color,
       Red500,
@@ -196,6 +218,10 @@ const incidentRow: (incident: Incident) => AttentionRow = (
       ? {
           text: incident.currentIncidentState.name,
           color: colorOf(incident.currentIncidentState.color, Red500),
+          isUserContent: isRecordNameAsWritten(
+            StateListType.IncidentState,
+            incident.currentIncidentState.name,
+          ),
         }
       : undefined,
     time: date ? { date } : undefined,
@@ -203,8 +229,9 @@ const incidentRow: (incident: Incident) => AttentionRow = (
   };
 };
 
-const alertRow: (alert: Alert) => AttentionRow = (
+const alertRow: (alert: Alert, translator: Translator) => AttentionRow = (
   alert: Alert,
+  translator: Translator,
 ): AttentionRow => {
   const id: string = alert._id?.toString() || "";
   const number: string | undefined =
@@ -215,7 +242,14 @@ const alertRow: (alert: Alert) => AttentionRow = (
   return {
     id,
     title: alert.title || "",
-    subtitle: joinParts([number, alert.alertSeverity?.name]),
+    subtitle: joinParts([
+      number,
+      translateRecordName(
+        translator,
+        StateListType.AlertSeverity,
+        alert.alertSeverity?.name,
+      ),
+    ]),
     accentColor: colorOf(
       alert.alertSeverity?.color || alert.currentAlertState?.color,
       Amber500,
@@ -224,6 +258,10 @@ const alertRow: (alert: Alert) => AttentionRow = (
       ? {
           text: alert.currentAlertState.name,
           color: colorOf(alert.currentAlertState.color, Amber500),
+          isUserContent: isRecordNameAsWritten(
+            StateListType.AlertState,
+            alert.currentAlertState.name,
+          ),
         }
       : undefined,
     time: date ? { date } : undefined,
@@ -245,6 +283,10 @@ const monitorRow: (monitor: Monitor) => AttentionRow = (
       ? {
           text: monitor.currentMonitorStatus.name,
           color: colorOf(monitor.currentMonitorStatus.color, Red500),
+          isUserContent: isRecordNameAsWritten(
+            StateListType.MonitorStatus,
+            monitor.currentMonitorStatus.name,
+          ),
         }
       : undefined,
     to: viewRoute(PageMap.MONITOR_VIEW, id),
@@ -288,7 +330,10 @@ const sloRow: (
     title: slo.name || "",
     subtitle,
     accentColor: color,
-    pill: slo.sloStatus ? { text: slo.sloStatus, color } : undefined,
+    // The product's words for the SLO's standing, looked up.
+    pill: slo.sloStatus
+      ? { text: slo.sloStatus, color, isUserContent: false }
+      : undefined,
     to: viewRoute(PageMap.SLO_VIEW, id),
   };
 };
@@ -311,6 +356,10 @@ const maintenanceRow: (event: ScheduledMaintenance) => AttentionRow = (
       ? {
           text: event.currentScheduledMaintenanceState.name,
           color: colorOf(event.currentScheduledMaintenanceState.color, Gray500),
+          isUserContent: isRecordNameAsWritten(
+            StateListType.ScheduledMaintenanceState,
+            event.currentScheduledMaintenanceState.name,
+          ),
         }
       : undefined,
     time: endsAt
@@ -343,7 +392,11 @@ export const getAttentionGroups: (
       icon: IconProp.Alert,
       iconClassName: "text-red-600",
       count: data.activeIncidents.count,
-      rows: data.activeIncidents.items.map(incidentRow),
+      rows: data.activeIncidents.items.map(
+        (incident: Incident): AttentionRow => {
+          return incidentRow(incident, translator);
+        },
+      ),
       viewAll: PageMap.UNRESOLVED_INCIDENTS,
     },
     {
@@ -352,7 +405,9 @@ export const getAttentionGroups: (
       icon: IconProp.ExclaimationCircle,
       iconClassName: "text-amber-600",
       count: data.activeAlerts.count,
-      rows: data.activeAlerts.items.map(alertRow),
+      rows: data.activeAlerts.items.map((alert: Alert): AttentionRow => {
+        return alertRow(alert, translator);
+      }),
       viewAll: PageMap.UNRESOLVED_ALERTS,
     },
     {
@@ -518,6 +573,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
               <span className="max-sm:hidden flex-none sm:inline-flex">
                 <Pill
                   text={row.pill.text}
+                  isUserContent={row.pill.isUserContent}
                   color={row.pill.color}
                   size={PillSize.Small}
                 />

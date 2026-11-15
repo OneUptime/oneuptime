@@ -184,7 +184,7 @@ describe("handed the reader's translator, the helpers answer in German", () => {
   });
 
   test("liveness ages", () => {
-    expect(formatMinutesAgo(90, germanTranslator)).toBe("vor 1 Std.");
+    expect(formatMinutesAgo(90, germanTranslator)).toBe("vor 1\u00A0Std.");
     expect(formatMinutesAgo(0, germanTranslator)).toBe("gerade eben");
   });
 
@@ -259,6 +259,6 @@ describe("once the Dashboard sets i18next up, the helpers' default is the reader
   });
 
   test("so does a liveness age", () => {
-    expect(formatMinutesAgo(150)).toBe("vor 2 Std.");
+    expect(formatMinutesAgo(150)).toBe("vor 2\u00A0Std.");
   });
 });
