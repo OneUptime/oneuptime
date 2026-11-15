@@ -22,6 +22,8 @@ import {
   ResourceAiRemediationMode,
 } from "../../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "../../../../../Types/Runbook/RunbookStepType";
+import ResourceCommandPolicy from "../../../../../Utils/AiRemediation/Resource/ResourceCommandPolicy";
+import { ResourceCommandPolicyResult } from "../../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
 import {
   DEFAULT_LANGUAGE,
   toSentenceTerm,
@@ -269,6 +271,8 @@ describe("the server's nouns for a kind of resource", () => {
     (type: AiResourceType) => {
       const noun: string = sentenceNounOf(type);
 
+      // Written out where the agent can read it, beside the display name.
+      expect(AI_RESOURCE_TYPE_INFO[type].sentenceName).toBe(noun);
       // The AI Investigation card's word, which the Dashboard translates.
       expect(getResourceSentenceName(type)).toBe(noun);
       expect(describeResourceNoun(type)).toBe(noun);
@@ -320,6 +324,137 @@ describe("the server's nouns for a kind of resource", () => {
     ).toBe(
       'OneUptime AI can run read-only commands on database server "orders" through the Database AI agent.',
     );
+  });
+});
+
+/*
+ * The command policy's reasons go into the server's refusals ("Refused by
+ * the host command policy: ...") and the agent's, so they name the kind as a
+ * sentence does too, after "this" - never "a Host", nor "a AWS account".
+ */
+describe("the command policy's reasons", () => {
+  const programOf: (type: AiResourceType) => string = (
+    type: AiResourceType,
+  ): string => {
+    return AI_RESOURCE_TYPE_INFO[type].programs[0]!;
+  };
+
+  test.each(ALL_AI_RESOURCE_TYPES)(
+    "another program on a %s is refused naming this kind as a sentence does",
+    (type: AiResourceType) => {
+      const result: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({
+          resourceType: type,
+          command: "notaprogram --flag",
+        });
+
+      expect(result.reason).toContain(
+        `a command for this ${sentenceNounOf(type)} starts with "${programOf(type)}"`,
+      );
+      expect(result.reason).not.toMatch(/ for an? /);
+    },
+  );
+
+  test("a host's refusal says host after its policy and after this", () => {
+    const result: ResourceCommandPolicyResult =
+      ResourceCommandPolicy.evaluateCommand({
+        resourceType: AiResourceType.Host,
+        command: "docker ps",
+      });
+
+    expect(result.reason).toContain(
+      '"docker" is not a program the Host AI agent runs: a command for this host starts with "systemctl"',
+    );
+    expect(result.reason).not.toContain("this Host");
+  });
+
+  test("the toolkit's refusal reads host throughout, but for the agent's name", () => {
+    const reason: string = ResourceCommandPolicy.evaluateCommand({
+      resourceType: AiResourceType.Host,
+      command: "docker ps",
+    }).reason;
+
+    expect(
+      `Refused by the ${describeResourceNoun(AiResourceType.Host)} command policy: ${reason}`,
+    ).toMatch(
+      /^Refused by the host command policy: "docker" is not a program the Host AI agent runs: a command for this host starts with/,
+    );
+  });
+
+  // A change each kind's policy accepts, for its read-only agent to refuse.
+  const CHANGES: ReadonlyArray<string> = [
+    "docker restart web",
+    "systemctl restart nginx",
+    "pvesh create /nodes/pve1/qemu/100/status/reboot",
+    "govc vm.power -r web-01",
+    "ceph osd set noout",
+    "db cancel-query 1234",
+    "cloud restart-service arn:aws:ecs:us-east-1:123456789012:service/prod/web",
+    "openstack server reboot 358ee736-ba74-40ba-a354-7ead413c5df6",
+    "docker service update --force web",
+  ];
+
+  const readOnlyRefusalOf: (type: AiResourceType) => string | null = (
+    type: AiResourceType,
+  ): string | null => {
+    for (const command of CHANGES) {
+      const result: ResourceCommandPolicyResult =
+        ResourceCommandPolicy.evaluateCommand({ resourceType: type, command });
+
+      if (result.tier === "Read" || result.tier === "Denied") {
+        continue;
+      }
+
+      return ResourceCommandPolicy.getWriteScopeRefusal({
+        result,
+        allowWrites: false,
+        writeTargets: [],
+        protectedTargets: [],
+        resourceType: type,
+      });
+    }
+
+    return null;
+  };
+
+  const REFUSING_TYPES: Array<AiResourceType> = ALL_AI_RESOURCE_TYPES.filter(
+    (type: AiResourceType): boolean => {
+      return readOnlyRefusalOf(type) !== null;
+    },
+  );
+
+  test("most kinds have a change here for their read-only agent to refuse", () => {
+    expect(REFUSING_TYPES).toEqual(
+      expect.arrayContaining([
+        AiResourceType.Host,
+        AiResourceType.DockerHost,
+        AiResourceType.DatabaseServer,
+      ]),
+    );
+  });
+
+  test.each(REFUSING_TYPES)(
+    "a read-only %s's agent refuses a change naming this kind as a sentence does",
+    (type: AiResourceType) => {
+      expect(readOnlyRefusalOf(type)).toContain(
+        `The ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} for this ${sentenceNounOf(type)} is read-only`,
+      );
+    },
+  );
+
+  test("a read-only host's agent refuses a restart naming this host", () => {
+    expect(
+      ResourceCommandPolicy.getWriteScopeRefusal({
+        result: ResourceCommandPolicy.evaluateCommand({
+          resourceType: AiResourceType.Host,
+          command: "systemctl restart nginx",
+        }),
+        allowWrites: false,
+        writeTargets: [],
+        protectedTargets: [],
+        resourceType: AiResourceType.Host,
+      }),
+    ).toContain("The Host AI agent for this host is read-only");
   });
 });
 
