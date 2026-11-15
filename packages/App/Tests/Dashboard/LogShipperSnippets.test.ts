@@ -1143,7 +1143,7 @@ describe("a batch OneUptime turns away for a while is sent again (issue #8006)",
 
       /*
        * Fluentd's backoff doubles from 1 second without a bound: in the run,
-       * nine 503s in a row were tried again at 1, 2, 4, 8 and 17 seconds,
+       * nine 503s in a row were tried again 1, 2, 4, 7 and 17 seconds apart,
        * then about every 30 (with retry_max_interval), where without it the
        * seventh try waits 64 seconds, the ninth 256, and an hour's outage
        * leaves the next try up to an hour away.
