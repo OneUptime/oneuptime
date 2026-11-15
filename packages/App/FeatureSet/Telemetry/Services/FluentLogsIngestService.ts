@@ -11,7 +11,10 @@ import EventLoop from "Common/Server/Utils/EventLoop";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import LogSeverity from "Common/Types/Log/LogSeverity";
+import LogSeverity, {
+  logSeverityFromNumber,
+  logSeverityNumberFromText,
+} from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import TelemetryUtil, {
   AttributeType,
@@ -92,27 +95,6 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     "spanId",
     "spanid",
   ];
-
-  // Severity text to OTel severity mapping
-  private static readonly SEVERITY_TEXT_MAP: Dictionary<{
-    number: number;
-    text: LogSeverity;
-  }> = {
-    trace: { number: 1, text: LogSeverity.Trace },
-    debug: { number: 5, text: LogSeverity.Debug },
-    info: { number: 9, text: LogSeverity.Information },
-    information: { number: 9, text: LogSeverity.Information },
-    informational: { number: 9, text: LogSeverity.Information },
-    notice: { number: 9, text: LogSeverity.Information },
-    warn: { number: 13, text: LogSeverity.Warning },
-    warning: { number: 13, text: LogSeverity.Warning },
-    error: { number: 17, text: LogSeverity.Error },
-    err: { number: 17, text: LogSeverity.Error },
-    critical: { number: 21, text: LogSeverity.Fatal },
-    fatal: { number: 23, text: LogSeverity.Fatal },
-    emergency: { number: 23, text: LogSeverity.Fatal },
-    emerg: { number: 23, text: LogSeverity.Fatal },
-  };
 
   // Fields that are extracted separately and should not be duplicated as attributes
   private static readonly EXCLUDED_ATTRIBUTE_FIELDS: Set<string> = new Set([
@@ -553,15 +535,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
       return { number: 0, text: LogSeverity.Unspecified };
     }
 
-    const normalized: string = severityValue.toLowerCase().trim();
-    const mapped: { number: number; text: LogSeverity } | undefined =
-      this.SEVERITY_TEXT_MAP[normalized];
+    /*
+     * The level word, as every log ingest reads one: the same table OTLP
+     * reads a record's severityText with (LOG_SEVERITY_NUMBER_BY_TEXT,
+     * issue #8425), so `{"level": "critical"}` is stored the same way
+     * whether Fluent Bit or an OTLP exporter sent it. Any other value -
+     * a number included - is Unspecified.
+     */
+    const severityNumber: number = logSeverityNumberFromText(severityValue);
 
-    if (mapped) {
-      return mapped;
-    }
-
-    return { number: 0, text: LogSeverity.Unspecified };
+    return {
+      number: severityNumber,
+      text: logSeverityFromNumber(severityNumber),
+    };
   }
 
   private static extractStringField(
