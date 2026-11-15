@@ -39,7 +39,7 @@ import {
 } from "./PromQLRegex";
 import { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
-import lookupTable from "../LookupTable";
+import lookupTable, { copyOwnValues, writeOwnValue } from "../LookupTable";
 
 /*
  * What each PromQL function does (promql/functions.go), given its arguments
@@ -602,7 +602,8 @@ const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
       set.add(matcher.name);
 
       if (matcher.value !== "") {
-        labels[matcher.name] = matcher.value;
+        // As an own key: a selector may pin a label named __proto__.
+        writeOwnValue(labels, matcher.name, matcher.value);
         continue;
       }
     }
@@ -1002,7 +1003,7 @@ export const evaluatePromQLFunction: (
           continue;
         }
 
-        const groupLabels: PromQLLabels = { ...sample.labels };
+        const groupLabels: PromQLLabels = copyOwnValues(sample.labels);
         delete groupLabels["le"];
         delete groupLabels[PROMQL_METRIC_NAME_LABEL];
         const key: string = promQLLabelsKey(groupLabels);
@@ -1086,7 +1087,8 @@ export const evaluatePromQLFunction: (
             return sample;
           }
 
-          const labels: PromQLLabels = { ...sample.labels };
+          // Own keys, a destination named __proto__ included (PromQLLabels).
+          const labels: PromQLLabels = copyOwnValues(sample.labels);
           const value: string = expandTemplate(
             replacement,
             match,
@@ -1096,7 +1098,7 @@ export const evaluatePromQLFunction: (
           if (value.length === 0) {
             delete labels[destination];
           } else {
-            labels[destination] = value;
+            writeOwnValue(labels, destination, value);
           }
 
           return { ...sample, labels };
@@ -1128,12 +1130,13 @@ export const evaluatePromQLFunction: (
               return promQLLabelValue(sample.labels, source);
             })
             .join(separator);
-          const labels: PromQLLabels = { ...sample.labels };
+          // Own keys, a destination named __proto__ included (PromQLLabels).
+          const labels: PromQLLabels = copyOwnValues(sample.labels);
 
           if (value.length === 0) {
             delete labels[destination];
           } else {
-            labels[destination] = value;
+            writeOwnValue(labels, destination, value);
           }
 
           return { ...sample, labels };

@@ -123,16 +123,12 @@ describe("PromQL labels of a series' attributes", () => {
   });
 
   /*
-   * Every name an object inherits, as an attribute (all but __proto__,
-   * which a label set cannot be given by assignment yet: issue #8025). The
-   * label holds the attribute's own value, never the inherited member
-   * joined in front of it with ";".
+   * Every name an object inherits, as an attribute - __proto__ too, which
+   * an assignment did not write (issue #8025). The label holds the
+   * attribute's own value, never the inherited member joined in front of
+   * it with ";".
    */
-  test.each(
-    INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
-      return name !== "__proto__";
-    }),
-  )(
+  test.each(INHERITED_PROPERTY_NAMES)(
     "an attribute named %s is a label holding its own value",
     (name: string) => {
       const labels: PromQLLabels = attributesToPromQLLabels({
@@ -166,7 +162,7 @@ describe("PromQL labels of a series' attributes", () => {
    */
   test.each(
     INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
-      return name.includes("_") && name !== "__proto__";
+      return name.includes("_");
     }),
   )("two keys that name the label %s join their own values", (name: string) => {
     const dotted: string = name.replace(/_/g, ".");
