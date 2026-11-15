@@ -125,6 +125,8 @@ const FormStatusCard: FunctionComponent<ComponentProps> = (
           value={isEnabled}
           disabled={isSaving || !updateGate.isAllowed}
           tooltip={updateGate.disabledReason}
+          // The permission check words its reason in the reader's language.
+          isTooltipTranslated={true}
           dataTestId="form-accepting-submissions"
           onChange={(value: boolean) => {
             void change(value);

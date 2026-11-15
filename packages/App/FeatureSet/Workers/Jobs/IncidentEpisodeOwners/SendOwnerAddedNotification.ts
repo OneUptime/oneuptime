@@ -23,11 +23,45 @@ import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpiso
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
 
 RunCron(
   "IncidentEpisodeOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the incident episode as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.IncidentEpisodeOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const episode: IncidentEpisode | null = await readIncidentEpisode(
+          delivery.notification.resourceId,
+        );
+
+        if (!episode) {
+          await delivery.giveUp("the incident episode is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          episode: episode,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const episodeOwnerTeams: Array<IncidentEpisodeOwnerTeam> =
       await IncidentEpisodeOwnerTeamService.findAllBy({
         query: {
@@ -44,33 +78,26 @@ RunCron(
         },
       });
 
-    const episodeOwnersMap: Dictionary<Array<User>> = {};
+    const episodeOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const episodeOwnerTeam of episodeOwnerTeams) {
-      const episodeId: ObjectID = episodeOwnerTeam.incidentEpisodeId!;
+      const incidentEpisodeId: ObjectID = episodeOwnerTeam.incidentEpisodeId!;
       const teamId: ObjectID = episodeOwnerTeam.teamId!;
 
       const users: Array<User> = await TeamMemberService.getUsersInTeams([
         teamId,
       ]);
 
-      if (episodeOwnersMap[episodeId.toString()] === undefined) {
-        episodeOwnersMap[episodeId.toString()] = [];
+      if (episodeOwnersMap[incidentEpisodeId.toString()] === undefined) {
+        episodeOwnersMap[incidentEpisodeId.toString()] = [];
       }
 
-      for (const user of users) {
-        (episodeOwnersMap[episodeId.toString()] as Array<User>).push(user);
-      }
-
-      // Mark this as notified
-      await IncidentEpisodeOwnerTeamService.updateOneById({
-        id: episodeOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        episodeOwnersMap[incidentEpisodeId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: episodeOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -95,120 +122,183 @@ RunCron(
       });
 
     for (const episodeOwnerUser of episodeOwnerUsers) {
-      const episodeId: ObjectID = episodeOwnerUser.incidentEpisodeId!;
+      const incidentEpisodeId: ObjectID = episodeOwnerUser.incidentEpisodeId!;
       const user: User = episodeOwnerUser.user!;
 
-      if (episodeOwnersMap[episodeId.toString()] === undefined) {
-        episodeOwnersMap[episodeId.toString()] = [];
+      if (episodeOwnersMap[incidentEpisodeId.toString()] === undefined) {
+        episodeOwnersMap[incidentEpisodeId.toString()] = [];
       }
 
-      (episodeOwnersMap[episodeId.toString()] as Array<User>).push(user);
-
-      // Mark this as notified
-      await IncidentEpisodeOwnerUserService.updateOneById({
-        id: episodeOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        episodeOwnersMap[incidentEpisodeId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: episodeOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
-    // Send email to all of these users
-    for (const episodeId in episodeOwnersMap) {
-      if (!episodeOwnersMap[episodeId]) {
+    // send email to all of these users.
+
+    for (const incidentEpisodeId in episodeOwnersMap) {
+      const ownerRows: Array<OwnerRowAdded> =
+        episodeOwnersMap[incidentEpisodeId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if ((episodeOwnersMap[episodeId] as Array<User>).length === 0) {
-        continue;
+      const episode: IncidentEpisode | null = await readIncidentEpisode(
+        new ObjectID(incidentEpisodeId),
+      );
+
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = episode
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.IncidentEpisodeOwnerAdded,
+            projectId: episode.projectId!,
+            resourceId: episode.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
+
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose incident episode is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await IncidentEpisodeOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        } else {
+          await IncidentEpisodeOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
       }
-
-      const ownerUsers: Array<User> = episodeOwnersMap[
-        episodeId
-      ] as Array<User>;
-
-      // Get the incident episode
-      const episode: IncidentEpisode | null =
-        await IncidentEpisodeService.findOneById({
-          id: new ObjectID(episodeId),
-          props: {
-            isRoot: true,
-          },
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            projectId: true,
-            project: {
-              name: true,
-            },
-            currentIncidentState: {
-              name: true,
-              color: true,
-            },
-            incidentSeverity: {
-              name: true,
-              color: true,
-            },
-            episodeNumber: true,
-            episodeNumberWithPrefix: true,
-          },
-        });
 
       if (!episode) {
         continue;
       }
 
-      /*
-       * A team row expands to every member row, pending invitations included,
-       * and a pending invitee has no notification settings yet (the defaults
-       * are added on accept). Tell only the accepted members of the project -
-       * the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: episode.projectId!,
-          users: ownerUsers,
+      try {
+        await notifyOwnersAdded({
+          episode: episode,
+          deliveries: deliveries,
         });
-
-      if (users.length === 0) {
-        continue;
+      } catch (e) {
+        logger.error(
+          "Error in sending incident episode owner added notification",
+          {
+            projectId: episode.projectId?.toString(),
+            incidentEpisodeId: episode.id?.toString(),
+          },
+        );
+        logger.error(e, {
+          projectId: episode.projectId?.toString(),
+          incidentEpisodeId: episode.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      const episodeNumber: string =
-        episode.episodeNumberWithPrefix ||
-        (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
+async function readIncidentEpisode(
+  incidentEpisodeId: ObjectID,
+): Promise<IncidentEpisode | null> {
+  return await IncidentEpisodeService.findOneById({
+    id: incidentEpisodeId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      title: true,
+      description: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+      currentIncidentState: {
+        name: true,
+        color: true,
+      },
+      incidentSeverity: {
+        name: true,
+        color: true,
+      },
+      episodeNumber: true,
+      episodeNumberWithPrefix: true,
+    },
+  });
+}
 
-      const vars: Dictionary<string> = {
-        episodeTitle: episode.title!,
-        episodeNumber: episodeNumber,
-        projectName: episode.project!.name!,
-        currentState: episode.currentIncidentState!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "currentState",
-          episode.currentIncidentState?.color,
-        ),
-        episodeDescription: await Markdown.convertToHTML(
-          episode.description! || "",
-          MarkdownContentType.Email,
-        ),
-        episodeSeverity: episode.incidentSeverity?.name || "Not Set",
-        ...EmailColorUtil.getTemplateVariables(
-          "episodeSeverity",
-          episode.incidentSeverity?.color,
-        ),
-        episodeViewLink: (
-          await IncidentEpisodeService.getEpisodeLinkInDashboard(
-            episode.projectId!,
-            episode.id!,
-          )
-        ).toString(),
-      };
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * incident episode, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  episode: IncidentEpisode;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const episode: IncidentEpisode = data.episode;
 
-      for (const user of users) {
+  if (ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
+
+  const episodeNumber: string =
+    episode.episodeNumberWithPrefix ||
+    (episode.episodeNumber ? `#${episode.episodeNumber}` : "");
+
+  const vars: Dictionary<string> = {
+    episodeTitle: episode.title!,
+    episodeNumber: episodeNumber,
+    projectName: episode.project!.name!,
+    currentState: episode.currentIncidentState!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "currentState",
+      episode.currentIncidentState?.color,
+    ),
+    episodeDescription: await Markdown.convertToHTML(
+      episode.description! || "",
+      MarkdownContentType.Email,
+    ),
+    episodeSeverity: episode.incidentSeverity?.name || "Not Set",
+    ...EmailColorUtil.getTemplateVariables(
+      "episodeSeverity",
+      episode.incidentSeverity?.color,
+    ),
+    episodeViewLink: (
+      await IncidentEpisodeService.getEpisodeLinkInDashboard(
+        episode.projectId!,
+        episode.id!,
+      )
+    ).toString(),
+  };
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const episodeIdentifier: string =
           episode.episodeNumber !== undefined
             ? `${episodeNumber} (${episode.title})`
@@ -277,7 +367,7 @@ RunCron(
           incidentEpisodeId: episode.id!,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

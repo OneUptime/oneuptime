@@ -53,6 +53,7 @@ const PROJECT_USER_PROPS: DatabaseCommonInteractionProps = {
 let grantCheck: jest.SpyInstance;
 let teamLookup: jest.SpyInstance;
 let memberCheck: jest.SpyInstance;
+let membershipCheck: jest.SpyInstance;
 
 beforeEach(() => {
   stubProjectDirectory({});
@@ -72,6 +73,15 @@ beforeEach(() => {
     .mockResolvedValue(0);
   memberCheck = jest
     .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(false);
+  // Not invited to the project either: the invitation email asks (#8421).
+  membershipCheck = jest
+    .spyOn(
+      TeamMemberService as unknown as {
+        hasMembershipInProject: (data: unknown) => Promise<boolean>;
+      },
+      "hasMembershipInProject",
+    )
     .mockResolvedValue(false);
   jest
     .spyOn(ProjectService, "findOneById")
@@ -192,6 +202,10 @@ describe("the person", () => {
     expect(String(memberCheck.mock.calls[0]![0].userId)).toBe(
       USER_ID.toString(),
     );
+    // And the person the invitation email is about (#8421).
+    expect(String(membershipCheck.mock.calls[0]![0].userId)).toBe(
+      USER_ID.toString(),
+    );
     expect(member.userId?.toString()).toBe(USER_ID.toString());
     expect(has(member, "user")).toBe(false);
   });
@@ -211,5 +225,6 @@ describe("the person", () => {
     );
     expect(teamLookup).not.toHaveBeenCalled();
     expect(memberCheck).not.toHaveBeenCalled();
+    expect(membershipCheck).not.toHaveBeenCalled();
   });
 });

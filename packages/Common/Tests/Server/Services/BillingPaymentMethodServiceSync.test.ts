@@ -7,6 +7,7 @@ import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBilling
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const CUSTOMER_ID: string = "cus_sync_test";
@@ -128,11 +129,10 @@ describe("BillingPaymentMethodService provider sync", () => {
    * to this line.
    */
   it("clears the project's cached authorization once the provider has been read", async () => {
-    const invalidate: jest.SpiedFunction<
-      typeof PayAsYouGoBillingService.invalidate
-    > = getJestSpyOn(PayAsYouGoBillingService, "invalidate").mockReturnValue(
-      undefined,
-    );
+    const invalidate: SpyInstance<typeof PayAsYouGoBillingService.invalidate> =
+      jest
+        .spyOn(PayAsYouGoBillingService, "invalidate")
+        .mockReturnValue(undefined);
 
     await find();
 
@@ -143,11 +143,10 @@ describe("BillingPaymentMethodService provider sync", () => {
   });
 
   it("does not clear the cached authorization when the provider read fails", async () => {
-    const invalidate: jest.SpiedFunction<
-      typeof PayAsYouGoBillingService.invalidate
-    > = getJestSpyOn(PayAsYouGoBillingService, "invalidate").mockReturnValue(
-      undefined,
-    );
+    const invalidate: SpyInstance<typeof PayAsYouGoBillingService.invalidate> =
+      jest
+        .spyOn(PayAsYouGoBillingService, "invalidate")
+        .mockReturnValue(undefined);
     getPaymentMethods.mockRejectedValueOnce(new Error("provider unreachable"));
 
     await expect(find()).rejects.toThrow("provider unreachable");

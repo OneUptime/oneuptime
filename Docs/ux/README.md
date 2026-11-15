@@ -306,7 +306,8 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
   failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
   the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
-  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
   a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
@@ -519,6 +520,11 @@ work out, starts from a default for everything else, and folds what most people 
   server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
+- **A permission is named after the record it guards.** A feed's permissions read "Create Incident
+  Feed" and "Read Scheduled Maintenance Feed", as the feed calls itself, so a search of the permission
+  picker for "feed" finds every one, and a refusal names the same thing the permission does. They
+  read "Scheduled Maintenance Log" until #8451. Enforced by
+  [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by
@@ -773,13 +779,16 @@ then `npm run i18n:validate` from the root.
   [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
 - **A metric's description reads in the reader's language, its code and names as written.** Every
   monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
-  glued together at run time is no key, and read English in every language (#8014). Each place that
-  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
-  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
-  between backticks exactly and as often, since the picker draws it as code, and the metric,
-  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
-  by
-  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+  glued together at run time is no key, and read English in every language (#8014). So are the
+  descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
+  out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
+  picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
+  metric a monitor stored. A translation keeps each piece of code between backticks exactly and as
+  often, since the picker draws it as code, and the metric, attribute and product names, unit
+  symbols, printed values and numbers the English gives. Enforced by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts)
+  and
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts).
 - **A product's Help > Documentation page reads in the reader's language, its code as written.** A
   page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
   Observability's does, #7531). A page that is a setup guide holds each language's words for every

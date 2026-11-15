@@ -61,6 +61,9 @@ import {
  * custom property's value). A file another issue owns is listed in
  * OWNED_ELSEWHERE with that issue, and the list only shrinks: a listed
  * file that no longer writes a unit by hand fails until it is taken off.
+ * A helper whose hand-written unit is only its English reading - every
+ * other language worded by Intl - is listed in ENGLISH_READINGS with why,
+ * held to the same: a listed file that no longer writes one fails.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
@@ -100,9 +103,21 @@ const OWNED_ELSEWHERE: Readonly<Record<string, string>> = {
     "#6516",
   "packages/App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayClockAlignment.ts":
     "#6516",
-  // The infrastructure graph's "seen 12 min ago", English for every reader.
+};
+
+/*
+ * The Dashboard files whose hand-written unit is the English reading of a
+ * helper that words every other language itself, each with why: only an
+ * English reader reads it.
+ */
+const ENGLISH_READINGS: Readonly<Record<string, string>> = {
+  /*
+   * The infrastructure graph's status line read "Active · seen 12 min ago"
+   * in English for every reader (#8418); it is a sentence of the locale
+   * now, its time formatLastSeenInLanguage's.
+   */
   "packages/App/FeatureSet/Dashboard/src/Components/Topology/TopologyActivity.ts":
-    "#8418",
+    "formatLastSeen is the English reading of formatLastSeenInLanguage, which words every other language with Intl.RelativeTimeFormat; no page draws it itself.",
 };
 
 /*
@@ -479,7 +494,10 @@ describe("durations in milliseconds, in the reader's language", () => {
     expect(
       findings
         .filter((finding: MillisecondsFinding): boolean => {
-          return OWNED_ELSEWHERE[finding.file] === undefined;
+          return (
+            OWNED_ELSEWHERE[finding.file] === undefined &&
+            ENGLISH_READINGS[finding.file] === undefined
+          );
         })
         .map(describeFinding),
     ).toEqual([]);
@@ -505,6 +523,32 @@ describe("durations in milliseconds, in the reader's language", () => {
         stillWritesMsByHand: true,
       });
       expect(OWNED_ELSEWHERE[file]).toMatch(/^#\d+$/);
+    }
+  });
+
+  test("a helper's English reading still writes its unit by hand, and says why: the list only shrinks", () => {
+    const { findings } = readAllFindings();
+
+    for (const file of Object.keys(ENGLISH_READINGS)) {
+      expect({
+        file,
+        exists: fs.existsSync(path.join(REPOSITORY_ROOT, file)),
+        isDashboardFile: isDashboardFile(file),
+        isOwnedElsewhere: OWNED_ELSEWHERE[file] !== undefined,
+        stillWritesAUnitByHand: findings.some(
+          (finding: MillisecondsFinding): boolean => {
+            return finding.file === file;
+          },
+        ),
+      }).toEqual({
+        file,
+        exists: true,
+        isDashboardFile: true,
+        isOwnedElsewhere: false,
+        stillWritesAUnitByHand: true,
+      });
+      // A reason, as a sentence: never an issue number alone.
+      expect(ENGLISH_READINGS[file]).toMatch(/^[a-zA-Z].{40,}\.$/);
     }
   });
 

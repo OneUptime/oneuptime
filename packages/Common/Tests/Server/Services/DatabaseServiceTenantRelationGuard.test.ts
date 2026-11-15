@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
 /*
  * PasswordHash has a known TS5.9 compile failure under ts-jest that breaks any
@@ -128,7 +129,7 @@ describe("DatabaseService tenant-relation cross-tenant write guard", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const service: any = target.service;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let save: jest.Mock<(entity: any) => Promise<any>>;
+    let save: Mock<(entity: any) => Promise<any>>;
 
     beforeEach(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,8 +7,13 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
-  // Title shown on the page and as the final breadcrumb.
+  // Title shown on the page and as the final breadcrumb: English, looked up.
   title: string;
+  /*
+   * The title is in the reader's words already (t("pages.…")): drawn as
+   * given on the page and in its trail, never looked up again (#8423).
+   */
+  isTitleTranslated?: boolean | undefined;
   // Route the final breadcrumb links to (this page).
   currentRoute: Route;
   children: ReactElement | Array<ReactElement>;
@@ -33,6 +38,7 @@ const HealthPage: FunctionComponent<ComponentProps> = (
   return (
     <Page
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       sideMenu={<HealthSideMenu />}
       breadcrumbLinks={[
         {
@@ -46,6 +52,7 @@ const HealthPage: FunctionComponent<ComponentProps> = (
         },
         {
           title: props.title,
+          isTitleTranslated: props.isTitleTranslated,
           to: RouteUtil.populateRouteParams(props.currentRoute),
         },
       ]}
