@@ -8,6 +8,7 @@ import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import SCIMLogStatus from "Common/Types/SCIM/SCIMLogStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -150,7 +151,7 @@ const ProjectSCIMLogsTable: FunctionComponent<ProjectSCIMLogsTableProps> = (
               if (item["statusMessage"]) {
                 logDetails =
                   translator.translateTemplate("Status Message: {{message}}", {
-                    message: item["statusMessage"] as string,
+                    message: errorInSentence(item["statusMessage"] as string),
                   }) +
                   "\n\n" +
                   logDetails;

@@ -50,7 +50,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Datacenter ---
   {
     id: "vcenter-datacenter-cluster-count",
-    friendlyName: "Datacenter Cluster Count",
+    friendlyName: translationKey("Datacenter Cluster Count"),
     description: translationKey(
       "Number of clusters in the datacenter, fanned out by the `status` datapoint attribute (red | yellow | green | gray — vSphere's overall status of each cluster). Sum the series for the total; filter `status = red` to count clusters with an active critical alarm.",
     ),
@@ -62,7 +62,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-cpu-limit",
-    friendlyName: "Datacenter CPU Capacity",
+    friendlyName: translationKey("Datacenter CPU Capacity"),
     description: translationKey(
       "Total CPU available to the datacenter across every ESXi host, in MHz.",
     ),
@@ -74,7 +74,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-datastore-count",
-    friendlyName: "Datacenter Datastore Count",
+    friendlyName: translationKey("Datacenter Datastore Count"),
     description: translationKey("Number of datastores in the datacenter."),
     metricName: "vcenter.datacenter.datastore.count",
     category: "Datacenter",
@@ -84,7 +84,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-disk-space",
-    friendlyName: "Datacenter Disk Space",
+    friendlyName: translationKey("Datacenter Disk Space"),
     description: translationKey(
       "Datastore space across the datacenter in bytes, fanned out by the `disk_state` datapoint attribute (used | available). Filter on `disk_state` to chart one side; used ÷ (used + available) is the datacenter-wide storage utilization.",
     ),
@@ -96,7 +96,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-host-count",
-    friendlyName: "Datacenter Host Count",
+    friendlyName: translationKey("Datacenter Host Count"),
     description: translationKey(
       "Number of ESXi hosts in the datacenter, fanned out by the `status` (red | yellow | green | gray) and `power_state` (on | off | standby | unknown) datapoint attributes. Sum for the total; filter `status = red` or `power_state = off` to count unhealthy or powered-off hosts.",
     ),
@@ -108,7 +108,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-memory-limit",
-    friendlyName: "Datacenter Memory Capacity",
+    friendlyName: translationKey("Datacenter Memory Capacity"),
     description: translationKey(
       "Total physical memory available to the datacenter across every ESXi host, in bytes.",
     ),
@@ -120,7 +120,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datacenter-vm-count",
-    friendlyName: "Datacenter VM Count",
+    friendlyName: translationKey("Datacenter VM Count"),
     description: translationKey(
       "Number of virtual machines in the datacenter, fanned out by the `status` (red | yellow | green | gray) and `power_state` (on | off | suspended | unknown) datapoint attributes. Sum for the total; filter `power_state = on` for the running VM count.",
     ),
@@ -134,7 +134,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Cluster ---
   {
     id: "vcenter-cluster-cpu-effective",
-    friendlyName: "Cluster Effective CPU",
+    friendlyName: translationKey("Cluster Effective CPU"),
     description: translationKey(
       "CPU the cluster can actually schedule, in MHz. Excludes hosts in maintenance mode or that are unresponsive — compare with Cluster CPU Capacity to see how much capacity is currently out of service.",
     ),
@@ -146,7 +146,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-cpu-limit",
-    friendlyName: "Cluster CPU Capacity",
+    friendlyName: translationKey("Cluster CPU Capacity"),
     description: translationKey(
       "Total CPU of every ESXi host in the cluster, in MHz, regardless of host state.",
     ),
@@ -158,7 +158,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-host-count",
-    friendlyName: "Cluster Host Count",
+    friendlyName: translationKey("Cluster Host Count"),
     description: translationKey(
       'Number of ESXi hosts in the cluster, fanned out by the `effective` datapoint attribute ("true" | "false" — stored as strings). A host is not effective while it is in maintenance mode, disconnected or unresponsive, so `effective = false` above 0 means the cluster is running short of a host.',
     ),
@@ -170,7 +170,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-memory-effective",
-    friendlyName: "Cluster Effective Memory",
+    friendlyName: translationKey("Cluster Effective Memory"),
     description: translationKey(
       "Memory the cluster can actually allocate to VMs, in bytes. Excludes memory on hosts in maintenance mode or that are unresponsive, and memory reserved by the ESXi service console.",
     ),
@@ -182,7 +182,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-memory-limit",
-    friendlyName: "Cluster Memory Capacity",
+    friendlyName: translationKey("Cluster Memory Capacity"),
     description: translationKey(
       "Total physical memory of every ESXi host in the cluster, in bytes.",
     ),
@@ -194,7 +194,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-vm-count",
-    friendlyName: "Cluster VM Count",
+    friendlyName: translationKey("Cluster VM Count"),
     description: translationKey(
       "Number of virtual machines in the cluster, fanned out by the `power_state` datapoint attribute (on | off | suspended | unknown). Sum for the total; filter `power_state = on` for the running VM count.",
     ),
@@ -206,7 +206,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-vm-template-count",
-    friendlyName: "Cluster VM Template Count",
+    friendlyName: translationKey("Cluster VM Template Count"),
     description: translationKey(
       "Number of virtual machine templates in the cluster.",
     ),
@@ -220,7 +220,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Host (ESXi) ---
   {
     id: "vcenter-host-cpu-capacity",
-    friendlyName: "Host CPU Capacity",
+    friendlyName: translationKey("Host CPU Capacity"),
     description: translationKey(
       "Total CPU capacity of the ESXi host in MHz (cores × clock). The denominator for Host CPU Usage.",
     ),
@@ -232,7 +232,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-cpu-reserved",
-    friendlyName: "Host CPU Reserved",
+    friendlyName: translationKey("Host CPU Reserved"),
     description: translationKey(
       "CPU on the ESXi host reserved for virtual machines, in MHz, fanned out by the `cpu_reservation_type` datapoint attribute (total | used). `used` approaching `total` means new reservations will fail admission control.",
     ),
@@ -244,7 +244,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-cpu-usage",
-    friendlyName: "Host CPU Usage",
+    friendlyName: translationKey("Host CPU Usage"),
     description: translationKey(
       "CPU currently consumed on the ESXi host, in MHz, across every VM and the hypervisor itself. Divide by Host CPU Capacity for a percentage, or use Host CPU Utilization directly.",
     ),
@@ -256,7 +256,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-cpu-utilization",
-    friendlyName: "Host CPU Utilization",
+    friendlyName: translationKey("Host CPU Utilization"),
     description: translationKey(
       "CPU utilization of the ESXi host as a percentage (0–100) of its capacity. Sustained values above 90% degrade every VM scheduled on the host.",
     ),
@@ -268,7 +268,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-disk-latency-avg",
-    friendlyName: "Host Disk Latency (Average)",
+    friendlyName: translationKey("Host Disk Latency (Average)"),
     description: translationKey(
       "Average latency of the ESXi host's disk operations in milliseconds (device + kernel time), fanned out by the `direction` (read | write) and `object` (disk device instance) datapoint attributes. Requires vCenter performance counter level 2.",
     ),
@@ -280,7 +280,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-disk-latency-max",
-    friendlyName: "Host Disk Latency (Max)",
+    friendlyName: translationKey("Host Disk Latency (Max)"),
     description: translationKey(
       "Highest latency observed across every disk the ESXi host uses, in milliseconds, per `object` (disk device instance) datapoint attribute. Measured over the most recent 20 s interval; requires performance counter level 3.",
     ),
@@ -292,7 +292,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-disk-throughput",
-    friendlyName: "Host Disk Throughput",
+    friendlyName: translationKey("Host Disk Throughput"),
     description: translationKey(
       "Kilobytes per second read from or written to the ESXi host's disks, fanned out by the `direction` (read | write) and `object` (disk device instance) datapoint attributes. Requires performance counter level 4.",
     ),
@@ -304,7 +304,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-active",
-    friendlyName: "Host Active Memory",
+    friendlyName: translationKey("Host Active Memory"),
     description: translationKey(
       "Memory the ESXi host's powered-on VMs are actively touching, in MiB, over the most recent 20 s interval. Disabled by default in the receiver — enable `vcenter.host.memory.active` in the agent config to collect it.",
     ),
@@ -316,7 +316,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-ballooned",
-    friendlyName: "Host Ballooned Memory",
+    friendlyName: translationKey("Host Ballooned Memory"),
     description: translationKey(
       "Guest physical memory reclaimed from the ESXi host's VMs by the balloon driver, in MiB. Anything above 0 means the host is under memory pressure. Disabled by default in the receiver — enable `vcenter.host.memory.ballooned` in the agent config to collect it.",
     ),
@@ -328,7 +328,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-capacity",
-    friendlyName: "Host Memory Capacity",
+    friendlyName: translationKey("Host Memory Capacity"),
     description: translationKey(
       "Total physical memory of the ESXi host in MiB — the denominator for Host Memory Usage. Disabled by default upstream; the OneUptime agent config enables it so host memory percentages can be derived.",
     ),
@@ -340,7 +340,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-granted",
-    friendlyName: "Host Granted Memory",
+    friendlyName: translationKey("Host Granted Memory"),
     description: translationKey(
       "Machine memory granted to the powered-on VMs on the ESXi host, in MiB, over the most recent 20 s interval. Disabled by default in the receiver — enable `vcenter.host.memory.granted` in the agent config to collect it.",
     ),
@@ -352,7 +352,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-usage",
-    friendlyName: "Host Memory Usage",
+    friendlyName: translationKey("Host Memory Usage"),
     description: translationKey(
       "Memory currently consumed on the ESXi host, in MiB, including the hypervisor's own overhead.",
     ),
@@ -364,7 +364,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-memory-utilization",
-    friendlyName: "Host Memory Utilization",
+    friendlyName: translationKey("Host Memory Utilization"),
     description: translationKey(
       "Memory utilization of the ESXi host as a percentage (0–100) of its physical capacity. Sustained values above 90% lead to ballooning and swapping across the VMs on the host.",
     ),
@@ -376,7 +376,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-network-packet-drop-rate",
-    friendlyName: "Host Network Packet Drop Rate",
+    friendlyName: translationKey("Host Network Packet Drop Rate"),
     description: translationKey(
       "Packets per second dropped on each physical NIC of the ESXi host, fanned out by the `direction` (transmitted | received) and `object` (NIC instance, e.g. vmnic0) datapoint attributes. Any sustained non-zero value points at an oversubscribed uplink or a failing NIC.",
     ),
@@ -388,7 +388,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-network-packet-error-rate",
-    friendlyName: "Host Network Packet Error Rate",
+    friendlyName: translationKey("Host Network Packet Error Rate"),
     description: translationKey(
       "Packet errors per second transmitted or received on the ESXi host's physical NICs, fanned out by the `direction` (transmitted | received) and `object` (NIC instance) datapoint attributes. Errors are almost always a cable, SFP or switch-port fault.",
     ),
@@ -400,7 +400,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-network-packet-rate",
-    friendlyName: "Host Network Packet Rate",
+    friendlyName: translationKey("Host Network Packet Rate"),
     description: translationKey(
       "Packets per second transmitted or received on each physical NIC of the ESXi host, fanned out by the `direction` (transmitted | received) and `object` (NIC instance) datapoint attributes.",
     ),
@@ -412,7 +412,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-network-throughput",
-    friendlyName: "Host Network Throughput",
+    friendlyName: translationKey("Host Network Throughput"),
     description: translationKey(
       "Kilobytes per second transmitted or received by the ESXi host, fanned out by the `direction` (transmitted | received) and `object` (NIC instance) datapoint attributes.",
     ),
@@ -424,7 +424,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-network-usage",
-    friendlyName: "Host Network Usage",
+    friendlyName: translationKey("Host Network Usage"),
     description: translationKey(
       "Combined transmit + receive rate across the ESXi host's NICs in kilobytes per second, per `object` (NIC instance) datapoint attribute.",
     ),
@@ -438,7 +438,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Virtual Machine ---
   {
     id: "vcenter-vm-cpu-readiness",
-    friendlyName: "VM CPU Ready",
+    friendlyName: translationKey("VM CPU Ready"),
     description: translationKey(
       "Percentage of time the virtual machine was ready to run but could not be scheduled on a physical CPU (CPU ready). Above 5% the guest feels sluggish; above 10% the host is CPU-oversubscribed. Emitted only for powered-on VMs.",
     ),
@@ -450,7 +450,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-cpu-time",
-    friendlyName: "VM CPU Time by State",
+    friendlyName: translationKey("VM CPU Time by State"),
     description: translationKey(
       "Percentage of time the virtual machine's vCPUs spent in each state, fanned out by the `cpu_state` (idle | ready | wait) and `object` (vCPU instance) datapoint attributes, over the most recent 20 s interval. Disabled by default in the receiver — enable `vcenter.vm.cpu.time` in the agent config to collect it.",
     ),
@@ -462,7 +462,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-cpu-usage",
-    friendlyName: "VM CPU Usage",
+    friendlyName: translationKey("VM CPU Usage"),
     description: translationKey(
       "CPU consumed by the virtual machine in MHz. Emitted only for powered-on VMs — its presence is how OneUptime infers a VM's power state.",
     ),
@@ -474,7 +474,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-cpu-utilization",
-    friendlyName: "VM CPU Utilization",
+    friendlyName: translationKey("VM CPU Utilization"),
     description: translationKey(
       "CPU utilization of the virtual machine as a percentage (0–100) of its configured vCPUs. Emitted only for powered-on VMs. A VM is entitled to spend the vCPUs it was given, so alert on sustained saturation rather than a spike.",
     ),
@@ -486,7 +486,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-disk-latency-avg",
-    friendlyName: "VM Disk Latency (Average)",
+    friendlyName: translationKey("VM Disk Latency (Average)"),
     description: translationKey(
       "Average latency of the virtual machine's disk operations in milliseconds, fanned out by the `direction` (read | write), `disk_type` (virtual | physical) and `object` (virtual disk instance) datapoint attributes. Requires vCenter performance counter level 2.",
     ),
@@ -498,7 +498,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-disk-latency-max",
-    friendlyName: "VM Disk Latency (Max)",
+    friendlyName: translationKey("VM Disk Latency (Max)"),
     description: translationKey(
       "Highest total latency (device + kernel time) the virtual machine saw on any disk over a 20 s interval, in milliseconds, per `object` (virtual disk instance) datapoint attribute.",
     ),
@@ -510,7 +510,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-disk-throughput",
-    friendlyName: "VM Disk Throughput",
+    friendlyName: translationKey("VM Disk Throughput"),
     description: translationKey(
       "Kilobytes per second read from or written to the virtual machine's disks, fanned out by the `direction` (read | write) and `object` (virtual disk instance) datapoint attributes. Requires performance counter level 2.",
     ),
@@ -522,7 +522,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-disk-usage",
-    friendlyName: "VM Disk Usage",
+    friendlyName: translationKey("VM Disk Usage"),
     description: translationKey(
       "Datastore space consumed by the virtual machine's files in bytes, fanned out by the `disk_state` datapoint attribute (used | available). Also emitted for VM templates. Filter `disk_state = used` for the committed size.",
     ),
@@ -534,7 +534,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-disk-utilization",
-    friendlyName: "VM Disk Utilization",
+    friendlyName: translationKey("VM Disk Utilization"),
     description: translationKey(
       "Percentage (0–100) of the virtual machine's provisioned storage that is committed on the datastore. Thin-provisioned VMs approaching 100% are about to consume their full provisioned size.",
     ),
@@ -546,7 +546,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-ballooned",
-    friendlyName: "VM Ballooned Memory",
+    friendlyName: translationKey("VM Ballooned Memory"),
     description: translationKey(
       "Guest memory reclaimed from the virtual machine by the balloon driver (VMware Tools), in MiB. Anything above 0 means the ESXi host is short of memory and is taking it back from this VM.",
     ),
@@ -558,7 +558,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-granted",
-    friendlyName: "VM Granted Memory",
+    friendlyName: translationKey("VM Granted Memory"),
     description: translationKey(
       "Machine memory granted to the virtual machine by the ESXi host, in MiB. Disabled by default in the receiver — enable `vcenter.vm.memory.granted` in the agent config to collect it.",
     ),
@@ -570,7 +570,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-swapped",
-    friendlyName: "VM Swapped Memory",
+    friendlyName: translationKey("VM Swapped Memory"),
     description: translationKey(
       "Memory granted to the virtual machine from the ESXi host's swap file, in MiB. Host-level swapping is the last resort after ballooning and compression; any value above 0 means the VM is paying disk latency for RAM.",
     ),
@@ -582,7 +582,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-swapped-ssd",
-    friendlyName: "VM Memory Swapped to SSD",
+    friendlyName: translationKey("VM Memory Swapped to SSD"),
     description: translationKey(
       "Memory of the virtual machine swapped to a host cache on fast flash storage (host swap cache), in KiB. Less painful than swapping to the VM swap file, but still memory pressure.",
     ),
@@ -594,7 +594,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-usage",
-    friendlyName: "VM Memory Usage",
+    friendlyName: translationKey("VM Memory Usage"),
     description: translationKey(
       "Memory actively used by the virtual machine's guest, in MiB. Emitted for powered-on and powered-off VMs alike (0 when off).",
     ),
@@ -606,7 +606,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-memory-utilization",
-    friendlyName: "VM Memory Utilization",
+    friendlyName: translationKey("VM Memory Utilization"),
     description: translationKey(
       "Memory utilization of the virtual machine as a percentage (0–100) of its configured memory.",
     ),
@@ -618,7 +618,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-broadcast-packet-rate",
-    friendlyName: "VM Broadcast Packet Rate",
+    friendlyName: translationKey("VM Broadcast Packet Rate"),
     description: translationKey(
       "Broadcast packets per second transmitted or received by each vNIC of the virtual machine, fanned out by the `direction` (transmitted | received) and `object` (vNIC instance) datapoint attributes. Disabled by default in the receiver — enable `vcenter.vm.network.broadcast.packet.rate` in the agent config to collect it.",
     ),
@@ -630,7 +630,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-multicast-packet-rate",
-    friendlyName: "VM Multicast Packet Rate",
+    friendlyName: translationKey("VM Multicast Packet Rate"),
     description: translationKey(
       "Multicast packets per second transmitted or received by each vNIC of the virtual machine, fanned out by the `direction` (transmitted | received) and `object` (vNIC instance) datapoint attributes. Disabled by default in the receiver — enable `vcenter.vm.network.multicast.packet.rate` in the agent config to collect it.",
     ),
@@ -642,7 +642,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-packet-drop-rate",
-    friendlyName: "VM Network Packet Drop Rate",
+    friendlyName: translationKey("VM Network Packet Drop Rate"),
     description: translationKey(
       "Packets per second dropped by each vNIC of the virtual machine, fanned out by the `direction` (transmitted | received) and `object` (vNIC instance) datapoint attributes. Receive-side drops usually mean the guest is not draining its ring buffer fast enough.",
     ),
@@ -654,7 +654,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-packet-rate",
-    friendlyName: "VM Network Packet Rate",
+    friendlyName: translationKey("VM Network Packet Rate"),
     description: translationKey(
       "Packets per second transmitted or received by each vNIC of the virtual machine, fanned out by the `direction` (transmitted | received) and `object` (vNIC instance) datapoint attributes.",
     ),
@@ -666,7 +666,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-throughput",
-    friendlyName: "VM Network Throughput",
+    friendlyName: translationKey("VM Network Throughput"),
     description: translationKey(
       "Bytes per second transmitted or received over the virtual machine's network, fanned out by the `direction` (transmitted | received) and `object` (vNIC instance) datapoint attributes.",
     ),
@@ -678,7 +678,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-network-usage",
-    friendlyName: "VM Network Usage",
+    friendlyName: translationKey("VM Network Usage"),
     description: translationKey(
       "Combined transmit + receive rate of the virtual machine in kilobytes per second, per `object` (vNIC instance) datapoint attribute.",
     ),
@@ -692,7 +692,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Datastore ---
   {
     id: "vcenter-datastore-disk-usage",
-    friendlyName: "Datastore Disk Usage",
+    friendlyName: translationKey("Datastore Disk Usage"),
     description: translationKey(
       "Space on the datastore in bytes, fanned out by the `disk_state` datapoint attribute (used | available). Filter on `disk_state` to chart one side; used + available is the datastore's capacity.",
     ),
@@ -704,7 +704,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-datastore-disk-utilization",
-    friendlyName: "Datastore Disk Utilization",
+    friendlyName: translationKey("Datastore Disk Utilization"),
     description: translationKey(
       "Percentage (0–100) of the datastore's capacity in use. A full datastore pauses every VM writing to it, so alert well before 100%.",
     ),
@@ -718,7 +718,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- Resource Pool ---
   {
     id: "vcenter-resource-pool-cpu-shares",
-    friendlyName: "Resource Pool CPU Shares",
+    friendlyName: translationKey("Resource Pool CPU Shares"),
     description: translationKey(
       "CPU shares configured on the resource pool — its relative priority against sibling pools when the parent is contended.",
     ),
@@ -730,7 +730,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-cpu-usage",
-    friendlyName: "Resource Pool CPU Usage",
+    friendlyName: translationKey("Resource Pool CPU Usage"),
     description: translationKey(
       "CPU consumed by every VM in the resource pool (and its child pools), in MHz.",
     ),
@@ -742,7 +742,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-memory-ballooned",
-    friendlyName: "Resource Pool Ballooned Memory",
+    friendlyName: translationKey("Resource Pool Ballooned Memory"),
     description: translationKey(
       "Memory reclaimed by the balloon driver across every VM in the resource pool, in MiB. Above 0 means the pool's VMs are under memory pressure.",
     ),
@@ -754,7 +754,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-memory-granted",
-    friendlyName: "Resource Pool Granted Memory",
+    friendlyName: translationKey("Resource Pool Granted Memory"),
     description: translationKey(
       "Host memory granted to the VMs in the resource pool, in MiB, fanned out by the `type` datapoint attribute (private | shared — shared pages are deduplicated by transparent page sharing).",
     ),
@@ -766,7 +766,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-memory-shares",
-    friendlyName: "Resource Pool Memory Shares",
+    friendlyName: translationKey("Resource Pool Memory Shares"),
     description: translationKey(
       "Memory shares configured on the resource pool — its relative priority against sibling pools when the parent is contended.",
     ),
@@ -778,7 +778,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-memory-swapped",
-    friendlyName: "Resource Pool Swapped Memory",
+    friendlyName: translationKey("Resource Pool Swapped Memory"),
     description: translationKey(
       "Memory granted to the VMs in the resource pool from the ESXi hosts' swap space, in MiB. Any value above 0 means at least one VM in the pool is being host-swapped.",
     ),
@@ -790,7 +790,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-resource-pool-memory-usage",
-    friendlyName: "Resource Pool Memory Usage",
+    friendlyName: translationKey("Resource Pool Memory Usage"),
     description: translationKey(
       "Memory used by the resource pool, in MiB, fanned out by the `type` datapoint attribute (guest | host | overhead) on recent collector builds — older builds emit a single untyped series. Filter `type = guest` for the memory the pool's guests are actually consuming.",
     ),
@@ -804,7 +804,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   // --- vSAN ---
   {
     id: "vcenter-cluster-vsan-congestions",
-    friendlyName: "Cluster vSAN Congestions",
+    friendlyName: translationKey("Cluster vSAN Congestions"),
     description: translationKey(
       "Congestion events per second raised against I/O from every vSAN client in the cluster. vSAN throttles client I/O when a disk group falls behind, so any sustained non-zero value shows up as latency in every VM on the datastore. Only emitted for vSAN-enabled clusters.",
     ),
@@ -816,7 +816,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-vsan-latency-avg",
-    friendlyName: "Cluster vSAN Latency",
+    friendlyName: translationKey("Cluster vSAN Latency"),
     description: translationKey(
       "Average latency the cluster sees when accessing vSAN storage, in microseconds, fanned out by the `type` datapoint attribute (read | write). 20 000 µs = 20 ms. Only emitted for vSAN-enabled clusters.",
     ),
@@ -828,7 +828,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-vsan-operations",
-    friendlyName: "Cluster vSAN IOPS",
+    friendlyName: translationKey("Cluster vSAN IOPS"),
     description: translationKey(
       "vSAN I/O operations per second across the cluster, fanned out by the `type` datapoint attribute (read | write | unmap). Only emitted for vSAN-enabled clusters.",
     ),
@@ -840,7 +840,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-cluster-vsan-throughput",
-    friendlyName: "Cluster vSAN Throughput",
+    friendlyName: translationKey("Cluster vSAN Throughput"),
     description: translationKey(
       "vSAN throughput of the cluster in bytes per second, fanned out by the `direction` datapoint attribute (read | write). Only emitted for vSAN-enabled clusters.",
     ),
@@ -852,7 +852,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-vsan-cache-hit-rate",
-    friendlyName: "Host vSAN Cache Hit Rate",
+    friendlyName: translationKey("Host vSAN Cache Hit Rate"),
     description: translationKey(
       "Percentage of the ESXi host's vSAN read I/O served from its local client cache over the most recent 5 min interval. A falling hit rate means reads are going to the capacity tier. Only emitted for hosts in a vSAN cluster.",
     ),
@@ -864,7 +864,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-vsan-congestions",
-    friendlyName: "Host vSAN Congestions",
+    friendlyName: translationKey("Host vSAN Congestions"),
     description: translationKey(
       "Congestion events per second raised against vSAN I/O from the ESXi host over the most recent 5 min interval. Only emitted for hosts in a vSAN cluster.",
     ),
@@ -876,7 +876,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-vsan-latency-avg",
-    friendlyName: "Host vSAN Latency",
+    friendlyName: translationKey("Host vSAN Latency"),
     description: translationKey(
       "Average latency the ESXi host sees when accessing vSAN storage, in microseconds, fanned out by the `type` datapoint attribute (read | write), over the most recent 5 min interval. Only emitted for hosts in a vSAN cluster.",
     ),
@@ -888,7 +888,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-vsan-operations",
-    friendlyName: "Host vSAN IOPS",
+    friendlyName: translationKey("Host vSAN IOPS"),
     description: translationKey(
       "vSAN I/O operations per second issued by the ESXi host, fanned out by the `type` datapoint attribute (read | write | unmap), over the most recent 5 min interval. Only emitted for hosts in a vSAN cluster.",
     ),
@@ -900,7 +900,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-host-vsan-throughput",
-    friendlyName: "Host vSAN Throughput",
+    friendlyName: translationKey("Host vSAN Throughput"),
     description: translationKey(
       "vSAN throughput of the ESXi host in bytes per second, fanned out by the `direction` datapoint attribute (read | write), over the most recent 5 min interval. Only emitted for hosts in a vSAN cluster.",
     ),
@@ -912,7 +912,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-vsan-latency-avg",
-    friendlyName: "VM vSAN Latency",
+    friendlyName: translationKey("VM vSAN Latency"),
     description: translationKey(
       "Average latency the virtual machine sees when accessing vSAN storage, in microseconds, fanned out by the `type` datapoint attribute (read | write). Only emitted for VMs on a vSAN datastore.",
     ),
@@ -924,7 +924,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-vsan-operations",
-    friendlyName: "VM vSAN IOPS",
+    friendlyName: translationKey("VM vSAN IOPS"),
     description: translationKey(
       "vSAN I/O operations per second issued by the virtual machine, fanned out by the `type` datapoint attribute (read | write | unmap). Only emitted for VMs on a vSAN datastore.",
     ),
@@ -936,7 +936,7 @@ const vmwareMetricCatalog: Array<VMwareMetricDefinition> = [
   },
   {
     id: "vcenter-vm-vsan-throughput",
-    friendlyName: "VM vSAN Throughput",
+    friendlyName: translationKey("VM vSAN Throughput"),
     description: translationKey(
       "vSAN throughput of the virtual machine in bytes per second, fanned out by the `direction` datapoint attribute (read | write). Only emitted for VMs on a vSAN datastore.",
     ),
@@ -986,4 +986,25 @@ export function getAllVMwareMetricCategories(): Array<VMwareMetricCategory> {
     "Resource Pool",
     "vSAN",
   ];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<VMwareMetricCategory, string> = {
+  Datacenter: translationKey("Datacenter"),
+  Cluster: translationKey("Cluster"),
+  Host: translationKey("Host"),
+  "Virtual Machine": translationKey("Virtual Machine"),
+  Datastore: translationKey("Datastore"),
+  "Resource Pool": translationKey("Resource Pool"),
+  vSAN: translationKey("vSAN"),
+};
+
+export function getVMwareMetricCategoryLabel(
+  category: VMwareMetricCategory,
+): string {
+  return categoryLabels[category] || category;
 }

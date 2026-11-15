@@ -20,8 +20,11 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { formatMillisecondsIn } from "./HealthUnits";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 type LogTab = "application" | "clickhouse" | "postgres" | "redis";
 
@@ -315,7 +318,10 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
     if (!section["available"]) {
       return (
         <EmptyNote
-          text={String(section["note"] || "Postgres logs are not available.")}
+          text={
+            String(section["note"] || "") ||
+            translationKey("Postgres logs are not available.")
+          }
         />
       );
     }
@@ -380,9 +386,11 @@ const DiagnosticLogs: FunctionComponent = (): ReactElement => {
                       {String(rowObject["at"] || "")}
                     </span>{" "}
                     <span className="font-semibold text-amber-400">
-                      {formatMillisecondsIn(
-                        rowObject["durationMs"] || 0,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatMillisecondsIn(
+                          rowObject["durationMs"] || 0,
+                          translator,
+                        ),
                       )}
                     </span>{" "}
                     <span>{String(rowObject["command"] || "")}</span>

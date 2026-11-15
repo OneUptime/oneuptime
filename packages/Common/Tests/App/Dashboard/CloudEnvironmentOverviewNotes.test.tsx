@@ -184,7 +184,6 @@ import {
   formatDurationMsInLanguage,
   formatPercent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryMetrics";
-import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import {
   CLOUD_APP_CHART_LOAD_FAILED,
   CLOUD_APP_LOAD_FAILED_SUBLABEL,
@@ -192,8 +191,10 @@ import {
   CLOUD_APP_NOT_REPORTED_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
+import { createTranslator, DEFAULT_LANGUAGE } from "../../../Types/Translator";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import ObjectID from "../../../Types/ObjectID";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 // The tile reads as an English page writes it.
 const formatDurationMs: (ms: number | null) => string = (
@@ -434,7 +435,7 @@ describe("the environment's trace tiles and Requests chart", () => {
       hasMeter: false,
     });
     expect(tile("p95 latency")).toEqual({
-      value: formatDurationMs(null),
+      value: QUIET_DASH_TEXT,
       note: null,
       sublabel: "selected range",
       hasMeter: false,
@@ -500,7 +501,7 @@ describe("the environment's trace tiles and Requests chart", () => {
       expect({ title, tile: tile(title) }).toEqual({
         title,
         tile: {
-          value: "—",
+          value: QUIET_DASH_TEXT,
           note: null,
           sublabel: CLOUD_APP_LOAD_FAILED_SUBLABEL,
           hasMeter: false,

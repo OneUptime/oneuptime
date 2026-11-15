@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -38,7 +39,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many standby / slot / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -75,7 +78,7 @@ const isNum: (value: unknown) => boolean = (value: unknown): boolean => {
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 // Format a byte count into a human-readable string. Accepts unknown because values arrive as JSON.
@@ -85,7 +88,7 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number = typeof value === "number" ? value : Number(value);
 
   if (value === null || value === undefined || isNaN(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (bytes === 0) {
@@ -108,7 +111,7 @@ const formatDuration: (value: unknown) => string = (value: unknown): string => {
   const seconds: number = Number(value);
 
   if (value === null || value === undefined || isNaN(seconds)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (seconds < 60) {
@@ -133,7 +136,7 @@ const formatMilliseconds: (value: unknown) => string = (
   const milliseconds: number = Number(value);
 
   if (value === null || value === undefined || isNaN(milliseconds)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (milliseconds < 1000) {
@@ -155,7 +158,7 @@ const timeAgo: (value: unknown, translator: Translator) => string = (
   const time: number = new Date(String(value)).getTime();
 
   if (isNaN(time)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return translator.translateTemplate("{{duration}} ago", {
@@ -225,71 +228,103 @@ type MetricInfoKey =
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
     title: "Overall status",
-    body: "A roll-up of the signals below. Healthy (green): nothing notable. Degraded (yellow): a soft signal — cache-hit ratio under 90%, connections at 75%+, a standby not streaming, replication lag over 10s, an inactive slot, or 10+ idle-in-transaction sessions. Needs attention (red): a hard problem — sessions blocked on a lock, connections at 90%+, wraparound headroom under 10%, a lost replication slot, or replication lag over 60s.",
+    body: translationKey(
+      "A roll-up of the signals below. Healthy (green): nothing notable. Degraded (yellow): a soft signal — cache-hit ratio under 90%, connections at 75%+, a standby not streaming, replication lag over 10s, an inactive slot, or 10+ idle-in-transaction sessions. Needs attention (red): a hard problem — sessions blocked on a lock, connections at 90%+, wraparound headroom under 10%, a lost replication slot, or replication lag over 60s.",
+    ),
   },
   databaseSize: {
     title: "Database size",
-    body: "Total on-disk size of the current database — tables, indexes, and TOAST data combined — as reported by pg_database_size().",
+    body: translationKey(
+      "Total on-disk size of the current database — tables, indexes, and TOAST data combined — as reported by pg_database_size().",
+    ),
   },
   commits: {
     title: "Commits",
-    body: "Transactions committed in this database since the statistics were last reset. A steady climb is just normal write traffic; it's shown next to the reset age so the number has context.",
+    body: translationKey(
+      "Transactions committed in this database since the statistics were last reset. A steady climb is just normal write traffic; it's shown next to the reset age so the number has context.",
+    ),
   },
   rollbacks: {
     title: "Rollbacks",
-    body: "Transactions rolled back since the last stats reset. A high count relative to commits can point to application errors, deadlocks, or frequently aborted work.",
+    body: translationKey(
+      "Transactions rolled back since the last stats reset. A high count relative to commits can point to application errors, deadlocks, or frequently aborted work.",
+    ),
   },
   tempFiles: {
     title: "Temp files",
-    body: "Temporary files Postgres spilled to disk since the last stats reset, with total bytes written. Large volumes mean sorts or hashes are exceeding work_mem and falling back to disk.",
+    body: translationKey(
+      "Temporary files Postgres spilled to disk since the last stats reset, with total bytes written. Large volumes mean sorts or hashes are exceeding work_mem and falling back to disk.",
+    ),
   },
   streamingReplication: {
     title: "Streaming replication",
-    body: "The primary's view of each connected standby — its state and how far behind it is in receiving, writing, flushing, and replaying WAL. Empty on a single-node deployment.",
+    body: translationKey(
+      "The primary's view of each connected standby — its state and how far behind it is in receiving, writing, flushing, and replaying WAL. Empty on a single-node deployment.",
+    ),
   },
   replicationSlots: {
     title: "Replication slots",
-    body: "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.",
+    body: translationKey(
+      "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.",
+    ),
   },
   connections: {
     title: "Connections",
-    body: "Server connections in use versus max_connections. Postgres runs one backend process per connection, so approaching the limit starves new sessions. A pooler such as PgBouncer keeps this low.",
+    body: translationKey(
+      "Server connections in use versus max_connections. Postgres runs one backend process per connection, so approaching the limit starves new sessions. A pooler such as PgBouncer keeps this low.",
+    ),
   },
   active: {
     title: "Active",
-    body: "Backends currently executing a query.",
+    body: translationKey("Backends currently executing a query."),
   },
   idle: {
     title: "Idle",
-    body: "Backends connected but not running a query — usually sessions held open by a connection pool.",
+    body: translationKey(
+      "Backends connected but not running a query — usually sessions held open by a connection pool.",
+    ),
   },
   idleInTransaction: {
     title: "Idle in transaction",
-    body: "Backends that have an open transaction but aren't doing anything. They hold locks and pin old row versions, which blocks vacuum — worth watching closely.",
+    body: translationKey(
+      "Backends that have an open transaction but aren't doing anything. They hold locks and pin old row versions, which blocks vacuum — worth watching closely.",
+    ),
   },
   waitingOnLock: {
     title: "Waiting on lock",
-    body: "Backends blocked waiting to acquire a lock held by another session. Sustained values indicate lock contention.",
+    body: translationKey(
+      "Backends blocked waiting to acquire a lock held by another session. Sustained values indicate lock contention.",
+    ),
   },
   cacheHitRatio: {
     title: "Cache hit ratio",
-    body: "Share of block reads served from Postgres' shared buffers rather than the OS or disk, since the last stats reset. Under ~90% suggests shared_buffers is small relative to the working set. Note: reads served by the OS page cache still count as misses here, so true disk-hit rate is usually higher.",
+    body: translationKey(
+      "Share of block reads served from Postgres' shared buffers rather than the OS or disk, since the last stats reset. Under ~90% suggests shared_buffers is small relative to the working set. Note: reads served by the OS page cache still count as misses here, so true disk-hit rate is usually higher.",
+    ),
   },
   longestTransaction: {
     title: "Longest transaction",
-    body: "Age of the oldest transaction still running. Long-lived transactions hold locks and stop vacuum from reclaiming dead rows.",
+    body: translationKey(
+      "Age of the oldest transaction still running. Long-lived transactions hold locks and stop vacuum from reclaiming dead rows.",
+    ),
   },
   deadlocks: {
     title: "Deadlocks",
-    body: "Deadlocks detected since the last stats reset. Postgres automatically aborts one transaction to break each one; recurring deadlocks point to conflicting lock ordering in the application.",
+    body: translationKey(
+      "Deadlocks detected since the last stats reset. Postgres automatically aborts one transaction to break each one; recurring deadlocks point to conflicting lock ordering in the application.",
+    ),
   },
   wraparoundHeadroom: {
     title: "Wraparound headroom",
-    body: "How much room remains before the oldest transaction ID reaches the ~2.1B wraparound limit. As it nears zero, Postgres forces aggressive autovacuum and ultimately refuses new writes. Higher is safer.",
+    body: translationKey(
+      "How much room remains before the oldest transaction ID reaches the ~2.1B wraparound limit. As it nears zero, Postgres forces aggressive autovacuum and ultimately refuses new writes. Higher is safer.",
+    ),
   },
   autovacuumHotspots: {
     title: "Autovacuum hotspots",
-    body: "Autovacuum is Postgres' background housekeeping process: it reclaims storage from dead tuples (row versions left behind by updates and deletes) and refreshes the planner's statistics, without blocking reads or writes. This lists the tables with the most dead tuples and when each was last autovacuumed — rising dead-tuple counts alongside stale vacuum times cause table bloat and slower scans.",
+    body: translationKey(
+      "Autovacuum is Postgres' background housekeeping process: it reclaims storage from dead tuples (row versions left behind by updates and deletes) and refreshes the planner's statistics, without blocking reads or writes. This lists the tables with the most dead tuples and when each was last autovacuumed — rising dead-tuple counts alongside stale vacuum times cause table bloat and slower scans.",
+    ),
   },
 };
 
@@ -868,7 +903,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
               METRIC_INFO.idle,
             )}
             {renderStat(
-              "Idle in txn",
+              translationKey("Idle in txn"),
               formatNumber(connections["idleInTransaction"]),
               undefined,
               METRIC_INFO.idleInTransaction,
@@ -899,7 +934,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {renderStat(
             "Cache hit ratio",
-            cacheHit !== null ? `${cacheHit.toFixed(1)}%` : "—",
+            cacheHit !== null ? `${cacheHit.toFixed(1)}%` : EMPTY_VALUE_MARK,
             undefined,
             METRIC_INFO.cacheHitRatio,
           )}
@@ -917,7 +952,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           )}
           {renderStat(
             "Wraparound headroom",
-            wrapHeadroom !== null ? `${wrapHeadroom.toFixed(0)}%` : "—",
+            wrapHeadroom !== null
+              ? `${wrapHeadroom.toFixed(0)}%`
+              : EMPTY_VALUE_MARK,
             undefined,
             METRIC_INFO.wraparoundHeadroom,
           )}
@@ -1111,22 +1148,30 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["totalSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["totalSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["tableSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["tableSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["indexSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["indexSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["toastSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["toastSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(table["liveTuples"])}
+                      {getValueOrQuietDash(formatNumber(table["liveTuples"]))}
                     </td>
                     <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(table["deadTuples"])}
+                      {getValueOrQuietDash(formatNumber(table["deadTuples"]))}
                     </td>
                   </tr>
                 );
@@ -1348,7 +1393,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       return (
                         <tr key={`postgres-active-query-${index}`}>
                           <td className="py-2 pr-4 text-sm text-gray-900 tabular-nums">
-                            {formatNumber(session["pid"])}
+                            {getValueOrQuietDash(formatNumber(session["pid"]))}
                           </td>
                           <td className="py-2 px-4">
                             <div className="text-sm text-gray-900 whitespace-nowrap">
@@ -1375,13 +1420,17 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                             )}
                           </td>
                           <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                            {formatDuration(session["queryAgeSeconds"])}
+                            {getValueOrQuietDash(
+                              formatDuration(session["queryAgeSeconds"]),
+                            )}
                           </td>
                           <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                            {isNum(session["transactionAgeSeconds"]) ? (
-                              formatDuration(session["transactionAgeSeconds"])
-                            ) : (
-                              <TableEmptyValue />
+                            {getValueOrQuietDash(
+                              isNum(session["transactionAgeSeconds"]) ? (
+                                formatDuration(session["transactionAgeSeconds"])
+                              ) : (
+                                <TableEmptyValue />
+                              ),
                             )}
                           </td>
                           <td className="py-2 pl-4">
@@ -1432,7 +1481,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                     vacuum["tableName"]
                       ? String(vacuum["tableName"])
                       : `PID ${formatNumber(vacuum["pid"])}`
-                  } · ${String(vacuum["phase"] ?? "—")}`;
+                  } · ${String(vacuum["phase"] ?? EMPTY_VALUE_MARK)}`;
 
                   return percent !== null ? (
                     <ResourceUsageBar
@@ -1617,19 +1666,25 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       </div>
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(statement["calls"])}
+                      {getValueOrQuietDash(formatNumber(statement["calls"]))}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["totalMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["totalMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["meanMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["meanMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["maxMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["maxMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(statement["rows"])}
+                      {getValueOrQuietDash(formatNumber(statement["rows"]))}
                     </td>
                     <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
                       {isNum(statement["cacheHitRatio"]) ? (

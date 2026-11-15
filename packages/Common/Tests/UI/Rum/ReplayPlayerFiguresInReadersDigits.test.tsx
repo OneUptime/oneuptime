@@ -904,7 +904,7 @@ describe("the timeline, figure by figure", () => {
     );
 
     expect(withoutIsolateMarks(coarse?.title || "")).toBe(
-      "~۱:۰۷ ۲ خطا در این قطعه به طول ۱۵ ثانیه (تقریبی، قطعه هنوز بارگذاری نشده)",
+      "~۱:۰۷ ۲ خطا در این قطعه به طول ۱۵\u00A0ثانیه (تقریبی، قطعه هنوز بارگذاری نشده)",
     );
   });
 
@@ -953,7 +953,7 @@ describe("a skipped stretch is named with its length in the sentence's language"
 
   test("German: its own units, not the English short form", () => {
     expect(describeIdleBandChip(band("idle"), translatorIn("de"))).toContain(
-      "1 Min., 12 Sek.",
+      "1\u00A0Min., 12\u00A0Sek.",
     );
   });
 

@@ -297,6 +297,64 @@ export const writtenActionLabel: DashboardLabelFunction = (
 };
 
 /*
+ * THE LABELS A SCREEN DRAWS WITH A KEY OF ITS OWN (#8659).
+ *
+ * A state a page draws beside states of another gender than its shared
+ * word's takes a key of its own (Common/Types/MeaningKeys), which English
+ * reads as the bare word: the threat indicators' and the rule exceptions'
+ * Status reads Russian "Истекло" where a token's Expired reads "Истёк". A
+ * docs page about that screen names the label, in bold, as the screen draws
+ * it: by docs page, each English label and the key its screen looks up.
+ */
+export const LABELS_DRAWN_BY_OWN_KEY: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  "telemetry/threat-intelligence": {
+    Expired: "Expired (threat indicator)",
+  },
+  "telemetry/security-events": {
+    Expired: "Expired (rule exception)",
+    Upcoming: "Upcoming (rule exception)",
+  },
+  "workflows/variables": {
+    "Not fetched yet": "Not fetched yet (OAuth token)",
+    Valid: "Valid (OAuth token)",
+  },
+  "on-call/calendar-feeds": {
+    "Not fetched yet": "Not fetched yet (calendar feed)",
+  },
+};
+
+/*
+ * How a page's bold label is drawn in this language: by its screen's own
+ * key where it has one (LABELS_DRAWN_BY_OWN_KEY), otherwise as `drawn`
+ * draws it (drawnActionLabel by default).
+ */
+export const drawnLabelOnPage: (
+  language: string,
+  page: string,
+  english: string,
+  drawn?: DashboardLabelFunction,
+) => string = (
+  language: string,
+  page: string,
+  english: string,
+  drawn: DashboardLabelFunction = drawnActionLabel,
+): string => {
+  const ownKey: string | undefined = LABELS_DRAWN_BY_OWN_KEY[page]?.[english];
+
+  if (ownKey !== undefined && language !== "en") {
+    const value: string | null = translated(language, ownKey);
+
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return drawn(language, english);
+};
+
+/*
  * A label as a docs page writes it: the Dashboard's words with each
  * no-break space read as the plain space the page, like the locale file,
  * is typed with. The Dashboard draws French's marks and a number's unit

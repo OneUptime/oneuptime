@@ -836,8 +836,9 @@ describe("Docker and Podman container detail Logs tab", () => {
     (runtime: string) => {
       const source: string = readPage(`${runtime}/View/ContainerDetail.tsx`);
 
+      // Neither: the reader's word for a nameless one, never a dash (#8262).
       expect(source).toContain(
-        'const hostName: string = host.name || host.hostIdentifier || "—";',
+        "const hostName: string = host.name || host.hostIdentifier || getUnnamedText();",
       );
       // The hero's "Container on <host>" and the Details card's Host row.
       expect(source.split("hostName={hostName}").length - 1).toBe(2);

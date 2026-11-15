@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import DashboardStorageArrayVolumeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardStorageArrayVolumeListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -152,7 +153,7 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
   const translator: Translator = getGlobalTranslator();
   const id: string = (r._id as string) || "";
   const name: string = getVolumeDisplayName(r);
-  const arrayName: string = (r.storageArray?.name as string) || "—";
+  const arrayName: string | undefined = r.storageArray?.name as string;
   const latency: StorageArrayWidgetState = getVolumeLatencyState(
     r.readLatencyUsec,
     r.writeLatencyUsec,
@@ -197,7 +198,10 @@ function renderVolumeRow(r: StorageArrayResource): ReactElement {
         className="px-3 py-2 text-xs text-gray-500"
         title={formatReadWriteIops(r.readIops, r.writeIops, translator)}
       >
-        {formatIops(getTotalIops(r.readIops, r.writeIops), translator)}
+        {getValueOrQuietDash(
+          formatIops(getTotalIops(r.readIops, r.writeIops), translator),
+          { isSmall: true },
+        )}
       </td>
       <ResourceListNameCell
         name={arrayName}
@@ -226,9 +230,9 @@ function buildVolumeTile(r: StorageArrayResource): HoneycombTile {
       details: [
         {
           label: "Array (storage array)",
-          value: (r.storageArray?.name as string) || "—",
+          value: r.storageArray?.name as string,
         },
-        { label: "Group", value: (r.groupName as string) || "—" },
+        { label: "Group", value: r.groupName as string },
         {
           label: "Used / Provisioned",
           value: formatUsedOfProvisioned(

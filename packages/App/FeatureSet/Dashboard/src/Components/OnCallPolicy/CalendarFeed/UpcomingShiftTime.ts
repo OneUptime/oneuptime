@@ -1,4 +1,9 @@
-import { getHourOption, getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatDurationText,
+  formatRelativeAmount,
+  getHourOption,
+  getNumberLocale,
+} from "Common/Types/DateLanguage";
 import { Moment } from "Common/Types/Date";
 import {
   FeedClock,
@@ -148,53 +153,6 @@ export const getShiftDateTile: (
 };
 
 /*
- * The parts of Intl.RelativeTimeFormat used here, typed structurally:
- * Common compiles against the ES2017 library, which does not declare it.
- */
-interface RelativeDayFormatter {
-  format: (value: number, unit: "day") => string;
-}
-
-type RelativeDayFormatConstructor = new (
-  locale: string,
-  options: { numeric: "auto" },
-) => RelativeDayFormatter;
-
-const relativeFormatCache: Map<string, RelativeDayFormatter | null> = new Map<
-  string,
-  RelativeDayFormatter | null
->();
-
-const getRelativeDayFormatter: (
-  locale: string,
-) => RelativeDayFormatter | null = (
-  locale: string,
-): RelativeDayFormatter | null => {
-  if (relativeFormatCache.has(locale)) {
-    return relativeFormatCache.get(locale) || null;
-  }
-
-  let formatter: RelativeDayFormatter | null = null;
-
-  try {
-    const RelativeTimeFormat: RelativeDayFormatConstructor | undefined = (
-      Intl as unknown as {
-        RelativeTimeFormat?: RelativeDayFormatConstructor | undefined;
-      }
-    ).RelativeTimeFormat;
-
-    if (RelativeTimeFormat) {
-      formatter = new RelativeTimeFormat(locale, { numeric: "auto" });
-    }
-  } catch {
-    formatter = null;
-  }
-
-  relativeFormatCache.set(locale, formatter);
-  return formatter;
-};
-
-/*
  * The day a span starts on, in words: "Today", "Tomorrow", else its weekday
  * ("Thursday") - a shift list is read against a week, and the tile beside
  * it has the date. Counted in calendar days of the reader's zone.
@@ -215,11 +173,17 @@ export const getShiftDayLabel: (date: Date, clock: FeedClock) => string = (
     dayKey === todayKey ? 0 : dayKey === tomorrowKey ? 1 : null;
 
   if (offset !== null) {
-    const formatter: RelativeDayFormatter | null =
-      getRelativeDayFormatter(locale);
+    // The language's own word for the day: "heute", "morgen".
+    const relative: string | null = formatRelativeAmount({
+      count: offset,
+      unit: "day",
+      isFuture: true,
+      locale: locale,
+      numeric: "auto",
+    });
 
-    if (formatter) {
-      return capitalizeFirst(formatter.format(offset, "day"), locale);
+    if (relative) {
+      return capitalizeFirst(relative, locale);
     }
 
     return offset === 0 ? "Today" : "Tomorrow";
@@ -461,25 +425,6 @@ export const roundShiftLength: (
   return { days: 0, hours: 0, minutes: Math.max(1, length.minutes) };
 };
 
-/*
- * The parts of Intl.NumberFormat's unit style and Intl.ListFormat used here,
- * typed structurally for the same reason as the relative day above. Their
- * words are the language's own, plurals included: "21 день", "2 дня", "5
- * дней" - which a translated "{{count}} days" cannot say in Russian.
- */
-interface UnitFormatter {
-  format: (value: number) => string;
-}
-
-interface ListFormatter {
-  format: (items: Array<string>) => string;
-}
-
-type ListFormatConstructor = new (
-  locale: string,
-  options: { type: "unit"; style: "long" },
-) => ListFormatter;
-
 type LengthUnit = "day" | "hour" | "minute";
 
 const ENGLISH_UNITS: Record<LengthUnit, [string, string]> = {
@@ -488,87 +433,14 @@ const ENGLISH_UNITS: Record<LengthUnit, [string, string]> = {
   minute: ["minute", "minutes"],
 };
 
-const unitFormatCache: Map<string, UnitFormatter | null> = new Map<
-  string,
-  UnitFormatter | null
->();
-
-const formatUnit: (
-  value: number,
-  unit: LengthUnit,
-  locale: string,
-) => string = (value: number, unit: LengthUnit, locale: string): string => {
-  const key: string = `${locale}|${unit}`;
-
-  if (!unitFormatCache.has(key)) {
-    let formatter: UnitFormatter | null = null;
-
-    try {
-      formatter = new Intl.NumberFormat(getNumberLocale(locale), {
-        style: "unit",
-        unit: unit,
-        unitDisplay: "long",
-      } as Intl.NumberFormatOptions);
-
-      // An engine without the unit style ignores it and writes a bare number.
-      if (formatter.format(2) === "2") {
-        formatter = null;
-      }
-    } catch {
-      formatter = null;
-    }
-
-    unitFormatCache.set(key, formatter);
-  }
-
-  const formatter: UnitFormatter | null = unitFormatCache.get(key) || null;
-
-  if (formatter) {
-    return formatter.format(value);
-  }
-
-  const names: [string, string] = ENGLISH_UNITS[unit];
-
-  return `${value} ${value === 1 ? names[0] : names[1]}`;
-};
-
-const listFormatCache: Map<string, ListFormatter | null> = new Map<
-  string,
-  ListFormatter | null
->();
-
-const joinUnits: (items: Array<string>, locale: string) => string = (
-  items: Array<string>,
-  locale: string,
-): string => {
-  if (items.length < 2) {
-    return items[0] || "";
-  }
-
-  if (!listFormatCache.has(locale)) {
-    let formatter: ListFormatter | null = null;
-
-    try {
-      const ListFormat: ListFormatConstructor | undefined = (
-        Intl as unknown as { ListFormat?: ListFormatConstructor | undefined }
-      ).ListFormat;
-
-      if (ListFormat) {
-        formatter = new ListFormat(locale, { type: "unit", style: "long" });
-      }
-    } catch {
-      formatter = null;
-    }
-
-    listFormatCache.set(locale, formatter);
-  }
-
-  const formatter: ListFormatter | null = listFormatCache.get(locale) || null;
-
-  return formatter ? formatter.format(items) : items.join(", ");
-};
-
-// "30 days", "8 hours", "1 day, 6 hours", "45 minutes" - in the reader's words.
+/*
+ * "30 days", "8 hours", "1 day, 6 hours", "45 minutes" - in the reader's
+ * words: Intl's unit names and list (formatDurationText), the language's
+ * own plurals included ("21 день", "2 дня", "5 дней", which a translated
+ * "{{count}} days" cannot say in Russian), each number held to its unit
+ * by a no-break space, in English too (#8456). An engine that cannot
+ * write a unit reads English words.
+ */
 export const formatShiftLength: (
   length: ShiftLength,
   language: string,
@@ -578,21 +450,34 @@ export const formatShiftLength: (
   language: string,
   options?: ShiftLengthOptions | undefined,
 ): string => {
-  const locale: string = getFeedLocale(language);
   const rounded: ShiftLength = roundShiftLength(length, options);
-  const parts: Array<string> = [];
+  const parts: Array<{ count: number; unit: LengthUnit }> = [];
 
   if (rounded.days > 0) {
-    parts.push(formatUnit(rounded.days, "day", locale));
+    parts.push({ count: rounded.days, unit: "day" });
   }
 
   if (rounded.hours > 0) {
-    parts.push(formatUnit(rounded.hours, "hour", locale));
+    parts.push({ count: rounded.hours, unit: "hour" });
   }
 
   if (rounded.minutes > 0) {
-    parts.push(formatUnit(rounded.minutes, "minute", locale));
+    parts.push({ count: rounded.minutes, unit: "minute" });
   }
 
-  return joinUnits(parts, locale);
+  return (
+    formatDurationText({
+      parts: parts,
+      locale: getFeedLocale(language),
+      unitDisplay: "long",
+      listStyle: "long",
+    }) ||
+    parts
+      .map((part: { count: number; unit: LengthUnit }): string => {
+        const names: [string, string] = ENGLISH_UNITS[part.unit];
+
+        return `${part.count} ${part.count === 1 ? names[0] : names[1]}`;
+      })
+      .join(", ")
+  );
 };

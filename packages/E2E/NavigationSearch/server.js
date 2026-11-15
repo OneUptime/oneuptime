@@ -4,15 +4,14 @@ const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../Common/UI/esbuild-config.js");
 const {
-  createRuntimeLocalesPlugin,
-} = require("../../Common/UI/esbuild-locales.js");
+  dashboardLocalesPlugin,
+} = require("../SuiteHelpers/FixtureLocalesBuild.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../..");
 const output = path.join(
   repository,
   "output/playwright/navigation-search/fixture",
 );
-const dashboard = path.join(repository, "packages/App/FeatureSet/Dashboard");
 // NAVIGATION_SEARCH_PORT lets a second checkout run the suite beside this one.
 const port = Number(process.env["NAVIGATION_SEARCH_PORT"]) || 4242;
 const config = createConfig({
@@ -30,20 +29,13 @@ const config = createConfig({
   },
   /*
    * The locales as the Dashboard's own build ships them
-   * (App/FeatureSet/Dashboard/esbuild.config.js): en.json without the keys
-   * that map to themselves, and German and Arabic without the strings the
+   * (SuiteHelpers/FixtureLocalesBuild.js): en.json without the keys that
+   * map to themselves, and German and Arabic without the strings the
    * English fallback shows anyway. Whole, the three were 20 of the bundle's
    * 31 MB, parsed again on every page load of every test, and on a loaded
    * machine (#7338) that alone took tests past their timeout.
    */
-  additionalPlugins: [
-    createRuntimeLocalesPlugin({
-      localesDirectory: path.join(dashboard, "src", "Locales"),
-      fallbackLanguage: "en",
-      sameAsEnglishFile: path.join(dashboard, "i18n", "SameAsEnglish.json"),
-      progressDirectory: path.join(dashboard, "i18n", "Progress"),
-    }),
-  ],
+  additionalPlugins: [dashboardLocalesPlugin()],
 });
 config.target = "es2022";
 config.loader[".js"] = "jsx";

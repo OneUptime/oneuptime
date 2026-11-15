@@ -29,7 +29,11 @@ import ResourcePartDetailsCard, {
 
 export interface SummaryField {
   title: string;
-  value: string | ReactElement;
+  /*
+   * None - a reading the resource has not reported - and the card draws the
+   * quiet dash (InfoCard, ResourcePartDetailsCard, #8262).
+   */
+  value?: string | ReactElement | undefined;
   // What the value means, shown in an (i) tooltip beside the title.
   description?: string | undefined;
   // What the value's copy button copies, in a Details card; none without it.

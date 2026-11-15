@@ -441,7 +441,7 @@ OneUptime Cloud에서 구독자 알림 템플릿은 **Scale** 요금제 기능�
 
 ### 노트 템플릿의 상태
 
-**인시던트 노트 생성됨**와 **유지 관리 이벤트 노트 생성됨** 템플릿은 `{{incidentState}}`와 `{{scheduledMaintenanceState}}`로 이벤트의 상태를 나타낼 수 있습니다. 상태 변경과 함께 게시된 노트에서는 메시지를 보낼 때 이벤트가 더 진행했더라도 그 변경이 옮긴 상태이며, 그 밖의 노트에서는 메시지를 보낼 때의 이벤트 상태입니다. **Note Updated** 템플릿은 업데이트를 보낼 때의 이벤트 상태를 받습니다. 자체 제목이 없는 사용자 지정 이메일 템플릿은 상태 변경과 함께 게시된 노트에 대해 상태 변경의 제목인 `[Incident Resolved] <title>` 또는 `[Scheduled Maintenance Ongoing] <title>`을 사용합니다.
+**인시던트 노트 생성됨**과 **유지 관리 이벤트 노트 생성됨** 템플릿은 `{{incidentState}}`와 `{{scheduledMaintenanceState}}`로 이벤트의 상태를 나타낼 수 있습니다. 상태 변경과 함께 게시된 노트에서는 메시지를 보낼 때 이벤트가 더 진행했더라도 그 변경이 옮긴 상태이며, 그 밖의 노트에서는 메시지를 보낼 때의 이벤트 상태입니다. **Note Updated** 템플릿은 업데이트를 보낼 때의 이벤트 상태를 받습니다. 자체 제목이 없는 사용자 지정 이메일 템플릿은 상태 변경과 함께 게시된 노트에 대해 상태 변경의 제목인 `[Incident Resolved] <title>` 또는 `[Scheduled Maintenance Ongoing] <title>`을 사용합니다.
 
 ### 변수 넣기
 

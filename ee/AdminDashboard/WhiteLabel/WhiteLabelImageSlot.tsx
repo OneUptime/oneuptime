@@ -106,7 +106,9 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
     }
 
     if (file.size > rule.maxBytes) {
-      setError(rule.tooLargeMessage);
+      setError(
+        translator.translateText(rule.tooLargeMessage) || rule.tooLargeMessage,
+      );
       return;
     }
 
@@ -153,7 +155,7 @@ const WhiteLabelImageSlot: FunctionComponent<ComponentProps> = (
             className="px-4 text-center text-sm"
             style={{ color: PREVIEW_PLACEHOLDER_COLORS[props.background] }}
           >
-            {props.emptyText}
+            {translator.translateText(props.emptyText) || props.emptyText}
           </span>
         )}
       </div>

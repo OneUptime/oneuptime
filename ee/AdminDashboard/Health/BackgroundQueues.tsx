@@ -1,4 +1,6 @@
 import URL from "Common/Types/API/URL";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -55,7 +57,7 @@ const toCount: (value: unknown) => number = (value: unknown): number => {
 
 const countLabel: (value: unknown) => string = (value: unknown): string => {
   const parsed: number | null = toNumberOrNull(value);
-  return parsed === null ? "—" : parsed.toLocaleString();
+  return parsed === null ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 // Pretty-print a failed job's finish time; falls back to a dash when unknown.
@@ -63,13 +65,13 @@ const formatTimestamp: (value: unknown) => string = (
   value: unknown,
 ): string => {
   if (!value || typeof value !== "string") {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   try {
     return OneUptimeDate.getDateAsLocalFormattedString(value, false, false);
   } catch {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 };
 
@@ -255,10 +257,10 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     pushIf(translationKey("Priority"), jobObject["priority"]);
     pushIf(translationKey("Delay (ms)"), jobObject["delayMs"]);
     pushIf(translationKey("Worker"), jobObject["processedBy"]);
-    pushIf("Queue", jobObject["queueQualifiedName"]);
-    pushIf("Repeat key", jobObject["repeatJobKey"]);
-    pushIf("Dedup id", jobObject["deduplicationId"]);
-    pushIf("Parent", jobObject["parentKey"]);
+    pushIf(translationKey("Queue"), jobObject["queueQualifiedName"]);
+    pushIf(translationKey("Repeat key"), jobObject["repeatJobKey"]);
+    pushIf(translationKey("Dedup id"), jobObject["deduplicationId"]);
+    pushIf(translationKey("Parent"), jobObject["parentKey"]);
 
     if (fields.length === 0) {
       return <></>;
@@ -355,7 +357,10 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                     )}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {formatTimestamp(jobObject["finishedAt"])}
+                    {getValueOrQuietDash(
+                      formatTimestamp(jobObject["finishedAt"]),
+                      { isSmall: true },
+                    )}
                   </span>
                 </div>
               </div>
@@ -774,13 +779,15 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                       {renderQueueStatus(queueObject)}
                     </td>
                     <td className="py-3 px-4 tabular-nums text-gray-700">
-                      {countLabel(queueObject["waiting"])}
+                      {getValueOrQuietDash(countLabel(queueObject["waiting"]))}
                     </td>
                     <td className="py-3 px-4 tabular-nums text-gray-700">
-                      {countLabel(queueObject["active"])}
+                      {getValueOrQuietDash(countLabel(queueObject["active"]))}
                     </td>
                     <td className="py-3 px-4 tabular-nums text-gray-700">
-                      {countLabel(queueObject["completed"])}
+                      {getValueOrQuietDash(
+                        countLabel(queueObject["completed"]),
+                      )}
                     </td>
                     <td
                       className={`py-3 px-4 tabular-nums ${
@@ -789,13 +796,13 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                           : "text-gray-700"
                       }`}
                     >
-                      {countLabel(queueObject["failed"])}
+                      {getValueOrQuietDash(countLabel(queueObject["failed"]))}
                     </td>
                     <td className="py-3 px-4 tabular-nums text-gray-700">
-                      {countLabel(queueObject["delayed"])}
+                      {getValueOrQuietDash(countLabel(queueObject["delayed"]))}
                     </td>
                     <td className="py-3 px-4 tabular-nums font-medium text-gray-900">
-                      {countLabel(queueObject["total"])}
+                      {getValueOrQuietDash(countLabel(queueObject["total"]))}
                     </td>
                     <td className="py-3 pl-4 text-right">
                       {failed > 0 ? (

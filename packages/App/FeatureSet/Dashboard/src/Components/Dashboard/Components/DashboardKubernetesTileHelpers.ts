@@ -52,7 +52,7 @@ export function buildReadinessTile(options: {
   const id: string = (r._id as string) || "";
   const name: string = (r.name as string) || getUnnamedText();
   const namespace: string | undefined = r.namespaceKey as string | undefined;
-  const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.kubernetesCluster?.name as string;
   const isReady: boolean | undefined = r.isReady as boolean | undefined;
 
   const details: Array<HoneycombTileDetail> = [];

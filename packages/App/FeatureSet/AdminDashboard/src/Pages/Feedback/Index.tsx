@@ -42,6 +42,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -415,17 +416,25 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         column="disableProductFeedback"
         isInverted={true}
         modelAPI={AdminModelAPI}
-        cardTitle="Ask People for Feedback"
+        cardTitle={translationKey("Ask People for Feedback")}
         cardDescription={
           BILLING_ENABLED
-            ? "Answers are kept on this server and read here by its master admins. The score, never the words, also goes to product analytics."
-            : "Answers are kept on this server and read here by its master admins. Nothing is sent anywhere else."
+            ? translationKey(
+                "Answers are kept on this server and read here by its master admins. The score, never the words, also goes to product analytics.",
+              )
+            : translationKey(
+                "Answers are kept on this server and read here by its master admins. Nothing is sent anywhere else.",
+              )
         }
         title="Ask people how things went"
         getDescription={(isOn: boolean): string => {
           return isOn
-            ? "People are asked one short question now and then, at most once a week and never while something is down. Give feedback is in Help."
-            : "Nobody is asked, and Help offers no Give feedback.";
+            ? translationKey(
+                "People are asked one short question now and then, at most once a week and never while something is down. Give feedback is in Help.",
+              )
+            : translationKey(
+                "Nobody is asked, and Help offers no Give feedback.",
+              );
         }}
         dataTestId="admin-feedback-switch"
       />

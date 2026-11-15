@@ -1,4 +1,5 @@
 import { JSONObject } from "Common/Types/JSON";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
@@ -180,7 +181,7 @@ export function formatDurationMsInLanguage(
   translator: Translator,
 ): string {
   if (!isFinite(ms)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   if (ms < 1) {
     return formatDurationInUnit(translator, ms * 1000, "microsecond", {

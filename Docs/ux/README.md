@@ -393,8 +393,13 @@ work out, starts from a default for everything else, and folds what most people 
   labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
   grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
   in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
-  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
-  minus sign and code are not empty values. Enforced by
+  that is missing, blank or a dash, so a tile is handed no value. A formatter never writes a dash
+  of its own for nothing (`return "—"`, `host || "-"`): pages drew some five hundred of those
+  straight into their cells (#8262). A component that draws a value is handed nothing, and plain
+  text (a chart's label, an export, a sentence) gets the shared mark `EMPTY_VALUE_MARK`. A page
+  that draws a formatter's text in an element of its own draws it through `getValueOrQuietDash`
+  (or `getFigure` in a figure), which turns that mark into the quiet dash. A dash between two
+  values, a minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -683,19 +688,35 @@ work out, starts from a default for everything else, and folds what most people 
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
   as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
-  plain space, listed with its reason. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  plain space, listed with its reason. Intl writes a plain space there too ("5 Min.", "vor 5
+  Minuten", "2 Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
+  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
+  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
+  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
+  or `Intl.RelativeTimeFormat` yourself. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and
-  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
+  [NumbersKeepTheirUnitsInIntlGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInIntlGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
-  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
-  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001),
+  and so is every cause with values in it (`Common/Utils/Monitor/ProbeFailureCauses`): an NTP
+  server that did not answer, or answered but is not synchronized; a probe with no IPv6 or no
+  route; a connect that failed on every address; the Ping and Traceroute checks' own sentences; an
+  attempt's "Server returned 503" (#8267, #8656). Their values stay as the probe found them, and a
+  timeout or a count is written in the reader's digits. A summary draws a probe's message with
+  `ProbeMessageLine`, which words those sentences and keeps any other message whole in a
+  right-to-left line, and so do a network device's diagnostics (a ping's Reason, a traceroute's
+  note, #8675). An incident's root cause words its figures the same way: a response time, the
+  attempts and an NTP server's facts in the reader's digits and units (#8268), and a metric
+  criteria's Time Window, Data Arrives and Forecast lines with a duration as the reader's
+  language says one in a sentence (#8674). A Database
+  Health check's collection issues read
   the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
   Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
   error kept as written after a sentence that says what kind of failure it is. Enforced by
@@ -760,9 +781,27 @@ then `npm run i18n:validate` from the root.
   for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
   [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  for every word of a built-in workflow step (its card, its settings form, its Outputs and
+  Returns lists), which read English in most languages because the step catalogue was never
+  extracted (#8359),
+  [WorkflowStepWordsInEveryLanguage](../../packages/App/Tests/Dashboard/WorkflowStepWordsInEveryLanguage.test.ts),
+  for a monitor's type and a security event's severity wherever they are drawn as text (#8294,
+  #8295),
+  [MonitorTypeAndEventSeverityInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MonitorTypeAndEventSeverityInReadersLanguage.test.tsx),
+  for a picker's label with an English word glued on, an archived SLO's "(archived)" and an
+  unnamed ingestion key's "Unnamed Key" (#8297),
+  [PickerLabelsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/PickerLabelsInReadersLanguage.test.tsx),
+  for the topology screens' "Unnamed resource", a browser service's "Browser" and the entity
+  drawer's screen-reader line (#8260),
+  [TopologyUnnamedBrowserAndDrawerInLanguages](../../packages/Common/Tests/App/Dashboard/TopologyUnnamedBrowserAndDrawerInLanguages.test.tsx),
   and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
   whose 186 texts had no entry in its locales and read English in every language (#8227),
-  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts),
+  with the texts those pages drew as written, which no lookup read (#8555),
+  [AdminOwnPagesDrawnAsWrittenGuard](../../packages/App/Tests/AdminDashboard/AdminOwnPagesDrawnAsWrittenGuard.test.ts),
+  and the sentences the extractor could not see there, kept in a variable or handed to a prop it
+  does not know (#8636),
+  [AdminUnseenTextsGuard](../../packages/App/Tests/AdminDashboard/AdminUnseenTextsGuard.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -912,7 +951,11 @@ then `npm run i18n:validate` from the root.
   thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
   the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
   state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
-  a page draws together, with the files that draw it. Enforced by
+  a page draws together, with the files that draw it. Where a shared word cannot agree with every
+  page, the page takes a key of its own in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), read in English as
+  the bare word: a threat indicator's Expired is Russian "Истекло" while a token's stays "Истёк"
+  (#8659). Enforced by
   [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same

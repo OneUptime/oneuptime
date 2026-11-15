@@ -25,7 +25,11 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
-import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatInline,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatMillisecondsIn } from "./HealthUnits";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -411,7 +415,9 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
       if (!data["success"]) {
         setResult({
           kind: "error",
-          error: String(data["error"] || "Query failed."),
+          error:
+            String(data["error"] || "") ||
+            (translateText("Query failed.") as string),
           executionTimeMs:
             typeof data["executionTimeMs"] === "number"
               ? (data["executionTimeMs"] as number)

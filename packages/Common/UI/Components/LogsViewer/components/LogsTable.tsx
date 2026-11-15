@@ -13,6 +13,7 @@ import {
   Translator,
 } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import { EMPTY_VALUE_MARK } from "../../../../Types/EmptyValueMark";
 import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import Service from "../../../../Models/DatabaseModels/Service";
@@ -268,11 +269,11 @@ const stringifyLogValue: (value: unknown) => string = (
   value: unknown,
 ): string => {
   if (value === undefined || value === null) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   if (typeof value === "string") {
-    return value || "-";
+    return value || EMPTY_VALUE_MARK;
   }
 
   if (typeof value === "number" || typeof value === "boolean") {

@@ -130,7 +130,7 @@ describe("prepare: the shared checks run first, and nothing connects", () => {
 
     assert.match(
       refusal,
-      /^Refused by the Database AI agent: this command is for Database server "postgresql\|other\.example\.com:5432", but this agent serves "postgresql\|db\.example\.com:5432"\. Check DATABASE_SYSTEM\+DATABASE_SERVER_ADDRESS\+DATABASE_SERVER_PORT/,
+      /^Refused by the Database AI agent: this command is for database server "postgresql\|other\.example\.com:5432", but this agent serves "postgresql\|db\.example\.com:5432"\. Check DATABASE_SYSTEM\+DATABASE_SERVER_ADDRESS\+DATABASE_SERVER_PORT/,
     );
     assert.deepStrictEqual(h.drivers.connects, []);
   });
@@ -159,7 +159,7 @@ describe("prepare: the shared checks run first, and nothing connects", () => {
 
     assert.strictEqual(
       refusalOf(h, writeRequest(h, "db terminate-session 42")),
-      `${REFUSED}: "db terminate-session 42" changes the Database server, and this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES is not set). To let OneUptime AI apply fixes, set ONEUPTIME_AI_ALLOW_WRITES=true on the agent and restart it.`,
+      `${REFUSED}: "db terminate-session 42" changes the database server, and this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES is not set). To let OneUptime AI apply fixes, set ONEUPTIME_AI_ALLOW_WRITES=true on the agent and restart it.`,
     );
   });
 

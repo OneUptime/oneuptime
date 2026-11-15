@@ -287,7 +287,7 @@ const ServerlessFunctionOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Invocations",
-      value: m ? formatCompact(m.total, translator) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       icon: IconProp.Bolt,
       iconColor: "blue",
       loading: metricsLoading,
@@ -296,7 +296,7 @@ const ServerlessFunctionOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -311,7 +311,9 @@ const ServerlessFunctionOverview: FunctionComponent<
     },
     {
       title: "p95 duration",
-      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,
@@ -321,7 +323,9 @@ const ServerlessFunctionOverview: FunctionComponent<
     {
       title: "Instances",
       value:
-        instanceCount === null ? "—" : formatCompact(instanceCount, translator),
+        instanceCount === null
+          ? undefined
+          : formatCompact(instanceCount, translator),
       icon: IconProp.Cube,
       iconColor: "amber",
       loading: instanceCount === null,

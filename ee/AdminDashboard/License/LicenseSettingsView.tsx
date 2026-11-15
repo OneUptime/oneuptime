@@ -2,6 +2,7 @@ import LicenseActivationForm, {
   ActivationInputMode,
 } from "./LicenseActivationForm";
 import LicenseDetails from "./LicenseDetails";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { LicenseSettingsCopy } from "./LicenseSettingsCopy";
 import {
   activateLicenseKey,
@@ -115,12 +116,12 @@ type FormatExpiryFunction = (value: unknown) => string;
 // The expiry in the page's language ("2. März 2027"), or a dash.
 const formatExpiry: FormatExpiryFunction = (value: unknown): string => {
   if (typeof value !== "string" || !value) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   const date: Date = OneUptimeDate.fromString(value);
 
-  return Number.isNaN(date.getTime()) ? "—" : writeLicenseDate(date);
+  return Number.isNaN(date.getTime()) ? EMPTY_VALUE_MARK : writeLicenseDate(date);
 };
 
 const LicenseSettingsView: FunctionComponent = (): ReactElement => {
