@@ -9,6 +9,7 @@ import {
   getStorageArrayMetricsForSystem,
   StorageArrayMetricDefinition,
   StorageArrayMetricCategory,
+  getStorageArrayMetricCategoryLabel,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -54,8 +55,11 @@ const StorageArrayMetricPicker: FunctionComponent<ComponentProps> = (
           return m.category === category;
         });
 
+      // The group's heading, a key of the catalog's (#8653).
+      const heading: string = getStorageArrayMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: StorageArrayMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,

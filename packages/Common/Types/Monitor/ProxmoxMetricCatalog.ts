@@ -433,3 +433,24 @@ export function getAllProxmoxMetricCategories(): Array<ProxmoxMetricCategory> {
     "Replication",
   ];
 }
+
+/*
+ * Each group's heading in the metric picker, a key: a category is the value
+ * the catalog's metrics name, so the picker looks its heading up here, once
+ * (#8653).
+ */
+const categoryLabels: Record<ProxmoxMetricCategory, string> = {
+  Availability: translationKey("Availability"),
+  Node: translationKey("Node"),
+  Guest: translationKey("Guest"),
+  Storage: translationKey("Storage"),
+  HA: translationKey("HA"),
+  Backup: translationKey("Backup"),
+  Replication: translationKey("Replication"),
+};
+
+export function getProxmoxMetricCategoryLabel(
+  category: ProxmoxMetricCategory,
+): string {
+  return categoryLabels[category] || category;
+}

@@ -530,6 +530,10 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
                             ...currentAlias,
                             title: metricType.name || "",
                             description: metricType.description || "",
+                            // The metric's own, looked up where it is drawn (#8572).
+                            isMetricTypeDescription: Boolean(
+                              metricType.description,
+                            ),
                             legend: metricType.name || "",
                             legendUnit: metricType.unit || "",
                           },

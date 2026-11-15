@@ -864,12 +864,16 @@ then `npm run i18n:validate` from the root.
   descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
   out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
   picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
-  metric a monitor stored. A translation keeps each piece of code between backticks exactly and as
+  metric a monitor stored, and a chart the metrics explorer builds from a metric: it marks the
+  description it copies (`isMetricTypeDescription`) and keeps the English in the chart's
+  configuration, so a description a person typed is drawn as written (#8572). A translation keeps
+  each piece of code between backticks exactly and as
   often, since the picker draws it as code, and the metric, attribute and product names, unit
   symbols, printed values and numbers the English gives. Enforced by
-  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts)
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts),
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts)
   and
-  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts).
+  [ExplorerChartDescriptionInReadersLanguage](../../packages/Common/Tests/App/Dashboard/ExplorerChartDescriptionInReadersLanguage.test.tsx).
 - **A product's Help > Documentation page reads in the reader's language, its code as written.** A
   page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
   Observability's does, #7531). A page that is a setup guide holds each language's words for every

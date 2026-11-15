@@ -1,6 +1,6 @@
 import NtpLeapIndicator from "../../Types/Monitor/NtpMonitor/NtpLeapIndicator";
 import {
-  formatDurationUnit,
+  formatUnitAmount,
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
 import NtpMonitorUtil from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
@@ -445,13 +445,16 @@ const durationInWords: (duration: ReadDuration) => ComposedValue = (
         return `${duration.count}${NO_BREAK_SPACE}${duration.unit}${duration.count === 1 ? "" : "s"}`;
       }
 
-      // An engine that cannot write the unit: the reader's plural instead.
+      // The number held to its unit, as every amount Intl writes is.
+      const written: string | null = formatUnitAmount({
+        value: duration.count,
+        unit: duration.unit,
+        locale: translator.language,
+        unitDisplay: "long",
+      });
+
       return (
-        formatDurationUnit({
-          part: { count: duration.count, unit: duration.unit },
-          locale: translator.language,
-          unitDisplay: "long",
-        }) ||
+        written ??
         translator.translatePlural(
           DURATION_UNITS[duration.unit],
           duration.count,

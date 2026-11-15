@@ -716,7 +716,7 @@ describe("the conversations, in both views", () => {
         return line.textContent || "";
       });
 
-    expect(addressLines).toContain("10.18.167.35200 MB");
+    expect(addressLines).toContain("10.18.167.35200\u00A0MB");
     expect(
       within(diagram).getAllByTestId("traffic-conversation-label-address")[0],
     ).toHaveAttribute("direction", "ltr");
@@ -739,10 +739,10 @@ describe("the conversations, in both views", () => {
     );
 
     expect(diagram.textContent).toContain(
-      "mumbai-fs01 (10.18.167.35) to Payroll SaaS (158.115.141.143): 200 MB",
+      "mumbai-fs01 (10.18.167.35) to Payroll SaaS (158.115.141.143): 200\u00A0MB",
     );
     expect(diagram.textContent).toContain(
-      "mumbai-fs01 (10.18.167.35) sent 200 MB",
+      "mumbai-fs01 (10.18.167.35) sent 200\u00A0MB",
     );
   });
 });

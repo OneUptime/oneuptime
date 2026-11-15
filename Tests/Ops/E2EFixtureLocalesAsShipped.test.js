@@ -705,8 +705,25 @@ describe("the fixtures' locale helpers", () => {
     const germanFile = path.join(LOCALES_DIR, "de.json");
     const english = JSON.parse(fs.readFileSync(englishFile, "utf8"));
     const german = JSON.parse(fs.readFileSync(germanFile, "utf8"));
-    const shippedEnglish = JSON.parse(onLoad({ path: englishFile }).contents);
-    const shippedGerman = JSON.parse(onLoad({ path: germanFile }).contents);
+    /*
+     * A locale ships as one default export, its JSON handed to JSON.parse
+     * (#8650): the module's default, run as JavaScript.
+     */
+    const shippedLocale = (file) => {
+      const result = onLoad({ path: file });
+
+      expect(result.loader).toBe("js");
+      expect(result.contents.startsWith("export default JSON.parse(")).toBe(
+        true,
+      );
+
+      // eslint-disable-next-line no-new-func
+      return new Function(
+        `return ${result.contents.slice("export default ".length)}`,
+      )();
+    };
+    const shippedEnglish = shippedLocale(englishFile);
+    const shippedGerman = shippedLocale(germanFile);
 
     // English ships a sliver of itself: no key that is its own English.
     expect(Object.keys(shippedEnglish).length).toBeLessThan(

@@ -231,7 +231,7 @@ describe("a level with no responders before the final one", () => {
         return (
           element?.tagName === "P" &&
           (element.textContent || "").includes(
-            "climbs to the final level after 5 min",
+            "climbs to the final level after 5\u00A0min",
           )
         );
       }),

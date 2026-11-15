@@ -9,7 +9,12 @@ import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
 } from "../../../Types/MessageQueue/MessageQueueMetricCatalog";
-import { getAllCephMetrics } from "../../../Types/Monitor/CephMetricCatalog";
+import {
+  CephMetricCategory,
+  getAllCephMetricCategories,
+  getAllCephMetrics,
+  getCephMetricCategoryLabel,
+} from "../../../Types/Monitor/CephMetricCatalog";
 import {
   DatabaseMetricCategory,
   getAllDatabaseMetrics,
@@ -52,14 +57,29 @@ import {
   getPodmanMetricCategoryLabel,
   PodmanMetricCategory,
 } from "../../../Types/Monitor/PodmanMetricCatalog";
-import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getOpenStackMetricCategoryLabel,
+  getAllOpenStackMetricCategories,
+  OpenStackMetricCategory,
+} from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
+  getAllProxmoxMetricCategories,
+  getAllProxmoxMetrics,
+  getProxmoxMetricCategoryLabel,
+  ProxmoxMetricCategory,
+} from "../../../Types/Monitor/ProxmoxMetricCatalog";
 import {
   getAllVMwareMetricCategories,
   getAllVMwareMetrics,
   getVMwareMetricCategoryLabel,
   VMwareMetricCategory,
 } from "../../../Types/Monitor/VMwareMetricCatalog";
-import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
+import {
+  getAllStorageArrayMetricCategories,
+  getAllStorageArrayMetrics,
+  getStorageArrayMetricCategoryLabel,
+  StorageArrayMetricCategory,
+} from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import {
   createTranslator,
   Translator,
@@ -233,7 +253,7 @@ const PICKER_NAMES: Array<string> = unique(
   }),
 );
 
-// The headings the seven pickers draw over their groups (#8353).
+// The headings the eleven pickers draw over their groups (#8353, #8653).
 const PICKER_GROUP_HEADINGS: Array<string> = unique([
   ...getAllVMwareMetricCategories().map(
     (category: VMwareMetricCategory): string => {
@@ -268,6 +288,26 @@ const PICKER_GROUP_HEADINGS: Array<string> = unique([
   ...getAllIoTMetricCategories().map((category: IoTMetricCategory): string => {
     return getIoTMetricCategoryLabel(category);
   }),
+  ...getAllStorageArrayMetricCategories().map(
+    (category: StorageArrayMetricCategory): string => {
+      return getStorageArrayMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllProxmoxMetricCategories().map(
+    (category: ProxmoxMetricCategory): string => {
+      return getProxmoxMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllCephMetricCategories().map(
+    (category: CephMetricCategory): string => {
+      return getCephMetricCategoryLabel(category);
+    },
+  ),
+  ...getAllOpenStackMetricCategories().map(
+    (category: OpenStackMetricCategory): string => {
+      return getOpenStackMetricCategoryLabel(category);
+    },
+  ),
 ]);
 
 // The headings of a Database monitor's summary groups and Metrics tab cards.
@@ -354,6 +394,16 @@ describe("the metric catalogs' names are keys", () => {
       expect.arrayContaining(["BlockIO"]),
     );
     expect(PICKER_GROUP_HEADINGS).not.toEqual(expect.arrayContaining(["Load"]));
+    // The storage array, Proxmox, Ceph and OpenStack pickers' too (#8653).
+    expect(PICKER_GROUP_HEADINGS).toEqual(
+      expect.arrayContaining([
+        "Array Health",
+        "Guest",
+        "PG",
+        "OVN and Open vSwitch",
+        "Key Manager",
+      ]),
+    );
     expect(PICKER_NAMES).toEqual(
       expect.arrayContaining(["Replication Lag (Bytes)", "TempDB Free Space"]),
     );
