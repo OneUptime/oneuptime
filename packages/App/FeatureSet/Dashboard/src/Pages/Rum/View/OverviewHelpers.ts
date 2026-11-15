@@ -185,7 +185,7 @@ export function describePageLoadsTile(input: {
 
   if (input.stats.count <= 0) {
     return {
-      value: "0",
+      value: formatCompact(0, getGlobalTranslator()),
       sublabel:
         input.eventsTotal !== null && input.eventsTotal > 0
           ? translateTemplate("no {{spanName}} spans", {
@@ -196,13 +196,18 @@ export function describePageLoadsTile(input: {
   }
 
   return {
-    value: formatCompact(input.stats.count),
+    value: formatCompact(input.stats.count, getGlobalTranslator()),
     sublabel:
       input.stats.errorCount > 0
         ? translatePlural(
             { one: "{{count}} failed", other: "{{count}} failed" },
             input.stats.errorCount,
-            { count: formatCompact(input.stats.errorCount) },
+            {
+              count: formatCompact(
+                input.stats.errorCount,
+                getGlobalTranslator(),
+              ),
+            },
           )
         : "full page loads",
   };
@@ -299,7 +304,7 @@ export function describeExceptionsTile(input: {
   }
 
   return {
-    value: formatCompact(input.exceptions.total),
+    value: formatCompact(input.exceptions.total, getGlobalTranslator()),
     sublabel: "reported by your app",
   };
 }

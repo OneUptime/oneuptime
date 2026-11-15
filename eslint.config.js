@@ -6,6 +6,7 @@ import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended"
 import globals from "globals";
 import unusedImports from "eslint-plugin-unused-imports";
 import react from "eslint-plugin-react";
+import ownRegExpEscape from "./Scripts/Lint/OwnRegExpEscape.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -358,4 +359,11 @@ export default tseslint.config(
       ],
     },
   },
+  /*
+   * A file's own regular expression escape, where the shared escapeRegExp
+   * (Common/Utils/RegExpEscape) can be imported, and a partial one anywhere:
+   * caught here, before the code scanning guards catch it on main
+   * (Scripts/Lint/OwnRegExpEscape.js says which files get which).
+   */
+  ...ownRegExpEscape.CONFIGS,
 );

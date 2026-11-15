@@ -6,6 +6,7 @@ import {
   SeverityPill,
 } from "../../../Components/DataSecurity/DataSecurityPills";
 import StoreDataPaths from "../../../Components/DataSecurity/StoreDataPaths";
+import { getDataStoreEnvironmentTitle } from "../../../Components/DataSecurity/DataSecurityCatalogTerms";
 import StoreDataTypeList from "../../../Components/DataSecurity/StoreDataTypeList";
 import StoreNextContentScan, {
   getStoreScanNowRefusal,
@@ -867,12 +868,10 @@ const DataStoreOverview: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {item.environment ? (
-                      translator.translateText(item.environment) ||
-                      item.environment
-                    ) : (
-                      <EmptyValue />
-                    )}
+                    {getDataStoreEnvironmentTitle(
+                      translator,
+                      item.environment,
+                    ) || <EmptyValue />}
                   </span>
                 );
               },

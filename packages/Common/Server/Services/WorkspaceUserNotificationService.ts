@@ -1,3 +1,4 @@
+import { getWorkspaceMessageSentMessage } from "../../Types/OnCallDutyPolicy/OnCallSentLine";
 import BaseService from "./BaseService";
 import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
@@ -300,7 +301,7 @@ export class WorkspaceUserNotificationService extends BaseService {
         statusMessage: sendError
           ? sendError.message ||
             getOnCallWorkspaceDirectMessageFailedMessage(workspaceDisplayName)
-          : `Message sent on ${workspaceDisplayName}.`,
+          : getWorkspaceMessageSentMessage(workspaceDisplayName),
       });
     }
 

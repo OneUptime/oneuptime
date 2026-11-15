@@ -564,11 +564,19 @@ work out, starts from a default for everything else, and folds what most people 
   ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
   and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
   Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
-  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). Enforced by
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). The telemetry helpers (`formatCompact`,
+  `formatPercent`, `formatBytes`) take the reader's translator, and every Overview tile passes it: a
+  service's, a function's, a site's and a cloud app's Requests, Error rate and Memory read "1.2k" in
+  Latin digits beside a p95 tile in Persian (#8481). A figure's unit word is the reader's too: a
+  database's and a queue's engine metric tile counts in a plural sentence of the locale, its noun
+  agreeing with the number by the language's rules ("1 Verbindung", "24 Verbindungen",
+  "۲۴ اتصال"), never "۲۴ connections" (#8482). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
   [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
   [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
-  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts)
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts),
+  [TelemetryOverviewTileFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/TelemetryOverviewTileFiguresInReadersLanguage.test.tsx),
+  [EngineMetricTileUnitsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/EngineMetricTileUnitsInReadersLanguage.test.ts)
   and
   [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
 - **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
@@ -725,14 +733,17 @@ then `npm run i18n:validate` from the root.
   `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
   (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
   says the sentence, and the detail page is handed the filters as stored. That formatter's text is
-  a key, never a line a person reads. And an empty dropdown says so in the reader's words ("No
-  matches found", "No options available"), never react-select's English "No options" (#7805).
-  Enforced by
+  a key, never a line a person reads. A monitor's criteria list words each filter the same way,
+  every part of it a sentence of the locale around the part it holds: it read `Check if "Response
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
   [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,

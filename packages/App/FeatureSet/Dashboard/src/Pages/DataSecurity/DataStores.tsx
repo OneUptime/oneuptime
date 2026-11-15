@@ -5,6 +5,7 @@ import {
   SeverityPill,
 } from "../../Components/DataSecurity/DataSecurityPills";
 import StoreDataTypeList from "../../Components/DataSecurity/StoreDataTypeList";
+import { getDataStoreEnvironmentTitle } from "../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
   SELF_MANAGED_STORE_KIND_OPTIONS,
   STORE_ENVIRONMENT_OPTIONS,
@@ -375,9 +376,10 @@ const DataSecurityDataStores: FunctionComponent<
             getElement: (item: DataStore): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {translator.translateText(item.environment) || (
-                    <TableEmptyValue />
-                  )}
+                  {getDataStoreEnvironmentTitle(
+                    translator,
+                    item.environment,
+                  ) || <TableEmptyValue />}
                 </span>
               );
             },

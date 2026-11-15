@@ -1,5 +1,8 @@
 import LogSeverity, {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
   LogSeverityNumber,
+  logSeverityFromNumber,
+  logSeverityNumberFromText,
   normalizeLogSeverity,
 } from "../../../Types/Log/LogSeverity";
 
@@ -68,11 +71,253 @@ describe("LogSeverity", () => {
       }
     });
 
-    test.each([[""], ["   "], ["nonsense"], ["INFORMATIONAL"], ["3"]])(
-      "%s -> null rather than a guess",
-      (input: string) => {
-        expect(normalizeLogSeverity(input)).toBeNull();
+    test.each([
+      [""],
+      ["   "],
+      ["nonsense"],
+      ["3"],
+      ["17"],
+      ["constructor"],
+      ["toString"],
+      ["__proto__"],
+      ["INFO5"],
+      ["[ERROR]"],
+    ])("%s -> null rather than a guess", (input: string) => {
+      expect(normalizeLogSeverity(input)).toBeNull();
+    });
+
+    test("a value that is not text -> null, never a throw", () => {
+      for (const value of [undefined, null, 17, {}, ["ERROR"]]) {
+        expect(normalizeLogSeverity(value as unknown as string)).toBeNull();
+      }
+    });
+
+    /*
+     * Issue #8425: the remapper's target and a saved filter's value name a
+     * severity with the same words ingest reads a sender's level with, so
+     * a pipeline that sets `critical` stores what a log sent at `critical`
+     * is stored as. INFORMATIONAL used to be null here.
+     */
+    test.each([
+      ["INFORMATIONAL", LogSeverity.Information],
+      ["notice", LogSeverity.Information],
+      ["crit", LogSeverity.Error],
+      ["alert", LogSeverity.Error],
+      ["severe", LogSeverity.Error],
+      ["critical", LogSeverity.Fatal],
+      ["emerg", LogSeverity.Fatal],
+      ["emergency", LogSeverity.Fatal],
+      ["verbose", LogSeverity.Debug],
+      ["WARN2", LogSeverity.Warning],
+      ["fatal4", LogSeverity.Fatal],
+    ])(
+      "%s -> %s, as ingest stores it",
+      (input: string, expected: LogSeverity) => {
+        expect(normalizeLogSeverity(input)).toBe(expected);
       },
     );
+
+    test("every word of the table names the severity its number is in", () => {
+      for (const [word, severityNumber] of LOG_SEVERITY_NUMBER_BY_TEXT) {
+        for (const written of [word, word.toLowerCase(), ` ${word} `]) {
+          expect({ written, severity: normalizeLogSeverity(written) }).toEqual({
+            written,
+            severity: logSeverityFromNumber(severityNumber),
+          });
+        }
+      }
+    });
+  });
+
+  describe("LOG_SEVERITY_NUMBER_BY_TEXT, the one table of level words (issue #8425)", () => {
+    test("is keyed upper-cased, and every number in it is a SeverityNumber from 1 to 24", () => {
+      expect(LOG_SEVERITY_NUMBER_BY_TEXT.size).toBeGreaterThan(24);
+
+      for (const [word, severityNumber] of LOG_SEVERITY_NUMBER_BY_TEXT) {
+        expect(word).toBe(word.toUpperCase());
+        expect(word).toBe(word.trim());
+        expect(Number.isInteger(severityNumber)).toBe(true);
+        expect(severityNumber).toBeGreaterThanOrEqual(1);
+        expect(severityNumber).toBeLessThanOrEqual(24);
+      }
+    });
+
+    test("has the spec's six short names and their three numbered steps each, at their own numbers", () => {
+      const firsts: Array<[string, number]> = [
+        ["TRACE", 1],
+        ["DEBUG", 5],
+        ["INFO", 9],
+        ["WARN", 13],
+        ["ERROR", 17],
+        ["FATAL", 21],
+      ];
+
+      for (const [name, first] of firsts) {
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.get(name)).toBe(first);
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.get(`${name}2`)).toBe(first + 1);
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.get(`${name}3`)).toBe(first + 2);
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.get(`${name}4`)).toBe(first + 3);
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.has(`${name}1`)).toBe(false);
+        expect(LOG_SEVERITY_NUMBER_BY_TEXT.has(`${name}5`)).toBe(false);
+      }
+    });
+
+    /*
+     * Appendix B of the OpenTelemetry Logs Data Model, row by row, for the
+     * words it maps one way.
+     */
+    test.each([
+      ["FINEST", 1, "java.util.logging"],
+      ["VERBOSE", 5, "WinEvtLog, ETW"],
+      ["FINER", 5, "java.util.logging"],
+      ["FINE", 6, "java.util.logging"],
+      ["CONFIG", 7, "java.util.logging"],
+      ["INFORMATION", 9, "WinEvtLog"],
+      ["INFORMATIONAL", 9, "syslog Informational (6)"],
+      ["NOTICE", 10, "syslog Notice (5): INFO2"],
+      ["WARNING", 13, "syslog Warning (4), WinEvtLog, ETW, java.util.logging"],
+      ["ERR", 17, "syslog Error (3), keyword err"],
+      ["SEVERE", 17, "java.util.logging"],
+      ["CRIT", 18, "syslog Critical (2), keyword crit: ERROR2"],
+      ["DPANIC", 18, "zap: ERROR2"],
+      ["ALERT", 19, "syslog Alert (1): ERROR3"],
+      ["PANIC", 19, "zap: ERROR3"],
+      ["EMERG", 21, "syslog Emergency (0), keyword emerg: FATAL"],
+      ["EMERGENCY", 21, "syslog Emergency (0): FATAL"],
+    ])("%s -> %i (%s)", (word: string, severityNumber: number) => {
+      expect(LOG_SEVERITY_NUMBER_BY_TEXT.get(word)).toBe(severityNumber);
+    });
+
+    /*
+     * Appendix B maps `critical` two ways (syslog and WinEvtLog: ERROR2;
+     * ETW and .NET: FATAL). Spelled in full it is an application logger's
+     * top level, and what Fluent ingest always stored it as; syslog's own
+     * keyword, `crit`, stays ERROR2.
+     */
+    test("critical is FATAL (21), and crit is ERROR2 (18)", () => {
+      expect(logSeverityNumberFromText("critical")).toBe(21);
+      expect(logSeverityNumberFromText("CRITICAL")).toBe(21);
+      expect(logSeverityFromNumber(21)).toBe(LogSeverity.Fatal);
+      expect(logSeverityNumberFromText("crit")).toBe(18);
+      expect(logSeverityFromNumber(18)).toBe(LogSeverity.Error);
+    });
+
+    // Issue #8536: the short forms loggers write, at the level each abbreviates.
+    test.each([
+      ["TRC", 1, LogSeverity.Trace],
+      ["VRB", 5, LogSeverity.Debug],
+      ["DBG", 5, LogSeverity.Debug],
+      ["DBUG", 5, LogSeverity.Debug],
+      ["INF", 9, LogSeverity.Information],
+      ["WRN", 13, LogSeverity.Warning],
+      ["EROR", 17, LogSeverity.Error],
+      ["FTL", 21, LogSeverity.Fatal],
+    ])(
+      "the short form %s -> %i (%s)",
+      (word: string, severityNumber: number, severity: LogSeverity) => {
+        expect(logSeverityNumberFromText(word)).toBe(severityNumber);
+        expect(logSeverityNumberFromText(word.toLowerCase())).toBe(
+          severityNumber,
+        );
+        expect(normalizeLogSeverity(word)).toBe(severity);
+      },
+    );
+
+    test("knows no word Datadog, Sentry or a console write that is no logger's level", () => {
+      for (const word of ["ok", "success", "log", "unknown"]) {
+        expect(logSeverityNumberFromText(word)).toBe(0);
+      }
+    });
+
+    test("is a Map: a word named like an Object.prototype member names nothing", () => {
+      for (const written of [
+        "constructor",
+        "CONSTRUCTOR",
+        "toString",
+        "valueOf",
+        "hasOwnProperty",
+        "__proto__",
+        "__PROTO__",
+      ]) {
+        expect({ written, n: logSeverityNumberFromText(written) }).toEqual({
+          written,
+          n: 0,
+        });
+      }
+    });
+  });
+
+  describe("logSeverityNumberFromText", () => {
+    test.each([
+      ["info", 9],
+      ["  Warn ", 13],
+      ["eRrOr3", 19],
+      ["Critical", 21],
+      ["notice", 10],
+    ])("%p -> %i", (written: string, severityNumber: number) => {
+      expect(logSeverityNumberFromText(written)).toBe(severityNumber);
+    });
+
+    test("a word with a tab or a newline around it still names its level", () => {
+      expect(logSeverityNumberFromText("\terror\n")).toBe(17);
+    });
+
+    test("anything that is not a word naming a level -> 0", () => {
+      for (const value of [
+        "",
+        "   ",
+        "DETAIL",
+        "3",
+        "ERROR: disk full",
+        "SEVERITY_NUMBER_ERROR",
+        "UNSPECIFIED",
+        17,
+        null,
+        undefined,
+        true,
+        { value: "ERROR" },
+        ["ERROR"],
+      ]) {
+        expect(logSeverityNumberFromText(value)).toBe(0);
+      }
+    });
+  });
+
+  describe("logSeverityFromNumber", () => {
+    test("buckets each of the spec's six ranges, and anything else as Unspecified", () => {
+      const expected: Array<[number, LogSeverity]> = [
+        [0, LogSeverity.Unspecified],
+        [1, LogSeverity.Trace],
+        [4, LogSeverity.Trace],
+        [5, LogSeverity.Debug],
+        [8, LogSeverity.Debug],
+        [9, LogSeverity.Information],
+        [12, LogSeverity.Information],
+        [13, LogSeverity.Warning],
+        [16, LogSeverity.Warning],
+        [17, LogSeverity.Error],
+        [20, LogSeverity.Error],
+        [21, LogSeverity.Fatal],
+        [24, LogSeverity.Fatal],
+        [25, LogSeverity.Unspecified],
+        [-1, LogSeverity.Unspecified],
+        [Number.NaN, LogSeverity.Unspecified],
+      ];
+
+      for (const [severityNumber, severity] of expected) {
+        expect({
+          severityNumber,
+          severity: logSeverityFromNumber(severityNumber),
+        }).toEqual({ severityNumber, severity });
+      }
+    });
+
+    test("is the inverse of LogSeverityNumber", () => {
+      for (const severity of Object.values(LogSeverity)) {
+        expect(logSeverityFromNumber(LogSeverityNumber[severity])).toBe(
+          severity,
+        );
+      }
+    });
   });
 });

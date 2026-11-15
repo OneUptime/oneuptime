@@ -11,6 +11,7 @@ import TelemetryIngestionKeyService, {
 import CacheGenerations from "../../../Server/Infrastructure/CacheGenerations";
 import TelemetryIngestionKeySecretDigest from "../../../Server/Utils/Telemetry/TelemetryIngestionKeySecretDigest";
 import logger from "../../../Server/Utils/Logger";
+import { createHash } from "crypto";
 
 /*
  * THE KEY AS IT IS NOW, FOR A SESSION THAT CONNECTED BEFORE (issue #8147).
@@ -1519,5 +1520,714 @@ describe("the lookup by secret, on every server (issue #8370)", () => {
 
     await expect(lookUp(server, key.secret)).rejects.toThrow();
     expect(await lookUp(server, key.secret)).not.toBeNull();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * LOOKUPS BY SECRET THAT MISS TOGETHER SHARE ONE READ (issue #8426).
+ *
+ * Every HTTP and OTLP/gRPC ingest request, and MQTT at CONNECT, looks its
+ * key up by secret. A busy key's lookups miss the cache together at a few
+ * moments: a pod's first requests, the key's entry running out, every
+ * server's entry missing at once after the key changed, and Redis going
+ * down or coming back. Each of those lookups used to read Postgres, so one
+ * moment cost a read per request in flight, on every server. Now the
+ * lookups of one secret that miss together share one read - but only those
+ * of the same secret, by its digest, and only those that saw the same
+ * generation of the key: a lookup never gets another secret's key, nor a
+ * read that started before a change it already sees.
+ *
+ * Reads are held here until the test lets them land, as a slow Postgres
+ * would hold them, so "together" is exact. Each read sees the row as it was
+ * when the read was made.
+ * ---------------------------------------------------------------------------
+ */
+
+interface HeldRead {
+  land: () => void;
+  fail: (error: Error) => void;
+}
+
+interface HeldReads {
+  held: Array<HeldRead>;
+  stopHolding: () => void;
+}
+
+const holdReads: (server: TelemetryIngestionKeyServiceClass) => HeldReads = (
+  server: TelemetryIngestionKeyServiceClass,
+): HeldReads => {
+  const findOneBy: MockFn = internalsOf(server).findOneBy;
+  const read: (findOneBy: unknown) => Promise<unknown> =
+    findOneBy.getMockImplementation() as (
+      findOneBy: unknown,
+    ) => Promise<unknown>;
+  const held: Array<HeldRead> = [];
+
+  findOneBy.mockImplementation(async (query: unknown): Promise<unknown> => {
+    const row: unknown = await read(query);
+    const asItWas: unknown = row ? { ...(row as FakeRow) } : row;
+
+    await new Promise<void>(
+      (resolve: () => void, reject: (error: Error) => void) => {
+        held.push({ land: resolve, fail: reject });
+      },
+    );
+
+    return asItWas;
+  });
+
+  return {
+    held,
+    stopHolding: (): void => {
+      findOneBy.mockImplementation(read);
+    },
+  };
+};
+
+// Lets every lookup under way run as far as it can before a read lands.
+const settle: () => Promise<void> = async (): Promise<void> => {
+  for (let index: number = 0; index < 20; index++) {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  }
+};
+
+const readsUnderWayOf: (
+  server: TelemetryIngestionKeyServiceClass,
+) => Map<string, unknown> = (
+  server: TelemetryIngestionKeyServiceClass,
+): Map<string, unknown> => {
+  return (server as unknown as { policyReads: Map<string, unknown> })
+    .policyReads;
+};
+
+// `count` lookups of `secret` at once.
+const lookUpTogether: (
+  server: TelemetryIngestionKeyServiceClass,
+  secret: string,
+  count: number,
+) => Array<Promise<TelemetryIngestionKeyPolicy | null>> = (
+  server: TelemetryIngestionKeyServiceClass,
+  secret: string,
+  count: number,
+): Array<Promise<TelemetryIngestionKeyPolicy | null>> => {
+  return Array.from({ length: count }, () => {
+    return lookUp(server, secret);
+  });
+};
+
+// The policy cache's key for a secret: a SHA-256 of it, as written.
+const cacheKeyOf: (secret: string) => string = (secret: string): string => {
+  return createHash("sha256").update(secret).digest("hex");
+};
+
+describe("lookups by secret that miss together share one read (issue #8426)", () => {
+  describe("at each moment a busy key's lookups miss together, Postgres is read once", () => {
+    test("a pod's first requests: fifty lookups of one secret make one read, and each gets the key", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held } = holdReads(server);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 50);
+      await settle();
+
+      expect(readsOf(server)).toBe(1);
+      expect(held).toHaveLength(1);
+
+      held[0]!.land();
+      const answers: Array<TelemetryIngestionKeyPolicy | null> =
+        await Promise.all(lookups);
+
+      expect(answers).toHaveLength(50);
+      for (const policy of answers) {
+        expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+        expect(policy?.projectId.toString()).toBe(key.projectId.toString());
+      }
+      expect(readsOf(server)).toBe(1);
+      expect(readsUnderWayOf(server).size).toBe(0);
+    });
+
+    test("each lookup that shared a read gets an object of its own: changing one changes no other, nor what is kept", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey({
+        keyType: TelemetryIngestionKeyType.Browser,
+        allowedOrigins: ["https://shop.example.com"],
+      });
+      const { held } = holdReads(server);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 3);
+      await settle();
+      held[0]!.land();
+      const [first, second, third] = await Promise.all(lookups);
+
+      first!.allowedOrigins.push("https://evil.example.com");
+      first!.isEnabled = false;
+
+      expect(second!.allowedOrigins).toEqual(["https://shop.example.com"]);
+      expect(third!.isEnabled).toBe(true);
+      expect(second).not.toBe(third);
+
+      const later: TelemetryIngestionKeyPolicy | null = await lookUp(
+        server,
+        key.secret,
+      );
+      expect(later!.allowedOrigins).toEqual(["https://shop.example.com"]);
+      expect(later!.isEnabled).toBe(true);
+    });
+
+    test("the key's first read running out (FIRST_READ_TTL_MS): one read for all", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      expect(await lookUp(server, key.secret)).not.toBeNull();
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+
+      const { held } = holdReads(server);
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 50);
+      await settle();
+
+      expect(readsOf(server)).toBe(2);
+      held[0]!.land();
+      for (const policy of await Promise.all(lookups)) {
+        expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+      }
+      expect(readsOf(server)).toBe(2);
+    });
+
+    test("the key's entry running out (POSITIVE_TTL_MS): one read for all", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(server, key);
+      const reads: number = readsOf(server);
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+
+      const { held } = holdReads(server);
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 50);
+      await settle();
+
+      expect(readsOf(server) - reads).toBe(1);
+      held[0]!.land();
+      await Promise.all(lookups);
+      expect(readsOf(server) - reads).toBe(1);
+    });
+
+    test("the key changed on another server, so every entry here misses at once: one read for all, and all see the change", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      await warmUp(there, key);
+      const reads: number = readsOf(there);
+
+      await updateThrough(here, key, { isEnabled: false });
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+
+      const { held } = holdReads(there);
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(there, key.secret, 50);
+      await settle();
+
+      expect(readsOf(there) - reads).toBe(1);
+      held[0]!.land();
+
+      for (const policy of await Promise.all(lookups)) {
+        expect(policy?.isEnabled).toBe(false);
+      }
+      expect(readsOf(there) - reads).toBe(1);
+    });
+
+    test("Redis going down, and coming back: one read for all at each", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      await warmUp(server, key);
+      const reads: number = readsOf(server);
+      const { held } = holdReads(server);
+
+      // Down: every generation reads as unreachable, and every entry misses.
+      redis.state.isDown = true;
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+      const whileDown: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 50);
+      await settle();
+      expect(readsOf(server) - reads).toBe(1);
+      held[0]!.land();
+      for (const policy of await Promise.all(whileDown)) {
+        expect(policy).not.toBeNull();
+      }
+
+      // Back: what was kept while it was down misses again, once.
+      redis.state.isDown = false;
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+      const onceBack: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 50);
+      await settle();
+      expect(readsOf(server) - reads).toBe(2);
+      held[1]!.land();
+      await Promise.all(onceBack);
+      expect(readsOf(server) - reads).toBe(2);
+    });
+
+    test("a burst of two hundred lookups at each of a key's misses over a minute and a half reads Postgres once per miss", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held } = holdReads(server);
+
+      const burst: () => Promise<void> = async (): Promise<void> => {
+        const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+          lookUpTogether(server, key.secret, 200);
+        await settle();
+        for (const read of held.splice(0)) {
+          read.land();
+        }
+        for (const policy of await Promise.all(lookups)) {
+          expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+        }
+      };
+
+      // The pod's first requests.
+      await burst();
+      expect(readsOf(server)).toBe(1);
+
+      // The first read ran out.
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+      await burst();
+      expect(readsOf(server)).toBe(2);
+
+      // Inside the minute: served from the cache, no read at all.
+      clock += 30 * 1000;
+      await burst();
+      expect(readsOf(server)).toBe(2);
+
+      // The minute ran out.
+      clock += POSITIVE_TTL_MS;
+      await burst();
+      expect(readsOf(server)).toBe(3);
+    });
+
+    test("a secret no key has: fifty lookups make one read, all are refused, and it is kept for NEGATIVE_TTL_MS", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      insertKey();
+      const unknown: string = ObjectID.generate().toString();
+      const { held, stopHolding } = holdReads(server);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, unknown, 50);
+      await settle();
+      expect(readsOf(server)).toBe(1);
+      held[0]!.land();
+
+      for (const policy of await Promise.all(lookups)) {
+        expect(policy).toBeNull();
+      }
+
+      stopHolding();
+      clock += NEGATIVE_TTL_MS - 1;
+      expect(await lookUp(server, unknown)).toBeNull();
+      expect(readsOf(server)).toBe(1);
+    });
+
+    test("a token that is not a uuid is refused by every lookup without a read, and never shares one", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      holdReads(server);
+
+      const answers: Array<TelemetryIngestionKeyPolicy | null> =
+        await Promise.all(lookUpTogether(server, "not-a-key", 50));
+
+      for (const policy of answers) {
+        expect(policy).toBeNull();
+      }
+      expect(readsOf(server)).toBe(0);
+      expect(readsUnderWayOf(server).size).toBe(0);
+    });
+  });
+
+  describe("a lookup only ever gets its own secret's key", () => {
+    test("lookups of two secrets that miss together make one read each, and each gets its own key", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const first: KeyFixture = insertKey();
+      const second: KeyFixture = insertKey();
+      const { held } = holdReads(server);
+
+      const lookups: Array<{
+        key: KeyFixture;
+        answer: Promise<TelemetryIngestionKeyPolicy | null>;
+      }> = Array.from({ length: 40 }, (_value: unknown, index: number) => {
+        const key: KeyFixture = index % 2 === 0 ? first : second;
+        return { key, answer: lookUp(server, key.secret) };
+      });
+      await settle();
+
+      expect(readsOf(server)).toBe(2);
+      expect(readsUnderWayOf(server).size).toBe(2);
+
+      // The second secret's read lands first: it answers only its own lookups.
+      held[1]!.land();
+      held[0]!.land();
+
+      for (const lookup of lookups) {
+        const policy: TelemetryIngestionKeyPolicy | null = await lookup.answer;
+        expect(policy?.ingestionKeyId.toString()).toBe(
+          lookup.key.id.toString(),
+        );
+        expect(policy?.projectId.toString()).toBe(
+          lookup.key.projectId.toString(),
+        );
+      }
+      expect(readsOf(server)).toBe(2);
+    });
+
+    test("a secret no key has, asked together with a key's secret, is refused while the key's secret is let in", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const unknown: string = ObjectID.generate().toString();
+      const { held } = holdReads(server);
+
+      const known: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 10);
+      const refused: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, unknown, 10);
+      await settle();
+      expect(readsOf(server)).toBe(2);
+
+      for (const read of held) {
+        read.land();
+      }
+
+      for (const policy of await Promise.all(known)) {
+        expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+      }
+      for (const policy of await Promise.all(refused)) {
+        expect(policy).toBeNull();
+      }
+    });
+
+    test("a secret written in other capitals is a secret of its own here: its own read, though Postgres opens the same key with it", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held } = holdReads(server);
+
+      const lower: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret.toLowerCase(), 5);
+      const upper: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret.toUpperCase(), 5);
+      await settle();
+
+      expect(readsOf(server)).toBe(2);
+      for (const read of held) {
+        read.land();
+      }
+      for (const policy of await Promise.all([...lower, ...upper])) {
+        expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+      }
+    });
+
+    test("a read under way is kept by the secret's digest, never the secret", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held } = holdReads(server);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 5);
+      await settle();
+
+      const underWay: Array<string> = Array.from(
+        readsUnderWayOf(server).keys(),
+      );
+      expect(underWay).toHaveLength(1);
+      expect(underWay[0]!.toLowerCase()).not.toContain(
+        key.secret.toLowerCase(),
+      );
+      expect(underWay[0]!.startsWith(cacheKeyOf(key.secret))).toBe(true);
+
+      held[0]!.land();
+      await Promise.all(lookups);
+    });
+
+    test("each lookup that shared a read is still asked about a blocked project on its own", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const projectService: { isProjectBlocked: MockFn } = (
+        jest.requireMock("../../../Server/Services/ProjectService") as {
+          default: { isProjectBlocked: MockFn };
+        }
+      ).default;
+      projectService.isProjectBlocked.mockClear();
+      const { held } = holdReads(server);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 20);
+      await settle();
+      held[0]!.land();
+      await Promise.all(lookups);
+
+      expect(readsOf(server)).toBe(1);
+      expect(projectService.isProjectBlocked).toHaveBeenCalledTimes(20);
+    });
+  });
+
+  describe("a read that fails", () => {
+    test("fails every lookup that shared it, is not kept, and the next lookup reads again", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held, stopHolding } = holdReads(server);
+
+      const outcomes: Promise<Array<PromiseSettledResult<unknown>>> =
+        Promise.allSettled(lookUpTogether(server, key.secret, 50));
+      await settle();
+      expect(readsOf(server)).toBe(1);
+
+      held[0]!.fail(new Error("Connection terminated unexpectedly"));
+      const settled: Array<PromiseSettledResult<unknown>> = await outcomes;
+
+      expect(settled).toHaveLength(50);
+      for (const outcome of settled) {
+        expect(outcome.status).toBe("rejected");
+        expect((outcome as { reason: Error }).reason.message).toBe(
+          "Connection terminated unexpectedly",
+        );
+      }
+      expect(readsUnderWayOf(server).size).toBe(0);
+
+      // Nothing was kept: the next lookup reads again, and gets the key.
+      stopHolding();
+      const policy: TelemetryIngestionKeyPolicy | null = await lookUp(
+        server,
+        key.secret,
+      );
+      expect(policy?.ingestionKeyId.toString()).toBe(key.id.toString());
+      expect(readsOf(server)).toBe(2);
+    });
+
+    test("fails a known key's lookups the same way, and keeps nothing in their place", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(server, key);
+      const reads: number = readsOf(server);
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      const { held, stopHolding } = holdReads(server);
+
+      const outcomes: Promise<Array<PromiseSettledResult<unknown>>> =
+        Promise.allSettled(lookUpTogether(server, key.secret, 20));
+      await settle();
+      expect(readsOf(server) - reads).toBe(1);
+      held[0]!.fail(new Error("canceling statement due to statement timeout"));
+
+      for (const outcome of await outcomes) {
+        expect(outcome.status).toBe("rejected");
+      }
+
+      stopHolding();
+      expect(await lookUp(server, key.secret)).not.toBeNull();
+      expect(readsOf(server) - reads).toBe(2);
+    });
+  });
+
+  describe("a change that lands while the shared read is in flight", () => {
+    test("on a later read, on another server: the lookups that shared it get what it read, and the change is seen within SHARED_READ_TTL_MS", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(there, key);
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      const { held, stopHolding } = holdReads(there);
+
+      // The read sees the key as it was; the change lands before it returns.
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(there, key.secret, 50);
+      await settle();
+      await updateThrough(here, key, { isEnabled: false });
+      held[0]!.land();
+
+      for (const policy of await Promise.all(lookups)) {
+        expect(policy?.isEnabled).toBe(true);
+      }
+      const readAt: number = clock;
+      stopHolding();
+
+      clock = readAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("on another server, a lookup that already sees the change never takes the read that started before it", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(there, key);
+      const reads: number = readsOf(there);
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      const { held, stopHolding } = holdReads(there);
+
+      // A read starts there, and is still in flight when the change lands here.
+      const before: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(there, key.secret, 10);
+      await settle();
+      expect(readsOf(there) - reads).toBe(1);
+
+      await updateThrough(here, key, { isEnabled: false });
+
+      // A second later the change has reached there through Redis.
+      clock += CacheGenerations.SHARED_READ_TTL_MS + 1;
+      const after: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(there, key.secret, 10);
+      await settle();
+
+      // A read of their own, under the generation the change started.
+      expect(readsOf(there) - reads).toBe(2);
+      held[1]!.land();
+      held[0]!.land();
+
+      for (const policy of await Promise.all(before)) {
+        expect(policy?.isEnabled).toBe(true);
+      }
+      for (const policy of await Promise.all(after)) {
+        expect(policy?.isEnabled).toBe(false);
+      }
+
+      stopHolding();
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("on a first read, on another server: seen within FIRST_READ_TTL_MS", async () => {
+      const here: TelemetryIngestionKeyServiceClass = newServer();
+      const there: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held, stopHolding } = holdReads(there);
+
+      const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(there, key.secret, 50);
+      await settle();
+      await updateThrough(here, key, { isEnabled: false });
+      held[0]!.land();
+
+      for (const policy of await Promise.all(lookups)) {
+        expect(policy?.isEnabled).toBe(true);
+      }
+      const readAt: number = clock;
+      stopHolding();
+
+      clock = readAt + CacheGenerations.SHARED_READ_TTL_MS + 1;
+      expect((await lookUp(there, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("in the server that made it, on a later read: a lookup after the write never takes the read from before it", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const keptAt: number = await warmUp(server, key);
+      const reads: number = readsOf(server);
+      clock = keptAt + POSITIVE_TTL_MS + 1;
+      const { held, stopHolding } = holdReads(server);
+
+      const before: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 10);
+      await settle();
+      expect(readsOf(server) - reads).toBe(1);
+
+      await updateThrough(server, key, { isEnabled: false });
+
+      const after: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 10);
+      await settle();
+
+      // A read of its own, under the generation the write started.
+      expect(readsOf(server) - reads).toBe(2);
+
+      // The read from before the write lands last.
+      held[1]!.land();
+      held[0]!.land();
+
+      for (const policy of await Promise.all(before)) {
+        expect(policy?.isEnabled).toBe(true);
+      }
+      for (const policy of await Promise.all(after)) {
+        expect(policy?.isEnabled).toBe(false);
+      }
+
+      // No time passes: what the read from before the write saw is not served.
+      stopHolding();
+      expect((await lookUp(server, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("in the server that made it, on a first read: a lookup after the write never takes the read from before it, and that read is not kept", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const { held, stopHolding } = holdReads(server);
+
+      const before: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 10);
+      await settle();
+      expect(readsOf(server)).toBe(1);
+
+      await updateThrough(server, key, { isEnabled: false });
+
+      const after: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+        lookUpTogether(server, key.secret, 10);
+      await settle();
+      expect(readsOf(server)).toBe(2);
+
+      // The read from before the write lands last: it must not be what is kept.
+      held[1]!.land();
+      const afterAnswers: Array<TelemetryIngestionKeyPolicy | null> =
+        await Promise.all(after);
+      held[0]!.land();
+      const beforeAnswers: Array<TelemetryIngestionKeyPolicy | null> =
+        await Promise.all(before);
+
+      for (const policy of beforeAnswers) {
+        expect(policy?.isEnabled).toBe(true);
+      }
+      for (const policy of afterAnswers) {
+        expect(policy?.isEnabled).toBe(false);
+      }
+
+      stopHolding();
+      expect((await lookUp(server, key.secret))?.isEnabled).toBe(false);
+    });
+
+    test("in the server that made it: a secret no key had while it was being read is not refused for NEGATIVE_TTL_MS once a key has it", async () => {
+      const server: TelemetryIngestionKeyServiceClass = newServer();
+      const key: KeyFixture = insertKey();
+      const newSecret: string = ObjectID.generate().toString();
+      const { held, stopHolding } = holdReads(server);
+
+      // A sender already has the new secret; the read finds no key with it.
+      const early: Promise<TelemetryIngestionKeyPolicy | null> = lookUp(
+        server,
+        newSecret,
+      );
+      await settle();
+      await updateThrough(server, key, { secretKey: new ObjectID(newSecret) });
+      held[0]!.land();
+      expect(await early).toBeNull();
+
+      // The write is done: the new secret opens the key at once.
+      stopHolding();
+      expect((await lookUp(server, newSecret))?.ingestionKeyId.toString()).toBe(
+        key.id.toString(),
+      );
+    });
+  });
+
+  test("a read under way leaves nothing behind once it lands", async () => {
+    const server: TelemetryIngestionKeyServiceClass = newServer();
+    const keys: Array<KeyFixture> = [insertKey(), insertKey(), insertKey()];
+    const { held } = holdReads(server);
+
+    const lookups: Array<Promise<TelemetryIngestionKeyPolicy | null>> =
+      keys.flatMap((key: KeyFixture) => {
+        return lookUpTogether(server, key.secret, 5);
+      });
+    await settle();
+    expect(readsUnderWayOf(server).size).toBe(3);
+
+    for (const read of held) {
+      read.land();
+    }
+    await Promise.all(lookups);
+
+    expect(readsUnderWayOf(server).size).toBe(0);
   });
 });

@@ -17,7 +17,9 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
 import { INCOMING_REQUEST_SECRET_PLACEHOLDER } from "../../IncomingRequestSecret/IncomingRequestSecretsCopy";
-import useIncomingRequestSecretRequirement from "../../IncomingRequestSecret/UseIncomingRequestSecretRequirement";
+import useIncomingRequestSecretStatus, {
+  IncomingRequestSecretStatus,
+} from "../../IncomingRequestSecret/UseIncomingRequestSecretStatus";
 import { INCOMING_REQUEST_SECRET_HEADER } from "Common/Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 
 export interface ComponentProps {
@@ -106,8 +108,9 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
     kind: props.kind,
     monitor: props.monitor,
   });
-  // Whether the project refuses requests without one of its secrets.
-  const isSecretRequired: boolean = useIncomingRequestSecretRequirement();
+  // Whether requests without one of the project's secrets are, or would be, refused.
+  const secretStatus: IncomingRequestSecretStatus =
+    useIncomingRequestSecretStatus(props.monitorId);
 
   if (!secretKey) {
     return (
@@ -165,7 +168,10 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
           <div className="mt-1">
             <CodeBlock
               language="bash"
-              code={getHeartbeatExampleCommand({ url, isSecretRequired })}
+              code={getHeartbeatExampleCommand({
+                url,
+                isSecretRequired: secretStatus.isRequired,
+              })}
               showCopyButton={true}
             />
           </div>
@@ -175,7 +181,7 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
             "GET and POST both work. Headers and body are available to your criteria.",
           )}
         </p>
-        <IncomingRequestSecretNote isRequired={isSecretRequired} />
+        <IncomingRequestSecretNote status={secretStatus} />
         <SloOverviewActionLink
           variant="text"
           title="Full setup instructions"

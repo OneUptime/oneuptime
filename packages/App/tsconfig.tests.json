@@ -1,0 +1,30 @@
+{
+  /*
+   * Every App test file, as one program. `npm run compile` type-checks the
+   * App's sources with ./tsconfig.json, which leaves Tests out, and then
+   * these tests in parts that extend this file and change only what they
+   * include (tsconfig.tests.dashboard.json, tsconfig.tests.featureset.json
+   * and tsconfig.tests.rest.json): sources and tests as one program outgrew
+   * the compile's 8 GiB heap on 2026-11-15 (#8503). scripts/compile-tests.js
+   * explains the split, and checks that the parts leave no file of this one
+   * out.
+   *
+   * The App's jest config transpiles only (ts-jest isolatedModules), so
+   * nothing else type-checks a test. Everything but what is included is
+   * inherited, so a test is held to the same rules as the code it tests.
+   * The App's global declaration files are listed as well: the build picks
+   * them up through its default include, and a test program would otherwise
+   * only see what the tests import.
+   *
+   * Editors and ESLint's typed linting (projectService in eslint.config.js)
+   * give each file the nearest tsconfig.json that includes it, so the parts
+   * have one each: Tests/Dashboard, Tests/FeatureSet and Tests (the rest).
+   */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["Tests/**/*.ts", "Tests/**/*.tsx", "Typings/**/*.d.ts"],
+  // Not ./tsconfig.json's, which leaves Tests out.
+  "exclude": ["node_modules", "build"]
+}

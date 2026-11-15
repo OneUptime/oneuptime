@@ -202,6 +202,10 @@ Vá em **Monitores → Configurações → Segredos de requisição recebida** e
 
 Envie o segredo no cabeçalho `X-OneUptime-Secret`, ou como token Bearer no cabeçalho `Authorization`, conforme o que seu remetente conseguir definir.
 
+### Encontre os remetentes que faltam
+
+Assim que o projeto tem um segredo, o OneUptime verifica cada requisição, ainda sem recusar nenhuma. **Requisições sem segredo**, na mesma página, lista cada monitor de requisições recebidas que recebeu uma requisição sem um segredo válido nas últimas 24 horas, e por quê: nenhum segredo foi enviado, ou um errado. Corrija esses remetentes. Um monitor cujos remetentes foram corrigidos mostra em **Última com segredo** um horário posterior ao de **Última sem segredo**, e sai da lista em até 24 horas.
+
 ### Ative a exigência
 
 Ative **Exigir um segredo em toda requisição**. A exigência não pode ser ativada enquanto o projeto não tiver nenhum segredo, para que nenhum remetente seja recusado por engano.
@@ -429,6 +433,10 @@ O `200` é enviado antes de a requisição ser validada, então não prova que e
 
 :::details Meu remetente recebe um 401
 O projeto exige um segredo em toda requisição, e a requisição não enviou nenhum, ou enviou um que não é do projeto: a resposta diz qual dos dois. Envie um dos segredos do projeto no cabeçalho `X-OneUptime-Secret` ou como token Bearer, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição). Uma requisição recusada nunca chega ao monitor.
+:::
+
+:::details O monitor parou de receber requisições depois que um segredo passou a ser exigido
+Seus remetentes não enviam nenhum segredo, ou enviam um errado, então toda requisição que eles enviam é recusada. Uma linha abaixo da **Heartbeat URL** do monitor diz quando chegou a última requisição recusada, e **Requisições sem segredo** lista cada monitor que recebeu uma nas últimas 24 horas, e por quê. Envie um dos segredos do projeto a partir desses remetentes, como mostra [Exigir um segredo em toda requisição](#exigir-um-segredo-em-toda-requisição).
 :::
 
 :::details O monitor nunca fica offline quando os heartbeats param
