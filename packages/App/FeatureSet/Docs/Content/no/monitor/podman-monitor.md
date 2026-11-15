@@ -1,4 +1,4 @@
-# Podman-overvåking
+# Podman-monitor
 
 En Podman-monitor overvåker containerne på én Podman-vert og sier fra når en container går varm, går tom for minne eller stadig starter på nytt. Den leser målingene som OneUptimes Podman-agent sender fra verten, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
@@ -42,7 +42,7 @@ flowchart TB
 
 Gå til **Monitorer** og klikk på **Opprett monitor**.
 
-### Velg Podman Container
+### Velg Podman-container
 
 Klikk på **Flere monitortyper** under **Monitortype**, og velg **Podman-container** under **Infrastruktur**, eller skriv `podman` i søkefeltet. Skriv inn et **Navn** – det brukes i titler på hendelser og varsler – og klikk på **Neste**.
 
@@ -299,7 +299,7 @@ En monitor som sammenligner selve `container.restarts` med en terskel, slik en m
 
 :::cards
 - [Podman-agent](/docs/telemetry/podman-host): Installer, oppgrader og feilsøk agenten denne monitoren leser.
-- [Docker-overvåking](/docs/monitor/docker-monitor): Den samme monitoren for Docker-verter.
+- [Docker-monitor](/docs/monitor/docker-monitor): Den samme monitoren for Docker-verter.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 - [Vaktplaner](/docs/on-call/schedules): Bestem hvem som varsles når en container går i stykker.
 :::

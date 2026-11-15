@@ -189,10 +189,10 @@ En percentil beregnes ud fra buckets og tegnes som midten af den bucket, den fal
 
 Fire mål, som de fleste installationer kan love, hvert bygget af en eller to forespørgsler i metrikudforskeren i det projekt, der modtager metrikkerne. De læser et tidsrum præcist, når metrikkerne ankommer som deltaer: se [Send deltaer til et OneUptime-projekt](#send-deltaer-til-et-oneuptime-projekt).
 
-### Byg et i måleudforskeren
+### Byg et i metrikudforskeren
 
 :::steps
-1. Åbn projektets [Måleudforsker](/docs/telemetry/metrics-explorer), og klik på målets første metrik. Dens forespørgsel er `a`.
+1. Åbn projektets [Metrikudforsker](/docs/telemetry/metrics-explorer), og klik på målets første metrik. Dens forespørgsel er `a`.
 2. Vælg dens aggregering under **Aggreger efter**. Åbn derefter **Filtre og gruppering**, og tilføj hver af dens betingelser under **Filtrer efter attributter**.
 3. For en anden forespørgsel skal du klikke på **Tilføj metrik** og sætte `b` op på samme måde.
 4. For en formel skal du klikke på **Tilføj formel** og skrive den i **Formel**.
@@ -260,7 +260,7 @@ Endelige statusser kommer fra udbyderne, senere, og kun hvor de kan melde dem: s
 ## Næste skridt
 
 :::cards
-- [Måleudforsker](/docs/telemetry/metrics-explorer): Vis, kombinér og sammenlign enhver metrik.
+- [Metrikudforsker](/docs/telemetry/metrics-explorer): Vis, kombinér og sammenlign enhver metrik.
 - [Metrik-monitor](/docs/monitor/metrics-monitor): Advar, når et mål ikke nås.
 - [Twilio-integration](/docs/self-hosted/twilio-integration): Lad Twilio melde, hvad der nåede telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): De ventetider, afsendelsesforsinkelsen regnes fra.

@@ -208,13 +208,13 @@ Twilio 用文字转语音朗读这些消息，因此请按您希望听到的样�
 
 来电通话日志可用作工作流触发器：
 
-- **On Create Incoming Call Log** 在来电到达时运行。
-- **On Update Incoming Call Log** 随着通话进行而运行。设置 **Ended At** 的那次更新就是通话结束。
+- **创建Incoming Call 日志时** 在来电到达时运行。
+- **更新Incoming Call 日志时** 随着通话进行而运行。设置 **Ended At** 的那次更新就是通话结束。
 
 只处理未接来电时，例如把它们发布到 Slack 或 Microsoft Teams，或创建工单：
 
 :::steps
-1. 添加 **On Update Incoming Call Log** 触发器。将 **要关注的字段** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
+1. 添加 **更新Incoming Call 日志时** 触发器。将 **要关注的字段** 设为 **Ended At** ，并选择要使用的字段，例如 **Status** 、 **Caller Phone Number** 和 **Routing Phone Number** 。
 2. 添加一个 **如果 / 否则** 步骤。用比较 **不等于** 和 `Completed` 检查触发器的 **Status** 。
 3. 把您的步骤连接到 **是** 端口。
 :::

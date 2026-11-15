@@ -489,17 +489,20 @@ describe("the Notifications group in the docs", () => {
     }
   });
 
-  it("takes its Norwegian title from the Norwegian User Settings menu, since Notifications and Alerts are both Varsler there", () => {
+  // Norwegian once read Varsler for both, and the group was Notifikasjoner (#8719).
+  it("takes its Norwegian title from the Norwegian Dashboard, now that Notifications is Varslinger and Alerts Varsler there", () => {
     const norwegian: Record<string, unknown> = JSON.parse(
       readDashboardSource("Locales/no.json"),
     ) as Record<string, unknown>;
-
-    expect(norwegian["Notifications"]).toBe(norwegian["Alerts"]);
-    expect(
-      (norwegian["Alerts & Notifications"] as string).toLowerCase(),
-    ).toContain(
-      (NOTIFICATIONS_GROUP_TITLE_OVERRIDES["no"] as string).toLowerCase(),
+    const docs: { navGroups: Record<string, string> } = JSON.parse(
+      readPackageFile("App/FeatureSet/Docs/Locales/no.json"),
     );
+
+    expect(NOTIFICATIONS_GROUP_TITLE_OVERRIDES).toEqual({});
+    expect(norwegian["Notifications"]).toBe("Varslinger");
+    expect(norwegian["Alerts"]).toBe("Varsler");
+    expect(docs.navGroups[NOTIFICATIONS_NAV_GROUP]).toBe("Varslinger");
+    expect(norwegian["Alerts & Notifications"]).toBe("Varsler og varslinger");
   });
 
   it("is linked from Getting Started's Incident Response cards, right after On-call, and from Core Concepts' on-call section", () => {

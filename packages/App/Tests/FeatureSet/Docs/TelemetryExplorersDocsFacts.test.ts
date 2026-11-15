@@ -1,3 +1,4 @@
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import {
   EXCEPTIONS,
   KEPT_AS_WRITTEN,
@@ -231,11 +232,15 @@ function inlineCodes(text: string): Array<string> {
   );
 }
 
-// Every capture of a pattern in a piece of source, in order.
+/*
+ * Every capture of a pattern in a piece of source, in order, as English
+ * draws it: a meaning key, such as the explorers' "Insights (explorer
+ * analytics)" tab, reads as its word (Common/Types/MeaningKeys).
+ */
 function allMatches(source: string, pattern: RegExp): Array<string> {
   return Array.from(source.matchAll(pattern)).map(
     (match: RegExpMatchArray): string => {
-      return match[1] as string;
+      return withMeaningKeyAsItsWord(match[1] as string);
     },
   );
 }

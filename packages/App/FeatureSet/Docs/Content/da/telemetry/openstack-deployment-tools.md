@@ -41,11 +41,11 @@ Ethvert værktøj med en Alertmanager kan få hændelser i dag: en advarsel, der
 :::steps
 ### Opret monitoren
 
-Opret en Incoming Request-monitor, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#modtag-advarsler-med-en-monitor) beskriver, og kopiér dens **Heartbeat URL**. Det er adressen `<secret key>` i hvert værktøjs modtager nedenfor.
+Opret en Indgående anmodning-monitor, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#modtag-advarsler-med-en-monitor) beskriver, og kopiér dens **Heartbeat URL**. Det er adressen `<secret key>` i hvert værktøjs modtager nedenfor.
 
 ### Sæt den på clouden
 
-Åbn monitorens **Oversigt → Tilknyttede ressourcer**, og tilføj OpenStack-clouden. Hver hændelse står så på den clouds side **Hændelser**: en Incoming Request-monitors egne indstillinger nævner ingen cloud, så hver clouds Alertmanager har brug for en monitor for sig. Clouden dukker op på listen, når dens første data ankommer, så gør dette efter trinene nedenfor, eller tilføj clouden under **OpenStack → Alle clouds** først.
+Åbn monitorens **Oversigt → Tilknyttede ressourcer**, og tilføj OpenStack-clouden. Hver hændelse står så på den clouds side **Hændelser**: en Indgående anmodning-monitors egne indstillinger nævner ingen cloud, så hver clouds Alertmanager har brug for en monitor for sig. Clouden dukker op på listen, når dens første data ankommer, så gør dette efter trinene nedenfor, eller tilføj clouden under **OpenStack → Alle clouds** først.
 :::
 
 Alertmanager, i den version Kolla-Ansible fastlåser, er optaget i at poste i netop denne form, og det, den postede, åbnede én hændelse på en kørende OneUptime, som dens egen `resolved`-status løste.

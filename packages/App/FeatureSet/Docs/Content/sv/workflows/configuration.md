@@ -81,7 +81,7 @@ Klicka på **Importera JSON** i listan **Arbetsflöden** och välj en fil som ex
 Filen innehåller arbetsflödets namn, beskrivning, aktiveringsläge och graf. Den innehåller medvetet inte:
 
 - **Webhookens hemliga nyckel.** En ny genereras när arbetsflödet skapas, så ett importerat arbetsflöde har en annan webhook-URL — kopiera den från det nya arbetsflödets Webhook-utlösare. Allt som anropade originalet måste pekas om.
-- **Adressen för inkommande e-post.** Ett importerat arbetsflöde med en Incoming Email-utlösare får en egen adress — kopiera den från det nya arbetsflödets utlösare. Allt som skickade e-post till originalet måste få den nya adressen.
+- **Adressen för inkommande e-post.** Ett importerat arbetsflöde med en Inkommande e-post-utlösare får en egen adress — kopiera den från det nya arbetsflödets utlösare. Allt som skickade e-post till originalet måste få den nya adressen.
 - **Globala variabler.** Ett block som läser `{{global.variables.MY_SECRET}}` behåller den referensen, men värdet finns inte i filen. Skapa variablerna i målprojektet innan du kör det importerade arbetsflödet.
 - **Ägare och etiketter.** Ditt projekts egna etikett- och ägarregler körs mot det importerade arbetsflödet, precis som om du hade skapat det manuellt.
 
@@ -103,10 +103,10 @@ Bara personer som kan redigera arbetsflödet — **Projektägare**, **Projektadm
 
 ## Säkerhet för inkommande e-post
 
-Incoming Email-utlösaren ger arbetsflödet en egen adress, och alla som känner till adressen kan skicka e-post till den. Delen före `@` är arbetsflödets hemliga nyckel, så behandla adressen som ett lösenord:
+Inkommande e-post-utlösaren ger arbetsflödet en egen adress, och alla som känner till adressen kan skicka e-post till den. Delen före `@` är arbetsflödets hemliga nyckel, så behandla adressen som ett lösenord:
 
 - Publicera den inte och lägg den inte i ett offentligt repo. Utlösaren döljer nyckeln tills du klickar på **Visa**, och **Kopiera adress** kopierar adressen utan att visa den.
-- Om adressen läcker klickar du på Incoming Email-utlösaren i **Byggare** och sedan på **Återställ adress**. Arbetsflödet får en ny adress, och e-post till den gamla ignoreras från och med då.
+- Om adressen läcker klickar du på Inkommande e-post-utlösaren i **Byggare** och sedan på **Återställ adress**. Arbetsflödet får en ny adress, och e-post till den gamla ignoreras från och med då.
 - Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **Från** bevisar inte vem som skickade det. Innan ett arbetsflöde gör något viktigt kontrollerar du något som bara den riktiga avsändaren vet — en token i ämnet eller i en header — med ett **Om / Annars**-block. Spara den förväntade token som en hemlig variabel.
 - Nyckeln döljs i allt som körningen tar emot — **Till**, **CC**, headers och innehållet — eftersom körningens logg är synlig för alla som kan läsa arbetsflödets körningar.
 
@@ -196,7 +196,7 @@ De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, 
   - att redigera eller ta bort en flödespost (flödena för incidenter, larm, episoder, monitorer, jourpolicyer och schemalagt underhåll);
   - att skriva en aviseringslogg (loggarna för SMS, samtal, e-post, WhatsApp, Telegram, push, webhooks och arbetsytemeddelanden);
   - värden som OneUptime sätter när saker händer: om en anpassad domäns CNAME är verifierad, ett teams skyddsbrytare (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), vilken incidentroll som är den primära och om den kan tas bort, om en ägare eller medlem har aviserats, påminnelsetider och antal, vem som har jour i ett schema nu och härnäst, en jourkörnings förlopp, en SLO:s aktuella burn rate och error budget, en monitor som pausats av en incident eller en underhållshändelse, en privat statussideanvändares token för lösenordsåterställning och senaste inloggning, de uppgifter en tjänst rapporterar om sig själv (version, runtime, moln), och en detekteringsregels eller ett hotflödes senaste körning;
-  - att deklarera en incident från en mall genom att skicka `createdIncidentTemplateId` till **Create One Incident** — välj i stället mallen under stegets inställning **Incidentmall**: steget deklarerar då incidenten från den, som Projektadministratör, och registrerar mallen;
+  - att deklarera en incident från en mall genom att skicka `createdIncidentTemplateId` till **Skapa Incident (en post)** — välj i stället mallen under stegets inställning **Incidentmall**: steget deklarerar då incidenten från den, som Projektadministratör, och registrerar mallen;
   - att ändra vilken post en post tillhör efter att den har skapats, som den monitor en ägarrad gäller eller den incident en anteckning står på.
 - **Som ingen person.** En post som ett arbetsflöde skapar namnger ingen skapare, och granskningsloggen anger arbetsflödet, med dess namn vid den tidpunkten, som den som gjorde ändringen.
 

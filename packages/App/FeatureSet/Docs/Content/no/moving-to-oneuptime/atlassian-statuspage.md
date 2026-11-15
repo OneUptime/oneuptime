@@ -107,5 +107,5 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 :::cards
 - [Statussider – Oversikt](/docs/status-pages/index): Hva en statusside viser, og hvem som kan se den.
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Hvordan abonnenter får vite om hendelser.
-- [Manuell overvåking](/docs/monitor/manual-monitor): En monitor du selv setter statusen på.
+- [Manuell monitor](/docs/monitor/manual-monitor): En monitor du selv setter statusen på.
 :::

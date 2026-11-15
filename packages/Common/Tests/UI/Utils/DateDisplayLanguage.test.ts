@@ -90,7 +90,7 @@ describe("dates follow the page's language", () => {
 
     expect(getDateLocale(getDateDisplayLanguage())).toBe("en-u-ca-gregory");
     expect(OneUptimeDate.fromNow(new Date(Date.now() - 5 * 3600000))).toBe(
-      "5 hours ago",
+      "5\u00A0hours ago",
     );
   });
 });

@@ -111,7 +111,7 @@ flowchart TB
 - استثناها روی همگام‌سازی گروهی و تکی هر دو اعمال می‌شوند. آن‌ها روی قالب ذخیره می‌شوند و برای هر همگام‌سازی جداگانه انتخاب نمی‌شوند.
 - مانیتورهای تازه همچنان با مقادیر فیلدهای قالب شروع می‌شوند. استثناها فقط روی همگام‌سازی با مانیتورهای موجود اثر دارند.
 - معیارها همیشه همگام می‌شوند. همگام‌سازی فقط معیارها بازه پایش، برچسب‌ها و دیگر تنظیمات سطح مانیتور را دست‌نخورده می‌گذارد.
-- قالب‌های موجود تا وقتی پیکربندی‌شان نکنید هیچ استثنای فیلدی ندارند. مانیتورهای Network Device همچنان اتصال دستگاه خودشان را به‌طور خودکار نگه می‌دارند، و مانیتورهای Ping، IP، Port و NTP که یک وارد کردن از کشف شبکه برای دستگاه‌ها ساخته است همچنان آدرس خود هر دستگاه را بررسی می‌کنند.
+- قالب‌های موجود تا وقتی پیکربندی‌شان نکنید هیچ استثنای فیلدی ندارند. مانیتورهای دستگاه شبکه همچنان اتصال دستگاه خودشان را به‌طور خودکار نگه می‌دارند، و مانیتورهای Ping، IP، Port و NTP که یک وارد کردن از کشف شبکه برای دستگاه‌ها ساخته است همچنان آدرس خود هر دستگاه را بررسی می‌کنند.
 
 در قالب‌هایی با چند گام، مقادیر محافظت‌شده با شناسهٔ گام‌ها تطبیق داده می‌شوند. مانیتورهای تک‌گامی که جداگانه ساخته شده‌اند هم می‌توانند یک قالب تک‌گام دریافت کنند. اگر یک گام محافظت‌شده تطبیق داده نشود، همگام‌سازی پیش از به‌روزرسانی هر مانیتوری رد می‌شود، تا یک گام تازه یا جابه‌جاشده تصادفاً مقصد یا اعتبارنامه‌های گامی دیگر را کپی نکند.
 
@@ -144,22 +144,22 @@ flowchart TB
 :::details نام فیلدهای doNotSyncFields، بر اساس نوع مانیتور
 | نوع مانیتور | نام فیلدها |
 | --- | --- |
-| وب‌سایت، API، Ping، IP، پورت، SSL Certificate، NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| وب‌سایت، API، Ping، IP، پورت، گواهی SSL، NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | فقط API | `requestHeaders`, `requestType`, `requestBody` |
 | وب‌سایت و API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (گواهی کلاینت، کلید و عبارت عبور با هم) |
 | پورت، NTP | `monitorDestinationPort` |
-| Synthetic Monitor، Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| مانیتور سینتتیک، کد JavaScript سفارشی | `customCode` |
+| مانیتور سینتتیک | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (سرور DNS و پورت با هم), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | دامنه | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| لاگ‌ها، Security Events، ترِیس‌ها، هوش مصنوعی / LLM، متریک‌ها، استثناها، پروفایل‌ها | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (کل پیکربندی مانیتور) |
+| پرس‌وجوی SQL | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| سلامت پایگاه داده | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| صفحه وضعیت خارجی | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| لاگ‌ها، رویدادهای امنیتی، ترِیس‌ها، هوش مصنوعی / LLM، متریک‌ها، استثناها، پروفایل‌ها | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (کل پیکربندی مانیتور) |
 | وضعیت پراب | `probeStatusMonitor.probeIds` |
 
-مانیتورهای زیرساخت (Kubernetes، Docker Container، میزبان، Podman Container، Proxmox، Docker Swarm، Ceph، آرایه ذخیره‌سازی، IoT Device) انتخاب‌گر منبع، فیلترها (همه جز میزبان)، کوئری‌های متریک و بازهٔ زمانی کوئری خود را برای محافظت ارائه می‌کنند. نام آن‌ها در **تنظیمات همگام‌سازی قالب** روی قالبی از همان نوع فهرست شده است.
+مانیتورهای زیرساخت (Kubernetes، کانتینر Docker، میزبان، کانتینر Podman، Proxmox، Docker Swarm، Ceph، آرایه ذخیره‌سازی، دستگاه IoT) انتخاب‌گر منبع، فیلترها (همه جز میزبان)، کوئری‌های متریک و بازهٔ زمانی کوئری خود را برای محافظت ارائه می‌کنند. نام آن‌ها در **تنظیمات همگام‌سازی قالب** روی قالبی از همان نوع فهرست شده است.
 :::
 
 ## رفع اشکال

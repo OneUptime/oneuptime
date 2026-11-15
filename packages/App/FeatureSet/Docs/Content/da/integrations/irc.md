@@ -84,10 +84,10 @@ Start fra skabelonen, som bygger hele arbejdsgangen for dig, eller fra bunden.
 3. Behold navnet **Notify IRC on new incident**, eller ret det, og klik på **Næste**.
 4. Indtast **IRC-server** og **IRC Channel**, og klik på **Opret arbejdsgang**.
 
-Arbejdsgangen åbner i **Bygger** med to trin: **On Create Incident** og **Send besked til IRC**, som poster hændelsens nummer, titel, alvorlighed og tilstand på to linjer. En besked, der ikke bliver leveret, får kørslen til at mislykkes, og kørslens log siger hvorfor. Serveren og kanalen gemmes som arbejdsgangens variabler `ircServer` og `ircChannel`. Har du gemt adgangskoder i det forrige trin, så klik på **Send besked til IRC**, åbn **Flere felter**, og vælg hver variabel med knappen **{ }** i dens indstilling.
+Arbejdsgangen åbner i **Bygger** med to trin: **Ved oprettelse: Hændelse** og **Send besked til IRC**, som poster hændelsens nummer, titel, alvorlighed og tilstand på to linjer. En besked, der ikke bliver leveret, får kørslen til at mislykkes, og kørslens log siger hvorfor. Serveren og kanalen gemmes som arbejdsgangens variabler `ircServer` og `ircChannel`. Har du gemt adgangskoder i det forrige trin, så klik på **Send besked til IRC**, åbn **Flere felter**, og vælg hver variabel med knappen **{ }** i dens indstilling.
 @tab Fra bunden
 1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
-2. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Incident** under **Populære**. Klik på triggeren, og vælg i **Felter, der sendes videre** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
+2. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **Ved oprettelse: Hændelse** under **Populære**. Klik på triggeren, og vælg i **Felter, der sendes videre** de felter fra hændelsen, som din besked viser, for eksempel dens titel.
 3. Klik på **Tilføj komponent**, søg efter `irc`, og klik på **Send besked til IRC**. Forbind triggerens udgang **Succes** med trinnet.
 4. Klik på det nye trin, og udfyld **IRC-server**, **Kanal** og **Beskedtekst**. Knappen **{ }** i **Beskedtekst** indsætter felter fra hændelsen, for eksempel dens titel.
 5. Har du gemt adgangskoder i det forrige trin, så åbn **Flere felter**. Klik i **Serveradgangskode**, **SASL-adgangskode** eller **Kanalnøgle** på **{ }**, og vælg variablen under **Global variables**. Skriv din kontos navn i **SASL-brugernavn**.

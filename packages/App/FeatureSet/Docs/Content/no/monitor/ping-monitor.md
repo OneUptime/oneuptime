@@ -1,4 +1,4 @@
-# Ping-overvåking
+# Ping-monitor
 
 En ping-monitor sjekker at en vert svarer på ping (ICMP-ekkoforespørsler), og måler tur-retur-tiden, pakketapet og jitteren. Bruk den for servere, rutere, brannmurer og andre enheter du når via vertsnavn eller IP-adresse.
 
@@ -150,8 +150,8 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 ## Neste steg
 
 :::cards
-- [IP-overvåking](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
-- [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
+- [IP-monitor](/docs/monitor/ip-monitor): Overvåk en fast IPv4- eller IPv6-adresse.
+- [Port-monitor](/docs/monitor/port-monitor): Sjekk en tjeneste på verten, ikke bare verten.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Ping verter på ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

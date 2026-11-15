@@ -81,7 +81,7 @@ Klik på **Importér JSON** i listen **Arbejdsgange**, og vælg en fil, der er e
 Filen indeholder arbejdsgangens navn, beskrivelse, aktiveringstilstand og graf. Den indeholder bevidst ikke:
 
 - **Webhookens hemmelige nøgle.** Der genereres en ny, når arbejdsgangen oprettes, så en importeret arbejdsgang har en anden webhook-URL — kopiér den fra den nye arbejdsgangs Webhook-trigger. Alt, der kaldte den oprindelige, skal peges om.
-- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Incoming Email-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til den oprindelige, skal have den nye adresse.
+- **Adressen til indgående e-mail.** En importeret arbejdsgang med en Indgående e-mail-trigger får sin egen adresse — kopiér den fra den nye arbejdsgangs trigger. Alt, der sendte e-mail til den oprindelige, skal have den nye adresse.
 - **Globale variabler.** En blok, der læser `{{global.variables.MY_SECRET}}`, beholder referencen, men værdien er ikke i filen. Opret variablerne i modtagerprojektet, før du kører den importerede arbejdsgang.
 - **Ejere og etiketter.** Dit projekts egne etiket- og ejerregler kører mod den importerede arbejdsgang, præcis som hvis du havde oprettet den manuelt.
 
@@ -103,10 +103,10 @@ Kun folk, der kan redigere arbejdsgangen — **Projektejer**, **Projektadministr
 
 ## Sikkerhed for indgående e-mail
 
-Incoming Email-triggeren giver arbejdsgangen sin egen adresse, og alle, der kender adressen, kan sende e-mail til den. Delen før `@` er arbejdsgangens hemmelige nøgle, så behandl adressen som en adgangskode:
+Indgående e-mail-triggeren giver arbejdsgangen sin egen adresse, og alle, der kender adressen, kan sende e-mail til den. Delen før `@` er arbejdsgangens hemmelige nøgle, så behandl adressen som en adgangskode:
 
 - Offentliggør den ikke, og læg den ikke i et offentligt repo. Triggeren skjuler nøglen, indtil du klikker på **Vis**, og **Kopiér adresse** kopierer adressen uden at vise den.
-- Lækker adressen, så klik på Incoming Email-triggeren i **Bygger**, og klik på **Nulstil adresse**. Arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af.
+- Lækker adressen, så klik på Indgående e-mail-triggeren i **Bygger**, og klik på **Nulstil adresse**. Arbejdsgangen får en ny adresse, og e-mail til den gamle ignoreres fra da af.
 - Alle kan sætte en hvilken som helst afsender på en e-mail, så **Fra** beviser ikke, hvem der sendte den. Før en arbejdsgang gør noget vigtigt, så tjek noget, kun den rigtige afsender kender — et token i emnet eller i en header — med en **Hvis / Ellers**-blok. Gem det forventede token som en hemmelig variabel.
 - Nøglen skjules i alt, hvad kørslen modtager — **Til**, **CC**, headerne og brødteksterne — fordi kørslens log er synlig for alle, der kan læse arbejdsgangens kørsler.
 
@@ -196,7 +196,7 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
   - at redigere eller slette en feed-post (feeds for hændelser, advarsler, episoder, monitorer, vagtpolitikker og planlagt vedligeholdelse);
   - at skrive en notifikationslog (logge for sms, opkald, e-mail, WhatsApp, Telegram, push, webhooks og workspace-beskeder);
   - værdier, OneUptime sætter, efterhånden som tingene sker: om et brugerdefineret domænes CNAME er bekræftet, et teams beskyttelseskontakter (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), hvilken hændelsesrolle der er den primære, og om den kan slettes, om en ejer eller et medlem har fået besked, påmindelsestidspunkter og -antal, hvem der har vagt på et skema nu og som den næste, en vagtkørsels fremskridt, en SLO's aktuelle burn rate og error budget, en monitor sat på pause af en hændelse eller en vedligeholdelseshændelse, en privat statussidebrugers token til nulstilling af adgangskode og seneste login, de fakta, en tjeneste rapporterer om sig selv (version, runtime, cloud), og en detektionsregels eller et trusselsfeeds seneste kørsel;
-  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Create One Incident** — vælg i stedet skabelonen under trinnets indstilling **Hændelsesskabelon**: trinnet erklærer så hændelsen ud fra den, som Projektadministrator, og registrerer skabelonen;
+  - at erklære en hændelse ud fra en skabelon ved at sende `createdIncidentTemplateId` til **Opret Hændelse (én post)** — vælg i stedet skabelonen under trinnets indstilling **Hændelsesskabelon**: trinnet erklærer så hændelsen ud fra den, som Projektadministrator, og registrerer skabelonen;
   - at ændre, hvilken post en post hører til, efter at den er oprettet, som den monitor, en ejerrække gælder for, eller den hændelse, en note står på.
 - **Som ingen person.** En post, en arbejdsgang opretter, har ingen opretter, og revisionsloggen angiver arbejdsgangen, med dens navn på det tidspunkt, som den, der foretog ændringen.
 

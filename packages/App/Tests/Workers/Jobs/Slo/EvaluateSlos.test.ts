@@ -3697,6 +3697,93 @@ describe("Slo:EvaluateSlos worker", () => {
   });
 
   /*
+   * What a workflow following a burn rate rule hears (#8447). The SLOs
+   * workflow templates that turn a feature flag off start on the rule's On
+   * Update, with Last Alert Created At and Last Incident Declared At in
+   * Fields to watch. So the worker stamps a fire in an update of the rule
+   * itself, the hooked path a workflow hears, and a resolve or a quiet tick
+   * leaves both stamps as they are.
+   */
+  describe("burn rate rules: the stamps a workflow follows", () => {
+    const FIRE_STAMPS: Array<string> = [
+      "lastAlertCreatedAt",
+      "lastIncidentCreatedAt",
+    ];
+
+    function payloadsStampingAFire(): Array<Record<string, unknown>> {
+      return ruleUpdatePayloads().filter(
+        (payload: Record<string, unknown>): boolean => {
+          return FIRE_STAMPS.some((column: string): boolean => {
+            return column in payload;
+          });
+        },
+      );
+    }
+
+    test("a fire stamps Last Alert Created At once, in an update of the rule", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(burnRuleService.updateOneById).toHaveBeenCalledTimes(1);
+
+      const update: UpdateCallArgs = burnRuleService.updateOneById.mock
+        .calls[0]![0] as UpdateCallArgs;
+
+      expect(update.id.toString()).toBe(RULE_ID.toString());
+      expect(update.data).toEqual({ lastAlertCreatedAt: NOW });
+    });
+
+    test("a fire that also declares an incident stamps Last Incident Declared At in the same update", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ shouldCreateIncident: true }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(payloadsStampingAFire()).toEqual([
+        { lastAlertCreatedAt: NOW, lastIncidentCreatedAt: NOW },
+      ]);
+    });
+
+    test("a resolve stamps only its own columns, so a workflow watching the fire does not run", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({
+          shouldCreateIncident: true,
+          lastAlertCreatedAt: hoursAgo(4),
+          lastIncidentCreatedAt: hoursAgo(4),
+        }),
+      ]);
+      stubRecoveredBurn();
+
+      await runWorkerTick();
+
+      expect(ruleUpdatePayloads()).toEqual([
+        { lastAlertResolvedAt: NOW, lastIncidentResolvedAt: NOW },
+      ]);
+      expect(payloadsStampingAFire()).toEqual([]);
+    });
+
+    test("a rule still firing on the next tick is not stamped again", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      burnRuleService.findBy.mockResolvedValue([
+        makeRule({ lastAlertCreatedAt: hoursAgo(1) }),
+      ]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(payloadsStampingAFire()).toEqual([]);
+    });
+  });
+
+  /*
    * The alert and incident options of a burn rate rule: templates, labels,
    * privacy, owners, the SLO as affected resource, auto-resolve, and the SLO
    * feed items for what a rule raised and resolved.

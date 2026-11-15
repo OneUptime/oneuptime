@@ -1,4 +1,4 @@
-# VMware-overvåking
+# VMware-monitor
 
 En VMware-monitor følger med på ett vCenter - datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene, ressurspoolene og vSAN - og sier fra når en vert blir mettet, en VM mangler CPU eller minne, en datastore blir full, eller vSphere sender ut en alarm. Den leser `vcenter.*`-målingene som OneUptime VMware Agent samler inn, eller som en av sondene dine samler inn uten en agent.
 
@@ -369,6 +369,6 @@ vCenter leses én gang per innsamlingsintervall, 2 minutter som standard og ofte
 :::cards
 - [VMware-agent](/docs/telemetry/vmware): Installer agenten som samler inn fra vCenter.
 - [VMware uten agent](/docs/telemetry/vmware-agentless): La en sonde samle inn i stedet.
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Samme type monitor for Proxmox VE.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Samme type monitor for Proxmox VE.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

@@ -45,7 +45,7 @@ En policy som flere regler legger til, kjører én gang. En alvorlighetsgrad kj�
 | Seksjon | Sider |
 | --- | --- |
 | **Grunnleggende** | **Oversikt**, **Eskaleringsregler** og **Eiere** |
-| **Logger** | **Utførelseslogger** og **Varsellogger** |
+| **Logger** | **Utførelseslogger** og **Varslingslogger** |
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter** |
 | **Avansert** | **Brukeroverstyringer**, **Egendefinerte felt**, **Innstillinger**, **Revisjonslogger** og **Slett policy** |
 
@@ -53,7 +53,7 @@ En policy som flere regler legger til, kjører én gang. En alvorlighetsgrad kj�
 
 - **Oversikt** viser **Detaljer for vaktpolicy**, deretter **Policyen i korte trekk**: hvor mange nivåer og mottakere policyen har, hvor lang tid det går til det siste nivået, og hvor ofte den gjentas. **Mottakernes beredskap** sier om alle den kan tilkalle, kan nås nå, og **Vaktpolicyens feed** viser hva som er endret: personer, team og vaktplaner som er lagt til eller fjernet, overstyringer og overleveringer. Reglene for Slack, Microsoft Teams og Mattermost publiserer dem i kanalene dine, et vaktskifte i én linje: se [Vaktmeldinger](/docs/workspace-connections/slack#vaktmeldinger).
 - **Eiere** er personene og teamene som er ansvarlige for policyen. Når en tilkalling fra den ikke finner noen regel for noen, eller ikke kan leveres, får de en e-post; en policy uten eiere sender i stedet e-post til Prosjekteiere.
-- **Varsellogger** viser hver melding policyen har sendt, med en fane per kanal.
+- **Varslingslogger** viser hver melding policyen har sendt, med en fane per kanal.
 - **Brukeroverstyringer** dekker for folk bare i denne policyen. Se [Brukeroverstyringer](/docs/on-call/user-overrides).
 - **Innstillinger** har **Eksporter Vaktpolicy** og kortet som arkiverer policyen.
 
@@ -123,7 +123,7 @@ Du finner utførelseslogger tre steder:
 - under **Vakt → Avansert → Utførelseslogger**, for alle policyer, der direkte tilkallinger fra arbeidsflyter og chat står som **Direkte tilkalling**;
 - på siden **Vaktutførelser** for en hendelse eller et varsel.
 
-Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. **Varslet via** viser hvordan hver tilkalling nådde personen: telefonanrop, SMS, e-post, push-varsel og så videre. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: policyen ventet ikke på det. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
+Hver rad viser hva som startet kjøringen, når, **Status** og hvem som bekreftet. **Vis tidslinje** åpner **Tidslinje for utførelsen**: hver eskaleringsregel, hvem den tilkalte, gjennom hvilken vaktplan, og hvordan hver tilkalling endte. **Varslet via** viser hvordan hver tilkalling nådde personen: telefonanrop, SMS, e-post, push-varsling og så videre. En vaktplan der ingen har vakt, viser **Ingen hadde vakt** i stedet for en person. Et nivå som ikke tilkalte noen, sier hvorfor, med **Gikk videre med en gang** under: policyen ventet ikke på det. I OneUptime Cloud krever utførelseslogger abonnementet **Growth**.
 
 ## Arkiver eller slett en policy
 

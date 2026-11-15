@@ -196,7 +196,7 @@ Verweisen Sie so auf die Ausgabe eines früheren Bausteins:
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Einem **API**-Baustein mit der ID `lookup-user`         | Seinen Statuscode: `{{local.components.lookup-user.returnValues.response-status}}`. Seinen Body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Einem **Eigenes JavaScript ausführen**-Baustein mit der ID `transform` | Was er zurückgegeben hat: `{{local.components.transform.returnValues.returnValue}}`. |
-| Einem **On Create Incident**-Trigger mit der ID `incident-on-create-1` | Den Titel des Vorfalls: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Datensatz-Trigger geben den Datensatz als `model` zurück, in den Sie hineinlesen. |
+| Einem **Bei Erstellung: Vorfall**-Trigger mit der ID `incident-on-create-1` | Den Titel des Vorfalls: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Datensatz-Trigger geben den Datensatz als `model` zurück, in den Sie hineinlesen. |
 
 Die Werte von Bausteinen gibt es nur während der aktuellen Ausführung. Jede neue Ausführung beginnt von vorn.
 
@@ -239,7 +239,7 @@ Ein Webhook kommt mit einem Body wie `{ "service": "checkout", "status": "failed
 
 1. Trigger **Webhook** mit der ID `ci-webhook`.
 2. Baustein **Wenn / Sonst**: **Zu prüfender Wert** ist das Feld `status` des Request Body des Webhooks (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Vergleich** ist **ist gleich**, und **Vergleichen mit** ist `failed`.
-3. Aus dem Zweig **Ja** ein **Create One Incident**-Baustein mit:
+3. Aus dem Zweig **Ja** ein **Vorfall erstellen (einzeln)**-Baustein mit:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beschreibung: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

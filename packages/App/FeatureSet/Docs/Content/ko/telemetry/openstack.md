@@ -246,7 +246,7 @@ openstack application credential create oneuptime-agent --expiration 2027-11-01T
 
 - **에이전트를 통해서는 인스턴스가 전혀 보이지 않습니다.** exporter가 Nova에 모든 프로젝트의 서버를 요청하는데 Nova가 일반 reader를 거부하여 그 읽기 전체가 실패합니다. 이 에이전트 없이 수집하는 OneUptime 프로브만 프로젝트 하나의 인스턴스를 나열할 수 있습니다.
 - **쓰기가 가능할 수 있습니다.** Cinder의 `enforce_new_defaults`가 꺼져 있는 클라우드에서는 일반 `reader`도 자기 프로젝트에 볼륨을 만들 수 있습니다. Epoxy, Flamingo, Gazpacho에서는 만들었고(`202`), Hibiscus에서는 거부되었는데(`403`) DevStack이 그 릴리스에서만 `enforce_new_defaults`를 켜기 때문입니다. Cinder 자체의 기본값은 꺼짐입니다.
-- **Placement가 응답하지 않는 것으로 읽힙니다.** Placement에 하는 모든 호출이 거부되고, exporter는 이를 Placement가 중지된 경우와 같은 방식으로 보고합니다. 기록된 클라우드 다섯 곳 모두에서 `openstack_placement_up 0`입니다. 페이지는 이 자격 증명에 막혀 있는 다른 항목을 근거로 이를 구별해 안내합니다. 그러나 [Placement API Down](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿) 템플릿은 구별하지 못하므로, 이 단계에서는 그 템플릿을 제외하세요.
+- **Placement가 응답하지 않는 것으로 읽힙니다.** Placement에 하는 모든 호출이 거부되고, exporter는 이를 Placement가 중지된 경우와 같은 방식으로 보고합니다. 기록된 클라우드 다섯 곳 모두에서 `openstack_placement_up 0`입니다. 페이지는 이 자격 증명에 막혀 있는 다른 항목을 근거로 이를 구별해 안내합니다. 그러나 [Placement API Down](/docs/monitor/openstack-monitor#사전-구성-경고-템플릿) 템플릿은 구별하지 못하므로, 이 단계에서는 그 템플릿을 제외하세요.
 :::
 
 ### 에이전트 설치 및 시작
@@ -412,7 +412,7 @@ OPENSTACK_CONTROL_PLANE_REGION=RegionOne
 | `OPENSTACK_NETWORK_EXPORTER_TARGETS` | Open vSwitch 또는 OVN 데이터베이스가 있는 각 머신의 openstack-network-exporter | 기본 collector. 머신은 자신이 실행하는 것을 보고합니다 |
 | `OPENSTACK_LIBVIRT_HEALTH_TARGETS` | 각 컴퓨트 노드의 prometheus-libvirt-exporter이며, libvirt가 응답하는지만 확인 | exporter 외에는 필요 없음 |
 
-그러면 클라우드의 **컨트롤 플레인** 카드에 각 항목이 한 줄씩 표시되고, 의존 요소마다 머신별로 한 줄씩 나오는 페이지가 생깁니다. 그 카드의 **감시 안 함**은 대상을 지정하지 않았다는 뜻이며, 정상으로 표시되는 일은 없습니다. 거기서 생기는 문제는 클라우드의 **확인 필요**로 갑니다. 클라우드의 **권장 사항** 페이지에서 [알림 템플릿](/docs/monitor/openstack-monitor#클라우드가-의존하는-것)을 제안하며, `troubleshoot.sh`는 각 대상이 응답하는지와 지정한 것이 맞는지 확인합니다.
+그러면 클라우드의 **컨트롤 플레인** 카드에 각 항목이 한 줄씩 표시되고, 의존 요소마다 머신별로 한 줄씩 나오는 페이지가 생깁니다. 그 카드의 **감시 안 함**은 대상을 지정하지 않았다는 뜻이며, 정상으로 표시되는 일은 없습니다. 거기서 생기는 문제는 클라우드의 **확인 필요**로 갑니다. 클라우드의 **권장 사항** 페이지에서 [경고 템플릿](/docs/monitor/openstack-monitor#클라우드가-의존하는-것)을 제안하며, `troubleshoot.sh`는 각 대상이 응답하는지와 지정한 것이 맞는지 확인합니다.
 
 클라우드의 상태 확인에 필요한 것보다 RabbitMQ나 데이터베이스를 더 자세히 보려면, [큐](/docs/telemetry/queues)와 [데이터베이스](/docs/telemetry/databases) 제품이 각자의 에이전트를 통해 이를 읽습니다. 데이터 양이 이보다 많고 방식도 별개입니다. 컨트롤 플레인 페이지에서 그곳으로 연결됩니다. 해당 제품은 이 에이전트의 시리즈가 아니라 그 에이전트들의 시리즈를 읽으므로, 설치는 별도입니다.
 
@@ -503,7 +503,7 @@ collector는 exporter의 `/probe?cloud=<region>&include_services=<service>`를 �
 
 노드는 하이퍼바이저가 아닙니다. Nova와 Placement가 모두 UUID로 하이퍼바이저처럼 나열하더라도, 가상 머신을 실행할 수 있는 곳으로 집계하지 않습니다. 리소스 클래스별로 인스턴스를 받을 수 있는 노드 수는 베어메탈 페이지(Ironic이 이 자격 증명에 보여 주는 노드 기준)와 [용량](#용량) 페이지(Placement가 보유한 모든 노드 기준)에서 볼 수 있습니다.
 
-[알림 템플릿](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿)과 같은 기준으로, 누군가의 조치가 필요한 경우는 다음과 같습니다.
+[경고 템플릿](/docs/monitor/openstack-monitor#사전-구성-경고-템플릿)과 같은 기준으로, 누군가의 조치가 필요한 경우는 다음과 같습니다.
 
 | 읽히는 값 | 의미 |
 | --- | --- |
@@ -556,7 +556,7 @@ nova-manage placement audit --verbose
 nova-manage placement audit --verbose --delete
 ```
 
-**알림.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days**, **Reserved Headroom Gone**은 같은 요약에서 OneUptime이 기록하는 시리즈를 읽습니다. 이들은 [모니터의 템플릿](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿)과 클라우드의 **권장 사항** 페이지에 있습니다.
+**경고.** **Flavor Can No Longer Be Placed**, **Capacity Forecast Under 14 Days**, **Reserved Headroom Gone**은 같은 요약에서 OneUptime이 기록하는 시리즈를 읽습니다. 이들은 [모니터의 템플릿](/docs/monitor/openstack-monitor#사전-구성-경고-템플릿)과 클라우드의 **권장 사항** 페이지에 있습니다.
 
 **비용.** 에이전트에서는 없습니다. 프로브는 위의 호출이 추가됩니다. OneUptime은 영역의 리소스 클래스, 외부 네트워크, 스토리지 풀마다 약 2개의 시리즈를, 사용자가 요청할 수 있는 플레이버마다 1개를 2분마다 기록하며, 다른 메트릭과 똑같이 과금됩니다.
 
@@ -667,7 +667,7 @@ Ceilometer의 값은 얼마나 자주 읽든 폴링 주기(기본 5분)마다 �
 
 에이전트의 문제 해결 스크립트는 지정한 각 exporter를 읽고, 그것이 아는 인스턴스 수와 Ceilometer가 폴링하지 않는 미터, 그리고 각각이 드는 비용을 알려 줍니다.
 
-네 가지 [알림 템플릿](/docs/monitor/openstack-monitor#사전-구성-알림-템플릿)이 이를 읽습니다: **Hypervisor CPU Saturated**, **Hypervisor Memory Pressure**, **Instance CPU Saturated**, **Instance Disk Latency High**. 소스가 없으면 조용히 있습니다.
+네 가지 [경고 템플릿](/docs/monitor/openstack-monitor#사전-구성-경고-템플릿)이 이를 읽습니다: **Hypervisor CPU Saturated**, **Hypervisor Memory Pressure**, **Instance CPU Saturated**, **Instance Disk Latency High**. 소스가 없으면 조용히 있습니다.
 
 ### 비용
 
@@ -699,7 +699,7 @@ vCPU 두 개, 디스크 하나, 네트워크 인터페이스 하나를 가진 �
 - **도메인**은 각 도메인이 몇 개의 프로젝트를 보유하는지 보여 줍니다.
 - **프로젝트가 소유한 항목의 모든 목록**은 프로젝트 하나로, 도메인이 둘 이상인 클라우드에서는 도메인 하나로 좁힐 수 있습니다. 둘 다 ID로 동작하므로 프로젝트나 도메인의 이름을 바꿔도 깨지는 것이 없습니다.
 
-### 프로젝트의 알림을 해당 팀으로 보내기
+### 프로젝트의 경고를 해당 팀으로 보내기
 
 프로젝트 페이지에서 **알림을 받는 대상** 또는 **이와 관련해 생성되는 항목의 레이블** 아래에 규칙을 추가하세요. **도메인**에는 도메인 전체에 대한 같은 두 항목이 있습니다. 그 이후로 해당 프로젝트나 도메인에 도달하는 모든 경고와 인시던트에 그 소유자나 레이블이 지정됩니다.
 
@@ -727,7 +727,7 @@ Nova 메타데이터 키를 레이블로 보려면 exporter의 명령에 `--nova
 
 호스트에서 `nova-compute`가 멈추면 호스트가 빨간색이 되고 그 아래에 인스턴스가 표시되며, 페이지에 열려 있는 인시던트와 경고의 수가 표시됩니다.
 
-![nova-compute가 중지된 토폴로지 페이지: 호스트가 빨간색이며 중단됨으로 표시되고, 그 아래의 인스턴스는 확인이 필요하며, 인시던트 하나와 알림 하나가 열려 있음](/docs/static/images/OpenStackTopologyComputeDown.png)
+![nova-compute가 중지된 토폴로지 페이지: 호스트가 빨간색이며 중단됨으로 표시되고, 그 아래의 인스턴스는 확인이 필요하며, 인시던트 하나와 경고 하나가 열려 있음](/docs/static/images/OpenStackTopologyComputeDown.png)
 
 구성 요소의 영향 범위는 그것이 함께 끌고 가는 항목이며, 개수와 프로젝트별로 나타냅니다.
 
@@ -758,7 +758,7 @@ exporter는 인스턴스가 어느 네트워크에 있는지, 볼륨이 어느 �
 
 ### 인시던트가 지목하는 대상
 
-클라우드의 어느 부분에 대한 인시던트는 그 [영향 범위](#토폴로지와-영향-범위)를 가져오고, [프로젝트의 소유자 규칙](#프로젝트의-알림을-해당-팀으로-보내기)을 통해 영향받는 프로젝트를 소유한 팀을 추가합니다. 실패한 하이퍼바이저는 "프로젝트 7개의 인스턴스 42개"라고 알리고 그 이름을 지목합니다.
+클라우드의 어느 부분에 대한 인시던트는 그 [영향 범위](#토폴로지와-영향-범위)를 가져오고, [프로젝트의 소유자 규칙](#프로젝트의-경고를-해당-팀으로-보내기)을 통해 영향받는 프로젝트를 소유한 팀을 추가합니다. 실패한 하이퍼바이저는 "프로젝트 7개의 인스턴스 42개"라고 알리고 그 이름을 지목합니다.
 
 이 모든 내용은 인시던트 설명의 **이 클라우드 내부** 줄 아래에 있으며, 팀 내부용으로만 사용됩니다. 상태 페이지와 그 구독자는 설명에서 그 줄까지만 읽으므로, 한 고객의 이름이 다른 고객의 페이지에 노출되는 일은 없습니다.
 
@@ -995,7 +995,7 @@ Barbican은 일반 reader를 거부하며, 그것은 있는 그대로 읽힙니�
 :::cards
 - [logs 프로필 설치](#logs-프로필-설치): 머신당 명령 하나, 또는 차트 값 하나입니다.
 - [요청 따라가기](#요청-따라가기): 인스턴스 페이지에서 스케줄러 줄까지 클릭 두 번으로 이동합니다.
-- [로그 알림](#로그-알림): 모든 운영자가 그 문구로 아는 실패입니다.
+- [로그 경고](#로그-경고): 모든 운영자가 그 문구로 아는 실패입니다.
 - [보관 항목과 비용](#보관-항목과-비용): 기본으로 켜지는 필터와 절감되는 양입니다.
 - [시크릿](#로그-속-시크릿): 저장되지 않는 항목과 그 방법입니다.
 :::
@@ -1047,9 +1047,9 @@ OneUptime이 읽는 모든 줄에는 서비스 설정과 관계없이 레벨, �
 
 서비스를 호출하는 쪽이 글로벌 요청 ID를 보낼 때 서비스들이 연결됩니다. Nova는 Neutron, Cinder, Glance에 이를 보내지만 직접 작성한 것은 보내지 않을 수 있습니다. 그래서 페이지는 어떤 서비스가 연결되었는지 알려 주고, 같은 시각에 다른 요청의 줄을 쓴 서비스를 지목하는데, OneUptime은 그것들이 참여했는지 여부를 알 수 없습니다.
 
-### 로그 알림
+### 로그 경고
 
-클라우드의 **권장 사항** 페이지는 다른 [알림 템플릿](/docs/monitor/openstack-monitor#서비스가-알려-주는-것)과 함께 다음을 제안합니다.
+클라우드의 **권장 사항** 페이지는 다른 [경고 템플릿](/docs/monitor/openstack-monitor#서비스가-알려-주는-것)과 함께 다음을 제안합니다.
 
 | 경고 | 발생 조건 |
 | --- | --- |

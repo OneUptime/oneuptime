@@ -1,4 +1,4 @@
-# OpenStack-overvåking
+# OpenStack-monitor
 
 En OpenStack-monitor overvåker én sky - API-ene, arbeiderne bak dem, hypervisorer, instanser, nettverk, lagringspooler og prosjektkvoter - og varsler deg når et API slutter å svare, en arbeider går ned, en hypervisor ikke har mer å gi eller en pool fylles opp. Den leser `openstack_*`-seriene som OneUptime OpenStack Agent samler inn fra openstack-exporter, eller en sonde samler inn fra skyens API-er.
 
@@ -233,7 +233,7 @@ Sju maler til leser en skys logger i stedet for målingene, så de er Logs-monit
 | Database Connection Lost | Tjenestelogger | Kritisk | `DBConnectionError`, `SQL connection failed`, eller MySQLs `Lost connection` og `Can't connect`, **siste 5 minutter** | 5 eller flere | Færre enn 5 |
 | Too Many Errors from a Service | Tjenestelogger | Advarsel | `ERROR`- og `CRITICAL`-linjer, per tjeneste og maskin, **siste 5 minutter** | 50 eller flere | Færre enn 50 |
 | Token Validation Failing | Tjenestelogger | Kritisk | En tjenestes `Authorization failed for token`, **siste 5 minutter** | 10 eller flere. Én er noens gamle økt. En kontroller hvis Fernet-nøkler avviker fra de andres, leses som dette, og ingen linje sier mer, så sammenlign `/etc/keystone/fernet-keys` på hver | Færre enn 10 |
-| Instance Action Failed | Hendelser | Advarsel | `compute.exception` og enhver `instance.*.error`, per instans, hendelse og årsak, **siste 15 minutter**. Trenger [varsler](/docs/telemetry/openstack#slå-på-varsler) eller en sonde | En eller flere | Ingen igjen i vinduet |
+| Instance Action Failed | Hendelser | Advarsling | `compute.exception` og enhver `instance.*.error`, per instans, hendelse og årsak, **siste 15 minutter**. Trenger [varslinger](/docs/telemetry/openstack#slå-på-varslinger) eller en sonde | En eller flere | Ingen igjen i vinduet |
 | Scheduling Failed | Hendelser | Advarsel | En compute-oppgaves feil som navngir `NoValidHost`, som `compute_task.build_instances.error`, som er det Nova sender. Cinders `scheduler.create_volume` også, og `scheduler.select_destinations.error`, som Novas dokumentasjon navngir og testskyene våre aldri sendte. Per instans, hendelse og årsak, **siste 15 minutter**. Trenger det samme | En eller flere | Ingen igjen i vinduet |
 
 ### Hva skyen hviler på

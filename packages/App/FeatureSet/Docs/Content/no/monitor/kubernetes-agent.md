@@ -500,8 +500,8 @@ helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
 ## Neste steg
 
 :::cards
-- [Kubernetes-overvåking](/docs/monitor/kubernetes-monitor): Varsle ut fra det agenten sender.
+- [Kubernetes-monitor](/docs/monitor/kubernetes-monitor): Varsle ut fra det agenten sender.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Filtrering, sampling, AI-agenten og å holde datamengden nede.
 - [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost): Se hva hver workload koster.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Varsle ut fra sporene eBPF fanger.
+- [Trase-monitor](/docs/monitor/traces-monitor): Varsle ut fra sporene eBPF fanger.
 :::

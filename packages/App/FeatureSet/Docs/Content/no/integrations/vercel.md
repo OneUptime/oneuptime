@@ -136,7 +136,7 @@ Hvert Vercel-prosjekt er en tjeneste i OneUptime, oppkalt etter prosjektet. En l
 
 Når du kobler til et Vercel-prosjekt, oppretter OneUptime en nettstedsmonitor for produksjonsdomenet til prosjektet, som sjekkes fra OneUptimes sonder, og legger den til på statussiden til ressursen. Et prosjekt som kobles til før sin første produksjonsutrulling, har ikke noe domene ennå: monitoren opprettes ved den utrullingen. Når du kobler fra prosjektet, slettes monitoren.
 
-Hver monitor er en aktiv monitor, som faktureres som alle andre og fungerer som en du har opprettet selv: se [Nettsted-overvåking](/docs/monitor/website-monitor). Vil du ikke ha noen, slår du av **Monitor production domains** i innstillingene til ressursen i Vercel. Når du slår den på igjen, opprettes monitorene som fortsatt mangler.
+Hver monitor er en aktiv monitor, som faktureres som alle andre og fungerer som en du har opprettet selv: se [Nettsted-monitor](/docs/monitor/website-monitor). Vil du ikke ha noen, slår du av **Monitor production domains** i innstillingene til ressursen i Vercel. Når du slår den på igjen, opprettes monitorene som fortsatt mangler.
 
 ## Åpne OneUptime fra Vercel
 

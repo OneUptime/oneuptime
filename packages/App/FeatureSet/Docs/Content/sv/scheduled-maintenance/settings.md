@@ -117,7 +117,7 @@ Kortet **Nästa nummer** under det anger numret som nästa händelse får, för 
 
 ## Arbetsflöden
 
-Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngivna efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** och **On Delete Maintenance Event**, samma sak för **Scheduled Maintenance State Timeline** och de andra, och åtgärder som **Create One Maintenance Event** och **Update One Maintenance Event**. Definitioner av anpassade fält och mätvärden är undantagen: de har inga arbetsflödessteg. Se [Översikt över arbetsflöden](/docs/workflows/index).
+Varje underhållsmodell har arbetsflödesutlösare och åtgärder som är namngivna efter den: **Vid skapande: Underhållshändelse**, **Vid uppdatering: Underhållshändelse**, **Vid skapande eller uppdatering: Underhållshändelse** och **Vid borttagning: Underhållshändelse**, samma sak för **Scheduled Maintenance State Timeline** och de andra, och åtgärder som **Skapa Underhållshändelse (en post)** och **Uppdatera Underhållshändelse (en post)**. Definitioner av anpassade fält och mätvärden är undantagen: de har inga arbetsflödessteg. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
 ## Vem som kan ändra dem
 

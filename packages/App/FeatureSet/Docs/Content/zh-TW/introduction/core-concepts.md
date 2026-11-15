@@ -153,7 +153,7 @@ flowchart TB
 OneUptime 的大部分功能都不需要安裝任何東西。只有在需要連到 OneUptime 從外部看不到的內容時，你才需要安裝某樣東西，而每個元件都會使用一把金鑰對外連線到 OneUptime：
 
 - 自訂探測器在你的網路內部執行監測器的檢查，使用它自己的探測器 ID 和金鑰。
-- **OpenTelemetry Collector**、Kubernetes 代理程式和 Docker 代理程式使用 **擷取金鑰** 傳送遙測。Server / VM 監測器背後的基礎設施代理程式，則使用該監測器的秘密金鑰傳送資料。
+- **OpenTelemetry Collector**、Kubernetes 代理程式和 Docker 代理程式使用 **擷取金鑰** 傳送遙測。伺服器 / 虛擬機器 監測器背後的基礎設施代理程式，則使用該監測器的秘密金鑰傳送資料。
 - **Runner** 在你的基礎設施內部執行運行手冊步驟，使用它自己的 Runner ID 和金鑰。
 
 擷取金鑰只能把遙測傳送進來。**API 金鑰** 是另一種金鑰：它讓指令碼、CLI、Terraform 或 AI 助理讀取和變更你的專案，權限由你授予。兩者都無法取代對方。

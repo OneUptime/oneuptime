@@ -69,16 +69,16 @@ Disse monitortyper og felter accepterer hemmeligheder:
 | --- | --- |
 | API | URL'en, anmodningens headere og brødtekst samt klientcertifikatet, den private nøgle og adgangssætningen (mTLS) |
 | Websted | URL'en samt klientcertifikatet, den private nøgle og adgangssætningen (mTLS) |
-| Ping, IP, Port, NTP, SSL Certificate | Den vært eller URL, der kontrolleres |
+| Ping, IP, Port, NTP, SSL-certifikat | Den vært eller URL, der kontrolleres |
 | DNS | Domænenavnet og DNS-serveren |
 | DNSSEC, Domæne | Domænenavnet |
-| SQL Query | Værten, databasenavnet, brugernavnet, adgangskoden og forespørgslen |
-| Database Health | Værten, databasenavnet, brugernavnet og adgangskoden |
-| External Status Page | Statussidens URL |
-| Synthetic Monitor, Custom JavaScript Code | Scriptet |
-| Network Device | SNMP-community-strengen samt SNMPv3-godkendelses- og privatlivsnøglerne |
+| SQL-forespørgsel | Værten, databasenavnet, brugernavnet, adgangskoden og forespørgslen |
+| Databasesundhed | Værten, databasenavnet, brugernavnet og adgangskoden |
+| Ekstern statusside | Statussidens URL |
+| Syntetisk monitor, Brugerdefineret JavaScript-kode | Scriptet |
+| Netværksenhed | SNMP-community-strengen samt SNMPv3-godkendelses- og privatlivsnøglerne |
 
-Hemmeligheder udfyldes, før scriptet i en monitor af typen Synthetic Monitor eller Custom JavaScript Code kører, så en henvisning som `{{monitorSecrets.ApiKey}}` i scriptet er den dekrypterede værdi, når det udføres.
+Hemmeligheder udfyldes, før scriptet i en monitor af typen Syntetisk monitor eller Brugerdefineret JavaScript-kode kører, så en henvisning som `{{monitorSecrets.ApiKey}}` i scriptet er den dekrypterede værdi, når det udføres.
 
 Hvis en monitor henviser til en hemmelighed, den ikke må bruge, bliver henvisningen stående, som den er, og erstattes ikke med værdien.
 

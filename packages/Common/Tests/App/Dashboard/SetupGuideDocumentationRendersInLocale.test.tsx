@@ -66,13 +66,17 @@ import OpenStackDocumentationPage from "../../../../App/FeatureSet/Dashboard/src
 import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
 import StorageArrayDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Documentation";
 import ProxmoxDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Documentation";
+import VMwareDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Documentation";
+import VMwareDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/DocumentationCard";
+import DatabaseDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Documentation";
+import DatabaseDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
-  SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 import {
   SetupGuideTranslation,
   SetupGuideTranslations,
@@ -105,6 +109,21 @@ import {
   getProxmoxSetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import {
+  VMwareInstallMethod,
+  getVMwareSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
+import {
+  getDatabaseAgentEngine,
+  getDatabaseAgentSetupGuide,
+  getDatabaseHealthMonitorCreateUrl,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap, {
+  RouteUtil,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -113,6 +132,13 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "de", "fr", "ar", "fa"];
+
+/*
+ * The URL the card puts in a guide: this server's own, from its HOST, or the
+ * placeholder where none is set (getConfiguredOneUptimeUrl). CI sets HOST
+ * from config.example.env, so the guides the tests build use the same.
+ */
+const READER_URL: string = getConfiguredOneUptimeUrl();
 
 // Each language's words for each guide, as its chunk holds them.
 const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
@@ -125,6 +151,8 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   Kubernetes: {},
   StorageArray: {},
   Proxmox: {},
+  VMware: {},
+  Database: {},
 };
 
 /*
@@ -133,7 +161,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
  */
 function dockerGuide(hostName?: string): SetupGuideContent {
   return getDockerSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "docker-cli",
     hostName: hostName,
@@ -142,7 +170,7 @@ function dockerGuide(hostName?: string): SetupGuideContent {
 
 function dockerSwarmGuide(): SetupGuideContent {
   return getDockerSwarmSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
   });
@@ -150,7 +178,7 @@ function dockerSwarmGuide(): SetupGuideContent {
 
 function storageArrayGuide(): SetupGuideContent {
   return getStorageArraySetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     platform: "flasharray",
@@ -162,7 +190,7 @@ function proxmoxGuide(
   method: ProxmoxConnectMethod = "install-script",
 ): SetupGuideContent {
   return getProxmoxSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: method,
@@ -171,7 +199,7 @@ function proxmoxGuide(
 
 function kubernetesGuide(): SetupGuideContent {
   return getKubernetesSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     platform: "standard",
   });
@@ -179,7 +207,7 @@ function kubernetesGuide(): SetupGuideContent {
 
 function iotGuide(): SetupGuideContent {
   return getIoTSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "opentelemetry-sdk",
   });
@@ -187,7 +215,7 @@ function iotGuide(): SetupGuideContent {
 
 function cephGuide(): SetupGuideContent {
   return getCephSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: "install-script",
@@ -204,7 +232,7 @@ function openStackGuide(
   method: OpenStackConnectMethod = "install-script",
 ): SetupGuideContent {
   return getOpenStackSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
     method: method,
@@ -212,9 +240,47 @@ function openStackGuide(
   });
 }
 
+/*
+ * The VMware guide a reader meets before a key is picked: the install script
+ * unless another install method is picked, for the vCenter a vCenter's own
+ * Documentation tab installs for.
+ */
+function vmwareGuide(
+  method: VMwareInstallMethod = "install-script",
+  vcenterName?: string,
+): SetupGuideContent {
+  return getVMwareSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    method: method,
+    vcenterName: vcenterName,
+  });
+}
+
+/*
+ * The Database guide the product page draws before a key is picked, for
+ * the engine picked (PostgreSQL until another is), its Database Health
+ * monitor link in the current project as the card builds it.
+ */
+function databaseGuide(system: string = "postgresql"): SetupGuideContent {
+  return getDatabaseAgentSetupGuide({
+    oneuptimeUrl: READER_URL,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    hasApiKey: false,
+    engine: getDatabaseAgentEngine(system)!,
+    system: system,
+    databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_CREATE] as Route,
+      ).toString(),
+    ),
+  });
+}
+
 function podmanGuide(): SetupGuideContent {
   return getPodmanSetupGuide({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: READER_URL,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "podman-cli",
   });
@@ -374,6 +440,12 @@ beforeAll(async () => {
     ).default;
     WORDS["OpenStack"]![language] = (
       await OPENSTACK_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["VMware"]![language] = (
+      await VMWARE_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Database"]![language] = (
+      await DATABASE_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -910,50 +982,51 @@ describe("Ceph > Help > Documentation", () => {
   );
 });
 
+/*
+ * A step's tabs (OpenStack's credential views, VMware's vSphere Client and
+ * govc) draw one at a time: each is picked once, so every tab is drawn.
+ */
+async function openEveryVariant(): Promise<void> {
+  for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+    await act(async () => {
+      fireEvent.click(tab);
+    });
+  }
+  await settle();
+}
+
+// Every piece of `guide` is drawn in the reader's words, and none in English.
+function expectGuideInReadersWords(
+  product: string,
+  guide: SetupGuideContent,
+  language: string,
+): void {
+  const drawn: string = drawnTexts().join("\n");
+
+  for (const piece of getSetupGuideWordPieces(guide)) {
+    expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+      piece,
+      drawn: false,
+    });
+  }
+  for (const piece of getSetupGuideWordPieces(
+    inLanguage(product, guide, language),
+  )) {
+    expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+      piece,
+      drawn: true,
+    });
+  }
+}
+
 describe("OpenStack > Help > Documentation", () => {
-  /*
-   * The credential step's tabs (Full view, Infrastructure only, Project
-   * view) draw one at a time: each is picked once, so every tab is drawn.
-   */
-  async function openEveryVariant(): Promise<void> {
-    for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
-      await act(async () => {
-        fireEvent.click(tab);
-      });
-    }
-    await settle();
-  }
-
-  // Every piece of `guide` is drawn in the reader's words, and none in English.
-  function expectGuideInReadersWords(
-    guide: SetupGuideContent,
-    language: string,
-  ): void {
-    const drawn: string = drawnTexts().join("\n");
-
-    for (const piece of getSetupGuideWordPieces(guide)) {
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: false,
-      });
-    }
-    for (const piece of getSetupGuideWordPieces(
-      inLanguage("OpenStack", guide, language),
-    )) {
-      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
-        piece,
-        drawn: true,
-      });
-    }
-  }
-
   test.each(["de", "ar"])(
     "in %s, the OpenStack guide, its questions and its topics in the reader's words, its commands as written",
     async (language: string) => {
       await drawIn(language, <OpenStackDocumentationPage {...PAGE_PROPS} />);
       await openEveryVariant();
 
-      expectGuideInReadersWords(openStackGuide(), language);
+      expectGuideInReadersWords("OpenStack", openStackGuide(), language);
 
       // The card's own words, both questions and the topics' summaries come from the locale files.
       const locale: Record<string, string> = readDashboardLocale(language);
@@ -1013,6 +1086,7 @@ describe("OpenStack > Help > Documentation", () => {
       await openEveryVariant();
 
       expectGuideInReadersWords(
+        "OpenStack",
         openStackGuide("kolla-ansible", "docker-compose"),
         language,
       );
@@ -1083,7 +1157,11 @@ describe("OpenStack > Help > Documentation", () => {
     await settle();
     await openEveryTopic();
 
-    expectGuideInReadersWords(openStackGuide("openstack-helm"), "de");
+    expectGuideInReadersWords(
+      "OpenStack",
+      openStackGuide("openstack-helm"),
+      "de",
+    );
 
     const locale: Record<string, string> = readDashboardLocale("de");
     expect(
@@ -1110,6 +1188,298 @@ describe("OpenStack > Help > Documentation", () => {
       );
     },
   );
+});
+
+describe("VMware > Help > Documentation", () => {
+  const KEY_STEP: string =
+    "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.";
+
+  // The page in `language`, an install method picked, every topic and tab open.
+  async function drawWithMethod(
+    language: string,
+    method: VMwareInstallMethod,
+  ): Promise<void> {
+    await act(async () => {
+      await i18next.changeLanguage(language);
+    });
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <VMwareDocumentationPage {...PAGE_PROPS} />
+        </MemoryRouter>,
+      );
+    });
+    await settle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`setup-guide-option-${method}`));
+    });
+    await settle();
+    await openEveryTopic();
+    await openEveryVariant();
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the VMware guide, its question and its key step in the reader's words, vSphere's menus and the commands as written",
+    async (language: string) => {
+      await drawIn(language, <VMwareDocumentationPage {...PAGE_PROPS} />);
+      await openEveryVariant();
+
+      expectGuideInReadersWords("VMware", vmwareGuide(), language);
+
+      // The card's own words, its question and its key step come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a vCenter"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a vCenter")).toBeNull();
+      expect(
+        screen.getByText(locale["How do you want to install the agent?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Create a read-only vSphere user"]!),
+      ).toBeInTheDocument();
+      expect(locale[KEY_STEP]).not.toBe(KEY_STEP);
+      expect(screen.getByText(locale[KEY_STEP]!)).toBeInTheDocument();
+      expect(screen.queryByText(KEY_STEP)).toBeNull();
+
+      // vSphere's own menus, the principal and the variables are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain(
+        "*Menu → Administration → Single Sign On → Users and Groups*",
+      );
+      expect(drawn).toContain("**Propagate to children**");
+      expect(drawn).toContain("`oneuptime@vsphere.local`");
+      expect(drawn).toContain("`VMWARE_VCENTER_NAME`");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each([
+    ["de", "docker-compose"],
+    ["ar", "docker-compose"],
+    ["de", "linux-service"],
+    ["ar", "linux-service"],
+  ] as Array<[string, VMwareInstallMethod]>)(
+    "in %s, picking %s draws that install method's steps and topics in the reader's words",
+    async (language: string, method: VMwareInstallMethod) => {
+      await drawWithMethod(language, method);
+
+      expectGuideInReadersWords("VMware", vmwareGuide(method), language);
+
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain(
+        method === "linux-service"
+          ? "`sudo systemctl restart oneuptime-vmware-agent`"
+          : "`docker compose up -d`",
+      );
+    },
+  );
+
+  test("a vCenter's own tab: the guide for that vCenter, in German", async () => {
+    await drawIn(
+      "de",
+      <VMwareDocumentationCard
+        title="Connect a vCenter"
+        description="A guide."
+        vcenterName="vcenter-1"
+      />,
+    );
+    await openEveryVariant();
+
+    expectGuideInReadersWords(
+      "VMware",
+      vmwareGuide("install-script", "vcenter-1"),
+      "de",
+    );
+    expect(drawnTexts().join("\n")).toContain(
+      "Dieses vCenter ist **`vcenter-1`**.",
+    );
+  });
+});
+
+describe("Databases > Help > Documentation", () => {
+  // The install step's tabs (install script, Docker Compose) draw one at a time.
+  async function openEveryVariant(): Promise<void> {
+    for (const tab of screen.queryAllByTestId("setup-guide-step-variant")) {
+      await act(async () => {
+        fireEvent.click(tab);
+      });
+    }
+    await settle();
+  }
+
+  // Every piece of `guide` is drawn in the reader's words, and none in English.
+  function expectGuideInReadersWords(
+    guide: SetupGuideContent,
+    language: string,
+  ): void {
+    const drawn: string = drawnTexts().join("\n");
+    const translated: Array<string> = getSetupGuideWordPieces(
+      inLanguage("Database", guide, language),
+    );
+
+    for (const piece of getSetupGuideWordPieces(guide)) {
+      // A file's name alone is in its translation: "Die Datei **docker-compose.yml**".
+      if (
+        translated.some((words: string): boolean => {
+          return words.includes(piece);
+        })
+      ) {
+        continue;
+      }
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+    for (const piece of translated) {
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: true,
+      });
+    }
+  }
+
+  test.each(["de", "ar"])(
+    "in %s, the PostgreSQL guide, its engine picker and its topics in the reader's words, its commands as written",
+    async (language: string) => {
+      await drawIn(language, <DatabaseDocumentationPage {...PAGE_PROPS} />);
+      await openEveryVariant();
+
+      expectGuideInReadersWords(databaseGuide(), language);
+
+      // The card's own words, the picker's and the steps' titles come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect Database Engine Metrics"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect Database Engine Metrics")).toBeNull();
+      expect(
+        screen.getByText(locale["Which database engine?"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(locale["Create a monitoring user"]!),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          locale[
+            "The agent sends the database's engine metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+          ]!,
+        ),
+      ).toBeInTheDocument();
+      // Each pill is the engine's name, its hint the reader's words.
+      expect(
+        screen.getByTestId("setup-guide-option-mariadb"),
+      ).toHaveTextContent("MariaDB");
+      expect(
+        screen
+          .getByTestId("setup-guide-option-postgresql")
+          .getAttribute("title"),
+      ).toBe(locale["Runs the collector's postgresql receiver."]);
+      expect(
+        screen.getByTestId("setup-guide-option-valkey").getAttribute("title"),
+      ).toBe(
+        locale["Runs the redis receiver and reports the server as Valkey."],
+      );
+
+      // The grants, the variables and the image are the English's.
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`pg_monitor`");
+      expect(drawn).toContain("`DATABASE_SERVER_ADDRESS`");
+      expect(drawn).toContain("`otel/opentelemetry-collector-contrib:0.161.0`");
+      expect(drawn).toContain("GRANT pg_monitor TO oneuptime_monitor;");
+      // The Database Health monitor link opens the monitor form in this project.
+      expect(drawn).toContain(
+        "](/dashboard/10000000-0000-4000-8000-000000000001/monitors/create?monitorType=Database)",
+      );
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+
+  test.each(["de", "ar"])(
+    "in %s, picking SQL Server draws that engine's own steps in the reader's words",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+      await act(async () => {
+        render(
+          <MemoryRouter>
+            <DatabaseDocumentationPage {...PAGE_PROPS} />
+          </MemoryRouter>,
+        );
+      });
+      await settle();
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId("setup-guide-option-microsoft.sql_server"),
+        );
+      });
+      await settle();
+      await openEveryTopic();
+      await openEveryVariant();
+
+      expectGuideInReadersWords(
+        databaseGuide("microsoft.sql_server"),
+        language,
+      );
+
+      const drawn: string = drawnTexts().join("\n");
+      expect(drawn).toContain("`VIEW SERVER STATE`");
+      expect(drawn).toContain("`configs/sqlserver.yaml`");
+      expect(drawn).toContain("`Login failed for user`");
+    },
+  );
+
+  /*
+   * A database's own Documentation tab installs for its row - its identity,
+   * its server id - and has no words in another language yet (#8746): it reads in
+   * English whole, never half in the reader's words.
+   */
+  test("a database's own tab reads in English whole, in German too", async () => {
+    await drawIn(
+      "de",
+      <DatabaseDocumentationCard
+        title="Connect orders-db"
+        description="The agent for this database."
+        database={{
+          id: "4f7f2c9e-0000-4000-8000-000000000001",
+          name: "orders-db",
+          dbSystem: "postgresql",
+          serverAddress: "db.prod.internal",
+          serverPort: 5432,
+        }}
+      />,
+    );
+
+    const drawn: string = drawnTexts().join("\n");
+    const german: SetupGuideContent = inLanguage(
+      "Database",
+      databaseGuide(),
+      "de",
+    );
+
+    expect(drawn).toContain("`DATABASE_SERVER_ID`");
+    expect(drawn).toContain("db.prod.internal");
+    for (const piece of getSetupGuideWordPieces(german)) {
+      if (getSetupGuideWordPieces(databaseGuide()).includes(piece)) {
+        continue;
+      }
+      expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+        piece,
+        drawn: false,
+      });
+    }
+  });
 });
 
 describe("Podman > Help > Documentation", () => {

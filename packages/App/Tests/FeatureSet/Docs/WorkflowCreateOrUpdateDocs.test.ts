@@ -21,6 +21,7 @@ import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { writtenPermissionTitle } from "./DocsRoleNames";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 
 /*
  * The docs on On Create or Update - one trigger for a new record and a
@@ -240,8 +241,9 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
     expect(
       linesWith(
         readPage(language, "workflows/components"),
+        // As the builder draws each, the sentence it was built from (#8708).
         titles.map((title: string): string => {
-          return `**${title}**`;
+          return `**${drawnStepName(language, title)}**`;
         }),
       ),
     ).toHaveLength(1);
@@ -268,7 +270,7 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
 
     expect(
       linesWith(page, [
-        "**On Create or Update X**",
+        `**${drawnStepName(language, "On Create or Update X")}**`,
         // A record step's settings are named as the Builder draws them (#8359).
         `**${drawnDashboardLabel(language, WATCHED_FIELDS_NAME)}**`,
         `\`${WHAT_HAPPENED_ID}\``,
@@ -277,12 +279,14 @@ describe.each(DOCS_LANGUAGES)("the other pages in %s", (language: string) => {
       ]),
     ).toHaveLength(1);
     // Among the headline triggers, and among those that pass a record on.
-    expect(linesWith(page, ["**On Create or Update Incident**"])).toHaveLength(
-      1,
-    );
     expect(
       linesWith(page, [
-        "**On Create or Update X**",
+        `**${drawnStepName(language, "On Create or Update Incident")}**`,
+      ]),
+    ).toHaveLength(1);
+    expect(
+      linesWith(page, [
+        `**${drawnStepName(language, "On Create or Update X")}**`,
         `**${drawnDashboardLabel(language, "Fields to pass on")}**`,
       ]),
     ).toHaveLength(1);
@@ -294,19 +298,27 @@ describe.each(DOCS_LANGUAGES)("every page in %s", (language: string) => {
     const lists: Array<string> = [];
     const wrong: Array<string> = [];
 
+    /*
+     * A translation keeps the English page's lines: its line names the
+     * English line's triggers as this language's builder draws them (#8708).
+     */
     for (const page of listPages(language)) {
-      readPage(language, page)
+      const lines: Array<string> = readPage(language, page).split("\n");
+
+      readPage("en", page)
         .split("\n")
-        .forEach((line: string, index: number) => {
-          for (const model of modelsWithTriggersListed(line)) {
+        .forEach((englishLine: string, index: number) => {
+          const line: string = lines[index] || "";
+
+          for (const model of modelsWithTriggersListed(englishLine)) {
             const where: string = `${page}:${index + 1} (${model})`;
             const positions: Array<number> = [
-              `**On Create ${model}**`,
-              `**On Update ${model}**`,
-              `**On Create or Update ${model}**`,
-              `**On Delete ${model}**`,
+              `On Create ${model}`,
+              `On Update ${model}`,
+              `On Create or Update ${model}`,
+              `On Delete ${model}`,
             ].map((title: string): number => {
-              return line.indexOf(title);
+              return line.indexOf(`**${drawnStepName(language, title)}**`);
             });
             const inOrder: boolean = positions.every(
               (position: number, at: number): boolean => {

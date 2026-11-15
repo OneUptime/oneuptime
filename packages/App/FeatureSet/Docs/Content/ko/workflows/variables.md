@@ -196,7 +196,7 @@ OAuth 2.0 변수 페이지의 **접근 토큰** 카드에는 다음 상태 중 �
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ID가 `lookup-user` 인 **API** 블록                        | 상태 코드: `{{local.components.lookup-user.returnValues.response-status}}`. 본문: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | ID가 `transform` 인 **사용자 지정 JavaScript 실행** 블록        | 반환한 것: `{{local.components.transform.returnValues.returnValue}}`.                  |
-| ID가 `incident-on-create-1` 인 **On Create Incident** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 레코드를 `model` 로 반환하며, 그 안으로 들어가 읽습니다. |
+| ID가 `incident-on-create-1` 인 **인시던트 생성 시** 트리거 | 인시던트 제목: `{{local.components.incident-on-create-1.returnValues.model.title}}`. 레코드 트리거는 레코드를 `model` 로 반환하며, 그 안으로 들어가 읽습니다. |
 
 블록 값은 현재 실행 중에만 존재합니다. 새 실행은 매번 처음부터 시작합니다.
 
@@ -239,7 +239,7 @@ JSON 입력란 — 레코드 구성 요소의 **데이터(JSON 객체)**와 **�
 
 1. ID가 `ci-webhook` 인 **웹훅** 트리거.
 2. **조건 분기** 블록: **확인할 값**은 웹훅 Request Body의 `status` 필드(`{{local.components.ci-webhook.returnValues.request-body.status}}`), **비교**는 **같음**, **비교 대상**은 `failed`.
-3. **예** 분기에서 다음 내용의 **Create One Incident** 블록:
+3. **예** 분기에서 다음 내용의 **인시던트 1개 만들기** 블록:
    - 제목: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - 설명: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

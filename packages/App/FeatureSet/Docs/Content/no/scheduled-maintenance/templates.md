@@ -43,7 +43,7 @@ Under **Detaljer om vedlikehold** fyller du ut **Tittel** og **Beskrivelse** som
 
 ### Velg hva den berører
 
-Under **Berørte ressurser** velger du **Monitorer**, **Endre monitorstatus til** for dem, eventuelle **Andre berørte ressurser**, statussidene under **Vis hendelse på disse statussidene** og **Varsler til abonnenter**.
+Under **Berørte ressurser** velger du **Monitorer**, **Endre monitorstatus til** for dem, eventuelle **Andre berørte ressurser**, statussidene under **Vis hendelse på disse statussidene** og **Varslinger til abonnenter**.
 
 ### Bestem om den gjentas
 
@@ -59,7 +59,7 @@ En mal spør om **Endre monitorstatus til** selv når den ikke nevner noen monit
 | **Tittel** og **Beskrivelse**                     | Utfylt, og du kan endre dem          | Kopiert                         |
 | **Monitorer** og **Endre monitorstatus til**  | Utfylt                               | Kopiert                         |
 | **Andre berørte ressurser**                       | Utfylt                               | Kopiert                         |
-| Statussidene og **Varsler til abonnenter**        | Utfylt                               | Kopiert                         |
+| Statussidene og **Varslinger til abonnenter**        | Utfylt                               | Kopiert                         |
 | **Eiere** og **Etiketter**                        | Utfylt                               | Kopiert                         |
 | **Begynner den** og **Slutter den**               | Neste hele time, i én time           | Beregnet ut fra tidsplanen      |
 

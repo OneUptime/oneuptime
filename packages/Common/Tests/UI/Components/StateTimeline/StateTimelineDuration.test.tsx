@@ -74,7 +74,7 @@ describe("StateTimelineDuration", () => {
 
       render(<StateTimelineDuration startDate={startDate} />);
 
-      expect(getDuration()).toHaveTextContent(
+      expect(getDuration().textContent).toBe(
         OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
           startDate,
           WHOLE_SECOND,

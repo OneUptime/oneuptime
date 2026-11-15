@@ -39,9 +39,9 @@ Un blocco viene eseguito quando il blocco precedente prende l'uscita collegata a
 
 ```mermaid title="Un blocco prende una delle sue uscite"
 flowchart TB
-    trigger["On Create Incident"] -->|"Successo"| post["Chiamata API POST (JSON)"]
+    trigger["Alla creazione: Incidente"] -->|"Successo"| post["Chiamata API POST (JSON)"]
     post -->|"Successo: una risposta 2xx"| slack["Invia messaggio a Slack"]
-    post -->|"Errore: nessuna risposta, o non 2xx"| log["Registro"]
+    post -->|"Errore: nessuna risposta, o non 2xx"| log["Log"]
 ```
 
 - Le **Impostazioni** sono ciò che compili. Le impostazioni contrassegnate con **(Facoltativo)** possono restare vuote. Le impostazioni meno usate sono raccolte sotto **Altri campi**.
@@ -223,7 +223,7 @@ Per chiamare solo quando qualcosa è vero, metti [If / Else](#conditions) davant
 
 ```mermaid title="Chiamare chi è reperibile, ma solo per gli incidenti critici"
 flowchart TB
-    trigger["On Create Incident"] -->|"Successo"| check["Se / Altrimenti"]
+    trigger["Alla creazione: Incidente"] -->|"Successo"| check["Se / Altrimenti"]
     check -->|"Sì"| page["Chiama chi è reperibile"]
 ```
 
@@ -411,7 +411,7 @@ Un record va sempre e solo avanti, e uno risolto non si muove più, così quando
 
 **Gravità** indica una delle tue gravità per nome o per ID, senza distinguere maiuscole e minuscole, oppure per la posizione che occupa tra di esse: `most severe`, `middle` o `least severe`. È così che i livelli propri di uno strumento vengono distribuiti sulle gravità che hai nominato tu. Lasciata vuota, o se non ne indica nessuna, è la tua più grave, e il log dell'esecuzione lo dice. Un nuovo incidente viene tenuto fuori dalle tue pagine di stato, e i loro iscritti non vengono avvisati, perché il testo di un altro strumento è scritto per gli utenti di quello strumento: attiva **Mostra sulle pagine di stato** per mostrarlo.
 
-In **Altri campi**, **Motivo** è il motivo nella cronologia del record quando cambia stato, e **Nota** viene allora aggiunta accanto come nota privata, per uno strumento che dice qualcosa mentre prende in carico o risolve. **Campi personalizzati** dà a un nuovo record altri campi personalizzati, come oggetto JSON, **Etichette** gli ID delle sue etichette, separati da virgole, e **Risorse interessate** le risorse di cui si occupa, come su **Create One Incident**. **Nota invece di risolvere** aggiunge la nota e lascia che sia il tuo team a risolvere il record. Il blocco restituisce **Riepilogo**, ciò che ha fatto in una frase, e il record, così un blocco successivo legge il suo ID come `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+In **Altri campi**, **Motivo** è il motivo nella cronologia del record quando cambia stato, e **Nota** viene allora aggiunta accanto come nota privata, per uno strumento che dice qualcosa mentre prende in carico o risolve. **Campi personalizzati** dà a un nuovo record altri campi personalizzati, come oggetto JSON, **Etichette** gli ID delle sue etichette, separati da virgole, e **Risorse interessate** le risorse di cui si occupa, come su **Crea: Incidente (un record)**. **Nota invece di risolvere** aggiunge la nota e lascia che sia il tuo team a risolvere il record. Il blocco restituisce **Riepilogo**, ciò che ha fatto in una frase, e il record, così un blocco successivo legge il suo ID come `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ Per ogni tipo di record in OneUptime (monitor, incidenti, avvisi, pagine di stat
 
 | Componente               | Cosa fa                                                                        |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Legge un record che corrisponde alla query.                                    |
-| **Find Many Monitors**   | Legge un elenco di record che corrispondono alla query.                        |
-| **Create One Monitor**   | Aggiunge un record da un oggetto JSON.                                         |
-| **Create Many Monitors** | Aggiunge più record da un array JSON.                                          |
-| **Update One Monitor**   | Applica i dati da scrivere a un record corrispondente.                         |
-| **Update Many Monitors** | Applica i dati da scrivere ai record corrispondenti, fino a **Limite**.         |
-| **Delete One Monitor**   | Elimina un record corrispondente.                                              |
-| **Delete Many Monitors** | Elimina i record corrispondenti, fino a **Limite**.                             |
+| **Trova: Monitor (un record)**     | Legge un record che corrisponde alla query.                                    |
+| **Trova: Monitor (più record)**   | Legge un elenco di record che corrispondono alla query.                        |
+| **Crea: Monitor (un record)**   | Aggiunge un record da un oggetto JSON.                                         |
+| **Crea: Monitor (più record)** | Aggiunge più record da un array JSON.                                          |
+| **Aggiorna: Monitor (un record)**   | Applica i dati da scrivere a un record corrispondente.                         |
+| **Aggiorna: Monitor (più record)** | Applica i dati da scrivere ai record corrispondenti, fino a **Limite**.         |
+| **Elimina: Monitor (un record)**   | Elimina un record corrispondente.                                              |
+| **Elimina: Monitor (più record)** | Elimina i record corrispondenti, fino a **Limite**.                             |
 
-Lo stesso insieme ti dà quattro trigger: **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** e **On Delete Monitor**. Vedi [Trigger](/docs/workflows/triggers#trigger-di-eventi-oneuptime).
+Lo stesso insieme ti dà quattro trigger: **Alla creazione: Monitor**, **All'aggiornamento: Monitor**, **Alla creazione o all'aggiornamento: Monitor** e **All'eliminazione: Monitor**. Vedi [Trigger](/docs/workflows/triggers#trigger-di-eventi-oneuptime).
 
-Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola lettura ha i due componenti Find e nient'altro, quindi se nel pannello non trovi **Delete One Monitor**, quel tipo non lo consente.
+Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola lettura ha i due componenti Find e nient'altro, quindi se nel pannello non trovi **Elimina: Monitor (un record)**, quel tipo non lo consente.
 
-È così che un flusso di lavoro legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Create One Incident** per aprire un incidente con i dettagli dell'errore.
+È così che un flusso di lavoro legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Crea: Incidente (un record)** per aprire un incidente con i dettagli dell'errore.
 
 Questi componenti agiscono come Amministratore del progetto nel progetto del flusso di lavoro: ciò che un Amministratore del progetto non può fare, o che il tuo piano non include, viene rifiutato, e il log dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 
 ### Dichiarare un incidente da un modello
 
-**Create One Incident** può dichiarare l'incidente da uno dei tuoi [modelli di incidente](/docs/incidents/settings#modelli-di-incidenti): sceglilo in **Modello di incidente**, la prima impostazione del passaggio. Il modello compila ogni campo che **Oggetto JSON** lascia fuori — il titolo, la descrizione, la gravità, lo stato iniziale, i monitor e le altre risorse, le policy di reperibilità, le etichette, le pagine di stato e i campi personalizzati — e i suoi proprietari diventano i proprietari dell'incidente. Tutto ciò che imposti in **Oggetto JSON** prevale sul modello, stato compreso, quindi con un modello scelto **Oggetto JSON** deve contenere solo ciò che deve essere diverso, e può restare vuoto.
+**Crea: Incidente (un record)** può dichiarare l'incidente da uno dei tuoi [modelli di incidente](/docs/incidents/settings#modelli-di-incidenti): sceglilo in **Modello di incidente**, la prima impostazione del passaggio. Il modello compila ogni campo che **Oggetto JSON** lascia fuori — il titolo, la descrizione, la gravità, lo stato iniziale, i monitor e le altre risorse, le policy di reperibilità, le etichette, le pagine di stato e i campi personalizzati — e i suoi proprietari diventano i proprietari dell'incidente. Tutto ciò che imposti in **Oggetto JSON** prevale sul modello, stato compreso, quindi con un modello scelto **Oggetto JSON** deve contenere solo ciò che deve essere diverso, e può restare vuoto.
 
 L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTemplateId`. Quella colonna la imposta OneUptime: un passaggio che la invia in **Oggetto JSON** viene rifiutato, e il suo log dell'esecuzione ti rimanda a **Modello di incidente**. Un modello di un altro progetto, o uno eliminato, fa prendere al passaggio la sua uscita **Errore**, e su un piano che non include i modelli di incidente il passaggio viene rifiutato indicando il piano necessario. Vedi [Come viene applicato un modello](/docs/incidents/settings#come-viene-applicato-un-modello).
 
 ### Collegare le risorse di cui si tratta
 
-**Create One Incident** e **Create One Alert** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **Oggetto JSON** e il modello collegano già, fino a 50 dalle prime 25 voci.
+**Crea: Incidente (un record)** e **Crea: Avviso (un record)** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **Oggetto JSON** e il modello collegano già, fino a 50 dalle prime 25 voci.
 
 Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il log dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **Oggetto JSON** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
 
 ### A chi appartiene fin dall'inizio
 
-**Create One Incident** e **Create One Alert** hanno le impostazioni **Utenti proprietari** e **Team proprietari**: le persone e i team a cui il record appartiene fin dalla sua creazione. Sceglili, oppure prendili da un passaggio precedente: l'ID o l'indirizzo email di un utente, l'ID di un team, più d'uno separati da virgole, o una lista. I proprietari del record vengono a sapere della sua creazione circa un minuto dopo, tutti quelli che ha a quel punto: quelli scelti qui sono sempre tra loro, mentre i proprietari che un passaggio successivo aggiunge se la perdono quando quel passaggio viene eseguito più di un minuto dopo, e al loro posto vengono avvisati i Proprietari del progetto.
+**Crea: Incidente (un record)** e **Crea: Avviso (un record)** hanno le impostazioni **Utenti proprietari** e **Team proprietari**: le persone e i team a cui il record appartiene fin dalla sua creazione. Sceglili, oppure prendili da un passaggio precedente: l'ID o l'indirizzo email di un utente, l'ID di un team, più d'uno separati da virgole, o una lista. I proprietari del record vengono a sapere della sua creazione circa un minuto dopo, tutti quelli che ha a quel punto: quelli scelti qui sono sempre tra loro, mentre i proprietari che un passaggio successivo aggiunge se la perdono quando quel passaggio viene eseguito più di un minuto dopo, e al loro posto vengono avvisati i Proprietari del progetto.
 
 Il passaggio chiede se può aggiungerli, come Amministratore del progetto nel progetto del flusso di lavoro, prima che il record venga salvato: i proprietari che non può aggiungere fanno rifiutare la creazione. Chi non è membro del progetto, o un team che non è del progetto, viene lasciato fuori, e il log dell'esecuzione lo dice: il record viene creato comunque. I proprietari aggiunti così non vengono avvisati di essere stati aggiunti: la notifica che il record è stato creato è quella che ricevono.
 

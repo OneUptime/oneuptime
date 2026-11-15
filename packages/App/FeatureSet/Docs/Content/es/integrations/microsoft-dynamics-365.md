@@ -269,7 +269,7 @@ El ámbito debe ser la URL de tu entorno seguida de `/.default`. Una URL de ento
 ### Abrir un caso por cada incidente
 
 :::steps
-1. Crea desde cero un flujo de trabajo llamado `Incidents to Dynamics 365`. Haz clic en el bloque discontinuo y añade el disparador **On Create Incident**. Sus **Campos que pasar** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite.
+1. Crea desde cero un flujo de trabajo llamado `Incidents to Dynamics 365`. Haz clic en el bloque discontinuo y añade el disparador **Al crear Incidente**. Sus **Campos que pasar** empiezan con **Título**: haz clic en **Añadir campo** y elige **Descripción** y **Número de incidente**. El ID siempre se transmite.
 2. Haz clic en **Añadir componente**, añade un bloque **Llamada a API POST (JSON)** y conecta a él el punto **Éxito** del disparador. Pon su **Identificador** en `create-case` y su **URL** en `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. En **Más campos**, pon sus **Encabezados de la solicitud** en:
 
@@ -323,7 +323,7 @@ Dynamics 365 trae `severitycode` con una sola opción, así que usa `prioritycod
 Constrúyelo como un segundo flujo de trabajo, para que un fallo aquí nunca impida abrir casos.
 
 :::steps
-1. Crea un flujo de trabajo llamado `Close Dynamics 365 cases`, con el disparador **On Update Incident**. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Campos que pasar**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**.
+1. Crea un flujo de trabajo llamado `Close Dynamics 365 cases`, con el disparador **Al actualizar Incidente**. En **Campos que vigilar**, haz clic en **Añadir campo** y elige **Estado actual del incidente**. En **Campos que pasar**, haz clic en **Añadir campo**, abre **Estado actual del incidente** y elige **Es estado resuelto**.
 2. Añade un bloque **Si / Si no**: **Valor que comprobar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparación** **es verdadero**.
 3. Después de su lado **Sí**, añade un bloque **Llamada a API GET (JSON)** con el **Identificador** `find-case`, las mismas cabeceras sin `Prefer` y esta **URL**:
 
@@ -363,7 +363,7 @@ Primero construye el flujo de trabajo que recibe:
    En una instalación autoalojada, la URL lleva tu propio host. Trata la URL como una contraseña: quien la tenga puede iniciar el flujo de trabajo. Si se filtra, haz clic en **Restablecer URL** en el mismo lugar, y la URL antigua deja de funcionar al instante.
 
 3. Añade un bloque **Si / Si no** que compruebe un secreto compartido antes que nada: **Valor que comprobar** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparación** **es igual a**, **Comparar con** un valor que te inventes, guardado en una variable global secreta.
-4. Después de su lado **Sí**, añade un bloque **Update One Incident**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Datos (objeto JSON)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Find One Incident State** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Después de su lado **Sí**, añade un bloque **Actualizar Incidente (individual)**. Pon su **Consulta** en `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, y su **Datos (objeto JSON)** en el cambio, como un nuevo `currentIncidentStateId`. Un bloque **Buscar Estado del incidente (individual)** con la consulta `{"name": "Resolved"}` te da ese ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Actívalo y luego haz que Dynamics 365 lo llame:
 
@@ -389,11 +389,11 @@ Las alertas funcionan de la misma manera. Cambia el tipo de registro, y no cambi
 
 | Incidente | Alerta |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Al crear Incidente** (`incident-on-create-1`) | **Al crear Alerta** (`alert-on-create-1`) |
+| **Al actualizar Incidente** (`incident-on-update-1`) | **Al actualizar Alerta** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Buscar Estado del incidente (individual)** | **Buscar Estado de la alerta (individual)** |
+| **Actualizar Incidente (individual)** | **Actualizar Alerta (individual)** |
 
 Un flujo de trabajo tiene exactamente un disparador, así que los incidentes y las alertas necesitan un flujo de trabajo cada uno. Para hacer el mismo trabajo de Dynamics 365 para ambos, constrúyelo una vez en un flujo de trabajo con un disparador **Manual**, e inícialo desde ambos con un bloque **Ejecutar otro flujo de trabajo**.
 
@@ -438,7 +438,7 @@ Envía tú mismo una solicitud a la URL del webhook con `curl` y búscala en **R
 :::
 
 :::details El flujo de trabajo se ejecuta, pero el incidente no cambia
-Un bloque **Update One Incident** informa `Items Updated: 0` cuando su consulta no encontró nada, y eso es un éxito, no un error. Comprueba que el ID de la solicitud es de verdad el del incidente de OneUptime, y que consultas `_id`.
+Un bloque **Actualizar Incidente (individual)** informa `Items Updated: 0` cuando su consulta no encontró nada, y eso es un éxito, no un error. Comprueba que el ID de la solicitud es de verdad el del incidente de OneUptime, y que consultas `_id`.
 :::
 
 ## Próximos pasos

@@ -13,8 +13,8 @@ Invia un messaggio a una chat, un gruppo o un canale [Telegram](https://telegram
 
 ```mermaid title="Da un avviso a un messaggio Telegram"
 flowchart TB
-    fired["Avviso scattato"] --> trigger["On Create Alert"]
-    trigger --> step["Send Message<br/>to Telegram"]
+    fired["Avviso scattato"] --> trigger["Alla creazione:<br/>Avviso"]
+    trigger --> step["Invia messaggio<br/>a Telegram"]
     step -->|"Successo"| chat["Messaggio nella<br/>tua chat"]
     step -->|"Errore"| failed["L'esecuzione<br/>fallisce e<br/>dice perché"]
 ```
@@ -53,11 +53,11 @@ Parti dal modello, che costruisce l'intero flusso di lavoro per gli avvisi, oppu
 3. Mantieni il nome **Notify Telegram on new alert** o cambialo, e fai clic su **Avanti**.
 4. Incolla il token in **Token del bot Telegram** e l'ID in **Telegram Chat ID**, e fai clic su **Crea flusso di lavoro**.
 
-Il flusso di lavoro si apre nel **Costruttore** con due passi: **On Create Alert** e **Invia messaggio a Telegram**, che invia il numero, il titolo, la gravità e lo stato dell'avviso. Il token viene salvato come variabile segreta `telegramBotToken` del flusso di lavoro, e l'ID come `telegramChatId`.
+Il flusso di lavoro si apre nel **Costruttore** con due passi: **Alla creazione: Avviso** e **Invia messaggio a Telegram**, che invia il numero, il titolo, la gravità e lo stato dell'avviso. Il token viene salvato come variabile segreta `telegramBotToken` del flusso di lavoro, e l'ID come `telegramChatId`.
 @tab Da zero
 1. Salva il token come variabile globale segreta: vai su **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Variabile del flusso di lavoro**, chiamala `TELEGRAM_BOT_TOKEN` e fai clic su **Avanti**. Incolla il token in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**.
 2. Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al flusso di lavoro e fai clic su **Crea flusso di lavoro**.
-3. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Alert** sotto **Popolari**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Alert Number With Prefix**.
+3. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Avviso** sotto **Popolari**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli gli altri campi che mostra il tuo messaggio, per esempio **Alert Number With Prefix**.
 4. Fai clic su **Aggiungi componente**, cerca `telegram` e fai clic su **Invia messaggio a Telegram**. Collega l'uscita **Successo** del trigger a questo passo.
 5. Fai clic sul nuovo passo. In **Token del bot Telegram**, fai clic su **{ }** e scegli `TELEGRAM_BOT_TOKEN` sotto **Global variables**. Inserisci l'ID della chat in **ID della chat**, scrivi il messaggio in **Testo del messaggio** e inserisci i campi dell'avviso con **{ }**.
 :::
@@ -80,7 +80,7 @@ Per provarlo senza far scattare un avviso, fai clic su **Esegui flusso di lavoro
 
 - **Testo semplice.** Il passo invia il testo così come è scritto, senza la formattazione di Telegram, quindi `*` e `_` appaiono così come sono.
 - **Tenere conto del limite di 4.096 caratteri.** Telegram accetta messaggi fino a 4.096 caratteri. Uno più lungo viene tagliato, e termina con "… (truncated — see OneUptime for the full text)", invece di essere rifiutato.
-- **Anche gli incidenti.** Costruisci lo stesso flusso di lavoro su **On Create Incident**, o su **On Update Incident** per i cambi di stato. Per inviare solo alcuni avvisi, metti un blocco **Se / Altrimenti** prima del passo.
+- **Anche gli incidenti.** Costruisci lo stesso flusso di lavoro su **Alla creazione: Incidente**, o su **All'aggiornamento: Incidente** per i cambi di stato. Per inviare solo alcuni avvisi, metti un blocco **Se / Altrimenti** prima del passo.
 - **La forma del token viene verificata.** Un token che non ha la forma `123456789:ABCdef…` ferma l'esecuzione prima che venga inviato qualcosa, e il token non viene mai scritto nel log.
 
 ## Risoluzione dei problemi

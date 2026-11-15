@@ -15,7 +15,7 @@ OneUptime jobber med [GitHub](https://github.com) på to måter. Koble til repos
 flowchart TB
     app["GitHub App"] --> repos["Repositoriene dine,<br/>importert"]
     repos --> pr["Pull requests med<br/>rettelser fra<br/>OneUptimes AI"]
-    declared["Hendelse erklært"] --> workflow["Arbeidsflyt:<br/>On Create Incident"]
+    declared["Hendelse erklært"] --> workflow["Arbeidsflyt:<br/>Ved oppretting:<br/>Hendelse"]
     workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
@@ -62,7 +62,7 @@ Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **S
 
 ### Legg til triggeren
 
-Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **On Create Incident**. Klikk på utløseren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse** og **Incident Number With Prefix**.
+Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Ved oppretting: Hendelse**. Klikk på utløseren: **Felt som sendes videre** starter med **Tittel**, så klikk på **Legg til felt**, og velg **Beskrivelse** og **Incident Number With Prefix**.
 
 ### Åpne issuet
 

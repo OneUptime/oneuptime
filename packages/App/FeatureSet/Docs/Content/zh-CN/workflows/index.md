@@ -107,7 +107,7 @@ OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary
 
 ```mermaid title="完成后的示例"
 flowchart TB
-    trigger["On Create Incident"] -->|"成功"| post["API 调用 POST (JSON)"]
+    trigger["创建事件时"] -->|"成功"| post["API 调用 POST (JSON)"]
     post -->|"错误"| log["日志"]
     post -->|"成功"| done["运行结束"]
 ```
@@ -124,7 +124,7 @@ flowchart TB
 
 ### 添加触发器
 
-点击虚线的 **选择启动此工作流的方式** 块，然后在 **添加触发器** 面板中点击 **热门** 下的 **On Create Incident**。
+点击虚线的 **选择启动此工作流的方式** 块，然后在 **添加触发器** 面板中点击 **热门** 下的 **创建事件时**。
 
 触发器会取代虚线块的位置。它上面的 ID `incident-on-create-1` 就是后续块引用它的方式。
 

@@ -48,7 +48,7 @@ Gere um alerta quando sua equipe deve olhar antes que alguém de fora perceba, e
 - **A taxa de consumo de um SLO.** Uma regra de taxa de consumo pode criar um alerta quando um SLO gasta seu orçamento de erros rápido demais. Veja [Alertas e incidentes de taxa de consumo](/docs/slo/burn-rate-alerts).
 - **Sites de rede e eventos de segurança.** Um site de rede configurado para alertar quando não está saudável abre um alerta quando seu resumo deixa de estar operacional, e suas regras de detecção de eventos de segurança também abrem alertas. Veja [Sites de rede (resumo de saúde e tempo de atividade)](/docs/monitor/network-sites) e [Eventos de segurança (SIEM)](/docs/telemetry/security-events).
 - **Um acionamento.** `/oneuptime page` no Slack ou no Microsoft Teams, em qualquer lugar menos no canal próprio de um incidente ou de um alerta, abre um alerta cujo título é a sua mensagem e aciona as pessoas que você indicar. Os blocos de acionamento de um workflow fazem o mesmo com o título e a mensagem que você fornecer. Veja [Acionar alguém pelo Slack](/docs/workspace-connections/slack#acionar-alguém-pelo-slack) e [Paging](/docs/workflows/components#paging).
-- **A API, o Terraform e os workflows.** Alertas são um recurso comum: `/api/alert`, o recurso Terraform `oneuptime_alert` e a etapa **Create One Alert** de um workflow.
+- **A API, o Terraform e os workflows.** Alertas são um recurso comum: `/api/alert`, o recurso Terraform `oneuptime_alert` e a etapa **Criar: Alerta (um registro)** de um workflow.
 
 ## Onde os alertas ficam no painel
 
@@ -104,9 +104,9 @@ No momento em que um alerta é criado, o OneUptime percorre estas etapas, nesta 
 7. **As regras de agrupamento o colocam em um episódio**, quando alguma corresponde. Veja [Episódios de alertas e regras de agrupamento](/docs/alerts/episodes).
 8. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, e o **OneUptime AI** investiga o alerta quando **Investigar novos alertas** está ativado em **Alertas → IA → Configurações**, e o corrige quando **Corrigir novos alertas automaticamente** está ativado. Veja [AI SRE](/docs/ai/ai-sre).
 
-Um job em segundo plano avisa os proprietários do alerta cerca de um minuto depois de ele ser criado, todos os que ele tiver até lá, e o gatilho de workflow **On Create Alert** inicia qualquer workflow construído sobre ele.
+Um job em segundo plano avisa os proprietários do alerta cerca de um minuto depois de ele ser criado, todos os que ele tiver até lá, e o gatilho de workflow **Ao criar: Alerta** inicia qualquer workflow construído sobre ele.
 
-Para tornar pessoas e equipes proprietárias do alerta desde a criação, de modo que esta notificação chegue a elas e não aos Proprietários do projeto, entregue-as junto com a criação: pela API, envie os ids delas em `miscDataProps`, como `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, com `POST /api/alert`; em um workflow, escolha-as em **Usuários proprietários** e **Equipes proprietárias** de **Create One Alert**; pelo MCP, passe `ownerUsers` e `ownerTeams` para `create_alert`. Uma solicitação cujo autor não pode adicionar esses proprietários é recusada antes de qualquer coisa ser salva. Os proprietários que uma solicitação separada adiciona depois da criação só ficam sabendo se forem adicionados dentro desse minuto.
+Para tornar pessoas e equipes proprietárias do alerta desde a criação, de modo que esta notificação chegue a elas e não aos Proprietários do projeto, entregue-as junto com a criação: pela API, envie os ids delas em `miscDataProps`, como `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }`, com `POST /api/alert`; em um workflow, escolha-as em **Usuários proprietários** e **Equipes proprietárias** de **Criar: Alerta (um registro)**; pelo MCP, passe `ownerUsers` e `ownerTeams` para `create_alert`. Uma solicitação cujo autor não pode adicionar esses proprietários é recusada antes de qualquer coisa ser salva. Os proprietários que uma solicitação separada adiciona depois da criação só ficam sabendo se forem adicionados dentro desse minuto.
 
 ### Criado já confirmado ou resolvido
 

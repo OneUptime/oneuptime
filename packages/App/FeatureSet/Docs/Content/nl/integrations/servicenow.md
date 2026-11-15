@@ -13,9 +13,9 @@ Open een [ServiceNow](https://www.servicenow.com)-incident voor elk OneUptime-in
 
 ```mermaid title="Twee workflows, één ServiceNow-incident"
 flowchart TB
-    declared["Incident gemeld"] --> create["Workflow 1:<br/>On Create Incident"]
+    declared["Incident gemeld"] --> create["Workflow 1:<br/>Bij aanmaken: Incident"]
     create -->|"POST incident"| sn["ServiceNow-incident"]
-    resolved["Incident opgelost"] --> update["Workflow 2:<br/>On Update Incident"]
+    resolved["Incident opgelost"] --> update["Workflow 2:<br/>Bij bijwerken: Incident"]
     update --> find["Het record zoeken<br/>via correlation_id"]
     find -->|"PATCH state 6"| sn
 ```
@@ -54,7 +54,7 @@ Ga naar **Workflows**, klik op **Workflow maken** en daarna op **Vanaf nul begin
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **Bij aanmaken: Incident**. Klik op de trigger: de **Velden om door te geven** ervan beginnen met **Titel**, dus klik op **Veld toevoegen** en kies **Beschrijving**.
 
 ### Het record aanmaken
 
@@ -91,9 +91,9 @@ Klik op **Workflow uitvoeren**, kies onder **Incident** een testincident en voer
 Een workflow heeft één trigger, dus voor het oplossen is een tweede workflow nodig, die start wanneer de status van een incident verandert.
 
 :::steps
-### De trigger On Update Incident toevoegen
+### De trigger "Bij bijwerken: Incident" toevoegen
 
-Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **On Update Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
+Maak een workflow met de naam `Resolve ServiceNow incidents` en kies **Bij bijwerken: Incident** als trigger. Klik in **Velden om te volgen** op **Veld toevoegen** en kies **Current Incident State**, zodat hij alleen draait wanneer de status verandert. Vraag in **Velden om door te geven** of de nieuwe status een opgeloste status is: klik op **Veld toevoegen**, open **Current Incident State** en kies **Is Resolved State**. Of klik op **Bewerken als JSON** en vervang de JSON door:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

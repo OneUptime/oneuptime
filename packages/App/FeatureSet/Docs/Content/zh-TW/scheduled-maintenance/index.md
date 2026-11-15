@@ -46,7 +46,7 @@ flowchart TB
 - **排程。** 週期性範本會依排程建立新事件，例如每週或每月一次，不需要任何人開啟表單。
 - **表單功能。** 提交後會建立維護事件的表單，會把變更請求變成事件。請參閱 [提交會建立什麼](/docs/forms/on-submit#提交如何成為維護事件)。
 - **聊天。** 在 Slack 中輸入 `/oneuptime maintenance` ，或在 Microsoft Teams 中對 OneUptime 機器人輸入 `maintenance` ，即可在聊天工具中開啟表單。請參閱 [Slack](/docs/workspace-connections/slack#從-slack-建立事件和維護)。
-- **程式碼。** 位於 `/api/scheduled-maintenance` 的 API、Terraform 資源 `oneuptime_scheduled_maintenance_event` ，以及工作流程的 **Create One Maintenance Event** 步驟。
+- **程式碼。** 位於 `/api/scheduled-maintenance` 的 API、Terraform 資源 `oneuptime_scheduled_maintenance_event` ，以及工作流程的 **建立單個維護事件** 步驟。
 
 ## 維護在儀表板中的位置
 

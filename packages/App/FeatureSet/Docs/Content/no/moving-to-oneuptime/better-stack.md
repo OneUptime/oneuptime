@@ -117,7 +117,7 @@ Ved hvert står det hvorfor: et navn prosjektet allerede har, noe en tidligere i
 ## Neste trinn
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hvordan en heartbeat fungerer i OneUptime.
 - [Statussider – Oversikt](/docs/status-pages/index): Hva en statusside viser, og hvem som kan se den.
 - [Bytt fra UptimeRobot](/docs/moving-to-oneuptime/uptimerobot): Hent kontrollene dine over fra UptimeRobot.
 :::

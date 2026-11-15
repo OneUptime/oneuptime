@@ -20,9 +20,15 @@ import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { PROXMOX_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
+import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
   getProxmoxSetupGuideWays,
+  getDatabaseSetupGuideWays,
+  getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
   getIoTSetupGuideWays,
@@ -79,9 +85,13 @@ function product(data: {
   ways: () => Array<SetupGuideWay>;
   options: ReadonlyArray<SetupGuideOption>;
   dashboardWords: ReadonlyArray<string>;
+  // Components/<cardDirectory>/DocumentationCard.tsx; the product's name if unset.
+  cardDirectory?: string;
 }): SetupGuideDocumentationProduct {
+  const { cardDirectory, ...rest } = data;
+
   return {
-    ...data,
+    ...rest,
     translationsDirectory: path.join(
       DASHBOARD_SOURCE,
       `Pages/${data.name}/DocumentationTranslations`,
@@ -92,7 +102,7 @@ function product(data: {
     ),
     cardFile: path.join(
       DASHBOARD_SOURCE,
-      `Components/${data.name}/DocumentationCard.tsx`,
+      `Components/${cardDirectory || data.name}/DocumentationCard.tsx`,
     ),
   };
 }
@@ -278,6 +288,48 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Storage",
         "Backup coverage",
         "Replication",
+      ],
+    }),
+    product({
+      name: "VMware",
+      translations: VMWARE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "VMWARE_DOCUMENTATION_TRANSLATIONS",
+      ways: getVMwareSetupGuideWays,
+      options: VMWARE_INSTALL_METHODS,
+      dashboardWords: [
+        "VMware",
+        "Agent Version",
+        "OneUptime AI agent",
+        "AI",
+        "AI agent",
+        // The vSphere objects the inventory table names, as the pages do.
+        "Datacenter",
+        "Cluster",
+        "ESXi host",
+        "Datastore",
+        "Resource pool",
+        // The guide's own topics, named from other topics.
+        "How VM power state is worked out",
+        "vCenter rejects the login",
+        "x509 or other TLS errors",
+      ],
+    }),
+    product({
+      name: "Database",
+      cardDirectory: "DatabaseServer",
+      translations: DATABASE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "DATABASE_DOCUMENTATION_TRANSLATIONS",
+      ways: getDatabaseSetupGuideWays,
+      // The card asks which engine the reader runs.
+      options: DATABASE_AGENT_SYSTEM_OPTIONS,
+      dashboardWords: [
+        "Databases",
+        "Engine metrics",
+        "Logs",
+        "Documentation",
+        "AI",
+        "AI agent",
+        "The files the agent runs",
       ],
     }),
   ];

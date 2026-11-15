@@ -69,16 +69,16 @@ Questi tipi di monitor e questi campi accettano segreti:
 | --- | --- |
 | API | L'URL, le intestazioni e il corpo della richiesta, e il certificato client, la chiave privata e la passphrase (mTLS) |
 | Sito web | L'URL, e il certificato client, la chiave privata e la passphrase (mTLS) |
-| Ping, IP, Porta, NTP, SSL Certificate | L'host o l'URL da controllare |
+| Ping, IP, Porta, NTP, Certificato SSL | L'host o l'URL da controllare |
 | DNS | Il nome di dominio e il server DNS |
 | DNSSEC, Dominio | Il nome di dominio |
-| SQL Query | L'host, il nome del database, il nome utente, la password e la query |
-| Database Health | L'host, il nome del database, il nome utente e la password |
-| External Status Page | L'URL della pagina di stato |
-| Synthetic Monitor, Custom JavaScript Code | Lo script |
-| Network Device | La community string SNMP, e le chiavi di autenticazione e di privacy SNMPv3 |
+| Query SQL | L'host, il nome del database, il nome utente, la password e la query |
+| Integrità del database | L'host, il nome del database, il nome utente e la password |
+| Pagina di stato esterna | L'URL della pagina di stato |
+| Monitor sintetico, Codice JavaScript personalizzato | Lo script |
+| Dispositivo di rete | La community string SNMP, e le chiavi di autenticazione e di privacy SNMPv3 |
 
-I segreti vengono compilati prima che venga eseguito lo script di un monitor Synthetic Monitor o Custom JavaScript Code, quindi un riferimento come `{{monitorSecrets.ApiKey}}` nello script vale il valore decifrato quando viene eseguito.
+I segreti vengono compilati prima che venga eseguito lo script di un monitor Monitor sintetico o Codice JavaScript personalizzato, quindi un riferimento come `{{monitorSecrets.ApiKey}}` nello script vale il valore decifrato quando viene eseguito.
 
 Se un monitor richiama un segreto che non può usare, il riferimento resta com'è e non viene sostituito con il valore.
 

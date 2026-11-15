@@ -3,19 +3,19 @@
 [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) 알림을 OneUptime으로 보내면, 발생한 각 알림이 온콜 팀을 호출하는 인시던트가 되고 알림이 복구되면 해결됩니다. Alertmanager는 통지를 웹훅 수신기로 보내므로 어느 쪽에도 설치할 것이 없습니다.
 
 :::cards
-- [OneUptime이 알림을 받는 방법 선택](#oneuptime이-알림을-받는-방법-선택): 수신 요청 모니터 또는 직접 만든 워크플로.
-- [모니터로 알림 받기](#모니터로-알림-받기): 경고마다 인시던트 하나, 복구 시 해결.
+- [OneUptime이 경고를 받는 방법 선택](#oneuptime이-경고를-받는-방법-선택): 수신 요청 모니터 또는 직접 만든 워크플로.
+- [모니터로 경고 받기](#모니터로-경고-받기): 경고마다 인시던트 하나, 복구 시 해결.
 - [Alertmanager 구성](#alertmanager-구성): 웹훅 수신기와 이를 사용하는 라우트.
 - [문제 해결](#문제-해결): 경고가 도착하지 않거나 인시던트가 계속 열려 있을 때.
 :::
 
 ## 작동 방식
 
-```mermaid title="발생한 알림에서 인시던트까지"
+```mermaid title="발생한 경고에서 인시던트까지"
 flowchart TB
-    rule["Prometheus<br/>규칙 발생"] --> group["Alertmanager가<br/>알림을 그룹화"]
+    rule["Prometheus<br/>규칙 발생"] --> group["Alertmanager가<br/>경고를 그룹화"]
     group --> post["수신기가<br/>OneUptime으로<br/>전송"]
-    post --> status{"각 알림의<br/>상태"}
+    post --> status{"각 경고의<br/>상태"}
     status -->|"firing"| open["인시던트 생성,<br/>온콜 호출"]
     status -->|"resolved"| resolve["인시던트 해결"]
 ```
@@ -27,7 +27,7 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 - `alertmanager.yml`을 편집할 수 있고 HTTPS로 OneUptime에 연결할 수 있는 Alertmanager.
 - OneUptime에서 모니터를 만들 권한. 워크플로를 사용한다면 워크플로를 만들 권한.
 
-## OneUptime이 알림을 받는 방법 선택
+## OneUptime이 경고를 받는 방법 선택
 
 먼저 OneUptime을 설정합니다. 그러면 Alertmanager가 보낼 URL을 얻습니다.
 
@@ -38,7 +38,7 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 
 둘 다 같은 수신기에서 같은 JSON을 받으므로, 하나로 시작한 뒤 `alertmanager.yml`의 URL 하나만 바꿔 나중에 전환할 수 있습니다.
 
-## 모니터로 알림 받기
+## 모니터로 경고 받기
 
 [수신 요청 모니터](/docs/monitor/incoming-request-monitor)는 URL을 제공하고, 그 기준이 각 통지가 할 일을 결정합니다.
 
@@ -47,7 +47,7 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 
 **모니터**로 이동해 **모니터 생성**을 클릭합니다. **모니터 유형**에서 **수신 요청**을 고르고, 이름을 `Alertmanager`로 정한 다음 **다음**을 클릭합니다.
 
-### 발생한 알림마다 인시던트 선언
+### 발생한 경고마다 인시던트 선언
 
 **기준** 단계에서 첫 번째 기준, 즉 모니터를 오프라인으로 표시하는 기준을 엽니다. 필터를 **요청 본문**, **포함**, `"status":"firing"`으로 설정합니다. 이 기준은 필터가 일치하면 이미 인시던트를 선언합니다. 인시던트를 채웁니다:
 
@@ -56,7 +56,7 @@ Prometheus는 알림 규칙을 평가하고 발생한 알림을 Alertmanager로 
 - **온콜 정책**(**온콜** 아래): 호출할 정책.
 - **인시던트 자동 해결**(**추가 필드** 아래): 처음 상태대로 켜 둡니다. 이 설정이 없으면 복구가 무시되어 인시던트가 계속 열려 있습니다.
 
-### 알림마다 인시던트 하나 열기
+### 경고마다 인시던트 하나 열기
 
 같은 기준에서 **설정**을 열고 **Group incidents and alerts by a payload field**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트를 사용합니다.
 :::
 
-`[*]`는 통지의 모든 알림을 읽으므로, 알림 세 개가 담긴 통지는 **Max incidents per request**(바꾸지 않으면 `100`)까지 인시던트 세 개를 열 수 있습니다. 각 알림의 `status`가 그 인시던트에 일어날 일을 결정합니다. 통지의 알림 하나가 해결되고 두 개가 여전히 발생 중이면, 해결된 알림의 인시던트만 닫힙니다. 각 설정이 하는 일은 [다른 시스템의 알림 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)을 참고하세요.
+`[*]`는 통지의 모든 알림을 읽으므로, 알림 세 개가 담긴 통지는 **Max incidents per request**(바꾸지 않으면 `100`)까지 인시던트 세 개를 열 수 있습니다. 각 알림의 `status`가 그 인시던트에 일어날 일을 결정합니다. 통지의 알림 하나가 해결되고 두 개가 여전히 발생 중이면, 해결된 알림의 인시던트만 닫힙니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
 
 > [!WARNING]
 > 한 통지 안에서 알림마다 다른 값으로 그룹화하세요. Alertmanager의 `fingerprint`는 알림의 전체 레이블 집합의 해시이므로 항상 다릅니다. 라우트의 `group_by`에 있는 레이블은 절대 다르지 않습니다. 그것이 바로 알림을 한 통지로 묶는 기준이기 때문입니다. 아래 라우트에서 `requestBody.alerts[*].labels.alertname`으로 그룹화하면 통지의 모든 알림이 인시던트 하나로 합쳐지고, 그 인시던트는 첫 번째 알림의 상태를 따릅니다.
@@ -104,7 +104,7 @@ Alertmanager: {{requestBody.externalURL}}
 - `{{requestBody.alerts[0].annotations.summary}}`는 통지의 첫 번째 알림을 읽는데, 그것이 항상 인시던트가 열린 대상 알림은 아닙니다.
 - 통지에 없는 필드에 대한 참조는 비워지지 않고 중괄호까지 포함해 쓴 그대로 남습니다.
 
-사용할 수 있는 모든 변수는 [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+사용할 수 있는 모든 변수는 [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 ## Alertmanager 구성
 
@@ -170,7 +170,7 @@ curl -X POST "https://oneuptime.com/heartbeat/<secret key>" \
 
 `fingerprint`마다 하나씩 인시던트 두 개가 열리며, 각각의 제목은 `DiskFull on web-1`에 둘을 구분하는 값이 이어진 `DiskFull on web-1 - Fingerprint: a1b2c3d4e5f60001` 형식입니다. 각 `status`를 `resolved`로 바꿔 같은 요청을 보내면 둘 다 해결됩니다.
 
-Alertmanager부터 전체 경로를 테스트하려면 `amtool`로 알림을 발생시킵니다. Alertmanager는 `group_wait` 후에 알림을 보내고, 몇 분 뒤 알림이 만료되면 복구를 보냅니다:
+Alertmanager부터 전체 경로를 테스트하려면 `amtool`로 경고를 발생시킵니다. Alertmanager는 `group_wait` 후에 경고를 보내고, 몇 분 뒤 경고가 만료되면 복구를 보냅니다:
 
 ```bash
 amtool alert add test_alert severity=warning \
@@ -178,7 +178,7 @@ amtool alert add test_alert severity=warning \
   --alertmanager.url=http://localhost:9093
 ```
 
-## 워크플로로 알림 받기
+## 워크플로로 경고 받기
 
 Alertmanager와 인시던트 사이에 직접 만든 단계가 필요하면 [워크플로](/docs/workflows/index)를 사용합니다.
 
@@ -197,7 +197,7 @@ Alertmanager와 인시던트 사이에 직접 만든 단계가 필요하면 [워
 
 ### 인시던트 선언
 
-**Create One Incident** 블록을 추가하고 **조건 분기** 블록의 **예** 쪽을 여기에 연결합니다. **인시던트 템플릿**에서 심각도와 호출할 온콜 정책을 정하는 템플릿을 고릅니다([인시던트 템플릿](/docs/incidents/settings#인시던트-템플릿) 참고). **JSON 객체**에서 Alertmanager에서 오는 값을 설정합니다:
+**인시던트 1개 만들기** 블록을 추가하고 **조건 분기** 블록의 **예** 쪽을 여기에 연결합니다. **인시던트 템플릿**에서 심각도와 호출할 온콜 정책을 정하는 템플릿을 고릅니다([인시던트 템플릿](/docs/incidents/settings#인시던트-템플릿) 참고). **JSON 객체**에서 Alertmanager에서 오는 값을 설정합니다:
 
 ```json
 {
@@ -224,7 +224,7 @@ Alertmanager와 인시던트 사이에 직접 만든 단계가 필요하면 [워
 
 `Alertmanager watchdog`이라는 이름으로 두 번째 수신 요청 모니터를 만듭니다. 모니터를 오프라인으로 표시하는 첫 번째 기준의 필터는 **수신 요청**, **분 동안 미수신**, `10`으로, 두 번째 기준의 필터는 **수신 요청**, **분 이내 수신**, `10`으로 설정합니다. 대시보드에서는 둘 다 이 철자로 표시됩니다. 새 모니터의 **Heartbeat URL**을 복사합니다.
 
-### 워치독 알림을 그쪽으로 보내기
+### 워치독 경고를 그쪽으로 보내기
 
 워치독 모니터의 URL을 위한 수신기와, `Watchdog`을 5분마다 그쪽으로 보내는 라우트를 추가합니다. 하위 라우트는 상위 라우트의 수신기보다 먼저 확인되므로 `Watchdog`은 워치독 모니터로 가고, 다른 모든 경고는 계속 첫 번째 모니터로 갑니다:
 
@@ -266,7 +266,7 @@ receivers:
 - 기준의 인시던트에는 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다.
 - **Field that signals recovery**는 `requestBody.alerts[*].status`여야 하고, **Value that means recovered**는 정확히 `resolved`여야 합니다. 비교는 대소문자를 구분합니다.
 - 통지에서 **Max incidents per request**를 넘는 알림은 아예 읽히지 않으므로, 그 복구도 사라집니다.
-- 버스트 중에 건너뛴 복구(아래 참고)는 해당 인시던트를 영영 열린 채로 둡니다. Alertmanager는 발생 중인 알림은 반복해서 보내지만 복구는 반복하지 않습니다. 그런 인시던트는 직접 해결합니다.
+- 버스트 중에 건너뛴 복구(아래 참고)는 해당 인시던트를 영영 열린 채로 둡니다. Alertmanager는 발생 중인 경고는 반복해서 보내지만 복구는 반복하지 않습니다. 그런 인시던트는 직접 해결합니다.
 :::
 
 :::details 인시던트가 열리지 않음
@@ -298,7 +298,7 @@ receivers:
 
 :::cards
 - [수신 요청 모니터](/docs/monitor/incoming-request-monitor): 경고를 받는 모니터의 모든 설정.
-- [Grafana](/docs/integrations/grafana): Grafana 알림을 위한 같은 설정.
+- [Grafana](/docs/integrations/grafana): Grafana 경고를 위한 같은 설정.
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 온콜 정책이 누구를 언제 호출할지 정합니다.
 - [통합 개요](/docs/integrations/index): 연결할 수 있는 다른 도구.
 :::

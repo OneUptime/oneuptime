@@ -113,7 +113,7 @@ Slå av **Varsle abonnenter** for å publisere uten å varsle abonnenter. Endre 
 
 ### Publiser
 
-Klikk på **Lagre endringer**. Kortet viser nå **Etteranalyse synlig på statussiden?**, **Varsle abonnenter**, **Abonnentvarselsstatus** og **Etteranalyse publisert**.
+Klikk på **Lagre endringer**. Kortet viser nå **Etteranalyse synlig på statussiden?**, **Varsle abonnenter**, **Abonnentvarslingsstatus** og **Etteranalyse publisert**.
 :::
 
 Dette avgjør om kundene ser den og hører om den:
@@ -121,9 +121,9 @@ Dette avgjør om kundene ser den og hører om den:
 - **Hendelsen må vises på statussiden.** En statusside viser en etteranalyse bare på en hendelse den viser: **Synlig på statussiden** slått på, og hendelsen ikke privat.
 - **Notatet må si noe.** En etteranalyse som publiseres med et tomt notat, vises ikke, og ingen får beskjed.
 - **Abonnentene får beskjed én gang**, første gang statussiden viser etteranalysen. Å lagre den igjen, eller redigere den mens den er publisert, oppdaterer siden uten å varsle noen. Å ta den bort og publisere den igjen varsler dem igjen. En etteranalyse som publiseres mens hendelsen er skjult, sendes når hendelsen gjøres synlig.
-- **Varsle abonnenter leses når varselet sendes.** Å slå den på etter at etteranalysen er publisert, sender ingenting.
+- **Varsle abonnenter leses når varslingen sendes.** Å slå den på etter at etteranalysen er publisert, sender ingenting.
 
-**Abonnentvarselsstatus** viser om varselet er sendt, og tilbyr **Prøv på nytt** når det mislyktes. Se [Etteranalysen](/docs/status-pages/subscribers#etteranalysen) for hvert tilfelle, og [Prøv på nytt og send på nytt](/docs/status-pages/subscribers#prøv-på-nytt-og-send-på-nytt).
+**Abonnentvarslingsstatus** viser om varslingen er sendt, og tilbyr **Prøv på nytt** når det mislyktes. Se [Etteranalysen](/docs/status-pages/subscribers#etteranalysen) for hvert tilfelle, og [Prøv på nytt og send på nytt](/docs/status-pages/subscribers#prøv-på-nytt-og-send-på-nytt).
 
 **Etteranalyse publisert** er også tidspunktet da etteranalysen regnes som publisert for målingen **Tid til etteranalyse**: se [Ferdige målinger](/docs/incidents/settings#ferdige-målinger).
 
@@ -250,7 +250,7 @@ Sjekk tre ting: **Publiser på statussiden** er slått på, notatet er ikke tomt
 :::
 
 :::details Abonnentene fikk ikke beskjed om etteranalysen
-**Varsle abonnenter** var slått av ved publiseringen, eller hendelsen er skjult: da sendes den så snart hendelsen gjøres synlig. **Abonnentvarselsstatus** på kortet forteller hvilken det var.
+**Varsle abonnenter** var slått av ved publiseringen, eller hendelsen er skjult: da sendes den så snart hendelsen gjøres synlig. **Abonnentvarslingsstatus** på kortet forteller hvilken det var.
 :::
 
 :::details Det kom ikke noe KI-utkast da hendelsen ble løst

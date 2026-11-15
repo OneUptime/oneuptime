@@ -42,7 +42,7 @@ flowchart TB
 
 Gå til **Monitorer**, og klik på **Opret monitor**.
 
-### Vælg Podman Container
+### Vælg Podman-container
 
 Klik under **Monitortype** på **Flere monitortyper**, og vælg **Podman-container** under **Infrastruktur**, eller skriv `podman` i søgefeltet. Angiv et **Navn** – det bruges i titler på hændelser og advarsler – og klik på **Næste**.
 

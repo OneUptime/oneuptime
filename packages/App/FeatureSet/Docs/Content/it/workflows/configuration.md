@@ -81,7 +81,7 @@ Nell'elenco **Flussi di lavoro**, fai clic su **Importa JSON** e scegli un file 
 Il file contiene il nome del flusso di lavoro, la descrizione, lo stato di attivazione e il grafo. Volutamente non contiene:
 
 - **La chiave segreta del webhook.** Quando il flusso di lavoro viene creato se ne genera una nuova, quindi un flusso di lavoro importato ha un URL di webhook diverso: copialo dal trigger Webhook del nuovo flusso di lavoro. Tutto ciò che chiamava l'originale va reindirizzato.
-- **L'indirizzo email in arrivo.** Un flusso di lavoro importato con un trigger Incoming Email riceve un indirizzo tutto suo: copialo dal trigger del nuovo flusso di lavoro. A tutto ciò che scriveva all'originale va dato il nuovo indirizzo.
+- **L'indirizzo email in arrivo.** Un flusso di lavoro importato con un trigger Email in arrivo riceve un indirizzo tutto suo: copialo dal trigger del nuovo flusso di lavoro. A tutto ciò che scriveva all'originale va dato il nuovo indirizzo.
 - **Le variabili globali.** Un blocco che legge `{{global.variables.MY_SECRET}}` mantiene quel riferimento, ma il valore non è nel file. Crea le variabili nel progetto di destinazione prima di eseguire il flusso di lavoro importato.
 - **I proprietari e le etichette.** Le regole di etichette e proprietari del tuo progetto si applicano al flusso di lavoro importato, come se lo avessi creato a mano.
 
@@ -103,10 +103,10 @@ Solo le persone che possono modificare il flusso di lavoro — **Proprietario de
 
 ## Sicurezza delle email in arrivo
 
-Il trigger Incoming Email dà al flusso di lavoro un indirizzo tutto suo, e chiunque conosca l'indirizzo può scrivergli. La parte prima della `@` è la chiave segreta del flusso di lavoro, quindi tratta l'indirizzo come una password:
+Il trigger Email in arrivo dà al flusso di lavoro un indirizzo tutto suo, e chiunque conosca l'indirizzo può scrivergli. La parte prima della `@` è la chiave segreta del flusso di lavoro, quindi tratta l'indirizzo come una password:
 
 - Non pubblicarlo e non inserirlo in un repository pubblico. Il trigger nasconde la chiave finché non fai clic su **Mostra**, e **Copia indirizzo** copia l'indirizzo senza mostrarlo.
-- Se l'indirizzo trapela, fai clic sul trigger Incoming Email nel **Costruttore** e poi su **Reimposta indirizzo**. Il flusso di lavoro riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
+- Se l'indirizzo trapela, fai clic sul trigger Email in arrivo nel **Costruttore** e poi su **Reimposta indirizzo**. Il flusso di lavoro riceve un nuovo indirizzo, e da quel momento le email al vecchio vengono ignorate.
 - Chiunque può mettere qualsiasi mittente su un'email, quindi **Da** non prova chi l'ha inviata. Prima che un flusso di lavoro faccia qualcosa di importante, verifica qualcosa che conosce solo il vero mittente — un token nell'oggetto o in un header — con un blocco **Se / Altrimenti**. Salva il token atteso come variabile segreta.
 - La chiave viene nascosta in tutto ciò che l'esecuzione riceve — **A**, **CC**, gli header e i corpi — perché il log dell'esecuzione è visibile a chiunque possa leggere le esecuzioni del flusso di lavoro.
 
@@ -196,7 +196,7 @@ I passaggi che leggono e modificano i record di OneUptime — i componenti Find,
   - modificare o eliminare una voce del feed (i feed di incidenti, avvisi, episodi, monitor, policy di reperibilità e manutenzione programmata);
   - scrivere un log delle notifiche (i log di SMS, chiamate, email, WhatsApp, Telegram, notifiche push, webhook e messaggi dell'area di lavoro);
   - i valori che OneUptime imposta man mano che le cose accadono: se il CNAME di un dominio personalizzato è verificato, gli interruttori di protezione di un team (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quale ruolo di incidente è quello principale e se può essere eliminato, se un proprietario o un membro è stato avvisato, gli orari e il numero dei promemoria, chi è reperibile ora e dopo in un calendario, l'avanzamento di un'esecuzione di reperibilità, il tasso di consumo e l'error budget attuali di uno SLO, un monitor messo in pausa da un incidente o da un evento di manutenzione, il token di reimpostazione della password e l'ultimo accesso di un utente privato di una pagina di stato, i dati che un servizio riporta su sé stesso (versione, runtime, cloud) e l'ultima esecuzione di una regola di rilevamento o di un feed di minacce;
-  - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Create One Incident** — scegli invece il modello nell'impostazione **Modello di incidente** del passaggio: il passaggio dichiara allora l'incidente da esso, come Amministratore del progetto, e registra il modello;
+  - dichiarare un incidente da un modello inviando `createdIncidentTemplateId` a **Crea: Incidente (un record)** — scegli invece il modello nell'impostazione **Modello di incidente** del passaggio: il passaggio dichiara allora l'incidente da esso, come Amministratore del progetto, e registra il modello;
   - cambiare il record a cui appartiene un record dopo la sua creazione, come il monitor a cui si riferisce una riga di proprietario o l'incidente su cui si trova una nota.
 - **Come nessuno.** Un record creato da un flusso di lavoro non indica alcun creatore, e il log di audit nomina il flusso di lavoro, con il nome che aveva in quel momento, come autore della modifica.
 

@@ -15,7 +15,7 @@ OneUptime arbetar med [GitHub](https://github.com) på två sätt. Anslut dina r
 flowchart TB
     app["GitHub App"] --> repos["Dina repositorier,<br/>importerade"]
     repos --> pr["Pull requests med<br/>rättningar från<br/>OneUptimes AI"]
-    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> workflow["Arbetsflöde:<br/>Vid skapande:<br/>Incident"]
     workflow -->|"POST issues"| issue["GitHub-issue"]
 ```
 
@@ -62,7 +62,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning** och **Incident Number With Prefix**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning** och **Incident Number With Prefix**.
 
 ### Öppna issuet
 

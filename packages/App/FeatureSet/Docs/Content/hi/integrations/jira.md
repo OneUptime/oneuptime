@@ -306,7 +306,7 @@ Jira Cloud खाते के ईमेल और एक API टोकन स�
 ### हर घटना के लिए Jira इश्यू खोलें
 
 :::steps
-1. शुरू से `Incidents to Jira` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **On Create Incident** ट्रिगर जोड़ें। उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है। उसका **Identifier** `incident-on-create-1` ही रहने दें।
+1. शुरू से `Incidents to Jira` नाम का वर्कफ़्लो बनाएं। डैश वाले ब्लॉक पर क्लिक करें और **घटना बनने पर** ट्रिगर जोड़ें। उसके **आगे भेजने वाले फ़ील्ड** में पहले से **शीर्षक** है: **फ़ील्ड जोड़ें** पर क्लिक करें और **विवरण** और **घटना संख्या** चुनें। ID हमेशा आगे भेजा जाता है। उसका **Identifier** `incident-on-create-1` ही रहने दें।
 2. **घटक जोड़ें** पर क्लिक करें, एक **API कॉल POST (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **Identifier** `create-issue` पर, उसका **URL** `{{global.variables.JIRA_URL}}/rest/api/3/issue` पर, और **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** को `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` पर सेट करें।
 3. उसकी **अनुरोध बॉडी** को इश्यू पर सेट करें, और `OPS` और `Bug` को अपनी प्रोजेक्ट कुंजी और उस प्रोजेक्ट के किसी इश्यू प्रकार से बदलें:
 
@@ -390,7 +390,7 @@ Jira में सभी को वापस आने का रास्ता
 इसे दूसरे वर्कफ़्लो के रूप में बनाएं, ताकि यहां की विफलता इश्यू खुलने से कभी न रोके।
 
 :::steps
-1. **On Update Incident** ट्रिगर के साथ `Incident updates to Jira` नाम का वर्कफ़्लो बनाएं। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **आगे भेजने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **नाम** चुनें।
+1. **घटना अपडेट होने पर** ट्रिगर के साथ `Incident updates to Jira` नाम का वर्कफ़्लो बनाएं। **नज़र रखने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें और **Current Incident State** चुनें। **आगे भेजने वाले फ़ील्ड** में **फ़ील्ड जोड़ें** पर क्लिक करें, **Current Incident State** खोलें और **नाम** चुनें।
 2. एक **अगर / वरना** ब्लॉक जोड़ें: **जांचने वाला मान** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **तुलना** **इसके बराबर है**, **इससे तुलना करें** `Resolved`, या आपकी सुलझी हुई स्थिति का नाम।
 3. उसकी **हाँ** साइड के बाद, एक **API कॉल POST (JSON)** ब्लॉक से इश्यू ढूंढें, जिसका **Identifier** `find-issue` हो, और जो `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` पर पोस्ट करे:
 
@@ -425,7 +425,7 @@ JQL को URL में डालने के बजाय पोस्ट क
 
    सेल्फ़-होस्टेड इंस्टॉलेशन अपना होस्ट इस्तेमाल करता है। URL को पासवर्ड की तरह रखें: जिसके पास यह है, वह वर्कफ़्लो शुरू कर सकता है। अगर यह लीक हो जाए, तो उसी जगह **URL रीसेट करें** पर क्लिक करें, और पुराना URL तुरंत काम करना बंद कर देता है।
 
-3. ट्रिगर से एक **Update One Incident** ब्लॉक जोड़ें। उसकी **क्वेरी** को `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` पर, और उसके **डेटा (JSON ऑब्जेक्ट)** को बदलाव पर सेट करें, जैसे एक नया `currentIncidentStateId`। `{"name": "Resolved"}` क्वेरी वाला एक **Find One Incident State** ब्लॉक आपको वह ID `{{local.components.incident-state-find-one-1.returnValues.model._id}}` के रूप में देता है।
+3. ट्रिगर से एक **एक घटना अपडेट करें** ब्लॉक जोड़ें। उसकी **क्वेरी** को `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` पर, और उसके **डेटा (JSON ऑब्जेक्ट)** को बदलाव पर सेट करें, जैसे एक नया `currentIncidentStateId`। `{"name": "Resolved"}` क्वेरी वाला एक **एक घटना स्थिति खोजें** ब्लॉक आपको वह ID `{{local.components.incident-state-find-one-1.returnValues.model._id}}` के रूप में देता है।
 
 इसे चालू करें, फिर Jira से इसे कॉल करवाएं, किसी ऑटोमेशन नियम से या किसी वेबहुक से:
 
@@ -466,13 +466,13 @@ Send web request सिर्फ़ पोर्ट 80, 8080, 443, 6017, 8443, 8
 
 | घटना | अलर्ट |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | कोई नहीं: अलर्ट में सार्वजनिक नोट नहीं होते |
+| **घटना बनने पर** (`incident-on-create-1`) | **अलर्ट बनने पर** (`alert-on-create-1`) |
+| **घटना अपडेट होने पर** (`incident-on-update-1`) | **अलर्ट अपडेट होने पर** (`alert-on-update-1`) |
+| **घटना आंतरिक नोट बनने पर** | **अलर्ट आंतरिक नोट बनने पर** |
+| **घटना सार्वजनिक नोट बनने पर** | कोई नहीं: अलर्ट में सार्वजनिक नोट नहीं होते |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **एक घटना स्थिति खोजें** | **एक अलर्ट स्थिति खोजें** |
+| **एक घटना अपडेट करें** | **एक अलर्ट अपडेट करें** |
 | लेबल `oneuptime-incident-<incident id>` | लेबल `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Jira आपकी कॉल की रफ़्तार सीमित कर 
 :::
 
 :::details वर्कफ़्लो चलता है, पर घटना नहीं बदलती
-**Update One Incident** ब्लॉक `Items Updated: 0` बताता है जब उसकी क्वेरी किसी से मेल नहीं खाती, और यह सफलता है, त्रुटि नहीं। जांचें कि अनुरोध में ID सचमुच OneUptime घटना का है, और आप `_id` पर क्वेरी करते हैं।
+**एक घटना अपडेट करें** ब्लॉक `Items Updated: 0` बताता है जब उसकी क्वेरी किसी से मेल नहीं खाती, और यह सफलता है, त्रुटि नहीं। जांचें कि अनुरोध में ID सचमुच OneUptime घटना का है, और आप `_id` पर क्वेरी करते हैं।
 :::
 
 :::details Jira इश्यू में रेफ़रेंस जैसा लिखा था वैसा दिखता है

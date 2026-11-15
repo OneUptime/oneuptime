@@ -129,7 +129,7 @@ Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **Wenn / Sonst**-Ba
 
 ### Den Vorfall melden
 
-Fügen Sie einen **Create One Incident**-Baustein hinzu und verbinden Sie die Seite **Ja** des **Wenn / Sonst**-Bausteins damit. Wählen Sie unter **Vorfallsvorlage** eine Vorlage, die den Schweregrad und die zu alarmierenden Bereitschaftsrichtlinien festlegt (siehe [Vorfallvorlagen](/docs/incidents/settings#vorfall-vorlagen)). Setzen Sie in **JSON-Objekt**, was von Grafana kommt:
+Fügen Sie einen **Vorfall erstellen (einzeln)**-Baustein hinzu und verbinden Sie die Seite **Ja** des **Wenn / Sonst**-Bausteins damit. Wählen Sie unter **Vorfallsvorlage** eine Vorlage, die den Schweregrad und die zu alarmierenden Bereitschaftsrichtlinien festlegt (siehe [Vorfallvorlagen](/docs/incidents/settings#vorfall-vorlagen)). Setzen Sie in **JSON-Objekt**, was von Grafana kommt:
 
 ```json
 {

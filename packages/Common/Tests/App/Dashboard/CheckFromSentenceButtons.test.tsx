@@ -507,13 +507,13 @@ describe("when the check alerts, in the issue's languages: the number where each
       "ko",
       DataCheckAlertCondition.Above,
       0,
-      "값이 0 초과일 때 알림을 보냅니다.",
+      "값이 0 초과일 때 경고를 보냅니다.",
     ],
     [
       "ko",
       DataCheckAlertCondition.Below,
       5,
-      "값이 5 미만일 때 알림을 보냅니다.",
+      "값이 5 미만일 때 경고를 보냅니다.",
     ],
     [
       "hi",

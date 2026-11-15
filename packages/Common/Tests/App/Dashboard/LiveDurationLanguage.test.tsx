@@ -74,7 +74,7 @@ describe("a Duration in the reader's language", () => {
     expect(duration).toHaveTextContent("10 Tage, 23 Stunden");
     expect(duration).toHaveAttribute(
       "title",
-      "10 Tage, 23 Stunden und 31 Minuten",
+      "10\u00A0Tage, 23\u00A0Stunden und 31\u00A0Minuten",
     );
     expect(duration.textContent).not.toContain("days");
   });
@@ -115,7 +115,10 @@ describe("a Duration in the reader's language", () => {
     const duration: HTMLElement = screen.getByTestId("live-duration");
 
     expect(duration).toHaveTextContent("10 days, 23 hours");
-    expect(duration).toHaveAttribute("title", "10 days, 23 hours, 31 minutes");
+    expect(duration).toHaveAttribute(
+      "title",
+      "10\u00A0days, 23\u00A0hours, 31\u00A0minutes",
+    );
   });
 });
 
@@ -143,7 +146,7 @@ describe("a list's Duration breaks between its units, never inside one", () => {
     expect(duration.textContent).toBe("10\u{00A0}Tage, 23\u{00A0}Stunden");
     expect(duration).toHaveAttribute(
       "title",
-      "10 Tage, 23 Stunden und 31 Minuten",
+      "10\u00A0Tage, 23\u00A0Stunden und 31\u00A0Minuten",
     );
   });
 
@@ -167,7 +170,7 @@ describe("a list's Duration breaks between its units, never inside one", () => {
     render(<LiveDuration startDate={DECLARED} />);
 
     expect(screen.getByText(/days/).textContent).toBe(
-      "10 days, 23 hours, 31 minutes",
+      "10\u00A0days, 23\u00A0hours, 31\u00A0minutes",
     );
   });
 });

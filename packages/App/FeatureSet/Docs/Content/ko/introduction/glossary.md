@@ -392,7 +392,7 @@ OneUptime의 AI 사이트 신뢰성 엔지니어입니다. 새 인시던트와 �
 
 ### 인프라 에이전트
 
-Server / VM 모니터 뒤에서 동작하는 `oneuptime-infrastructure-agent` 서비스입니다. 머신 한 대의 CPU, 메모리, 디스크, 프로세스를 30초마다 모니터의 비밀 키로 서명해 보고합니다.
+서버 / VM 모니터 뒤에서 동작하는 `oneuptime-infrastructure-agent` 서비스입니다. 머신 한 대의 CPU, 메모리, 디스크, 프로세스를 30초마다 모니터의 비밀 키로 서명해 보고합니다.
 
 [서버 / VM 모니터](/docs/monitor/server-monitor)를 참고하세요.
 

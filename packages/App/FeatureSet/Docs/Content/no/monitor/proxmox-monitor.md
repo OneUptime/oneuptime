@@ -1,4 +1,4 @@
-# Proxmox-overvåking
+# Proxmox-monitor
 
 En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
 
@@ -152,7 +152,7 @@ To varsler til leser notifikasjonene fra Proxmox VE selv, som klyngen sender som
 
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Advarsel | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
+| Backup Job Failed | Advarsling | Notifikasjonslogger med `pve.notification.type = vzdump` og `pve.notification.severity = error`, per node og jobb, siste 60 minutter | En sikkerhetskopijobb melder en feil | Neste kjøring av samme jobb lykkes |
 | Node Fenced | Kritisk | Notifikasjonslogger med `pve.notification.type = fencing`, per node, siste 30 minutter | Proxmox VE isolerer en node (fencing) | Den noden isoleres ikke igjen på 30 minutter |
 
 Hver node og hver sikkerhetskopijobb får sin egen hendelse og sitt eget varsel. Varselet for en mislykket sikkerhetskopijobb forblir åpent til en senere kjøring av samme jobb lykkes, uansett hvor lang tid det tar.
@@ -296,7 +296,7 @@ Serier for nettverks- og disk-I/O er tellere over hele levetiden, og kriterier s
 
 :::cards
 - [Proxmox-agent](/docs/telemetry/proxmox): Installer agenten, eller sett opp det innebygde pushet.
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

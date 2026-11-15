@@ -100,7 +100,7 @@ Apri la pagina **Elimina** della dashboard. L'eliminazione non può essere annul
 
 Se la dashboard è pubblica su un dominio personalizzato, l'indirizzo smette di rispondere non appena la elimini. Per continuare a servire l'indirizzo, aggiungi il dominio a un'altra dashboard dopo aver eliminato questa: un dominio appartiene a una sola dashboard alla volta.
 
-## Registri di audit
+## Log di audit
 
 La pagina **Log di audit** della dashboard elenca ogni modifica fatta alla dashboard, e chi l'ha fatta. I log di audit fanno parte del piano Enterprise e dell'[Edizione Enterprise](/docs/self-hosted/enterprise).
 

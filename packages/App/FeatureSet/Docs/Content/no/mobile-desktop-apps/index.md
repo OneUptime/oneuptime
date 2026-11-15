@@ -15,7 +15,7 @@ OneUptime har en app for telefonen din og en for datamaskinen din. **OneUptime O
 | --- | --- | --- |
 | Hva den er | OneUptime On-Call, en native app for iPhone, iPad og Android | OneUptime-dashbordet, installert fra nettleseren din |
 | Hvor du får den | App Store, Google Play, eller en APK fra GitHub | Ditt eget OneUptime: det er ingenting å laste ned |
-| Vaktvarsler | Push-varsler, som kan ringe gjennom lydløs og Ikke forstyrr | Nettleservarsler, når du har registrert nettleseren |
+| Vaktvarslinger | Push-varslinger, som kan ringe gjennom lydløs og Ikke forstyrr | Nettleservarslinger, når du har registrert nettleseren |
 | Hva du kan gjøre | Hendelser, varsler, sikkerhetssaker, monitorer og hvem som har vakt; bekrefte, løse, godkjenne playbook-steg og legge til notater | Alt dashbordet kan |
 | Oppdateringer | Fra butikken, eller ved å installere en nyere APK | Hver gang den åpnes, henter den dashbordet fra ditt OneUptime |
 | Kjører på | iOS 16.4 eller nyere, Android 7.0 eller nyere | Windows, macOS og Linux, med Edge eller Chrome, eller Safari på macOS Sonoma 14 eller nyere |
@@ -33,30 +33,30 @@ flowchart TB
     Desktop["Skrivebordsappen<br/>på datamaskinen din"]
     OneUptime -->|"til en telefon"| Expo
     OneUptime -->|"til en registrert<br/>nettleser"| WebPush
-    Expo -->|"push-varsel"| Phone
-    WebPush -->|"varsel"| Desktop
+    Expo -->|"push-varsling"| Phone
+    WebPush -->|"varsling"| Desktop
 ```
 
-Mobilappen logger inn på ditt OneUptime og registrerer telefonen i hvert prosjekt du er medlem av. Deretter sender OneUptime telefonens push-varsler, blant dem vaktvarslene, gjennom Expos push-tjeneste, som gir dem videre til Apple eller Google for levering. Som standard sender et selvdriftet OneUptime dem gjennom OneUptimes push-relé, så det trenger ingen egen konto hos Apple, Google eller Expo: se [Push-varsler](/docs/self-hosted/push-notifications).
+Mobilappen logger inn på ditt OneUptime og registrerer telefonen i hvert prosjekt du er medlem av. Deretter sender OneUptime telefonens push-varslinger, blant dem vaktvarslingene, gjennom Expos push-tjeneste, som gir dem videre til Apple eller Google for levering. Som standard sender et selvdriftet OneUptime dem gjennom OneUptimes push-relé, så det trenger ingen egen konto hos Apple, Google eller Expo: se [Push-varslinger](/docs/self-hosted/push-notifications).
 
-Skrivebordsappen er selve dashbordet i et eget vindu. Den viser varsler når du har registrert nettleseren dens for push-varsler: sidene om Windows, macOS og Linux viser hvordan.
+Skrivebordsappen er selve dashbordet i et eget vindu. Den viser varslinger når du har registrert nettleseren dens for push-varslinger: sidene om Windows, macOS og Linux viser hvordan.
 
 ## Før du begynner
 
 - En konto i et OneUptime-prosjekt. For å bli varslet må du også ha vakt: se [Eskaleringsregler](/docs/on-call/escalation-rules).
 - Adressen til ditt OneUptime. På OneUptime Cloud er det `https://oneuptime.com`; et selvdriftet OneUptime har sin egen, for eksempel `https://oneuptime.example.com`.
-- Ditt OneUptime over HTTPS. Mobilappen kobler ikke til over vanlig HTTP, og nettlesere viser bare varsler, og Edge og Chrome installerer bare apper, for HTTPS-nettsteder.
+- Ditt OneUptime over HTTPS. Mobilappen kobler ikke til over vanlig HTTP, og nettlesere viser bare varslinger, og Edge og Chrome installerer bare apper, for HTTPS-nettsteder.
 
 ## Hent mobilappen
 
 :::steps
 ### Installer OneUptime On-Call
-Hent den fra [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) på en iPhone eller iPad, eller fra [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) på Android. For en Android-telefon uten Google Play installerer du [APK-en](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) i stedet. De samme lenkene står i dashbordet under **Prosjektinnstillinger → Varsler → Mobilapper**.
+Hent den fra [App Store](https://apps.apple.com/us/app/oneuptime-on-call/id6759615391) på en iPhone eller iPad, eller fra [Google Play](https://play.google.com/store/apps/details?id=com.oneuptime.oncall) på Android. For en Android-telefon uten Google Play installerer du [APK-en](https://github.com/OneUptime/oneuptime/releases/latest/download/oneuptime-on-call-android-app.apk) i stedet. De samme lenkene står i dashbordet under **Prosjektinnstillinger → Varslinger → Mobilapper**.
 
 ### Koble den til ditt OneUptime
 Åpne appen, behold `https://oneuptime.com` for OneUptime Cloud eller skriv inn adressen til ditt eget OneUptime, og logg inn med passordet ditt, en tilgangsnøkkel eller single sign-on.
 
-### Tillat varsler
+### Tillat varslinger
 Tillat dem når telefonen spør. Appen registrerer telefonen i hvert av prosjektene dine, og vaktvarslene dine når den fra da av.
 :::
 

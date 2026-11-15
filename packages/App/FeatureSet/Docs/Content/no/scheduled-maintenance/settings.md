@@ -117,7 +117,7 @@ Kortet **Neste nummer** under setter nummeret den neste hendelsen får, for å f
 
 ## Arbeidsflyter
 
-Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver vedlikeholdsmodell har arbeidsflytutløsere og -handlinger, oppkalt etter seg: **Ved oppretting: Vedlikeholdshendelse**, **Ved oppdatering: Vedlikeholdshendelse**, **Ved oppretting eller oppdatering: Vedlikeholdshendelse** og **Ved sletting: Vedlikeholdshendelse**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Opprett Vedlikeholdshendelse (én post)** og **Oppdater Vedlikeholdshendelse (én post)**. Definisjoner av egendefinerte felt og måleverdier er unntakene: de har ingen arbeidsflyttrinn. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dette
 
@@ -136,7 +136,7 @@ Regler, egendefinerte felt og målinger krever **Prosjekteier** eller **Prosjekt
 :::
 
 :::details Eierne fikk ingen påminnelse
-Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Påminnelse om vedlikehold** er på i varselinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
+Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Påminnelse om vedlikehold** er på i varslingsinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
 :::
 
 ## Neste steg
@@ -145,5 +145,5 @@ Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påmin
 - [Vedlikeholdstilstander](/docs/scheduled-maintenance/states): Siden Vedlikeholdsstatus, og hva hver tilstand gjør.
 - [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates): Siden Vedlikeholdsmaler, i dybden.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): Regelskjemaet, trinn for trinn.
-- [Varselinnstillinger](/docs/notifications/notification-settings): Hvordan hver eier velger hva som når frem til dem.
+- [Varslingsinnstillinger](/docs/notifications/notification-settings): Hvordan hver eier velger hva som når frem til dem.
 :::

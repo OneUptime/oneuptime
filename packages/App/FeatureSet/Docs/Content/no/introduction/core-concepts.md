@@ -109,7 +109,7 @@ En **episode** samler relaterte hendelser, eller relaterte varsler, slik at team
 
 En **vaktpolicy** avgjør hvem som varsles om en hendelse eller et varsel, og hvem som er neste hvis ingen svarer. **Eskaleringsreglene** er nivåene: hvert nivå varsler sine personer og venter så på at noen bekrefter før neste nivå varsles. Et nivå kan varsle personer, team eller en **vaktplan**, en rotasjon som til enhver tid vet hvem som har vakt.
 
-Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hver person måtene OneUptime kan nå dem på, som e-post, SMS, anrop, push-varsler, Slack eller Microsoft Teams, og hvilke som brukes når de varsles.
+Hvordan hver person nås, bestemmer de selv. I **Brukerinnstillinger** lagrer hver person måtene OneUptime kan nå dem på, som e-post, SMS, anrop, push-varslinger, Slack eller Microsoft Teams, og hvilke som brukes når de varsles.
 
 :::cards
 - [Vakt – Oversikt](/docs/on-call/index): Hvordan et varsel når frem, og hvor hver del finnes.
@@ -136,7 +136,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
 :::
 
 ## Sikkerhet

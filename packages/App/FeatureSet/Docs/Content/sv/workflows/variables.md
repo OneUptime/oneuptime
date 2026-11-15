@@ -196,7 +196,7 @@ Hänvisa till ett tidigare blocks utdata så här:
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Ett **API**-block med ID:t `lookup-user`                  | Dess statuskod: `{{local.components.lookup-user.returnValues.response-status}}`. Dess body: `{{local.components.lookup-user.returnValues.response-body}}`. |
 | Ett **Kör egen JavaScript**-block med ID:t `transform`  | Det det returnerade: `{{local.components.transform.returnValues.returnValue}}`.       |
-| En **On Create Incident**-utlösare med ID:t `incident-on-create-1` | Incidentens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Postutlösare returnerar posten som `model`, som du går ned i. |
+| En **Vid skapande: Incident**-utlösare med ID:t `incident-on-create-1` | Incidentens titel: `{{local.components.incident-on-create-1.returnValues.model.title}}`. Postutlösare returnerar posten som `model`, som du går ned i. |
 
 Blockvärden finns bara under den aktuella körningen. Varje ny körning börjar om från början.
 
@@ -239,7 +239,7 @@ En webhook kommer med en body som `{ "service": "checkout", "status": "failed" }
 
 1. En **Webhook**-utlösare med ID:t `ci-webhook`.
 2. Ett **Om / Annars**-block: **Värde att kontrollera** är fältet `status` i webhookens Request Body (`{{local.components.ci-webhook.returnValues.request-body.status}}`), **Jämförelse** är **är lika med** och **Jämför med** är `failed`.
-3. Från grenen **Ja** ett **Create One Incident**-block med:
+3. Från grenen **Ja** ett **Skapa Incident (en post)**-block med:
    - Titel: `CI build failed: {{local.components.ci-webhook.returnValues.request-body.service}}`
    - Beskrivning: `See {{local.components.ci-webhook.returnValues.request-body.url}} for the logs.`
 

@@ -276,7 +276,7 @@ OneUptime reconnaît ces noms de métriques `iot_*`. N'envoyez que ceux qui ont 
 
 | Nom de la métrique | Signification |
 | --- | --- |
-| `iot_device_up` | Disponibilité : `1` signifie disponible et joignable, `0` indisponible. Le moniteur IoT Device la lit. |
+| `iot_device_up` | Disponibilité : `1` signifie disponible et joignable, `0` indisponible. Le moniteur Appareil IoT la lit. |
 | `iot_device_info` | Identité uniquement. Elle porte `device.id`, la classe, le type et le firmware, pour qu'un appareil apparaisse dans l'inventaire avant de signaler des relevés. |
 | `iot_battery_percent` | Charge de la batterie, de `0` à `100` (%). |
 | `iot_signal_strength_dbm` | Force du signal sans fil en dBm, comme le RSSI Wi-Fi, LoRa ou cellulaire. |

@@ -786,7 +786,7 @@ describe("the Queues list columns", () => {
     const cell: HTMLElement | null = container.querySelector(
       '[data-testid="message-queue-last-seen"]',
     );
-    expect(cell).toHaveTextContent(OneUptimeDate.fromNow(seen));
+    expect(cell?.textContent).toContain(OneUptimeDate.fromNow(seen));
     expect(cell).toHaveAttribute(
       "title",
       OneUptimeDate.getDateAsLocalFormattedString(seen),

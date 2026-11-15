@@ -158,5 +158,5 @@ sequenceDiagram
 - [Ping 모니터](/docs/monitor/ping-monitor): 호스트 자체에 도달할 수 있는지 확인합니다.
 - [포트 모니터](/docs/monitor/port-monitor): 같은 호스트의 TCP 서비스를 확인합니다.
 - [사용자 지정 프로브](/docs/probe/custom-probe): 자체 네트워크의 타임 서버를 확인합니다.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 스트라텀과 오차를 인시던트 제목에 넣습니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 스트라텀과 오차를 인시던트 제목에 넣습니다.
 :::

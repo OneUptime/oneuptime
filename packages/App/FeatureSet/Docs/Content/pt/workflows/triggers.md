@@ -117,7 +117,7 @@ O OneUptime dá ao workflow um endereço de e-mail próprio. Cada e-mail enviado
 
 Bom para: agir sobre e-mails de sistemas que não conseguem chamar um webhook — alertas de ferramentas de monitoramento antigas, avisos de status de um fornecedor, o relatório que um job noturno manda por e-mail.
 
-Para obter o endereço, clique no gatilho Incoming Email no canvas. O endereço fica no topo das configurações dele, com um botão **Copiar endereço**. Passe-o para o que deve iniciar o workflow: uma ferramenta que só sabe enviar e-mail, as configurações de notificação de um fornecedor ou uma regra de encaminhamento na sua própria caixa de correio.
+Para obter o endereço, clique no gatilho E-mail recebido no canvas. O endereço fica no topo das configurações dele, com um botão **Copiar endereço**. Passe-o para o que deve iniciar o workflow: uma ferramenta que só sabe enviar e-mail, as configurações de notificação de um fornecedor ou uma regra de encaminhamento na sua própria caixa de correio.
 
 Cada e-mail inicia a sua própria execução. O e-mail chega ao workflow quer o endereço esteja em Para ou em Cc, quer seja uma cópia oculta ou passe por uma regra de encaminhamento. Um e-mail que cita o endereço duas vezes inicia uma única execução.
 
@@ -139,7 +139,7 @@ Depois que chega um e-mail, o seletor de valores de cada bloco após o gatilho s
 
 Para testar o workflow sem enviar um e-mail, clique em **Executar fluxo de trabalho** na página **Construtor** e preencha um remetente, um assunto e um corpo. Os valores que você deixar de fora chegam vazios.
 
-O e-mail só inicia o workflow enquanto ele está ligado. E-mail para um workflow desligado é ignorado, assim como e-mail para um workflow cujo gatilho não é mais Incoming Email.
+O e-mail só inicia o workflow enquanto ele está ligado. E-mail para um workflow desligado é ignorado, assim como e-mail para um workflow cujo gatilho não é mais E-mail recebido.
 
 ### Mantenha o endereço em sigilo
 

@@ -117,7 +117,7 @@ Kortet **Næste nummer** nedenunder sætter det nummer, den næste begivenhed f�
 
 ## Arbejdsgange
 
-Hver vedligeholdelsesmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **On Create Maintenance Event**, **On Update Maintenance Event**, **On Create or Update Maintenance Event** og **On Delete Maintenance Event**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Create One Maintenance Event** og **Update One Maintenance Event**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen arbejdsgangstrin. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
+Hver vedligeholdelsesmodel har arbejdsgangsudløsere og -handlinger, opkaldt efter den: **Ved oprettelse: Vedligeholdelseshændelse**, **Ved opdatering: Vedligeholdelseshændelse**, **Ved oprettelse eller opdatering: Vedligeholdelseshændelse** og **Ved sletning: Vedligeholdelseshændelse**, det samme for **Scheduled Maintenance State Timeline** og de andre, og handlinger som **Opret Vedligeholdelseshændelse (én post)** og **Opdater Vedligeholdelseshændelse (én post)**. Definitioner af brugerdefinerede felter og måleværdier er undtagelserne: de har ingen arbejdsgangstrin. Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ## Hvem der kan ændre dem
 

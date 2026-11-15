@@ -120,7 +120,7 @@ describe("a dry run's time", () => {
     );
 
     expect(headline()).toBe(
-      "Dry run 5 minutes ago: this change would run. Nothing was changed.",
+      "Dry run 5\u00A0minutes ago: this change would run. Nothing was changed.",
     );
   });
 
@@ -199,7 +199,7 @@ describe("a dry run's time", () => {
         now={NOW}
       />,
     );
-    expect(headline()).toContain("5 minutes ago");
+    expect(headline()).toContain("5\u00A0minutes ago");
 
     await inLanguage("ja");
     view.rerender(
@@ -221,11 +221,11 @@ describe("OneUptimeDate.fromNow from a given moment", () => {
 
     expect(OneUptimeDate.fromNow(date, NOW)).toBe("an hour ago");
     expect(OneUptimeDate.fromNow(new Date(before(5)), NOW)).toBe(
-      "5 minutes ago",
+      "5\u00A0minutes ago",
     );
     expect(
       OneUptimeDate.fromNow(new Date(NOW.getTime() + 3 * 86_400_000), NOW),
-    ).toBe("in 3 days");
+    ).toBe("in 3\u00A0days");
 
     await inLanguage("de");
     expect(OneUptimeDate.fromNow(date, NOW)).toBe("vor 1\u00A0Stunde");
@@ -234,6 +234,8 @@ describe("OneUptimeDate.fromNow from a given moment", () => {
   test("without one, from now, as it always was", () => {
     jest.useFakeTimers({ now: NOW, doNotFake: ["nextTick", "setImmediate"] });
 
-    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe("5 minutes ago");
+    expect(OneUptimeDate.fromNow(new Date(before(5)))).toBe(
+      "5\u00A0minutes ago",
+    );
   });
 });

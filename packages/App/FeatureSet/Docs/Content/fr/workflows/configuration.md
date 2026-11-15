@@ -81,7 +81,7 @@ Dans la liste **Flux de travail**, cliquez sur **Importer du JSON** et choisisse
 Le fichier contient le nom du flux de travail, sa description, son état d'activation et son graphe. Il ne contient volontairement pas :
 
 - **La clé secrète du webhook.** Une nouvelle clé est générée à la création du flux de travail : un flux de travail importé a donc une autre URL de webhook — copiez-la depuis le déclencheur Webhook du nouveau flux de travail. Tout ce qui appelait l'original doit être redirigé.
-- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur Incoming Email reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
+- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur E-mail entrant reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
 - **Les variables globales.** Un bloc qui lit `{{global.variables.MY_SECRET}}` garde cette référence, mais la valeur n'est pas dans le fichier. Créez les variables dans le projet de destination avant d'exécuter le flux de travail importé.
 - **Les propriétaires et les étiquettes.** Les règles d'étiquettes et de propriétaires de votre projet s'appliquent au flux de travail importé, comme si vous l'aviez créé à la main.
 
@@ -103,10 +103,10 @@ Seules les personnes qui peuvent modifier le flux de travail — **Propriétaire
 
 ## Sécurité des e-mails entrants
 
-Le déclencheur Incoming Email donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
+Le déclencheur E-mail entrant donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
 
 - Ne la publiez pas et ne la mettez pas dans un dépôt public. Le déclencheur masque la clé tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse sans l'afficher.
-- Si l'adresse fuite, cliquez sur le déclencheur Incoming Email dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
+- Si l'adresse fuite, cliquez sur le déclencheur E-mail entrant dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
 - N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Avant qu'un flux de travail fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **Si / Sinon**. Enregistrez le jeton attendu comme variable secrète.
 - La clé est masquée dans tout ce que reçoit l'exécution — **À**, **Cc**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du flux de travail.
 
@@ -196,7 +196,7 @@ Les étapes qui lisent et modifient des enregistrements OneUptime — les compos
   - modifier ou supprimer une entrée de fil d'activité (fils des incidents, des alertes, des épisodes, des moniteurs, des politiques d'astreinte et des maintenances planifiées) ;
   - écrire un journal de notification (journaux des SMS, des appels, des e-mails, de WhatsApp, de Telegram, des notifications push, des webhooks et des messages d'espace de travail) ;
   - les valeurs que OneUptime définit au fil des événements : si le CNAME d'un domaine personnalisé est vérifié, les interrupteurs de protection d'une équipe (**Is Team Editable**, **Is Team Deleteable**, **Is Permissions Editable**, **Should Have At Least One Member**), quel rôle d'incident est le rôle principal et s'il peut être supprimé, si un propriétaire ou un membre a été notifié, les heures et le nombre de rappels, qui est d'astreinte maintenant et ensuite sur un planning, la progression d'une exécution d'astreinte, le taux de consommation et le budget d'erreur actuels d'un SLO, un moniteur mis en pause par un incident ou un événement de maintenance, le jeton de réinitialisation du mot de passe et la dernière connexion d'un utilisateur privé d'une page de statut, les informations qu'un service déclare sur lui-même (version, environnement d'exécution, cloud), et la dernière exécution d'une règle de détection ou d'un flux de menaces ;
-  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Create One Incident** — choisissez plutôt le modèle sous le paramètre **Modèle d'incident** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant qu'Administrateur du projet, et enregistre le modèle ;
+  - déclarer un incident à partir d'un modèle en envoyant `createdIncidentTemplateId` à **Créer : Incident (un seul)** — choisissez plutôt le modèle sous le paramètre **Modèle d'incident** de l'étape : l'étape déclare alors l'incident à partir de lui, en tant qu'Administrateur du projet, et enregistre le modèle ;
   - changer l'enregistrement auquel appartient un enregistrement après sa création, comme le moniteur auquel se rapporte une ligne de propriétaire ou l'incident sur lequel figure une note.
 - **Au nom de personne.** Un enregistrement créé par un flux de travail n'a pas de créateur, et le journal d'audit nomme le flux de travail, sous son nom du moment, comme auteur de la modification.
 

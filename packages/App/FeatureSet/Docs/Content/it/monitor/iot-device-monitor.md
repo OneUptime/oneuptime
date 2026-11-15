@@ -44,7 +44,7 @@ flowchart TB
 
 Vai su **Monitor** e fai clic su **Crea monitor**.
 
-### Scegliere IoT Device
+### Scegliere Dispositivo IoT
 
 In **Tipo di monitor**, fai clic su **Altri tipi di monitor** e scegli **Dispositivo IoT** sotto **Infrastruttura**, oppure digita `iot` nella casella di ricerca. Inserisci un **Nome** - viene usato nei titoli di incidenti e avvisi - e fai clic su **Avanti**.
 

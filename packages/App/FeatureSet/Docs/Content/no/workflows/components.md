@@ -39,7 +39,7 @@ En blokk kjører når blokken før den tar utgangen som er koblet til den. Den l
 
 ```mermaid title="En blokk tar én av utgangene sine"
 flowchart TB
-    trigger["On Create Incident"] -->|"Suksess"| post["API-kall POST (JSON)"]
+    trigger["Ved oppretting: Hendelse"] -->|"Suksess"| post["API-kall POST (JSON)"]
     post -->|"Suksess: et 2xx-svar"| slack["Send melding til Slack"]
     post -->|"Feil: ikke noe svar, eller ikke 2xx"| log["Logg"]
 ```
@@ -208,7 +208,7 @@ Tilkoblinger til loopback- (`localhost`, `127.0.0.1`), link-local- og skymetadat
 
 ## Paging
 
-Tilkall personer fra en arbeidsflyt: hver person får en oppringning, en SMS, et pushvarsel eller en e-post, slik personens egne vaktregler sier, til noen bekrefter. Det finnes en blokk for hver måte å si hvem som skal tilkalles på. Søk etter `page` i panelet **Legg til komponent**.
+Tilkall personer fra en arbeidsflyt: hver person får en oppringning, en SMS, en pushvarsling eller en e-post, slik personens egne vaktregler sier, til noen bekrefter. Det finnes en blokk for hver måte å si hvem som skal tilkalles på. Søk etter `page` i panelet **Legg til komponent**.
 
 | Blokk                       | Hvem den tilkaller |
 | --------------------------- | ------------------ |
@@ -223,7 +223,7 @@ Vil du bare tilkalle når noe er sant, setter du [If / Else](#conditions) foran 
 
 ```mermaid title="Tilkall den som har vakt, men bare ved kritiske hendelser"
 flowchart TB
-    trigger["On Create Incident"] -->|"Suksess"| check["Hvis / Ellers"]
+    trigger["Ved oppretting: Hendelse"] -->|"Suksess"| check["Hvis / Ellers"]
     check -->|"Ja"| page["Tilkall den som har vakt"]
 ```
 
@@ -411,7 +411,7 @@ En post beveger seg bare fremover, og en løst post ikke i det hele tatt, så n�
 
 **Alvorlighetsgrad** nevner en av alvorlighetsgradene dine ved navn eller ID, uavhengig av store og små bokstaver, eller ved plassen den har blant dem: `most severe`, `middle` eller `least severe`. Slik fordeles et verktøys egne nivåer over alvorlighetsgradene du selv har gitt navn. Står den tom, eller nevner den ingen av dem, er det din mest alvorlige, og kjøringens logg sier det. En ny hendelse holdes unna statussidene dine, og abonnentene deres får ikke beskjed, fordi et annet verktøys tekst er skrevet for det verktøyets brukere: slå på **Vis på statussider** for å vise den.
 
-Under **Flere felt** er **Årsak** årsaken i postens historikk når den flytter seg, og **Notat** legges da til ved siden av som et privat notat, for et verktøy som sier noe når det bekrefter eller løser. **Egendefinerte felt** gir en ny post flere egendefinerte felt, som et JSON-objekt, **Etiketter** ID-ene til etikettene dens, atskilt med komma, og **Berørte ressurser** ressursene den handler om, som på **Create One Incident**. **Notat i stedet for å løse** legger til notatet og lar teamet ditt løse posten. Blokken returnerer **Sammendrag**, det den gjorde, i én setning, og posten, så en senere blokk leser ID-en dens som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Under **Flere felt** er **Årsak** årsaken i postens historikk når den flytter seg, og **Notat** legges da til ved siden av som et privat notat, for et verktøy som sier noe når det bekrefter eller løser. **Egendefinerte felt** gir en ny post flere egendefinerte felt, som et JSON-objekt, **Etiketter** ID-ene til etikettene dens, atskilt med komma, og **Berørte ressurser** ressursene den handler om, som på **Opprett Hendelse (én post)**. **Notat i stedet for å løse** legger til notatet og lar teamet ditt løse posten. Blokken returnerer **Sammendrag**, det den gjorde, i én setning, og posten, så en senere blokk leser ID-en dens som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ For hver type post i OneUptime (monitorer, hendelser, varsler, statussider, vakt
 
 | Komponent                | Hva den gjør                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Leser én post som samsvarer med spørringen.                                    |
-| **Find Many Monitors**   | Leser en liste med poster som samsvarer med spørringen.                        |
-| **Create One Monitor**   | Legger til én post ut fra et JSON-objekt.                                      |
-| **Create Many Monitors** | Legger til flere poster ut fra en JSON-matrise.                                |
-| **Update One Monitor**   | Bruker dataene som skal skrives, på én samsvarende post.                       |
-| **Update Many Monitors** | Bruker dataene som skal skrives, på samsvarende poster, opptil **Grense**.      |
-| **Delete One Monitor**   | Sletter én samsvarende post.                                                   |
-| **Delete Many Monitors** | Sletter samsvarende poster, opptil **Grense**.                                  |
+| **Finn Monitor (én post)**     | Leser én post som samsvarer med spørringen.                                    |
+| **Finn Monitorer (flere poster)**   | Leser en liste med poster som samsvarer med spørringen.                        |
+| **Opprett Monitor (én post)**   | Legger til én post ut fra et JSON-objekt.                                      |
+| **Opprett Monitorer (flere poster)** | Legger til flere poster ut fra en JSON-matrise.                                |
+| **Oppdater Monitor (én post)**   | Bruker dataene som skal skrives, på én samsvarende post.                       |
+| **Oppdater Monitorer (flere poster)** | Bruker dataene som skal skrives, på samsvarende poster, opptil **Grense**.      |
+| **Slett Monitor (én post)**   | Sletter én samsvarende post.                                                   |
+| **Slett Monitorer (flere poster)** | Sletter samsvarende poster, opptil **Grense**.                                  |
 
-Det samme settet gir deg fire triggere — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhetstriggere).
+Det samme settet gir deg fire triggere — **Ved oppretting: Monitor**, **Ved oppdatering: Monitor**, **Ved oppretting eller oppdatering: Monitor** og **Ved sletting: Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhetstriggere).
 
-En type tilbyr bare komponentene modellen dens tillater. En skrivebeskyttet type har de to Find-komponentene og ingenting annet, så finner du ikke **Delete One Monitor** i panelet, tillater ikke den typen det.
+En type tilbyr bare komponentene modellen dens tillater. En skrivebeskyttet type har de to Find-komponentene og ingenting annet, så finner du ikke **Slett Monitor (én post)** i panelet, tillater ikke den typen det.
 
-Slik leser og endrer en arbeidsflyt OneUptime-data. For eksempel kan en webhook fra CI-verktøyet ditt bruke **Create One Incident** til å åpne en hendelse med detaljene om feilen.
+Slik leser og endrer en arbeidsflyt OneUptime-data. For eksempel kan en webhook fra CI-verktøyet ditt bruke **Opprett Hendelse (én post)** til å åpne en hendelse med detaljene om feilen.
 
 Disse komponentene handler som Prosjektadministrator for prosjektet til arbeidsflyten: det en Prosjektadministrator ikke har lov til, eller som planen din ikke inkluderer, avvises, og kjøringens logg sier hvorfor. Se [Hva arbeidsflyttrinn kan gjøre](/docs/workflows/configuration#hva-arbeidsflyttrinn-kan-gjøre).
 
 ### Erklær en hendelse ut fra en mal
 
-**Create One Incident** kan erklære hendelsen ut fra en av [hendelsesmalene](/docs/incidents/settings#hendelsesmaler) dine: velg den under **Hendelsesmal**, trinnets første innstilling. Malen fyller ut alle feltene **JSON-objekt** utelater — tittelen, beskrivelsen, alvorlighetsgraden, starttilstanden, monitorene og andre ressurser, vaktpolicyene, etikettene, statussidene og de egendefinerte feltene — og eierne av malen blir eierne av hendelsen. Alt du angir i **JSON-objekt**, går foran malens, også tilstanden, så med en valgt mal trenger **JSON-objekt** bare det som skal være annerledes, og kan stå tomt.
+**Opprett Hendelse (én post)** kan erklære hendelsen ut fra en av [hendelsesmalene](/docs/incidents/settings#hendelsesmaler) dine: velg den under **Hendelsesmal**, trinnets første innstilling. Malen fyller ut alle feltene **JSON-objekt** utelater — tittelen, beskrivelsen, alvorlighetsgraden, starttilstanden, monitorene og andre ressurser, vaktpolicyene, etikettene, statussidene og de egendefinerte feltene — og eierne av malen blir eierne av hendelsen. Alt du angir i **JSON-objekt**, går foran malens, også tilstanden, så med en valgt mal trenger **JSON-objekt** bare det som skal være annerledes, og kan stå tomt.
 
 Hendelsen registrerer malen den ble erklært ut fra, i `createdIncidentTemplateId`. Den kolonnen setter OneUptime selv: et trinn som sender den i **JSON-objekt**, avvises, og kjøringsloggen viser deg til **Hendelsesmal**. En mal fra et annet prosjekt, eller en som er slettet, får trinnet til å ta utgangen **Feil**, og på en plan som ikke inkluderer hendelsesmaler, avvises trinnet med planen som kreves. Se [Slik brukes en mal](/docs/incidents/settings#slik-brukes-en-mal).
 
 ### Knytte til ressursene det gjelder
 
-**Create One Incident** og **Create One Alert** har en innstilling **Berørte ressurser**: vertene, nettverksenhetene, klyngene, databasene eller tjenestene posten gjelder, etter navn, adresse eller ID, skilt med komma — skrevet inn eller hentet fra et tidligere trinn, som verten et varsel fra et annet verktøy navngir. Hver oppføring letes etter i alle typer ressurser posten kan holde, som hel verdi og uten hensyn til store og små bokstaver: etter navn, en nettverksenhet også etter adressen den polles på eller DNS-navnet sitt, en vert etter navnet agenten dens rapporterer eller en av IP-adressene dens, og en skyressurs etter leverandørens ID. Hver ressurs en oppføring treffer, knyttes til, ved siden av det **JSON-objekt** og malen allerede knytter til, opptil 50 fra de første 25 oppføringene.
+**Opprett Hendelse (én post)** og **Opprett Varsel (én post)** har en innstilling **Berørte ressurser**: vertene, nettverksenhetene, klyngene, databasene eller tjenestene posten gjelder, etter navn, adresse eller ID, skilt med komma — skrevet inn eller hentet fra et tidligere trinn, som verten et varsel fra et annet verktøy navngir. Hver oppføring letes etter i alle typer ressurser posten kan holde, som hel verdi og uten hensyn til store og små bokstaver: etter navn, en nettverksenhet også etter adressen den polles på eller DNS-navnet sitt, en vert etter navnet agenten dens rapporterer eller en av IP-adressene dens, og en skyressurs etter leverandørens ID. Hver ressurs en oppføring treffer, knyttes til, ved siden av det **JSON-objekt** og malen allerede knytter til, opptil 50 fra de første 25 oppføringene.
 
 En oppføring som ikke treffer noe, stopper ikke trinnet: posten opprettes likevel, og kjøringsloggen sier hva hver oppføring knyttet til og hvilke som ikke traff noe. Arkiverte ressurser knyttes ikke til. Monitorer slås ikke opp: navngi dem i **JSON-objekt** (`monitors` på en hendelse, `monitorId` på et varsel), fordi det å knytte en monitor til en hendelse setter overvåkingen dens på pause.
 
 ### Hvem som eier den fra starten
 
-**Create One Incident** og **Create One Alert** har innstillingene **Eierbrukere** og **Eierteam**: personene og teamene som eier posten fra den opprettes. Velg dem, eller ta dem fra et tidligere trinn: en brukers id eller e-postadresse, et teams id, flere skilt med komma, eller en liste. Postens eiere får høre at den er opprettet omtrent ett minutt etter opprettelsen, alle eierne den har da: de som velges her, er alltid blant dem, mens eiere som et senere trinn legger til, går glipp av det når det trinnet kjører mer enn ett minutt senere, og Prosjekteiere får beskjed i stedet.
+**Opprett Hendelse (én post)** og **Opprett Varsel (én post)** har innstillingene **Eierbrukere** og **Eierteam**: personene og teamene som eier posten fra den opprettes. Velg dem, eller ta dem fra et tidligere trinn: en brukers id eller e-postadresse, et teams id, flere skilt med komma, eller en liste. Postens eiere får høre at den er opprettet omtrent ett minutt etter opprettelsen, alle eierne den har da: de som velges her, er alltid blant dem, mens eiere som et senere trinn legger til, går glipp av det når det trinnet kjører mer enn ett minutt senere, og Prosjekteiere får beskjed i stedet.
 
 Trinnet spør, som Prosjektadministrator for prosjektet til arbeidsflyten, om det kan legge dem til før posten lagres: eiere det ikke kan legge til, gjør at opprettelsen avvises. Den som ikke er medlem av prosjektet, eller et team som ikke er ett av prosjektets, utelates, og kjøringsloggen sier det: posten opprettes likevel. Eiere som legges til på denne måten, får ikke beskjed om at de er lagt til: beskjeden om at posten er opprettet, er den de får.
 

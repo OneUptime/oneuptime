@@ -655,13 +655,13 @@ En upptäckt värd namnges efter det första av dessa som den har:
 3. Dess omvända DNS-namn, den PTR-post som sonden slår upp efter skanningen.
 4. Dess IP-adress.
 
-Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Granska resultat** visar det bredvid adressen, och enheten behåller det som sitt **DNS Name**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
+Enhetens egna namn kommer först eftersom det är de namn som dess ägare använder: en Windows-värd som heter `WB0024KDS03` behåller det namnet även när dess omvända zon kallar den `wb-0024-kds03.wbhq.com`. Det omvända DNS-namnet behålls också: **Granska resultat** visar det bredvid adressen, och enheten behåller det som sitt **DNS-namn**. NetBIOS kortar ett datornamn till 15 tecken, så ett NetBIOS-namn som är början på ett längre omvänt DNS-namn (`WB-0024-KITCHEN` för `wb-0024-kitchen-display-03.wbhq.com`) får ge vika för det omvända DNS-namnet.
 
 **Granska resultat** visar det namn en enhet kommer att få, och den får samma namn oavsett om du importerar den där eller om en [regel för automatisk import](#importera-automatiskt-med-regler-för-automatisk-import) gör det. Enhetens värdnamn är alltid dess IP-adress. Så länge en enhets namn fortfarande är det som discovery gav den, visar dess översikt var namnet kom ifrån som **Namnkälla**.
 
 **Namnge enheter efter deras korta värdnamn** kortar ett fullständigt kvalificerat namn till dess första etikett: `core-sw-01.corp.example.com` importeras som `core-sw-01`. Det gäller ett omvänt DNS-namn och ett `sysName` som är ett fullständigt kvalificerat värdnamn; allt annat (`Core Switch`, `ubuntu-22.04`, en IP-adress) lämnas som det är. Det ändrar bara vad enheter heter, så ingen ny skanning behövs: **Granska resultat** och regler för automatisk import använder det nästa gång de namnger en värd, och enheter som redan är importerade behåller sina namn.
 
-En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS Name**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Enheter** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
+En enhet som importeras från en värd med ett omvänt DNS-namn behåller hela namnet som sitt **DNS-namn**, oavsett om skanningen använder korta namn. Det visas på enhetens översikt, sökningen i listan **Enheter** hittar det, och platstilldelningsregler matchar värdnamnsmönster mot det, så en regel `*.store-0660.corp.example.com` fortsätter att placera en enhet vars namn har förlorat sin domän. Ett NetBIOS-namn lagras aldrig som DNS Name: värden rapporterar det om sig själv, och det är inte en DNS-post.
 
 > [!WARNING]
 > Etikett- och ägarregler matchar på enhetens namn. Ett mönster som är skrivet för DNS-namn (`*.wbhq.com`) eller fullständiga namn (`*.corp.example.com`) matchar inte en enhet som är namngiven efter sitt eget namn eller sitt korta namn. Platstilldelningsregler provar också DNS Name, så de fortsätter att matcha.
@@ -795,7 +795,7 @@ Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en 
 
 ### En enhet i taget
 
-Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Network Device och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
+Öppna enhetens sida och klicka på **Skapa monitor** på kortet **Monitors alerting on this device**. Monitorformuläret öppnas med typen Nätverksenhet och enheten valda, och det [rekommenderade larmpaketet](#rekommenderat-larmpaket) ifyllt: granska det, ange allvarlighetsgrader och jourpolicyer och spara.
 
 De flesta switchar, routrar, brandväggar och skrivare har också ett webbgränssnitt på sin egen adress. **Övervaka webbgränssnitt**, på samma kort, öppnar en **Webbplats**-monitor för det: `https://` på enhetens adress, med **Tillåt självsignerade certifikat** påslaget, eftersom en enhets webbgränssnitt nästan alltid har ett, kontrollerad från enhetens egen sond och med namn efter enheten. Ändra URL:en om gränssnittet svarar på `http`, på en annan port eller under en sökväg, och spara sedan. Kortet visar monitorn så länge dess namn innehåller enhetens namn och dess URL ligger på enhetens adress; den ändrar inte enhetens status.
 

@@ -15,7 +15,7 @@ En AI-agent fejler sjældent ved at gå ned. Den fejler ved at fortsætte: den p
 flowchart TB
     agent["Din agent sender<br/>gen_ai.*-spans"] --> ingest["OneUptime"]
     ingest --> wire{"Snubletråd: budget-<br/>eller løkkeadvarsel"}
-    wire -->|"Advarsel oprettet"| workflow["Arbejdsgang:<br/>On Create Alert"]
+    wire -->|"Advarsel oprettet"| workflow["Arbejdsgang:<br/>Ved oprettelse: Advarsel"]
     workflow -->|"API Post (JSON)"| endpoint["Dit stop-endpoint"]
     endpoint --> runner["Runneren pauser<br/>eller stopper agenten"]
 ```
@@ -125,7 +125,7 @@ Gem først endpointets token et sted, hvor arbejdsgangen kan bruge det uden at v
 
 ### Tilføj udløseren
 
-Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** i panelet **Tilføj udløser**. Klik på udløseren: **Felter, der sendes videre** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
+Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **Ved oprettelse: Advarsel** i panelet **Tilføj udløser**. Klik på udløseren: **Felter, der sendes videre** starter med titlen, så klik på **Tilføj felt**, markér beskrivelsen, og klik på **Gem**. ID'et på blokken, `alert-on-create-1`, er det, senere blokke bruger til at henvise til den.
 
 ### Tjek titlen
 

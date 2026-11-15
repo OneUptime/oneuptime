@@ -299,7 +299,7 @@ flowchart TB
 - **인시던트 자체** — `IncidentCreated`, `IncidentUpdated`, `IncidentStateChanged`. `IncidentUpdated` 항목은 편집이 무엇을 바꿨는지 기록합니다. 제목, 설명, 근본 원인, 해결 노트, 레이블, 심각도, 모니터와 그 모니터에 설정한 상태, 그리고 인시던트의 범위에 추가되거나 빠진 상태 페이지입니다. 바뀐 값마다 한 줄이 있고 그대로 저장된 값은 줄이 없으므로, 아무것도 바꾸지 않고 카드를 저장하거나 API 클라이언트나 워크플로우가 인시던트를 그대로 다시 써도 항목이 전혀 추가되지 않습니다. 같게 읽히는 텍스트는 같은 것으로 보며(줄 끝과 앞뒤 공백은 제외), 레이블은 순서와 관계없이 같은 집합이면 같습니다. 지운 값은 제거된 것으로 읽히고, 모든 레이블을 떼면 "All labels removed."로 표시됩니다. 경고의 **Alert updated** 항목도 같은 방식으로 동작합니다.
 - **노트와 문서** — `PublicNote`, `PublicNoteApproval`, `PrivateNote`, `RootCause`, `RemediationNotes`, `PostmortemNote`. `PostmortemNote` 항목은 포스트모템을 저장할 때마다가 아니라 포스트모템의 노트가 바뀔 때 기록됩니다.
 - **사람** — `OwnerUserAdded`, `OwnerTeamAdded`, `OwnerUserRemoved`, `OwnerTeamRemoved`, `IncidentMemberAdded`, `IncidentMemberRemoved`, 그리고 `ChannelMemberAdded`입니다. 마지막은 **채널 멤버 추가됨**으로 표시되며, 인시던트 페이지에서 인시던트의 Slack 또는 Mattermost 채널에 추가된 사람을 나타냅니다. [레코드 채널에 있는 사람](/docs/workspace-connections/slack#레코드-채널에-있는-사람)을 참고하세요.
-- **연결된 알림** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
+- **연결된 경고** — `AlertLinked`와 `AlertUnlinked`로, **경고 연결됨**과 **경고 연결 해제됨**으로 표시됩니다.
 - **알림** — `OwnerNotificationSent`, `SubscriberNotificationSent`, `OnCallPolicy`, `OnCallNotification`.
 - **자동화** — `LabelRuleExecuted`, `OwnerRuleExecuted`, `PrivacyRuleExecuted`, `OnCallRuleExecuted`, `AutoRemediation`.
 - **화상 통화** — `VideoCallStarted`, `VideoCallFailed`, `VideoCallTranscriptAdded`, `VideoCallSummary`. 인시던트를 위해 시작한 통화와 참여 링크, 제공자가 통화를 시작하지 못한 이유, 누군가 추가했거나 제공자에게서 읽어 온 통화 녹취록, 또는 OneUptime AI가 그 안에서 읽은 내용입니다. OneUptime AI가 읽은 내용은 인시던트의 채널에도 게시됩니다. [화상 통화](/docs/workspace-connections/video-calls)를 참고하세요.
@@ -310,7 +310,7 @@ flowchart TB
 
 각 항목에는 변경한 사람이 표시됩니다. 사람이라면 사진과 함께 그 사람이, 프로젝트 API 키로 한 변경(Jira Automation이 API를 통해 여는 인시던트나 스크립트가 게시하는 노트 등)이라면 감사 로그가 부르는 것처럼 그 키가 당시의 이름으로 **API 키** 표시와 함께 나옵니다. OneUptime이 규칙이나 알림 작업으로 직접 한 변경에는 아무도 표시되지 않습니다. 인시던트의 Slack 및 Microsoft Teams 채널에 올라가는 메시지도 같은 사람이나 키로 시작하며, 항목의 대상인 사람으로 시작하는 일은 없습니다. 그곳에서 계정을 연결한 사람은 그 워크스페이스에서 쓰는 이름으로 표시됩니다. 워크플로나 모니터가 누군가에게 역할을 주면 항목은 그 워크플로나 모니터를 표시하고, 스스로 역할을 맡은 사람은 그 역할을 맡은 사람으로 표시됩니다. 각 사람의 이름은 **사용자** 아래의 그 사람 페이지로 연결됩니다.
 
-경고를 연결하면 경고에도 기록됩니다. 경고에는 자체 피드가 있어, 같은 변경이 인시던트 이름과 함께 **인시던트에 연결됨**(`LinkedToIncident`) 또는 **인시던트에서 연결 해제됨**(`UnlinkedFromIncident`)으로 표시됩니다. Slack과 Microsoft Teams에 게시되는 것은 인시던트의 **경고 연결됨**과 **경고 연결 해제됨** 항목뿐이므로, 각 연결은 한 번만 알려집니다. 경고에서 선언된 인시던트에는 경고마다 하나가 아니라 모두를 나열하는 **경고 연결됨** 항목이 하나만 붙으며, 비공개 경고나 인시던트의 제목은 상대편 항목에 쓰이지 않습니다. [연결된 알림](/docs/incidents/linked-alerts)을 참고하세요.
+경고를 연결하면 경고에도 기록됩니다. 경고에는 자체 피드가 있어, 같은 변경이 인시던트 이름과 함께 **인시던트에 연결됨**(`LinkedToIncident`) 또는 **인시던트에서 연결 해제됨**(`UnlinkedFromIncident`)으로 표시됩니다. Slack과 Microsoft Teams에 게시되는 것은 인시던트의 **경고 연결됨**과 **경고 연결 해제됨** 항목뿐이므로, 각 연결은 한 번만 알려집니다. 경고에서 선언된 인시던트에는 경고마다 하나가 아니라 모두를 나열하는 **경고 연결됨** 항목이 하나만 붙으며, 비공개 경고나 인시던트의 제목은 상대편 항목에 쓰이지 않습니다. [연결된 경고](/docs/incidents/linked-alerts)을 참고하세요.
 
 피드는 인시던트의 개인정보를 존중합니다. 비공개 인시던트에서는 피드 읽기가 인시던트와 같은 방식으로 필터링됩니다.
 
@@ -333,7 +333,7 @@ flowchart TB
 소유자 목록에 오르는 경로는 다섯 가지입니다.
 
 - **선언할 때** — 인시던트를 선언한 사람은 소유자가 되고, **인시던트 선언**의 **추가 필드** 아래에 있는 **소유자**로 더 추가할 수 있습니다. 그 사람이 속한 각 팀은 그 아래에서 한 번의 클릭으로 추가할 수 있습니다. [누가 소유자가 되는지](/docs/incidents/declaring-incidents#누가-소유자가-되는지)를 참고하세요.
-- **인시던트 템플릿에서** — 템플릿에는 **소유자** 항목이 있습니다. 인시던트를 소유하고 생성되거나 업데이트될 때 알림을 받는 사람과 팀으로, **소유자 추가**와 같은 목록에서 고릅니다. 템플릿에서 인시던트를 만들면 미리 채워지고, 인시던트의 Slack과 Microsoft Teams 채널이 생긴 뒤에 추가되므로, 인시던트 소유자를 새 채널에 초대하는 알림 규칙은 이들도 초대합니다. 대시보드와, **인시던트 템플릿**을 고른 워크플로우의 **Create One Incident** 단계는 "추가되었습니다" 알림 없이 이들을 추가하고, 템플릿이 있는 [양식](/docs/forms/on-submit)은 이들에게 알리며 이들이 추가될 때까지 인시던트의 **인시던트 생성됨** 알림을 보류합니다. [인시던트 선언](/docs/incidents/declaring-incidents)을 참고하세요.
+- **인시던트 템플릿에서** — 템플릿에는 **소유자** 항목이 있습니다. 인시던트를 소유하고 생성되거나 업데이트될 때 알림을 받는 사람과 팀으로, **소유자 추가**와 같은 목록에서 고릅니다. 템플릿에서 인시던트를 만들면 미리 채워지고, 인시던트의 Slack과 Microsoft Teams 채널이 생긴 뒤에 추가되므로, 인시던트 소유자를 새 채널에 초대하는 알림 규칙은 이들도 초대합니다. 대시보드와, **인시던트 템플릿**을 고른 워크플로우의 **인시던트 1개 만들기** 단계는 "추가되었습니다" 알림 없이 이들을 추가하고, 템플릿이 있는 [양식](/docs/forms/on-submit)은 이들에게 알리며 이들이 추가될 때까지 인시던트의 **인시던트 생성됨** 알림을 보류합니다. [인시던트 선언](/docs/incidents/declaring-incidents)을 참고하세요.
 - **인시던트 소유자 규칙에서** — 일치하는 규칙이 생성 시, 그리고 인시던트의 심각도나 레이블이 바뀔 때 자동으로 소유자를 추가합니다.
 - **API로 생성할 때** — 생성 호출과 함께 전달된 소유자 사용자와 팀도 채널이 생긴 뒤에 같은 방식으로, "추가되었습니다" 알림 없이 추가됩니다.
 - **By hand** — 인시던트 중 언제든 **소유자** 페이지의 **소유자 추가** 컨트롤로 추가합니다. 인시던트가 열려 있는 동안에는 **개요** 헤더에서 소유자 아래의 **추가** 로도 추가할 수 있습니다.

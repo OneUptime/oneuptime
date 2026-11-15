@@ -263,5 +263,5 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 - [日志管道](/docs/telemetry/log-pipelines): 把日志行拆分为可用于过滤和分组的属性。
 - [事件与告警模板](/docs/monitor/incident-alert-templating): 把分组值和计数放进标题和描述。
 - [指标监控](/docs/monitor/metrics-monitor): 按主机或按容器对指标告警。
-- [跟踪监控](/docs/monitor/traces-monitor): 以同样的方式对失败的 Span 告警。
+- [追踪监控](/docs/monitor/traces-monitor): 以同样的方式对失败的 Span 告警。
 :::

@@ -44,7 +44,7 @@ flowchart TB
 
 Ga naar **Monitoren** en klik op **Monitor maken**.
 
-### IoT Device kiezen
+### IoT-apparaat kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **IoT-apparaat** onder **Infrastructuur**, of typ `iot` in het zoekvak. Vul een **Naam** in - die wordt gebruikt in de titels van incidenten en waarschuwingen - en klik op **Volgende**.
 

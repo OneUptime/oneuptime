@@ -98,11 +98,11 @@ Også kalt: **Rotation**, **Vaktplan for vaktpolicy**. Se [Vaktplaner](/docs/on-
 
 Se [Vaktplaner](/docs/on-call/schedules#lag).
 
-### Varselmetode
+### Varslingsmetode
 
 En adresse OneUptime kan nå deg på i et prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, Slack- eller Microsoft Teams-kontoen din eller OneUptime-appen på telefonen din. Hver person legger til sine egne under **Brukerinnstillinger**.
 
-Se [Varselmetoder](/docs/notifications/notification-methods).
+Se [Varslingsmetoder](/docs/notifications/notification-methods).
 
 ### Slik når man meg
 
@@ -170,7 +170,7 @@ Se [Verter](/docs/telemetry/hosts).
 
 Svitsjene, ruterne, brannmurene og tilgangspunktene dine, og alt annet med en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 
-Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor).
+Se [Monitor for nettverksenhet](/docs/monitor/network-device-monitor).
 
 ### Sky
 
@@ -394,7 +394,7 @@ Se [Skjemaer – oversikt](/docs/forms/index).
 
 Tjenesten `oneuptime-infrastructure-agent` bak en Server / VM-monitor: den rapporterer én maskins CPU, minne, disker og prosesser hvert 30. sekund, signert med monitorens hemmelige nøkkel.
 
-Se [Server- / VM-overvåking](/docs/monitor/server-monitor).
+Se [Server- / VM-monitor](/docs/monitor/server-monitor).
 
 ### Kubernetes-agent
 
@@ -482,11 +482,11 @@ Under **Hendelser** og **Varsler** velger vaktregler vaktpolicyene en ny hendels
 
 Se [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#vaktregler-for-hendelser) og [Slik når man meg](/docs/notifications/on-call-rules).
 
-### Varselinnstillinger
+### Varslingsinnstillinger
 
-Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varselinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
+Under **Brukerinnstillinger**: hvilke oppdateringer du får om det du eier, og på hvilke kanaler. Prosjektets brytere for SMS og anrop, meldingssaldoen og prosjektets egen SMTP og Twilio het også varslingsinnstillinger: De heter nå **Varslingskanaler**, under **Prosjektinnstillinger**.
 
-Se [Varselinnstillinger](/docs/notifications/notification-settings).
+Se [Varslingsinnstillinger](/docs/notifications/notification-settings).
 
 ## Neste steg
 

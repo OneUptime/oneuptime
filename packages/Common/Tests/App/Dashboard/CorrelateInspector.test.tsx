@@ -851,6 +851,7 @@ describe("CorrelateClassEventsPanel", () => {
 
     const relative: HTMLElement = within(row).getByText(
       OneUptimeDate.fromNow(EVENT_TIME),
+      { collapseWhitespace: false },
     );
     expect(relative).toHaveAttribute(
       "title",
