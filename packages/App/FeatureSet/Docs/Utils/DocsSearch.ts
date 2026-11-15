@@ -2,6 +2,7 @@ import DocsAIReader, {
   AIDocsIndexedPage,
   AIDocsIndexedSection,
   AIDocsLanguageIndex,
+  cutQuestionWords,
   splitDocsWords,
   tokenizeForDocs,
 } from "./AIDocsReader";
@@ -90,6 +91,14 @@ const GUIDE_BOOST: number = 1.4;
  */
 const PHRASE_BOOST: number = 3;
 const PHRASE_LEAST_WORDS: number = 3;
+/*
+ * A page whose name is what was typed, word for word: it opens first.
+ * Read without their endings, "Профили" (Profiles) and "Монитор профилей"
+ * (Profiles Monitor) both hold "профил" in their names, and "Обзор
+ * планового обслуживания" (Scheduled Maintenance Overview) meets the
+ * Glossary's "Плановое обслуживание" heading as well as itself (#7875).
+ */
+const NAME_BOOST: number = 3;
 
 // Worked out once per section and per index, the first time a search needs it.
 const sectionLengths: WeakMap<AIDocsIndexedSection, number> = new WeakMap();
@@ -227,7 +236,7 @@ export default class DocsSearch {
       }
 
       const terms: Array<string> = Array.from(
-        new Set<string>(tokenizeForDocs(synonym.words)),
+        new Set<string>(tokenizeForDocs(synonym.words, index.language)),
       );
 
       if (
@@ -285,7 +294,18 @@ export default class DocsSearch {
    * Website-Überwachung. Typed with nothing else they are read, since the
    * index holds them: "ein" finds pages while "Einstellungen" is being
    * typed. A word left out still ends what was typed, so the word before
-   * it is not read by its start.
+   * it is not read by its start. Chinese and Japanese ones are cut out of
+   * what is typed, as Ask AI cuts them (cutQuestionWords): "如何监控我的网站"
+   * looks for "监控" and "网站" (#7875).
+   *
+   * A phrase a section says word for word is read whole, question words
+   * and all (isPhraseOfTheDocs): "le réseau de l'hôte ou si" is a phrase
+   * from the docs, and read as "réseau" and "hôte" it found the sections
+   * named for both, not the one that says it.
+   *
+   * In a language that writes a thing's name as one word, two typed words
+   * are also found in the word they make (DocsAIReader.compoundsOf):
+   * "övervaka webbplats" finds Webbplatsövervakning.
    */
   public static readQuery(
     index: AIDocsLanguageIndex,
@@ -293,19 +313,31 @@ export default class DocsSearch {
   ): Array<DocsQueryWord> {
     const typedWords: Array<string> = splitDocsWords(query);
     const isTyping: boolean = !ENDS_WITH_SPACE.test(query);
+    const isPhrase: boolean = DocsSearch.isPhraseOfTheDocs(index, query);
     const questionWords: ReadonlySet<string> = getDocsSearchQuestionWords(
       index.language,
     );
-    const isQuestionWord: (typed: string) => boolean = (
-      typed: string,
-    ): boolean => {
-      return questionWords.has(foldDocsSearchWord(typed));
-    };
-    const isOnlyQuestionWords: boolean = typedWords.every(isQuestionWord);
+    // Each typed word without the question words in it: nothing for one that is one.
+    const keptWords: Array<Array<string>> = typedWords.map(
+      (typed: string): Array<string> => {
+        if (isPhrase) {
+          return [typed];
+        }
+
+        return questionWords.has(foldDocsSearchWord(typed))
+          ? []
+          : cutQuestionWords(typed, index.language);
+      },
+    );
+    const isOnlyQuestionWords: boolean = keptWords.every(
+      (kept: Array<string>): boolean => {
+        return kept.length === 0;
+      },
+    );
     const words: Array<DocsQueryWord> = [];
 
     typedWords.forEach((typed: string, position: number): void => {
-      if (!isOnlyQuestionWords && isQuestionWord(typed)) {
+      if (!isOnlyQuestionWords && keptWords[position]!.length === 0) {
         return;
       }
 
@@ -315,13 +347,30 @@ export default class DocsSearch {
         .filter((part: string): boolean => {
           return part.length > 0;
         });
-      const tokens: Array<string> = tokenizeForDocs(typed);
+      const tokens: Array<string> = tokenizeForDocs(typed, index.language);
       const synonyms: Array<DocsQueryAlternative> =
         DocsSearch.synonymAlternatives(index, typed);
 
       // Chinese and Japanese: each pair of characters is a word to find.
       if (isUnspaced(typed)) {
-        for (const pair of Array.from(new Set<string>(tokens))) {
+        const pieces: Array<string> = isOnlyQuestionWords
+          ? [typed]
+          : keptWords[position]!;
+
+        for (const piece of pieces) {
+          if (piece !== typed) {
+            for (const synonym of DocsSearch.synonymAlternatives(
+              index,
+              piece,
+            )) {
+              addAlternative(synonyms, synonym.terms, synonym.weight);
+            }
+          }
+        }
+
+        for (const pair of Array.from(
+          new Set<string>(tokenizeForDocs(pieces.join(" "), index.language)),
+        )) {
           const alternatives: Array<DocsQueryAlternative> = [...synonyms];
           if (index.vocabulary.has(pair)) {
             addAlternative(alternatives, [pair], 1);
@@ -337,7 +386,7 @@ export default class DocsSearch {
         // "on-call": the whole word joined, or else its parts in one place.
         const joined: string = tokens[tokens.length - 1] || "";
         const partTerms: Array<string> = Array.from(
-          new Set<string>(tokenizeForDocs(parts.join(" "))),
+          new Set<string>(tokenizeForDocs(parts.join(" "), index.language)),
         );
 
         if (index.vocabulary.has(joined)) {
@@ -424,7 +473,36 @@ export default class DocsSearch {
       }
     });
 
+    DocsSearch.addCompounds(index, words);
+
     return words;
+  }
+
+  /*
+   * Two typed words found in the one word they make, where the language
+   * writes names that way (DocsAIReader.compoundsOf): each of the two may
+   * be found in it, so a page named "Webbplatsövervakning" holds both
+   * "övervaka" and "webbplats".
+   */
+  private static addCompounds(
+    index: AIDocsLanguageIndex,
+    words: Array<DocsQueryWord>,
+  ): void {
+    for (const word of words) {
+      for (const other of words) {
+        if (other === word) {
+          continue;
+        }
+
+        for (const compound of DocsAIReader.compoundsOf(index, [
+          word.typed,
+          other.typed,
+        ])) {
+          addAlternative(word.alternatives, [compound], 1);
+          addAlternative(other.alternatives, [compound], 1);
+        }
+      }
+    }
   }
 
   private static pageFieldWeight(
@@ -515,6 +593,40 @@ export default class DocsSearch {
       .join(" ")} `;
   }
 
+  // A page's name, or what was typed, as the words it is written with: NAME_BOOST compares the two.
+  private static asName(text: string): string {
+    return DocsSearch.asPhrase(text).trim();
+  }
+
+  // What was typed as a phrase, as `rank` compares it with what a section says.
+  private static phraseOf(query: string): string | null {
+    if (splitDocsWords(query).length < PHRASE_LEAST_WORDS) {
+      return null;
+    }
+
+    return ENDS_WITH_SPACE.test(query)
+      ? DocsSearch.asPhrase(query)
+      : DocsSearch.asPhrase(query).trimEnd();
+  }
+
+  // Whether a section of `index` says what was typed word for word, three words or more.
+  public static isPhraseOfTheDocs(
+    index: AIDocsLanguageIndex,
+    query: string,
+  ): boolean {
+    const phrase: string | null = DocsSearch.phraseOf(query);
+
+    if (!phrase) {
+      return false;
+    }
+
+    return index.pages.some((page: AIDocsIndexedPage): boolean => {
+      return page.sections.some((section: AIDocsIndexedSection): boolean => {
+        return DocsSearch.sectionPhrase(section).includes(phrase);
+      });
+    });
+  }
+
   private static sectionPhrase(section: AIDocsIndexedSection): string {
     let phrase: string | undefined = sectionPhrases.get(section);
 
@@ -558,12 +670,8 @@ export default class DocsSearch {
       );
     };
     const averageLength: number = DocsSearch.averageSectionLength(index);
-    const phrase: string | null =
-      splitDocsWords(trimmed).length >= PHRASE_LEAST_WORDS
-        ? ENDS_WITH_SPACE.test(trimmed)
-          ? DocsSearch.asPhrase(trimmed)
-          : DocsSearch.asPhrase(trimmed).trimEnd()
-        : null;
+    const phrase: string | null = DocsSearch.phraseOf(trimmed);
+    const typedName: string = DocsSearch.asName(trimmed);
 
     const scoreUnit: (fieldWeight: (term: string) => number) => {
       score: number;
@@ -649,6 +757,13 @@ export default class DocsSearch {
         ) {
           unit.score *= PHRASE_BOOST;
         }
+        if (
+          !section &&
+          typedName &&
+          DocsSearch.asName(page.title) === typedName
+        ) {
+          unit.score *= NAME_BOOST;
+        }
         complete.push(unit);
       } else if (share >= 0.5) {
         unit.score *= share * share;
@@ -712,10 +827,10 @@ export default class DocsSearch {
         ? unit.section.text || unit.page.summary
         : unit.page.summary;
       const snippet: { text: string; words: Array<string> } =
-        DocsSearch.snippetOf(text, unit.terms);
+        DocsSearch.snippetOf(text, unit.terms, index.language);
 
       for (const word of [
-        ...DocsSearch.wordsFound(title, unit.terms),
+        ...DocsSearch.wordsFound(title, unit.terms, index.language),
         ...snippet.words,
       ]) {
         marked.add(word);
@@ -753,6 +868,7 @@ export default class DocsSearch {
   private static hitsIn(
     text: string,
     terms: Set<string>,
+    language?: string | undefined,
   ): Array<{ at: number; word: string }> {
     const hits: Array<{ at: number; word: string }> = [];
 
@@ -775,7 +891,7 @@ export default class DocsSearch {
       }
 
       if (
-        tokenizeForDocs(written).some((term: string): boolean => {
+        tokenizeForDocs(written, language).some((term: string): boolean => {
           return terms.has(term);
         })
       ) {
@@ -786,8 +902,12 @@ export default class DocsSearch {
     return hits;
   }
 
-  private static wordsFound(text: string, terms: Set<string>): Array<string> {
-    return DocsSearch.hitsIn(text, terms).map(
+  private static wordsFound(
+    text: string,
+    terms: Set<string>,
+    language?: string | undefined,
+  ): Array<string> {
+    return DocsSearch.hitsIn(text, terms, language).map(
       (hit: { word: string }): string => {
         return hit.word.toLowerCase();
       },
@@ -801,10 +921,12 @@ export default class DocsSearch {
   public static snippetOf(
     text: string,
     terms: Set<string>,
+    language?: string | undefined,
   ): { text: string; words: Array<string> } {
     const hits: Array<{ at: number; word: string }> = DocsSearch.hitsIn(
       text,
       terms,
+      language,
     );
     const first: number = hits[0] ? hits[0].at : 0;
     let start: number = Math.max(0, first - SNIPPET_LEAD);

@@ -258,6 +258,51 @@ describe("docs search, on the real docs", () => {
     BUILD_TIMEOUT_MS,
   );
 
+  /*
+   * Every docs language's website question opens Website Monitor in the
+   * search box too (#7875): its question words are left out, its words
+   * read without their endings, as Ask AI reads them. Before, the French,
+   * Dutch, Danish, Norwegian, Swedish, Korean and Persian ones did not show
+   * it in the first 30.
+   */
+  test.each([
+    ["en", "How do I monitor my website?"],
+    ["de", "Wie überwache ich meine Website?"],
+    ["fr", "Comment surveiller mon site web ?"],
+    ["es", "¿Cómo puedo monitorear mi sitio web?"],
+    ["it", "Come posso monitorare il mio sito web?"],
+    ["pt", "Como faço para monitorar meu site?"],
+    ["nl", "Hoe monitor ik mijn website?"],
+    ["da", "Hvordan overvåger jeg mit websted?"],
+    ["no", "Hvordan overvåker jeg nettstedet mitt?"],
+    ["sv", "Hur övervakar jag min webbplats?"],
+    ["ru", "Как мне мониторить мой веб-сайт?"],
+    ["ja", "ウェブサイトを監視するにはどうすればいいですか？"],
+    ["ko", "내 웹사이트를 어떻게 모니터링하나요?"],
+    ["zh-CN", "如何监控我的网站？"],
+    ["zh-TW", "如何監控我的網站？"],
+    ["hi", "मैं अपनी वेबसाइट को मॉनिटर कैसे करूँ?"],
+    ["fa", "چطور وب‌سایتم را پایش کنم؟"],
+  ] as Array<[string, string]>)(
+    '%s: "%s" opens Website Monitor in the first 5',
+    async (language: string, question: string) => {
+      const address: string = `/docs/${language}/monitor/website-monitor`;
+      const first: Array<string> = urls(await search(language, question)).slice(
+        0,
+        5,
+      );
+
+      expect({
+        question,
+        first,
+        opens: first.some((url: string): boolean => {
+          return url === address || url.startsWith(`${address}#`);
+        }),
+      }).toEqual({ question, first, opens: true });
+    },
+    BUILD_TIMEOUT_MS,
+  );
+
   test(
     "French: a half-typed word, a reader's word and a phrase from the middle of a page",
     async () => {
@@ -335,8 +380,9 @@ describe("docs search, on the real docs", () => {
             continue;
           }
 
+          // Read as the index reads its language's words (#7875).
           if (
-            !tokenizeForDocs(value).every((term: string): boolean => {
+            !tokenizeForDocs(value, language).every((term: string): boolean => {
               return index.vocabulary.has(term);
             })
           ) {
