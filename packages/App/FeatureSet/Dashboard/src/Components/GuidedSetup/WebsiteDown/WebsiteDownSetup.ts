@@ -152,6 +152,7 @@ export const WEBSITE_DOWN_COPY: {
   whoExistingHelp: string;
   whoExistingHelpNotOwner: string;
   policyMadeElsewhere: string;
+  policyDeleted: string;
   whoOwnerOnlyHelp: string;
   whoOwnerOnlyHelpNotOwner: string;
   whoOnCallRulesLink: string;
@@ -254,6 +255,16 @@ export const WEBSITE_DOWN_COPY: {
    */
   policyMadeElsewhere: translationKey(
     "An on-call policy was added to this project while this page was open, so no new policy was made.",
+  ),
+  /*
+   * Said when the on-call policy this setup made was deleted - in another
+   * tab, or by a teammate - so "Who should be told?" opened again (#8235),
+   * and when the page opens on a run whose policy is gone. The setup only
+   * ever makes its policy, never picks one, so it says to choose who is
+   * told: making a policy again, or the project's own deciding.
+   */
+  policyDeleted: translationKey(
+    "The on-call policy this setup made was deleted, so choose who is told again.",
   ),
   /*
    * Creating an on-call policy, its escalation rule and its two rules is not

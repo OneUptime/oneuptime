@@ -45,6 +45,11 @@ import {
   ON_CALL_POLICY_RUN_STATUS_LABELS,
 } from "./OnCallLogStatusLabels";
 import WaitingRunLine from "./WaitingRunLine";
+import {
+  getOnCallRunWords,
+  ON_CALL_LOG_DIALOG_LINE_CLASS_NAME,
+} from "./OnCallLogLineWords";
+import ResultLine from "../../OnCallTestPage/ResultLine";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
@@ -277,12 +282,13 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [showViewStatusMessageModal, setShowViewStatusMessageModal] =
     useState<boolean>(false);
-  const [statusMessage, setStatusMessage] = useState<string>("");
   /*
-   * The run whose message the dialog shows, when it waits: its line is then
-   * worded from the run, as its row words it (WaitingRunLine, #7552).
+   * The run whose message the dialog shows. A waiting run's line is worded
+   * from the run, as its row words it (WaitingRunLine, #7552); any other
+   * run's from how it ended, in the reader's words, or as written
+   * (OnCallLogLineWords, #8330).
    */
-  const [waitingRun, setWaitingRun] =
+  const [statusRun, setStatusRun] =
     useState<OnCallDutyPolicyExecutionLog | null>(null);
 
   const query: Query<OnCallDutyPolicyExecutionLog> = {
@@ -690,13 +696,7 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
               onError: ErrorFunction,
             ) => {
               try {
-                setStatusMessage(item["statusMessage"] as string);
-                setWaitingRun(
-                  item.status === OnCallDutyPolicyStatus.Waiting &&
-                    item.statusMessage
-                    ? item
-                    : null,
-                );
+                setStatusRun(item);
                 setShowViewStatusMessageModal(true);
 
                 onCompleteAction();
@@ -715,13 +715,21 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={"Status Message"}
           description={
-            waitingRun ? (
+            statusRun?.status === OnCallDutyPolicyStatus.Waiting &&
+            statusRun.statusMessage ? (
               <WaitingRunLine
-                run={waitingRun}
+                run={statusRun}
                 dataTestId="execution-log-status-message-waiting"
               />
             ) : (
-              statusMessage
+              <ResultLine
+                statusMessage={statusRun?.statusMessage || ""}
+                words={
+                  statusRun ? getOnCallRunWords(translator, statusRun) : null
+                }
+                className={ON_CALL_LOG_DIALOG_LINE_CLASS_NAME}
+                dataTestId="execution-log-status-message"
+              />
             )
           }
           submitButtonText={"Close"}

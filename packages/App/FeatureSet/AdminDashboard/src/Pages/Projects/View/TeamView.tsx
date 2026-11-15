@@ -29,6 +29,10 @@ import InvitationLinkModal, {
   INVITATION_LINK_COPY,
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -49,6 +53,14 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
    * whenever they like, from a pending member's row (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+
+  /*
+   * A member whose invitation was accepted for them before they had an
+   * account still has to sign up (#8191): their row says so, and offers
+   * their link.
+   */
+  const membersNotSignedUp: MembersNotSignedUp =
+    useMembersNotSignedUp(cannotSendEmail);
   const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
     null,
   );
@@ -188,11 +200,13 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
           actionButtons={[
             getInvitationLinkRowAction<TeamMember>({
               isAvailable: cannotSendEmail,
+              isNotSignedUp: membersNotSignedUp.isNotSignedUp,
               onOpen: (teamMemberId: ObjectID) => {
                 setInvitationLinkFor(teamMemberId);
               },
             }),
           ]}
+          onFetchSuccess={membersNotSignedUp.onFetchSuccess}
           query={{
             teamId: teamId,
             projectId: projectId,
@@ -317,7 +331,17 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (item.hasAcceptedInvitation) {
-                  return <Pill text="Member" color={Green} />;
+                  return (
+                    <div className="flex space-x-2">
+                      <Pill text="Member" color={Green} />
+                      {membersNotSignedUp.isNotSignedUp(item) && (
+                        <Pill
+                          text={INVITATION_LINK_COPY.notSignedUpPill}
+                          color={Yellow}
+                        />
+                      )}
+                    </div>
+                  );
                 }
                 // Nothing was sent by a server that cannot send email.
                 return (

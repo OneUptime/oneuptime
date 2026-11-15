@@ -30,8 +30,13 @@ import { UserProjectRow } from "Common/UI/Utils/ModelAPI/UserProjectsModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import InvitationLinkModal, {
+  INVITATION_LINK_COPY,
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -69,6 +74,14 @@ const UserProjects: FunctionComponent = (): ReactElement => {
    * (#7168).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+
+  /*
+   * A member whose invitation was accepted for them before they had an
+   * account still has to sign up (#8191): their row says so, and offers
+   * their link.
+   */
+  const membersNotSignedUp: MembersNotSignedUp =
+    useMembersNotSignedUp(cannotSendEmail);
   const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
     null,
   );
@@ -384,11 +397,13 @@ const UserProjects: FunctionComponent = (): ReactElement => {
           actionButtons={[
             getInvitationLinkRowAction<TeamMember>({
               isAvailable: cannotSendEmail,
+              isNotSignedUp: membersNotSignedUp.isNotSignedUp,
               onOpen: (teamMemberId: ObjectID) => {
                 setInvitationLinkFor(teamMemberId);
               },
             }),
           ]}
+          onFetchSuccess={membersNotSignedUp.onFetchSuccess}
           refreshToggle={refreshToggle}
           onItemDeleted={() => {
             refreshTables();
@@ -463,11 +478,19 @@ const UserProjects: FunctionComponent = (): ReactElement => {
               getElement: (item: TeamMember): ReactElement => {
                 if (item.hasAcceptedInvitation) {
                   return (
-                    <Pill
-                      text={t("pages.userProjects.statusMember")}
-                      isUserContent={true}
-                      color={Green}
-                    />
+                    <div className="flex space-x-2">
+                      <Pill
+                        text={t("pages.userProjects.statusMember")}
+                        isUserContent={true}
+                        color={Green}
+                      />
+                      {membersNotSignedUp.isNotSignedUp(item) && (
+                        <Pill
+                          text={INVITATION_LINK_COPY.notSignedUpPill}
+                          color={Yellow}
+                        />
+                      )}
+                    </div>
                   );
                 }
 
@@ -534,9 +557,14 @@ const UserProjects: FunctionComponent = (): ReactElement => {
 
               return Promise.resolve(item);
             }}
-            onSuccess={() => {
+            onSuccess={(teamMember: TeamMember) => {
               setShowAddToProjectModal(false);
               refreshTables();
+
+              // No email went out: the link to send (#8192).
+              if (cannotSendEmail && teamMember?.id) {
+                setInvitationLinkFor(teamMember.id);
+              }
             }}
             formProps={{
               name: "Add User to Project",
@@ -565,7 +593,14 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                     team: true,
                   },
                   title: t("pages.userProjects.fieldTeam"),
-                  description: t("pages.userProjects.fieldTeamDescription"),
+                  /*
+                   * A server that cannot send email says so, as every other
+                   * invite form does (#8192): nobody is emailed, and the link
+                   * is handed over once they are added.
+                   */
+                  description: cannotSendEmail
+                    ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
+                    : t("pages.userProjects.fieldTeamDescription"),
                   /*
                    * A custom element rather than `fetchDropdownOptions`: the
                    * teams to offer depend on the project picked above it, and
