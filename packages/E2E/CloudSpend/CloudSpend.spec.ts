@@ -12,6 +12,7 @@ import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * Cloud's Overview and its Spend pages, in a browser, against the offline
@@ -2846,4 +2847,18 @@ test.describe("every page, every way", () => {
       }
     });
   }
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German and Persian whole, parsed on every page load of every test. English
+ * is in the bundle now, and each other language a chunk of its own, loaded
+ * only by a page drawn in it (SuiteHelpers/FixtureLocales.js), built as the
+ * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa"],
+  address: (language: string): string => {
+    return language === "en" ? CLOUD : `${CLOUD}?lang=${language}`;
+  },
 });
