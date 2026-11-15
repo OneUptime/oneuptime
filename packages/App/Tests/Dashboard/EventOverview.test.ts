@@ -545,7 +545,7 @@ describe("splitVisibleItems", () => {
 /*
  * "Acknowledged in" counts from when the record started, so an alert raised
  * at night and paged in the morning reads as hours. The tile keeps that
- * number and adds how long the people paged took: "4\u00A0minutes after paging".
+ * number and adds how long the people paged took: "4 minutes after paging".
  */
 describe("the time to acknowledge after paging", () => {
   const ENGLISH: Translator = createTranslator(undefined, "en");
