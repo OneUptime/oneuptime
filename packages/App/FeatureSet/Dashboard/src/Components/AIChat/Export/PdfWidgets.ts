@@ -29,7 +29,7 @@ import {
 import PdfChart, { CHART_BLOCK_HEIGHT } from "./PdfChart";
 import PdfDocument, { PAGE_MARGIN, PDF_COLORS } from "./PdfDocument";
 import { PdfTable } from "./PdfTable";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { formatMillisecondsInEnglish } from "../../../Utils/Milliseconds";
 
 /*
  * A resource card's surface, edge and kind (issue #6968): a read's in the
@@ -878,12 +878,13 @@ export default class PdfWidgets {
         radius: 1.5,
       });
 
-      // Duration.
+      /*
+       * Duration, in English as the rest of the export: the PDF is written
+       * in Latin-1, which holds no Persian digit (issue #7418).
+       */
       this.pdf.setStyle({ size: SMALL_SIZE, color: PDF_COLORS.muted });
       this.pdf.doc.text(
-        this.pdf.sanitize(
-          `${span.durationMs.toLocaleString(getReaderNumberLocale())} ms`,
-        ),
+        this.pdf.sanitize(formatMillisecondsInEnglish(span.durationMs)),
         this.pdf.right,
         y + 1,
         { baseline: "top", align: "right" },

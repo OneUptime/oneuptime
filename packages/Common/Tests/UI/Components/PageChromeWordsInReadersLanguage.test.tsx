@@ -21,6 +21,7 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import { Location } from "react-router-dom";
 import Route from "../../../Types/API/Route";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import Breadcrumbs from "../../../UI/Components/Breadcrumbs/Breadcrumbs";
 import HiddenText from "../../../UI/Components/HiddenText/HiddenText";
 import MasterPage from "../../../UI/Components/MasterPage/MasterPage";
@@ -413,10 +414,16 @@ const drawEveryPart: (
   const drawn: Array<Drawn> = [];
 
   for (const part of app.parts) {
+    const worded: unknown = words[part];
+
     drawn.push({
       part,
       drawn: await drawPart(instance, part),
-      locale: words[part],
+      // As the page draws the locale's words: French's marks kept with them.
+      locale:
+        typeof worded === "string" && worded !== part
+          ? withNoBreakSpaces(worded, part, language)
+          : worded,
     });
   }
 

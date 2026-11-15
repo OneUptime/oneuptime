@@ -1,11 +1,16 @@
 import { ContentPath } from "./Config";
 import {
+  DOCS_SEARCH_COMPOUNDING_LANGUAGES,
   DocsSearchSynonym,
   DocsVocabulary,
   DocsVocabularyMatch,
+  DocsWordEndings,
+  LATIN_SCRIPT_WORD,
   foldDocsSearchWord,
+  getDocsSearchQuestionPhrases,
   getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
+  getDocsWordEndings,
   getTypoAllowance,
 } from "./DocsSearchWords";
 import { DocsGlossaryEntry, GLOSSARY_PAGE, parseGlossary } from "./Glossary";
@@ -104,6 +109,9 @@ export interface AIDocsLanguageIndex {
 }
 
 const TTL_MS: number = 10 * 60 * 1000;
+// How much more a page named exactly what is asked counts (DocsAIReader.rank).
+const EXACT_NAME_BOOST: number = 1.5;
+const namesAsAsked: WeakMap<AIDocsIndexedPage, string> = new WeakMap();
 const FENCE_LINE: RegExp = /^\s*(```|~~~)/;
 const HEADING_LINE: RegExp = /^(#{2,3})\s+(.+?)\s*#*\s*$/;
 const DOCS_PAGE: RegExp = /^[a-z0-9-]+(\/[a-z0-9-]+)*$/;
@@ -161,40 +169,90 @@ const building: Map<string, Promise<AIDocsLanguageIndex>> = new Map();
 
 /*
  * A word as both a question and a page are compared by: lowercase, a
- * Latin-script word without its accents and without one plural or verb
- * ending, so "monitors" finds "monitor", "paging" finds "paged", and
- * "Bereitschaftsplan" finds "Bereitschaftspläne". Other scripts are
- * compared as written: their marks are part of their letters (Devanagari's
- * vowel signs).
+ * Latin-script word without its accents, and without one ending of
+ * `language` (DOCS_SEARCH_WORD_ENDINGS), so "monitors" finds "monitor",
+ * "paging" finds "paged", "Bereitschaftsplan" finds "Bereitschaftspläne",
+ * Norwegian "nettstedet" finds "nettsted" and Russian "сайта" finds "сайт"
+ * (#7875). A word of a script its language has no endings for is compared
+ * as written: its marks are part of its letters (Devanagari's vowel
+ * signs). Without a language, English's endings, as the index of a
+ * language the docs do not have reads.
  */
-const LATIN_WORD: RegExp = /^[\p{Script=Latin}\p{M}\p{N}]+$/u;
-const WORD_ENDINGS: ReadonlyArray<string> = [
-  "ing",
-  "ers",
-  "ed",
-  "es",
-  "en",
-  "er",
-  "s",
-  "e",
-];
+const sortedEndings: WeakMap<DocsWordEndings, Array<string>> = new WeakMap();
 
-export const stemDocsWord: (word: string) => string = (
+const longestFirst: (forms: DocsWordEndings) => Array<string> = (
+  forms: DocsWordEndings,
+): Array<string> => {
+  const cached: Array<string> | undefined = sortedEndings.get(forms);
+
+  if (cached) {
+    return cached;
+  }
+
+  const sorted: Array<string> = [...forms.endings].sort(
+    (a: string, b: string): number => {
+      return Array.from(b).length - Array.from(a).length;
+    },
+  );
+
+  sortedEndings.set(forms, sorted);
+
+  return sorted;
+};
+
+export const stemDocsWord: (
   word: string,
-): string => {
-  if (!LATIN_WORD.test(word)) {
+  language?: string | undefined,
+) => string = (word: string, language?: string | undefined): string => {
+  const forms: DocsWordEndings | null = getDocsWordEndings(word, language);
+
+  if (!forms) {
     return word;
   }
 
-  const folded: string = word.normalize("NFKD").replace(/\p{M}/gu, "");
+  const folded: string = LATIN_SCRIPT_WORD.test(word)
+    ? word.normalize("NFKD").replace(/\p{M}/gu, "")
+    : word;
+  const length: number = Array.from(folded).length;
+  let stem: string = folded;
 
-  for (const ending of WORD_ENDINGS) {
-    if (folded.endsWith(ending) && folded.length - ending.length >= 3) {
-      return folded.slice(0, folded.length - ending.length);
+  for (const ending of longestFirst(forms)) {
+    const shortest: number = Math.max(
+      forms.shortestStem,
+      forms.longerStems?.[ending] || 0,
+    );
+
+    if (
+      folded.endsWith(ending) &&
+      length - Array.from(ending).length >= shortest
+    ) {
+      stem = folded.slice(0, folded.length - ending.length);
+      break;
     }
   }
 
-  return folded;
+  return undouble(stem, forms);
+};
+
+const DOUBLED_CONSONANT_AT_END: RegExp = /([bcdfghjklmnpqrstvwxz])\1$/;
+const DOUBLED_VOWEL_BEFORE_LAST: RegExp = /([aeou])\1([bcdfghjklmnpqrstvwxz])$/;
+
+// A stem's doubled letters read as one (DocsWordEndings' undoubles), keeping it long enough.
+const undouble: (stem: string, forms: DocsWordEndings) => string = (
+  stem: string,
+  forms: DocsWordEndings,
+): string => {
+  let undoubled: string = stem;
+
+  if (forms.undoublesConsonants) {
+    undoubled = undoubled.replace(DOUBLED_CONSONANT_AT_END, "$1");
+  }
+
+  if (forms.undoublesVowels) {
+    undoubled = undoubled.replace(DOUBLED_VOWEL_BEFORE_LAST, "$1$2");
+  }
+
+  return undoubled.length >= forms.shortestStem ? undoubled : stem;
 };
 
 // What is typed or written, cut where a word ends - but not at a hyphen.
@@ -227,8 +285,12 @@ export const splitDocsWords: (text: string) => Array<string> = (
  * name the whole word ("pager" is "on-call") even where one of its parts
  * ("on") is too common to be a word of its own.
  */
-const joinedWords: (parts: Array<string>) => Array<string> = (
+const joinedWords: (
   parts: Array<string>,
+  language?: string | undefined,
+) => Array<string> = (
+  parts: Array<string>,
+  language?: string | undefined,
 ): Array<string> => {
   if (
     parts.length < 2 ||
@@ -247,21 +309,103 @@ const joinedWords: (parts: Array<string>) => Array<string> = (
 
   for (let size: number = 2; size <= parts.length; size++) {
     for (let start: number = 0; start + size <= parts.length; start++) {
-      joined.push(stemDocsWord(parts.slice(start, start + size).join("")));
+      joined.push(
+        stemDocsWord(parts.slice(start, start + size).join(""), language),
+      );
     }
   }
 
   return joined;
 };
 
+// The longest of `phrases` that `word` says at `at`.
+const phraseAt: (
+  word: string,
+  at: number,
+  phrases: ReadonlyArray<string>,
+) => string | undefined = (
+  word: string,
+  at: number,
+  phrases: ReadonlyArray<string>,
+): string | undefined => {
+  return phrases.find((candidate: string): boolean => {
+    return word.startsWith(candidate, at);
+  });
+};
+
+/*
+ * A word of what was typed without the question words written into it,
+ * for a language written without spaces (getDocsSearchQuestionPhrases):
+ * "如何监控我的网站" is "监控" and "网站", and
+ * "ウェブサイトを監視するにはどうすればいいですか" is "ウェブサイト" and "監視".
+ * Nothing when it is all question words; a word of a spaced language as
+ * it is.
+ */
+export const cutQuestionWords: (
+  word: string,
+  language: string,
+) => Array<string> = (word: string, language: string): Array<string> => {
+  if (!UNSPACED_SCRIPT.test(word)) {
+    return [word];
+  }
+
+  const phrases: ReadonlyArray<string> = getDocsSearchQuestionPhrases(language);
+  const pieces: Array<string> = [];
+  let piece: string = "";
+  let at: number = 0;
+
+  while (at < word.length) {
+    const phrase: string | undefined = phraseAt(word, at, phrases);
+
+    if (phrase) {
+      if (piece) {
+        pieces.push(piece);
+      }
+      piece = "";
+      at += phrase.length;
+      continue;
+    }
+
+    const character: string = String.fromCodePoint(word.codePointAt(at)!);
+    piece += character;
+    at += character.length;
+  }
+
+  if (piece) {
+    pieces.push(piece);
+  }
+
+  return pieces;
+};
+
+/*
+ * The words of a question without the ones it is phrased with in its
+ * language (DOCS_SEARCH_QUESTION_WORDS, which the docs search box leaves
+ * out too), each as typed: a whole word that is one is left out, and one
+ * written without spaces is cut where they stand in it (cutQuestionWords).
+ */
+export const splitQuestionWords: (
+  query: string,
+  language: string,
+) => Array<string> = (query: string, language: string): Array<string> => {
+  const questionWords: ReadonlySet<string> =
+    getDocsSearchQuestionWords(language);
+
+  return splitDocsWords(query).flatMap((word: string): Array<string> => {
+    return questionWords.has(foldDocsSearchWord(word))
+      ? []
+      : cutQuestionWords(word, language);
+  });
+};
+
 /*
  * A question's words, without the ones it is phrased with in its language
- * (DOCS_SEARCH_QUESTION_WORDS, which the docs search box leaves out too),
- * and with a newcomer's words for what the docs say otherwise, read into a
- * question only, never into a page: "a text when my site is down" is an
- * SMS, "2fa" is two-factor authentication (DOCS_SEARCH_SYNONYMS, the list
- * docs search reads too). A synonym that is a word's start ("vagt*") needs
- * the docs' words to be read, so it is left to rank.
+ * (splitQuestionWords), and with a newcomer's words for what the docs say
+ * otherwise, read into a question only, never into a page: "a text when my
+ * site is down" is an SMS, "2fa" is two-factor authentication
+ * (DOCS_SEARCH_SYNONYMS, the list docs search reads too). A synonym that
+ * is a word's start ("vagt*") needs the docs' words to be read, so it is
+ * left to rank. Each word loses its language's ending, as the index's do.
  */
 export const tokenizeQueryForDocs: (
   query: string,
@@ -274,13 +418,7 @@ export const tokenizeQueryForDocs: (
   const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
     resolved,
   );
-  const questionWords: ReadonlySet<string> =
-    getDocsSearchQuestionWords(resolved);
-  const words: Array<string> = splitDocsWords(query).filter(
-    (word: string): boolean => {
-      return !questionWords.has(foldDocsSearchWord(word));
-    },
-  );
+  const words: Array<string> = splitQuestionWords(query, resolved);
   const otherWords: Array<string> = words.flatMap(
     (word: string): Array<string> => {
       return (synonyms.get(foldDocsSearchWord(word)) || [])
@@ -295,14 +433,24 @@ export const tokenizeQueryForDocs: (
 
   return Array.from(
     new Set<string>([
-      ...tokenizeForDocs(words.join(" ")),
-      ...tokenizeForDocs(otherWords.join(" ")),
+      ...tokenizeForDocs(words.join(" "), resolved),
+      ...tokenizeForDocs(otherWords.join(" "), resolved),
     ]),
   );
 };
 
-export const tokenizeForDocs: (text: string) => Array<string> = (
+/*
+ * The words of a page, or of what was typed, as the index of `language`
+ * compares them (stemDocsWord): English's question words left out
+ * (QUESTION_WORDS), Chinese and Japanese read in pairs of characters, and
+ * a hyphenated word also read joined.
+ */
+export const tokenizeForDocs: (
   text: string,
+  language?: string | undefined,
+) => Array<string> = (
+  text: string,
+  language?: string | undefined,
 ): Array<string> => {
   const terms: Array<string> = [];
 
@@ -332,29 +480,33 @@ export const tokenizeForDocs: (text: string) => Array<string> = (
         continue;
       }
 
-      terms.push(stemDocsWord(word));
+      terms.push(stemDocsWord(word, language));
     }
 
-    terms.push(...joinedWords(words));
+    terms.push(...joinedWords(words, language));
   }
 
   return terms;
 };
 
-const countTerms: (text: string) => Map<string, number> = (
+const countTerms: (text: string, language: string) => Map<string, number> = (
   text: string,
+  language: string,
 ): Map<string, number> => {
   const counts: Map<string, number> = new Map();
 
-  for (const term of tokenizeForDocs(text)) {
+  for (const term of tokenizeForDocs(text, language)) {
     counts.set(term, (counts.get(term) || 0) + 1);
   }
 
   return counts;
 };
 
-const termSet: (text: string) => Set<string> = (text: string): Set<string> => {
-  return new Set<string>(tokenizeForDocs(text));
+const termSet: (text: string, language: string) => Set<string> = (
+  text: string,
+  language: string,
+): Set<string> => {
+  return new Set<string>(tokenizeForDocs(text, language));
 };
 
 // A component's own line, keeping what follows its name (a collapsible's title).
@@ -568,8 +720,8 @@ const glossaryOtherNameSections: (
         return {
           title,
           anchor: entry.id,
-          terms: countTerms(title),
-          titleTerms: termSet(title),
+          terms: countTerms(title, language),
+          titleTerms: termSet(title, language),
           text: entry.definition,
           isOtherName: true,
         };
@@ -659,8 +811,8 @@ export default class DocsAIReader implements AIDocsReader {
           return {
             title: section.title,
             anchor: section.anchor,
-            terms: countTerms(section.body),
-            titleTerms: termSet(section.title),
+            terms: countTerms(section.body, language),
+            titleTerms: termSet(section.title, language),
             text: plainTextOfDocs(section.body),
           };
         },
@@ -678,18 +830,22 @@ export default class DocsAIReader implements AIDocsReader {
         group,
         summary: summary.description,
         language: copy.language,
-        titleTerms: termSet(`${title} ${copy.markdown.split("\n")[0] || ""}`),
-        groupTerms: termSet(group),
-        summaryTerms: termSet(summary.description),
+        titleTerms: termSet(
+          `${title} ${copy.markdown.split("\n")[0] || ""}`,
+          language,
+        ),
+        groupTerms: termSet(group, language),
+        summaryTerms: termSet(summary.description, language),
         headingTerms: termSet(
           summary.headings
             .map((heading: { text: string }): string => {
               return heading.text;
             })
             .join(" "),
+          language,
         ),
-        bodyTerms: countTerms(body),
-        bodyLength: tokenizeForDocs(body).length,
+        bodyTerms: countTerms(body, language),
+        bodyLength: tokenizeForDocs(body, language).length,
         sections,
         isGuide: navPage.link.isGuide === true,
       };
@@ -777,7 +933,68 @@ export default class DocsAIReader implements AIDocsReader {
       return near[0] ? near[0].term : term;
     });
 
-    return Array.from(new Set<string>([...terms, ...wordStarts]));
+    return Array.from(
+      new Set<string>([
+        ...terms,
+        ...wordStarts,
+        ...DocsAIReader.compoundsOf(
+          index,
+          splitQuestionWords(query, index.language),
+        ),
+      ]),
+    );
+  }
+
+  /*
+   * The words `index` holds that two of a question's words make as one
+   * (DOCS_SEARCH_COMPOUNDING_LANGUAGES): Swedish "övervaka" and "webbplats"
+   * are "webbplatsövervakning", the name of Website Monitor's page, which
+   * neither word is. Each pair is tried in either order - a question puts
+   * the thing done before what it is done to, the name after - joined as
+   * written and by the "s" that links them, each read without its ending
+   * as the index's words are.
+   */
+  public static compoundsOf(
+    index: AIDocsLanguageIndex,
+    words: Array<string>,
+  ): Array<string> {
+    if (!DOCS_SEARCH_COMPOUNDING_LANGUAGES.has(index.language)) {
+      return [];
+    }
+
+    const parts: Array<string> = Array.from(
+      new Set<string>(
+        words.filter((word: string): boolean => {
+          return LATIN_SCRIPT_WORD.test(word) && word.length >= 3;
+        }),
+      ),
+    );
+    const found: Set<string> = new Set<string>();
+
+    for (const first of parts) {
+      const firstStem: string = stemDocsWord(first, index.language);
+
+      for (const second of parts) {
+        if (first === second) {
+          continue;
+        }
+
+        for (const joined of [
+          `${first}${second}`,
+          `${first}s${second}`,
+          `${firstStem}${second}`,
+          `${firstStem}s${second}`,
+        ]) {
+          const term: string = stemDocsWord(joined, index.language);
+
+          if (index.documentFrequency.has(term)) {
+            found.add(term);
+          }
+        }
+      }
+    }
+
+    return Array.from(found);
   }
 
   /*
@@ -795,6 +1012,7 @@ export default class DocsAIReader implements AIDocsReader {
       return [];
     }
 
+    const askedName: string = DocsAIReader.asAsked(query, index.language);
     const pageCount: number = index.pages.length;
     /*
      * How much a word's count in a page's body says (BM25): each more
@@ -856,6 +1074,20 @@ export default class DocsAIReader implements AIDocsReader {
        */
       score = nameScore + score * (0.25 + 0.75 * (matched / queryTerms.length));
 
+      /*
+       * A page named what is asked, and nothing more, beats one whose name
+       * says it and more: read without their endings, Russian "Профили"
+       * (Profiles) and "Монитор профилей" (Profiles Monitor) both hold
+       * "профил" in their names (#7875). The name is read as a question
+       * is, so "Votre compte" (Your account) asks for the page it names.
+       */
+      if (
+        askedName &&
+        DocsAIReader.nameAsAsked(page, index.language) === askedName
+      ) {
+        score *= EXACT_NAME_BOOST;
+      }
+
       let bestSection: AIDocsIndexedSection | undefined = undefined;
       let bestSectionScore: number = 0;
 
@@ -908,6 +1140,28 @@ export default class DocsAIReader implements AIDocsReader {
           return entry.hit;
         },
       );
+  }
+
+  // What a question asks for, as its words read (tokenizeQueryForDocs), in one order.
+  private static asAsked(query: string, language: string): string {
+    return Array.from(new Set<string>(tokenizeQueryForDocs(query, language)))
+      .sort()
+      .join(" ");
+  }
+
+  // A page's name as a question that asks for it reads (asAsked), worked out once.
+  private static nameAsAsked(
+    page: AIDocsIndexedPage,
+    language: string,
+  ): string {
+    let name: string | undefined = namesAsAsked.get(page);
+
+    if (name === undefined) {
+      name = DocsAIReader.asAsked(page.title, language);
+      namesAsAsked.set(page, name);
+    }
+
+    return name;
   }
 
   public async search(data: {

@@ -277,6 +277,7 @@ import PodmanMetricsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Po
 import ProxmoxInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Insights";
 import DockerSwarmInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Insights";
 import CephInsightsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Insights";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 const PAGE_PROPS: PageComponentProps = {} as unknown as PageComponentProps;
 
@@ -677,7 +678,11 @@ describe.each(
             english: string,
           ): string => {
             const value: string | LocaleTree | undefined = locale[english];
-            return typeof value === "string" ? value : english;
+
+            // As the page draws it: each number with its unit (NoBreakSpaces).
+            return typeof value === "string" && value !== english
+              ? withNoBreakSpaces(value, english, language)
+              : english;
           };
 
           expect({

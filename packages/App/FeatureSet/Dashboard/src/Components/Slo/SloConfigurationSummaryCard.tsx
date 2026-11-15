@@ -27,6 +27,8 @@ import {
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -150,7 +152,13 @@ const SloConfigurationSummaryCard: FunctionComponent<ComponentProps> = (
                         : undefined,
                     }}
                   ></span>
-                  {status.name || translator.translateText("Unnamed status")}
+                  {status.name
+                    ? translateRecordName(
+                        translator,
+                        StateListType.MonitorStatus,
+                        status.name,
+                      )
+                    : translator.translateText("Unnamed status")}
                 </span>
               );
             })}

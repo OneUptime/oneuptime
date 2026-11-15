@@ -23,13 +23,11 @@ import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/compo
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import useTranslateValue from "Common/UI/Utils/Translation";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import {
-  getReaderDateLocale,
-  getReaderNumberLocale,
-} from "Common/Types/DateLanguage";
+import { getReaderDateLocale } from "Common/Types/DateLanguage";
 import TelemetryFirstRunShowcase from "../../Components/ProductOnboarding/TelemetryFirstRunShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
@@ -92,6 +90,7 @@ const TopologyPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>({
     range: TimeRange.PAST_ONE_DAY,
@@ -441,7 +440,11 @@ const TopologyPage: FunctionComponent<
               aria-label={translateString("Refresh topology")}
               title={
                 activeTab?.loadedAt
-                  ? `${translateString("Last refreshed")}: ${activeTab.loadedAt.toLocaleTimeString(getReaderDateLocale())}`
+                  ? translator.translateTemplate("Last refreshed: {{time}}", {
+                      time: activeTab.loadedAt.toLocaleTimeString(
+                        getReaderDateLocale(),
+                      ),
+                    })
                   : undefined
               }
               disabled={isActiveTabLoading}
@@ -472,11 +475,20 @@ const TopologyPage: FunctionComponent<
                   key={isConnections ? "connections" : "resources"}
                 >
                   <span className="font-semibold">
-                    {`${truncation.shown.toLocaleString(getReaderNumberLocale())} ${translateString("of")} ${truncation.total.toLocaleString(getReaderNumberLocale())} ${
+                    {/*
+                     * One sentence, its counts in the reader's digits:
+                     * "已显示 61,234 个资源中的 50,000 个。" puts the total
+                     * first (#8076).
+                     */}
+                    {translator.translateTemplate(
                       isConnections
-                        ? translateString("connections shown.")
-                        : translateString("resources shown.")
-                    }`}
+                        ? "{{shown}} of {{total}} connections shown."
+                        : "{{shown}} of {{total}} resources shown.",
+                      {
+                        shown: translator.formatNumber(truncation.shown),
+                        total: translator.formatNumber(truncation.total),
+                      },
+                    )}
                   </span>{" "}
                 </React.Fragment>
               );

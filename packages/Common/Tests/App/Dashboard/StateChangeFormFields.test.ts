@@ -260,8 +260,12 @@ describe("the note template picker", () => {
     expect(picker.fieldType).toBe(FormFieldSchemaType.Dropdown);
     expect(picker.required).toBe(false);
     expect(picker.dropdownOptions).toEqual([
-      { value: TEMPLATES[0]!.id, label: "Investigating update" },
-      { value: TEMPLATES[1]!.id, label: "Empty" },
+      {
+        value: TEMPLATES[0]!.id,
+        label: "Investigating update",
+        isUserContent: true,
+      },
+      { value: TEMPLATES[1]!.id, label: "Empty", isUserContent: true },
     ]);
     expect(picker.showIf!({})).toBe(true);
   });

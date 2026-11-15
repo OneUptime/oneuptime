@@ -1,3 +1,9 @@
+import { Translator } from "Common/Types/Translator";
+import {
+  formatMilliseconds,
+  formatMillisecondsInEnglish,
+  MillisecondsOptions,
+} from "../../Utils/Milliseconds";
 /*
  * Number formatting for the telemetry overview pages. Pure and import-free,
  * so React-free helpers (and the node tests that exercise them) can share
@@ -28,8 +34,24 @@ export const formatPercent: (n: number | null) => string = (
   return `${n.toFixed(1)}%`;
 };
 
-export const formatDurationMs: (ms: number | null) => string = (
+/*
+ * A span's duration in the unit that reads best ("850 µs", "12 ms", "1.25
+ * s"). Its milliseconds are written by `writeMilliseconds`: the reader's
+ * words on a tile (formatDurationMsInLanguage), English on a chart's value
+ * axis (formatDurationMs).
+ */
+const writeDurationMs: (
   ms: number | null,
+  writeMilliseconds: (
+    milliseconds: number,
+    options: MillisecondsOptions,
+  ) => string,
+) => string = (
+  ms: number | null,
+  writeMilliseconds: (
+    milliseconds: number,
+    options: MillisecondsOptions,
+  ) => string,
 ): string => {
   if (ms === null || !Number.isFinite(ms)) {
     return "—";
@@ -38,9 +60,41 @@ export const formatDurationMs: (ms: number | null) => string = (
     return `${(ms * 1000).toFixed(0)} µs`;
   }
   if (ms < 1000) {
-    return `${ms.toFixed(ms < 10 ? 1 : 0)} ms`;
+    // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
+    const decimals: number = ms < 10 ? 1 : 0;
+
+    return writeMilliseconds(ms, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
   return `${(ms / 1000).toFixed(2)} s`;
+};
+
+/*
+ * A duration on a chart's value axis and in its tooltip: Latin digits and
+ * the short "ms", as every chart's value axis writes its figures.
+ */
+export const formatDurationMs: (ms: number | null) => string = (
+  ms: number | null,
+): string => {
+  return writeDurationMs(ms, formatMillisecondsInEnglish);
+};
+
+/*
+ * A duration on a tile, in a row or in a sentence: its milliseconds in the
+ * reader's language ("12 ms", "۱۲ میلی‌ثانیه", "12 ملي ث"; issue #7418).
+ */
+export const formatDurationMsInLanguage: (
+  ms: number | null,
+  translator: Translator,
+) => string = (ms: number | null, translator: Translator): string => {
+  return writeDurationMs(
+    ms,
+    (milliseconds: number, options: MillisecondsOptions): string => {
+      return formatMilliseconds(translator, milliseconds, options);
+    },
+  );
 };
 
 /*

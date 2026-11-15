@@ -2,6 +2,10 @@ import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
+import {
+  NoBreakLocaleTree,
+  withNoBreakSpacesInLocale,
+} from "Common/Types/NoBreakSpaces";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { setCodeApartInSentence } from "Common/Types/CodeInSentence";
@@ -85,6 +89,23 @@ const convertDetectedLanguage: (lng: string) => string = (
  */
 setCodeApartWith(setCodeApartInSentence);
 
+/*
+ * A language's words as i18next is handed them, set as the language sets a
+ * line: each number with its unit, and French's marks with their words
+ * (Common/Types/NoBreakSpaces).
+ */
+const inLanguage: (
+  language: string,
+  locale: NoBreakLocaleTree,
+) => { translation: NoBreakLocaleTree } = (
+  language: string,
+  locale: NoBreakLocaleTree,
+): { translation: NoBreakLocaleTree } => {
+  return {
+    translation: withNoBreakSpacesInLocale({ locale, language, english: en }),
+  };
+};
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -98,23 +119,23 @@ i18n
     postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
     resources: {
       en: { translation: en },
-      de: { translation: de },
-      fr: { translation: fr },
-      es: { translation: es },
-      it: { translation: it },
-      pt: { translation: pt },
-      nl: { translation: nl },
-      da: { translation: da },
-      no: { translation: no },
-      sv: { translation: sv },
-      ru: { translation: ru },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      "zh-CN": { translation: zhCN },
-      "zh-TW": { translation: zhTW },
-      hi: { translation: hi },
-      fa: { translation: fa },
-      ar: { translation: ar },
+      de: inLanguage("de", de),
+      fr: inLanguage("fr", fr),
+      es: inLanguage("es", es),
+      it: inLanguage("it", it),
+      pt: inLanguage("pt", pt),
+      nl: inLanguage("nl", nl),
+      da: inLanguage("da", da),
+      no: inLanguage("no", no),
+      sv: inLanguage("sv", sv),
+      ru: inLanguage("ru", ru),
+      ja: inLanguage("ja", ja),
+      ko: inLanguage("ko", ko),
+      "zh-CN": inLanguage("zh-CN", zhCN),
+      "zh-TW": inLanguage("zh-TW", zhTW),
+      hi: inLanguage("hi", hi),
+      fa: inLanguage("fa", fa),
+      ar: inLanguage("ar", ar),
     },
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES,

@@ -3,6 +3,7 @@ import { WORKFLOW_DRAFT_PROPOSED_ON_KEY } from "../Workflow/WorkflowDraftPropose
 import { CODE_CHANGE_PROPOSED_ON_KEY } from "../CodeRepository/CodeChangeProposedOnKey";
 import {
   AIActionCardWords,
+  AIActionSentence,
   AIActionTableWords,
   AIActionWords,
 } from "./AIActionWords";
@@ -111,6 +112,13 @@ export interface AIChatCitation {
   id: string; // "C1", "C2" — sequential per message
   toolName: string;
   label: string;
+  /*
+   * The label as a sentence of Types/AI/AIActionWords (issue #7980): the
+   * chip says it in the reader's language when its English is the label,
+   * and the label as stored otherwise - a citation saved before it had
+   * words, or words that are not the module's.
+   */
+  words?: AIActionSentence | undefined;
   queryArguments: JSONObject; // validated tool args as executed — replayable
   rowCount: number;
   target?: AIChatCitationTarget | undefined;

@@ -12,9 +12,10 @@ import {
   Translator,
   composedValue,
   getGlobalTranslator,
-  translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 /*
  * Pure helpers shared by the incident and alert overview pages: the response
@@ -176,6 +177,8 @@ export const getEventResponseTimes: (
 };
 
 export interface TimeToStateTextInput {
+  // The list the state is of: the incident states, or the alert states.
+  stateList: StateListType;
   startedAt?: Date | undefined;
   reachedAt?: Date | undefined;
   // The project's own name for the state, e.g. "Mitigated".
@@ -185,24 +188,30 @@ export interface TimeToStateTextInput {
 }
 
 /*
- * "Not yet acknowledged": one sentence, looked up whole. The state goes in
- * as a term, so one of OneUptime's own names ("Acknowledged") reads in the
- * reader's words, as the state's badge reads it, and a name the project
- * gave its state reads as written.
+ * "Not yet acknowledged": one sentence, looked up whole, with the state's
+ * name read by its list (Common/Utils/DefaultRecordNames): one of
+ * OneUptime's own names ("Acknowledged") goes in as a term, in the
+ * reader's words and cased for the middle of the sentence, as the state's
+ * badge reads it; a name the project gave its state reads as written -
+ * "Not yet Mitigated", and a state named "Open" never the verb "Abrir".
  */
 export const NOT_YET_IN_STATE_TEMPLATE: string = translationKey(
   "Not yet {{stateName}}",
 );
 
 export const getNotYetInStateText: (
+  stateList: StateListType,
   stateName: string,
   translator?: Translator,
 ) => string = (
+  stateList: StateListType,
   stateName: string,
   translator: Translator = getGlobalTranslator(),
 ): string => {
   return translator.translateTemplate(NOT_YET_IN_STATE_TEMPLATE, {
-    stateName: translatableTerm(stateName.trim(), { inSentence: true }),
+    stateName: recordNameInSentence(stateList, stateName.trim(), {
+      inSentence: true,
+    }),
   });
 };
 
@@ -221,6 +230,7 @@ export const getTimeToStateText: (
 ): string => {
   if (!input.reachedAt) {
     return getNotYetInStateText(
+      input.stateList,
       input.stateName?.trim() || input.fallbackStateName,
       translator,
     );

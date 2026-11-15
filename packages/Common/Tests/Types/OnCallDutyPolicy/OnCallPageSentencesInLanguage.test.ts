@@ -307,7 +307,7 @@ describe("a person's page's message, quoted in the person's language", () => {
 
   test.each([
     ["de", "„Can you check the database?“"],
-    ["fr", "« Can you check the database? »"],
+    ["fr", "«\u00A0Can you check the database?\u00A0»"],
     ["ja", "「Can you check the database?」"],
     ["da", "»Can you check the database?«"],
   ])("%s quotes it its own way", (code: string, quoted: string) => {

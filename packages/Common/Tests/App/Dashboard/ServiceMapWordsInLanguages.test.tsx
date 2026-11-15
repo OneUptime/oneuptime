@@ -55,6 +55,7 @@ import {
 import { ServiceOperationalStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/OperationalOverlay";
 import {
   formatCallRate,
+  formatDurationMs,
   formatErrorRate,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyMeta";
 import { countOfType } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyCounts";
@@ -231,7 +232,12 @@ const LATIN_DIGIT: RegExp = /[0-9]/;
 
 const ARABIC_LETTER: RegExp = /\p{Script=Arabic}/u;
 
-// A duration the card still writes by hand, "25ms" (#7418).
+/*
+ * The card's average duration was written by hand, "25ms" in every
+ * language, and the checks below left it out; it is the reader's duration
+ * now ("25 ms", "۲۵ میلی‌ثانیه", #7418), so no line is left out. Kept as
+ * the negative control's pattern.
+ */
 const WRITTEN_DURATION: RegExp = /^\d+ms$/;
 
 const ACTIVE_INCIDENTS: PluralTemplate = {
@@ -557,7 +563,7 @@ describe.each(LANGUAGES)("the service map in %s", (language: string) => {
     expect(cardStats("api")).toEqual([
       `${formatCallRate(600, WINDOW_SECONDS, translator)} ${word(language, "in")}`,
       `${formatErrorRate(600, 60, translator)} ${word(language, "errors")}`,
-      `25ms ${word(language, "avg")}`,
+      `${formatDurationMs(25, translator)} ${word(language, "avg")}`,
     ]);
     expect(cardStats("web")[0]).toBe(
       `${formatCallRate(600, WINDOW_SECONDS, translator)} ${word(language, "out")}`,
@@ -694,9 +700,10 @@ describe.each(LANGUAGES)("the service map in %s", (language: string) => {
         const lines: Array<string> = cardLines(key)
           // The title is the service's name, the subtitle may name its runtime.
           .slice(2)
-          // A duration is still written by hand (#7418).
+          // No line is left out: the duration is the reader's too (#7418).
           .filter((line: string): boolean => {
-            return !WRITTEN_DURATION.test(line);
+            expect(WRITTEN_DURATION.test(line)).toBe(false);
+            return true;
           });
 
         for (const line of lines) {
@@ -728,13 +735,13 @@ describe("English reads exactly as it did", () => {
     expect(cardStats("api")).toEqual([
       "600/min in",
       "10.0% errors",
-      "25ms avg",
+      "25 ms avg",
     ]);
     expect(cardStats("web")[0]).toBe("600/min out");
     expect(cardStats("postgres")).toEqual([
       "1.2k/min in",
       "0% errors",
-      "4ms avg",
+      "4 ms avg",
     ]);
 
     showConnectionLabels("errors");
@@ -743,7 +750,7 @@ describe("English reads exactly as it did", () => {
     showConnectionLabels("calls");
     expect(edgeLabel("api->postgres")).toBe("1.2k/min");
     showConnectionLabels("latency");
-    expect(edgeLabel("web->api")).toBe("25ms");
+    expect(edgeLabel("web->api")).toBe("25 ms");
 
     expect(screen.getByTestId("service-map-summary")).toHaveTextContent(
       "1 inactive not shown",
@@ -762,14 +769,11 @@ describe("English reads exactly as it did", () => {
 });
 
 describe("read from the right", () => {
-  test("Persian writes every figure of a card in Persian digits, the duration aside", async () => {
+  test("Persian writes every figure of a card in Persian digits, its duration too", async () => {
     await renderIn("fa");
 
     for (const key of ["web", "api", "postgres"]) {
       for (const line of cardLines(key).slice(2)) {
-        if (WRITTEN_DURATION.test(line)) {
-          continue;
-        }
         expect({ key, line, latin: LATIN_DIGIT.test(line) }).toEqual({
           key,
           line,

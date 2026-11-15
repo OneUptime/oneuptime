@@ -59,12 +59,16 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import { JSONObject } from "../../Types/JSON";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
-  EVERY_NEW_ALERT_RULE_DESCRIPTION,
-  EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+  getEveryNewAlertRuleDescription,
   getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleDescription,
   getEveryNewIncidentRuleName,
+  readEveryNewEventRulesLanguage,
   readPageForEveryNewIncidentAndAlert,
 } from "../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import { Translator } from "../../Types/Translator";
+import { getRecordWordsTranslator } from "../Utils/ServerTranslation";
+import UserLanguage from "../Utils/Notification/UserLanguage";
 import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
 import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
@@ -183,10 +187,35 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       await this.addEveryNewEventRules({
         policy: createdPolicy,
         props: createBy.props,
+        translator: getRecordWordsTranslator(
+          await this.readEveryNewEventRulesLanguage(createBy),
+        ),
       });
     }
 
     return createdPolicy;
+  }
+
+  /*
+   * THE LANGUAGE THE TWO RULES ARE WORDED IN (#7995): the one the create
+   * says it was made in (EVERY_NEW_EVENT_RULES_LANGUAGE_KEY - the language
+   * the Dashboard is read in, or Ask AI's request's), else the creator's
+   * saved language (User.language), else English. A language OneUptime does
+   * not write in is not one: the saved one, or English, stands. A read that
+   * fails is English: a policy is never held back for its rules' words.
+   */
+  public async readEveryNewEventRulesLanguage(
+    createBy: Pick<CreateBy<OnCallDutyPolicy>, "miscDataProps" | "props">,
+  ): Promise<string> {
+    const requested: string | undefined = readEveryNewEventRulesLanguage(
+      createBy.miscDataProps,
+    );
+
+    if (requested) {
+      return requested;
+    }
+
+    return await UserLanguage.getLanguage(createBy.props.userId);
   }
 
   /*
@@ -232,15 +261,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     );
   }
 
-  // The incident on-call rule that pages `policy` for every new incident.
+  /*
+   * The incident on-call rule that pages `policy` for every new incident,
+   * named and described by `translator` (English without one).
+   */
   private getEveryNewIncidentRule(data: {
     projectId: ObjectID;
     policy: OnCallDutyPolicy;
+    translator?: Translator | undefined;
   }): IncidentOnCallRule {
     const rule: IncidentOnCallRule = new IncidentOnCallRule();
     rule.projectId = data.projectId;
-    rule.name = getEveryNewIncidentRuleName(data.policy.name);
-    rule.description = EVERY_NEW_INCIDENT_RULE_DESCRIPTION;
+    rule.name = getEveryNewIncidentRuleName(data.policy.name, data.translator);
+    rule.description = getEveryNewIncidentRuleDescription(data.translator);
     rule.isEnabled = true;
     // No monitors, severities, labels or patterns: it matches every incident.
     rule.onCallDutyPolicies = [this.getPolicyReference(data.policy)];
@@ -252,11 +285,12 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   private getEveryNewAlertRule(data: {
     projectId: ObjectID;
     policy: OnCallDutyPolicy;
+    translator?: Translator | undefined;
   }): AlertOnCallRule {
     const rule: AlertOnCallRule = new AlertOnCallRule();
     rule.projectId = data.projectId;
-    rule.name = getEveryNewAlertRuleName(data.policy.name);
-    rule.description = EVERY_NEW_ALERT_RULE_DESCRIPTION;
+    rule.name = getEveryNewAlertRuleName(data.policy.name, data.translator);
+    rule.description = getEveryNewAlertRuleDescription(data.translator);
     rule.isEnabled = true;
     rule.onCallDutyPolicies = [this.getPolicyReference(data.policy)];
 
@@ -277,12 +311,14 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
    * caller, with the same checks as adding it on its Rules page, and on
    * its own: one that fails is logged and the other still added. Never
    * throws: the policy is saved already, and it shows on the Rules pages
-   * whether it is paged.
+   * whether it is paged. Named and described by `translator`, in the
+   * creator's language (readEveryNewEventRulesLanguage); English without.
    */
   @CaptureSpan()
   public async addEveryNewEventRules(data: {
     policy: OnCallDutyPolicy;
     props: DatabaseCommonInteractionProps;
+    translator?: Translator | undefined;
   }): Promise<void> {
     const policyId: ObjectID | null | undefined = data.policy.id;
     const projectId: ObjectID | undefined = data.policy.projectId;
@@ -304,6 +340,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         data: this.getEveryNewIncidentRule({
           projectId: new ObjectID(projectId.toString()),
           policy: data.policy,
+          translator: data.translator,
         }),
         props: data.props,
       });
@@ -319,6 +356,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
         data: this.getEveryNewAlertRule({
           projectId: new ObjectID(projectId.toString()),
           policy: data.policy,
+          translator: data.translator,
         }),
         props: data.props,
       });

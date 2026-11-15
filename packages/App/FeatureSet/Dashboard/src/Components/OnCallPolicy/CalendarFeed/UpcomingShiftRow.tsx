@@ -412,12 +412,13 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
       ? formatShiftTime(span.end, clock)
       : formatShiftDateTime(span.end, clock);
 
-    spokenWhen = `${translator.translateText(
-      "On call now",
-    )}, ${translator.translateTemplate(
-      span.mayContinue ? "until at least {{time}}" : "until {{time}}",
+    // One sentence, as the reader's language joins its two halves (#8076).
+    spokenWhen = translator.translateTemplate(
+      span.mayContinue
+        ? "On call now, until at least {{time}}"
+        : "On call now, until {{time}}",
       { time: until },
-    )}`;
+    );
 
     when = (
       <>
@@ -448,11 +449,12 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
     // formatShiftEnd wrote the end as a bare time: it is on the start's day.
     const endsOnStartDay: boolean = isSameShiftDay(span.start, span.end, clock);
 
-    spokenWhen = `${formatShiftDateTime(span.start, clock)} – ${
-      span.mayContinue
-        ? translator.translateTemplate("at least {{time}}", { time: end })
-        : end
-    }`;
+    spokenWhen = span.mayContinue
+      ? translator.translateTemplate("{{start}} – at least {{end}}", {
+          start: formatShiftDateTime(span.start, clock),
+          end: end,
+        })
+      : `${formatShiftDateTime(span.start, clock)} – ${end}`;
 
     when = (
       <>
@@ -618,6 +620,8 @@ const UpcomingShiftRow: FunctionComponent<ComponentProps> = (
                     key={policy.id}
                     icon={IconProp.Call}
                     text={policy.name}
+                    // A policy's name is its project's, drawn as written.
+                    isUserContent={true}
                     dataTestId="upcoming-shift-cover-policy"
                     onClick={() => {
                       Navigation.navigate(

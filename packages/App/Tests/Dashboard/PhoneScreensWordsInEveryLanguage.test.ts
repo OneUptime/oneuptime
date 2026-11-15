@@ -3,7 +3,10 @@ import {
   scanSourceRoots,
   SourceRoot,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
-import { LOCALES_DIRECTORY } from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
+import {
+  LOCALES_DIRECTORY,
+  TRANSLATED_LOCALES,
+} from "../../FeatureSet/Dashboard/scripts/i18n/LocaleFiles";
 import {
   LocaleProgress,
   readGlobalSameAsEnglish,
@@ -14,19 +17,25 @@ import fs from "fs";
 import path from "path";
 
 /*
- * ISSUE #7181: THE PHONE AND NOTIFICATION SCREENS IN PERSIAN.
+ * ISSUES #7181 AND #7553: THE PHONE AND NOTIFICATION SCREENS IN EVERY
+ * LANGUAGE.
  *
  * A Persian reader verifying a phone number read the dialog in English, and
  * the SMS logs beside it, their own notification methods page, a project's
  * Twilio settings and the incoming call policy pages had sentences of their
  * own still in English: fa.json held the English for them, where Arabic -
- * the other language read right to left - had its words. Every word these
- * screens draw is worded in Persian now, as the toolchain counts it (`npm
- * run i18n:check`): a value of its own, or the same English a language
- * keeps on purpose (a brand: WhatsApp, Telegram), or text with no words.
- * Arabic words every one of them too, as it always has.
+ * the other language read right to left - had its words (#7181). The same
+ * scan, run for every other Dashboard language, found up to 176 of these
+ * screens' keys still English in each of 15 languages: the verification
+ * code dialog, browser push setup, the delete checks on a method, the
+ * Telegram verify box (#7553). Every word these screens draw is worded in
+ * every Dashboard language now, as the toolchain counts it (`npm run
+ * i18n:check`): a value of its own, or the same English a language keeps
+ * on purpose (a brand: WhatsApp, Telegram; browsers' names), or text with
+ * no words.
  *
- * A word added to these screens later is translated with it, or fails here.
+ * A word added to these screens later is translated with it, in every
+ * language, or fails here.
  */
 
 const PHONE_ROOTS: Array<SourceRoot> = [
@@ -86,6 +95,13 @@ const TYPED_EXAMPLES: ReadonlyArray<string> = ["you@company.com", "@alice"];
 
 // The languages read right to left, whose readers #7181 was about.
 const RIGHT_TO_LEFT_LANGUAGES: ReadonlyArray<string> = ["fa", "ar"];
+
+/*
+ * Every language the Dashboard is read in but English (#7553): the ones a
+ * person picks in its language menu, so a language added there is held to
+ * these screens too.
+ */
+const EVERY_LANGUAGE: ReadonlyArray<string> = TRANSLATED_LOCALES;
 
 const PLACEHOLDER: RegExp = /\{\{\s*[\w.]+\s*\}\}/g;
 const LETTER: RegExp = /\p{L}/u;
@@ -163,7 +179,70 @@ function isWorded(data: {
   return GLOBAL_SAME_AS_ENGLISH.has(english) || data.sameAsEnglish.has(english);
 }
 
-describe("the phone and notification screens' words in Persian and Arabic", () => {
+describe("the phone and notification screens' words in every Dashboard language", () => {
+  test("every language the Dashboard offers is held to these screens, the two read right to left among them", () => {
+    expect([...EVERY_LANGUAGE].sort()).toEqual(
+      [
+        "ar",
+        "da",
+        "de",
+        "es",
+        "fa",
+        "fr",
+        "hi",
+        "it",
+        "ja",
+        "ko",
+        "nl",
+        "no",
+        "pt",
+        "ru",
+        "sv",
+        "zh-CN",
+        "zh-TW",
+      ].sort(),
+    );
+
+    for (const language of RIGHT_TO_LEFT_LANGUAGES) {
+      expect(EVERY_LANGUAGE).toContain(language);
+    }
+  });
+
+  test("the scan reads the words #7553 found English in 15 languages", () => {
+    const keys: Set<string> = new Set<string>(
+      PHONE_KEYS.map((entry: PhoneKey): string => {
+        return entry.key;
+      }),
+    );
+
+    for (const key of [
+      // The verification code dialog.
+      "The code we sent to {{destination}} has expired.",
+      "Send a new code",
+      "Call me with a new code",
+      "It works until {{expiresAt}}.",
+      "We emailed a 6-digit code to {{destination}} at {{sentAt}}.",
+      "We called {{destination}} at {{sentAt}} and read out a 6-digit code.",
+      "We sent a 6-digit code on WhatsApp to {{destination}} at {{sentAt}}.",
+      // Browser push setup.
+      "Browsers only allow push notifications over a secure connection. Open OneUptime over HTTPS to register this browser.",
+      "Send Test Notification",
+      "Browser Registered",
+      // The delete checks on a method.
+      "This is the last rule covering {{cells}}. Deleting it leaves those with no rule.",
+      // The Call method's description.
+      "Manage Phone Numbers that will receive call notifications for this project. A number you have verified for SMS is verified for calls too, with no new code.",
+      // The Telegram verify box.
+      "To verify, message our bot in Telegram. Pick whichever option is easiest:",
+      "Still waiting — please send /start to the bot in Telegram.",
+      // A test page's own failure lines (#7550).
+      "Error sending SMS.",
+      "The Notification service refused to send this (HTTP {{statusCode}}): {{words}}",
+    ]) {
+      expect([key, keys.has(key)]).toEqual([key, true]);
+    }
+  });
+
   test("the screens draw words, every one of them an English key", () => {
     expect(PHONE_KEYS.length).toBeGreaterThan(400);
     expect(
@@ -201,7 +280,7 @@ describe("the phone and notification screens' words in Persian and Arabic", () =
     }
   });
 
-  test.each(RIGHT_TO_LEFT_LANGUAGES)(
+  test.each(EVERY_LANGUAGE)(
     "%s words every one of them",
     (language: string) => {
       const progress: LocaleProgress | undefined = readLocaleProgress(language);

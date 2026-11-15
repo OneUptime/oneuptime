@@ -25,6 +25,7 @@ import CardSelect, {
   CardSelectOptionGroup,
 } from "../../../UI/Components/CardSelect/CardSelect";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * Create Monitor's More monitor types in the reader's language (issue
@@ -189,7 +190,10 @@ describe("More monitor types' line in the reader's language", () => {
         line: screen.getByTestId("card-select-more-selection").textContent,
       }).toEqual({
         language,
-        line: words!.split("{{name}}").join("Kubernetes"),
+        // As the page draws the words: French's colon kept with its word.
+        line: withNoBreakSpaces(words!, SELECTED_KEY, language)
+          .split("{{name}}")
+          .join("Kubernetes"),
       });
 
       cleanup();

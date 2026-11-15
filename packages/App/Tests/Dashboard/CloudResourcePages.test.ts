@@ -349,8 +349,9 @@ describe("Cloud Environment overview", () => {
     expect(errorTile).toContain("higherIsBetter: false");
     expect(errorTile).toContain("thresholds: { warn: 1, danger: 5 }");
 
+    // The tile's milliseconds in the reader's language (#7418).
     expect(traceTile("p95 latency")).toContain(
-      "formatDurationMs(m.p95DurationMs)",
+      "formatDurationMsInLanguage(m.p95DurationMs, translator)",
     );
   });
 

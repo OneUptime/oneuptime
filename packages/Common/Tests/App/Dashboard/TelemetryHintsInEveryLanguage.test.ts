@@ -34,6 +34,7 @@ import {
   describeClockAlignment,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayClockAlignment";
 import { ReplayClockAlignmentState } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * THE TELEMETRY HINTS, IN THE READER'S LANGUAGE.
@@ -89,7 +90,14 @@ const worded: (language: string, english: string) => string = (
 ): string => {
   const value: unknown = readLocale(language)[english];
 
-  return typeof value === "string" && value.length > 0 ? value : english;
+  if (typeof value !== "string" || value.length === 0) {
+    return english;
+  }
+
+  // As the hint draws it: French's colon kept with its word (NoBreakSpaces).
+  return value === english
+    ? value
+    : withNoBreakSpaces(value, english, language);
 };
 
 const translatorFor: (language: string) => Translator = (

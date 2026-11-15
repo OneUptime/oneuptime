@@ -190,8 +190,8 @@ export const RuleLlmProviderPicker: FunctionComponent<
   });
 
   /*
-   * A provider's name is drawn as it is called (EntityDropdown never looks
-   * a label up); its tags are translated here.
+   * A provider's name is drawn as it is called (isUserContent); its tags are
+   * translated here.
    */
   const options: Array<DropdownOption> = choices.providers.map(
     (provider: RuleLlmProviderOption): DropdownOption => {
@@ -203,6 +203,7 @@ export const RuleLlmProviderPicker: FunctionComponent<
       return {
         value: provider.id,
         label: provider.name || provider.id,
+        isUserContent: true,
         ...(description ? { description } : {}),
       };
     },
@@ -220,6 +221,8 @@ export const RuleLlmProviderPicker: FunctionComponent<
           ? RULE_LLM_PROVIDER_FIELD_COPY.hiddenProvider
           : RULE_LLM_PROVIDER_FIELD_COPY.unavailableProvider,
       ) as string,
+      // In the reader's words already.
+      isUserContent: true,
     });
   }
 

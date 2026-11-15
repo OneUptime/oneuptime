@@ -20,7 +20,7 @@ Om de trigger toe te voegen klik je op het gestippelde blok **Kies wat deze work
 | Op een knop klikken om de workflow uit te voeren | **Handmatig**                |
 | Volgens een terugkerend schema draaien         | **Schema**                  |
 | Een ander systeem gegevens laten aanleveren    | **Webhook**                 |
-| Starten vanuit een e-mail                      | **Incoming Email**          |
+| Starten vanuit een e-mail                      | **Inkomende e-mail**          |
 | Handelen op incidentrapporten van Huntress     | **Huntress Incident Report** |
 | Reageren op iets binnen OneUptime              | **OneUptime-gebeurtenis**   |
 

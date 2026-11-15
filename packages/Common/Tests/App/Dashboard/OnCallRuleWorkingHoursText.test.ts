@@ -271,7 +271,7 @@ describe("the hours and their zone", () => {
     expect(inPersian).not.toContain(";");
 
     expect(inLanguage(french)).toBe(
-      "lun.–jeu. 08:30–18:00 ; ven. 08:30–15:00 (Europe/London)",
+      "lun.–jeu. 08:30–18:00\u202F; ven. 08:30–15:00 (Europe/London)",
     );
     expect(inLanguage(german)).toContain("08:30–18:00; ");
   });

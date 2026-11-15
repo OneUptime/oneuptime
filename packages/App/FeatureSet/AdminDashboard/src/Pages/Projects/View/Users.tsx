@@ -265,7 +265,12 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                       ? `${name} (${email})`
                       : name || email || userId;
 
-                  options.push({ value: userId, label: label });
+                  // A person's name and email, as they gave them.
+                  options.push({
+                    value: userId,
+                    label: label,
+                    isUserContent: true,
+                  });
                 }
 
                 return options;
@@ -508,6 +513,8 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                       return {
                         label: team.name?.toString() || "",
                         value: team._id?.toString() || "",
+                        // A team's name is its project's, drawn as written.
+                        isUserContent: true,
                       };
                     });
                   },

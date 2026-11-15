@@ -438,8 +438,11 @@ describe("the words there are", () => {
 
   test("the copy's words, its plurals and the models' titles", () => {
     expect(COPY_SENTENCES.length).toBeGreaterThan(80);
-    // With a read's lines left out, and a list's values from its address.
-    expect(PLURALS.length).toBe(13);
+    /*
+     * With a read's lines left out, and a list's values from its address;
+     * what reads it, its names and how many more as one sentence (#8076).
+     */
+    expect(PLURALS.length).toBe(14);
     expect(MODEL_TEXTS).toEqual(
       expect.arrayContaining([
         "Watchlist",
