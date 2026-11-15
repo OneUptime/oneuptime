@@ -56,6 +56,7 @@ import {
   INHERITED_PROPERTY_NAMES,
   INHERITED_PROPERTY_NAME_SPELLINGS,
 } from "../../Helpers/InheritedNames";
+import { v8Captures, v8Tests } from "../../Helpers/V8RegExpAnswers";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -555,7 +556,14 @@ describe("PromQL regular expressions", () => {
 
       expect(regex.test(value)).toBe(matches);
       // JavaScript's own engine reads the compiled pattern the same way.
-      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+      expect(
+        v8Tests({
+          source: regex.source,
+          flags: regex.flags,
+          text: value,
+          expected: matches,
+        }),
+      ).toBe(matches);
     },
   );
 
@@ -599,7 +607,12 @@ describe("PromQL regular expressions", () => {
 
       expect(regex.exec(value)?.captures).toEqual(captures);
       expect(
-        new RegExp(regex.source, regex.flags).exec(value)?.slice(1),
+        v8Captures({
+          source: regex.source,
+          flags: regex.flags,
+          text: value,
+          expected: captures,
+        }),
       ).toEqual(captures);
     },
   );
@@ -879,7 +892,14 @@ describe("PromQL regular expressions", () => {
       const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
 
       expect(regex.test(value)).toBe(matches);
-      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+      expect(
+        v8Tests({
+          source: regex.source,
+          flags: regex.flags,
+          text: value,
+          expected: matches,
+        }),
+      ).toBe(matches);
     },
   );
 
@@ -1040,7 +1060,14 @@ describe("PromQL regular expressions", () => {
       const regex: LinearRegExp = compilePromQLRegex(pattern).regex;
 
       expect(regex.test(value)).toBe(matches);
-      expect(new RegExp(regex.source, regex.flags).test(value)).toBe(matches);
+      expect(
+        v8Tests({
+          source: regex.source,
+          flags: regex.flags,
+          text: value,
+          expected: matches,
+        }),
+      ).toBe(matches);
     },
   );
 
