@@ -659,10 +659,10 @@ describe("Traffic: the traffic chart zooms the page's range", () => {
     await renderTraffic();
 
     // 7.5 MB in one minute.
-    expect(tileValue("peak")).toBe("1.00 Mbps");
+    expect(tileValue("peak")).toBe("1.00\u00A0Mbps");
     // 60 kB over the hour: 133 bits a second.
-    expect(tileValue("average")).toBe("133 bps");
-    expect(tileValue("total")).toBe("60.0 kB");
+    expect(tileValue("average")).toBe("133\u00A0bps");
+    expect(tileValue("total")).toBe("60.0\u00A0kB");
   });
 
   test("a drag re-fetches the page over the dragged window: chart, tiles and lists follow", async () => {

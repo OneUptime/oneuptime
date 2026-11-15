@@ -380,7 +380,7 @@ async function notifyOwnersOfReminder(
   ).toString();
 
   // A person told, as the event's feed names them.
-  const feedLine: (user: User) => Promise<string> = async (
+  const feedLineMarkdown: (user: User) => Promise<string> = async (
     user: User,
   ): Promise<string> => {
     return mdText`**Notified:** ${await UserService.getUserMarkdownString({
@@ -393,7 +393,8 @@ async function notifyOwnersOfReminder(
 
   // Whom a run that stopped part way told already.
   for (const user of delivery.toldEarlier) {
-    moreScheduledMaintenanceFeedInformationInMarkdown += await feedLine(user);
+    moreScheduledMaintenanceFeedInformationInMarkdown +=
+      await feedLineMarkdown(user);
   }
 
   for (const user of delivery.owners) {
@@ -495,7 +496,8 @@ async function notifyOwnersOfReminder(
     );
 
     if (isTold) {
-      moreScheduledMaintenanceFeedInformationInMarkdown += await feedLine(user);
+      moreScheduledMaintenanceFeedInformationInMarkdown +=
+        await feedLineMarkdown(user);
     }
   }
 
