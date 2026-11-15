@@ -203,12 +203,12 @@ export default class PrepareGuard {
 
     if (!config.allowWrites) {
       if (config.writesOffReason) {
-        return `"${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only until this is fixed: ${config.writesOffReason}`;
+        return `"${result.displayCommand}" changes the ${info.sentenceName}, and this agent is read-only until this is fixed: ${config.writesOffReason}`;
       }
 
       return config.writesOffByFixes
-        ? `"${result.displayCommand}" changes the ${info.displayName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
-        : `"${result.displayCommand}" changes the ${info.displayName}, and this agent is read-only (${describeWriteSwitch(
+        ? `"${result.displayCommand}" changes the ${info.sentenceName}, and AI fixes are off in this agent's configuration (${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.Disabled}). To let OneUptime AI apply fixes, set ${AI_FIXES_ENV}=${AGENT_AI_FIXES_SETTING_VALUES.RequireApproval} (or ${AGENT_AI_FIXES_SETTING_VALUES.Automatic}, or ${AGENT_AI_FIXES_SETTING_VALUES.BypassApproval}) on the agent and restart it.`
+        : `"${result.displayCommand}" changes the ${info.sentenceName}, and this agent is read-only (${describeWriteSwitch(
             config.allowWritesSetting,
           )}). To let OneUptime AI apply fixes, set ${RESOURCE_AI_ALLOW_WRITES_ENV}=true on the agent and restart it.`;
     }
@@ -249,7 +249,7 @@ export default class PrepareGuard {
 
     if (!config.resourceIdentifier || !config.resourceIdentifier.trim()) {
       return {
-        refusal: `${refused}: it does not know which ${info.displayName} it serves, so it runs nothing.`,
+        refusal: `${refused}: it does not know which ${info.sentenceName} it serves, so it runs nothing.`,
       };
     }
 
@@ -296,9 +296,9 @@ export default class PrepareGuard {
 
     if (payload["resourceType"] !== resourceType) {
       return {
-        refusal: `${refused}: this command is for a "${String(
+        refusal: `${refused}: this command is for another kind of resource ("${String(
           payload["resourceType"] ?? "(not specified)",
-        )}" resource, and this agent serves a ${info.displayName}.`,
+        )}"), and this agent serves only its own ${info.sentenceName}.`,
       };
     }
 
@@ -309,14 +309,14 @@ export default class PrepareGuard {
       )
     ) {
       return {
-        refusal: `${refused}: this command is for ${info.displayName} "${
+        refusal: `${refused}: this command is for ${info.sentenceName} "${
           typeof payload["resourceIdentifier"] === "string" &&
           payload["resourceIdentifier"].trim()
             ? payload["resourceIdentifier"].trim()
             : "(not specified)"
         }", but this agent serves "${config.resourceIdentifier.trim()}". Check ${
           config.identitySource || info.identityEnvVars.join(" / ")
-        } on the agent installed next to that ${info.displayName}.`,
+        } on the agent installed next to that ${info.sentenceName}.`,
       };
     }
 

@@ -270,11 +270,15 @@ export function getJobRefusal(
   const jobType: unknown = job.payload["resourceType"];
 
   if (jobType !== resourceType) {
+    /*
+     * The kinds as the middle of a sentence names them ("host", not
+     * "Host"), with no article to agree with either ("a AWS account").
+     */
     const described: string = isAiResourceType(jobType)
-      ? AI_RESOURCE_TYPE_INFO[jobType].displayName
+      ? AI_RESOURCE_TYPE_INFO[jobType].sentenceName
       : `"${typeof jobType === "string" && jobType ? jobType : "(not specified)"}"`;
 
-    return `${refused}: this command is for a ${described} resource, and this agent serves a ${AI_RESOURCE_TYPE_INFO[resourceType].displayName}.`;
+    return `${refused}: this command is for another kind of resource (${described}), and this agent serves only its own ${AI_RESOURCE_TYPE_INFO[resourceType].sentenceName}.`;
   }
 
   return null;

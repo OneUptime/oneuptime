@@ -11,6 +11,7 @@ import Page from "Common/UI/Components/Page/Page";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -110,8 +111,8 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
      * otherwise.
      */
     const withoutLogoText: string = settings.productName
-      ? "The product name is shown in its place."
-      : "OneUptime's logo is shown.";
+      ? translationKey("The product name is shown in its place.")
+      : translationKey("OneUptime's logo is shown.");
 
     return (
       <div className="space-y-6" data-testid="white-label-settings">
@@ -131,8 +132,10 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 emptyText={withoutLogoText}
                 removedText={
                   settings.productName
-                    ? "People will see the product name in its place."
-                    : "People will see OneUptime's logo again."
+                    ? translationKey(
+                        "People will see the product name in its place.",
+                      )
+                    : translationKey("People will see OneUptime's logo again.")
                 }
                 onSaved={setSettings}
               />
@@ -144,10 +147,12 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 background="dark"
                 emptyText={
                   settings.logo
-                    ? "The logo for light backgrounds is used."
+                    ? translationKey("The logo for light backgrounds is used.")
                     : withoutLogoText
                 }
-                removedText="Dark mode will use the logo for light backgrounds."
+                removedText={translationKey(
+                  "Dark mode will use the logo for light backgrounds.",
+                )}
                 onSaved={setSettings}
               />
             </div>
@@ -170,8 +175,10 @@ const WhiteLabelSettingsPage: FunctionComponent = (): ReactElement => {
                 label="Browser tab icon"
                 image={settings.favicon}
                 background="light"
-                emptyText="OneUptime's icon is shown."
-                removedText="Browser tabs will show OneUptime's icon again."
+                emptyText={translationKey("OneUptime's icon is shown.")}
+                removedText={translationKey(
+                  "Browser tabs will show OneUptime's icon again.",
+                )}
                 isCompact={true}
                 onSaved={setSettings}
               />
