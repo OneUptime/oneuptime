@@ -30,6 +30,7 @@ import {
   ClaimDueState,
   readClaimDue,
 } from "Common/Utils/Probe/ClaimDueTime";
+import { getProbeCollectionDescription } from "../Probe/ProbeCollectionDescription";
 import {
   VMwareCollectionStop,
   VMwareCollectionStopFacts,
@@ -341,6 +342,40 @@ export function getVMwareNextCollection(
     now: now,
     overdueAfterInMs: VMWARE_COLLECTION_OVERDUE_AFTER_IN_MS,
   });
+}
+
+/*
+ * The Overview card's description: how the vCenter is collected, as a
+ * promise only while a probe comes for it - while its Next collection is a
+ * time or due now - and otherwise what it is set to, or nothing when no
+ * probe or no address is set (Components/Probe/ProbeCollectionDescription,
+ * OneUptime issue #8326).
+ */
+export function getVMwareCollectionDescription(
+  vcenter: VMwareCollectionScheduleFacts &
+    Pick<VMwareVCenter, "collectionProbe" | "collectionIntervalInMinutes">,
+  translator: Translator,
+  now: Date,
+  isBillingEnabled: boolean,
+): string | undefined {
+  const state: ClaimDueState = getVMwareNextCollection(
+    vcenter,
+    now,
+    isBillingEnabled,
+  ).state;
+
+  return getProbeCollectionDescription(
+    {
+      isCollected:
+        state === ClaimDueState.Scheduled || state === ClaimDueState.DueNow,
+      hasProbe: Boolean(vcenter.collectionProbeId),
+      // Translated along with the sentence it goes into, never on its own.
+      probeName: vcenter.collectionProbe?.name || translatableTerm("its probe"),
+      address: vcenter.vcenterUrl,
+      intervalInMinutes: vcenter.collectionIntervalInMinutes || 2,
+    },
+    translator,
+  );
 }
 
 // What the card says for a vCenter no probe collects, and the one thing that fixes it.

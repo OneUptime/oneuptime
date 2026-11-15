@@ -200,7 +200,6 @@ type CloudColumns = {
 // What the claim needs to hand a cloud to its probe (OpenStackCollectionStop).
 const COLLECTABLE: CloudColumns = {
   projectId: new ObjectID(PROJECT),
-  isArchived: false,
   isCredentialSet: true,
   authUrl: "https://keystone.example.com:5000/v3",
   collectionProbeId: new ObjectID(OWN),
@@ -702,12 +701,6 @@ describe("a cloud no probe collects, and when one does next", () => {
 
   test.each([
     [
-      "archived",
-      { isArchived: true },
-      "This cloud is archived, so no probe collects it.",
-      "Unarchive it to collect it again.",
-    ],
-    [
       "no credential saved",
       { isCredentialSet: false },
       "No credential is saved for this cloud.",
@@ -747,6 +740,45 @@ describe("a cloud no probe collects, and when one does next", () => {
       }
     },
   );
+
+  /*
+   * OneUptime issue #8324: an archived cloud is collected, as an archived
+   * vCenter is and as its Archived page says, so the card reads what its
+   * last collection found, never "archived, so no probe collects it".
+   */
+  test("archived: still collected, so the card reads its last collection, and its next time", () => {
+    for (const [, report] of LAST_REPORTS) {
+      expect(
+        view({
+          ...report,
+          isArchived: true,
+          nextCollectionAt: minutesFromNow(2),
+        }),
+      ).toEqual(view({ ...report, nextCollectionAt: minutesFromNow(2) }));
+    }
+
+    expect(
+      view({
+        collectionStatus: OpenStackCollectionStatus.Succeeded,
+        isArchived: true,
+        nextCollectionAt: minutesFromNow(2),
+      }),
+    ).toMatchObject({
+      tone: OpenStackCollectionTone.Collecting,
+      label: "Collecting",
+    });
+    expect(
+      getOpenStackNextCollection(
+        collectable({ isArchived: true, nextCollectionAt: minutesFromNow(2) }),
+        NOW,
+        true,
+      ),
+    ).toEqual({
+      state: ClaimDueState.Scheduled,
+      dueAt: minutesFromNow(2),
+      stop: null,
+    });
+  });
 
   test("a shared probe on OneUptime Cloud may not collect it; on a self-hosted instance it may", () => {
     const shared: CloudColumns = {
@@ -877,7 +909,6 @@ describe("a cloud no probe collects, and when one does next", () => {
     expect(next({ nextCollectionAt: minutesFromNow(-16) })).toBe("Overdue");
 
     for (const stop of [
-      { isArchived: true },
       { isCredentialSet: false },
       { authUrl: undefined },
       { collectionProbeId: undefined },
