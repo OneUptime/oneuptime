@@ -138,7 +138,7 @@ if [[ "$HTTP_CODE" != "200" ]]; then
 fi
 ```
 
-如果執行到達此步驟時所選的 Runner 離線，步驟會等待至 **claim timeout** （預設 2 分鐘），然後因逾時而失敗。在依賴 Bash 步驟之前，請在 **運行手冊 → Runbook 代理程式** 下新增一個代理程式。
+如果執行到達此步驟時所選的 Runner 離線，步驟會等待至 **claim timeout** （預設 2 分鐘），然後因逾時而失敗。在依賴 Bash 步驟之前，請在 **運行手冊 → Runner** 下新增一個代理程式。
 
 > [!TIP]
 > 不要把密碼和權杖寫進指令碼。把它們存為機密 [Runbook 變數](/docs/runbooks/variables)，並在值應出現的位置寫 `{{global.variables.NAME}}`：Runner 收到的指令碼已填入值，而步驟輸出中該位置顯示為 `[REDACTED]`。

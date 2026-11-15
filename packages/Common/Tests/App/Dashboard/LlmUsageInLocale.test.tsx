@@ -195,8 +195,9 @@ describe.each(["de", "fa"])("the Usage tab in %s", (locale: string) => {
     expect(screen.getByTestId("llm-usage-totals-calls")).toHaveTextContent(
       word(locale, "AI calls"),
     );
+    // The figure's quiet dash, read out as "Not set" in the reader's words (#8264).
     expect(screen.getByTestId("llm-usage-totals-cost-value")).toHaveTextContent(
-      /^—$/,
+      `—${word(locale, "Not set")}`,
     );
     expect(screen.getByTestId("llm-usage-totals-cost-hint")).toHaveTextContent(
       word(locale, "No cost reported"),

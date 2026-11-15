@@ -300,7 +300,7 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 一个请求逐步穿过你的服务的路径。每一步都是一个 span，带有它的耗时和结果。
 
-参见 [跟踪浏览器](/docs/telemetry/traces-explorer)。
+参见 [追踪浏览器](/docs/telemetry/traces-explorer)。
 
 ### 性能剖析
 
@@ -392,7 +392,7 @@ OneUptime 的 AI 站点可靠性工程师：它在你的遥测中调查每个新
 
 ### 基础设施代理
 
-Server / VM 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
+服务器 / 虚拟机 监视器背后的 `oneuptime-infrastructure-agent` 服务：它每 30 秒报告一次一台机器的 CPU、内存、磁盘和进程，并用该监视器的密钥签名。
 
 参见 [服务器 / 虚拟机监控](/docs/monitor/server-monitor)。
 

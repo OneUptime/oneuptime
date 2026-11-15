@@ -1,4 +1,4 @@
-# Port-overvåking
+# Port-monitor
 
 En port-monitor sjekker at en vert godtar TCP-tilkoblinger på en port, og måler hvor lang tid tilkoblingen tar. Bruk den for tjenester som ikke snakker HTTP, eller der du ikke vil sjekke HTTP: databaser, e-postservere, SSH, meldingsmeglere og lignende.
 
@@ -178,8 +178,8 @@ Port-monitorer åpner bare TCP-tilkoblinger. For en DNS-server bruker du en [DNS
 ## Neste steg
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
-- [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
+- [Ping-monitor](/docs/monitor/ping-monitor): Sjekk at selve verten kan nås.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Sjekk sertifikatet på en TLS-port.
+- [Databasehelse-monitor](/docs/monitor/database-health-monitor): Gå videre enn en åpen port, og følg med på en databases helse.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk porter på ditt eget nettverk.
 :::

@@ -172,7 +172,7 @@ Hvert element i `monitor_steps` er én ting som skal sjekkes:
 | `tls_client_key_passphrase` | string (sensitiv) | Nettsted, API | Passordfrasen til den private nøkkelen. |
 | `request_timeout_in_ms` | number | Sjekker som en sonde gjør | Hvor lenge ett forsøk kan ta, i millisekunder. Sonden senker alt over 60000 til 60000. |
 | `retry_count` | number | Sjekker som en sonde gjør | Nye forsøk etter et mislykket første forsøk: `0` sjekker én gang, `3` opptil fire ganger. Sonden senker alt over 3 til 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Skriptet trinnet kjører. |
+| `custom_code` | string | Egendefinert JavaScript-kode, Synthetic | Skriptet trinnet kjører. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` og `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` og `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nye forsøk når skriptet feiler: `0` kjører det én gang. |
@@ -229,7 +229,7 @@ Hvert element i `criteria` er én regel: når filtrene stemmer, gjør det regele
 
 Kriteriene bedømmes fra toppen, og det første som stemmer, bestemmer, så sett kriteriene som varsler, først, det mest alvorlige først (kritisk, deretter advarsel), og det friske sist. Et friskt kriterium øverst er den vanligste måten å bygge en monitor som aldri varsler på: en bred regel som `Is Online` er `True`, eller en målingsverdi `Greater Than` `0`, stemmer med nesten hver sjekk, og kriteriene under den blir aldri vurdert. Plassert sist stemmer den bare når ingenting over den stemte, og det er det du vil.
 
-Grupperte målingsmonitorer er det ene unntaket. Når spørringen til en målingsmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Målingsovervåking](/docs/monitor/metrics-monitor).
+Grupperte målingsmonitorer er det ene unntaket. Når spørringen til en målingsmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Målingsmonitor](/docs/monitor/metrics-monitor).
 
 | Attributt | Type | Hva det er |
 | --- | --- | --- |
@@ -435,6 +435,6 @@ Provideren bygger dette fra HCL-en din når den skriver, og leser det tilbake ti
 :::cards
 - [Eksempler](/docs/terraform/examples): Ping-, port-, SSL-sertifikat- og API-monitorer, klare til bruk.
 - [Komplett guide](/docs/terraform/complete-guide): Datakilder, state og oppgraderinger.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Målingsspørringer, gruppering og avvik.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Målingsspørringer, gruppering og avvik.
 - [Feilsøking](/docs/terraform/troubleshooting): Blant annet et inkonsistent resultat etter apply på en monitor.
 :::

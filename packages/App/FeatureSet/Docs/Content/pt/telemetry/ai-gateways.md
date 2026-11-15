@@ -92,7 +92,7 @@ litellm --config config.yaml
 
 ### Envie uma requisição por ele
 
-Chame o proxy uma vez e depois confira AI / LLM como descrito em [Confira se as chamadas chegam](#confira-se-as-chamadas-chegam).
+Chame o proxy uma vez e depois confira IA / LLM como descrito em [Confira se as chamadas chegam](#confira-se-as-chamadas-chegam).
 :::
 
 | Variável | Valor | Observações |
@@ -272,7 +272,7 @@ O OneUptime responde `401` para uma chave ausente, desconhecida ou expirada, e `
 O LiteLLM recebe o caminho completo, `https://oneuptime.com/otlp/v1/traces`. O Portkey recebe a URL base, `https://oneuptime.com/otlp`, e acrescenta `/v1/traces` sozinho.
 :::
 
-:::details Spans chegam, mas não em AI / LLM
+:::details Spans chegam, mas não em IA / LLM
 Filtre **Traços** pelo serviço do gateway (`litellm`, `portkey` ou o seu `OTEL_SERVICE_NAME`) para ver os spans brutos. Um span só conta como chamada ao modelo quando carrega atributos `gen_ai.*`: confira se o callback é `otel` e se a chamada foi a um modelo.
 :::
 

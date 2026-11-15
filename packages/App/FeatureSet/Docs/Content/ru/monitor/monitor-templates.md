@@ -144,22 +144,22 @@ flowchart TB
 :::details Имена полей для doNotSyncFields по типам мониторов
 | Тип монитора | Имена полей |
 | --- | --- |
-| Веб-сайт, API, Ping, IP, Порт, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Веб-сайт, API, Ping, IP, Порт, SSL-сертификат, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | Только API | `requestHeaders`, `requestType`, `requestBody` |
 | Веб-сайт и API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (клиентский сертификат, ключ и парольная фраза вместе) |
 | Порт, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| Синтетический монитор, Пользовательский код JavaScript | `customCode` |
+| Синтетический монитор | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (DNS-сервер и порт вместе), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Домен | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Журналы, Security Events, Трассировки, ИИ / LLM, Метрики, Исключения, Профили | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (вся конфигурация монитора) |
+| SQL-запрос | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| Состояние базы данных | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| Внешняя страница статуса | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| Журналы, События безопасности, Трассировки, ИИ / LLM, Метрики, Исключения, Профили | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (вся конфигурация монитора) |
 | Статус зонда | `probeStatusMonitor.probeIds` |
 
-Мониторы инфраструктуры (Kubernetes, Docker Container, Хост, Podman Container, Proxmox, Docker Swarm, Ceph, Система хранения, IoT Device) предлагают свой селектор ресурсов, фильтры (все, кроме Хоста), запросы метрик и временное окно запроса. Их имена перечислены в **Настройки синхронизации шаблона** в шаблоне этого типа.
+Мониторы инфраструктуры (Kubernetes, Контейнер Docker, Хост, Контейнер Podman, Proxmox, Docker Swarm, Ceph, Система хранения, IoT-устройство) предлагают свой селектор ресурсов, фильтры (все, кроме Хоста), запросы метрик и временное окно запроса. Их имена перечислены в **Настройки синхронизации шаблона** в шаблоне этого типа.
 :::
 
 ## Устранение неполадок

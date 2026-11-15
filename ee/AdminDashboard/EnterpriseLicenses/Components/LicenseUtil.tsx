@@ -133,8 +133,10 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
     return (
       <Pill
         text={getLicenseStatusText(lifecycle, translator)}
+        isUserContent={true}
         color={Red}
         size={PillSize.Small}
+        isTooltipUserContent={true}
         tooltip={
           daysAgo === 0
             ? (translator.translateText("Expired today") as string)
@@ -154,6 +156,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
     return (
       <Pill
         text={getLicenseStatusText(lifecycle, translator)}
+        isUserContent={true}
         color={Yellow}
         size={PillSize.Small}
         tooltip="Daily expiry reminder emails are going out to the customer's master admins."
@@ -164,6 +167,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   return (
     <Pill
       text={getLicenseStatusText(lifecycle, translator)}
+      isUserContent={true}
       color={Green}
       size={PillSize.Small}
     />
@@ -198,6 +202,7 @@ export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
         text="Active"
         color={Green}
         size={PillSize.Small}
+        isTooltipUserContent={true}
         tooltip={translator.translatePlural(
           {
             one: "Registered or sent a usage report within the past {{count}} day and is included in seat usage.",
@@ -215,6 +220,7 @@ export const EnterpriseLicenseInstanceStatusPill: FunctionComponent<
       text="Inactive"
       color={Gray500}
       size={PillSize.Small}
+      isTooltipUserContent={true}
       tooltip={translator.translatePlural(
         {
           one: "Has not registered or sent a usage report for {{count}} day and is not included in seat usage.",

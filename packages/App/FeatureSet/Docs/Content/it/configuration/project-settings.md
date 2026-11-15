@@ -39,7 +39,7 @@ flowchart LR
 | **Avanzato** | **Domini**, **Chiavi API**, **Flag delle funzionalità**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Flag delle funzionalità](#flag-delle-funzionalità), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fatturazione e fatture** | **Fatturazione**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
-| **Log di audit** | **Log di audit**, **Impostazioni**, **Esporta** | [Registri di audit](/docs/configuration/audit-logs), [Esportazione del registro di audit](/docs/configuration/audit-log-export) |
+| **Log di audit** | **Log di audit**, **Impostazioni**, **Esporta** | [Log di audit](/docs/configuration/audit-logs), [Esportazione del log di audit](/docs/configuration/audit-log-export) |
 | **Zona pericolosa** | **Zona pericolosa** | [Eliminare il progetto](#eliminare-il-progetto) |
 
 **Fatturazione e fatture** e **Crediti IA** esistono solo su OneUptime Cloud: un'installazione self-hosted non ha fatturazione.
@@ -150,6 +150,6 @@ Scrivi il nome del progetto esattamente come lo mostra la finestra: maiuscole e 
 :::cards
 - [Invitare persone](/docs/permissions/inviting-people): Portare il tuo team nel progetto.
 - [Fatturazione e utilizzo](/docs/configuration/billing): Il tuo piano, i metodi di pagamento, le fatture e l'utilizzo.
-- [Registri di audit](/docs/configuration/audit-logs): Vedere chi ha cambiato che cosa nel progetto.
+- [Log di audit](/docs/configuration/audit-logs): Vedere chi ha cambiato che cosa nel progetto.
 - [SSO](/docs/identity/sso): Far accedere le persone con il tuo provider di identità.
 :::

@@ -5,6 +5,7 @@ import {
   holdBackOverLongLines,
 } from "../../../Utils/Markdown/OverLongText";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { htmlAsText } from "../../Helpers/HtmlText";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import {
   DashboardReading,
@@ -173,9 +174,8 @@ const unescapeHtml: (html: string) => string = (html: string): string => {
 
 // The text of the HTML a reader sees outside code - where a link's Markdown would show.
 const textOutsideCode: (html: string) => string = (html: string): string => {
-  return unescapeHtml(
-    html.replace(/<code>[\s\S]*?<\/code>/g, "").replace(/<[^>]*>/g, ""),
-  );
+  // The code spans out, then the rest read through the shared walk.
+  return htmlAsText(html.replace(/<code>[\s\S]*?<\/code>/g, ""));
 };
 
 // What each code span of the HTML holds, its escapes undone and white space as one space.

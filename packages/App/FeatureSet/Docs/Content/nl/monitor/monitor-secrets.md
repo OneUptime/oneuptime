@@ -69,16 +69,16 @@ Deze monitortypen en velden accepteren geheimen:
 | --- | --- |
 | API | De URL, de request-headers en -body, en het clientcertificaat, de privésleutel en de wachtwoordzin (mTLS) |
 | Website | De URL, en het clientcertificaat, de privésleutel en de wachtwoordzin (mTLS) |
-| Ping, IP, Poort, NTP, SSL Certificate | De host of URL die wordt gecontroleerd |
+| Ping, IP, Poort, NTP, SSL-certificaat | De host of URL die wordt gecontroleerd |
 | DNS | De domeinnaam en de DNS-server |
 | DNSSEC, Domein | De domeinnaam |
-| SQL Query | De host, de databasenaam, de gebruikersnaam, het wachtwoord en de query |
-| Database Health | De host, de databasenaam, de gebruikersnaam en het wachtwoord |
-| External Status Page | De URL van de statuspagina |
-| Synthetic Monitor, Custom JavaScript Code | Het script |
-| Network Device | De SNMP-communitystring, en de authenticatie- en privacysleutels van SNMPv3 |
+| SQL-query | De host, de databasenaam, de gebruikersnaam, het wachtwoord en de query |
+| Databasegezondheid | De host, de databasenaam, de gebruikersnaam en het wachtwoord |
+| Externe statuspagina | De URL van de statuspagina |
+| Synthetische monitor, Aangepaste JavaScript-code | Het script |
+| Netwerkapparaat | De SNMP-communitystring, en de authenticatie- en privacysleutels van SNMPv3 |
 
-Geheimen worden ingevuld voordat het script van een monitor van het type Synthetic Monitor of Custom JavaScript Code draait, dus een verwijzing zoals `{{monitorSecrets.ApiKey}}` in het script is tijdens het uitvoeren de ontsleutelde waarde.
+Geheimen worden ingevuld voordat het script van een monitor van het type Synthetische monitor of Aangepaste JavaScript-code draait, dus een verwijzing zoals `{{monitorSecrets.ApiKey}}` in het script is tijdens het uitvoeren de ontsleutelde waarde.
 
 Verwijst een monitor naar een geheim dat hij niet mag gebruiken, dan blijft de verwijzing staan zoals ze is en wordt ze niet door de waarde vervangen.
 

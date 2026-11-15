@@ -4,6 +4,7 @@ import {
   RelativeDateUnit,
 } from "Common/Types/DateLanguage";
 import OneUptimeDate from "Common/Types/Date";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -36,8 +37,9 @@ function toValidDate(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+// "4 minutes", the number held to its word (#8669).
 function plural(count: number, unit: string): string {
-  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+  return `${count}${NO_BREAK_SPACE}${unit}${count === 1 ? "" : "s"}`;
 }
 
 /*

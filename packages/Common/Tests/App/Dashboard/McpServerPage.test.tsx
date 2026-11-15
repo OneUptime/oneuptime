@@ -622,7 +622,7 @@ describe("the Connected MCP Clients table", () => {
       renderPage();
 
       expect(lines(0).map(textOf)).toEqual([
-        "3 hours ago",
+        "3\u00A0hours ago",
         `Connected ${format(CONNECTED_ON, true)}`,
       ]);
 
@@ -638,7 +638,7 @@ describe("the Connected MCP Clients table", () => {
       renderPage();
 
       expect(lines(0)[0]).toHaveAttribute("title", format(LAST_USED_ON));
-      expect(format(LAST_USED_ON)).not.toBe("3 hours ago");
+      expect(format(LAST_USED_ON)).not.toBe("3\u00A0hours ago");
     });
 
     test("the connection line carries the day and no time of day", () => {

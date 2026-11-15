@@ -117,7 +117,7 @@ OneUptime assegna al flusso di lavoro un indirizzo email tutto suo. Ogni email i
 
 Ideale per: agire sulle email di sistemi che non possono chiamare un webhook — avvisi di vecchi strumenti di monitoraggio, comunicazioni di stato di un fornitore, il report che un job notturno invia via email.
 
-Per ottenere l'indirizzo, fai clic sul trigger Incoming Email sulla tela. L'indirizzo si trova in cima alle sue impostazioni, con un pulsante **Copia indirizzo**. Dallo a ciò che deve avviare il flusso di lavoro: uno strumento che sa solo inviare email, le impostazioni di notifica di un fornitore o una regola di inoltro della tua casella di posta.
+Per ottenere l'indirizzo, fai clic sul trigger Email in arrivo sulla tela. L'indirizzo si trova in cima alle sue impostazioni, con un pulsante **Copia indirizzo**. Dallo a ciò che deve avviare il flusso di lavoro: uno strumento che sa solo inviare email, le impostazioni di notifica di un fornitore o una regola di inoltro della tua casella di posta.
 
 Ogni email avvia la propria esecuzione. L'email raggiunge il flusso di lavoro sia che l'indirizzo sia in A o in Cc, sia in copia nascosta, sia che passi per una regola di inoltro. Un'email che nomina l'indirizzo due volte avvia una sola esecuzione.
 
@@ -139,7 +139,7 @@ Una volta arrivata un'email, il selettore dei valori di ogni blocco dopo il trig
 
 Per provare il flusso di lavoro senza inviare un'email, fai clic su **Esegui flusso di lavoro** nella pagina **Costruttore** e compila un mittente, un oggetto e un corpo. I valori che tralasci arrivano vuoti.
 
-Le email avviano il flusso di lavoro solo mentre è attivo. Le email a un flusso di lavoro disattivato vengono ignorate, così come quelle a un flusso di lavoro il cui trigger non è più Incoming Email.
+Le email avviano il flusso di lavoro solo mentre è attivo. Le email a un flusso di lavoro disattivato vengono ignorate, così come quelle a un flusso di lavoro il cui trigger non è più Email in arrivo.
 
 ### Mantieni privato l'indirizzo
 

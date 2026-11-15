@@ -195,7 +195,7 @@ Un filtro scritto da te è una riga di al massimo 500 caratteri, fatta di letter
 
 Per dare a un team **Start Packet Capture** o **Download Packet Capture**, aprilo in **Impostazioni → Team** e aggiungi l'autorizzazione nella sua pagina **Autorizzazioni**. Vedi [Autorizzazioni](/docs/permissions/index).
 
-### Registro di audit e privacy
+### Log di audit e privacy
 
 - L'avvio di una cattura viene registrato nel log di audit come **Create** della **Packet Capture**, e la sua eliminazione come **Delete**. Ogni download viene registrato come **Download**, con chi ha scaricato quale cattura.
 - Il file è un file privato del progetto. Solo il pulsante **Scarica**, con **Download Packet Capture**, lo consegna.

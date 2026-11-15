@@ -1,4 +1,4 @@
-# 跟踪浏览器
+# 追踪浏览器
 
 追踪浏览器帮你找到经过你的服务的请求：慢的、失败的、涉及某个客户账户的。搜索并过滤你的服务发送的 span，然后打开一条追踪，以瀑布图、火焰图或服务地图查看请求的每一步。
 
@@ -182,7 +182,7 @@ span 通常在请求结束后一分钟内到达。点击追踪页面上的 **刷
 
 :::cards
 - [搜索语法](/docs/telemetry/search-syntax): 搜索框能理解的所有过滤条件。
-- [跟踪监控](/docs/monitor/traces-monitor): 在请求失败或变慢时收到警报。
+- [追踪监控](/docs/monitor/traces-monitor): 在请求失败或变慢时收到警报。
 - [异常](/docs/telemetry/exceptions): 分诊你的 span 记录的错误。
 - [日志浏览器](/docs/telemetry/logs-explorer): 阅读一个请求写下的日志行。
 :::

@@ -452,17 +452,17 @@ Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database
 
 ### Monitores de métricas e infraestrutura
 
-Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Storage Array e IoT Device têm uma variável própria:
+Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Array de armazenamento e IoT Device têm uma variável própria:
 
 | Variável | O que contém | Tipo |
 | --- | --- | --- |
 | `metricName` | O nome da métrica que a primeira consulta do monitor lê, como `container.cpu.time`. | `string` |
 
-Agrupados, eles também têm o valor de cada atributo de **Agrupar por**, e `seriesLabels`: veja [Valores de um monitor agrupado](#valores-de-um-monitor-agrupado). Os modelos do monitor IoT Device agrupam por dispositivo, por isso um monitor criado a partir de um deles também tem `{{device.id}}`.
+Agrupados, eles também têm o valor de cada atributo de **Agrupar por**, e `seriesLabels`: veja [Valores de um monitor agrupado](#valores-de-um-monitor-agrupado). Os modelos do monitor Dispositivo IoT agrupam por dispositivo, por isso um monitor criado a partir de um deles também tem `{{device.id}}`.
 
 ### Outros tipos de monitor
 
-Os monitores Logs, Traces, Exceptions, Security Events, AI / LLM e SQL Query não têm variáveis próprias. Use as [variáveis de todo monitor](#variáveis-de-todo-monitor) e, em um monitor Logs agrupado, os [valores do grupo](#valores-de-um-monitor-agrupado).
+Os monitores Logs, Traces, Exceptions, Eventos de segurança, IA / LLM e SQL Query não têm variáveis próprias. Use as [variáveis de todo monitor](#variáveis-de-todo-monitor) e, em um monitor Logs agrupado, os [valores do grupo](#valores-de-um-monitor-agrupado).
 
 ## Exemplos
 

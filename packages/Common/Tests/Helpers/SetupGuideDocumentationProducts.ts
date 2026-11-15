@@ -20,10 +20,13 @@ import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
+import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DATABASE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationTranslations";
 import { HOST_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
 import { HOST_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getDatabaseSetupGuideWays,
   getHostSetupGuideWays,
   getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
@@ -82,9 +85,13 @@ function product(data: {
   ways: () => Array<SetupGuideWay>;
   options: ReadonlyArray<SetupGuideOption>;
   dashboardWords: ReadonlyArray<string>;
+  // Components/<cardDirectory>/DocumentationCard.tsx; the product's name if unset.
+  cardDirectory?: string;
 }): SetupGuideDocumentationProduct {
+  const { cardDirectory, ...rest } = data;
+
   return {
-    ...data,
+    ...rest,
     translationsDirectory: path.join(
       DASHBOARD_SOURCE,
       `Pages/${data.name}/DocumentationTranslations`,
@@ -95,7 +102,7 @@ function product(data: {
     ),
     cardFile: path.join(
       DASHBOARD_SOURCE,
-      `Components/${data.name}/DocumentationCard.tsx`,
+      `Components/${cardDirectory || data.name}/DocumentationCard.tsx`,
     ),
   };
 }
@@ -281,6 +288,24 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "How VM power state is worked out",
         "vCenter rejects the login",
         "x509 or other TLS errors",
+      ],
+    }),
+    product({
+      name: "Database",
+      cardDirectory: "DatabaseServer",
+      translations: DATABASE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "DATABASE_DOCUMENTATION_TRANSLATIONS",
+      ways: getDatabaseSetupGuideWays,
+      // The card asks which engine the reader runs.
+      options: DATABASE_AGENT_SYSTEM_OPTIONS,
+      dashboardWords: [
+        "Databases",
+        "Engine metrics",
+        "Logs",
+        "Documentation",
+        "AI",
+        "AI agent",
+        "The files the agent runs",
       ],
     }),
     product({

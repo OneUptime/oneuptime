@@ -144,22 +144,22 @@ Omettete l'array o impostatelo a `[]` per sincronizzare tutte le impostazioni de
 :::details Nomi di campo per doNotSyncFields, per tipo di monitor
 | Tipo di monitor | Nomi di campo |
 | --- | --- |
-| Sito web, API, Ping, IP, Porta, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| Sito web, API, Ping, IP, Porta, Certificato SSL, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | Solo API | `requestHeaders`, `requestType`, `requestBody` |
 | Sito web e API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (il certificato client, la chiave e la passphrase insieme) |
 | Porta, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| Monitor sintetico, Codice JavaScript personalizzato | `customCode` |
+| Monitor sintetico | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (il server DNS e la porta insieme), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | Dominio | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| Log, Security Events, Tracce, IA / LLM, Metriche, Eccezioni, Profili | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (l'intera configurazione del monitor) |
+| Query SQL | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| Integrità del database | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| Pagina di stato esterna | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| Log, Eventi di sicurezza, Tracce, IA / LLM, Metriche, Eccezioni, Profili | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (l'intera configurazione del monitor) |
 | Stato della sonda | `probeStatusMonitor.probeIds` |
 
-I monitor dell'infrastruttura (Kubernetes, Docker Container, Host, Podman Container, Proxmox, Docker Swarm, Ceph, Array di storage, IoT Device) offrono il loro selettore di risorse, i filtri (tutti tranne Host), le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Impostazioni di sincronizzazione del modello** su un modello di quel tipo.
+I monitor dell'infrastruttura (Kubernetes, Container Docker, Host, Container Podman, Proxmox, Docker Swarm, Ceph, Array di storage, Dispositivo IoT) offrono il loro selettore di risorse, i filtri (tutti tranne Host), le query delle metriche e la finestra temporale della query. I loro nomi sono elencati in **Impostazioni di sincronizzazione del modello** su un modello di quel tipo.
 :::
 
 ## Risoluzione dei problemi

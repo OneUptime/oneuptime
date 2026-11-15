@@ -1,4 +1,4 @@
-# Trase-overvåking
+# Trase-monitor
 
 En trasemonitor teller innenfor et tidsvindu spans tjenestene dine sender til OneUptime som samsvarer med filtrene dine (span-navn, status, tjeneste, attributter). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å bli varslet om mislykkede forespørsler til et endepunkt, en økning i feil-spans eller en tjeneste som har sluttet å sende traser.
 
@@ -172,8 +172,8 @@ Det lærer fortsatt: monitorens tjenester har ikke to ukers historikk ennå inne
 ## Neste steg
 
 :::cards
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Bli varslet om unntakene tjenestene dine registrerer.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Bli varslet om unntakene tjenestene dine registrerer.
+- [Logg-monitor](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Finn span-navn og -statuser i trase-utforskeren.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Skriv nyttige titler og beskrivelser for varsler.
 :::

@@ -194,7 +194,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Proxmox** | **Knooppunten**, **Gasten** | De Proxmox-agent |
 | **VMware** | **Hosts**, **Virtuele machines** | De VMware-agent, of een vCenter die je koppelt |
 | **Ceph** | **OSD's**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
-| **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Storage Array-agent |
+| **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Opslagarray-agent |
 
 Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien.
 

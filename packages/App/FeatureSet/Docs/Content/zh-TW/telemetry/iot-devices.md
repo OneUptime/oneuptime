@@ -276,7 +276,7 @@ OneUptime 會辨識以下 `iot_*` 指標名稱。只傳送對你的裝置有意�
 
 | 指標名稱 | 意義 |
 | --- | --- |
-| `iot_device_up` | 可用性：`1` 表示運作中且可連線，`0` 表示停止運作。IoT Device 監測器會讀取它。 |
+| `iot_device_up` | 可用性：`1` 表示運作中且可連線，`0` 表示停止運作。IoT 裝置 監測器會讀取它。 |
 | `iot_device_info` | 僅用於識別。它帶有 `device.id`、類別、類型和韌體，因此裝置在回報讀數之前就會出現在清單中。 |
 | `iot_battery_percent` | 電池電量，`0` 到 `100`（%）。 |
 | `iot_signal_strength_dbm` | 以 dBm 表示的無線訊號強度，例如 Wi-Fi、LoRa 或行動網路的 RSSI。 |

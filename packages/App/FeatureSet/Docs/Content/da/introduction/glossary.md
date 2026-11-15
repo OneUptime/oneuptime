@@ -294,7 +294,7 @@ Se [Protokoludforsker](/docs/telemetry/logs-explorer).
 
 De tal, dine tjenester og din infrastruktur rapporterer over tid, for eksempel antal anmodninger, latens, CPU og kødybde.
 
-Se [Måleudforsker](/docs/telemetry/metrics-explorer).
+Se [Metrikudforsker](/docs/telemetry/metrics-explorer).
 
 ### Spor
 

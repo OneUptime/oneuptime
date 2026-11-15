@@ -55,7 +55,7 @@ OneUptime 的大部分功能都无需安装任何东西：只有在需要访问 
 | 安装内容 | 做什么 | 何时安装 | 使用的密钥 |
 | --- | --- | --- | --- |
 | [自定义探测器](/docs/probe/custom-probe) | 在你的网络内部运行监视器的检查。 | 你要检查的内容位于防火墙之后。OneUptime 自己的探测器检查公开的内容。 | 它自己的探测器 ID 和密钥 |
-| [基础设施代理](/docs/monitor/server-monitor) | 向 Server / VM 监视器报告一台机器的 CPU、内存、磁盘和进程。 | 你想为一台服务器设置一个监视器，并对它的数值设置条件。 | 该监视器的密钥 |
+| [基础设施代理](/docs/monitor/server-monitor) | 向 服务器 / 虚拟机 监视器报告一台机器的 CPU、内存、磁盘和进程。 | 你想为一台服务器设置一个监视器，并对它的数值设置条件。 | 该监视器的密钥 |
 | [OpenTelemetry Collector](/docs/telemetry/hosts) | 发送机器的指标、日志和进程。**添加主机** 用一条命令安装它。 | 你想让一台机器连同它的遥测出现在 **主机** 下。 | 摄取密钥 |
 | [Kubernetes 代理](/docs/telemetry/kubernetes-agent) | 收集集群的指标、事件、日志和追踪。你用 Helm 安装它。 | 你在运行 Kubernetes。 | 摄取密钥 |
 | [Runner](/docs/runbooks/agents) | 在你的基础设施内部运行运行手册步骤，例如 Bash、SSH 和 kubectl。 | 你的运行手册需要访问你自己的主机和集群。 | 它自己的 Runner ID 和密钥 |

@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-每個網路裝置的 `descriptiveAttributes` 包含其主機名稱、IP 位址、序號、MAC 位址、製造商、型號、韌體、作業系統、角色、站點和位置：請參閱下文的 [網路裝置資產屬性](#網路裝置資產屬性)。輪詢器知道的其他資訊（例如介面和鄰居）位於 Network Device 記錄本身：順著 `resourceId` 存取 `/api/network-device/:id/get-item`，或直接拉取 `/api/network-device/get-list`。
+每個網路裝置的 `descriptiveAttributes` 包含其主機名稱、IP 位址、序號、MAC 位址、製造商、型號、韌體、作業系統、角色、站點和位置：請參閱下文的 [網路裝置資產屬性](#網路裝置資產屬性)。輪詢器知道的其他資訊（例如介面和鄰居）位於 網路裝置 記錄本身：順著 `resourceId` 存取 `/api/network-device/:id/get-item`，或直接拉取 `/api/network-device/get-list`。
 
 ### 以 CSV 格式
 
@@ -184,7 +184,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 
 ## 網路裝置資產屬性
 
-網路裝置（`entityType: network.device`）從其 Network Device 記錄鏡像而來，其 `descriptiveAttributes` 對相同的資訊使用與主機相同的鍵，因此無論該列是伺服器還是交換器，CMDB 的同一欄都儲存序號：
+網路裝置（`entityType: network.device`）從其 網路裝置 記錄鏡像而來，其 `descriptiveAttributes` 對相同的資訊使用與主機相同的鍵，因此無論該列是伺服器還是交換器，CMDB 的同一欄都儲存序號：
 
 | 欄位 | 鍵 | 來源 |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ ENTITY-MIB 列會在裝置的首次 SNMP 走訪之後填入。未被走訪的裝
 
 主機名稱永遠不會是 IP 位址。只有位址能命名的裝置有 `host.ip`，沒有 `host.name`。一旦它的 SNMP 走訪回報了系統名稱，`host.name` 會在下一輪處理時出現。
 
-這些值每十五分鐘從 Network Device 記錄複製一次，並且會 **取代** 先前的值，而不是附加到先前的值上，因此在裝置上清除的值（例如移除的 MAC 位址）也會從資產清單項目中消失。
+這些值每十五分鐘從 網路裝置 記錄複製一次，並且會 **取代** 先前的值，而不是附加到先前的值上，因此在裝置上清除的值（例如移除的 MAC 位址）也會從資產清單項目中消失。
 
 沒有*可用升級*版本：SNMP 沒有用於此的標準物件，因此 OneUptime 記錄的是裝置正在執行的版本。
 

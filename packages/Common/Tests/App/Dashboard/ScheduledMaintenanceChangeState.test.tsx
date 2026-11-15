@@ -627,7 +627,7 @@ describe("ChangeScheduledMaintenanceState", () => {
       expect(currentStatePill()).toBe("Verifying");
       expect(readDuration()).toEqual({
         prefix: "In progress for",
-        value: "1 hour",
+        value: "1\u00A0hour",
       });
       expect(
         container.querySelector("#sm-mark-complete-btn"),
@@ -706,7 +706,7 @@ describe("ChangeScheduledMaintenanceState", () => {
         // Moving on from Ended to "Reviewing" is no second end.
         expect(readDuration()).toEqual({
           prefix: "Completed in",
-          value: "1 hour, 25 minutes",
+          value: "1\u00A0hour, 25\u00A0minutes",
         });
         expect(container.querySelector("#sm-mark-ongoing-btn")).toBe(null);
         expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
@@ -733,7 +733,7 @@ describe("ChangeScheduledMaintenanceState", () => {
         expect(currentStatePill()).toBe("Reviewing");
         expect(readDuration()).toEqual({
           prefix: "Completed in",
-          value: "45 minutes",
+          value: "45\u00A0minutes",
         });
         expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
       });
@@ -756,7 +756,7 @@ describe("ChangeScheduledMaintenanceState", () => {
         expect(currentStatePill()).toBe("Verifying");
         expect(readDuration()).toEqual({
           prefix: "In progress for",
-          value: "50 minutes",
+          value: "50\u00A0minutes",
         });
         expect(container.querySelector("#sm-mark-ongoing-btn")).toBe(null);
         expect(
@@ -861,14 +861,14 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       expect(readDuration()).toEqual({
         prefix: "Starts in",
-        value: "2 hours",
+        value: "2\u00A0hours",
       });
 
       await advance(5 * MINUTE);
 
       expect(readDuration()).toEqual({
         prefix: "Starts in",
-        value: "1 hour, 55 minutes",
+        value: "1\u00A0hour, 55\u00A0minutes",
       });
       expect(overdueNotice()).toBe(null);
     });
@@ -903,7 +903,7 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       expect(readDuration()).toEqual({
         prefix: "Start overdue by",
-        value: "1 minute",
+        value: "1\u00A0minute",
       });
       expect(overdueNotice()).toBe(null);
 
@@ -957,7 +957,7 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       expect(readDuration()).toEqual({
         prefix: "Start overdue by",
-        value: "3 hours",
+        value: "3\u00A0hours",
       });
       expect(overdueNotice()).toHaveTextContent("Start overdue");
       // The actions are unchanged: the fix is still to mark it ongoing.
@@ -982,7 +982,7 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       expect(readDuration()).toEqual({
         prefix: "In progress for",
-        value: "1 hour, 54 minutes",
+        value: "1\u00A0hour, 54\u00A0minutes",
       });
 
       await advance(MINUTE);
@@ -997,7 +997,7 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       expect(readDuration()).toEqual({
         prefix: "Overrunning by",
-        value: "3 minutes",
+        value: "3\u00A0minutes",
       });
 
       const notice: HTMLElement = overdueNotice() as HTMLElement;
@@ -1032,7 +1032,7 @@ describe("ChangeScheduledMaintenanceState", () => {
       expect(currentStatePill()).toBe("Ended");
       expect(readDuration()).toEqual({
         prefix: "Completed in",
-        value: "1 hour, 25 minutes",
+        value: "1\u00A0hour, 25\u00A0minutes",
       });
       expect(container.querySelector("#sm-mark-ongoing-btn")).toBe(null);
       expect(container.querySelector("#sm-mark-complete-btn")).toBe(null);
@@ -1047,7 +1047,7 @@ describe("ChangeScheduledMaintenanceState", () => {
 
       await advance(10 * MINUTE);
 
-      expect(readDuration()?.value).toBe("1 hour, 25 minutes");
+      expect(readDuration()?.value).toBe("1\u00A0hour, 25\u00A0minutes");
       expect(timelineRequests()).toHaveLength(1);
     });
 

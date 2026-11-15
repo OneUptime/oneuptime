@@ -219,7 +219,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **原樣再次儲存機密不會改變任何內容。** 監測器機密、工作流程變數、運行手冊機密或憑證、LLM 提供商的 API 金鑰、OIDC 用戶端密碼，以及 OneUptime 加密儲存的其他值，每次儲存都會重新加密，因此原樣回傳其中之一的儲存看起來像是一次變更：它會執行記錄的 **On Update** 工作流程，把記錄推送到開啟的儀表板，並在稽核日誌中新增一個項目。原樣寫回的值現在視為未變更；新值仍會做這三件事，並且仍以加密方式儲存。
 - **在 OneUptime Cloud 上，API 金鑰在低於其方案時停止運作，SCIM 只會移除人員。** 專案的 API 金鑰需要 **Growth**，其 SCIM 連線（專案及其狀態頁面的連線）需要 **Scale**。到目前為止，試用期結束或專案轉到較低方案後它們仍會繼續運作。現在，使用專案的某個 API 金鑰發出的每個請求——REST API、Terraform、CLI、使用 API 金鑰連線的 MCP 用戶端——都會以 `402` 和一則說明所需方案的訊息被拒絕，而每個會新增或變更人員或群組的 SCIM 請求都會以 SCIM 錯誤格式的 `402` 被拒絕。SCIM 在每個方案上仍會停用、刪除和移除人員，因此離開的人仍會失去存取權。不會刪除任何內容：一旦專案回到該方案，它們會在一分鐘內依原樣完全恢復運作。方案變更使它們停止時，專案的擁有者會收到一封電子郵件，而已經低於這些方案的專案的擁有者會在這次升級後收到一封電子郵件，說明哪些功能停止了以及如何重新啟用。**專案設定** > **帳單與發票** > **帳單** 會說明較低方案會停止或限制多少個。登入的人員、透過登入連線的 MCP 用戶端、遙測擷取金鑰、探測器金鑰和代理程式金鑰不受影響，自行託管的安裝（沒有方案）不會看到任何變化。請參閱 [低於其方案的 API 金鑰和 SCIM](/docs/api-reference/api-reference#低於其方案時的-api-金鑰和-scim)。
 - **以文字形式寫入的開關就是被儲存的開關，不改變任何內容的儲存不會觸發任何東西。** API、Terraform 和工作流程可以用文字或數字傳送開/關欄位：`"true"`、`"yes"`、`"on"`、`"1"` 或 `1` 表示開，`"false"`、`"no"`、`"off"`、`"0"` 或 `0` 表示關。資料庫一直把它們儲存為開或關，但 OneUptime 本身讀取的是文字：以 `"isVisibleOnStatusPage": "true"` 傳送的維護事件會出現在其狀態頁面上，但其圖片仍為私人，因此在那裡無法載入；以 `"isArchived": "false"` 傳送的監測器保持未封存，卻被標記了是誰在何時封存了它。現在，在 OneUptime 讀取它們的每個地方，這些值都是資料庫所儲存的開或關。資料庫無法儲存的值，例如 `"maybe"`、`""` 或 `2`，會以 `400` 和一則指明欄位的訊息（`isEnabled must be true or false.`）被拒絕，而不是伺服器錯誤；這也包括 SLO 消耗速率規則的警示和事件選項的 `""`，過去它會被當作預設值讀取。用記錄已有的值寫回記錄——以關閉傳送的關閉開關、以 0 傳送的 0 計數、順序不同的相同標籤——不再執行其 **On Update** 工作流程，不再傳送即時更新，也不再在稽核日誌中新增項目；真實變更的項目只列出變更了的欄位。工作流程的 **Fields to watch** 現在只感知更新所變更的欄位，並感知這些欄位的每次變更：監聽某個開關的工作流程在該開關被關閉時也會執行，而過去它會錯過這一點。請參閱 [開關](/docs/api-reference/api-reference#開關)。
-- **Runner 已從專案設定移到運行手冊。** Runner 現在位於 **運行手冊 → Runbook 代理程式**（`…/runbooks/runners`），Runner 憑證位於 **運行手冊 → Runbook 代理程式 → 憑證**（`…/runbooks/runner-credentials`），就在它們為之執行步驟的運行手冊旁邊。舊的 URL `…/settings/runners` 和 `…/settings/runner-credentials` 會重新導向，因此書籤仍然有效。其他一切不變：Runner 保留其 ID、金鑰、能力和權限，並且仍然執行 AI 程式碼修正和 AI 補救指令。早於此版本的 Runner 映像檔仍會在其日誌訊息中寫"Project Settings > Runners"；請將其理解為運行手冊 → Runbook 代理程式。
+- **Runner 已從專案設定移到運行手冊。** Runner 現在位於 **運行手冊 → Runner**（`…/runbooks/runners`），Runner 憑證位於 **運行手冊 → Runner → 憑證**（`…/runbooks/runner-credentials`），就在它們為之執行步驟的運行手冊旁邊。舊的 URL `…/settings/runners` 和 `…/settings/runner-credentials` 會重新導向，因此書籤仍然有效。其他一切不變：Runner 保留其 ID、金鑰、能力和權限，並且仍然執行 AI 程式碼修正和 AI 補救指令。早於此版本的 Runner 映像檔仍會在其日誌訊息中寫"Project Settings > Runners"；請將其理解為運行手冊 → Runner。
 - **即時更新隨開啟它們的登入一起結束，並要求與每個請求相同的條件。** 開啟的頁面的即時更新——頁首中的計數、即時日誌、AI 聊天——現在會在其登入結束時停止：登出、變更密碼、被封鎖，或 15 分鐘的存取權杖到期時。在權杖到期前一分鐘，頁面會更新其登入並自行重新連線，因此其即時更新會繼續；無法更新的登入會把使用者帶到登入頁面，和以前一樣。要求 SSO 的專案或執行個體只向透過 SSO 登入的頁面提供即時更新，並讓沒有 SSO 登入的頁面去用 SSO 登入，正如其請求早已做到的那樣——包括啟用該要求時已經開啟的頁面。某人的權限變更、被封鎖或失去主管理員角色，會立即到達其開啟的頁面，而且是在每個應用程式伺服器上，而不只是做出變更的那個伺服器：每個應用程式伺服器都會額外保持一個到 Valkey 的連線，訂閱頻道 `oneuptime:realtime:access-changes`。當該頻道無法連線時，伺服器會在 30 秒內跟上權限變化，在一分鐘內跟上封鎖，在存取權杖的 15 分鐘內跟上工作階段或新要求的 SSO 登入。請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 - **關閉或刪除專案的 SSO 提供者，會結束它所授予的登入。** 在要求 SSO 的地方，透過被關閉或刪除的 SAML 或 OIDC 提供者登入的人員，必須在下一個請求時重新用 SSO 登入，他們開啟的頁面不再接收即時更新，他們用該登入連線的 MCP 用戶端需要重新連線。重新開啟該提供者不會恢復這些登入，而在升級時已經關閉的提供者視為在升級時關閉。新的憑證或用戶端密碼會讓所有人保持登入。只要專案要求 SSO，在關閉「Require SSO for Login」之前，其最後一個提供者以及它所要求的提供者都無法關閉或刪除；當整個伺服器都要求 SSO 時，在另一個提供者開啟之前，專案的最後一個提供者無法關閉或刪除。請參閱 [SSO](/docs/identity/sso#關閉或刪除提供者)。
 - **全域 SSO 提供者和狀態頁面 SSO 提供者以同樣的方式結束其登入，而開啟「Require SSO for Login」需要一個提供者。** 關閉或刪除全域 SAML 或 OIDC 提供者，會像專案的提供者那樣結束它所授予的登入，重新開啟也不會恢復這些登入；在升級時已經關閉的全域提供者視為在升級時關閉。對全域提供者或其關聯專案的變更，如果會讓要求 SSO 的專案（自己要求，或因為整個伺服器要求）沒有可用於登入的提供者，就會被拒絕，並指出這些專案。為專案或整個伺服器開啟「Require SSO for Login」，只要沒有任何提供者能讓人員在那裡登入，就會被拒絕；訊息會說明需要先設定什麼。關閉或刪除狀態頁面的 SSO 或 OIDC 提供者，會讓它登入的私人使用者登出，要求 SSO 的狀態頁面也不再保持以密碼開始的工作階段。只透過 SSO 登入過的私人使用者在升級後需要再登入一次。請參閱 [全域 SSO](/docs/identity/global-sso#關閉或刪除提供者) 和 [狀態頁面](/docs/status-pages/index#sso-與-oidc)。
@@ -285,7 +285,7 @@ helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
 - **全域 Runner 負責 OneUptime AI 的程式碼修正，共用 Runner 已移除。** 內建的全域 Runner，以及主管理員新增的每個全域 Runner，現在都會在每個在 **全域 Runner** 上工作的程式碼儲存庫中工作：也就是在使用全域 Runner 的專案中，Code 裡的 Runner 設定選擇了它的儲存庫，或在沒有預設 Runner 的專案中沒有選擇 Runner 的儲存庫。關閉了全域 Runner 的專案，以及選擇了自己 Runner 的儲存庫，不受影響。在全域 Runner 上，修正從不執行儲存庫自己的設定、建置與測試命令，程式碼代理程式也沒有執行命令的工具：修正會被寫好並開啟供審查，驗證顯示為略過，與之前在共用 Runner 上一樣。你自己的 Runner 仍會建置並測試修正：請參閱[執行你自己的 Runner](/docs/ai/ai-agent#執行你自己的-runner)。全域 Runner 只透過 HTTPS 連到網際網路上的 Git 伺服器；但在自行託管的 OneUptime 上，它可以連到伺服器本身可以連到的私有 Git 伺服器。它仍然從不執行 Bash、SSH 或 kubectl 步驟、OneUptime AI 的命令，或需要憑證的步驟。全域 Runner 只為它接手的那個修正工作：只有在處理該修正期間，它才會取得該修正的詳細資訊及其儲存庫的權杖。在每個 Runner 上，修正為 GitHub 儲存庫取得的權杖現在只能存取那一個儲存庫，而不是 GitHub App 能存取的每個儲存庫，並且修正結束時 Runner 會撤銷它。上面的說明稱為內建 Runner 的那個獨立的共用 Runner 已移除。Docker Compose 不再有 `runner` 服務，也不再使用 `ONEUPTIME_RUNNER_KEY`、`ONEUPTIME_RUNNER_PORT` 或 `ONEUPTIME_RUNNER_ONEUPTIME_URL`：`npm run update` 會刪除舊容器（如果你手動執行 Compose，則由 `docker compose up -d --remove-orphans` 刪除），你可以從 `config.env` 中刪除這三行。Helm chart 不再有 `runner` 部署，並會忽略 `runner.*` 值；它的 schema 仍然接受這些值，以便舊的 values 檔案繼續可用：請從你的 values 中刪除 `runner:`，並把 `runner.keda` 移到欄位相同的 `globalRunner.keda`。仍以共用 Runner 方式啟動（`ONEUPTIME_RUNNER_SHARED` 設為 `true`）的 Runner，現在會在日誌中說明共用 Runner 已移除，然後停止執行：請把它從你的部署中刪除。如果你設定了 `GLOBAL_RUNNER_REPLICAS=0` 或 `globalRunner.enabled: false`，現在這也會停止在 **全域 Runner** 上工作的儲存庫中的 AI 程式碼修正：請重新開啟全域 Runner，或在 Code 中為這些儲存庫選擇你自己的 Runner。管理員儀表板中位於 **設定 → 人工智慧** 下的全域 AI 代理程式頁面已移除：要管理全域 Runner，請依序開啟 **設定** 、 **全域 Runner** 。用該頁面上某個全域 AI 代理程式的 ID 和金鑰啟動的 Runner 不再接收工作，並會說明這一點：請改用全域 Runner 的 ID 和金鑰啟動它。專案在 12.0 之前建立的 AI 代理程式會照常運作。請參閱[全域 Runner](/docs/runbooks/agents#全域-runner)。
 - **探測器與 Runner 的錯誤金鑰會被計數。** 一個位址在一刻鐘內，針對同一個探測器、Runner 或 AI 代理程式最多只能送出十個不同的錯誤金鑰，針對 `REGISTER_PROBE_KEY` 最多只能送出十個不同的錯誤值。超過之後，在這一刻鐘結束前，它對該探測器、Runner 或代理程式的請求以及它的註冊都會收到 `429`，即使金鑰正確也一樣。仍在送出重設前舊金鑰的探測器或 Runner，無論呼叫多少次，都只算一個錯誤金鑰，因此永遠不會因此被拒絕。從私有網路位址（也就是內建探測器與 Runner 發起呼叫的地方）送出的金鑰完全不計數，因此在它們旁邊送出的任何內容都無法讓它們被拒絕。
 - **每個安裝都會執行自己的全域 Runner。** Docker Compose 中新的 `global-runner` 服務，以及 Helm chart 中的 `globalRunner` 部署，會執行所有未選擇自己 Runner 的專案的 JavaScript 步驟，每個步驟都在只能存取網際網路的沙箱中執行。它持有自己的金鑰 `GLOBAL_RUNNER_KEY`（`npm start` 和 `npm run update` 會為它設定隨機值，chart 也會產生它），不持有伺服器的任何其他東西。選擇了 Runner 的步驟會保留它，而現有的 Runbook 密鑰只有在您開啟其 **全域 Runner 可以使用此密鑰** 開關後才會交給它。若要關閉它，請在 `config.env` 中設定 `GLOBAL_RUNNER_REPLICAS=0`，或在 chart 中將 `globalRunner.enabled` 設為 `false`。請參閱 [全域 Runner](/docs/runbooks/agents#全域-runner)。
-- **Runbook 機密和 Runbook 步驟使用的憑證已成為 Runbook 變數。** Runbook 像工作流程一樣擁有變數：每個 Runbook 都能使用的全域變數位於 **運行手冊 → 設定 → 全域變數** ，Runbook 自己的變數位於其 **設定 → 變數** 。變數是一般值或機密，機密會被加密、無法讀回，並在步驟輸出中被隱藏。每個 Runbook 機密現在都是同名的機密全域變數，保留其值、Runner 和全域 Runner 開關（現在稱為 **全域 Runner 可以使用** ），`{{runbookSecrets.NAME}}` 仍會讀取它。SSH 步驟現在執行 bash 指令碼並用機密變數登入，Kubernetes 步驟現在是 kubectl 步驟，使用 kubeconfig 變數執行由 kubectl 指令組成的指令碼。每個已儲存的步驟都已遷移到這種形式，其憑證保存的內容已複製到機密全域變數中，並且行為保持不變。憑證曾保留在 **運行手冊 → Runbook 代理程式** 下的 **AI Access** 頁面，供 OneUptime AI 自己的指令使用，遷移後的 Kubernetes 步驟也曾保留其憑證和操作，因此早於此版本的 Runner 仍像以前一樣執行它，直到 [Runbook 憑證被移除](#runbook-憑證已移除)。新的 kubectl 步驟，以及指令碼或 kubeconfig 被變更後的遷移步驟，需要此版本的 Runner：較舊的 Runner 會讓這樣的步驟失敗並說明原因，因此請更新您的 Runner。請參閱 [Runbook 變數](/docs/runbooks/variables)。
+- **Runbook 機密和 Runbook 步驟使用的憑證已成為 Runbook 變數。** Runbook 像工作流程一樣擁有變數：每個 Runbook 都能使用的全域變數位於 **運行手冊 → 設定 → 全域變數** ，Runbook 自己的變數位於其 **設定 → 變數** 。變數是一般值或機密，機密會被加密、無法讀回，並在步驟輸出中被隱藏。每個 Runbook 機密現在都是同名的機密全域變數，保留其值、Runner 和全域 Runner 開關（現在稱為 **全域 Runner 可以使用** ），`{{runbookSecrets.NAME}}` 仍會讀取它。SSH 步驟現在執行 bash 指令碼並用機密變數登入，Kubernetes 步驟現在是 kubectl 步驟，使用 kubeconfig 變數執行由 kubectl 指令組成的指令碼。每個已儲存的步驟都已遷移到這種形式，其憑證保存的內容已複製到機密全域變數中，並且行為保持不變。憑證曾保留在 **運行手冊 → Runner** 下的 **AI Access** 頁面，供 OneUptime AI 自己的指令使用，遷移後的 Kubernetes 步驟也曾保留其憑證和操作，因此早於此版本的 Runner 仍像以前一樣執行它，直到 [Runbook 憑證被移除](#runbook-憑證已移除)。新的 kubectl 步驟，以及指令碼或 kubeconfig 被變更後的遷移步驟，需要此版本的 Runner：較舊的 Runner 會讓這樣的步驟失敗並說明原因，因此請更新您的 Runner。請參閱 [Runbook 變數](/docs/runbooks/variables)。
 - **在更多部署中，訪客保留自己的位址。** OneUptime 依訪客連線時所用的位址來計算訪客，用於登入限制、其他依位址的限制以及 IP 允許清單。它的 ingress 現在除了 IPv4 也會監聽 IPv6，並且可以在 `docker-compose.override.yml` 中為 Docker Compose 的網路開啟 IPv6（需要 Docker Engine 27 或更新版本），讓透過 IPv6 來的訪客保留自己的位址，而不是 Docker 轉交時所用的位址。如果入口是同一台伺服器上你自己的反向代理，請只在 `127.0.0.1` 上發布 ingress（`ONEUPTIME_HTTP_PORT=127.0.0.1:8080`），讓訪客只能透過代理連到 OneUptime。只要 ingress 仍在所有位址上發布，`npm start` 就會提示。使用 Helm 時，`nginx.service.externalTrafficPolicy: Local` 會讓每位訪客的位址穿過會傳遞位址的負載平衡器後仍然保留；在未設定之前，`helm install` 和 `helm upgrade` 會提示這一點。**管理員儀表板 → OneUptime 健康狀態** 會在多人從同一個私人網路位址登入時提出提示。在你設定其中某一項之前，網路和 Service 保持不變。nginx 以前對任何值都會拒絕的 `NGINX_LISTEN_OPTIONS` 現在可以使用了。請參閱[訪客位址](/docs/installation/docker-compose#訪客位址)。
 - **程式碼儲存庫會選擇自己的 Runner，Runner 不再有 AI 程式碼修復開關。** 儲存庫在程式碼中的設定會選擇 AI 在其中工作所用的 Runner，沒有選擇的儲存庫在其專案使用全域 Runner 時在全域 Runner 上工作。升級會沿用每個專案的選擇：它的儲存庫會選擇它曾開啟 **Runs AI Code Fixes** 的那個 Runner（最近一次有回應的那個），該開關隨即移除。現在 Runner 只認領選擇了它的儲存庫的程式碼工作，也只有它會取得這些儲存庫的權杖；沒有被任何儲存庫選擇的 Runner 不認領任何工作。請參閱 [選擇儲存庫的 Runner](/docs/ai/ai-agent#選擇儲存庫的-runner)。
 - **OneUptime AI 可以用任何運行手冊修正，或只用規則允許的運行手冊修正，規則會選擇自己的 Runner。** 自動補救規則不再詢問 **修正方式**：OneUptime AI 透過受影響叢集或主機上的 AI 代理程式修正它所相符的內容，可以執行專案中合適的運行手冊（任何運行手冊，或只執行規則在 **更多欄位** 中指定的 **運行手冊**），並在規則在那裡選擇的 **Runner** 上執行自有指令。沒有規則時，OneUptime AI 也會為每個新事件或警示提出合適的運行手冊，供您核准。以 **修正方式** 為 **運行手冊** 儲存的規則會繼續在每次相符時啟動其運行手冊（**每次都執行**）。Runner 不再有 **執行 AI 修復指令** 開關：為規則或為 Kubernetes 叢集的 AI 存取選擇 Runner，才能讓 OneUptime AI 的指令在其上執行，選擇持有 SSH 憑證的 Runner 需要讀取運行手冊憑證的權限。升級會讓每條規則繼續做它原來做的事：由 AI 撰寫指令且未指定 Runner 的規則，會指定其專案中它執行過的 Runner；如果只有一個，就選擇那個 Runner。任何 Runner 的開關都不會改變，因此繫結到開關關閉的 Runner 的叢集，會在其 AI 代理程式頁面上請您重新選擇該 Runner。請參閱 [哪些事件會被調查和修正](/docs/ai/ai-sre#哪些事件會被調查和修正)。
@@ -385,7 +385,7 @@ Kubernetes 叢集或基礎架構資源上的調查和修正，現在是 AI 代�
 
 ### Runbook 憑證已移除
 
-**運行手冊 → Runbook 代理程式** 下的 **AI Access** 頁面已刪除，它保存的 Runbook 憑證也隨之刪除。OneUptime AI 自己的指令曾透過這些憑證經 SSH 存取伺服器，或從叢集外的 Runner 存取 Kubernetes 叢集。主機和 Kubernetes 叢集現在都有自己的 AI 代理程式，它們以自己的存取權限執行 OneUptime AI 的指令，而 Runbook 步驟使用 [Runbook 變數](/docs/runbooks/variables) 登入。
+**運行手冊 → Runner** 下的 **AI Access** 頁面已刪除，它保存的 Runbook 憑證也隨之刪除。OneUptime AI 自己的指令曾透過這些憑證經 SSH 存取伺服器，或從叢集外的 Runner 存取 Kubernetes 叢集。主機和 Kubernetes 叢集現在都有自己的 AI 代理程式，它們以自己的存取權限執行 OneUptime AI 的指令，而 Runbook 步驟使用 [Runbook 變數](/docs/runbooks/variables) 登入。
 
 升級後的變化：
 
@@ -395,7 +395,7 @@ Kubernetes 叢集或基礎架構資源上的調查和修正，現在是 AI 代�
 - **四項 Runbook Credential 權限會被移除。** 每個擁有它們的團隊、API 金鑰和自訂角色都會失去這些權限，它們擁有的其他內容不變。
 - **API 和 Terraform。** `RunbookCredential` 和 Terraform 資源 `oneuptime_runbook_credential` 已移除，Kubernetes 叢集的 `aiAccessCredentialId`（`ai_access_credential_id`）也已移除。為 Runbook 步驟指定 `credentialId` 的儲存會被拒絕：請將該步驟寫成使用變數登入的指令碼。
 
-**AI Access** 頁面的舊位址會開啟 **運行手冊 → Runbook 代理程式** 。
+**AI Access** 頁面的舊位址會開啟 **運行手冊 → Runner** 。
 
 ### 啟用 AI 是唯一的 AI 開關
 
@@ -653,7 +653,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-（或者在 **運行手冊 → Runbook 代理程式** 中開啟該 Runner，使用 **顯示設定說明** 取得預先填好的指令。）
+（或者在 **運行手冊 → Runner** 中開啟該 Runner，使用 **顯示設定說明** 取得預先填好的指令。）
 
 如果您用環境變數調整過代理程式，請重新命名它們——新映像檔會 **悄悄忽略** 舊名稱：
 
@@ -671,7 +671,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 **設定 → 人工智慧 → AI 代理** 頁面已經移除，`oneuptime/ai-agent` 映像檔也不再建置。如果您自己安裝過 AI Agent 容器，請用 Runner 取代它：
 
 :::steps
-1. 在 **運行手冊 → Runbook 代理程式** 下建立一個 Runner，並使用 **顯示設定說明** 提供的指令安裝它。
+1. 在 **運行手冊 → Runner** 下建立一個 Runner，並使用 **顯示設定說明** 提供的指令安裝它。
 2. 在該 Runner 上開啟 **Runs AI Code Fixes**。變更會在下一次心跳時生效。
 :::
 
@@ -720,7 +720,7 @@ compose 服務 `ai-agent` 現在是 `runner`。如果您使用標準的 `npm run
 
 運行手冊機密仍在原處，位於運行手冊 → 設定 → 機密下。
 
-這些就是 12 和 13 中頁面所在的位置。在 14 中，兩個 Runner 頁面再次移動，移到了 **運行手冊 → Runbook 代理程式**（`…/runbooks/runners`）和 **運行手冊 → Runbook 代理程式 → 憑證**（`…/runbooks/runner-credentials`）；表中 12 和 13 的 URL 會重新導向到那裡。請參閱 [14 中的其他變更](#14-中的其他變更)。
+這些就是 12 和 13 中頁面所在的位置。在 14 中，兩個 Runner 頁面再次移動，移到了 **運行手冊 → Runner**（`…/runbooks/runners`）和 **運行手冊 → Runner → 憑證**（`…/runbooks/runner-credentials`）；表中 12 和 13 的 URL 會重新導向到那裡。請參閱 [14 中的其他變更](#14-中的其他變更)。
 
 ### 12 中的新功能，不會意外開啟
 

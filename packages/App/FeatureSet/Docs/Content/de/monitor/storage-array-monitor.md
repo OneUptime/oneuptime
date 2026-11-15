@@ -41,7 +41,7 @@ flowchart TB
 
 Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**.
 
-### Storage Array wählen
+### Speicher-Array wählen
 
 Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **Speicher-Array** unter **Infrastruktur**, oder geben Sie `storage` in das Suchfeld ein. Geben Sie einen **Name** ein - er wird in den Titeln von Vorfällen und Warnungen verwendet - und klicken Sie auf **Weiter**.
 

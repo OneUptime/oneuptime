@@ -41,11 +41,11 @@ Varje verktyg med en Alertmanager kan få incidenter redan i dag: ett larm som u
 :::steps
 ### Skapa monitorn
 
-Skapa en monitor av typen Incoming Request enligt [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ta-emot-larm-med-en-monitor) och kopiera dess **Heartbeat URL**. Det är adressen `<secret key>` i varje verktygs mottagare nedan.
+Skapa en monitor av typen Inkommande begäran enligt [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#ta-emot-larm-med-en-monitor) och kopiera dess **Heartbeat URL**. Det är adressen `<secret key>` i varje verktygs mottagare nedan.
 
 ### Lägg den på molnet
 
-Öppna monitorns **Översikt → Länkade resurser** och lägg till OpenStack-molnet. Varje incident finns då på det molnets sida **Incidenter**: en Incoming Request-monitors egna inställningar nämner inget moln, så varje moln med Alertmanager behöver en egen monitor. Molnet dyker upp i den listan när dess första data kommer fram, så gör detta efter stegen nedan, eller lägg till molnet under **OpenStack → Alla moln** först.
+Öppna monitorns **Översikt → Länkade resurser** och lägg till OpenStack-molnet. Varje incident finns då på det molnets sida **Incidenter**: en Inkommande begäran-monitors egna inställningar nämner inget moln, så varje moln med Alertmanager behöver en egen monitor. Molnet dyker upp i den listan när dess första data kommer fram, så gör detta efter stegen nedan, eller lägg till molnet under **OpenStack → Alla moln** först.
 :::
 
 Alertmanager, vid den version Kolla-Ansible fäster, spelades in när den postade i exakt den här formen, och det den postade öppnade en incident på en körande OneUptime, som dess egen status `resolved` löste.

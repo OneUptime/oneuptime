@@ -1,4 +1,4 @@
-# Manuell overvåking
+# Manuell monitor
 
 En manuell monitor har ingen automatiske sjekker: statusen er det du setter den til, i dashbordet eller via API-et. Bruk den til å representere noe OneUptime ikke kan sjekke selv — en avhengighet hos en tredjepart, et fysisk system, en forretningsprosess — på statussidene og i hendelsene dine.
 
@@ -100,6 +100,6 @@ En manuell monitor velges som enhver annen monitor overalt der monitorer velges:
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Monitortypene som sjekker ting for deg.
-- [Ekstern statusside-overvåking](/docs/monitor/external-status-page-monitor): Følg heller en leverandørs statusside automatisk.
+- [Ekstern statusside-monitor](/docs/monitor/external-status-page-monitor): Følg heller en leverandørs statusside automatisk.
 - [Statussider – Oversikt](/docs/status-pages/index): Vis monitorens status til kundene dine.
 :::

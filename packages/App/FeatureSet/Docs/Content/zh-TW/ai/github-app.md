@@ -178,7 +178,7 @@ issue 文字、拉取請求描述、diff 和留言都會成為代理程式提示
 :::
 
 :::details 它確認後長時間沒有動靜
-檢查儲存庫選擇的 Runner 是否在 **運行手冊 → Runbook 代理程式** 下在線上。沒有選擇的儲存庫在全域 Runner 上工作，它是否已連線會顯示在程式碼中儲存庫的設定裡。沒有在線上的 Runner 時，執行會在 30 分鐘後失敗，並在討論串中告知。
+檢查儲存庫選擇的 Runner 是否在 **運行手冊 → Runner** 下在線上。沒有選擇的儲存庫在全域 Runner 上工作，它是否已連線會顯示在程式碼中儲存庫的設定裡。沒有在線上的 Runner 時，執行會在 30 分鐘後失敗，並在討論串中告知。
 :::
 
 :::details 它說拉取請求來自 fork
@@ -190,5 +190,5 @@ issue 文字、拉取請求描述、diff 和留言都會成為代理程式提示
 :::cards
 - [程式碼](/docs/ai/ai-agent): 同一個代理程式，在儲存庫中提出請求，或從例外、追蹤或調查啟動。
 - [GitHub 整合](/docs/self-hosted/github-integration): 在自行託管的執行個體上建立並設定 GitHub App。
-- [Runbook 代理程式](/docs/runbooks/agents): 執行每次執行的 worker。
+- [Runner](/docs/runbooks/agents): 執行每次執行的 worker。
 :::

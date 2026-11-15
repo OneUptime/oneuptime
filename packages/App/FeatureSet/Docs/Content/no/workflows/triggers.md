@@ -117,7 +117,7 @@ OneUptime gir arbeidsflyten sin egen e-postadresse. Hver e-post som sendes til d
 
 Bra for: å handle på e-post fra systemer som ikke kan kalle en webhook — varsler fra eldre overvåkingsverktøy, statusmeldinger fra en leverandør, rapporten en nattlig jobb sender ut.
 
-For å få adressen klikker du på Incoming Email-triggeren på lerretet. Adressen står øverst i innstillingene, med en knapp **Kopier adresse**. Gi den til det som skal starte arbeidsflyten: et verktøy som bare kan sende e-post, varslingsinnstillingene til en leverandør eller en videresendingsregel i din egen postkasse.
+For å få adressen klikker du på Innkommende e-post-triggeren på lerretet. Adressen står øverst i innstillingene, med en knapp **Kopier adresse**. Gi den til det som skal starte arbeidsflyten: et verktøy som bare kan sende e-post, varslingsinnstillingene til en leverandør eller en videresendingsregel i din egen postkasse.
 
 Hver e-post starter sin egen kjøring. E-posten når arbeidsflyten uansett om adressen står i Til eller Kopi, er en blindkopi eller nås gjennom en videresendingsregel. En e-post som nevner adressen to ganger, starter én kjøring.
 

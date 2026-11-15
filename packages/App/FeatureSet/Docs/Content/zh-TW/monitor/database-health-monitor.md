@@ -1,21 +1,21 @@
 # 資料庫健康狀態監控
 
-Database Health 監測器會依排程連線到 PostgreSQL、MySQL 或 Microsoft SQL Server，並回報伺服器本身的健康訊號——連線餘裕、被封鎖的工作階段、複寫延遲、快取命中率、資料庫大小、交易 ID 迴繞，以及另外三十多項——讓你能像網站停擺時收到警示那樣，針對這些訊號設定警示。
+資料庫健康狀況 監測器會依排程連線到 PostgreSQL、MySQL 或 Microsoft SQL Server，並回報伺服器本身的健康訊號——連線餘裕、被封鎖的工作階段、複寫延遲、快取命中率、資料庫大小、交易 ID 迴繞，以及另外三十多項——讓你能像網站停擺時收到警示那樣，針對這些訊號設定警示。
 
 你不需要撰寫 SQL。探測器會依資料庫引擎執行一組固定的唯讀目錄查詢，並回報少量具名的數值。
 
 :::cards
 - [建立監控使用者](#建立監控使用者): 每種引擎需要的權限。這是最重要的一步。
-- [建立監測器](#建立-database-health-監測器): 讓探測器指向資料庫，並選擇要收集的內容。
+- [建立監測器](#建立-資料庫健康狀況-監測器): 讓探測器指向資料庫，並選擇要收集的內容。
 - [收集的指標](#收集的指標): 每個序列，以及回報它的引擎。
 - [設定條件](#設定條件): 針對連線、封鎖、延遲和迴繞發出警示。
 :::
 
-## Database Health 還是 SQL Query？
+## 資料庫健康狀況 還是 SQL 查詢？
 
 這兩種資料庫監測器類型回答不同的問題，設計上就是要搭配使用。
 
-| | Database Health | [SQL Query](/docs/monitor/sql-monitor) |
+| | 資料庫健康狀況 | [SQL Query](/docs/monitor/sql-monitor) |
 |---|---|---|
 | 回答的問題 | 「資料庫本身健康嗎？」 | 「我的資料符合預期嗎？」 |
 | 查詢 | 內建、依引擎區分、唯讀 | 你自己的 |
@@ -23,7 +23,7 @@ Database Health 監測器會依排程連線到 PostgreSQL、MySQL 或 Microsoft 
 | 典型警示 | 已使用的連線超過 90% | 最近五分鐘內取消的訂單超過 50 筆 |
 | 所需權限 | 讀取統計資料/DMV——請參閱[建立監控使用者](#建立監控使用者) | 對查詢所涉及資料表的 `SELECT` |
 
-如果要針對業務條件發出警示，請使用 SQL Query 監測器。如果想在業務條件還沒有機會出錯之前，就知道伺服器的連線快要用完，請使用這個監測器。
+如果要針對業務條件發出警示，請使用 SQL 查詢 監測器。如果想在業務條件還沒有機會出錯之前，就知道伺服器的連線快要用完，請使用這個監測器。
 
 ## 支援的資料庫
 
@@ -37,7 +37,7 @@ Azure SQL Database 和 Azure SQL Managed Instance 會以 **Microsoft SQL Server*
 
 使用相同線路協定的 PostgreSQL 相容與 MySQL 相容引擎通常也能運作，但提供的統計檢視可能較少；此時受影響的指標會回報為無法使用，而不會被收集。只有上面三種引擎經過官方測試。
 
-你的應用程式、叢集和主機所使用的每個資料庫（這三種引擎以及其他許多引擎）也都有自己的頁面，顯示其引擎指標、日誌以及呼叫它的服務：請參閱[資料庫](/docs/telemetry/databases)。如果 Database Health 監測器連線的主機和連接埠是某個資料庫的端點之一，該監測器的警示和事件也會出現在那個資料庫的頁面上（請參閱[資料庫上的警示](/docs/telemetry/databases#資料庫的警示)）。
+你的應用程式、叢集和主機所使用的每個資料庫（這三種引擎以及其他許多引擎）也都有自己的頁面，顯示其引擎指標、日誌以及呼叫它的服務：請參閱[資料庫](/docs/telemetry/databases)。如果 資料庫健康狀況 監測器連線的主機和連接埠是某個資料庫的端點之一，該監測器的警示和事件也會出現在那個資料庫的頁面上（請參閱[資料庫上的警示](/docs/telemetry/databases#資料庫的警示)）。
 
 ## 運作方式
 
@@ -155,7 +155,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 - **連線以資料庫為單位計算。** 使用 `VIEW DATABASE STATE` 時，Azure SQL Database 只會顯示受監控資料庫的工作階段，所以 **連線** 計算的是該資料庫，而不是邏輯伺服器。請分別監控你在意的每個資料庫。
 - **在彈性集區中，「TempDB 可用空間」是整個集區的值。** 集區中的資料庫共用同一個 tempdb。
 
-## 建立 Database Health 監測器
+## 建立 資料庫健康狀況 監測器
 
 :::steps
 ### 開始新的監測器
@@ -191,7 +191,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **主機** | 探測器可以連到的資料庫主機（例如 `db.internal`）。 |
 | **連接埠** | 資料庫連接埠。 |
 | **資料庫名稱** | 要連線的資料庫。資料庫範圍的指標（大小、快取命中率、溢出到暫存檔）會針對這個資料庫回報；伺服器範圍的指標（連線、運作時間、複寫）會針對整個伺服器回報——Azure SQL Database 除外，在那裡只計算受監控資料庫的連線。 |
-| **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以探測器處理程序身分登入的 **Windows Integrated Authentication**。請參閱 SQL Query 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor#windows-整合式驗證)——設定方式完全相同。 |
+| **驗證** | 僅限 Microsoft SQL Server：預設的 **使用者名稱與密碼**，或以探測器處理程序身分登入的 **Windows Integrated Authentication**。請參閱 SQL 查詢 監測器頁面上的 [Windows 整合式驗證](/docs/monitor/sql-monitor#windows-整合式驗證)——設定方式完全相同。 |
 | **使用者名稱** | 監控使用者。除非使用 Windows 整合式驗證，否則為必填。 |
 | **密碼** | 密碼。請用 `{{monitorSecrets.name}}` 參照[監測器密鑰](/docs/monitor/monitor-secrets)，而不是以純文字輸入（請參閱[使用監測器密鑰](#用監測器密鑰保存密碼)）。 |
 | **Use SSL/TLS** | 透過 TLS 連線。啟用後，對於自我簽署憑證，可以關閉 **Verify server certificate**。 |
@@ -205,7 +205,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 | **Connection Timeout (ms)** | `10000` | `30000` | 建立連線時等待的時間。 |
 | **Statement Timeout (ms)** | `10000` | `60000` | 每個目錄查詢的時間上限。 |
 
-陳述式逾時的預設值刻意比 SQL Query 監測器更嚴格：在健康的伺服器上，這些查詢幾毫秒內就會回應，所以如果 `pg_stat_activity` 花了十秒，有用的訊號是「這台伺服器有麻煩了」，而不是再多等一會兒。超過最大值的數值會被降到最大值。
+陳述式逾時的預設值刻意比 SQL 查詢 監測器更嚴格：在健康的伺服器上，這些查詢幾毫秒內就會回應，所以如果 `pg_stat_activity` 花了十秒，有用的訊號是「這台伺服器有麻煩了」，而不是再多等一會兒。超過最大值的數值會被降到最大值。
 
 ## 用監測器密鑰保存密碼
 
@@ -381,7 +381,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### JavaScript 運算式變數
 
-對 Database Health 監測器而言，運算式可以存取：
+對 資料庫健康狀況 監測器而言，運算式可以存取：
 
 | 變數 | 類型 | 說明 |
 |---|---|---|

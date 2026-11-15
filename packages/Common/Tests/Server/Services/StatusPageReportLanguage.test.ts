@@ -96,7 +96,7 @@ function englishReport(period: StatusPageReportPeriod): StatusPageReport {
           totalIncidentCount: 2,
           uptimePercent: 99.95,
           uptimePercentAsString: "99.95%",
-          downtimeInHoursAndMinutes: "21 minutes",
+          downtimeInHoursAndMinutes: "21\u00A0minutes",
           downtimeInMinutes: 21,
         },
       },
@@ -114,7 +114,7 @@ function englishReport(period: StatusPageReportPeriod): StatusPageReport {
     totalResources: 1,
     totalIncidents: 2,
     averageUptimePercent: "99.95%",
-    totalDowntimeInHoursAndMinutes: "21 minutes",
+    totalDowntimeInHoursAndMinutes: "21\u00A0minutes",
     totalDowntimeInMinutes: 21,
     resources: structure.resources,
     groups: structure.groups,
@@ -258,7 +258,9 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
     expect(mail.isSubjectLiteral).toBe(true);
     expect(reportOf(mail).reportPeriodName).toBe("Juli 2026");
     expect(reportOf(mail).reportStartDate).toBe("1. Juli 2026");
-    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe("21 Minuten");
+    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe(
+      "21\u00A0Minuten",
+    );
     expect(reportOf(mail).averageUptimePercent).not.toBe("99.95%");
   });
 
@@ -275,7 +277,9 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
     expect(mail.language).toBe("fr");
     expect(mail.subject).toBe("[Rapport] Acme Status");
     expect(reportOf(mail).reportPeriodName).toBe("juillet 2026");
-    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe("21 minutes");
+    expect(reportOf(mail).totalDowntimeInHoursAndMinutes).toBe(
+      "21\u00A0minutes",
+    );
   });
 
   test("an English subscriber's email reads exactly as it always has", async () => {
@@ -355,7 +359,7 @@ describe("StatusPageService.sendEmailReport, in each subscriber's language", () 
 
     expect(report.reportPeriodName).toBe("July 2026");
     expect(OneUptimeDate.convertMinutesToDaysHoursAndMinutes(21)).toBe(
-      "21 minutes",
+      "21\u00A0minutes",
     );
   });
 });

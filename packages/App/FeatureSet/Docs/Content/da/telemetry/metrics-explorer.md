@@ -1,4 +1,4 @@
-# Måleudforsker
+# Metrikudforsker
 
 Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: antal forespørgsler, latenser, CPU, kødybde. Metrikudforskeren viser hver metrik, dit projekt modtager, viser en hvilken som helst af dem i et diagram, kombinerer dem med formler og gør et diagram til en monitor eller en dashboard-widget.
 

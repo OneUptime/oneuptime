@@ -45,6 +45,13 @@ import {
   getVMwareSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import {
+  DATABASE_AGENT_SYSTEM_OPTIONS,
+  getDatabaseAgentEngine,
+  getDatabaseAgentSetupGuide,
+  getDatabaseHealthMonitorCreateUrl,
+} from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
+import { DatabaseAgentEngine } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseAgentConfigs";
+import {
   HOST_INSTALL_METHODS,
   getHostSetupGuide,
 } from "../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/DocumentationMarkdown";
@@ -328,6 +335,39 @@ export function getVMwareSetupGuideWays(): Array<SetupGuideWay> {
         hasApiKey: reader.hasApiKey,
         method: option,
         vcenterName: name,
+      });
+    },
+  });
+}
+
+/*
+ * The Database guide on the product page (and in Add Database before a row
+ * exists): the reader picks the engine, and the guide installs the agent
+ * for it, before and after a key is picked. A database's own Documentation
+ * tab - the row's identity, or the guide for an engine the agent has no
+ * config for - still reads in English (DatabaseDocumentationCard), so it is
+ * not one of these ways.
+ */
+export function getDatabaseSetupGuideWays(): Array<SetupGuideWay> {
+  return getSetupGuideWays({
+    options: DATABASE_AGENT_SYSTEM_OPTIONS,
+    names: [],
+    build: (reader: SetupGuideReader, system: string): SetupGuideContent => {
+      const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(system);
+
+      if (!engine) {
+        throw new Error(`The agent has no engine for ${system}.`);
+      }
+
+      return getDatabaseAgentSetupGuide({
+        oneuptimeUrl: reader.oneuptimeUrl,
+        apiKey: reader.apiKey,
+        hasApiKey: reader.hasApiKey,
+        engine: engine,
+        system: system,
+        databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+          "/dashboard/1/monitors/create",
+        ),
       });
     },
   });

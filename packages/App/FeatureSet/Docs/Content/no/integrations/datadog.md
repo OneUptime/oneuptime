@@ -249,7 +249,7 @@ Med monitoren trenger hver gruppe sin egen `alert_key`. Kontroller at nyttelaste
 
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [New Relic](/docs/integrations/new-relic): Den samme malen, for New Relic-saker.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.

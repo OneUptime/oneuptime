@@ -108,7 +108,7 @@ describe("a date in a sentence filled with translateTemplate", () => {
       germanTranslator.translateTemplate("Last seen {{when}}", {
         when: OneUptimeDate.fromNow(new Date(Date.now() - 5 * 3600000)),
       }),
-    ).toBe("Last seen 5 hours ago");
+    ).toBe("Last seen 5\u00A0hours ago");
   });
 
   test("a sentence with no words of its own keeps the reader's date", () => {

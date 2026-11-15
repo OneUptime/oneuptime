@@ -1,4 +1,4 @@
-import { expect, Locator, Page, Response } from "@playwright/test";
+import { expect, Locator, Page, Response, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
@@ -188,4 +188,47 @@ export async function expectPageLoadsOnlyItsLanguage(
     await watch.scriptBytesBesideLocale(language),
     `the scripts a page in "${language}" loaded, its locale's chunk aside, in bytes`,
   ).toBeLessThan(LOCALE_FREE_PAGE_BUDGET_BYTES);
+}
+
+export interface PageLanguagesBlock {
+  // The languages the fixture draws besides English, each by its ?lang= code.
+  languages: Array<string>;
+  // A page of the fixture in a language: its ?lang=, or none for English.
+  address: (language: string) => string;
+  /*
+   * What shows once the page is drawn: the page's first element, unless
+   * given. A fixture draws only once its language has loaded.
+   */
+  ready?: ((page: Page, language: string) => Locator) | undefined;
+}
+
+/*
+ * A suite's block of checks that each page loads its own language alone,
+ * English and every language the fixture draws, in each of the suite's
+ * projects. (Skipped from inside a test, a phone project's run would leave
+ * the page blank for the suite's own afterEach, which reads the page.)
+ */
+export function describePageLanguages(block: PageLanguagesBlock): void {
+  test.describe("the page's language, loaded as the Dashboard loads it", () => {
+    for (const language of ["en", ...block.languages]) {
+      test(`a page in ${language} loads its own locale and no other`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await expectPageLoadsOnlyItsLanguage(
+          page,
+          {
+            address: block.address,
+            ready:
+              block.ready ||
+              ((shown: Page): Locator => {
+                return shown.locator("#root > *").first();
+              }),
+          },
+          language,
+        );
+      });
+    }
+  });
 }

@@ -2,6 +2,7 @@ import {
   formatRelativeAmount,
   RelativeDateUnit,
 } from "Common/Types/DateLanguage";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 /*
  * When the status page refreshes itself, and how it says how old what you are
  * looking at is.
@@ -116,7 +117,7 @@ export default class StatusPageLiveRefreshUtil {
 
     const unit: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
-    return `${magnitude} ${unit} ago`;
+    return `${magnitude}${NO_BREAK_SPACE}${unit} ago`;
   }
 
   /*

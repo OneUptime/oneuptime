@@ -69,16 +69,16 @@ API에서 접근 옵션은 `monitorAccess` 필드이며, 값은 `All Monitors`, 
 | --- | --- |
 | API | URL, 요청 헤더와 본문, 클라이언트 인증서, 개인 키, 암호 문구(mTLS) |
 | 웹사이트 | URL, 클라이언트 인증서, 개인 키, 암호 문구(mTLS) |
-| Ping, IP, 포트, NTP, SSL Certificate | 확인할 호스트 또는 URL |
+| Ping, IP, 포트, NTP, SSL 인증서 | 확인할 호스트 또는 URL |
 | DNS | 도메인 이름과 DNS 서버 |
 | DNSSEC, 도메인 | 도메인 이름 |
-| SQL Query | 호스트, 데이터베이스 이름, 사용자 이름, 비밀번호, 쿼리 |
-| Database Health | 호스트, 데이터베이스 이름, 사용자 이름, 비밀번호 |
-| External Status Page | 상태 페이지 URL |
-| Synthetic Monitor, Custom JavaScript Code | 스크립트 |
-| Network Device | SNMP 커뮤니티 문자열, SNMPv3 인증 키와 개인 정보 보호 키 |
+| SQL 쿼리 | 호스트, 데이터베이스 이름, 사용자 이름, 비밀번호, 쿼리 |
+| 데이터베이스 상태 | 호스트, 데이터베이스 이름, 사용자 이름, 비밀번호 |
+| 외부 상태 페이지 | 상태 페이지 URL |
+| 합성 모니터, 사용자 지정 JavaScript 코드 | 스크립트 |
+| 네트워크 디바이스 | SNMP 커뮤니티 문자열, SNMPv3 인증 키와 개인 정보 보호 키 |
 
-Synthetic Monitor나 Custom JavaScript Code 모니터의 스크립트가 실행되기 전에 시크릿이 채워지므로, 스크립트 안의 `{{monitorSecrets.ApiKey}}` 같은 참조는 실행 시점에 복호화된 값입니다.
+합성 모니터나 사용자 지정 JavaScript 코드 모니터의 스크립트가 실행되기 전에 시크릿이 채워지므로, 스크립트 안의 `{{monitorSecrets.ApiKey}}` 같은 참조는 실행 시점에 복호화된 값입니다.
 
 모니터가 쓸 수 없는 시크릿을 참조하면, 그 참조는 그대로 남고 값으로 바뀌지 않습니다.
 

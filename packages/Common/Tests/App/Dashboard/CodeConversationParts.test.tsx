@@ -687,8 +687,8 @@ describe("a turn: the AI's side", () => {
   });
 
   test.each([
-    [9 * 60000, "worked 9 minutes"],
-    [65 * 60000, "worked 1 hour, 5 minutes"],
+    [9 * 60000, "worked 9\u00A0minutes"],
+    [65 * 60000, "worked 1\u00A0hour, 5\u00A0minutes"],
     [20 * 1000, "worked less than a minute"],
   ])(
     "how long a turn took is said in words (%s ms: %s)",

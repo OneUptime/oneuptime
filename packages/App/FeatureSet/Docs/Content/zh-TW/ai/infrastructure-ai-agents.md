@@ -47,7 +47,7 @@ Kubernetes 叢集有自己的代理程式，也就是 Kubernetes AI 代理程式
 - **所有資源共用一個映像檔。** `oneuptime/resource-ai-agent` 服務全部十一種資源，`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 指明代理程式服務的是哪一種。它以資源收集器旁的另一個容器執行，或在它所服務的雲端帳戶中執行，而不是來自 Helm chart。
 - **寫入權限是一個環境變數。** 只有代理程式上設定了 `ONEUPTIME_AI_ALLOW_WRITES=true`，它才能套用修正，而 `ONEUPTIME_AI_WRITE_TARGETS` 限制修正可以碰觸哪些容器、服務、虛擬機器、OSD、工作階段或單元。在叢集上，這由 chart 的 RBAC 和 `aiAgent.remediation.namespaces` 負責。
 
-與 Kubernetes AI 代理程式一樣，資源 AI 代理程式不是 Runner。它從不出現在 運行手冊 → Runbook 代理程式 下，也從不被當作運行手冊的 Bash 或 SSH 主機使用。
+與 Kubernetes AI 代理程式一樣，資源 AI 代理程式不是 Runner。它從不出現在 運行手冊 → Runner 下，也從不被當作運行手冊的 Bash 或 SSH 主機使用。
 
 ## 支援的資源
 

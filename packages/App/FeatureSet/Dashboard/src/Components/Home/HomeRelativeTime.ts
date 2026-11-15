@@ -2,6 +2,7 @@ import {
   formatRelativeAmount,
   RelativeDateUnit,
 } from "Common/Types/DateLanguage";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 /*
  * "2 hours ago", "in 3 days", "vor 2 Stunden", "dans 3 jours" - the times
  * Home puts next to an incident, a maintenance window or the last refresh.
@@ -96,12 +97,12 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
     return "now";
   }
 
-  // "5 minutes": a word, which a line may break before as before any word.
+  // "5 minutes": a duration's word, held to its number like a unit (#8669).
   const word: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
   return parts.value < 0
-    ? `${magnitude} ${word} ago`
-    : `in ${magnitude} ${word}`;
+    ? `${magnitude}${NO_BREAK_SPACE}${word} ago`
+    : `in ${magnitude}${NO_BREAK_SPACE}${word}`;
 };
 
 /*

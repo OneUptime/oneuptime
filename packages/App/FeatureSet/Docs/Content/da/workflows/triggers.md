@@ -117,7 +117,7 @@ OneUptime giver arbejdsgangen sin egen e-mailadresse. Hver e-mail, der sendes ti
 
 God til: at handle på e-mails fra systemer, der ikke kan kalde en webhook — advarsler fra ældre overvågningsværktøjer, en leverandørs statusmeddelelser, den rapport, et natligt job mailer ud.
 
-For at få adressen klikker du på Incoming Email-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte arbejdsgangen: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
+For at få adressen klikker du på Indgående e-mail-triggeren på lærredet. Adressen står øverst i dens indstillinger, med en knap **Kopiér adresse**. Giv den til det, der skal starte arbejdsgangen: et værktøj, der kun kan sende e-mail, en leverandørs notifikationsindstillinger eller en videresendelsesregel i din egen postkasse.
 
 Hver e-mail starter sin egen kørsel. E-mailen når arbejdsgangen, uanset om adressen står i Til eller Cc, er en bcc eller nås gennem en videresendelsesregel. En e-mail, der nævner adressen to gange, starter én kørsel.
 

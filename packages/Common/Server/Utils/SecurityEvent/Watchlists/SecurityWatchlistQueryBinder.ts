@@ -59,8 +59,9 @@ import { writeOwnValue } from "../../../../Utils/LookupTable";
 export const MAX_WATCHLIST_SEARCH_PARAMETER_BYTES: number =
   MAX_DETECTION_READ_PARAMETER_BYTES - 64 * 1024;
 
+// The search's refusal, drawn where it was run: held to its unit (#8720).
 function formatKilobytes(bytes: number): string {
-  return `${Math.ceil(bytes / 1024).toLocaleString("en-US")} KB`;
+  return `${Math.ceil(bytes / 1024).toLocaleString("en-US")}\u00A0KB`;
 }
 
 // A list read for one read of events, on the field it was named on.

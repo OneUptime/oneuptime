@@ -391,7 +391,7 @@ describe("SecurityWatchlistQueryBinder.bind", () => {
         props: PERSON,
       }),
     ).rejects.toThrow(
-      /^This search reads more watchlist values than one read can send to the database: about [\d,]+ KB, where [\d,]+ KB fit\./,
+      /^This search reads more watchlist values than one read can send to the database: about [\d,]+\u00A0KB, where [\d,]+\u00A0KB fit\./,
     );
     expect(MAX_WATCHLIST_SEARCH_PARAMETER_BYTES).toBeGreaterThan(0);
   });

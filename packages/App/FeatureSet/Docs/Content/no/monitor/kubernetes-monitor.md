@@ -1,4 +1,4 @@
-# Kubernetes-overvåking
+# Kubernetes-monitor
 
 En Kubernetes-monitor varsler på målingene som OneUptimes Kubernetes-agent sender fra en klynge: noder, poder, containere, arbeidsbelastninger, autoskalerere og kontrollplanet. Start fra en ferdig varslingsmal, velg én måling, eller skriv din egen spørring, og angi deretter terskelen som åpner et varsel eller en hendelse.
 
@@ -207,6 +207,6 @@ Malen utløses når en pod i en Job mislykkes innen 15 minutter, og løser seg s
 :::cards
 - [Kubernetes-agent (Helm-installasjon)](/docs/monitor/kubernetes-agent): Installer, oppgrader og finjuster agenten med Helm.
 - [Kubernetes-agent](/docs/telemetry/kubernetes-agent): Navneromsfiltre, kontrollplanmålinger, filtre for loggalvorlighet og AI-agenten.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på enhver måling, også agentens egendefinerte målinger og eBPF-målinger.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på enhver måling, også agentens egendefinerte målinger og eBPF-målinger.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett poden eller noden som overskrider grensen, i hendelsestitler.
 :::
