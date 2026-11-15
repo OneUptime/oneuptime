@@ -23,7 +23,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * The status page picker - on the card's edit form, and on a new template's
  * Resources Affected step - has no banner under it: the one that explained
- * an empty list ("No status pages to pick from ... Ask a project admin.")
+ * an empty list ("No status pages to pick from ... Ask a Project Admin.")
  * was removed at the maintainer's request, and with it the request that
  * counted the status pages the person can read.
  *

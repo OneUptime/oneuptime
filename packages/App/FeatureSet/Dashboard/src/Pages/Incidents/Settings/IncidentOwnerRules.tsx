@@ -61,7 +61,7 @@ Rules run when an incident is declared, and again whenever its severity or label
 
 ### Rules That Belong to Teams
 
-Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and project admins can edit or delete it. It says who may change the rule, not who it adds to incidents. A rule with no owning teams can be changed by everyone who can edit rules.
+Under More fields, **Owning Teams** keeps a rule to the teams you pick: only their members, with those teams' permissions, and Project Admins can edit or delete it. It says who may change the rule, not who it adds to incidents. A rule with no owning teams can be changed by everyone who can edit rules.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `

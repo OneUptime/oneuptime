@@ -205,7 +205,7 @@ describe("UserMattermostService", () => {
       getProjectAuth.mockResolvedValue(null as never);
 
       await expect(callOnBeforeCreate(createBy())).rejects.toThrow(
-        "This project is not connected to Mattermost. Please ask a project admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
+        "This project is not connected to Mattermost. Please ask a Project Admin to connect Mattermost in Project Settings > Workspace > Mattermost.",
       );
     });
 

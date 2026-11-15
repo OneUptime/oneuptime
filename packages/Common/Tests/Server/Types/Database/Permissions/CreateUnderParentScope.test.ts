@@ -519,7 +519,7 @@ describe("a record read through another one is created only under a parent its c
       }
     });
 
-    test("a project owner or admin, who sees every private incident, is not looked up", async () => {
+    test("a Project Owner or Project Admin, who sees every private incident, is not looked up", async () => {
       for (const rows of [
         [everywhere(Permission.ProjectAdmin)],
         [everywhere(Permission.ProjectOwner)],

@@ -36,7 +36,7 @@ export const CUSTOM_ROLE_NAME_REQUIRED_MESSAGE: string =
   "Give the role a name.";
 
 export const PROJECT_OWNER_NOT_IN_A_CUSTOM_ROLE_MESSAGE: string =
-  "Project Owner can't be part of a custom role. Add people to the Owners team to make them project owners.";
+  "Project Owner can't be part of a custom role. Add people to the Owners team to make them Project Owners.";
 
 export const LABELS_NEED_THE_LABELS_SCOPE_MESSAGE: string =
   "Labels limit a permission only with the scope Labels. Pick the scope Labels, or leave the labels out.";

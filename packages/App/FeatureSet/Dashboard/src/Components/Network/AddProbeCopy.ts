@@ -42,7 +42,7 @@ export const RUN_PROBE_INSTRUCTIONS: string = translationKey(
 );
 
 export const RUN_PROBE_KEY_HIDDEN: string = translationKey(
-  "Only project owners and admins can see a probe's key. Ask one of them to run {{name}}: it is under Monitors → Settings → Probes.",
+  "Only Project Owners and Project Admins can see a probe's key. Ask one of them to run {{name}}: it is under Monitors → Settings → Probes.",
 );
 
 /*

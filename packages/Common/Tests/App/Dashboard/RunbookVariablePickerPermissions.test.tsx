@@ -187,7 +187,7 @@ describe("with no secret variable to pick", () => {
   );
 
   test.each(["RunbookAdmin", "ReadRunbookSecret", "EditRunbook"])(
-    "%s, who may not, is told to ask a project owner or admin - with the same link",
+    "%s, who may not, is told to ask a Project Owner or Project Admin - with the same link",
     (permission: string) => {
       mockPermissions = [permission];
 
@@ -226,7 +226,7 @@ describe("with no secret variable to pick", () => {
     ).toHaveTextContent(said(NO_SECRET_VARIABLES_ASK_TEMPLATE));
   });
 
-  test("a project admin's kubeconfig picker is told to add one", () => {
+  test("a Project Admin's kubeconfig picker is told to add one", () => {
     mockPermissions = ["ProjectAdmin"];
 
     const picker: HTMLElement = renderPicker({
@@ -287,7 +287,7 @@ describe("the words", () => {
       "No secret variables yet. Add one under {{location}}, then pick it here.",
     );
     expect(NO_SECRET_VARIABLES_ASK_TEMPLATE).toBe(
-      "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.",
+      "No secret variables yet. Ask a Project Owner or Project Admin to add one under {{location}}, then pick it here.",
     );
     expect(
       NOT_FOR_RUNNER_ASK_TEMPLATE.startsWith(

@@ -2612,7 +2612,7 @@ describe("who is checked before the form (#4111 review): the sender of a persona
 
       expect(view.httpStatuses).toEqual([200]);
       expect(answersOf(view.bubbles)).toEqual([
-        "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+        "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
       ]);
       // The one checked is the sender, in this project, from the database.
       expect(TeamMemberService.findBy).toHaveBeenCalledTimes(1);
@@ -3968,7 +3968,7 @@ describe("submitting the form (#4111): confirmed first, then the form is removed
 
     expect(view.httpStatuses).toEqual([200]);
     expect(answersOf(view.bubbles)).toEqual([
-      "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.",
+      "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.",
     ]);
     expect(IncidentService.create).not.toHaveBeenCalled();
     expect(view.deletes).toEqual([]);

@@ -154,25 +154,25 @@ const ALL_ROLES: Array<Permission> = [
 
 const CALLERS: Array<Caller> = [
   {
-    name: "a project owner",
+    name: "a Project Owner",
     rows: [allow(Permission.ProjectOwner)],
     teamRoles: ALL_ROLES,
     apiKeyRoles: ALL_ROLES,
   },
   {
-    name: "a project admin",
+    name: "a Project Admin",
     rows: [allow(Permission.ProjectAdmin)],
     teamRoles: [Permission.ProjectAdmin],
     apiKeyRoles: [Permission.ProjectAdmin],
   },
   {
-    name: "a project admin who is also in Members",
+    name: "a Project Admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
     teamRoles: [Permission.ProjectAdmin, Permission.ProjectMember],
     apiKeyRoles: [Permission.ProjectAdmin, Permission.ProjectMember],
   },
   {
-    name: "a project admin whose Project Member is only for some labels",
+    name: "a Project Admin whose Project Member is only for some labels",
     rows: [
       allow(Permission.ProjectAdmin),
       allow(Permission.ProjectMember, {
@@ -184,7 +184,7 @@ const CALLERS: Array<Caller> = [
     apiKeyRoles: [Permission.ProjectAdmin],
   },
   {
-    name: "a project admin whose Project Member is only for what they own",
+    name: "a Project Admin whose Project Member is only for what they own",
     rows: [
       allow(Permission.ProjectAdmin),
       allow(Permission.ProjectMember, { scope: PermissionScope.Owned }),
@@ -193,7 +193,7 @@ const CALLERS: Array<Caller> = [
     apiKeyRoles: [Permission.ProjectAdmin],
   },
   {
-    name: "a project admin blocked from Project Admin",
+    name: "a Project Admin blocked from Project Admin",
     rows: [allow(Permission.ProjectAdmin), block(Permission.ProjectAdmin)],
     teamRoles: [],
     apiKeyRoles: [],
@@ -204,7 +204,7 @@ const CALLERS: Array<Caller> = [
      * block on a permission the table's create accepts (ProjectOwner)
      * refuses every create on it - so nothing is offered.
      */
-    name: "a project owner blocked from Project Owner, who is also an admin",
+    name: "a Project Owner blocked from Project Owner, who is also an admin",
     rows: [
       allow(Permission.ProjectOwner),
       allow(Permission.ProjectAdmin),
@@ -215,7 +215,7 @@ const CALLERS: Array<Caller> = [
   },
   {
     // A block with labels takes only part of the table away.
-    name: "a project admin blocked from Project Owner on some labels",
+    name: "a Project Admin blocked from Project Owner on some labels",
     rows: [
       allow(Permission.ProjectAdmin),
       {
@@ -514,7 +514,7 @@ describe("Create API Key's Access, caller by caller (the same question)", () => 
 });
 
 describe("the refusals a picked role meets", () => {
-  test("a project admin giving Project Member is refused by the grant ceiling, by name", async () => {
+  test("a Project Admin giving Project Member is refused by the grant ceiling, by name", async () => {
     const caller: Caller = CALLERS[1]!;
     const createBy: CreateBy<TeamPermission> = {
       data: buildTeamAccessPermission({

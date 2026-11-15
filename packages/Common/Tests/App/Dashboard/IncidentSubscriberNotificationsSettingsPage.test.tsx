@@ -307,7 +307,7 @@ describe("Incidents → Settings → Subscriber Notifications", () => {
     }
   });
 
-  test("a project owner turns it off: exactly its column is saved, at once, with no dialog", async () => {
+  test("a Project Owner turns it off: exactly its column is saved, at once, with no dialog", async () => {
     openPage();
 
     const control: HTMLElement = await theSwitch();
@@ -416,7 +416,7 @@ describe("Incidents → Settings → Subscriber Notifications", () => {
     },
   );
 
-  test("the switch writes the column the Declare form reads, and needs a project owner or admin", () => {
+  test("the switch writes the column the Declare form reads, and needs a Project Owner or Project Admin", () => {
     expect(NEW_INCIDENT_NOTIFY_DEFAULT_SETTING_COPY.column).toBe(
       "notifyStatusPageSubscribersOfNewIncidentsByDefault",
     );

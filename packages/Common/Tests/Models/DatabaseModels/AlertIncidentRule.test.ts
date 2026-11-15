@@ -29,7 +29,7 @@ describe("AlertIncidentRule", () => {
     expect(rule.pluralName).toBe("Alert Incident Rules");
   });
 
-  test("declaring incidents is a project owner's or admin's to set up, or a role given its own permission", () => {
+  test("declaring incidents is a Project Owner's or admin's to set up, or a role given its own permission", () => {
     expect(rule.createRecordPermissions).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

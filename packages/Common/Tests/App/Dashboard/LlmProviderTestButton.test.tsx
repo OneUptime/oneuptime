@@ -119,8 +119,8 @@ const REFUSAL: string =
   "You do not have permission to test this LLM provider. You need this permission: Edit LLM.";
 
 const TESTERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a project member", [Permission.ProjectMember]],
   ["a settings admin", [Permission.SettingsAdmin]],
   ["a settings member", [Permission.SettingsMember]],

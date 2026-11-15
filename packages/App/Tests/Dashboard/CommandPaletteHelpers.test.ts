@@ -213,7 +213,7 @@ describe("computeCreateActionGates (BaseModelTable's create gating, mirrored)", 
     ).toBe(true);
   });
 
-  test("a project owner can create all five entity types", () => {
+  test("a Project Owner can create all five entity types", () => {
     const gates: PaletteCreateActionGates = computeCreateActionGates({
       held: HeldPermissionsUtil.fromPermissions([Permission.ProjectOwner]),
       isMasterAdmin: false,

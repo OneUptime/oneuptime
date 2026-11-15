@@ -307,7 +307,7 @@ describe("the rules on who approves a fix", () => {
   );
 
   it.each(APPROVAL_RULES)(
-    "%s is set by project owners and admins, never on create",
+    "%s is set by Project Owners and Project Admins, never on create",
     (column: string) => {
       const access: ReturnType<Project["getColumnAccessControlFor"]> =
         new Project().getColumnAccessControlFor(column);

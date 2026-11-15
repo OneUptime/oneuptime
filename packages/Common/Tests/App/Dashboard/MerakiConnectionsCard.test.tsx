@@ -1473,7 +1473,7 @@ describe("the organization's devices that are not network devices here", () => {
           updatedAt: "2026-10-24T11:58:00.000Z",
           finishedAt: "2026-10-24T11:58:00.000Z",
           message:
-            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
         }),
       }),
     ];
@@ -1484,7 +1484,7 @@ describe("the organization's devices that are not network devices here", () => {
     )[0]!;
     expect(line).toHaveAttribute("data-tone", "error");
     expect(line).toHaveTextContent(
-      "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+      "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
     );
     // It added nothing before it failed: nothing is said to be added.
     expect(
@@ -1505,7 +1505,7 @@ describe("the organization's devices that are not network devices here", () => {
           toAddCount: 110,
           addedCount: 40,
           message:
-            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+            "You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
         }),
       }),
     ];
@@ -1518,7 +1518,7 @@ describe("the organization's devices that are not network devices here", () => {
       },
       {
         state: "add-failed",
-        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a project owner or admin.",
+        text: "Devices could not be added from Meraki: You may not create network devices in this project, so you cannot add Meraki's devices. Ask a Project Owner or Project Admin.",
       },
     ]);
     expect(

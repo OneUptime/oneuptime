@@ -1250,7 +1250,7 @@ describe("UI review: an empty tab's detail is in the reader's language too", () 
     expect(shown(screen.getByTestId("rail-empty-detail"))).toBe(
       worded(
         DE,
-        'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+        'Your role lacks "{{permission}}". Ask a Project Admin for that permission to see these rows.',
         { permission: permission },
       ),
     );

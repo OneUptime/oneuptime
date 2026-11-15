@@ -379,11 +379,11 @@ describe("setup checklist - reaching you at all", () => {
     expect(step!.pageMap).toBeUndefined();
     expect(step!.detail).toBe(ChannelStepCopy.whoCanTurnOnDetail);
     expect(step!.detail).toContain(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
     );
     expect(step!.actionTitle).toBe(ChannelStepCopy.whoCanTurnOnAction);
-    expect(step!.detail.toLowerCase()).not.toContain("project admin");
-    expect(step!.actionTitle.toLowerCase()).not.toContain("project admin");
+    expect(step!.detail.toLowerCase()).not.toContain("Project Admin");
+    expect(step!.actionTitle.toLowerCase()).not.toContain("Project Admin");
   });
 
   test("names who can for anyone not known to be allowed: a reader who may not, and a reader nothing was said about", () => {
@@ -491,7 +491,7 @@ describe("setup checklist - reaching you at all", () => {
       serverClause.toLowerCase(),
     );
     expect(serverClause).toBe(
-      "a project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
+      "a Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
     );
   });
 

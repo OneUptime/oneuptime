@@ -106,7 +106,7 @@ export const SLACK_NOT_CONNECTED_TO_PROJECT_TITLE: string = translationKey(
 
 export const SLACK_NOT_CONNECTED_TO_PROJECT_DESCRIPTION: string =
   translationKey(
-    "A project admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
+    "A Project Admin connects it under Project Settings → Workspace → Slack. Then you can connect your own Slack account here.",
   );
 
 export interface ComponentProps {

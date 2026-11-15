@@ -1542,7 +1542,7 @@ describe("the policy's owners hear about every missed call (#4159)", () => {
     expectEveryCallClosed();
   });
 
-  test("a policy without owners tells the project owners instead", async () => {
+  test("a policy without owners tells the Project Owners instead", async () => {
     const projectOwner: User = makeOwner(
       "99999999-9999-4999-8999-999999999993",
       "Pat",

@@ -43,7 +43,7 @@ export const PROJECT_TWILIO_SETTINGS_PAGE: string =
  * Create Call and SMS permission.
  */
 export const WHO_MAY_ADD_A_PROJECT_TWILIO_ACCOUNT: string =
-  "a project owner, a project admin or someone with Create Call and SMS";
+  "a Project Owner, a Project Admin or someone with Create Call and SMS";
 
 /*
  * The people ProjectCallSMSConfig's update permissions let in, by the names
@@ -51,7 +51,7 @@ export const WHO_MAY_ADD_A_PROJECT_TWILIO_ACCOUNT: string =
  * for (TwilioConfigUse).
  */
 export const WHO_MAY_EDIT_A_PROJECT_TWILIO_ACCOUNT: string =
-  "a project owner, a project admin or someone with Edit Call and SMS";
+  "a Project Owner, a Project Admin or someone with Edit Call and SMS";
 
 export enum TwilioMessageKind {
   SMS = "SMS",

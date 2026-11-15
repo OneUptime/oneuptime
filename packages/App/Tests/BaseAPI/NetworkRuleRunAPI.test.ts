@@ -1389,7 +1389,7 @@ describe("Network automation rule runs reach every device of the project", () =>
   });
 
   test.each(RUN_ROUTES)(
-    "a $name rule run refuses a project admin whose team blocks device edit for some labels",
+    "a $name rule run refuses a Project Admin whose team blocks device edit for some labels",
     async (route: { uri: string }) => {
       mockProps(
         propsWith({
@@ -1423,7 +1423,7 @@ describe("Network automation rule runs reach every device of the project", () =>
     expectNoRun();
   });
 
-  test("an auto import run refuses a project admin whose team blocks device create for some labels", async () => {
+  test("an auto import run refuses a Project Admin whose team blocks device create for some labels", async () => {
     mockProps(
       propsWith({
         permissions: [Permission.ProjectAdmin],
@@ -1465,7 +1465,7 @@ describe("Network automation rule runs reach every device of the project", () =>
     expectNoRun();
   });
 
-  test("an auto import run with a monitor template refuses a project admin whose team blocks monitor create for some labels", async () => {
+  test("an auto import run with a monitor template refuses a Project Admin whose team blocks monitor create for some labels", async () => {
     autoImportRuleService.findOneBy.mockResolvedValue({
       id: RULE_ID,
       monitorTemplateId: ObjectID.generate(),

@@ -424,7 +424,7 @@ describe("WorkspaceIncidentActions.authorizeForForm: may the member do what a fo
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+        "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
       ),
     );
   });
@@ -1187,7 +1187,7 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "You do not have permission to change the severity of this incident: your access in this project does not include this incident severity. Ask a project admin for access to it.",
+        "You do not have permission to change the severity of this incident: your access in this project does not include this incident severity. Ask a Project Admin for access to it.",
       ),
     );
     expect(update).not.toHaveBeenCalled();
@@ -1999,12 +1999,12 @@ describe("what a form says instead of opening with nothing to offer", () => {
     [
       "no severities",
       WorkspaceIncidentActions.getNoSeveritiesMessage,
-      "This project has no incident severities you can pick. Add one in OneUptime under Incidents → Settings → Incident Severity, or ask a project admin for access to them.",
+      "This project has no incident severities you can pick. Add one in OneUptime under Incidents → Settings → Incident Severity, or ask a Project Admin for access to them.",
     ],
     [
       "no roles",
       WorkspaceIncidentActions.getNoRolesMessage,
-      "This project has no incident roles you can assign. Add one in OneUptime under Incidents → Settings → Incident Roles, or ask a project admin for access to them.",
+      "This project has no incident roles you can assign. Add one in OneUptime under Incidents → Settings → Incident Roles, or ask a Project Admin for access to them.",
     ],
     [
       "no custom fields",
@@ -2176,7 +2176,7 @@ describe("WorkspaceIncidentActions.getUnwrittenError", () => {
 
     expect(error).toBeInstanceOf(NotAuthorizedException);
     expect(error.message).toBe(
-      "You do not have permission to change this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      "You do not have permission to change this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
     );
   });
 });
