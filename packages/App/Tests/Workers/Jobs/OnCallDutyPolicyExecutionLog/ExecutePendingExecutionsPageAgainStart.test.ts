@@ -2,7 +2,9 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OnCallDutyPolicyExecutionLogService from "Common/Server/Services/OnCallDutyPolicyExecutionLogService";
-import OnCallPageAgainClaimsInFlight from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
+import OnCallPageAgainClaimsInFlight, {
+  OnCallPageAgainClaim,
+} from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -12,6 +14,9 @@ import {
   BOB,
   CARL,
   DANA,
+  INCIDENT_ID,
+  POLICY_ID,
+  PROJECT_ID,
   START,
 } from "Common/Tests/Server/Utils/OnCall/PassOnWorld";
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
@@ -397,23 +402,49 @@ describe("a page again whose process stopped once its run was written, before it
     expect(world.runStatuses).not.toContain(OnCallDutyPolicyStatus.Error);
   });
 
-  test("REGRESSION: its workers down past five minutes, the stuck-run job keeps its start from the page again in flight before it hands it over - not from the policy's first level", async () => {
+  // What the page-again tick keeps in flight for it: with its run's id once the run is written.
+  function pageAgainInFlight(
+    pageAgainRunId: ObjectID | null,
+  ): OnCallPageAgainClaim {
+    return {
+      claimedAt: new Date(START),
+      clockStartedAt: new Date(START.getTime() - 30 * MINUTE),
+      pageAgainNumber: 1,
+      startAtRuleId: levelTwo.id!.toString(),
+      acknowledgedByUserId: ANA.toString(),
+      minutes: 30,
+      dueAt: new Date(START),
+      pageAgainRunId: pageAgainRunId ? pageAgainRunId.toString() : null,
+    };
+  }
+
+  // The run whose acknowledgement clock the page again stopped, paging about `incidentId`.
+  function addPagedRun(incidentId: ObjectID): void {
+    const paged: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+    paged.id = PAGED_RUN_ID;
+    paged.projectId = PROJECT_ID;
+    paged.onCallDutyPolicyId = POLICY_ID;
+    paged.triggeredByIncidentId = incidentId;
+    paged.status = OnCallDutyPolicyStatus.Completed;
+    paged.createdAt = new Date(START.getTime() - 40 * MINUTE);
+    world.runs.push(paged);
+  }
+
+  /*
+   * Its process stops once its run is written - `keep` is what it kept in
+   * flight by then - and the workers are down for six minutes: nothing
+   * settles it, and the stuck-run job runs first when they are back.
+   */
+  async function stoppedThenWorkersDown(
+    keep: (runId: ObjectID) => Promise<void>,
+  ): Promise<void> {
     await world
       .startPageAgain({
         startAtRule: levelTwo,
         acknowledgedBy: ANA,
         onRunCreated: async (runId: ObjectID): Promise<void> => {
-          // As the page-again tick keeps its page again in flight, once its run is written.
-          await OnCallPageAgainClaimsInFlight.keep(PAGED_RUN_ID, {
-            claimedAt: new Date(START),
-            clockStartedAt: new Date(START.getTime() - 30 * MINUTE),
-            pageAgainNumber: 1,
-            startAtRuleId: levelTwo.id!.toString(),
-            acknowledgedByUserId: ANA.toString(),
-            minutes: 30,
-            dueAt: new Date(START),
-            pageAgainRunId: runId.toString(),
-          });
+          await keep(runId);
 
           world.stopped = true;
           throw new ProcessStopped();
@@ -424,11 +455,18 @@ describe("a page again whose process stopped once its run was written, before it
       });
     world.stopped = false;
 
-    // The workers are down for six minutes: nothing settles it.
     world.clock = new Date(world.clock.getTime() + 6 * MINUTE);
 
-    // Back, the stuck-run job runs before the page-again tick.
     await minutesPass(1);
+  }
+
+  test("REGRESSION: its workers down past five minutes, the stuck-run job keeps its start from the page again in flight before it hands it over - not from the policy's first level", async () => {
+    await stoppedThenWorkersDown(async (runId: ObjectID): Promise<void> => {
+      await OnCallPageAgainClaimsInFlight.keep(
+        PAGED_RUN_ID,
+        pageAgainInFlight(runId),
+      );
+    });
 
     expect(pagesSoFar()).toEqual([
       "Ana Lopez L2 @ 7",
@@ -447,6 +485,43 @@ describe("a page again whose process stopped once its run was written, before it
       "Carl Diaz L2 @ 7",
     ]);
     expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("REGRESSION (#8590): one whose process stopped before it kept the run's id is found by its record and number: handed over from its rule, Ana first - once each", async () => {
+    await stoppedThenWorkersDown(async (): Promise<void> => {
+      addPagedRun(INCIDENT_ID);
+      await OnCallPageAgainClaimsInFlight.keep(
+        PAGED_RUN_ID,
+        pageAgainInFlight(null),
+      );
+    });
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 7",
+      "Bob Smith L2 @ 7",
+      "Carl Diaz L2 @ 7",
+    ]);
+
+    await minutesPass(3);
+
+    expect(pagesSoFar()).toEqual([
+      "Ana Lopez L2 @ 7",
+      "Bob Smith L2 @ 7",
+      "Carl Diaz L2 @ 7",
+    ]);
+    expect(world.hasAnybodyBeenPagedTwiceByARuleInAPass()).toBe(false);
+  });
+
+  test("a page again in flight about another incident is not taken for it: it is handed over from the policy's first level, as any stuck run is", async () => {
+    await stoppedThenWorkersDown(async (): Promise<void> => {
+      addPagedRun(new ObjectID("85900000-0000-4000-8000-0000000000f1"));
+      await OnCallPageAgainClaimsInFlight.keep(
+        PAGED_RUN_ID,
+        pageAgainInFlight(null),
+      );
+    });
+
+    expect(pagesSoFar()).toEqual(["Dana Kim L1 @ 7"]);
   });
 
   test("one whose start was kept is not kept over: the page again started, it is paged from its rule once", async () => {

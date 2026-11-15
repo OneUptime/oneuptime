@@ -13,6 +13,7 @@ import {
   isOnCallDirectPage,
 } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
 import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallAcknowledgementTimeout from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OnCallPageAgainClaimsInFlight, {
   OnCallPageAgainClaim,
 } from "Common/Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
@@ -122,14 +123,14 @@ RunCron(
       });
 
     /*
-     * The pages again in flight, by their run (issue #8549): a page again
-     * whose process stopped once its run was written, with the workers then
-     * down past five minutes, can be read here before the page-again tick
+     * The pages again in flight (issues #8549, #8590): a page again whose
+     * process stopped once its run was written, with the workers then down
+     * past five minutes, can be read here before the page-again tick
      * settles it. Read only when a run is stuck.
      */
     const pagesAgainInFlight: Map<string, OnCallPageAgainClaim> =
       stuckExecutions.length + scheduledStuckExecutions.length > 0
-        ? await readPagesAgainInFlightByRun()
+        ? await OnCallPageAgainClaimsInFlight.readAll()
         : new Map();
 
     for (const executionLog of stuckExecutions) {
@@ -139,7 +140,7 @@ RunCron(
         statusMessage: isOnCallDirectPage(executionLog)
           ? ON_CALL_DIRECT_PAGE_TIMED_OUT_MESSAGE
           : ON_CALL_POLICY_RUN_TIMED_OUT_MESSAGE,
-        pageAgainInFlight: pagesAgainInFlight.get(executionLog.id!.toString()),
+        pagesAgainInFlight: pagesAgainInFlight,
       });
     }
 
@@ -150,28 +151,11 @@ RunCron(
         statusMessage: isOnCallDirectPage(executionLog)
           ? ON_CALL_DIRECT_PAGE_NEVER_STARTED_MESSAGE
           : ON_CALL_POLICY_RUN_NEVER_STARTED_MESSAGE,
-        pageAgainInFlight: pagesAgainInFlight.get(executionLog.id!.toString()),
+        pagesAgainInFlight: pagesAgainInFlight,
       });
     }
   },
 );
-
-// The pages again in flight whose run was written, by that run. None when Redis cannot be read.
-async function readPagesAgainInFlightByRun(): Promise<
-  Map<string, OnCallPageAgainClaim>
-> {
-  const byRun: Map<string, OnCallPageAgainClaim> = new Map();
-
-  for (const claim of (
-    await OnCallPageAgainClaimsInFlight.readAll()
-  ).values()) {
-    if (claim.pageAgainRunId) {
-      byRun.set(claim.pageAgainRunId, claim);
-    }
-  }
-
-  return byRun;
-}
 
 /*
  * Keeps the start of a stuck page again whose process stopped before it
@@ -232,14 +216,22 @@ async function settleStuckRun(data: {
   run: OnCallDutyPolicyExecutionLog;
   status: OnCallDutyPolicyStatus;
   statusMessage: string;
-  // Its page again in flight, when it is a page again whose start was never kept (issue #8549).
-  pageAgainInFlight?: OnCallPageAgainClaim | undefined;
+  // Every page again in flight: one of them may be this run's, whose start was never kept (issues #8549, #8590).
+  pagesAgainInFlight: Map<string, OnCallPageAgainClaim>;
 }): Promise<void> {
   const run: OnCallDutyPolicyExecutionLog = data.run;
 
   if (!isOnCallDirectPage(run) && !isOnCallTestPage(run)) {
-    if (data.pageAgainInFlight) {
-      await keepPageAgainStart({ run: run, pageAgain: data.pageAgainInFlight });
+    const pageAgain: OnCallPageAgainClaim | null =
+      data.pagesAgainInFlight.size > 0
+        ? await OnCallAcknowledgementTimeout.findPageAgainInFlightOfRun({
+            runId: run.id!,
+            pagesAgainInFlight: data.pagesAgainInFlight,
+          })
+        : null;
+
+    if (pageAgain) {
+      await keepPageAgainStart({ run: run, pageAgain: pageAgain });
     }
 
     const handedOver: boolean =

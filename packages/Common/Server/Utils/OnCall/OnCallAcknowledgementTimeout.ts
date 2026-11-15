@@ -483,6 +483,24 @@ const PAIR_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   acknowledgedAt: true,
 };
 
+// Which record a run pages about, for which policy, and which page again it is.
+const RUN_RECORD_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
+  _id: true,
+  createdAt: true,
+  pageAgainNumber: true,
+  onCallDutyPolicyId: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAlertEpisodeId: true,
+  triggeredByIncidentEpisodeId: true,
+};
+
+/*
+ * How long before its claim a page again's run may say it was written: the
+ * claim's moment is the worker's clock, the run's the database's.
+ */
+const PAGE_AGAIN_WRITTEN_SLACK_MS: number = 30 * 1000;
+
 export default class OnCallAcknowledgementTimeout {
   // The kind of record a run pages about, and its id; null for none.
   public static getRunRecord(run: {
@@ -1564,14 +1582,7 @@ export default class OnCallAcknowledgementTimeout {
     const run: OnCallDutyPolicyExecutionLog | null =
       await OnCallDutyPolicyExecutionLogService.findOneById({
         id: data.runId,
-        select: {
-          _id: true,
-          onCallDutyPolicyId: true,
-          triggeredByIncidentId: true,
-          triggeredByAlertId: true,
-          triggeredByAlertEpisodeId: true,
-          triggeredByIncidentEpisodeId: true,
-        },
+        select: RUN_RECORD_SELECT,
         props: { isRoot: true },
       });
 
@@ -1584,8 +1595,6 @@ export default class OnCallAcknowledgementTimeout {
       return null;
     }
 
-    const since: number = data.claim.claimedAt.getTime() - 30 * 1000;
-
     const written: OnCallDutyPolicyExecutionLog | undefined = (
       await this.readPolicyRunsForRecord({
         access: RECORD_ACCESS[record.kind],
@@ -1593,15 +1602,118 @@ export default class OnCallAcknowledgementTimeout {
         onCallDutyPolicyId: run.onCallDutyPolicyId,
       })
     ).find((candidate: OnCallDutyPolicyExecutionLog): boolean => {
-      return (
-        isOnCallPageAgainRun(candidate) &&
-        Number(candidate.pageAgainNumber) === data.claim.pageAgainNumber &&
-        Boolean(candidate.createdAt) &&
-        new Date(candidate.createdAt!).getTime() >= since
-      );
+      return this.isPageAgainOfClaim(candidate, data.claim);
     });
 
     return written?.id || null;
+  }
+
+  /*
+   * THE PAGE AGAIN IN FLIGHT OF A STUCK RUN (issues #8549, #8590), for the
+   * stuck-run job to keep its start before it hands it over: after a
+   * worker outage it may run before the page-again tick settles it. Found
+   * by its run's id, or - its process stopped before it kept that id - as
+   * the page again its claim wrote: a run of the same record and policy,
+   * with its number, written once it was claimed. Null for none, and when
+   * it cannot be read: the run is then handed over as any stuck run is.
+   * Never throws.
+   */
+  public static async findPageAgainInFlightOfRun(data: {
+    runId: ObjectID;
+    pagesAgainInFlight: Map<string, OnCallPageAgainClaim>;
+  }): Promise<OnCallPageAgainClaim | null> {
+    const claims: Array<[string, OnCallPageAgainClaim]> = Array.from(
+      data.pagesAgainInFlight.entries(),
+    );
+
+    const byRunId: [string, OnCallPageAgainClaim] | undefined = claims.find(
+      ([, claim]: [string, OnCallPageAgainClaim]): boolean => {
+        return claim.pageAgainRunId === data.runId.toString();
+      },
+    );
+
+    if (byRunId) {
+      return byRunId[1];
+    }
+
+    const withoutRunId: Array<[string, OnCallPageAgainClaim]> = claims.filter(
+      ([, claim]: [string, OnCallPageAgainClaim]): boolean => {
+        return !claim.pageAgainRunId;
+      },
+    );
+
+    if (withoutRunId.length === 0) {
+      return null;
+    }
+
+    try {
+      const run: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: data.runId,
+          select: RUN_RECORD_SELECT,
+          props: { isRoot: true },
+        });
+
+      const record: {
+        kind: OnCallTimeoutRecordKind;
+        recordId: ObjectID;
+      } | null = run ? this.getRunRecord(run) : null;
+
+      if (!run || !record || !run.onCallDutyPolicyId) {
+        return null;
+      }
+
+      for (const [pagedRunId, claim] of withoutRunId) {
+        if (!this.isPageAgainOfClaim(run, claim)) {
+          continue;
+        }
+
+        // The run whose clock the page again stopped: the same record, of the same policy.
+        const paged: OnCallDutyPolicyExecutionLog | null =
+          await OnCallDutyPolicyExecutionLogService.findOneById({
+            id: new ObjectID(pagedRunId),
+            select: RUN_RECORD_SELECT,
+            props: { isRoot: true },
+          });
+
+        const pagedRecord: {
+          kind: OnCallTimeoutRecordKind;
+          recordId: ObjectID;
+        } | null = paged ? this.getRunRecord(paged) : null;
+
+        if (
+          paged &&
+          pagedRecord &&
+          paged.onCallDutyPolicyId?.toString() ===
+            run.onCallDutyPolicyId.toString() &&
+          pagedRecord.kind === record.kind &&
+          pagedRecord.recordId.toString() === record.recordId.toString()
+        ) {
+          return claim;
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `Could not read the page again in flight of on-call execution log ${data.runId.toString()}; it is handed over as any stuck run is.`,
+      );
+      logger.error(err as Error);
+    }
+
+    return null;
+  }
+
+  // Whether a run is the page again a claim wrote: its number, written once it was claimed.
+  private static isPageAgainOfClaim(
+    run: OnCallDutyPolicyExecutionLog,
+    claim: OnCallPageAgainClaim,
+  ): boolean {
+    return (
+      isOnCallPageAgainRun(run) &&
+      Number(run.pageAgainNumber) === claim.pageAgainNumber &&
+      Boolean(run.createdAt) &&
+      new Date(run.createdAt!).getTime() >=
+        claim.claimedAt.getTime() - PAGE_AGAIN_WRITTEN_SLACK_MS
+    );
   }
 
   // How many times a policy has paged again about a record: its latest page again's number.

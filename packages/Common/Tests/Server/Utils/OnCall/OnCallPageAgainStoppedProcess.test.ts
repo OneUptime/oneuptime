@@ -7,10 +7,13 @@ import OnCallDutyPolicyExecutionLogTimelineService from "../../../../Server/Serv
 import UserNotificationRuleService from "../../../../Server/Services/UserNotificationRuleService";
 import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
-import {
+import OnCallAcknowledgementTimeout, {
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
 } from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallPageAgainClaimsInFlight, {
+  OnCallPageAgainClaim,
+} from "../../../../Server/Utils/OnCall/OnCallPageAgainClaimsInFlight";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import AcknowledgementTimeoutWorld, {
   CREATED,
@@ -508,5 +511,58 @@ describe("a page again that starts as it should", () => {
       }),
     ).toContain(OnCallPageAgainOutcome.TakenElsewhere);
     expect(pagesAgainInFlight()).toEqual({});
+  });
+});
+
+describe("the page again in flight of a stuck run, for the stuck-run job (issue #8590)", () => {
+  test("one whose process stopped before it kept the run's id is found by its record and number - and only for its own run", async () => {
+    await acknowledgedAndLeft();
+    stopsAtRedis = (namespace: string, value: string): boolean => {
+      return (
+        namespace === PAGES_AGAIN_NAMESPACE &&
+        value.includes('"pageAgainRunId":"')
+      );
+    };
+    await tick();
+
+    const run: OnCallDutyPolicyExecutionLog = world.pagesAgain()[0]!;
+    const inFlight: Map<string, OnCallPageAgainClaim> =
+      await OnCallPageAgainClaimsInFlight.readAll();
+
+    expect(
+      await OnCallAcknowledgementTimeout.findPageAgainInFlightOfRun({
+        runId: run.id!,
+        pagesAgainInFlight: inFlight,
+      }),
+    ).toMatchObject({
+      pageAgainNumber: 1,
+      acknowledgedByUserId: DANA.toString(),
+      pageAgainRunId: null,
+    });
+
+    // The run whose clock it stopped is no page again.
+    expect(
+      await OnCallAcknowledgementTimeout.findPageAgainInFlightOfRun({
+        runId: RUN_ID,
+        pagesAgainInFlight: inFlight,
+      }),
+    ).toBeNull();
+  });
+
+  test("one whose run's id was kept is found by it", async () => {
+    await acknowledgedAndLeft();
+    stopsAtRedis = (namespace: string): boolean => {
+      return namespace === LEVELS_NAMESPACE;
+    };
+    await tick();
+
+    const run: OnCallDutyPolicyExecutionLog = world.pagesAgain()[0]!;
+
+    expect(
+      await OnCallAcknowledgementTimeout.findPageAgainInFlightOfRun({
+        runId: run.id!,
+        pagesAgainInFlight: await OnCallPageAgainClaimsInFlight.readAll(),
+      }),
+    ).toMatchObject({ pageAgainRunId: run.id!.toString() });
   });
 });
