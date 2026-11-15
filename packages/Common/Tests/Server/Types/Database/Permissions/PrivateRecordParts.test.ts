@@ -125,6 +125,7 @@ const PARTS: Record<string, { kind: string; key: string }> = {
   IncidentMember: { kind: "Incident", key: "incidentId" },
   IncidentOwnerTeam: { kind: "Incident", key: "incidentId" },
   IncidentOwnerUser: { kind: "Incident", key: "incidentId" },
+  IncidentPostmortemActionItem: { kind: "Incident", key: "incidentId" },
   IncidentPublicNote: { kind: "Incident", key: "incidentId" },
   IncidentSla: { kind: "Incident", key: "incidentId" },
   IncidentStateTimeline: { kind: "Incident", key: "incidentId" },
