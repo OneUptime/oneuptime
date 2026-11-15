@@ -29,6 +29,7 @@ import {
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 
 export interface ComponentProps {
@@ -103,8 +104,8 @@ export function formatDuration(
   }
 
   if (durationMs < 1000) {
-    return translator.translateTemplate("{{value}} ms", {
-      value: translator.formatNumber(Math.round(durationMs)),
+    return formatMilliseconds(translator, durationMs, {
+      maximumFractionDigits: 0,
     });
   }
 

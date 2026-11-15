@@ -39,7 +39,7 @@ import {
   buildTraceTableRequest,
   dimensionLabel,
   displayGroupValue,
-  formatDurationMs,
+  formatDurationMsInLanguage,
   isTraceTableGroupSortable,
 } from "./TraceTableData";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -375,25 +375,25 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                     {row.errorCount.toLocaleString(getReaderNumberLocale())}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.avgDurationMs)}
+                    {formatDurationMsInLanguage(row.avgDurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.p50DurationMs)}
+                    {formatDurationMsInLanguage(row.p50DurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.p90DurationMs)}
+                    {formatDurationMsInLanguage(row.p90DurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.p95DurationMs)}
+                    {formatDurationMsInLanguage(row.p95DurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm tabular-nums text-gray-700">
-                    {formatDurationMs(row.p99DurationMs)}
+                    {formatDurationMsInLanguage(row.p99DurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums text-gray-500">
-                    {formatDurationMs(row.minDurationMs)}
+                    {formatDurationMsInLanguage(row.minDurationMs, translator)}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-xs tabular-nums text-gray-500">
-                    {formatDurationMs(row.maxDurationMs)}
+                    {formatDurationMsInLanguage(row.maxDurationMs, translator)}
                   </td>
                 </tr>
               );

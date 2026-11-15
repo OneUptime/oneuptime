@@ -2,7 +2,7 @@
 
 OneUptimes **Incoming Email Monitor** lader dig oprette og løse alarmer ud fra e-mails, der sendes til unikke, monitorspecifikke e-mailadresser. Det er nyttigt til at integrere ældre systemer, alarmeringsværktøjer eller enhver tjeneste, der kan sende e-mails.
 
-Den samme opsætning lader også workflows modtage e-mail: Et workflow med triggeren **Incoming Email** får sin egen adresse på det samme domæne, og hver e-mail til den starter workflowet. Se [Triggere](/docs/workflows/triggers#incoming-email).
+Den samme opsætning lader også workflows modtage e-mail: Et workflow med triggeren **Indgående e-mail** får sin egen adresse på det samme domæne, og hver e-mail til den starter workflowet. Se [Triggere](/docs/workflows/triggers#incoming-email).
 
 Denne vejledning forklarer, hvordan du sætter SendGrid Inbound Parse op til at videresende indgående e-mails til din selvhostede OneUptime-instans. OneUptime Cloud har ikke brug for noget af det: Dér virker adresserne med det samme.
 
@@ -122,7 +122,7 @@ Anvend dem derefter: Kør `npm run start` på Docker Compose, hvilket genskaber 
 
 [Opret en Incoming Email-monitor](/docs/monitor/incoming-email-monitor#opret-en-monitor-for-indgående-e-mail). Dens side **Oversigt** viser dens adresse, f.eks. `monitor-abc123def456@inbound.yourdomain.com`, og dens kriterier afgør, hvilke e-mails der opretter en alarm, og hvilke der løser den.
 
-Workflows bruger det samme domæne. Tilføj triggeren **Incoming Email** til et workflow, og klik på den: Dens adresse (`workflow-…@inbound.yourdomain.com`) står øverst i dens indstillinger. Indtil variablerne til indgående e-mail ovenfor er sat, siger triggeren, at serveren ikke er sat op til at modtage e-mail.
+Workflows bruger det samme domæne. Tilføj triggeren **Indgående e-mail** til et workflow, og klik på den: Dens adresse (`workflow-…@inbound.yourdomain.com`) står øverst i dens indstillinger. Indtil variablerne til indgående e-mail ovenfor er sat, siger triggeren, at serveren ikke er sat op til at modtage e-mail.
 
 ### Send en test-e-mail
 
