@@ -625,9 +625,10 @@ translated the same locale. Take either side, then run
   but not the VMware, Kubernetes, Docker, Docker Swarm, Podman, host and IoT
   catalogs' metric names, which their pickers and criteria draw in English,
   so the docs' metric tables keep them in English. A Database monitor's
-  summary still names a collection group it could not collect by the
-  group's English value, as the docs' Group column and troubleshooting
-  headings do.
+  summary names a collection group it could not collect as the form's
+  Metric Groups switch does, says why in the reader's words and keeps the
+  database's own error as written (`Common/Utils/Monitor/DatabaseCollectionIssueReading`,
+  #8609); the translated docs name the groups the same way.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that

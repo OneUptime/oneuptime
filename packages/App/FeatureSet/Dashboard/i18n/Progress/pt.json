@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55064,
-    "untranslated": 8480
+    "keys": 55409,
+    "untranslated": 8445
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -38,6 +38,7 @@
     "Backup",
     "Backups",
     "Bare Metal",
+    "Bearer Token:",
     "Bits",
     "Boot",
     "Brute force detected",

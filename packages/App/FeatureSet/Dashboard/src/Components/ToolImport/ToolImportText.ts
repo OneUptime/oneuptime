@@ -2,10 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
 import { writeReaderDay } from "Common/UI/Utils/ReaderMoments";
 import { formatNameList } from "../AiAccess/AiAccessModes";
-import {
-  CREATED_IMPORT_RESULT,
-  getCreatedImportResultLabel,
-} from "../../Utils/ImportResultWords";
+import { CREATED_IMPORT_RESULT } from "../../Utils/ImportResultWords";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
@@ -167,8 +164,9 @@ export const TOOL_IMPORT_ACTION_LABELS: Record<ToolImportAction, string> = {
 
 /*
  * The badge on an item in the report. "Created" is the import outcome's
- * own key (ImportResultWords), never the date column's "Created": draw
- * the badge with getToolImportOutcomeLabel.
+ * own key (ImportResultWords), never the date column's "Created"; the
+ * translator reads it "Created" in English (Common/Types/MeaningKeys).
+ * Draw the badge with getToolImportOutcomeLabel.
  */
 export const TOOL_IMPORT_OUTCOME_LABELS: Record<ToolImportOutcome, string> = {
   [ToolImportOutcome.Created]: CREATED_IMPORT_RESULT,
@@ -184,10 +182,6 @@ export function getToolImportOutcomeLabel(
   translator: Translator,
   outcome: ToolImportOutcome,
 ): string {
-  if (outcome === ToolImportOutcome.Created) {
-    return getCreatedImportResultLabel(translator);
-  }
-
   const label: string = TOOL_IMPORT_OUTCOME_LABELS[outcome];
 
   return translator.translateText(label) || label;

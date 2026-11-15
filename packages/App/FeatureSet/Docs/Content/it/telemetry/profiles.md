@@ -309,7 +309,7 @@ Quando una funzione del vostro codice occupa almeno il 5% del tempo o della memo
 | --- | --- |
 | **Flame graph** | Ogni barra è una funzione dello stack di chiamate, e la sua larghezza è proporzionale al tempo o alle risorse consumati. Fate clic su una funzione per ingrandirla e vederne chiamanti e chiamate. |
 | **Top functions** | Le funzioni del profilo, ordinate per tempo proprio o totale. **Solo il mio codice** nasconde i frame delle librerie. |
-| **Diff vs. baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Più peggiorate** e **Più migliorate**. |
+| **Differenza dalla baseline** | Il profilo confrontato con un periodo precedente (**rispetto a 1 ora fa**, **rispetto a ieri** o **rispetto alla scorsa settimana**), con le funzioni **Più peggiorate** e **Più migliorate**. |
 
 **Scarica pprof** salva il profilo per strumenti locali come `go tool pprof`.
 

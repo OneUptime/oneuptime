@@ -6,7 +6,7 @@ import Select from "../../../Types/BaseDatabase/Select";
 import Navigation from "../Navigation";
 import ProjectUtil from "../Project";
 import BaseRequestOptions from "../API/RequestOptions";
-import CreatedRecords from "./CreatedRecords";
+import RecordChanges, { RecordChangeKind } from "./RecordChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
@@ -229,7 +229,7 @@ export default class ModelAPI {
   }
 
   /*
-   * Tells the page a record was created (CreatedRecords): its table, and its
+   * Tells the page a record was created (RecordChanges): its table, and its
    * project - the one the server stored it in, else the one it was asked
    * in. Never throws: the create is done whatever a listener makes of it.
    */
@@ -250,7 +250,8 @@ export default class ModelAPI {
           ? data.created.getValue<ObjectID>("projectId")
           : undefined;
 
-      CreatedRecords.announce({
+      RecordChanges.announce({
+        kind: RecordChangeKind.Created,
         tableName: tableName,
         projectId:
           (storedProjectId ? String(storedProjectId) : "") ||
@@ -259,6 +260,33 @@ export default class ModelAPI {
       });
     } catch {
       // Nothing heard: the next page load reads what changed.
+    }
+  }
+
+  /*
+   * Tells the page a record was deleted (RecordChanges, #8204): its table,
+   * and the project it was asked in. Never throws: the delete is done
+   * whatever a listener makes of it.
+   */
+  private static announceDeleted<TBaseModel extends BaseModel>(data: {
+    modelType: { new (): TBaseModel };
+    tenantId: string | undefined;
+  }): void {
+    try {
+      const tableName: string | null | undefined = new data.modelType()
+        .tableName;
+
+      if (!tableName) {
+        return;
+      }
+
+      RecordChanges.announce({
+        kind: RecordChangeKind.Deleted,
+        tableName: tableName,
+        projectId: data.tenantId || null,
+      });
+    } catch {
+      // Nothing heard: the next look at the products reads what changed.
     }
   }
 
@@ -581,17 +609,25 @@ export default class ModelAPI {
       );
     }
 
+    const headers: Dictionary<string> = this.getCommonHeaders(
+      data.requestOptions,
+    );
+
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
       await this.getApiClientForRequest(data.requestOptions).fetch<TBaseModel>({
         method: HTTPMethod.DELETE,
         url: apiUrl,
-        headers: this.getCommonHeaders(data.requestOptions),
+        headers: headers,
         ...(data.requestOptions?.apiRequestOptions
           ? { options: data.requestOptions.apiRequestOptions }
           : {}),
       });
 
     if (result.isSuccess()) {
+      this.announceDeleted({
+        modelType: data.modelType,
+        tenantId: headers["tenantid"],
+      });
       return;
     }
 

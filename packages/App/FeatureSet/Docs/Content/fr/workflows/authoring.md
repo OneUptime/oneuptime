@@ -47,7 +47,7 @@ Faites glisser les blocs où vous voulez ; le canevas les aligne sur une grille 
 | **Identifiant** (sous **ID**)        | L'ID court affiché sur le bloc, comme `log-1`. C'est par lui que les autres blocs se réfèrent à celui-ci : le renommer casse donc toutes les références `{{local.components.…}}` qui le visent. Le titre du bloc est le nom propre du composant et ne peut pas être changé.                                                         |
 | **Paramètres**                       | Ce dont le bloc a besoin pour faire son travail — une URL, un canal Slack, le corps d'un message. Les champs facultatifs portent la mention **(Optionnel)** ; tout le reste est obligatoire. Un interrupteur marche/arrêt n'a ni l'un ni l'autre, car il a toujours une valeur. Les paramètres moins utilisés sont repliés sous **Plus de champs**, dont l'en-tête les nomme et montre ceux qui sont renseignés. |
 | **Entrée**                           | Le point sur le bord supérieur, où arrivent les lignes des blocs précédents. Les déclencheurs n'en ont pas : rien ne s'exécute avant eux.                                                                                                                                                                                            |
-| **Outputs**                          | Les points le long du bord inférieur, étiquetés juste au-dessus, d'où partent les lignes vers les blocs suivants. Beaucoup de blocs ont des sorties **Succès** et **Erreur** séparées, pour que vous puissiez traiter les deux cas.                                                                                                  |
+| **Sorties**                          | Les points le long du bord inférieur, étiquetés juste au-dessus, d'où partent les lignes vers les blocs suivants. Beaucoup de blocs ont des sorties **Succès** et **Erreur** séparées, pour que vous puissiez traiter les deux cas.                                                                                                  |
 
 ## Relier les blocs
 
@@ -88,7 +88,7 @@ La boîte de dialogue s'ouvre sur ce pour quoi vous êtes le plus probablement v
 
 En dessous, de haut en bas :
 
-- **ID**, **Entrées** et **Outputs**, côte à côte — l'identifiant du bloc, d'où on l'atteint et ce qui s'exécute après lui.
+- **ID**, **Entrées** et **Sorties**, côte à côte — l'identifiant du bloc, d'où on l'atteint et ce qui s'exécute après lui.
 - **Returns** — les données que ce bloc transmet aux étapes suivantes. Chaque valeur montre la référence exacte qui la lit, avec un bouton pour la copier.
 - **Mode d'emploi** — ce que fait le bloc en une phrase, les étapes pour le configurer, un exemple à copier et les erreurs les plus courantes. L'exemple est construit à partir de votre flux de travail : il utilise l'ID de ce bloc, et les valeurs du déclencheur là où il insère des données dans un message. **En savoir plus** ouvre l'explication détaillée, et les liens mènent au guide complet. Chaque bloc en a un, et le bouton **Mode d'emploi** en haut de la boîte de dialogue y mène directement.
 

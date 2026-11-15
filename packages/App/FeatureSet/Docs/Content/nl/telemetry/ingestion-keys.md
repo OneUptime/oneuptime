@@ -108,7 +108,7 @@ Een origin is een schema, een host en een optionele poort: `https://app.example.
 
 ## Een sleutel vervangen, uitschakelen of verwijderen
 
-De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Last Used At**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
+De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter **Klik om te tonen**, en zijn **Laatst gebruikt op**: de laatste keer dat OneUptime gegevens accepteerde die ermee waren verzonden.
 
 | Om | Doe dit | Wat afzenders zien |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ De pagina van een sleutel toont zijn **Status**, zijn **Geheime sleutel** achter
 | Een uitgelekt geheim te vervangen | Klik op **Geheime sleutel opnieuw instellen** en bevestig. De sleutel houdt zijn instellingen en krijgt een nieuw geheim. | `401` totdat ze het nieuwe geheim sturen |
 | Een sleutel voorgoed te stoppen | Klik op **Ingestiesleutel verwijderen** onderaan zijn pagina. | `401` |
 
-Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleutel aan, zet u uw afzenders daarop over en verwijdert u de oude sleutel zodra zijn **Last Used At** niet meer verandert. **Last Used At** wordt om de paar minuten bijgewerkt, niet bij elk verzoek.
+Om een geheim te wisselen zonder gegevens te verliezen, maakt u een tweede sleutel aan, zet u uw afzenders daarop over en verwijdert u de oude sleutel zodra zijn **Laatst gebruikt op** niet meer verandert. **Laatst gebruikt op** wordt om de paar minuten bijgewerkt, niet bij elk verzoek.
 
 ## Problemen oplossen
 

@@ -47,7 +47,7 @@ Arraste os blocos para onde quiser; o canvas os encaixa em uma grade enquanto vo
 | **Identifier** (em **ID**)            | O ID curto mostrado no bloco, como `log-1`. É assim que outros blocos se referem a este, então renomeá-lo quebra todas as referências `{{local.components.…}}` que apontam para ele. O título do bloco é o nome do próprio componente e não pode ser alterado.                                                    |
 | **Configurações**                     | O que o bloco precisa para fazer o trabalho dele: uma URL, um canal do Slack, o corpo de uma mensagem. Campos opcionais têm a marca **(Opcional)**; todo o resto é obrigatório. Uma chave de liga/desliga não tem nenhuma das duas, porque sempre tem um valor. As configurações menos usadas ficam recolhidas em **Mais campos**, cujo cabeçalho as nomeia e mostra as que estão preenchidas. |
 | **Input**                             | O ponto na borda de cima, onde chegam as linhas dos blocos anteriores. Gatilhos não têm: nada roda antes deles.                                                                                                                                                                                                 |
-| **Outputs**                           | Os pontos ao longo da borda de baixo, com rótulos logo acima, de onde saem as linhas para os próximos blocos. Muitos blocos têm saídas **Sucesso** e **Erro** separadas, para você tratar os dois casos.                                                                                                       |
+| **Saídas**                           | Os pontos ao longo da borda de baixo, com rótulos logo acima, de onde saem as linhas para os próximos blocos. Muitos blocos têm saídas **Sucesso** e **Erro** separadas, para você tratar os dois casos.                                                                                                       |
 
 ## Ligar blocos
 
@@ -88,7 +88,7 @@ A caixa de diálogo abre no que você provavelmente veio procurar. Para um gatil
 
 Abaixo disso, de cima para baixo:
 
-- **ID**, **Entradas** e **Outputs**, lado a lado — o identificador do bloco, de onde ele é alcançado e o que roda depois dele.
+- **ID**, **Entradas** e **Saídas**, lado a lado — o identificador do bloco, de onde ele é alcançado e o que roda depois dele.
 - **Returns** — os dados que este bloco entrega aos passos seguintes. Cada valor mostra a referência exata que o lê, com um botão para copiá-la.
 - **How to use** — o que o bloco faz em uma frase, os passos para configurá-lo, um exemplo para copiar e os erros mais comuns. O exemplo é montado a partir do seu workflow: usa o ID deste bloco, e os valores do gatilho onde coloca dados em uma mensagem. **Saiba mais** abre a explicação mais longa, e os links levam ao guia completo. Todo bloco tem uma, e o botão **How to use** no topo da caixa de diálogo vai direto para ela.
 

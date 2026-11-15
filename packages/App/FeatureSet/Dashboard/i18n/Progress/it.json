@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55064,
-    "untranslated": 8445
+    "keys": 55409,
+    "untranslated": 8410
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -43,6 +43,7 @@
     "Backup",
     "Badge",
     "Bare Metal",
+    "Bearer Token:",
     "Blade",
     "Branding",
     "Browser",

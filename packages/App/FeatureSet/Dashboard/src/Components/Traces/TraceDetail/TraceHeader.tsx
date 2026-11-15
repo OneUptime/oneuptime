@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, {
   ButtonSize,
@@ -302,7 +303,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                 {translator.translateText(stat.label)}
               </dt>
               <dd className="mt-0.5 text-xl font-semibold tabular-nums text-gray-900">
-                {stat.value}
+                {getFigure(stat.value)}
               </dd>
             </div>
           );

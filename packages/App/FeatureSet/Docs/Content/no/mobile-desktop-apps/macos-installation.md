@@ -67,7 +67,7 @@ Appen viser varsler når du har registrert den for push-varsler, i hvert prosjek
 Klikk på **Registrer enhet**, behold det foreslåtte **Enhetsnavn**, for eksempel `Safari on macOS`, eller endre det, og klikk på **Registrer enhet** igjen. Når macOS eller nettleseren spør om OneUptime kan sende varsler, velger du **Tillat**.
 
 ### Send en test
-Klikk på **Send Test Notification** i dialogen **Browser Registered**. Vises ingenting, ser du på Macens varslingsinnstillinger: se [Feilsøking](#feilsøking).
+Klikk på **Send testvarsel** i dialogen **Nettleser registrert**. Vises ingenting, ser du på Macens varslingsinnstillinger: se [Feilsøking](#feilsøking).
 :::
 
 En nettleser kan ikke ringe gjennom et Fokus som Ikke forstyrr. Bruk mobilappen med kritiske varsler for varsler som må vekke deg: se [iOS-installasjon](/docs/mobile-desktop-apps/ios-installation#ring-gjennom-lydløs).

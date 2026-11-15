@@ -47,7 +47,7 @@ Træk blokkene, hvorhen du vil; lærredet fæstner dem til et gitter undervejs. 
 | **Identifier** (under **ID**)         | Det korte ID, der vises på blokken, som `log-1`. Det er sådan, andre blokke henviser til denne, så hvis du omdøber det, går alle `{{local.components.…}}`-referencer, der peger på den, i stykker. Blokkens overskrift er komponentens eget navn og kan ikke ændres.                                              |
 | **Indstillinger**                     | Det, blokken har brug for til sit arbejde — en URL, en Slack-kanal, en beskedtekst. Valgfrie felter er mærket **(Valgfrit)**; alt andet er påkrævet. En til/fra-kontakt har ingen af delene, fordi den altid har en værdi. Mindre brugte indstillinger er foldet sammen under **Flere felter**, hvis overskrift nævner dem og viser dem, der er udfyldt. |
 | **Input**                             | Punktet på den øverste kant, hvor linjer fra tidligere blokke kommer ind. Triggere har ikke et — intet kører før dem.                                                                                                                                                                                         |
-| **Outputs**                           | Punkterne langs den nederste kant, med etiketter lige over dem, hvor linjer går ud til de næste blokke. Mange blokke har separate udgange **Succes** og **Fejl**, så du kan håndtere begge tilfælde.                                                                                                       |
+| **Uddata**                           | Punkterne langs den nederste kant, med etiketter lige over dem, hvor linjer går ud til de næste blokke. Mange blokke har separate udgange **Succes** og **Fejl**, så du kan håndtere begge tilfælde.                                                                                                       |
 
 ## Forbind blokke
 
@@ -88,7 +88,7 @@ Dialogen åbner ved det, du sandsynligvis kom efter. For en **Webhook**-trigger 
 
 Derunder, oppefra og ned:
 
-- **ID**, **Input** og **Outputs**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
+- **ID**, **Input** og **Uddata**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
 - **Returns** — de data, denne blok giver videre til senere trin. Hver værdi viser den præcise reference, der læser den, med en knap til at kopiere den.
 - **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra din arbejdsgang: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Få mere at vide** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
 

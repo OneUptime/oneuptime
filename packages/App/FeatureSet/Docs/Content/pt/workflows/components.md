@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - As **Configurações** são o que você preenche. As configurações marcadas como **(Opcional)** podem ficar vazias. As configurações menos usadas ficam recolhidas em **Mais campos**.
-- Os **Outputs** são os pontos da borda de baixo. A maioria dos blocos tem **Sucesso** e **Erro**; [Conditions](#conditions) tem **Sim** e **Não**, e [Switch / Case](#switch-case) tem uma para cada um dos seus casos, além de **Padrão**.
+- Os **Saídas** são os pontos da borda de baixo. A maioria dos blocos tem **Sucesso** e **Erro**; [Conditions](#conditions) tem **Sim** e **Não**, e [Switch / Case](#switch-case) tem uma para cada um dos seus casos, além de **Padrão**.
 - Os **Returns** são os valores que um bloco entrega aos blocos seguintes, como o **Corpo da Resposta** de uma API. Um bloco seguinte lê um deles com `{{local.components.<block ID>.returnValues.<value ID>}}`; o botão **{ }** de uma configuração o insere para você. Veja [Variáveis](/docs/workflows/variables#saídas-de-componentes-dados-de-blocos-anteriores).
 
 Um bloco que toma **Erro** entrega a falha aos blocos ligados a **Erro**, e a execução continua ali. Sem nada ligado a **Erro**, a execução falha: o que mais ela estava fazendo continua, depois ela termina com o status **Erro**, e a entrada do bloco em **Etapas** da execução diz por quê. Já uma configuração obrigatória deixada vazia, ou uma configuração que nunca pode funcionar, para a execução com um erro.

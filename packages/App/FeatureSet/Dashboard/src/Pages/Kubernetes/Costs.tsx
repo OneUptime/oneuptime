@@ -354,7 +354,7 @@ const KubernetesCosts: FunctionComponent<
               title="Total Spend"
               icon={IconProp.CurrencyDollar}
               iconColor="emerald"
-              value={showFigures ? formatCost(totalSpend) : "—"}
+              value={showFigures ? formatCost(totalSpend) : undefined}
               sublabel={totalSpendSublabel}
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetTotalSpend}
             />
@@ -362,7 +362,9 @@ const KubernetesCosts: FunctionComponent<
               title="Workload Spend"
               icon={IconProp.Cube}
               iconColor="blue"
-              value={showFigures ? formatCost(totalSpend - idleSpend) : "—"}
+              value={
+                showFigures ? formatCost(totalSpend - idleSpend) : undefined
+              }
               sublabel="attributed to workloads"
               description={
                 KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetWorkloadSpend
@@ -372,7 +374,7 @@ const KubernetesCosts: FunctionComponent<
               title="Idle Spend"
               icon={IconProp.Clock}
               iconColor="amber"
-              value={showFigures ? formatCost(idleSpend) : "—"}
+              value={showFigures ? formatCost(idleSpend) : undefined}
               sublabel="provisioned but unused"
               description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdleSpend}
             />
@@ -382,7 +384,7 @@ const KubernetesCosts: FunctionComponent<
               iconColor="slate"
               value={
                 !showFigures || idlePercent === null
-                  ? "—"
+                  ? undefined
                   : `${Math.round(idlePercent)}%`
               }
               sublabel="share of total spend"

@@ -47,7 +47,7 @@ Dra blocken vart du vill; arbetsytan fäster dem i ett rutnät medan du drar. Bl
 | **Identifier** (under **ID**)         | Det korta ID som visas på blocket, som `log-1`. Det är så andra block hänvisar till det här, så om du byter namn på det slutar alla `{{local.components.…}}`-referenser som pekar på det att fungera. Blockets rubrik är komponentens eget namn och kan inte ändras.                                          |
 | **Inställningar**                     | Det blocket behöver för att göra sitt jobb — en URL, en Slack-kanal, en meddelandetext. Valfria fält är märkta **(Valfritt)**; allt annat är obligatoriskt. En av/på-brytare har ingetdera, eftersom den alltid har ett värde. Mindre använda inställningar är hopfällda under **Fler fält**, vars rubrik nämner dem och visar de som är ifyllda. |
 | **Input**                             | Punkten på den övre kanten, där linjer från tidigare block kommer in. Utlösare har ingen — inget körs före dem.                                                                                                                                                                                               |
-| **Outputs**                           | Punkterna längs den nedre kanten, med etiketter precis ovanför, där linjer går ut till nästa block. Många block har separata utgångar **Framgång** och **Fel**, så att du kan hantera båda fallen.                                                                                                         |
+| **Utdata**                           | Punkterna längs den nedre kanten, med etiketter precis ovanför, där linjer går ut till nästa block. Många block har separata utgångar **Framgång** och **Fel**, så att du kan hantera båda fallen.                                                                                                         |
 
 ## Koppla ihop block
 
@@ -88,7 +88,7 @@ Dialogrutan öppnas vid det du troligen kom för. För en **Webhook**-utlösare 
 
 Under det, uppifrån och ned:
 
-- **ID**, **Indata** och **Outputs**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
+- **ID**, **Indata** och **Utdata**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
 - **Returns** — data som det här blocket lämnar vidare till senare steg. Varje värde visar den exakta referens som läser det, med en knapp för att kopiera den.
 - **How to use** — vad blocket gör i en mening, stegen för att konfigurera det, ett exempel att kopiera och de misstag folk ofta gör. Exemplet är byggt utifrån ditt arbetsflöde: det använder det här blockets ID och utlösarens värden där det infogar data i ett meddelande. **Läs mer** öppnar den längre förklaringen, och länkarna går till den fullständiga guiden. Varje block har en, och knappen **How to use** högst upp i dialogrutan hoppar direkt dit.
 

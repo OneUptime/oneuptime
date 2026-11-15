@@ -1744,7 +1744,7 @@ const VMwareVCenterOverview: FunctionComponent<
           iconColor="emerald"
           value={
             hostEffectivenessPct === null
-              ? "—"
+              ? undefined
               : // Counts in the reader's digits, as the hero's chips write them.
                 `${translator.formatNumber(clusterHostsEffective)}/${translator.formatNumber(clusterHostsTotal)}`
           }

@@ -51,12 +51,12 @@ Ogni servizio mostra il suo stato, calcolato dalle chiamate ricevute negli ultim
 | Stato | Quando |
 | --- | --- |
 | **Integro** | Al massimo l'1% delle chiamate ricevute è fallito. |
-| **Some errors** | È fallito più dell'1% e meno del 5%. |
-| **High error rate** | È fallito il 5% o più. |
-| **Entry point** | Non ha ricevuto chiamate, ma ne ha fatte: un frontend web o un job pianificato. |
-| **No calls observed** | Non ha né fatto né ricevuto chiamate. |
+| **Alcuni errori** | È fallito più dell'1% e meno del 5%. |
+| **Tasso di errore elevato** | È fallito il 5% o più. |
+| **Punto di ingresso** | Non ha ricevuto chiamate, ma ne ha fatte: un frontend web o un job pianificato. |
+| **Nessuna chiamata osservata** | Non ha né fatto né ricevuto chiamate. |
 
-Un servizio con un incidente o un avviso attivi ne mostra invece il numero e, come un servizio con **Some errors** o con un **High error rate**, conta come uno che richiede attenzione.
+Un servizio con un incidente o un avviso attivi ne mostra invece il numero e, come un servizio con lo stato **Alcuni errori** o **Tasso di errore elevato**, conta come uno che richiede attenzione.
 
 :::steps
 ### Trovare i servizi che richiedono attenzione

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55064,
-    "untranslated": 2401
+    "keys": 55409,
+    "untranslated": 2399
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -103,6 +103,7 @@
     "Bash",
     "Basic Auth",
     "Bearer Token",
+    "Bearer Token:",
     "Belarus",
     "Belize",
     "Benin",
@@ -407,6 +408,7 @@
     "No Auth, No Priv",
     "Normal",
     "Null",
+    "OAuth 2.0 Client Credentials:",
     "OID",
     "OIDs",
     "OK",
