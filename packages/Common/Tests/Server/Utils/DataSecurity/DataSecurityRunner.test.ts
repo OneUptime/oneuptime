@@ -58,6 +58,7 @@ import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
   DataStoreKind,
   DataStoreProvider,
+  WORKER_CLAIMED_DATA_STORE_KINDS,
 } from "../../../../Types/DataSecurity/DataStoreKind";
 import { customDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
@@ -563,6 +564,10 @@ describe("claimDueStores", () => {
         DataStoreKind.SqlServer,
       ].sort(),
     );
+    // The list a store's Overview reads, so it says what the workers claim.
+    expect(
+      ((findBy.query["kind"] as Includes).values as Array<string>).sort(),
+    ).toEqual([...WORKER_CLAIMED_DATA_STORE_KINDS].sort());
 
     const nextScan: RawOperator = findBy.query[
       "nextContentScanAt"
