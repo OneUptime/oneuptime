@@ -170,7 +170,9 @@ const PROSE: Record<string, Array<string>> = {};
 
 /*
  * The limits and defaults the pages give in their text rather than in code:
- * Fluentd's 10-second flush, and the status page API's 14-day lists,
+ * Fluentd's 10-second flush, its 30 seconds at most between tries, the 72
+ * hours it tries for and the year 2000 a record's time is read from, and
+ * the status page API's 14-day lists,
  * 15-second overview and 90-day uptime range. A translation writes each as
  * often as the English page does, in its own digits (the Persian pages
  * write Persian ones). The 1 MB the Syslog and Fluentd pages give is not
@@ -178,7 +180,7 @@ const PROSE: Record<string, Array<string>> = {};
  * count says nothing; the facts suite holds it to the ingress instead.
  */
 const PROSE_NUMBERS: Record<string, Array<string>> = {
-  [FLUENTD]: ["10"],
+  [FLUENTD]: ["10", "30", "72", "2000"],
   [PUBLIC_API]: ["14", "15", "90"],
 };
 
