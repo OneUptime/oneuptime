@@ -440,7 +440,10 @@ describe("a site's Page loads and Exceptions tiles", () => {
       describeExceptionsTile({
         exceptions: { total: 3_456_789, failed: false },
       }).value,
-    ].map(spaced);
+    ].map((value: string | undefined): string => {
+      // A tile with no figure has no value (#8264): it would read "" here.
+      return spaced(value ?? "");
+    });
   }
 
   test("each tile's figure, in English, German, Arabic and Persian", async () => {
