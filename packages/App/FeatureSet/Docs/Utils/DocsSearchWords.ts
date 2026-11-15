@@ -2414,6 +2414,18 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "ar",
       "er",
       "ir",
+      /*
+       * A verb's "they" form (#8700): "se suscriben" (they subscribe) is
+       * "suscrib", as "suscribo" and "suscribirse" are; "funcionan" is
+       * "funcion", as "funciona" is. A noun in "-en" takes "-enes" in the
+       * plural, so both come off it: "imagen" and "imágenes" are "imag",
+       * "volumen" and "volúmenes" "volum". A "-ear" verb's is "-ean":
+       * "monitorean" is "monitor", as "monitorear" is.
+       */
+      "enes",
+      "ean",
+      "an",
+      "en",
       "es",
       "os",
       "as",
@@ -2422,6 +2434,37 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "e",
       "s",
     ],
+    /*
+     * "-en" stays on an English word the docs say in Spanish, whose plural
+     * takes an "-s" ("token" and "tokens", "screen" and "screens"), on
+     * the nouns whose verb keeps it ("orden" and "almacén" meet "ordenar"
+     * and "almacenar", sort and store), and after "i", where it is no
+     * verb's ("bien", "quien", "también"; "mantienes" meets "mantiene").
+     */
+    keptAfter: {
+      en: /(?:k|e|i|almac|ord)$/,
+      enes: /(?:k|e|i|almac|ord)$/,
+    },
+    forms: {
+      prefixes: [],
+      endings: [],
+      stems: {
+        /*
+         * "Suscriptores y anuncios" (Subscribers and Announcements) names
+         * the people by a form no ending makes of "suscribir" (#8700).
+         */
+        suscriptor: "suscrib",
+        /*
+         * The "you" commands that end in "-én", which "-en" would part from
+         * their verb: "Mantén" (keep) is "mantener", "Obtén" (get)
+         * "obtener", "Detén" (stop) "detener", "Retén" (hold) "retener".
+         */
+        mant: "manten",
+        obt: "obten",
+        det: "deten",
+        ret: "reten",
+      },
+    },
     shortestStem: 3,
     script: LATIN_SCRIPT_WORD,
   },
@@ -2459,6 +2502,18 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "ar",
       "er",
       "ir",
+      /*
+       * A verb's "they" form (#8700): "assinam" (they subscribe) is
+       * "assin", as "assinar" is; "recebem" is "receb". A noun in "-em"
+       * takes "-ens" in the plural, so both come off it: "mensagem" and
+       * "mensagens" are "mensag", "nuvem" and "nuvens" "nuv". "We" forms
+       * too: "enviamos" is "envi", as "enviam" is.
+       */
+      "amos",
+      "emos",
+      "ens",
+      "am",
+      "em",
       "es",
       "os",
       "as",
@@ -2467,6 +2522,18 @@ export const DOCS_SEARCH_WORD_ENDINGS: Readonly<
       "e",
       "s",
     ],
+    /*
+     * The ending stays on an English word the docs say in Portuguese,
+     * whose plural takes an "-s": "stream" and "streams", "program" and
+     * "programs", "system", "problem" and "post-mortem", "token" and
+     * "tokens".
+     */
+    keptAfter: { am: /(?:e|gr)$/, em: /(?:st|rt|bl)$/, ens: /(?:k|e)$/ },
+    /*
+     * "Assinantes e comunicados" (Subscribers and Announcements) names the
+     * people by a form no ending makes of "assinar" (#8700).
+     */
+    forms: { prefixes: [], endings: [], stems: { assinant: "assin" } },
     shortestStem: 3,
     script: LATIN_SCRIPT_WORD,
   },

@@ -41,12 +41,8 @@ const TRANSLATED: Array<AskAiHowDoIQuestionTranslated> = [
  * model, each with why (#8335). This list only shrinks: a question it
  * finds fails its test until it is deleted here.
  */
-const NOT_IN_THE_FIRST_SIX: Record<string, string> = {
-  "es ¿Cómo se suscriben mis clientes a la página de estado?":
-    '"suscriben" (they subscribe) keeps its "-en": off every word it would read "orden" (order) apart from "ordenar" and "imagen" from "imágenes". The page says "Suscriptores", which no ending makes of "suscribir". 9th; "¿Cómo pueden mis clientes suscribirse a mi página de estado?" finds it.',
-  "pt Como meus clientes assinam a página de status?":
-    '"assinam" (they subscribe) keeps its "-am", as "mensagem" (message) keeps its "-em", and the page says "Assinantes". 12th.',
-};
+// Empty since #8700 met Spanish's and Portuguese's "they" forms ("suscriben", "assinam").
+const NOT_IN_THE_FIRST_SIX: Record<string, string> = {};
 
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
   const nodePath: typeof path = jest.requireActual("path") as typeof path;
