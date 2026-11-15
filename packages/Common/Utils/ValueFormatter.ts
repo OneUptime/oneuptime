@@ -1,14 +1,21 @@
 /*
  * Human-friendly value formatting for metric units.
  * Converts raw values like 1048576 bytes → "1 MB", 3661 seconds → "1.02 hr", etc.
+ *
+ * A unit's symbol is held to its figure with a no-break space ("1 MB" is
+ * "1 MB"), so a chart's tooltip, a table's cell or a Gauge's caption
+ * never ends a line with the figure and starts the next with its unit
+ * (#8457). A unit the formatter spells in words - "2 hours", "3 days", a
+ * unit's name ("300 Kelvin") - keeps its plain space, as a word does.
  */
 
 import { getNumberLocale, isEnglishDateLanguage } from "../Types/DateLanguage";
+import { NO_BREAK_SPACE } from "../Types/NoBreakSpaces";
 
 export interface FormattedValue {
   value: string; // e.g. "1.5"
   unit: string; // e.g. "MB"
-  formatted: string; // e.g. "1.5 MB"
+  formatted: string; // e.g. "1.5 MB"
 }
 
 export interface ValueFormatterOptions {
@@ -296,10 +303,22 @@ function getReadableUnitPart(unit: string): string {
   return unit;
 }
 
+// A value scaled by a threshold table: its figure, and the unit it is in.
+interface ScaledValue {
+  value: string; // e.g. "1.5"
+  unit: string; // e.g. "MB", "hours"
+}
+
+/*
+ * The spans of time the threshold tables name in words ("2 hours", "3
+ * days"), where the others are symbols ("5 min", "1.5 sec", "12 ms").
+ */
+const TIME_WORDS: ReadonlySet<string> = new Set<string>(["days", "hours"]);
+
 function formatWithThresholds(
   value: number,
   thresholds: Array<UnitThreshold>,
-): FormattedValue {
+): ScaledValue {
   const absValue: number = Math.abs(value);
 
   /*
@@ -316,34 +335,18 @@ function formatWithThresholds(
       thresholds.find((t: UnitThreshold) => {
         return t.divisor === 1;
       }) ?? (thresholds[thresholds.length - 1] as UnitThreshold);
-    return {
-      value: "0",
-      unit: natural.unit,
-      formatted: `0 ${natural.unit}`,
-    };
+    return { value: "0", unit: natural.unit };
   }
 
   for (const t of thresholds) {
     if (absValue >= t.threshold) {
-      const scaled: number = value / t.divisor;
-      const formatted: string = formatNumber(scaled);
-      return {
-        value: formatted,
-        unit: t.unit,
-        formatted: `${formatted} ${t.unit}`,
-      };
+      return { value: formatNumber(value / t.divisor), unit: t.unit };
     }
   }
 
   // Fallback: use last threshold
   const last: UnitThreshold = thresholds[thresholds.length - 1]!;
-  const scaled: number = value / last.divisor;
-  const formatted: string = formatNumber(scaled);
-  return {
-    value: formatted,
-    unit: last.unit,
-    formatted: `${formatted} ${last.unit}`,
-  };
+  return { value: formatNumber(value / last.divisor), unit: last.unit };
 }
 
 /*
@@ -855,10 +858,26 @@ function writeNumberInLanguage(
 type UnitStyle = "readable" | "compact";
 
 /*
- * The separator rules formatValue has always used: percent joins with no
- * space, an empty unit contributes nothing, everything else gets one space.
+ * Whether a unit is written as its symbol ("MB", "min", "°C", "req/s",
+ * "Pa" as an exporter wrote it) or spelled as a word ("hours", "Kelvin").
  */
-function joinValueAndUnit(value: string, unit: string): string {
+type UnitWriting = "symbol" | "word";
+
+// A run of the spaces a line may break at (Types/NoBreakSpaces).
+const BREAKING_SPACES: RegExp = /[  -  -  ]+/g;
+
+/*
+ * The separator rules formatValue has always used: percent joins with no
+ * space, an empty unit contributes nothing, and everything else is set
+ * apart by one space - a no-break one before a symbol, so the figure and
+ * its unit share a line (#8457), and a plain one before a word, which a
+ * line may break before as before any word.
+ */
+function joinValueAndUnit(
+  value: string,
+  unit: string,
+  writing: UnitWriting,
+): string {
   if (unit === "") {
     return value;
   }
@@ -869,7 +888,7 @@ function joinValueAndUnit(value: string, unit: string): string {
   if (unit.startsWith("/")) {
     return `${value}${unit}`;
   }
-  return `${value} ${unit}`;
+  return `${value}${writing === "word" ? " " : NO_BREAK_SPACE}${unit}`;
 }
 
 /*
@@ -928,7 +947,8 @@ function compactThresholdUnit(unit: string): string {
  * emitted; it has 20+ non-test callers (chart axis ticks, threshold
  * annotations, the Gauge, the metric list) and a table test pins every branch.
  * One branch changed on purpose: a rate it cannot scale reads "100 req/s",
- * not "100 req per Second", which no chart axis had room for (#8049).
+ * not "100 req per Second", which no chart axis had room for (#8049). And
+ * the space before a symbol is a no-break one (#8457): "1.5 MB".
  */
 function formatValueParts(
   value: number,
@@ -938,9 +958,14 @@ function formatValueParts(
 ): FormattedValue {
   const trimmedUnit: string = (unit || "").trim();
 
-  const build: (partValue: string, partUnit: string) => FormattedValue = (
+  const build: (
     partValue: string,
     partUnit: string,
+    writing?: UnitWriting,
+  ) => FormattedValue = (
+    partValue: string,
+    partUnit: string,
+    writing: UnitWriting = "symbol",
   ): FormattedValue => {
     // In the reader's language, when one is given (#7094).
     const inLanguage: {
@@ -977,26 +1002,36 @@ function formatValueParts(
           : null;
 
       if (timeWord) {
+        /*
+         * A minute's or a second's short form ("Min.", "د", "دقیقه") is
+         * held to its figure as English's "min" and "sec" are; an hour or
+         * a day in full ("Stunden") keeps the space Intl writes.
+         */
+        const gap: string =
+          writing === "symbol"
+            ? timeWord.gap.replace(BREAKING_SPACES, NO_BREAK_SPACE)
+            : timeWord.gap;
+
         return {
           value: inLanguage.value,
           unit: timeWord.word,
           formatted: timeWord.isBefore
-            ? `${timeWord.word}${timeWord.gap}${inLanguage.value}`
-            : `${inLanguage.value}${timeWord.gap}${timeWord.word}`,
+            ? `${timeWord.word}${gap}${inLanguage.value}`
+            : `${inLanguage.value}${gap}${timeWord.word}`,
         };
       }
 
       return {
         value: inLanguage.value,
         unit: partUnit,
-        formatted: joinValueAndUnit(inLanguage.value, partUnit),
+        formatted: joinValueAndUnit(inLanguage.value, partUnit, writing),
       };
     }
 
     return {
       value: partValue,
       unit: partUnit,
-      formatted: joinValueAndUnit(partValue, partUnit),
+      formatted: joinValueAndUnit(partValue, partUnit, writing),
     };
   };
 
@@ -1043,10 +1078,16 @@ function formatValueParts(
     unitTableMap[normalizedUnit];
 
   if (thresholds) {
-    const scaled: FormattedValue = formatWithThresholds(value, thresholds);
+    const scaled: ScaledValue = formatWithThresholds(value, thresholds);
+
+    if (unitStyle === "compact") {
+      return build(scaled.value, compactThresholdUnit(scaled.unit));
+    }
+
     return build(
       scaled.value,
-      unitStyle === "compact" ? compactThresholdUnit(scaled.unit) : scaled.unit,
+      scaled.unit,
+      TIME_WORDS.has(scaled.unit) ? "word" : "symbol",
     );
   }
 
@@ -1064,7 +1105,7 @@ function formatValueParts(
       const numeratorThresholds: Array<UnitThreshold> | undefined =
         unitTableMap[normalizeUnit(numeratorRaw)];
       if (numeratorThresholds) {
-        const scaled: FormattedValue = formatWithThresholds(
+        const scaled: ScaledValue = formatWithThresholds(
           value,
           numeratorThresholds,
         );
@@ -1093,15 +1134,32 @@ function formatValueParts(
    * the unit chip and the metric's details (getReadableUnit, UnitNames). A
    * unit with no symbol ("Kelvin", "widgets") keeps its name: the reader's,
    * when the caller can name it (unitName, #7518), English otherwise.
+   *
+   * A symbol is held to its figure (#8457), and so is a unit the formatter
+   * does not know, written as the exporter wrote it ("101.3 kPa", "12
+   * widgets"): most are UCUM's symbols. A name it gives in words ("300
+   * Kelvin", "2 hours") keeps its plain space.
    */
+  if (unitStyle === "compact") {
+    return build(formatNumber(value), ValueFormatter.getCompactUnit(unit, options));
+  }
+
+  const symbol: string | undefined = getValueSymbol(trimmedUnit);
+
+  if (symbol !== undefined) {
+    return build(
+      formatNumber(value),
+      symbol,
+      TIME_WORDS.has(symbol) ? "word" : "symbol",
+    );
+  }
+
   return build(
     formatNumber(value),
-    unitStyle === "compact"
-      ? ValueFormatter.getCompactUnit(unit, options)
-      : (getValueSymbol(trimmedUnit) ??
-          (options?.unitName
-            ? options.unitName(unit)
-            : ValueFormatter.getReadableUnit(unit))),
+    options?.unitName
+      ? options.unitName(unit)
+      : ValueFormatter.getReadableUnit(unit),
+    readableUnitMap[normalizeUnit(trimmedUnit)] ? "word" : "symbol",
   );
 }
 

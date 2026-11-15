@@ -358,7 +358,9 @@ export const isTableThresholdPreset: (data: {
 
 /*
  * A number with its unit, as the table writes them: "93.00%", "12.5 ms".
- * A percent, a degree or a per-mille sign follows the number with no space.
+ * A percent, a degree or a per-mille sign follows the number with no space;
+ * any other unit is set apart by a no-break space, so a narrow cell never
+ * ends a line with the number and starts the next with its unit (#8457).
  */
 export const joinTableValueAndUnit: (
   formatted: string,
@@ -370,7 +372,9 @@ export const joinTableValueAndUnit: (
 
   const noSpace: boolean = unit === "%" || unit === "°" || unit === "‰";
 
-  return noSpace ? `${formatted}${unit}` : `${formatted} ${unit}`;
+  return noSpace
+    ? `${formatted}${unit}`
+    : `${formatted}\u00A0${unit}`;
 };
 
 // A column's decimals as the table can write them: 0 to 20, whole.
