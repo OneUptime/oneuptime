@@ -74,6 +74,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      vanishes mid-run is a log line, not an aborted backfill for everybody
  *      else in the project.
  *
+ *   5. A LADDER STAYS ONE LADDER (#7452). Rules are read the way How to Reach
+ *      Me reads them - from the responder's live cards, a push with how it
+ *      sounds and repeats - so "push, Standard, every 5 minutes" on every
+ *      card is what the new card gets, not a push at Critical sent once.
+ *
  * No database is touched. UserNotificationRule is backed by an in-memory table
  * so that rows written by one run are genuinely visible to the next - the
  * idempotence assertions are only worth anything if the reader really reads

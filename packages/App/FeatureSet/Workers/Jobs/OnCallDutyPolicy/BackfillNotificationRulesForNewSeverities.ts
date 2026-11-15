@@ -182,7 +182,10 @@ interface ResponderIntent {
    * responder's cards give it.
    */
   mirroredRules: Map<string, MirroredRule>;
-  // Every rule they have of this type is an opt-out: they muted it.
+  /*
+   * What they have of this type pages nothing and holds an opt-out: they
+   * muted it (getPagingLadderStepsForNewCell's isMuted).
+   */
   hasOptOut: boolean;
 }
 
@@ -331,7 +334,17 @@ const backfillSeverity: BackfillSeverityFunction = async (
   severity: NewSeverity,
 ): Promise<void> => {
   /*
-   * The rules of each rule type first, then the project's verified emails -
+   * The project's cards, as How to Reach Me reads them: which severities are
+   * live, and in what order. A responder's rules for the new severity are read
+   * from their live cards (getPagingLadderStepsForNewCell), so a ladder saved
+   * there is what the new card gets, push sound and repeat included (#7452).
+   */
+  const cells: Array<PagingLadderCell> = await PagingLadderService.getCells(
+    severity.projectId,
+  );
+
+  /*
+   * The rules of each rule type next, then the project's verified emails -
    * in that order, and both before anything is written.
    *
    * A new project's severities are created a moment before its creator's
@@ -349,16 +362,6 @@ const backfillSeverity: BackfillSeverityFunction = async (
    * emails after the rules means anyone with a rule in a snapshot below has
    * their email, and so their join time, in the email read.
    */
-  /*
-   * The project's cards, as How to Reach Me reads them: which severities are
-   * live, and in what order. A responder's rules for the new severity are read
-   * from their live cards (getPagingLadderStepsForNewCell), so a ladder saved
-   * there is what the new card gets, push sound and repeat included.
-   */
-  const cells: Array<PagingLadderCell> = await PagingLadderService.getCells(
-    severity.projectId,
-  );
-
   const rulesByType: Array<{
     ruleType: NotificationRuleType;
     existingRules: Array<UserNotificationRule>;
