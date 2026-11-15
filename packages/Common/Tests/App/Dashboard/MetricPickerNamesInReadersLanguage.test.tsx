@@ -10,13 +10,22 @@ import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
+import CephMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMetricPicker";
 import DockerMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DockerMonitor/DockerMetricPicker";
 import DockerSwarmMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/DockerSwarmMonitor/DockerSwarmMetricPicker";
 import HostMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/HostMonitor/HostMetricPicker";
 import IoTMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMetricPicker";
 import KubernetesMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/KubernetesMonitor/KubernetesMetricPicker";
+import OpenStackMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMetricPicker";
 import PodmanMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/PodmanMonitor/PodmanMetricPicker";
+import ProxmoxMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMetricPicker";
+import StorageArrayMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMetricPicker";
 import VMwareMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMetricPicker";
+import {
+  getAllCephMetricCategories,
+  getAllCephMetrics,
+  getCephMetricCategoryLabel,
+} from "../../../Types/Monitor/CephMetricCatalog";
 import {
   getAllDockerMetricCategories,
   getAllDockerMetrics,
@@ -43,10 +52,26 @@ import {
   getKubernetesMetricCategoryLabel,
 } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import {
+  getAllOpenStackMetricCategories,
+  getAllOpenStackMetrics,
+  getOpenStackMetricCategoryLabel,
+} from "../../../Types/Monitor/OpenStackMetricCatalog";
+import {
   getAllPodmanMetricCategories,
   getAllPodmanMetrics,
   getPodmanMetricCategoryLabel,
 } from "../../../Types/Monitor/PodmanMetricCatalog";
+import {
+  getAllProxmoxMetricCategories,
+  getAllProxmoxMetrics,
+  getProxmoxMetricCategoryLabel,
+} from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getAllStorageArrayMetricCategories,
+  getAllStorageArrayMetrics,
+  getStorageArrayMetricCategoryLabel,
+  StorageArrayMetricCategory,
+} from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import {
   getAllVMwareMetricCategories,
   getAllVMwareMetrics,
@@ -75,7 +100,9 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
  * description. And every picker handed its groups to the dropdown as the
  * catalog's category, which the dropdown draws as given: "Datacenter",
  * "ControlPlane", "BlockIO". The names are keys now, the groups' headings a
- * label record of keys per catalog, and each picker looks each up once.
+ * label record of keys per catalog, and each picker looks each up once. The
+ * storage array, Proxmox, Ceph and OpenStack pickers, whose names were keys
+ * already, headed their groups in English the same way until #8653.
  *
  * Drawn in English, German, Arabic and Persian from the Dashboard's own
  * locale files, and again with every name and heading worded as a probe that
@@ -96,7 +123,7 @@ const PROBE_MARKS: Readonly<Record<string, string>> = {
 interface PickerMetric {
   id: string;
   friendlyName: string;
-  unit: string;
+  unit?: string | undefined;
   category: string;
 }
 
@@ -197,6 +224,69 @@ const PICKERS: Array<PickerCase> = [
     draw: (id: string): ReactElement => {
       return (
         <IoTMetricPicker selectedMetricId={id} onMetricSelected={doNothing} />
+      );
+    },
+  },
+  // The four whose groups were headed in English after #8353 (#8653).
+  {
+    name: "storage array",
+    metrics: getAllStorageArrayMetrics(),
+    // With no platform chosen it offers the whole catalog: every group that has a metric.
+    headings: getAllStorageArrayMetricCategories()
+      .filter((category: StorageArrayMetricCategory): boolean => {
+        return getAllStorageArrayMetrics().some(
+          (metric: PickerMetric): boolean => {
+            return metric.category === category;
+          },
+        );
+      })
+      .map(getStorageArrayMetricCategoryLabel),
+    draw: (id: string): ReactElement => {
+      return (
+        <StorageArrayMetricPicker
+          selectedMetricId={id}
+          onMetricSelected={doNothing}
+        />
+      );
+    },
+  },
+  {
+    name: "Proxmox",
+    metrics: getAllProxmoxMetrics(),
+    headings: getAllProxmoxMetricCategories().map(
+      getProxmoxMetricCategoryLabel,
+    ),
+    draw: (id: string): ReactElement => {
+      return (
+        <ProxmoxMetricPicker
+          selectedMetricId={id}
+          onMetricSelected={doNothing}
+        />
+      );
+    },
+  },
+  {
+    name: "Ceph",
+    metrics: getAllCephMetrics(),
+    headings: getAllCephMetricCategories().map(getCephMetricCategoryLabel),
+    draw: (id: string): ReactElement => {
+      return (
+        <CephMetricPicker selectedMetricId={id} onMetricSelected={doNothing} />
+      );
+    },
+  },
+  {
+    name: "OpenStack",
+    metrics: getAllOpenStackMetrics(),
+    headings: getAllOpenStackMetricCategories().map(
+      getOpenStackMetricCategoryLabel,
+    ),
+    draw: (id: string): ReactElement => {
+      return (
+        <OpenStackMetricPicker
+          selectedMetricId={id}
+          onMetricSelected={doNothing}
+        />
       );
     },
   },

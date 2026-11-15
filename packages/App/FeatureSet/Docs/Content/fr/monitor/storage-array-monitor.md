@@ -118,8 +118,8 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 | Modèle                         | Catégorie    | Gravité  | Surveille                                                                                       | Déclenche quand                                                                                                                                  |
 | ------------------------------ | ------------ | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Array Stopped Reporting        | Disponibilité | Critique | `purefa_info`, Count, 10 dernières minutes                                                      | Aucune donnée pendant toute la fenêtre — le Storage Array Agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, ou la baie ne lui répond plus ; se rétablit quand des données arrivent de nouveau |
-| Critical Array Alert           | Array Health | Critique | `purefa_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes    | > 0 — la baie a une alerte critique ouverte (un composant en panne, une urgence de capacité, un échec de réplication). Un incident par alerte ; se rétablit quand l'alerte se ferme |
-| Warning Array Alert            | Array Health | Avertissement  | `purefa_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes     | > 0 — la baie a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme                              |
+| Critical Array Alert           | Santé de la baie | Critique | `purefa_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes    | > 0 — la baie a une alerte critique ouverte (un composant en panne, une urgence de capacité, un échec de réplication). Un incident par alerte ; se rétablit quand l'alerte se ferme |
+| Warning Array Alert            | Santé de la baie | Avertissement  | `purefa_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes     | > 0 — la baie a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme                              |
 | Capacity Above 80%             | Capacité     | Avertissement  | `purefa_array_space_utilization`, Max, 15 dernières minutes                                     | > 80 — le premier seuil de capacité de Pure lui-même ; se rétablit à ≤ 72                                                                        |
 | Capacity Above 90%             | Capacité     | Critique | `purefa_array_space_utilization`, Max, 5 dernières minutes                                      | > 90 — la baie est sur le point de refuser les écritures ; se rétablit à ≤ 81                                                                    |
 | High Read Latency              | Performances | Avertissement  | `purefa_array_performance_latency_usec` filtrée sur `dimension=usec_per_read_op`, Avg, 10 dernières minutes  | > 5000 µs (5 ms) — les lectures d'un FlashArray se terminent normalement bien en dessous de 1 ms ; se rétablit à ≤ 4500                  |
@@ -135,8 +135,8 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 | Modèle                       | Catégorie    | Gravité  | Surveille                                                                                                      | Déclenche quand                                                                                                     |
 | ---------------------------- | ------------ | -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Array Stopped Reporting      | Disponibilité | Critique | `purefb_info`, Count, 10 dernières minutes                                                                     | Aucune donnée pendant toute la fenêtre — l'agent, son exporteur ou le FlashBlade ne répond plus ; se rétablit quand des données arrivent de nouveau |
-| Critical Array Alert         | Array Health | Critique | `purefb_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes                   | > 0 — le FlashBlade a une alerte critique ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme     |
-| Warning Array Alert          | Array Health | Avertissement  | `purefb_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes                    | > 0 — le FlashBlade a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme |
+| Critical Array Alert         | Santé de la baie | Critique | `purefb_alerts_open` filtrée sur `severity=critical`, Max par `summary`, 5 dernières minutes                   | > 0 — le FlashBlade a une alerte critique ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme     |
+| Warning Array Alert          | Santé de la baie | Avertissement  | `purefb_alerts_open` filtrée sur `severity=warning`, Max par `summary`, 5 dernières minutes                    | > 0 — le FlashBlade a une alerte de niveau warning ouverte. Un incident par alerte ; se rétablit quand l'alerte se ferme |
 | Capacity Above 80%           | Capacité     | Avertissement  | `purefb_array_space_utilization` filtrée sur `type=array`, Max, 15 dernières minutes                           | > 80 ; se rétablit à ≤ 72                                                                                           |
 | Capacity Above 90%           | Capacité     | Critique | `purefb_array_space_utilization` filtrée sur `type=array`, Max, 5 dernières minutes                            | > 90 — les écritures échouent pour chaque client quand il est plein ; se rétablit à ≤ 81                            |
 | Hardware Component Unhealthy | Matériel     | Critique | `purefb_hardware_health`, Min par `name`, 5 dernières minutes                                                  | < 1 — une lame, un module de fabric, une alimentation ou un ventilateur n'est pas en bonne santé (un emplacement inutilisé signale 2). Un incident par composant ; se rétablit à ≥ 1 |
@@ -157,14 +157,14 @@ Il n'y a pas de modèle pour la latence de chaque volume, car le bon seuil dépe
 
 L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le catalogue que propose le formulaire du moniteur. Chaque valeur est une jauge que la baie calcule elle-même - les latences sont en microsecondes par opération et le débit est par seconde -, donc aucun calcul de taux n'est nécessaire. Le **Filtre** est le filtre de label qui donne à la série le sens qu'indique sa ligne ; le formulaire l'applique pour vous.
 
-### Array Health
+### Santé de la baie
 
 | Métrique             | Filtre | Plateforme | Unité   | Description                                                                                                                                                       |
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Une série par alerte ouverte sur la baie (valeur 1), avec les labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` et `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Une série par alerte ouverte sur le FlashBlade (valeur 1), avec les labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` et `kburl` (l'article de la base de connaissances de Pure) |
 
-### Capacity
+### Capacité
 
 | Métrique                                  | Filtre                       | Plateforme | Unité   | Description                                                                                                                           |
 | ----------------------------------------- | ---------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -177,7 +177,7 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Capacité inutilisée du FlashBlade                                                                                                     |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Réduction des données sur tout le FlashBlade                                                                                          |
 
-### Performance
+### Performances
 
 | Métrique                                   | Filtre                                         | Plateforme | Unité     | Description                                                                                                  |
 | ------------------------------------------ | ---------------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------ |
@@ -212,7 +212,7 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Espace physique qu'utilise chaque volume après réduction des données |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Ratio de réduction des données de chaque volume               |
 
-### Hosts
+### Hôtes
 
 | Métrique                                  | Filtre                        | Plateforme | Unité   | Description                                                                                                                                    |
 | ----------------------------------------- | ----------------------------- | ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -222,7 +222,7 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec`     | FlashArray | `ops/s` | Opérations de lecture par seconde de chaque hôte                                                                                               |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec`    | FlashArray | `ops/s` | Opérations d'écriture par seconde de chaque hôte                                                                                               |
 
-### Replication
+### Réplication
 
 | Métrique                                             | Filtre                                 | Plateforme | Unité     | Description                                                                                                                                                  |
 | ---------------------------------------------------- | -------------------------------------- | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -231,7 +231,7 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Trafic de réplication de chaque pod, avec les labels `direction` et `dimension`                                                                              |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Latence moyenne d'écriture en miroir de chaque pod ActiveCluster                                                                                             |
 
-### Hardware
+### Matériel
 
 | Métrique                                      | Filtre                           | Plateforme | Unité      | Description                                                                                                                                                                                                  |
 | --------------------------------------------- | -------------------------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -241,7 +241,7 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Erreurs par seconde sur chaque interface Ethernet et Fibre Channel — des erreurs persistantes signifient généralement un câble, une optique ou un port de switch défectueux                                     |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Santé de chaque composant matériel (lames, modules de fabric, alimentations, ventilateurs, ...) : 1 = en bonne santé, 2 = inutilisé, 0 = défaillant. Prenez le minimum par `name`                            |
 
-### File Systems
+### Systèmes de fichiers
 
 | Métrique                                       | Filtre                        | Plateforme | Unité   | Description                                                                                  |
 | ---------------------------------------------- | ----------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------- |

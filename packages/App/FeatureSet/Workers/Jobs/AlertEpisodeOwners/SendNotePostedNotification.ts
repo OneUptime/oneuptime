@@ -183,7 +183,7 @@ async function readEpisode(episodeId: ObjectID): Promise<AlertEpisode | null> {
 }
 
 // A person told, as the episode's feed names them.
-function feedLine(user: User): string {
+function feedLineMarkdown(user: User): string {
   return OwnerNotificationFeedText.notifiedLineMarkdown(
     OwnerNotificationFeedText.nameAndEmail({
       name: user.name?.toString(),
@@ -256,7 +256,7 @@ async function notifyOwnersOfNote(data: {
 
   // Whom a run that stopped part way told already.
   let moreEpisodeFeedInformationInMarkdown: string = delivery.toldEarlier
-    .map(feedLine)
+    .map(feedLineMarkdown)
     .join("");
 
   for (const user of delivery.owners) {
@@ -330,7 +330,7 @@ async function notifyOwnersOfNote(data: {
     );
 
     if (isTold) {
-      moreEpisodeFeedInformationInMarkdown += feedLine(user);
+      moreEpisodeFeedInformationInMarkdown += feedLineMarkdown(user);
     }
   }
 

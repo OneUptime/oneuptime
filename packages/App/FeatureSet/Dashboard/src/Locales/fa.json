@@ -55689,5 +55689,8 @@
   "Yes / No": "بله / خیر",
   "which led to {{steps}}": "که به {{steps}} رسید",
   "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند.",
-  "Insights (explorer analytics)": "بینش‌ها"
+  "HA": "HA",
+  "Insights (explorer analytics)": "بینش‌ها",
+  "Key Manager": "Key Manager",
+  "PG": "PG"
 }

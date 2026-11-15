@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55628,
-    "untranslated": 8353
+    "keys": 55650,
+    "untranslated": 8274
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -129,6 +129,8 @@
     "Filesystem %",
     "Fingerprint",
     "Flame graph",
+    "FlashArray",
+    "FlashBlade",
     "Flavor",
     "Floating IP",
     "Fluent Bit",
@@ -183,6 +185,7 @@
     "Job",
     "Kelvin",
     "Kernel",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",

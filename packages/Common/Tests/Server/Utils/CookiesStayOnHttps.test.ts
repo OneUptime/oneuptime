@@ -155,6 +155,8 @@ const DASHBOARD_SESSION_COOKIES: Array<string> = [
 const STATUS_PAGE_SESSION_COOKIES: Array<string> = [
   `user-token-${STATUS_PAGE_ID.toString()}`,
   `user-refresh-token-${STATUS_PAGE_ID.toString()}`,
+  // Which session the browser holds on the page, for its sign-out only (issue #8671).
+  `user-sign-out-${STATUS_PAGE_ID.toString()}`,
   `status-page-master-password-${STATUS_PAGE_ID.toString()}`,
 ];
 
@@ -525,6 +527,22 @@ describe("a sign-in over HTTPS leaves nothing a plain-HTTP request would carry",
       }
 
       expectAllSecure(answer.cookies);
+
+      // The page's sign-out cookie: out of a page's reach, Strict, and sent to the page's sign-out alone.
+      const signOut: SetCookie = named(
+        answer.cookies,
+        `user-sign-out-${STATUS_PAGE_ID.toString()}`,
+      );
+
+      expect(signOut.attributes).toHaveProperty("httponly");
+      expect(signOut.attributes["samesite"]).toBe("Strict");
+      expect(signOut.attributes["path"]).toBe(
+        `/status-page-identity-api/logout/${STATUS_PAGE_ID.toString()}`,
+      );
+      expect(signOut.attributes["max-age"]).toBe(
+        named(answer.cookies, `user-refresh-token-${STATUS_PAGE_ID.toString()}`)
+          .attributes["max-age"],
+      );
     }
   });
 

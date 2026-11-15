@@ -341,7 +341,7 @@ describe("Korean says an alert 경고", () => {
   });
 
   // Korean's other 경고 is a warning: a string that names both says which is which.
-  test("no Korean string says 경고 twice in a row", () => {
+  test("no Korean string or docs line says 경고 twice in a row", () => {
     const doubled: Array<string> = [];
 
     for (const app of APPS) {
@@ -350,6 +350,14 @@ describe("Korean says an alert 경고", () => {
           doubled.push(`${app} ${key}`);
         }
       }
+    }
+
+    for (const page of docsPages("ko")) {
+      readDocsLines("ko", page)!.forEach((line: string, index: number) => {
+        if (line.includes(`${ALERT} ${ALERT}`)) {
+          doubled.push(`docs ${page}:${index + 1}`);
+        }
+      });
     }
 
     expect(doubled).toEqual([]);

@@ -45,6 +45,9 @@ export const buildQueryConfigsFromSerializedQueries: BuildQueryConfigsFunction =
               metricQuery.variable || Text.getLetterFromAByNumber(index),
             title: metricQuery.alias?.title || "",
             description: metricQuery.alias?.description || "",
+            ...(metricQuery.alias?.isMetricTypeDescription
+              ? { isMetricTypeDescription: true }
+              : {}),
             legend: metricQuery.alias?.legend || "",
             legendUnit: metricQuery.alias?.legendUnit || "",
           },

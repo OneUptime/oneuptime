@@ -642,8 +642,10 @@ translated the same locale. Take either side, then run
   "ControlPlane" is headed Control Plane and the host's Load is headed Load
   Average), each looked up once by its picker (#8353); the translated
   Kubernetes Monitor pages name the metrics as the picker draws them. The
-  storage array, Proxmox, Ceph and OpenStack pickers still head their groups
-  with the category's English value (#8653). A Database monitor's
+  storage array, Proxmox, Ceph and OpenStack pickers head their groups the
+  same way (#8653), and the translated Storage Array and Proxmox Monitor
+  pages head their metric tables as the picker heads its groups. A Database
+  monitor's
   summary names a collection group it could not collect as the form's
   Metric Groups switch does, says why in the reader's words and keeps the
   database's own error as written (`Common/Utils/Monitor/DatabaseCollectionIssueReading`,

@@ -167,7 +167,8 @@ const EXPECTED_ENTERPRISE_DIALOGS: Array<{ file: string; title: string }> = [
   },
   {
     file: "ee/AdminDashboard/Health/BackgroundQueues.tsx",
-    title: "Failed jobs · … queue",
+    // Its English key: the walk reads a Translator's first argument.
+    title: "Failed jobs · {{queue}} queue",
   },
 ];
 
