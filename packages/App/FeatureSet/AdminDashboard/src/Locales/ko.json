@@ -2690,7 +2690,7 @@
   "Color picker: {{color}}": "Color picker: {{color}}",
   "Copy {{name}}": "{{name}} 복사",
   "+{{count}} more": "+{{count}}개 더",
-  "+{{count}} more_one": "+{{count}} more",
+  "+{{count}} more_one": "+{{count}}개 더",
   "Download {{name}}": "{{name}} 다운로드",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF, Office, OpenDocument 파일, 이미지, 텍스트, CSV, JSON, ZIP 또는 PCAP(최대 {{size}}).",
   "Upload a file": "파일 업로드",
