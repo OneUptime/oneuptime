@@ -45,7 +45,7 @@ U hebt een rol nodig die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder o
 :::steps
 ### SLO's openen
 
-Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Service Level Objective aanmaken**.
+Open **SLOs** via het menu **Producten** in de bovenbalk. Het staat in de eerste groep, naast monitoren en incidenten. Klik op **Serviceniveaudoelstelling aanmaken**.
 
 ### Kiezen wat de SLO meet
 
@@ -61,7 +61,7 @@ Vul een **Naam** in, bijvoorbeeld "API Availability", en een **Doel (%)**: het d
 
 ### De SLO opslaan
 
-Klik op **Service Level Objective aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** van een SLO voor monitorbeschikbaarheid toont **Choose what this SLO measures**, omdat hij nog geen monitoren heeft.
+Klik op **Serviceniveaudoelstelling aanmaken**. OneUptime opent de nieuwe SLO. Het **Overzicht** van een SLO voor monitorbeschikbaarheid toont **Choose what this SLO measures**, omdat hij nog geen monitoren heeft.
 
 ### Monitoren koppelen
 
@@ -201,7 +201,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Wat het meet** | **Wat het meet**, **Services** en **Latentiedrempel (ms)**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
+| **Wat het meet** | **Wat het meet**, **Services**, **Latentiedrempel (ms)** en **Aanvraagfilter**, met **Bewerken wat het meet**. | Een SLO voor aanvragen telt zijn aanvragen na een wijziging opnieuw vanaf het begin. |
 | **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Alleen SLO's voor monitorbeschikbaarheid. Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |

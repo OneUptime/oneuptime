@@ -64,14 +64,14 @@ Tilsidesættelser opbevarer det, du har brug for, længere og resten kortere: fe
 
 ### For hele projektet
 
-Under standarden, sammenklappet under **Yderligere indstillinger**, angiver kortet **Opbevaring efter telemetritype** dage for hver type telemetri. Klik på **Edit Overrides**, udfyld de felter, du har brug for, og lad resten stå tomme:
+Under standarden, sammenklappet under **Yderligere indstillinger**, angiver kortet **Opbevaring efter telemetritype** dage for hver type telemetri. Klik på **Rediger tilsidesættelser**, udfyld de felter, du har brug for, og lad resten stå tomme:
 
 | Type | Felter |
 | --- | --- |
-| Protokoller | **Logs default (days)**, og ét felt for hver logalvorlighed |
-| Spor | **Traces default (days)**, og ét felt for hver span-status: Fejl, Ok og Ikke angivet |
-| Metrikker | **Metrics default (days)** |
-| Profiler | **Profiles default (days)** |
+| Protokoller | **Standard for logs (dage)**, og ét felt for hver logalvorlighed |
+| Spor | **Standard for traces (dage)**, og ét felt for hver span-status: Fejl, Ok og Ikke angivet |
+| Metrikker | **Standard for metrikker (dage)** |
+| Profiler | **Standard for profiler (dage)** |
 
 Et felt, der står tomt, falder tilbage på den næste indstilling i rækkefølgen ovenfor, så en alvorlighed uden egne dage opbevarer sine protokoller efter standarden for protokoller.
 

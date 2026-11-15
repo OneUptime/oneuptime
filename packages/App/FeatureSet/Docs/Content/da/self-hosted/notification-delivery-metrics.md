@@ -193,7 +193,7 @@ Fire mål, som de fleste installationer kan love, hvert bygget af en eller to fo
 
 :::steps
 1. Åbn projektets [Måleudforsker](/docs/telemetry/metrics-explorer), og klik på målets første metrik. Dens forespørgsel er `a`.
-2. Vælg dens aggregering under **Aggregate by**. Åbn derefter **Filters & grouping**, og tilføj hver af dens betingelser under **Filter by attributes**.
+2. Vælg dens aggregering under **Aggreger efter**. Åbn derefter **Filtre og gruppering**, og tilføj hver af dens betingelser under **Filtrer efter attributter**.
 3. For en anden forespørgsel skal du klikke på **Tilføj metrik** og sætte `b` op på samme måde.
 4. For en formel skal du klikke på **Tilføj formel** og skrive den i **Formel**.
 5. For at få besked, når målet ikke nås, skal du klikke på **Handlinger → Opret monitor fra denne visning** og advare, når værdien overskrider målet: se [Metrik-monitor](/docs/monitor/metrics-monitor).

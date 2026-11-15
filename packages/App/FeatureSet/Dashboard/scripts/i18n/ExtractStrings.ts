@@ -136,6 +136,25 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    * comes in as its words are routed through the translator.
    */
   { directory: "ee/Dashboard/AuditLogs", kind: "ui" },
+  /*
+   * Teams > Compliance, the SCIM pages and their logs, the telemetry
+   * retention overrides, and the notice an Enterprise setting's screen
+   * shows when the license lapses: Enterprise screens whose every word goes
+   * through the reader's Translator since #8296 and #8461. Before, none was
+   * read here, so about 116 of their words were in no locale and every
+   * reader got them in English.
+   */
+  { directory: "ee/Dashboard/TeamCompliance", kind: "ui" },
+  { directory: "ee/Dashboard/Identity", kind: "ui" },
+  { directory: "ee/Dashboard/TelemetryRetention", kind: "ui" },
+  { directory: "ee/Dashboard/EnterpriseSettings", kind: "ui" },
+  /*
+   * The team compliance rules' catalog: each rule kind's and channel's
+   * name, what each kind checks, and the sentence a rule reads as on the
+   * Compliance page. Only the words the file marks are read: the server
+   * evaluates rules with the same file and keeps its own English.
+   */
+  { directory: "packages/Common/Types/Team/ComplianceRule.ts", kind: "keys" },
   { directory: "packages/Common/UI", kind: "ui" },
   { directory: "packages/Common/Models/DatabaseModels", kind: "models" },
   { directory: "packages/Common/Models/AnalyticsModels", kind: "models" },
@@ -560,6 +579,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  // What the SLO forms say of a request filter they cannot read (#8444).
+  {
+    directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
     kind: "keys",
   },
   /*

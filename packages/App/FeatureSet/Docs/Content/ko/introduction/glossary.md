@@ -224,7 +224,7 @@ OneUptime이 여러분의 환경에 대해 알고 있는 모든 것을 담은 �
 
 모니터링하는 대상의 안정성 목표로, 예를 들어 "30일 중 99.9%의 시간 동안 가동" 같은 것입니다. OneUptime은 5분마다 모든 SLO를 그 모니터를 기준으로 측정합니다.
 
-다른 이름: **Service Level Objective**. [SLO 개요](/docs/slo/introduction)를 참고하세요.
+다른 이름: **서비스 수준 목표**. [SLO 개요](/docs/slo/introduction)를 참고하세요.
 
 ### 오류 예산
 

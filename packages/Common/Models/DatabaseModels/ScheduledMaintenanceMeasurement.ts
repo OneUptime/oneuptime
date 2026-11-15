@@ -988,7 +988,7 @@ export default class ScheduledMaintenanceMeasurement extends BaseModel {
     type: TableColumnType.ObjectID,
     title: "Backfill Cursor ID",
     description:
-      "The ID of the last scheduled maintenance event the backfill worked out, which orders the events created at the same moment.",
+      "The ID of the last maintenance event the backfill worked out, which orders the events created at the same moment.",
   })
   @Column({
     type: ColumnType.ObjectID,

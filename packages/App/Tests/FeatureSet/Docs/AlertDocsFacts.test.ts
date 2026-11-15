@@ -1611,7 +1611,7 @@ describe("responding to an alert", () => {
       "If true, this alert is only visible to its owners (users in 'owner users' and members of 'owner teams'), Project Admins, and Project Owners.",
     );
     expect(section(page, "## Private alerts")).toContain(
-      "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by your project's admins and owners.",
+      "A private alert is seen only by its owners, the owner users and the members of its owner teams, and by Project Admins and Project Owners.",
     );
   });
 
@@ -1746,7 +1746,7 @@ describe("who hears about an alert", () => {
     }
 
     expect(hears).toContain(
-      "An alert with no owners notifies the project's owners instead.",
+      "An alert with no owners notifies the Project Owners instead.",
     );
   });
 

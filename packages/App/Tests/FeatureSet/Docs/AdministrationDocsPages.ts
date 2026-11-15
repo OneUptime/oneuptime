@@ -85,17 +85,18 @@ export const ADMINISTRATION_PAGES: ReadonlyArray<AdministrationDocsPageEntry> =
 /*
  * Bold words every language writes as the English does, by page: what the
  * product shows in English in every language. The row menu's "⋯", the
- * buttons of the invitation email (emails are written in English), and the
- * Enterprise Edition's audit log settings button, which no Dashboard locale
- * words. AdministrationDocsFacts holds that they are still not keys of the
- * Dashboard's English locale.
+ * buttons of the invitation email (emails are written in English).
+ * AdministrationDocsFacts holds that they are still not keys of the
+ * Dashboard's English locale. The Enterprise Edition's Edit Audit Log
+ * Settings button was one until every Dashboard locale worded it
+ * (1f243552949): the translated pages name it as their Dashboard draws it.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [INVITING_PEOPLE]: ["Create Your Account", "Sign In to OneUptime", "⋯"],
     [PROJECT_SETTINGS]: ["⋯"],
     [BILLING]: ["⋯"],
-    [AUDIT_LOGS]: ["Edit Audit Log Settings"],
+    [AUDIT_LOGS]: [],
     [AUDIT_LOG_EXPORT]: [],
   };
 

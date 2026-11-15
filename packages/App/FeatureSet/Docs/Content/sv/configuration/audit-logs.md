@@ -43,7 +43,7 @@ Gå till **Projektinställningar → Granskningsloggar → Inställningar**. **G
 
 ### Redigera inställningarna
 
-Klicka på **Edit Audit Log Settings**.
+Klicka på **Redigera inställningar för granskningsloggar**.
 
 ### Slå på den
 

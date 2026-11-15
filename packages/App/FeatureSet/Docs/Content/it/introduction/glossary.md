@@ -224,7 +224,7 @@ Vedi [Topologia](/docs/telemetry/topology).
 
 Un obiettivo di affidabilità per ciò che monitori, come essere disponibile il 99,9% del tempo su 30 giorni. OneUptime misura ogni SLO rispetto ai suoi monitor ogni 5 minuti.
 
-Altri nomi: **Service Level Objective**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
+Altri nomi: **Obiettivo del livello di servizio**. Vedi [Panoramica degli SLO](/docs/slo/introduction).
 
 ### Budget di errore
 

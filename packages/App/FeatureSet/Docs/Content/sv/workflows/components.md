@@ -45,7 +45,7 @@ flowchart TB
 ```
 
 - **Inställningar** är det du fyller i. Inställningar märkta **(Valfritt)** kan lämnas tomma. Mindre använda inställningar är hopfällda under **Fler fält**.
-- **Outputs** är punkterna på den nedre kanten. De flesta block har **Framgång** och **Fel**; [Conditions](#conditions) har **Ja** och **Nej**, och [Switch / Case](#switch-case) har en för vart och ett av sina fall, plus **Standard**.
+- **Utdata** är punkterna på den nedre kanten. De flesta block har **Framgång** och **Fel**; [Conditions](#conditions) har **Ja** och **Nej**, och [Switch / Case](#switch-case) har en för vart och ett av sina fall, plus **Standard**.
 - **Returns** är de värden ett block lämnar vidare till senare block, som ett API:s **Svarstext**. Ett senare block läser ett med `{{local.components.<block ID>.returnValues.<value ID>}}`; knappen **{ }** i en inställning infogar det åt dig. Se [Variabler](/docs/workflows/variables#komponentoutput-data-från-tidigare-block).
 
 Ett block som tar **Fel** lämnar felet vidare till blocken som är kopplade till **Fel**, och körningen fortsätter där. Är inget kopplat till **Fel** misslyckas körningen: det den annars höll på med körs vidare, sedan slutar den med statusen **Fel**, och blockets post under körningens **Steg** säger varför. En obligatorisk inställning som lämnats tom, eller en inställning som aldrig kan fungera, stoppar däremot körningen med ett fel.
@@ -463,9 +463,9 @@ För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jo
 | **Create One Monitor**   | Lägger till en post utifrån ett JSON-objekt.                                   |
 | **Create Many Monitors** | Lägger till flera poster utifrån en JSON-array.                                |
 | **Update One Monitor**   | Tillämpar data som ska skrivas på en matchande post.                           |
-| **Update Many Monitors** | Tillämpar data som ska skrivas på matchande poster, upp till **Limit**.        |
+| **Update Many Monitors** | Tillämpar data som ska skrivas på matchande poster, upp till **Gräns**.        |
 | **Delete One Monitor**   | Tar bort en matchande post.                                                    |
-| **Delete Many Monitors** | Tar bort matchande poster, upp till **Limit**.                                 |
+| **Delete Many Monitors** | Tar bort matchande poster, upp till **Gräns**.                                 |
 
 Samma uppsättning ger dig fyra utlösare — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** och **On Delete Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
 
@@ -489,7 +489,7 @@ En post som inte matchar något stoppar inte steget: posten skapas ändå, och k
 
 ### Vem som äger den från början
 
-**Create One Incident** och **Create One Alert** har inställningarna **Ägaranvändare** och **Ägarteam**: de personer och team som äger posten från det att den skapas. Välj dem, eller ta dem från ett tidigare steg: en användares id eller e-postadress, ett teams id, flera åtskilda med kommatecken, eller en lista. Postens ägare får veta att den skapats ungefär en minut efter att den skapats, alla ägare den har då: de som väljs här är alltid bland dem, medan ägare som ett senare steg lägger till missar det när det steget körs mer än en minut senare, och projektets ägare meddelas i deras ställe.
+**Create One Incident** och **Create One Alert** har inställningarna **Ägaranvändare** och **Ägarteam**: de personer och team som äger posten från det att den skapas. Välj dem, eller ta dem från ett tidigare steg: en användares id eller e-postadress, ett teams id, flera åtskilda med kommatecken, eller en lista. Postens ägare får veta att den skapats ungefär en minut efter att den skapats, alla ägare den har då: de som väljs här är alltid bland dem, medan ägare som ett senare steg lägger till missar det när det steget körs mer än en minut senare, och Projektägare meddelas i deras ställe.
 
 Steget frågar, som Projektadministratör för arbetsflödets projekt, om det får lägga till dem innan posten sparas: ägare som det inte får lägga till gör att skapandet avvisas. Den som inte är medlem i projektet, eller ett team som inte är ett av projektets, utelämnas, och körningsloggen säger det: posten skapas ändå. Ägare som läggs till på det här sättet får inte veta att de lagts till: aviseringen om att posten skapats är den de får.
 
@@ -533,7 +533,7 @@ Ett fält som pekar på en annan post, till exempel en incidents allvarlighetsgr
 
 Fält som OneUptime fyller i själv erbjuds inte när du skriver en post: postens `_id`, **Skapad den**, **Uppdaterad den**, **Skapad av användare**, slugs, postnummer och aviseringsstatusar. Vem som skapade, arkiverade eller löste en post, och när, är aldrig något ett arbetsflöde sätter: en post som ett arbetsflöde skapar är skapad av ingen, ett värde som ett arbetsflöde skickar för något av de fälten bredvid andra fält ignoreras, och en Update som inte skickar något annat misslyckas med ett meddelande som nämner dem. En uppdatering erbjuder bara fält som kan ändras efter att en post finns. En fråga erbjuder fortfarande ID:t, tidsstämplarna och **Skapad av användare**, eftersom de är användbara att filtrera på. **Deleted At** erbjuds ingenstans: poster tas bort helt, så det är alltid tomt.
 
-**Hoppa över** och **Limit** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Limit** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Limit** när du vill ändra fler än tio.
+**Hoppa över** och **Gräns** är två talfält på Find Many, Update Many och Delete Many, under **Fler fält** — `Skip: 0` med `Limit: 100` tar de första hundra träffarna. **Gräns** är `10` som standard, och på Update Many och Delete Many begränsar den hur många poster som faktiskt skrivs, inte bara hur många som kommer tillbaka. Så `Items Deleted: 10` betyder att tio poster togs bort, inte att tio matchade. Höj **Gräns** när du vill ändra fler än tio.
 
 Delete One och Delete Many efter fråga tömmer aldrig en historik. För en monitors statushändelser, och för tillståndshistoriken för incidenter, larm, underhållshändelser och episoder, tar de aldrig bort en posts aktuella tillstånd, och de behåller varje statushändelse för en monitor som täcker en del av de senaste 90 dagarna, så att en statussida aldrig visar en monitor grå. Körningens logg säger hur många som behölls. För att ta bort en viss händelse frågar du efter den med dess `_id`.
 

@@ -30,7 +30,7 @@ flowchart TB
 ## 開始之前
 
 - **一個已連線的 AWS 帳戶。** 先在 **雲端 → 連線** 中連線：請參閱[連線雲端帳戶](/docs/telemetry/cloud-accounts)。
-- **專案擁有者或管理員。** 只有他們可以建立串流金鑰並停止串流。
+- **專案擁有者或專案管理員。** 只有他們可以建立串流金鑰並停止串流。
 - **該帳戶中的 AWS CloudShell**，以可以建立 CloudFormation 堆疊和 IAM 角色的使用者身分登入。
 - **自行託管的 OneUptime 需要一個 HTTPS 位址。** Firehose 只會傳送到連接埠 443 上的 `https://` 位址，需要 AWS 信任的憑證，而且該位址必須能從 AWS 存取。
 

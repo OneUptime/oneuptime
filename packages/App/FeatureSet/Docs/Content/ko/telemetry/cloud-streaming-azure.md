@@ -28,7 +28,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **연결된 Azure 구독.** 먼저 **클라우드 → 연결**에서 연결하세요. [클라우드 계정 연결](/docs/telemetry/cloud-accounts)을 참고하세요.
-- **프로젝트 소유자 또는 관리자.** 이들만 읽기를 켜고 스트리밍을 중지할 수 있습니다.
+- **프로젝트 소유자 또는 프로젝트 관리자.** 이들만 읽기를 켜고 스트리밍을 중지할 수 있습니다.
 - **Azure Cloud Shell**. 구독의 **Owner**이거나 **User Access Administrator**이기도 한 **Contributor**로 로그인하세요. 명령은 리소스 그룹과 역할 할당을 만들고 진단 설정을 변경합니다.
 - **자체 호스팅 OneUptime이라면 Azure로 나가는 경로.** OneUptime은 각 네임스페이스를 `<namespace>.servicebus.windows.net`의 9093 포트로 읽으며, 네임스페이스는 인터넷에서 오는 연결을 받습니다.
 

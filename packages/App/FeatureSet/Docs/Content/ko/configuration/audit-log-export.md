@@ -1,6 +1,6 @@
 # 감사 로그 내보내기
 
-감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 대상은 Amazon S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅, syslog입니다. 규정 준수 검토에 필요한 만큼 항목을 그곳에 보관하고 SIEM에서 검색하세요. 프로젝트의 소유자와 관리자는 프로젝트 설정에서 그 프로젝트의 감사 로그를 내보내고, 마스터 관리자는 Admin Dashboard에서 모든 프로젝트의 감사 로그를 내보냅니다. OneUptime Cloud에서는 Enterprise 요금제에, 자체 호스팅에서는 Enterprise Edition에 포함됩니다.
+감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 대상은 Amazon S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅, syslog입니다. 규정 준수 검토에 필요한 만큼 항목을 그곳에 보관하고 SIEM에서 검색하세요. 프로젝트 소유자와 프로젝트 관리자는 프로젝트 설정에서 그 프로젝트의 감사 로그를 내보내고, 마스터 관리자는 Admin Dashboard에서 모든 프로젝트의 감사 로그를 내보냅니다. OneUptime Cloud에서는 Enterprise 요금제에, 자체 호스팅에서는 Enterprise Edition에 포함됩니다.
 
 :::cards
 - [내보내기 설정](#내보내기-설정): 대상을 고르고, 테스트하고, 저장합니다.

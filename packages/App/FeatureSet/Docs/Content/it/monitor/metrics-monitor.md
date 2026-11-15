@@ -41,7 +41,7 @@ In **Tipo di monitor**, fate clic su **Altri tipi di monitor** e scegliete **Met
 
 ### Aggiungere le query delle metriche
 
-In **Metrica da osservare**, scegliete una **Metrica** e come aggregarla con **Aggregate by**. Aprite **Filters & grouping** per filtrare per attributi o per raggruppare con **Raggruppa per**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra le ultime ore, con il valore della regola come linea rossa, così vedete i valori che la regola controllerà.
+In **Metrica da osservare**, scegliete una **Metrica** e come aggregarla con **Aggrega per**. Aprite **Filtri e raggruppamento** per filtrare per attributi o per raggruppare con **Raggruppa per**. Fate clic su **Aggiungi metrica** per un'altra query, o su **Aggiungi formula** per combinarle. Il grafico sotto le query mostra le ultime ore, con il valore della regola come linea rossa, così vedete i valori che la regola controllerà.
 
 ### Dire quando avvisare
 
@@ -63,9 +63,9 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | Campo | Cosa fa | Predefinito |
 | --- | --- | --- |
 | **Metrica** | La metrica da interrogare. | Obbligatorio |
-| **Aggregate by** | Come i valori di ogni intervallo di tempo vengono combinati in un punto dati: Media, Somma, Min, Max, Conteggio, oppure un percentile (P50, P75, P90, P95 o P99). | Media |
-| **Filter by attributes** (in **Filters & grouping**) | Solo le serie i cui attributi soddisfano queste condizioni. | Nessun filtro |
-| **Raggruppa per** (in **Filters & grouping**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
+| **Aggrega per** | Come i valori di ogni intervallo di tempo vengono combinati in un punto dati: Media, Somma, Min, Max, Conteggio, oppure un percentile (P50, P75, P90, P95 o P99). | Media |
+| **Filtra per attributi** (in **Filtri e raggruppamento**) | Solo le serie i cui attributi soddisfano queste condizioni. | Nessun filtro |
+| **Raggruppa per** (in **Filtri e raggruppamento**) | Una serie per ogni valore unico di questi attributi (vedete [Avvisi per serie](#avvisi-per-serie-group-by)). | Una sola serie |
 
 Ogni query e ogni formula riceve una variabile (`a`, `b`, `c` e così via) nell'ordine in cui le aggiungete.
 
@@ -97,7 +97,7 @@ Più lunga è la finestra, più largo è ogni intervallo di raggruppamento, quin
 ## Come viene valutato
 
 - **Ogni minuto.** Un monitor metriche non viene controllato da sonde, quindi non ha un intervallo da impostare né una pagina **Sonde e intervallo**.
-- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggregate by**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query.
+- **Prima le query, poi le formule.** Ogni query restituisce un punto dati per intervallo di raggruppamento dell'intervallo di tempo, secondo il suo **Aggrega per**. Le formule vengono calcolate per ogni intervallo a partire dai punti dati delle query.
 - **Poi la misura della regola.** La regola riduce i punti dati della sua metrica a ciò che confronta con il suo valore, come dice **Misurato come**:
 
 | Misurato come | Nei criteri personalizzati | La condizione viene verificata su… |
@@ -160,7 +160,7 @@ Un nuovo monitor metriche creato tramite l'API o Terraform senza criteri parte c
 
 ## Esempio pratico: una coda che cresce
 
-Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggregate by** Max, e la **Finestra temporale** è **Ultimi 5 minuti**. Una valutazione vede questi cinque punti dati di un minuto:
+Volete un incidente quando la coda di checkout resta profonda. La query `a` è il gauge `checkout.queue.depth`, con **Aggrega per** Max, e la **Finestra temporale** è **Ultimi 5 minuti**. Una valutazione vede questi cinque punti dati di un minuto:
 
 | Minuto | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

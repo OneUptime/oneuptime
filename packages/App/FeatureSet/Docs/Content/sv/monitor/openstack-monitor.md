@@ -80,7 +80,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **OpenStack-mätvärde** | Eget mätvärde | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Eget mätvärde | Hur värden kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det rullande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Senaste 15 minuterna**; mallar anger sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Ett filter avgränsar bara en serie som har dess etikett: `openstack_nova_up` har inget projekt, så ett projektfilter låter den vara som den är.
 

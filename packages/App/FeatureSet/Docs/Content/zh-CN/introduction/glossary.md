@@ -224,7 +224,7 @@ OneUptime 在项目中可以联系到你的地址：邮箱地址、用于短信�
 
 为你所监控的对象设定的可靠性目标，例如在 30 天内 99.9% 的时间可用。OneUptime 每 5 分钟根据其监视器测量一次每个 SLO。
 
-也称为：**Service Level Objective**。参见 [SLO 概览](/docs/slo/introduction)。
+也称为：**服务级别目标**。参见 [SLO 概览](/docs/slo/introduction)。
 
 ### 错误预算
 

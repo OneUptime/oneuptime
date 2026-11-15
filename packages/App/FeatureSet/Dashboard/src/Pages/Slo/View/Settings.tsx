@@ -86,6 +86,8 @@ const SLO_MEASURES_COLUMNS: Array<string> = [
   "sliType",
   "services",
   "latencyThresholdInMilliseconds",
+  // Which of the services' requests count (#8444).
+  "requestFilter",
 ];
 
 /*
@@ -374,6 +376,46 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   translator.translateTemplate(
                     "A request served within this counts as fast enough.",
                   ),
+                );
+              },
+            },
+            /*
+             * Which of the services' requests count (#8444): the traces
+             * search, as written, or every request when there is none.
+             */
+            {
+              field: {
+                requestFilter: true,
+              },
+              title: "Request Filter",
+              fieldType: FieldType.Element,
+              showIf: (item: ServiceLevelObjective): boolean => {
+                return isRequestSliType(item.sliType);
+              },
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                const filter: string = (item.requestFilter || "").trim();
+
+                if (!filter) {
+                  return getValueElement(
+                    translator.translateText("Every request of its services") ||
+                      "Every request of its services",
+                  );
+                }
+
+                return (
+                  <div>
+                    <code
+                      className="break-all rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm text-gray-900"
+                      data-testid="slo-settings-request-filter"
+                    >
+                      {filter}
+                    </code>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {translator.translateTemplate(
+                        "Only the requests that match this traces search count.",
+                      )}
+                    </p>
+                  </div>
                 );
               },
             },

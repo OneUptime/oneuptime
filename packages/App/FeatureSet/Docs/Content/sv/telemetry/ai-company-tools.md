@@ -139,7 +139,7 @@ För Copilot ger du administratörsmedgivande för appens Graph-behörigheter, o
 :::
 
 :::details Någon kan inte se konversationerna
-**Vem som kan läsa konversationer** är satt till **Projektägare och Projektadministratörer**. En ägare eller administratör kan ändra det med **Redigera** på anslutningens rad.
+**Vem som kan läsa konversationer** är satt till **Projektägare och Projektadministratörer**. En Projektägare eller Projektadministratör kan ändra det med **Redigera** på anslutningens rad.
 :::
 
 :::details Konversationerna visar vem som frågade, men inga ord

@@ -85,7 +85,7 @@ GRANT pg_monitor TO oneuptime_health;
 `pg_monitor` est un rôle intégré (PostgreSQL 10 et versions ultérieures) qui donne accès en lecture aux vues de statistiques et de surveillance. Il ne donne aucun accès à vos tables.
 
 > [!IMPORTANT]
-> **Pourquoi `pg_monitor` n'est pas facultatif sur PostgreSQL.** Sans ce rôle, `pg_stat_activity` n'échoue pas — la requête réussit et ne renvoie que la ligne de la session de surveillance elle-même. Le nombre de connexions afficherait `1`, les sessions bloquées `0` et le retard de réplication `0`, pour toujours, sur un serveur en réalité en feu. La sonde vérifie donc, **avant** d'exécuter ces requêtes, que la connexion est membre de `pg_monitor` (ou de `pg_read_all_stats`), ou superutilisateur. Si ce n'est pas le cas, la sonde signale les groupes Connections, Activity et Locks comme indisponibles, avec le `GRANT` dont vous avez besoin. Ne rien remonter est la réponse honnête ; remonter `1` ne l'est pas.
+> **Pourquoi `pg_monitor` n'est pas facultatif sur PostgreSQL.** Sans ce rôle, `pg_stat_activity` n'échoue pas — la requête réussit et ne renvoie que la ligne de la session de surveillance elle-même. Le nombre de connexions afficherait `1`, les sessions bloquées `0` et le retard de réplication `0`, pour toujours, sur un serveur en réalité en feu. La sonde vérifie donc, **avant** d'exécuter ces requêtes, que la connexion est membre de `pg_monitor` (ou de `pg_read_all_stats`), ou superutilisateur. Si ce n'est pas le cas, la sonde signale les groupes **Connexions**, **Activité** et **Verrous et blocages** comme indisponibles, avec le `GRANT` dont vous avez besoin. Ne rien remonter est la réponse honnête ; remonter `1` ne l'est pas.
 
 Sur un service managé où `pg_monitor` n'est pas disponible, `pg_read_all_stats` couvre les mêmes vues. Sur Amazon RDS, `GRANT rds_superuser` n'est pas nécessaire — `GRANT pg_monitor TO oneuptime_health;` fonctionne en tant que membre de `rds_superuser`.
 
@@ -102,7 +102,7 @@ GRANT SELECT ON mydb.* TO 'oneuptime_health'@'%';
 FLUSH PRIVILEGES;
 ```
 
-Le `performance_schema` de MySQL doit être activé (`performance_schema = ON`, la valeur par défaut depuis la 5.6). S'il est désactivé, les groupes Connections, Throughput et Locks sont signalés comme indisponibles, et la solution est un redémarrage du serveur, pas un droit.
+Le `performance_schema` de MySQL doit être activé (`performance_schema = ON`, la valeur par défaut depuis la 5.6). S'il est désactivé, les groupes **Connexions**, **Débit** et **Verrous et blocages** sont signalés comme indisponibles, et la solution est un redémarrage du serveur, pas un droit.
 
 ### Microsoft SQL Server et Azure SQL Managed Instance
 
@@ -121,7 +121,7 @@ CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 Exécuté depuis toute autre base, `GRANT VIEW SERVER STATE` échoue avec Msg 4621, « Permissions at the server scope can only be granted when the current database is master ».
 
 > [!WARNING]
-> **L'accès en lecture à vos tables ne suffit pas.** Une connexion qui ne peut que lire des données — `db_datareader` ou tout autre rôle « d'accès en lecture » — peut se connecter et obtient la taille de la base, rien d'autre. SQL Server refuse les vues que lit le moniteur avec `The user does not have permission to perform this action.` (Msg 297). Le message qui le précède nomme ce qui a été refusé : Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` sur 2022) pour les vues serveur, y compris l'espace du journal des transactions et l'espace libre de tempdb, ou Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` sur 2022) pour la vue de réplication. Le moniteur reste en ligne, signale qu'il manque un droit aux groupes Connections, Activity, Throughput, Locks, Storage et Replication, et affiche à côté le `GRANT` ci-dessus. `VIEW SERVER STATE` les couvre tous.
+> **L'accès en lecture à vos tables ne suffit pas.** Une connexion qui ne peut que lire des données — `db_datareader` ou tout autre rôle « d'accès en lecture » — peut se connecter et obtient la taille de la base, rien d'autre. SQL Server refuse les vues que lit le moniteur avec `The user does not have permission to perform this action.` (Msg 297). Le message qui le précède nomme ce qui a été refusé : Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` sur 2022) pour les vues serveur, y compris l'espace du journal des transactions et l'espace libre de tempdb, ou Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` sur 2022) pour la vue de réplication. Le moniteur reste en ligne, signale qu'il manque un droit aux groupes **Connexions**, **Activité**, **Débit**, **Verrous et blocages**, **Stockage** et **Réplication**, et affiche à côté le `GRANT` ci-dessus. `VIEW SERVER STATE` les couvre tous.
 >
 > Deux vues ne refusent pas : sans le droit, `sys.dm_exec_sessions` et `sys.dm_exec_requests` ne montrent silencieusement que la session du moniteur. Le moniteur ne les lit jamais seules — toujours avec une vue qui, elle, refuse —, si bien qu'un droit manquant ne peut jamais être enregistré comme « 1 connexion ».
 
@@ -151,7 +151,7 @@ Un utilisateur de base de données autonome (`CREATE USER oneuptime_health WITH 
 
 La sonde reconnaît Azure SQL Database à `SERVERPROPERTY('EngineEdition')` plutôt qu'à sa version — Azure SQL Database renvoie `12.0.2000.8` quelle que soit la version réelle, ce qui se lit comme SQL Server 2014. Le **Moteur** du moniteur indique donc `Azure SQL Database 12.0.2000.8`, et un droit manquant est affiché sous la forme de l'instruction Azure ci-dessus, jamais sous la forme `VIEW SERVER STATE`.
 
-- **La réplication n'est pas collectée sur Azure SQL Database.** Azure SQL Database n'a pas de `sys.dm_hadr_database_replica_states` ; le groupe Replication y est donc ignoré au lieu d'être signalé en échec à chaque vérification. Les vues de réplica propres à Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) ne sont pas encore lues.
+- **La réplication n'est pas collectée sur Azure SQL Database.** Azure SQL Database n'a pas de `sys.dm_hadr_database_replica_states` ; le groupe **Réplication** y est donc ignoré au lieu d'être signalé en échec à chaque vérification. Les vues de réplica propres à Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) ne sont pas encore lues.
 - **Les connexions sont comptées par base.** Avec `VIEW DATABASE STATE`, Azure SQL Database ne montre que les sessions de la base surveillée ; **Connexions** compte donc cette base plutôt que le serveur logique. Surveillez chaque base qui vous importe.
 - **Dans un pool élastique, « Espace libre de TempDB » est celui du pool.** Les bases d'un pool partagent une même tempdb.
 
@@ -221,16 +221,16 @@ Le secret est résolu côté serveur avant que la configuration soit transmise �
 
 ## Groupes de métriques
 
-Un groupe est une unité que vous activez ou désactivez, et l'unité pour laquelle un droit manquant est signalé. Les groupes existent pour qu'un droit manquant vous coûte un groupe plutôt que tout le moniteur. Les instructions d'un groupe s'exécutent une à la fois, donc un groupe peut être collecté en partie : il apparaît alors à la fois dans `collectedGroups` et dans `unavailableGroups`. Le cas courant est le groupe Storage de SQL Server pour une connexion sans `VIEW SERVER STATE` — la taille de la base est collectée, l'espace du journal et l'espace libre de tempdb ne le sont pas.
+Un groupe est une unité que vous activez ou désactivez, et l'unité pour laquelle un droit manquant est signalé. Les groupes existent pour qu'un droit manquant vous coûte un groupe plutôt que tout le moniteur. Les instructions d'un groupe s'exécutent une à la fois, donc un groupe peut être collecté en partie : il apparaît alors à la fois dans `collectedGroups` et dans `unavailableGroups`. Le cas courant est le groupe **Stockage** de SQL Server pour une connexion sans `VIEW SERVER STATE` — la taille de la base est collectée, l'espace du journal et l'espace libre de tempdb ne le sont pas.
 
 | Groupe | Ce qu'il collecte | Nécessite |
 |---|---|---|
-| Connections | Nombre de connexions, plafond configuré, connexions avortées, temps de fonctionnement du serveur | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
-| Activity | Requête la plus longue en cours, transaction ouverte la plus longue, transactions ouvertes | PostgreSQL : `pg_monitor`. MySQL : `PROCESS`. SQL Server : `VIEW SERVER STATE` |
+| Connexions | Nombre de connexions, plafond configuré, connexions avortées, temps de fonctionnement du serveur | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
+| Activité | Requête la plus longue en cours, transaction ouverte la plus longue, transactions ouvertes | PostgreSQL : `pg_monitor`. MySQL : `PROCESS`. SQL Server : `VIEW SERVER STATE` |
 | Débit | Transactions, requêtes, taux de succès du cache, lectures et écritures disque, temps d'E/S | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
-| Locks | Sessions bloquées, attentes de verrou, interblocages, attentes de verrou de table | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
-| Storage | Taille de la base, débordement temporaire, espace du journal, espace libre de tempdb | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `SELECT` sur la base. SQL Server : rien pour la taille de la base ; `VIEW SERVER STATE` pour l'espace du journal et l'espace libre de tempdb |
-| Replication | Réplicas connectés, retard de réplication en secondes et en octets, slots inactifs, état de récupération | PostgreSQL : `pg_monitor`. MySQL : `REPLICATION CLIENT`. SQL Server : `VIEW SERVER STATE` ; non collecté sur Azure SQL Database |
+| Verrous et blocages | Sessions bloquées, attentes de verrou, interblocages, attentes de verrou de table | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
+| Stockage | Taille de la base, débordement temporaire, espace du journal, espace libre de tempdb | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `SELECT` sur la base. SQL Server : rien pour la taille de la base ; `VIEW SERVER STATE` pour l'espace du journal et l'espace libre de tempdb |
+| Réplication | Réplicas connectés, retard de réplication en secondes et en octets, slots inactifs, état de récupération | PostgreSQL : `pg_monitor`. MySQL : `REPLICATION CLIENT`. SQL Server : `VIEW SERVER STATE` ; non collecté sur Azure SQL Database |
 | Maintenance | Marge avant le rebouclage des identifiants de transaction, tuples morts, tables jamais traitées par l'autovacuum, checkpoints | PostgreSQL : `pg_monitor` |
 
 Sur Azure SQL Database, lisez `VIEW DATABASE STATE` partout où ce tableau indique `VIEW SERVER STATE` — ou `##MS_ServerStateReader##` en Basic, S0, S1 et dans les pools élastiques. Voir [Azure SQL Database](#azure-sql-database).
@@ -264,7 +264,7 @@ C'est le message de SQL Server (Msg 297) pour une connexion qui peut se connecte
 - **SQL Server ou Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, exécuté dans `master` (le moniteur l'affiche sous la forme `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
 - **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, exécuté dans la base surveillée ; en Basic, S0, S1 et dans les pools élastiques, l'appartenance à `##MS_ServerStateReader##` à la place. Voir [Azure SQL Database](#azure-sql-database).
 
-La taille de la base continue d'être collectée pendant ce temps, car c'est la seule métrique du groupe Storage que n'importe quelle connexion peut lire.
+La taille de la base continue d'être collectée pendant ce temps, car c'est la seule métrique du groupe **Stockage** que n'importe quelle connexion peut lire.
 
 ## Métriques collectées
 
@@ -274,19 +274,19 @@ Quarante et une séries réparties en huit catégories. Engines liste les moteur
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Temps de fonctionnement** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Groupes de métriques en échec** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Temps de fonctionnement** (s) | `oneuptime.monitor.database.uptime.seconds` | Connexions | PostgreSQL, MySQL, SQL Server |
+| **Groupes de métriques en échec** | `oneuptime.monitor.database.metric.groups.failed` | Connexions | PostgreSQL, MySQL, SQL Server |
 
 ### Connexions
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Connexions** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Connexions actives** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Connexions maximales** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connexions utilisées** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Inactives en transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Connexions abandonnées** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connexions** | `oneuptime.monitor.database.connections.total` | Connexions | PostgreSQL, MySQL, SQL Server |
+| **Connexions actives** | `oneuptime.monitor.database.connections.active` | Connexions | PostgreSQL, MySQL, SQL Server |
+| **Connexions maximales** | `oneuptime.monitor.database.connections.max` | Connexions | PostgreSQL, MySQL |
+| **Connexions utilisées** (%) | `oneuptime.monitor.database.connections.used.percent` | Connexions | PostgreSQL, MySQL |
+| **Inactives en transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connexions | PostgreSQL |
+| **Connexions abandonnées** | `oneuptime.monitor.database.connections.aborted.total` | Connexions | MySQL |
 
 ### Débit
 
@@ -296,18 +296,18 @@ Quarante et une séries réparties en huit catégories. Engines liste les moteur
 | **Requêtes** | `oneuptime.monitor.database.queries.total` | Débit | MySQL, SQL Server |
 | **Requêtes lentes** | `oneuptime.monitor.database.queries.slow.total` | Débit | MySQL |
 | **Taux d'annulation** (%) | `oneuptime.monitor.database.rollback.percent` | Débit | PostgreSQL |
-| **Requête la plus longue en cours** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Transaction ouverte la plus longue** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Transactions ouvertes** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Requête la plus longue en cours** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activité | PostgreSQL, MySQL, SQL Server |
+| **Transaction ouverte la plus longue** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activité | PostgreSQL, MySQL, SQL Server |
+| **Transactions ouvertes** | `oneuptime.monitor.database.transaction.open.count` | Activité | MySQL |
 
 ### Verrous et blocages
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Sessions bloquées** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Attentes de verrou** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Interblocages** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Attentes de verrou de table** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Sessions bloquées** | `oneuptime.monitor.database.sessions.blocked` | Verrous et blocages | PostgreSQL, MySQL, SQL Server |
+| **Attentes de verrou** | `oneuptime.monitor.database.locks.waiting` | Verrous et blocages | PostgreSQL, MySQL, SQL Server |
+| **Interblocages** | `oneuptime.monitor.database.deadlocks.total` | Verrous et blocages | PostgreSQL, SQL Server |
+| **Attentes de verrou de table** | `oneuptime.monitor.database.table.locks.waited.total` | Verrous et blocages | MySQL |
 
 MySQL standard n'expose aucun compteur d'interblocages, c'est pourquoi **Interblocages** n'existe que sur PostgreSQL et SQL Server.
 
@@ -329,21 +329,21 @@ PostgreSQL ne mesure les temps de lecture et d'écriture d'E/S que lorsque `trac
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Taille de la base de données** (octets) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Octets temporaires écrits** (octets) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Tables temporaires sur disque** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Espace de journal utilisé** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **Espace libre de TempDB** (octets) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Taille de la base de données** (octets) | `oneuptime.monitor.database.size.bytes` | Stockage | PostgreSQL, MySQL, SQL Server |
+| **Octets temporaires écrits** (octets) | `oneuptime.monitor.database.temp.bytes.total` | Stockage | PostgreSQL |
+| **Tables temporaires sur disque** | `oneuptime.monitor.database.temp.disk.tables.total` | Stockage | MySQL |
+| **Espace de journal utilisé** (%) | `oneuptime.monitor.database.log.space.used.percent` | Stockage | SQL Server |
+| **Espace libre de TempDB** (octets) | `oneuptime.monitor.database.tempdb.free.bytes` | Stockage | SQL Server |
 
 ### Réplication
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Réplicas connectés** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Retard de réplication** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Retard de réplication (octets)** (octets) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **En récupération** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Slots de réplication inactifs** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Réplicas connectés** | `oneuptime.monitor.database.replica.count` | Réplication | PostgreSQL, SQL Server |
+| **Retard de réplication** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Réplication | PostgreSQL, MySQL |
+| **Retard de réplication (octets)** (octets) | `oneuptime.monitor.database.replication.lag.bytes` | Réplication | PostgreSQL, SQL Server |
+| **En récupération** | `oneuptime.monitor.database.is.in.recovery` | Réplication | PostgreSQL |
+| **Slots de réplication inactifs** | `oneuptime.monitor.database.replication.slots.inactive` | Réplication | PostgreSQL |
 
 Les métriques de réplication sont remontées depuis le côté du lien auquel le moniteur est connecté. Dirigez un moniteur vers le primaire pour voir les réplicas connectés et la file d'envoi ; dirigez-en un vers chaque standby pour voir le retard réel de ce standby.
 
@@ -371,7 +371,7 @@ Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du
 | Type de filtre | Ce qu'il vérifie |
 |---|---|
 | **Base de données en ligne** | Si la base était joignable et si la requête de test a réussi. C'est le critère hors ligne avec lequel le moniteur est créé, et la seule vérification qui reflète la joignabilité. |
-| **Métrique de base de données** | Choisissez une métrique, puis comparez-la : Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Égal à ou Différent de. Le sélecteur de métriques ne propose que les métriques que votre moteur peut produire, vous ne pouvez donc pas construire un critère qui resterait insatisfait en permanence (une exception : les métriques Replication proposées pour Microsoft SQL Server ne sont jamais collectées sur Azure SQL Database). Si la métrique n'a pas été collectée lors d'une vérification — le groupe a échoué, ou le moteur ne la remonte pas —, le filtre ne correspond pas, et ne correspond pas non plus comme « false » : il est ignoré. Un problème de droits ne peut appeler personne. |
+| **Métrique de base de données** | Choisissez une métrique, puis comparez-la : Supérieur à, Inférieur à, Supérieur ou égal à, Inférieur ou égal à, Égal à ou Différent de. Le sélecteur de métriques ne propose que les métriques que votre moteur peut produire, vous ne pouvez donc pas construire un critère qui resterait insatisfait en permanence (une exception : les métriques **Réplication** proposées pour Microsoft SQL Server ne sont jamais collectées sur Azure SQL Database). Si la métrique n'a pas été collectée lors d'une vérification — le groupe a échoué, ou le moteur ne la remonte pas —, le filtre ne correspond pas, et ne correspond pas non plus comme « false » : il est ignoré. Un problème de droits ne peut appeler personne. |
 | **Erreur de collecte de base de données** | Le résumé des problèmes de collecte de la vérification, un « groupe : message » par groupe indisponible. Alertez quand il n'est pas vide pour détecter une perte de visibilité, ou utilisez Contient pour surveiller un groupe précis. |
 | **Expression JavaScript** | Contrôle total. Voir [Expressions JavaScript](/docs/monitor/javascript-expression). |
 
@@ -433,11 +433,11 @@ Rattachez une politique d'astreinte au critère hors ligne, et laissez tout ce q
 Hors ligne signifie que la sonde n'a pas pu se connecter ou que la requête de test a échoué : l'hôte ou le port n'est pas joignable depuis la sonde, la connexion a été refusée, TLS a échoué, ou la connexion a dépassé son délai. Le résumé du moniteur affiche l'erreur. Vérifiez que la sonde peut joindre la base (une sonde hébergée par OneUptime a besoin d'une adresse publique ; sinon, utilisez une [sonde personnalisée](/docs/probe/custom-probe)), vérifiez le nom d'utilisateur et le mot de passe ou son secret de moniteur, et désactivez **Verify server certificate** pour un certificat auto-signé. Cliquez ensuite sur **Tester le moniteur** pour vérifier à nouveau.
 :::
 
-:::details Connections, Activity et Locks manquent sur PostgreSQL
+:::details **Connexions**, **Activité** et **Verrous et blocages** manquent sur PostgreSQL
 La connexion n'est membre ni de `pg_monitor` ni de `pg_read_all_stats` et n'est pas superutilisateur ; la sonde ignore donc ces groupes au lieu d'enregistrer des nombres faux. Exécutez `GRANT pg_monitor TO oneuptime_health;` comme décrit dans [PostgreSQL](#postgresql).
 :::
 
-:::details Connections, Throughput et Locks manquent sur MySQL
+:::details **Connexions**, **Débit** et **Verrous et blocages** manquent sur MySQL
 Soit la connexion n'a pas `SELECT` sur `performance_schema`, soit `performance_schema` est désactivé sur le serveur ; le résumé du moniteur affiche le message de MySQL. Pour un droit manquant, exécutez les instructions de [MySQL](#mysql). Un `performance_schema` désactivé nécessite `performance_schema = ON` dans la configuration du serveur et un redémarrage.
 :::
 

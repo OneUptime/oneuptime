@@ -155,7 +155,7 @@ const OpenStackCloudSnapshots: FunctionComponent<
               ? translator.formatNumber(snapshotTotal)
               : listed.data
                 ? translator.formatNumber(listed.data.snapshots)
-                : "—"
+                : undefined
           }
           sublabel={
             snapshotTotal !== null
@@ -173,7 +173,7 @@ const OpenStackCloudSnapshots: FunctionComponent<
           value={
             listed.data && listed.data.backups > 0
               ? translator.formatNumber(listed.data.backups)
-              : "—"
+              : undefined
           }
           sublabel={
             backupBytes !== null

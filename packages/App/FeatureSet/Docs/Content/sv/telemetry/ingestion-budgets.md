@@ -33,7 +33,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **För instansens och ett projekts budgetar, Admin Dashboard.** På en installation i egen drift är det bara instansadministratören som anger dem. Ett projekts ägare och administratörer ser dess budgetar, men kan inte ändra dem.
+- **För instansens och ett projekts budgetar, Admin Dashboard.** På en installation i egen drift är det bara instansadministratören som anger dem. Projektägare och Projektadministratörer ser ett projekts budgetar, men kan inte ändra dem.
 - **För en nyckels egen budget, en roll som redigerar intagningsnycklar.** Projektägare eller Projektadministratör, eller en anpassad roll med behörigheten Edit Ingestion Key.
 - **För att se budgetarna, en roll som ser projektets användning.** De roller som ser sidan [Telemetrianvändning](/docs/telemetry/usage) ser projektets budgetar på den.
 
@@ -113,7 +113,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## Varningen och återställningen
 
-- **Varningen.** När en daglig budget passerar varningströskeln, 80 % om inte instansadministratören ändrar den, får projektets ägare ett e-postmeddelande, och utforskarna visar en banner ovanför den signalens data. De får ytterligare ett e-postmeddelande när budgeten är förbrukad. Varje budget skickar varje e-postmeddelande högst en gång om dagen.
+- **Varningen.** När en daglig budget passerar varningströskeln, 80 % om inte instansadministratören ändrar den, får Projektägare ett e-postmeddelande, och utforskarna visar en banner ovanför den signalens data. De får ytterligare ett e-postmeddelande när budgeten är förbrukad. Varje budget skickar varje e-postmeddelande högst en gång om dagen.
 - **Återställningen.** Varje budgetdag börjar om kl. 00:00 UTC om inte instansadministratören ändrar det. Kortet **Varning och återställning** anger **Varningströskel (%)**, från 1 till 99, **Återställningstid**, som HH:MM, och **Tidszon för återställning**: klicka på **Redigera varning och återställning**.
 - **Sommartid.** Återställningen följer tidszonens klocka, så budgetdagen då klockan ställs om är en timme kortare eller längre. En återställningstid som klockan hoppar över inträffar lika lång tid efter hoppet.
 - **En ändrad återställning startar en ny dag.** Att ändra återställningstiden eller tidszonen startar genast en ny budgetdag, där ingenting har räknats ännu.

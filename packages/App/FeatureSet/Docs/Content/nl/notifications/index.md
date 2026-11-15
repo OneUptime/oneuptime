@@ -95,7 +95,7 @@ Een oproep kan je bereiken voor een soort en een ernst waarvoor je geen regel he
 2. Heb je die niet, dan één betaalde methode, in deze volgorde: sms, een telefoongesprek, WhatsApp, Telegram. Het is de eerste die je hebt geverifieerd, op een kanaal dat het project heeft aangezet.
 3. Heb je die ook niet, dan een webhook.
 
-Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of die van het project als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
+Je krijgt daarover een e-mail, en de eigenaren van het bereikbaarheidsbeleid ook, of de Projecteigenaren als het beleid er geen heeft. Is er helemaal niets geverifieerd, dan kan de oproep niet worden afgeleverd, en zegt de e-mail dat. Deze e-mails worden tegengehouden zolang er oproepen blijven komen, zodat een storm van oproepen geen storm van e-mails wordt. Hoe je de ontbrekende regel toevoegt, staat bij [Hoe ik bereikbaar ben](/docs/notifications/on-call-rules#als-een-ernst-geen-regel-heeft).
 
 ## De taal van je oproepen
 

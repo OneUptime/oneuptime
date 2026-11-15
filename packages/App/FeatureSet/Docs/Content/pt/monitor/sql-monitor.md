@@ -151,7 +151,7 @@ Selecione as **Sondas** que alcançam o banco de dados e um **Intervalo de monit
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Quanto tempo esperar para estabelecer uma conexão. |
 | **Statement Timeout (ms)** | `15000` | `60000` | O limite rígido de duração da consulta. |
-| **Max Rows** | `100` | `1000` | O teto de linhas lidas de volta do banco de dados. |
+| **Máx. de linhas** | `100` | `1000` | O teto de linhas lidas de volta do banco de dados. |
 
 Um valor acima do máximo é reduzido ao máximo.
 

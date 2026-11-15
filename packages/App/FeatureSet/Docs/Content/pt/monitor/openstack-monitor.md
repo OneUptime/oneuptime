@@ -80,7 +80,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | **Métrica do OpenStack** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação habitual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um novo monitor começa em **Últimos 15 minutos**; os templates definem a sua própria. |
-| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
+| **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
 Um filtro restringe apenas uma série que possui o seu rótulo: `openstack_nova_up` não tem projeto, então um filtro de projeto a deixa como está.
 

@@ -258,19 +258,17 @@ const OpenStackCloudLoadBalancerPoolDetail: FunctionComponent<
                         ? "amber"
                         : "emerald"
                   }
-                  value={operating || "—"}
+                  value={operating}
                   description="What its members' health checks make of it, in Octavia's word."
                 />
                 <GoldenMetricTile
                   title="In state for"
                   icon={IconProp.Clock}
                   iconColor="slate"
-                  value={
-                    getOpenStackTimeInState(
-                      row,
-                      OneUptimeDate.getCurrentDate(),
-                    ) || "—"
-                  }
+                  value={getOpenStackTimeInState(
+                    row,
+                    OneUptimeDate.getCurrentDate(),
+                  )}
                   description="How long since OneUptime saw this pool's provisioning status change."
                 />
               </>

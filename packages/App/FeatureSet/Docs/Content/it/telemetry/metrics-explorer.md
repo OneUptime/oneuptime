@@ -56,11 +56,11 @@ Fate clic sulla metrica nel **Visualizzatore**. L'esploratore si apre con una qu
 
 ### Scegliere come aggregarla
 
-In **Aggregate by**, scegliete come vengono combinati i valori di ogni punto del grafico: Avg, il predefinito, Sum, Min, Max, Count, oppure un percentile, P50, P75, P90, P95 o P99. Il percentile di una metrica istogramma, come la durata di una richiesta, viene calcolato dai suoi bucket.
+In **Aggrega per**, scegliete come vengono combinati i valori di ogni punto del grafico: Avg, il predefinito, Sum, Min, Max, Count, oppure un percentile, P50, P75, P90, P95 o P99. Il percentile di una metrica istogramma, come la durata di una richiesta, viene calcolato dai suoi bucket.
 
 ### Filtrarla e raggrupparla
 
-Aprite **Filters & grouping**. **Filter by attributes** conserva i punti dati i cui attributi corrispondono, come una determinata `http.route`, e **Raggruppa per** disegna una linea per ogni valore degli attributi scelti, come una linea per host.
+Aprite **Filtri e raggruppamento**. **Filtra per attributi** conserva i punti dati i cui attributi corrispondono, come una determinata `http.route`, e **Raggruppa per** disegna una linea per ogni valore degli attributi scelti, come una linea per host.
 
 ### Regolare il grafico
 

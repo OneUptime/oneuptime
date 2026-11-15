@@ -64,14 +64,14 @@ Overschrijvingen bewaren wat u nodig hebt langer en de rest korter: foutlogboeke
 
 ### Voor het hele project
 
-Onder de standaard, ingeklapt onder **Meer instellingen**, stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Edit Overrides**, vul de velden in die u nodig hebt, en laat de rest leeg:
+Onder de standaard, ingeklapt onder **Meer instellingen**, stelt de kaart **Bewaring per telemetrietype** dagen in voor elk soort telemetrie. Klik op **Overschrijvingen bewerken**, vul de velden in die u nodig hebt, en laat de rest leeg:
 
 | Type | Velden |
 | --- | --- |
-| Logboeken | **Logs default (days)**, en één veld voor elke logboekernst |
-| Traces | **Traces default (days)**, en één veld voor elke spanstatus: Fout, Ok en Niet ingesteld |
-| Metrieken | **Metrics default (days)** |
-| Profielen | **Profiles default (days)** |
+| Logboeken | **Standaard voor logs (dagen)**, en één veld voor elke logboekernst |
+| Traces | **Standaard voor traces (dagen)**, en één veld voor elke spanstatus: Fout, Ok en Niet ingesteld |
+| Metrieken | **Standaard voor metrieken (dagen)** |
+| Profielen | **Standaard voor profielen (dagen)** |
 
 Een leeg veld valt terug op de volgende instelling in de volgorde hierboven, dus een ernstniveau zonder eigen dagen bewaart zijn logboeken volgens de standaard voor logboeken.
 

@@ -182,7 +182,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
     "this %s was created",
     (noun: OwnerNotificationRecordNoun) => {
       expect(OwnerNotificationFeedText.created(noun, PROJECT_OWNERS)).toBe(
-        `The project's owners were notified that this ${noun} was created, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} was created, as it has no owners yet.`,
       );
     },
   );
@@ -197,7 +197,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
+        `The Project Owners were notified that this ${noun} is now **Acknowledged**, as it has no owners yet.`,
       );
     },
   );
@@ -210,7 +210,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that this alert changed state, as it has no owners yet.",
+      "The Project Owners were notified that this alert changed state, as it has no owners yet.",
     );
   });
 
@@ -224,7 +224,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
           ...PROJECT_OWNERS,
         }),
       ).toBe(
-        `The project's owners were notified of the new private note, as this ${noun} has no owners yet.`,
+        `The Project Owners were notified of the new private note, as this ${noun} has no owners yet.`,
       );
     },
   );
@@ -236,7 +236,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified of the new public note, as it has no owners yet.",
+      "The Project Owners were notified of the new public note, as it has no owners yet.",
     );
   });
 
@@ -249,7 +249,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
+      "The Project Owners were reminded that this incident is still **Investigating**, open for **2 hours**, as it has no owners yet.",
     );
   });
 
@@ -261,7 +261,7 @@ describe("when the project's owners stood in for a record nobody owns", () => {
         ...PROJECT_OWNERS,
       }),
     ).toBe(
-      "The project's owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
+      "The Project Owners were notified that 3 incidents were added to this episode, as it has no owners yet.",
     );
   });
 

@@ -138,7 +138,7 @@ Klikk på **Fyll på saldo** på sidens kort **Gjeldende saldo**. Skriv inn et b
 Klikk på **Rediger Automatisk påfylling** på kortet **Automatisk påfylling**, og slå på **Aktiver automatisk påfylling**. Den er av fra start. Når den er på, legger OneUptime til $20 hver gang saldoen faller til $10, eller beløpene du velger.
 :::
 
-Når en saldo ikke kan betale, sendes ikke meldingen, eller OneUptime AI stopper, og prosjektets eiere får en e-post. Se [Når et varsel ikke sendes](/docs/on-call/escalation-rules#når-et-varsel-ikke-sendes) og [Når AI-kredittene tar slutt](/docs/ai/ai-sre#når-ai-kredittene-tar-slutt).
+Når en saldo ikke kan betale, sendes ikke meldingen, eller OneUptime AI stopper, og Prosjekteiere får en e-post. Se [Når et varsel ikke sendes](/docs/on-call/escalation-rules#når-et-varsel-ikke-sendes) og [Når AI-kredittene tar slutt](/docs/ai/ai-sre#når-ai-kredittene-tar-slutt).
 
 ## Hvem kan gjøre hva
 

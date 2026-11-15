@@ -56,11 +56,11 @@ Klik på metrikken i **Seer**. Udforskeren åbner med én forespørgsel, `a`, fo
 
 ### Vælg, hvordan den aggregeres
 
-Under **Aggregate by** vælger du, hvordan værdierne i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en percentil, P50, P75, P90, P95 eller P99. En percentil af en histogrammetrik, såsom en forespørgsels varighed, beregnes ud fra dens buckets.
+Under **Aggreger efter** vælger du, hvordan værdierne i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en percentil, P50, P75, P90, P95 eller P99. En percentil af en histogrammetrik, såsom en forespørgsels varighed, beregnes ud fra dens buckets.
 
 ### Filtrér og gruppér den
 
-Åbn **Filters & grouping**. **Filter by attributes** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Gruppér efter** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
+Åbn **Filtre og gruppering**. **Filtrer efter attributter** beholder de datapunkter, hvis attributter passer, såsom én bestemt `http.route`, og **Gruppér efter** tegner én linje pr. værdi af de attributter, du vælger, såsom én linje pr. vært.
 
 ### Tilpas diagrammet
 
