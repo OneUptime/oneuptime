@@ -202,6 +202,7 @@ import RelatedFileAccess, {
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
 import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
+import ProjectUsageCache from "../Utils/ProjectProducts/ProjectUsageCache";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -6305,6 +6306,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         },
       });
 
+      /*
+       * A product's first record: the products menu stops saying "Not set
+       * up" on it at once, on every server (#7465). See ProjectUsageCache.
+       */
+      await ProjectUsageCache.afterCreate({
+        tableName: this.model.tableName,
+        row: createBy.data,
+      });
+
       if (!createBy.props.ignoreHooks) {
         createBy.data = await this.onCreateSuccess(onCreate, createBy.data);
       }
@@ -7807,6 +7817,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rows: items,
         });
 
+        // A product emptied is not set up again. See ProjectUsageCache.
+        await ProjectUsageCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
         /*
          * The files their custom fields held go with them - a retention
          * purge included - unless something still holds them. See
@@ -8150,6 +8166,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
          * still arrives comes back. See DiscoveredResourceIdCache.
          */
         await DiscoveredResourceIdCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
+        // A product emptied is not set up again. See ProjectUsageCache.
+        await ProjectUsageCache.afterDelete({
           tableName: this.model.tableName,
           rows: items,
         });
