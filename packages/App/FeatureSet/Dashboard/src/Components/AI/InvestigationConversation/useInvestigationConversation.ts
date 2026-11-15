@@ -11,6 +11,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import User from "Common/UI/Utils/User";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { getAskAiReaderTimezone } from "../../AIChat/AskAiReaderTimezone";
 import {
   EMPTY_THREAD_VIEW,
   InvestigationConversationSubjectType,
@@ -299,6 +300,8 @@ export default function useInvestigationConversation(options: {
           content,
           permissionMode,
           language: languageRef.current,
+          // A chart over days cuts them at the asker's midnight (#7922).
+          ...getAskAiReaderTimezone(),
         });
 
         if (subjectKeyRef.current !== requestedSubjectKey) {
@@ -355,6 +358,8 @@ export default function useInvestigationConversation(options: {
           decisions: decisions as unknown as JSONObject[],
           // What an approved setup action writes its records in (#7247).
           language: languageRef.current,
+          // The zone the charts of the resumed answer cut days in (#7922).
+          ...getAskAiReaderTimezone(),
         } as JSONObject);
         busyRef.current = true;
         await refresh();

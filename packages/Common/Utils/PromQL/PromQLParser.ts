@@ -29,8 +29,10 @@ import {
   getPromQLFunction,
 } from "./PromQLFunctions";
 import { PromQLToken, PromQLTokenType, tokenizePromQL } from "./PromQLLexer";
-import { compilePromQLRegex } from "./PromQLRegex";
-import { describePatternProblem } from "../LinearRegExp/PatternCache";
+import {
+  compilePromQLRegex,
+  describePromQLPatternProblem,
+} from "./PromQLRegex";
 import lookupTable from "../LookupTable";
 
 /*
@@ -663,8 +665,8 @@ class PromQLParser {
           try {
             compilePromQLRegex(valueToken.text);
           } catch (error: unknown) {
-            // Why a regular expression cannot run here, or null.
-            const problem: string | null = describePatternProblem(error);
+            // Why the pattern cannot be matched, or null.
+            const problem: string | null = describePromQLPatternProblem(error);
 
             throw new PromQLError(
               problem === null

@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * are built, so they need nothing online.
  */
 
-export class AddIncidentPostmortemActionItem1809173300000
+export class AddIncidentPostmortemActionItem1809174800000
   implements MigrationInterface
 {
-  public name: string = "AddIncidentPostmortemActionItem1809173300000";
+  public name: string = "AddIncidentPostmortemActionItem1809174800000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

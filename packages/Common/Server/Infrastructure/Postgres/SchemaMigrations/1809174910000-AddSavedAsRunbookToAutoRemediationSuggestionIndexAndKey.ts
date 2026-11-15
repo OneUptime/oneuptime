@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddSavedAsRunbookToAutoRemediationSuggestion1809173400000, and moved into
+ * AddSavedAsRunbookToAutoRemediationSuggestion1809174900000, and moved into
  * a migration of its own: "AutoRemediationSuggestion" holds every fix
  * OneUptime AI proposed or ran, and fixes are written to it while incidents
  * and alerts open, so the index on its new "savedAsRunbookId" column is
@@ -16,11 +16,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809173410000
+export class AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000
   implements MigrationInterface
 {
   public name: string =
-    "AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809173410000";
+    "AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

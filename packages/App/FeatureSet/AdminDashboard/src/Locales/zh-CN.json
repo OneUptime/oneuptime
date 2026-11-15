@@ -175,7 +175,11 @@
       "noItems": "尚未颁发任何企业版许可证。",
       "settingsCardTitle": "许可证通知设置",
       "settingsCardDescription": "设置哪些人会收到许可证邮件抄送，以及提前多久发送到期提醒。当许可证超出用户数量上限或即将到期时，系统会每天向该客户的主管理员发送提醒邮件。",
-      "settingsEditButton": "编辑设置"
+      "settingsEditButton": "编辑设置",
+      "cloudOnlyTitle": "仅在 OneUptime Cloud 上可用",
+      "cloudOnlyDescription": "企业版许可证在已启用账单功能的托管版 oneuptime.com 上颁发和跟踪。此自托管实例不管理许可证。",
+      "enterpriseEditionRequiredTitle": "需要 OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "许可证管理是 OneUptime Enterprise Edition 的一部分。请部署 Enterprise Edition 镜像以颁发和跟踪许可证。"
     },
     "enterpriseLicenseView": {
       "title": "企业版许可证",

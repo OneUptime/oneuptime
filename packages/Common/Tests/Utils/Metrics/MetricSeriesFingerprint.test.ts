@@ -1,6 +1,9 @@
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
+import { createHash } from "crypto";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -157,4 +160,175 @@ describe("MetricSeriesFingerprint.extractSeriesLabels", () => {
 
     expect(fp1).toBe(fp2);
   });
+});
+
+/*
+ * Issue #8026: a metric monitor grouped by an attribute named like what
+ * every object inherits (constructor, toString, valueOf, hasOwnProperty).
+ * extractSeriesLabels read each group-by key with a plain read, which for a
+ * sample without that attribute found the inherited function: the label was
+ * the function, and the fingerprint hashed its source text
+ * ("function Object() { [native code] }"), not the "" a missing key means.
+ * A key named __proto__ (#8025) was not written at all, so a monitor grouped
+ * by it alone keyed every series as the whole monitor.
+ */
+describe("MetricSeriesFingerprint with a group-by key named like what every object inherits (issues #8026, #8025)", () => {
+  // The fingerprint of one canonical text, as computeFingerprint hashes it.
+  const sha256Fingerprint: (canonical: string) => string = (
+    canonical: string,
+  ): string => {
+    return createHash("sha256").update(canonical).digest("hex").slice(0, 16);
+  };
+
+  const sample: (attributes: JSONObject | undefined) => AggregatedModel = (
+    attributes: JSONObject | undefined,
+  ): AggregatedModel => {
+    return {
+      timestamp: new Date("2026-11-15T10:00:00.000Z"),
+      value: 1,
+      attributes,
+    } as unknown as AggregatedModel;
+  };
+
+  // The labels { [name]: value }, with name as an own key, __proto__ too.
+  const labelsOf: (name: string, value: string) => JSONObject = (
+    name: string,
+    value: string,
+  ): JSONObject => {
+    const labels: JSONObject = {};
+    writeOwnValue<JSONValue>(labels, name, value);
+    return labels;
+  };
+
+  test('the issue\'s case: grouped by constructor, a sample without it is labelled "", and one with it its own value', () => {
+    const without: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+      sample: sample({ "host.name": "web-1" }),
+      attributeKeys: ["constructor"],
+    });
+
+    expect(Object.keys(without)).toEqual(["constructor"]);
+    expect(readOwnValue(without, "constructor")).toBe("");
+    expect(typeof without["constructor"]).toBe("string");
+
+    const withIt: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+      sample: sample({ "host.name": "web-1", constructor: "builder" }),
+      attributeKeys: ["constructor"],
+    });
+
+    expect(readOwnValue(withIt, "constructor")).toBe("builder");
+  });
+
+  test('the issue\'s case: the fingerprint of a sample without constructor is that of { constructor: "" }', () => {
+    const fingerprint: string = MetricSeriesFingerprint.computeFingerprint(
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample({ "host.name": "web-1" }),
+        attributeKeys: ["constructor"],
+      }),
+    );
+
+    expect(fingerprint).toBe(
+      MetricSeriesFingerprint.computeFingerprint({ constructor: "" }),
+    );
+    expect(fingerprint).toBe(sha256Fingerprint("constructor="));
+    expect(fingerprint).not.toBe(
+      sha256Fingerprint("constructor=function Object() { [native code] }"),
+    );
+  });
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    'grouped by %s: a sample without it, or without attributes at all, is labelled "" and keyed as such',
+    (name: string) => {
+      for (const attributes of [
+        { "host.name": "web-1" },
+        {},
+        undefined,
+      ] as Array<JSONObject | undefined>) {
+        const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+          sample: sample(attributes),
+          attributeKeys: [name],
+        });
+
+        expect(Object.keys(labels)).toEqual([name]);
+        expect(readOwnValue(labels, name)).toBe("");
+        expect(Object.getPrototypeOf(labels)).toBe(Object.prototype);
+        expect(MetricSeriesFingerprint.computeFingerprint(labels)).toBe(
+          sha256Fingerprint(`${name}=`),
+        );
+        expect(MetricSeriesFingerprint.computeFingerprint(labels)).toBe(
+          MetricSeriesFingerprint.computeFingerprint(labelsOf(name, "")),
+        );
+      }
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "grouped by %s: a sample with it is labelled and keyed by its own value",
+    (name: string) => {
+      // As ClickHouse's JSON answer carries the map: own keys, __proto__ too.
+      const attributes: JSONObject = JSON.parse(
+        JSON.stringify({ "host.name": "web-1", [name]: "own" }),
+      ) as JSONObject;
+
+      const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+        sample: sample(attributes),
+        attributeKeys: [name, "host.name"],
+      });
+
+      expect(Object.keys(labels)).toEqual([name, "host.name"]);
+      expect(readOwnValue(labels, name)).toBe("own");
+      expect(JSON.stringify(labels)).toBe(
+        `{"${name}":"own","host.name":"web-1"}`,
+      );
+
+      const canonical: string = [`${name}=own`, "host.name=web-1"]
+        .sort()
+        .join("|");
+
+      expect(MetricSeriesFingerprint.computeFingerprint(labels)).toBe(
+        sha256Fingerprint(canonical),
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "grouped by %s: two values of it are two series, and neither is the whole monitor",
+    (name: string) => {
+      const fingerprintOf: (value: string) => string = (
+        value: string,
+      ): string => {
+        return MetricSeriesFingerprint.computeFingerprint(
+          MetricSeriesFingerprint.extractSeriesLabels({
+            sample: sample(
+              JSON.parse(JSON.stringify({ [name]: value })) as JSONObject,
+            ),
+            attributeKeys: [name],
+          }),
+        );
+      };
+
+      expect(fingerprintOf("web")).not.toBe(fingerprintOf("api"));
+      expect(fingerprintOf("web")).not.toBe(
+        MetricSeriesFingerprint.WholeMonitorFingerprint,
+      );
+      expect(fingerprintOf("")).not.toBe(
+        MetricSeriesFingerprint.WholeMonitorFingerprint,
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "without attributeKeys: a top-level column named %s is a label",
+    (name: string) => {
+      const row: AggregatedModel = JSON.parse(
+        JSON.stringify({ value: 1, [name]: "column", region: "eu" }),
+      ) as AggregatedModel;
+
+      const labels: JSONObject = MetricSeriesFingerprint.extractSeriesLabels({
+        sample: row,
+      });
+
+      expect(Object.keys(labels)).toEqual([name, "region"]);
+      expect(readOwnValue(labels, name)).toBe("column");
+    },
+  );
 });

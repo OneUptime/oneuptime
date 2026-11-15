@@ -5,13 +5,13 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * AutoRemediationSuggestion gained savedAsRunbookId: the runbook a verified
  * fix was saved as. Nullable, with no default: adding it rewrites nothing.
  * Its index and its key to "Runbook" are built online, in
- * AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809173410000.
+ * AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000.
  */
-export class AddSavedAsRunbookToAutoRemediationSuggestion1809173400000
+export class AddSavedAsRunbookToAutoRemediationSuggestion1809174900000
   implements MigrationInterface
 {
   public name: string =
-    "AddSavedAsRunbookToAutoRemediationSuggestion1809173400000";
+    "AddSavedAsRunbookToAutoRemediationSuggestion1809174900000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

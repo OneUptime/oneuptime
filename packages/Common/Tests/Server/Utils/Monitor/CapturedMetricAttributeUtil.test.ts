@@ -9,6 +9,8 @@ import {
   ServiceNameLabelKeys,
 } from "../../../../Server/Utils/Monitor/SeriesResourceLabels";
 import { JSONObject } from "../../../../Types/JSON";
+import { readOwnValue } from "../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -280,6 +282,174 @@ describe("CapturedMetricAttributeUtil", () => {
       } as unknown as JSONObject);
 
       expect(({} as JSONObject)["polluted"]).toBeUndefined();
+    });
+  });
+
+  /*
+   * Issue #8136. `sanitize` kept the first of two keys that trim to one name
+   * with a plain read of the attributes it had kept so far, a plain object.
+   * For a name every object inherits, that read found the inherited method,
+   * so the attribute was skipped. Not being reserved, it was not reported
+   * either: `{ toString: "x", region: "eu" }` came back as `{ region: "eu" }`
+   * with nothing dropped.
+   */
+  describe("attributes named like what every object inherits (issue #8136)", () => {
+    const isReserved: (name: string) => boolean = (name: string): boolean => {
+      return CapturedMetricAttributeUtil.isReservedAttributeKey(name);
+    };
+
+    const REFUSED: Array<string> = INHERITED_PROPERTY_NAMES.filter(isReserved);
+
+    const KEPT: Array<string> = INHERITED_PROPERTY_NAMES.filter(
+      (name: string): boolean => {
+        return !isReserved(name);
+      },
+    );
+
+    // A script's attributes, as the sandbox hands them over: JSON.
+    const fromScript: (json: string) => JSONObject = (
+      json: string,
+    ): JSONObject => {
+      return JSON.parse(json) as JSONObject;
+    };
+
+    test("only the names that walk the prototype are refused; toString, valueOf and the rest are ordinary dimensions", () => {
+      expect(REFUSED).toEqual(["__proto__", "constructor"]);
+      expect(KEPT).toEqual(
+        expect.arrayContaining([
+          "toString",
+          "valueOf",
+          "hasOwnProperty",
+          "isPrototypeOf",
+          "propertyIsEnumerable",
+          "toLocaleString",
+          "__defineGetter__",
+          "__defineSetter__",
+          "__lookupGetter__",
+          "__lookupSetter__",
+        ]),
+      );
+      expect(KEPT).toHaveLength(INHERITED_PROPERTY_NAMES.length - 2);
+    });
+
+    test("the issue's example keeps toString beside region", () => {
+      expect(
+        CapturedMetricAttributeUtil.sanitize(
+          fromScript('{"toString":"x","region":"eu"}'),
+        ),
+      ).toEqual({
+        attributes: { toString: "x", region: "eu" },
+        droppedReservedKeys: [],
+      });
+    });
+
+    test.each(KEPT)(
+      "an attribute named %s is kept with its own value, and nothing is reported dropped",
+      (name: string) => {
+        const result: SanitizedCapturedMetricAttributes =
+          CapturedMetricAttributeUtil.sanitize(
+            fromScript(JSON.stringify({ [name]: `own ${name}`, region: "eu" })),
+          );
+
+        expect(readOwnValue(result.attributes, name)).toBe(`own ${name}`);
+        expect(Object.keys(result.attributes)).toEqual([name, "region"]);
+        expect(result.droppedReservedKeys).toEqual([]);
+      },
+    );
+
+    test.each(KEPT)(
+      "%s: of two keys that trim to it, the first is kept, in either order",
+      (name: string) => {
+        for (const [first, second] of [
+          [name, `  ${name}  `],
+          [` ${name}`, name],
+        ] as Array<[string, string]>) {
+          const result: SanitizedCapturedMetricAttributes =
+            CapturedMetricAttributeUtil.sanitize(
+              fromScript(
+                JSON.stringify({ [first]: "first", [second]: "second" }),
+              ),
+            );
+
+          expect(Object.keys(result.attributes)).toEqual([name]);
+          expect(readOwnValue(result.attributes, name)).toBe("first");
+        }
+      },
+    );
+
+    test.each(KEPT)(
+      "%s: a number or a boolean is kept as its text",
+      (name: string) => {
+        for (const [value, text] of [
+          [3, "3"],
+          [0, "0"],
+          [true, "true"],
+          [false, "false"],
+        ] as Array<[number | boolean, string]>) {
+          const result: SanitizedCapturedMetricAttributes =
+            CapturedMetricAttributeUtil.sanitize(
+              fromScript(JSON.stringify({ [name]: value })),
+            );
+
+          expect(readOwnValue(result.attributes, name)).toBe(text);
+        }
+      },
+    );
+
+    test("every such name at once is kept, in the script's order, and serialises as written", () => {
+      const sent: JSONObject = {};
+
+      for (const name of KEPT) {
+        sent[name] = `own ${name}`;
+      }
+
+      const result: SanitizedCapturedMetricAttributes =
+        CapturedMetricAttributeUtil.sanitize(fromScript(JSON.stringify(sent)));
+
+      expect(Object.keys(result.attributes)).toEqual(KEPT);
+      expect(JSON.stringify(result.attributes)).toBe(JSON.stringify(sent));
+      expect(result.droppedReservedKeys).toEqual([]);
+    });
+
+    test("__proto__, constructor and prototype stay refused, and are named in droppedReservedKeys, beside a kept toString", () => {
+      const result: SanitizedCapturedMetricAttributes =
+        CapturedMetricAttributeUtil.sanitize(
+          fromScript(
+            '{"__proto__":"a","constructor":"b","prototype":"c"," constructor ":"d","a.constructor.b":"e","toString":"f"}',
+          ),
+        );
+
+      expect(Object.keys(result.attributes)).toEqual(["toString"]);
+      expect(readOwnValue(result.attributes, "toString")).toBe("f");
+      expect(result.droppedReservedKeys).toEqual([
+        "__proto__",
+        "constructor",
+        "prototype",
+        "a.constructor.b",
+      ]);
+      expect(Object.getPrototypeOf(result.attributes)).toBe(Object.prototype);
+    });
+
+    test("a name an object inherits counts towards the cap like any other", () => {
+      const sent: JSONObject = {};
+
+      for (let i: number = 0; i < MaxCapturedMetricAttributes - 1; i++) {
+        sent[`key${i}`] = "value";
+      }
+
+      sent["toString"] = "the last one kept";
+      sent["valueOf"] = "over the cap";
+
+      const result: SanitizedCapturedMetricAttributes =
+        CapturedMetricAttributeUtil.sanitize(fromScript(JSON.stringify(sent)));
+
+      expect(Object.keys(result.attributes)).toHaveLength(
+        MaxCapturedMetricAttributes,
+      );
+      expect(readOwnValue(result.attributes, "toString")).toBe(
+        "the last one kept",
+      );
+      expect(readOwnValue(result.attributes, "valueOf")).toBeUndefined();
     });
   });
 });

@@ -3,7 +3,10 @@ import { AIChatWidgetSeries } from "../../../../Types/AI/AIChatTypes";
 import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../../Types/BaseDatabase/AggregatedResult";
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
 import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
+import { CalendarUnit } from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -78,6 +81,45 @@ export function describeInterval(interval: AggregationInterval): string {
   return INTERVAL_WORDS[interval] || interval.toLowerCase();
 }
 
+// Where each calendar unit's bucket starts, in words.
+const CALENDAR_UNIT_STARTS: Readonly<Record<CalendarUnit, string>> = {
+  hour: "the hour",
+  day: "midnight",
+  week: "midnight on Monday",
+  month: "midnight on the 1st",
+  year: "midnight on 1 January",
+};
+
+/*
+ * What a day, week, month or year bucket is, for the model, which reads each
+ * bucket by its start as an ISO instant in UTC (issue #7922): a unit of the
+ * calendar of the zone it was cut in - the asker's (ToolContext
+ * .readerTimezone), else UTC's - so it names 2026-11-05T05:00:00.000Z as
+ * 5 November in New York, not as five in the morning, and not as the day it
+ * is in UTC. Empty for an hour and shorter, which are the same instants in
+ * every zone, and for Total.
+ */
+export function describeBucketCalendar(data: {
+  interval: AggregationInterval;
+  timezone: Timezone | undefined;
+}): string {
+  const unit: CalendarUnit | undefined =
+    AggregationIntervalUtil.getCalendarUnit(data.interval);
+
+  if (!unit) {
+    return "";
+  }
+
+  const bucket: string = `Each ${describeInterval(data.interval)} bucket`;
+  const start: string = CALENDAR_UNIT_STARTS[unit];
+
+  if (!data.timezone) {
+    return `${bucket} is a UTC ${unit}, from ${start} UTC.`;
+  }
+
+  return `${bucket} is a ${unit} in ${data.timezone}, the time zone of the person asking, from ${start} there: its timestamp is the instant that ${unit} began, written in UTC, so name each bucket by its ${unit} in ${data.timezone}, not by the UTC date of its timestamp.`;
+}
+
 export default class GroupedMetricSeries {
   /*
    * Read `query` (which must already hold the project and every scope the
@@ -92,6 +134,12 @@ export default class GroupedMetricSeries {
     endTime: Date;
     props: DatabaseCommonInteractionProps;
     maxSeries?: number | undefined;
+    /*
+     * The asker's zone (ToolContext.readerTimezone): day buckets start at
+     * their midnight, as the chat draws them (issue #7922). Undefined,
+     * UTC's. Finer buckets ignore it.
+     */
+    timezone?: Timezone | undefined;
   }): Promise<GroupedMetricRead> {
     const maxSeries: number = data.maxSeries || MAX_METRIC_SERIES;
     const bucketCount: number = countBuckets({
@@ -110,21 +158,25 @@ export default class GroupedMetricSeries {
     ) => Promise<AggregatedResult> = async (
       aggregationType: AggregationType,
     ): Promise<AggregatedResult> => {
-      const aggregateBy: AggregateBy<Metric> = {
-        query: data.query as never,
-        aggregateColumnName: "value",
-        aggregationTimestampColumnName: "time",
-        aggregationType,
-        aggregationInterval: data.interval,
-        startTimestamp: data.startTime,
-        endTimestamp: data.endTime,
-        groupByAttributeKeys: data.groupBy,
-        topK: { count: maxSeries, rankBy: "max" },
-        sort: { time: SortOrder.Ascending } as never,
-        limit,
-        skip: 0,
-        props: data.props,
-      };
+      const aggregateBy: AggregateBy<Metric> =
+        AggregationIntervalUtil.withTimezone(
+          {
+            query: data.query as never,
+            aggregateColumnName: "value",
+            aggregationTimestampColumnName: "time",
+            aggregationType,
+            aggregationInterval: data.interval,
+            startTimestamp: data.startTime,
+            endTimestamp: data.endTime,
+            groupByAttributeKeys: data.groupBy,
+            topK: { count: maxSeries, rankBy: "max" },
+            sort: { time: SortOrder.Ascending } as never,
+            limit,
+            skip: 0,
+            props: data.props,
+          },
+          data.timezone,
+        );
 
       return await MetricService.aggregateBy(aggregateBy);
     };

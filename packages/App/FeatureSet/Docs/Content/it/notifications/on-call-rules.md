@@ -121,7 +121,7 @@ Una regola push, per un telefono o un browser, può anche reinviare il suo push 
 
 ## Quando una gravità non ha una regola
 
-Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito.
+Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi, e un push che suona e si ripete allo stesso modo. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito.
 
 Una chiamata che non trova comunque una regola viene inviata lo stesso ai vostri metodi verificati, e ricevete un'e-mail al riguardo; vedete [Quando nessuna regola corrisponde](/docs/notifications/index#quando-nessuna-regola-corrisponde).
 

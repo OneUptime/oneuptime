@@ -35,7 +35,11 @@ import {
 } from "Common/Utils/Log/KeyValueParser";
 import logger from "Common/Server/Utils/Logger";
 import { PatternWorkLimitError } from "Common/Utils/LinearRegExp/PatternProblem";
-import { readOwnValue, writeOwnValue } from "Common/Utils/LookupTable";
+import {
+  copyOwnValues,
+  readOwnValue,
+  writeOwnValue,
+} from "Common/Utils/LookupTable";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
@@ -313,9 +317,9 @@ export class LogPipelineService {
       config.targetPrefix,
     );
 
-    const attrs: Record<string, unknown> = {
-      ...((logRow["attributes"] as Record<string, unknown>) || {}),
-    };
+    const attrs: Record<string, unknown> = copyOwnValues(
+      (logRow["attributes"] as Record<string, unknown>) || {},
+    );
 
     for (const fieldName of fieldNames) {
       // As the log's own key, even one named __proto__.
@@ -389,9 +393,9 @@ export class LogPipelineService {
 
     const overrideOnConflict: boolean = config.overrideOnConflict === true;
 
-    const attrs: Record<string, unknown> = {
-      ...((logRow["attributes"] as Record<string, unknown>) || {}),
-    };
+    const attrs: Record<string, unknown> = copyOwnValues(
+      (logRow["attributes"] as Record<string, unknown>) || {},
+    );
 
     let changed: boolean = false;
 
@@ -505,9 +509,9 @@ export class LogPipelineService {
     logRow: JSONObject,
     config: AttributeRemapperConfig,
   ): JSONObject {
-    const attrs: Record<string, unknown> = {
-      ...((logRow["attributes"] as Record<string, unknown>) || {}),
-    };
+    const attrs: Record<string, unknown> = copyOwnValues(
+      (logRow["attributes"] as Record<string, unknown>) || {},
+    );
 
     /*
      * The log's own keys only: a key named constructor is one the log may
@@ -621,9 +625,9 @@ export class LogPipelineService {
         continue;
       }
       if (evaluateCompiledFilter(logRow, compiled)) {
-        const attrs: Record<string, unknown> = {
-          ...((logRow["attributes"] as Record<string, unknown>) || {}),
-        };
+        const attrs: Record<string, unknown> = copyOwnValues(
+          (logRow["attributes"] as Record<string, unknown>) || {},
+        );
         writeOwnValue(attrs, config.targetKey, category.name);
         const attributeKeys: Array<string> = Object.keys(attrs);
         return { ...logRow, attributes: attrs as JSONObject, attributeKeys };

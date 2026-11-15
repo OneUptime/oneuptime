@@ -363,7 +363,7 @@ Fem jobb meddelar ägarna, och vart och ett körs en gång i minuten:
 
 | Avisering                  | När                                                          | E-postens ämne                                                 |
 | -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Incident skapad**        | Incidenten deklareras.                                       | `[New Incident {number}] - {title}`                            |
+| **Incident skapad**        | Ungefär en minut efter att incidenten har deklarerats.       | `[New Incident {number}] - {title}`                            |
 | **En anteckning publicerades** | En offentlig *eller* privat anteckning publiceras.       | `[Update Incident {number}] - {title}`                         |
 | **Tillståndet ändrades**   | Incidenten går till ett annat tillstånd.                     | `[{State} Incident {number}] - {title}`                        |
 | **Du lades till**          | Du läggs till som ägare.                                     | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Fem jobb meddelar ägarna, och vart och ett körs en gång i minuten:
 
 Varje avisering går ut på kanalerna som personen har slagit på under **Användarinställningar → Aviseringsinställningar** — e-post, sms, röstsamtal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook — som avgör vad som faktiskt skickas. Varje mottagare kan stänga av var och en av dem för sig — inställningarna per användare handlar om att skicka dig aviseringarna om skapad incident, publicerad anteckning, ändrat tillstånd, tillagd ägare, tilldelad medlem och påminnelse om att den fortfarande är öppen. Den som bara vill ha ett samtal vid tillståndsändringar kan få exakt det. Se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) för vad en tillståndsändring betyder.
 
-**Incidenter utan ägare är inte tysta.** Har en incident inga ägare alls faller aviseringsjobben tillbaka på projektets ägare, så att inget tappas bort. Aviseringen **Incident skapad** för en incident som har rapporterats via ett formulär vars mall har ägare väntar i stället på de ägarna. Varje person som meddelas läggs också till i den matchande flödesposten, så att du i efterhand kan se exakt vem som fick besked och på vilken adress.
+**Incidenter utan ägare är inte tysta.** Har en incident inga ägare alls faller aviseringsjobben tillbaka på projektets ägare, så att inget tappas bort. Aviseringen **Incident skapad** väntar först på incidentens ägare: den skickas ungefär en minut efter att incidenten har deklarerats till alla ägare den har då, även ägare som ett skript, ett arbetsflöde eller API:et lägger till direkt efter att den skapats, och bara till projektets ägare om den fortfarande inte har några. Startar OneUptime om medan incidenten deklareras skickas aviseringen ändå, högst några minuter senare. Varje person som meddelas läggs också till i den matchande flödesposten, så att du i efterhand kan se exakt vem som fick besked och på vilken adress.
 
 ## Nästa steg
 

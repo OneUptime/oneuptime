@@ -363,7 +363,7 @@ Fem jobber gir eierne beskjed, og hver kjører én gang i minuttet:
 
 | Varsel                     | Når                                                          | Emne på e-posten                                               |
 | -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Hendelse opprettet**     | Hendelsen erklæres.                                          | `[New Incident {number}] - {title}`                            |
+| **Hendelse opprettet**     | Omtrent ett minutt etter at hendelsen er erklært.            | `[New Incident {number}] - {title}`                            |
 | **Et notat ble publisert** | Et offentlig *eller* privat notat publiseres.                | `[Update Incident {number}] - {title}`                         |
 | **Tilstanden endret seg**  | Hendelsen går til en annen tilstand.                         | `[{State} Incident {number}] - {title}`                        |
 | **Du ble lagt til**        | Du legges til som eier.                                      | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Fem jobber gir eierne beskjed, og hver kjører én gang i minuttet:
 
 Hvert varsel går ut på kanalene personen har slått på under **Brukerinnstillinger → Varselinnstillinger** — e-post, SMS, taleanrop, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost eller webhook — som avgjør hva som faktisk sendes. Hver mottaker kan slå av hvert av dem enkeltvis — innstillingene per bruker handler om å sende deg varslene om opprettet hendelse, publisert notat, endret tilstand, lagt til eier, tildelt medlem og påminnelse om at den fortsatt er åpen. Noen som bare vil ha et anrop ved tilstandsendringer, kan få nøyaktig det. Se [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) for hva en tilstandsendring betyr.
 
-**Hendelser uten eier er ikke tause.** Har en hendelse ingen eiere i det hele tatt, faller varseljobbene tilbake på prosjektets eiere, så ingenting går tapt. Varselet **Hendelse opprettet** for en hendelse som er meldt via et skjema der malen har eiere, venter i stedet på de eierne. Hver person som får beskjed, legges også til i den tilhørende feedoppføringen, så du i ettertid kan se nøyaktig hvem som fikk beskjed, og på hvilken adresse.
+**Hendelser uten eier er ikke tause.** Har en hendelse ingen eiere i det hele tatt, faller varseljobbene tilbake på prosjektets eiere, så ingenting går tapt. Varselet **Hendelse opprettet** venter først på hendelsens eiere: det sendes omtrent ett minutt etter at hendelsen er erklært, til alle eierne den har da, også eiere som et skript, en arbeidsflyt eller API-et legger til rett etter at den er opprettet, og bare til prosjektets eiere hvis den fortsatt ikke har noen. Starter OneUptime på nytt mens hendelsen erklæres, sendes varselet likevel, høyst noen minutter forsinket. Hver person som får beskjed, legges også til i den tilhørende feedoppføringen, så du i ettertid kan se nøyaktig hvem som fikk beskjed, og på hvilken adresse.
 
 ## Neste steg
 
