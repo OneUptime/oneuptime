@@ -35,7 +35,7 @@ Quand une règle se déclenche, pour chaque runbook qu'elle désigne :
 1. Le runbook est chargé.
 2. Ses étapes sont copiées en **instantané** sur une nouvelle exécution de runbook.
 3. L'exécution est mise dans la file du worker des runbooks.
-4. L'exécution est liée à l'entité source : elle apparaît sur la page **Runbooks** de l'incident, de l'alerte ou de l'événement de maintenance planifiée et dans la liste **Exécutions** du runbook.
+4. L'exécution est liée à l'entité source : elle apparaît sur la page **Runbooks** de l'incident, de l'alerte ou de l'événement de maintenance et dans la liste **Exécutions** du runbook.
 
 Vous voyez toutes les exécutions, lancées par une règle ou non, sous **Runbooks → Exécutions**, filtrées par statut, runbook ou date de début.
 
@@ -72,12 +72,12 @@ Sous **Runbooks**, choisissez un ou plusieurs **Runbooks à démarrer**. Le **No
 
 ## Conditions
 
-Chaque condition compare une caractéristique de l'incident, de l'alerte ou de l'événement de maintenance planifiée à une valeur que vous donnez. Une règle de runbook propose les mêmes critères que les autres règles de son produit : une règle de runbook d'incident fait correspondre ce que fait correspondre une règle de confidentialité ou d'astreinte d'incident.
+Chaque condition compare une caractéristique de l'incident, de l'alerte ou de l'événement de maintenance à une valeur que vous donnez. Une règle de runbook propose les mêmes critères que les autres règles de son produit : une règle de runbook d'incident fait correspondre ce que fait correspondre une règle de confidentialité ou d'astreinte d'incident.
 
 | Critère | Ce qu'il vérifie |
 | --- | --- |
-| **Moniteurs** | Les moniteurs que touche l'incident ou l'événement de maintenance planifiée, ou le moniteur qui a levé l'alerte. |
-| **Gravités d'incident** / **Gravités d'alerte** | La gravité de l'incident ou de l'alerte. Les événements de maintenance planifiée n'ont pas de gravité, donc leurs règles ne la proposent pas. |
+| **Moniteurs** | Les moniteurs que touche l'incident ou l'événement de maintenance, ou le moniteur qui a levé l'alerte. |
+| **Gravités d'incident** / **Gravités d'alerte** | La gravité de l'incident ou de l'alerte. Les événements de maintenance n'ont pas de gravité, donc leurs règles ne la proposent pas. |
 | **Étiquettes d'incident** / **Étiquettes d'alerte** / **Étiquettes de l'événement** | Les étiquettes de l'incident, de l'alerte ou de l'événement lui-même, y compris celles que les règles d'étiquettes ont attachées à sa création. |
 | **Étiquettes du moniteur** | Les étiquettes de ses moniteurs. Étiquetez vos moniteurs `production` ou `staging` pour lancer un runbook dans un seul environnement. |
 | **Titre de l'incident** / **Titre de l'alerte** / **Titre de l'événement** | Son titre. |

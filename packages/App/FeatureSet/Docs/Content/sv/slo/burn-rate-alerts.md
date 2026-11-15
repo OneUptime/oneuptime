@@ -255,7 +255,7 @@ Vissa ändringar löser alltid det som en regel har öppnat, oavsett vad dess in
 
 ## Planerat underhåll
 
-Medan en av SLO:ets monitorer är under ett pågående planerat underhåll utlöser dess regler för förbrukningstakt inga larm och deklarerar inga incidenter: planerat arbete ska inte larma någon. Det som reglerna redan hade öppnat löses fortfarande som vanligt. Tiden räknas fortfarande in i felbudgeten, enligt SLO:ets driftstoppsstatusar.
+Medan en av SLO:ets monitorer ingår i en pågående underhållshändelse utlöser dess regler för förbrukningstakt inga larm och deklarerar inga incidenter: planerat arbete ska inte larma någon. Det som reglerna redan hade öppnat löses fortfarande som vanligt. Tiden räknas fortfarande in i felbudgeten, enligt SLO:ets driftstoppsstatusar.
 
 ## SLO:ets flöde
 
@@ -271,8 +271,8 @@ En regel utlöses bara när SLO:et har ett helt långt fönster med övervakning
 Den automatiska lösningen följer det långa fönstret: så snart det långa fönstrets förbrukningstakt sjunker under tröskeln löses larmet. Ge regeln ett längre långt fönster, eller stäng av **Lös larm automatiskt** och lös larmet för hand.
 :::
 
-:::details Inget utlöstes under ett planerat underhåll
-Regler för förbrukningstakt är tysta medan någon av SLO:ets monitorer är under ett pågående planerat underhåll. Driftstoppet räknas fortfarande in i budgeten.
+:::details Inget utlöstes under en underhållshändelse
+Regler för förbrukningstakt är tysta medan någon av SLO:ets monitorer ingår i en pågående underhållshändelse. Driftstoppet räknas fortfarande in i budgeten.
 :::
 
 :::details Finns det ett minsta antal mätningar?

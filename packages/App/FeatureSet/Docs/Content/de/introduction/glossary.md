@@ -384,7 +384,7 @@ Auch genannt: **Aufgaben**. Siehe [Code](/docs/ai/ai-agent).
 
 ### Formular
 
-Eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne Konto. Jede Einsendung erstellt einen Vorfall, für eine Problemmeldung, oder ein geplantes Wartungsereignis, für einen Änderungsantrag.
+Eine Seite, die jeder mit ihrem Link ausfüllen kann, ohne Konto. Jede Einsendung erstellt einen Vorfall, für eine Problemmeldung, oder ein Wartungsereignis, für einen Änderungsantrag.
 
 Siehe [Formulare – Übersicht](/docs/forms/index).
 

@@ -186,7 +186,7 @@ An average over children weighs a store with two devices the same as a distribut
 
 ## Scheduled Maintenance for Network Sites
 
-Attach sites to a scheduled maintenance event under **Other Affected Resources**, on the event's **Resources Affected** step, as you would a host. A site's own **Scheduled Maintenance** page lists the events attached to it, and its **Create Maintenance Event** opens the form with the site already picked.
+Attach sites to a maintenance event under **Other Affected Resources**, on the event's **Resources Affected** step, as you would a host. A site's own **Scheduled Maintenance** page lists the events attached to it, and its **Create Maintenance Event** opens the form with the site already picked.
 
 A window on a parent covers everything beneath it: a window on a Region covers every Market and Unit in it, including sites created after the window was scheduled, so a regional carrier cutover does not have to list four hundred stores.
 

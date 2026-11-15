@@ -418,7 +418,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
         placeholder={getPickerPlaceholder()}
         // Worded here, a count among them: drawn as given.
         isPlaceholderTranslated={true}
-        ariaLabel={translator.translateText("Add a dashboard")}
+        ariaLabel="Add a dashboard"
         dataTestId="playlist-dashboards-picker"
         disabled={isLoading || isFull || pickable.length === 0}
         error={props.error || undefined}

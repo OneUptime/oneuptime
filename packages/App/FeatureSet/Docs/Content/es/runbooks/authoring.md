@@ -198,7 +198,7 @@ Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. La resp
 | **Indicación** | Lo que debe hacer la IA. Por ejemplo: «Revisa la salida de los pasos anteriores y di si es seguro continuar con la remediación». |
 | **Proveedor de LLM** | Opcional. **Predeterminado del proyecto** usa el proveedor predeterminado del proyecto. Fija un proveedor cuando el paso necesite un modelo concreto, como uno autoalojado para datos que no deben salir de tu red. Consulta [Proveedores de LLM](/docs/ai/llm-provider). |
 | **Incluir el contexto del paso anterior** | Si está activado, la IA ve todo sobre los pasos que se ejecutaron antes que este: título, tipo, estado, salida y mensajes de error. Recibe hasta 4.000 caracteres de la salida de cada paso. |
-| **Incluir el contexto del desencadenante** | Si está activado, la IA ve qué inició la ejecución: el incidente, la alerta o el evento de mantenimiento programado vinculado (su descripción, gravedad, estado actual, monitores afectados, causa raíz, historial de estados y notas públicas), o quién ejecutó el runbook a mano. |
+| **Incluir el contexto del desencadenante** | Si está activado, la IA ve qué inició la ejecución: el incidente, la alerta o el evento de mantenimiento vinculado (su descripción, gravedad, estado actual, monitores afectados, causa raíz, historial de estados y notas públicas), o quién ejecutó el runbook a mano. |
 
 Para mantener a una persona en el circuito, activa **Requerir aprobación** en el paso que sigue a un paso de IA: la IA analiza, alguien lee su respuesta y el paso de remediación solo se ejecuta cuando esa persona lo aprueba.
 

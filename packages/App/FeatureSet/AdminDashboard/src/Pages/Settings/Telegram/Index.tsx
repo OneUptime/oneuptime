@@ -186,6 +186,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               title: "Bot Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -194,6 +195,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               title: "Bot Username",
               fieldType: FieldType.Text,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -202,6 +204,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               title: "Poll Telegram for Messages",
               fieldType: FieldType.Boolean,
               placeholder: t("common.notEnabled"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -210,6 +213,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               title: "Webhook Secret Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
               showIf: (item: GlobalConfig): boolean => {
                 return !item.telegramPollForUpdates;
               },
