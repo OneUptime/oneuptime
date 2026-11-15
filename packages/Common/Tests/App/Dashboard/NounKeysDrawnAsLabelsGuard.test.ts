@@ -295,9 +295,6 @@ const SITES: Readonly<Record<string, NounSite>> = {
   "packages/Common/Types/AI/AiAffectedResources.ts": {
     inSentence: "How the AI's affected resources are named in its sentences.",
   },
-  "packages/Common/Types/AI/ResourceAiAccessPermissions.ts": {
-    inEnglish: "The server's sentences about a resource's AI access.",
-  },
   "packages/Common/Types/AutoRemediation/RemediationRoundName.ts": {
     inSentence: 'A round\'s name: "AI remediation for {{kind}} "{{name}}"".',
   },
