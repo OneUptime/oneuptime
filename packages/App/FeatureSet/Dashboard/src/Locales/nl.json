@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}}d",
   "{{count}}h": "{{count}}u",
   "{{count}}m": "{{count}}m",
+  "{{count}}mo": "{{count}} mnd",
+  "{{count}}y": "{{count}} jr",
   "{{target}}% of the time": "{{target}}% van de tijd",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "Een alleen-lezen query op de database van de tabel die één getal teruggeeft, met de naam value. Ze draait in een alleen-lezen transactie met een time-out.",
   "Absolute": "Absoluut",

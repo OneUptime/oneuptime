@@ -653,7 +653,13 @@ work out, starts from a default for everything else, and folds what most people 
   hours, days, each language's own short unit), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min`
   by hand: a Persian row read "1.25 s" under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and its
   tooltip write it so too; only the AI chat's PDF export writes it in English
-  (`formatMillisecondsInEnglish`). Enforced by
+  (`formatMillisecondsInEnglish`). A compact duration ("12s", "4m 05s", "2d 5h", "3mo") is
+  `formatCompactDuration`, and an age ("5m ago") `formatCompactDurationAgo`: the Dashboard's compact
+  keys, worded by every language, each figure in the reader's digits ("۴ دقیقه ۰۵ ثانیه"), never
+  `${diffSec}s`, `${minutes}m ${rest}s` or `{minutes}m {seconds}s` by hand - a Kubernetes object's
+  age, an uptime and an SLA's countdown read English letters and Latin digits on every page
+  (#8455). A token the code parses back or a file's name keeps its compact English, listed with its
+  reason. Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as

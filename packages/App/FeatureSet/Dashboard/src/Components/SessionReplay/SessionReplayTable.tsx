@@ -1526,7 +1526,7 @@ function getSessionReplayCells(
     </div>,
     <div key="2" className="grid grid-cols-1">
       <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
-        {formatSessionDuration(row.durationMs)}
+        {formatSessionDuration(row.durationMs, translator)}
       </div>
       <div
         className={`mt-0.5 text-xs text-gray-500 ${SESSION_REPLAY_CELL_LINE_CLASS_NAME}`}
@@ -2557,9 +2557,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               triggerReason: SessionReplayTriggerReason.Performance,
             }
           : advancedFilters,
-        { hideIdentity: isIdentityFilterIgnored, hideSearch: true },
+        {
+          hideIdentity: isIdentityFilterIgnored,
+          hideSearch: true,
+          translator: translator,
+        },
       );
-    }, [advancedFilters, isIdentityFilterIgnored, signal]);
+    }, [advancedFilters, isIdentityFilterIgnored, signal, translator]);
 
   const removeChip: (field: keyof SessionReplayAdvancedFilters) => void =
     useCallback(

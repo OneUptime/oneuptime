@@ -41926,6 +41926,8 @@
   "{{count}}d": "{{count}} g",
   "{{count}}h": "{{count}} h",
   "{{count}}m": "{{count}} min",
+  "{{count}}mo": "{{count}} mesi",
+  "{{count}}y": "{{count}} anni",
   "{{target}}% of the time": "{{target}}% del tempo",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "Una query in sola lettura sul database della tabella che restituisce un numero, chiamato value. Viene eseguita in una transazione di sola lettura con un timeout.",
   "Absolute": "Assoluta",
