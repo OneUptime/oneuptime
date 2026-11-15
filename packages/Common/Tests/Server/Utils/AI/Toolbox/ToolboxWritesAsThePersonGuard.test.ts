@@ -26,6 +26,10 @@ import { describe, expect, test } from "@jest/globals";
  *      (`props: { ...ctx.props, writeSource: ... }`, issue #6258: the write
  *      is still theirs, and only says Ask AI made it), or is in ALLOWED with
  *      the reason OneUptime makes it itself, after the person's own checks.
+ *      A method that takes its props in order, not in an options object
+ *      (`MonitorService.addOwners(..., ctx.props)`), is passed the person's
+ *      props as an argument of its own; an options object's props still
+ *      decide when it has some.
  *      ALLOWED only shrinks: an entry no call matches fails.
  *   B. Those modules are called through their default export only - never
  *      through a named import, an alias or a method passed around - so the
@@ -36,8 +40,8 @@ import { describe, expect, test } from "@jest/globals";
  *      person (AIToolbox.executeTool) and refused in runs that offer none
  *      (ObservabilityAssistant).
  *   D. Negative controls: the scan finds a root write after a read, a write
- *      with no props, a write in a tool not marked as one, and a call it
- *      could not see.
+ *      with no props, someone else's props passed in order, a write in a
+ *      tool not marked as one, and a call it could not see.
  */
 
 const TOOLBOX_DIRECTORY: string = path.resolve(
@@ -257,20 +261,41 @@ function isReadMethod(receiver: string, method: string): boolean {
   return READ_METHOD.test(method) && !WRITE_IN_A_READ_NAME.test(method);
 }
 
+// `ctx.props`, or `{ ...ctx.props, writeSource: ... }`: the person's own props.
+function isPersonProps(expression: ts.Expression): boolean {
+  return (
+    expression.getText() === PERSON_PROPS ||
+    isPersonPropsWithAttribution(expression)
+  );
+}
+
 function passesPersonProps(call: ts.CallExpression): boolean {
   const options: ts.Expression | undefined = call.arguments[0];
 
-  if (!options || !ts.isObjectLiteralExpression(options)) {
-    return false;
+  // An options object's props decide, when it has some.
+  if (options && ts.isObjectLiteralExpression(options)) {
+    const props: ts.PropertyAssignment | undefined = options.properties.find(
+      (
+        property: ts.ObjectLiteralElement,
+      ): property is ts.PropertyAssignment => {
+        return (
+          ts.isPropertyAssignment(property) &&
+          property.name.getText() === "props"
+        );
+      },
+    );
+
+    if (props) {
+      return isPersonProps(props.initializer);
+    }
   }
 
-  return options.properties.some((property: ts.ObjectLiteralElement) => {
-    return (
-      ts.isPropertyAssignment(property) &&
-      property.name.getText() === "props" &&
-      (property.initializer.getText() === PERSON_PROPS ||
-        isPersonPropsWithAttribution(property.initializer))
-    );
+  /*
+   * A method that takes its props in order (MonitorService.addOwners'
+   * last but one): the person's props, as an argument of their own.
+   */
+  return call.arguments.some((argument: ts.Expression): boolean => {
+    return isPersonProps(argument);
   });
 }
 
@@ -799,6 +824,39 @@ describe("the scan's negative controls", () => {
         return problem.split(":")[1] as string;
       }),
     ).toEqual(["7", "8", "9", "10"]);
+  });
+
+  test("D: takes the person's props passed in order, and no one else's", () => {
+    const result: GuardResult = checkSnippet(
+      'import MonitorService from "../../../Services/MonitorService";\n' +
+        SERVICE_IMPORT +
+        `export const OwnTool: ObservabilityTool = {
+  name: "own_monitor",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, ctx.props);
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, writeSource: WriteSource.AskAi });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { isRoot: true });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false, { ...ctx.props, isRoot: true });
+    await MonitorService.addOwners(ctx.projectId, args.id, [ctx.props.userId], [], false);
+    await IncidentService.updateOneById({ id: args.id, data: { title: "x" }, props: { isRoot: true } }, ctx.props);
+  },
+};
+`,
+    );
+
+    /*
+     * The first two (lines 7 and 8) are the person's. Then someone else's,
+     * the person's with more added, none (their user id is not their props),
+     * and an options object's someone else's beside the person's.
+     */
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["9", "10", "11", "12"]);
+    expect(result.notAMutationTool).toEqual([]);
+    expect(result.unseenCalls).toEqual([]);
   });
 
   test("D: finds a write that passes no props", () => {
