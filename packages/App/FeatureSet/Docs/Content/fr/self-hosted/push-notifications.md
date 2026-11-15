@@ -204,7 +204,7 @@ Un appareil garde le son du système jusqu'à ce qu'il exécute une version de l
 
 ### Répéter une alerte jusqu'à sa prise en compte
 
-Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en compte. Sous **Paramètres utilisateur > Comment me joindre**, réglez **Répéter jusqu'à la prise en compte** en ajoutant une règle push, ou modifiez-le plus tard sur la ligne de la règle : chaque minute, ou toutes les 2, 3, 5, 10, 15 ou 30 minutes. L'alerte est renvoyée à cet intervalle, 10 fois de plus au maximum, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Enregistré par règle dans `UserNotificationRule.repeatEveryMinutes`, où 0, la valeur par défaut, envoie l'alerte une seule fois.
+Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en compte. Sous **Paramètres utilisateur > Comment me joindre**, réglez **Répéter jusqu'à la prise en compte** en ajoutant une règle push, ou modifiez-le plus tard sur la ligne de la règle : chaque minute, ou toutes les 2, 3, 5, 10, 15 ou 30 minutes. L'alerte est renvoyée à cet intervalle, 10 fois de plus au maximum, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Une alerte qui continue après une prise en compte, comme une nouvelle alerte, se répète jusqu'à ce qu'une personne qu'elle a alertée réponde ou que l'incident, l'alerte ou l'épisode soit résolu : [Quand plusieurs politiques alertent](/docs/on-call/policies#quand-plusieurs-politiques-alertent) les liste. Enregistré par règle dans `UserNotificationRule.repeatEveryMinutes`, où 0, la valeur par défaut, envoie l'alerte une seule fois.
 
 ## Dépannage
 

@@ -1,5 +1,6 @@
 import { readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
+import { expectPushRepeatPastAcknowledgement } from "./PushRepeatPastAcknowledgement";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -2006,6 +2007,19 @@ describe("Push Notifications: the alarm sound and repeating a page, against the 
     expect(page).toContain(
       `It is stored per rule in \`UserNotificationRule.repeatEveryMinutes\`, where ${NO_NOTIFICATION_REPEAT}, the default, sends the page once.`,
     );
+  });
+
+  /*
+   * A page that goes on after an acknowledgement - a page again, a page to
+   * observers, a person's page, a policy started by hand - repeats its push
+   * on too, until somebody it paged answers it or its record is resolved
+   * (#7840): the page says so, by the worker's rule.
+   */
+  it("says a page that goes on after an acknowledgement repeats until somebody it paged answers it, as the worker sends it", () => {
+    expectPushRepeatPastAcknowledgement({
+      page: page,
+      stopsLine: `The page is sent again at that interval, up to ${MAX_NOTIFICATION_REPEATS} more times, and stops as soon as the incident, alert or episode is acknowledged.`,
+    });
   });
 
   it("names the field as the On-Call Rules form titles it on a new push rule, changed later from the rule's row", () => {

@@ -456,6 +456,12 @@ export default class PushNotificationUtil {
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
     /*
+     * An on-call policy a person started by hand (OnCallPolicyStartedByHand):
+     * says who started which policy, and the message they wrote, instead of
+     * "A new alert episode has been created".
+     */
+    personPage?: OnCallPersonPageNotice | undefined;
+    /*
      * An observer's page (OnCallObserverPage): says they are kept informed
      * while the people responding stay on it.
      */
@@ -487,6 +493,31 @@ export default class PushNotificationUtil {
         recordTitle: alertEpisodeTitle,
         projectName: projectName,
         kind: "alert episode",
+        viewLink: alertEpisodeViewLink,
+        tag: "alert-episode-created",
+        translator: translator,
+        data: {
+          type: "alert-episode-created",
+          entityType: "alert-episode",
+          entityId: alertEpisodeId,
+          projectId: projectId,
+          alertEpisodeTitle: alertEpisodeTitle,
+          projectName: projectName,
+          url: alertEpisodeViewLink,
+        },
+      });
+    }
+
+    if (params.personPage && !params.pageAgain) {
+      return PushNotificationUtil.getPersonPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.AlertEpisode,
+          displayNumber,
+        ),
+        recordTitle: alertEpisodeTitle,
+        projectName: projectName,
+        notice: params.personPage,
         viewLink: alertEpisodeViewLink,
         tag: "alert-episode-created",
         translator: translator,
@@ -540,6 +571,12 @@ export default class PushNotificationUtil {
     // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
     pageAgain?: OnCallPageAgainNotice | undefined;
     /*
+     * An on-call policy a person started by hand (OnCallPolicyStartedByHand):
+     * says who started which policy, and the message they wrote, instead of
+     * "A new incident episode has been created".
+     */
+    personPage?: OnCallPersonPageNotice | undefined;
+    /*
      * An observer's page (OnCallObserverPage): says they are kept informed
      * while the people responding stay on it.
      */
@@ -571,6 +608,31 @@ export default class PushNotificationUtil {
         recordTitle: incidentEpisodeTitle,
         projectName: projectName,
         kind: "incident episode",
+        viewLink: incidentEpisodeViewLink,
+        tag: "incident-episode-created",
+        translator: translator,
+        data: {
+          type: "incident-episode-created",
+          entityType: "incident-episode",
+          entityId: incidentEpisodeId,
+          projectId: projectId,
+          incidentEpisodeTitle: incidentEpisodeTitle,
+          projectName: projectName,
+          url: incidentEpisodeViewLink,
+        },
+      });
+    }
+
+    if (params.personPage && !params.pageAgain) {
+      return PushNotificationUtil.getPersonPageNotification({
+        recordLabel: getOnCallPageRecordLabel(
+          translator,
+          OnCallPageKind.IncidentEpisode,
+          displayNumber,
+        ),
+        recordTitle: incidentEpisodeTitle,
+        projectName: projectName,
+        notice: params.personPage,
         viewLink: incidentEpisodeViewLink,
         tag: "incident-episode-created",
         translator: translator,

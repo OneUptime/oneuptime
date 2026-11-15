@@ -660,7 +660,11 @@ then `npm run i18n:validate` from the root.
   as "Resolved", "Operational" or "Critical Incident", are OneUptime's words, read in the reader's
   language. A badge or an option that draws a record's name takes `isRecordNameAsWritten` or
   `translateRecordName` from `Common/Utils/DefaultRecordNames`, which know those names list by list.
-  Enforced by
+  A status page, an on-call page and a status page's messages decide by the same rule, each handed
+  its record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
+  status page and in its emails, because Degraded is a default monitor status, while the Dashboard
+  drew it as written. Enforced by
+  [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
   [RecordNamesReadAsWrittenInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInSpanish.test.tsx),
   [RecordNamesInPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInPickersInSpanish.test.tsx)

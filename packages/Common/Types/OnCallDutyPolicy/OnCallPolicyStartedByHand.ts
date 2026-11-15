@@ -32,6 +32,15 @@ import { OnCallTestPageRun, isOnCallTestPage } from "./OnCallTestPage";
  * Acknowledge on its record - acknowledges the record too when nobody has
  * yet, and stops the policy for everybody it paged.
  *
+ * IT SAYS WHO STARTED IT, AND CARRIES THEIR MESSAGE. Every notification it
+ * sends - a call, a text, a push and its repeats, an email, Telegram, a
+ * Slack, Microsoft Teams or Mattermost message - says who started which
+ * policy and the level that pages this person ("Alice Kim started Database
+ * escalation"), never that the record "has been created", and carries what
+ * a page that names the policy wrote (pageMessage): the notice
+ * OnCallPersonPage words, read by UserNotificationRuleService
+ * (https://github.com/OneUptime/oneuptime/issues/7838).
+ *
  * None of these is one: a run OneUptime started (no person), one a workflow
  * started, a page again (OnCallAcknowledgementTimeout), an observer's page
  * (OnCallObserverPage), which has a rule of its own, and a test page

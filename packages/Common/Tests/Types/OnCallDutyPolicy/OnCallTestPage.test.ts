@@ -27,6 +27,7 @@ import {
   getOnCallTestPagePersonTooSoonMessage,
   getOnCallTestPagePolicyTooSoonMessage,
   getOnCallTestPageRuleType,
+  getOnCallTestPageSeverityList,
   getOnCallTestPageWalkStart,
   hasOnCallTestPageAnswerWindowPassed,
   isOnCallTestPage,
@@ -36,6 +37,10 @@ import {
   sortRulesAsAPageReachesThem,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
+import { getOnCallPageStateName } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
+import { Translator } from "../../../Types/Translator";
+import { getServerTranslator } from "../../../Server/Utils/ServerTranslation";
+import { StateListType } from "../../../Utils/StateOrder";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import {
   ProjectNotificationChannel,
@@ -90,6 +95,33 @@ describe("what a test page is", () => {
     expect(getOnCallTestPageRuleType(OnCallTestPageRecordKind.Alert)).toBe(
       NotificationRuleType.ON_CALL_EXECUTED_ALERT,
     );
+  });
+
+  test("its severity is named against that kind's severities (#8066)", () => {
+    expect(
+      getOnCallTestPageSeverityList(OnCallTestPageRecordKind.Incident),
+    ).toBe(StateListType.IncidentSeverity);
+    expect(getOnCallTestPageSeverityList(OnCallTestPageRecordKind.Alert)).toBe(
+      StateListType.AlertSeverity,
+    );
+
+    const german: Translator = getServerTranslator("de");
+
+    // An incident severity named High is the project's; an alert's is OneUptime's.
+    expect(
+      getOnCallPageStateName(
+        german,
+        getOnCallTestPageSeverityList(OnCallTestPageRecordKind.Incident),
+        "High",
+      ),
+    ).toBe("High");
+    expect(
+      getOnCallPageStateName(
+        german,
+        getOnCallTestPageSeverityList(OnCallTestPageRecordKind.Alert),
+        "High",
+      ),
+    ).toBe("Hoch");
   });
 });
 
