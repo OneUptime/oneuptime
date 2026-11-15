@@ -10,7 +10,7 @@
 - [OpenStack-Helm](#openstack-helm): Atmosphere도 같은 방식으로, 프로브와 Kubernetes 에이전트.
 - [Canonical Sunbeam](#canonical-sunbeam): Canonical Observability Stack.
 - [Red Hat OpenStack on OpenShift](#red-hat-openstack-on-openshift): OpenShift 프리셋과 Ceilometer.
-- [Mirantis MOSK](#mirantis-mosk): StackLight의 알림.
+- [Mirantis MOSK](#mirantis-mosk): StackLight의 경고.
 - [이미 실행 중인 익스포터 사용](#이미-실행-중인-익스포터-사용): 1.7.0에서 페이지에 나타나지 않는 항목.
 :::
 
@@ -36,12 +36,12 @@
 
 ## 이미 발생 중인 알림 전달
 
-Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 알림이 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 알림이 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
+Alertmanager가 있는 도구라면 지금 바로 인시던트를 받을 수 있습니다. 발생한 경고가 인시던트가 되어 첫 한 시간부터 온콜과 상태 페이지를 사용할 수 있고, 경고가 해결되면 인시던트도 해결됩니다. 설치할 것이 없으며 이 페이지의 다른 모든 것과 함께 작동합니다.
 
 :::steps
 ### 모니터 만들기
 
-[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-알림-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
+[Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#모니터로-경고-받기)의 안내대로 Incoming Request 모니터를 만들고 **Heartbeat URL**을 복사합니다. 이것이 아래 각 도구의 리시버에 있는 `<secret key>` 주소입니다.
 
 ### 클라우드에 연결하기
 
@@ -52,7 +52,7 @@ Kolla-Ansible가 고정한 버전의 Alertmanager가 정확히 이 형태로 전
 
 ## Kolla-Ansible
 
-`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 알림 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
+`/etc/kolla/globals.yml`에서 `enable_prometheus`를 켜면(설정하기 전에는 Kolla-Ansible가 꺼 둡니다) Prometheus, Alertmanager, 클라우드 아래 각 구성 요소의 익스포터가 실행되며 경고 규칙은 제공되지 않습니다. 이 가이드는 두 번째 사본을 시작하는 대신 이미 실행 중인 것을 읽습니다.
 
 ### Kolla-Ansible에서 발생 중인 알림 전달
 
@@ -323,11 +323,11 @@ conf:
 
 ## Atmosphere
 
-Atmosphere는 자체 알림 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
+Atmosphere는 자체 경고 규칙이 있는 kube-prometheus-stack을 실행하고, 로그에는 Vector가 있는 Loki를 사용합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽고 Kubernetes 에이전트가 파드를 봅니다.
 
 ### Atmosphere에서 발생 중인 알림 전달
 
-Atmosphere는 실제 사람을 호출해 본 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
+Atmosphere는 실제 사람을 호출해 본 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. 이미 사용 중인 리시버 옆에 Atmosphere 설정에 리시버를 추가하고 배포하세요.
 
 ```yaml title="Atmosphere configuration"
 kube_prometheus_stack_helm_values:
@@ -503,11 +503,11 @@ spec:
 
 ## Mirantis MOSK
 
-StackLight는 이미 자체 알림 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 알림을 전달하고, 이어서 프로브가 API를 읽습니다.
+StackLight는 이미 자체 경고 규칙으로 OpenStack 서비스, MariaDB, Memcached, RabbitMQ, libvirt를 감시합니다. 먼저 경고를 전달하고, 이어서 프로브가 API를 읽습니다.
 
 ### Mirantis MOSK에서 발생 중인 알림 전달
 
-StackLight는 알림 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
+StackLight는 경고 규칙을 제공하므로 첫 한 시간부터 작동합니다. StackLight values에 리시버와 라우트를 추가하세요. Mirantis의 문서는 웹훅이 아니라 다른 리시버를 보여 주며, 이 설정은 MOSK에서 실행해 보지 않았습니다.
 
 ```yaml title="StackLight values"
 alertmanagerSimpleConfig:

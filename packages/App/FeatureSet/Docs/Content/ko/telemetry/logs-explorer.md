@@ -215,7 +215,7 @@ OneUptime AI는 수정하는 모든 텔레메트리를 합쳐 하루(UTC)에 스
 
 :::cards
 - [검색 구문](/docs/telemetry/search-syntax): 검색 상자가 이해하는 모든 필터.
-- [로그 모니터](/docs/monitor/logs-monitor): 찾는 로그가 나타나면 알림을 받습니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 찾는 로그가 나타나면 경고를 받습니다.
 - [로그 파이프라인](/docs/telemetry/log-pipelines): 로그 줄의 일부를 필터링할 수 있는 속성으로 바꿉니다.
 - [트레이스 탐색기](/docs/telemetry/traces-explorer): 로그의 요청을 서비스 전체에 걸쳐 따라갑니다.
 :::

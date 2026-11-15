@@ -206,13 +206,13 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 쓰기가 나열하거나 지정하는 레코드
 
-만들기나 변경이 나열하는 레코드(인시던트의 모니터와 온콜 정책, 알림의 서비스, 유지 관리 이벤트의 상태 페이지, 규칙의 Runbook)는 그 종류의 레코드를 읽는 권한이 있으면 그 권한을, 어떤 경우든 그 읽기에 대한 레이블이 있는 차단을 따릅니다. 그 밖의 레코드는 같은 `400`으로 거부됩니다. 변경은 목록에 추가하는 레코드만 확인하므로, 목록에 이미 있는 레코드는 그대로 남습니다.
+만들기나 변경이 나열하는 레코드(인시던트의 모니터와 온콜 정책, 경고의 서비스, 유지 관리 이벤트의 상태 페이지, 규칙의 Runbook)는 그 종류의 레코드를 읽는 권한이 있으면 그 권한을, 어떤 경우든 그 읽기에 대한 레이블이 있는 차단을 따릅니다. 그 밖의 레코드는 같은 `400`으로 거부됩니다. 변경은 목록에 추가하는 레코드만 확인하므로, 목록에 이미 있는 레코드는 그대로 남습니다.
 
-만들기나 변경이 전용 필드에서 지정하는 레코드 하나(알림의 모니터, 상태 페이지 리소스가 보여 주는 모니터, 비용 예산의 서비스, Runbook 실행이 연결되는 인시던트)도 어느 이름으로 보내든 같은 규칙을 따릅니다. 그 종류의 레코드를 읽는 권한 밖의 레코드나, 그 읽기 차단이 빼는 레이블이 있는 레코드는 같은 `400`으로 거부됩니다. 변경은 필드가 이미 가진 것과 다른 레코드를 지정할 때만 확인합니다. 모든 프로젝트가 쓸 수 있는 OneUptime의 전역 프로브와 AI 에이전트는 계속 모든 프로젝트에 열려 있습니다. 템플릿이 대신 채우는 레코드도 채워지는 즉시, 무엇이든 저장되기 전에 같은 방식으로 확인합니다. 인시던트 템플릿이 그 템플릿으로 선언한 인시던트에 추가하는 모니터, 상태 페이지, 온콜 정책은 직접 고른 것처럼 읽을 수 있는 것이어야 합니다.
+만들기나 변경이 전용 필드에서 지정하는 레코드 하나(경고의 모니터, 상태 페이지 리소스가 보여 주는 모니터, 비용 예산의 서비스, Runbook 실행이 연결되는 인시던트)도 어느 이름으로 보내든 같은 규칙을 따릅니다. 그 종류의 레코드를 읽는 권한 밖의 레코드나, 그 읽기 차단이 빼는 레이블이 있는 레코드는 같은 `400`으로 거부됩니다. 변경은 필드가 이미 가진 것과 다른 레코드를 지정할 때만 확인합니다. 모든 프로젝트가 쓸 수 있는 OneUptime의 전역 프로브와 AI 에이전트는 계속 모든 프로젝트에 열려 있습니다. 템플릿이 대신 채우는 레코드도 채워지는 즉시, 무엇이든 저장되기 전에 같은 방식으로 확인합니다. 인시던트 템플릿이 그 템플릿으로 선언한 인시던트에 추가하는 모니터, 상태 페이지, 온콜 정책은 직접 고른 것처럼 읽을 수 있는 것이어야 합니다.
 
 #### 자격 증명을 담은 설정
 
-자격 증명을 담은 설정(SMTP 서버, 통화와 SMS 공급자, SNMP 자격 증명, 화상 통화 연결, API 키, 외부 MCP 서버)은 그 종류의 설정을 읽을 수 있는 호출자만 지정할 수 있습니다. 대상은 상태 페이지의 `smtpConfig`와 `callSmsConfig`, 수신 통화 정책의 `projectCallSMSConfig`, 네트워크 장치나 사이트의 `snmpCredentialProfile`, 인시던트나 알림의 화상 통화 `videoCallConnection`, API 키 권한의 `apiKey`, 그리고 AI 규칙의 `externalMcpServers`입니다. 그 종류의 설정을 읽는 권한 없이, 또는 레이블 없는 차단이 빼는 권한으로 이런 설정을 지정하면, 어느 이름으로든 같은 `400`으로 거부됩니다. 레코드가 이미 지정한 설정을 유지하는 변경은 확인하지 않습니다. 수신 통화 정책의 번호 검색과 보유 번호 목록에도 지정하는 통화와 SMS 구성을 같은 방식으로 읽을 수 있어야 합니다.
+자격 증명을 담은 설정(SMTP 서버, 통화와 SMS 공급자, SNMP 자격 증명, 화상 통화 연결, API 키, 외부 MCP 서버)은 그 종류의 설정을 읽을 수 있는 호출자만 지정할 수 있습니다. 대상은 상태 페이지의 `smtpConfig`와 `callSmsConfig`, 수신 통화 정책의 `projectCallSMSConfig`, 네트워크 장치나 사이트의 `snmpCredentialProfile`, 인시던트나 경고의 화상 통화 `videoCallConnection`, API 키 권한의 `apiKey`, 그리고 AI 규칙의 `externalMcpServers`입니다. 그 종류의 설정을 읽는 권한 없이, 또는 레이블 없는 차단이 빼는 권한으로 이런 설정을 지정하면, 어느 이름으로든 같은 `400`으로 거부됩니다. 레코드가 이미 지정한 설정을 유지하는 변경은 확인하지 않습니다. 수신 통화 정책의 번호 검색과 보유 번호 목록에도 지정하는 통화와 SMS 구성을 같은 방식으로 읽을 수 있어야 합니다.
 
 #### 만들 때의 레이블과 소유자
 
@@ -272,11 +272,11 @@ API 참조는 이 필드들을 읽기 전용으로 표시합니다. 다른 변�
 
 ### 새 레코드가 시작하는 상태
 
-인시던트, 알림, 인시던트 에피소드, 알림 에피소드는 만들기 양식의 **초기 상태** 필드처럼 프로젝트의 어느 상태로든 만들 수 있습니다. `currentIncidentStateId`(인시던트와 인시던트 에피소드)나 `currentAlertStateId`(알림과 알림 에피소드), 또는 관계를 보내세요. 레코드는 그 상태로 시작하고, 상태 타임라인도 그 상태로 시작합니다. 생략하면 `isCreatedState` 플래그가 있는 프로젝트의 생성 상태로 시작하며, 초기 상태가 있는 템플릿으로 선언한 인시던트는 템플릿의 상태로 시작합니다. 다른 프로젝트의 상태는 다른 레코드와 마찬가지로 거부됩니다. Terraform의 `current_incident_state_id`와 `current_alert_state_id`도 같은 방식으로 작동합니다. 인지 상태 또는 그 이후 상태로 만든 레코드는 아무도 호출하지 않으며, 해결된 상태로 만든 레코드는 그룹화, 자동 수정, AI 조사의 대상도 되지 않고 Slack이나 Microsoft Teams 채널도 생기지 않습니다. [이미 인지되었거나 해결된 상태로 선언된 인시던트](/docs/incidents/declaring-incidents#이미-인지되었거나-해결된-상태로-선언된-인시던트)를 참조하세요.
+인시던트, 경고, 인시던트 에피소드, 경고 에피소드는 만들기 양식의 **초기 상태** 필드처럼 프로젝트의 어느 상태로든 만들 수 있습니다. `currentIncidentStateId`(인시던트와 인시던트 에피소드)나 `currentAlertStateId`(경고와 경고 에피소드), 또는 관계를 보내세요. 레코드는 그 상태로 시작하고, 상태 타임라인도 그 상태로 시작합니다. 생략하면 `isCreatedState` 플래그가 있는 프로젝트의 생성 상태로 시작하며, 초기 상태가 있는 템플릿으로 선언한 인시던트는 템플릿의 상태로 시작합니다. 다른 프로젝트의 상태는 다른 레코드와 마찬가지로 거부됩니다. Terraform의 `current_incident_state_id`와 `current_alert_state_id`도 같은 방식으로 작동합니다. 인지 상태 또는 그 이후 상태로 만든 레코드는 아무도 호출하지 않으며, 해결된 상태로 만든 레코드는 그룹화, 자동 수정, AI 조사의 대상도 되지 않고 Slack이나 Microsoft Teams 채널도 생기지 않습니다. [이미 인지되었거나 해결된 상태로 선언된 인시던트](/docs/incidents/declaring-incidents#이미-인지되었거나-해결된-상태로-선언된-인시던트)를 참조하세요.
 
 ### 레코드의 상태 바꾸기
 
-레코드의 상태는 상태 타임라인의 행(`POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline`, `/api/scheduled-maintenance-state-timeline`)으로, 또는 현재 상태(`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, 또는 관계)를 쓰는 업데이트로 바뀌며, 업데이트도 같은 행을 기록합니다. 어느 쪽이든 하나의 규칙이 전환을 지배하며, 에피소드에도 인시던트, 알림, 유지 관리 이벤트와 똑같이 적용됩니다. 프로젝트의 순서에서 레코드의 현재 상태보다 앞에 있는 상태는 무엇이든 저장되기 전에 거부되며, 레코드가 이미 있는 상태도 마찬가지입니다.
+레코드의 상태는 상태 타임라인의 행(`POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline`, `/api/scheduled-maintenance-state-timeline`)으로, 또는 현재 상태(`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, 또는 관계)를 쓰는 업데이트로 바뀌며, 업데이트도 같은 행을 기록합니다. 어느 쪽이든 하나의 규칙이 전환을 지배하며, 에피소드에도 인시던트, 경고, 유지 관리 이벤트와 똑같이 적용됩니다. 프로젝트의 순서에서 레코드의 현재 상태보다 앞에 있는 상태는 무엇이든 저장되기 전에 거부되며, 레코드가 이미 있는 상태도 마찬가지입니다.
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.
@@ -284,9 +284,9 @@ Episode cannot transition to Acknowledged state from Resolved state because Ackn
 
 실수로 설정한 상태는 레코드의 상태 타임라인에서 해당 행을 삭제해 바로잡습니다. [순서는 표시 취향이 아니라 실제 제약입니다](/docs/incidents/states-and-severities#순서는-표시-취향이-아니라-실제-제약입니다)를 참조하세요.
 
-### 인시던트나 알림이 속한 에피소드
+### 인시던트나 경고가 속한 에피소드
 
-인시던트의 `incidentEpisodeId`와 알림의 `alertEpisodeId`(그리고 그 관계인 `incidentEpisode`와 `alertEpisode`)는 레코드가 마지막으로 추가되어 아직 구성원으로 있는 에피소드를 지정하거나, 아무것도 지정하지 않습니다. 이 필드들은 읽기 전용이며, OneUptime이 에피소드의 구성원으로부터 설정합니다. 인시던트를 에피소드에 넣으려면 Incident Episode Member를 만드세요(`incidentEpisodeId`와 `incidentId`를 지정한 `POST /api/incident-episode-member`). 빼려면 그 구성원을 삭제하며, 그러면 인시던트는 아직 속한 최신 에피소드를 지정하거나 아무것도 지정하지 않습니다. 알림도 Alert Episode Members(`alertEpisodeId`와 `alertId`를 지정한 `/api/alert-episode-member`)를 통해 같은 방식으로 작동합니다. 그룹화 규칙도 같은 방식으로 인시던트와 알림을 에피소드에 추가합니다. 에피소드를 보내는 인시던트나 알림의 만들기나 업데이트는 API, Terraform, MCP 도구, 워크플로 중 누가 보내든 거부됩니다. Terraform에서 `incident_episode_id`와 `alert_episode_id`는 읽을 수 있지만 설정할 수는 없으며, 구성원 자격은 `oneuptime_incident_episode_member`와 `oneuptime_alert_episode_member` 리소스로 관리합니다.
+인시던트의 `incidentEpisodeId`와 경고의 `alertEpisodeId`(그리고 그 관계인 `incidentEpisode`와 `alertEpisode`)는 레코드가 마지막으로 추가되어 아직 구성원으로 있는 에피소드를 지정하거나, 아무것도 지정하지 않습니다. 이 필드들은 읽기 전용이며, OneUptime이 에피소드의 구성원으로부터 설정합니다. 인시던트를 에피소드에 넣으려면 Incident Episode Member를 만드세요(`incidentEpisodeId`와 `incidentId`를 지정한 `POST /api/incident-episode-member`). 빼려면 그 구성원을 삭제하며, 그러면 인시던트는 아직 속한 최신 에피소드를 지정하거나 아무것도 지정하지 않습니다. 경고도 Alert Episode Members(`alertEpisodeId`와 `alertId`를 지정한 `/api/alert-episode-member`)를 통해 같은 방식으로 작동합니다. 그룹화 규칙도 같은 방식으로 인시던트와 경고를 에피소드에 추가합니다. 에피소드를 보내는 인시던트나 경고의 만들기나 업데이트는 API, Terraform, MCP 도구, 워크플로 중 누가 보내든 거부됩니다. Terraform에서 `incident_episode_id`와 `alert_episode_id`는 읽을 수 있지만 설정할 수는 없으며, 구성원 자격은 `oneuptime_incident_episode_member`와 `oneuptime_alert_episode_member` 리소스로 관리합니다.
 
 ## 요청이 닿는 범위
 

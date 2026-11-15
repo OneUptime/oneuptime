@@ -103,7 +103,7 @@ Terraform으로 관리하려는 모니터, 상태 페이지 또는 다른 리소
 | `oneuptime_team`, `oneuptime_team_member` | 팀과 그 구성원 |
 | `oneuptime_on_call_policy`, `oneuptime_escalation_rule` | 온콜 정책과, 정책이 순서대로 호출하는 규칙 |
 | `oneuptime_incident`, `oneuptime_incident_severity`, `oneuptime_incident_state` | 인시던트와 그 심각도 및 상태 |
-| `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | 알림과 그 심각도 및 상태 |
+| `oneuptime_alert`, `oneuptime_alert_severity`, `oneuptime_alert_state` | 경고와 그 심각도 및 상태 |
 | `oneuptime_scheduled_maintenance_event` | 예정된 유지 관리 기간 |
 | `oneuptime_probe` | 여러분의 네트워크에서 확인하는 자체 프로브 |
 
@@ -161,7 +161,7 @@ moved {
 
 다음 두 종류의 값은 서버의 것이므로 쓰지 않습니다.
 
-- **리소스 내부의 ID.** 모니터의 단계와 기준, 그리고 그 인시던트 및 알림 템플릿에는 서버가 부여하고 모든 apply에서 유지하는 ID가 있습니다. 그래서 인시던트는 자신을 연 기준을 계속 가리킵니다.
+- **리소스 내부의 ID.** 모니터의 단계와 기준, 그리고 그 인시던트 및 경고 템플릿에는 서버가 부여하고 모든 apply에서 유지하는 ID가 있습니다. 그래서 인시던트는 자신을 연 기준을 계속 가리킵니다.
 - **서버가 최신으로 유지하는 것.** 모니터의 현재 상태나 마지막으로 heartbeat를 받은 시각은 `terraform plan`과 `terraform apply`가 끝나는 사이에 바뀔 수 있습니다. 프로바이더는 여러분이 설정하지 않은 모든 것에 대해 계획된 값을 유지하고, 다음 refresh에서 서버의 값을 읽습니다. 그래서 이 때문에 apply가 실패하거나 변경으로 표시되는 일은 없습니다.
 
 ## 도움 받기

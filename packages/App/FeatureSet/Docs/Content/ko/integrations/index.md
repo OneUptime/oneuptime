@@ -1,6 +1,6 @@
 # 통합 개요
 
-OneUptime은 팀이 이미 사용하는 도구와 함께 작동합니다. 알림 도구는 OneUptime에 인시던트를 만들고, OneUptime은 다른 도구에 티켓, 온콜 호출, 채팅 메시지를 만듭니다. 어떤 도구는 양식으로 연결하고, 어떤 도구는 미리 만들어진 워크플로 템플릿으로 연결합니다. 웹훅이나 API가 있는 그 밖의 도구는 직접 만드는 워크플로로 연결합니다.
+OneUptime은 팀이 이미 사용하는 도구와 함께 작동합니다. 경고 도구는 OneUptime에 인시던트를 만들고, OneUptime은 다른 도구에 티켓, 온콜 호출, 채팅 메시지를 만듭니다. 어떤 도구는 양식으로 연결하고, 어떤 도구는 미리 만들어진 워크플로 템플릿으로 연결합니다. 웹훅이나 API가 있는 그 밖의 도구는 직접 만드는 워크플로로 연결합니다.
 
 :::cards
 - [연결 방법 선택](#연결-방법-선택): 네 가지 연결 방법과 각각을 사용할 때.
@@ -11,11 +11,11 @@ OneUptime은 팀이 이미 사용하는 도구와 함께 작동합니다. 알림
 
 ## 통합의 작동 방식
 
-모든 통합은 데이터를 한 방향 또는 양방향으로 옮깁니다. **인바운드**에서는 다른 도구가 OneUptime에 문제가 있다고 알리고, OneUptime이 인시던트나 알림을 만들어 온콜 팀을 호출합니다. **아웃바운드**에서는 OneUptime에서 무언가가 일어나면 워크플로가 다른 도구에 알려 티켓을 만들거나, 누군가를 호출하거나, 메시지를 게시합니다.
+모든 통합은 데이터를 한 방향 또는 양방향으로 옮깁니다. **인바운드**에서는 다른 도구가 OneUptime에 문제가 있다고 알리고, OneUptime이 인시던트나 경고를 만들어 온콜 팀을 호출합니다. **아웃바운드**에서는 OneUptime에서 무언가가 일어나면 워크플로가 다른 도구에 알려 티켓을 만들거나, 누군가를 호출하거나, 메시지를 게시합니다.
 
 ```mermaid title="인바운드와 아웃바운드"
 flowchart TB
-    tool["알림 도구 또는<br/>보안 도구"] -->|"인바운드"| record["인시던트 또는 알림,<br/>온콜 호출"]
+    tool["경고 도구 또는<br/>보안 도구"] -->|"인바운드"| record["인시던트 또는 경고,<br/>온콜 호출"]
     record -->|"아웃바운드"| workflow["워크플로, 예:<br/>On Create Incident"]
     workflow -->|"API 호출<br/>또는 메시지"| other["티켓, 호출,<br/>채팅 도구"]
     other -.->|"웹훅으로 회신"| record
@@ -29,22 +29,22 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | --- | --- | --- |
 | 기본 제공 연결 | OneUptime이 직접 연결하는 도구. 양식만 채우면 되고 만들 것은 없습니다. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [보안 이벤트](/docs/telemetry/security-events) 연결 |
 | 워크플로 템플릿 | 양방향으로 동기화되는 티켓 도구, 모니터링 문제, 보안 인시던트 보고서, 채팅 메시지. 템플릿을 고르고 설정 몇 가지를 채웁니다. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| 수신 요청 모니터 | 웹훅을 보내는 알림 도구. 워크플로 없이 알림마다 인시던트가 하나씩 만들어지고, 온콜에 전달되며, 알림이 복구되면 해결됩니다. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| 수신 요청 모니터 | 웹훅을 보내는 경고 도구. 워크플로 없이 경고마다 인시던트가 하나씩 만들어지고, 온콜에 전달되며, 경고가 복구되면 해결됩니다. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | 직접 만드는 워크플로 | 웹훅이나 REST API가 있는 모든 도구와 모든 자체 로직. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 표의 위쪽부터 검토하세요. 위에 있는 방법일수록 유지 관리할 것이 적습니다.
 
 ## 카탈로그
 
-### 모니터링 및 알림 도구
+### 모니터링 및 경고 도구
 
 | 도구 | 방향 | 하는 일 |
 | --- | --- | --- |
-| [Zabbix](/docs/integrations/zabbix) | 양방향 | Zabbix 문제를 인시던트나 알림으로 만들고, 복구되면 해결하며, OneUptime에서 문제를 확인하거나 닫습니다. |
+| [Zabbix](/docs/integrations/zabbix) | 양방향 | Zabbix 문제를 인시던트나 경고로 만들고, 복구되면 해결하며, OneUptime에서 문제를 확인하거나 닫습니다. |
 | [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) | 인바운드 | Alertmanager 알림을 인시던트로 만듭니다. |
-| [Grafana](/docs/integrations/grafana) | 인바운드 | Grafana 알림을 인시던트로 만듭니다. |
-| [Datadog](/docs/integrations/datadog) | 인바운드 | Datadog 모니터 알림을 인시던트나 알림으로 만들고, 복구되면 해결합니다. |
-| [New Relic](/docs/integrations/new-relic) | 인바운드 | New Relic 이슈를 인시던트나 알림으로 만들고, 이슈가 닫히면 해결합니다. |
+| [Grafana](/docs/integrations/grafana) | 인바운드 | Grafana 경고를 인시던트로 만듭니다. |
+| [Datadog](/docs/integrations/datadog) | 인바운드 | Datadog 모니터 경고를 인시던트나 경고로 만들고, 복구되면 해결합니다. |
+| [New Relic](/docs/integrations/new-relic) | 인바운드 | New Relic 이슈를 인시던트나 경고로 만들고, 이슈가 닫히면 해결합니다. |
 
 ### 보안 도구
 
@@ -53,10 +53,10 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Huntress](/docs/integrations/huntress) | 인바운드 | Huntress 인시던트 보고서로 온콜을 호출하고, 보고서가 닫히면 인시던트를 해결합니다. |
 | [Google SecOps](/docs/integrations/google-secops) | 양방향 | Google SecOps 탐지와 지표를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Google SecOps로 보냅니다. |
 | [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 양방향 | Microsoft Sentinel 인시던트를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Microsoft Sentinel로 보냅니다. |
-| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | 인바운드 | Microsoft Defender XDR 알림을 보안 이벤트로 가져옵니다. |
-| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | 인바운드 | CrowdStrike Falcon 알림을 보안 이벤트로 가져옵니다. |
+| [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | 인바운드 | Microsoft Defender XDR 경고를 보안 이벤트로 가져옵니다. |
+| [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | 인바운드 | CrowdStrike Falcon 경고를 보안 이벤트로 가져옵니다. |
 | [Splunk Enterprise Security](/docs/integrations/splunk) | 양방향 | Splunk notable event를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Splunk로 보냅니다. |
-| [Elastic Security](/docs/integrations/elastic-security) | 양방향 | Elastic Security 탐지 알림을 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Elastic Security로 보냅니다. |
+| [Elastic Security](/docs/integrations/elastic-security) | 양방향 | Elastic Security 탐지 경고를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Elastic Security로 보냅니다. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 인바운드 | AWS Security Hub 검색 결과를 보안 이벤트로 가져옵니다. |
 | [Okta System Log](/docs/integrations/okta) | 인바운드 | Okta 로그인, 계정 변경, 위협 탐지를 보안 이벤트로 가져옵니다. |
 | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) | 인바운드 | Microsoft Entra ID 로그인과 디렉터리 변경, Microsoft 365 감사 로그를 보안 이벤트로 가져옵니다. |
@@ -66,8 +66,8 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 | 도구 | 방향 | 하는 일 |
 | --- | --- | --- |
-| [Jira](/docs/integrations/jira) | 양방향 | 인시던트나 알림마다 Jira 이슈를 만들고, 상태 변경과 댓글을 다시 가져옵니다. |
-| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | 양방향 | 인시던트나 알림마다 Dynamics 365 사례를 만들고, 상태 변경과 노트를 다시 가져옵니다. |
+| [Jira](/docs/integrations/jira) | 양방향 | 인시던트나 경고마다 Jira 이슈를 만들고, 상태 변경과 댓글을 다시 가져옵니다. |
+| [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365) | 양방향 | 인시던트나 경고마다 Dynamics 365 사례를 만들고, 상태 변경과 노트를 다시 가져옵니다. |
 | [ServiceNow](/docs/integrations/servicenow) | 아웃바운드 | OneUptime 인시던트마다 ServiceNow 인시던트를 만들고, 인시던트와 함께 해결합니다. |
 | [GitHub](/docs/integrations/github) | 아웃바운드 | 인시던트에 대한 GitHub 이슈를 만듭니다. |
 | [GitLab](/docs/integrations/gitlab) | 아웃바운드 | 인시던트에 대한 GitLab 이슈를 만듭니다. |
@@ -77,7 +77,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | 도구 | 방향 | 하는 일 |
 | --- | --- | --- |
 | [PagerDuty](/docs/integrations/pagerduty) | 아웃바운드 | OneUptime 인시던트마다 PagerDuty 인시던트를 트리거하고, 인시던트와 함께 해결합니다. |
-| [Opsgenie](/docs/integrations/opsgenie) | 아웃바운드 | OneUptime 인시던트마다 Opsgenie 알림을 만들고, 인시던트와 함께 닫습니다. |
+| [Opsgenie](/docs/integrations/opsgenie) | 아웃바운드 | OneUptime 인시던트마다 Opsgenie 경고를 만들고, 인시던트와 함께 닫습니다. |
 
 ### 채팅 도구
 
@@ -87,7 +87,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | [Microsoft Teams](/docs/workspace-connections/microsoft-teams) | 양방향 | 기본 제공 연결: 인시던트 채널, Teams에서의 작업, 온콜. |
 | [Mattermost](/docs/workflows/components#mattermost) | 아웃바운드 | 인시던트 업데이트를 Mattermost 채널에 게시합니다. |
 | [Discord](/docs/integrations/discord) | 아웃바운드 | 인시던트 업데이트를 Discord 채널에 게시합니다. |
-| [Telegram](/docs/integrations/telegram) | 아웃바운드 | 알림이 발생하면 Telegram 채팅으로 메시지를 보냅니다. |
+| [Telegram](/docs/integrations/telegram) | 아웃바운드 | 경고가 발생하면 Telegram 채팅으로 메시지를 보냅니다. |
 | [IRC](/docs/integrations/irc) | 아웃바운드 | 인시던트 업데이트를 IRC 채널에 게시합니다. |
 
 > [!TIP]
@@ -112,7 +112,7 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 
 ### 인바운드: 다른 도구가 OneUptime으로 데이터를 보냄
 
-알림 도구라면 먼저 [수신 요청 모니터](/docs/monitor/incoming-request-monitor#다른-시스템의-알림-수신)로 시작하세요. 알림마다 인시던트를 하나씩 만들고 복구되면 해결하므로 만들 것이 없습니다. 자체 로직이 필요할 때 워크플로를 만드세요:
+경고 도구라면 먼저 [수신 요청 모니터](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)로 시작하세요. 경고마다 인시던트를 하나씩 만들고 복구되면 해결하므로 만들 것이 없습니다. 자체 로직이 필요할 때 워크플로를 만드세요:
 
 :::steps
 1. **워크플로**를 열고 **워크플로 생성**을 클릭한 다음 **처음부터 시작**을 클릭합니다. 워크플로 이름을 정하고 **워크플로 생성**을 클릭합니다.
@@ -181,7 +181,7 @@ printf '%s' 'you@example.com:your_api_token' | base64 | tr -d '\n'
 
 :::cards
 - [워크플로우 개요](/docs/workflows/index): 워크플로가 실행되는 방식과 첫 워크플로를 만드는 방법.
-- [수신 요청 모니터](/docs/monitor/incoming-request-monitor): 워크플로 없이 모든 도구에서 알림을 받습니다.
+- [수신 요청 모니터](/docs/monitor/incoming-request-monitor): 워크플로 없이 모든 도구에서 경고를 받습니다.
 - [Jira](/docs/integrations/jira): 템플릿으로 만드는 완전한 양방향 통합.
 - [워크플로우 변수](/docs/workflows/variables): 블록 간에 데이터를 전달하고, 시크릿은 블록 밖에 둡니다.
 :::

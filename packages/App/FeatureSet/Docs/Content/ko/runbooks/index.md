@@ -1,10 +1,10 @@
 # Runbook 개요
 
-Runbook은 재사용할 수 있는 대응 절차입니다. 인시던트, 알림 또는 유지 관리 이벤트에서 실행하는 수동 단계와 자동 단계의 순서 있는 목록입니다. "이제 뭘 해야 하지?"라는 대화를 온콜 담당자 누구나 새벽 3시에 따라 할 수 있는 체크리스트로 바꾸며, 스크립트, API 호출, 승인은 이미 작성되어 있습니다. Runbook은 인시던트에 대응하는 온콜 엔지니어와 그 대응을 자동화하는 플랫폼 팀을 위한 기능입니다. Runbook, 워크플로, 플레이북, AI 규칙 중에서 고르려면 [무엇을 써야 할까요?](/docs/introduction/which-one#워크플로-런북-플레이북-또는-ai-규칙)를 참고하세요.
+Runbook은 재사용할 수 있는 대응 절차입니다. 인시던트, 경고 또는 유지 관리 이벤트에서 실행하는 수동 단계와 자동 단계의 순서 있는 목록입니다. "이제 뭘 해야 하지?"라는 대화를 온콜 담당자 누구나 새벽 3시에 따라 할 수 있는 체크리스트로 바꾸며, 스크립트, API 호출, 승인은 이미 작성되어 있습니다. Runbook은 인시던트에 대응하는 온콜 엔지니어와 그 대응을 자동화하는 플랫폼 팀을 위한 기능입니다. Runbook, 워크플로, 플레이북, AI 규칙 중에서 고르려면 [무엇을 써야 할까요?](/docs/introduction/which-one#워크플로-런북-플레이북-또는-ai-규칙)를 참고하세요.
 
 :::cards
 - [Runbook 작성](/docs/runbooks/authoring): Runbook을 만들고 단계를 작성합니다.
-- [Runbook 규칙](/docs/runbooks/rules): 새 인시던트, 알림, 유지 관리 이벤트에서 Runbook을 시작합니다.
+- [Runbook 규칙](/docs/runbooks/rules): 새 인시던트, 경고, 유지 관리 이벤트에서 Runbook을 시작합니다.
 - [Runbook 실행](/docs/runbooks/running): 실행을 시작하고, 단계를 완료하고 승인하고, 실행을 취소합니다.
 - [Runbook 트리거](/docs/runbooks/triggers): 일정에 따라, 또는 다른 도구에서 웹훅 URL로 Runbook을 실행합니다.
 - [Runbook 변수](/docs/runbooks/variables): 단계가 이름으로 사용하는 호스트, 키, 비밀번호, kubeconfig.
@@ -36,7 +36,7 @@ flowchart TB
 
 Runbook을 실행할 때마다 **실행**이 만들어집니다. 실행이 시작되면 Runbook의 단계가 복사되고, OneUptime이 단계를 순서대로 처리합니다. Manual 단계나 승인이 필요한 단계는 누군가 조치할 때까지 실행을 일시 중지합니다.
 
-HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 단계는 자체 인프라에 설치하는 [Runner](/docs/runbooks/agents)에서 실행되므로, 그 스크립트가 OneUptime 서버에서 실행되는 일은 없습니다. JavaScript 단계도 내 Runner 중 하나에서 실행되거나, 아무것도 고르지 않고 프로젝트에 [기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)도 없으면 인터넷에만 접근할 수 있는 샌드박스에서 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 실행됩니다. 각 단계의 상태, 출력, 오류 메시지는 실행에 기록되며, 실행은 대상 인시던트, 알림 또는 이벤트에 남습니다.
+HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 단계는 자체 인프라에 설치하는 [Runner](/docs/runbooks/agents)에서 실행되므로, 그 스크립트가 OneUptime 서버에서 실행되는 일은 없습니다. JavaScript 단계도 내 Runner 중 하나에서 실행되거나, 아무것도 고르지 않고 프로젝트에 [기본 Runner](/docs/runbooks/agents#프로젝트-기본-runner)도 없으면 인터넷에만 접근할 수 있는 샌드박스에서 [글로벌 Runner](/docs/runbooks/agents#글로벌-runner)로 실행됩니다. 각 단계의 상태, 출력, 오류 메시지는 실행에 기록되며, 실행은 대상 인시던트, 경고 또는 이벤트에 남습니다.
 
 ## 핵심 개념
 
@@ -46,7 +46,7 @@ OneUptime 전반에서 쓰는 단어는 [용어집](/docs/introduction/glossary)
 | --- | --- |
 | **Runbook** | 템플릿입니다. 순서 있는 단계 목록과 **이 런북 실행** 스위치를 가진, 이름이 붙은 재사용 가능한 절차입니다. |
 | **단계** | Runbook의 항목 하나입니다. 유형(Manual, JavaScript, HTTP request, Bash, SSH, kubectl, AI), 제목, 설명, 유형별 설정을 가집니다. |
-| **Runbook 규칙** | 조건(모니터, 심각도, 레이블, 모니터 레이블, 제목, 설명)을 만족하는 인시던트, 알림, 유지 관리 이벤트에 하나 이상의 Runbook을 자동으로 연결하는 규칙입니다. |
+| **Runbook 규칙** | 조건(모니터, 심각도, 레이블, 모니터 레이블, 제목, 설명)을 만족하는 인시던트, 경고, 유지 관리 이벤트에 하나 이상의 Runbook을 자동으로 연결하는 규칙입니다. |
 | **실행** | Runbook의 한 번의 실행입니다. 규칙이 발동할 때, 누군가 이벤트에서 **런북 실행**을 클릭할 때, 또는 Runbook 자체에서 **지금 실행**을 클릭할 때 만들어집니다. 단계의 스냅샷과 각 단계의 상태 및 출력을 담습니다. |
 | **스냅샷** | 각 실행에 저장되는, Runbook 단계의 고정된 사본입니다. 나중에 Runbook을 편집해도 지난 실행의 기록은 바뀌지 않습니다. |
 | **Runner** | 자체 인프라의 호스트에서 실행하는 작은 에이전트입니다. 자신을 지정한 JavaScript, Bash, SSH, kubectl 단계를 실행합니다. Runbook 에이전트라고도 합니다. OneUptime이 모든 프로젝트를 위해 실행하는 글로벌 Runner는 프로젝트에 기본 Runner가 없는 한 Runner를 지정하지 않은 JavaScript 단계를 실행합니다. |
@@ -73,10 +73,10 @@ OneUptime 전반에서 쓰는 단어는 [용어집](/docs/introduction/glossary)
 
 | 방법 | 위치 | 실행이 연결되는 대상 |
 | --- | --- | --- |
-| Runbook 규칙 | **인시던트**, **알림** 또는 **예정된 유지 관리** → **규칙** → **Runbook 규칙** | 새 인시던트, 알림 또는 이벤트 |
-| **런북 실행** | 인시던트, 알림 또는 유지 관리 이벤트의 **런북** 페이지 | 해당 이벤트 |
+| Runbook 규칙 | **인시던트**, **경고** 또는 **예정된 유지 관리** → **규칙** → **Runbook 규칙** | 새 인시던트, 경고 또는 이벤트 |
+| **런북 실행** | 인시던트, 경고 또는 유지 관리 이벤트의 **런북** 페이지 | 해당 이벤트 |
 | **지금 실행** | Runbook의 **개요** 페이지 | 없음(일회성 실행) |
-| AI 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 알림 |
+| AI 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 경고 |
 | Runbook의 일정 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#일정에-따라-실행) 참고 | 없음: 무인 실행 |
 | Runbook 웹훅 URL 호출 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#웹훅-호출) 참고 | 없음: 실행은 호출이 보낸 값을 보관합니다 |
 
@@ -99,8 +99,8 @@ Runbook은 **제품**의 **대시보드 및 자동화** 그룹에 있습니다.
 | **런북 → 실행** | 프로젝트에 있는 모든 Runbook의 모든 실행입니다. |
 | **런북 → Runbook 에이전트** | 런북 단계가 실행되는 [Runner](/docs/runbooks/agents)를 설치합니다. |
 | **런북 → 설정** | 모든 Runbook이 [사용할 수 있는](/docs/runbooks/variables) **전역 변수**와, 새 Runbook에 소유자와 레이블을 추가하는 **소유자 규칙** 및 **레이블 규칙**을 관리합니다. |
-| **인시던트 / 알림 / 예정된 유지 관리 → 규칙 → Runbook 규칙** | Runbook을 자동으로 시작하는 규칙을 만듭니다. |
-| 인시던트, 알림 또는 유지 관리 이벤트 → **런북** | 연결된 실행을 보고, **런북 실행**을 클릭해 새로 시작합니다. |
+| **인시던트 / 경고 / 예정된 유지 관리 → 규칙 → Runbook 규칙** | Runbook을 자동으로 시작하는 규칙을 만듭니다. |
+| 인시던트, 경고 또는 유지 관리 이벤트 → **런북** | 연결된 실행을 보고, **런북 실행**을 클릭해 새로 시작합니다. |
 
 Runbook 자체의 사이드 메뉴는 페이지를 다음과 같이 묶습니다. 처음에는 **기본**만 열려 있습니다. 섹션 제목을 클릭하면 열립니다. 섹션 안의 어느 페이지에서든 그 섹션은 저절로 열립니다.
 
@@ -165,7 +165,7 @@ Runbooks:    [DB primary failover]
 
 ## Runbook과 OneUptime의 나머지 기능
 
-- **모니터**가 인시던트와 알림을 열고, **Runbook 규칙**이 이를 Runbook 실행으로 바꿉니다. 감지, 트리거, 대응, 기록입니다.
+- **모니터**가 인시던트와 경고를 열고, **Runbook 규칙**이 이를 Runbook 실행으로 바꿉니다. 감지, 트리거, 대응, 기록입니다.
 - **[온콜 정책](/docs/on-call/schedules)** 은 누구를 호출할지 정합니다. Runbook은 그 사람이 깨어난 뒤 무엇을 할지 정합니다.
 - Slack과 Microsoft Teams 같은 **[워크스페이스 연결](/docs/workspace-connections/slack)** 은 업데이트를 게시하는 HTTP 요청 단계의 자연스러운 대상입니다.
 - **[상태 페이지](/docs/status-pages/index)** 는 고객 대상 Runbook의 Manual 단계로 업데이트되는 경우가 많습니다.

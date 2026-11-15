@@ -75,7 +75,7 @@ flowchart TB
 
 ## 템플릿 변수
 
-프로브 상태 모니터의 인시던트 및 알림 템플릿에서는 모든 모니터에 있는 변수 외에 다음 변수를 쓸 수 있습니다.
+프로브 상태 모니터의 인시던트 및 경고 템플릿에서는 모든 모니터에 있는 변수 외에 다음 변수를 쓸 수 있습니다.
 
 | 변수 | 값 |
 | --- | --- |
@@ -101,5 +101,5 @@ flowchart TB
 :::cards
 - [사용자 지정 프로브](/docs/probe/custom-probe): 자체 네트워크에서 프로브를 실행합니다.
 - [모니터 기준과 상태](/docs/monitor/criteria-and-statuses): 기준이 모니터의 상태를 정하는 방법.
-- [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating): 모니터가 선언하는 인시던트의 문구를 정합니다.
+- [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating): 모니터가 선언하는 인시던트의 문구를 정합니다.
 :::

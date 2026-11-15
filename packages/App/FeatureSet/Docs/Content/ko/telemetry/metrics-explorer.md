@@ -95,7 +95,7 @@ flowchart TB
 | **로그** | 이 시간 범위와 필터로 [로그 탐색기](/docs/telemetry/logs-explorer)를 엽니다. |
 | **트레이스** | 이 시간 범위와 필터로 [트레이스 탐색기](/docs/telemetry/traces-explorer)를 엽니다. |
 | **조사** | 이 시간 범위의 로그, 트레이스, 예외를 보여 주는 사이드 패널을 엽니다. |
-| **이벤트** | 이 시간 범위의 인시던트와 알림을 차트에 표시합니다. |
+| **이벤트** | 이 시간 범위의 인시던트와 경고를 차트에 표시합니다. |
 | **Compare** | 각 차트에 이전 기간을 점선으로 그려, 무엇이 바뀌었는지 볼 수 있게 합니다. |
 
 차트를 드래그하면 그 순간을 확대하고, 두 번 클릭하면 다시 축소합니다. [시간 범위 확대](/docs/telemetry/charts-and-time-ranges)를 참고하세요.
@@ -209,7 +209,7 @@ service:
 ## 다음 단계
 
 :::cards
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 메트릭이 임곗값을 넘으면 경고를 받습니다.
 - [대시보드 작성](/docs/dashboards/authoring): 차트를 나란히 놓습니다.
 - [검색 구문](/docs/telemetry/search-syntax): 검색 상자가 이해하는 모든 필터.
 :::
