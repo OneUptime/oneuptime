@@ -13,8 +13,10 @@ import {
   ProductOnboarding,
 } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
-import { PRODUCT_TITLE_BUTTON_CLASS_NAME } from "./ProductTitleButtonClassName";
-import ProductPinButton from "../ProjectProducts/ProductPinButton";
+import {
+  PRODUCT_TITLE_BUTTON_CLASS_NAME,
+  PRODUCT_TITLE_ICON_BUTTON_CLASS_NAME,
+} from "./ProductTitleButtonClassName";
 
 /*
  * "How it works" beside a product page's title (Page's titleRight): the
@@ -22,16 +24,20 @@ import ProductPinButton from "../ProjectProducts/ProductPinButton";
  * documentation - one click away once the page has data of its own and no
  * longer shows it. Every product's layout draws one.
  *
- * Beside it, Pin (issue #6814): puts the product in the top bar for this
- * person (ProductPinButton). Drawn here, so every product's page has it
- * wherever its layout draws How it works.
+ * It is a subtle ? icon beside the name (#8138), named How it works for a
+ * screen reader and in its tooltip. Pinning a product is the products
+ * menu's job, so there is no Pin beside the title.
  */
 
 export const PRODUCT_ABOUT_BUTTON_TEST_ID: string = "product-about-button";
 export const PRODUCT_ABOUT_DIALOG_TEST_ID: string = "product-about-dialog";
 
+// Home's How OneUptime works, which keeps its words.
 export const PRODUCT_ABOUT_BUTTON_CLASS_NAME: string =
   PRODUCT_TITLE_BUTTON_CLASS_NAME;
+
+export const PRODUCT_ABOUT_ICON_BUTTON_CLASS_NAME: string =
+  PRODUCT_TITLE_ICON_BUTTON_CLASS_NAME;
 
 export interface ComponentProps {
   product: OnboardedProductKey;
@@ -43,14 +49,17 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const onboarding: ProductOnboarding = getProductOnboarding(props.product);
+  const label: string =
+    translator.translateText(PRODUCT_ABOUT_TEXT) || PRODUCT_ABOUT_TEXT;
 
   return (
     <>
-      <ProductPinButton product={props.product} />
       <button
         type="button"
-        className={PRODUCT_ABOUT_BUTTON_CLASS_NAME}
+        className={PRODUCT_ABOUT_ICON_BUTTON_CLASS_NAME}
         aria-haspopup="dialog"
+        aria-label={label}
+        title={label}
         data-testid={PRODUCT_ABOUT_BUTTON_TEST_ID}
         onClick={() => {
           setIsOpen(true);
@@ -61,10 +70,9 @@ const ProductAboutButton: FunctionComponent<ComponentProps> = (
         }}
       >
         <Icon
-          icon={IconProp.InformationCircle}
-          className="h-4 w-4 flex-shrink-0"
+          icon={IconProp.QuestionMarkCircle}
+          className="h-5 w-5 flex-shrink-0"
         />
-        <span>{translator.translateText(PRODUCT_ABOUT_TEXT)}</span>
       </button>
       {isOpen && (
         <Modal
