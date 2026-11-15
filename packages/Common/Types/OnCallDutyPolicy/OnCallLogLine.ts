@@ -46,12 +46,14 @@ import {
   USER_LOG_TIMED_OUT_STATUS_MESSAGE,
 } from "./OnCallRunStart";
 import {
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
   ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
   ProviderDeliveryStatus,
   PUSH_NOTIFICATION_SENT_MESSAGE,
   readEmailSentWithoutImagesMessage,
+  readCallOutcomeMessage,
   readProviderDeliveryStatusMessage,
   readProviderIdStatusMessage,
   readStuckNotificationMinutes,
@@ -152,6 +154,8 @@ export enum OnCallLogLineCode {
   ProviderDelivery = "ProviderDelivery",
   // An email sent without its images, with the mail service's words.
   EmailSentWithoutImages = "EmailSentWithoutImages",
+  // A call that ended (#8576): how, how long, and its id.
+  CallEnded = "CallEnded",
 }
 
 export interface OnCallLogLine {
@@ -177,6 +181,9 @@ export interface OnCallLogLine {
   // A provider's delivery report: its status and error code, as written.
   status?: string | undefined;
   errorCode?: string | undefined;
+  // A call that ended: how (CallOutcome), and how long an answered one lasted.
+  callOutcome?: CallOutcomeLine | undefined;
+  seconds?: number | undefined;
 }
 
 // The records a page names, as a line names each in lower case.
@@ -636,6 +643,21 @@ export function readOnCallLogLine(
     return {
       code: OnCallLogLineCode.EmailSentWithoutImages,
       words: withoutImages,
+    };
+  }
+
+  const call: {
+    outcome: CallOutcomeLine;
+    seconds?: number | undefined;
+    callId?: string | undefined;
+  } | null = readCallOutcomeMessage(message);
+
+  if (call) {
+    return {
+      code: OnCallLogLineCode.CallEnded,
+      callOutcome: call.outcome,
+      ...(call.seconds !== undefined ? { seconds: call.seconds } : {}),
+      ...(call.callId ? { id: call.callId } : {}),
     };
   }
 

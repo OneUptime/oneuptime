@@ -54664,7 +54664,18 @@
   "{{name}} acknowledged the incident episode.": "{{name}} اپیزود حادثه را تأیید کرد.",
   "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد.",
   "Active · seen {{time}}": "فعال · {{time}} دیده شد",
+  "Call ID: {{id}}.": "شناسهٔ تماس: {{id}}.",
   "Inactive · seen {{time}}": "غیرفعال · {{time}} دیده شد",
   "Runs on {{count}} of these": "روی {{count}} مورد از این‌ها اجرا می‌شود",
-  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود"
+  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود",
+  "Fleets and devices, and the attributes that identify and classify them.": "ناوگان‌ها و دستگاه‌ها، و ویژگی‌هایی که آن‌ها را شناسایی و دسته‌بندی می‌کنند.",
+  "How OneUptime models IoT": "OneUptime چگونه IoT را مدل می‌کند",
+  "The call could not be connected.": "تماس برقرار نشد.",
+  "The call was answered and lasted {{count}} seconds.": "به تماس پاسخ داده شد و {{count}} ثانیه طول کشید.",
+  "The call was answered and lasted {{count}} seconds._one": "به تماس پاسخ داده شد و {{count}} ثانیه طول کشید.",
+  "The call was answered.": "به تماس پاسخ داده شد.",
+  "The call was not answered: it rang out.": "به تماس پاسخ داده نشد: زنگ خورد و کسی پاسخ نداد.",
+  "The call was not answered: the line was busy, or the call was declined.": "به تماس پاسخ داده نشد: خط اشغال بود، یا تماس رد شد.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }

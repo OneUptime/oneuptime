@@ -65,6 +65,9 @@ import ExecutionLogTimelineTable from "../../../../App/FeatureSet/Dashboard/src/
 import {
   getOnCallLogLineSentence,
   getOnCallLogNotificationChannel,
+  LOG_CALL_ANSWERED_AND_LASTED,
+  LOG_CALL_ID,
+  LOG_CALL_OUTCOME_SENTENCES,
   LOG_DIRECT_PAGE_PAGED,
   LOG_LINE_SENTENCES,
   LOG_NOTIFICATION_STUCK,
@@ -172,8 +175,15 @@ import {
 } from "../../../Types/OnCallDutyPolicy/OnCallPageEnding";
 import { getOnCallPageRecordDeletedMessage } from "../../../Types/OnCallDutyPolicy/OnCallPageRecordGone";
 import {
+  CALL_ANSWERED_MESSAGE,
+  CALL_BUSY_MESSAGE,
+  CALL_NOT_CONNECTED_MESSAGE,
+  CALL_RANG_OUT_MESSAGE,
+  CallOutcomeLine,
   EMAIL_SENT_STATUS_MESSAGE,
+  getCallAnsweredAndLastedMessage,
   getCallIdStatusMessage,
+  getCallOutcomeMessage,
   getMessageIdStatusMessage,
   getProviderDeliveryStatusMessage,
   getStuckNotificationStatusMessage,
@@ -2338,4 +2348,115 @@ describe("the last of the logs' sentences, in every Dashboard language (#8551)",
       });
     }
   });
+});
+
+/*
+ * A CALL'S OUTCOME, IN THE READER'S WORDS (#8576): on a person's on-call
+ * log's timeline, with the shipped locales, in en, de, fa and ar.
+ */
+describe.each(LANGUAGES)(
+  "a %s reader reads how a call ended in their own words (#8576)",
+  (language: string) => {
+    const CALL_SID: string = "CA0123456789abcdef0123456789abcdef";
+
+    beforeEach(async () => {
+      await inLanguage(language);
+    });
+
+    test.each([
+      [CALL_ANSWERED_MESSAGE, CallOutcomeLine.Answered],
+      [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
+      [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
+      [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+    ] as Array<[string, CallOutcomeLine]>)(
+      "%s, after the call's id, set apart",
+      async (sentence: string, outcome: CallOutcomeLine) => {
+        const line: HTMLElement = await statusLine(
+          "notifications",
+          notification(
+            getCallOutcomeMessage({ callId: CALL_SID, sentence: sentence }),
+            { channelColumn: "userCallId" },
+          ),
+        );
+
+        expect(text(line)).toBe(
+          joinSentences([
+            worded(language, LOG_CALL_ID, { id: CALL_SID }),
+            worded(language, LOG_CALL_OUTCOME_SENTENCES[outcome]),
+          ]),
+        );
+
+        if (RIGHT_TO_LEFT.includes(language)) {
+          expect(line.textContent).toContain(isolated(CALL_SID));
+        }
+
+        if (language !== "en") {
+          expect(text(line).split(CALL_SID).join("")).not.toMatch(
+            /\b(call|answered|rang|busy|declined|connected)\b/i,
+          );
+        }
+      },
+    );
+
+    test("an answered call, how long it lasted in the reader's plural and digits", async () => {
+      const line: HTMLElement = await statusLine(
+        "notifications",
+        notification(
+          getCallOutcomeMessage({
+            callId: null,
+            sentence: getCallAnsweredAndLastedMessage(42),
+          }),
+          { channelColumn: "userCallId" },
+        ),
+      );
+      const words: string =
+        language === "en"
+          ? LOG_CALL_ANSWERED_AND_LASTED.other
+          : readDashboardLocale(language)[LOG_CALL_ANSWERED_AND_LASTED.other]!;
+
+      expect(text(line)).toBe(
+        words
+          .split("{{count}}")
+          .join(dashboardTranslator(language).formatNumber(42)),
+      );
+    });
+  },
+);
+
+describe("a call's outcome, in every Dashboard language (#8576)", () => {
+  const KEYS: Array<string> = [
+    ...Object.values(LOG_CALL_OUTCOME_SENTENCES),
+    LOG_CALL_ID,
+    LOG_CALL_ANSWERED_AND_LASTED.other,
+    `${LOG_CALL_ANSWERED_AND_LASTED.other}_one`,
+  ];
+
+  test("seven keys, each its own", () => {
+    expect(new Set(KEYS).size).toBe(7);
+  });
+
+  test.each([...DASHBOARD_LANGUAGES])(
+    "%s words every one",
+    (language: string) => {
+      const locale: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of KEYS) {
+        const english: string = key.endsWith("_one")
+          ? LOG_CALL_ANSWERED_AND_LASTED.one
+          : key;
+        const value: string = locale[key] || "";
+
+        expect({
+          language,
+          key,
+          worded: Boolean(value) && value !== english,
+        }).toEqual({ language, key, worded: true });
+        expect({ language, key, placeholders: placeholdersOf(value) }).toEqual({
+          language,
+          key,
+          placeholders: placeholdersOf(english),
+        });
+      }
+    },
+  );
 });

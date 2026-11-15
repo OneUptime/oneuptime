@@ -258,3 +258,91 @@ export function readEmailSentWithoutImagesMessage(
 
   return null;
 }
+
+/*
+ * HOW A CALL ENDED, AS TWILIO TELLS IT (CallOutcome, #8576): the sentence
+ * a call's notification is left with once it ended, after the call's id
+ * when Twilio gave one ("Call ID: CA0123…. The call was not answered: it
+ * rang out.").
+ */
+export enum CallOutcomeLine {
+  Answered = "answered",
+  RangOut = "rang-out",
+  Busy = "busy",
+  NotConnected = "not-connected",
+}
+
+export const CALL_ANSWERED_MESSAGE: string = "The call was answered.";
+export const CALL_RANG_OUT_MESSAGE: string =
+  "The call was not answered: it rang out.";
+export const CALL_BUSY_MESSAGE: string =
+  "The call was not answered: the line was busy, or the call was declined.";
+export const CALL_NOT_CONNECTED_MESSAGE: string =
+  "The call could not be connected.";
+
+// "The call was answered and lasted 42 seconds." ("1 second").
+export function getCallAnsweredAndLastedMessage(seconds: number): string {
+  return `The call was answered and lasted ${
+    seconds === 1 ? "1 second" : `${seconds} seconds`
+  }.`;
+}
+
+// The call's line: its id first, when there is one, then how it ended.
+export function getCallOutcomeMessage(data: {
+  callId: string | null;
+  sentence: string;
+}): string {
+  return data.callId
+    ? `${getCallIdStatusMessage(data.callId)}. ${data.sentence}`
+    : data.sentence;
+}
+
+const CALL_OUTCOME_WITH_ID: RegExp = /^Call ID: (\S+?)\. ([\s\S]+)$/;
+const ANSWERED_AND_LASTED: RegExp =
+  /^The call was answered and lasted (\d+) seconds?\.$/;
+
+/*
+ * How a call ended, its id and how long it lasted, read back from a call's
+ * line and checked against its builder; null for any other line.
+ */
+export function readCallOutcomeMessage(
+  statusMessage: string | null | undefined,
+): {
+  outcome: CallOutcomeLine;
+  seconds?: number | undefined;
+  callId?: string | undefined;
+} | null {
+  const message: string = (statusMessage || "").trim();
+  const withId: RegExpMatchArray | null = message.match(CALL_OUTCOME_WITH_ID);
+  const callId: string | undefined = withId ? withId[1] : undefined;
+  const sentence: string = withId ? withId[2]! : message;
+
+  const known: Array<[string, CallOutcomeLine]> = [
+    [CALL_ANSWERED_MESSAGE, CallOutcomeLine.Answered],
+    [CALL_RANG_OUT_MESSAGE, CallOutcomeLine.RangOut],
+    [CALL_BUSY_MESSAGE, CallOutcomeLine.Busy],
+    [CALL_NOT_CONNECTED_MESSAGE, CallOutcomeLine.NotConnected],
+  ];
+
+  for (const [words, outcome] of known) {
+    if (sentence === words) {
+      return { outcome: outcome, ...(callId ? { callId: callId } : {}) };
+    }
+  }
+
+  const lasted: RegExpMatchArray | null = sentence.match(ANSWERED_AND_LASTED);
+
+  if (lasted) {
+    const seconds: number = Number(lasted[1]);
+
+    if (getCallAnsweredAndLastedMessage(seconds) === sentence) {
+      return {
+        outcome: CallOutcomeLine.Answered,
+        seconds: seconds,
+        ...(callId ? { callId: callId } : {}),
+      };
+    }
+  }
+
+  return null;
+}

@@ -54664,7 +54664,18 @@
   "{{name}} acknowledged the incident episode.": "{{name}} hat die Vorfallsepisode bestätigt.",
   "{{name}} acknowledged the incident.": "{{name}} hat den Vorfall bestätigt.",
   "Active · seen {{time}}": "Aktiv · zuletzt gesehen {{time}}",
+  "Call ID: {{id}}.": "Anruf-ID: {{id}}.",
   "Inactive · seen {{time}}": "Inaktiv · zuletzt gesehen {{time}}",
   "Runs on {{count}} of these": "Läuft auf {{count}} davon",
-  "Runs on {{count}} of these_one": "Läuft auf {{count}} davon"
+  "Runs on {{count}} of these_one": "Läuft auf {{count}} davon",
+  "Fleets and devices, and the attributes that identify and classify them.": "Flotten und Geräte sowie die Attribute, die sie identifizieren und einordnen.",
+  "How OneUptime models IoT": "Wie OneUptime IoT abbildet",
+  "The call could not be connected.": "Der Anruf konnte nicht verbunden werden.",
+  "The call was answered and lasted {{count}} seconds.": "Der Anruf wurde angenommen und dauerte {{count}} Sekunden.",
+  "The call was answered and lasted {{count}} seconds._one": "Der Anruf wurde angenommen und dauerte {{count}} Sekunde.",
+  "The call was answered.": "Der Anruf wurde angenommen.",
+  "The call was not answered: it rang out.": "Der Anruf wurde nicht angenommen: Es hat ausgeklingelt.",
+  "The call was not answered: the line was busy, or the call was declined.": "Der Anruf wurde nicht angenommen: Die Leitung war besetzt, oder der Anruf wurde abgelehnt.",
+  "Feed Status": "Feed Status",
+  "Internal record of each owner a record's owner notification is to reach, and whether it reached them.": "Internal record of each owner a record's owner notification is to reach, and whether it reached them."
 }
