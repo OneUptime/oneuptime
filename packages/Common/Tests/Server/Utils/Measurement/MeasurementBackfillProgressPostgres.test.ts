@@ -37,8 +37,9 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - that the guard compares to the millisecond: a request stamped by the
  *     database itself (FirstPagedAt's now()) keeps microseconds that
  *     node-postgres drops when the walk reads it, and an exact comparison
- *     (compareAndSetColumnsByIdWithoutHooks) refuses every write of that
- *     walk;
+ *     refuses every write of that walk (as
+ *     compareAndSetColumnsByIdWithoutHooks did, until it too compared a
+ *     timestamp to the millisecond, #8173);
  *   - that there is no window between the guard and the write: an edit that
  *     commits while the walk's write waits for the row is still never
  *     written over;
@@ -399,7 +400,27 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       );
     });
 
-    test("compared exactly, as compareAndSetColumnsByIdWithoutHooks compares, the same write is refused - why the stamp is compared to the millisecond", async () => {
+    test("compared exactly, the same write is refused - why the stamp is compared to the millisecond", async () => {
+      const id: ObjectID = await insertMeasurement();
+      await database.query(
+        `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = '2026-07-01 00:00:00.123456+00' WHERE "_id" = $1`,
+        [id.toString()],
+      );
+
+      // The guard as compareAndSetColumnsByIdWithoutHooks wrote it before #8173.
+      const written: Array<{ _id: string }> = await database.query(
+        `WITH "saved" AS (UPDATE "IncidentMeasurement" SET "backfillCursorCreatedAt" = $1 WHERE "_id" = $2 AND "backfillRequestedAt" IS NOT DISTINCT FROM $3 RETURNING "_id") SELECT "_id" FROM "saved"`,
+        [CURSOR.createdAt, id.toString(), await readRequest(id)],
+      );
+
+      expect(written).toEqual([]);
+
+      const cleared: StoredBackfill = await readBackfill(id);
+      expect(cleared.backfillCursorCreatedAt).toBeNull();
+      expect(cleared.backfillCursorId).toBeNull();
+    });
+
+    test("compareAndSetColumnsByIdWithoutHooks now compares a timestamp to the millisecond too (#8173): the same write lands", async () => {
       const id: ObjectID = await insertMeasurement();
       await database.query(
         `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = '2026-07-01 00:00:00.123456+00' WHERE "_id" = $1`,
@@ -411,12 +432,29 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
           id: id,
           data: { backfillCursorCreatedAt: CURSOR.createdAt },
           expectedData: { backfillRequestedAt: await readRequest(id) },
+          skipUpdateDateColumn: true,
+        }),
+      ).resolves.toBe(true);
+
+      expect(
+        (await readBackfill(id)).backfillCursorCreatedAt?.toISOString(),
+      ).toBe(CURSOR.createdAt.toISOString());
+
+      // A millisecond off is still another request.
+      await expect(
+        service.compareAndSetColumnsByIdWithoutHooks({
+          id: id,
+          data: { backfillCursorCreatedAt: LATER_CURSOR.createdAt },
+          expectedData: {
+            backfillRequestedAt: new Date("2026-07-01T00:00:00.124Z"),
+          },
+          skipUpdateDateColumn: true,
         }),
       ).resolves.toBe(false);
 
-      const cleared: StoredBackfill = await readBackfill(id);
-      expect(cleared.backfillCursorCreatedAt).toBeNull();
-      expect(cleared.backfillCursorId).toBeNull();
+      expect(
+        (await readBackfill(id)).backfillCursorCreatedAt?.toISOString(),
+      ).toBe(CURSOR.createdAt.toISOString());
     });
 
     test("FirstPagedAt's own re-request (now()) is walked to completion", async () => {

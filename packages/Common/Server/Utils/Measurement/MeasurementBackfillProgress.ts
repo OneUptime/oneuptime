@@ -28,9 +28,9 @@ import ObjectID from "../../../Types/ObjectID";
  * The stamp is compared to the millisecond. node-postgres reads a timestamp
  * to the millisecond and drops the rest, and FirstPagedAt stamps the request
  * with the database's now(), which keeps microseconds. Compared exactly, as
- * compareAndSetColumnsByIdWithoutHooks compares, the stamp a walk read would
- * never match the stored one: every write of the walk would be refused, and
- * that measurement would never finish its backfill.
+ * compareAndSetColumnsByIdWithoutHooks compared until #8173, the stamp a walk
+ * read would never match the stored one: every write of the walk would be
+ * refused, and that measurement would never finish its backfill.
  *
  * Written past the services' hooks, leaving the version and updatedAt alone,
  * as FirstPagedAt writes: nobody edited the measurement. Through
