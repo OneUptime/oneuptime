@@ -10,10 +10,12 @@ import ts from "typescript";
 import {
   getPluralOneFormKeys,
   getRuntimeLocale,
+  getSameAsEnglishMarks,
   isLocaleTree,
   RuntimeLocaleTree,
 } from "../../../UI/esbuild-locales";
 import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";
+import { readDashboardSameAsEnglish } from "../../Helpers/DashboardLocales";
 import {
   createTranslator,
   TemplateValues,
@@ -41,7 +43,9 @@ import IconProp from "../../../Types/Icon/IconProp";
  * entries and its plural "_one" forms, every other locale without its English
  * placeholders - bar the "_one" forms a language with a "one" form reads. That
  * is only safe if every lookup reads exactly the same from the shipped copies
- * as from the full files. This proves it on the real locale files, with
+ * as from the full files (with the marks the build adds to both: the "_one"
+ * forms a language's same-as-English lists say it words as English does).
+ * This proves it on the real locale files, with
  * i18next set up the way App/FeatureSet/Dashboard/src/Utils/i18n.ts sets it
  * up:
  *
@@ -86,6 +90,13 @@ const readLocale: (code: string) => RuntimeLocaleTree = (
   ) as RuntimeLocaleTree;
 };
 
+// The English a language keeps on purpose: the lists its build marks from.
+const sameAsEnglishOf: (code: string) => ReadonlyArray<string> | undefined = (
+  code: string,
+): ReadonlyArray<string> | undefined => {
+  return code === ENGLISH ? undefined : readDashboardSameAsEnglish(code);
+};
+
 const shippedLocale: (
   code: string,
   locale: RuntimeLocaleTree,
@@ -100,7 +111,34 @@ const shippedLocale: (
     fallbackLanguage: ENGLISH,
     locale: locale,
     fallback: english,
+    sameAsEnglish: sameAsEnglishOf(code),
   });
+};
+
+/*
+ * The full file, with the marks the build gives the "_one" forms the
+ * language words as English does on purpose: what its lists say it reads,
+ * against which the shipped copy - without its English placeholders - must
+ * read the same.
+ */
+const markedLocale: (
+  code: string,
+  locale: RuntimeLocaleTree,
+  english: RuntimeLocaleTree,
+) => RuntimeLocaleTree = (
+  code: string,
+  locale: RuntimeLocaleTree,
+  english: RuntimeLocaleTree,
+): RuntimeLocaleTree => {
+  return {
+    ...locale,
+    ...getSameAsEnglishMarks({
+      language: code,
+      locale: locale,
+      fallback: english,
+      sameAsEnglish: sameAsEnglishOf(code),
+    }),
+  };
 };
 
 /*
@@ -385,7 +423,7 @@ describe("what the shipped locales read, against the full files", () => {
       const locale: RuntimeLocaleTree = readLocale(code);
       const full: i18n = await createDashboardInstance(code, {
         en: fullEnglish,
-        [code]: locale,
+        [code]: markedLocale(code, locale, fullEnglish),
       });
       const shipped: i18n = await createDashboardInstance(code, {
         en: shippedEnglish,
@@ -398,6 +436,60 @@ describe("what the shipped locales read, against the full files", () => {
           readEverything(full, fullEnglish),
         ),
       ).toEqual([]);
+    },
+  );
+
+  /*
+   * A "_one" form a language words as English does on purpose reads as the
+   * language's own through i18next, from the shipped copy: French counts 0
+   * as one and says "0 signal", Russian counts 21 as one and says "21 CPU".
+   * Its mark is a key i18next looks up like any other, and a language
+   * without one - every unmarked form - falls back to English, which has
+   * none either: the lookup answers with the key, read as nothing (#7788).
+   */
+  test.each([
+    [
+      "fr",
+      { one: "{{count}} signal", other: "{{count}} signals" },
+      0,
+      "0 signal",
+    ],
+    [
+      "fr",
+      { one: "{{count}} signal", other: "{{count}} signals" },
+      1,
+      "1 signal",
+    ],
+    [
+      "pt",
+      { one: "{{count}} monitor", other: "{{count}} monitors" },
+      0,
+      "0 monitor",
+    ],
+    [
+      "pt",
+      { one: "{{count}} monitor", other: "{{count}} monitors" },
+      1,
+      "1 monitor",
+    ],
+    ["ru", { one: "{{count}} CPU", other: "{{count}} CPUs" }, 21, "21 CPU"],
+    ["ru", { one: "{{count}} CPU", other: "{{count}} CPUs" }, 1, "1 CPU"],
+  ])(
+    "%s reads its own one form from the shipped copy: %j at %d",
+    async (
+      code: string,
+      template: { one: string; other: string },
+      count: number,
+      expected: string,
+    ) => {
+      const shipped: i18n = await createDashboardInstance(code, {
+        en: shippedEnglish,
+        [code]: shippedLocale(code, readLocale(code), fullEnglish),
+      });
+
+      expect(translatorFor(shipped).translatePlural(template, count)).toBe(
+        expected,
+      );
     },
   );
 });
@@ -419,7 +511,7 @@ describe("the shared components, from the shipped locales", () => {
     });
     germanFull = await createDashboardInstance("de", {
       en: fullEnglish,
-      de: fullGerman,
+      de: markedLocale("de", fullGerman, fullEnglish),
     });
     noKeys = await createDashboardInstance(ENGLISH, { en: {} });
   });

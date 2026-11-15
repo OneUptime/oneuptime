@@ -55,6 +55,7 @@ import {
   getCloudReadingPeriodSeconds,
   hasCloudHealthRules,
   hasFreshCloudReadings,
+  isCloudHeadlineExpected,
   readCloudResourceReadings,
 } from "../../../Types/Cloud/CloudResourceHealth";
 import { fillTemplate } from "../../../Types/Translator";
@@ -310,7 +311,79 @@ describe("CloudResourceHealth", () => {
       expect(keys.has("aws/rds/cpuutilization")).toBe(true);
       expect(keys.has("aws/rds/databaseconnections")).toBe(true);
       expect(hasCloudHealthRules("AWS", RDS)).toBe(true);
-      expect(getCloudHeadlineReadings("aws", RDS).length).toBe(3);
+      expect(
+        getCloudHeadlineReadings("aws", RDS).map(
+          (headline: { key: string }): string => {
+            return headline.key;
+          },
+        ),
+      ).toEqual([
+        "aws/rds/cpuutilization",
+        "aws/rds/freestoragespace",
+        "aws/rds/databaseconnections",
+        "aws/rds/freeablememory",
+        "aws/rds/readlatency",
+        "aws/rds/writelatency",
+      ]);
+      // Its page's numbers are kept too: the read writes them with the rules'.
+      expect(keys.has("aws/rds/freeablememory")).toBe(true);
+    });
+
+    test("a type's headline numbers are each listed once, at most two rows of them", () => {
+      for (const entry of CLOUD_HEADLINE_READINGS) {
+        for (const type of entry.types) {
+          const keys: Array<string> = getCloudHeadlineReadings(
+            entry.provider,
+            type,
+          ).map((headline: { key: string }): string => {
+            return headline.key;
+          });
+
+          expect({ type, keys: new Set(keys).size }).toEqual({
+            type,
+            keys: keys.length,
+          });
+          expect(keys.length).toBeLessThanOrEqual(8);
+        }
+      }
+    });
+
+    test("a level every resource of the type reports is expected; a sum, or a number only some report, is not", () => {
+      const expectedOf: (
+        provider: string,
+        type: string,
+        key: string,
+      ) => boolean = (provider: string, type: string, key: string): boolean => {
+        return isCloudHeadlineExpected(
+          getCloudHeadlineReadings(provider, type).find(
+            (headline: { key: string }): boolean => {
+              return headline.key === key;
+            },
+          )!,
+        );
+      };
+      const VM: string = "Microsoft.Compute/virtualMachines";
+
+      expect(expectedOf("azure", VM, "percentage_cpu")).toBe(true);
+      expect(expectedOf("azure", VM, "available_memory_bytes")).toBe(true);
+      expect(expectedOf("azure", VM, "vmavailabilitymetric")).toBe(true);
+      // Bytes summed over the minute: a quiet minute may not be written.
+      expect(expectedOf("azure", VM, "network_in_total")).toBe(false);
+      expect(
+        expectedOf("aws", "AWS::Lambda::Function", "aws/lambda/errors"),
+      ).toBe(false);
+      // Only some resources of the type report it.
+      expect(expectedOf("aws", RDS, "aws/rds/freestoragespace")).toBe(false);
+      expect(
+        expectedOf(
+          "aws",
+          "AWS::ElasticLoadBalancingV2::LoadBalancer",
+          "aws/networkelb/activeflowcount",
+        ),
+      ).toBe(false);
+      expect(
+        expectedOf("azure", "Microsoft.Web/sites", "functionexecutioncount"),
+      ).toBe(false);
     });
   });
 

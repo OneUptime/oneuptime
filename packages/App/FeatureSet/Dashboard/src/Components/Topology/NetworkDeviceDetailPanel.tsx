@@ -96,6 +96,14 @@ export interface ComponentProps {
    * status. Optional: without it the next scheduled refresh does.
    */
   readMapAgain?: (() => Promise<void>) | undefined;
+  /*
+   * Narrow the map to this device and everything below it (issue #6606).
+   * Offered by the caller only where the map draws branches - the parent-
+   * child layout - and only for a device that has something below it.
+   */
+  onShowOnlyBranch?: (() => void) | undefined;
+  // How many devices are below this one, for the sentence under the action.
+  branchDeviceCount?: number | undefined;
 }
 
 /*
@@ -392,6 +400,40 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
             <></>
           )}
         </div>
+
+        {/*
+         * Issue #6606: look at this device's part of the network on its own.
+         * Near the top, under the status: it is about where the device sits,
+         * which is what the reader was looking at when they clicked it.
+         */}
+        {props.onShowOnlyBranch ? (
+          <div data-testid="network-topology-branch-actions">
+            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+              <Button
+                title={translateString("Show only this branch")}
+                icon={IconProp.Funnel}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                dataTestId="network-topology-show-only-branch"
+                onClick={() => {
+                  props.onShowOnlyBranch?.();
+                }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-gray-500">
+              {translator.translatePlural(
+                {
+                  one: "Narrows the map to this device and the {{count}} device below it.",
+                  other:
+                    "Narrows the map to this device and the {{count}} devices below it.",
+                },
+                props.branchDeviceCount || 0,
+              )}
+            </p>
+          </div>
+        ) : (
+          <></>
+        )}
 
         {detailRows.length > 0 ? (
           <div>

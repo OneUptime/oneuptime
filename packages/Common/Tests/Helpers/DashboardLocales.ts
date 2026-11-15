@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createTranslator, Translator } from "../../Types/Translator";
+import { getSameAsEnglishMarks } from "../../UI/esbuild-locales";
 import { DASHBOARD_LANGUAGES } from "./TranslatedLanguages";
 
 /*
@@ -51,9 +52,47 @@ export function readDashboardLocale(language: string): Record<string, string> {
   return words;
 }
 
+const shippedCache: Map<string, Record<string, string>> = new Map<
+  string,
+  Record<string, string>
+>();
+
+/*
+ * `language`'s file with what the Dashboard's bundle adds to it: the mark of
+ * each "_one" form the language words as English does on purpose
+ * (getSameAsEnglishMarks, Common/UI/esbuild-locales.js), which tells the
+ * lookup the form is the language's own - French "0 signal", not English's
+ * "0 signals".
+ */
+function readShippedDashboardLocale(language: string): Record<string, string> {
+  const cached: Record<string, string> | undefined = shippedCache.get(language);
+
+  if (cached) {
+    return cached;
+  }
+
+  const words: Record<string, string> = readDashboardLocale(language);
+  const shipped: Record<string, string> =
+    language === "en"
+      ? words
+      : {
+          ...words,
+          ...getSameAsEnglishMarks({
+            language: language,
+            locale: words,
+            fallback: readDashboardLocale("en"),
+            sameAsEnglish: readDashboardSameAsEnglish(language),
+          }),
+        };
+
+  shippedCache.set(language, shipped);
+
+  return shipped;
+}
+
 // A translator reading `language`'s file, as useTranslator does in the Dashboard.
 export function dashboardTranslator(language: string): Translator {
-  const words: Record<string, string> = readDashboardLocale(language);
+  const words: Record<string, string> = readShippedDashboardLocale(language);
 
   return createTranslator((text: string): string | undefined => {
     return Object.prototype.hasOwnProperty.call(words, text)
@@ -68,7 +107,9 @@ const sameAsEnglishCache: Map<string, ReadonlyArray<string>> = new Map<
 >();
 
 // The English a language keeps on purpose: every language's, then its own.
-function readSameAsEnglish(language: string): ReadonlyArray<string> {
+export function readDashboardSameAsEnglish(
+  language: string,
+): ReadonlyArray<string> {
   const cached: ReadonlyArray<string> | undefined =
     sameAsEnglishCache.get(language);
 
@@ -131,7 +172,7 @@ export function isWordedInDashboardLocale(
     return true;
   }
 
-  return readSameAsEnglish(language).includes(english);
+  return readDashboardSameAsEnglish(language).includes(english);
 }
 
 // The {{placeholders}} of a text, each once, sorted.

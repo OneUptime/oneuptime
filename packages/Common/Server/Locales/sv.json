@@ -200,7 +200,7 @@
   "Nothing is wrong. This tests how {{project}} pages you for an incident of severity {{severity}}.": "Inget är fel. Det här testar hur {{project}} larmar dig vid en incident med allvarlighetsgraden {{severity}}.",
   "Offline": "Offline",
   "Ongoing": "Pågående",
-  "Operational": "Drift",
+  "Operational": "Fungerar",
   "Or copy and paste this link into your browser:": "Eller kopiera och klistra in länken i din webbläsare:",
   "Per-resource breakdown": "Uppdelning per resurs",
   "Please click on the link below to manage or unsubscribe from status page notifications.": "Klicka på länken nedan för att hantera aviseringar från statussidan eller avsluta prenumerationen.",

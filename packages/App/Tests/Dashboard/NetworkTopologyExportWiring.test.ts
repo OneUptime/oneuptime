@@ -142,7 +142,14 @@ describe("the export is handed what the reader is looking at", () => {
     // The layout the graph drew, not a recomputation.
     "layoutModel: layoutModelRef.current || undefined",
     "layoutMode: layoutMode",
-    "positionOverrides: positionOverrides",
+    /*
+     * The positions on screen: the reader's custom layout, or none while
+     * the original layout is shown (issue #6606).
+     */
+    "positionOverrides: isShowingOriginalLayout ? new Map() : positionOverrides",
+    // The branches folded away, and the branch the map is narrowed to.
+    "collapsedNodeIds: collapsedNodeIds",
+    "focusedBranchNodeId: focusedBranchNodeId",
     "searchText: searchText",
     "visibleKinds: effectiveVisibleKinds",
     "availableKinds: availableKinds",
@@ -165,7 +172,7 @@ describe("the export is handed what the reader is looking at", () => {
 
   test("the graph reports the layout it draws, and the live view keeps it for the export", () => {
     expect(LIVE_VIEW).toContain(
-      "onLayoutModelChange={(model: TopologyLayoutModel) => { layoutModelRef.current = model; }}",
+      "onLayoutModelChange={(model: TopologyLayoutModel) => { layoutModelRef.current = model; setLayoutHierarchy(model.hierarchy); }}",
     );
     expect(GRAPH).toContain(
       "useEffect(() => { onLayoutModelChangeRef.current?.(baseModel); }, [baseModel]);",
@@ -236,8 +243,9 @@ describe("every view of the device map draws it with the live view", () => {
 describe("the canvas and the PDF draw from one module", () => {
   test("the graph's layout and hulls come from NetworkTopologyDrawing", () => {
     expect(GRAPH).toContain('from "./NetworkTopologyDrawing"');
+    // With the branches folded away on screen (issue #6606).
     expect(GRAPH).toContain(
-      "return computeTopologyLayoutModel(layoutMode, nodes, edges);",
+      "return computeTopologyLayoutModel(layoutMode, nodes, edges, { collapsedNodeIds: collapsedNodeIds, });",
     );
     expect(GRAPH).toContain(
       "return buildTopologyHulls(baseModel, viewModel.nodes);",
@@ -267,7 +275,7 @@ describe("the canvas and the PDF draw from one module", () => {
       ),
     );
     expect(document).toContain(
-      "computeTopologyLayoutModel(input.layoutMode, nodes, edges)",
+      "computeTopologyLayoutModel(input.layoutMode, nodes, edges, { collapsedNodeIds: input.collapsedNodeIds, })",
     );
     expect(document).toContain("buildTopologyHulls( model, viewModel.nodes, )");
     expect(document).toContain("buildTopologyViewModel({");
