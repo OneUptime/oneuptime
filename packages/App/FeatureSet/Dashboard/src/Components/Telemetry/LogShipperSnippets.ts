@@ -31,6 +31,57 @@ export const FLUENT_BIT_LOGS_URI: string = "/otlp/v1/logs";
 // The ingress's address for the App's /fluentd/v1/logs, which it rewrites to.
 export const FLUENTD_LOGS_PATH: string = "/fluentd/logs";
 
+/*
+ * Where Fluent Bit keeps what must outlive it (issue #8580): its place in
+ * each file the tail reads (the tail's DB) and the chunks it has yet to
+ * send (storage.path). One folder on the host and in Docker Compose alike:
+ * the package's service runs as root, who makes it, and the Compose file
+ * keeps it in a volume (the image runs as root too). Not under /var/log,
+ * which Compose mounts read-only, nor matched by the tail's glob.
+ */
+export const FLUENT_BIT_STATE_FOLDER: string = "/var/lib/fluent-bit";
+
+export const FLUENT_BIT_TAIL_DB: string = `${FLUENT_BIT_STATE_FOLDER}/tail.db`;
+
+export const FLUENT_BIT_STORAGE_PATH: string = `${FLUENT_BIT_STATE_FOLDER}/buffer`;
+
+/*
+ * How Fluent Bit sends a chunk again (issue #8580). Its Retry_Limit is 1
+ * by default: a chunk OneUptime answered 503 for, while the App
+ * restarted, was tried once more 10 seconds later and dropped ("cannot be
+ * retried"). Now it is tried about every 30 seconds (scheduler.base and
+ * scheduler.cap both 30, so the backoff's jitter has no room; Fluent Bit
+ * logged "retry in 31 seconds" in the run), 8640 times: about 72 hours,
+ * as the Fluentd guide's file does. Fluent Bit's OpenTelemetry
+ * output (5.2.0) tries again only a 429, 502, 503 or 504, the answers the
+ * Fluentd guide retries (FLUENTD_RETRYABLE_RESPONSE_CODES); a 400, 401,
+ * 402, 413, 422 or 500 is dropped at once, as it answers the same every
+ * time, so a wrong key is not tried for 72 hours.
+ */
+export const FLUENT_BIT_RETRY_INTERVAL_SECONDS: number = 30;
+
+export const FLUENT_BIT_RETRY_LIMIT: number =
+  (72 * 60 * 60) / FLUENT_BIT_RETRY_INTERVAL_SECONDS;
+
+/*
+ * The most the output keeps on disk, as the Fluentd guide's file buffer:
+ * 512 MB. When it is full, Fluent Bit drops the output's oldest chunks
+ * first (storage.total_limit_size); with no limit, the disk was the limit.
+ */
+export const FLUENT_BIT_STORAGE_TOTAL_LIMIT: string = "512M";
+
+/*
+ * Fluent Bit's file. Besides the address (issue #7753, above):
+ *  - the tail keeps its place in each file (DB), so a restart reads on
+ *    from where it was. Without it, Fluent Bit started again at the end of
+ *    every file, and the lines written while it was down were never sent.
+ *  - the tail's chunks are kept on disk (storage.type filesystem, in
+ *    storage.path), so a restart loses none it had yet to send. They were
+ *    in memory.
+ *  - a chunk OneUptime answers 429, 502, 503 or 504 for is sent again
+ *    about every 30 seconds, for about 72 hours (FLUENT_BIT_RETRY_LIMIT),
+ *    and the output keeps at most 512 MB on disk.
+ */
 export function getFluentBitConfig(endpoint: CompatibleIngestEndpoint): string {
   const { host, port } = getFluentBitHostAndPort(endpoint);
   const isTls: boolean = endpoint.protocol !== "http";
@@ -40,11 +91,20 @@ export function getFluentBitConfig(endpoint: CompatibleIngestEndpoint): string {
     Flush        5
     Log_Level    info
     Parsers_File parsers.conf
+    # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+    storage.path ${FLUENT_BIT_STORAGE_PATH}
+    storage.sync normal
+    # Try a chunk again about every 30 seconds
+    scheduler.base ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}
+    scheduler.cap  ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}
 
 [INPUT]
     Name         tail
     Path         /var/log/*.log
     Tag          app.logs
+    # Keep its place in each file, so a restart reads on from there
+    DB           ${FLUENT_BIT_TAIL_DB}
+    storage.type filesystem
 
 [OUTPUT]
     Name         opentelemetry
@@ -53,18 +113,50 @@ export function getFluentBitConfig(endpoint: CompatibleIngestEndpoint): string {
     Port         ${port}
     Tls          ${isTls ? "On" : "Off"}
     Header       x-oneuptime-token ${endpoint.key}
-    Logs_uri     ${FLUENT_BIT_LOGS_URI}`;
+    Logs_uri     ${FLUENT_BIT_LOGS_URI}
+    # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+    Retry_Limit  ${FLUENT_BIT_RETRY_LIMIT}
+    # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+    storage.total_limit_size ${FLUENT_BIT_STORAGE_TOTAL_LIMIT}`;
 }
 
-// The address is in fluent-bit.conf alone: nothing here sets it.
+/*
+ * On the host, as Fluent Bit's package runs it (issue #8580): its service
+ * reads /etc/fluent-bit/fluent-bit.conf, as root, and starts again when it
+ * exits (Restart=always). The guide had "fluent-bit -c fluent-bit.conf",
+ * run by hand as the person: they cannot make /var/lib/fluent-bit or read
+ * the files in /var/log only root may read, and it stopped with their
+ * terminal. enable starts it at every boot too.
+ */
+export function getFluentBitHostCommands(): string {
+  return `# Fluent Bit's package runs its service with /etc/fluent-bit/fluent-bit.conf
+sudo cp fluent-bit.conf /etc/fluent-bit/fluent-bit.conf
+# Start it at every boot, and now with the new file
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit`;
+}
+
+/*
+ * The address is in fluent-bit.conf alone: nothing here sets it. The
+ * fluent-bit-state volume keeps the tail's place and the chunks still to
+ * send when the container is made again (issue #8580), and the container
+ * starts again after a reboot or a crash, so they are sent.
+ */
 export function getFluentBitDockerCompose(): string {
   return `# docker-compose.yml
 services:
   fluent-bit:
     image: fluent/fluent-bit:latest
+    # Start again after a reboot or a crash, so the chunks on disk are sent
+    restart: unless-stopped
     volumes:
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
-      - /var/log:/var/log:ro`;
+      - /var/log:/var/log:ro
+      # Fluent Bit's place in each file, and the chunks it has yet to send
+      - fluent-bit-state:${FLUENT_BIT_STATE_FOLDER}
+
+volumes:
+  fluent-bit-state:`;
 }
 
 /*

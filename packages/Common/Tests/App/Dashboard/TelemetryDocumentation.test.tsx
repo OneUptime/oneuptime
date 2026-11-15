@@ -369,15 +369,31 @@ describe("TelemetryDocumentation", () => {
           return tab.textContent || "";
         }),
       ).toEqual(["On the host", "Docker Compose"]);
-      expect(container.textContent).toContain("fluent-bit -c fluent-bit.conf");
+      // The package's service, which runs as root and keeps its state (#8580).
+      expect(container.textContent).toContain(
+        "sudo cp fluent-bit.conf /etc/fluent-bit/fluent-bit.conf",
+      );
+      expect(container.textContent).toContain(
+        "sudo systemctl restart fluent-bit",
+      );
+      expect(container.textContent).not.toContain(
+        "fluent-bit -c fluent-bit.conf",
+      );
       expect(container.textContent).not.toContain("image: fluent/fluent-bit");
+      // The one file, with its place and its chunks kept, and its retries.
+      expect(container.textContent).toContain(
+        "DB           /var/lib/fluent-bit/tail.db",
+      );
+      expect(container.textContent).toContain("Retry_Limit  8640");
 
       fireEvent.click(tabs[1]!);
 
       expect(container.textContent).toContain("image: fluent/fluent-bit");
-      expect(container.textContent).not.toContain(
-        "fluent-bit -c fluent-bit.conf",
+      expect(container.textContent).toContain("restart: unless-stopped");
+      expect(container.textContent).toContain(
+        "fluent-bit-state:/var/lib/fluent-bit",
       );
+      expect(container.textContent).not.toContain("systemctl");
     });
 
     /*

@@ -19,9 +19,16 @@ import {
   FLUENTD_RETRYABLE_RESPONSE_CODES,
   FLUENTD_STATE_FOLDERS,
   FLUENT_BIT_LOGS_URI,
+  FLUENT_BIT_RETRY_INTERVAL_SECONDS,
+  FLUENT_BIT_RETRY_LIMIT,
+  FLUENT_BIT_STATE_FOLDER,
+  FLUENT_BIT_STORAGE_PATH,
+  FLUENT_BIT_STORAGE_TOTAL_LIMIT,
+  FLUENT_BIT_TAIL_DB,
   FluentdRunsIn,
   getFluentBitConfig,
   getFluentBitDockerCompose,
+  getFluentBitHostCommands,
   getFluentdConfig,
   getFluentdDockerCompose,
   getFluentdHostCommands,
@@ -108,11 +115,20 @@ describe("Fluent Bit's file", () => {
     Flush        5
     Log_Level    info
     Parsers_File parsers.conf
+    # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+    storage.path /var/lib/fluent-bit/buffer
+    storage.sync normal
+    # Try a chunk again about every 30 seconds
+    scheduler.base 30
+    scheduler.cap  30
 
 [INPUT]
     Name         tail
     Path         /var/log/*.log
     Tag          app.logs
+    # Keep its place in each file, so a restart reads on from there
+    DB           /var/lib/fluent-bit/tail.db
+    storage.type filesystem
 
 [OUTPUT]
     Name         opentelemetry
@@ -121,7 +137,11 @@ describe("Fluent Bit's file", () => {
     Port         18811
     Tls          Off
     Header       x-oneuptime-token ${KEY}
-    Logs_uri     /otlp/v1/logs`);
+    Logs_uri     /otlp/v1/logs
+    # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+    Retry_Limit  8640
+    # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+    storage.total_limit_size 512M`);
   });
 
   test("an https server with no port, as OneUptime Cloud: port 443 and TLS on", () => {
@@ -130,11 +150,20 @@ describe("Fluent Bit's file", () => {
     Flush        5
     Log_Level    info
     Parsers_File parsers.conf
+    # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+    storage.path /var/lib/fluent-bit/buffer
+    storage.sync normal
+    # Try a chunk again about every 30 seconds
+    scheduler.base 30
+    scheduler.cap  30
 
 [INPUT]
     Name         tail
     Path         /var/log/*.log
     Tag          app.logs
+    # Keep its place in each file, so a restart reads on from there
+    DB           /var/lib/fluent-bit/tail.db
+    storage.type filesystem
 
 [OUTPUT]
     Name         opentelemetry
@@ -143,7 +172,11 @@ describe("Fluent Bit's file", () => {
     Port         443
     Tls          On
     Header       x-oneuptime-token ${KEY}
-    Logs_uri     /otlp/v1/logs`);
+    Logs_uri     /otlp/v1/logs
+    # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+    Retry_Limit  8640
+    # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+    storage.total_limit_size 512M`);
   });
 
   test.each<[string, string, string, string, string]>([
@@ -192,11 +225,31 @@ describe("Fluent Bit's file", () => {
   test("Docker Compose sets no address: Fluent Bit reads it from fluent-bit.conf", () => {
     const compose: string = getFluentBitDockerCompose();
 
-    expect(compose).toContain(
-      "./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf",
-    );
+    expect(compose).toBe(`# docker-compose.yml
+services:
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    # Start again after a reboot or a crash, so the chunks on disk are sent
+    restart: unless-stopped
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - /var/log:/var/log:ro
+      # Fluent Bit's place in each file, and the chunks it has yet to send
+      - fluent-bit-state:/var/lib/fluent-bit
+
+volumes:
+  fluent-bit-state:`);
     expect(compose).not.toContain("environment");
     expect(compose).not.toContain("HOST");
+  });
+
+  test("on the host: the package's service, with the file where it reads it", () => {
+    expect(getFluentBitHostCommands())
+      .toBe(`# Fluent Bit's package runs its service with /etc/fluent-bit/fluent-bit.conf
+sudo cp fluent-bit.conf /etc/fluent-bit/fluent-bit.conf
+# Start it at every boot, and now with the new file
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit`);
   });
 });
 
@@ -2063,6 +2116,229 @@ const forwardSafetyProblems: (
 
   return problems;
 };
+
+/*
+ * Fluent Bit's classic file, as Fluent Bit reads it: [SECTION] headers,
+ * then "Key value" lines, the keys in any case; a line that starts with
+ * "#" is a comment. Each section's settings, in order.
+ */
+interface FluentBitSection {
+  name: string;
+  settings: Record<string, string>;
+}
+
+const parseFluentBitClassic: (config: string) => Array<FluentBitSection> = (
+  config: string,
+): Array<FluentBitSection> => {
+  const sections: Array<FluentBitSection> = [];
+
+  for (const rawLine of config.split("\n")) {
+    const line: string = rawLine.trim();
+
+    if (line === "" || line.startsWith("#")) {
+      continue;
+    }
+
+    const header: RegExpMatchArray | null = line.match(/^\[(\w+)\]$/);
+
+    if (header) {
+      sections.push({ name: header[1]!.toUpperCase(), settings: {} });
+      continue;
+    }
+
+    const setting: RegExpMatchArray | null = line.match(/^(\S+)\s+(.+)$/);
+
+    if (!setting || sections.length === 0) {
+      throw new Error(`A line this test does not read: ${line}`);
+    }
+
+    sections[sections.length - 1]!.settings[setting[1]!.toLowerCase()] =
+      setting[2]!.trim();
+  }
+
+  return sections;
+};
+
+// The one section of that name.
+const fluentBitSection: (
+  config: string,
+  name: string,
+) => Record<string, string> = (
+  config: string,
+  name: string,
+): Record<string, string> => {
+  const found: Array<FluentBitSection> = parseFluentBitClassic(config).filter(
+    (section: FluentBitSection): boolean => {
+      return section.name === name;
+    },
+  );
+
+  expect(found.length).toBe(1);
+
+  return found[0]!.settings;
+};
+
+describe("Fluent Bit keeps its place and its chunks, and sends a chunk again (issue #8580)", () => {
+  /*
+   * In the run of main's file (fluent/fluent-bit 5.2.0, against a stub of
+   * /otlp/v1/logs): a chunk the stub answered 503 for was tried once more,
+   * 10 seconds later, then "cannot be retried" and dropped; and a line
+   * written while the container was stopped never arrived. With the files
+   * below, the chunk was tried about every 30 seconds, stayed on disk when
+   * the container was made again, and arrived when the stub answered 200;
+   * the line written while it was stopped arrived when it started.
+   */
+  const configText: string = getFluentBitConfig(CLOUD);
+  const service: Record<string, string> = fluentBitSection(
+    configText,
+    "SERVICE",
+  );
+  const input: Record<string, string> = fluentBitSection(configText, "INPUT");
+  const output: Record<string, string> = fluentBitSection(configText, "OUTPUT");
+  const compose: string = getFluentBitDockerCompose();
+
+  // What Fluent Bit 5.2.0's OpenTelemetry output sent again, in the run.
+  const RETRIED_IN_THE_RUN: Array<number> = [429, 502, 503, 504];
+  const DROPPED_AT_ONCE_IN_THE_RUN: Array<number> = [
+    400, 401, 402, 413, 422, 500,
+  ];
+
+  test("the reader reads a classic file as Fluent Bit does: sections, keys in any case, comments", () => {
+    expect(
+      parseFluentBitClassic(
+        "[SERVICE]\n    Flush 1\n    # a comment\n[input]\n    NAME tail\n    db /x.db",
+      ),
+    ).toEqual([
+      { name: "SERVICE", settings: { flush: "1" } },
+      { name: "INPUT", settings: { name: "tail", db: "/x.db" } },
+    ]);
+    expect(() => {
+      return parseFluentBitClassic("Flush 1");
+    }).toThrow();
+  });
+
+  test("the tail keeps its place in a database in the state folder, which it does not read", () => {
+    expect(input["name"]).toBe("tail");
+    expect(input["db"]).toBe(FLUENT_BIT_TAIL_DB);
+    expect(FLUENT_BIT_TAIL_DB).toBe("/var/lib/fluent-bit/tail.db");
+    expect(isUnder(FLUENT_BIT_TAIL_DB, FLUENT_BIT_STATE_FOLDER)).toBe(true);
+    // Not under /var/log, which Docker Compose mounts read-only.
+    expect(isUnder(FLUENT_BIT_TAIL_DB, "/var/log")).toBe(false);
+
+    // SQLite writes the database and its journal beside it, as in the run.
+    for (const file of ["tail.db", "tail.db-wal", "tail.db-shm"]) {
+      expect({
+        file,
+        read: globTakes(input["path"]!, `${FLUENT_BIT_STATE_FOLDER}/${file}`),
+      }).toEqual({ file, read: false });
+    }
+  });
+
+  test("the tail's chunks are kept on disk, in the state folder, which the tail does not read", () => {
+    expect(input["storage.type"]).toBe("filesystem");
+    expect(service["storage.path"]).toBe(FLUENT_BIT_STORAGE_PATH);
+    expect(isUnder(FLUENT_BIT_STORAGE_PATH, FLUENT_BIT_STATE_FOLDER)).toBe(
+      true,
+    );
+    // fsync now and then, Fluent Bit's own default; "full" would fsync every write.
+    expect(service["storage.sync"]).toBe("normal");
+    // The chunk Fluent Bit wrote in the run.
+    expect(
+      globTakes(
+        input["path"]!,
+        `${FLUENT_BIT_STORAGE_PATH}/tail.0/1-1794769381.926981909.flb`,
+      ),
+    ).toBe(false);
+  });
+
+  test("a chunk is sent again about every 30 seconds, for about 72 hours, not for ever", () => {
+    expect(FLUENT_BIT_RETRY_INTERVAL_SECONDS).toBe(30);
+    // base and cap alike: the backoff's jitter picks between them, so every wait is 30 seconds.
+    expect(service["scheduler.base"]).toBe("30");
+    expect(service["scheduler.cap"]).toBe("30");
+    expect(output["retry_limit"]).toBe(String(FLUENT_BIT_RETRY_LIMIT));
+    expect(FLUENT_BIT_RETRY_LIMIT * FLUENT_BIT_RETRY_INTERVAL_SECONDS).toBe(
+      72 * 60 * 60,
+    );
+    // Fluent Bit's own default is 1; no_limits (or False) would try a chunk for ever.
+    expect(output["retry_limit"]).not.toMatch(/^(no_limits|false|off)$/i);
+  });
+
+  test("Fluent Bit sends again the answers the Fluentd guide does, and drops the ones that answer the same every time", () => {
+    expect(RETRIED_IN_THE_RUN).toEqual(FLUENTD_RETRYABLE_RESPONSE_CODES);
+
+    for (const code of DROPPED_AT_ONCE_IN_THE_RUN) {
+      expect({ code, retried: RETRIED_IN_THE_RUN.includes(code) }).toEqual({
+        code,
+        retried: false,
+      });
+    }
+  });
+
+  test("the output keeps at most 512 MB on disk, as much as the Fluentd guide's buffer", () => {
+    expect(output["storage.total_limit_size"]).toBe(
+      FLUENT_BIT_STORAGE_TOTAL_LIMIT,
+    );
+    expect(fluentdBytes(FLUENT_BIT_STORAGE_TOTAL_LIMIT)).toBe(
+      fluentdBytes(FLUENTD_BUFFER_TOTAL_LIMIT),
+    );
+  });
+
+  test("the output still sends to OneUptime as before", () => {
+    expect(output["name"]).toBe("opentelemetry");
+    expect(output["logs_uri"]).toBe(FLUENT_BIT_LOGS_URI);
+    expect(output["header"]).toBe(`x-oneuptime-token ${KEY}`);
+  });
+
+  test("in Docker Compose, the state folder is a volume, under no read-only mount", () => {
+    const holders: Array<ComposeMount> = composeMounts(compose).filter(
+      (mount: ComposeMount): boolean => {
+        return (
+          isUnder(FLUENT_BIT_TAIL_DB, mount.target) ||
+          isUnder(FLUENT_BIT_STORAGE_PATH, mount.target)
+        );
+      },
+    );
+
+    expect(holders).toEqual([
+      {
+        source: "fluent-bit-state",
+        target: FLUENT_BIT_STATE_FOLDER,
+        readOnly: false,
+      },
+    ]);
+    expect(compose).toMatch(/^volumes:\n {2}fluent-bit-state:$/m);
+    expect(composeMounts(compose)).toContainEqual({
+      source: "/var/log",
+      target: "/var/log",
+      readOnly: true,
+    });
+  });
+
+  test("in Docker Compose, Fluent Bit starts again after a reboot or a crash, as the image's root", () => {
+    expect(composeServiceSetting(compose, "restart")).toBe("unless-stopped");
+    // The fluent/fluent-bit image runs as root (its User is 0): it reads every file in /var/log.
+    expect(composeServiceSetting(compose, "user")).toBeUndefined();
+  });
+
+  test("on the host, the package's service runs the file, as root, now and at every boot", () => {
+    const commands: Array<string> = getFluentBitHostCommands()
+      .split("\n")
+      .filter((line: string): boolean => {
+        return !line.startsWith("#");
+      });
+
+    expect(commands).toEqual([
+      "sudo cp fluent-bit.conf /etc/fluent-bit/fluent-bit.conf",
+      "sudo systemctl enable fluent-bit",
+      "sudo systemctl restart fluent-bit",
+    ]);
+    // Not Fluent Bit run by hand as the person, who cannot make /var/lib/fluent-bit.
+    expect(getFluentBitHostCommands()).not.toContain("fluent-bit -c");
+    // The package's parsers.conf is beside the file, where Parsers_File looks.
+    expect(service["parsers_file"]).toBe("parsers.conf");
+  });
+});
 
 describe("a forward input other hosts can reach asks for a shared key and TLS", () => {
   const forwardIn: (config: string) => FluentdSection = (
