@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 52513,
-    "untranslated": 972
+    "untranslated": 522
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -243,6 +243,7 @@
     "SendGrid",
     "Service Mesh",
     "Shift",
+    "Shift + Enter",
     "Slug",
     "Snowflake",
     "StatusPage",
@@ -282,6 +283,7 @@
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",
+    "[\"systemctl restart *\", \"kubectl rollout restart *\"]",
     "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }, { \"$count\": \"value\" }]",
     "[{ \"$match\": { \"total\": { \"$lt\": 0 } } }]",
     "^PostgreSQL",
@@ -300,6 +302,7 @@
     "build=1.4.2, plan=pro",
     "checkout-.*",
     "checkout-api",
+    "checkout-handler",
     "compute-01 · RegionTwo",
     "compute-07 · RegionOne",
     "customer facing|tier-1",
@@ -317,6 +320,7 @@
     "failed password",
     "finance@yourcompany.com, accounting@yourcompany.com",
     "govc",
+    "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
     "hh",
     "history {{kind}}",
     "host:port",
@@ -335,6 +339,9 @@
     "name",
     "nightly-backups",
     "nova-compute",
+    "npm ci",
+    "npm run build",
+    "npm test",
     "ns",
     "null",
     "ok",
