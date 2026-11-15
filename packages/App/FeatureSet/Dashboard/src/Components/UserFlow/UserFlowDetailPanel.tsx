@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -93,7 +94,9 @@ function Stat(props: {
           description={props.tooltip}
         />
       </p>
-      <p className={`text-lg font-semibold ${toneClass}`}>{props.value}</p>
+      <p className={`text-lg font-semibold ${toneClass}`}>
+        {getFigure(props.value)}
+      </p>
       {props.hint ? (
         <p className="text-xs text-gray-500">{props.hint}</p>
       ) : (

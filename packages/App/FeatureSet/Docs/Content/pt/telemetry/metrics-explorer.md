@@ -56,11 +56,11 @@ Clique na métrica no **Visualizador**. O explorador abre com uma consulta, `a`,
 
 ### Escolher como agregá-la
 
-Em **Aggregate by**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
+Em **Agregar por**, escolha como os valores de cada ponto do gráfico são combinados: Avg, que é o padrão, Sum, Min, Max, Count, ou um percentil, P50, P75, P90, P95 ou P99. O percentil de uma métrica de histograma, como a duração de uma requisição, é calculado a partir dos buckets dela.
 
 ### Filtrá-la e agrupá-la
 
-Abra **Filters & grouping**. **Filter by attributes** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
+Abra **Filtros e agrupamento**. **Filtrar por atributos** mantém os pontos de dados cujos atributos correspondem, como uma `http.route` específica, e **Agrupar por** desenha uma linha por valor dos atributos que você escolher, como uma linha por host.
 
 ### Ajustar o gráfico
 

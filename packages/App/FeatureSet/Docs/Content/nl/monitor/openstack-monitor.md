@@ -80,7 +80,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en beoordeel
 | **OpenStack-metriek** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe samples worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Afgelopen 15 minuten**; sjablonen stellen hun eigen waarde in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
 Een filter beperkt alleen een reeks die het bijbehorende label draagt: `openstack_nova_up` heeft geen project, dus een projectfilter laat die reeks ongemoeid.
 

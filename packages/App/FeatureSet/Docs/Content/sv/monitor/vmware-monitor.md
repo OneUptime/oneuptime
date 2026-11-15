@@ -84,7 +84,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **VMware Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Senaste 5 minuterna**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 vCenter läses en gång per insamlingsintervall, 2 minuter som standard, så ett fönster på 1 minut innehåller kanske inget stickprov alls. Håll fönstret på 5 minuter eller mer, och längre om du har ökat insamlingsintervallet för ett stort inventarium.
 

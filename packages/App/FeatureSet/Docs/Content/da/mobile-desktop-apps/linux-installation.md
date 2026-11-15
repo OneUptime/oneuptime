@@ -60,7 +60,7 @@ Appen viser notifikationer gennem sin browser, når du har registreret browseren
 Klik på **Registrer enhed**, behold det foreslåede **Enhedsnavn**, for eksempel `Chrome on Linux`, eller ret det, og klik på **Registrer enhed** igen. Når browseren spørger, om OneUptime må vise notifikationer, vælger du **Tillad**.
 
 ### Send en test
-Klik på **Send Test Notification** i dialogen **Browser Registered**. Dit skrivebord viser den gennem sin notifikationstjeneste; vises der intet, så se [Fejlfinding](#fejlfinding).
+Klik på **Send testnotifikation** i dialogen **Browser registreret**. Dit skrivebord viser den gennem sin notifikationstjeneste; vises der intet, så se [Fejlfinding](#fejlfinding).
 :::
 
 En browser kan ikke ringe igennem dit skrivebords Forstyr ikke. Brug mobilappen med kritiske advarsler til alarmer, der skal vække dig: se [Android-installation](/docs/mobile-desktop-apps/android-installation#ring-igennem-lydløs).

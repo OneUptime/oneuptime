@@ -5,6 +5,7 @@ import {
   getPeakBitsPerSecond,
 } from "./NetworkTrafficFormat";
 import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
@@ -80,7 +81,7 @@ const TrafficTile: FunctionComponent<TileProps> = (
             className="mt-0.5 truncate text-xl font-semibold tabular-nums text-gray-900"
             data-testid={`${props.dataTestId}-value`}
           >
-            {props.value}
+            {getFigure(props.value)}
           </div>
         </div>
       </div>

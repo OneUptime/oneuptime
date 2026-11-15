@@ -49,13 +49,13 @@ Disse fire widgets læser en metrikforespørgsel, bygget som metrikudforskeren b
 
 ### Diagram
 
-En tidsserie med en eller flere metrikforespørgsler over dashboardets tidsinterval. **Chart Type** tegner den som et linje-, søjle-, areal-, stablet areal- eller cirkeldiagram. **Additional Queries** lægger flere metrikker på de samme akser, og **Formulas** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver forespørgsels visningsindstillinger tilføjer en forklaring og en enhed, en farve, advarsels- og kritiske linjer og en rate pr. sekund for tællere, der kun vokser.
+En tidsserie med en eller flere metrikforespørgsler over dashboardets tidsinterval. **Diagramtype** tegner den som et linje-, søjle-, areal-, stablet areal- eller cirkeldiagram. **Yderligere forespørgsler** lægger flere metrikker på de samme akser, og **Formler** kombinerer dem med `+`, `-`, `*`, `/`, `%`, `^` og parenteser, som i `(1 - a) * 100`. Hver forespørgsels visningsindstillinger tilføjer en forklaring og en enhed, en farve, advarsels- og kritiske linjer og en rate pr. sekund for tællere, der kun vokser.
 
 Brug den, når linjens form fortæller historien: latenstid, fejl, gennemløb eller køens længde.
 
 ### Værdi
 
-Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trend Direction**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Advarselstærskel** gør baggrunden gul og **Kritisk tærskel** rød, når værdien når dem.
+Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trendretning**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Advarselstærskel** gør baggrunden gul og **Kritisk tærskel** rød, når værdien når dem.
 
 Brug den, når ét tal besvarer spørgsmålet: fejlraten, P95-latenstiden eller antal anmodninger håndteret i dag.
 
@@ -67,7 +67,7 @@ Brug den, når værdien lever i et kendt interval: CPU- eller diskforbrug i proc
 
 ### Tabel
 
-Metrikværdier som rækker. **Group By Attributes** giver én række pr. værdi, for eksempel én pr. `host.name`; uden den er hver række et tidsrum. **Metrics & Columns** angiver kolonnerne: metrikker og formler over dem, som tilgængelighed i procent. Når du grupperer, gør **Reduce across time** hver rækkes serie til én værdi: den seneste værdi, gennemsnittet, summen, minimum eller maksimum.
+Metrikværdier som rækker. **Gruppér efter attributter** giver én række pr. værdi, for eksempel én pr. `host.name`; uden den er hver række et tidsrum. **Metrikker og kolonner** angiver kolonnerne: metrikker og formler over dem, som tilgængelighed i procent. Når du grupperer, gør **Saml over tid** hver rækkes serie til én værdi: den seneste værdi, gennemsnittet, summen, minimum eller maksimum.
 
 Slå **Farv efter tærskler** til i en kolonne for at farve dens værdier: En værdi, der når **Advarselstærskel**, bliver ravgul med en trekant, og en, der når **Kritisk tærskel**, bliver rød og fed med en cirkel. En procentkolonne starter ved 80 og 90. For en kolonne, hvor lave værdier er problemet, som ledig diskplads, skal du vælge **Lavere er værre** under **Retning**.
 
@@ -120,11 +120,11 @@ Widgetten genindlæses, hver gang dashboardet opdateres, så en widget, der hent
 
 #### Tilladelser
 
-**Run JavaScript** (slået til som standard) kører dit script. Slå den fra for kun at gengive markup og typografier: scriptet udelades så helt fra widgetten i stedet for blot at blive blokeret.
+**Kør JavaScript** (slået til som standard) kører dit script. Slå den fra for kun at gengive markup og typografier: scriptet udelades så helt fra widgetten i stedet for blot at blive blokeret.
 
-**Open links in a new tab** (slået til som standard) lader links og `window.open` åbne en browserfane. Links åbner altid i en ny fane; widgetten kan aldrig få selve dashboardet til at navigere.
+**Åbn links i en ny fane** (slået til som standard) lader links og `window.open` åbne en browserfane. Links åbner altid i en ny fane; widgetten kan aldrig få selve dashboardet til at navigere.
 
-**Allow forms to submit** (slået fra som standard) lader en `<form>` inde i widgetten blive sendt.
+**Tillad indsendelse af formularer** (slået fra som standard) lader en `<form>` inde i widgetten blive sendt.
 
 Den, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle, der ser dashboardet, kører det: på et offentligt dashboard gælder det også anonyme besøgende. Behandl redigeringsadgang til et dashboard med en HTML-widget, som du ville behandle adgang til enhver anden kode, du udgiver.
 
@@ -160,7 +160,7 @@ Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet eft
 
 **Indstillinger**: hvilket SLO, eller det SLO, der er valgt i en dashboard-variabel; hvilket af dets tre tal (SLI, Error Budget Remaining eller Burn Rate); visning som Tile eller Diagram; og en valgfri titel.
 
-- **Tile** viser det aktuelle tal, plus en anden linje, hvor der er en: målet under SLI, de resterende minutter under fejlbudgettet. En statusmærkat farver det hele.
+- **Felt** viser det aktuelle tal, plus en anden linje, hvor der er en: målet under SLI, de resterende minutter under fejlbudgettet. En statusmærkat farver det hele.
 - **Diagram** tegner det samme tal over dashboardets tidsinterval, med målet markeret som en stiplet linje på SLI-serien. Historikken skrives med få minutters mellemrum af evalueringsworkeren, så et helt nyt SLO vises som et tomt diagram, indtil det er blevet evalueret første gang.
 
 Brug den, når dashboardet besvarer "holder vi det, vi har lovet?" snarere end "hvad sker der lige nu?".
