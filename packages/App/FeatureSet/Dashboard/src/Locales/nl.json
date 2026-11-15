@@ -52398,5 +52398,12 @@
   "Change (schema change)": "Wijziging",
   "Table (database object)": "Tabel",
   "View (database object)": "Weergave",
-  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden."
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden.",
+  "Affects": "Betreft",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "Zolang ze niet zijn opgelost, bereiken sommige oproepen niet de mensen voor wie ze bedoeld zijn.",
+  "{{count}} problems would stop people from being told": "{{count}} problemen zouden voorkomen dat mensen worden gewaarschuwd",
+  "{{count}} problems would stop people from being told_one": "{{count}} probleem zou voorkomen dat mensen worden gewaarschuwd",
+  "{{count}} things in your setup are worth fixing": "{{count}} punten in je inrichting zijn het oplossen waard",
+  "{{count}} things in your setup are worth fixing_one": "{{count}} punt in je inrichting is het oplossen waard",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "Los elk punt vanaf hier op, of verberg het als je team het bewust zo laat."
 }

@@ -52398,5 +52398,12 @@
   "Change (schema change)": "बदलाव",
   "Table (database object)": "टेबल",
   "View (database object)": "व्यू",
-  "{{wait}}. Change when this step is sent.": "{{wait}}। यह चरण कब भेजा जाए, इसे बदलें।"
+  "{{wait}}. Change when this step is sent.": "{{wait}}। यह चरण कब भेजा जाए, इसे बदलें।",
+  "Affects": "प्रभावित",
+  "Until they are fixed, some pages won't reach the people they are meant for.": "जब तक इन्हें ठीक नहीं किया जाता, कुछ पेज उन लोगों तक नहीं पहुँचेंगे जिनके लिए वे हैं।",
+  "{{count}} problems would stop people from being told": "{{count}} समस्याएँ लोगों तक सूचना पहुँचने से रोकेंगी",
+  "{{count}} problems would stop people from being told_one": "{{count}} समस्या लोगों तक सूचना पहुँचने से रोकेगी",
+  "{{count}} things in your setup are worth fixing": "आपके सेटअप में {{count}} चीज़ें ठीक करने लायक हैं",
+  "{{count}} things in your setup are worth fixing_one": "आपके सेटअप में {{count}} चीज़ ठीक करने लायक है",
+  "Fix each one from here, or dismiss it if your team leaves it that way on purpose.": "हर एक को यहीं से ठीक करें, या अगर आपकी टीम उसे जानबूझकर वैसा ही रखती है तो उसे छिपाएं।"
 }
