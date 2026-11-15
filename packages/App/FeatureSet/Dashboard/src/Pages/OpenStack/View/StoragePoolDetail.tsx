@@ -150,7 +150,7 @@ const StoragePoolOverview: FunctionComponent<{
           iconColor="amber"
           value={
             percent === null
-              ? "—"
+              ? undefined
               : formatOpenStackPercent(percent, {
                   language: translator.language,
                 })
@@ -179,7 +179,7 @@ const StoragePoolOverview: FunctionComponent<{
           title="Free"
           icon={IconProp.SquareStack}
           iconColor="emerald"
-          value={free === null ? "—" : formatOpenStackBytes(free)}
+          value={free === null ? undefined : formatOpenStackBytes(free)}
           sublabel={
             row.diskCapacityBytes
               ? translator.translateTemplate(

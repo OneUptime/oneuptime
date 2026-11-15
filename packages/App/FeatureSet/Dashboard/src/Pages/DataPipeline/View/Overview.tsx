@@ -102,7 +102,7 @@ const PipelineOverviewPage: FunctionComponent<
               ? OneUptimeDate.fromNow(
                   OneUptimeDate.fromString(pipeline.lastRunStartedAt),
                 )
-              : "-"
+              : undefined
           }
           note={getRunStatePill(pipeline?.lastRunState)}
           icon={IconProp.Play}
@@ -149,7 +149,7 @@ const PipelineOverviewPage: FunctionComponent<
           value={
             pipeline && lateness
               ? getPipelineScheduleText(translator, pipeline, lateness)
-              : "-"
+              : undefined
           }
           note={lateness ? getPipelineSchedulePill(lateness) : undefined}
           icon={IconProp.Calendar}

@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -183,7 +184,7 @@ const StatTile: FunctionComponent<ComponentProps> = (
           <div
             className={`truncate text-lg font-semibold leading-tight ${tone.valueClassName}`}
           >
-            {props.value}
+            {getFigure(props.value)}
           </div>
           {/*
            * Its name wraps onto a second line rather than being cut short:
