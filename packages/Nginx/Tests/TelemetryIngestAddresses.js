@@ -45,10 +45,11 @@ const LOG_SHIPPER_SNIPPETS =
 /*
  * The Setup Guide's OpenTelemetry SDK snippets, which give an exporter its
  * signal's URL under <YOUR_ONEUPTIME_URL>, and the guide, which fills that
- * with its OTLP endpoint (issue #7885).
+ * with its OTLP endpoint (issue #7885). Each language's are a file of their
+ * own (#7927); Go's names each signal's URL as it is.
  */
 const OTEL_SDK_SNIPPETS =
-  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/OtelSdkSnippets.ts";
+  "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/OtelSdkLanguages/Go.ts";
 const TELEMETRY_SETUP_GUIDE =
   "packages/App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation.tsx";
 
