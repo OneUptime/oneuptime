@@ -115,7 +115,17 @@ pipeline:
 
 ### Fluent Bit रीस्टार्ट करें
 
-Fluent Bit सर्विस को रीस्टार्ट करें, या उसे `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` से शुरू करें। कुछ ही सेकंड में लॉग **उत्पाद → लॉग** में दिखते हैं, और सेवा **उत्पाद → सेवाएं** में सूचीबद्ध हो जाती है।
+`fluent-bit` पैकेज की सेवा `/etc/fluent-bit/fluent-bit.conf` पढ़ती है, जो पैकेज का अपना उदाहरण है, यह फ़ाइल नहीं। एक drop-in से उसे `/etc/fluent-bit/fluent-bit.yaml` की ओर करें, फिर उसे अभी और हर बूट पर शुरू करें:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+खाली `ExecStart=` पैकेज की अपनी स्टार्ट लाइन हटा देता है। पहले फ़ाइल को फ़ोरग्राउंड में आज़माने के लिए `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` चलाएं: पैकेज प्रोग्राम को `/opt/fluent-bit/bin` में रखता है, जो `PATH` में नहीं है। कुछ ही सेकंड में लॉग **उत्पाद → लॉग** में दिखते हैं, और सेवा **उत्पाद → सेवाएं** में सूचीबद्ध हो जाती है।
 :::
 
 ## पूरा उदाहरण

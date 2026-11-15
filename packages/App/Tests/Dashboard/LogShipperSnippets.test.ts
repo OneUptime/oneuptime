@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { CompatibleIngestEndpoint } from "../../FeatureSet/Dashboard/src/Components/Telemetry/CompatibleIngestGuide";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
@@ -1229,7 +1229,7 @@ const jsonParserOutcome: (
 };
 
 // The values a JSON line's time field may hold that Fluentd cannot read as a time.
-const NOT_TEXT_OR_NUMBER: Array<[string, unknown]> = [
+const NOT_TEXT_OR_NUMBER: Array<[string, JSONValue]> = [
   ["null", null],
   ["true", true],
   ["false", false],
@@ -1240,7 +1240,7 @@ const NOT_TEXT_OR_NUMBER: Array<[string, unknown]> = [
 ];
 
 // And values it reads, as text or a number, whatever they mean.
-const TEXT_OR_NUMBER: Array<[string, unknown]> = [
+const TEXT_OR_NUMBER: Array<[string, JSONValue]> = [
   ["an ISO time", "2026-11-14T08:00:00.123Z"],
   ["epoch seconds", 1763107202],
   ["pino's milliseconds", 1763107204123],

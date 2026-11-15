@@ -1278,6 +1278,116 @@ describe("the Fluent Bit page", () => {
     );
   });
 
+  /*
+   * The page's file is YAML, at /etc/fluent-bit/fluent-bit.yaml, but the
+   * fluent-bit package's service (5.2.0, Debian 12) starts
+   * "ExecStart=/opt/fluent-bit/bin/fluent-bit -c //etc/fluent-bit/fluent-bit.conf",
+   * the package's own example (a cpu input printed to stdout), and the
+   * package puts no fluent-bit on the PATH. "Restart the Fluent Bit
+   * service, or start it with fluent-bit -c ..." ran the example, or
+   * answered "command not found" (issue #8610). The step now points the
+   * service at the page's file with a drop-in; in a run, systemd-analyze
+   * verified the unit with it, and its ExecStart, run as root, sent the
+   * page's tail input to a stub of /otlp/v1/logs.
+   */
+  describe("the Restart Fluent Bit step", () => {
+    // The package's unit, as fluent-bit 5.2.0 installs it.
+    const PACKAGE_BINARY: string = "/opt/fluent-bit/bin/fluent-bit";
+    const PACKAGE_UNIT: string = "fluent-bit";
+    const DROP_IN_FOLDER: string = `/etc/systemd/system/${PACKAGE_UNIT}.service.d`;
+
+    // The step: from its heading to the end of the steps.
+    function step(): string {
+      const page: string = englishPage(FLUENT_BIT);
+      const start: number = page.indexOf("### Restart Fluent Bit\n");
+
+      expect(start).toBeGreaterThan(-1);
+
+      return page.slice(start, page.indexOf("\n:::\n", start));
+    }
+
+    // The file the page says Fluent Bit reads its YAML from.
+    function pageFile(): string {
+      const match: RegExpMatchArray | null = englishPage(FLUENT_BIT).match(
+        /Fluent Bit reads its YAML configuration from a file such as `([^`]+)`/,
+      );
+
+      expect(match).not.toBeNull();
+
+      return (match as RegExpMatchArray)[1] as string;
+    }
+
+    function commands(): Array<string> {
+      const fences: Array<DocsFence> = scanPage("en", FLUENT_BIT).fences.filter(
+        (fence: DocsFence): boolean => {
+          return fence.lang === "bash";
+        },
+      );
+
+      expect(fences.length).toBe(1);
+      expect(step()).toContain(fences[0]!.code);
+
+      return fences[0]!.code.split("\n");
+    }
+
+    it("points the package's service at the page's file with a drop-in, and restarts it", () => {
+      expect(pageFile()).toBe("/etc/fluent-bit/fluent-bit.yaml");
+
+      const [mkdir, dropIn, reload, enable, restart] = commands() as [
+        string,
+        string,
+        string,
+        string,
+        string,
+      ];
+
+      expect(mkdir).toBe(`sudo mkdir -p ${DROP_IN_FOLDER}`);
+
+      // The drop-in, as printf writes it: [Service], ExecStart= cleared, then the page's file.
+      const written: RegExpMatchArray | null = dropIn.match(
+        /^printf '([^']*)' \| sudo tee (\S+)$/,
+      );
+
+      expect(written).not.toBeNull();
+      expect((written as RegExpMatchArray)[1]!.split("\\n")).toEqual([
+        "[Service]",
+        "ExecStart=",
+        `ExecStart=${PACKAGE_BINARY} -c ${pageFile()}`,
+        "",
+      ]);
+
+      const dropInPath: string = (written as RegExpMatchArray)[2] as string;
+
+      expect(path.posix.dirname(dropInPath)).toBe(DROP_IN_FOLDER);
+      // systemd reads only *.conf in a drop-in folder.
+      expect(dropInPath.endsWith(".conf")).toBe(true);
+
+      // systemd reads the drop-in on daemon-reload, before the restart; enable starts it at every boot.
+      expect([reload, enable, restart]).toEqual([
+        "sudo systemctl daemon-reload",
+        `sudo systemctl enable ${PACKAGE_UNIT}`,
+        `sudo systemctl restart ${PACKAGE_UNIT}`,
+      ]);
+    });
+
+    it("says why, and how to try the file by hand with the package's binary", () => {
+      const text: string = step();
+
+      expect(text).toContain(
+        "The `fluent-bit` package's service reads `/etc/fluent-bit/fluent-bit.conf`, the package's own example, not this file.",
+      );
+      expect(text).toContain(
+        `run \`sudo ${PACKAGE_BINARY} -c ${pageFile()}\`: the package puts the binary in \`/opt/fluent-bit/bin\`, which is not on the \`PATH\`.`,
+      );
+      expect(path.posix.dirname(PACKAGE_BINARY)).toBe("/opt/fluent-bit/bin");
+      // Not the old advice: fluent-bit is not on the PATH, and the service read another file.
+      expect(englishPage(FLUENT_BIT)).not.toContain(
+        "`fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`",
+      );
+      expect(text).not.toContain("Restart the Fluent Bit service, or");
+    });
+  });
+
   it("says which answers Fluent Bit sends again, as it did in a run", () => {
     const answer: string = detailsAnswer(
       FLUENT_BIT,

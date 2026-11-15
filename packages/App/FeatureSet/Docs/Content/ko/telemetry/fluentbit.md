@@ -115,7 +115,17 @@ pipeline:
 
 ### Fluent Bit 다시 시작
 
-Fluent Bit 서비스를 다시 시작하거나 `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`로 실행합니다. 몇 초 안에 로그가 **제품 → 로그**에 나타나고, 서비스가 **제품 → 서비스**에 표시됩니다.
+`fluent-bit` 패키지의 서비스는 이 파일이 아니라 패키지 자체 예시인 `/etc/fluent-bit/fluent-bit.conf`를 읽습니다. drop-in으로 서비스를 `/etc/fluent-bit/fluent-bit.yaml`에 맞추고, 지금 그리고 부팅할 때마다 시작되게 하세요.
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+빈 `ExecStart=`는 패키지 자체의 시작 줄을 지웁니다. 먼저 포그라운드에서 파일을 시험하려면 `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`을 실행하세요. 패키지는 프로그램을 `/opt/fluent-bit/bin`에 두는데, 이 경로는 `PATH`에 없습니다. 몇 초 안에 로그가 **제품 → 로그**에 나타나고, 서비스가 **제품 → 서비스**에 표시됩니다.
 :::
 
 ## 전체 예시

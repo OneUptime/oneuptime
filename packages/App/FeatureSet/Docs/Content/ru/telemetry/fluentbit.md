@@ -115,7 +115,17 @@ pipeline:
 
 ### Перезапустите Fluent Bit
 
-Перезапустите службу Fluent Bit или запустите его командой `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`. Через несколько секунд логи появятся в **Продукты → Журналы**, а служба — в **Продукты → Сервисы**.
+Служба пакета `fluent-bit` читает `/etc/fluent-bit/fluent-bit.conf`, собственный пример пакета, а не этот файл. Направьте её на `/etc/fluent-bit/fluent-bit.yaml` с помощью drop-in, затем запустите сейчас и при каждой загрузке:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+Пустой `ExecStart=` стирает собственную строку запуска пакета. Чтобы сначала попробовать файл на переднем плане, выполните `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`: пакет кладёт программу в `/opt/fluent-bit/bin`, которой нет в `PATH`. Через несколько секунд логи появятся в **Продукты → Журналы**, а служба — в **Продукты → Сервисы**.
 :::
 
 ## Полный пример

@@ -115,7 +115,17 @@ pipeline:
 
 ### Fluent Bit herstarten
 
-Herstart de Fluent Bit-service, of start hem met `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`. Binnen enkele seconden verschijnen de logs onder **Producten → Logboeken**, en staat de service onder **Producten → Services**.
+De service van het pakket `fluent-bit` leest `/etc/fluent-bit/fluent-bit.conf`, het eigen voorbeeld van het pakket, niet dit bestand. Richt hem met een drop-in op `/etc/fluent-bit/fluent-bit.yaml` en start hem dan nu en bij elke opstart:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+De lege `ExecStart=` wist de eigen startregel van het pakket. Wil je het bestand eerst op de voorgrond proberen, voer dan `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` uit: het pakket zet het programma in `/opt/fluent-bit/bin`, dat niet in het `PATH` staat. Binnen enkele seconden verschijnen de logs onder **Producten → Logboeken**, en staat de service onder **Producten → Services**.
 :::
 
 ## Volledig voorbeeld

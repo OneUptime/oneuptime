@@ -115,7 +115,17 @@ pipeline:
 
 ### 重新啟動 Fluent Bit
 
-重新啟動 Fluent Bit 服務，或用 `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` 啟動它。幾秒內，日誌就會出現在 **產品 → 日誌** 中，服務也會列在 **產品 → 服務** 下。
+`fluent-bit` 套件的服務讀取的是套件內附的範例 `/etc/fluent-bit/fluent-bit.conf`，而不是這個檔案。用一個 drop-in 讓它改讀 `/etc/fluent-bit/fluent-bit.yaml`，然後讓它現在啟動，並在每次開機時啟動：
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+空的 `ExecStart=` 會清掉套件內附的啟動行。若要先在前景試一試這個檔案，請執行 `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`：套件把程式放在 `/opt/fluent-bit/bin`，它不在 `PATH` 中。幾秒內，日誌就會出現在 **產品 → 日誌** 中，服務也會列在 **產品 → 服務** 下。
 :::
 
 ## 完整範例

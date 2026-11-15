@@ -115,7 +115,17 @@ pipeline:
 
 ### Fluent Bit を再起動する
 
-Fluent Bit サービスを再起動するか、`fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` で起動します。数秒後にはログが **製品 → ログ** に表示され、サービスが **製品 → サービス** に並びます。
+`fluent-bit` パッケージのサービスが読むのは、このファイルではなく、パッケージ自身の例である `/etc/fluent-bit/fluent-bit.conf` です。drop-in でサービスを `/etc/fluent-bit/fluent-bit.yaml` に向け、今すぐ、そして起動のたびに動くようにします。
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+空の `ExecStart=` は、パッケージ自身の起動行を消します。先にフォアグラウンドでファイルを試すには、`sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` を実行します。パッケージはプログラムを `/opt/fluent-bit/bin` に置きますが、ここは `PATH` に入っていません。数秒後にはログが **製品 → ログ** に表示され、サービスが **製品 → サービス** に並びます。
 :::
 
 ## 完全な例

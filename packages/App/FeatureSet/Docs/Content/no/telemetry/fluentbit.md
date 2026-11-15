@@ -115,7 +115,17 @@ pipeline:
 
 ### Start Fluent Bit på nytt
 
-Start Fluent Bit-tjenesten på nytt, eller start den med `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`. Etter noen sekunder vises loggene under **Produkter → Logger**, og tjenesten står under **Produkter → Tjenester**.
+Tjenesten i pakken `fluent-bit` leser `/etc/fluent-bit/fluent-bit.conf`, pakkens eget eksempel, ikke denne filen. Pek den mot `/etc/fluent-bit/fluent-bit.yaml` med en drop-in, og start den så nå og ved hver oppstart:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+Den tomme `ExecStart=` fjerner pakkens egen startlinje. For å prøve filen i forgrunnen først kjører du `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`: pakken legger programmet i `/opt/fluent-bit/bin`, som ikke er i `PATH`. Etter noen sekunder vises loggene under **Produkter → Logger**, og tjenesten står under **Produkter → Tjenester**.
 :::
 
 ## Fullstendig eksempel

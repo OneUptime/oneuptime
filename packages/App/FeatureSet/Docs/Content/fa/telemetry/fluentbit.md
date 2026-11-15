@@ -115,7 +115,17 @@ pipeline:
 
 ### Fluent Bit را دوباره راه‌اندازی کنید
 
-سرویس Fluent Bit را دوباره راه‌اندازی کنید، یا آن را با `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` اجرا کنید. در چند ثانیه لاگ‌ها در **محصولات ← لاگ‌ها** نمایش داده می‌شوند و سرویس در **محصولات ← سرویس‌ها** فهرست می‌شود.
+سرویس بستهٔ `fluent-bit` فایل `/etc/fluent-bit/fluent-bit.conf` را می‌خواند که نمونهٔ خود بسته است، نه این فایل را. با یک drop-in آن را به `/etc/fluent-bit/fluent-bit.yaml` ببرید، سپس آن را همین حالا و در هر راه‌اندازی سیستم اجرا کنید:
+
+```bash
+sudo mkdir -p /etc/systemd/system/fluent-bit.service.d
+printf '[Service]\nExecStart=\nExecStart=/opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml\n' | sudo tee /etc/systemd/system/fluent-bit.service.d/fluent-bit-yaml.conf
+sudo systemctl daemon-reload
+sudo systemctl enable fluent-bit
+sudo systemctl restart fluent-bit
+```
+
+`ExecStart=` خالی خط اجرای خود بسته را پاک می‌کند. برای اینکه فایل را اول در پیش‌زمینه امتحان کنید، `sudo /opt/fluent-bit/bin/fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` را اجرا کنید: بسته برنامه را در `/opt/fluent-bit/bin` می‌گذارد که در `PATH` نیست. در چند ثانیه لاگ‌ها در **محصولات ← لاگ‌ها** نمایش داده می‌شوند و سرویس در **محصولات ← سرویس‌ها** فهرست می‌شود.
 :::
 
 ## نمونهٔ کامل
