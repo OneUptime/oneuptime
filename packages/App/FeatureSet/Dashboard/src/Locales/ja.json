@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}}日",
   "{{count}}h": "{{count}}時間",
   "{{count}}m": "{{count}}分",
+  "{{count}}mo": "{{count}}か月",
+  "{{count}}y": "{{count}}年",
   "{{target}}% of the time": "時間の {{target}}%",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "テーブルのデータベースに対する読み取り専用クエリで、value という名前の数値を 1 つ返します。タイムアウト付きの読み取り専用トランザクションで実行されます。",
   "Absolute": "絶対値",

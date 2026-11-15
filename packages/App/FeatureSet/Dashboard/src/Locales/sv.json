@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}} d",
   "{{count}}h": "{{count}} h",
   "{{count}}m": "{{count}} min",
+  "{{count}}mo": "{{count}} mån",
+  "{{count}}y": "{{count}} år",
   "{{target}}% of the time": "{{target}} % av tiden",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "En skrivskyddad fråga mot tabellens databas som returnerar ett tal med namnet value. Den körs i en skrivskyddad transaktion med tidsgräns.",
   "Absolute": "Absolut",

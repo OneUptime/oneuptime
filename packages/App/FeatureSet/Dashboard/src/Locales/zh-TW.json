@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}} 天",
   "{{count}}h": "{{count}} 小時",
   "{{count}}m": "{{count}} 分",
+  "{{count}}mo": "{{count}} 個月",
+  "{{count}}y": "{{count}} 年",
   "{{target}}% of the time": "{{target}}% 的時間",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "對該資料表所在資料庫執行的唯讀查詢，會傳回一個名為 value 的數字。查詢在唯讀交易中執行，並有逾時限制。",
   "Absolute": "絕對值",

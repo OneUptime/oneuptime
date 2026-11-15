@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}}d",
   "{{count}}h": "{{count}}h",
   "{{count}}m": "{{count}}m",
+  "{{count}}mo": "{{count}}mo",
+  "{{count}}y": "{{count}}y",
   "{{target}}% of the time": "{{target}}% of the time",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.",
   "Absolute": "Absolute",

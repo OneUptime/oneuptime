@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}} j",
   "{{count}}h": "{{count}} h",
   "{{count}}m": "{{count}} min",
+  "{{count}}mo": "{{count}} mois",
+  "{{count}}y": "{{count}} an(s)",
   "{{target}}% of the time": "{{target}} % du temps",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "Une requête en lecture seule sur la base de données de la table, qui renvoie un seul nombre nommé value. Elle s'exécute dans une transaction en lecture seule avec un délai d'expiration.",
   "Absolute": "Absolue",

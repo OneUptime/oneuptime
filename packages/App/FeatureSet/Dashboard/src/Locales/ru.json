@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}} д",
   "{{count}}h": "{{count}} ч",
   "{{count}}m": "{{count}} м",
+  "{{count}}mo": "{{count}} мес.",
+  "{{count}}y": "{{count}} г.",
   "{{target}}% of the time": "{{target}}% времени",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "Запрос к базе данных таблицы только для чтения, возвращающий одно число с именем value. Выполняется в транзакции только для чтения с тайм-аутом.",
   "Absolute": "Абсолютный",

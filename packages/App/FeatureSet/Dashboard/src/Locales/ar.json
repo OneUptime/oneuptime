@@ -41927,6 +41927,8 @@
   "{{count}}d": "{{count}} ي",
   "{{count}}h": "{{count}} س",
   "{{count}}m": "{{count}} د",
+  "{{count}}mo": "{{count}} ش",
+  "{{count}}y": "{{count}} سنة",
   "{{target}}% of the time": "{{target}}% من الوقت",
   "A read-only query of the table's database that returns one number, named value. It runs in a read-only transaction with a timeout.": "استعلام للقراءة فقط على قاعدة بيانات الجدول يعيد رقمًا واحدًا باسم value. ويعمل في معاملة للقراءة فقط مع مهلة.",
   "Absolute": "مطلق",
