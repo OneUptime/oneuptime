@@ -16,6 +16,10 @@ import RequestFailedDetails, {
 } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
+import {
+  RequestFailureDescription,
+  writeRequestFailureDescription,
+} from "Common/Utils/Monitor/RequestFailureDescriptions";
 import ProbeNetworkFailureUtil, {
   ProbeNetworkFailure,
   ProbeNetworkOperation,
@@ -179,12 +183,12 @@ const getProbeNetworkFailure: (data: {
 const describeProbeNetworkFailure: (data: {
   host: string;
   failure: ProbeNetworkFailure;
-}) => string = (data: {
+}) => RequestFailureDescription = (data: {
   host: string;
   failure: ProbeNetworkFailure;
-}): string => {
+}): RequestFailureDescription => {
   if (!ProbeNetworkFailureUtil.isIPv6Failure(data)) {
-    return "The probe could not open the TCP connection from its own side, so the destination port was never contacted. The failure is on the probe, not on the destination.";
+    return RequestFailureDescription.PortProbeCouldNotConnect;
   }
 
   /*
@@ -192,14 +196,14 @@ const describeProbeNetworkFailure: (data: {
    * of local ports gets, IPv6 or not, so it is not stated as missing IPv6.
    */
   if (data.failure.isCertain && data.failure.isCauseAmbiguous) {
-    return "The probe could not open the IPv6 connection from its own side, so the TCP connection was never attempted and the destination port was never contacted. The failure is on the probe, not on the destination.";
+    return RequestFailureDescription.PortProbeCouldNotConnectOverIPv6;
   }
 
   if (data.failure.isCertain) {
-    return "The probe cannot send IPv6 traffic, so the TCP connection was never attempted and the destination port was never contacted. The failure is on the probe, not on the destination.";
+    return RequestFailureDescription.PortProbeCannotSendIPv6;
   }
 
-  return "There was no IPv6 route for the TCP connection. Most likely the probe has no IPv6 route rather than the destination being down.";
+  return RequestFailureDescription.PortNoIPv6Route;
 };
 
 const getRequestFailedDetails: (data: {
@@ -227,8 +231,9 @@ const getRequestFailedDetails: (data: {
     return {
       failedPhase: RequestFailedPhase.DNSResolution,
       errorCode: errorCode || "ENOTFOUND",
-      errorDescription:
-        "DNS resolution failed before a TCP connection could be attempted.",
+      errorDescription: writeRequestFailureDescription(
+        RequestFailureDescription.PortDnsResolutionFailed,
+      ),
       rawErrorMessage,
     };
   }
@@ -242,8 +247,9 @@ const getRequestFailedDetails: (data: {
     return {
       failedPhase: RequestFailedPhase.RequestTimeout,
       errorCode: errorCode || "TIMEOUT",
-      errorDescription:
-        "The DNS and TCP connection attempt did not finish before the deadline.",
+      errorDescription: writeRequestFailureDescription(
+        RequestFailureDescription.PortConnectionTimedOut,
+      ),
       rawErrorMessage,
     };
   }
@@ -256,10 +262,12 @@ const getRequestFailedDetails: (data: {
     return {
       failedPhase: RequestFailedPhase.TCPConnection,
       errorCode,
-      errorDescription: describeProbeNetworkFailure({
-        host: data.host,
-        failure: data.probeNetworkFailure,
-      }),
+      errorDescription: writeRequestFailureDescription(
+        describeProbeNetworkFailure({
+          host: data.host,
+          failure: data.probeNetworkFailure,
+        }),
+      ),
       rawErrorMessage,
     };
   }
@@ -281,8 +289,9 @@ const getRequestFailedDetails: (data: {
     return {
       failedPhase: RequestFailedPhase.TCPConnection,
       errorCode,
-      errorDescription:
-        "TCP connection establishment failed before the port could be reached.",
+      errorDescription: writeRequestFailureDescription(
+        RequestFailureDescription.PortTcpConnectionFailed,
+      ),
       rawErrorMessage,
     };
   }
@@ -290,7 +299,7 @@ const getRequestFailedDetails: (data: {
   return {
     failedPhase: RequestFailedPhase.NetworkError,
     errorCode,
-    errorDescription: "The port check failed because of a network error.",
+    errorDescription: writeRequestFailureDescription(RequestFailureDescription.PortNetworkError),
     rawErrorMessage,
   };
 };

@@ -35,6 +35,10 @@ import ProbeNetworkFailureUtil, {
   ProbeNetworkFailureKind,
   ProbeNetworkOperation,
 } from "./ProbeNetworkFailureUtil";
+import {
+  RequestFailureDescription,
+  writeRequestFailureDescription,
+} from "./Monitor/RequestFailureDescriptions";
 import type { Agent as HttpAgent } from "http";
 import type { Agent as HttpsAgent } from "https";
 
@@ -71,9 +75,6 @@ const PROBE_NETWORK_FAILURE_ERROR_CODES: Record<
   [ProbeNetworkFailureKind.NetworkUnreachable]: "ENETUNREACH",
   [ProbeNetworkFailureKind.NoRouteToHost]: "EHOSTUNREACH",
 };
-
-const NETWORK_UNREACHABLE_DESCRIPTION: string =
-  "Network unreachable. There is no route to the network where the server resides. This is typically a routing or connectivity issue.";
 
 /*
  * Diagnostic summary of one settled fetch() call, retries included. Handed
@@ -1353,8 +1354,13 @@ export default class API {
          */
         errorDescription:
           error.reason === EgressFailureReason.InvalidTarget
-            ? `The monitor's target is not a valid HTTP or HTTPS destination, so no request was attempted. ${rawErrorMessage}`
-            : "The probe could not obtain a usable network address for this host, so no connection was attempted and the target was never contacted. Either DNS did not answer, answered with no records, or returned an address this probe is not allowed to dial. Check that the hostname resolves publicly and that its authoritative nameservers are healthy. If this monitor targets an internal host, run it from a self-hosted probe with PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true.",
+            ? writeRequestFailureDescription(
+                RequestFailureDescription.InvalidTarget,
+                { message: rawErrorMessage },
+              )
+            : writeRequestFailureDescription(
+                RequestFailureDescription.TargetUnreachable,
+              ),
         rawErrorMessage,
       };
     }
@@ -1378,7 +1384,9 @@ export default class API {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode:
           PROBE_NETWORK_FAILURE_ERROR_CODES[probeSideFailure.failure.kind],
-        errorDescription: API.getProbeSideFailureDetails(probeSideFailure),
+        errorDescription: writeRequestFailureDescription(
+          API.getProbeSideFailureDescription(probeSideFailure),
+        ),
         rawErrorMessage,
       };
     }
@@ -1391,8 +1399,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.DNSResolution,
         errorCode: errorCode || "ENOTFOUND",
-        errorDescription:
-          "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.DnsResolutionFailed,
+        ),
         rawErrorMessage,
       };
     }
@@ -1402,8 +1411,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode: errorCode || "ECONNREFUSED",
-        errorDescription:
-          "Connection refused. The server actively refused the connection. This usually means no service is listening on the specified port, or a firewall is blocking the connection.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.ConnectionRefused,
+        ),
         rawErrorMessage,
       };
     }
@@ -1417,8 +1427,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode: errorCode || "ECONNRESET",
-        errorDescription:
-          "Connection reset. The connection was forcibly closed by the server or a network device. This can happen due to server restarts, load balancer timeouts, or network issues.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.ConnectionReset,
+        ),
         rawErrorMessage,
       };
     }
@@ -1432,8 +1443,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.RequestAborted,
         errorCode: errorCode || "ECONNABORTED",
-        errorDescription:
-          "Connection aborted. The request was aborted, possibly due to a timeout or the connection being closed unexpectedly.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.ConnectionAborted,
+        ),
         rawErrorMessage,
       };
     }
@@ -1448,8 +1460,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.RequestTimeout,
         errorCode: errorCode || "TIMEOUT",
-        errorDescription:
-          "Request timed out. The server did not respond within the allowed time. This could be due to network latency, server overload, or the server being unresponsive.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.RequestTimedOut,
+        ),
         rawErrorMessage,
       };
     }
@@ -1463,8 +1476,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.CertificateError,
         errorCode: "CERT_REVOKED",
-        errorDescription:
-          "SSL certificate has been revoked. The certificate's issuer has withdrawn it, so browsers refuse it even though it has not expired. Install a new certificate on the server.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.CertificateRevoked,
+        ),
         rawErrorMessage,
       };
     }
@@ -1476,8 +1490,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.CertificateError,
         errorCode: "CERT_HAS_EXPIRED",
-        errorDescription:
-          "SSL certificate has expired. The server's SSL certificate is no longer valid. The certificate needs to be renewed.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.CertificateExpired,
+        ),
         rawErrorMessage,
       };
     }
@@ -1490,8 +1505,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.CertificateError,
         errorCode: "SELF_SIGNED_CERT",
-        errorDescription:
-          "Self-signed certificate detected. The server is using a self-signed SSL certificate that is not trusted by default. Consider using a certificate from a trusted Certificate Authority.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.SelfSignedCertificate,
+        ),
         rawErrorMessage,
       };
     }
@@ -1504,8 +1520,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.CertificateError,
         errorCode: "CERT_UNKNOWN_AUTHORITY",
-        errorDescription:
-          "SSL certificate signed by unknown authority. The certificate chain could not be verified against known Certificate Authorities.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.CertificateUnknownAuthority,
+        ),
         rawErrorMessage,
       };
     }
@@ -1519,8 +1536,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TLSHandshake,
         errorCode: errorCode || "TLS_ERROR",
-        errorDescription:
-          "TLS/SSL handshake failed. There was an error establishing a secure connection to the server. This could be due to certificate issues, protocol mismatches, or the server not supporting HTTPS.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.TlsHandshakeFailed,
+        ),
         rawErrorMessage,
       };
     }
@@ -1530,8 +1548,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.NetworkError,
         errorCode: errorCode || "NETWORK_ERROR",
-        errorDescription:
-          "Network error occurred. Unable to reach the server due to network connectivity issues. Please check your network connection and ensure the server is accessible.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NetworkError,
+        ),
         rawErrorMessage,
       };
     }
@@ -1544,8 +1563,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode: errorCode || "EHOSTUNREACH",
-        errorDescription:
-          "Host unreachable. The network path to the server could not be found. This may be due to routing issues or the host being offline.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.HostUnreachable,
+        ),
         rawErrorMessage,
       };
     }
@@ -1558,7 +1578,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.TCPConnection,
         errorCode: errorCode || "ENETUNREACH",
-        errorDescription: NETWORK_UNREACHABLE_DESCRIPTION,
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NetworkUnreachable,
+        ),
         rawErrorMessage,
       };
     }
@@ -1566,26 +1588,14 @@ export default class API {
     // Server responded with error status
     if (axiosError?.response) {
       const status: number = axiosError.response.status;
-      let description: string = `Server responded with HTTP status ${status}.`;
-
-      if (status >= 500) {
-        description += " This indicates a server-side error.";
-      } else if (status === 404) {
-        description += " The requested resource was not found.";
-      } else if (status === 403) {
-        description += " Access to the resource is forbidden.";
-      } else if (status === 401) {
-        description += " Authentication is required or has failed.";
-      } else if (status === 400) {
-        description += " The request was malformed or invalid.";
-      } else if (status >= 400) {
-        description += " This indicates a client-side error.";
-      }
 
       return {
         failedPhase: RequestFailedPhase.ServerResponse,
         errorCode: `HTTP_${status}`,
-        errorDescription: description,
+        errorDescription: writeRequestFailureDescription(
+          API.getHttpStatusDescription(status),
+          { status: status },
+        ),
         rawErrorMessage,
       };
     }
@@ -1595,8 +1605,9 @@ export default class API {
       return {
         failedPhase: RequestFailedPhase.NetworkError,
         errorCode: errorCode || "NO_RESPONSE",
-        errorDescription:
-          "No response received from the server. The request was sent but no response was returned. This could indicate the server is down, unreachable, or the request timed out.",
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.NoResponse,
+        ),
         rawErrorMessage,
       };
     }
@@ -1605,7 +1616,9 @@ export default class API {
     return {
       failedPhase: RequestFailedPhase.Unknown,
       errorCode: errorCode,
-      errorDescription: `Request failed: ${API.getFriendlyErrorMessage(error as Error)}`,
+      errorDescription: writeRequestFailureDescription(RequestFailureDescription.RequestFailed, {
+        message: API.getFriendlyErrorMessage(error as Error),
+      }),
       rawErrorMessage,
     };
   }
@@ -1702,18 +1715,19 @@ export default class API {
   }
 
   /*
-   * The "Error Details" text for a probe-side failure. ENETUNREACH that is
-   * not towards IPv6 keeps the family-neutral description it always had.
+   * The "Error Details" explanation of a probe-side failure. ENETUNREACH
+   * that is not towards IPv6 keeps the family-neutral description it
+   * always had.
    */
-  private static getProbeSideFailureDetails(
+  private static getProbeSideFailureDescription(
     probeSideFailure: ProbeSideRequestFailure,
-  ): string {
+  ): RequestFailureDescription {
     const failure: ProbeNetworkFailure = probeSideFailure.failure;
 
     if (!probeSideFailure.isIPv6Destination) {
       return failure.isCertain
-        ? "The probe could not open the connection from its own side, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server."
-        : NETWORK_UNREACHABLE_DESCRIPTION;
+        ? RequestFailureDescription.ProbeCouldNotConnect
+        : RequestFailureDescription.NetworkUnreachable;
     }
 
     /*
@@ -1722,14 +1736,48 @@ export default class API {
      * IPv6.
      */
     if (failure.isCertain && failure.isCauseAmbiguous) {
-      return "The probe could not open the IPv6 connection from its own side, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server.";
+      return RequestFailureDescription.ProbeCouldNotConnectOverIPv6;
     }
 
     if (failure.isCertain) {
-      return "The probe cannot send IPv6 traffic, so the request was never sent and the server was never contacted. The failure is on the probe, not on the server.";
+      return RequestFailureDescription.ProbeCannotSendIPv6;
     }
 
-    return "There was no IPv6 route to the server. Most likely the probe has no IPv6 route rather than the server being down.";
+    return RequestFailureDescription.NoIPv6Route;
+  }
+
+  /*
+   * What a server's HTTP status means, as the request's explanation says
+   * it after "Server responded with HTTP status 503.".
+   */
+  private static getHttpStatusDescription(
+    status: number,
+  ): RequestFailureDescription {
+    if (status >= 500) {
+      return RequestFailureDescription.HttpServerError;
+    }
+
+    if (status === 404) {
+      return RequestFailureDescription.HttpNotFound;
+    }
+
+    if (status === 403) {
+      return RequestFailureDescription.HttpForbidden;
+    }
+
+    if (status === 401) {
+      return RequestFailureDescription.HttpUnauthorized;
+    }
+
+    if (status === 400) {
+      return RequestFailureDescription.HttpBadRequest;
+    }
+
+    if (status >= 400) {
+      return RequestFailureDescription.HttpClientError;
+    }
+
+    return RequestFailureDescription.HttpStatus;
   }
 
   /*
