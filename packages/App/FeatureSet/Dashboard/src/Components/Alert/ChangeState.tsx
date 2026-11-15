@@ -533,9 +533,9 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
   );
 
   const modalTitle: string = isAcknowledgeTarget
-    ? translationKey("Acknowledge Alert")
+    ? (translator.translateText("Acknowledge Alert") as string)
     : isResolveTarget
-      ? translationKey("Resolve Alert")
+      ? (translator.translateText("Resolve Alert") as string)
       : translator.translateTemplate("Mark Alert as {{state}}", {
           state: selectedStateName,
         });
@@ -635,6 +635,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           modelType={AlertStateTimeline}
           name={"create-alert-state-timeline"}
           title={modalTitle}
+          isTitleTranslated={true}
           description={modalDescription}
           onClose={() => {
             setShowModal(false);

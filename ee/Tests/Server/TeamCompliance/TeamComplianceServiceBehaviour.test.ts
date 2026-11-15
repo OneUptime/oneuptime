@@ -47,9 +47,11 @@ import ComplianceRule, {
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import {
+  TeamComplianceFindingKind,
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -2400,6 +2402,19 @@ describe("on-call rules for several channels", () => {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason:
           "No Call rule for incident severities: Critical. No Push notification rule for incident severities: Critical",
+        // The same, as data the Dashboard words in the reader's language (#8632).
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Call,
+            severities: [expect.objectContaining({ name: "Critical" })],
+          },
+          {
+            kind: TeamComplianceFindingKind.NoChannelRule,
+            channel: ComplianceNotificationChannel.Push,
+            severities: [expect.objectContaining({ name: "Critical" })],
+          },
+        ],
       },
     ]);
     expect(status.complianceSettings[0]!.notificationChannels).toEqual([
@@ -2708,7 +2723,7 @@ describe("project channel switches", () => {
     const status: TeamComplianceStatusJSON = await read();
 
     expect(status.complianceSettings[0]!.warnings).toEqual([
-      "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ]);
     expect(statusOf(status, USER_ID).isCompliant).toBe(true);
   });
@@ -2754,10 +2769,10 @@ describe("project channel switches", () => {
     ).toEqual([
       [],
       [
-        "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+        "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
       ],
       [
-        "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+        "WhatsApp is switched off for this project, so members cannot add a WhatsApp number to meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
       ],
     ]);
   });
@@ -2810,7 +2825,7 @@ describe("project channel switches", () => {
     } as never);
 
     expect((await read()).complianceSettings[0]!.warnings).toEqual([
-      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ]);
   });
 
@@ -3233,6 +3248,7 @@ describe("a rule whose severities were all deleted", () => {
         compliantCount: 0,
         nonCompliantCount: 0,
         warnings: [SEVERITIES_DELETED_WARNING],
+        warningDetails: [{ kind: TeamComplianceWarningKind.SeveritiesDeleted }],
       },
     ]);
     expect(statusOf(status, USER_ID).isCompliant).toBe(true);

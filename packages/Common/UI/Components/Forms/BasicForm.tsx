@@ -443,7 +443,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
     const actionText: string = props.submitButtonText || "Submit";
 
-    const submitButtonText: string = translateString(actionText) ?? actionText;
+    const submitButtonText: string = translateString(actionText) as string;
 
     const nextButtonText: string =
       translateString(NEXT_BUTTON_TEXT) ?? NEXT_BUTTON_TEXT;
@@ -1452,6 +1452,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         >
           <Button
             title={nextButtonText}
+            isTitleTranslated={true}
             dataTestId={FORM_NEXT_BUTTON_TEST_ID}
             id={`${props.id}-next-button`}
             onClick={() => {
@@ -1834,6 +1835,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     >
                       <Button
                         title={submitButtonText}
+                        isTitleTranslated={true}
                         dataTestId={props.submitButtonText!}
                         onClick={() => {
                           // Checks every step, and opens one with a problem.
@@ -1854,9 +1856,11 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     <div>
                       <Button
                         title={
-                          translateString(props.cancelButtonText || "Cancel") ??
-                          (props.cancelButtonText || "Cancel")
+                          translateString(
+                            props.cancelButtonText || "Cancel",
+                          ) as string
                         }
+                        isTitleTranslated={true}
                         type={ButtonTypes.Button}
                         id={`${props.id}-cancel-button`}
                         disabled={

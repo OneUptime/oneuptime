@@ -3,7 +3,11 @@ import SloMultiMonitorMode from "../../Types/ServiceLevelObjective/SloMultiMonit
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../Types/ServiceLevelObjective/SloWindowType";
 import { fillTemplate, translationKey } from "../../Types/Translator";
-import { isRequestSliType } from "./SloRequestSli";
+import {
+  getSloMetricQueryProblem,
+  normalizeSloMetricQueryConfig,
+} from "./SloMetricSli";
+import { isEventSliType } from "./SloRequestSli";
 
 /**
  * The "should I be worried, and about what?" layer of the SLO UI.
@@ -175,6 +179,8 @@ export interface SloNoticeData {
   serviceCount?: number | undefined | null;
   /** A Request Latency SLO's threshold, in milliseconds. */
   latencyThresholdInMilliseconds?: number | undefined | null;
+  /** A Metric SLO's metric (#8445), as stored. */
+  metricQueryConfig?: unknown;
   /** Of the attached monitors, how many have active monitoring disabled. */
   disabledMonitorCount?: number | undefined | null;
   targetPercentage?: number | undefined | null;
@@ -220,17 +226,47 @@ const getNoMonitorsNotice: GetNoMonitorsNoticeFunction = (): SloNotice => {
   };
 };
 
-type GetNoServicesNoticeFunction = () => SloNotice;
+type GetNoServicesNoticeFunction = (
+  sliType: SliType | undefined | null,
+) => SloNotice;
 
-const getNoServicesNotice: GetNoServicesNoticeFunction = (): SloNotice => {
+const getNoServicesNotice: GetNoServicesNoticeFunction = (
+  sliType: SliType | undefined | null,
+): SloNotice => {
   return {
     type: SloNoticeType.Warning,
     title: translationKey("No services chosen"),
-    body: translationKey(
-      "A request SLO measures the requests its services serve, so it cannot be evaluated without at least one. Choose its services in Settings.",
-    ),
+    body:
+      sliType === SliType.Metric
+        ? translationKey(
+            "A Metric SLO measures the metric its services send, so it cannot be evaluated without at least one. Choose its services in Settings.",
+          )
+        : translationKey(
+            "A request SLO measures the requests its services serve, so it cannot be evaluated without at least one. Choose its services in Settings.",
+          ),
     action: {
       label: translationKey("Choose services"),
+      target: SloNoticeActionTarget.Settings,
+    },
+  };
+};
+
+/*
+ * A Metric SLO with no metric it can count (#8445): none chosen yet, or one
+ * stored before a rule tightened. The worker counts nothing until it is
+ * fixed (EvaluateSlos.getRequestSloMisconfiguredReason).
+ */
+type GetNoMetricNoticeFunction = () => SloNotice;
+
+const getNoMetricNotice: GetNoMetricNoticeFunction = (): SloNotice => {
+  return {
+    type: SloNoticeType.Warning,
+    title: translationKey("No metric to count"),
+    body: translationKey(
+      "A Metric SLO counts good and total events from a counter or a histogram its services send. Choose the metric, and how its good events are told apart, in Settings.",
+    ),
+    action: {
+      label: translationKey("Choose the metric"),
       target: SloNoticeActionTarget.Settings,
     },
   };
@@ -248,7 +284,16 @@ const getRequestSetupNotice: GetRequestSetupNoticeFunction = (
   data: SloNoticeData,
 ): SloNotice | null => {
   if ((toFiniteNumber(data.serviceCount) ?? 0) === 0) {
-    return getNoServicesNotice();
+    return getNoServicesNotice(data.sliType);
+  }
+
+  if (
+    data.sliType === SliType.Metric &&
+    getSloMetricQueryProblem(
+      normalizeSloMetricQueryConfig(data.metricQueryConfig),
+    ) !== null
+  ) {
+    return getNoMetricNotice();
   }
 
   const threshold: number | null = toFiniteNumber(
@@ -333,7 +378,8 @@ export const getSloNotice: GetSloNoticeFunction = (
 
   const monitorCount: number = toFiniteNumber(data.monitorCount) ?? 0;
 
-  const isRequestSli: boolean = isRequestSliType(data.sliType);
+  // Counted in events, from traces or from a metric (#8445).
+  const isRequestSli: boolean = isEventSliType(data.sliType);
 
   if (data.sloStatus === SloStatus.Misconfigured) {
     // The SLI type is chosen in Settings, What It Measures.
@@ -346,7 +392,7 @@ export const getSloNotice: GetSloNoticeFunction = (
         type: SloNoticeType.Warning,
         title: translationKey("This SLO cannot be evaluated"),
         body: translationKey(
-          "OneUptime does not measure this SLI type. Choose what this SLO measures in Settings: monitor uptime, request success or request latency.",
+          "OneUptime does not measure this SLI type. Choose what this SLO measures in Settings: monitor uptime, request success, request latency or a metric.",
         ),
         action: {
           label: translationKey("Open Settings"),
@@ -388,6 +434,20 @@ export const getSloNotice: GetSloNoticeFunction = (
      * A request SLO whose services have served no request in its window yet
      * - a quiet service, or one whose traces do not reach OneUptime.
      */
+    if (data.sliType === SliType.Metric) {
+      return {
+        type: SloNoticeType.Info,
+        title: translationKey("Waiting for its metric"),
+        body: translationKey(
+          "None of this SLO's services has sent an event of its metric in its window yet. It is measured automatically once the metric reaches OneUptime.",
+        ),
+        action: {
+          label: translationKey("View services"),
+          target: SloNoticeActionTarget.Settings,
+        },
+      };
+    }
+
     if (isRequestSli) {
       return {
         type: SloNoticeType.Info,

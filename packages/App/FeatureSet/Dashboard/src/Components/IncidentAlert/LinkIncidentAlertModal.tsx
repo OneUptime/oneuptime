@@ -33,6 +33,8 @@ export interface LinkIncidentAlertFormData {
 
 export interface ComponentProps {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description: string;
   submitButtonText: string;
   fieldTitle: string;
@@ -155,6 +157,7 @@ const LinkIncidentAlertModal: FunctionComponent<ComponentProps> = (
   return (
     <BasicFormModal<LinkIncidentAlertFormData>
       title={props.title}
+      isTitleTranslated={props.isTitleTranslated}
       description={props.description}
       isLoading={isLoadingOptions || isSubmitting}
       onClose={props.onClose}

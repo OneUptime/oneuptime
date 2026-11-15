@@ -323,6 +323,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
             template: "Delete {{itemName}}",
             itemName: singularName,
           })}
+          isTitleTranslated={true}
           onSubmit={async () => {
             await confirm();
           }}

@@ -245,6 +245,7 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
             { name: currentSCIMConfig.name || "" },
             { setsValuesApart: true },
           )}
+          isTitleTranslated={true}
           description={
             <div>
               <p>

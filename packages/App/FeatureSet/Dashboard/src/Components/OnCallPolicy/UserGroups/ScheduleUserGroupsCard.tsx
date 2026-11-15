@@ -339,6 +339,7 @@ export const WorkspaceUserGroupsCard: FunctionComponent<WorkspaceCardProps> = (
             title={translator.translateTemplate(DISCONNECT_TEXT.title, {
               mention: getMention(toDisconnect),
             })}
+            isTitleTranslated={true}
             description={getDisconnectDescription(toDisconnect)}
             submitButtonText={USER_GROUP_LABELS.disconnect}
             submitButtonType={ButtonStyleType.DANGER}

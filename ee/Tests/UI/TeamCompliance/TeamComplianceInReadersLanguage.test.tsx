@@ -85,8 +85,10 @@ import {
   getNoActiveRulesAdvice,
   getRuleLabel,
   getRulePassRateText,
+  getIssueReasonText,
   getRuleSentence,
   getRuleTitle,
+  getRuleWarningTexts,
   MemberStatusFilter,
 } from "../../../Dashboard/TeamCompliance/ComplianceView";
 import TeamComplianceStatusTable from "../../../Dashboard/TeamCompliance/TeamComplianceStatusTable";
@@ -100,6 +102,7 @@ import {
   callForEveryIncidentRule,
   callForIncidentsRule,
   emailRule,
+  issue,
   noSeveritiesLeftRule,
   PROJECT_ID,
   standardStatus,
@@ -107,10 +110,15 @@ import {
 } from "./ComplianceFixtures";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
-import type {
+import {
+  TeamComplianceFindingKind,
+  TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningJSON,
+  TeamComplianceWarningKind,
 } from "Common/Types/Team/TeamComplianceStatus";
+import { getComplianceWarningText } from "Common/Types/Team/TeamComplianceFindings";
 import { Translator } from "Common/Types/Translator";
 
 const LANGUAGES: ReadonlyArray<string> = ["en", "de", "ar", "fa"];
@@ -670,6 +678,199 @@ describe("the rule warnings", () => {
       ).toHaveTextContent(wordIn(language, "Open notification settings"));
     },
   );
+});
+
+/*
+ * What the server found, in the reader's words (#8632): a rule's warnings
+ * and why a member fails one came only as the server's English sentences.
+ * The server sends what it found as data beside them now, and the page
+ * words it; from a server that sends none, the English is drawn as before.
+ */
+describe("what the server found about a rule and a member", () => {
+  const CALL_OFF: TeamComplianceWarningJSON = {
+    kind: TeamComplianceWarningKind.ChannelsSwitchedOff,
+    channels: [ComplianceNotificationChannel.Call],
+  };
+  const CALL_OFF_ENGLISH: string = getComplianceWarningText(CALL_OFF);
+
+  const warnedRule: () => TeamComplianceRuleJSON =
+    (): TeamComplianceRuleJSON => {
+      return callForIncidentsRule({
+        warnings: [CALL_OFF_ENGLISH],
+        warningDetails: [CALL_OFF],
+      });
+    };
+
+  // Grace has no Call rule for the Critical Incident severity, and opted out of Major.
+  const failingIssue: (
+    rule: TeamComplianceRuleJSON,
+  ) => TeamComplianceIssueJSON = (
+    rule: TeamComplianceRuleJSON,
+  ): TeamComplianceIssueJSON => {
+    return {
+      ...issue(
+        rule,
+        `${CALL_REASON}. Opted out of incident notifications for: Sev-0 (pager only)`,
+      ),
+      findings: [
+        {
+          kind: TeamComplianceFindingKind.NoChannelRule,
+          channel: ComplianceNotificationChannel.Call,
+          severities: [{ id: "critical", name: "Critical Incident" }],
+        },
+        {
+          kind: TeamComplianceFindingKind.OptedOut,
+          severities: [{ id: "pager", name: "Sev-0 (pager only)" }],
+        },
+      ],
+    };
+  };
+
+  const statusWith: (
+    rule: TeamComplianceRuleJSON,
+  ) => TeamComplianceStatusJSON = (
+    rule: TeamComplianceRuleJSON,
+  ): TeamComplianceStatusJSON => {
+    return buildStatus({
+      complianceSettings: [rule],
+      userComplianceStatuses: [
+        buildMember({
+          userId: "grace",
+          userName: "Grace Hopper",
+          userEmail: "grace@acme.com",
+          nonCompliantRules: [failingIssue(rule)],
+        }),
+      ],
+    });
+  };
+
+  test("English reads as the server wrote it, word for word", () => {
+    const rule: TeamComplianceRuleJSON = warnedRule();
+
+    expect(getRuleWarningTexts(rule, english)).toEqual([CALL_OFF_ENGLISH]);
+    expect(getIssueReasonText(failingIssue(rule), rule, english)).toBe(
+      failingIssue(rule).reason,
+    );
+  });
+
+  test.each(LANGUAGES)(
+    "%s: the warnings banner says what is wrong in the reader's words",
+    (language: string) => {
+      drawIn(language, <ComplianceRuleWarnings rules={[warnedRule()]} />);
+
+      const banner: HTMLElement = screen.getByTestId(
+        "compliance-rule-warnings",
+      );
+      const worded: string = getComplianceWarningText(
+        CALL_OFF,
+        dashboardTranslator(language),
+      );
+
+      expect(banner).toHaveTextContent(worded);
+
+      if (TRANSLATED.includes(language)) {
+        expect(worded).not.toBe(CALL_OFF_ENGLISH);
+        expect(banner.textContent).not.toContain("switched off");
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: a rule's warning chip says it in the reader's words, to a screen reader too",
+    (language: string) => {
+      drawIn(
+        language,
+        <ComplianceRulesCard
+          rules={[warnedRule()]}
+          access={EDITOR}
+          teamId={TEAM_ID}
+          projectId={PROJECT_ID}
+          failingRuleId={null}
+          onShowFailing={() => {}}
+          onChanged={() => {
+            return Promise.resolve(true);
+          }}
+        />,
+      );
+
+      const translator: Translator = dashboardTranslator(language);
+      const chip: HTMLElement = screen.getByTestId(
+        "compliance-rule-warning-chip",
+      );
+
+      expect(chip).toHaveAttribute(
+        "aria-label",
+        translator.translateTemplate("Warning: {{warnings}}", {
+          warnings: getComplianceWarningText(CALL_OFF, translator),
+        }),
+      );
+
+      if (TRANSLATED.includes(language)) {
+        expect(chip.getAttribute("aria-label")).not.toContain("switched off");
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s: why a member fails a rule reads in the reader's words, a project's own severity as written",
+    (language: string) => {
+      const rule: TeamComplianceRuleJSON = warnedRule();
+
+      drawIn(
+        language,
+        <TeamComplianceStatusTable
+          status={statusWith(rule)}
+          statusFilter={MemberStatusFilter.All}
+          onStatusFilterChange={() => {}}
+          failingRuleId={null}
+          onClearFailingRule={() => {}}
+          canViewMemberSetup={true}
+          currentUserId=""
+        />,
+      );
+
+      const issues: HTMLElement = screen.getByTestId(
+        "compliance-member-issues",
+      );
+      const reason: string = getIssueReasonText(
+        failingIssue(rule),
+        rule,
+        dashboardTranslator(language),
+      );
+
+      expect(issues).toHaveTextContent(reason);
+      expect(issues).toHaveTextContent("Sev-0 (pager only)");
+
+      if (TRANSLATED.includes(language)) {
+        // Neither the server's sentence nor the default severity's English name.
+        expect(issues.textContent).not.toContain("No Call rule");
+        expect(issues.textContent).not.toContain("Critical Incident");
+        expect(issues.textContent).not.toContain("Opted out");
+      }
+    },
+  );
+
+  test("from a server that sends no findings, the reason is its English, as it came", () => {
+    const rule: TeamComplianceRuleJSON = callForIncidentsRule({
+      warnings: ["Call notifications are off."],
+    });
+
+    expect(getRuleWarningTexts(rule, german)).toEqual([
+      "Call notifications are off.",
+    ]);
+    expect(getIssueReasonText(issue(rule, CALL_REASON), rule, german)).toBe(
+      CALL_REASON,
+    );
+  });
+
+  test("details that do not match the warnings one for one are not trusted: the English is drawn", () => {
+    const rule: TeamComplianceRuleJSON = callForIncidentsRule({
+      warnings: [CALL_OFF_ENGLISH, "Something else the server said."],
+      warningDetails: [CALL_OFF],
+    });
+
+    expect(getRuleWarningTexts(rule, german)).toEqual(rule.warnings);
+  });
 });
 
 describe("the rule form's preview", () => {

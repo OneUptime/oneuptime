@@ -559,12 +559,12 @@ const VideoCallConnectionFormModal: FunctionComponent<ComponentProps> = (
               name: props.connection?.name || definition.title,
             })
           : definition.provider === VideoCallProvider.CustomLink
-            ? translator.translateText("Add a meeting link") ||
-              "Add a meeting link"
+            ? (translator.translateText("Add a meeting link") as string)
             : translator.translateTemplate("Connect {{provider}}", {
                 provider: definition.title,
               })
       }
+      isTitleTranslated={true}
       description={definition.description}
       name={
         isEditing

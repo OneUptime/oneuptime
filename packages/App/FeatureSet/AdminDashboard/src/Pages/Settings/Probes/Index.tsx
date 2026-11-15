@@ -233,6 +233,7 @@ const Settings: FunctionComponent = (): ReactElement => {
       {showKeyModal && currentProbe ? (
         <ConfirmModal
           title={t("pages.settings.probes.keyModalTitle")}
+          isTitleTranslated={true}
           description={
             <div>
               <span>{t("pages.settings.probes.keyModalDescription")}</span>

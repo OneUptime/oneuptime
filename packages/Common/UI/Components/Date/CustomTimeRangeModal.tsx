@@ -27,6 +27,8 @@ export interface ComponentProps {
    */
   initialValue?: InBetween<Date> | undefined;
   title?: string | undefined;
+  // The title is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isTitleTranslated?: boolean | undefined;
   description?: string | undefined;
   onClose: () => void;
   onSave: (value: InBetween<Date>) => void;
@@ -161,6 +163,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={props.title || "Custom Time Range"}
+      isTitleTranslated={Boolean(props.title) && props.isTitleTranslated}
       description={
         props.description ||
         "Choose the exact start and end date & time of the data you want to see."

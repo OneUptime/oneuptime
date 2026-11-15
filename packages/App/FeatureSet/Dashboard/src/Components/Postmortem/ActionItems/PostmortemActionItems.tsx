@@ -1018,6 +1018,7 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
               TRACK_ACTION_ITEMS_BUTTON,
               untracked.length,
             )}
+            isTitleTranslated={true}
             icon={IconProp.CheckCircle}
             buttonStyle={ButtonStyleType.PRIMARY}
             buttonSize={ButtonSize.Small}

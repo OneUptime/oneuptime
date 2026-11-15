@@ -161,6 +161,7 @@ const TemplateRow: FunctionComponent<{
         ) : (
           <Button
             title={translator.translateText("Add to my runbooks")}
+            isTitleTranslated={true}
             buttonStyle={ButtonStyleType.NORMAL}
             isLoading={isSaving}
             onClick={add}

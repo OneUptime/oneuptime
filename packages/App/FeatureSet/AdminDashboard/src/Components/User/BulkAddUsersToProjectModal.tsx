@@ -184,6 +184,7 @@ const BulkAddUsersToProjectModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={t("pages.users.bulkAddToProjectTitle")}
+      isTitleTranslated={true}
       /*
        * `userCount`, not `count`: i18next treats a `count` option as a request
        * for plural key lookup (`..._one` / `..._other`), which these keys do

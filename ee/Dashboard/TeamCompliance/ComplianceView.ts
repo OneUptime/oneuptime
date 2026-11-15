@@ -13,13 +13,21 @@ import ComplianceRule, {
   joinAsProse,
 } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
-import type {
+import {
+  TeamComplianceFindingJSON,
+  TeamComplianceFindingKind,
   TeamComplianceIssueJSON,
   TeamComplianceRuleJSON,
   TeamComplianceSeverityJSON,
   TeamComplianceStatusJSON,
+  TeamComplianceWarningJSON,
+  TeamComplianceWarningKind,
   TeamMemberComplianceJSON,
 } from "Common/Types/Team/TeamComplianceStatus";
+import {
+  getComplianceReasonText,
+  getComplianceWarningText,
+} from "Common/Types/Team/TeamComplianceFindings";
 import {
   composedValue,
   createTranslator,
@@ -363,6 +371,74 @@ const getSeverityInSentence: (
   }
 
   return recordNameInSentence(getSeverityList(rule), severity.name);
+};
+
+/*
+ * A rule's warnings in the reader's language (#8632): each worded from what
+ * the server found, else the server's English at the same place - a server
+ * from before it sent the data, or a warning this page does not know yet.
+ */
+export const getRuleWarningTexts: (
+  rule: TeamComplianceRuleJSON,
+  translator?: Translator,
+) => Array<string> = (
+  rule: TeamComplianceRuleJSON,
+  translator: Translator = ENGLISH,
+): Array<string> => {
+  const details: Array<TeamComplianceWarningJSON> | undefined =
+    rule.warningDetails;
+
+  if (!details || details.length !== rule.warnings.length) {
+    return rule.warnings;
+  }
+
+  return details.map(
+    (warning: TeamComplianceWarningJSON, index: number): string => {
+      return (
+        getComplianceWarningText(warning, translator) ||
+        rule.warnings[index] ||
+        ""
+      );
+    },
+  );
+};
+
+/*
+ * Why a member fails a rule, in the reader's language (#8632): worded from
+ * the server's findings, the severities by their list as every sentence of
+ * the page names them. The server's English when it sent no findings, or
+ * one this page does not know.
+ */
+export const getIssueReasonText: (
+  issue: TeamComplianceIssueJSON,
+  rule: TeamComplianceRuleJSON | undefined,
+  translator?: Translator,
+) => string = (
+  issue: TeamComplianceIssueJSON,
+  rule: TeamComplianceRuleJSON | undefined,
+  translator: Translator = ENGLISH,
+): string => {
+  if (!issue.findings || issue.findings.length === 0) {
+    return issue.reason;
+  }
+
+  const severityRule: Pick<
+    TeamComplianceRuleJSON,
+    "ruleType" | "severityKind"
+  > = rule || { ruleType: issue.ruleType, severityKind: null };
+
+  return (
+    getComplianceReasonText(
+      issue.findings,
+      issue.ruleType,
+      translator,
+      (severity: TeamComplianceSeverityJSON): TemplateValue => {
+        return severity.name
+          ? recordNameInSentence(getSeverityList(severityRule), severity.name)
+          : severity.id;
+      },
+    ) || issue.reason
+  );
 };
 
 /*
@@ -1486,7 +1562,7 @@ export const getRuleWarningGroups: (
       return {
         rule: rule,
         title: getRuleLabel(rule, translator),
-        warnings: rule.warnings,
+        warnings: getRuleWarningTexts(rule, translator),
         channels: getRuleChannels(rule),
       };
     });
@@ -1612,6 +1688,76 @@ const parseChannels: (
   ) as Array<ComplianceNotificationChannel>;
 };
 
+const WARNING_KINDS: ReadonlyArray<string> = Object.values(
+  TeamComplianceWarningKind,
+);
+
+const FINDING_KINDS: ReadonlyArray<string> = Object.values(
+  TeamComplianceFindingKind,
+);
+
+/*
+ * What the server found about a rule (#8632). Undefined from a server from
+ * before it sent any, or when one of them is a kind this page does not
+ * know - the page then draws the server's English for every one.
+ */
+const parseWarningDetails: (
+  value: unknown,
+) => Array<TeamComplianceWarningJSON> | undefined = (
+  value: unknown,
+): Array<TeamComplianceWarningJSON> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const details: Array<TeamComplianceWarningJSON> = asObjects(value).map(
+    (json: JSONObject): TeamComplianceWarningJSON => {
+      return {
+        kind: asString(json["kind"]) as TeamComplianceWarningKind,
+        channels: ComplianceRule.normaliseChannels(json["channels"]),
+      };
+    },
+  );
+
+  return details.length === value.length &&
+    details.every((detail: TeamComplianceWarningJSON): boolean => {
+      return WARNING_KINDS.includes(detail.kind);
+    })
+    ? details
+    : undefined;
+};
+
+// Why a member fails a rule, as the server found it (#8632); as above.
+const parseFindings: (
+  value: unknown,
+) => Array<TeamComplianceFindingJSON> | undefined = (
+  value: unknown,
+): Array<TeamComplianceFindingJSON> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const findings: Array<TeamComplianceFindingJSON> = asObjects(value).map(
+    (json: JSONObject): TeamComplianceFindingJSON => {
+      const channel: ComplianceNotificationChannel | undefined =
+        ComplianceRule.normaliseChannels([json["channel"]])[0];
+
+      return {
+        kind: asString(json["kind"]) as TeamComplianceFindingKind,
+        ...(channel ? { channel: channel } : {}),
+        severities: asObjects(json["severities"]).map(parseSeverity),
+      };
+    },
+  );
+
+  return findings.length === value.length &&
+    findings.every((finding: TeamComplianceFindingJSON): boolean => {
+      return FINDING_KINDS.includes(finding.kind);
+    })
+    ? findings
+    : undefined;
+};
+
 const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
   json: JSONObject,
   index: number,
@@ -1656,6 +1802,7 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
     compliantCount: asCount(json["compliantCount"]),
     nonCompliantCount: asCount(json["nonCompliantCount"]),
     warnings: asStrings(json["warnings"]),
+    warningDetails: parseWarningDetails(json["warningDetails"]),
   };
 };
 
@@ -1666,6 +1813,7 @@ const parseIssue: (json: JSONObject) => TeamComplianceIssueJSON = (
     settingId: asString(json["settingId"]),
     ruleType: asString(json["ruleType"]) as ComplianceRuleType,
     reason: asString(json["reason"]),
+    findings: parseFindings(json["findings"]),
   };
 };
 

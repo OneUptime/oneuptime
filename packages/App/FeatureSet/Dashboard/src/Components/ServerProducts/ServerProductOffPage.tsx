@@ -182,6 +182,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
                     title={translator.translateText(
                       ServerProductOffCopy.openSettings,
                     )}
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.PRIMARY}
                     icon={IconProp.Settings}
                     dataTestId={SERVER_PRODUCT_OFF_OPEN_SETTINGS_TEST_ID}
@@ -198,6 +199,7 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
                 )}
                 <Button
                   title={translator.translateText(ServerProductOffCopy.goHome)}
+                  isTitleTranslated={true}
                   buttonStyle={ButtonStyleType.NORMAL}
                   dataTestId={SERVER_PRODUCT_OFF_GO_HOME_TEST_ID}
                   onClick={() => {

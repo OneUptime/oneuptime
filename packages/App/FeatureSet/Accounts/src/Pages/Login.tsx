@@ -1330,6 +1330,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
 
               <Button
                 title={t("login.backupCodes.continue")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 dataTestId="backup-codes-continue"
                 style={BACKUP_CODES_ACTION_STYLE}
@@ -1373,6 +1374,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
 
               <Button
                 title={t("login.backupCodes.generate")}
+                isTitleTranslated={true}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 dataTestId="generate-backup-codes"
                 style={BACKUP_CODES_ACTION_STYLE}
@@ -1431,6 +1433,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 {canSignInWithMagicLink && (
                   <Button
                     title={t("login.magicLink.submit")}
+                    isTitleTranslated={true}
                     buttonStyle={ButtonStyleType.PRIMARY}
                     isLoading={isMagicLinkLoading}
                     disabled={isMagicLinkLoading}

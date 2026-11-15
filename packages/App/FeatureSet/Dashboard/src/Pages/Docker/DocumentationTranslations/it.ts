@@ -13,14 +13,14 @@ const TRANSLATION: SetupGuideTranslation = {
   "Access to `/var/run/docker.sock` on the host":
     "Accesso a `/var/run/docker.sock` sull'host",
   "Containers whose logs you want must use the `json-file` log driver — Docker's default":
-    "I container di cui vuoi i registri devono usare il driver di log `json-file`, quello predefinito di Docker",
+    "I container di cui vuoi i log devono usare il driver di log `json-file`, quello predefinito di Docker",
   "Then start the OneUptime AI agent beside it, with the same URL, key and host name. **AI investigations are on by default**: while OneUptime AI investigates an incident or alert on this host, it runs read-only `docker` commands through the AI agent, and it changes nothing unless you allow fixes — see **The OneUptime AI agent** under Advanced. Skip this command to run the collector without AI investigations.":
     "Poi avvia accanto l'agente IA di OneUptime, con lo stesso URL, la stessa chiave e lo stesso nome host. **Le indagini IA sono attive per impostazione predefinita**: mentre OneUptime AI indaga su un incidente o un avviso di questo host, esegue comandi `docker` in sola lettura tramite l'agente IA e non cambia nulla finché non consenti le correzioni; vedi **L'agente IA di OneUptime** in Avanzato. Salta questo comando per eseguire il collector senza indagini IA.",
   "Replace `my-docker-host` with a name for this host, such as `prod-docker-01`. It is how the host appears in OneUptime, so keep it stable: a new name registers a new host.":
     "Sostituisci `my-docker-host` con un nome per questo host, ad esempio `prod-docker-01`. È il nome con cui l'host appare in OneUptime, quindi mantienilo stabile: un nome nuovo registra un host nuovo.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "Scegli una chiave di ingestione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
-  "Look for this line in the logs:": "Cerca questa riga nei registri:",
+  "Look for this line in the logs:": "Cerca questa riga nei log:",
   "Once the agent connects, the host appears automatically in the **Docker** section — usually within a minute or so. The OneUptime AI agent shows as Connected on the host's **AI → AI agent** page, and at the bottom of its **Overview**.":
     "Quando l'agente si connette, l'host appare automaticamente nella sezione **Docker**, di solito entro un minuto circa. L'agente IA di OneUptime risulta Connesso nella pagina **IA → Agente IA** dell'host e in fondo alla sua **Panoramica**.",
   "| Variable | Required | Description |":
@@ -36,7 +36,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Pass each one to `docker run` as `-e NAME=value`. To change one later, remove the agent with `docker rm -f oneuptime-docker-agent` and run the command again with the new value.":
     "Passa ciascuna a `docker run` come `-e NAME=value`. Per cambiarne una in seguito, rimuovi l'agente con `docker rm -f oneuptime-docker-agent` ed esegui di nuovo il comando con il nuovo valore.",
   "The agent tails `/var/lib/docker/containers/*/*-json.log`, so it only sees logs from containers that use Docker's **`json-file`** log driver. That is Docker's default, but some hosts switch to `local` (binary files the agent cannot parse) or to a remote driver (`journald`, `syslog`, `fluentd`, `gelf`, …), which leave no files to read.":
-    "L'agente segue `/var/lib/docker/containers/*/*-json.log`, quindi vede solo i registri dei container che usano il driver di log **`json-file`** di Docker. È quello predefinito di Docker, ma alcuni host passano a `local` (file binari che l'agente non sa leggere) o a un driver remoto (`journald`, `syslog`, `fluentd`, `gelf`, …), che non lasciano file da leggere.",
+    "L'agente segue `/var/lib/docker/containers/*/*-json.log`, quindi vede solo i log dei container che usano il driver di log **`json-file`** di Docker. È quello predefinito di Docker, ma alcuni host passano a `local` (file binari che l'agente non sa leggere) o a un driver remoto (`journald`, `syslog`, `fluentd`, `gelf`, …), che non lasciano file da leggere.",
   "Check a container's log driver, and the daemon's default:":
     "Controlla il driver di log di un container e quello predefinito del daemon:",
   "Switch a Compose service to `json-file`, with rotation:":
@@ -54,7 +54,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "- It runs as root because the Docker socket is root-owned. The socket's `:ro` mount does not make the Docker API read-only — the agent's command policy is the limit.":
     "- Viene eseguito come root perché il socket Docker appartiene a root. Il montaggio `:ro` del socket non rende l'API Docker di sola lettura: il limite è la policy dei comandi dell'agente.",
   "- Its logs: `docker logs -f oneuptime-docker-ai-agent`. What it may run, and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).":
-    "- I suoi registri: `docker logs -f oneuptime-docker-ai-agent`. Cosa può eseguire e come funzionano le correzioni: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).",
+    "- I suoi log: `docker logs -f oneuptime-docker-ai-agent`. Cosa può eseguire e come funzionano le correzioni: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#docker-and-podman-hosts).",
   "| Tag | Description |": "| Tag | Descrizione |",
   "| `oneuptime/docker-agent:release` | Latest stable release (community) |":
     "| `oneuptime/docker-agent:release` | Ultima versione stabile (community) |",
@@ -83,12 +83,12 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Container Info** | Uptime, restart count, process count |":
     "| **Informazioni sul container** | Tempo di attività, numero di riavvii, numero di processi |",
   "| **Container Logs** | stdout/stderr logs from all containers |":
-    "| **Registri dei container** | Registri stdout/stderr di tutti i container |",
+    "| **Log dei contenitori** | Log stdout/stderr di tutti i container |",
   'Each log line gets a severity from the level it names (`[ERROR]`, `level=warn`, `{"level":"info"}`); a line without one falls back to its stream — stderr is `ERROR`, stdout is `INFO`.':
-    'Ogni riga di registro riceve una gravità dal livello che indica (`[ERROR]`, `level=warn`, `{"level":"info"}`); una riga senza livello ricade sul suo flusso: stderr è `ERROR`, stdout è `INFO`.',
+    'Ogni riga di log riceve una gravità dal livello che indica (`[ERROR]`, `level=warn`, `{"level":"info"}`); una riga senza livello ricade sul suo flusso: stderr è `ERROR`, stdout è `INFO`.',
   "The agent must run as root to read `/var/run/docker.sock`. Make sure the `--user 0:0` flag is in your `docker run` command.":
     "L'agente deve essere eseguito come root per leggere `/var/run/docker.sock`. Assicurati che l'opzione `--user 0:0` sia nel tuo comando `docker run`.",
-  "The agent's logs show:": "I registri dell'agente mostrano:",
+  "The agent's logs show:": "I log dell'agente mostrano:",
   "The daemon refuses a client newer than its own maximum, the collector exits with it, and the container restart-loops. The agent pins a version only when `DOCKER_API_VERSION` names one, and an older agent image pinned `1.44`, which Docker Engine 20.10 to 24 refuse. Remove the agent (`docker rm -f oneuptime-docker-agent`), pull the latest image (`docker pull oneuptime/docker-agent:release`) and run the command from step 2 again, without `-e DOCKER_API_VERSION`. The agent then negotiates the version with the daemon.":
     "Il daemon rifiuta un client più recente del proprio massimo, il collector esce di conseguenza e il container si riavvia in loop. L'agente fissa una versione solo quando `DOCKER_API_VERSION` ne indica una, e una vecchia immagine dell'agente fissava `1.44`, che Docker Engine dalla 20.10 alla 24 rifiuta. Rimuovi l'agente (`docker rm -f oneuptime-docker-agent`), scarica l'immagine più recente (`docker pull oneuptime/docker-agent:release`) ed esegui di nuovo il comando del passaggio 2, senza `-e DOCKER_API_VERSION`. L'agente allora negozia la versione con il daemon.",
   "To pin a version anyway, use no more than the daemon's maximum:":
@@ -98,7 +98,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Check that the agent is running: `docker ps --filter name=oneuptime-docker-agent`":
     "1. Verifica che l'agente sia in esecuzione: `docker ps --filter name=oneuptime-docker-agent`",
   "2. Check the agent's logs for errors: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`":
-    "2. Cerca errori nei registri dell'agente: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`",
+    "2. Cerca errori nei log dell'agente: `docker logs oneuptime-docker-agent 2>&1 | grep -i error`",
   "3. Verify the OneUptime URL and ingestion key in the `docker run` command are correct.":
     "3. Verifica che l'URL di OneUptime e la chiave di ingestione nel comando `docker run` siano corretti.",
   "4. Make sure the host can reach your OneUptime instance over the network.":
@@ -106,13 +106,13 @@ const TRANSLATION: SetupGuideTranslation = {
   "Check that the Docker socket is mounted into the agent. Its image has no shell, so look from a throwaway container that shares its mounts:":
     "Verifica che il socket Docker sia montato nell'agente. La sua immagine non ha una shell, quindi controlla da un container usa e getta che ne condivida i montaggi:",
   "Then look for export errors in the agent's logs — `docker logs oneuptime-docker-agent 2>&1 | grep -i error` — and make sure the ingestion key is valid and has not expired.":
-    "Poi cerca errori di esportazione nei registri dell'agente (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) e assicurati che la chiave di ingestione sia valida e non sia scaduta.",
+    "Poi cerca errori di esportazione nei log dell'agente (`docker logs oneuptime-docker-agent 2>&1 | grep -i error`) e assicurati che la chiave di ingestione sia valida e non sia scaduta.",
   "Metrics arrive but the **Logs** tab is empty, or shows only the agent's own logs? Your containers are most likely not using the `json-file` log driver.":
-    "Le metriche arrivano, ma la scheda **Registri** è vuota o mostra solo i registri dell'agente stesso? Molto probabilmente i tuoi container non usano il driver di log `json-file`.",
+    "Le metriche arrivano, ma la scheda **Log** è vuota o mostra solo i log dell'agente stesso? Molto probabilmente i tuoi container non usano il driver di log `json-file`.",
   "If step 1 shows `no files match the configured criteria`, or step 3 lists no files for your containers, they are not using `json-file`. Switch them (see **Collect logs from every container (json-file log driver)** under Advanced), then recreate each one — a container keeps the log driver it was created with:":
-    "Se il passaggio 1 mostra `no files match the configured criteria`, o il passaggio 3 non elenca file per i tuoi container, vuol dire che non usano `json-file`. Cambiali (vedi **Raccogli i registri di tutti i container (driver di log json-file)** in Avanzato), poi ricreali uno per uno: un container mantiene il driver di log con cui è stato creato:",
+    "Se il passaggio 1 mostra `no files match the configured criteria`, o il passaggio 3 non elenca file per i tuoi container, vuol dire che non usano `json-file`. Cambiali (vedi **Raccogli i log di tutti i container (driver di log json-file)** in Avanzato), poi ricreali uno per uno: un container mantiene il driver di log con cui è stato creato:",
   "A host's page shows the data whose host name is that host's identifier, which the agent takes from `DOCKER_HOST_NAME`. Change `DOCKER_HOST_NAME` after the host registered, and OneUptime registers a second host under the new name — the logs are on that one. Check the name the agent reports:":
-    "La pagina di un host mostra i dati il cui nome host è l'identificatore di quell'host, che l'agente prende da `DOCKER_HOST_NAME`. Se cambi `DOCKER_HOST_NAME` dopo la registrazione dell'host, OneUptime registra un secondo host con il nuovo nome, e i registri sono su quello. Controlla il nome che l'agente riporta:",
+    "La pagina di un host mostra i dati il cui nome host è l'identificatore di quell'host, che l'agente prende da `DOCKER_HOST_NAME`. Se cambi `DOCKER_HOST_NAME` dopo la registrazione dell'host, OneUptime registra un secondo host con il nuovo nome, e i log sono su quello. Controlla il nome che l'agente riporta:",
   "The host's name comes from `DOCKER_HOST_NAME`. An agent started without it reports `docker-host`, so every host set up that way looks like the same host. Set `DOCKER_HOST_NAME` to a name of its own on each host and recreate the agent — `docker rm -f oneuptime-docker-agent`, then run the command from step 2 with the new name.":
     "Il nome dell'host viene da `DOCKER_HOST_NAME`. Un agente avviato senza di esso riporta `docker-host`, quindi tutti gli host configurati così sembrano lo stesso host. Imposta `DOCKER_HOST_NAME` su un nome proprio per ogni host e ricrea l'agente: `docker rm -f oneuptime-docker-agent`, poi esegui il comando del passaggio 2 con il nuovo nome.",
   "This installs the agent for **`web-1`** — keep `DOCKER_HOST_NAME` exactly as it is, or the data registers as a new host.":

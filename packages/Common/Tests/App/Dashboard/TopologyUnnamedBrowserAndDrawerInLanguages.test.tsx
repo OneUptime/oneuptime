@@ -329,4 +329,50 @@ describe("the entity drawer's screen-reader line", () => {
       }
     },
   );
+
+  /*
+   * The drawer's header (#8633): SideOver looked up the resource's own name
+   * as an English key, and was handed the type in English so that it was
+   * not looked up twice. It draws both as given now - the name as written,
+   * the type in the reader's words.
+   */
+  test.each(["en", "de", "ar", "fa"])(
+    "%s: the drawer's header names the resource as written, and its type in the reader's words",
+    async (language: string) => {
+      render(
+        <I18nextProvider i18n={instanceFor(language)}>
+          <EntityDetailPanel
+            entity={{
+              entityKey: "k8s-pod:logs",
+              entityType: EntityType.KubernetesPod,
+              // A resource named like an English key the locales word.
+              displayName: "Logs",
+            }}
+            rangeStart={new Date("2026-11-15T10:00:00.000Z")}
+            metricsWindowSeconds={60}
+            onClose={() => {}}
+          />
+        </I18nextProvider>,
+      );
+
+      const translator: Translator = dashboardTranslator(language);
+      const typeLabel: string = metaForEntityType(
+        EntityType.KubernetesPod,
+      ).label;
+
+      expect((await screen.findByTestId("side-over-title")).textContent).toBe(
+        "Logs",
+      );
+      expect(screen.getByTestId("side-over-description").textContent).toBe(
+        translator.translateText(typeLabel) || typeLabel,
+      );
+
+      if (language !== "en") {
+        expect(translator.translateText("Logs")).not.toBe("Logs");
+        expect(
+          screen.getByTestId("side-over-description").textContent,
+        ).not.toBe(typeLabel);
+      }
+    },
+  );
 });

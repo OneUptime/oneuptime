@@ -42,6 +42,7 @@ At a burn rate of 1 the window met the SLO's target exactly, so the default `max
 What the check reads depends on what the SLO measures:
 
 - A [request SLO](/docs/slo/request-slos) is judged from its services' requests in the window, read from their spans as they arrive. Add `serviceVersion` to judge only the new version's requests: OneUptime matches it against the `service.version` resource attribute of the spans, which an OpenTelemetry SDK sets from `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. That way the canary is judged on its own requests, not diluted by the old version's.
+- A [Metric SLO](/docs/slo/request-slos#slos-from-a-metric) is judged from its metric's events in the window, counted as its SLI counts them, so `minimumRequestCount`, `goodRequestCount` and `totalRequestCount` are events. With `serviceVersion`, only the metric's points with that `service.version` resource attribute count: an OpenTelemetry SDK sets it on its metrics as it does on its spans.
 - A monitor uptime SLO is judged from its monitors' status timelines over the window. `minimumRequestCount` does not apply to it, and a check with `serviceVersion` is refused: monitors have no versions.
 
 ## Before you begin
@@ -126,7 +127,7 @@ The answer's fields:
 | `deploymentsAllowed` and `errorBudgetPolicyTier` | Whether the SLO's error budget policy allows deployments, and the tier it is in. |
 | `checkedAt` | When the check was measured. |
 
-An SLO that cannot be measured - a request SLO with no services, a latency SLO with no threshold, a monitor uptime SLO with no monitors - is answered with HTTP 400 and what to fix, so a rollout stops on a clear error rather than a guess. On a self-hosted installation, use its own address instead of oneuptime.com.
+An SLO that cannot be measured - a request SLO with no services, a latency SLO with no threshold, a Metric SLO with no metric it can count, a monitor uptime SLO with no monitors - is answered with HTTP 400 and what to fix, so a rollout stops on a clear error rather than a guess. On a self-hosted installation, use its own address instead of oneuptime.com.
 
 ## Argo Rollouts
 

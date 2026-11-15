@@ -142,7 +142,15 @@ export const ICON_ONLY_OUTLINE_BUTTON_SIZE_CLASS_NAMES: Record<
 /* Defining the props that the component will take. */
 
 export interface ComponentProps {
+  // In English, looked up here - unless isTitleTranslated says otherwise.
   title?: undefined | string;
+  /*
+   * The title is in the reader's words already: a sentence the page builds
+   * around a count or a name ("Show 20 more of 45"), or a front end's own
+   * keyed text. Drawn as given, never looked up again (#8633). Left unset,
+   * it is English, looked up here.
+   */
+  isTitleTranslated?: boolean | undefined;
   onClick?: undefined | (() => void);
   disabled?: undefined | boolean;
   id?: undefined | string;
@@ -222,6 +230,7 @@ export const keepButtonOwnSizeAtEveryWidth: (className: string) => string = (
 
 const Button: FunctionComponent<ComponentProps> = ({
   title,
+  isTitleTranslated,
   onClick,
   disabled,
   id,
@@ -244,7 +253,10 @@ const Button: FunctionComponent<ComponentProps> = ({
   isFullWidthOnPhone = true,
 }: ComponentProps): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translatedTitle: string | undefined = translateString(title);
+  // Looked up once: English here, a title in the reader's words as given.
+  const translatedTitle: string | undefined = isTitleTranslated
+    ? title
+    : translateString(title);
   const translatedTooltip: string | undefined = translateString(tooltip);
   useEffect(() => {
     if (!shortcutKey) {

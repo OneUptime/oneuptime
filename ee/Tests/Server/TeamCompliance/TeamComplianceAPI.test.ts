@@ -61,6 +61,10 @@ import Permission, {
   UserTenantAccessPermission,
 } from "Common/Types/Permission";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
+import {
+  TeamComplianceFindingKind,
+  TeamComplianceWarningKind,
+} from "Common/Types/Team/TeamComplianceStatus";
 import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
 import ComplianceRuleType from "Common/Types/Team/ComplianceRuleType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -882,6 +886,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         "settingId",
         "severities",
         "severityKind",
+        "warningDetails",
         "warnings",
       ]);
     }
@@ -898,6 +903,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       compliantCount: 0,
       nonCompliantCount: 1,
       warnings: [],
+      warningDetails: [],
     });
     expect(rules[1]).toEqual({
       settingId: "5e771000-0000-4000-8000-000000000001",
@@ -911,6 +917,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       compliantCount: 0,
       nonCompliantCount: 1,
       warnings: [],
+      warningDetails: [],
     });
 
     const statuses: Array<Record<string, unknown>> = statusesOf(payload);
@@ -928,20 +935,34 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
     expect(statuses[0]!["userEmail"]).toBe("ada@example.com");
     expect(statuses[0]!["isCompliant"]).toBe(false);
     /*
-     * The reason strings are printed verbatim by the Dashboard, so their exact
-     * wording is part of the payload contract. A method rule and an on-call
-     * rule are asserted together to show neither vocabulary shifted.
+     * The reason strings are the API's English, and what a Dashboard from
+     * before #8632 prints, so their exact wording is part of the payload
+     * contract. A method rule and an on-call rule are asserted together to
+     * show neither vocabulary shifted - and the same findings as data, which
+     * the Dashboard words in the reader's language.
      */
     expect(statuses[0]!["nonCompliantRules"]).toEqual([
       {
         settingId: "5e771000-0000-4000-8000-000000000000",
         ruleType: ComplianceRuleType.HasNotificationEmailMethod,
         reason: "No verified email address configured for notifications",
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.MethodMissing,
+            channel: ComplianceNotificationChannel.Email,
+          },
+        ],
       },
       {
         settingId: "5e771000-0000-4000-8000-000000000001",
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         reason: "Missing notification rules for incident severities: Critical",
+        findings: [
+          {
+            kind: TeamComplianceFindingKind.MissingRules,
+            severities: [expect.objectContaining({ name: "Critical" })],
+          },
+        ],
       },
     ]);
 
@@ -1188,11 +1209,22 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       "custom channels are not active",
       false,
       CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+      TeamComplianceWarningKind.CustomChannelsNotActive,
     ],
-    ["no custom channel is on", true, NO_CUSTOM_CHANNEL_ON_WARNING],
+    [
+      "no custom channel is on",
+      true,
+      NO_CUSTOM_CHANNEL_ON_WARNING,
+      TeamComplianceWarningKind.NoCustomChannelOn,
+    ],
   ])(
     "while %s, a rule on the custom channel checks nobody - not everyone non-compliant - and says why",
-    async (_label: string, isActive: boolean, warning: string) => {
+    async (
+      _label: string,
+      isActive: boolean,
+      warning: string,
+      kind: TeamComplianceWarningKind,
+    ) => {
       customChannelsActive.mockReturnValue(isActive);
       customChannelsOnRead.mockResolvedValue([]);
 
@@ -1236,6 +1268,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         compliantCount: 0,
         nonCompliantCount: 0,
         warnings: [warning],
+        warningDetails: [{ kind: kind }],
       });
     },
   );
@@ -1538,7 +1571,14 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         compliantCount: 1,
         nonCompliantCount: 2,
         warnings: [
-          "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+          "Call notifications are switched off for this project, so members will not be notified by Call even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+        ],
+        // The same, as data the Dashboard words in the reader's language (#8632).
+        warningDetails: [
+          {
+            kind: TeamComplianceWarningKind.ChannelsSwitchedOff,
+            channels: [ComplianceNotificationChannel.Call],
+          },
         ],
       },
     ]);
@@ -1649,6 +1689,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         compliantCount: 1,
         nonCompliantCount: 2,
         warnings: [],
+        warningDetails: [],
       },
     ]);
 
@@ -1709,7 +1750,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       ComplianceNotificationChannel.SMS,
     ]);
     expect(rulesOf(payload)[0]!["warnings"]).toEqual([
-      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "Call and SMS notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ]);
     // The switches are the rule's problem; Ada fails only on what she lacks.
     expect(reasonsFor(payload, ada)).toEqual([
@@ -2192,6 +2233,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       warnings: [
         "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.",
       ],
+      warningDetails: [{ kind: TeamComplianceWarningKind.SeveritiesDeleted }],
     });
     expect(everySeverity).toMatchObject({
       appliesToAllSeverities: true,

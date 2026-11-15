@@ -42,6 +42,7 @@ Con una tasa de consumo de 1, la ventana cumplió exactamente el objetivo del SL
 Lo que lee la comprobación depende de lo que mide el SLO:
 
 - Un [SLO de solicitudes](/docs/slo/request-slos) se juzga por las solicitudes de sus servicios en la ventana, leídas de sus spans a medida que llegan. Añade `serviceVersion` para juzgar solo las solicitudes de la nueva versión: OneUptime lo compara con el atributo de recurso `service.version` de los spans, que un SDK de OpenTelemetry fija a partir de `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2`. Así el canary se juzga por sus propias solicitudes, sin que las de la versión anterior lo diluyan.
+- Un [SLO de métrica](/docs/slo/request-slos#slo-a-partir-de-una-métrica) se juzga por los eventos de su métrica en la ventana, contados como los cuenta su SLI, así que `minimumRequestCount`, `goodRequestCount` y `totalRequestCount` son eventos. Con `serviceVersion`, solo cuentan los puntos de la métrica cuyo atributo de recurso `service.version` tenga ese valor: un SDK de OpenTelemetry lo fija en sus métricas igual que en sus spans.
 - Un SLO de disponibilidad de monitores se juzga por las líneas de tiempo de estado de sus monitores en la ventana. `minimumRequestCount` no se le aplica, y una comprobación con `serviceVersion` se rechaza: los monitores no tienen versiones.
 
 ## Antes de empezar
@@ -126,7 +127,7 @@ Los campos de la respuesta:
 | `deploymentsAllowed` y `errorBudgetPolicyTier` | Si la política de presupuesto de errores del SLO permite los despliegues, y el nivel en el que está. |
 | `checkedAt` | Cuándo se midió la comprobación. |
 
-Un SLO que no se puede medir (un SLO de solicitudes sin servicios, un SLO de latencia sin umbral, un SLO de disponibilidad de monitores sin monitores) recibe como respuesta un HTTP 400 y lo que hay que corregir, así que un despliegue se detiene con un error claro en lugar de con una suposición. En una instalación autoalojada, usa su propia dirección en lugar de oneuptime.com.
+Un SLO que no se puede medir (un SLO de solicitudes sin servicios, un SLO de latencia sin umbral, un SLO de métrica sin una métrica que se pueda contar, un SLO de disponibilidad de monitores sin monitores) recibe como respuesta un HTTP 400 y lo que hay que corregir, así que un despliegue se detiene con un error claro en lugar de con una suposición. En una instalación autoalojada, usa su propia dirección en lugar de oneuptime.com.
 
 ## Argo Rollouts
 

@@ -278,6 +278,7 @@ export const AuditLogExportTestModal: FunctionComponent<{
       title={translator.translateTemplate(AuditLogExportCopy.testModalTitle, {
         name: props.exportName,
       })}
+      isTitleTranslated={true}
       description={AuditLogExportCopy.testModalDescription}
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}

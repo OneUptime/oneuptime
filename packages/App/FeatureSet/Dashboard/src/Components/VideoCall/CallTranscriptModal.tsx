@@ -291,6 +291,7 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
       title={translator.translateTemplate("Transcript of the {{call}}", {
         call: props.callLabel,
       })}
+      isTitleTranslated={true}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       closeButtonText="Close"

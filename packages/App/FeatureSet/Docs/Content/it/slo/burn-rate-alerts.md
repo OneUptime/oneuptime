@@ -132,7 +132,7 @@ In **Regola**, inserisci un **Nome**, come «Fast burn». Una nuova regola è at
 
 ### Impostare la finestra di consumo
 
-In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**. La regola di uno SLO di richieste prevede anche un **Numero minimo di richieste**, per esempio `100`: la regola salta una finestra lunga che ha meno richieste di quel numero.
+In **Finestra di consumo**, imposta la **Soglia del tasso di consumo** (per esempio `14.4`), la **Finestra lunga (minuti)** e la **Finestra breve (minuti)**, e se vuoi la **Soppressione della riattivazione (minuti)**. La regola di uno SLO di richieste prevede anche un **Numero minimo di richieste**, per esempio `100`: la regola salta una finestra lunga che ha meno richieste di quel numero. La regola di uno SLO di metrica prevede allo stesso modo un **Numero minimo di eventi**, contato negli eventi della sua metrica.
 
 ### Scegliere cosa dichiara
 
@@ -152,6 +152,7 @@ OneUptime controlla i numeri di una regola quando la salvi:
 | **Finestra lunga (minuti)** | Più lunga della finestra breve. |
 | **Soppressione della riattivazione (minuti)** | 0 o più. Vuoto significa la durata della finestra lunga. |
 | **Numero minimo di richieste** | Un numero intero, 0 o più. Vuoto significa nessun minimo. |
+| **Numero minimo di eventi** | Un numero intero, 0 o più. Vuoto significa nessun minimo. |
 
 Ogni risposta a **Quando scatta** apre qualcosa. L'API rifiuta una regola che non creerebbe alcun avviso né dichiarerebbe alcun incidente, perché verrebbe controllata a ogni valutazione senza dichiarare mai nulla.
 

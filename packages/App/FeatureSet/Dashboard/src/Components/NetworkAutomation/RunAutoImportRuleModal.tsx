@@ -184,6 +184,7 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
     return (
       <ConfirmModal
         title={title}
+        isTitleTranslated={true}
         description={
           <div>
             <div>{RuleRunResultUtil.describeAutoImportRun(result)}</div>
@@ -229,6 +230,7 @@ const RunAutoImportRuleModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={title}
+      isTitleTranslated={true}
       description={isRunning && progress ? progress : description}
       error={error || undefined}
       isLoading={isRunning}

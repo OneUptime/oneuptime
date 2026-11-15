@@ -22,6 +22,8 @@ import React, { ReactElement, useEffect, useRef, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
   title: string;
+  // The title is in the reader's words already, drawn as given (Modal's own prop).
+  isTitleTranslated?: boolean | undefined;
   /*
    * Identifies this form in the "FORM SUBMIT" analytics event. Falls back to
    * formProps.name and then to the modal title, so every modal reports a

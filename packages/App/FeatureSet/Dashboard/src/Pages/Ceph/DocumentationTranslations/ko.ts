@@ -32,7 +32,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Docker Compose also runs **`oneuptime-ceph-ai-agent`**, the OneUptime AI agent. If the install script created its Ceph client it is already working; otherwise it waits for one — see **OneUptime AI agent** under Advanced.":
     "Docker Compose는 OneUptime AI 에이전트인 **`oneuptime-ceph-ai-agent`** 컨테이너도 실행합니다. 설치 스크립트가 Ceph 클라이언트를 만들었다면 이미 동작하고 있고, 그렇지 않으면 클라이언트를 기다립니다. 고급의 **OneUptime AI 에이전트**를 참조하세요.",
   "**OneUptime AI agent (on by default, read-only).** AI investigations are on: once it has its Ceph client, it lets OneUptime AI investigate incidents and alerts on this cluster with read-only `ceph` commands, and changes nothing unless you allow fixes.":
-    "**OneUptime AI 에이전트(기본적으로 켜짐, 읽기 전용).** AI 조사가 켜져 있습니다. Ceph 클라이언트가 생기면 OneUptime AI가 읽기 전용 `ceph` 명령으로 이 클러스터의 인시던트와 알림을 조사할 수 있게 하며, 수정을 허용하지 않는 한 아무것도 바꾸지 않습니다.",
+    "**OneUptime AI 에이전트(기본적으로 켜짐, 읽기 전용).** AI 조사가 켜져 있습니다. Ceph 클라이언트가 생기면 OneUptime AI가 읽기 전용 `ceph` 명령으로 이 클러스터의 인시던트와 경고를 조사할 수 있게 하며, 수정을 허용하지 않는 한 아무것도 바꾸지 않습니다.",
   "The install script writes these to `/opt/oneuptime-ceph-agent/.env`. After changing one, apply it with `docker compose up -d` in `/opt/oneuptime-ceph-agent`.":
     "설치 스크립트가 이 값들을 `/opt/oneuptime-ceph-agent/.env`에 작성합니다. 값을 바꾼 뒤에는 `/opt/oneuptime-ceph-agent`에서 `docker compose up -d`로 적용하세요.",
   "| Variable | Required | Description |": "| 변수 | 필수 | 설명 |",
@@ -70,7 +70,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "클러스터는 `team:storage`와 `env:production` 레이블이 붙은 채 나타납니다. 레이블은 대소문자를 구분하지 않고 비교하므로 기존 `Production` 레이블이 재사용되며, OneUptime 화면에서 추가한 레이블은 에이전트가 절대 제거하지 않습니다.",
   "The agent ships everything the mgr prometheus module exports. OneUptime's Ceph pages, metric catalog and alert templates are built on:":
-    "에이전트는 mgr의 prometheus 모듈이 내보내는 모든 것을 보냅니다. OneUptime의 Ceph 페이지, 메트릭 카탈로그, 알림 템플릿은 다음을 기반으로 합니다:",
+    "에이전트는 mgr의 prometheus 모듈이 내보내는 모든 것을 보냅니다. OneUptime의 Ceph 페이지, 메트릭 카탈로그, 경고 템플릿은 다음을 기반으로 합니다:",
   "| Category | Data |": "| 범주 | 데이터 |",
   "| **Cluster Health** | `ceph_health_status` (0 = OK, 1 = WARN, 2 = ERR), monitor quorum, total and used raw capacity |":
     "| **클러스터 상태** | `ceph_health_status`(0 = OK, 1 = WARN, 2 = ERR), 모니터 쿼럼, 전체 및 사용 중인 원시 용량 |",
@@ -81,7 +81,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| **Placement Groups** | Active, degraded, and undersized PG counts |":
     "| **Placement Group** | 활성, 성능 저하, 크기 미달 PG 수 |",
   "`docker-compose.yml` also runs **`oneuptime-ceph-ai-agent`**. While OneUptime AI investigates an incident or alert on this cluster, it runs `ceph` commands through it — `ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`. It registers as the cluster named `CEPH_CLUSTER_NAME` and appears on the cluster's **AI → AI agent** page.":
-    "`docker-compose.yml`은 **`oneuptime-ceph-ai-agent`** 컨테이너도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 이를 통해 `ceph` 명령(`ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`)을 실행합니다. `CEPH_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, 클러스터의 **AI → AI 에이전트** 페이지에 나타납니다.",
+    "`docker-compose.yml`은 **`oneuptime-ceph-ai-agent`** 컨테이너도 실행합니다. OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 이를 통해 `ceph` 명령(`ceph health detail`, `ceph osd tree`, `ceph pg dump_stuck`, `ceph crash ls`)을 실행합니다. `CEPH_CLUSTER_NAME`이라는 이름의 클러스터로 등록되며, 클러스터의 **AI → AI 에이전트** 페이지에 나타납니다.",
   "It connects as its own Ceph client, `client.oneuptime-ai`, with the cluster's minimal `ceph.conf` and that client's keyring in a `ceph/` folder next to `docker-compose.yml`. The install script offers to create them on a fresh install, when `ceph` works with admin rights on the machine you run it on. Otherwise, or to add them later, on a Ceph admin node:":
     "클러스터의 최소 `ceph.conf`와 그 클라이언트의 키링을 `docker-compose.yml` 옆의 `ceph/` 폴더에 두고, 자체 Ceph 클라이언트 `client.oneuptime-ai`로 연결합니다. 설치 스크립트는 실행하는 머신에서 `ceph`가 관리자 권한으로 동작하면 새로 설치할 때 이 파일들을 만들어 주겠다고 제안합니다. 그렇지 않거나 나중에 추가하려면 Ceph 관리 노드에서 다음을 실행하세요:",
   "If the agent runs on another machine, copy the two files into its `ceph/` folder the same way. **Never put the admin keyring there.**":

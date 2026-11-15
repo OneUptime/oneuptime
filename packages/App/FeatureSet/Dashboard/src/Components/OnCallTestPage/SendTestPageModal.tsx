@@ -693,6 +693,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
     return (
       <Modal
         title={title}
+        isTitleTranslated={true}
         description={
           translator.translateTemplate(
             "Sent. Each message is below as it goes out. The test ends when someone acknowledges it, or after {{minutes}} minutes.",
@@ -829,6 +830,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title={title}
+      isTitleTranslated={true}
       description={getTestPageDialogDescription(translator, props.target)}
       onClose={props.onClose}
       submitButtonText={

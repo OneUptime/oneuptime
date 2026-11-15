@@ -184,6 +184,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   noCauseText?: string | undefined;
   logColumn?: string | undefined;
   logsTitle?: string | undefined;
+  // The logsTitle is in the reader's words already, drawn as given (Modal's isTitleTranslated).
+  isLogsTitleTranslated?: boolean | undefined;
   logsDescription?: string | undefined;
   logViewerTitle?: string | undefined;
   noLogsText?: string | undefined;
@@ -1064,6 +1066,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
               props.isCreateable && createGate.show ? (
                 <Button
                   title={createButtonTitle}
+                  isTitleTranslated={true}
                   icon={IconProp.Add}
                   buttonStyle={ButtonStyleType.NORMAL}
                   disabled={createGate.disabled}
@@ -1161,6 +1164,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
             template: CREATE_NEW_TEMPLATE,
             itemName: singularName,
           })}
+          isTitleTranslated={true}
           name={`${props.name} > Create New ${singularName}`}
           submitButtonText={createButtonTitle}
           onClose={() => {
@@ -1197,12 +1201,15 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       {itemToDelete && (
         <ConfirmModal
           title={
-            deleteConfirmation?.title ||
-            translateNamedAction(translator, {
-              template: "Delete {{itemName}}",
-              itemName: singularName || "Item",
-            })
+            deleteConfirmation?.title
+              ? translator.translateText(deleteConfirmation.title) ||
+                deleteConfirmation.title
+              : translateNamedAction(translator, {
+                  template: "Delete {{itemName}}",
+                  itemName: singularName || "Item",
+                })
           }
+          isTitleTranslated={true}
           description={
             deleteConfirmation?.description || (
               <DeleteConfirmationMessage
@@ -1279,6 +1286,9 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       {logs && (
         <Modal
           title={props.logsTitle || DEFAULT_LOGS_TITLE}
+          isTitleTranslated={
+            Boolean(props.logsTitle) && props.isLogsTitleTranslated
+          }
           description={props.logsDescription}
           isLoading={logs.isLoading}
           modalWidth={ModalWidth.Large}
