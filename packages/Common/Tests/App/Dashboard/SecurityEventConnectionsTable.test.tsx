@@ -93,6 +93,14 @@ import {
   getDrawnMark,
   preloadProviderLogoMarks,
 } from "../../Helpers/ProviderLogoMarks";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/cloud-connection/count"]);
 
 /*
  * Replace only ModelTable's data-loading boundary: the real TableRow decides

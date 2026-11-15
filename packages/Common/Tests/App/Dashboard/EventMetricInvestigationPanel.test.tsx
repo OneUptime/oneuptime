@@ -170,6 +170,14 @@ import ObjectID from "../../../Types/ObjectID";
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
 import { StateListType } from "../../../Utils/StateOrder";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/alert/alert-1/get-item", "/incident/incident-1/get-item"]);
 
 const NOW: Date = new Date("2026-11-05T09:00:00.000Z");
 const STARTED_AT: Date = new Date("2026-11-05T05:44:00.000Z");

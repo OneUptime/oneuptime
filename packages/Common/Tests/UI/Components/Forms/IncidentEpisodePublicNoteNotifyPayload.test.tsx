@@ -184,6 +184,14 @@ import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPag
 import Navigation from "../../../../UI/Utils/Navigation";
 import IncidentEpisodeFeedElement from "../../../../../App/FeatureSet/Dashboard/src/Components/IncidentEpisode/IncidentEpisodeFeed";
 import EpisodePublicNote from "../../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeView/PublicNote";
+import { refuseRequestsTo } from "../../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/incident-episode-public-note/approval/policy"]);
 
 const EPISODE_ID: string = "55555555-5555-4555-8555-555555555555";
 const PROJECT_ID: string = "66666666-6666-4666-8666-666666666666";

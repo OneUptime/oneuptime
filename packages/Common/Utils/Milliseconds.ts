@@ -3,6 +3,7 @@ import {
   formatUnitAmount,
   getNumberLocale,
   isEnglishDateLanguage,
+  rememberEnglishOf,
 } from "../Types/DateLanguage";
 import {
   NO_BREAK_SPACE,
@@ -57,6 +58,9 @@ import {
  * written beside a figure in any of the Dashboard's files.
  */
 export const MILLISECONDS_TEMPLATE: string = translationKey("{{value}} ms");
+
+// English, as the server and a translator without wording write it.
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export interface MillisecondsOptions {
   /*
@@ -304,8 +308,309 @@ export const formatDurationInUnit: (
   return held;
 };
 
-// English, as the server and a translator without wording write it.
-const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+/*
+ * A COMPACT DURATION, IN THE READER'S LANGUAGE.
+ *
+ * Beside its spaced units the Dashboard wrote its short durations by hand,
+ * with no space (#8455): a Kubernetes object's age `${diffSec}s`, a task's
+ * `${minutes}m ${rest}s`, a host's uptime `${days}d ${hours}h`, a session's
+ * length, an SLA's countdown, a discovery scan's run time. English letters
+ * and Latin digits in every language: "4m 05s" on a Persian page, beside
+ * its Persian dates.
+ *
+ * Each is written here now, with the Dashboard's compact keys, which every
+ * language words with its own short units ("{{count}}s" is "{{count}} Sek."
+ * in German, "{{count}} ثانیه" in Persian, "{{count}} ث" in Arabic), and
+ * each figure as the reader's language writes a number (formatReaderFigure:
+ * Persian digits, Latin ones in Arabic, a decimal comma in German). A pair
+ * of units next to each other is one key ("{{minutes}}m {{seconds}}s"), so
+ * a language words the pair as it says it; any other set of units is each
+ * unit's own key, one after another ("1h 2m 3s"). A field a clock writes in
+ * two digits ("4m 05s") is the reader's zero, then the reader's digit.
+ *
+ * English reads exactly as the hand-written text did: "12s", "4m 05s",
+ * "1h 02m", "1234d 5h", "1.5s". The text is remembered with its English
+ * (rememberEnglishOf), so a sentence the reader's language has not worded
+ * yet - read in English - puts "4m 05s" back, never "4 Min. 05 s" among
+ * English words.
+ *
+ * A guard (Common Tests/UI/MillisecondsInReadersLanguageGuard) refuses a
+ * compact duration written by hand in the Dashboard and the shared UI.
+ */
+export type CompactDurationUnit =
+  | "years"
+  | "months"
+  | "days"
+  | "hours"
+  | "minutes"
+  | "seconds";
+
+// The units, largest first: the order a compact duration names them in.
+const COMPACT_DURATION_UNITS: ReadonlyArray<CompactDurationUnit> = [
+  "years",
+  "months",
+  "days",
+  "hours",
+  "minutes",
+  "seconds",
+];
+
+// A count of each unit it names: { minutes: 4, seconds: 5 } is "4m 05s".
+export type CompactDuration = Partial<Record<CompactDurationUnit, number>>;
+
+// "12s", "5m", "3h", "2d", "4mo", "2y": one unit on its own.
+export const COMPACT_DURATION_TEMPLATES: Readonly<
+  Record<CompactDurationUnit, string>
+> = {
+  years: translationKey("{{count}}y"),
+  months: translationKey("{{count}}mo"),
+  days: translationKey("{{count}}d"),
+  hours: translationKey("{{count}}h"),
+  minutes: translationKey("{{count}}m"),
+  seconds: translationKey("{{count}}s"),
+};
+
+// "12s ago", "5m ago": one unit, as an age.
+export const COMPACT_DURATION_AGO_TEMPLATES: Readonly<
+  Record<CompactDurationUnit, string>
+> = {
+  years: translationKey("{{count}}y ago"),
+  months: translationKey("{{count}}mo ago"),
+  days: translationKey("{{count}}d ago"),
+  hours: translationKey("{{count}}h ago"),
+  minutes: translationKey("{{count}}m ago"),
+  seconds: translationKey("{{count}}s ago"),
+};
+
+interface CompactDurationPair {
+  larger: CompactDurationUnit;
+  smaller: CompactDurationUnit;
+  template: string;
+}
+
+// Two units next to each other, worded as a pair: "4m 05s", "1h 02m", "2d 5h".
+const COMPACT_DURATION_PAIRS: ReadonlyArray<CompactDurationPair> = [
+  {
+    larger: "minutes",
+    smaller: "seconds",
+    template: translationKey("{{minutes}}m {{seconds}}s"),
+  },
+  {
+    larger: "hours",
+    smaller: "minutes",
+    template: translationKey("{{hours}}h {{minutes}}m"),
+  },
+  {
+    larger: "days",
+    smaller: "hours",
+    template: translationKey("{{days}}d {{hours}}h"),
+  },
+];
+
+export interface CompactDurationOptions {
+  /*
+   * The smallest unit's decimals, as toFixed's argument: 1 for a step's
+   * "1.5s". The other units are whole. Left out, every unit is whole.
+   */
+  decimals?: number | undefined;
+  // Up to `decimals`, trailing zeros dropped: 2.50 -> "2.5s", 30.0 -> "30s".
+  dropTrailingZeros?: boolean | undefined;
+  /*
+   * Every unit after the first in two digits, as a clock writes it: "4m
+   * 05s", "1h 02m" - in Persian "۴ دقیقه ۰۵ ثانیه", the reader's zero
+   * before the reader's digit.
+   */
+  padsAfterTheFirst?: boolean | undefined;
+}
+
+// A unit's count, as the reader's language writes it ("05" padded).
+const writeCompactFigure: (
+  translator: Translator,
+  value: number,
+  data: { decimals: number; dropTrailingZeros: boolean; isPadded: boolean },
+) => string = (
+  translator: Translator,
+  value: number,
+  data: { decimals: number; dropTrailingZeros: boolean; isPadded: boolean },
+): string => {
+  const figure: string = formatReaderFigure(value, {
+    decimals: data.decimals,
+    dropTrailingZeros: data.dropTrailingZeros,
+    language: translator.language,
+  });
+  const rounded: number = Number(value.toFixed(data.decimals));
+
+  if (!data.isPadded || rounded < 0 || rounded >= 10) {
+    return figure;
+  }
+
+  return `${formatReaderFigure(0, {
+    decimals: 0,
+    language: translator.language,
+  })}${figure}`;
+};
+
+const writeCompactDuration: (
+  translator: Translator,
+  duration: CompactDuration,
+  options: CompactDurationOptions | undefined,
+) => string = (
+  translator: Translator,
+  duration: CompactDuration,
+  options: CompactDurationOptions | undefined,
+): string => {
+  const units: Array<CompactDurationUnit> = COMPACT_DURATION_UNITS.filter(
+    (unit: CompactDurationUnit): boolean => {
+      return duration[unit] !== undefined;
+    },
+  );
+
+  if (units.length === 0) {
+    units.push("seconds");
+  }
+
+  const decimals: number = Math.max(
+    0,
+    Math.min(3, Math.floor(options?.decimals || 0)),
+  );
+  const figures: Record<string, string> = {};
+
+  units.forEach((unit: CompactDurationUnit, index: number): void => {
+    const isSmallest: boolean = index === units.length - 1;
+
+    figures[unit] = writeCompactFigure(translator, duration[unit] ?? 0, {
+      decimals: isSmallest ? decimals : 0,
+      dropTrailingZeros: isSmallest && Boolean(options?.dropTrailingZeros),
+      isPadded: index > 0 && Boolean(options?.padsAfterTheFirst),
+    });
+  });
+
+  const pair: CompactDurationPair | undefined =
+    units.length === 2
+      ? COMPACT_DURATION_PAIRS.find((candidate: CompactDurationPair) => {
+          return (
+            candidate.larger === units[0] && candidate.smaller === units[1]
+          );
+        })
+      : undefined;
+
+  if (pair) {
+    return translator.translateTemplate(pair.template, {
+      [pair.larger]: figures[pair.larger] as string,
+      [pair.smaller]: figures[pair.smaller] as string,
+    });
+  }
+
+  return units
+    .map((unit: CompactDurationUnit): string => {
+      return translator.translateTemplate(COMPACT_DURATION_TEMPLATES[unit], {
+        count: figures[unit] as string,
+      });
+    })
+    .join(" ");
+};
+
+// Whether every count a duration names is a number it can write.
+const isWritable: (duration: CompactDuration) => boolean = (
+  duration: CompactDuration,
+): boolean => {
+  return COMPACT_DURATION_UNITS.every((unit: CompactDurationUnit): boolean => {
+    const value: number | undefined = duration[unit];
+
+    return (
+      value === undefined ||
+      (typeof value === "number" && Number.isFinite(value))
+    );
+  });
+};
+
+// The text, remembered with its English for an English sentence that holds it.
+const rememberedWithItsEnglish: (
+  translator: Translator,
+  text: string,
+  english: () => string,
+) => string = (
+  translator: Translator,
+  text: string,
+  english: () => string,
+): string => {
+  if (!isEnglishDateLanguage(translator.language)) {
+    const englishText: string = english();
+
+    if (englishText !== text) {
+      rememberEnglishOf(text, (): string => {
+        return englishText;
+      });
+    }
+  }
+
+  return text;
+};
+
+/*
+ * "12s", "4m 05s", "1h 02m", "2d 5h", "3mo" in the reader's language. The
+ * caller works out the counts (its own rounding, the units it shows) and
+ * hands in the ones it names, largest first or not: { hours: 1, minutes: 2
+ * } is "1h 2m". A count that is not a number reads "-", as every missing
+ * fact does.
+ */
+export const formatCompactDuration: (
+  translator: Translator,
+  duration: CompactDuration,
+  options?: CompactDurationOptions,
+) => string = (
+  translator: Translator,
+  duration: CompactDuration,
+  options?: CompactDurationOptions,
+): string => {
+  if (!isWritable(duration)) {
+    return "-";
+  }
+
+  return rememberedWithItsEnglish(
+    translator,
+    writeCompactDuration(translator, duration, options),
+    (): string => {
+      return writeCompactDuration(ENGLISH, duration, options);
+    },
+  );
+};
+
+/*
+ * "12s ago", "5m ago", "3h ago", "2d ago", "4mo ago" in the reader's
+ * language: one unit, as an age ("vor 5 Min.", "۵ دقیقه پیش"). The duration
+ * names one unit; of several, the largest is said.
+ */
+export const formatCompactDurationAgo: (
+  translator: Translator,
+  duration: CompactDuration,
+) => string = (translator: Translator, duration: CompactDuration): string => {
+  const unit: CompactDurationUnit =
+    COMPACT_DURATION_UNITS.find((candidate: CompactDurationUnit): boolean => {
+      return duration[candidate] !== undefined;
+    }) || "seconds";
+  const value: number = duration[unit] ?? 0;
+
+  if (!isWritable({ [unit]: value })) {
+    return "-";
+  }
+
+  const write: (sentence: Translator) => string = (
+    sentence: Translator,
+  ): string => {
+    return sentence.translateTemplate(COMPACT_DURATION_AGO_TEMPLATES[unit], {
+      count: writeCompactFigure(sentence, value, {
+        decimals: 0,
+        dropTrailingZeros: false,
+        isPadded: false,
+      }),
+    });
+  };
+
+  return rememberedWithItsEnglish(translator, write(translator), (): string => {
+    return write(ENGLISH);
+  });
+};
 
 /*
  * "411 ms" in English, whatever the reader's language: for the AI chat's

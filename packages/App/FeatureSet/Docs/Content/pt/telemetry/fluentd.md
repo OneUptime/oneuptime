@@ -82,6 +82,10 @@ Adicione uma seção `<match>` que envie os registros ao OneUptime. Troque `YOUR
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Adicione uma seção `<match>` que envie os registros ao OneUptime. Troque `YOUR
 
 `json_array true` envia cada bloco do buffer como um único array JSON, e `flush_interval 10s` envia o buffer a cada 10 segundos. `chunk_limit_size 900k` mantém cada requisição abaixo de 1 MB, o máximo que o OneUptime aceita neste endpoint.
 
+`@type file` guarda os lotes que ainda faltam enviar na pasta indicada por `path`, para que um reinício do Fluentd não perca nenhum deles; um buffer em memória, o padrão do Fluentd, perde o que guarda. O usuário do Fluentd precisa conseguir escrever nessa pasta: `/var/log/fluent` é a do fluent-package, `/var/log/td-agent` a do td-agent e `/fluentd/log` a da imagem `fluent/fluentd`. `total_limit_size 512m` guarda no máximo 512 MB ali; quando está cheio, o Fluentd não aceita mais registros até que um lote seja enviado.
+
 `retryable_response_codes 429,502,503,504` envia um lote de novo quando o OneUptime está ocupado (`429`) ou reiniciando (`502`, `503`, `504`); sem essa configuração, o Fluentd descarta um lote diante de qualquer resposta que não seja `503`. `retry_max_interval 30s` espera no máximo 30 segundos entre as tentativas, e `retry_timeout 72h` descarta um lote que ainda não conseguiu enviar depois de 72 horas. O filtro `record_transformer` adiciona a hora que o Fluentd deu a cada registro, como `fluentd_time`: a saída HTTP envia só o registro, e o OneUptime lê dele a hora de um log.
 
 ### Reiniciar o Fluentd
@@ -113,7 +119,7 @@ Poucos segundos depois da próxima descarga, os logs aparecem em **Produtos → 
 
 ## Exemplo completo
 
-Esta configuração recebe registros pelo protocolo forward do Fluentd na porta `24224` e envia todos ao OneUptime:
+Esta configuração recebe registros pelo protocolo forward do Fluentd na porta `24224`, só deste host, e envia todos ao OneUptime:
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Esta configuração recebe registros pelo protocolo forward do Fluentd na porta 
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Esta configuração recebe registros pelo protocolo forward do Fluentd na porta 
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Esta configuração recebe registros pelo protocolo forward do Fluentd na porta 
 </label>
 ```
 
-Para enviar fontes diferentes como serviços diferentes, use uma seção `<match>` por tag, cada uma com o seu próprio `x-oneuptime-service-name`.
+`bind 127.0.0.1` aceita registros só deste host, como os do driver de logs `fluentd` do Docker, que envia para `localhost:24224`. Para enviar fontes diferentes como serviços diferentes, use uma seção `<match>` por tag, cada uma com o seu próprio `x-oneuptime-service-name` e o seu próprio `path` de buffer: o Fluentd não inicia com dois buffers no mesmo caminho.
+
+## Receber registros de outros hosts
+
+Com `bind 0.0.0.0` e sem seção `<security>`, qualquer pessoa que alcance a porta `24224` pode enviar logs ao OneUptime com a sua chave de ingestão. Para receber registros do Fluentd ou do Fluent Bit em outros hosts, escute em todos os endereços, peça a cada remetente uma chave compartilhada e use TLS. Substitua a seção `<source>` do exemplo completo por:
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path` e `private_key_path` são um certificado para o nome deste host, aqui `fluentd.example.com`, e a sua chave, que o usuário do Fluentd precisa conseguir ler. O Fluentd avisa quando a chave não tem frase secreta; `private_key_passphrase` define uma. Substitua `YOUR_SHARED_KEY` por um segredo longo e aleatório, como um gerado por `openssl rand -base64 32`, e dê o mesmo a cada remetente:
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+A saída `forward` do Fluent Bit aceita as mesmas configurações: `Shared_Key`, `Self_Hostname`, `tls On` e `tls.ca_file`.
+
+Um remetente sem a chave, ou sem TLS, é recusado. A chave nunca atravessa a rede: cada lado prova que a tem. Sem TLS, qualquer pessoa na rede entre os hosts pode ler os registros. Abra a porta `24224` no firewall do host só para os hosts que enviam. Se o Fluentd roda a partir do arquivo Docker Compose do guia de logs, publique também ali a porta em todos os endereços, `"24224:24224"`, e monte a pasta do certificado no contêiner.
 
 ## Como os registros são lidos
 
@@ -209,11 +274,15 @@ A requisição passa de 1 MB, o máximo que o OneUptime aceita neste endpoint. D
 :::
 
 :::details O Fluentd registra `429`, `502`, `503` ou `504`
-O OneUptime está ocupado ou reiniciando. Com `retryable_response_codes 429,502,503,504` na seção `<match>`, como na configuração acima, o Fluentd guarda o lote e o envia de novo; sem essa configuração, o Fluentd descarta o lote.
+O OneUptime está ocupado ou reiniciando. Com `retryable_response_codes 429,502,503,504` na seção `<match>`, como na configuração acima, o Fluentd guarda o lote e o envia de novo; sem essa configuração, o Fluentd descarta o lote. Com `@type file` na seção `<buffer>`, o Fluentd também guarda o lote quando reinicia.
 :::
 
 :::details Os logs mostram a hora em que o OneUptime os recebeu, não a deles
-O OneUptime lê a hora de um log do seu registro, e a saída HTTP do Fluentd envia só o registro. Uma seção `<parse>` tira o campo `time` do registro: adicione `keep_time_key true` a ela. Adicione também o filtro `record_transformer` da configuração acima: ele adiciona a hora que o Fluentd deu a cada registro, como `fluentd_time`.
+O OneUptime lê a hora de um log do seu registro, e a saída HTTP do Fluentd envia só o registro. Uma seção `<parse>` tira o campo `time` do registro, como a hora do evento: adicione `time_key fluentd_time` a ela, para que não leia a hora de nenhum registro e deixe `time` como está. Adicione também o filtro `record_transformer` da configuração acima: ele adiciona a hora que o Fluentd deu a cada registro, como `fluentd_time`.
+:::
+
+:::details Uma linha JSON cujo `time` é `null`, `true`, uma lista ou um objeto nunca chega
+O parser `json` do Fluentd lê o campo `time` de uma linha como a hora do evento, e descarta sem aviso uma linha cujo `time` não é nem texto nem um número. Adicione `time_key fluentd_time` à sua seção `<parse>`, como acima: o Fluentd deixa então `time` no registro como está. Com o filtro `record_transformer` acima, o OneUptime guarda o log na hora em que o Fluentd o leu, `fluentd_time`; sem ele, na hora em que o OneUptime o recebe.
 :::
 
 :::details Os logs chegam ao serviço `Fluentd`
