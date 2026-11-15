@@ -122,11 +122,11 @@ Iemand die een statuspagina volgt via e-mail, sms, Slack, Microsoft Teams of web
 
 Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers).
 
-### Geplande onderhoud
+### Gepland onderhoud
 
 Gepland werk, vooraf aangekondigd. Elke onderhoudsgebeurtenis doorloopt de onderhoudsstatussen **Gepland**, **Lopend**, **Beëindigd** en **Voltooid**, en de statuspagina's waarop ze wordt getoond, informeren bezoekers en abonnees erover.
 
-Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
+Ook wel: **Geplande onderhoudsgebeurtenis**, **Geplande gebeurtenis**, **Gebeurtenis**. Zie [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
 ### Telemetrie
 
@@ -384,7 +384,7 @@ Ook wel: **Taken**. Zie [Code](/docs/ai/ai-agent).
 
 ### Formulier
 
-Een pagina die iedereen met de link kan invullen, zonder account. Elke inzending maakt een incident aan, voor een probleemmelding, of een geplande onderhoudsgebeurtenis, voor een wijzigingsverzoek.
+Een pagina die iedereen met de link kan invullen, zonder account. Elke inzending maakt een incident aan, voor een probleemmelding, of een onderhoudsgebeurtenis, voor een wijzigingsverzoek.
 
 Zie [Formulieren – overzicht](/docs/forms/index).
 

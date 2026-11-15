@@ -38,7 +38,7 @@ flowchart TB
 - **अलर्ट**: अलर्ट स्वीकार करें और सुलझाएं, नोट जोड़ें, और अलर्ट की स्थितियां और गंभीरताएं प्रबंधित करें।
 - **टीमें और ऑन-कॉल**: टीमें और ऑन-कॉल नीतियां प्रबंधित करें।
 - **स्टेटस पेज**: स्टेटस पेज प्रबंधित करें और घोषणाएं पोस्ट करें।
-- **निर्धारित रखरखाव**: रखरखाव इवेंट बनाएं और प्रबंधित करें।
+- **अनुसूचित रखरखाव**: रखरखाव इवेंट बनाएं और प्रबंधित करें।
 - **टेलीमेट्री**: लॉग, मेट्रिक्स, ट्रेस, अपवाद, मॉनिटर लॉग, सुरक्षा इवेंट और भी बहुत कुछ क्वेरी करें, सिर्फ़ पढ़ने के लिए।
 
 53 तरह के रिकॉर्ड के लिए बनाने, पाने, सूचीबद्ध करने, अपडेट करने, हटाने और गिनने के टूल हैं, 9 तरह की टेलीमेट्री के लिए सूचीबद्ध करने और गिनने के टूल हैं, और घटना प्रतिक्रिया के लिए बने टूल हैं। सिर्फ़ पढ़ने वाले टूल पर `readOnlyHint` होता है, कुछ भी बदलने वाले हर टूल पर `destructiveHint` होता है, और सिर्फ़ सार्वजनिक स्टेटस पेज के टूल पर `openWorldHint` होता है, ताकि क्लाइंट सिर्फ़ पढ़ने वाली कॉल खुद चला सके और कोई भी बदलाव करने से पहले आपसे पूछे। विफल टूल कॉल MCP प्रोटोकॉल त्रुटि के रूप में नहीं, बल्कि टूल नतीजे (`isError: true`) के रूप में `statusCode`, विवरण और एक सुझाव के साथ लौटती है, ताकि एजेंट विफलता पढ़कर खुद को सुधार सके।
@@ -253,7 +253,7 @@ API कुंजी या साइन-इन के बिना, क्ला
 - **`oneuptime_describe_resource`**: किसी संसाधन के फ़ील्ड, और उन पर फ़िल्टर, सॉर्ट और चयन करने का तरीका
 - **`get_public_status_page_overview`**: किसी सार्वजनिक स्टेटस पेज का अवलोकन
 - **`get_public_status_page_incidents`**: किसी सार्वजनिक स्टेटस पेज की घटनाएं
-- **`get_public_status_page_scheduled_maintenance`**: उसके निर्धारित रखरखाव इवेंट
+- **`get_public_status_page_scheduled_maintenance`**: उसके रखरखाव इवेंट
 - **`get_public_status_page_announcements`**: उसकी घोषणाएं
 
 सार्वजनिक स्टेटस पेज के टूल किसी स्टेटस पेज की ID (एक UUID) या उसका डोमेन नाम लेते हैं। सिर्फ़ इन्हें इस्तेमाल करने के लिए, पते के साथ और बिना क्रेडेंशियल के कनेक्ट करें:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -483,7 +483,7 @@ MCP सर्वर स्टेटलेस है: वह न सेशन id 
 | घटनाएं | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | अलर्ट | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | स्टेटस पेज | Status Page, Status Page Announcement |
-| निर्धारित रखरखाव | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| अनुसूचित रखरखाव | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | टीमें और ऑन-कॉल | Team, On-Call Policy |
 | लेबल | Label |
 | सुरक्षा | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

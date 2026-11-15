@@ -205,7 +205,7 @@ describe("Hindi's word for an incident", () => {
         "Post incidents, alerts and scheduled maintenance to your Slack channels, give each incident a channel of its own, and let your team acknowledge, resolve and page from Slack.",
       ),
     ).toBe(
-      "घटनाएं, अलर्ट और शेड्यूल्ड मेंटेनेंस अपने Slack चैनलों में पोस्ट करें, हर घटना को उसका अपना चैनल दें, और अपनी टीम को Slack से स्वीकार करने, हल करने और पेज करने दें।",
+      "घटनाएं, अलर्ट और अनुसूचित रखरखाव अपने Slack चैनलों में पोस्ट करें, हर घटना को उसका अपना चैनल दें, और अपनी टीम को Slack से स्वीकार करने, हल करने और पेज करने दें।",
     );
     expect(
       dashboardWord(

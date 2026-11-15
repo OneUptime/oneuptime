@@ -326,6 +326,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
         <Link
           to={investigationLink.route}
           title={investigationTitle}
+          isTitleTranslated={true}
           className="pointer-events-none absolute right-2.5 top-1/2 z-10 max-xl:hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 opacity-0 transition-opacity hover:text-indigo-600 focus:pointer-events-auto focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 group-hover:pointer-events-auto group-hover:opacity-100 xl:flex"
         >
           <Icon icon={investigationLink.icon} className="h-5 w-5" />

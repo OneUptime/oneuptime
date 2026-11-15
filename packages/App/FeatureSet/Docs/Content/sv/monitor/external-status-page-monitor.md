@@ -172,7 +172,7 @@ En komponents status är det värde som dess status på sidan står för, så kr
 
 En resurs som sidan visar som **Inte övervakad** kontrolleras inte av något, så den räknas inte in i någon samlad status, precis som på sidans egen banner. När ingen av de komponenter som monitorn bevakar övervakas, och ingen av dem har en öppen incident, är den samlade statusen `unknown`.
 
-Medan en pågående planerad underhållshändelse berör en resurs, eftersom den nämner en av resursens monitorer eller en monitor i dess monitorgrupp, är komponenten `under_maintenance`, oavsett vilken status dess monitorer har: en monitor kontrolleras inte medan en händelse håller den. En händelse som ännu inte har börjat, eller som är över, ändrar ingenting. Sidans aktiva incidenter räknas för de resurser de berör.
+Medan en pågående underhållshändelse berör en resurs, eftersom den nämner en av resursens monitorer eller en monitor i dess monitorgrupp, är komponenten `under_maintenance`, oavsett vilken status dess monitorer har: en monitor kontrolleras inte medan en händelse håller den. En händelse som ännu inte har börjat, eller som är över, ändrar ingenting. Sidans aktiva incidenter räknas för de resurser de berör.
 
 [Standardkriterierna](#standardkriterier) tar aldrig underhåll för ett avbrott: monitorn förblir online under det andra projektets planerade arbete.
 

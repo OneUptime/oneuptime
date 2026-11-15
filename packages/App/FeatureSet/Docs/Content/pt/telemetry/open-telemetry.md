@@ -52,7 +52,7 @@ flowchart TB
 2. No menu lateral, abra **Telemetria e APM** e selecione **Chaves de ingestão**.
 3. Clique em **Criar chave de ingestão**. A janela preenche um nome e escolhe o tipo de chave **Servidor**, que é o usado por uma aplicação ou um collector para enviar. Renomeie se quiser e clique em **Criar chave de ingestão**.
 
-![A página de chaves de ingestão de telemetria nas configurações do projeto](/docs/static/images/TelemetryIngestionKeys.png)
+![A lista "Chaves de ingestão", com "Criar chave de ingestão" destacado](screen:ingestion-keys)
 
 A nova chave abre na própria página. Copie a **Chave secreta** dela — esse é o token que você envia como `x-oneuptime-token`.
 

@@ -13,6 +13,9 @@
  *   - monitor   the website monitor the first journey creates
  *   - phones    SMS and calls on, with money in the balance: what the
  *               owner did in the paging journey
+ *   - ingestion-keys   four ingestion keys, a Server key and three
+ *               Browser keys in use, switched off and never used: the
+ *               Ingestion Keys list the telemetry docs show (#7579)
  *
  * Also here: the API routes the journeys' pages call beyond ModelAPI, and
  * what the server does after a create that a journey's next page shows.
@@ -43,6 +46,7 @@ import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import Color from "Common/Types/Color";
@@ -69,6 +73,57 @@ export const MONITOR_ID = "50000000-0000-4000-8000-000000000001";
 export const SERVICE_ID = "50000000-0000-4000-8000-000000000002";
 // The test page a guided setup sends (#6804): its run, acknowledged at once.
 export const TEST_PAGE_LOG_ID = "80000000-0000-4000-8000-000000006804";
+
+/*
+ * The ingestion keys of ?seed=ingestion-keys, newest first: in the order the
+ * list shows them, which sorts by when each was made.
+ */
+const INGESTION_KEYS = [
+  {
+    _id: "60000000-0000-4000-8000-000000007579",
+    name: "Production collectors",
+    keyType: TelemetryIngestionKeyType.Server,
+    isEnabled: true,
+    allowedOrigins: [],
+    lastUsedAt: "2026-11-11T09:58:00.000Z",
+    createdAt: "2026-10-01T09:00:00.000Z",
+    description:
+      "OpenTelemetry collectors in prod-us-east-1 and prod-eu-west-1.",
+  },
+  {
+    _id: "60000000-0000-4000-8000-000000007580",
+    name: "Storefront web",
+    keyType: TelemetryIngestionKeyType.Browser,
+    isEnabled: true,
+    allowedOrigins: ["https://shop.acme-commerce.example"],
+    lastUsedAt: "2026-11-11T09:59:00.000Z",
+    createdAt: "2026-09-24T09:00:00.000Z",
+    description:
+      "Browser traces and session replay for the public storefront. This key ships in the page.",
+  },
+  {
+    _id: "60000000-0000-4000-8000-000000007581",
+    name: "Checkout beta",
+    keyType: TelemetryIngestionKeyType.Browser,
+    isEnabled: false,
+    allowedOrigins: ["https://beta.acme-commerce.example"],
+    lastUsedAt: "2026-10-28T16:40:00.000Z",
+    createdAt: "2026-09-17T09:00:00.000Z",
+    description:
+      "Turned off after the beta ended. Kept so the key can be turned back on if the rollout resumes.",
+  },
+  {
+    _id: "60000000-0000-4000-8000-000000007582",
+    name: "Marketing site",
+    keyType: TelemetryIngestionKeyType.Browser,
+    isEnabled: true,
+    allowedOrigins: [],
+    lastUsedAt: null,
+    createdAt: "2026-09-10T09:00:00.000Z",
+    description:
+      "Made for the marketing site rollout. No origins listed yet, so nothing is accepted.",
+  },
+];
 
 const OWNERS_TEAM_ID = "30000000-0000-4000-8000-000000000001";
 const ADMINS_TEAM_ID = "30000000-0000-4000-8000-000000000002";
@@ -257,6 +312,17 @@ export function seedNewProject(options) {
       disableActiveMonitoring: false,
       labels: [],
     });
+  }
+
+  if (options.seeds.includes("ingestion-keys")) {
+    for (const key of INGESTION_KEYS) {
+      store.insert(TelemetryIngestionKey, {
+        ...key,
+        lastUsedAt: key.lastUsedAt ? new Date(key.lastUsedAt) : undefined,
+        createdAt: new Date(key.createdAt),
+        updatedAt: new Date(key.createdAt),
+      });
+    }
   }
 
   // What this tab wrote before it last reloaded (Store.js).

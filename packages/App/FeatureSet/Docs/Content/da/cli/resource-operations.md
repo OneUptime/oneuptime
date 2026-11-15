@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Bekræft, løs og tilføj noter
 
-Hændelser, advarsler, deres episoder og planlagte vedligeholdelsesbegivenheder har kommandoer for det, som dashboardets knapper gør på dem:
+Hændelser, advarsler, deres episoder og vedligeholdelseshændelser har kommandoer for det, som dashboardets knapper gør på dem:
 
 | Kommando | Hvad den gør | Ressourcer |
 | --- | --- | --- |

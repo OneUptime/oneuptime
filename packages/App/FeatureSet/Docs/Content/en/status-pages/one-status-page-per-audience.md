@@ -227,7 +227,7 @@ Every page the incident reaches gets the same values: they belong to the inciden
 
 ## How this differs from scheduled maintenance
 
-Scheduled maintenance events have a **Status Pages** list too, but it works differently:
+Maintenance events have a **Status Pages** list too, but it works differently:
 
 - **Scheduled maintenance replaces.** The event shows on exactly the pages in its list, whether or not they list its monitors.
 - **An incident narrows.** Its list only picks among the pages that already list its monitors. Picking a page that lists none of them does nothing, and the form says so. Put the monitor on that page first.

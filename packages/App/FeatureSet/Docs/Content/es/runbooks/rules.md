@@ -35,7 +35,7 @@ Cuando una regla se activa, para cada runbook que nombra:
 1. Se carga el runbook.
 2. Sus pasos se copian como **instantánea** en una nueva ejecución de runbook.
 3. La ejecución se pone en la cola del worker de runbooks.
-4. La ejecución se vincula con la entidad de origen: aparece en la página **Runbooks** del incidente, la alerta o el evento de mantenimiento programado y en la lista **Ejecuciones** del runbook.
+4. La ejecución se vincula con la entidad de origen: aparece en la página **Runbooks** del incidente, la alerta o el evento de mantenimiento y en la lista **Ejecuciones** del runbook.
 
 Puedes ver todas las ejecuciones, las iniciadas por reglas y las demás, en **Runbooks → Ejecuciones**, filtradas por estado, runbook o fecha de inicio.
 
@@ -72,12 +72,12 @@ En **Runbooks**, elige uno o más **Runbooks para iniciar**. El **Nombre** de la
 
 ## Condiciones
 
-Cada condición compara una característica del incidente, la alerta o el evento de mantenimiento programado con un valor que tú indicas. Una regla de runbook ofrece los mismos criterios que las demás reglas de su producto: una regla de runbook de incidentes compara lo mismo que una regla de privacidad o de guardia de incidentes.
+Cada condición compara una característica del incidente, la alerta o el evento de mantenimiento con un valor que tú indicas. Una regla de runbook ofrece los mismos criterios que las demás reglas de su producto: una regla de runbook de incidentes compara lo mismo que una regla de privacidad o de guardia de incidentes.
 
 | Criterio | Qué comprueba |
 | --- | --- |
-| **Monitores** | Los monitores a los que afecta el incidente o el evento de mantenimiento programado, o el monitor que generó la alerta. |
-| **Gravedades de incidente** / **Gravedades de alerta** | La gravedad del incidente o de la alerta. Los eventos de mantenimiento programado no tienen gravedad, así que sus reglas no la ofrecen. |
+| **Monitores** | Los monitores a los que afecta el incidente o el evento de mantenimiento, o el monitor que generó la alerta. |
+| **Gravedades de incidente** / **Gravedades de alerta** | La gravedad del incidente o de la alerta. Los eventos de mantenimiento no tienen gravedad, así que sus reglas no la ofrecen. |
 | **Etiquetas de incidentes** / **Etiquetas de alertas** / **Etiquetas del evento** | Las etiquetas del propio incidente, alerta o evento, incluidas las que las reglas de etiquetas añadieron al crearlo. |
 | **Etiquetas del monitor** | Las etiquetas de sus monitores. Etiqueta tus monitores como `production` o `staging` para ejecutar un runbook solo en un entorno. |
 | **Título del incidente** / **Título de la alerta** / **Título del evento** | Su título. |

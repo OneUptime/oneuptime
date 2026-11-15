@@ -221,7 +221,7 @@ oneuptime <resource> resolve <id>
 
 ### `oneuptime <resource> start`
 
-Sposta un evento di manutenzione programmata nello stato in corso del tuo progetto.
+Sposta un evento di manutenzione nello stato in corso del tuo progetto.
 
 ```bash
 oneuptime <resource> start <id>
@@ -233,7 +233,7 @@ oneuptime <resource> start <id>
 
 ### `oneuptime <resource> end`
 
-Sposta un evento di manutenzione programmata nello stato terminato del tuo progetto.
+Sposta un evento di manutenzione nello stato terminato del tuo progetto.
 
 ```bash
 oneuptime <resource> end <id>
@@ -245,7 +245,7 @@ oneuptime <resource> end <id>
 
 ### `oneuptime <resource> add-note`
 
-Aggiunge una nota a un incidente, un avviso, un episodio dell'uno o dell'altro o un evento di manutenzione programmata.
+Aggiunge una nota a un incidente, un avviso, un episodio dell'uno o dell'altro o un evento di manutenzione.
 
 ```bash
 oneuptime <resource> add-note <id> --note <markdown> [--public]

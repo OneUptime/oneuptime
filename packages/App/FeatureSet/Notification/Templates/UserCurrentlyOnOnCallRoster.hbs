@@ -8,10 +8,16 @@
 {{> InfoBlock info="Here are the details: "}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="On-Call Policy:" text=onCallPolicyName }}
-{{> DetailBoxField title="Escalation Rule: " text=escalationRuleName  }}
-{{> DetailBoxField title="Escalation Order: " text=escalationRuleOrder  }}
-{{> DetailBoxField title="More Information:" text=reason  }}
+{{> DetailBoxField title="On-Call Policy:" plainText=onCallPolicyName }}
+{{!-- One email for each policy, naming every rule of it that pages the schedule (OnCallHandoffPolicies). --}}
+{{#if hasSeveralEscalationRules}}
+{{> DetailBoxField title="Escalation Rules: " plainText=escalationRuleName  }}
+{{> DetailBoxField title="Escalation Orders: " plainText=escalationRuleOrder  }}
+{{else}}
+{{> DetailBoxField title="Escalation Rule: " plainText=escalationRuleName  }}
+{{> DetailBoxField title="Escalation Order: " plainText=escalationRuleOrder  }}
+{{/if}}
+{{> DetailBoxField title="More Information:" plainText=reason  }}
 {{> DetailBoxField title="Your On-Call Roster Starts At: " text=rosterStartsAt  }}
 {{> DetailBoxField title="Your On-Call Roster Ends At: " text=rosterEndsAt  }}
 

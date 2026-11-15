@@ -71,7 +71,7 @@ oneuptime incident add-note <incident-id> --note "Rolled back the 14:05 deploy."
 oneuptime incident add-note <incident-id> --note "A fix is rolling out." --public
 ```
 
-Alerts and the episodes of incidents and alerts take the same three, and a scheduled maintenance event takes `start`, `end` and `add-note`. A record already in the state is left as it is, and the command still exits with `0`: in JSON, `changed` says whether it moved. A note is for the team, unless `--public` posts it on the status pages, which tells their subscribers. Alerts and their episodes have no public notes.
+Alerts and the episodes of incidents and alerts take the same three, and a maintenance event (`scheduled-maintenance-event`) takes `start`, `end` and `add-note`. A record already in the state is left as it is, and the command still exits with `0`: in JSON, `changed` says whether it moved. A note is for the team, unless `--public` posts it on the status pages, which tells their subscribers. Alerts and their episodes have no public notes.
 
 ## Exit codes
 

@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["Il Worker di OneUptime<br/>esegue i passaggi"]
 ```
 
-Un trigger avvia un'esecuzione come fa **Esegui ora**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione pianificata. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.
+Un trigger avvia un'esecuzione come fa **Esegui ora**: l'esecuzione riguarda i passaggi attuali del runbook e non è collegata ad alcun incidente, avviso o evento di manutenzione. Ogni esecuzione registra cosa l'ha avviata. Le **Esecuzioni** del runbook e **Runbook → Esecuzioni** lo mostrano sotto **Attivato da**, con l'orario previsto di un'esecuzione pianificata o l'indirizzo che ha chiamato il webhook, ed entrambi gli elenchi si possono filtrare in base a questo.
 
 ## Prima di iniziare
 

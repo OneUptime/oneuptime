@@ -20,6 +20,7 @@ import {
   getDashboardSharedKeys,
   ServerTextKey,
 } from "Common/Scripts/I18n/ServerLocales";
+import { readDashboardLocale } from "Common/Tests/Helpers/DashboardLocales";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { readStartTag } from "Common/Tests/Helpers/MarkupReferences";
 import MailService, {
@@ -878,6 +879,64 @@ describe("every subscriber email, in every language", () => {
           ]);
         }
       }
+    },
+  );
+});
+
+/*
+ * The email that tells subscribers of a new maintenance event names the
+ * record one way (#7907): the row that holds the event's title is titled
+ * with the word the sentence above it uses (#7900) - the language's
+ * Dashboard word for a Maintenance Event - never the plain word for
+ * maintenance (German "Wartung", under "... ein Wartungsereignis
+ * angekündigt."). The plain word sits inside most languages' word for the
+ * event, so the row is held to the whole word.
+ */
+describe("the new maintenance event email, in every language", () => {
+  const NEW_EVENT: EmailTemplateType =
+    EmailTemplateType.SubscriberScheduledMaintenanceEventCreated;
+  const ANNOUNCED: string =
+    "A maintenance event has been announced for services you're subscribed to.";
+
+  test("German: the sentence and the event's row both say Wartungsereignis", async () => {
+    const text: string = visibleText(
+      (await MailService.render(email(NEW_EVENT, "de"))).body,
+    );
+
+    expect(text).toContain(
+      "Für von Ihnen abonnierte Dienste wurde ein Wartungsereignis angekündigt.",
+    );
+    expect(text).toContain("Wartungsereignis Zorbex upgrade");
+  });
+
+  test.each(["en", ...TRANSLATED_LANGUAGES])(
+    "%s: the event's row is titled with the Dashboard's word, which the sentence above it says",
+    async (language: string) => {
+      const word: string | undefined =
+        readDashboardLocale(language)["Maintenance Event"];
+      const sentence: string | undefined =
+        SERVER_LOCALES[language]?.[ANNOUNCED];
+      const text: string = visibleText(
+        (await MailService.render(email(NEW_EVENT, language))).body,
+      );
+
+      expect({
+        language,
+        word: Boolean(word),
+        sentence: Boolean(sentence),
+      }).toEqual({ language, word: true, sentence: true });
+
+      expect({
+        language,
+        row: text.includes(`${word} Zorbex upgrade`),
+        sentence: text.includes(sentence!),
+        sentenceSaysWord: sentence!.toLowerCase().includes(word!.toLowerCase()),
+      }).toEqual({
+        language,
+        row: true,
+        sentence: true,
+        sentenceSaysWord: true,
+      });
     },
   );
 });

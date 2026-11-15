@@ -24,7 +24,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Din roll.** För att skapa en händelse krävs **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Underhållsadministratör** eller **Underhållsmedlem**, eller en anpassad roll med **Create Scheduled Maintenance**.
-- **Dina statussidor.** För att informera kunderna behöver du en statussida som visar schemalagda underhållshändelser. Se [Statussidor – Översikt](/docs/status-pages/index).
+- **Dina statussidor.** För att informera kunderna behöver du en statussida som visar underhållshändelser. Se [Statussidor – Översikt](/docs/status-pages/index).
 
 ## Skapa en händelse
 
@@ -71,7 +71,7 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 Två saker fyller i formuläret åt dig medan du arbetar:
 
 - **Länkade resurser.** När du väljer en monitor läggs de värdar, kluster, tjänster och andra resurser den är länkad till under **Andra påverkade resurser**, och en rad under fältet nämner dem. Ta bort dem du inte vill ha. Molnresurser läggs också till: medan händelsen pågår öppnar deras monitorer ingen incident och inget larm.
-- **Föreslagna statussidor.** Under **Visa händelse på dessa statussidor** föreslås de sidor som visar dina monitorer: klicka på en sidas namn för att lägga till den, eller på **Lägg till alla**. Ingenting väljs åt dig. Se [Schemalagda underhållshändelser](/docs/status-pages/subscribers#schemalagda-underhållshändelser).
+- **Föreslagna statussidor.** Under **Visa händelse på dessa statussidor** föreslås de sidor som visar dina monitorer: klicka på en sidas namn för att lägga till den, eller på **Lägg till alla**. Ingenting väljs åt dig. Se [Underhållshändelser](/docs/status-pages/subscribers#underhållshändelser).
 
 ## Börja från en resurs eller en mall
 
@@ -180,6 +180,6 @@ En händelse publiceras så att dina kunder får höra om arbetet innan det bör
 :::cards
 - [Underhållsstatusar](/docs/scheduled-maintenance/states): Vad som startar och avslutar en händelse, och hur du flyttar den manuellt.
 - [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates): Spara formulärets svar till nästa gång.
-- [Prenumeranter och meddelanden](/docs/status-pages/subscribers#schemalagda-underhållshändelser): Exakt vem som får veta, och när.
+- [Prenumeranter och meddelanden](/docs/status-pages/subscribers#underhållshändelser): Exakt vem som får veta, och när.
 - [Underhållsregler och inställningar](/docs/scheduled-maintenance/settings): Lägg till ägare, etiketter och påminnelser automatiskt.
 :::

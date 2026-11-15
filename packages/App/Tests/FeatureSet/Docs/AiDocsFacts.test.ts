@@ -342,7 +342,7 @@ describe("Ask AI", () => {
     }
 
     expect(said).toContain(
-      "On an incident, an alert, a monitor or a scheduled maintenance event, the questions also follow where that record stands, read each time Ask AI opens on it. A resolved incident asks how the response went and what would stop it happening again, a resolved alert whether it was a real problem and how often alerts like it fire, and a monitor that is not operational asks why. A maintenance event that has not started asks whether its monitors are healthy before it does, and one that has ended whether they are back to normal.",
+      "On an incident, an alert, a monitor or a maintenance event, the questions also follow where that record stands, read each time Ask AI opens on it. A resolved incident asks how the response went and what would stop it happening again, a resolved alert whether it was a real problem and how often alerts like it fire, and a monitor that is not operational asks why. A maintenance event that has not started asks whether its monitors are healthy before it does, and one that has ended whether they are back to normal.",
     );
   });
 

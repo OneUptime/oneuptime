@@ -195,7 +195,7 @@ API 块和其他 HTTP 块从 OneUptime 发出请求，IRC 块从 OneUptime 连�
 - **不涉及 OneUptime 自己保留的东西。** 以下操作对所有人都会被拒绝，包括工作流：
   - 编辑或删除动态条目（事件、警报、片段、监视器、值班策略和计划维护的动态）；
   - 写入通知日志（短信、电话、邮件、WhatsApp、Telegram、推送、Webhook 和工作区消息日志）；
-  - OneUptime 随着事情发生而设置的值：自定义域名的 CNAME 是否已验证、团队的保护开关（**Is Team Editable**、**Is Team Deleteable**、**Is Permissions Editable**、**Should Have At Least One Member**）、哪个事件角色是主要角色以及它能否被删除、所有者或成员是否已收到通知、提醒的时间和次数、排班中当前和下一位值班人员、值班运行的进度、SLO 当前的消耗速率和错误预算、被事件或维护暂停的监视器、状态页面私有用户的密码重置令牌和最近登录，以及服务报告的关于自身的事实（版本、运行时、云），还有检测规则或威胁源的最近一次运行；
+  - OneUptime 随着事情发生而设置的值：自定义域名的 CNAME 是否已验证、团队的保护开关（**Is Team Editable**、**Is Team Deleteable**、**Is Permissions Editable**、**Should Have At Least One Member**）、哪个事件角色是主要角色以及它能否被删除、所有者或成员是否已收到通知、提醒的时间和次数、排班中当前和下一位值班人员、值班运行的进度、SLO 当前的消耗速率和错误预算、被事件或维护事件暂停的监视器、状态页面私有用户的密码重置令牌和最近登录，以及服务报告的关于自身的事实（版本、运行时、云），还有检测规则或威胁源的最近一次运行；
   - 通过向 **Create One Incident** 发送 `createdIncidentTemplateId` 来根据模板宣布事件——请改为在步骤的 **Incident Template** 设置中选择模板：这样步骤会以 Project Admin 身份根据该模板宣布事件，并记录模板；
   - 在记录创建之后更改它属于哪条记录，例如所有者行对应的监视器，或者备注所在的事件。
 - **不以任何人的身份。** 工作流创建的记录没有创建者，审计日志会把工作流（以它当时的名称）记为做出更改的一方。
