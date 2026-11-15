@@ -3,6 +3,7 @@ import StatusPagePrivateUserSessionService from "../../../Server/Services/Status
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -62,7 +63,7 @@ describe("revokeSessionByRefreshToken", () => {
         "findActiveSessionByRefreshToken",
       )
       .mockResolvedValue(liveSession() as never);
-    const revoke: jest.SpiedFunction<
+    const revoke: SpyInstance<
       typeof StatusPagePrivateUserSessionService.revokeSessionById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "revokeSessionById")
@@ -86,7 +87,7 @@ describe("revokeSessionByRefreshToken", () => {
         "findActiveSessionByRefreshToken",
       )
       .mockResolvedValue(null as never);
-    const revoke: jest.SpiedFunction<
+    const revoke: SpyInstance<
       typeof StatusPagePrivateUserSessionService.revokeSessionById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "revokeSessionById")
@@ -101,7 +102,7 @@ describe("revokeSessionByRefreshToken", () => {
   });
 
   test("looks the token up by its hash, among live sessions only", async () => {
-    const findOneBy: jest.SpiedFunction<
+    const findOneBy: SpyInstance<
       typeof StatusPagePrivateUserSessionService.findOneBy
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "findOneBy")
@@ -122,12 +123,12 @@ describe("revokeSessionByRefreshToken", () => {
 
 describe("revokeLiveSessionOfPrivateUser", () => {
   test("ends the live session of that reader on that page by its id, and says it did", async () => {
-    const findOneBy: jest.SpiedFunction<
+    const findOneBy: SpyInstance<
       typeof StatusPagePrivateUserSessionService.findOneBy
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "findOneBy")
       .mockResolvedValue(liveSession() as never);
-    const revoke: jest.SpiedFunction<
+    const revoke: SpyInstance<
       typeof StatusPagePrivateUserSessionService.revokeSessionById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "revokeSessionById")
@@ -169,7 +170,7 @@ describe("revokeLiveSessionOfPrivateUser", () => {
     jest
       .spyOn(StatusPagePrivateUserSessionService, "findOneBy")
       .mockResolvedValue(null as never);
-    const revoke: jest.SpiedFunction<
+    const revoke: SpyInstance<
       typeof StatusPagePrivateUserSessionService.revokeSessionById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "revokeSessionById")
@@ -193,7 +194,7 @@ describe("revokeLiveSessionOfPrivateUser", () => {
           oneuptimeStatusPageSessionPurpose: "login-code",
         }) as never,
       );
-    const revoke: jest.SpiedFunction<
+    const revoke: SpyInstance<
       typeof StatusPagePrivateUserSessionService.revokeSessionById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "revokeSessionById")
@@ -213,7 +214,7 @@ describe("revokeLiveSessionOfPrivateUser", () => {
     jest
       .spyOn(StatusPagePrivateUserSessionService, "findOneBy")
       .mockResolvedValue(liveSession() as never);
-    const updateOneById: jest.SpiedFunction<
+    const updateOneById: SpyInstance<
       typeof StatusPagePrivateUserSessionService.updateOneById
     > = jest
       .spyOn(StatusPagePrivateUserSessionService, "updateOneById")
