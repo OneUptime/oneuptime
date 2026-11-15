@@ -28,7 +28,7 @@ flowchart LR
 ## Før du begynder
 
 - **Telemetri, der ankommer.** Tjenestekortet kræver spor: se [OpenTelemetry](/docs/telemetry/open-telemetry). Infrastrukturvisningen kræver en vært eller en klynge, der sender data: se [Kubernetes-agenten](/docs/telemetry/kubernetes-agent). Netværksvisningen kræver netværksenheder: se [Netværksenheds-monitor](/docs/monitor/network-device-monitor).
-- **En rolle, der læser telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en brugerdefineret rolle med tilladelsen Read Inventory Item.
+- **En rolle, der læser telemetri.** Projektejer, Projektadministrator, Projektmedlem, Seer, Telemetriadministrator, Telemetrimedlem eller Telemetriseer, eller en brugerdefineret rolle med tilladelsen Read Inventory Item.
 
 ## Åbn Topologi
 

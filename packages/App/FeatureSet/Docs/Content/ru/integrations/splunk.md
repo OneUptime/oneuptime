@@ -23,7 +23,7 @@ flowchart TB
 
 ## Перед началом работы
 
-- В OneUptime роль Project Owner, Project Admin или Security Admin. Роли Security Member и Security Viewer видят подключения и историю их запусков, но не могут их менять.
+- В OneUptime роль Владелец проекта, Администратор проекта или Администратор безопасности. Роли Участник безопасности и Зритель безопасности видят подключения и историю их запусков, но не могут их менять.
 - Search head с Splunk Enterprise 9.0.1 или новее либо Splunk Cloud Platform. OneUptime обращается к его REST API на порту управления, обычно `8089`. Splunk Web на порту `8000` не обслуживает REST API.
 - Пользователь Splunk для OneUptime, чья роль имеет возможность `search` и может читать индекс, который читает поиск: `notable` для notable events. Роли Enterprise Security `ess_analyst` и `ess_user` дают и то и другое. Подключение только читает, поэтому роли больше ничего не нужно.
 - Search head, до которого OneUptime может добраться по HTTPS. OneUptime Cloud подключается из интернета, поэтому search head нужен публичный адрес: частные адреса отклоняются. Самостоятельно размещённый OneUptime подключается из своих контейнеров приложения и worker и может добраться до search head в вашей частной сети, если только `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` не равно `true`.
@@ -150,7 +150,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 ## Отправка событий безопасности в Splunk
 
-OneUptime также может отправлять то, что находит, в Splunk через его HTTP Event Collector (HEC), чтобы ваши поиски и дашборды видели обнаружения OneUptime рядом с вашими собственными. Каждое событие безопасности — это одно событие HEC с sourcetype `oneuptime:security`, а его поля названы так, как их называет Common Information Model Splunk: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` и `severity`.
+OneUptime также может отправлять то, что находит, в Splunk через его HTTP Event Collector (HEC), чтобы ваши поиски и панели видели обнаружения OneUptime рядом с вашими собственными. Каждое событие безопасности — это одно событие HEC с sourcetype `oneuptime:security`, а его поля названы так, как их называет Common Information Model Splunk: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` и `severity`.
 
 :::steps
 ### Создайте токен HEC

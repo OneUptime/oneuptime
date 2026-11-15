@@ -430,7 +430,7 @@ Diese funktionieren ohne Zugangsdaten, allein mit den Tools für öffentliche St
 | Was der Agent tut | Unter **Zugriff** wählen |
 | --- | --- |
 | Liest nur | **Betrachter**, oder fügen Sie auf der Seite des Schlüssels Leseberechtigungen hinzu |
-| Legt auch an, aktualisiert und löscht | **Projektadministrator**, oder fügen Sie auf der Seite des Schlüssels die Rolle Project Admin hinzu |
+| Legt auch an, aktualisiert und löscht | **Projektadministrator**, oder fügen Sie auf der Seite des Schlüssels die Rolle Projektadministrator hinzu |
 
 Geben Sie jedem Schlüssel das Minimum, das er braucht, rotieren Sie Schlüssel regelmäßig, verwenden Sie für jede Umgebung einen eigenen Schlüssel und beobachten Sie in OneUptime, was jeder Schlüssel tut.
 
@@ -497,7 +497,7 @@ Der MCP-Server ist zustandslos: Er vergibt und verfolgt keine Sitzungs-IDs, soda
 | Sicherheit | Security Event, Threat Intel Indicator |
 | Änderungen und Kosten | Change Event, Kubernetes Cost Allocation |
 
-Die Tools heißen in Snake Case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` und `count_incidents`, oder `list_logs` und `count_spans` für Telemetrie.
+Die Tools heißen in Snake Case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` und `count_incidents`, oder `list_logs` und `count_spans` für Telemetrie. `create_incident` und `create_alert` nehmen außerdem `ownerUsers` und `ownerTeams`: die IDs der Benutzer und Teams, denen der Datensatz von Anfang an gehört und die erfahren, dass er erstellt wurde.
 
 ## Nächste Schritte
 

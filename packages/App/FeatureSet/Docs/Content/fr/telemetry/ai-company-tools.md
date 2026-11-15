@@ -29,7 +29,7 @@ Les chats arrivent comme les appels d'IA de vos applications, donc les règles d
 
 ## Avant de commencer
 
-- Le rôle Project Owner ou Project Admin. Eux seuls peuvent connecter, modifier ou retirer un outil.
+- Le rôle Propriétaire du projet ou Administrateur du projet. Eux seuls peuvent connecter, modifier ou retirer un outil.
 - Un administrateur de l'outil, pour créer l'identifiant : la section de chaque outil, plus bas, indique lequel.
 - Vos équipes prévenues, et la réponse de votre service juridique ou RH.
 

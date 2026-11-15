@@ -170,7 +170,7 @@ Une clé d'ingestion ne fait qu'envoyer de la télémétrie. Une **clé API** es
 - **OneUptime AI** enquête sur les nouveaux incidents et les nouvelles alertes et publie ce qu'elle a trouvé dans leur chronologie, et **Demander à l'IA** répond aux questions sur votre projet. Un nouveau projet démarre avec l'IA activée ; l'interrupteur **Activer l'IA** sous **Paramètres du projet → IA → Fonctionnalités IA** la désactive entièrement.
 
 :::cards
-- [Présentation des workflows](/docs/workflows/index): Automatiser des actions avec des déclencheurs et des composants.
+- [Présentation des flux de travail](/docs/workflows/index): Automatiser des actions avec des déclencheurs et des composants.
 - [AI SRE](/docs/ai/ai-sre): Comment OneUptime AI enquête sur les incidents et les alertes.
 :::
 
@@ -206,6 +206,6 @@ Les règles propres à un moniteur sont ses critères. Les règles d'astreinte s
 :::cards
 - [Démarrage rapide](/docs/introduction/quickstart): Mettre ces idées en pratique en quinze minutes.
 - [Glossaire](/docs/introduction/glossary): Chaque mot qu'utilise OneUptime, en une phrase ou deux.
-- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, workflow ou runbook, et les autres sosies.
+- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, flux de travail ou runbook, et les autres sosies.
 - [Vue d'ensemble des incidents](/docs/incidents/index): Ce qui se passe après qu'un moniteur déclare un incident.
 :::

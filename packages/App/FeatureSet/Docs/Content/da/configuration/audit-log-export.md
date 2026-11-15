@@ -146,7 +146,7 @@ Hver post er ét JSON-objekt, med nøglerne altid i denne rækkefølge:
 | `userId`, `userName`, `userEmail`, `userType` | Hvem der foretog ændringen. |
 | `apiKeyId`, `apiKeyName` | Den API-nøgle, den blev foretaget med, hvis nogen. |
 | `mcpOAuthGrantId`, `mcpClientName` | Den MCP-klient, den blev foretaget gennem, hvis nogen. |
-| `workflowId`, `workflowName` | Det workflow, der foretog den, hvis nogen. |
+| `workflowId`, `workflowName` | Den arbejdsgang, der foretog den, hvis nogen. |
 | `changes` | Hvert ændret felt: `field`, med `oldValue` og `newValue`, og i version 2 `summary`. |
 
 En fil rummer én post pr. linje, komprimeret med gzip, og arkiveres under timen for dens første post: `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_<first entry id>.ndjson.gz`.
@@ -159,8 +159,8 @@ Nøgler, tokens og adgangskoder forlader aldrig OneUptime: De registreres som `[
 
 | Version | Hvad den sender |
 | --- | --- |
-| `2` | Hver ændring har også `summary`: hvad der ændrede sig, i de linjer auditloggen viser, for eksempel `Added "Send Email" (send-email-1)` for et workflows trin eller stien, der ændrede sig i JSON, ellers `null`. Linjerne nævner indstillinger og stier, aldrig værdier. |
-| `1` | Posten, som den først blev sendt, uden `summary`. Et workflows trin sendes som deres størrelse før og efter, for eksempel `3 steps and 2 connections`. |
+| `2` | Hver ændring har også `summary`: hvad der ændrede sig, i de linjer auditloggen viser, for eksempel `Added "Send Email" (send-email-1)` for en arbejdsgangs trin eller stien, der ændrede sig i JSON, ellers `null`. Linjerne nævner indstillinger og stier, aldrig værdier. |
+| `1` | Posten, som den først blev sendt, uden `summary`. En arbejdsgangs trin sendes som deres størrelse før og efter, for eksempel `3 steps and 2 connections`. |
 
 En ny eksport sender version 2. En eksport, der blev gemt før version 2, bliver ved med at sende version 1, så det, der læser den, behøver ingen ændring: Når det er klar til `summary`, så klik på **Rediger** ved eksporten, og vælg version 2 i **Postversion** under **Flere felter**. Versionen gælder for de poster, der sendes fra da af, og hver post angiver sin egen i `schemaVersion`.
 

@@ -40,7 +40,7 @@ Et feilbudsjett gjør pålitelighet til noe du kan bruke. Er det mye igjen, kan 
 
 ## Opprett et SLO
 
-Du trenger en rolle som kan opprette SLO-er: Project Owner, Project Admin eller en egendefinert rolle med tillatelsen Create Service Level Objective.
+Du trenger en rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator eller en egendefinert rolle med tillatelsen Create Service Level Objective.
 
 :::steps
 ### Åpne SLO-er
@@ -160,7 +160,7 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | Side | Hva den viser |
 | --- | --- |
 | **Oversikt** | Statusen, nøkkeltallene, forbruket av feilbudsjettet, nylig aktivitet, åpne varsler og hendelser og forbruksratereglene. |
-| **Målinger** | `oneuptime.slo.*`-metrikkene til SLO-et, den langsiktige historikken for feilbudsjettet og metrikkene for hendelsene og varslene som påvirker det. Se [SLO-metrikker og -dashbord](/docs/slo/metrics). |
+| **Målinger** | `oneuptime.slo.*`-målingene til SLO-et, den langsiktige historikken for feilbudsjettet og målingene for hendelsene og varslene som påvirker det. Se [SLO-målinger og -dashbord](/docs/slo/metrics). |
 | **Hendelser** | Hendelsene som forbruksratereglene og feilbudsjettpolicyen har erklært. Merket teller de åpne. |
 | **Varsler** | Varslene som forbruksratereglene og feilbudsjettpolicyen har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
@@ -217,7 +217,7 @@ Arkiver et SLO du ikke lenger måler, men vil beholde, som en tjeneste som er fa
 Et arkivert SLO:
 
 - er skjult i SLO-listen, statusflisene og SLO-velgerne og -listene på dashbord;
-- evalueres ikke: tallene blir stående som ved siste evaluering, forbruksratereglene utløses ikke, og det sender ingen metrikker;
+- evalueres ikke: tallene blir stående som ved siste evaluering, forbruksratereglene utløses ikke, og det sender ingen målinger;
 - får de åpne forbruksratevarslene og -hendelsene sine løst;
 - beholder innstillingene, historikken, reglene og eierne. Monitorreglene holder monitorlisten oppdatert, så det fortsetter med de riktige monitorene.
 

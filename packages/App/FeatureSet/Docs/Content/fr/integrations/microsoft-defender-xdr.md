@@ -23,7 +23,7 @@ Chaque minute, OneUptime interroge chaque connexion activée dont l'intervalle d
 
 ## Avant de commencer
 
-- Dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
+- Dans OneUptime, le rôle Propriétaire du projet, Administrateur du projet ou Administrateur de la sécurité. Les rôles Membre de la sécurité et Lecteur de la sécurité voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
 - Un locataire Microsoft Entra avec une licence Microsoft Defender XDR : n'importe quelle charge de travail Defender intégrée au portail Microsoft Defender, comme Defender for Endpoint, for Identity, for Office 365 ou for Cloud Apps.
 - Un rôle Entra qui peut inscrire des applications, comme Administrateur d'applications, et un Administrateur général ou un Administrateur de rôle privilégié pour accorder le consentement administrateur.
 - Le HTTPS sortant de l'application et des workers OneUptime vers `login.microsoftonline.com` et `graph.microsoft.com`, ou vers `login.microsoftonline.us` et `graph.microsoft.us` pour Azure Government.

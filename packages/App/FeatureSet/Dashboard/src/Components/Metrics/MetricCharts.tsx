@@ -39,7 +39,10 @@ import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/Reference
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 import ExemplarPoint from "Common/UI/Components/Charts/Types/ExemplarPoint";
-import ValueFormatter from "Common/Utils/ValueFormatter";
+import ValueFormatter, {
+  ValueFormatterOptions,
+} from "Common/Utils/ValueFormatter";
+import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import { getUnitNameInLanguage } from "Common/UI/Components/Charts/Utils/UnitNames";
 import {
   AvailableChartColorsKeys,
@@ -696,7 +699,7 @@ export function buildThresholdReferenceLines(input: {
   warningThreshold?: number | undefined;
   criticalThreshold?: number | undefined;
   unit: string;
-  formatterOptions?: { metricName: string } | undefined;
+  formatterOptions?: ValueFormatterOptions | undefined;
   extendsDomain?: boolean | undefined;
 }): Array<ChartReferenceLineProps> {
   const referenceLines: Array<ChartReferenceLineProps> = [];
@@ -2726,8 +2729,15 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
 
       const unit: string = firstMember.unit;
       const queryMetricName: string = firstMember.metricName;
-      const formatterOptions: { metricName: string } = {
+      /*
+       * The reader's language: the value axis, its tooltip, the series list
+       * and the threshold lines write a figure in their digits, decimal sign
+       * and percent sign, and a unit by its symbol, as the tiles beside a
+       * chart and its time axis do (#8349, #8284).
+       */
+      const formatterOptions: ValueFormatterOptions = {
         metricName: queryMetricName,
+        language: translator.language,
       };
 
       /*
@@ -2756,14 +2766,20 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             warningThreshold: member.queryConfig.warningThreshold,
             criticalThreshold: member.queryConfig.criticalThreshold,
             unit: member.unit,
-            formatterOptions: { metricName: member.metricName },
+            formatterOptions: {
+              metricName: member.metricName,
+              language: translator.language,
+            },
             extendsDomain: props.thresholdLinesExtendAxis,
           }),
           ...buildMetricChartThresholdLines({
             thresholds: props.thresholds,
             metricVariable: member.queryConfig.metricAliasData?.metricVariable,
             unit: member.unit,
-            formatterOptions: { metricName: member.metricName },
+            formatterOptions: {
+              metricName: member.metricName,
+              language: translator.language,
+            },
             drawnValues: [
               member.queryConfig.warningThreshold,
               member.queryConfig.criticalThreshold,
@@ -2981,7 +2997,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         value: number,
       ): string => {
         if (firstQuery.yAxisValueFormatter) {
-          return firstQuery.yAxisValueFormatter(value);
+          // The page writes its figure in English; the chart, in the reader's digits.
+          return writeFigureInLanguage(
+            firstQuery.yAxisValueFormatter(value),
+            translator.language,
+          );
         }
         return ValueFormatter.formatValue(value, unit, formatterOptions);
       };
@@ -3215,7 +3235,11 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               type: YAxisType.Number,
               formatter: (value: number) => {
                 if (firstQuery.yAxisValueFormatter) {
-                  return firstQuery.yAxisValueFormatter(value);
+                  // The page writes its figure in English; the chart, in the reader's digits.
+                  return writeFigureInLanguage(
+                    firstQuery.yAxisValueFormatter(value),
+                    translator.language,
+                  );
                 }
 
                 return ValueFormatter.formatValue(
@@ -3386,12 +3410,14 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
           warningThreshold: formulaConfig.warningThreshold,
           criticalThreshold: formulaConfig.criticalThreshold,
           unit: formulaUnit,
+          formatterOptions: { language: translator.language },
           extendsDomain: props.thresholdLinesExtendAxis,
         }),
         ...buildMetricChartThresholdLines({
           thresholds: props.thresholds,
           metricVariable: formulaConfig.metricAliasData?.metricVariable,
           unit: formulaUnit,
+          formatterOptions: { language: translator.language },
           drawnValues: [
             formulaConfig.warningThreshold,
             formulaConfig.criticalThreshold,
@@ -3469,7 +3495,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
               ? getUnitNameInLanguage(formulaUnit, translator)
               : "",
             valueFormatter: (value: number): string => {
-              return ValueFormatter.formatValue(value, formulaUnit);
+              return ValueFormatter.formatValue(value, formulaUnit, {
+                language: translator.language,
+              });
             },
             /*
              * Formula series carry the same key=value group labels as
@@ -3530,7 +3558,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
             options: {
               type: YAxisType.Number,
               formatter: (value: number) => {
-                return ValueFormatter.formatValue(value, formulaUnit);
+                return ValueFormatter.formatValue(value, formulaUnit, {
+                  language: translator.language,
+                });
               },
               precision: YAxisPrecision.NoDecimals,
               max: "auto",
@@ -3563,7 +3593,9 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
                     },
                   ),
                   formatValue: (value: number): string => {
-                    return ValueFormatter.formatValue(value, formulaUnit);
+                    return ValueFormatter.formatValue(value, formulaUnit, {
+                      language: translator.language,
+                    });
                   },
                 });
               }

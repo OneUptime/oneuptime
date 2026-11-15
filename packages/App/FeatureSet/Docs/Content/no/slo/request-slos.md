@@ -37,7 +37,7 @@ Derfra fungerer et forespørsels-SLO som alle andre. Statusen, forbruksrateregle
 ## Før du begynner
 
 - Tjenestene sender spor til OneUptime: se [OpenTelemetry](/docs/telemetry/open-telemetry). Hver av dem står i [tjenestekatalogen](/docs/telemetry/services) under sitt `service.name`.
-- En rolle som kan opprette SLO-er: Project Owner, Project Admin eller en egendefinert rolle med tillatelsen Create Service Level Objective.
+- En rolle som kan opprette SLO-er: Prosjekteier, Prosjektadministrator eller en egendefinert rolle med tillatelsen Create Service Level Objective.
 
 ## Opprett et forespørsels-SLO
 
@@ -80,7 +80,7 @@ Budsjettet er de dårlige forespørslene målet tillater blant forespørslene so
 - **Budsjettets rekkevidde** viser hvor lenge budsjettet varer med den nåværende forbruksraten, så lenge trafikken holder seg som den var.
 - Sammendraget viser antallet tjenester i SLO-et, og et latens-SLO viser grensen sin under målet.
 
-Forbruksratevarsler, varslinger og feeden oppgir også budsjettet i forespørsler. Metrikken `oneuptime.slo.error.budget.remaining.seconds` sendes ikke for et forespørsels-SLO; vis `oneuptime.slo.error.budget.remaining.percent` i et diagram i stedet.
+Forbruksratevarsler, varslinger og feeden oppgir også budsjettet i forespørsler. Målingen `oneuptime.slo.error.budget.remaining.seconds` sendes ikke for et forespørsels-SLO; vis `oneuptime.slo.error.budget.remaining.percent` i et diagram i stedet.
 
 Et forespørsels-SLO får de samme reglene **Fast burn**, **Slow burn** og **Slow leak** som alle nye SLO-er. I en rolig time med en håndfull forespørsler kan én enkelt feil gi et raskt forbruk, så en regel kan se bort fra vinduer med for få forespørsler: angi `minimumSampleCount` for regelen via API-et, så hopper regelen over et langt vindu med færre forespørsler enn det.
 

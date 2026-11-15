@@ -295,11 +295,11 @@ I livelli stessi sono una risorsa a sé, `/api/service-level-objective-error-bud
 | **Edit SLO Error Budget Policy Tier** | Modificare i livelli, e attivarli o disattivarli. |
 | **Delete SLO Error Budget Policy Tier** | Rimuovere livelli. |
 
-Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Project Owner e Project Admin le hanno tutte, e i ruoli Project Member e Viewer possono leggere i livelli.
+Queste autorizzazioni sono nel gruppo SLO di un ruolo. I ruoli Proprietario del progetto e Amministratore del progetto le hanno tutte, e i ruoli Membro del progetto e Visualizzatore possono leggere i livelli.
 
 ## Non ancora disponibile
 
-Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger di workflow dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
+Alcune parti di una policy del budget di errore non sono ancora disponibili: un trigger del flusso di lavoro dedicato a ogni livello, una policy condivisa da più SLO, la presa in carico di un livello o la concessione di un'eccezione, e livelli basati sull'autonomia del budget invece che sul budget rimanente. OneUptime non ferma un rilascio da solo: lo fa una pipeline che controlla `deploymentsAllowed`, come mostra [Gate delle distribuzioni](#gate-delle-distribuzioni).
 
 ## Passi successivi
 

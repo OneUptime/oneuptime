@@ -47,7 +47,6 @@ import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh
 import {
   fetchSpanMetrics,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
   SpanMetrics,
@@ -364,7 +363,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         syncId={`serverless-${modelId.toString()}`}
         yLegend="ms"
         yFormatter={(n: number): string => {
-          return formatDurationMs(n);
+          return formatDurationMsInLanguage(n, translator);
         }}
         loading={metricsLoading && !m}
         description={SERVERLESS_METRIC_DESCRIPTIONS.p95DurationChart}

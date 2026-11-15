@@ -6,7 +6,9 @@ import {
   translateTemplate,
 } from "Common/UI/Utils/TranslateTemplate";
 import MetricUnitUtil from "Common/Utils/MetricUnitUtil";
-import ValueFormatter from "Common/Utils/ValueFormatter";
+import ValueFormatter, {
+  ValueFormatterOptions,
+} from "Common/Utils/ValueFormatter";
 
 /*
  * Lines a page draws on its metric charts for values that are not the
@@ -134,7 +136,7 @@ export function buildMetricChartThresholdLines(input: {
   metricVariable: string | undefined;
   // The unit the chart draws its values in.
   unit: string;
-  formatterOptions?: { metricName: string } | undefined;
+  formatterOptions?: ValueFormatterOptions | undefined;
   // Values the chart already draws a line at.
   drawnValues?: Array<number | undefined> | undefined;
 }): Array<ChartReferenceLineProps> {

@@ -56,6 +56,24 @@ export function getKnownTableWords(
 }
 
 /*
+ * A widget's heading words, when they are the module's (issue #8312): a
+ * table's, and since then a chart's, a list's of incidents, alerts or
+ * exceptions, a trace waterfall's and stat cards' - their title and line,
+ * never cells. A resource card draws its own words (ResourceCardWidget).
+ */
+export function getKnownHeadingWords(
+  widget: AIChatWidget,
+): AIActionTableWords | null {
+  if (widget.type === AIChatWidgetType.ResourceCard) {
+    return null;
+  }
+
+  return isKnownAIActionTableWords(widget.data.tableWords)
+    ? widget.data.tableWords
+    : null;
+}
+
+/*
  * How a worded title and the line under it are laid out: whole, wrapped
  * where they must be, their lines balanced. In the reader's language they
  * run longer than the English, and a status the project named sits inside
@@ -176,13 +194,14 @@ const drawSentence: (
 
 /*
  * A widget's title and the line under it, as drawn: in the reader's
- * language where the table's words say what it stores.
+ * language where its words say what it stores - a table's (issue #7394),
+ * a chart's or a list's (issue #8312).
  */
 export function getDrawnWidgetHeading(
   widget: AIChatWidget,
   translator: Translator,
 ): DrawnWidgetHeading {
-  const words: AIActionTableWords | null = getKnownTableWords(widget);
+  const words: AIActionTableWords | null = getKnownHeadingWords(widget);
 
   if (!words) {
     return { title: null, description: null };

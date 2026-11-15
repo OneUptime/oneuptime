@@ -32,7 +32,7 @@ flowchart TB
 
 - **在 OneUptime Cloud 上：Enterprise 方案。** 在其他方案上，稽核日誌頁面會顯示該功能的作用以及如何取得。
 - **自行託管時：Enterprise Edition**，以及包含稽核日誌的授權。請參閱[企業版](/docs/self-hosted/enterprise)。
-- **可以讀取稽核日誌的角色。** Project Owner、Project Admin、Settings Admin 或 **Read Audit Log** 權限。開啟稽核日誌和變更其設定需要 Project Owner、Project Admin 或編輯專案的權限。
+- **可以讀取稽核日誌的角色。** 專案擁有者、專案管理員、設定管理員或 **Read Audit Log** 權限。開啟稽核日誌和變更其設定需要專案擁有者、專案管理員或編輯專案的權限。
 
 ## 開啟稽核日誌
 
@@ -78,7 +78,7 @@ flowchart TB
 
 ## 記錄哪些內容
 
-人們在專案中建立、變更或刪除的一切都會被記錄：監測器、事件、警示、狀態頁、工作流程及其步驟、佇列、儀表板、待命政策、團隊及其成員、API 金鑰以及每一項設定。**資源類型** 說明項目所涉及的內容，例如 `Monitor`、`Workflow` 或 `Queue`。
+人們在專案中建立、變更或刪除的一切都會被記錄：監測器、事件、警示、狀態頁、工作流程及其步驟、佇列、儀表板、待命策略、團隊及其成員、API 金鑰以及每一項設定。**資源類型** 說明項目所涉及的內容，例如 `Monitor`、`Workflow` 或 `Queue`。
 
 | 不記錄的內容 | 原因 |
 | --- | --- |

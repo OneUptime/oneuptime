@@ -1,6 +1,6 @@
 # CrowdStrike Falcon
 
-Importer varsler fra [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), fra deteksjoner på endepunkter, identiteter og i skyen, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom Falcon Alerts API med en API-klient som du oppretter, og skriver aldri til Falcon.
+Importer varsler fra [CrowdStrike Falcon](https://www.crowdstrike.com/platform/), fra deteksjoner på endepunkter, identiteter og i skyen, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem gjennom Falcon Alerts API med en API-klient som du oppretter, og skriver aldri til Falcon.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En API-klient med ett omfang og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En Falcon-kunde-ID (CID) og en bruker av Falcon-konsollen som kan administrere API-klienter: rollen Falcon Administrator, eller en egendefinert rolle med tillatelsen API clients and keys.
 - Utgående HTTPS fra OneUptime-appen og -workerne til API-verten for Falcon-skyen din, oppført under **Falcon-sky** nedenfor.
 
@@ -180,7 +180,7 @@ Les **Alerts available to import**: en advarsel der betyr at Falcon ikke har opp
 
 ## Hva du får
 
-- **Søk.** Filtrer Falcon-varsler etter alvorlighetsgrad, status, MITRE-taktikk, vert, bruker eller en hvilken som helst observable i utforskeren for sikkerhetshendelser, ved siden av loggene og metrikkene for den verten.
+- **Søk.** Filtrer Falcon-varsler etter alvorlighetsgrad, status, MITRE-taktikk, vert, bruker eller en hvilken som helst observable i utforskeren for sikkerhetshendelser, ved siden av loggene og målingene for den verten.
 - **Korrelasjon.** Vertsnavnene, IP-ene, brukerne og filhashene i hvert varsel indekseres som observables, så ett søk finner alt som nevner en vert, på tvers av alle kilder.
 - **Deteksjonsregler.** Sigma-regler som kjører etter en tidsplan over sikkerhetshendelsene dine, og åpner varsler som varsler vakten.
 - **Monitorer.** Monitorer for sikkerhetshendelser teller samsvarende hendelser, og åpner hendelser eller varsler over en terskel.

@@ -15,15 +15,15 @@ Dashbord følger prosjektets [tillatelser](/docs/permissions/index). Hver handli
 
 | For å | Kreves |
 | --- | --- |
-| Lese dashbord | `ReadDashboard`, eller en prosjektrolle: Project Owner, Project Admin, Project Member, Viewer eller en Settings-rolle |
-| Opprette dashbord | `CreateDashboard`, Project Owner eller Project Admin |
-| Endre et dashbord: widgetene, variablene, delingen og merkevaren, og arkivere det | `EditDashboard`, Project Owner eller Project Admin |
-| Slette et dashbord | `DeleteDashboard`, Project Owner eller Project Admin |
-| Legge til og fjerne eiere | Tillatelsene for dashbordeiere, Project Owner, Project Admin eller Project Member |
-| Legge til og endre egendefinerte domener | Tillatelsene for dashborddomener, Project Owner, Project Admin, Project Member, Settings Admin eller Settings Member |
-| Opprette eierregler og etikettregler | Tillatelsene for regler, Project Owner eller Project Admin |
+| Lese dashbord | `ReadDashboard`, eller en prosjektrolle: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser eller en Settings-rolle |
+| Opprette dashbord | `CreateDashboard`, Prosjekteier eller Prosjektadministrator |
+| Endre et dashbord: widgetene, variablene, delingen og merkevaren, og arkivere det | `EditDashboard`, Prosjekteier eller Prosjektadministrator |
+| Slette et dashbord | `DeleteDashboard`, Prosjekteier eller Prosjektadministrator |
+| Legge til og fjerne eiere | Tillatelsene for dashbordeiere, Prosjekteier, Prosjektadministrator eller Prosjektmedlem |
+| Legge til og endre egendefinerte domener | Tillatelsene for dashborddomener, Prosjekteier, Prosjektadministrator, Prosjektmedlem, Innstillingsadministrator eller Innstillingsmedlem |
+| Opprette eierregler og etikettregler | Tillatelsene for regler, Prosjekteier eller Prosjektadministrator |
 
-Et Project Member leser altså alle dashbord, men trenger `CreateDashboard` og `EditDashboard` for å bygge dem. Lesing, redigering og sletting kan hver for seg begrenses til dashbordene et team eier, eller til dashbord med bestemte etiketter: se [Omfang: hvor langt en tillatt rettighet rekker](/docs/permissions/index#omfang-hvor-langt-en-tillatt-rettighet-rekker).
+Et Prosjektmedlem leser altså alle dashbord, men trenger `CreateDashboard` og `EditDashboard` for å bygge dem. Lesing, redigering og sletting kan hver for seg begrenses til dashbordene et team eier, eller til dashbord med bestemte etiketter: se [Omfang: hvor langt en tillatt rettighet rekker](/docs/permissions/index#omfang-hvor-langt-en-tillatt-rettighet-rekker).
 
 Tildel dem på et teams side **Tillatelser**: åpne **Produkter → Team**, og velg teamet.
 

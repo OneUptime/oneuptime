@@ -671,7 +671,7 @@ const FindProductionExceptionsTool: CodeAgentTelemetryTool = {
 
     return async (): Promise<CodeAgentTelemetryToolOutput> => {
       const now: Date = OneUptimeDate.getCurrentDate();
-      const since: Date = OneUptimeDate.addRemoveDays(now, -days);
+      const since: Date = OneUptimeDate.addRemoveDurationInDays(now, -days);
       const select: JSONObject = {
         _id: true,
         primaryEntityId: true,
@@ -1371,7 +1371,7 @@ const FindProductionIncidentsTool: CodeAgentTelemetryTool = {
     );
 
     return async (): Promise<CodeAgentTelemetryToolOutput> => {
-      const since: Date = OneUptimeDate.addRemoveDays(
+      const since: Date = OneUptimeDate.addRemoveDurationInDays(
         OneUptimeDate.getCurrentDate(),
         -days,
       );
@@ -1613,7 +1613,7 @@ const RecentDeploysTool: CodeAgentTelemetryTool = {
 
     return async (): Promise<CodeAgentTelemetryToolOutput> => {
       const now: Date = OneUptimeDate.getCurrentDate();
-      const since: Date = OneUptimeDate.addRemoveDays(now, -days);
+      const since: Date = OneUptimeDate.addRemoveDurationInDays(now, -days);
 
       const events: Array<ChangeEvent> = await ChangeEventService.findBy({
         query: {

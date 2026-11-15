@@ -1,6 +1,7 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
 import Crypto from "../Crypto";
+import { writeOwnValue } from "../LookupTable";
 
 /*
  * Shared helpers for the security-event normalizers (OCSF, UDM, SecOps
@@ -15,6 +16,9 @@ import Crypto from "../Crypto";
  * Arrays of scalars collapse to a comma-joined string (queryable with a
  * "contains" filter); arrays of objects recurse with the index in the key.
  * Depth is capped so a hostile payload cannot recurse unboundedly.
+ *
+ * Each key is the source's, written as the result's own (writeOwnValue):
+ * an assignment dropped a top-level field named "__proto__".
  */
 export function flattenPayload(
   payload: JSONObject,
@@ -40,11 +44,15 @@ export function flattenPayload(
 
       if (scalars.length === value.length) {
         if (value.length > 0) {
-          result[prefix] = value
-            .map((item: JSONValue): string => {
-              return String(item);
-            })
-            .join(",");
+          writeOwnValue<JSONValue>(
+            result,
+            prefix,
+            value
+              .map((item: JSONValue): string => {
+                return String(item);
+              })
+              .join(","),
+          );
         }
         return;
       }
@@ -58,7 +66,7 @@ export function flattenPayload(
 
     if (typeof value === "object") {
       if (depth >= maxDepth) {
-        result[prefix] = JSON.stringify(value);
+        writeOwnValue<JSONValue>(result, prefix, JSON.stringify(value));
         return;
       }
 
@@ -70,7 +78,7 @@ export function flattenPayload(
       return;
     }
 
-    result[prefix] = String(value);
+    writeOwnValue<JSONValue>(result, prefix, String(value));
   };
 
   visit(payload, "", 0);

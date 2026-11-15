@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 正常運作時間",
-    "uptimePercent": "正常運作時間 {{percent}}%",
+    "uptimePercent": "正常運作時間 {{percent}}",
     "operational": "運作中",
     "notMonitored": "未監控",
     "noResourcesInGroup": "此群組中未新增任何資源。",
@@ -60,10 +60,9 @@
   },
   "eventItem": {
     "affectedResources": "受影響的資源",
-    "stateChangedTo": "狀態已變更為",
     "view": "檢視{{eventType}}",
     "updateTo": "此{{eventType}}的更新",
-    "postedOn": "發佈於"
+    "postedOnDate": "發佈於 {{date}}"
   },
   "monitorOverview": {
     "daysAgo": "{{days}} 天前",
@@ -473,5 +472,6 @@
     "warning": "警告"
   },
   "No options available": "沒有可用的選項",
-  "No matches found": "找不到相符項目"
+  "No matches found": "找不到相符項目",
+  "{{eventType}} state changed to {{state}}": "{{eventType}}狀態已變更為 {{state}}"
 }

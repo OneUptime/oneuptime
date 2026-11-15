@@ -18,7 +18,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { formatHealthDateTime as formatDateTime } from "./HealthTime";
 
 const asObject: (value: unknown) => JSONObject = (
   value: unknown,
@@ -67,18 +67,6 @@ const bytesToReadable: (value: unknown) => string = (
 const formatPercent: (value: unknown) => string = (value: unknown): string => {
   const percent: number | null = toNumberOrNull(value);
   return percent === null ? "—" : `${percent.toFixed(1)}%`;
-};
-
-const formatDateTime: (value: unknown) => string = (value: unknown): string => {
-  const raw: string = String(value || "");
-  if (!raw) {
-    return "—";
-  }
-
-  const date: Date = new Date(raw);
-  return isNaN(date.getTime())
-    ? raw
-    : date.toLocaleString(getReaderDateLocale());
 };
 
 const humanize: (value: unknown) => string = (value: unknown): string => {

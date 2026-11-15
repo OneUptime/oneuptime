@@ -181,6 +181,7 @@ import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorNetworkDeviceService from "./MonitorNetworkDeviceService";
 import MonitorSecretService from "./MonitorSecretService";
+import IncomingRequestSecretService from "./IncomingRequestSecretService";
 import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
@@ -551,6 +552,7 @@ import WorkspaceNotificationLogService from "./WorkspaceNotificationLogService";
 import WorkspaceLiveMessageService from "./WorkspaceLiveMessageService";
 import WorkspacePublicNoteApprovalMessageService from "./WorkspacePublicNoteApprovalMessageService";
 import WorkspaceHomeChoiceService from "./WorkspaceHomeChoiceService";
+import OwnerNotificationDeliveryService from "./OwnerNotificationDeliveryService";
 import WorkspaceNotificationSummaryService from "./WorkspaceNotificationSummaryService";
 import WorkspaceUserGroupService from "./WorkspaceUserGroupService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
@@ -804,6 +806,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  IncomingRequestSecretService,
   RunbookOwnerRuleService,
   RunbookOwnerUserService,
   RunbookOwnerTeamService,
@@ -1146,6 +1149,7 @@ const services: Array<BaseService> = [
   WorkspaceLiveMessageService,
   WorkspacePublicNoteApprovalMessageService,
   WorkspaceHomeChoiceService,
+  OwnerNotificationDeliveryService,
   WorkspaceNotificationSummaryService,
   WorkspaceUserGroupService,
   WorkspaceUserNotificationService,

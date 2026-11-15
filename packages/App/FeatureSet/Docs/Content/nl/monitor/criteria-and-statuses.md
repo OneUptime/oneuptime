@@ -176,7 +176,7 @@ Sleep de status aan zijn greep. Een status lager in de lijst telt als slechter d
 Een status doet niets totdat een criterium monitoren erin zet. Kies hem onder **Monitorstatus wijzigen naar** bij het criterium dat hem moet instellen.
 :::
 
-De operationele en de offline-status zijn gemarkeerd als **Ingebouwd**: u kunt ze hernoemen en hun kleur wijzigen, maar niet verwijderen. In OneUptime Cloud vereist het maken of wijzigen van een status het Growth-abonnement. Statussen beheren vereist de rol Project Owner, Project Admin of Monitor Admin, of een aangepaste rol met de bijbehorende machtiging voor monitorstatussen.
+De operationele en de offline-status zijn gemarkeerd als **Ingebouwd**: u kunt ze hernoemen en hun kleur wijzigen, maar niet verwijderen. In OneUptime Cloud vereist het maken of wijzigen van een status het Growth-abonnement. Statussen beheren vereist de rol Projecteigenaar, Projectbeheerder of Monitorbeheerder, of een aangepaste rol met de bijbehorende machtiging voor monitorstatussen.
 
 ### De statustijdlijn
 

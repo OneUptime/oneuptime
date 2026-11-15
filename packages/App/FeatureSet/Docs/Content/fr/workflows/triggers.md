@@ -1,9 +1,9 @@
-# Déclencheurs de workflow
+# Déclencheurs de flux de travail
 
-Un déclencheur est le premier bloc d'un workflow : il décide quand le workflow s'exécute. Chaque workflow a exactement un déclencheur. Vous avez le choix entre six types.
+Un déclencheur est le premier bloc d'un flux de travail : il décide quand le flux de travail s'exécute. Chaque flux de travail a exactement un déclencheur. Vous avez le choix entre six types.
 
 :::cards
-- [Manuel](#manual): Démarrez le workflow depuis le Constructeur, ou depuis un autre workflow.
+- [Manuel](#manual): Démarrez le flux de travail depuis le Constructeur, ou depuis un autre flux de travail.
 - [Planification](#schedule): Exécutez-le selon une planification récurrente, écrite sous forme d'expression cron.
 - [Webhook](#webhook): Laissez un autre système le démarrer en appelant une URL.
 - [E-mail entrant](#incoming-email): Démarrez-le à chaque e-mail envoyé à sa propre adresse.
@@ -11,26 +11,26 @@ Un déclencheur est le premier bloc d'un workflow : il décide quand le workflow
 - [Déclencheurs d'événements OneUptime](#déclencheurs-dévénements-oneuptime): Réagissez quand un enregistrement est créé, modifié ou supprimé.
 :::
 
-Pour ajouter le déclencheur, cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** sur le canevas d'un nouveau workflow. Pour le changer, supprimez le bloc déclencheur : le bloc en pointillés revient. Voir [Créer un workflow](/docs/workflows/authoring#ajouter-des-blocs).
+Pour ajouter le déclencheur, cliquez sur le bloc en pointillés **Choisissez ce qui démarre ce flux de travail** sur le canevas d'un nouveau flux de travail. Pour le changer, supprimez le bloc déclencheur : le bloc en pointillés revient. Voir [Créer un flux de travail](/docs/workflows/authoring#ajouter-des-blocs).
 
 ## Quel déclencheur choisir ?
 
 | Si vous voulez…                               | Choisissez                  |
 | --------------------------------------------- | --------------------------- |
-| Cliquer sur un bouton pour exécuter le workflow | **Manuel**                |
+| Cliquer sur un bouton pour exécuter le flux de travail | **Manuel**                |
 | L'exécuter selon une planification récurrente | **Planification**           |
 | Qu'un autre système y envoie des données      | **Webhook**                 |
 | Le démarrer à partir d'un e-mail              | **E-mail entrant**          |
 | Agir sur les rapports d'incident Huntress     | **Huntress Incident Report** |
 | Réagir à quelque chose dans OneUptime         | **Événement OneUptime**     |
 
-Un workflow ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons de démarrer la même automatisation, construisez la logique commune dans un workflow avec un déclencheur **Manuel**, et démarrez-la depuis deux workflows « enveloppes » légers avec un bloc **Execute Workflow**.
+Un flux de travail ne peut avoir qu'un seul déclencheur. S'il vous faut deux façons de démarrer la même automatisation, construisez la logique commune dans un flux de travail avec un déclencheur **Manuel**, et démarrez-la depuis deux flux de travail « enveloppes » légers avec un bloc **Execute Workflow**.
 
 ## Manual
 
-Exécutez le workflow à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Un autre workflow peut aussi le démarrer, avec un bloc **Execute Workflow**.
+Exécutez le flux de travail à la demande : cliquez sur **Exécuter le flux de travail** sur la page **Constructeur**, remplissez le **JSON** du déclencheur, cliquez sur **Exécuter le flux de travail manuellement** et confirmez avec **Exécuter**. Un autre flux de travail peut aussi le démarrer, avec un bloc **Execute Workflow**.
 
-Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bouton, comme « faire tourner cette clé » ou « envoyer une alerte de test », et la logique que vous partagez entre workflows.
+Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bouton, comme « faire tourner cette clé » ou « envoyer une alerte de test », et la logique que vous partagez entre flux de travail.
 
 **Returns** : **JSON** — ce avec quoi l'exécution a été lancée.
 
@@ -39,7 +39,7 @@ Idéal pour : les automatisations en un clic pour lesquelles vous voulez un bout
 
 ## Schedule
 
-Exécutez le workflow selon une planification récurrente. Indiquez la fréquence dans **Schedule at** : choisissez l'une des **Planifications courantes**, écrivez une expression **Cron personnalisé**, ou choisissez une **Variable** qui en contient une. Sous le champ, la planification est décrite en toutes lettres avec ses **Prochaines exécutions**.
+Exécutez le flux de travail selon une planification récurrente. Indiquez la fréquence dans **Schedule at** : choisissez l'une des **Planifications courantes**, écrivez une expression **Cron personnalisé**, ou choisissez une **Variable** qui en contient une. Sous le champ, la planification est décrite en toutes lettres avec ses **Prochaines exécutions**.
 
 Idéal pour : le nettoyage nocturne, la synchronisation horaire, les rapports hebdomadaires.
 
@@ -53,13 +53,13 @@ Les heures sont en UTC : convertissez depuis votre propre fuseau horaire quand v
 | `0 9 * * 1-5` | Tous les jours ouvrés à 9:00 UTC.      |
 | `0 9 * * 1`   | Tous les lundis à 9:00 UTC.            |
 
-Rien n'est planifié tant que le workflow est désactivé. Une planification **Variable** lit une variable de workflow ou une variable globale, comme `{{local.variables.schedule}}`. Si elle ne donne pas une expression cron valide, le workflow n'est pas planifié, et une exécution en échec dans sa liste d'exécutions explique pourquoi.
+Rien n'est planifié tant que le flux de travail est désactivé. Une planification **Variable** lit une variable de flux de travail ou une variable globale, comme `{{local.variables.schedule}}`. Si elle ne donne pas une expression cron valide, le flux de travail n'est pas planifié, et une exécution en échec dans sa liste d'exécutions explique pourquoi.
 
-Pour tester le workflow sans attendre la planification, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** : une exécution démarre aussitôt.
+Pour tester le flux de travail sans attendre la planification, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** : une exécution démarre aussitôt.
 
 ## Webhook
 
-OneUptime donne au workflow une URL qui lui est propre. Tout ce qui appelle cette URL démarre le workflow, en lui transmettant les en-têtes, les paramètres de requête et le corps de la requête.
+OneUptime donne au flux de travail une URL qui lui est propre. Tout ce qui appelle cette URL démarre le flux de travail, en lui transmettant les en-têtes, les paramètres de requête et le corps de la requête.
 
 Idéal pour : recevoir dans OneUptime des données d'un autre outil — les rappels de CI/CD, les alertes d'une autre supervision, les inscriptions de votre CRM.
 
@@ -71,19 +71,19 @@ curl -X POST "https://oneuptime.example.com/workflow/trigger/<secret key>" \
   -d '{"message": "Hello"}'
 ```
 
-L'URL accepte à la fois `GET` et `POST`. L'appelant reçoit un accusé de réception immédiat, `{"status": "Scheduled"}` — le workflow lui-même s'exécute en arrière-plan, si bien que l'appelant ne voit jamais ce qu'il fait. Un appel à un workflow désactivé ou archivé est refusé avec HTTP 400 et la raison.
+L'URL accepte à la fois `GET` et `POST`. L'appelant reçoit un accusé de réception immédiat, `{"status": "Scheduled"}` — le flux de travail lui-même s'exécute en arrière-plan, si bien que l'appelant ne voit jamais ce qu'il fait. Un appel à un flux de travail désactivé ou archivé est refusé avec HTTP 400 et la raison.
 
 ```mermaid title="Ce qui se passe quand quelque chose appelle l'URL du webhook"
 sequenceDiagram
     participant Caller as Votre outil
     participant OneUptime
-    participant Runner as Moteur d'exécution<br/>des workflows
+    participant Runner as Moteur d'exécution<br/>des flux de travail
     Caller->>OneUptime: GET ou POST vers<br/>l'URL du webhook
-    alt Le workflow est activé
+    alt Le flux de travail est activé
         OneUptime-->>Caller: 200, statut Scheduled
         OneUptime->>Runner: Met en file une<br/>exécution avec en-têtes,<br/>requête et corps
         Runner->>Runner: Exécute les blocs qui<br/>suivent le déclencheur
-    else Le workflow est<br/>désactivé ou archivé
+    else Le flux de travail est<br/>désactivé ou archivé
         OneUptime-->>Caller: 400 avec la raison
     end
 ```
@@ -100,26 +100,26 @@ Lisez un champ en ajoutant son nom à la référence, comme dans `{{local.compon
 
 Une fois qu'une requête est arrivée, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'elle contenait : il liste les champs du corps, les en-têtes et les paramètres de requête, chacun avec son contenu, pour que vous puissiez choisir `incident.title` au lieu de taper un chemin. D'ici là, il indique qu'aucune requête n'est arrivée et propose **Copier la requête de test**, une commande `curl` pour l'URL ; les champs apparaissent dès que l'exécution lancée par cette requête est terminée. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
 
-Pour tester le workflow sans l'autre outil, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez des en-têtes, des paramètres de requête et un corps.
+Pour tester le flux de travail sans l'autre outil, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et saisissez des en-têtes, des paramètres de requête et un corps.
 
 ### Gardez l'URL privée
 
-La dernière partie de l'URL est la clé secrète du workflow, et quiconque possède l'URL peut démarrer le workflow. La clé est donc masquée tant que vous ne cliquez pas sur **Afficher**, et **Copier l'URL** copie l'URL complète sans l'afficher.
+La dernière partie de l'URL est la clé secrète du flux de travail, et quiconque possède l'URL peut démarrer le flux de travail. La clé est donc masquée tant que vous ne cliquez pas sur **Afficher**, et **Copier l'URL** copie l'URL complète sans l'afficher.
 
-Si l'URL fuite, cliquez sur **Réinitialiser l'URL** au même endroit : le workflow reçoit une nouvelle URL et l'ancienne cesse de fonctionner immédiatement ; mettez donc à jour tout ce qui l'appelle. Seules les personnes qui peuvent modifier le workflow peuvent voir ou réinitialiser son URL — voir [Sécurité des webhooks](/docs/workflows/configuration#sécurité-des-webhooks).
+Si l'URL fuite, cliquez sur **Réinitialiser l'URL** au même endroit : le flux de travail reçoit une nouvelle URL et l'ancienne cesse de fonctionner immédiatement ; mettez donc à jour tout ce qui l'appelle. Seules les personnes qui peuvent modifier le flux de travail peuvent voir ou réinitialiser son URL — voir [Sécurité des webhooks](/docs/workflows/configuration#sécurité-des-webhooks).
 
 > [!WARNING]
-> Traitez l'URL comme un mot de passe. Quiconque la possède peut démarrer votre workflow, sans se connecter.
+> Traitez l'URL comme un mot de passe. Quiconque la possède peut démarrer votre flux de travail, sans se connecter.
 
 ## Incoming Email
 
-OneUptime donne au workflow une adresse e-mail qui lui est propre. Chaque e-mail envoyé à cette adresse démarre le workflow, en lui transmettant l'e-mail : qui l'a envoyé, à qui il était destiné, l'objet, le texte et le HTML, les en-têtes et le nom des pièces jointes.
+OneUptime donne au flux de travail une adresse e-mail qui lui est propre. Chaque e-mail envoyé à cette adresse démarre le flux de travail, en lui transmettant l'e-mail : qui l'a envoyé, à qui il était destiné, l'objet, le texte et le HTML, les en-têtes et le nom des pièces jointes.
 
 Idéal pour : agir sur les e-mails de systèmes qui ne savent pas appeler un webhook — les alertes d'anciens outils de supervision, les avis d'état d'un fournisseur, le rapport qu'une tâche nocturne envoie par e-mail.
 
-Pour obtenir l'adresse, cliquez sur le déclencheur Incoming Email sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le workflow : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
+Pour obtenir l'adresse, cliquez sur le déclencheur Incoming Email sur le canevas. L'adresse figure en haut de ses paramètres, avec un bouton **Copier l'adresse**. Donnez-la à ce qui doit démarrer le flux de travail : un outil qui ne sait qu'envoyer des e-mails, les paramètres de notification d'un fournisseur, ou une règle de transfert dans votre propre boîte aux lettres.
 
-Chaque e-mail lance sa propre exécution. L'e-mail atteint le workflow que l'adresse figure en À ou en Cc, en copie cachée, ou qu'il passe par une règle de transfert. Un e-mail qui nomme l'adresse deux fois lance une seule exécution.
+Chaque e-mail lance sa propre exécution. L'e-mail atteint le flux de travail que l'adresse figure en À ou en Cc, en copie cachée, ou qu'il passe par une règle de transfert. Un e-mail qui nomme l'adresse deux fois lance une seule exécution.
 
 **Returns** :
 
@@ -137,15 +137,15 @@ Chaque e-mail lance sa propre exécution. L'e-mail atteint le workflow que l'adr
 
 Une fois qu'un e-mail est arrivé, le sélecteur de valeurs de chaque bloc qui suit le déclencheur sait ce qu'il contenait : il liste chaque en-tête et chaque pièce jointe de l'e-mail, avec son contenu, pour que vous puissiez choisir `headers.message-id` au lieu de taper un chemin. D'ici là, il indique qu'aucun e-mail n'a encore atteint l'adresse. Voir [Utiliser des valeurs des blocs précédents](/docs/workflows/authoring#utiliser-des-valeurs-des-blocs-précédents).
 
-Pour essayer le workflow sans envoyer d'e-mail, cliquez sur **Exécuter le flux de travail** sur la page **Constructeur** et renseignez un expéditeur, un objet et un corps. Les valeurs que vous laissez de côté arrivent vides.
+Pour essayer le flux de travail sans envoyer d'e-mail, cliquez sur **Exécuter le flux de travail** sur la page **Constructeur** et renseignez un expéditeur, un objet et un corps. Les valeurs que vous laissez de côté arrivent vides.
 
-Les e-mails ne démarrent le workflow que s'il est activé. Un e-mail adressé à un workflow désactivé est ignoré, de même qu'un e-mail adressé à un workflow dont le déclencheur n'est plus Incoming Email.
+Les e-mails ne démarrent le flux de travail que s'il est activé. Un e-mail adressé à un flux de travail désactivé est ignoré, de même qu'un e-mail adressé à un flux de travail dont le déclencheur n'est plus Incoming Email.
 
 ### Gardez l'adresse privée
 
-La partie de l'adresse avant le `@` contient la clé secrète du workflow, et quiconque possède l'adresse peut démarrer le workflow. La clé est donc masquée tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse complète sans l'afficher.
+La partie de l'adresse avant le `@` contient la clé secrète du flux de travail, et quiconque possède l'adresse peut démarrer le flux de travail. La clé est donc masquée tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse complète sans l'afficher.
 
-Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : le workflow reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment ; donnez donc la nouvelle à tout ce qui écrit au workflow. Seules les personnes qui peuvent modifier le workflow peuvent voir ou réinitialiser son adresse — voir [Sécurité des e-mails entrants](/docs/workflows/configuration#sécurité-des-e-mails-entrants).
+Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment ; donnez donc la nouvelle à tout ce qui écrit au flux de travail. Seules les personnes qui peuvent modifier le flux de travail peuvent voir ou réinitialiser son adresse — voir [Sécurité des e-mails entrants](/docs/workflows/configuration#sécurité-des-e-mails-entrants).
 
 > [!WARNING]
 > N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Vérifiez une information que seul le véritable expéditeur connaît avant qu'une étape fasse quoi que ce soit d'important.
@@ -155,19 +155,19 @@ Si l'adresse fuite, cliquez sur **Réinitialiser l'adresse** au même endroit : 
 
 ## Huntress
 
-OneUptime donne au workflow une URL qui lui est propre pour Huntress, le service de détection et de réponse managées. Huntress y envoie chaque événement concernant un rapport d'incident, signé avec le secret de signature du point de terminaison, et chaque événement démarre le workflow une fois : quand son SOC envoie un rapport, quand quelqu'un le commente et quand il est clos.
+OneUptime donne au flux de travail une URL qui lui est propre pour Huntress, le service de détection et de réponse managées. Huntress y envoie chaque événement concernant un rapport d'incident, signé avec le secret de signature du point de terminaison, et chaque événement démarre le flux de travail une fois : quand son SOC envoie un rapport, quand quelqu'un le commente et quand il est clos.
 
 Idéal pour : ouvrir un incident pour chaque rapport d'incident Huntress, alerter l'astreinte et suivre le rapport jusqu'à sa clôture. Le modèle **Open an incident for each Huntress incident report** fait les trois.
 
-Pour connecter Huntress, cliquez sur le déclencheur **Huntress Incident Report** sur le canevas : il affiche l'URL à donner à Huntress, enregistre le secret de signature du point de terminaison et indique quand Huntress a joint le workflow pour la dernière fois. Une requête qui n'est pas signée avec ce secret ne démarre rien : l'URL n'est donc pas un mot de passe. Voir [Huntress](/docs/integrations/huntress) pour la configuration dans Huntress, les valeurs que renvoie le déclencheur et ses paramètres.
+Pour connecter Huntress, cliquez sur le déclencheur **Huntress Incident Report** sur le canevas : il affiche l'URL à donner à Huntress, enregistre le secret de signature du point de terminaison et indique quand Huntress a joint le flux de travail pour la dernière fois. Une requête qui n'est pas signée avec ce secret ne démarre rien : l'URL n'est donc pas un mot de passe. Voir [Huntress](/docs/integrations/huntress) pour la configuration dans Huntress, les valeurs que renvoie le déclencheur et ses paramètres.
 
 ## Déclencheurs d'événements OneUptime
 
-Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance, pages de statut, politiques d'astreinte, équipes — peut déclencher un workflow. Chacun propose jusqu'à quatre déclencheurs :
+Presque tout ce qui existe dans OneUptime — moniteurs, incidents, alertes, événements de maintenance, pages de statut, politiques d'astreinte, équipes — peut déclencher un flux de travail. Chacun propose jusqu'à quatre déclencheurs :
 
 - **On Create** — se produit quand un nouvel élément est ajouté.
 - **On Update** — se produit quand un élément est modifié. Enregistrer un enregistrement avec les valeurs qu'il a déjà, comme un formulaire enregistré sans modification ou un interrupteur envoyé dans la position où il est déjà, n'est pas un changement et ne le déclenche pas.
-- **On Create or Update** — se produit dans les deux cas : une fois quand un nouvel élément est ajouté, et une fois à chaque modification. Un seul workflow traite alors de la même façon un nouvel enregistrement et un enregistrement modifié, par exemple pour tenir à jour une copie dans un autre système.
+- **On Create or Update** — se produit dans les deux cas : une fois quand un nouvel élément est ajouté, et une fois à chaque modification. Un seul flux de travail traite alors de la même façon un nouvel enregistrement et un enregistrement modifié, par exemple pour tenir à jour une copie dans un autre système.
 - **On Delete** — se produit quand un élément est supprimé.
 
 C'est ainsi que vous construisez « quand X se produit dans OneUptime, faire Y » sans avoir à vérifier en boucle.
@@ -179,7 +179,7 @@ flowchart TB
     save["Un enregistrement est enregistré"] --> changed{"Une valeur a-t-elle changé ?"}
     changed -->|"Non"| nothing["Rien ne se déclenche"]
     changed -->|"Oui"| listen{"Fields to watch est renseigné ?"}
-    listen -->|"Non"| fires["Le workflow s'exécute"]
+    listen -->|"Non"| fires["Le flux de travail s'exécute"]
     listen -->|"Oui"| field{"L'un de ses champs a changé ?"}
     field -->|"Oui"| fires
     field -->|"Non"| nothing
@@ -191,7 +191,7 @@ flowchart TB
 
 Une sauvegarde le déclenche une fois. Ce que OneUptime remplit pendant qu'il crée un enregistrement fait partie de la création : un nouvel enregistrement le déclenche donc une fois, comme `created`. Les modifications que OneUptime fait ensuite, comme lier le canal Slack d'un incident, sont des mises à jour comme les autres : pour les écarter, ajoutez à **Fields to watch** seulement les champs qui vous importent.
 
-**On Delete** ne transmet que l'ID de l'enregistrement supprimé : l'enregistrement n'existe plus quand le workflow s'exécute, ses autres champs ne peuvent donc pas être lus.
+**On Delete** ne transmet que l'ID de l'enregistrement supprimé : l'enregistrement n'existe plus quand le flux de travail s'exécute, ses autres champs ne peuvent donc pas être lus.
 
 Pour tester un déclencheur d'événement sans attendre l'événement, cliquez sur **Exécuter le flux de travail** dans le **Constructeur** et choisissez un enregistrement existant : les plus récents sont listés, et saisir le numéro d'un enregistrement ou une partie de son nom en trouve un autre. L'exécution lit cet enregistrement avec les champs que vous avez sélectionnés, comme si l'événement venait de lui arriver ; l'enregistrement lui-même n'est ni modifié ni supprimé. Pour **On Create or Update**, choisissez sous **Ce qui s'est passé** si l'exécution porte sur la création ou sur la modification de l'enregistrement.
 

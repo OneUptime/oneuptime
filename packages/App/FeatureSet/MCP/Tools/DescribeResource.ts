@@ -28,6 +28,11 @@ import { AnalyticsModelSchema } from "Common/Utils/Schema/AnalyticsModelSchema";
 import { ModelSchema } from "Common/Utils/Schema/ModelSchema";
 import { getSchemaFieldNames } from "Common/Utils/Schema/SchemaFields";
 import {
+  OWNER_TEAMS_ON_CREATE_KEY,
+  OWNER_USERS_ON_CREATE_KEY,
+  takesOwnersOnCreate,
+} from "Common/Types/Database/OwnersOnCreate";
+import {
   findModelClass,
   getSelectableFieldsForModel,
   SelectableFieldsInfo,
@@ -317,6 +322,18 @@ function buildUsage(
   if (jsonField) {
     usage["json"] =
       `A ${TableColumnType.JSON} field is filtered by its keys: {"${jsonField}": {"<key>": <value or operator>}}. IsNull and NotNull on the field itself ask whether it holds anything.`;
+  }
+
+  /*
+   * What the create tool takes beside the fields: the owners an incident or
+   * an alert starts with (Types/Database/OwnersOnCreate, #8198).
+   */
+  if (
+    resource.modelType === ModelType.Database &&
+    takesOwnersOnCreate(resource.name)
+  ) {
+    usage["owners"] =
+      `The create tool takes ${OWNER_USERS_ON_CREATE_KEY} and ${OWNER_TEAMS_ON_CREATE_KEY} beside the fields: the IDs of the users and teams who own it from the start, who are told it was created. A caller who may not add them is refused before anything is saved. Owners added later may miss the created notification.`;
   }
 
   return usage;

@@ -163,7 +163,7 @@ return { host };
 
 ## Wie triggers mag instellen
 
-Een schema of een webhook start uitvoeringen zonder dat er iemand bij is, dus er een instellen vraagt toestemming om het runbook te bewerken en uit te voeren: Project Owner, Project Admin of Runbook Admin, of **Edit Runbook** samen met Project Member, Runbook Member of **Create Runbook Execution**. De labels waartoe een rol beperkt is tellen mee, zoals bij **Nu uitvoeren**. De webhook-URL zien of opnieuw instellen vraagt hetzelfde.
+Een schema of een webhook start uitvoeringen zonder dat er iemand bij is, dus er een instellen vraagt toestemming om het runbook te bewerken en uit te voeren: Projecteigenaar, Projectbeheerder of Runbookbeheerder, of **Edit Runbook** samen met Projectlid, Runbooklid of **Create Runbook Execution**. De labels waartoe een rol beperkt is tellen mee, zoals bij **Nu uitvoeren**. De webhook-URL zien of opnieuw instellen vraagt hetzelfde.
 
 Een schema of een webhook uitzetten start niets en vraagt dus alleen toestemming om het runbook te bewerken. Wie het runbook mag bewerken maar niet uitvoeren, ziet de pagina **Triggers** met **Schema instellen** vergrendeld, en krijgt te horen wie de webhook-URL kan zien.
 
@@ -178,7 +178,7 @@ Er liep nog een uitvoering en het schema slaat zulke tijdstippen over, of OneUpt
 :::
 
 :::details Een schema opslaan mislukt met "You do not have permission to set up this runbook's schedule or webhook."
-Een trigger instellen vraagt toestemming om het runbook uit te voeren én te bewerken. Vraag om Runbook Admin, of om Runbook Member of **Create Runbook Execution** naast **Edit Runbook**.
+Een trigger instellen vraagt toestemming om het runbook uit te voeren én te bewerken. Vraag om Runbookbeheerder, of om Runbooklid of **Create Runbook Execution** naast **Edit Runbook**.
 :::
 
 :::details Een aanroep krijgt als antwoord "No runbook webhook answers at this URL."

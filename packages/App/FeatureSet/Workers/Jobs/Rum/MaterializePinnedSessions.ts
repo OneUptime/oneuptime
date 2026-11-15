@@ -171,7 +171,10 @@ export function resolvePinnedRetentionDate(
     return pin.expiresAt;
   }
 
-  return OneUptimeDate.addRemoveDays(now, PINNED_DEFAULT_RETENTION_DAYS);
+  return OneUptimeDate.addRemoveDurationInDays(
+    now,
+    PINNED_DEFAULT_RETENTION_DAYS,
+  );
 }
 
 interface SessionScope {
@@ -634,7 +637,7 @@ export async function revertPinnedSession(
     originalChunkCount > 0 && ordinary
       ? toTextValue(ordinary["retentionDate"])
       : OneUptimeDate.toClickhouseDateTime(
-          OneUptimeDate.addRemoveDays(now, -1),
+          OneUptimeDate.addRemoveDurationInDays(now, -1),
         );
 
   await RumSessionService.execute(

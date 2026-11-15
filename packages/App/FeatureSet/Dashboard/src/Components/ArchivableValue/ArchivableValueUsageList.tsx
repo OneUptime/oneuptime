@@ -17,7 +17,12 @@ import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import { getSentenceSeparator } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import Link from "Common/UI/Components/Link/Link";
 import { getListSeparator } from "Common/UI/Utils/ListSeparator";
-import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -176,7 +181,9 @@ export const UsageGroups: FunctionComponent<UsageGroupsProps> = (
             <>
               {props.showLabels ? (
                 <span className="font-medium text-gray-900">
-                  {translator.translateText(group.label)}:{" "}
+                  {translator.translateTemplate(LABEL_WITH_COLON, {
+                    label: translatableTerm(group.label),
+                  })}{" "}
                 </span>
               ) : (
                 <></>

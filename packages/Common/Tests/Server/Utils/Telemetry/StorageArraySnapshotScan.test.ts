@@ -21,6 +21,8 @@ import logger from "../../../../Server/Utils/Logger";
 import StorageArrayResourceKind from "../../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
+import { readOwnValue } from "../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -2359,6 +2361,46 @@ describe("StorageArraySnapshotScan - volume connection counts (getVolumeConnecti
     feed(b, "purefa_info", { array_name: "fa", scrape_endpoint: "hosts" }, 1);
     expect(getVolumeConnectionCounts(rows(b), snapOf(b))).toEqual({});
   });
+
+  /*
+   * Issue #8220: the counts were keyed by the volume's name with an
+   * assignment, which drops a volume named __proto__. It was then not
+   * among the connected names the flush keeps (Object.keys of these
+   * counts), so its count was zeroed on every batch.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a volume named %s counts its hosts under its own name",
+    (name: string) => {
+      const b: Buffers = buffers();
+      feed(b, "purefa_info", { array_name: "fa", scrape_endpoint: "hosts" }, 1);
+      for (const [host, volume] of [
+        ["esx-01", name],
+        ["esx-02", name],
+        ["esx-01", "vol-b"],
+      ]) {
+        feed(
+          b,
+          "purefa_host_connections_info",
+          { host: host!, hostgroup: "cluster", volume: volume! },
+          1,
+        );
+      }
+
+      const counts: Record<string, number> | null = getVolumeConnectionCounts(
+        rows(b),
+        snapOf(b),
+      );
+
+      expect(counts).not.toBeNull();
+      expect(Object.getPrototypeOf(counts)).toBe(Object.prototype);
+      expect(Object.keys(counts!).sort()).toEqual([name, "vol-b"].sort());
+      expect(readOwnValue(counts!, name)).toBe(2);
+      expect(readOwnValue(counts!, "vol-b")).toBe(1);
+      expect(Object.getOwnPropertyNames(Object.prototype)).not.toContain(
+        "esx-01",
+      );
+    },
+  );
 });
 
 describe("StorageArraySnapshotScan - volumes to keep connected (getConnectedVolumeNames)", () => {

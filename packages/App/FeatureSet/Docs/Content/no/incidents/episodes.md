@@ -37,7 +37,7 @@ Under **Medlemshendelser** tar **Fjern** på en rad, eller på de valgte radene 
 
 ## Én episode per hendelse
 
-En hendelse kan være i flere episoder samtidig. For å holde hver hendelse i høyst én episode slår du på **En hendelse kan bare være i én episode** under **Hendelser → Innstillinger → Medlemskap i episoder**. For varsler heter bryteren **Et varsel kan bare være i én episode**, under **Varsler → Innstillinger → Medlemskap i episoder**. Begge er slått av til du slår dem på, og bare Project Owners og Project Admins kan endre dem.
+En hendelse kan være i flere episoder samtidig. For å holde hver hendelse i høyst én episode slår du på **En hendelse kan bare være i én episode** under **Hendelser → Innstillinger → Medlemskap i episoder**. For varsler heter bryteren **Et varsel kan bare være i én episode**, under **Varsler → Innstillinger → Medlemskap i episoder**. Begge er slått av til du slår dem på, og bare Prosjekteiere og Prosjektadministratorer kan endre dem.
 
 Så lenge den er slått på, blir en hendelse som er i en episode, ikke lagt til i noen annen:
 
@@ -51,7 +51,7 @@ Så lenge den er slått på, blir en hendelse som er i en episode, ikke lagt til
 
 ## Hvem kan legge til
 
-Å legge til krever tillatelse til å legge hendelser til en episode, som rollene Project Owner, Project Admin, Project Member, Incident Admin og Incident Member har, i likhet med en egendefinert rolle med Create Incident Episode Member. Du kan bare legge til hendelser du kan se: en privat hendelse kan bare legges til av eierne sine og av prosjektets eiere og administratorer. Legg til i ny episode krever også tillatelse til å opprette en episode. Når du ikke kan bruke en handling, er den låst, og verktøytipset nevner tillatelsen som mangler.
+Å legge til krever tillatelse til å legge hendelser til en episode, som rollene Prosjekteier, Prosjektadministrator, Prosjektmedlem, Hendelsesadministrator og Hendelsesmedlem har, i likhet med en egendefinert rolle med Create Incident Episode Member. Du kan bare legge til hendelser du kan se: en privat hendelse kan bare legges til av eierne sine og av prosjektets eiere og administratorer. Legg til i ny episode krever også tillatelse til å opprette en episode. Når du ikke kan bruke en handling, er den låst, og verktøytipset nevner tillatelsen som mangler.
 
 ## Med API-et
 

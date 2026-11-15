@@ -156,7 +156,14 @@ export default class SyslogIngestService extends OtelIngestBaseService {
       }
 
       const dbLogs: Array<JSONObject> = [];
-      const serviceCache: Dictionary<TelemetryServiceMetadata> = {};
+      /*
+       * By the service name a line gives (its header's, APP-NAME or
+       * HOSTNAME): a Map, which answers only for the names put in it. A
+       * plain object answered "constructor", "toString" or "__proto__"
+       * with what every object inherits, so the lookup was skipped, the
+       * row could not be built, and the line was not stored.
+       */
+      const serviceCache: Map<string, TelemetryServiceMetadata> = new Map();
       let processed: number = 0;
 
       /*
@@ -207,16 +214,16 @@ export default class SyslogIngestService extends OtelIngestBaseService {
 
           const serviceName: string = this.resolveServiceName(req, parsed);
 
-          if (!serviceCache[serviceName]) {
-            serviceCache[serviceName] =
-              await OTelIngestService.telemetryServiceFromName({
-                serviceName,
-                projectId,
-              });
-          }
+          let serviceMetadata: TelemetryServiceMetadata | undefined =
+            serviceCache.get(serviceName);
 
-          const serviceMetadata: TelemetryServiceMetadata =
-            serviceCache[serviceName]!;
+          if (!serviceMetadata) {
+            serviceMetadata = await OTelIngestService.telemetryServiceFromName({
+              serviceName,
+              projectId,
+            });
+            serviceCache.set(serviceName, serviceMetadata);
+          }
 
           /*
            * What the message itself says: whose format it is, its fields,
@@ -278,7 +285,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
             projectConfig: serviceMetadata.projectRetentionConfig,
             projectRetentionInDays: serviceMetadata.projectRetentionInDays,
           });
-          const retentionDate: Date = OneUptimeDate.addRemoveDays(
+          const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
             ingestionDate,
             retentionDays,
           );

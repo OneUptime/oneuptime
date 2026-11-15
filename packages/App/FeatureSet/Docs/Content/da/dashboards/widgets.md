@@ -146,8 +146,8 @@ Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du me
 
 | Widget | Hvad den viser | Filtre |
 | --- | --- | --- |
-| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
+| **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
+| **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, bekræftede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
 | **Overvågningsliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet efter status i stedet for en tabel: vælg det under **Visningstilstand**. De viser den aktuelle tilstand, uanset dashboardets tidsinterval.

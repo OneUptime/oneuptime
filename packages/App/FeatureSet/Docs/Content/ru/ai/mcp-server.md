@@ -430,7 +430,7 @@ curl https://oneuptime.com/mcp/tools
 | Что делает агент | Выбрать в **Доступ** |
 | --- | --- |
 | Только читает | **Зритель** или добавьте права на чтение на странице ключа |
-| Ещё и создаёт, обновляет и удаляет | **Администратор проекта** или добавьте роль Project Admin на странице ключа |
+| Ещё и создаёт, обновляет и удаляет | **Администратор проекта** или добавьте роль Администратор проекта на странице ключа |
 
 Давайте каждому ключу минимум того, что ему нужно, регулярно меняйте ключи, держите отдельный ключ для каждого окружения и следите в OneUptime за тем, что делает каждый ключ.
 
@@ -497,7 +497,7 @@ MCP-сервер не хранит состояние: он не выдаёт и
 | Безопасность | Security Event, Threat Intel Indicator |
 | Изменения и затраты | Change Event, Kubernetes Cost Allocation |
 
-Инструменты названы в snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` и `count_incidents`, или `list_logs` и `count_spans` для телеметрии.
+Инструменты названы в snake case: `create_incident`, `get_incident`, `list_incidents`, `update_incident`, `delete_incident` и `count_incidents`, или `list_logs` и `count_spans` для телеметрии. `create_incident` и `create_alert` также принимают `ownerUsers` и `ownerTeams`: идентификаторы пользователей и команд, которым запись принадлежит с самого начала и которые узнают о её создании.
 
 ## Дальнейшие шаги
 

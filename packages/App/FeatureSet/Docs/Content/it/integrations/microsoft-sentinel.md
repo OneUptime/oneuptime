@@ -23,7 +23,7 @@ Ogni minuto, OneUptime interroga ogni connessione abilitata il cui intervallo di
 
 ## Prima di iniziare
 
-- In OneUptime, il ruolo Project Owner, Project Admin o Security Admin. I ruoli Security Member e Security Viewer vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
+- In OneUptime, il ruolo Proprietario del progetto, Amministratore del progetto o Amministratore della sicurezza. I ruoli Membro della sicurezza e Visualizzatore della sicurezza vedono le connessioni e la cronologia delle loro esecuzioni, ma non possono modificarle.
 - Un'area di lavoro Log Analytics con Microsoft Sentinel abilitato, nel cloud pubblico di Azure o in Azure Government (US).
 - In Microsoft Entra ID, il permesso di creare una registrazione dell'app e un segreto client.
 - Sul gruppo di risorse che contiene l'area di lavoro, il permesso di assegnare ruoli, come Proprietario o Amministratore Accesso utenti.

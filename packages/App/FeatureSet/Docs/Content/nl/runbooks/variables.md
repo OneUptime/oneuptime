@@ -33,7 +33,7 @@ Een naam komt één keer voor, ongeacht hoofdletters, onder de globale variabele
 
 ## Voordat u begint
 
-- **Een rol die variabelen beheert.** Project Owner en Project Admin, of de machtiging **Create Runbook Variable**. Runbook Admin leest variabelen, om ze te kiezen in de stappen die hij schrijft, maar wijzigt ze niet.
+- **Een rol die variabelen beheert.** Projecteigenaar en Projectbeheerder, of de machtiging **Create Runbook Variable**. Runbookbeheerder leest variabelen, om ze te kiezen in de stappen die hij schrijft, maar wijzigt ze niet.
 - **Een abonnement dat ze bevat.** Op OneUptime Cloud hebben runbookvariabelen het abonnement **Growth** of hoger nodig.
 
 ## Een variabele aanmaken

@@ -59,7 +59,7 @@ Providerens versioner følger OneUptimes: provider {{TERRAFORM_PROVIDER_MAJOR}}.
 
 ## Lad dashboardet skrive den
 
-Du behøver ikke skrive en ressource, du allerede har, i hånden. Hver ressource i OneUptime-dashboardet (en monitor, en statusside, et workflow, en vagtpolitik og de andre) har en sektion **Udvikler** i sidemenuen, foldet sammen, indtil du åbner den. Dens side **Terraform** skriver konfigurationen for dig, udfyldt fra dit eget projekt.
+Du behøver ikke skrive en ressource, du allerede har, i hånden. Hver ressource i OneUptime-dashboardet (en monitor, en statusside, en arbejdsgang, en vagtpolitik og de andre) har en sektion **Udvikler** i sidemenuen, foldet sammen, indtil du åbner den. Dens side **Terraform** skriver konfigurationen for dig, udfyldt fra dit eget projekt.
 
 :::steps
 ### Åbn ressourcen

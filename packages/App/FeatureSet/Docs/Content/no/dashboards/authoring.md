@@ -78,7 +78,7 @@ Klikk på den. Widgeten havner på det første ledige stedet i rutenettet der de
 
 ### Angi hva den viser
 
-Innstillingsdialogen viser en **Live Preview** av widgeten over innstillingene, og forhåndsvisningen følger hver endring du gjør. Velg hva widgeten leser (en metrikkspørring, et filter, en tekst) og hvordan den ser ut, og klikk deretter på **Ferdig**.
+Innstillingsdialogen viser en **Live Preview** av widgeten over innstillingene, og forhåndsvisningen følger hver endring du gjør. Velg hva widgeten leser (en målingsspørring, et filter, en tekst) og hvordan den ser ut, og klikk deretter på **Ferdig**.
 
 ### Plasser den
 

@@ -25,7 +25,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **Growth 요금제 이상**(OneUptime Cloud의 경우). 자체 호스팅 설치에는 요금제가 없습니다.
-- **시크릿을 관리할 수 있는 역할**: Project Owner, Project Admin, 또는 Create Monitor Secret 권한이 있는 사용자 지정 역할.
+- **시크릿을 관리할 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 또는 Create Monitor Secret 권한이 있는 사용자 지정 역할.
 
 ## 시크릿 다루기
 

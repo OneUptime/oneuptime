@@ -92,7 +92,7 @@ Se [Utløsere for arbeidsflyter](/docs/workflows/triggers) for feltene hver utl�
 To handlinger på et problem ber OneUptime AI om hjelp. Begge sender OneUptime AI problemets tittel og alvorlighetsgrad, datalagerets navn, type, region og sky-ID, sensitiviteten og datatypene, bevisene, hvorfor kontrollen er viktig, og løsningen for datalagerets sky – aldri prøvene fra et funn. Begge kjører under prosjektets brytere og grenser for OneUptime AI.
 
 - **Forklar med AI** skriver, for eieren av datalageret, hva som er galt, hva som kan skje, og de nøyaktige stegene for å rette det i skyen deres. Forklaringen lagres på problemets **Tidslinje**. Alle som kan lese Datasikkerhet, kan be om den.
-- **Fiks med AI** ber OneUptime AI rette problemet i infrastrukturkoden din – Terraform, CloudFormation, Bicep eller lignende – med den minste endringen som får kontrollen til å bestå, og åpne en pull request. Den krever at kodelageret med infrastrukturkoden til datalageret er koblet til under **Kode**: velg det under **Kodelager** når prosjektet har flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Security Members og høyere kan be om den.
+- **Fiks med AI** ber OneUptime AI rette problemet i infrastrukturkoden din – Terraform, CloudFormation, Bicep eller lignende – med den minste endringen som får kontrollen til å bestå, og åpne en pull request. Den krever at kodelageret med infrastrukturkoden til datalageret er koblet til under **Kode**: velg det under **Kodelager** når prosjektet har flere. Pull requesten vises under **Kode** (se [Kode](/docs/ai/ai-agent)). Sikkerhetsmedlemmer og høyere kan be om den.
 
 ### Spør AI
 

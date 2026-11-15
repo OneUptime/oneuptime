@@ -8,6 +8,12 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OnCallLevelsInFlight, {
   OnCallLevelInFlight,
 } from "../Utils/OnCall/OnCallLevelsInFlight";
+import OnCallSendLag, {
+  OnCallScheduledSend,
+} from "../Utils/OnCall/OnCallSendLag";
+import OnCallPageTiming, {
+  OnCallPageStartMoment,
+} from "../Utils/OnCall/OnCallPageTiming";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UpdateBy from "../Types/Database/UpdateBy";
@@ -537,6 +543,21 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     Service.assertTriggerMatchesEventType(options);
 
+    /*
+     * How the level's pages are timed - a scheduled send's due moment, or a
+     * page's start - and who it pages first, kept with it in flight, so a
+     * resume pages and times them the same way (issue #8471).
+     */
+    const scheduledSend: OnCallScheduledSend | null =
+      OnCallSendLag.getScheduledSend();
+    const pageStart: OnCallPageStartMoment | null =
+      OnCallPageTiming.getPageStart();
+    const firstUserIds: Array<string> = (options.alsoPageUserIds || []).map(
+      (userId: ObjectID): string => {
+        return userId.toString();
+      },
+    );
+
     return await this.pageRule({
       ruleId: ruleId,
       options: options,
@@ -545,6 +566,23 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         startedAt: startedAt,
         heartbeatAt: startedAt,
         stopped: false,
+        ...(firstUserIds.length > 0 ? { firstUserIds: firstUserIds } : {}),
+        ...(scheduledSend
+          ? {
+              scheduledSend: {
+                dueAt: new Date(scheduledSend.dueAt),
+                schedule: scheduledSend.schedule,
+              },
+            }
+          : {}),
+        ...(pageStart
+          ? {
+              pageStart: {
+                startedAt: new Date(pageStart.startedAt),
+                start: pageStart.start,
+              },
+            }
+          : {}),
       },
       resumeSince: null,
     });
@@ -570,22 +608,33 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   public async resumeRuleExecution(
     ruleId: ObjectID,
     options: RuleExecutionOptions & {
-      // When the level started paging.
-      since: Date;
+      // The level, as it was kept in flight (OnCallLevelsInFlight).
+      level: OnCallLevelInFlight;
     },
   ): Promise<OnCallRuleExecutionOutcome> {
     Service.assertTriggerMatchesEventType(options);
 
+    // Who it paged first, it pages first again: a page again's acknowledger (issue #8471).
+    const alsoPageUserIds: Array<ObjectID> = (
+      options.level.firstUserIds || []
+    ).map((userId: string): ObjectID => {
+      return new ObjectID(userId);
+    });
+
     return await this.pageRule({
       ruleId: ruleId,
-      options: options,
+      options: {
+        ...options,
+        ...(alsoPageUserIds.length > 0
+          ? { alsoPageUserIds: alsoPageUserIds }
+          : {}),
+      },
       level: {
-        ruleId: ruleId.toString(),
-        startedAt: options.since,
+        ...options.level,
         heartbeatAt: OneUptimeDate.getCurrentDate(),
         stopped: false,
       },
-      resumeSince: options.since,
+      resumeSince: options.level.startedAt,
     });
   }
 

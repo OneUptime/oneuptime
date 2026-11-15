@@ -31,7 +31,7 @@ Drop-filters en scrub-regels voor logboeken gelden net zo goed voor logboeken ui
 ## Voordat u begint
 
 - **Logboeken of spans die binnenkomen.** Zie [OpenTelemetry](/docs/telemetry/open-telemetry).
-- **Een rol die telemetrie-instellingen wijzigt.** Project Owner of Project Admin, of een aangepaste rol met de machtiging voor wat u wijzigt, zoals Create Log Drop Filter of Create Trace Scrub Rule. De Telemetry-rollen kunnen filters en regels zien, maar niet wijzigen.
+- **Een rol die telemetrie-instellingen wijzigt.** Projecteigenaar of Projectbeheerder, of een aangepaste rol met de machtiging voor wat u wijzigt, zoals Create Log Drop Filter of Create Trace Scrub Rule. De Telemetry-rollen kunnen filters en regels zien, maar niet wijzigen.
 
 ## Records weggooien of bemonsteren
 

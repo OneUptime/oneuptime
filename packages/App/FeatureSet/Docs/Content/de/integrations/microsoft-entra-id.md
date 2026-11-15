@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Für Anmeldungen und Risikoerkennungen Microsoft Entra ID P1 oder P2, das in Microsoft 365 E3, E5 und Business Premium enthalten ist: Microsoft Graph gibt sie nur an solche Mandanten heraus, und P2 liefert die Details jeder Risikoerkennung. Verzeichnisänderungen werden in jedem Mandanten gelesen.
 - Eine Entra-Rolle, die Anwendungen registrieren darf, etwa Anwendungsadministrator, und einen globalen Administrator oder Administrator für privilegierte Rollen, um die Administratorzustimmung zu erteilen.
 - Für das Microsoft 365-Audit-Protokoll eingeschaltete Überwachung im Mandanten, was standardmäßig der Fall ist: Im [Microsoft Purview-Portal](https://purview.microsoft.com) darf **Audit** nicht **Start recording user and admin activity** anbieten.

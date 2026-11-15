@@ -540,12 +540,20 @@ describe("UserNotificationRuleService.executeFallbackNotification", () => {
       });
     });
 
-    test("a membership read that fails is never a page: the fallback fails and sends nothing", async () => {
-      membershipSpy.mockRejectedValue(
-        new Error("database unavailable") as never,
-      );
+    /*
+     * Nothing was sent, and the failure is the database's: the fallback is
+     * to be tried again, its claim given back (issue #8469), rather than
+     * ended as failed.
+     */
+    test("a membership read that fails is never a page: the fallback sends nothing, and says it can be tried again", async () => {
+      const unavailable: Error = new Error("database unavailable");
+      membershipSpy.mockRejectedValue(unavailable as never);
 
-      await expect(runFallback()).rejects.toThrow("database unavailable");
+      const result: FallbackNotificationResult = await runFallback();
+
+      expect(result.notified).toBe(false);
+      expect(result.channelsUsed).toEqual([]);
+      expect(result.toTryAgainAfter).toBe(unavailable);
       expect(deliverSpy).not.toHaveBeenCalled();
     });
 

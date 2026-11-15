@@ -131,15 +131,15 @@ Met formulieren kunnen mensen buiten uw team incidenten en onderhoudsgebeurtenis
 
 | Machtiging | Wat ze toestaat | Wie ze standaard heeft |
 | --- | --- | --- |
-| **Create Form** | Formulieren maken en dupliceren. | Project Owner, Project Admin |
-| **Edit Form** | Een formulier wijzigen: de vragen, de huisstijl, de sjablonen, de instellingen onder Bij verzenden, **Accepteert inzendingen**, de link en de **IP-toelatingslijst**. | Project Owner, Project Admin |
-| **Delete Form** | Een formulier verwijderen, en daarmee de inzendingen. | Project Owner, Project Admin |
-| **Read Form** | Formulieren, hun vragen, instellingen en links bekijken. | De bovenstaande, plus Project Member, Viewer en de rollen voor incidenten en gepland onderhoud |
-| **Read Form Submission** | De inzendingen en hun antwoorden bekijken. | Project Owner, Project Admin |
-| **Delete Form Submission** | Inzendingen verwijderen. | Project Owner, Project Admin |
-| **Create Form Domain** | Een [aangepast domein](/docs/forms/sharing-and-security#aangepaste-domeinen) aan een formulier toevoegen. | Project Owner, Project Admin en **Edit Form** |
-| **Edit Form Domain** | De aangepaste domeinen van een formulier controleren, en hun certificaten bestellen, opnieuw laten uitgeven of wisselen. | Project Owner, Project Admin en **Edit Form** |
-| **Delete Form Domain** | De aangepaste domeinen van een formulier verwijderen. | Project Owner, Project Admin en **Edit Form** |
+| **Create Form** | Formulieren maken en dupliceren. | Projecteigenaar, Projectbeheerder |
+| **Edit Form** | Een formulier wijzigen: de vragen, de huisstijl, de sjablonen, de instellingen onder Bij verzenden, **Accepteert inzendingen**, de link en de **IP-toelatingslijst**. | Projecteigenaar, Projectbeheerder |
+| **Delete Form** | Een formulier verwijderen, en daarmee de inzendingen. | Projecteigenaar, Projectbeheerder |
+| **Read Form** | Formulieren, hun vragen, instellingen en links bekijken. | De bovenstaande, plus Projectlid, Kijker en de rollen voor incidenten en gepland onderhoud |
+| **Read Form Submission** | De inzendingen en hun antwoorden bekijken. | Projecteigenaar, Projectbeheerder |
+| **Delete Form Submission** | Inzendingen verwijderen. | Projecteigenaar, Projectbeheerder |
+| **Create Form Domain** | Een [aangepast domein](/docs/forms/sharing-and-security#aangepaste-domeinen) aan een formulier toevoegen. | Projecteigenaar, Projectbeheerder en **Edit Form** |
+| **Edit Form Domain** | De aangepaste domeinen van een formulier controleren, en hun certificaten bestellen, opnieuw laten uitgeven of wisselen. | Projecteigenaar, Projectbeheerder en **Edit Form** |
+| **Delete Form Domain** | De aangepaste domeinen van een formulier verwijderen. | Projecteigenaar, Projectbeheerder en **Edit Form** |
 | **Read Form Domain** | De aangepaste domeinen van een formulier zien, hun DNS-records en hoe ver elk is op weg naar HTTPS. | Iedereen met **Read Form** |
 
 Inzendingen bevatten wat onbekenden hebben ingetypt (namen, e-mailadressen en antwoorden die misschien nooit in het record terechtkomen), dus alleen projecteigenaren en -beheerders zien ze, tenzij u **Read Form Submission** verleent. Wie een formulier kan lezen, kan de link zien en delen. Een formulier verzenden vraagt helemaal geen machtiging. Hoe rollen en gedetailleerde machtigingen samenwerken, leest u in [Gebruikers, teams en machtigingen](/docs/permissions/index).

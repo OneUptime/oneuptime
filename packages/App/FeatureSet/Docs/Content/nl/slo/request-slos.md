@@ -37,7 +37,7 @@ Verder werkt een SLO voor aanvragen zoals elke andere SLO. Zijn status, regels v
 ## Voordat u begint
 
 - De services sturen traces naar OneUptime: zie [OpenTelemetry](/docs/telemetry/open-telemetry). Elke service staat in de [servicecatalogus](/docs/telemetry/services) onder zijn `service.name`.
-- Een rol die SLO's mag aanmaken: Project Owner, Project Admin of een aangepaste rol met de machtiging Create Service Level Objective.
+- Een rol die SLO's mag aanmaken: Projecteigenaar, Projectbeheerder of een aangepaste rol met de machtiging Create Service Level Objective.
 
 ## Een SLO voor aanvragen aanmaken
 

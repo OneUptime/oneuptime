@@ -58,7 +58,7 @@ Runbook 执行有五种创建方式：
 3. 执行页面会打开。
 :::
 
-启动执行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或者 **Create Runbook Execution** 权限。Runbook Viewer 和 Viewer 看到的 **立即运行** 处于锁定状态，并附有原因。参见 [权限](/docs/runbooks/configuration#权限)。
+启动执行需要项目所有者、项目管理员、项目成员、运行手册管理员或运行手册成员，或者 **Create Runbook Execution** 权限。运行手册查看者和查看者看到的 **立即运行** 处于锁定状态，并附有原因。参见 [权限](/docs/runbooks/configuration#权限)。
 
 ## 执行视图
 
@@ -128,7 +128,7 @@ Runbook 的 **审计日志** 页面会记录每次执行由谁启动、每个步
 ## 故障排除
 
 :::details Run Now 被锁定
-你的角色可以读取 Runbook，但不能运行它们：按钮显示“您没有在此项目中启动 Runbook 执行的权限。”请申请 Runbook Member 角色或 **Create Runbook Execution** 权限。
+你的角色可以读取 Runbook，但不能运行它们：按钮显示“您没有在此项目中启动 Runbook 执行的权限。”请申请运行手册成员角色或 **Create Runbook Execution** 权限。
 :::
 
 :::details 启动执行时失败，提示“Runbook is disabled”或“Runbook has no steps to run”

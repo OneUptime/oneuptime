@@ -16,7 +16,7 @@ OneUptime AI는 인시던트와 경고를 조사하고 수정하는 동안 OneUp
 - 프로젝트에서 **OneUptime AI가 켜져 있고**, 사용할 수 있는 LLM 공급자가 있어야 합니다. [LLM 공급자](/docs/ai/llm-provider)를 참조하세요.
 - **서버의 MCP 주소.** Streamable HTTP와 이전 방식인 SSE 기반 HTTP를 모두 지원합니다. 서버가 어느 쪽을 쓰는지는 OneUptime이 연결할 때 알아냅니다.
 - **OneUptime의 로그인 방법:** API 토큰, 서버 고유의 헤더, 또는 ID 공급자의 OAuth 클라이언트 자격 증명.
-- **Project Owner 또는 Project Admin**이 서버를 추가, 변경, 테스트, 삭제하며, Project Members와 Viewers는 서버를 볼 수 있습니다. OneUptime Cloud에서는 서버를 추가하려면 Growth 플랜 이상이 필요합니다.
+- **Project Owner 또는 Project Admin**이 서버를 추가, 변경, 테스트, 삭제하며, 프로젝트 구성원과 뷰어는 서버를 볼 수 있습니다. OneUptime Cloud에서는 서버를 추가하려면 Growth 플랜 이상이 필요합니다.
 
 ## 서버 추가하기
 

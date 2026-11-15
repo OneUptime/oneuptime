@@ -66,7 +66,7 @@ export function getRetentionDateDb(
 
   if (db === undefined) {
     db = OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.addRemoveDays(stamp.date, retentionDays),
+      OneUptimeDate.addRemoveDurationInDays(stamp.date, retentionDays),
     );
     cached.retentionDbByDays?.set(retentionDays, db);
   }

@@ -295,7 +295,7 @@ Os níveis em si são um recurso próprio, `/api/service-level-objective-error-b
 | **Edit SLO Error Budget Policy Tier** | Alterar níveis e ligá-los ou desligá-los. |
 | **Delete SLO Error Budget Policy Tier** | Remover níveis. |
 
-Essas permissões ficam no grupo SLO de uma função. As funções Project Owner e Project Admin têm todas, e as funções Project Member e Viewer podem ler os níveis.
+Essas permissões ficam no grupo SLO de uma função. As funções Proprietário do projeto e Administrador do projeto têm todas, e as funções Membro do projeto e Visualizador podem ler os níveis.
 
 ## Ainda não disponível
 

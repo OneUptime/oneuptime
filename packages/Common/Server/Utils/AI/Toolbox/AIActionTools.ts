@@ -59,6 +59,8 @@ import {
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * The cards' titles: each record by the name or the number the person
  * knows it by, once the prepare read it, else by the call's ID.
@@ -323,7 +325,11 @@ export const PageOnCallPolicyTool: ObservabilityTool = {
     return {
       dataForLlm: `Paged on-call policy "${policy.name}" for incident #${incident.incidentNumber} ("${incident.title}"). Responders are being notified.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Paged "${policy.name}" for incident #${incident.incidentNumber}`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.pagedPolicyForIncident, {
+        policy: policy.name || "",
+        incident: `#${incident.incidentNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },
@@ -542,7 +548,13 @@ export const RunRunbookTool: ObservabilityTool = {
     const result: ToolExecutionResult = {
       dataForLlm: `Started ${runbookLabel}. Execution is scheduled.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Started ${runbookLabel}`,
+      ...(runbookName
+        ? citationSentence(AI_TOOL_CITATIONS.startedRunbook, {
+            name: runbookName,
+          })
+        : citationSentence(AI_TOOL_CITATIONS.startedRunbookById, {
+            id: runbookId.toString(),
+          })),
       redactionCount: serialized.redactionCount,
       isTruncated: false,
       // The runbook by its name, and the incident its run is for.
@@ -720,7 +732,9 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
             notifySubscribers ? " and notified subscribers" : ""
           }.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Status update on incident #${incident.incidentNumber}`,
+      ...citationSentence(AI_TOOL_CITATIONS.incidentStatusUpdate, {
+        incident: `#${incident.incidentNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },
@@ -894,7 +908,11 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
     return {
       dataForLlm: `Changed incident #${incident.incidentNumber} severity to ${severity.name}.\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Incident #${incident.incidentNumber} → ${severity.name}`,
+      // The severity as the project named it: data.
+      ...citationSentence(AI_TOOL_CITATIONS.incidentSeverityChanged, {
+        incident: `#${incident.incidentNumber}`,
+        severity: severity.name || "",
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentIdString },

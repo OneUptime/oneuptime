@@ -37,7 +37,7 @@ Utforskaren har sex flikar:
 ## Innan du börjar
 
 - **Mätvärden som kommer in.** Skicka dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller från en agent som [OpenTelemetry Collector för värdar](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
-- **En roll som får läsa telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en anpassad roll med behörigheten Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) för vilka mätvärden den läser.
+- **En roll som får läsa telemetri.** Projektägare, Projektadministratör, Projektmedlem, Tittare, Telemetriadministratör, Telemetrimedlem eller Telemetritittare, eller en anpassad roll med behörigheten Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) för vilka mätvärden den läser.
 
 ## Hitta ett mätvärde
 

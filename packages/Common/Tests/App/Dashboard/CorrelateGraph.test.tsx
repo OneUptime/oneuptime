@@ -1494,8 +1494,9 @@ describe("CorrelateGraph results header and summary", () => {
     // The sentence lives in the header only.
     expect(screen.getByText(/4 matching events\./)).toBe(resultCount);
 
+    // One sentence, as a hunt's run says its window (#8290).
     expect(screen.getByTestId("correlate-result-window")).toHaveTextContent(
-      /^Searched .+ – .+$/,
+      /^Searched .+ to .+$/,
     );
     expect(screen.queryByTestId("correlate-truncation-notice")).toBeNull();
   });

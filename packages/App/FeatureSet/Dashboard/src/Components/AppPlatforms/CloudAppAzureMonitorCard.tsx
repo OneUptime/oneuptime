@@ -30,7 +30,6 @@ import {
 import {
   formatBytes,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
@@ -356,7 +355,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
           windowEnd={props.end}
           syncId={props.syncId}
           yFormatter={(value: number): string => {
-            return formatDurationMs(value);
+            return formatDurationMsInLanguage(value, translator);
           }}
           loading={chartsLoading}
           description={CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS.responseTimeChart}

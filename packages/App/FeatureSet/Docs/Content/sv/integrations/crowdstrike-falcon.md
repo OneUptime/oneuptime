@@ -23,7 +23,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 ## Innan du börjar
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
+- I OneUptime rollen Projektägare, Projektadministratör eller Säkerhetsadministratör. Säkerhetsmedlem och Säkerhetstittare kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - Ett Falcon-kund-ID (CID) och en användare av Falcon-konsolen som kan hantera API-klienter: rollen Falcon Administrator, eller en anpassad roll med behörigheten API clients and keys.
 - Utgående HTTPS från OneUptime-appen och -workerna till API-värden för ditt Falcon-moln, som anges under **Falcon-moln** nedan.
 

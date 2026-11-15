@@ -1,8 +1,8 @@
-# Componenti del workflow
+# Componenti del flusso di lavoro
 
 I componenti sono i blocchi che aggiungi dopo il trigger. Ognuno fa una sola cosa — invia un messaggio, chiama un'API, verifica una condizione, modifica un record di OneUptime — e poi prende una delle sue uscite verso i blocchi collegati. Questa pagina è il catalogo: di cosa ha bisogno ogni blocco, cosa restituisce e quando prende ciascuna uscita.
 
-Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni blocco terminano con **How to use**: cosa fa il blocco, i passaggi per configurarlo, un esempio costruito dal tuo workflow e gli errori più comuni. Per aggiungere e collegare i blocchi, vedi [Creare un workflow](/docs/workflows/authoring).
+Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni blocco terminano con **How to use**: cosa fa il blocco, i passaggi per configurarlo, un esempio costruito dal tuo flusso di lavoro e gli errori più comuni. Per aggiungere e collegare i blocchi, vedi [Creare un flusso di lavoro](/docs/workflows/authoring).
 
 :::cards
 - [Inviare un messaggio](#slack): Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost ed email.
@@ -25,7 +25,7 @@ Raramente ti servirà tenerla aperta mentre costruisci. Le impostazioni di ogni 
 | Proseguire solo quando poche righe di JavaScript lo dicono | [Check With JavaScript](#check-with-javascript) |
 | Trasformare i dati tra due blocchi                            | [JSON](#json) o [Custom Code](#custom-code)                       |
 | Attendere prima del blocco successivo                         | [Sleep](#sleep)                                                   |
-| Avviare un altro workflow                                     | [Execute Workflow](#execute-workflow)                             |
+| Avviare un altro flusso di lavoro                                     | [Execute Workflow](#execute-workflow)                             |
 | Leggere o modificare incidenti, monitor e altri record        | [Componenti dati di OneUptime](#componenti-dati-di-oneuptime)        |
 | Aprire, prendere in carico e risolvere incidenti o avvisi per i problemi di un altro strumento | [Incidenti e avvisi da altri strumenti](#incidenti-e-avvisi-da-altri-strumenti) |
 | Prendere in carico o chiudere un problema di Zabbix | [Zabbix](#zabbix) |
@@ -85,7 +85,7 @@ Genera una risposta testuale da un prompt e da un contesto JSON facoltativo. Il 
 | **Temperatura**           | Sotto **Altri campi**. La variabilità, da `0` a `1`; il valore predefinito è `0.2`, per un'automazione prevedibile. I modelli Claude attuali, Opus 4.7 e successivi e tutti i modelli Claude 5, scelgono da soli il proprio campionamento: OneUptime omette **Temperatura** dalle loro richieste, quindi su di loro non ha alcun effetto. |
 | **Maximum Output Tokens** | Sotto **Altri campi**. Da `1` a `4096`; il valore predefinito è `1024`.                                                                                          |
 
-System Instructions, Prompt e il Context serializzato sono limitati insieme a 50.000 caratteri. Un'immagine incorporata in base64, come lo screenshot di un monitor sintetico nella descrizione di un incidente, viene sostituita da una breve nota come `[image omitted: PNG, 340 KB]` prima della misurazione, perché il modello legge testo, non immagini. Il registro dell'esecuzione dice cosa è stato omesso. La richiesta al provider dura al massimo 60 secondi e viene tentata una sola volta. Per progetto possono girare contemporaneamente al massimo tre richieste di IA dei workflow.
+System Instructions, Prompt e il Context serializzato sono limitati insieme a 50.000 caratteri. Un'immagine incorporata in base64, come lo screenshot di un monitor sintetico nella descrizione di un incidente, viene sostituita da una breve nota come `[image omitted: PNG, 340 KB]` prima della misurazione, perché il modello legge testo, non immagini. Il registro dell'esecuzione dice cosa è stato omesso. La richiesta al provider dura al massimo 60 secondi e viene tentata una sola volta. Per progetto possono girare contemporaneamente al massimo tre richieste di IA dei flussi di lavoro.
 
 Restituisce **Risposta** (il testo generato), **Provider** e **Modello** (cosa ha risposto), **Total Tokens** e **Completion Tokens** (l'utilizzo riportato dal provider), **LLM Log ID** (la voce della chiamata nei registri IA) ed **Errore**.
 
@@ -161,7 +161,7 @@ Sotto **Altri campi**:
 
 **Errore** scatta quando il server non è raggiungibile, rifiuta la connessione, il nickname, una password o il canale, o rifiuta il messaggio. Riporta il motivo, con le parole del server quando le ha fornite. Un **IRC Server**, un **Canale** o un **Message Text** mancante, o un'impostazione che non potrebbe mai funzionare, ferma invece l'esecuzione.
 
-Ogni esecuzione del blocco è una connessione a sé, e le reti IRC limitano la frequenza con cui uno stesso indirizzo può collegarsi: una raffica di messaggi può essere rifiutata con un motivo come "Reconnecting too fast", e prende **Errore** come qualsiasi altro rifiuto. Per un workflow che può scattare molte volte al minuto, raccogli ciò che deve dire in un unico messaggio, o invialo tramite un tuo server.
+Ogni esecuzione del blocco è una connessione a sé, e le reti IRC limitano la frequenza con cui uno stesso indirizzo può collegarsi: una raffica di messaggi può essere rifiutata con un motivo come "Reconnecting too fast", e prende **Errore** come qualsiasi altro rifiuto. Per un flusso di lavoro che può scattare molte volte al minuto, raccogli ciò che deve dire in un unico messaggio, o invialo tramite un tuo server.
 
 Tieni le password in [variabili globali segrete](/docs/workflows/variables#variabili-globali) e usa la variabile nell'impostazione; sono comunque nascoste nei registri delle esecuzioni. Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un server su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server IRC sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`.
 
@@ -202,13 +202,13 @@ Invia un'email tramite un server SMTP che indichi sul blocco. Il blocco si chiam
 
 **Successo** scatta quando il server SMTP ha accettato il messaggio. **Errore** scatta quando l'host SMTP viene rifiutato, il server non è raggiungibile o rifiuta il messaggio, e riporta il messaggio di errore. Un **To Email**, un **Email mittente**, uno **SMTP HOST** o uno **SMTP Port** mancante ferma invece l'esecuzione.
 
-Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime, e le email che invia non compaiono nei registri delle notifiche. Per controllare cosa ha fatto, guarda le [Esecuzioni](/docs/workflows/runs-and-logs) del workflow.
+Il blocco si collega direttamente al server indicato nelle sue impostazioni. Non usa le impostazioni [SMTP](/docs/emails/smtp) del tuo progetto né il server di posta di OneUptime, e le email che invia non compaiono nei registri delle notifiche. Per controllare cosa ha fatto, guarda le [Esecuzioni](/docs/workflows/runs-and-logs) del flusso di lavoro.
 
 Le connessioni agli indirizzi di loopback (`localhost`, `127.0.0.1`), link-local e di metadati cloud vengono rifiutate. Su OneUptime Cloud, anche un host SMTP su un indirizzo di rete privata, o un nome che si risolve in uno, viene rifiutato. Le installazioni self-hosted possono raggiungere un server di posta sulla propria rete, a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` non sia impostato su `true`. Un host rifiutato prende l'uscita **Errore**, e non viene inviato nulla.
 
 ## Paging
 
-Chiama delle persone da un workflow: ognuna riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno conferma. C'è un blocco per ogni modo di dire chi chiamare. Nel pannello **Aggiungi componente**, cerca `page`.
+Chiama delle persone da un flusso di lavoro: ognuna riceve una telefonata, un SMS, una notifica push o un'email, come dicono le sue regole di reperibilità, finché qualcuno conferma. C'è un blocco per ogni modo di dire chi chiamare. Nel pannello **Aggiungi componente**, cerca `page`.
 
 | Blocco                      | Chi chiama |
 | --------------------------- | ---------- |
@@ -227,18 +227,18 @@ flowchart TB
     check -->|"Sì"| page["Page Whoever Is On Call"]
 ```
 
-Quando crei un workflow, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. La finestra **Crea un flusso di lavoro** chiede chi chiama ciascun blocco di chiamata di un modello, così il workflow si apre con queste scelte già fatte. Un blocco di chiamata che aggiungi nel Costruttore dice **Click to set up** finché non scegli chi chiama.
+Quando crei un flusso di lavoro, i modelli sotto **Reperibilità** hanno questo già pronto, e uno che chiama in base alla gravità con **Switch / Case**. La finestra **Crea un flusso di lavoro** chiede chi chiama ciascun blocco di chiamata di un modello, così il flusso di lavoro si apre con queste scelte già fatte. Un blocco di chiamata che aggiungi nel Costruttore dice **Click to set up** finché non scegli chi chiama.
 
 | Impostazione | Cosa fa |
 | ------------ | ------- |
 | **Utenti**, **Team**, **Pianificazioni di reperibilità** o **Policy di reperibilità** | Chi chiamare: ogni blocco ha quella che va con il suo nome. Scegli per nome, oppure premi **{ }** alla fine della riga per aggiungere un valore da un blocco precedente. Un valore può contenere un ID o più di uno e, per **Utenti**, un indirizzo email. |
 | **Page About** | Di cosa tratta la chiamata: **A new alert**, **An incident** o **An alert**. Confermare la chiamata conferma anche quello. |
 | **Titolo** e **Messaggio** | Per un nuovo avviso. OneUptime ne crea un avviso, che resta tra i tuoi avvisi come qualsiasi altro. |
-| **ID incidente** o **ID avviso** | Per un incidente o un avviso che esiste già, di solito quello da cui è partito il workflow: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
+| **ID incidente** o **ID avviso** | Per un incidente o un avviso che esiste già, di solito quello da cui è partito il flusso di lavoro: `{{local.components.incident-on-create-1.returnValues.model._id}}`. |
 | **Page As** | Per un incidente o un avviso che esiste già, sotto **Altri campi**. I **Destinatari** se ne occupano. Gli **Osservatori** vengono tenuti informati mentre altri rispondono: confermare la loro chiamata dice solo che l'hanno vista, e l'incidente o l'avviso non viene confermato. |
 | **Gravità** | Per un nuovo avviso, sotto **Altri campi**. Decide quali regole di reperibilità di ciascuna persona la chiamano. Lasciata vuota, è la più grave del progetto. |
 
-Un blocco aggiunto a un workflow che parte da un incidente o da un avviso è già impostato per chiamare riguardo a quel record, quindi chiede soltanto chi chiamare.
+Un blocco aggiunto a un flusso di lavoro che parte da un incidente o da un avviso è già impostato per chiamare riguardo a quel record, quindi chiede soltanto chi chiamare.
 
 **Successo** viene eseguito appena almeno una persona è stata chiamata, o una policy è partita. **Errore** viene eseguito quando non è stato chiamato nessuno, e il valore **Errore** del blocco dice perché, ad esempio che nella pianificazione nessuno è reperibile. **Riepilogo** dice in una frase chi è stato chiamato e chi è stato escluso, pronta da pubblicare in un canale, e **Paged Users** elenca le persone chiamate.
 
@@ -247,7 +247,7 @@ Chi è assente non viene chiamato: al suo posto viene chiamato chi la sua sostit
 Una chiamata senza una policy di reperibilità alle spalle è elencata con le esecuzioni delle policy come **Chiamata diretta**: nei log di reperibilità dell'incidente o dell'avviso, nel suo feed e nel suo canale Slack o Microsoft Teams, e nei log di ogni persona chiamata. Resta aperta per 30 minuti, e poi finché partono ancora chiamate. Se per allora nessuno ha confermato, finisce senza chiamare nessun altro.
 
 > [!WARNING]
-> **Esegui flusso di lavoro** chiama delle persone per davvero, che il workflow sia attivo o no, e così fa **Run just this step**. Indica te stesso mentre fai le prove.
+> **Esegui flusso di lavoro** chiama delle persone per davvero, che il flusso di lavoro sia attivo o no, e così fa **Run just this step**. Indica te stesso mentre fai le prove.
 
 ## Custom Code
 
@@ -279,7 +279,7 @@ Il codice viene eseguito in una sandbox con `args`, `console.log` (scritto nel r
 
 ## Check With JavaScript
 
-Esegui qualche riga di JavaScript, poi prendi **Sì** o **No** in base a ciò che restituisce: un blocco [Custom Code](#custom-code) e un [If / Else](#conditions) dopo di esso, in un unico blocco. Usalo quando un solo confronto non basta per decidere, per esempio per leggere ciò che ha inviato un altro strumento e saltare ciò che il workflow deve lasciar stare.
+Esegui qualche riga di JavaScript, poi prendi **Sì** o **No** in base a ciò che restituisce: un blocco [Custom Code](#custom-code) e un [If / Else](#conditions) dopo di esso, in un unico blocco. Usalo quando un solo confronto non basta per decidere, per esempio per leggere ciò che ha inviato un altro strumento e saltare ciò che il flusso di lavoro deve lasciar stare.
 
 | Impostazione        | Cosa fa |
 | ------------------- | ------- |
@@ -365,7 +365,7 @@ Metti in pausa l'esecuzione prima del blocco successivo, per dare a un altro sis
 
 **Giorni**, **Ore**, **Minuti** e **Secondi** si sommano. L'attesa più lunga è di 30 giorni: una più lunga viene ridotta a 30 giorni, e il registro dell'esecuzione lo dice.
 
-Durante l'attesa, l'esecuzione viene messa da parte con lo stato **In attesa** e ripresa quando il tempo è scaduto, quindi un'attesa lunga non blocca nulla. Un'esecuzione il cui workflow è stato disattivato o archiviato nel frattempo viene annullata al risveglio. Un'esecuzione di prova, avviata mentre il workflow era disattivato, non viene annullata perché lo è.
+Durante l'attesa, l'esecuzione viene messa da parte con lo stato **In attesa** e ripresa quando il tempo è scaduto, quindi un'attesa lunga non blocca nulla. Un'esecuzione il cui flusso di lavoro è stato disattivato o archiviato nel frattempo viene annullata al risveglio. Un'esecuzione di prova, avviata mentre il flusso di lavoro era disattivato, non viene annullata perché lo è.
 
 ## Log
 
@@ -375,20 +375,20 @@ Scrivi un valore nel registro dell'esecuzione. Non cambia nient'altro, il che lo
 
 ## Execute Workflow
 
-Avvia un altro workflow dello stesso progetto. Il tuo workflow prosegue senza aspettare che l'altro finisca.
+Avvia un altro flusso di lavoro dello stesso progetto. Il tuo flusso di lavoro prosegue senza aspettare che l'altro finisca.
 
 | Impostazione  | Cosa fa                                                                                                                                   |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Flusso di lavoro**  | Il workflow da avviare. Deve essere abilitato e, per ricevere argomenti, avere un trigger **Manuale**.                                     |
-| **Arguments** | Il JSON da passare. Il trigger Manual dell'altro workflow passa ogni chiave come un valore a sé: con `{"customerId": "42"}`, legge `{{local.components.manual-1.returnValues.customerId}}`. |
+| **Flusso di lavoro**  | Il flusso di lavoro da avviare. Deve essere abilitato e, per ricevere argomenti, avere un trigger **Manuale**.                                     |
+| **Arguments** | Il JSON da passare. Il trigger Manual dell'altro flusso di lavoro passa ogni chiave come un valore a sé: con `{"customerId": "42"}`, legge `{{local.components.manual-1.returnValues.customerId}}`. |
 
-**Uscita** scatta non appena l'altro workflow è in coda. **Errore** scatta quando non può esserlo: non viene trovato, è disattivato o archiviato, o avviarlo creerebbe un ciclo.
+**Uscita** scatta non appena l'altro flusso di lavoro è in coda. **Errore** scatta quando non può esserlo: non viene trovato, è disattivato o archiviato, o avviarlo creerebbe un ciclo.
 
-Usalo per condividere logica comune: costruisci una volta un workflow «pubblica nel canale dell'incidente» e avvialo da ogni workflow che ne ha bisogno. Una catena di workflow che si avviano a vicenda non può tornare su sé stessa ed è profonda al massimo 10 livelli. Vedi [Configurazione e sicurezza](/docs/workflows/configuration#limite-alle-chiamate-tra-workflow).
+Usalo per condividere logica comune: costruisci una volta un flusso di lavoro «pubblica nel canale dell'incidente» e avvialo da ogni flusso di lavoro che ne ha bisogno. Una catena di flussi di lavoro che si avviano a vicenda non può tornare su sé stessa ed è profonda al massimo 10 livelli. Vedi [Configurazione e sicurezza](/docs/workflows/configuration#limite-alle-chiamate-tra-flussi-di-lavoro).
 
 ## Incidenti e avvisi da altri strumenti
 
-Tieni un incidente, o un avviso, per ogni problema che un altro strumento ti segnala, abbinato tramite l'ID che quello strumento gli dà. **Incident From Another Tool** e **Alert From Another Tool** sono la base dei modelli per Zabbix, Huntress, Jira e Dynamics 365, e funzionano con qualsiasi strumento che possa chiamare il [trigger Webhook](/docs/workflows/triggers#webhook) di un workflow. Nel pannello **Aggiungi componente** si trovano sotto **From Other Tools**.
+Tieni un incidente, o un avviso, per ogni problema che un altro strumento ti segnala, abbinato tramite l'ID che quello strumento gli dà. **Incident From Another Tool** e **Alert From Another Tool** sono la base dei modelli per Zabbix, Huntress, Jira e Dynamics 365, e funzionano con qualsiasi strumento che possa chiamare il [trigger Webhook](/docs/workflows/triggers#webhook) di un flusso di lavoro. Nel pannello **Aggiungi componente** si trovano sotto **From Other Tools**.
 
 Ogni esecuzione passa al blocco un evento: **Cosa è successo**, e **Outside ID**, l'ID del problema nello strumento. Il blocco cerca il record che conserva quell'ID e fa ciò che dice **Cosa è successo**:
 
@@ -434,7 +434,7 @@ Per prendere in carico o chiudere, il blocco legge prima il problema. Un problem
 
 ### Propose an OpenStack fix
 
-Chiede a una persona di approvare una modifica al cloud OpenStack a cui si riferisce un avviso o un incidente. Non fa mai la modifica. La correzione attende sull'avviso o sull'incidente, e nei canali in cui pubblica, come una che propone OneUptime AI, qualunque sia la modalità di correzione del cloud. Un workflow non può approvare ciò che propone.
+Chiede a una persona di approvare una modifica al cloud OpenStack a cui si riferisce un avviso o un incidente. Non fa mai la modifica. La correzione attende sull'avviso o sull'incidente, e nei canali in cui pubblica, come una che propone OneUptime AI, qualunque sia la modalità di correzione del cloud. Un flusso di lavoro non può approvare ciò che propone.
 
 Non richiede alcun modello IA e passa per le stesse regole di una correzione proposta da OneUptime AI: la policy dei comandi, gli obiettivi di scrittura e gli obiettivi protetti dell'agente, e la lettura che l'agente fa di ciò che la modifica tocca. Un'evacuazione di un host ancora attivo, o che l'agente non riesce a leggere per intero, non viene proposta.
 
@@ -443,12 +443,12 @@ Non richiede alcun modello IA e passa per le stesse regole di una correzione pro
 | **ID avviso** | L'avviso a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **ID incidente**, e il cloud deriva da ciò a cui è collegato il record. |
 | **ID incidente** | L'incidente a cui serve la correzione, di solito l'ID restituito dal tuo trigger. Compila questo o **ID avviso**. |
 | **Comando** | La modifica da proporre, nell'unica grafia che OneUptime accetta. Vedi [le modifiche che una correzione può fare](/docs/telemetry/openstack#correzioni). Può usare valori dei blocchi precedenti, e viene letto dopo che sono stati compilati. |
-| **Perché** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale workflow l'ha chiesto. |
+| **Perché** | Ciò che la persona che approva legge per primo. Se vuoto, indica quale flusso di lavoro l'ha chiesto. |
 | **OpenStack Cloud ID** | In **Altri campi**. Solo per un record collegato a più di un cloud, o a nessuno. |
 
 Restituisce **Suggestion ID** (la correzione in attesa di approvazione), **Tier** (Safe o Riskier, come OneUptime legge il comando) e **Already Waiting** (true quando la stessa modifica su quel cloud era già in attesa, quindi non ne è stata aggiunta una seconda).
 
-**Successo** scatta quando una persona è stata interpellata, senza attendere la sua risposta. **Errore** scatta quando non è stato proposto nulla, con il motivo in **Errore**: il comando è rifiutato, le correzioni non sono ancora consentite su quel cloud, oppure i workflow di un progetto hanno proposto 20 correzioni nell'ultima ora.
+**Successo** scatta quando una persona è stata interpellata, senza attendere la sua risposta. **Errore** scatta quando non è stato proposto nulla, con il motivo in **Errore**: il comando è rifiutato, le correzioni non sono ancora consentite su quel cloud, oppure i flussi di lavoro di un progetto hanno proposto 20 correzioni nell'ultima ora.
 
 Il modello [Propose taking a failing OpenStack compute service out of scheduling](/docs/workflows/authoring) è un punto di partenza.
 
@@ -471,9 +471,9 @@ Lo stesso insieme ti dà quattro trigger: **On Create Monitor**, **On Update Mon
 
 Un tipo offre solo i componenti che il suo modello consente. Un tipo di sola lettura ha i due componenti Find e nient'altro, quindi se nel pannello non trovi **Delete One Monitor**, quel tipo non lo consente.
 
-È così che un workflow legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Create One Incident** per aprire un incidente con i dettagli dell'errore.
+È così che un flusso di lavoro legge e modifica i dati di OneUptime. Ad esempio, un webhook del tuo strumento di CI può usare **Create One Incident** per aprire un incidente con i dettagli dell'errore.
 
-Questi componenti agiscono come Project Admin del progetto del workflow: ciò che un Project Admin non può fare, o che il tuo piano non include, viene rifiutato, e il registro dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un workflow](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-workflow).
+Questi componenti agiscono come Amministratore del progetto nel progetto del flusso di lavoro: ciò che un Amministratore del progetto non può fare, o che il tuo piano non include, viene rifiutato, e il registro dell'esecuzione dice perché. Vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 
 ### Dichiarare un incidente da un modello
 
@@ -486,6 +486,12 @@ L'incidente registra il modello da cui è stato dichiarato in `createdIncidentTe
 **Create One Incident** e **Create One Alert** hanno un'impostazione **Risorse interessate**: gli host, i dispositivi di rete, i cluster, i database o i servizi di cui tratta il record, per nome, indirizzo o ID, separati da virgole — digitati oppure presi da un passaggio precedente, come l'host che nomina un avviso arrivato da un altro strumento. Ogni voce viene cercata in tutti i tipi di risorsa che il record può contenere, come valore intero e senza distinguere maiuscole e minuscole: per nome, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP, e una risorsa cloud per l'ID del suo provider. Ogni risorsa a cui corrisponde una voce viene collegata, accanto a ciò che **JSON Object** e il modello collegano già, fino a 50 dalle prime 25 voci.
 
 Una voce che non corrisponde a nulla non ferma il passaggio: il record viene creato comunque, e il registro dell'esecuzione dice che cosa ha collegato ogni voce e quali non corrispondevano a nulla. Le risorse archiviate non vengono collegate. I monitor non vengono cercati: indicali in **JSON Object** (`monitors` su un incidente, `monitorId` su un avviso), perché collegare un monitor a un incidente ne mette in pausa il monitoraggio.
+
+### A chi appartiene fin dall'inizio
+
+**Create One Incident** e **Create One Alert** hanno le impostazioni **Utenti proprietari** e **Team proprietari**: le persone e i team a cui il record appartiene fin dalla sua creazione. Sceglili, oppure prendili da un passaggio precedente: l'ID o l'indirizzo email di un utente, l'ID di un team, più d'uno separati da virgole, o una lista. I proprietari del record vengono a sapere della sua creazione circa un minuto dopo, tutti quelli che ha a quel punto: quelli scelti qui sono sempre tra loro, mentre i proprietari che un passaggio successivo aggiunge se la perdono quando quel passaggio viene eseguito più di un minuto dopo, e al loro posto vengono avvisati i proprietari del progetto.
+
+Il passaggio chiede se può aggiungerli, come Project Admin del progetto del flusso di lavoro, prima che il record venga salvato: i proprietari che non può aggiungere fanno rifiutare la creazione. Chi non è membro del progetto, o un team che non è del progetto, viene lasciato fuori, e il registro dell'esecuzione lo dice: il record viene creato comunque. I proprietari aggiunti così non vengono avvisati di essere stati aggiunti: la notifica che il record è stato creato è quella che ricevono.
 
 ## Lavorare con i record
 
@@ -501,7 +507,7 @@ Ogni campo di un componente dati si basa sui nomi delle **colonne** del record: 
 { "monitorType": "Website", "isEnabled": true }
 ```
 
-Una query è sempre limitata al progetto in cui viene eseguito il workflow. Non puoi raggiungere i record di un altro progetto, e non devi aggiungere tu il progetto alla query.
+Una query è sempre limitata al progetto in cui viene eseguito il flusso di lavoro. Non puoi raggiungere i record di un altro progetto, e non devi aggiungere tu il progetto alla query.
 
 **JSON Object** su Create One, **JSON Array** su Create Many e **Data (JSON Object)** sui componenti Update portano i campi da scrivere, con le stesse chiavi:
 
@@ -517,15 +523,15 @@ I **Campi personalizzati** sono un'unica colonna, `customFields`, che contiene i
 { "customFields": { "Notification Count": 1 } }
 ```
 
-imposta **Notification Count** e lascia gli altri campi personalizzati del record come erano. Imposta un campo personalizzato a `null` per svuotarlo, oppure imposta `customFields` stesso a `null` per svuotarli tutti. Due workflow che aggiornano nello stesso momento campi personalizzati diversi dello stesso record vanno entrambi a buon fine. Questo vale solo per i componenti Update: l'API di OneUptime scrive `customFields` per intero, quindi una richiesta all'API deve contenere ogni campo personalizzato che vuoi conservare.
+imposta **Notification Count** e lascia gli altri campi personalizzati del record come erano. Imposta un campo personalizzato a `null` per svuotarlo, oppure imposta `customFields` stesso a `null` per svuotarli tutti. Due flussi di lavoro che aggiornano nello stesso momento campi personalizzati diversi dello stesso record vanno entrambi a buon fine. Questo vale solo per i componenti Update: l'API di OneUptime scrive `customFields` per intero, quindi una richiesta all'API deve contenere ogni campo personalizzato che vuoi conservare.
 
-Ogni campo personalizzato del progetto è elencato come campo a sé ovunque un componente nomini i campi di un record: nei campi che un componente scrive, con il controllo del suo tipo e le opzioni proprie di un menu a discesa; nelle condizioni di una query; nei valori che un passaggio successivo può usare; e nei campi che un trigger osserva, così un workflow può essere eseguito quando cambia un solo campo personalizzato. Un campo personalizzato di tipo file viene caricato su un record, quindi è l'unico tipo che resta in JSON.
+Ogni campo personalizzato del progetto è elencato come campo a sé ovunque un componente nomini i campi di un record: nei campi che un componente scrive, con il controllo del suo tipo e le opzioni proprie di un menu a discesa; nelle condizioni di una query; nei valori che un passaggio successivo può usare; e nei campi che un trigger osserva, così un flusso di lavoro può essere eseguito quando cambia un solo campo personalizzato. Un campo personalizzato di tipo file viene caricato su un record, quindi è l'unico tipo che resta in JSON.
 
 Raramente scrivi queste chiavi a mano. Nelle impostazioni del componente, **Add a field** (o **Add a condition** su una query) elenca le colonne del modello per nome, con il tipo di valore che ciascuna accetta. Cercale per nome, per chiave di colonna o per ciò che fa il campo, e premi **Enter** per aggiungere la corrispondenza migliore. In una creazione vengono prima i campi senza i quali il record non si può creare, poi i campi principali del modello (quelli che compila per te se li ometti), poi tutto il resto.
 
 Un campo che punta a un altro record, come la gravità di un incidente, elenca i record del progetto per nome: scegline uno e il suo ID viene scritto per te. Un elenco di record, come le etichette di un incidente, funziona allo stesso modo. Per usare invece un valore di un passaggio precedente, premi `{ }` accanto all'elenco.
 
-I campi che OneUptime compila da solo non vengono offerti quando scrivi un record: l'`_id` del record, **Creato il**, **Aggiornato il**, **Creato da utente**, gli slug, i numeri dei record e gli stati delle notifiche. Chi ha creato, archiviato o risolto un record, e quando, non spetta mai a un workflow: un record creato da un workflow non ha un creatore, un valore che un workflow invia per uno di quei campi insieme ad altri campi viene ignorato, e un Update che non invia nient'altro fallisce con un messaggio che li nomina. Un aggiornamento offre solo i campi che possono cambiare dopo che un record esiste. Una query offre comunque l'ID, gli orari e **Creato da utente**, perché sono utili per filtrare. **Deleted At** non viene offerto da nessuna parte: i record vengono eliminati del tutto, quindi è sempre vuoto.
+I campi che OneUptime compila da solo non vengono offerti quando scrivi un record: l'`_id` del record, **Creato il**, **Aggiornato il**, **Creato da utente**, gli slug, i numeri dei record e gli stati delle notifiche. Chi ha creato, archiviato o risolto un record, e quando, non spetta mai a un flusso di lavoro: un record creato da un flusso di lavoro non ha un creatore, un valore che un flusso di lavoro invia per uno di quei campi insieme ad altri campi viene ignorato, e un Update che non invia nient'altro fallisce con un messaggio che li nomina. Un aggiornamento offre solo i campi che possono cambiare dopo che un record esiste. Una query offre comunque l'ID, gli orari e **Creato da utente**, perché sono utili per filtrare. **Deleted At** non viene offerto da nessuna parte: i record vengono eliminati del tutto, quindi è sempre vuoto.
 
 **Salta** e **Limit** sono due campi numerici su Find Many, Update Many e Delete Many, sotto **Altri campi**: `Skip: 0` con `Limit: 100` prende le prime cento corrispondenze. **Limit** vale `10` per impostazione predefinita, e su Update Many e Delete Many limita quanti record vengono effettivamente scritti, non solo quanti vengono restituiti. Quindi `Items Deleted: 10` significa che sono stati eliminati dieci record, non che ne corrispondevano dieci. Aumenta **Limit** quando vuoi modificarne più di dieci.
 

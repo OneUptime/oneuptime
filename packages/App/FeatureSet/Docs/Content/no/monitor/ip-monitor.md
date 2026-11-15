@@ -39,7 +39,7 @@ En sonde som har mistet sin egen nettverkstilkobling, rapporterer ikke noe resul
 
 ## Før du starter
 
-- **En rolle som kan opprette monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en egendefinert rolle med tillatelsen Create Monitor.
+- **En rolle som kan opprette monitorer**: Prosjekteier, Prosjektadministrator, Prosjektmedlem, Monitoradministrator eller Monitormedlem, eller en egendefinert rolle med tillatelsen Create Monitor.
 - **En sonde som når adressen**, med ICMP tillatt på veien. Prosjektets standardsonder velges for hver nye monitor. Står det en brannmur foran den, tillater du ICMP-ekkoforespørsler fra [OneUptime Clouds sonde-IP-adresser](/docs/configuration/ip-addresses). En privat adresse trenger en [egendefinert sonde](/docs/probe/custom-probe) på det nettverket, og en IPv6-adresse trenger en sonde med IPv6-tilkobling.
 
 ## Opprett en IP-monitor
@@ -143,7 +143,7 @@ Adressen, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fr
 :::
 
 :::details En IPv6-adresse feiler alltid
-Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte probes](/docs/probe/custom-probe).
+Sonden som kjørte sjekken, har ingen IPv6-tilkobling; feilmeldingen sier det. Kjør monitoren på en sonde med IPv6: se [Egendefinerte sonder](/docs/probe/custom-probe).
 :::
 
 :::details Pakketap og jitter er tomme
@@ -155,6 +155,6 @@ Sonden som kjørte sjekken, kan ikke sende ping, så den sjekket i stedet TCP-po
 :::cards
 - [Ping-overvåking](/docs/monitor/ping-monitor): Ping en vert ved navn, og følg DNS-endringer.
 - [Port-overvåking](/docs/monitor/port-monitor): Sjekk en tjeneste på adressen, ikke bare adressen.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk private adresser og IPv6-adresser fra ditt eget nettverk.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

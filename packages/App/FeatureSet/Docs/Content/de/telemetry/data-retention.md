@@ -41,7 +41,7 @@ Vollständig liest OneUptime diese Einstellungen in dieser Reihenfolge, und die 
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die das Projekt ändern darf.** Project Owner oder Project Admin ändern die Aufbewahrung des Projekts. Die Aufbewahrung eines Dienstes oder einer Ressource erfordert die Rolle, die auch ihre anderen Einstellungen ändert.
+- **Eine Rolle, die das Projekt ändern darf.** Projektinhaber oder Projektadministrator ändern die Aufbewahrung des Projekts. Die Aufbewahrung eines Dienstes oder einer Ressource erfordert die Rolle, die auch ihre anderen Einstellungen ändert.
 - **Für Überschreibungen die Enterprise Edition oder der Scale-Plan.** Eine selbst gehostete Installation braucht eine Enterprise-Lizenz, ein Projekt in OneUptime Cloud den Scale-Plan oder höher. Die Standardaufbewahrung des Projekts gibt es in jeder Edition und jedem Plan.
 
 ## Die Aufbewahrung des Projekts ändern

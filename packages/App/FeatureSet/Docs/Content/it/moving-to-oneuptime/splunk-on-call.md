@@ -25,7 +25,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Un progetto OneUptime e il diritto di creare ciò che importi.** I proprietari e gli amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
+- **Un progetto OneUptime e il diritto di creare ciò che importi.** I Proprietari del progetto e gli Amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
 - **Il tuo API ID di Splunk On-Call e una chiave API di sola lettura.** Si trovano entrambi in **Integrations** > **API** in Splunk On-Call. L'importazione non scrive mai in Splunk On-Call, quindi basta una chiave di sola lettura.
 
 ## Importa il tuo account Splunk On-Call
@@ -74,7 +74,7 @@ Un'importazione crea al massimo 2.000 record: al massimo 500 persone, 200 team, 
 
 Su OneUptime Cloud, i record che il tuo piano non include vengono mostrati come non importati, con il piano che richiedono.
 
-Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I proprietari e gli amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
+Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I Proprietari del progetto e gli Amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
 
 ## Completa il passaggio
 

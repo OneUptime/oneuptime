@@ -285,7 +285,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
             projectConfig: serviceMetadata.projectRetentionConfig,
             projectRetentionInDays: serviceMetadata.projectRetentionInDays,
           });
-          const retentionDate: Date = OneUptimeDate.addRemoveDays(
+          const retentionDate: Date = OneUptimeDate.addRemoveDurationInDays(
             ingestionDate,
             retentionDays,
           );

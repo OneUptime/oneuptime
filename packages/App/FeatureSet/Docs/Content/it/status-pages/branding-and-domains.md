@@ -39,7 +39,7 @@ La prima scheda, **Logo e immagine di copertina**, ha un pulsante **Modifica imm
 | **Logo** | Il caricamento del logo (segnaposto `Upload logo`), **Logo per il tema scuro** (segnaposto `Upload logo for the dark theme`), un logo facoltativo pensato per uno sfondo scuro, e **Testo alternativo del logo** (segnaposto `Logo of My Company`). Lasciate vuoto il testo alternativo e verrà usato il titolo della pagina di stato. |
 | **Immagine di copertina** | **Copertina**, un caricamento (segnaposto `Upload cover image`) per l'ampio banner dietro l'intestazione, e **Testo alternativo dell'immagine di copertina**. Lasciate vuoto il testo alternativo se la copertina è puramente decorativa. |
 
-Il logo, il logo per il tema scuro, l'immagine di copertina e la favicon sono file caricati nel progetto stesso della pagina di stato, e questo viene verificato a ogni salvataggio, dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole di un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." oppure "The favicon's file could not be found. Upload the favicon again." Caricare di nuovo l'immagine dalla pagina risolve il problema.
+Il logo, il logo per il tema scuro, l'immagine di copertina e la favicon sono file caricati nel progetto stesso della pagina di stato, e questo viene verificato a ogni salvataggio, dalla dashboard, dall'API, da Terraform o da un flusso di lavoro. Un file caricato in un altro progetto viene rifiutato con le stesse parole di un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again.", "The cover image's file could not be found. Upload the cover image again." oppure "The favicon's file could not be found. Upload the favicon again." Caricare di nuovo l'immagine dalla pagina risolve il problema.
 
 La vostra pagina di stato mostra solo immagini del proprio progetto; un'immagine che non può mostrare viene omessa, come se la pagina non ne avesse. La dashboard, l'API e Terraform leggono le immagini della pagina allo stesso modo: un'immagine di un altro progetto torna come nessuna immagine. Le email che la pagina invia (agli iscritti, e agli utenti privati riguardo al loro accesso) mostrano il suo logo allo stesso modo: un logo che la pagina non può mostrare viene omesso anche da esse, invece di comparire come immagine rotta.
 
@@ -217,7 +217,7 @@ Fate clic su **Continua**. Se il progetto ha verificato il dominio su cui si tro
 
 Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro indirizzo, aggiungete quello ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
 
-Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Domain**, oppure Project Owner o Project Admin), e verificarlo richiede **Edit Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
+Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Domain**, oppure Proprietario del progetto o Amministratore del progetto), e verificarlo richiede **Edit Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
 
 ### Configurazione DNS e verifica
 
@@ -301,9 +301,9 @@ Cercate sul vostro dominio un record CAA che escluda `letsencrypt.org` e, in un'
 
 ### Chi può verificare e riemettere
 
-**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono il permesso di modificarlo: **Edit Status Page Domain**, oppure un ruolo che lo includa (Project Owner, Project Admin, Project Member, Status Page Admin o Status Page Member).
+**Verifica ora**, l'ordine del certificato di un dominio e **Reissue SSL** modificano il dominio, quindi richiedono il permesso di modificarlo: **Edit Status Page Domain**, oppure un ruolo che lo includa (Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore delle pagine di stato o Membro delle pagine di stato).
 
-Chi può solo leggere il dominio, come un Viewer o uno Status Page Viewer, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati e indicano quale permesso serve. OneUptime continua comunque a controllare ogni dominio e a ordinarne il certificato da solo.
+Chi può solo leggere il dominio, come un Visualizzatore o un Visualizzatore delle pagine di stato, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati e indicano quale permesso serve. OneUptime continua comunque a controllare ogni dominio e a ordinarne il certificato da solo.
 
 Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle pagine di stato non può chiamare `verify-cname`, `check-dns`, `order-ssl` o `reissue-ssl` su `/status-page-domain`. Datele **Read Status Page Domain** e **Edit Status Page Domain** se le servono. Quando il record non viene trovato, `verify-cname` rifiuta indicando cosa ha cercato e cosa ha ottenuto, con le stesse parole che mostra **Configurazione DNS**; `check-dns` risponde in ogni caso per ogni record che ha cercato.
 

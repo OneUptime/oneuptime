@@ -39,7 +39,7 @@ Eine Sonde, die ihre eigene Netzwerkverbindung verloren hat, meldet kein Ergebni
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Monitore erstellen darf**: Project Owner, Project Admin, Project Member, Monitor Admin oder Monitor Member oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
+- **Eine Rolle, die Monitore erstellen darf**: Projektinhaber, Projektadministrator, Projektmitglied, Monitor-Administrator oder Monitor-Mitglied oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor.
 - **Eine Sonde, die die Adresse erreicht**, mit ICMP auf dem Weg erlaubt. Die Standardsonden Ihres Projekts werden für jeden neuen Monitor ausgewählt. Steht eine Firewall davor, lassen Sie ICMP-Echo-Anfragen von den [Sonden-IP-Adressen von OneUptime Cloud](/docs/configuration/ip-addresses) zu. Eine private Adresse braucht eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) in diesem Netzwerk, und eine IPv6-Adresse eine Sonde mit IPv6-Konnektivität.
 
 ## Einen IP-Monitor erstellen
@@ -143,7 +143,7 @@ Die Adresse oder eine Firewall davor beantwortet keine ICMP-Echo-Anfragen der So
 :::
 
 :::details Eine IPv6-Adresse schlägt immer fehl
-Die Sonde, die die Prüfung ausgeführt hat, hat keine IPv6-Konnektivität; die Fehlermeldung sagt es. Führen Sie den Monitor auf einer Sonde mit IPv6 aus: siehe [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+Die Sonde, die die Prüfung ausgeführt hat, hat keine IPv6-Konnektivität; die Fehlermeldung sagt es. Führen Sie den Monitor auf einer Sonde mit IPv6 aus: siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 :::
 
 :::details Paketverlust und Jitter sind leer
@@ -155,6 +155,6 @@ Die Sonde, die die Prüfung ausgeführt hat, kann keine Pings senden und hat des
 :::cards
 - [Ping-Überwachung](/docs/monitor/ping-monitor): Einen Host beim Namen anpingen und DNS-Änderungen folgen.
 - [Port-Überwachung](/docs/monitor/port-monitor): Einen Dienst an der Adresse prüfen, nicht nur die Adresse.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Private und IPv6-Adressen aus Ihrem eigenen Netzwerk prüfen.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Private und IPv6-Adressen aus Ihrem eigenen Netzwerk prüfen.
 - [Vorfälle](/docs/incidents/index): Was passiert, nachdem der Monitor einen gemeldet hat.
 :::

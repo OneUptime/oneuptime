@@ -399,6 +399,12 @@ export interface FallbackNotificationResult {
    */
   notified: boolean;
   channelsUsed: Array<string>;
+  /*
+   * The fallback failed, for a reason a retry can outlast, before anything
+   * of it reached a sender, and its claim was given back: it can be tried
+   * again (issue #8469). What it failed with.
+   */
+  toTryAgainAfter?: unknown;
 }
 
 /*
@@ -867,7 +873,7 @@ export class Service extends ProjectReferencesService<Model> {
       } else {
         await this.giveBackNotificationRuleClaim({
           claim: claim,
-          options: options,
+          logId: options.userNotificationLogId,
         });
       }
 
@@ -886,9 +892,10 @@ export class Service extends ProjectReferencesService<Model> {
    */
   private async giveBackNotificationRuleClaim(data: {
     claim: OnCallRuleClaimInFlight;
-    options: ExecuteNotificationRuleOptions;
+    // The person's log the claim is on.
+    logId: ObjectID;
   }): Promise<void> {
-    const logId: ObjectID = data.options.userNotificationLogId;
+    const logId: ObjectID = data.logId;
 
     await OnCallRuleClaimsInFlight.keep(logId, { ...data.claim, owed: true });
 
@@ -4553,14 +4560,34 @@ export class Service extends ProjectReferencesService<Model> {
      * Claim the log under the reserved fallback key before doing anything, so
      * two overlapping cron ticks cannot both fall back and double-page the same
      * responder for one escalation.
+     *
+     * As a rule's claim is (executeNotificationRuleItem, issue #8469): kept in
+     * flight while the fallback is on its way (OnCallRuleClaimsInFlight), and
+     * given back when it fails, for a reason a retry can outlast, before
+     * anything of it reached a sender (OnCallSendAttempt) - reading whether
+     * the person is a member, or their methods - so the fallback is tried
+     * again rather than lost. It has no rule of its own to look for rows of:
+     * any notification of the log since the claim is its own.
      */
+    const claim: OnCallRuleClaimInFlight = {
+      claimKey: FALLBACK_NOTIFICATION_CLAIM_KEY,
+      ruleId: "",
+      claimedAt: OneUptimeDate.getCurrentDate(),
+      owed: false,
+    };
+
+    await OnCallRuleClaimsInFlight.keep(options.userOnCallLogId, claim);
+
     const claimed: boolean =
       await UserOnCallLogService.claimNotificationExecution({
         userOnCallLogId: options.userOnCallLogId,
         claimKey: FALLBACK_NOTIFICATION_CLAIM_KEY,
+        claimedAt: claim.claimedAt,
       });
 
     if (!claimed) {
+      await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+
       /*
        * A concurrent run already fell back for this log; it owns everything
        * that happens next, including the log's final status. Reported as the
@@ -4575,6 +4602,51 @@ export class Service extends ProjectReferencesService<Model> {
       };
     }
 
+    const attempt: OnCallSendAttempt = OnCallSendAttempt.begin();
+    let result: FallbackNotificationResult;
+
+    try {
+      result = await attempt.run((): Promise<FallbackNotificationResult> => {
+        return this.sendClaimedFallbackNotification(options);
+      });
+    } catch (err) {
+      const isTriedAgain: boolean =
+        !(err instanceof OnCallPageRecordGoneException) &&
+        OnCallRunFailure.classify(err) !== OnCallRunFailureKind.Permanent;
+
+      if (attempt.handedToASender || !isTriedAgain) {
+        await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+        throw err;
+      }
+
+      await this.giveBackNotificationRuleClaim({
+        claim: claim,
+        logId: options.userOnCallLogId,
+      });
+
+      return {
+        outcome: FallbackNotificationOutcome.DeliveryFailed,
+        notified: false,
+        channelsUsed: [],
+        toTryAgainAfter: err,
+      };
+    }
+
+    await OnCallRuleClaimsInFlight.forget(options.userOnCallLogId);
+
+    return result;
+  }
+
+  /*
+   * The fallback, once claimed (executeFallbackNotification): the person
+   * still a member, their verified methods, and one delivery on each. A
+   * delivery that failed is logged and the next one tried; when none went
+   * out and one failed for a reason a retry can outlast, that failure is
+   * thrown, so the fallback is tried again rather than ended (issue #8469).
+   */
+  private async sendClaimedFallbackNotification(
+    options: ExecuteFallbackNotificationOptions,
+  ): Promise<FallbackNotificationResult> {
     /*
      * Nothing is delivered on a project's behalf to somebody who is not a
      * member of it (ProjectMembership), however the fallback was reached: a
@@ -4612,6 +4684,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const channelsUsed: Array<string> = [];
     let anAttemptFailed: boolean = false;
+    // The last delivery that threw, if one did.
+    let lastDeliveryError: unknown = null;
 
     /*
      * One delivery call per channel, never a loop inside one call: the timeline
@@ -4646,6 +4720,7 @@ export class Service extends ProjectReferencesService<Model> {
         }
       } catch (err) {
         anAttemptFailed = true;
+        lastDeliveryError = err;
 
         logger.error(
           `On-call fallback failed to deliver on ${fallbackRule.channelName} for user ${options.userId.toString()}.`,
@@ -4660,6 +4735,21 @@ export class Service extends ProjectReferencesService<Model> {
         notified: true,
         channelsUsed: channelsUsed,
       };
+    }
+
+    /*
+     * Not one channel carried a page, and one failed for a reason a retry
+     * can outlast - the database lost as it wrote the notification: the
+     * fallback is tried again (executeFallbackNotification gives its claim
+     * back when nothing reached a sender), rather than ended as failed.
+     */
+    if (
+      lastDeliveryError &&
+      !(lastDeliveryError instanceof OnCallPageRecordGoneException) &&
+      OnCallRunFailure.classify(lastDeliveryError) !==
+        OnCallRunFailureKind.Permanent
+    ) {
+      throw lastDeliveryError;
     }
 
     /*

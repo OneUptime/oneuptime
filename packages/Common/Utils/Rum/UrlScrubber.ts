@@ -42,8 +42,21 @@ const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/;
 /*
  * Long high-entropy strings: session tokens, JWT parts, signed links.
  * Deliberately conservative at 32 characters so ordinary slugs survive.
+ * In base64url, or in standard base64 (#8489): its "+" and "/" (a "/" only
+ * escaped, as "%2F", or it would end the segment), and up to two "=" of
+ * padding at its end.
  */
-const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/;
+const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_+/-]{32,}={0,2}$/;
+
+/*
+ * A JSON Web Token, signed, unsigned or encrypted (#8385): a header of
+ * base64url JSON, so it starts "eyJ" ('{"'), and one to four more parts
+ * joined by dots. The dots kept a whole one out of OPAQUE_TOKEN_SEGMENT,
+ * and its payload is a person's claims, readable by anyone. A file name
+ * ("report-2026-11-15.pdf") does not start so. Anchored at both ends of one
+ * segment, and no part can hold a dot, so a segment is read once.
+ */
+const JWT_SEGMENT: RegExp = /^eyJ[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]*){1,4}$/;
 
 const REDACTED: string = "[redacted]";
 
@@ -119,7 +132,25 @@ export default class UrlScrubber {
       parsed.origin === "https://redacted.invalid" &&
       !rawUrl.startsWith("https://redacted.invalid");
 
-    const scrubbedPath: string = UrlScrubber.scrubPath(parsed.pathname);
+    let origin: string = parsed.origin;
+    let scrubbedPath: string = UrlScrubber.scrubPath(parsed.pathname);
+
+    /*
+     * A scheme the URL standard gives no origin: URL.origin is the string
+     * "null". The React Native recorder names every screen
+     * "app://<app id>/<route>", and each was stored as "null/<route>", its
+     * app lost (#8384). Such a URL keeps its scheme and host as written (a
+     * user name and password are dropped, as origin drops them). One with no
+     * path from the root (data:, mailto:, about:) is no page, and can be
+     * content ("data:text/plain,<anything>"): its path is redacted.
+     */
+    if (origin === "null") {
+      origin = parsed.protocol + (parsed.host && `//${parsed.host}`);
+
+      if (parsed.pathname && parsed.pathname.charAt(0) !== "/") {
+        scrubbedPath = REDACTED;
+      }
+    }
 
     const query: string = UrlScrubber.scrubQuery(
       parsed.searchParams,
@@ -128,7 +159,7 @@ export default class UrlScrubber {
 
     const base: string = isRelativeInput
       ? scrubbedPath
-      : `${parsed.origin}${scrubbedPath}`;
+      : `${origin}${scrubbedPath}`;
 
     const hashRoute: string = UrlScrubber.scrubHashRoute(parsed.hash);
 
@@ -195,8 +226,13 @@ export default class UrlScrubber {
    *
    * Running it over its own result changes nothing, so the ingest's second
    * scrub keeps the recorder's spelling.
+   *
+   * `asRead` leaves the words decoded ("/caf%c3%a9" and "/cafe%CC%81" are
+   * "/café"), and writes every other escape as above: the spelling a page
+   * pattern is compared in, so "/café" written as a person reads it matches
+   * the page it names (#8195), and "/a%2Fb" still is not "/a/b".
    */
-  public static normalizePathSpelling(path: string): string {
+  public static normalizePathSpelling(path: string, asRead?: boolean): string {
     if (!SPELLED_CHARACTER.test(path)) {
       return path;
     }
@@ -236,12 +272,12 @@ export default class UrlScrubber {
           continue;
         }
 
-        spelled += UrlScrubber.spellWords(words) + escape.toUpperCase();
+        spelled += UrlScrubber.spellWords(words, asRead) + escape.toUpperCase();
         words = "";
         index += 3;
       }
 
-      return spelled + UrlScrubber.spellWords(words);
+      return spelled + UrlScrubber.spellWords(words, asRead);
     } catch {
       // A lone surrogate, which only a path the parser never read holds.
       return path;
@@ -249,12 +285,14 @@ export default class UrlScrubber {
   }
 
   // Composed, and every character beyond ASCII escaped as the parser does.
-  private static spellWords(words: string): string {
-    return words
-      .normalize("NFC")
-      .replace(NON_ASCII_RUN, (run: string): string => {
-        return encodeURIComponent(run);
-      });
+  private static spellWords(words: string, asRead?: boolean): string {
+    const composed: string = words.normalize("NFC");
+
+    return asRead
+      ? composed
+      : composed.replace(NON_ASCII_RUN, (run: string): string => {
+          return encodeURIComponent(run);
+        });
   }
 
   /*
@@ -270,31 +308,32 @@ export default class UrlScrubber {
       UrlScrubber.normalizePathSpelling(pathname).split("/");
 
     const scrubbed: Array<string> = segments.map((segment: string): string => {
-      if (!segment) {
-        return segment;
-      }
-
       let decoded: string = segment;
 
       /*
        * Decode before matching so a percent-encoded email
-       * (name%40example.com) is still recognised. A malformed escape
-       * sequence throws, in which case the raw segment is matched.
+       * (name%40example.com) is still recognised, and once more, so one an
+       * application escaped twice (name%2540example.com) is too (#8385). A
+       * malformed escape sequence throws, in which case the text is matched
+       * as it is.
        */
-      try {
-        decoded = decodeURIComponent(segment);
-      } catch {
-        decoded = segment;
-      }
+      for (let pass: number = 0; pass < 2; pass++) {
+        try {
+          decoded = decodeURIComponent(decoded);
+        } catch {
+          // Matched as it is.
+        }
 
-      if (
-        UUID_SEGMENT.test(decoded) ||
-        OBJECT_ID_SEGMENT.test(decoded) ||
-        EMAIL_SEGMENT.test(decoded) ||
-        LONG_DIGIT_SEGMENT.test(decoded) ||
-        OPAQUE_TOKEN_SEGMENT.test(decoded)
-      ) {
-        return REDACTED;
+        if (
+          UUID_SEGMENT.test(decoded) ||
+          OBJECT_ID_SEGMENT.test(decoded) ||
+          EMAIL_SEGMENT.test(decoded) ||
+          LONG_DIGIT_SEGMENT.test(decoded) ||
+          OPAQUE_TOKEN_SEGMENT.test(decoded) ||
+          JWT_SEGMENT.test(decoded)
+        ) {
+          return REDACTED;
+        }
       }
 
       return segment;

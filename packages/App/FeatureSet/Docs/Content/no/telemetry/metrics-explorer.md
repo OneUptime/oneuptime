@@ -1,10 +1,10 @@
-# Metrikkutforsker
+# Målingsutforsker
 
-Metrikker er tallene tjenestene og infrastrukturen din rapporterer over tid: antall forespørsler, latenser, CPU, kødybde. Metrikkutforskeren viser hver metrikk prosjektet ditt mottar, viser hvilken som helst av dem i et diagram, kombinerer dem med formler og gjør et diagram om til en monitor eller en dashbord-widget.
+Målinger er tallene tjenestene og infrastrukturen din rapporterer over tid: antall forespørsler, latenser, CPU, kødybde. Målingsutforskeren viser hver måling prosjektet ditt mottar, viser hvilken som helst av dem i et diagram, kombinerer dem med formler og gjør et diagram om til en monitor eller en dashbord-widget.
 
 :::cards
-- [Finn en metrikk](#finn-en-metrikk): Søk i listen over metrikknavn.
-- [Vis en metrikk i et diagram](#vis-en-metrikk-i-et-diagram): Aggreger, filtrer og grupper en spørring.
+- [Finn en måling](#finn-en-måling): Søk i listen over målingsnavn.
+- [Vis en måling i et diagram](#vis-en-måling-i-et-diagram): Aggreger, filtrer og grupper en spørring.
 - [Kombiner spørringer med en formel](#kombiner-spørringer-med-en-formel): Feilrater og andre forholdstall.
 - [Bruk det du har vist i diagrammet](#bruk-det-du-har-vist-i-diagrammet): En monitor, en dashbord-widget eller en lenke.
 - [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki): Pull-forespørsler som retter målingene dine og legger til dem en tjeneste mangler.
@@ -12,14 +12,14 @@ Metrikker er tallene tjenestene og infrastrukturen din rapporterer over tid: ant
 
 ## Slik fungerer utforskeren
 
-Utforskeren har to nivåer. Fanen **Leser** viser metrikkene prosjektet ditt mottar. Klikk på en, så åpnes metrikkutforskeren med en spørring for den: en metrikk, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver spørring er en variabel, `a`, `b` og så videre, som en formel kan bruke.
+Utforskeren har to nivåer. Fanen **Leser** viser målingene prosjektet ditt mottar. Klikk på en, så åpnes målingsutforskeren med en spørring for den: en måling, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver spørring er en variabel, `a`, `b` og så videre, som en formel kan bruke.
 
-```mermaid title="Fra metrikkspørringer til et diagram, en monitor eller et dashbord"
+```mermaid title="Fra målingsspørringer til et diagram, en monitor eller et dashbord"
 flowchart TB
     a["Spørring a: kall,<br/>aggregert med Sum"] --> f["Formel:<br/>$b / $a * 100"]
     b["Spørring b: feil,<br/>aggregert med Sum"] --> f
     f --> chart["Diagram: feilrate<br/>i prosent"]
-    chart --> monitor["En metrikkmonitor"]
+    chart --> monitor["En målingsmonitor"]
     chart --> dash["En dashbord-widget"]
 ```
 
@@ -27,36 +27,36 @@ Utforskeren har seks faner:
 
 | Fane | Hva den er til |
 | --- | --- |
-| **Leser** | Listen over metrikker, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
+| **Leser** | Listen over målinger, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
 | **PromQL** | Spør etter målingene dine med PromQL, spørrespråket til Prometheus, og koble Grafana til dem. Se [Spør etter målinger med PromQL](/docs/telemetry/promql). |
-| **Innsikt** | Hvilke tjenester som rapporterer metrikker, og hvor mange. |
+| **Innsikt** | Hvilke tjenester som rapporterer målinger, og hvor mange. |
 | **KI** | Problemene OneUptime finner i målingene dine (for mange verdier, histogrambøtter som ikke passer, manglende målinger), og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
-| **Oppsettveiledning** | Hvordan du sender metrikker med OpenTelemetry med en av inntaksnøklene dine. |
-| **Innstillinger** | **Pipelineregler** og **Opptaksregler**: hva som skjer med metrikker når de kommer inn. |
+| **Oppsettveiledning** | Hvordan du sender målinger med OpenTelemetry med en av inntaksnøklene dine. |
+| **Innstillinger** | **Pipelineregler** og **Opptaksregler**: hva som skjer med målinger når de kommer inn. |
 
 ## Før du begynner
 
-- **Metrikker som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
-- **En rolle som kan lese telemetri.** Project Owner, Project Admin, Project Member, Viewer, Telemetry Admin, Telemetry Member eller Telemetry Viewer, eller en egendefinert rolle med tillatelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) for hvilke metrikker den leser.
+- **Målinger som kommer inn.** Send dem med [OpenTelemetry](/docs/telemetry/open-telemetry), eller fra en agent som [OpenTelemetry-collectoren for verter](/docs/telemetry/host-otel-collector) eller [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
+- **En rolle som kan lese telemetri.** Prosjekteier, Prosjektadministrator, Prosjektmedlem, Leser, Telemetriadministrator, Telemetrimedlem eller Telemetrileser, eller en egendefinert rolle med tillatelsen Read Metrics. Se [Telemetri](/docs/permissions/index#telemetri) for hvilke målinger den leser.
 
-## Finn en metrikk
+## Finn en måling
 
-Gå til **Produkter → Observerbarhet → Målinger**. **Leser** viser hver metrikk prosjektet ditt har mottatt, etter navn, hver med et lite diagram over tidsintervallet og den siste verdien.
+Gå til **Produkter → Observerbarhet → Målinger**. **Leser** viser hver måling prosjektet ditt har mottatt, etter navn, hver med et lite diagram over tidsintervallet og den siste verdien.
 
-- Søk i navn med løse ord eller `name:`, for eksempel finner `name:http.server` metrikken `http.server.request.duration`. Se [Søkesyntaks](/docs/telemetry/search-syntax#målinger).
-- Filtrer etter **Tjeneste** i sidepanelet for bare å se metrikkene én tjeneste rapporterer. Klikk på minustegnet ved siden av en tjeneste for i stedet å skjule metrikkene den rapporterer.
-- Klikk på en metrikk for å vise den i metrikkutforskeren.
+- Søk i navn med løse ord eller `name:`, for eksempel finner `name:http.server` målingen `http.server.request.duration`. Se [Søkesyntaks](/docs/telemetry/search-syntax#målinger).
+- Filtrer etter **Tjeneste** i sidepanelet for bare å se målingene én tjeneste rapporterer. Klikk på minustegnet ved siden av en tjeneste for i stedet å skjule målingene den rapporterer.
+- Klikk på en måling for å vise den i målingsutforskeren.
 
-## Vis en metrikk i et diagram
+## Vis en måling i et diagram
 
 :::steps
-### Åpne metrikken
+### Åpne målingen
 
-Klikk på metrikken i **Leser**. Utforskeren åpnes med én spørring, `a`, for tidsintervallet og filtrene til listen.
+Klikk på målingen i **Leser**. Utforskeren åpnes med én spørring, `a`, for tidsintervallet og filtrene til listen.
 
 ### Velg hvordan den aggregeres
 
-Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammetrikk, som varigheten til en forespørsel, regnes ut fra bøttene.
+Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kombineres: Avg, som er standard, Sum, Min, Max, Count eller en persentil, P50, P75, P90, P95 eller P99. En persentil av en histogrammåling, som varigheten til en forespørsel, regnes ut fra bøttene.
 
 ### Filtrer og grupper den
 
@@ -77,7 +77,7 @@ Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagr
 :::steps
 ### Legg til spørringene
 
-Klikk på **Legg til måling** for hver metrikk du trenger. De nye spørringene heter `b`, `c` og så videre.
+Klikk på **Legg til måling** for hver måling du trenger. De nye spørringene heter `b`, `c` og så videre.
 
 ### Legg til en formel
 
@@ -102,14 +102,14 @@ Dra over et diagram for å zoome inn på et øyeblikk, og dobbeltklikk for å zo
 
 ## Bruk det du har vist i diagrammet
 
-- **Handlinger → Opprett monitor fra denne visningen** åpner en ny metrikkmonitor der disse spørringene og formlene allerede er fylt inn. Se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+- **Handlinger → Opprett monitor fra denne visningen** åpner en ny målingsmonitor der disse spørringene og formlene allerede er fylt inn. Se [Målingsovervåking](/docs/monitor/metrics-monitor).
 - **Handlinger → Add to dashboard** legger diagrammet til et dashbord du velger. Du trenger tillatelse til å redigere det dashbordet.
 - **Kopier lenke** kopierer en lenke til nøyaktig denne visningen: spørringer, formler og tidsintervall.
 - **Lagrede visninger** tar vare på visningen under et navn for alle i prosjektet. **Leser** har egne lagrede visninger for søket og filtrene sine. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
 
-## Innsikt i metrikker
+## Innsikt i målinger
 
-Fanen **Innsikt** teller metrikkene i et tidsintervall: **Aktive målinger**, **Rapporterende tjenester** og gjennomsnittet per tjeneste. Den deler metrikkene inn i kategorier og viser tjenestene som rapporterer dem.
+Fanen **Innsikt** teller målingene i et tidsintervall: **Aktive målinger**, **Rapporterende tjenester** og gjennomsnittet per tjeneste. Den deler målingene inn i kategorier og viser tjenestene som rapporterer dem.
 
 ## Forbedre målinger og legg til de som mangler med KI
 
@@ -175,22 +175,22 @@ service:
 
 Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender da `traces.span.metrics.calls` og `traces.span.metrics.duration` (i sekunder) for hver operasjon, span-type og status, og OneUptime finner ikke lenger problemet, så løs funnet. Connectoren teller hvert span collectoren mottar, også dem en sampler senere forkaster. En tjeneste som sender rett til OneUptime, trenger først en collector foran seg: se [Send gjennom en OpenTelemetry Collector](/docs/telemetry/open-telemetry#send-gjennom-en-opentelemetry-collector).
 
-## Hva som skjer med metrikker når de kommer inn
+## Hva som skjer med målinger når de kommer inn
 
-**Målinger → Innstillinger → Pipelineregler** endrer metrikker når de kommer inn, før de lagres. Reglene kjører i rekkefølgen i listen, som du endrer ved å dra; en regel for én tjeneste kjører før reglene for alle tjenester.
+**Målinger → Innstillinger → Pipelineregler** endrer målinger når de kommer inn, før de lagres. Reglene kjører i rekkefølgen i listen, som du endrer ved å dra; en regel for én tjeneste kjører før reglene for alle tjenester.
 
 | Regeltype | Hva den gjør |
 | --- | --- |
 | Filter (tillatelsesliste) | Beholder bare datapunktene som passer, og forkaster resten. |
 | Forkast | Forkaster datapunktene som passer. |
-| Gi måling nytt navn | Gir metrikken et nytt navn. |
+| Gi måling nytt navn | Gir målingen et nytt navn. |
 | Gi attributt nytt navn | Gir nøkkelen til et attributt nytt navn på datapunktene som passer. |
 | Legg til attributt | Legger til et attributt på datapunktene som passer. |
 | Fjern attributt | Fjerner et attributt, for eksempel ett med for mange verdier til å være nyttig. |
 | Sladd attributt | Erstatter verdien til et attributt med en plassholder. |
 | Eksempel | Beholder en prosentandel av datapunktene som passer. |
 
-**Målinger → Innstillinger → Opptaksregler** regner hvert minutt ut nye metrikker fra andre metrikker. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules) for hvordan opptaksregler fungerer.
+**Målinger → Innstillinger → Opptaksregler** regner hvert minutt ut nye målinger fra andre målinger. Se [Opptaksregler for logger](/docs/telemetry/log-recording-rules) for hvordan opptaksregler fungerer.
 
 ## Feilsøking
 
@@ -198,18 +198,18 @@ Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender 
 Det er en kumulativ teller. Slå på **Convert to per-second rate** i spørringens **Display Settings**.
 :::
 
-:::details Listen sier at ingen metrikker ble funnet
-Tøm først søket og filterbrikkene dine. Er listen fortsatt tom, har ingen metrikker nådd OneUptime ennå: sammenlign oppsettet ditt med **Oppsettveiledning**.
+:::details Listen sier at ingen målinger ble funnet
+Tøm først søket og filterbrikkene dine. Er listen fortsatt tom, har ingen målinger nådd OneUptime ennå: sammenlign oppsettet ditt med **Oppsettveiledning**.
 :::
 
-:::details Metrikkene til en tjeneste mangler
+:::details Målingene til en tjeneste mangler
 Filtrer **Leser** etter den **Tjeneste** og utvid tidsintervallet. Mangler de fortsatt, kan rollens omfang utelate den tjenesten: se [Telemetri](/docs/permissions/index#telemetri).
 :::
 
 ## Neste steg
 
 :::cards
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Få varsel når en metrikk krysser en grense.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel når en måling krysser en grense.
 - [Opprette et dashbord](/docs/dashboards/authoring): Sett diagrammene dine side om side.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Hvert filter søkefeltet forstår.
 :::

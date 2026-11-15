@@ -32,7 +32,7 @@ Nomes de domínio internacionalizados são aceitos em qualquer das formas: `mün
 
 ## Antes de começar
 
-- **Uma função que possa criar monitores**: Project Owner, Project Admin, Project Member, Monitor Admin ou Monitor Member, ou uma função personalizada com a permissão Create Monitor.
+- **Uma função que possa criar monitores**: Proprietário do projeto, Administrador do projeto, Membro do projeto, Administrador de monitores ou Membro de monitores, ou uma função personalizada com a permissão Create Monitor.
 - **Acesso de saída a partir da sonda** para os registros. As sondas padrão do seu projeto são escolhidas para cada monitor novo; uma [sonda personalizada](/docs/probe/custom-probe) precisa alcançar:
 
 | Destino | Protocolo | Usado para |

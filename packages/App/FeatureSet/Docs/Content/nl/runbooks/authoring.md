@@ -11,9 +11,9 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 
 ## Voordat u begint
 
-- **Een rol die runbooks schrijft.** Project Owner, Project Admin en Runbook Admin maken runbooks en slaan de stappen op. Met gedetailleerde machtigingen hebt u **Create Runbook** en **Edit Runbook** nodig. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
+- **Een rol die runbooks schrijft.** Projecteigenaar, Projectbeheerder en Runbookbeheerder maken runbooks en slaan de stappen op. Met gedetailleerde machtigingen hebt u **Create Runbook** en **Edit Runbook** nodig. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
 - **Een Runner, voor Bash-, SSH- en kubectl-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een stap die geen Runner kiest, loopt op de [standaard-Runner van het project](/docs/runbooks/agents#de-standaard-runner-van-het-project), als u er een hebt ingesteld; anders loopt een JavaScript-stap op een [globale Runner](/docs/runbooks/agents#globale-runners).
-- **Een geheime variabele, voor SSH- en kubectl-stappen.** De sleutel, het wachtwoord of de kubeconfig waarmee een stap zich aanmeldt, is een geheime [runbookvariabele](/docs/runbooks/variables). Project Owner en Project Admin maken variabelen aan, en Runbook Admin kiest ze in de stappen die hij schrijft. Een kubectl-stap kan in plaats daarvan de eigen toegang van de Runner gebruiken.
+- **Een geheime variabele, voor SSH- en kubectl-stappen.** De sleutel, het wachtwoord of de kubeconfig waarmee een stap zich aanmeldt, is een geheime [runbookvariabele](/docs/runbooks/variables). Projecteigenaar en Projectbeheerder maken variabelen aan, en Runbookbeheerder kiest ze in de stappen die hij schrijft. Een kubectl-stap kan in plaats daarvan de eigen toegang van de Runner gebruiken.
 - **Een LLM-provider, voor AI-stappen.** Zie [LLM-providers](/docs/ai/llm-provider).
 
 ## Een runbook maken

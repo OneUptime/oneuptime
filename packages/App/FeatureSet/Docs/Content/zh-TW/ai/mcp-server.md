@@ -430,7 +430,7 @@ curl https://oneuptime.com/mcp/tools
 | 代理程式要做什麼 | 在 **存取** 下選擇 |
 | --- | --- |
 | 只讀取 | **檢視者**，或在金鑰的頁面上新增讀取權限 |
-| 還要建立、更新和刪除 | **專案管理員**，或在金鑰的頁面上新增 Project Admin 角色 |
+| 還要建立、更新和刪除 | **專案管理員**，或在金鑰的頁面上新增專案管理員角色 |
 
 只給每個金鑰所需的最少權限，定期輪替金鑰，為每個環境使用個別的金鑰，並在 OneUptime 中留意每個金鑰的操作。
 
@@ -497,7 +497,7 @@ MCP 伺服器是無狀態的：它既不核發也不追蹤工作階段 ID，因�
 | 安全性 | Security Event, Threat Intel Indicator |
 | 變更和成本 | Change Event, Kubernetes Cost Allocation |
 
-工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遙測則為 `list_logs` 和 `count_spans`。
+工具以蛇形命名法命名：`create_incident`、`get_incident`、`list_incidents`、`update_incident`、`delete_incident` 和 `count_incidents`，遙測則為 `list_logs` 和 `count_spans`。`create_incident` 和 `create_alert` 也接受 `ownerUsers` 和 `ownerTeams`：從一開始就擁有該記錄的使用者和團隊的 ID，他們會收到記錄已建立的通知。
 
 ## 後續步驟
 

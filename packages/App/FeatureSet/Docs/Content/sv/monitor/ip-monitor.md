@@ -39,7 +39,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 
 ## Innan du börjar
 
-- **En roll som kan skapa monitorer**: Project Owner, Project Admin, Project Member, Monitor Admin eller Monitor Member, eller en anpassad roll med behörigheten Create Monitor.
+- **En roll som kan skapa monitorer**: Projektägare, Projektadministratör, Projektmedlem, Monitoradministratör eller Monitormedlem, eller en anpassad roll med behörigheten Create Monitor.
 - **En sond som når adressen**, med ICMP tillåtet på vägen. Projektets standardsonder väljs för varje ny monitor. Om en brandvägg står framför den tillåter du ICMP-ekobegäranden från [OneUptime Clouds sond-IP-adresser](/docs/configuration/ip-addresses). En privat adress behöver en [anpassad sond](/docs/probe/custom-probe) i det nätverket, och en IPv6-adress behöver en sond med IPv6-anslutning.
 
 ## Skapa en IP-monitor
@@ -143,7 +143,7 @@ Adressen, eller en brandvägg framför den, svarar inte på ICMP-ekobegäranden 
 :::
 
 :::details En IPv6-adress misslyckas alltid
-Sonden som körde kontrollen saknar IPv6-anslutning; felet säger det. Kör monitorn på en sond med IPv6: se [Anpassade probes](/docs/probe/custom-probe).
+Sonden som körde kontrollen saknar IPv6-anslutning; felet säger det. Kör monitorn på en sond med IPv6: se [Anpassade sonder](/docs/probe/custom-probe).
 :::
 
 :::details Paketförlust och jitter är tomma
@@ -155,6 +155,6 @@ Sonden som körde kontrollen kan inte skicka ping, så den kontrollerade i stäl
 :::cards
 - [Ping-övervakning](/docs/monitor/ping-monitor): Pinga en värd via namn och följ DNS-ändringar.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera en tjänst på adressen, inte bara adressen.
-- [Anpassade probes](/docs/probe/custom-probe): Kontrollera privata adresser och IPv6-adresser från ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Kontrollera privata adresser och IPv6-adresser från ditt eget nätverk.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att monitorn har deklarerat en.
 :::

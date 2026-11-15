@@ -37,8 +37,8 @@ Een monitorgroep is geen statuspaginagroep. Een statuspaginagroep is een kop op 
 ## Voordat u begint
 
 - **Uw abonnement.** In OneUptime Cloud vereisen monitorgroepen het Scale-abonnement.
-- **De schakelaar.** Monitorgroepen zijn verborgen tot **Monitorgroepen** voor het project is ingeschakeld (zie hieronder). Inschakelen vereist de rol Project Owner, of een aangepaste rol met de machtiging Edit Project of Manage Billing.
-- **Uw rol.** Groepen maken, wijzigen en verwijderen vereist de rol Project Owner, Project Admin, Project Member, Monitor Admin of Monitor Member, of een aangepaste rol met de bijbehorende machtigingen voor monitorgroepen. Een Viewer kan groepen zien, maar niet wijzigen.
+- **De schakelaar.** Monitorgroepen zijn verborgen tot **Monitorgroepen** voor het project is ingeschakeld (zie hieronder). Inschakelen vereist de rol Projecteigenaar, of een aangepaste rol met de machtiging Edit Project of Manage Billing.
+- **Uw rol.** Groepen maken, wijzigen en verwijderen vereist de rol Projecteigenaar, Projectbeheerder, Projectlid, Monitorbeheerder of Monitorlid, of een aangepaste rol met de bijbehorende machtigingen voor monitorgroepen. Een Kijker kan groepen zien, maar niet wijzigen.
 
 ## Monitorgroepen inschakelen
 

@@ -37,7 +37,7 @@ flowchart TB
 ## 开始之前
 
 - 这些服务向 OneUptime 发送追踪：请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。每个服务都以其 `service.name` 出现在 [服务目录](/docs/telemetry/services) 中。
-- 一个可以创建 SLO 的角色：Project Owner、Project Admin，或具有 Create Service Level Objective 权限的自定义角色。
+- 一个可以创建 SLO 的角色：项目所有者、项目管理员，或具有 Create Service Level Objective 权限的自定义角色。
 
 ## 创建请求 SLO
 

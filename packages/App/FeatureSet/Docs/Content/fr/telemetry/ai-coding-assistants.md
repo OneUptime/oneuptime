@@ -55,7 +55,7 @@ Trois choses décident de ce que vous obtenez d'un outil : s'il envoie de l'Open
 Un tiret signifie que OneUptime n'a pas encore de guide pour l'outil. Sa télémétrie est quand même ingérée comme n'importe quel OpenTelemetry.
 
 :::details Ce que GitHub Copilot exporte exactement
-Copilot n'exporte OpenTelemetry que depuis ses surfaces d'agent : le chat et le mode agent de VS Code, l'hôte d'agent derrière Copilot CLI, le Copilot SDK, et les workflows d'agent dans les IDE JetBrains via le plugin Copilot. GitHub ne documente aucun export pour les complétions en ligne, Copilot sur github.com ou la revue de code de Copilot. Copilot n'envoie aucun attribut d'utilisateur, alors définissez `enduser.id` et `user.email` par poste via `resourceAttributes` ou `OTEL_RESOURCE_ATTRIBUTES`.
+Copilot n'exporte OpenTelemetry que depuis ses surfaces d'agent : le chat et le mode agent de VS Code, l'hôte d'agent derrière Copilot CLI, le Copilot SDK, et les flux de travail d'agent dans les IDE JetBrains via le plugin Copilot. GitHub ne documente aucun export pour les complétions en ligne, Copilot sur github.com ou la revue de code de Copilot. Copilot n'envoie aucun attribut d'utilisateur, alors définissez `enduser.id` et `user.email` par poste via `resourceAttributes` ou `OTEL_RESOURCE_ATTRIBUTES`.
 :::
 
 :::details Amazon Bedrock, Azure OpenAI, Windsurf et JetBrains AI

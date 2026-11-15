@@ -25,7 +25,7 @@ flowchart TB
 
 ## Prima di iniziare
 
-- **Un progetto OneUptime e il diritto di creare ciò che importi.** I proprietari e gli amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
+- **Un progetto OneUptime e il diritto di creare ciò che importi.** I Proprietari del progetto e gli Amministratori del progetto possono importare tutto. Anche gli altri ruoli possono eseguire un'importazione e importare i tipi di record che possono creare. Il resto viene mostrato come non importato, con il motivo.
 - **Una chiave API di incident.io che può solo visualizzare i dati.** L'importazione non scrive mai in incident.io, quindi la chiave non ha bisogno di permessi per creare, modificare o gestire nulla.
 
 ## Importa il tuo account incident.io
@@ -68,7 +68,7 @@ Una rotazione con più persone reperibili contemporaneamente diventa una pianifi
 ## Cosa non viene importato
 
 - **Incidenti, avvisi e la loro cronologia.** OneUptime parte dalla tua configurazione, non dai tuoi incidenti passati.
-- **Workflow, pagine di stato, alert route e integrazioni.** Indirizza invece i tuoi monitor e le fonti di avvisi verso OneUptime, come descritto in [Completa il passaggio](#completa-il-passaggio).
+- **Flussi di lavoro, pagine di stato, alert route e integrazioni.** Indirizza invece i tuoi monitor e le fonti di avvisi verso OneUptime, come descritto in [Completa il passaggio](#completa-il-passaggio).
 - **I campi personalizzati le cui opzioni vengono dal catalogo,** e gli stati per cui OneUptime non ha uno stato: declined, merged, canceled e learning.
 - **Le sostituzioni delle pianificazioni e le modifiche a una rotazione previste per più avanti.** L'anteprima nomina ogni modifica prevista, così puoi farla in OneUptime al momento giusto.
 - **I passaggi di escalation senza un equivalente esatto in OneUptime.** Un passaggio che pubblica in un canale Slack o Microsoft Teams viene escluso, perché in OneUptime lo fanno le regole di notifica dell'area di lavoro, e lo stesso vale per un passaggio che passa a un altro percorso di escalation. Un passaggio che avvisa chi sarà reperibile dopo viene importato come la cosa più vicina che OneUptime ha, e l'anteprima indica cosa cambia.
@@ -79,7 +79,7 @@ Un'importazione crea al massimo 2.000 record: al massimo 500 persone, 200 team, 
 
 Su OneUptime Cloud, i record che il tuo piano non include vengono mostrati come non importati, con il piano che richiedono.
 
-Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I proprietari e gli amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
+Un'anteprima viene conservata per un giorno. Solo chi ha letto l'account può selezionare gli elementi e avviarla. I Proprietari del progetto e gli Amministratori del progetto vedono l'avanzamento e il report di ogni importazione.
 
 ## Completa il passaggio
 

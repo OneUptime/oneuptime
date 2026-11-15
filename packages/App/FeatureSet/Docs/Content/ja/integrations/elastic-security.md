@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - Elastic Cloud または独自の Elastic スタック上の Elastic Security 8.x 以降で、Kibana スペースで検出ルールが実行されていること。
 - そのスペースの検出アラートを見られる Kibana アクセス。`.alerts-security.alerts-<space-id>` に対するインデックス権限 `read` と `view_index_metadata`、およびそこでアラートを読める Kibana の Security 機能権限が必要です。
 - OneUptime が HTTPS で到達できる Kibana。OneUptime Cloud はインターネットから接続するため、Kibana には Elastic Cloud のデプロイメントのようなパブリックアドレスが必要です。プライベートアドレスは拒否されます。セルフホストの OneUptime はアプリと worker のコンテナから接続し、`DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` が `true` でない限り、プライベートネットワーク上の Kibana にも到達できます。

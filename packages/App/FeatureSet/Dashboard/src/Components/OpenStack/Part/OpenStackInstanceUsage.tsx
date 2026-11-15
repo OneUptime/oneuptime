@@ -11,9 +11,9 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   formatMilliseconds,
-  formatMillisecondsInEnglish,
   MillisecondsOptions,
 } from "../../../Utils/Milliseconds";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackRow } from "../../../Pages/OpenStack/Utils/OpenStackPartData";
 import { getOpenStackFlavorExternalId } from "../../../Pages/OpenStack/Utils/OpenStackPartFacts";
@@ -106,17 +106,17 @@ function useOpenStackInstanceUsageRead(data: {
   }, [part.externalId, part.cloudName, part.refreshToken]);
 }
 
-// A chart's axis and tooltip keep Latin digits, as every chart does.
+/*
+ * A chart's axis and tooltip write a figure as the tiles above them do, in
+ * the reader's digits, decimal sign and percent sign and a latency in their
+ * words: "۱٫۵ KiB/s", "۴۲٫۰٪", "۴٫۰ میلی‌ثانیه" (#8349).
+ */
 function formatBytesPerSecond(value: number): string {
   return `${formatOpenStackChartBytes(value)}/s`;
 }
 
 function formatPercentValue(value: number): string {
-  return `${value.toFixed(1)}%`;
-}
-
-function formatChartMilliseconds(value: number): string {
-  return formatMillisecondsInEnglish(value, ONE_DECIMAL);
+  return formatReaderFigure(value, { decimals: 1, isPercent: true });
 }
 
 // A latency to a tenth: "4.0 ms", "۴٫۰ میلی‌ثانیه".
@@ -494,7 +494,9 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
                 ),
                 metricName: OpenStackInstanceMetric.DiskReadLatency,
                 legend: translationKey("Read latency"),
-                format: formatChartMilliseconds,
+                format: (value: number): string => {
+                  return formatMilliseconds(translator, value, ONE_DECIMAL);
+                },
               }),
               chart({
                 variable: "instance_disk_write_latency",
@@ -504,7 +506,9 @@ export const OpenStackInstanceUsageCharts: FunctionComponent<{
                 ),
                 metricName: OpenStackInstanceMetric.DiskWriteLatency,
                 legend: translationKey("Write latency"),
-                format: formatChartMilliseconds,
+                format: (value: number): string => {
+                  return formatMilliseconds(translator, value, ONE_DECIMAL);
+                },
               }),
               chart({
                 variable: "instance_network_receive",

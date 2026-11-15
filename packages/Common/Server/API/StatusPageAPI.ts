@@ -1795,7 +1795,7 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           if (
-            OneUptimeDate.getDaysBetweenTwoDatesInclusive(startDate, endDate) >
+            OneUptimeDate.getWholeDaysOfTimeBetween(startDate, endDate) + 1 >
             90
           ) {
             throw new BadDataException(

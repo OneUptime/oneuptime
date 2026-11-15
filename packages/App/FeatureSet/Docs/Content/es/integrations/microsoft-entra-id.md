@@ -23,7 +23,7 @@ Cada minuto, OneUptime sondea cada conexión habilitada cuyo intervalo de sondeo
 
 ## Antes de empezar
 
-- En OneUptime, el rol Project Owner, Project Admin o Security Admin. Los roles Security Member y Security Viewer pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
+- En OneUptime, el rol Propietario del proyecto, Administrador del proyecto o Administrador de seguridad. Los roles Miembro de seguridad y Visor de seguridad pueden ver las conexiones y su historial de ejecuciones, pero no cambiarlas.
 - Para los inicios de sesión y las detecciones de riesgo, Microsoft Entra ID P1 o P2, que incluyen Microsoft 365 E3, E5 y Business Premium: Microsoft Graph solo los entrega a esos inquilinos, y P2 da los detalles de cada detección de riesgo. Los cambios de directorio se leen en cualquier inquilino.
 - Un rol de Entra que pueda registrar aplicaciones, como Administrador de aplicaciones, y un Administrador global o un Administrador de roles con privilegios para conceder el consentimiento de administrador.
 - Para el registro de auditoría de Microsoft 365, la auditoría activada en el inquilino, como lo está por defecto: en el [portal de Microsoft Purview](https://purview.microsoft.com), **Audit** no debe ofrecer **Start recording user and admin activity**.

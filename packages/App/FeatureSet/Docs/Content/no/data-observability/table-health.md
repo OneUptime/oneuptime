@@ -29,7 +29,7 @@ En katalog kan si at en tabell er endret når bare husholdningen den gjør noe, 
 
 ## Anbefalte varsler
 
-Under **Databaser** velger du **Anbefalte varsler** for en database. Hver anbefaling er én metrikkmonitor for hele databasen som varsler én gang per tabell, så en tabell som opprettes senere, overvåkes også:
+Under **Databaser** velger du **Anbefalte varsler** for en database. Hver anbefaling er én målingsmonitor for hele databasen som varsler én gang per tabell, så en tabell som opprettes senere, overvåkes også:
 
 | Varsel | Utløses når |
 | --- | --- |
@@ -43,11 +43,11 @@ Velg alvorlighetsgrader, vaktordninger, eiere og etiketter når du oppretter dem
 
 En etterfylling eller en migrering skal ikke tilkalle noen. Oppgi databasen under **Data Observability Databaser** på en [vedlikeholdshendelse](/docs/scheduled-maintenance/index), eller legg databaseserveren i en, så er datavarslene stille mens hendelsen pågår.
 
-## Metrikker hver tabell skriver
+## Målinger hver tabell skriver
 
-Hver innsamling skriver disse for hver tabell, så du kan lage grafer av dem, legge dem på dashbord og varsle på dem som på enhver annen metrikk:
+Hver innsamling skriver disse for hver tabell, så du kan lage grafer av dem, legge dem på dashbord og varsle på dem som på enhver annen måling:
 
-| Metrikk | Hva den er |
+| Måling | Hva den er |
 | --- | --- |
 | `oneuptime.data.table.row_count` | Rader i tabellen |
 | `oneuptime.data.table.size` | Byte som tabellen og indeksene dens tar |
@@ -57,7 +57,7 @@ Hver innsamling skriver disse for hver tabell, så du kan lage grafer av dem, le
 | `oneuptime.data.table.schema_changes` | Kolonner som er endret siden forrige innsamling |
 | `oneuptime.data.table.breaking_schema_changes` | Kolonner som er fjernet, fått nytt navn eller ny type siden forrige innsamling |
 
-Hver rad har med seg `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` og `oneuptime.data.table.key` (`schema.table`). En [metrikkmonitor](/docs/monitor/metrics-monitor) gruppert etter `oneuptime.data.table.key` varsler én gang per tabell, og filtrene **Unormalt høy** og **Unormalt lav** sammenligner hver tabell med dens egen vanlige verdi for den timen i uken. Disse metrikkene er OneUptimes egne driftsdata og faktureres ikke som telemetri.
+Hver rad har med seg `oneuptime.data.store.id`, `oneuptime.data.store.name`, `oneuptime.data.table.id`, `oneuptime.data.table.schema`, `oneuptime.data.table.name` og `oneuptime.data.table.key` (`schema.table`). En [målingsmonitor](/docs/monitor/metrics-monitor) gruppert etter `oneuptime.data.table.key` varsler én gang per tabell, og filtrene **Unormalt høy** og **Unormalt lav** sammenligner hver tabell med dens egen vanlige verdi for den timen i uken. Disse målingene er OneUptimes egne driftsdata og faktureres ikke som telemetri.
 
 ## Ubrukte tabeller
 

@@ -545,7 +545,11 @@ export default class DataSecurityEvaluator {
     facts: Map<string, StoreFacts>,
     custom: Map<string, CustomDataTypeFacts>,
   ): Promise<void> {
-    const since: Date = OneUptimeDate.addRemoveDays(
+    /*
+     * A length of time, the same on every server, and the window the AI's
+     * reading of an issue's findings keeps to (DataSecurityAPI, issue #8236).
+     */
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -FINDING_FRESHNESS_IN_DAYS,
     );

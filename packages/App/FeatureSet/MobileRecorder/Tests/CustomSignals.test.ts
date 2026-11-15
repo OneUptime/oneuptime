@@ -293,6 +293,73 @@ describe("CustomSignalMatcher", () => {
     expect(matcher.matchErrorText(signals, "", 1_000)).toEqual([]);
   });
 
+  /*
+   * #8195: a pattern is written as a person reads the page ("/café"), and
+   * a deep link escapes the route as a browser does ("/caf%C3%A9"), in
+   * lower-case hex or with its accent decomposed. Every spelling is one
+   * page; an escaped "/" is still not a "/".
+   */
+  test("a page pattern written as it reads matches every spelling of its route", () => {
+    const cafe: Array<SessionReplayCustomSignalConfig> = [
+      {
+        name: "Café opened",
+        trigger: "page",
+        match: "/café",
+        isFrustration: false,
+      },
+      {
+        name: "Menu opened",
+        trigger: "page",
+        match: "/CAFÉ/men%C3%BC*",
+        isFrustration: false,
+      },
+    ];
+
+    for (const route of [
+      "/caf%C3%A9",
+      "/caf%c3%a9",
+      "/cafe%CC%81",
+      "/café",
+      "myapp://shop/caf%C3%A9?tab=1",
+      "/Caf%C3%89/",
+    ]) {
+      const matcher: CustomSignalMatcher = new CustomSignalMatcher();
+
+      expect([
+        route,
+        matcher
+          .matchPage(cafe, route, 1_000)
+          .map((hit: MobileCustomSignalHit): string => {
+            return hit.name;
+          }),
+      ]).toEqual([route, ["Café opened"]]);
+    }
+
+    const matcher: CustomSignalMatcher = new CustomSignalMatcher();
+
+    expect(
+      matcher
+        .matchPage(cafe, "/cafe%cc%81/men%c3%bc/today", 1_000)
+        .map((hit: MobileCustomSignalHit): string => {
+          return hit.name;
+        }),
+    ).toEqual(["Menu opened"]);
+    expect(
+      new CustomSignalMatcher().matchPage(
+        [
+          {
+            name: "Split",
+            trigger: "page",
+            match: "/a%2Fb",
+            isFrustration: false,
+          },
+        ],
+        "/a/b",
+        1_000,
+      ),
+    ).toEqual([]);
+  });
+
   test("fires one name at most once a second, and reset clears that", () => {
     const matcher: CustomSignalMatcher = new CustomSignalMatcher();
 

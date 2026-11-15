@@ -170,7 +170,7 @@ Una chiave di acquisizione serve solo a inviare telemetria. Una **chiave API** �
 - **OneUptime AI** indaga sui nuovi incidenti e avvisi e pubblica ciò che ha trovato nella loro cronologia, e **Chiedi all'IA** risponde alle domande sul tuo progetto. Un nuovo progetto parte con l'IA attiva; l'interruttore **Abilita IA** in **Impostazioni del progetto → IA → Funzionalità IA** la disattiva del tutto.
 
 :::cards
-- [Panoramica dei workflow](/docs/workflows/index): Automatizzare azioni con trigger e componenti.
+- [Panoramica dei flussi di lavoro](/docs/workflows/index): Automatizzare azioni con trigger e componenti.
 - [AI SRE](/docs/ai/ai-sre): Come OneUptime AI indaga su incidenti e avvisi.
 :::
 
@@ -206,6 +206,6 @@ Le regole proprie di un monitor sono i suoi criteri. Le regole di reperibilità 
 :::cards
 - [Guida rapida](/docs/introduction/quickstart): Mettere in pratica queste idee in quindici minuti.
 - [Glossario](/docs/introduction/glossary): Ogni parola che OneUptime usa, in una o due frasi.
-- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, flussi di lavoro o runbook, e gli altri elementi simili.
 - [Panoramica degli incidenti](/docs/incidents/index): Cosa succede dopo che un monitor dichiara un incidente.
 :::

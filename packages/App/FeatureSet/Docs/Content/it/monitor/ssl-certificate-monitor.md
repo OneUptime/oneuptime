@@ -30,7 +30,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 
 ## Prima di iniziare
 
-- **Un ruolo che può creare monitor**: Project Owner, Project Admin, Project Member, Monitor Admin o Monitor Member, oppure un ruolo personalizzato con il permesso Create Monitor.
+- **Un ruolo che può creare monitor**: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore dei monitor o Membro dei monitor, oppure un ruolo personalizzato con il permesso Create Monitor.
 - **Una sonda che raggiunga l'host e la porta.** Le sonde predefinite del vostro progetto vengono scelte per ogni nuovo monitor. Un servizio su una rete privata ha bisogno di una [sonda personalizzata](/docs/probe/custom-probe) in quella rete.
 
 ## Creare un monitor del certificato SSL

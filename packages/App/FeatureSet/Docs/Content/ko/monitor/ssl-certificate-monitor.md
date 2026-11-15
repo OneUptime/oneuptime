@@ -30,7 +30,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **모니터를 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
+- **모니터를 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
 - **호스트와 포트에 연결할 수 있는 프로브.** 모든 새 모니터에는 프로젝트의 기본 프로브가 선택됩니다. 프라이빗 네트워크의 서비스에는 그 네트워크 안의 [사용자 지정 프로브](/docs/probe/custom-probe)가 필요합니다.
 
 ## SSL 인증서 모니터 만들기

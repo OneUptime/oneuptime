@@ -26,7 +26,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
+- **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og Prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
 - **Et API-token fra Grafana OnCall.** Bruk et OnCall-API-token, ikke et token fra en Grafana-tjenestekonto. Importen skriver aldri til Grafana OnCall. Slett tokenet når importen er ferdig.
 - **OnCall-API-URL-en din.** Innstillingene i OnCall viser den ved siden av API-tokenene. I Grafana Cloud ser den ut som `https://oncall-prod-us-central-0.grafana.net/oncall`. På din egen installasjon er det adressen til OnCall-motoren din.
 
@@ -77,7 +77,7 @@ Rotasjoner på samme lag som har vakt samtidig, og en rotasjon som setter flere 
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 
-En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og prosjektadministratorer ser fremdriften og rapporten for hver import.
+En forhåndsvisning lagres i én dag. Bare personen som leste kontoen, kan krysse av og starte importen. Prosjekteiere og Prosjektadministratorer ser fremdriften og rapporten for hver import.
 
 ## Fullfør byttet
 

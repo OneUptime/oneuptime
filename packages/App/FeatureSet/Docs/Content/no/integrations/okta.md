@@ -1,6 +1,6 @@
 # Okta-systemlogg
 
-Importer [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) til sikkerhetshendelsene i OneUptime: pålogginger, MFA-utfordringer, konto- og gruppeendringer og Oktas egne trusseldeteksjoner. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med et API-token du selv oppretter, og endrer ingenting i Okta.
+Importer [Okta System Log](https://developer.okta.com/docs/reference/system-log-query/) til sikkerhetshendelsene i OneUptime: pålogginger, MFA-utfordringer, konto- og gruppeendringer og Oktas egne trusseldeteksjoner. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med et API-token du selv oppretter, og endrer ingenting i Okta.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): Et API-token og skjemaet for tilkoblingen.
@@ -23,7 +23,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet er g
 
 ## Før du begynner
 
-- I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
+- I OneUptime rollen Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator. Sikkerhetsmedlem og Sikkerhetsleser kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En Okta-administrator som kan se System Log, for å opprette tokenet. Et token kan det administratoren kan, så bruk en Read-only Administrator: den leser System Log og endrer ingenting. En skrivebeskyttet administrator ser også brukere, grupper, apper og innstillinger, så ta like godt vare på tokenet som på et passord.
 - Helst en tjenestekonto for den administratoren. Okta deaktiverer et token når administratoren deaktiveres, og når det står ubrukt i 30 dager. Pollingen bruker det med noen få minutters mellomrom, så det forblir i bruk så lenge tilkoblingen er aktivert.
 - Hvis organisasjonen din bare tar imot API-kall fra en nettverkssone, en sone som inneholder adressene OneUptime kaller fra: på OneUptime Cloud de utgående adressene, og på en selvdriftet installasjon den offentlige adressen til app- og workervertene dine.

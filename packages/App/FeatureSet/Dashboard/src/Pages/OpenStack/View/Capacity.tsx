@@ -56,6 +56,7 @@ import {
   formatOpenStackCapacityAmount,
   formatOpenStackRatio,
   formatOpenStackRatioRange,
+  getOpenStackCapacityAllocatedTitle,
   getOpenStackCapacityCsv,
   getOpenStackCapacityResourceTitle,
   getOpenStackCapacityView,
@@ -348,9 +349,8 @@ const ZonesTable: FunctionComponent<{
               return (
                 <th key={name} className={CELL_CLASS_NAME}>
                   {translator.translateText(
-                    getOpenStackCapacityResourceTitle(name),
-                  )}{" "}
-                  {translator.translateText("allocated")}
+                    getOpenStackCapacityAllocatedTitle(name),
+                  )}
                 </th>
               );
             })}

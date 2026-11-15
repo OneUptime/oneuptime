@@ -145,7 +145,7 @@ For å slette én persons data i stedet for en hel applikasjon sender du inn en 
 
 ## Tillatelser
 
-Alle med prosjektets Viewer-rolle kan se RUM-applikasjoner og telemetrien deres. Øktavspilling er holdt utenfor den rollen med vilje: å liste opp opptak, se ett og lese hvem som så det, er separate tillatelser. Prosjekteiere og -administratorer har alle. Tillatelsesvelgerne viser hver tillatelse med tittelen sin, her vist i kursiv.
+Alle med prosjektets Leser-rolle kan se RUM-applikasjoner og telemetrien deres. Øktavspilling er holdt utenfor den rollen med vilje: å liste opp opptak, se ett og lese hvem som så det, er separate tillatelser. Prosjekteiere og -administratorer har alle. Tillatelsesvelgerne viser hver tillatelse med tittelen sin, her vist i kursiv.
 
 | Tillatelse | Lar et medlem |
 | --- | --- |
@@ -173,7 +173,7 @@ RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RU
 
 For å lage din egen overvåking velger du den som leser signalet:
 
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): en Core Web Vital eller en annen måling appen din sender.
 - [Trase-overvåking](/docs/monitor/traces-monitor): feilrate eller ventetid på klientsiden.
 - [Logg-overvåking](/docs/monitor/logs-monitor): et mønster i nettleserlogger.
 - [Unntak-overvåking](/docs/monitor/exceptions-monitor): nye eller raskt økende unntak på klientsiden.

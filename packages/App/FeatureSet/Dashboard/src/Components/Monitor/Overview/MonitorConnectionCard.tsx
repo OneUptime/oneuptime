@@ -15,6 +15,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
+import useIncomingRequestSecretRequirement from "../../IncomingRequestSecret/UseIncomingRequestSecretRequirement";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -44,6 +46,8 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const monitor: Monitor = props.monitor;
+  // Whether the project refuses requests without one of its secrets.
+  const isSecretRequired: boolean = useIncomingRequestSecretRequirement();
 
   type GetValueRowFunction = (value: string) => ReactElement;
 
@@ -197,6 +201,13 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
       <div>
         {getValue()}
         {getMeta()}
+        <IncomingRequestSecretNote
+          isRequired={
+            isSecretRequired &&
+            props.kind === MonitorOverviewSetupKind.HeartbeatUrl
+          }
+          className="mt-3"
+        />
         <div className="mt-3">
           <SloOverviewActionLink
             variant="text"

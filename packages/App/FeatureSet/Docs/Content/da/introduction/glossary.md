@@ -344,7 +344,7 @@ Se [Deling & offentlige dashboards](/docs/dashboards/sharing).
 
 En automatisering uden kode: blokke på et lærred, der kører, når deres trigger udløses, for eksempel en besked i Slack, når en hændelse erklæres, eller et kald til et andet værktøj.
 
-Se [Workflows – Oversigt](/docs/workflows/index).
+Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ### Runbook
 
@@ -436,7 +436,7 @@ Se [Grundbegreber](/docs/introduction/core-concepts#regeltyperne).
 
 ### Rolle
 
-Fire forskellige ting: de tilladelser, et team giver, for eksempel Project Owner eller Project Admin; en **Brugerdefineret rolle**, du sætter sammen af tilladelser; en **Hændelsesrolle**, den rolle, nogen har i én hændelse; og en **Network Device Role**, hvad en enhed på dit netværk gør.
+Fire forskellige ting: de tilladelser, et team giver, for eksempel Projektejer eller Projektadministrator; en **Brugerdefineret rolle**, du sætter sammen af tilladelser; en **Hændelsesrolle**, den rolle, nogen har i én hændelse; og en **Network Device Role**, hvad en enhed på dit netværk gør.
 
 Se [Brugere, teams og tilladelser](/docs/permissions/index).
 

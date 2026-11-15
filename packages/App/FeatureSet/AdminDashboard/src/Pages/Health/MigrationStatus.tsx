@@ -19,10 +19,8 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
-import {
-  getReaderDateLocale,
-  getReaderNumberLocale,
-} from "Common/Types/DateLanguage";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { formatHealthDateTime as formatDateTime } from "./HealthTime";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -42,19 +40,6 @@ const asArray: (value: unknown) => JSONArray = (value: unknown): JSONArray => {
 const countLabel: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
   return isNaN(parsed) ? "—" : parsed.toLocaleString(getReaderNumberLocale());
-};
-
-// Render an ISO timestamp as readable local date/time; blank/unparseable -> em dash.
-const formatDateTime: (value: unknown) => string = (value: unknown): string => {
-  const raw: string = String(value || "");
-  if (!raw) {
-    return "—";
-  }
-  const date: Date = new Date(raw);
-  if (isNaN(date.getTime())) {
-    return raw;
-  }
-  return date.toLocaleString(getReaderDateLocale());
 };
 
 /*

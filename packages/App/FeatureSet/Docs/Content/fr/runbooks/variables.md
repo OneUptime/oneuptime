@@ -33,7 +33,7 @@ Un nom n'est utilisé qu'une fois, quelle que soit sa casse, parmi les variables
 
 ## Avant de commencer
 
-- **Un rôle qui gère les variables.** Project Owner et Project Admin, ou l'autorisation **Create Runbook Variable**. Runbook Admin lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas.
+- **Un rôle qui gère les variables.** Propriétaire du projet et Administrateur du projet, ou l'autorisation **Create Runbook Variable**. Administrateur des runbooks lit les variables, pour les choisir dans les étapes qu'il écrit, mais ne les modifie pas.
 - **Un forfait qui les inclut.** Sur OneUptime Cloud, les variables de runbook nécessitent le forfait **Growth** ou supérieur.
 
 ## Créer une variable
@@ -56,7 +56,7 @@ Le fait qu'une variable soit un secret ne peut pas être modifié par la suite. 
 
 ## Les valeurs secrètes sont en écriture seule
 
-La valeur d'un secret est chiffrée au repos et l'API **ne la renvoie jamais** : ni au tableau de bord, ni à un workflow, ni à un export. La liste indique **Secret** là où une variable simple affiche sa valeur, et sa colonne **Agents de runbook** indique quels agents Runbook reçoivent chaque secret. Pour la modifier, cliquez sur **Remplacer la valeur** dans sa ligne : la nouvelle valeur est chiffrée, l'ancienne disparaît définitivement, et les étapes reçoivent la nouvelle à leur prochaine exécution.
+La valeur d'un secret est chiffrée au repos et l'API **ne la renvoie jamais** : ni au tableau de bord, ni à un flux de travail, ni à un export. La liste indique **Secret** là où une variable simple affiche sa valeur, et sa colonne **Agents de runbook** indique quels agents Runbook reçoivent chaque secret. Pour la modifier, cliquez sur **Remplacer la valeur** dans sa ligne : la nouvelle valeur est chiffrée, l'ancienne disparaît définitivement, et les étapes reçoivent la nouvelle à leur prochaine exécution.
 
 Quand une étape affiche un secret qui lui a été remis, l'agent Runbook le remplace par `[REDACTED]` avant que la sortie ne quitte son hôte, et OneUptime le fait de nouveau avant de stocker la sortie. Une ligne d'une clé privée, ou le jeton d'un kubeconfig, est masqué aussi. Un secret de moins de 4 caractères n'est pas recherché.
 

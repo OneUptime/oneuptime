@@ -23,7 +23,7 @@ OneUptime هر دقیقه از هر اتصال فعالی که بازهٔ نظر
 
 ## پیش از شروع
 
-- در OneUptime، نقش Project Owner، Project Admin یا Security Admin. Security Member و Security Viewer می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
+- در OneUptime، نقش مالک پروژه، مدیر پروژه یا مدیر امنیت. عضو امنیت و بیننده امنیت می‌توانند اتصال‌ها و تاریخچهٔ اجرایشان را ببینند، اما نمی‌توانند آن‌ها را تغییر دهند.
 - Elastic Security نسخهٔ 8.x یا جدیدتر، روی Elastic Cloud یا پشتهٔ Elastic خودتان، با قاعده‌های تشخیصی که در یک فضای Kibana اجرا می‌شوند.
 - دسترسی‌ای در Kibana که بتواند هشدارهای تشخیص را در آن فضا ببیند: امتیازهای ایندکس `read` و `view_index_metadata` روی `.alerts-security.alerts-<space-id>`، و یک امتیاز ویژگی Kibana Security که اجازه دهد هشدارها را آنجا بخواند.
 - یک Kibana که OneUptime بتواند از طریق HTTPS به آن برسد. OneUptime Cloud از اینترنت وصل می‌شود، پس Kibana به یک نشانی عمومی نیاز دارد، چنان‌که استقرارهای Elastic Cloud دارند: نشانی‌های خصوصی رد می‌شوند. یک OneUptime خودمیزبان از کانتینرهای برنامه و کارگرش وصل می‌شود، و می‌تواند به یک Kibana در شبکهٔ خصوصی شما برسد، مگر اینکه `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` برابر `true` باشد.

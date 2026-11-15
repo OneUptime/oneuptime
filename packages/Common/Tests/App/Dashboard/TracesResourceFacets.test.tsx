@@ -120,7 +120,7 @@ jest.mock(
       default: () => {
         return null;
       },
-      formatDurationMs: (ms: number) => {
+      formatDurationMsInLanguage: (ms: number) => {
         return `${ms} ms`;
       },
     };
