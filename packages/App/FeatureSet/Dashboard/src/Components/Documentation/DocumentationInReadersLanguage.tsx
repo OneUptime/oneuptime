@@ -45,13 +45,23 @@ export type DocumentationTranslations = Readonly<
 >;
 
 /*
+ * Each language's loader by the Dashboard's language code, whatever its
+ * module holds: a page's text (DocumentationTranslations) or a setup
+ * guide's words (SetupGuideTranslations). Which languages have a loader
+ * is all getDocumentationLanguage reads.
+ */
+export type LanguageLoaders = Readonly<
+  Partial<Record<string, () => Promise<unknown>>>
+>;
+
+/*
  * The language a reader of `language` reads the page in: theirs where the
  * page has a text in it, English otherwise. Only codes the page lists
  * reach a loader, so no other value is ever imported.
  */
 export function getDocumentationLanguage(data: {
   language: string | null | undefined;
-  translations: DocumentationTranslations;
+  translations: LanguageLoaders;
 }): string {
   const language: string = (data.language || "").trim();
 
