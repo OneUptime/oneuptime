@@ -3,6 +3,7 @@ import useLiveDuration, {
   LiveDurationDate,
 } from "../../Utils/UseLiveDuration";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   startDate: LiveDurationDate;
@@ -32,8 +33,8 @@ const StateTimelineDuration: FunctionComponent<ComponentProps> = (
 
   if (duration.durationInSeconds === null) {
     return (
-      <span data-testid="state-timeline-duration" className="text-gray-400">
-        -
+      <span data-testid="state-timeline-duration">
+        <TableEmptyValue />
       </span>
     );
   }

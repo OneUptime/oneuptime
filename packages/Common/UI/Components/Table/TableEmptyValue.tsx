@@ -26,6 +26,15 @@ export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
 /*
+ * In a line of small text - a dashboard widget's rows, a cell's second
+ * line (text-xs): the dash at that size, on that line's own height. The
+ * row's 24px line made such a row 8px taller than its neighbours for an
+ * empty value.
+ */
+export const TABLE_EMPTY_VALUE_SMALL_CLASS_NAME: string =
+  "text-xs text-gray-400";
+
+/*
  * The marks pages draw for "nothing here" in a cell of their own, and
  * whether a column's own element is only one (a bare `<p>-</p>`): one rule
  * for a table's cell and a detail card's field (Detail/EmptyValue).
@@ -45,6 +54,8 @@ export interface ComponentProps {
    * drew a dash of their own only to carry this (#8209).
    */
   title?: string | undefined;
+  // In a line of small text (TABLE_EMPTY_VALUE_SMALL_CLASS_NAME).
+  isSmall?: boolean | undefined;
 }
 
 const TableEmptyValue: FunctionComponent<ComponentProps> = (
@@ -56,7 +67,11 @@ const TableEmptyValue: FunctionComponent<ComponentProps> = (
 
   return (
     <span
-      className={TABLE_EMPTY_VALUE_CLASS_NAME}
+      className={
+        props.isSmall
+          ? TABLE_EMPTY_VALUE_SMALL_CLASS_NAME
+          : TABLE_EMPTY_VALUE_CLASS_NAME
+      }
       data-testid={TABLE_EMPTY_VALUE_TEST_ID}
       title={props.title || undefined}
     >

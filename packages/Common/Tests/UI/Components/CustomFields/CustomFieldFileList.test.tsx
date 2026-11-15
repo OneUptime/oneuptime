@@ -36,6 +36,7 @@ import MimeType from "../../../../Types/File/MimeType";
 import IconProp from "../../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { QUIET_DASH_TEXT } from "../../../Helpers/QuietDash";
 
 /*
  * The files a File or Multiple files custom field holds, as people see them:
@@ -198,7 +199,7 @@ describe("the list of a field's files", () => {
     );
   });
 
-  test("no file is the field's empty text, or a dash", () => {
+  test("no file is the field's empty text, or the quiet dash", () => {
     render(
       <CustomFieldFileList
         files={[]}
@@ -212,7 +213,13 @@ describe("the list of a field's files", () => {
 
     render(<CustomFieldFileList files={[]} dataTestId="empty" />);
 
-    expect(screen.getByTestId("empty")).toHaveTextContent("-");
+    // No words of its own: the quiet dash every empty value is (#7603).
+    expect(screen.getByTestId("empty")).toHaveTextContent(QUIET_DASH_TEXT);
+    expect(
+      within(screen.getByTestId("empty")).getByTestId(
+        TABLE_EMPTY_VALUE_TEST_ID,
+      ),
+    ).toBeInTheDocument();
   });
 
   test("no file reads as a detail card's empty value does, not paler than the text field beside it", () => {
