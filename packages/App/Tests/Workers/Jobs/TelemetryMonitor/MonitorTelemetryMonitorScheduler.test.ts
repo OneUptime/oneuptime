@@ -3,7 +3,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
-import { FindOperator } from "typeorm";
 
 /*
  * Regression tests for the telemetry-monitor scheduler's write path
@@ -33,6 +32,17 @@ import { FindOperator } from "typeorm";
  *      jobs queued a few at a time, before the next page is read. It stops
  *      between pages at its deadline.
  */
+
+/*
+ * The part of typeorm's FindOperator these assertions read. typeorm is
+ * Common's dependency, not App's, so its type cannot be imported here
+ * (TestImportsResolveFromApp.test.ts): the structural type says exactly as
+ * much as the assertions rely on.
+ */
+interface ReadFindOperator {
+  getSql?: ((aliasPath: string) => string) | undefined;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
 
 // Keep the heavy worker module from touching Redis at import time.
 jest.mock("Common/Server/Infrastructure/Queue", () => {
@@ -235,8 +245,8 @@ function stampFor(monitorId: ObjectID): UpdateCallArgs {
 
 // The id a keyset read starts after: none for the first page.
 function cursorOf(query: Record<string, unknown>): string | undefined {
-  const cursor: FindOperator<ObjectID> | undefined = query["_id"] as
-    | FindOperator<ObjectID>
+  const cursor: ReadFindOperator | undefined = query["_id"] as
+    | ReadFindOperator
     | undefined;
 
   if (!cursor) {
