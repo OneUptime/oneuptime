@@ -52348,5 +52348,8 @@
   "Timeout": "Tiempo de espera agotado",
   "Type changed": "Tipo cambiado",
   "Uncollectible": "Incobrable",
-  "Void": "Anulado"
+  "Void": "Anulado",
+  "Change (schema change)": "Cambio",
+  "Table (database object)": "Tabla",
+  "View (database object)": "Vista"
 }

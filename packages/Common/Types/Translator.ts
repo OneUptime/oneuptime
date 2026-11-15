@@ -1,5 +1,6 @@
 import escapeRegExp from "../Utils/RegExpEscape";
 import { getEnglishOf, getNumberLocale } from "./DateLanguage";
+import { getWordOfMeaningKey, withMeaningKeyAsItsWord } from "./MeaningKeys";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
@@ -56,6 +57,11 @@ import {
  * sentence itself is read in English - the reader's language has no wording
  * of it yet - the English of that text goes in instead, so "Checked
  * {{time}}" never reads "Checked vor 5 Stunden".
+ *
+ * A key that names its meaning - "View (database object)", a database's
+ * view beside the View buttons' verb (Common/Types/MeaningKeys) - reads as
+ * its word, "View", wherever the reader's language has no wording of it:
+ * in English, and as a value of an English sentence.
  *
  * It needs nothing but Common's Types - no i18next, no browser, no server:
  * a translator is handed its lookup (createTranslator). A front end's comes
@@ -880,9 +886,12 @@ const englishValue: (value: TemplateValue) => string = (
   value: TemplateValue,
 ): string => {
   if (isTranslatableTerm(value)) {
+    // A key that names its meaning goes in as its word (MeaningKeys).
+    const term: string = withMeaningKeyAsItsWord(value.translatableTerm);
+
     return value.inSentence
-      ? toSentenceTerm(value.translatableTerm, DEFAULT_LANGUAGE)
-      : value.translatableTerm.trim();
+      ? toSentenceTerm(term, DEFAULT_LANGUAGE)
+      : term.trim();
   }
 
   if (isComposedValue(value)) {
@@ -1168,7 +1177,16 @@ export const createTranslator: (
     try {
       const result: string | undefined = lookup(key);
 
-      return typeof result === "string" && result.length > 0 && result !== key
+      /*
+       * Neither the key itself nor the word a key that names its meaning
+       * reads as (MeaningKeys) is a wording of its own: a lookup that
+       * already went back to the word (the front ends' translateString)
+       * leaves the key as untranslated as one that did not.
+       */
+      return typeof result === "string" &&
+        result.length > 0 &&
+        result !== key &&
+        result !== getWordOfMeaningKey(key)
         ? result
         : undefined;
     } catch {
@@ -1183,10 +1201,15 @@ export const createTranslator: (
       return text;
     }
 
-    // A text with no wording of its own may be a value: as it is.
+    /*
+     * A text with no wording of its own may be a value: as it is. A key
+     * that names its meaning reads as its word (MeaningKeys).
+     */
     const stored: string | undefined = find(text);
 
-    return stored === undefined ? text : punctuate(stored);
+    return stored === undefined
+      ? withMeaningKeyAsItsWord(text)
+      : punctuate(stored);
   };
 
   const hasTranslation: (text: string) => boolean = (text: string): boolean => {
@@ -1201,7 +1224,7 @@ export const createTranslator: (
       return "";
     }
 
-    const translated: string = find(text) ?? text;
+    const translated: string = find(text) ?? withMeaningKeyAsItsWord(text);
 
     if (!options?.inSentence) {
       return translated.trim();

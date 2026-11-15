@@ -52348,5 +52348,8 @@
   "Timeout": "Tidsavbrudd",
   "Type changed": "Type endret",
   "Uncollectible": "Ikke innkrevbar",
-  "Void": "Annullert"
+  "Void": "Annullert",
+  "Change (schema change)": "Endring",
+  "Table (database object)": "Tabell",
+  "View (database object)": "Visning"
 }

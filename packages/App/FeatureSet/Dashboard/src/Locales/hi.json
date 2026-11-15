@@ -52348,5 +52348,8 @@
   "Timeout": "टाइमआउट",
   "Type changed": "प्रकार बदला गया",
   "Uncollectible": "वसूली योग्य नहीं",
-  "Void": "रद्द"
+  "Void": "रद्द",
+  "Change (schema change)": "बदलाव",
+  "Table (database object)": "टेबल",
+  "View (database object)": "व्यू"
 }

@@ -52348,5 +52348,8 @@
   "Timeout": "Timeout",
   "Type changed": "Type changed",
   "Uncollectible": "Uncollectible",
-  "Void": "Void"
+  "Void": "Void",
+  "Change (schema change)": "Change (schema change)",
+  "Table (database object)": "Table (database object)",
+  "View (database object)": "View (database object)"
 }

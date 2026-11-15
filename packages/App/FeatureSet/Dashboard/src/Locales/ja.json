@@ -52348,5 +52348,8 @@
   "Timeout": "タイムアウト",
   "Type changed": "型を変更",
   "Uncollectible": "回収不能",
-  "Void": "無効"
+  "Void": "無効",
+  "Change (schema change)": "変更内容",
+  "Table (database object)": "テーブル",
+  "View (database object)": "ビュー"
 }

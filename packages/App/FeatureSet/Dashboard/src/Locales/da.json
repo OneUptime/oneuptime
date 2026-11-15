@@ -52348,5 +52348,8 @@
   "Timeout": "Tidsgrænse overskredet",
   "Type changed": "Type ændret",
   "Uncollectible": "Uerholdelig",
-  "Void": "Annulleret"
+  "Void": "Annulleret",
+  "Change (schema change)": "Ændring",
+  "Table (database object)": "Tabel",
+  "View (database object)": "Visning"
 }

@@ -52348,5 +52348,8 @@
   "Timeout": "پایان مهلت",
   "Type changed": "نوع تغییر کرد",
   "Uncollectible": "غیرقابل وصول",
-  "Void": "باطل‌شده"
+  "Void": "باطل‌شده",
+  "Change (schema change)": "تغییر",
+  "Table (database object)": "جدول",
+  "View (database object)": "نما"
 }

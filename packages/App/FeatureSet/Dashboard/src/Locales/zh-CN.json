@@ -52348,5 +52348,8 @@
   "Timeout": "超时",
   "Type changed": "已更改类型",
   "Uncollectible": "无法收回",
-  "Void": "已作废"
+  "Void": "已作废",
+  "Change (schema change)": "变更内容",
+  "Table (database object)": "表",
+  "View (database object)": "视图"
 }

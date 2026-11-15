@@ -52348,5 +52348,8 @@
   "Timeout": "انتهاء المهلة",
   "Type changed": "تغيّر النوع",
   "Uncollectible": "غير قابل للتحصيل",
-  "Void": "ملغى"
+  "Void": "ملغى",
+  "Change (schema change)": "التغيير",
+  "Table (database object)": "جدول",
+  "View (database object)": "طريقة عرض"
 }

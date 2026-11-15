@@ -52348,5 +52348,8 @@
   "Timeout": "Time-out",
   "Type changed": "Type gewijzigd",
   "Uncollectible": "Oninbaar",
-  "Void": "Geannuleerd"
+  "Void": "Geannuleerd",
+  "Change (schema change)": "Wijziging",
+  "Table (database object)": "Tabel",
+  "View (database object)": "Weergave"
 }

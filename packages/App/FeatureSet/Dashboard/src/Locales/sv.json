@@ -52348,5 +52348,8 @@
   "Timeout": "Tidsgränsen överskreds",
   "Type changed": "Typ ändrad",
   "Uncollectible": "Ej indrivningsbar",
-  "Void": "Annullerad"
+  "Void": "Annullerad",
+  "Change (schema change)": "Ändring",
+  "Table (database object)": "Tabell",
+  "View (database object)": "Vy"
 }
