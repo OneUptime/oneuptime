@@ -140,7 +140,7 @@ Nøkkelens side teller også: **Avvist telemetri** viser hva som er avvist fra n
 For de andre svarene en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
 :::details Det kommer fortsatt data et minutt etter at jeg slo av nøkkelen
-Hver OneUptime-server husker det den vet om en nøkkel, i opptil ett minutt, så en endring når alle innen omtrent ett minutt. Forespørsler etter det avvises.
+Hver OneUptime-server husker det den vet om en nøkkel, i opptil ett minutt, så en endring når alle innen omtrent ett minutt. Forespørsler etter det avvises. En MQTT-klient som koblet til med nøkkelen, kobles fra innen noen sekunder.
 :::
 
 :::details En nettlesernøkkel virker på den bærbare maskinen min, men ikke i produksjon
