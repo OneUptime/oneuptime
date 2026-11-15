@@ -113,11 +113,13 @@ import OpenStackCollectionStatusCard from "../../../../App/FeatureSet/Dashboard/
 import {
   OpenStackCollectionStatusView,
   getOpenStackCollectionStatusView,
+  getOpenStackInventoryPhrases,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/OpenStackProbeCollectionView";
 import VMwareCollectionStatusCard from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareCollectionStatusCard";
 import {
   VMwareCollectionStatusView,
   getVMwareCollectionStatusView,
+  getVMwareInventoryPhrases,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareProbeCollectionView";
 import {
   ExtractedString,
@@ -135,6 +137,8 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
 import OpenStackCollectionStatus from "../../../Types/OpenStack/OpenStackCollectionStatus";
+import { OpenStackCollectionSummary } from "../../../Types/OpenStack/OpenStackProbeCollection";
+import { VMwareCollectionSummary } from "../../../Types/VMware/VMwareProbeCollection";
 import VMwareCollectionMethod from "../../../Types/VMware/VMwareCollectionMethod";
 import VMwareCollectionStatus from "../../../Types/VMware/VMwareCollectionStatus";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -193,7 +197,10 @@ function text(value: string | null | undefined): string {
     .trim();
 }
 
-// Every sentence of these files the Dashboard looks up, but a count's.
+/*
+ * Every sentence of these files the Dashboard looks up, and every count's two forms (the
+ * general key, and "<key>_one").
+ */
 function sentencesOfTheReasons(): Array<string> {
   const keys: Set<string> = new Set<string>();
 
@@ -202,8 +209,14 @@ function sentencesOfTheReasons(): Array<string> {
 
     for (const found of scanSourceText(file, source, { kind: "ui" })
       .strings as Array<ExtractedString>) {
-      if (!found.nestedPath && !found.pluralOne) {
-        keys.add(found.text);
+      if (found.nestedPath) {
+        continue;
+      }
+
+      keys.add(found.text);
+
+      if (found.pluralOne) {
+        keys.add(`${found.text}_one`);
       }
     }
   }
@@ -590,7 +603,7 @@ function storeDetail(
 }
 
 describe("the reasons are worded in every Dashboard language", () => {
-  test("every sentence of the four files is worded in every language, but a count's", () => {
+  test("every sentence and every count of the four files is worded in every language, or kept as the language keeps it", () => {
     const sentences: Array<string> = sentencesOfTheReasons();
 
     // The scan read the files: the reasons are among what it found.
@@ -599,6 +612,8 @@ describe("the reasons are worded in every Dashboard language", () => {
         "No credential is saved for this cloud.",
         "No password is saved for this vCenter.",
         "Nothing scans this store while {{probe}} is disconnected.",
+        "{{count}} datastores",
+        "{{count}} datastores_one",
       ]),
     );
 
@@ -828,6 +843,159 @@ describe("the reasons are worded in every Dashboard language", () => {
 });
 
 /*
+ * What the last collection found, as counts: "48 hypervisors", "5 datastores" (OneUptime issue
+ * #8584). Each count is a plural, written in the reader's numerals, in the form the reader's
+ * language says for it: its "one" form for the counts the language calls one (0 and 1 in
+ * French), its general form for every other. A language that keeps a word as English does
+ * ("{{count}} datastore" in French) says so on its same-as-English list, and still reads its
+ * own form.
+ */
+const OPENSTACK_COUNT_KEYS: ReadonlyArray<string> = [
+  "{{count}} hypervisors",
+  "{{count}} instances",
+  "{{count}} networks",
+  "{{count}} volumes",
+  "{{count}} projects",
+];
+
+const VMWARE_COUNT_KEYS: ReadonlyArray<string> = [
+  "{{count}} datacenters",
+  "{{count}} clusters",
+  "{{count}} hosts",
+  "{{count}} virtual machines ({{running}} running)",
+  "{{count}} datastores",
+];
+
+const COUNTS: ReadonlyArray<number> = [0, 1, 2, 5, 21, 1234];
+
+function openStackSummary(count: number): OpenStackCollectionSummary {
+  return {
+    credentialKind: "applicationCredential",
+    regionNames: ["RegionOne"],
+    services: [],
+    hypervisorCount: count,
+    instanceCount: count,
+    networkCount: count,
+    volumeCount: count,
+    projectCount: count,
+    warnings: [],
+  };
+}
+
+function vmwareSummary(count: number): VMwareCollectionSummary {
+  return {
+    datacenterCount: count,
+    clusterCount: count,
+    hostCount: count,
+    vmCount: count,
+    poweredOnVmCount: count,
+    templateCount: 0,
+    datastoreCount: count,
+    resourcePoolCount: 0,
+  } as VMwareCollectionSummary;
+}
+
+// The form `language`'s file has for `count`, filled as the page fills it.
+function expectedCount(
+  language: string,
+  key: string,
+  count: number,
+  translator: Translator,
+): string {
+  const words: Record<string, string> = readDashboardLocale(language);
+  const category: string = new Intl.PluralRules(language).select(count);
+  const form: string = category === "one" ? words[`${key}_one`]! : words[key]!;
+  const number: string = translator.formatNumber(count);
+
+  return text(
+    form.split("{{count}}").join(number).split("{{running}}").join(number),
+  );
+}
+
+describe("the inventory's counts read in every Dashboard language", () => {
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s: each count of a cloud and of a vCenter, in its form for the count and in the reader's numerals",
+    (language: string) => {
+      const translator: Translator = dashboardTranslator(language);
+
+      for (const count of COUNTS) {
+        const cloud: Array<string> = getOpenStackInventoryPhrases(
+          openStackSummary(count),
+          translator,
+        ).map(text);
+        const vcenter: Array<string> = getVMwareInventoryPhrases(
+          vmwareSummary(count),
+          translator,
+        ).map(text);
+
+        expect({ language, count, cloud }).toEqual({
+          language,
+          count,
+          cloud: OPENSTACK_COUNT_KEYS.map((key: string): string => {
+            return expectedCount(language, key, count, translator);
+          }),
+        });
+        expect({ language, count, vcenter }).toEqual({
+          language,
+          count,
+          vcenter: VMWARE_COUNT_KEYS.map((key: string): string => {
+            return expectedCount(language, key, count, translator);
+          }),
+        });
+
+        for (const phrase of [...cloud, ...vcenter]) {
+          expect(phrase).toContain(text(translator.formatNumber(count)));
+          expect(phrase).not.toContain("{{");
+        }
+      }
+    },
+  );
+
+  test("French says its one form at 0 and 1, the words it keeps as English does included", () => {
+    const french: Translator = dashboardTranslator("fr");
+
+    expect(
+      getVMwareInventoryPhrases(vmwareSummary(0), french).map(text),
+    ).toEqual(
+      expect.arrayContaining(["0 datacenter", "0 datastore", "0 cluster"]),
+    );
+    expect(
+      getVMwareInventoryPhrases(vmwareSummary(1), french).map(text),
+    ).toEqual(
+      expect.arrayContaining(["1 datacenter", "1 datastore", "1 hôte"]),
+    );
+    expect(
+      getVMwareInventoryPhrases(vmwareSummary(2), french).map(text),
+    ).toEqual(
+      expect.arrayContaining(["2 datacenters", "2 datastores", "2 hôtes"]),
+    );
+    expect(
+      getOpenStackInventoryPhrases(openStackSummary(0), french).map(text),
+    ).toEqual(expect.arrayContaining(["0 instance", "0 volume"]));
+  });
+
+  test("German writes a thousand its own way; Persian and Arabic in their own numerals", () => {
+    expect(
+      text(
+        getOpenStackInventoryPhrases(
+          openStackSummary(1234),
+          dashboardTranslator("de"),
+        )[0],
+      ),
+    ).toMatch(/^1\.234 /);
+
+    for (const language of ["fa", "ar"]) {
+      const translator: Translator = dashboardTranslator(language);
+      const phrase: string = text(
+        getOpenStackInventoryPhrases(openStackSummary(1234), translator)[0],
+      );
+
+      expect(phrase).toContain(text(translator.formatNumber(1234)));
+    }
+  });
+});
+
+/*
  * The cards and the store's Next Content Scan, drawn: the reader's i18next, switched to each
  * language, as the Dashboard's is.
  */
@@ -983,6 +1151,46 @@ describe("drawn in English, German, Arabic and Persian", () => {
               expect(drawn).not.toContain(key);
             }
           }
+        }
+
+        cleanup();
+      }
+    },
+  );
+
+  test.each(DRAWN)(
+    "%s: a collected cloud's card counts what it read in the reader's words and numerals",
+    async (language: string) => {
+      await inLanguage(language);
+
+      for (const count of [1, 1234]) {
+        getItemMock.mockImplementation(async (): Promise<unknown> => {
+          return cloudOf({
+            collectionStatus: OpenStackCollectionStatus.Succeeded,
+            lastCollectionAt: new Date(),
+            lastSuccessfulCollectionAt: new Date(),
+            collectionSummary: openStackSummary(count),
+          });
+        });
+
+        render(
+          <OpenStackCollectionStatusCard modelId={new ObjectID(CLOUD_ID)} />,
+        );
+        await flush();
+
+        const drawn: string = text(
+          screen.getByTestId("openstack-collection-inventory").textContent,
+        );
+
+        for (const phrase of getOpenStackInventoryPhrases(
+          openStackSummary(count),
+          translatorIn(language),
+        )) {
+          expect({ language, count, drawn }).toEqual({
+            language,
+            count,
+            drawn: expect.stringContaining(text(phrase)),
+          });
         }
 
         cleanup();
