@@ -29,6 +29,7 @@ import {
   formatStorageArrayLatency,
   formatStorageArrayPercent,
   getStorageArrayAttentionItems,
+  getKnownStorageArrayStatusKey,
   getStorageArrayHealth,
   getStorageArrayStatusWord,
   getStorageArrayTopologyHealth,
@@ -239,6 +240,44 @@ describe("a part the array reports a status for", () => {
       label: "{{status}}",
       values: { status: "Replicating" },
     });
+  });
+
+  /*
+   * The list of words is a plain object: "constructor" or "__proto__" from
+   * an array read the object's own function or prototype as a known word,
+   * and drew it as the status's label.
+   */
+  test("a word the list's object has of its own is a word the rules do not know", () => {
+    for (const reported of [
+      "constructor",
+      "toString",
+      "__proto__",
+      "hasOwnProperty",
+      "valueOf",
+    ]) {
+      expect(getKnownStorageArrayStatusKey(reported)).toBeUndefined();
+
+      const word: { label: string; values?: Record<string, string> } =
+        getStorageArrayStatusWord(reported);
+
+      expect(word.label).toBe("{{status}}");
+      expect(typeof word.values?.["status"]).toBe("string");
+    }
+  });
+
+  // #7521: the dashboard's hardware widget words a status by this list too.
+  test("knows a status however the array cases or pads it, and nothing that is not a word", () => {
+    expect(getKnownStorageArrayStatusKey("degraded")).toBe("Degraded");
+    expect(getKnownStorageArrayStatusKey("  NOT_INSTALLED ")).toBe(
+      "Not Installed",
+    );
+    expect(getKnownStorageArrayStatusKey("Not Ready")).toBe("Not Ready");
+    expect(getKnownStorageArrayStatusKey("ok")).toBe("OK");
+    expect(getKnownStorageArrayStatusKey("replicating")).toBeUndefined();
+    expect(getKnownStorageArrayStatusKey("")).toBeUndefined();
+    expect(getKnownStorageArrayStatusKey(null)).toBeUndefined();
+    expect(getKnownStorageArrayStatusKey(3)).toBeUndefined();
+    expect(getKnownStorageArrayStatusKey({ status: "ok" })).toBeUndefined();
   });
 });
 

@@ -32,6 +32,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import DashboardWidgetError from "./DashboardWidgetError";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -452,10 +453,15 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
           ) : (
             <DashboardWidgetError icon={IconProp.Waterfall} error={error} />
           ))}
+        {/*
+         * Nothing in the window: the widget's icon over the shared no-data
+         * line (#8038), inside the box that still takes the double-click.
+         */}
         {!isLoading && !error && pivotedData.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-gray-400">
-            {translator.translateText("No data for the selected time range")}
-          </div>
+          <DashboardWidgetEmpty
+            icon={IconProp.Waterfall}
+            message="No data for the selected time range"
+          />
         )}
         {isChartShown && (
           <div

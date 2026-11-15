@@ -385,6 +385,14 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
   page that embeds it. Enforced by
   [LogsEmptyHintsGuard](../../packages/App/Tests/Dashboard/LogsEmptyHintsGuard.test.ts).
+- **A dashboard widget that read and found nothing says so under its icon, as its setup and error
+  lines are drawn.** A time range or filters with nothing in them was bare gray-400 words (2.5:1 on
+  white) with no icon, so a Log Chart that found nothing looked like no other state on its board
+  (#8038). Draw it with `DashboardWidgetEmpty`: the widget's own icon (the one its error shows) over
+  one gray-500 line, centred and balanced, in the reader's words. A list or table that keeps its
+  column headers draws a no-data row in the same gray (`DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME`).
+  Enforced by
+  [WidgetEmptyLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetEmptyLineGuard.test.ts).
 - **A suggestion shows only when it applies,** decided by one helper per kind in
   `Common/Utils/Suggestions`, never in a page. Enforced by
   [SuggestionRulesGuard](../../packages/Common/Tests/App/Dashboard/SuggestionRulesGuard.test.ts).
@@ -566,9 +574,10 @@ work out, starts from a default for everything else, and folds what most people 
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
-  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
-  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
-  right-to-left line. Enforced by
+  (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
+  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
+  any other message whole in a right-to-left line. Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
