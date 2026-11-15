@@ -578,9 +578,7 @@ export default class ProjectProducts {
       return;
     }
 
-    const answer: ProjectProductsAnswer | null = parseRemembered(
-      data.newValue,
-    );
+    const answer: ProjectProductsAnswer | null = parseRemembered(data.newValue);
 
     if (!answer) {
       return;
