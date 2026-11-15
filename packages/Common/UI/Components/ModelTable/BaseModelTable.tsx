@@ -2730,14 +2730,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         const defaultSortColumn: string =
           (model as AnalyticsBaseModel).defaultSortColumn || "createdAt";
 
-        // A relation column's order is its related field's, as on screen.
+        /*
+         * A relation column's order is its related field's, as on screen;
+         * a sort the list cannot be read in is the list's own order there
+         * too (getColumnSortForRead).
+         */
+        const columnSort: Sort<TBaseModel> = getColumnSortForRead<TBaseModel>({
+          model: model,
+          sortBy: sortBy as string | null,
+          sortOrder: sortOrder,
+          relationSorts: relationColumnSorts,
+        });
+
         const bulkSort: Sort<TBaseModel> = (
-          sortBy
-            ? getColumnSortForRead<TBaseModel>({
-                sortBy: sortBy as string,
-                sortOrder: sortOrder,
-                relationSorts: relationColumnSorts,
-              })
+          Object.keys(columnSort).length > 0
+            ? columnSort
             : { [defaultSortColumn]: SortOrder.Descending }
         ) as Sort<TBaseModel>;
 
@@ -2981,6 +2988,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * field ({ incidentSeverity: { order: "ASC" } }), any other by itself.
      */
     return getColumnSortForRead<TBaseModel>({
+      model: model,
       sortBy: sortBy as string | null,
       sortOrder: sortOrder,
       relationSorts: relationColumnSorts,

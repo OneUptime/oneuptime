@@ -398,6 +398,7 @@ describe("the order the server is asked for", () => {
 
     expect(
       getColumnSortForRead<Incident>({
+        model: new Incident(),
         sortBy: "incidentSeverity",
         sortOrder: DESC,
         relationSorts,
@@ -405,6 +406,7 @@ describe("the order the server is asked for", () => {
     ).toEqual({ incidentSeverity: { order: ASC } });
     expect(
       getColumnSortForRead<Incident>({
+        model: new Incident(),
         sortBy: "declaredAt",
         sortOrder: DESC,
         relationSorts,
@@ -412,11 +414,68 @@ describe("the order the server is asked for", () => {
     ).toEqual({ declaredAt: DESC });
     expect(
       getColumnSortForRead<Incident>({
+        model: new Incident(),
         sortBy: null,
         sortOrder: DESC,
         relationSorts,
       }),
     ).toEqual({});
+  });
+
+  /*
+   * A link or a saved view made before a column changed can still name a
+   * relation: an order the server refuses would fail the whole list.
+   */
+  test("a relation the list cannot be ordered by, as an old link names it, is read in the list's own order", () => {
+    const relationSorts: Map<string, RelationColumnSort> = new Map([
+      ["incidentSeverity", SEVERITY_SORT],
+    ]);
+
+    for (const staleKey of [
+      "labels",
+      "monitors",
+      "currentIncidentState",
+      "project.name",
+      "customFields.Region",
+    ]) {
+      expect(
+        getColumnSortForRead<Incident>({
+          model: new Incident(),
+          sortBy: staleKey,
+          sortOrder: DESC,
+          relationSorts,
+        }),
+      ).toEqual({});
+    }
+
+    // A column of the record's own, and the id, are sorted as before.
+    expect(
+      getColumnSortForRead<Incident>({
+        model: new Incident(),
+        sortBy: "_id",
+        sortOrder: ASC,
+        relationSorts,
+      }),
+    ).toEqual({ _id: ASC });
+  });
+
+  test("an analytics list keeps the key it is sorted by, whatever it is", () => {
+    expect(
+      getColumnSortForRead<AnalyticsLog>({
+        model: new AnalyticsLog(),
+        sortBy: "time",
+        sortOrder: DESC,
+        relationSorts: new Map(),
+      }),
+    ).toEqual({ time: DESC });
+    expect(
+      getColumnSortForRead<AnalyticsLog>({
+        model: new AnalyticsLog(),
+        sortBy: "attributes.region",
+        sortOrder: ASC,
+        relationSorts: new Map(),
+      }),
+    ).toEqual({ "attributes.region": ASC });
   });
 
   test("a new object every time: the reads add their tie-break to it", () => {
@@ -425,6 +484,7 @@ describe("the order the server is asked for", () => {
     ]);
 
     const first: Sort<Incident> = getColumnSortForRead<Incident>({
+      model: new Incident(),
       sortBy: "incidentSeverity",
       sortOrder: DESC,
       relationSorts,
@@ -434,6 +494,7 @@ describe("the order the server is asked for", () => {
 
     expect(
       getColumnSortForRead<Incident>({
+        model: new Incident(),
         sortBy: "incidentSeverity",
         sortOrder: DESC,
         relationSorts,
@@ -1034,5 +1095,21 @@ describe("a list's relation headers sort the whole list", () => {
       name: true,
       color: true,
     });
+  });
+
+  test("a list opened sorted by a relation it cannot be ordered by - its Labels - still loads, in its own order", async () => {
+    const calls: Array<ListCall> = [];
+
+    renderIncidents(calls, {
+      sortBy: "labels",
+      sortOrder: SortOrder.Descending,
+    } as Partial<BaseModelTableProps<Incident>>);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Checkout is down")).not.toBeNull();
+    });
+
+    expect(calls[0]?.sort).toEqual({});
+    expect(header("Labels")).not.toHaveAttribute("aria-sort");
   });
 });

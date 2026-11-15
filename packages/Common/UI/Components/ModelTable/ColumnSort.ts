@@ -400,20 +400,49 @@ export const getRelationColumnSortValue: (
 };
 
 /*
+ * Whether a sort key names a relation of a database model, or a field of
+ * one ("project.name"), rather than one of its own columns.
+ */
+const isRelationSortKey: (
+  model: BaseModel | AnalyticsBaseModel,
+  sortBy: string,
+) => boolean = (
+  model: BaseModel | AnalyticsBaseModel,
+  sortBy: string,
+): boolean => {
+  if (!(model instanceof BaseModel)) {
+    return false;
+  }
+
+  if (sortBy.includes(".")) {
+    return true;
+  }
+
+  return model.hasColumn(sortBy) && model.isEntityColumn(sortBy);
+};
+
+/*
  * The order a table asks the server for when sorted by the column with
  * this key: the related record's field for a relation column
  * (relationSorts, by the key the header sorts on), the column itself for
  * any other, and none when nothing is sorted.
+ *
+ * None either for a relation the list cannot be ordered by: a link or a
+ * saved view made before a column changed can still name one, and the
+ * server refuses an order by it ({ labels: "ASC" }) - the whole list would
+ * fail to load. It is read in its own order instead.
  */
 export const getColumnSortForRead: <
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 >(data: {
+  model: TBaseModel;
   sortBy: string | null | undefined;
   sortOrder: SortOrder;
   relationSorts: Map<string, RelationColumnSort>;
 }) => Sort<TBaseModel> = <
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 >(data: {
+  model: TBaseModel;
   sortBy: string | null | undefined;
   sortOrder: SortOrder;
   relationSorts: Map<string, RelationColumnSort>;
@@ -431,6 +460,10 @@ export const getColumnSortForRead: <
       relationSort,
       data.sortOrder,
     ) as unknown as Sort<TBaseModel>;
+  }
+
+  if (isRelationSortKey(data.model, data.sortBy)) {
+    return {} as Sort<TBaseModel>;
   }
 
   return { [data.sortBy]: data.sortOrder } as Sort<TBaseModel>;
