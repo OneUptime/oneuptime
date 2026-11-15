@@ -772,15 +772,15 @@ describe("a volume's figures, in the reader's digits", () => {
   /*
    * A millisecond figure is the Dashboard's duration (#7418): its unit is
    * the reader's too ("۲٫۳۵ میلی‌ثانیه", "2.35 ملي ث"), and so is a
-   * microsecond one ("۴۲۰ میکروثانیه", "420 م.ث."; #8348).
+   * microsecond one ("۴۲۰μs", "420 م.ث."; #8348).
    */
   test("latency: the reader's digits and decimal sign, the unit as every language writes it", () => {
-    expect(formatLatencyUsec(420, german)).toBe("420\u00A0µs");
+    expect(formatLatencyUsec(420, german)).toBe("420\u00A0μs");
     expect(formatLatencyUsec(2345, german)).toBe("2,35\u00A0ms");
     expect(formatLatencyUsec(1_234_567, german)).toBe("1.234,57\u00A0ms");
-    expect(formatLatencyUsec(420, persian)).toBe("۴۲۰\u00A0میکروثانیه");
+    expect(formatLatencyUsec(420, persian)).toBe("۴۲۰μs");
     expect(formatLatencyUsec(2345, persian)).toBe("۲٫۳۵\u00A0میلی‌ثانیه");
-    expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰\u00A0میکروثانیه");
+    expect(formatLatencyUsec(420.4, persian)).toBe("۴۲۰μs");
     // Arabic writes Latin digits, and its milliseconds' two words held together.
     expect(formatLatencyUsec(2345, arabic)).toBe("2.35\u00A0ملي\u00A0ث");
     expect(formatLatencyUsec(420, arabic)).toBe("420\u00A0م.ث.");
@@ -893,13 +893,13 @@ describe("a volume's figures, in the reader's digits", () => {
    */
   test("read and write latency: each set apart on a page read from the right, as before on one read from the left", () => {
     expect(formatReadWriteLatencyUsec(420, 2345, persian)).toBe(
-      `${apart("۴۲۰\u00A0میکروثانیه")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
+      `${apart("۴۲۰μs")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, arabic)).toBe(
       `${apart("420\u00A0م.ث.")} / ${apart("2.35\u00A0ملي\u00A0ث")}`,
     );
     expect(formatReadWriteLatencyUsec(420, 2345, german)).toBe(
-      "420\u00A0µs / 2,35\u00A0ms",
+      "420\u00A0μs / 2,35\u00A0ms",
     );
     // A latency the array did not report is the dash, which moves nothing.
     expect(formatReadWriteLatencyUsec(undefined, undefined, persian)).toBe(

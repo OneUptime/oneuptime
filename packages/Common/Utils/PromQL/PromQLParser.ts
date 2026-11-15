@@ -1265,9 +1265,9 @@ export const matchesEmptyValue: (matcher: PromQLLabelMatcher) => boolean = (
     case PromQLMatchType.NotEqual:
       return matcher.value !== "";
     case PromQLMatchType.RegexMatch:
-      return compilePromQLRegex(matcher.value).regex.test("");
+      return compilePromQLRegex(matcher.value).test("");
     case PromQLMatchType.RegexNoMatch:
-      return !compilePromQLRegex(matcher.value).regex.test("");
+      return !compilePromQLRegex(matcher.value).test("");
   }
 };
 

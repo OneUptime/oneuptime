@@ -3,7 +3,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * How the AI pages write numbers: a latency, a cost, a token count, so the
@@ -57,19 +60,17 @@ export function formatLlmDuration(
   const tenths: number = Math.round(ms / 100);
 
   if (tenths < 100) {
-    return formatMilliseconds(translator, tenths * 100, {
-      unit: "s",
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+    return formatDurationInUnit(translator, tenths / 10, "second", {
+      decimals: 1,
     });
   }
 
   const totalSeconds: number = Math.round(ms / 1000);
 
   if (totalSeconds < 60) {
-    return formatMilliseconds(translator, totalSeconds * 1000, {
-      unit: "s",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator, totalSeconds, "second", {
+      decimals: 0,
+      dropTrailingZeros: true,
     });
   }
 

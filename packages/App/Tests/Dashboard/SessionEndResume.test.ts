@@ -243,7 +243,32 @@ describe("the Dashboard and the Admin Dashboard notice activity, for the idle ti
       expect(source).toContain(
         'import UserActivity from "Common/UI/Utils/UserActivity";',
       );
-      expect(source.split("UserActivity.install()").length - 1).toBe(1);
+      expect(source.split("UserActivity.install(").length - 1).toBe(1);
+    },
+  );
+
+  /*
+   * Issue #8188: the server records an idle timeout soon after it ran out
+   * only for a session whose browser renews while its person uses it, so
+   * nobody still working is signed out. Each app hands UserActivity the
+   * renewal that tells the server of its person's activity.
+   */
+  test.each([["Dashboard"], ["AdminDashboard"]])(
+    "%s renews while its person uses it, so the server always knows they are here",
+    (app: string) => {
+      const source: string = readCode(app, "src", "Index.tsx");
+
+      expect(source).toContain('import API from "Common/UI/Utils/API/API";');
+      // readCode writes the source on one line, a space between its parts.
+      expect(source).toContain(
+        [
+          "UserActivity.install({",
+          "reportActivity: (): void => {",
+          "void API.reportActivityWhileInUse();",
+          "},",
+          "});",
+        ].join(" "),
+      );
     },
   );
 });

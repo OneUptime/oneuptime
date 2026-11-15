@@ -1,5 +1,8 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 import React, {
   Fragment,
   FunctionComponent,
@@ -128,10 +131,8 @@ export const formatDuration: (
   const milliseconds: number = nanos / 1_000_000;
 
   if (nanos >= 1_000_000_000) {
-    return formatMilliseconds(translator, milliseconds, {
-      unit: "s",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+    return formatDurationInUnit(translator, nanos / 1_000_000_000, "second", {
+      decimals: 2,
     });
   }
   if (nanos >= 1_000_000) {
@@ -140,10 +141,11 @@ export const formatDuration: (
       maximumFractionDigits: 1,
     });
   }
-  return formatMilliseconds(translator, milliseconds, {
-    unit: nanos >= 1_000 ? "µs" : "ns",
-    maximumFractionDigits: 0,
-  });
+  return nanos >= 1_000
+    ? formatDurationInUnit(translator, nanos / 1_000, "microsecond", {
+        decimals: 0,
+      })
+    : formatDurationInUnit(translator, nanos, "nanosecond", { decimals: 0 });
 };
 
 const getPercentile: (arr: Array<number>, p: number) => number = (

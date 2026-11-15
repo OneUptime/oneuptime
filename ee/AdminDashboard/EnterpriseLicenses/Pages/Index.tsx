@@ -170,13 +170,16 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.enterpriseLicenses.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.enterpriseLicenses"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.ENTERPRISE_LICENSES] as Route,
           ),

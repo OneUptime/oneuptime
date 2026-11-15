@@ -2,6 +2,7 @@ import Label from "./Label";
 import Monitor from "./Monitor";
 import MonitorStatus from "./MonitorStatus";
 import Project from "./Project";
+import Service from "./Service";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -95,6 +96,10 @@ const decimalTransformer: ValueTransformer = {
  * the freeze time beside them stay out. The SLO's burn-rate rules, monitor
  * rules and owners roll their entries up to this resource (their
  * rootResource), so the SLO's Audit Logs page shows them too.
+ *
+ * A request SLO's services and latency threshold are its definition too, so
+ * their edits are recorded; the request counts the worker writes beside its
+ * budget, and its counting cursors, are its output and stay out.
  */
 @EnableAuditLog({
   ignoreColumns: [
@@ -102,6 +107,12 @@ const decimalTransformer: ValueTransformer = {
     "errorBudgetRemainingPercentage",
     "errorBudgetRemainingSeconds",
     "errorBudgetTotalSeconds",
+    "goodEventCount",
+    "totalEventCount",
+    "errorBudgetTotalEvents",
+    "errorBudgetRemainingEvents",
+    "firstAccumulatedBucketStartAt",
+    "eventAccumulationFingerprint",
     "currentBurnRate",
     "sloStatus",
     "statusChangeNotificationSentAt",
@@ -567,7 +578,7 @@ export default class ServiceLevelObjective extends BaseModel {
     allowedValues: Object.values(SliType),
     title: "SLI Type",
     description:
-      "Type of Service Level Indicator this objective measures (Monitor Uptime or Metric)",
+      "What this objective measures: Monitor Uptime (the share of time its monitors are up), Request Success (the share of its services' requests that did not fail) or Request Latency (the share of its services' requests served within the latency threshold). Metric is reserved and not measured yet.",
     defaultValue: SliType.MonitorUptime,
     isDefaultValueColumn: true,
     canReadOnRelationQuery: true,
@@ -660,6 +671,96 @@ export default class ServiceLevelObjective extends BaseModel {
     },
   })
   public monitors?: Array<Monitor> = undefined;
+
+  /*
+   * The services whose requests a Request Success or Request Latency SLO
+   * measures: the entry spans of their traces (where a request enters the
+   * service), counted by the evaluation worker every few minutes
+   * (Utils/Slo/SloRequestSli). Ignored by a Monitor Uptime SLO, which
+   * measures its monitors instead.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjective,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjective,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Service,
+    title: "Services",
+    description:
+      "Services whose requests this Service Level Objective measures, for the Request Success and Request Latency SLI types. Their requests are counted from their traces.",
+  })
+  @ManyToMany(
+    () => {
+      return Service;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveService",
+    inverseJoinColumn: {
+      name: "serviceId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveId",
+      referencedColumnName: "_id",
+    },
+  })
+  public services?: Array<Service> = undefined;
+
+  /*
+   * What "fast enough" means for a Request Latency SLO: a request served in
+   * this many milliseconds or less is good. Whole milliseconds, validated by
+   * ServiceLevelObjectiveService; ignored by every other SLI type.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjective,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjective,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Latency Threshold (ms)",
+    description:
+      "For the Request Latency SLI type: a request served in this many milliseconds or less counts as good. A whole number from 1 to 3600000.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public latencyThresholdInMilliseconds?: number = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -1129,6 +1230,116 @@ export default class ServiceLevelObjective extends BaseModel {
   })
   public errorBudgetTotalSeconds?: number = undefined;
 
+  /*
+   * A request SLO's budget is counted in requests, not seconds: these four
+   * columns are its numbers over the compliance window, written by the
+   * evaluation worker beside the SLI and budget percentages, and empty for a
+   * Monitor Uptime SLO (whose budget is in the two seconds columns above).
+   *
+   * Decimal, because a busy service serves more requests in a month than a
+   * Postgres integer holds, and the allowed failures are a share of them
+   * (0.1% of 12,345 requests is 12.345).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Good Requests",
+    description:
+      "For request SLIs: the requests in the compliance window that counted as good (did not fail, or were fast enough). Computed by the worker.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: decimalTransformer,
+  })
+  public goodEventCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Total Requests",
+    description:
+      "For request SLIs: every request in the compliance window that this Service Level Objective measures. Computed by the worker.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: decimalTransformer,
+  })
+  public totalEventCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Error Budget Total (Requests)",
+    description:
+      "For request SLIs: how many bad requests the target allows in the compliance window. Computed by the worker.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: decimalTransformer,
+  })
+  public errorBudgetTotalEvents?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Error Budget Remaining (Requests)",
+    description:
+      "For request SLIs: how many more bad requests the target allows in the compliance window. Negative when the budget is exhausted. Computed by the worker.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Decimal,
+    transformer: decimalTransformer,
+  })
+  public errorBudgetRemainingEvents?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -1429,13 +1640,71 @@ export default class ServiceLevelObjective extends BaseModel {
     required: false,
     title: "Last Accumulated Bucket End At",
     description:
-      "Accumulation cursor for Metric SLIs: end of the last bucket whose good/total counts were persisted. Computed by the worker.",
+      "For request SLIs: the end of the newest 5-minute step whose good and total requests were counted. Computed by the worker.",
   })
   @Column({
     type: ColumnType.Date,
     nullable: true,
   })
   public lastAccumulatedBucketEndAt?: Date = undefined;
+
+  /*
+   * The other end of what a request SLO has counted: the worker counts its
+   * services' requests in 5-minute steps into SloHistory, from the newest
+   * step back to the start of the window (SloRequestSli.planRequestCounting),
+   * so [firstAccumulatedBucketStartAt, lastAccumulatedBucketEndAt) is the
+   * span of time its numbers cover - "counting since" on the Overview, and
+   * how far back a burn rate rule can look.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "First Accumulated Bucket Start At",
+    description:
+      "For request SLIs: the start of the oldest 5-minute step whose good and total requests were counted, so the time this objective's numbers cover. Computed by the worker.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public firstAccumulatedBucketStartAt?: Date = undefined;
+
+  /*
+   * What the counted steps were counted for: the SLI type, the services and
+   * the latency threshold (SloRequestSli.getRequestCountingFingerprint). A
+   * change to any of them makes every step counted before it wrong, so the
+   * worker starts counting again when this no longer matches the SLO.
+   * Bookkeeping only: nobody reads it but the worker.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Event Accumulation Fingerprint",
+    description:
+      "For request SLIs: what the counted requests were counted for (SLI type, services and latency threshold). Maintained by the worker.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public eventAccumulationFingerprint?: string = undefined;
 
   // Created By / Deleted By User Relations
 

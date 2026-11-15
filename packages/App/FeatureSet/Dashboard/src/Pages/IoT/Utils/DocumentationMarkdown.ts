@@ -579,7 +579,7 @@ function getDeviceCredentialTopic(): SetupGuideTopic {
     markdown: `The project-wide ingestion key suits gateways that publish on behalf of many devices. For devices that connect directly, register each device under the fleet's **Device Registry** tab: it issues a per-device credential — the credential ID is the MQTT **username** and the secret is the **password**. The fleet appears with its first reading, so send one with the project-wide key first, as in step 2.
 
 - **Topic isolation** — a device credential can only publish under its own \`${IOT_MQTT_TOPIC_PREFIX}/<fleet>/<device>/…\` topics; anything else is dropped.
-- **Individual revocation** — disable or delete one device's credential without touching the rest of the fleet; a connected device is cut off within about a minute.
+- **Individual revocation** — disable or delete one device's credential without touching the rest of the fleet; a connected device is cut off within a few seconds.
 - **Silent-death offline detection** — a registered device stays in the inventory as offline when it stops reporting, instead of vanishing, even if it dies without a Last Will.`,
   };
 }

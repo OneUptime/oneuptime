@@ -33,7 +33,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **변수를 관리하는 역할.** Project Owner와 Project Admin, 또는 **Create Runbook Variable** 권한입니다. Runbook Admin은 자신이 작성하는 단계에서 고르기 위해 변수를 읽을 수 있지만 변경하지는 못합니다.
+- **변수를 관리하는 역할.** 프로젝트 소유자와 프로젝트 관리자, 또는 **Create Runbook Variable** 권한입니다. 런북 관리자는 자신이 작성하는 단계에서 고르기 위해 변수를 읽을 수 있지만 변경하지는 못합니다.
 - **변수를 포함하는 요금제.** OneUptime Cloud에서는 Runbook 변수에 **Growth** 이상의 요금제가 필요합니다.
 
 ## 변수 만들기

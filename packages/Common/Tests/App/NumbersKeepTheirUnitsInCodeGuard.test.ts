@@ -55,6 +55,8 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
     "the API's refusal, in the words the docs quote",
   "packages/Common/Utils/SecurityEvent/TelemetryScan/FlowSignals.ts":
     "a security signal's message, stored by the server's scan",
+  "packages/Common/Utils/Slo/SloFeedMarkdown.ts":
+    "an SLO feed item the server writes and stores as Markdown",
   "packages/Common/Utils/AuditLog/AuditLogValues.ts":
     "what an audit entry records in place of JSON too large to keep, stored and sent to syslog as written",
 };

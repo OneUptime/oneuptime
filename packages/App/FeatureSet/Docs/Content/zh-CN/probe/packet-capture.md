@@ -188,10 +188,10 @@ spec:
 
 | 权限 | 允许 | 默认拥有者 |
 | --- | --- | --- |
-| **Start Packet Capture** | 开始抓包以及停止抓包 | Project Owner, Project Admin |
-| **Download Packet Capture** | 下载抓包文件 | Project Owner, Project Admin |
-| **Delete Packet Capture** | 删除抓包及其文件 | Project Owner, Project Admin |
-| **Read Packet Capture** | 查看抓包：何时运行、在哪个探测器上、使用哪个过滤器 | Project Owner, Project Admin, Project Member, Viewer |
+| **Start Packet Capture** | 开始抓包以及停止抓包 | 项目所有者、项目管理员 |
+| **Download Packet Capture** | 下载抓包文件 | 项目所有者、项目管理员 |
+| **Delete Packet Capture** | 删除抓包及其文件 | 项目所有者、项目管理员 |
+| **Read Packet Capture** | 查看抓包：何时运行、在哪个探测器上、使用哪个过滤器 | 项目所有者、项目管理员、项目成员、查看者 |
 
 要给团队 **Start Packet Capture** 或 **Download Packet Capture**，请在 **设置 → 团队** 下打开该团队，并在其 **权限** 页面上添加该权限。请参阅 [权限](/docs/permissions/index)。
 

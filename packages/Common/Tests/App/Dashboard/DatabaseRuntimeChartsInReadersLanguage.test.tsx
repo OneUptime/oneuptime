@@ -308,7 +308,9 @@ describe("the runtime charts' figures, in the reader's digits", () => {
     expect(formatDatabaseRuntimeAxisValue(1.25, "cores")).toBe("1.25");
     expect(formatDatabaseRuntimeAxisValue(12, "percent")).toBe("12%");
     expect(formatDatabaseRuntimeAxisValue(0.024, "percent")).toBe("0.024%");
-    expect(formatDatabaseRuntimeAxisValue(1048576, "bytes")).toBe("1.0\u00A0MiB");
+    expect(formatDatabaseRuntimeAxisValue(1048576, "bytes")).toBe(
+      "1.0\u00A0MiB",
+    );
     expect(formatDatabaseRuntimeAxisValue(2500, "cores")).toBe("2.5k");
     // Named English, or none at all, is the same.
     expect(formatDatabaseRuntimeAxisValue(0.025, "cores", "en")).toBe("0.025");

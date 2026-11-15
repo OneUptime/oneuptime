@@ -1,5 +1,6 @@
 import { REMOVED_PERMISSIONS as RETIRED_SERVICE_TELEMETRY_LINK_PERMISSIONS } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809176500000-RemoveServiceTelemetryLinkPermissions";
 import { REMOVED_PERMISSIONS } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178100000-RemovePermissionsTeamsCannotBeGiven";
+import { REMOVED_PERMISSIONS as PERMISSIONS_THAT_GRANT_NOTHING } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809178600000-RemovePermissionsThatGrantNothing";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -22,7 +23,8 @@ import path from "path";
  * CustomRolePermissionService refuses it in a role
  * (getCustomRolePermissionProblem), and the migration
  * RemovePermissionsTeamsCannotBeGiven took every one of them from the teams,
- * keys and roles that held one.
+ * keys and roles that held one - RemovePermissionsThatGrantNothing the 28
+ * retired since (#8275, #8276, #8277), which nothing checked.
  */
 
 const ALL_VALUES: Array<string> = Object.values(Permission) as Array<string>;
@@ -45,8 +47,40 @@ const TEAM_PICK_ONE: string =
 const API_KEY_PICK_ONE: string =
   "Pick one of the permissions Add Permission lists on the API key's page.";
 
+// The 28 retired by #8275, #8276 and #8277: offered, and checked by nothing.
+const RETIRED_FOR_GRANTING_NOTHING: Array<string> = [
+  "AddLabelsToProjectResources",
+  "CreateInvoices",
+  "CreateOnCallDutyPolicyScheduleLayerUser",
+  "DeleteInvoices",
+  "DeleteOnCallDutyPolicyScheduleLayerUser",
+  "EditAlertEpisodeFeed",
+  "EditAlertFeed",
+  "EditCephClusterFeed",
+  "EditCloudResourceFeed",
+  "EditDatabaseServerFeed",
+  "EditDockerHostFeed",
+  "EditDockerSwarmClusterFeed",
+  "EditHostFeed",
+  "EditIncidentEpisodeFeed",
+  "EditIncidentFeed",
+  "EditKubernetesClusterFeed",
+  "EditMonitorFeed",
+  "EditOnCallDutyPolicyFeed",
+  "EditOnCallDutyPolicyScheduleLayerUser",
+  "EditOpenStackCloudFeed",
+  "EditPodmanHostFeed",
+  "EditProxmoxClusterFeed",
+  "EditScheduledMaintenanceFeed",
+  "EditServiceFeed",
+  "EditServiceLevelObjectiveFeed",
+  "EditStorageArrayFeed",
+  "EditVMwareVCenterFeed",
+  "ReadOnCallDutyPolicyScheduleLayerUser",
+];
+
 describe("PermissionHelper: what may be given to a team or an API key", () => {
-  test("the permissions no picker offers are OneUptime's own, Customer Support and the retired four", () => {
+  test("the permissions no picker offers are OneUptime's own, Customer Support, the retired four and the 28 that grant nothing", () => {
     expect(NOT_FOR_TEAMS).toEqual(
       [
         "AuthenticatedRequest",
@@ -59,6 +93,7 @@ describe("PermissionHelper: what may be given to a team or an API key", () => {
         "ReadServiceTelemetryService",
         "UnAuthorizedSsoUser",
         "User",
+        ...RETIRED_FOR_GRANTING_NOTHING,
       ].sort(),
     );
   });
@@ -145,6 +180,16 @@ describe("getTenantPermissionProblem", () => {
     // No props, so no title: its value stands for it.
     [Permission.AuthenticatedRequest, "AuthenticatedRequest"],
     [Permission.UnAuthorizedSsoUser, "UnAuthorizedSsoUser"],
+    // Retired as they grant nothing (#8275, #8276, #8277).
+    [Permission.EditIncidentFeed, "Edit Incident Feed"],
+    [Permission.EditScheduledMaintenanceFeed, "Edit Scheduled Maintenance Log"],
+    [
+      Permission.CreateOnCallDutyPolicyScheduleLayerUser,
+      "Create On-Call Schedule Layer User",
+    ],
+    [Permission.CreateInvoices, "Create Invoices"],
+    [Permission.DeleteInvoices, "Delete Invoices"],
+    [Permission.AddLabelsToProjectResources, "Add Label to Resources"],
   ])(
     "%s can't be given, named by its title (%s)",
     (permission: Permission, title: string) => {
@@ -263,11 +308,12 @@ describe("every permission no team may hold was taken from the teams that held i
   /*
    * A permission that stops being offered can still be held by a team, a
    * key or a role that was given it before. Whoever retires one writes a
-   * migration that takes it away, as these two did, and adds it here.
+   * migration that takes it away, as these three did, and adds it here.
    */
   const TAKEN_AWAY_BY_A_MIGRATION: Set<string> = new Set<string>([
     ...RETIRED_SERVICE_TELEMETRY_LINK_PERMISSIONS,
     ...REMOVED_PERMISSIONS,
+    ...PERMISSIONS_THAT_GRANT_NOTHING,
   ]);
 
   test.each(
@@ -278,12 +324,30 @@ describe("every permission no team may hold was taken from the teams that held i
     expect(TAKEN_AWAY_BY_A_MIGRATION.has(permission)).toBe(true);
   });
 
-  test("RemovePermissionsTeamsCannotBeGiven takes every one of them, the retired four again too", () => {
-    expect([...REMOVED_PERMISSIONS].sort()).toEqual(NOT_FOR_TEAMS);
+  test("RemovePermissionsTeamsCannotBeGiven takes every one no picker offered when it was written, the retired four again too", () => {
+    expect([...REMOVED_PERMISSIONS].sort()).toEqual(
+      NOT_FOR_TEAMS.filter((permission: string): boolean => {
+        return !RETIRED_FOR_GRANTING_NOTHING.includes(permission);
+      }),
+    );
+  });
+
+  test("RemovePermissionsThatGrantNothing takes the 28 retired since, and nothing the others took", () => {
+    expect([...PERMISSIONS_THAT_GRANT_NOTHING].sort()).toEqual(
+      RETIRED_FOR_GRANTING_NOTHING,
+    );
+    expect(
+      PERMISSIONS_THAT_GRANT_NOTHING.filter((permission: string): boolean => {
+        return REMOVED_PERMISSIONS.includes(permission);
+      }),
+    ).toEqual([]);
   });
 
   test("and no permission a team may still be given", () => {
-    for (const permission of REMOVED_PERMISSIONS) {
+    for (const permission of [
+      ...REMOVED_PERMISSIONS,
+      ...PERMISSIONS_THAT_GRANT_NOTHING,
+    ]) {
       expect({
         permission,
         offered: PermissionHelper.isAssignableToTenant(permission),

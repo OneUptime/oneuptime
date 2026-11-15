@@ -182,9 +182,14 @@ jobs:
 
       # Only the bring-up is retried; the test runs once. `app` and `ingress`
       # are the services the API needs (terraform-provider-e2e.yml explains
-      # the choice and the chaining).
+      # the choice and the chaining). The App builds its frontends once and
+      # watches none: its five watchers, building again at once beside the
+      # API's first boot, took the stack past this runner's 16 GB, and the job
+      # lost its runner here (terraform-provider-e2e.yml explains it too).
       - name: Start OneUptime services
         uses: nick-fields/retry@v3
+        env:
+          ONEUPTIME_DEV_WATCH_FRONTENDS: "false"
         with:
           timeout_minutes: 30
           max_attempts: 3

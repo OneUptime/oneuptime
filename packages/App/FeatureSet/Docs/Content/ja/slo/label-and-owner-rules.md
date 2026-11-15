@@ -98,7 +98,7 @@ SLO を編集してもルールは再適用されず、ルールが何かを削�
 | ラベルルールを実行する | **Edit SLO Label Rule** と **Edit Service Level Objective** |
 | 所有者ルールを実行する | **Edit SLO Owner Rule**、**Edit Service Level Objective**、**Create SLO User Owner**、**Create SLO Team Owner** |
 
-これらの権限はロールの SLO グループにあり、Project Owner ロールと Project Admin ロールはすべてを持っています。実行はプロジェクトのすべての SLO を変更するため、一部のラベルや自分が所有する SLO に限定された権限では、ルールを実行できません。
+これらの権限はロールの SLO グループにあり、プロジェクト所有者ロールとプロジェクト管理者ロールはすべてを持っています。実行はプロジェクトのすべての SLO を変更するため、一部のラベルや自分が所有する SLO に限定された権限では、ルールを実行できません。
 
 ## 次のステップ
 

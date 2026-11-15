@@ -26,7 +26,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadmins können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
+- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadministratoren können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
 - **Ein API-Token von Grafana OnCall.** Verwenden Sie ein OnCall-API-Token, kein Token eines Grafana-Dienstkontos. Der Import schreibt nie in Grafana OnCall. Löschen Sie das Token, sobald der Import erledigt ist.
 - **Ihre OnCall-API-URL.** Die Einstellungen von OnCall zeigen sie neben den API-Tokens. In Grafana Cloud sieht sie aus wie `https://oncall-prod-us-central-0.grafana.net/oncall`. Bei einer eigenen Installation ist es die Adresse Ihrer OnCall-Engine.
 
@@ -77,7 +77,7 @@ Ein Import erstellt höchstens 2.000 Datensätze: höchstens 500 Personen, 200 T
 
 In OneUptime Cloud werden Datensätze, die Ihr Tarif nicht enthält, als nicht übernommen angezeigt, mit dem Tarif, den sie brauchen.
 
-Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadmins sehen den Fortschritt und den Bericht jedes Imports.
+Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadministratoren sehen den Fortschritt und den Bericht jedes Imports.
 
 ## Den Wechsel abschließen
 

@@ -93,6 +93,8 @@ Scegli le regioni da leggere, dai un nome al cloud e fai clic su **Connetti clou
 
 La **Panoramica** del cloud mostra una scheda **Raccolta dati**. Indica **Verifica in corso** fino alla prima raccolta, che parte entro un minuto, poi **In raccolta**, e le pagine si riempiono. Quando alcuni servizi sono stati letti e un altro no, dice quale. Se per 15 minuti nessuna sonda si occupa del cloud, perché è offline o troppo vecchia, indica **Nessuna raccolta** e lo dice, qualunque cosa abbia trovato l'ultima raccolta.
 
+Quando nessuna sonda può raccogliere il cloud, la scheda indica subito **Nessuna raccolta**, con il motivo e cosa cambiare: non è salvata alcuna credenziale, manca l'indirizzo di Keystone, nessuna sonda è impostata per raccoglierlo, la sua sonda non può raccoglierlo (una sonda condivisa su OneUptime Cloud, o quella di un altro progetto), oppure la sua sonda è disconnessa. **Prossima raccolta** è l'ora in cui una sonda lo raccoglie la prossima volta, **Previsto ora** mentre ne aspetta una, **In ritardo** quando nessuna se n'è occupata per 15 minuti, e **Non pianificato** finché nessuna sonda può raccoglierlo. Un cloud archiviato continua a essere raccolto.
+
 La scheda **Raccolta dati** nella pagina **Impostazioni** del cloud contiene ciò con cui l'hai connesso:
 
 ![La scheda Raccolta dati nella pagina Impostazioni di un cloud: il suo indirizzo Keystone, la sua sonda, la application credential con cui effettua il login, le sue regioni, il certificato considerato attendibile e la frequenza di raccolta](/docs/static/images/OpenStackDataCollection.png)

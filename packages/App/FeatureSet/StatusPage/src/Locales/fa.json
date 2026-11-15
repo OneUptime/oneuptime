@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
-    "uptimePercent": "{{percent}}٪ زمان کارکرد",
+    "uptimePercent": "{{percent}} زمان کارکرد",
     "operational": "عملیاتی",
     "notMonitored": "پایش نشده",
     "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",

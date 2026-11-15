@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 2101
+    "keys": 53571,
+    "untranslated": 2038
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -672,13 +672,11 @@
     "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
-    "{{value}} h",
     "{{value}} ms",
-    "{{value}} ns",
     "{{value}} s",
-    "{{value}} µs",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",

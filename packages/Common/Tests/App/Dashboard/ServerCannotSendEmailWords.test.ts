@@ -84,6 +84,12 @@ const DASHBOARD_SENTENCES: Array<string> = [
   SERVER_EMAIL_COPY.invitationLinkFailed,
   // A pending person's row action, which opens the link's dialog (#7168).
   SERVER_EMAIL_COPY.getInvitationLink,
+  /*
+   * A member who has not signed up yet, and the dialog for someone with an
+   * account who is a member already (#8191).
+   */
+  SERVER_EMAIL_COPY.notSignedUpPill,
+  SERVER_EMAIL_COPY.invitationLinkMemberDescription,
   SERVER_EMAIL_NOT_SET_UP_MESSAGE,
 ];
 
@@ -250,6 +256,8 @@ describe("where the pages say them", () => {
     [["Pages", "Monitor", "Create.tsx"], "createMonitorDescription"],
     [["Pages", "Users", "Index.tsx"], "inviteEmailDescription"],
     [["Pages", "Teams", "View", "Members.tsx"], "inviteEmailDescription"],
+    // A person's Teams > Invite (#8192).
+    [["Pages", "Users", "View", "Teams.tsx"], "inviteEmailDescription"],
   ] as Array<[Array<string>, string]>)(
     "%j says %s when the server cannot send email",
     (file: Array<string>, copy: string) => {
@@ -291,6 +299,14 @@ describe("where the pages say them", () => {
         /cannotSendEmail\(serverEmail\) &&\s*serverEmail\.isMasterAdmin/,
       );
     }
+
+    // A person's Teams > Invite, by the rule the rows use (#8192).
+    const teams: string = read("Pages", "Users", "View", "Teams.tsx");
+
+    expect(teams).toContain("<InvitationLinkModal");
+    expect(teams).toMatch(
+      /onCreateSuccess=\{[\s\S]*canGetInvitationLinks\(serverEmail\) &&\s*item\.id/,
+    );
   });
 
   test("the project's Email Logs read a server with no email in its owners' words", () => {
@@ -322,7 +338,8 @@ describe("where the pages say them", () => {
       );
     };
 
-    for (const file of ["Users.tsx", "TeamView.tsx"]) {
+    // UserView's Add to Team says it too (#8192).
+    for (const file of ["Users.tsx", "TeamView.tsx", "UserView.tsx"]) {
       const source: string = adminPage(file);
 
       expect(source).toContain(

@@ -213,6 +213,25 @@ const isMonitorSummaryFile: (relativeFile: string) => boolean = (
  * Whether a template is a CSS property's value: an animationDuration, a
  * transition, or a CSS custom property ("--replay-cursor-ms").
  */
+/*
+ * Whether a template is the English a duration helper writes for an English
+ * reader: the `english` of formatDurationInUnit's options (`{ english:
+ * `${x} µs` }`). Every other reader reads the helper's own words, and the
+ * helper holds the English figure to its unit.
+ */
+const isEnglishOfADurationHelper: (node: ts.TemplateExpression) => boolean = (
+  node: ts.TemplateExpression,
+): boolean => {
+  const parent: ts.Node = node.parent;
+
+  return (
+    ts.isPropertyAssignment(parent) &&
+    parent.initializer === node &&
+    (ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name)) &&
+    parent.name.text === "english"
+  );
+};
+
 const isCssPropertyValue: (node: ts.TemplateExpression) => boolean = (
   node: ts.TemplateExpression,
 ): boolean => {
@@ -318,7 +337,11 @@ const findHandWrittenMilliseconds: (data: {
       report(node, "joined with +");
     }
 
-    if (data.isHeldToEveryRule && ts.isTemplateExpression(node)) {
+    if (
+      data.isHeldToEveryRule &&
+      ts.isTemplateExpression(node) &&
+      !isEnglishOfADurationHelper(node)
+    ) {
       const isCssValue: boolean = isCssPropertyValue(node);
       const writesMilliseconds: boolean = node.templateSpans.some(
         (span: ts.TemplateSpan): boolean => {
@@ -706,6 +729,25 @@ describe("negative controls: the scan catches what it is for", () => {
       "8 written after a template's figure",
       "9 written after a template's figure",
     ]);
+  });
+
+  test("the English a duration helper is handed is its own: formatDurationInUnit holds its figure to its unit", () => {
+    const source: string = [
+      'const a: string = formatDurationInUnit(t, value, "microsecond", { decimals: 0, english: `${Math.round(value)} µs` });',
+      'const b: string = write(value, "second", { english: `${value.toFixed(1)} s` });',
+      // The same template anywhere else is still caught.
+      "const c = { title: `${value.toFixed(1)} s` };",
+    ].join("\n");
+
+    expect(
+      rulesOf(
+        findHandWrittenMilliseconds({
+          file: "packages/App/FeatureSet/Dashboard/src/Pages/Made.ts",
+          source: source,
+          isHeldToEveryRule: true,
+        }),
+      ),
+    ).toEqual(["3 written after a template's figure"]);
   });
 
   test("a plural's s, a CSS class's min and a word that starts with the unit are no duration", () => {

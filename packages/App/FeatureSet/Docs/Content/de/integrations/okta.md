@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Ein Okta-Administrator, der das System Log sehen darf, um das Token zu erstellen. Ein Token kann, was sein Administrator kann, verwenden Sie also einen Read-only Administrator: Er liest das System Log und ändert nichts. Ein Read-only Administrator sieht auch Benutzer, Gruppen, Apps und Einstellungen, bewahren Sie das Token also so sicher wie ein Passwort auf.
 - Am besten ein Dienstkonto für diesen Administrator. Okta deaktiviert ein Token, wenn sein Administrator deaktiviert wird und wenn es 30 Tage lang ungenutzt bleibt. Das Abfragen nutzt es alle paar Minuten, es bleibt also in Gebrauch, solange die Verbindung aktiviert ist.
 - Wenn Ihre Organisation API-Aufrufe nur aus einer Netzwerkzone annimmt, eine Zone mit den Adressen, von denen OneUptime aufruft: in OneUptime Cloud seine ausgehenden Adressen, und bei einer selbst gehosteten Installation die öffentliche Adresse Ihrer App- und Worker-Hosts.

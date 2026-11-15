@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 正常運作時間",
-    "uptimePercent": "正常運作時間 {{percent}}%",
+    "uptimePercent": "正常運作時間 {{percent}}",
     "operational": "運作中",
     "notMonitored": "未監控",
     "noResourcesInGroup": "此群組中未新增任何資源。",

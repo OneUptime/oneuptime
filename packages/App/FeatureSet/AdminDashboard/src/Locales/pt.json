@@ -1045,7 +1045,7 @@
   "Custom Price": "Preço personalizado",
   "Compare plans": "Comparar planos",
   "Free forever.": "Grátis para sempre.",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "Monitores ativos e telemetria são pagos conforme o uso e exigem um método de pagamento.",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "Verificar um site, uma API ou um servidor e enviar telemetria são cobrados conforme o uso e exigem um método de pagamento.",
   "Active monitors and telemetry are pay as you go.": "Monitores ativos e telemetria são pagos conforme o uso.",
   "Then {{price}} per user, billed yearly.": "Depois, {{price}} por usuário, cobrado anualmente.",
   "Then {{price}} per user, billed monthly.": "Depois, {{price}} por usuário, cobrado mensalmente.",
@@ -2142,7 +2142,9 @@
   "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "Este servidor ainda não consegue enviar e-mails, então a pessoa não receberá um e-mail de convite. O convite é criado mesmo assim, e você recebe um link para enviar a ela.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta e agora é membro: envie este link para ela entrar.",
   "Invited": "Convidado",
+  "Not Signed Up Yet": "Ainda não se cadastrou",
   "Get Invitation Link": "Obter link de convite",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "O provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "Sem uma licença válida (depois do período de teste de {{days}} dias), o provisionamento SCIM para, o registro de auditoria deixa de gravar, a configuração enterprise passa a ser somente leitura e os painéis de administração enterprise são bloqueados. Tudo volta assim que uma licença é ativada, e o monitoramento principal nunca é afetado.",
@@ -3145,5 +3147,9 @@
   "The NTP server's name did not resolve to an address, so no request was sent.": "O nome do servidor NTP não foi resolvido para nenhum endereço, então nenhuma requisição foi enviada.",
   "The host is reachable, but answered that no service listens on this UDP port: the NTP daemon is stopped, or listens on another port.": "O host está acessível, mas respondeu que nenhum serviço escuta nesta porta UDP: o daemon NTP está parado ou escuta em outra porta.",
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "A sonda não conseguiu enviar a requisição do próprio lado, então o servidor NTP nunca foi contatado. A falha está na sonda, não no servidor.",
-  "The NTP check failed because of a network error.": "A verificação NTP falhou por causa de um erro de rede."
+  "The NTP check failed because of a network error.": "A verificação NTP falhou por causa de um erro de rede.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "O que foi enviado era grande demais para o servidor aceitar, por isso a operação não terminou. Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
+  "What was sent was too large for the server to accept.": "O que foi enviado era grande demais para o servidor aceitar.",
+  "Try again with less at once, such as a smaller file.": "Tente novamente com menos de cada vez, por exemplo com um arquivo menor.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Se um proxy na frente do OneUptime o recusou, aumente o limite de tamanho das requisições desse proxy para 50 MB, o mesmo que o próprio OneUptime aceita (no nginx, client_max_body_size 50M)."
 }

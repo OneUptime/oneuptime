@@ -72,6 +72,10 @@ import {
 import InvitationLinkModal, {
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -96,6 +100,15 @@ const Users: FunctionComponent<PageComponentProps> = (
     teamMemberId: ObjectID;
     viewPageRoute: Route | null;
   } | null>(null);
+
+  /*
+   * A member whose invitation was accepted for them before they had an
+   * account still has to sign up (#8191): for the master admin who can hand
+   * them their link, the row says so, and offers it.
+   */
+  const membersNotSignedUp: MembersNotSignedUp = useMembersNotSignedUp(
+    canGetInvitationLinks(serverEmail),
+  );
 
   /*
    * The team Invite User starts on: the project's members team, when the
@@ -331,6 +344,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         actionButtons={[
           getInvitationLinkRowAction<TeamMember>({
             isAvailable: canGetInvitationLinks(serverEmail),
+            isNotSignedUp: membersNotSignedUp.isNotSignedUp,
             onOpen: (teamMemberId: ObjectID) => {
               setInvitationLinkFor({
                 teamMemberId: teamMemberId,
@@ -339,6 +353,7 @@ const Users: FunctionComponent<PageComponentProps> = (
             },
           }),
         ]}
+        onFetchSuccess={membersNotSignedUp.onFetchSuccess}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
@@ -505,6 +520,12 @@ const Users: FunctionComponent<PageComponentProps> = (
               return (
                 <div className="flex space-x-2">
                   <Pill text="Member" color={Green} />
+                  {membersNotSignedUp.isNotSignedUp(item) && (
+                    <Pill
+                      text={SERVER_EMAIL_COPY.notSignedUpPill}
+                      color={Yellow}
+                    />
+                  )}
                   {pendingTeamCount > 0 && (
                     <Pill
                       text={translator.translatePlural(

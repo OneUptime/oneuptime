@@ -6,11 +6,14 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import {
+  getDateDisplayLanguage,
+  getReaderNumberLocale,
+  writeFigureInLanguage,
+} from "Common/Types/DateLanguage";
+import {
+  formatDurationInUnit,
   formatMilliseconds,
-  formatMillisecondsInEnglish,
-  MillisecondsOptions,
 } from "../../../Utils/Milliseconds";
 
 /*
@@ -166,74 +169,60 @@ export function isDurationMetric(metric: string): boolean {
 }
 
 /*
- * A span's duration in the unit that reads best. It is written by
- * `writeMilliseconds`, in every unit: the reader's words in a table, English
- * on a chart's value axis (formatDurationMs).
+ * A span's duration in the unit that reads best ("500 µs", "5.0 ms", "42
+ * ms", "1.50 s", "1.5 min"), in the reader's words and digits: "۴۲
+ * میلی‌ثانیه", "1,50 Sek.", "1,5 Min.". In a table's cell, and on a chart's
+ * value axis and in its tooltip alike, which write their figures as the
+ * tiles beside them do (#8349). English reads exactly as it always did.
  */
-function writeDurationMs(
+export function formatDurationMsInLanguage(
   ms: number,
-  writeMilliseconds: (
-    milliseconds: number,
-    options: MillisecondsOptions,
-  ) => string,
+  translator: Translator,
 ): string {
   if (!isFinite(ms)) {
     return "-";
   }
   if (ms < 1) {
-    return writeMilliseconds(ms, { unit: "µs", maximumFractionDigits: 0 });
+    return formatDurationInUnit(translator, ms * 1000, "microsecond", {
+      decimals: 0,
+    });
   }
   if (ms < 1000) {
     // "5.0 ms" under ten, "42 ms" from ten up.
     return ms < 10
-      ? writeMilliseconds(ms, {
+      ? formatMilliseconds(translator, ms, {
           minimumFractionDigits: 1,
           maximumFractionDigits: 1,
         })
-      : writeMilliseconds(ms, { maximumFractionDigits: 0 });
+      : formatMilliseconds(translator, ms, { maximumFractionDigits: 0 });
   }
   if (ms < 60000) {
-    return writeMilliseconds(ms, {
-      unit: "s",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+    return formatDurationInUnit(translator, ms / 1000, "second", {
+      decimals: 2,
     });
   }
-  return writeMilliseconds(ms, {
-    unit: "min",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+  return formatDurationInUnit(translator, ms / 60000, "minute", {
+    decimals: 1,
   });
 }
 
 /*
- * A duration on a chart's value axis and in its tooltip, which share one
- * formatter: Latin digits and the short "ms", as every chart's value axis
- * writes its figures (formatMillisecondsInEnglish).
+ * A count of spans: "42", "1.5K", "12K", "1.2M", in the page's digits and
+ * decimal sign ("1,5K", "۱٫۵K"), the scale letter kept, as a chart's axis
+ * and the tiles beside it write a count (#8349).
  */
-export function formatDurationMs(ms: number): string {
-  return writeDurationMs(ms, formatMillisecondsInEnglish);
-}
-
-// A duration in a table's cell, its milliseconds in the reader's language.
-export function formatDurationMsInLanguage(
-  ms: number,
-  translator: Translator,
-): string {
-  return writeDurationMs(
-    ms,
-    (milliseconds: number, options: MillisecondsOptions): string => {
-      return formatMilliseconds(translator, milliseconds, options);
-    },
-  );
-}
-
 export function formatCount(value: number): string {
   if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
+    return writeFigureInLanguage(
+      `${(value / 1000000).toFixed(1)}M`,
+      getDateDisplayLanguage(),
+    );
   }
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+    return writeFigureInLanguage(
+      `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`,
+      getDateDisplayLanguage(),
+    );
   }
   return Math.round(value).toLocaleString(getReaderNumberLocale());
 }

@@ -30,7 +30,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 import PageMap from "../../../Utils/PageMap";
 import { CLOUD_RELATIONSHIP_WORDS } from "../../Cloud/CloudRelationshipWords";
 import {
@@ -227,22 +230,22 @@ export function formatCloudTopologySeconds(
   }
 
   if (magnitude < 120) {
-    return formatMilliseconds(translator, milliseconds, {
-      unit: "s",
-      maximumFractionDigits: 1,
+    return formatDurationInUnit(translator, seconds, "second", {
+      decimals: 1,
+      dropTrailingZeros: true,
     });
   }
 
   if (magnitude < 2 * 3600) {
-    return formatMilliseconds(translator, milliseconds, {
-      unit: "min",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator, seconds / 60, "minute", {
+      decimals: 0,
+      dropTrailingZeros: true,
     });
   }
 
-  return formatMilliseconds(translator, milliseconds, {
-    unit: "h",
-    maximumFractionDigits: 1,
+  return formatDurationInUnit(translator, seconds / 3600, "hour", {
+    decimals: 1,
+    dropTrailingZeros: true,
   });
 }
 

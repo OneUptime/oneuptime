@@ -23,7 +23,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ## 사전 요건
 
-- OneUptime에서 Project Owner, Project Admin 또는 Security Admin 역할. Security Member와 Security Viewer는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
+- OneUptime에서 프로젝트 소유자, 프로젝트 관리자 또는 보안 관리자 역할. 보안 구성원과 보안 뷰어는 연결과 그 실행 기록을 볼 수 있지만 변경할 수는 없습니다.
 - Elastic Cloud 또는 직접 운영하는 Elastic 스택의 Elastic Security 8.x 이상. Kibana 스페이스에서 탐지 규칙이 실행되고 있어야 합니다.
 - 그 스페이스의 탐지 알림을 볼 수 있는 Kibana 접근 권한. `.alerts-security.alerts-<space-id>`에 대한 인덱스 권한 `read`와 `view_index_metadata`, 그리고 그곳에서 알림을 읽을 수 있게 하는 Kibana Security 기능 권한이 필요합니다.
 - OneUptime이 HTTPS로 접근할 수 있는 Kibana. OneUptime Cloud는 인터넷에서 연결하므로 Kibana에 Elastic Cloud 배포처럼 공개 주소가 필요하며, 사설 주소는 거부됩니다. 자체 호스팅 OneUptime은 앱과 워커 컨테이너에서 연결하며, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES`가 `true`가 아닌 한 사설 네트워크의 Kibana에도 접근할 수 있습니다.

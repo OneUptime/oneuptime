@@ -433,7 +433,6 @@ const CLAIMS: Array<ClaimUnderTest> = [
     rule: [
       'c."collectionMethod" = $n',
       'c."deletedAt" IS NULL',
-      'c."isArchived" = false',
       'c."isCredentialSet" = true',
       'c."authUrl" IS NOT NULL',
       '((pr."isGlobalProbe" = false AND pr."projectId" = c."projectId") OR (pr."isGlobalProbe" = true AND $n::boolean = false))',
@@ -1201,27 +1200,12 @@ describe("making a row due again", () => {
     expect(getMakeDueNowParameters({ ids: [], currentDate: now })).toBeNull();
   });
 
-  test("an OpenStack cloud collected by a probe, by its id; one the agent sends is left as it is", async () => {
-    const fake: ReturnType<typeof claimingService> = claimingService();
-    const statements: Array<CapturedStatement> = captureClaimQueries(
-      fake.service as never,
-    );
-
-    await OpenStackProbeCollectionStore.makeDueNow(
-      fake.service as unknown as OpenStackCollectionCloudService,
-      [CLOUD_ID],
-    );
-    await OpenStackProbeCollectionStore.makeDueNow(
-      fake.service as unknown as OpenStackCollectionCloudService,
-      [],
-    );
-
-    expect(statements).toHaveLength(1);
-    expect(normalizeSql(statements[0]!.sql)).toBe(
-      `UPDATE "OpenStackCloud" SET "nextCollectionAt" = LEAST(COALESCE("nextCollectionAt", $2::timestamptz), $2::timestamptz) WHERE "_id" = ANY($1::uuid[]) AND "deletedAt" IS NULL AND "collectionMethod" = '${OpenStackCollectionMethod.Probe}'`,
-    );
-    expect(statements[0]!.parameters[0]).toEqual([CLOUD_ID.toString()]);
-    expect(statements[0]!.parameters[1]).toBeInstanceOf(Date);
+  test("an OpenStack cloud's collection has no make-due of its own: only a collection settings write makes it collectable again, and that makes it due itself", () => {
+    expect(
+      (OpenStackProbeCollectionStore as unknown as Record<string, unknown>)[
+        "makeDueNow"
+      ],
+    ).toBeUndefined();
   });
 
   test("an OpenStack cloud's checks, both kinds, by their cloud or by their own id", async () => {
@@ -1280,7 +1264,12 @@ describe("making a row due again", () => {
   });
 });
 
-describe("unarchiving an OpenStack cloud collects and checks it again at once", () => {
+/*
+ * OneUptime issue #8324: an archived cloud is collected, as an archived vCenter is, so
+ * unarchiving it has no collection to bring back. Its checks' claim still sets an archived
+ * cloud's checks aside, and unarchiving brings those back at once.
+ */
+describe("unarchiving an OpenStack cloud checks it again at once; its collection never stopped", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -1303,8 +1292,8 @@ describe("unarchiving an OpenStack cloud collects and checks it again at once", 
     silenceLogs();
 
     const cloudDue: jest.SpyInstance = jest
-      .spyOn(OpenStackProbeCollectionStore, "makeDueNow")
-      .mockResolvedValue(undefined as never);
+      .spyOn(OpenStackProbeCollectionStore, "claimDueClouds")
+      .mockResolvedValue([] as never);
     const checksDue: jest.SpyInstance = jest
       .spyOn(OpenStackCheckStore, "makeDueNow")
       .mockResolvedValue(undefined as never);
@@ -1341,14 +1330,16 @@ describe("unarchiving an OpenStack cloud collects and checks it again at once", 
     return { cloudDue, checksDue };
   }
 
-  test("its collection and its checks are made due", async () => {
+  test("its checks are made due; its collection, never set aside, is left as it is", async () => {
     const { cloudDue, checksDue } = await runHook({ isArchived: false });
 
-    expect(cloudDue).toHaveBeenCalledWith(OpenStackCloudService, [CLOUD_ID]);
     expect(checksDue).toHaveBeenCalledWith(OpenStackCloudService, {
       ids: [CLOUD_ID],
       byCloud: true,
     });
+    expect(checksDue).toHaveBeenCalledTimes(1);
+    // Nothing of the cloud's collection is touched.
+    expect(cloudDue).not.toHaveBeenCalled();
   });
 
   test("archiving it makes nothing due", async () => {
@@ -1361,7 +1352,7 @@ describe("unarchiving an OpenStack cloud collects and checks it again at once", 
   test("a failure making them due is logged, never thrown into the write", async () => {
     silenceLogs();
     jest
-      .spyOn(OpenStackProbeCollectionStore, "makeDueNow")
+      .spyOn(OpenStackCheckStore, "makeDueNow")
       .mockRejectedValue(new Error("database is down") as never);
     jest
       .spyOn(
@@ -1395,7 +1386,9 @@ describe("unarchiving an OpenStack cloud collects and checks it again at once", 
         // What follows the step under test may need a database.
       });
 
-    expect(loggedError("could not make an unarchived cloud")).toBe(true);
+    expect(loggedError("could not make an unarchived cloud's checks")).toBe(
+      true,
+    );
   });
 });
 

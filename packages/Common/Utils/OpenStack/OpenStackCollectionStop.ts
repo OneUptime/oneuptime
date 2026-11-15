@@ -7,13 +7,14 @@ import OpenStackCollectionSettings from "./OpenStackCollectionSettings";
  *
  * The claim (Server/Utils/OpenStack/OpenStackProbeCollectionStore,
  * claimDueClouds and getCollectableSql) hands a probe a cloud that is
- * collected by a probe, not archived, has a credential and Keystone's
- * address, and names that probe, which is the project's own - or, on a
- * self-hosted instance, one of the instance's. Any other cloud it sets
- * aside a quarter of an hour at a time, so its nextCollectionAt keeps
- * moving and is never overdue: the card read its last status ("Collecting")
- * for good (OneUptime issue #8042). A probe that is disconnected asks for
- * nothing, whatever the claim would hand it.
+ * collected by a probe, has a credential and Keystone's address, and names
+ * that probe, which is the project's own - or, on a self-hosted instance,
+ * one of the instance's. Any other cloud it sets aside a quarter of an hour
+ * at a time, so its nextCollectionAt keeps moving and is never overdue: the
+ * card read its last status ("Collecting") for good (OneUptime issue
+ * #8042). A probe that is disconnected asks for nothing, whatever the claim
+ * would hand it. An archived cloud is still collected, as an archived
+ * vCenter is (OneUptime issue #8324): archiving hides it from the lists.
  *
  * The project's being served (paid, not blocked) is the claim's rule too,
  * but a page in a project nobody may use is not shown, so it is not here.
@@ -23,8 +24,6 @@ import OpenStackCollectionSettings from "./OpenStackCollectionSettings";
  */
 
 export enum OpenStackCollectionStop {
-  // An archived cloud is not collected by a probe until it is unarchived.
-  Archived = "Archived",
   NoCredential = "NoCredential",
   NoAddress = "NoAddress",
   // No probe is named to collect it: the claim reads clouds by their probe.
@@ -36,7 +35,6 @@ export enum OpenStackCollectionStop {
 
 export interface OpenStackCollectionStopFacts {
   projectId?: { toString: () => string } | string | null | undefined;
-  isArchived?: boolean | null | undefined;
   isCredentialSet?: boolean | null | undefined;
   authUrl?: string | null | undefined;
   collectionProbeId?: { toString: () => string } | string | null | undefined;
@@ -60,10 +58,6 @@ export function getOpenStackCollectionStop(
   cloud: OpenStackCollectionStopFacts,
   isBillingEnabled: boolean,
 ): OpenStackCollectionStop | null {
-  if (cloud.isArchived === true) {
-    return OpenStackCollectionStop.Archived;
-  }
-
   if (cloud.isCredentialSet === false) {
     return OpenStackCollectionStop.NoCredential;
   }

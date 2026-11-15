@@ -1,8 +1,7 @@
 import { Translator } from "Common/Types/Translator";
 import {
+  formatDurationInUnit,
   formatMilliseconds,
-  formatMillisecondsInEnglish,
-  MillisecondsOptions,
 } from "../../Utils/Milliseconds";
 /*
  * Number formatting for the telemetry overview pages. Pure and import-free,
@@ -36,69 +35,36 @@ export const formatPercent: (n: number | null) => string = (
 
 /*
  * A span's duration in the unit that reads best ("850 µs", "12 ms", "1.25
- * s"). It is written by `writeMilliseconds`, in every unit: the reader's
- * words on a tile (formatDurationMsInLanguage), English on a chart's value
- * axis (formatDurationMs).
- */
-const writeDurationMs: (
-  ms: number | null,
-  writeMilliseconds: (
-    milliseconds: number,
-    options: MillisecondsOptions,
-  ) => string,
-) => string = (
-  ms: number | null,
-  writeMilliseconds: (
-    milliseconds: number,
-    options: MillisecondsOptions,
-  ) => string,
-): string => {
-  if (ms === null || !Number.isFinite(ms)) {
-    return "—";
-  }
-  if (ms < 1) {
-    return writeMilliseconds(ms, { unit: "µs", maximumFractionDigits: 0 });
-  }
-  if (ms < 1000) {
-    // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
-    const decimals: number = ms < 10 ? 1 : 0;
-
-    return writeMilliseconds(ms, {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  }
-  return writeMilliseconds(ms, {
-    unit: "s",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-/*
- * A duration on a chart's value axis and in its tooltip: Latin digits and
- * the short "ms", as every chart's value axis writes its figures.
- */
-export const formatDurationMs: (ms: number | null) => string = (
-  ms: number | null,
-): string => {
-  return writeDurationMs(ms, formatMillisecondsInEnglish);
-};
-
-/*
- * A duration on a tile, in a row or in a sentence: its milliseconds in the
- * reader's language ("12 ms", "۱۲ میلی‌ثانیه", "12 ملي ث"; issue #7418).
+ * s"), in the reader's language: "۱۲ میلی‌ثانیه", "12 ملي ث", "1,25 Sek."
+ * (issue #7418). On a tile, in a row, in a sentence, and on a chart's value
+ * axis and in its tooltip alike, which write their figures as the tiles
+ * beside them do (#8349): there is no English-only variant to reach for.
+ * English reads exactly as it always did.
  */
 export const formatDurationMsInLanguage: (
   ms: number | null,
   translator: Translator,
 ) => string = (ms: number | null, translator: Translator): string => {
-  return writeDurationMs(
-    ms,
-    (milliseconds: number, options: MillisecondsOptions): string => {
-      return formatMilliseconds(translator, milliseconds, options);
-    },
-  );
+  if (ms === null || !Number.isFinite(ms)) {
+    return "—";
+  }
+  if (ms < 1) {
+    return formatDurationInUnit(translator, ms * 1000, "microsecond", {
+      decimals: 0,
+    });
+  }
+  if (ms < 1000) {
+    // One decimal under ten ("5.0 ms"), none from ten up ("42 ms").
+    const decimals: number = ms < 10 ? 1 : 0;
+
+    return formatMilliseconds(translator, ms, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return formatDurationInUnit(translator, ms / 1000, "second", {
+    decimals: 2,
+  });
 };
 
 /*

@@ -459,11 +459,23 @@ const METRIC_COLUMN_CASES: Array<MetricColumnCase> = [
     title: "Memory",
     busiestFirst: {
       names: ["batch-9", "api", "web", "batch-10", "cache"],
-      cells: ["80.0%900\u00A0MB", "37.5%1.5\u00A0GB", "12.0%", "2.3%50.0\u00A0MB", "—300\u00A0MB"],
+      cells: [
+        "80.0%900\u00A0MB",
+        "37.5%1.5\u00A0GB",
+        "12.0%",
+        "2.3%50.0\u00A0MB",
+        "—300\u00A0MB",
+      ],
     },
     quietestFirst: {
       names: ["batch-10", "web", "api", "batch-9", "cache"],
-      cells: ["2.3%50.0\u00A0MB", "12.0%", "37.5%1.5\u00A0GB", "80.0%900\u00A0MB", "—300\u00A0MB"],
+      cells: [
+        "2.3%50.0\u00A0MB",
+        "12.0%",
+        "37.5%1.5\u00A0GB",
+        "80.0%900\u00A0MB",
+        "—300\u00A0MB",
+      ],
     },
   },
 ];

@@ -1425,7 +1425,10 @@ describe.each(RUNTIME_CASES)(
         "—",
         "—",
       ]);
-      expect(cellsOf("worker").slice(3, 5)).toEqual(["12.3%", "2.3%50.0\u00A0MB"]);
+      expect(cellsOf("worker").slice(3, 5)).toEqual([
+        "12.3%",
+        "2.3%50.0\u00A0MB",
+      ]);
     });
 
     test("the network totals are a container's page's, not the list's", async () => {

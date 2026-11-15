@@ -4,6 +4,7 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -28,21 +29,26 @@ import React, { FunctionComponent, ReactElement } from "react";
  * recording when it cannot read the license, so the page must not claim it
  * stopped.
  *
- * The strings are plain English, like the rest of these screens. Alert
- * translates them when a locale has an entry under the same English key.
+ * The strings are plain English, keys of the Dashboard's locales: Alert
+ * translates them, and the audit log table looks them up, in the reader's
+ * language (#8319). The grace period's words are still English everywhere.
  */
 
-export const AUDIT_LOGS_LAPSED_TITLE: string =
-  "Enterprise license required: audit logging is not recording.";
+export const AUDIT_LOGS_LAPSED_TITLE: string = translationKey(
+  "Enterprise license required: audit logging is not recording.",
+);
 
-export const AUDIT_LOGS_LAPSED_DESCRIPTION: string =
-  "Without a valid Enterprise license nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license is activated in the Admin Dashboard.";
+export const AUDIT_LOGS_LAPSED_DESCRIPTION: string = translationKey(
+  "Without a valid Enterprise license nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license is activated in the Admin Dashboard.",
+);
 
-export const AUDIT_LOGS_NOT_INCLUDED_TITLE: string =
-  "Your Enterprise license does not include audit logs: audit logging is not recording.";
+export const AUDIT_LOGS_NOT_INCLUDED_TITLE: string = translationKey(
+  "Your Enterprise license does not include audit logs: audit logging is not recording.",
+);
 
-export const AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION: string =
-  "The installed license leaves audit logs out, so nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license that includes audit logs is activated in the Admin Dashboard.";
+export const AUDIT_LOGS_NOT_INCLUDED_DESCRIPTION: string = translationKey(
+  "The installed license leaves audit logs out, so nothing is recorded in the audit log, whatever the Audit Logs settings say. Entries recorded so far are kept. Recording resumes with the same settings as soon as a license that includes audit logs is activated in the Admin Dashboard.",
+);
 
 export const AUDIT_LOGS_GRACE_TITLE: string =
   "No valid Enterprise license: audit logging stops when the trial or grace period ends.";

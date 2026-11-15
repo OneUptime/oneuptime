@@ -3,29 +3,13 @@ import { formatCloudSeconds } from "../../../../App/FeatureSet/Dashboard/src/Com
 import { formatReviewDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
 import { formatTraceListDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceListComponent";
 import { formatLatencyUsec as formatWidgetLatencyUsec } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/StorageArrayWidgetData";
-import {
-  formatDurationMs as formatTraceChartDurationMs,
-  formatDurationMsInLanguage as formatTraceDurationMsInLanguage,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { formatLlmDuration } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationFormat";
-import {
-  formatMessageQueueDurationMs,
-  formatMessageQueueDurationMsInLanguage,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 import { getOpenStackCheckDurationText } from "../../../../App/FeatureSet/Dashboard/src/Components/OpenStack/Checks/OpenStackChecksView";
 import { formatCloudTopologySeconds } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/Builders/CloudAccountTopology";
-import {
-  formatDurationMs as formatTelemetryChartDurationMs,
-  formatDurationMsInLanguage as formatTelemetryDurationMs,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/telemetryFormat";
-import { formatDurationMs as formatTopologyDurationMs } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/TopologyMeta";
-import { formatDatabaseSeconds } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
-import StorageArrayResourceUtils from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/StorageArrayResourceUtils";
 import { formatEvidenceDuration } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
 import {
-  DurationUnit,
-  formatMilliseconds,
-  formatMillisecondsInEnglish,
+  DurationInUnit,
+  formatDurationInUnit,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Milliseconds";
 import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import { Translator } from "../../../Types/Translator";
@@ -45,23 +29,24 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * `${(ms / 1000).toFixed(2)} s`, a microsecond `${ms * 1000} µs`, a
  * nanosecond `${n}ns`, a minute `${(ms / 60000).toFixed(1)} min`. A
  * Persian row read "1.25 s" in Latin digits under "۴۲ میلی‌ثانیه", a German
- * one "1.25 s" where German writes "1,25 s". formatMilliseconds takes a
- * unit now, each through its key, and every formatter writes every unit
- * with it. Per formatter, in English (as before, the figure held to its
- * unit by a no-break space, #8302), German, French, Arabic and Persian. A
- * chart's value axis keeps the English every chart's axis writes. The
- * session replay details panel's own figures are #8299's.
+ * one "1.25 s" where German writes "1,25 Sek.". Each is formatDurationInUnit
+ * now (#8349's helper, which writes Intl's short unit in the reader's
+ * digits), its nanoseconds included, and each figure stays on the line of
+ * its unit (#8302, #8303). Per formatter, in English (as before, the figure
+ * held to its unit), German, French, Arabic and Persian. The charts' own
+ * formatters are #8349's, tested beside them.
  */
 
 const NB: string = NO_BREAK_SPACE;
-const ZWNJ: string = "\u{200C}";
-
-const LANGUAGES: ReadonlyArray<string> = ["en", "de", "fr", "ar", "fa"];
+// French's narrow no-break space, which Intl writes before a unit.
+const NNB: string = "\u202F";
 
 const translators: Record<string, Translator> = Object.fromEntries(
-  LANGUAGES.map((language: string): [string, Translator] => {
-    return [language, dashboardTranslator(language)];
-  }),
+  ["en", "de", "fr", "ar", "fa"].map(
+    (language: string): [string, Translator] => {
+      return [language, dashboardTranslator(language)];
+    },
+  ),
 );
 
 interface InEachLanguage {
@@ -92,205 +77,108 @@ const inEachLanguage: (
 };
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
-const LATIN_LETTER: RegExp = /[A-Za-z]/;
-const BREAKING_SPACE: RegExp = /[  -  -  ]/;
+const BREAKING_SPACE: RegExp = /[ \u2000-\u2006\u2008-\u200A\u205F]/;
 
-// A Persian duration: Persian digits and words, nothing Latin.
-const expectPersian: (text: string) => void = (text: string): void => {
-  expect(LATIN_DIGIT.test(text)).toBe(false);
-  expect(LATIN_LETTER.test(text)).toBe(false);
-};
-
-// 1.25 s, 250 µs, 850 ns, 1.5 min and 2.5 h as each language writes them.
+// 1.25 s, 250 µs, 850 ns and 2.5 h as each language writes them.
 const SECONDS: InEachLanguage = {
   en: `1.25${NB}s`,
-  de: `1,25${NB}s`,
-  fr: `1,25${NB}s`,
+  de: `1,25${NB}Sek.`,
+  fr: `1,25${NNB}s`,
   ar: `1.25${NB}ث`,
   fa: `۱٫۲۵${NB}ثانیه`,
 };
 
 const MICROSECONDS: InEachLanguage = {
   en: `250${NB}µs`,
-  de: `250${NB}µs`,
-  fr: `250${NB}µs`,
+  de: `250${NB}μs`,
+  fr: `250${NNB}μs`,
   ar: `250${NB}م.ث.`,
-  fa: `۲۵۰${NB}میکروثانیه`,
+  fa: "۲۵۰μs",
 };
 
 const NANOSECONDS: InEachLanguage = {
   en: `850${NB}ns`,
   de: `850${NB}ns`,
-  fr: `850${NB}ns`,
+  fr: `850${NNB}ns`,
   ar: `850${NB}ن.ث.`,
   fa: `۸۵۰${NB}نانوثانیه`,
-};
-
-const MINUTES: InEachLanguage = {
-  en: `1.5${NB}min`,
-  de: `1,5${NB}Min.`,
-  fr: `1,5${NB}min`,
-  ar: `1.5${NB}د`,
-  fa: `۱٫۵${NB}دقیقه`,
 };
 
 const HOURS: InEachLanguage = {
   en: `2.5${NB}h`,
   de: `2,5${NB}Std.`,
-  fr: `2,5${NB}h`,
+  fr: `2,5${NNB}h`,
   ar: `2.5${NB}س`,
   fa: `۲٫۵${NB}ساعت`,
 };
 
-describe("formatMilliseconds in another unit", () => {
-  test("each unit, from the same duration in milliseconds", () => {
+describe("formatDurationInUnit holds each figure to its unit", () => {
+  test("each unit, in each language", () => {
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatMilliseconds(t, 1250, { unit: "s" });
+        return formatDurationInUnit(t, 1.25, "second", { decimals: 2 });
       }),
     ).toEqual(SECONDS);
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatMilliseconds(t, 0.25, { unit: "µs" });
+        return formatDurationInUnit(t, 250, "microsecond", { decimals: 0 });
       }),
     ).toEqual(MICROSECONDS);
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatMilliseconds(t, 0.00085, { unit: "ns" });
+        return formatDurationInUnit(t, 850, "nanosecond", { decimals: 0 });
       }),
     ).toEqual(NANOSECONDS);
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatMilliseconds(t, 90_000, { unit: "min" });
-      }),
-    ).toEqual(MINUTES);
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatMilliseconds(t, 9_000_000, { unit: "h" });
+        return formatDurationInUnit(t, 2.5, "hour", {
+          decimals: 1,
+          dropTrailingZeros: true,
+        });
       }),
     ).toEqual(HOURS);
   });
 
-  test("milliseconds stay the default, and 'ms' names them too", () => {
+  test("the English a caller hands it is held too, and otherwise as written", () => {
     const english: Translator = translators["en"]!;
 
-    expect(formatMilliseconds(english, 411)).toBe(`411${NB}ms`);
-    expect(formatMilliseconds(english, 411, { unit: "ms" })).toBe(`411${NB}ms`);
-    // A unit the code does not know is read as milliseconds.
     expect(
-      formatMilliseconds(english, 411, {
-        unit: "fortnight" as unknown as DurationUnit,
+      formatDurationInUnit(english, 250, "microsecond", {
+        decimals: 0,
+        english: "250 µs",
       }),
-    ).toBe(`411${NB}ms`);
-  });
-
-  test("a small unit is multiplied, never divided by a fraction: 0.5 ms is 500 µs", () => {
-    const english: Translator = translators["en"]!;
-
-    expect(formatMilliseconds(english, 0.5, { unit: "µs" })).toBe(`500${NB}µs`);
-    expect(formatMilliseconds(english, 0.0005, { unit: "ns" })).toBe(
-      `500${NB}ns`,
-    );
-    expect(formatMilliseconds(english, 0.3, { unit: "µs" })).toBe(`300${NB}µs`);
-  });
-
-  test("the decimals are the figure's in its unit, and toFixed's trailing zeros are kept", () => {
-    const english: Translator = translators["en"]!;
-    const german: Translator = translators["de"]!;
-
+    ).toBe(`250${NB}µs`);
     expect(
-      formatMilliseconds(english, 1000, {
-        unit: "s",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
+      formatDurationInUnit(english, 1.5, "second", {
+        decimals: 1,
+        english: "1.5s",
       }),
-    ).toBe(`1.00${NB}s`);
+    ).toBe("1.5s");
     expect(
-      formatMilliseconds(german, 61_000, {
-        unit: "min",
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
+      formatDurationInUnit(english, 90, "minute", {
+        decimals: 0,
+        english: "in 90 min",
       }),
-    ).toBe(`1,0${NB}Min.`);
-    expect(
-      formatMilliseconds(english, 1234, {
-        unit: "s",
-        maximumFractionDigits: 0,
-      }),
-    ).toBe(`1${NB}s`);
+    ).toBe(`in 90${NB}min`);
   });
 
-  test("a figure of a thousand or more takes its separator, in the reader's way", () => {
-    expect(
-      formatMilliseconds(translators["en"]!, 1_234_000, { unit: "s" }),
-    ).toBe(`1,234${NB}s`);
-    expect(
-      formatMilliseconds(translators["de"]!, 1_234_000, { unit: "s" }),
-    ).toBe(`1.234${NB}s`);
-    expect(
-      formatMilliseconds(translators["fa"]!, 1_234_000, { unit: "s" }),
-    ).toBe(`۱٬۲۳۴${NB}ثانیه`);
-  });
+  test("no space a line breaks at is left between a figure and its unit, in any Dashboard language", () => {
+    const units: Array<DurationInUnit> = [
+      "nanosecond",
+      "microsecond",
+      "second",
+      "minute",
+      "hour",
+      "day",
+    ];
 
-  test("a signed offset keeps its sign in any unit", () => {
-    expect(
-      formatMilliseconds(translators["en"]!, 1500, {
-        unit: "s",
-        showsSign: true,
-      }),
-    ).toBe(`+1.5${NB}s`);
-    expect(
-      formatMilliseconds(translators["en"]!, -1500, {
-        unit: "s",
-        showsSign: true,
-      }),
-    ).toBe(`-1.5${NB}s`);
-  });
-
-  test("a reading that is not a number reads as a missing fact, in any unit", () => {
-    for (const unit of ["ns", "µs", "s", "min", "h"] as Array<DurationUnit>) {
-      expect(formatMilliseconds(translators["fa"]!, NaN, { unit })).toBe("-");
-      expect(formatMilliseconds(translators["fa"]!, Infinity, { unit })).toBe(
-        "-",
-      );
-    }
-  });
-
-  test("English on purpose takes the unit too: Latin figures and symbols in any language", () => {
-    expect(formatMillisecondsInEnglish(1250, { unit: "s" })).toBe(`1.25${NB}s`);
-    expect(formatMillisecondsInEnglish(0.25, { unit: "µs" })).toBe(
-      `250${NB}µs`,
-    );
-    expect(formatMillisecondsInEnglish(90_000, { unit: "min" })).toBe(
-      `1.5${NB}min`,
-    );
-  });
-
-  test("Persian writes every unit with Persian digits and words", () => {
-    for (const [ms, unit] of [
-      [0.00085, "ns"],
-      [0.25, "µs"],
-      [1250, "s"],
-      [90_000, "min"],
-      [9_000_000, "h"],
-    ] as Array<[number, DurationUnit]>) {
-      expectPersian(formatMilliseconds(translators["fa"]!, ms, { unit }));
-    }
-  });
-
-  test("each unit is drawn with no space a line breaks at, in every Dashboard language", () => {
     for (const language of ["en", ...DASHBOARD_LANGUAGES]) {
       const translator: Translator = dashboardTranslator(language);
 
-      for (const unit of [
-        "ns",
-        "µs",
-        "ms",
-        "s",
-        "min",
-        "h",
-      ] as Array<DurationUnit>) {
-        const text: string = formatMilliseconds(translator, 5, { unit });
+      for (const unit of units) {
+        const text: string = formatDurationInUnit(translator, 5, unit, {
+          decimals: 0,
+        });
 
         expect({ language, unit, breaks: BREAKING_SPACE.test(text) }).toEqual({
           language,
@@ -300,70 +188,55 @@ describe("formatMilliseconds in another unit", () => {
       }
     }
   });
-});
 
-describe("the new units' keys, in every Dashboard language", () => {
-  test("English holds each under its own words", () => {
-    const english: Record<string, string> = readDashboardLocale("en");
-
-    for (const key of ["{{value}} µs", "{{value}} ns", "{{value}} h"]) {
-      expect(english[key]).toBe(key);
+  test("Persian writes every unit in Persian digits", () => {
+    for (const unit of [
+      "nanosecond",
+      "microsecond",
+      "second",
+      "minute",
+      "hour",
+    ] as Array<DurationInUnit>) {
+      expect(
+        LATIN_DIGIT.test(
+          formatDurationInUnit(translators["fa"]!, 5, unit, { decimals: 0 }),
+        ),
+      ).toBe(false);
     }
   });
 
+  test("a reading that is not a number reads as a missing fact", () => {
+    expect(
+      formatDurationInUnit(translators["fa"]!, NaN, "nanosecond", {
+        decimals: 0,
+      }),
+    ).toBe("-");
+  });
+});
+
+describe("the duration keys the formatters write, in every Dashboard language", () => {
   test.each(DASHBOARD_LANGUAGES)(
-    "%s words them, or keeps the symbol on purpose, with the figure's placeholder",
+    "%s words the compact and the spaced minutes and seconds, or keeps them on purpose",
     (language: string) => {
       const locale: Record<string, string> = readDashboardLocale(language);
 
       for (const key of [
-        "{{value}} µs",
-        "{{value}} ns",
-        "{{value}} h",
+        "{{minutes}}m {{seconds}}s",
+        "{{hours}}h {{minutes}}m",
         "{{minutes}} min {{seconds}} s",
       ]) {
         expect({
           language,
           key,
           worded: isWordedInDashboardLocale(key, language),
-        }).toEqual({
-          language,
-          key,
-          worded: true,
-        });
-        expect(locale[key]).toContain(
-          key.startsWith("{{minutes}}") ? "{{minutes}}" : "{{value}}",
-        );
+        }).toEqual({ language, key, worded: true });
+        expect(locale[key]).toContain("{{minutes}}");
       }
     },
   );
 });
 
 describe("traces", () => {
-  test("a trace widget's table cell: microseconds, seconds and minutes", () => {
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTraceDurationMsInLanguage(0.25, t);
-      }),
-    ).toEqual(MICROSECONDS);
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTraceDurationMsInLanguage(1250, t);
-      }),
-    ).toEqual(SECONDS);
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTraceDurationMsInLanguage(90_000, t);
-      }),
-    ).toEqual(MINUTES);
-  });
-
-  test("a trace chart's value axis keeps English in every unit", () => {
-    expect(formatTraceChartDurationMs(0.25)).toBe(`250${NB}µs`);
-    expect(formatTraceChartDurationMs(1250)).toBe(`1.25${NB}s`);
-    expect(formatTraceChartDurationMs(90_000)).toBe(`1.5${NB}min`);
-  });
-
   test("a span in the trace list widget, from nanoseconds: every unit", () => {
     expect(
       inEachLanguage((t: Translator): string => {
@@ -383,47 +256,6 @@ describe("traces", () => {
   });
 });
 
-describe("telemetry, queues and topology", () => {
-  test("a telemetry tile, and its chart's axis", () => {
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTelemetryDurationMs(0.25, t);
-      }),
-    ).toEqual(MICROSECONDS);
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTelemetryDurationMs(1250, t);
-      }),
-    ).toEqual(SECONDS);
-    expect(formatTelemetryChartDurationMs(1250)).toBe(`1.25${NB}s`);
-    expect(formatTelemetryChartDurationMs(0.25)).toBe(`250${NB}µs`);
-  });
-
-  test("a queue's processing time, and its chart's axis", () => {
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatMessageQueueDurationMsInLanguage(0.25, t);
-      }),
-    ).toEqual(MICROSECONDS);
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatMessageQueueDurationMsInLanguage(1250, t);
-      }),
-    ).toEqual(SECONDS);
-    expect(formatMessageQueueDurationMs(1250)).toBe(`1.25${NB}s`);
-  });
-
-  test("a topology call's average from a second up", () => {
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return formatTopologyDurationMs(1250, t);
-      }),
-    ).toEqual(SECONDS);
-    // Without a translator: English, as a chart's axis.
-    expect(formatTopologyDurationMs(1250)).toBe(`1.25${NB}s`);
-  });
-});
-
 describe("cloud", () => {
   test("a cloud headline tile: seconds, minutes and hours", () => {
     expect(
@@ -432,8 +264,8 @@ describe("cloud", () => {
       }),
     ).toEqual({
       en: `1.8${NB}s`,
-      de: `1,8${NB}s`,
-      fr: `1,8${NB}s`,
+      de: `1,8${NB}Sek.`,
+      fr: `1,8${NNB}s`,
       ar: `1.8${NB}ث`,
       fa: `۱٫۸${NB}ثانیه`,
     });
@@ -460,18 +292,18 @@ describe("cloud", () => {
 
     expect(formatCloudSeconds(100, english)).toBe(`100${NB}s`);
     expect(formatCloudSeconds(119.6, english)).toBe(`120${NB}s`);
-    expect(formatCloudSeconds(2 * 3600 * 150, english)).toBe(`300${NB}h`);
+    expect(formatCloudSeconds(0.23, english)).toBe(`230${NB}ms`);
   });
 
-  test("a cloud account's topology card: seconds, minutes and hours", () => {
+  test("a cloud account's topology card: seconds and hours", () => {
     expect(
       inEachLanguage((t: Translator): string => {
         return formatCloudTopologySeconds(1.8, t);
       }),
     ).toEqual({
       en: `1.8${NB}s`,
-      de: `1,8${NB}s`,
-      fr: `1,8${NB}s`,
+      de: `1,8${NB}Sek.`,
+      fr: `1,8${NNB}s`,
       ar: `1.8${NB}ث`,
       fa: `۱٫۸${NB}ثانیه`,
     });
@@ -491,11 +323,12 @@ describe("code, AI and investigations", () => {
       }),
     ).toEqual({
       en: `1.2${NB}s`,
-      de: `1,2${NB}s`,
-      fr: `1,2${NB}s`,
+      de: `1,2${NB}Sek.`,
+      fr: `1,2${NNB}s`,
       ar: `1.2${NB}ث`,
       fa: `۱٫۲${NB}ثانیه`,
     });
+    expect(formatReviewDuration(840, translators["en"]!)).toBe(`840${NB}ms`);
     expect(formatReviewDuration(-1, translators["en"]!)).toBe("");
   });
 
@@ -506,8 +339,8 @@ describe("code, AI and investigations", () => {
       }),
     ).toEqual({
       en: `2.3${NB}s`,
-      de: `2,3${NB}s`,
-      fr: `2,3${NB}s`,
+      de: `2,3${NB}Sek.`,
+      fr: `2,3${NNB}s`,
       ar: `2.3${NB}ث`,
       fa: `۲٫۳${NB}ثانیه`,
     });
@@ -551,8 +384,8 @@ describe("code, AI and investigations", () => {
       }),
     ).toEqual({
       en: `1.2${NB}s`,
-      de: `1,2${NB}s`,
-      fr: `1,2${NB}s`,
+      de: `1,2${NB}Sek.`,
+      fr: `1,2${NNB}s`,
       ar: `1.2${NB}ث`,
       fa: `۱٫۲${NB}ثانیه`,
     });
@@ -592,8 +425,8 @@ describe("infrastructure", () => {
       }),
     ).toEqual({
       en: `1.5${NB}s`,
-      de: `1,5${NB}s`,
-      fr: `1,5${NB}s`,
+      de: `1,5${NB}Sek.`,
+      fr: `1,5${NNB}s`,
       ar: `1.5${NB}ث`,
       fa: `۱٫۵${NB}ثانیه`,
     });
@@ -614,12 +447,7 @@ describe("infrastructure", () => {
     );
   });
 
-  test("a storage array's latency under a millisecond, on its pages and its widget", () => {
-    expect(
-      inEachLanguage((t: Translator): string => {
-        return StorageArrayResourceUtils.formatLatencyUsec(250, t);
-      }),
-    ).toEqual(MICROSECONDS);
+  test("a storage array widget's latency under a millisecond", () => {
     expect(
       inEachLanguage((t: Translator): string => {
         return formatWidgetLatencyUsec(250, t);
@@ -627,16 +455,6 @@ describe("infrastructure", () => {
     ).toEqual(MICROSECONDS);
     // Without a translator, the widget writes English.
     expect(formatWidgetLatencyUsec(250)).toBe(`250${NB}µs`);
-  });
-
-  test("a database metric's seconds, English with the metric's other units, each held to its figure", () => {
-    expect(formatDatabaseSeconds(4.2)).toBe(`4.2${NB}s`);
-    expect(formatDatabaseSeconds(42)).toBe(`42${NB}s`);
-    expect(formatDatabaseSeconds(90)).toBe(`1.5${NB}min`);
-    expect(formatDatabaseSeconds(720)).toBe(`12${NB}min`);
-    expect(formatDatabaseSeconds(9000)).toBe(`2.5${NB}h`);
-    expect(formatDatabaseSeconds(172_800)).toBe(`2${NB}d`);
-    expect(formatDatabaseSeconds(null)).toBe("—");
   });
 });
 
@@ -647,11 +465,5 @@ describe("negative control: the hand-written units read wrong", () => {
     expect(handBuilt).not.toBe(SECONDS.fa);
     expect(LATIN_DIGIT.test(handBuilt)).toBe(true);
     expect(BREAKING_SPACE.test(handBuilt)).toBe(true);
-    expect(formatMilliseconds(translators["fa"]!, 1250, { unit: "s" })).toBe(
-      SECONDS.fa,
-    );
-    expect(SECONDS.fa).toContain(`ثانیه`);
-    expect(MICROSECONDS.fa).toContain(`میکرو`);
-    expect(`میلی${ZWNJ}ثانیه`).not.toContain(" ");
   });
 });

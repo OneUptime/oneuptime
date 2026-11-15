@@ -30,7 +30,10 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 
 /*
  * What a cloud's Checks page says, worked out apart from how it is drawn, so that every sentence
@@ -120,10 +123,8 @@ export function getOpenStackCheckDurationText(
 
   if (safe < 60_000) {
     // "1.5 s", "۱٫۵ ثانیه" (issue #8348).
-    return formatMilliseconds(translator, safe, {
-      unit: "s",
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+    return formatDurationInUnit(translator, safe / 1000, "second", {
+      decimals: 1,
     });
   }
 

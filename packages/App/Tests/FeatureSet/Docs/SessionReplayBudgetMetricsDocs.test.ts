@@ -1164,7 +1164,9 @@ describe("Session replay storage budget alerts docs", (): void => {
        * The Health page holds the figure to its unit with a no-break space
        * (#8303); the docs write the same words with a plain one.
        */
-      const healthCopy: string = formatBytesForCopy(limit).split(" ").join(" ");
+      const healthCopy: string = formatBytesForCopy(limit)
+        .split("\u00A0")
+        .join(" ");
       const chartCopy: string = ValueFormatter.formatValue(
         limit,
         SessionReplayBudgetMetricTypeUtil.getUnit(

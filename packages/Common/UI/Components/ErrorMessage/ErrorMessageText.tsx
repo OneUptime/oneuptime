@@ -2,9 +2,9 @@ import ErrorExplanation, {
   isUnexplainedErrorMessage,
 } from "./ErrorExplanation";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import { sayErrorMessage } from "../../Utils/ErrorInSentence";
 import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
-import useTranslateValue from "../../Utils/Translation";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -35,8 +35,9 @@ export interface ComponentProps {
  *
  * An error nobody explained (#6836) says what failed, why, what to do next
  * and, when the server failed, the reference to give, with a copy button
- * (ErrorExplanation). Any other message is in the reader's language, and
- * words that read the other way from the page - a failed read's answer from
+ * (ErrorExplanation). Any other message is in the reader's language (a
+ * refusal with a value in it said around its value), and words that read
+ * the other way from the page - a failed read's answer from
  * the server is in English - are set apart in an isolate of their own
  * (IsolatedText), so on a Persian page they keep their full stop at their
  * end. Words in the page's own way, and a message drawn as an element, are
@@ -52,8 +53,7 @@ export interface ComponentProps {
 const ErrorMessageText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateValue } = useTranslateValue();
-  // The page's language: the way its lines read.
+  // The reader's words, and the page's language: the way its lines read.
   const translator: Translator = useTranslator();
 
   if (isUnexplainedErrorMessage(props.message)) {
@@ -67,10 +67,18 @@ const ErrorMessageText: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * A message somebody wrote, in the reader's language: looked up, and a
+   * refusal of the server's with a value in it - a monitor's type beside a
+   * template's, why a data check could not be written - said around its
+   * value (sayErrorMessage, as ErrorLine and ErrorInSentence say it). Looked
+   * up whole, such a refusal is no key once its value is in, and read
+   * English on every page here while a card's own sentence said it in the
+   * reader's language (#8280).
+   */
   const translatedMessage: string | ReactElement =
     typeof props.message === "string"
-      ? (translateValue(props.message) as string | ReactElement | undefined) ??
-        props.message
+      ? sayErrorMessage(props.message, translator)
       : props.message;
 
   if (

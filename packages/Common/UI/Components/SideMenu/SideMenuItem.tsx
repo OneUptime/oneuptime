@@ -18,6 +18,7 @@ import {
 } from "./SideMenuEntryState";
 import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
 import SideMenuRowListContext, { isRowListLink } from "./SideMenuRowPage";
+import { getCrumbTitle, getCrumbTitleEnglish } from "../Page/RecordNameInTrail";
 
 export interface ComponentProps {
   link: Link;
@@ -86,18 +87,27 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
       (isRowListLink(props.subItemLink, rowList) ? "true" : undefined)
     : undefined;
   const isSubItemActive: boolean = subItemCurrent !== undefined;
-  const translatedTitle: string =
-    translateString(props.link.title) || props.link.title;
+  /*
+   * Looked up once, as a crumb's title is (getCrumbTitle): English is
+   * looked up here; a record's name (Link.isRecordName) and a title the
+   * page put in the reader's words already (Link.isTitleTranslated: the
+   * Admin Dashboard's t("sideMenu.…")) are drawn as given. Looked up again,
+   * a translation that is itself an English key read as another word
+   * (#8225).
+   */
+  const translatedTitle: string = getCrumbTitle(props.link, translateString);
   const translatedSubItemTitle: string | undefined = props.subItemLink
-    ? translateString(props.subItemLink.title) || props.subItemLink.title
+    ? getCrumbTitle(props.subItemLink, translateString)
     : undefined;
   const titleLanguage: string | undefined = getDrawnLanguage({
-    english: props.link.title,
+    english: getCrumbTitleEnglish(props.link),
     drawn: translatedTitle,
     language: language,
   });
   const subItemTitleLanguage: string | undefined = getDrawnLanguage({
-    english: props.subItemLink?.title,
+    english: props.subItemLink
+      ? getCrumbTitleEnglish(props.subItemLink)
+      : undefined,
     drawn: translatedSubItemTitle,
     language: language,
   });

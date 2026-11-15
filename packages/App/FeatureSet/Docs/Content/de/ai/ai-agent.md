@@ -283,7 +283,7 @@ So betreiben Sie einen Runner an anderer Stelle, etwa auf einem Rechner in der N
 :::steps
 ### Den Runner anlegen
 
-Legen Sie einen Runner unter **Runbooks → Runbook-Agents** an und klicken Sie in seiner Zeile auf **Einrichtungsanweisungen anzeigen**. Der Befehl enthält den geheimen Schlüssel des Runners, den nur ein Project Owner, Project Admin oder Runbook Admin lesen kann. Er sieht so aus:
+Legen Sie einen Runner unter **Runbooks → Runbook-Agents** an und klicken Sie in seiner Zeile auf **Einrichtungsanweisungen anzeigen**. Der Befehl enthält den geheimen Schlüssel des Runners, den nur ein Projektinhaber, Projektadministrator oder Runbook-Administrator lesen kann. Er sieht so aus:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \

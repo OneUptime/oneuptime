@@ -40,7 +40,10 @@ import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 import {
   SPAN_STATUS_PRESENTATIONS,
   SpanStatusPresentation,
@@ -79,25 +82,27 @@ export const formatTraceListDuration: (
   const durationMs: number = durationNano / 1000000;
 
   if (durationNano < 1000) {
-    return formatMilliseconds(translator, durationMs, {
-      unit: "ns",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator, durationNano, "nanosecond", {
+      decimals: 0,
+      dropTrailingZeros: true,
     });
   }
   if (durationNano < 1000000) {
-    return formatMilliseconds(translator, durationMs, {
-      unit: "µs",
-      maximumFractionDigits: 0,
-    });
+    return formatDurationInUnit(
+      translator,
+      durationNano / 1000,
+      "microsecond",
+      { decimals: 0, dropTrailingZeros: true },
+    );
   }
   if (durationMs < 1000) {
     return formatMilliseconds(translator, durationMs, {
       maximumFractionDigits: 1,
     });
   }
-  return formatMilliseconds(translator, durationMs, {
-    unit: "s",
-    maximumFractionDigits: 2,
+  return formatDurationInUnit(translator, durationNano / 1000000000, "second", {
+    decimals: 2,
+    dropTrailingZeros: true,
   });
 };
 

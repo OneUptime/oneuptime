@@ -23,7 +23,7 @@ Jede Minute fragt OneUptime jede aktivierte Verbindung ab, deren Abfrageinterval
 
 ## Bevor Sie beginnen
 
-- In OneUptime die Rolle Project Owner, Project Admin oder Security Admin. Security Member und Security Viewer sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
+- In OneUptime die Rolle Projektinhaber, Projektadministrator oder Sicherheits-Administrator. Sicherheits-Mitglied und Sicherheits-Betrachter sehen Verbindungen und ihren Laufverlauf, können sie aber nicht ändern.
 - Eine Falcon-Kunden-ID (CID) und einen Benutzer der Falcon-Konsole, der API-Clients verwalten darf: mit der Rolle Falcon Administrator oder einer eigenen Rolle mit der Berechtigung für API-Clients und -Schlüssel.
 - Ausgehendes HTTPS von der OneUptime-App und den Workern zum API-Host Ihrer Falcon-Cloud, aufgeführt unter **Falcon-Cloud** unten.
 

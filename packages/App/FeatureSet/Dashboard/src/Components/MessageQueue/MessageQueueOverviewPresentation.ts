@@ -26,19 +26,16 @@ import {
 import {
   DEFAULT_LANGUAGE,
   Translator,
-  createTranslator,
   getGlobalTranslator,
   translatableTerm,
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
-
-// A chart's value axis writes its figures in English, as every chart's does.
-const ENGLISH_FIGURES: Translator = createTranslator(
-  undefined,
-  DEFAULT_LANGUAGE,
-);
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * How a queue's Overview and telemetry tabs describe it: whether anything
@@ -515,44 +512,74 @@ export function getMessageQueueMetricListCaption(
   }
 }
 
-/** A broker metric's tile value in its catalog unit ("1.2k messages"). */
+/*
+ * A broker metric's tile value in its catalog unit ("1.2k messages"), in
+ * the reader's digits when handed their translator ("۱٫۲k messages").
+ */
 export function formatMessageQueueMetricValue(
   value: number | null | undefined,
   descriptor: Pick<MessageQueueMetricDescriptor, "unit" | "kind">,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseMetricValue(value, descriptor.unit, descriptor.kind);
+  return formatDatabaseMetricValue(
+    value,
+    descriptor.unit,
+    descriptor.kind,
+    translator,
+  );
 }
 
-/** A broker metric's chart tick (the title carries the unit word). */
+/*
+ * A broker metric's chart tick (the title carries the unit word), written
+ * as the tiles beside the chart write their figures when handed the
+ * reader's translator (#8283).
+ */
 export function formatMessageQueueMetricAxisValue(
   value: number | null | undefined,
   descriptor: Pick<MessageQueueMetricDescriptor, "unit">,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseMetricAxisValue(value, descriptor.unit);
+  return formatDatabaseMetricAxisValue(value, descriptor.unit, translator);
 }
 
 // ---- span figures ----------------------------------------------------------
 
-/** A count on a tile or table: "12", "1.2k", "3.4M"; "—" for nothing. */
+/*
+ * A count on a tile or table: "12", "1.2k", "3.4M"; "—" for nothing. In
+ * the reader's digits when handed their translator: "۱٫۲k", "1,2k".
+ */
 export function formatMessageQueueCount(
   value: number | null | undefined,
+  translator?: Translator | undefined,
 ): string {
-  return formatDatabaseCount(value);
-}
-
-/** An error rate: "2.5%"; "—" when there is nothing to divide. */
-export function formatMessageQueueErrorRate(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) {
-    return "—";
-  }
-  return `${value.toFixed(1)}%`;
+  return formatDatabaseCount(value, translator);
 }
 
 /*
- * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s". Each unit
- * is the reader's words (issues #7418, #8348): a tile, a row, a line of
- * the topology. A chart's value axis keeps the English figures every
- * chart's value axis writes (formatMessageQueueDurationMs).
+ * An error rate: "2.5%"; "—" when there is nothing to divide. In the
+ * reader's digits and percent sign when handed their translator: "2,5 %",
+ * "۲٫۵٪".
+ */
+export function formatMessageQueueErrorRate(
+  value: number | null,
+  translator?: Translator | undefined,
+): string {
+  if (value === null || !Number.isFinite(value)) {
+    return "—";
+  }
+  return formatReaderFigure(value, {
+    decimals: 1,
+    isPercent: true,
+    language: translator ? translator.language : DEFAULT_LANGUAGE,
+  });
+}
+
+/*
+ * A span duration in milliseconds: "850 µs", "12 ms", "1.25 s", in the
+ * reader's words and digits (issue #7418): "۸۵۰ میکروثانیه", "۱۲
+ * میلی‌ثانیه", "1,25 Sek." - on a tile, in a row, on a line of the
+ * topology and on a chart's value axis and its tooltip alike, as the tiles
+ * beside the chart write them (#8349).
  */
 export function formatMessageQueueDurationMsInLanguage(
   value: number | null,
@@ -562,9 +589,8 @@ export function formatMessageQueueDurationMsInLanguage(
     return "—";
   }
   if (value < 1) {
-    return formatMilliseconds(translator, value, {
-      unit: "µs",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator, value * 1000, "microsecond", {
+      decimals: 0,
     });
   }
   if (value < 1000) {
@@ -575,14 +601,7 @@ export function formatMessageQueueDurationMsInLanguage(
       maximumFractionDigits: decimals,
     });
   }
-  return formatMilliseconds(translator, value, {
-    unit: "s",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return formatDurationInUnit(translator, value / 1000, "second", {
+    decimals: 2,
   });
-}
-
-// A span duration on a chart's value axis: in English, as every chart's axis.
-export function formatMessageQueueDurationMs(value: number | null): string {
-  return formatMessageQueueDurationMsInLanguage(value, ENGLISH_FIGURES);
 }

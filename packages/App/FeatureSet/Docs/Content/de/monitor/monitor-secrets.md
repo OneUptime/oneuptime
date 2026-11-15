@@ -25,7 +25,7 @@ Die Sonde, die die Prüfung ausführt, erhält den Wert. Ein Monitor, der ein Ge
 ## Bevor Sie beginnen
 
 - **Der Growth-Tarif oder höher**, auf OneUptime Cloud. Selbst gehostete Installationen haben keine Tarife.
-- **Eine Rolle, die Geheimnisse verwalten darf**: Project Owner, Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Secret.
+- **Eine Rolle, die Geheimnisse verwalten darf**: Projektinhaber, Projektadministrator oder eine benutzerdefinierte Rolle mit der Berechtigung Create Monitor Secret.
 
 ## Mit Geheimnissen arbeiten
 

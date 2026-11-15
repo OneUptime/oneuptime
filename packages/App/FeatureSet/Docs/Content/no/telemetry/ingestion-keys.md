@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Nøkkelen bestemmer prosjektet.** Du sender aldri en prosjekt-ID: data som sendes med en nøkkel, havner i prosjektet nøkkelen tilhører.
-- **Endringer når alle servere innen ett minutt.** Å slå av en nøkkel, tilbakestille hemmeligheten eller endre origins, utløp eller grense trer i kraft innen omtrent ett minutt.
+- **Endringer når alle servere innen noen sekunder.** Å slå av en nøkkel, tilbakestille hemmeligheten eller endre origins, utløp eller grense trer i kraft på alle servere innen noen sekunder.
 - **En nøkkel kan ha egne budsjetter.** Et daglig budsjett og en hastighet per sekund for hvert signal, innenfor prosjektets: se [Inntaksbudsjetter](/docs/telemetry/ingestion-budgets).
 - **En servernøkkel er et passord.** Alle som har den, kan sende telemetri til prosjektet ditt. Oppbevar den blant serverens hemmeligheter, aldri i versjonskontroll eller på en nettside.
 
@@ -139,8 +139,8 @@ Nøkkelens side teller også: **Avvist telemetri** viser hva som er avvist fra n
 
 For de andre svarene en OTLP-eksportør kan få, se [Svar](/docs/telemetry/open-telemetry#svar).
 
-:::details Det kommer fortsatt data et minutt etter at jeg slo av nøkkelen
-Hver OneUptime-server husker det den vet om en nøkkel, i opptil ett minutt, så en endring når alle innen omtrent ett minutt. Forespørsler etter det avvises. En MQTT-klient som koblet til med nøkkelen, kobles fra innen noen sekunder.
+:::details Det kommer fortsatt data etter at jeg slo av nøkkelen
+Hver OneUptime-server sjekker minst én gang i sekundet om en nøkkel er endret, så en endring når alle innen noen sekunder, og forespørsler etter det avvises. Mens en server ikke får kontakt med OneUptimes hurtigbuffer, kan den gå ut fra det den visste om nøkkelen i opptil ett minutt. En MQTT-klient som koblet til med nøkkelen, kobles fra innen noen sekunder.
 :::
 
 :::details En nettlesernøkkel virker på den bærbare maskinen min, men ikke i produksjon

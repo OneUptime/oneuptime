@@ -1,6 +1,15 @@
 import AggregationType from "../../Types/BaseDatabase/AggregationType";
 import IncidentMetricType from "../../Types/Incident/IncidentMetricType";
+import { translationKey } from "../../Types/Translator";
 
+/*
+ * The words a monitor's or an SLO's Incident Metrics charts draw - each
+ * chart's title, legend and what it shows - are keys of the Dashboard's
+ * locales (translationKey; this file is a `keys` root of its extractor),
+ * and the charts look each up once where they hand it to the chart
+ * (#8282). Only the incident metrics the charts draw are marked
+ * (getAllIncidentMetricTypes): the others are never drawn.
+ */
 class IncidentMetricTypeUtil {
   public static getAggregationTypeByIncidentMetricType(
     metricType: IncidentMetricType,
@@ -39,13 +48,13 @@ class IncidentMetricTypeUtil {
   ): string {
     switch (metricType) {
       case IncidentMetricType.IncidentCount:
-        return "Incident Count";
+        return translationKey("Incident Count");
       case IncidentMetricType.TimeToAcknowledge:
-        return "Time to Acknowledge";
+        return translationKey("Time to Acknowledge");
       case IncidentMetricType.TimeToResolve:
-        return "Time to Resolve";
+        return translationKey("Time to Resolve");
       case IncidentMetricType.IncidentDuration:
-        return "Incident Duration";
+        return translationKey("Incident Duration");
       case IncidentMetricType.TimeInState:
         return "Time in State";
       case IncidentMetricType.SeverityChange:
@@ -62,13 +71,21 @@ class IncidentMetricTypeUtil {
   ): string {
     switch (metricType) {
       case IncidentMetricType.IncidentCount:
-        return "The number of incidents created for this monitor over time.";
+        return translationKey(
+          "The number of incidents created for this monitor over time.",
+        );
       case IncidentMetricType.TimeToAcknowledge:
-        return "The average time taken to acknowledge incidents for this monitor.";
+        return translationKey(
+          "The average time taken to acknowledge incidents for this monitor.",
+        );
       case IncidentMetricType.TimeToResolve:
-        return "The average time taken to resolve incidents for this monitor.";
+        return translationKey(
+          "The average time taken to resolve incidents for this monitor.",
+        );
       case IncidentMetricType.IncidentDuration:
-        return "The average duration of incidents for this monitor.";
+        return translationKey(
+          "The average duration of incidents for this monitor.",
+        );
       case IncidentMetricType.TimeInState:
         return "The average time incidents spend in each state for this monitor.";
       case IncidentMetricType.SeverityChange:
@@ -85,13 +102,13 @@ class IncidentMetricTypeUtil {
   ): string {
     switch (metricType) {
       case IncidentMetricType.IncidentCount:
-        return "Incidents";
+        return translationKey("Incidents");
       case IncidentMetricType.TimeToAcknowledge:
-        return "Time to Acknowledge";
+        return translationKey("Time to Acknowledge");
       case IncidentMetricType.TimeToResolve:
-        return "Time to Resolve";
+        return translationKey("Time to Resolve");
       case IncidentMetricType.IncidentDuration:
-        return "Duration";
+        return translationKey("Duration");
       case IncidentMetricType.TimeInState:
         return "Time in State";
       case IncidentMetricType.SeverityChange:

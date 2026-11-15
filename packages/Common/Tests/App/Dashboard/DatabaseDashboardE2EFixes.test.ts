@@ -281,7 +281,7 @@ describe("chart axes", () => {
       "128\u00A0MiB",
     );
     expect(formatDatabaseMetricAxisValue(0.85, "fraction")).toBe("85%");
-    expect(formatDatabaseMetricAxisValue(12, "ms")).toBe("12 ms");
+    expect(formatDatabaseMetricAxisValue(12, "ms")).toBe("12\u00A0ms");
     // A sub-second lag reads in ms, not "0.0 s" on every tick.
     expect(formatDatabaseMetricAxisValue(0.004, "s")).toBe("4\u00A0ms");
     expect(formatDatabaseMetricAxisValue(0.012, "s")).toBe("12\u00A0ms");

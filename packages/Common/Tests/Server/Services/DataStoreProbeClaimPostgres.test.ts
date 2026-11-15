@@ -14,7 +14,10 @@ import DataStoreService from "../../../Server/Services/DataStoreService";
 import { DATA_OBSERVABILITY_KINDS } from "../../../Server/Utils/DataObservability/DataObservabilityEngines";
 import { TABLE_HEALTH_CLAIM_IN_MINUTES } from "../../../Server/Utils/DataObservability/DataObservabilityProbeCollect";
 import { claimDueTableHealthStoresForProbe } from "../../../Server/Utils/DataObservability/DataObservabilityProbeClaim";
-import { claimDueDataStoresForProbe } from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
+import {
+  claimDueDataStoresForProbe,
+  isDataStoreContentScannableByProbe,
+} from "../../../Server/Utils/DataSecurity/DataSecurityProbeClaim";
 import {
   DATA_SECURITY_WORKER_CLAIM_IN_HOURS,
   claimDueDataStoresForWorkers,
@@ -685,6 +688,209 @@ describePostgres("Data store probe claims against Postgres", () => {
           return idsOf(await claim.claim({ probeId: probeId, limit: 10 }));
         },
       });
+    });
+  });
+
+  /*
+   * THE RESULT ROUTE'S QUESTION (#8391). A probe scans for minutes after
+   * its claim; what it reports is kept only while the claim's rule still
+   * holds for the store, through the probe the store names.
+   */
+  describe("whether a probe may still keep its scan of a store", () => {
+    async function mayKeep(
+      store: ObjectID,
+      probe: ObjectID = probeId,
+    ): Promise<boolean> {
+      return await isDataStoreContentScannableByProbe({
+        probeId: probe,
+        dataStoreId: store,
+      });
+    }
+
+    async function updateStore(store: ObjectID, set: string): Promise<void> {
+      await database.query(
+        `UPDATE "${schema}"."DataStore" SET ${set} WHERE "_id" = $1`,
+        [store.toString()],
+      );
+    }
+
+    test("a store its probe claimed: yes, though the claim moved its due time on; one never due yet: yes, it is the rule, not the schedule", async () => {
+      const claimed: ObjectID = await insertStore({});
+      const notDue: ObjectID = await insertStore({
+        times: { nextContentScanAt: minutesFromNow(60) },
+      });
+      const neverScheduled: ObjectID = await insertStore({
+        times: { nextContentScanAt: null },
+      });
+
+      expect(
+        idsOf(await claimDueDataStoresForProbe({ probeId: probeId, limit: 1 })),
+      ).toEqual([claimed.toString()]);
+      expect(
+        (await readStore(claimed)).nextContentScanAt!.getTime(),
+      ).toBeGreaterThan(Date.now());
+
+      for (const store of [claimed, notDue, neverScheduled]) {
+        expect(await mayKeep(store)).toBe(true);
+      }
+    });
+
+    test.each([
+      ["the store's Scan Content turned off", `"isContentScanEnabled" = false`],
+      ["the store archived", `"isArchived" = true`],
+      ["the store deleted", `"deletedAt" = now()`],
+      [
+        "the store's connection variable cleared",
+        `"probeConnectionVariable" = NULL`,
+      ],
+      [
+        "the store's connection variable emptied",
+        `"probeConnectionVariable" = ''`,
+      ],
+      ["the store moved to OneUptime's workers", `"scanProbeId" = NULL`],
+    ])(
+      "%s while its probe scanned: no; set back, yes",
+      async (_reason: string, set: string) => {
+        const store: ObjectID = await insertStore({});
+
+        expect(
+          idsOf(
+            await claimDueDataStoresForProbe({ probeId: probeId, limit: 5 }),
+          ),
+        ).toEqual([store.toString()]);
+
+        await updateStore(store, set);
+        expect(await mayKeep(store)).toBe(false);
+
+        await updateStore(
+          store,
+          `"isContentScanEnabled" = true, "isArchived" = false, "deletedAt" = NULL, "probeConnectionVariable" = 'ORDERS_DATABASE_URL', "scanProbeId" = '${probeId.toString()}'`,
+        );
+        expect(await mayKeep(store)).toBe(true);
+      },
+    );
+
+    test("the project's Scan Content turned off while its probe scanned: no; a deleted setting is no setting, and one turned on is on", async () => {
+      const owner: { project: ObjectID; probe: ObjectID } =
+        await insertProjectWithProbe();
+      const store: ObjectID = await insertStore({
+        project: owner.project,
+        probe: owner.probe,
+      });
+
+      expect(
+        idsOf(
+          await claimDueDataStoresForProbe({ probeId: owner.probe, limit: 5 }),
+        ),
+      ).toEqual([store.toString()]);
+
+      await insertSetting({
+        project: owner.project,
+        isContentScanEnabled: false,
+      });
+      expect(await mayKeep(store, owner.probe)).toBe(false);
+
+      await database.query(
+        `UPDATE "${schema}"."DataSecuritySetting" SET "deletedAt" = now() WHERE "projectId" = $1`,
+        [owner.project.toString()],
+      );
+      expect(await mayKeep(store, owner.probe)).toBe(true);
+
+      await database.query(
+        `UPDATE "${schema}"."DataSecuritySetting" SET "deletedAt" = NULL, "isContentScanEnabled" = true WHERE "projectId" = $1`,
+        [owner.project.toString()],
+      );
+      expect(await mayKeep(store, owner.probe)).toBe(true);
+    });
+
+    test("the project suspended, blocked, deleted or made a sample while its probe scanned: no; past due: still yes", async () => {
+      const cases: Array<[string, string, boolean]> = [
+        ["blocked", `"isBlocked" = true`, false],
+        ["deleted", `"deletedAt" = now()`, false],
+        ["a sample", `"isSampleProject" = true`, false],
+        [
+          "canceled",
+          `"paymentProviderSubscriptionStatus" = '${SubscriptionStatus.Canceled}'`,
+          false,
+        ],
+        [
+          "unpaid",
+          `"paymentProviderSubscriptionStatus" = '${SubscriptionStatus.Unpaid}'`,
+          false,
+        ],
+        [
+          "metered canceled",
+          `"paymentProviderMeteredSubscriptionStatus" = '${SubscriptionStatus.Canceled}'`,
+          false,
+        ],
+        [
+          "past due",
+          `"paymentProviderSubscriptionStatus" = '${SubscriptionStatus.PastDue}'`,
+          true,
+        ],
+      ];
+
+      for (const [name, set, kept] of cases) {
+        const owner: { project: ObjectID; probe: ObjectID } =
+          await insertProjectWithProbe();
+        const store: ObjectID = await insertStore({
+          project: owner.project,
+          probe: owner.probe,
+        });
+
+        expect(await mayKeep(store, owner.probe)).toBe(true);
+
+        await database.query(
+          `UPDATE "${schema}"."Project" SET ${set} WHERE "_id" = $1`,
+          [owner.project.toString()],
+        );
+
+        expect({ name: name, kept: await mayKeep(store, owner.probe) }).toEqual(
+          { name: name, kept: kept },
+        );
+      }
+    });
+
+    test("only through the probe the store names, of its own project: never another of its probes, another project's, a global one or a deleted one", async () => {
+      const store: ObjectID = await insertStore({});
+
+      for (const probe of [siblingProbeId, foreignProbeId, globalProbeId]) {
+        expect(await mayKeep(store, probe)).toBe(false);
+      }
+
+      // A store naming another project's probe, or a global one.
+      const foreign: ObjectID = await insertStore({ probe: foreignProbeId });
+      const global: ObjectID = await insertStore({ probe: globalProbeId });
+      expect(await mayKeep(foreign, foreignProbeId)).toBe(false);
+      expect(await mayKeep(global, globalProbeId)).toBe(false);
+
+      // The store's probe deleted while it scanned.
+      expect(await mayKeep(store)).toBe(true);
+      await database.query(
+        `UPDATE "${schema}"."Probe" SET "deletedAt" = now() WHERE "_id" = $1`,
+        [probeId.toString()],
+      );
+      expect(await mayKeep(store)).toBe(false);
+    });
+
+    test("of a store of every kind, only the kinds a probe samples, self-managed; a store that does not exist: no", async () => {
+      const kept: Array<DataStoreKind> = [];
+
+      for (const kind of Object.values(DataStoreKind)) {
+        const store: ObjectID = await insertStore({ kind: kind });
+
+        if (await mayKeep(store)) {
+          kept.push(kind);
+        }
+      }
+
+      expect(kept.sort()).toEqual([...PROBE_SCANNABLE_KINDS].sort());
+
+      const cloud: ObjectID = await insertStore({
+        provider: DataStoreProvider.Aws,
+      });
+      expect(await mayKeep(cloud)).toBe(false);
+      expect(await mayKeep(ObjectID.generate())).toBe(false);
     });
   });
 

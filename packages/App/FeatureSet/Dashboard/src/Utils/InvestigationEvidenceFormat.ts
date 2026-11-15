@@ -25,7 +25,7 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "./Milliseconds";
+import { formatDurationInUnit, formatMilliseconds } from "./Milliseconds";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -1136,14 +1136,12 @@ export function formatEvidenceDuration(
   if (durationInMs < 60_000) {
     const seconds: number = Math.round(durationInMs / 100) / 10;
 
-    return formatMilliseconds(
-      translator,
-      seconds >= 60 ? 60_000 : seconds * 1000,
-      {
-        unit: seconds >= 60 ? "min" : "s",
-        maximumFractionDigits: 1,
-      },
-    );
+    return seconds >= 60
+      ? formatDurationInUnit(translator, 1, "minute", { decimals: 0 })
+      : formatDurationInUnit(translator, seconds, "second", {
+          decimals: 1,
+          dropTrailingZeros: true,
+        });
   }
 
   const totalSeconds: number = Math.round(durationInMs / 1000);
@@ -1155,9 +1153,9 @@ export function formatEvidenceDuration(
         minutes: translator.formatNumber(minutes),
         seconds: translator.formatNumber(seconds),
       })
-    : formatMilliseconds(translator, minutes * 60_000, {
-        unit: "min",
-        maximumFractionDigits: 0,
+    : formatDurationInUnit(translator, minutes, "minute", {
+        decimals: 0,
+        dropTrailingZeros: true,
       });
 }
 

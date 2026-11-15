@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52780,
-    "untranslated": 9021
+    "keys": 53571,
+    "untranslated": 8847
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -513,13 +513,11 @@
     "{{minutes}} min {{seconds}} s",
     "{{name}} (monitor: {{monitor}})",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",
-    "{{value}} h",
     "{{value}} ms",
-    "{{value}} ns",
-    "{{value}} s",
-    "{{value}} µs"
+    "{{value}} s"
   ]
 }

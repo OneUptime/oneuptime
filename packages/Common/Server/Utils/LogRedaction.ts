@@ -144,6 +144,13 @@ const NON_SENSITIVE_KEYS: Set<string> = new Set<string>([
   "isauthorized",
   "authorizationurl",
   "authorizationendpoint",
+  /*
+   * Which signature scheme a message or a request uses, never a signature:
+   * an Amazon SNS message's SignatureVersion ("1" or "2"), and an AWS query
+   * request's SignatureVersion=2 and SignatureMethod=HmacSHA256 (#7723).
+   */
+  "signatureversion",
+  "signaturemethod",
   // Which ingestion key a request came with: an id, never the key itself.
   "ingestionkeyid",
   "telemetryingestionkeyid",

@@ -495,7 +495,7 @@ describe("figures, as a review draws them", () => {
     expect(formatReviewDuration(840.4, english)).toBe("840\u00A0ms");
     expect(formatReviewDuration(1234, english)).toBe("1.2\u00A0s");
     expect(formatReviewDuration(61000, english)).toBe("61\u00A0s");
-    expect(formatReviewDuration(1234, german)).toBe("1,2\u00A0s");
+    expect(formatReviewDuration(1234, german)).toBe("1,2\u00A0Sek.");
     expect(formatReviewDuration(-1, english)).toBe("");
     expect(formatReviewDuration(Number.NaN, english)).toBe("");
   });

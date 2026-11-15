@@ -61,6 +61,8 @@ The name defaults to vCenter's host name. Click **Connect vCenter** to save, and
 
 The vCenter's **Overview** shows a **Data Collection** card. It reads **Checking** until the first collection, which starts within a minute, then **Collecting**, and the inventory fills in.
 
+If no probe comes for the vCenter for 20 minutes, because it is offline or too old, the card reads **Not collecting** and says so, whatever the last collection found. When no probe may collect the vCenter, it reads **Not collecting** at once and says why and what to change: no password is saved, vCenter's address or user name is missing, no probe is set to collect it, its probe may not collect it (a shared probe on OneUptime Cloud, or another project's), or its probe is disconnected. Its **Next collection** is the time a probe collects it next, **Due now** while it waits for one, **Overdue** once none has come for 20 minutes, and **Not scheduled** while no probe may collect it. An archived vCenter is still collected.
+
 ## Certificates
 
 The probe never skips certificate verification. Every connection completes a full TLS handshake, and then:

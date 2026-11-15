@@ -948,6 +948,22 @@ else
     assert_eq "exit 0: npm run dev --services=${DEV_SERVICES};npm run status-check" "$(bring_up 0)" \
         "a bring-up attempt whose build succeeds goes on to status-check"
 
+    # The bring-up starts the App in dev mode, where a watcher per frontend
+    # builds its frontend again, the five at once beside the API's first boot,
+    # and holds it in memory: more than the runner's 16 GB, and the job lost
+    # its runner in "Start OneUptime services". ONEUPTIME_DEV_WATCH_FRONTENDS
+    # set to false starts none (packages/App/scripts/dev.sh), in the step's
+    # env or else the job's (six spaces in) or the workflow's (two);
+    # Tests/Ops/DevFrontendWatchers.test.js holds dev.sh and the dev compose
+    # file to it.
+    WATCH_FRONTENDS="$(step_value "$(workflow_steps_with 'npm run dev --services=')" ONEUPTIME_DEV_WATCH_FRONTENDS)"
+    for indent in '      ' '  '; do
+        [ -z "$WATCH_FRONTENDS" ] || break
+        WATCH_FRONTENDS="$(sed -nE "s/^${indent}ONEUPTIME_DEV_WATCH_FRONTENDS:[[:space:]]*//p" "$WORKFLOW" | head -1)"
+    done
+    assert_eq "false" "$(tr -d "\"'" <<<"$WATCH_FRONTENDS")" \
+        "the bring-up starts the App without its frontend watchers (ONEUPTIME_DEV_WATCH_FRONTENDS=false)"
+
     assert_file_matches "$WORKFLOW" 'TF_CLI: terraform' \
         "the workflow runs the suite against Terraform"
 

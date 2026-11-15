@@ -91,6 +91,8 @@ import {
   DatabaseLivenessStatus,
   DatabaseRuntimePlatform,
   formatDatabaseCount,
+  formatDatabaseErrorRate,
+  formatDatabaseLatencyMs,
   getDatabaseEngineLabel,
   getDatabaseEngineMetricsStatus,
   getDatabaseEngineMetricsStatusLabel,
@@ -105,11 +107,6 @@ import {
   isDatabaseServerLive,
 } from "../Utils/DatabaseServerPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  formatMilliseconds,
-  formatMillisecondsInEnglish,
-  MillisecondsOptions,
-} from "../../../Utils/Milliseconds";
 import {
   translatableTerm,
   translationKey,
@@ -137,37 +134,6 @@ import {
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
-
-function formatErrorRate(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) {
-    return "—";
-  }
-  return `${value.toFixed(1)}%`;
-}
-
-/*
- * A query's p95: its milliseconds and seconds in the reader's words on the
- * tile (issues #7418, #8348), and in English on the chart's value axis, as
- * every chart's axis writes its figures (no translator).
- */
-function formatMs(
-  value: number | null,
-  translator?: Translator | undefined,
-): string {
-  if (value === null || !Number.isFinite(value)) {
-    return "—";
-  }
-  const decimals: number = value < 10 ? 1 : value < 1000 ? 0 : 2;
-  const options: MillisecondsOptions = {
-    unit: value < 1000 ? "ms" : "s",
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  };
-
-  return translator
-    ? formatMilliseconds(translator, value, options)
-    : formatMillisecondsInEnglish(value, options);
-}
 
 /*
  * A database's Overview, in three sections:
@@ -653,7 +619,7 @@ const DatabaseServerOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "Queries",
-      value: hasQueries ? formatDatabaseCount(m.total) : "—",
+      value: hasQueries ? formatDatabaseCount(m.total, translator) : "—",
       icon: IconProp.Workflow,
       iconColor: "sky",
       loading: telemetryLoading,
@@ -663,7 +629,7 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: formatErrorRate(m.errorRatePercent),
+      value: formatDatabaseErrorRate(m.errorRatePercent, translator),
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: telemetryLoading,
@@ -674,7 +640,7 @@ const DatabaseServerOverview: FunctionComponent<
               other: "{{count}} failed queries",
             },
             m.errors,
-            { count: formatDatabaseCount(m.errors) },
+            { count: formatDatabaseCount(m.errors, translator) },
           )
         : undefined,
       percent: m.errorRatePercent,
@@ -684,7 +650,7 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       title: "p95 query latency",
-      value: formatMs(m.p95DurationMs, translator),
+      value: formatDatabaseLatencyMs(m.p95DurationMs, translator),
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: telemetryLoading,
@@ -695,7 +661,7 @@ const DatabaseServerOverview: FunctionComponent<
       title: "Calling services",
       value: telemetryLoading
         ? "—"
-        : formatDatabaseCount(callingServices.total),
+        : formatDatabaseCount(callingServices.total, translator),
       icon: IconProp.SquareStack,
       iconColor: "violet",
       loading: telemetryLoading,
@@ -736,7 +702,7 @@ const DatabaseServerOverview: FunctionComponent<
         syncId={`database-${modelId.toString()}`}
         yLegend="ms"
         yFormatter={(value: number): string => {
-          return formatMs(value);
+          return formatDatabaseLatencyMs(value, translator);
         }}
         loading={telemetryLoading && m.p95Series.length === 0}
       />

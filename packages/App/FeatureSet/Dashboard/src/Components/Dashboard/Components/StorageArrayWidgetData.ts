@@ -20,7 +20,10 @@ import {
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
 import { getKnownStorageArrayStatusKey } from "../../../Pages/StorageArray/Utils/StorageArrayHealth";
-import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -185,9 +188,9 @@ export function formatLatencyUsec(
     return "—";
   }
   if (numeric < 1000) {
-    return formatMilliseconds(translator || ENGLISH, numeric / 1000, {
-      unit: "µs",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator || ENGLISH, numeric, "microsecond", {
+      decimals: 0,
+      dropTrailingZeros: true,
     });
   }
   return formatMilliseconds(translator || ENGLISH, numeric / 1000, {

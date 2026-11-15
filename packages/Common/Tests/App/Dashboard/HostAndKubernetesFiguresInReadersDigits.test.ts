@@ -479,7 +479,7 @@ describe("a reason's percentage and decimals take the sentence's language", () =
   });
 
   test("German writes its decimal comma and its spaced percent", () => {
-    expect(full(dashboardTranslator("de"))).toBe("/var zu 96 % voll");
+    expect(full(dashboardTranslator("de"))).toBe("/var zu 96\u00A0% voll");
     expect(loaded(dashboardTranslator("de"), 4)).toBe(
       "15-Minuten-Last 9,6 auf 4 Kernen",
     );
@@ -511,7 +511,7 @@ describe("a reason's percentage and decimals take the sentence's language", () =
       "۱۰۰٪ پر",
     );
     expect(filled(german, "{{percent}} full", { percent: "0.5%" })).toBe(
-      "0,5 % voll",
+      "0,5\u00A0% voll",
     );
   });
 

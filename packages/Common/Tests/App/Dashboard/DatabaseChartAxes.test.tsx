@@ -264,9 +264,13 @@ describe("getDatabaseChartYAxis", () => {
   test("its two ticks read '0 B' and '1 B', not '0.0 B' and '1.0 B'", () => {
     expect(formatDatabaseMetricAxisValue(0, "bytes")).toBe("0\u00A0B");
     expect(formatDatabaseMetricAxisValue(1, "bytes")).toBe("1\u00A0B");
-    expect(formatDatabaseMetricAxisValue(5 * 1024 ** 3, "bytes")).toBe("5\u00A0GiB");
+    expect(formatDatabaseMetricAxisValue(5 * 1024 ** 3, "bytes")).toBe(
+      "5\u00A0GiB",
+    );
     expect(formatDatabaseMetricAxisValue(1536, "bytes")).toBe("1.5\u00A0KiB");
-    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe("128\u00A0MiB");
+    expect(formatDatabaseMetricAxisValue(134217728, "bytes")).toBe(
+      "128\u00A0MiB",
+    );
   });
 });
 

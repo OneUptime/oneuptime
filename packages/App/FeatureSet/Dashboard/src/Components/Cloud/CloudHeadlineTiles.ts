@@ -52,7 +52,10 @@ import {
 } from "Common/Types/Cloud/CloudResourceHealth";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { formatMilliseconds } from "../../Utils/Milliseconds";
+import {
+  formatDurationInUnit,
+  formatMilliseconds,
+} from "../../Utils/Milliseconds";
 
 /*
  * WHAT A CLOUD RESOURCE'S PAGE LEADS WITH.
@@ -260,22 +263,22 @@ export function formatCloudSeconds(
   }
 
   if (Math.abs(seconds) < 120) {
-    return formatMilliseconds(translator, milliseconds, {
-      unit: "s",
-      maximumFractionDigits: cloudAmountDecimals(seconds),
+    return formatDurationInUnit(translator, seconds, "second", {
+      decimals: cloudAmountDecimals(seconds),
+      dropTrailingZeros: true,
     });
   }
 
   if (Math.abs(seconds) < 2 * 3600) {
-    return formatMilliseconds(translator, milliseconds, {
-      unit: "min",
-      maximumFractionDigits: 0,
+    return formatDurationInUnit(translator, seconds / 60, "minute", {
+      decimals: 0,
+      dropTrailingZeros: true,
     });
   }
 
-  return formatMilliseconds(translator, milliseconds, {
-    unit: "h",
-    maximumFractionDigits: cloudAmountDecimals(seconds / 3600),
+  return formatDurationInUnit(translator, seconds / 3600, "hour", {
+    decimals: cloudAmountDecimals(seconds / 3600),
+    dropTrailingZeros: true,
   });
 }
 

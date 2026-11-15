@@ -639,7 +639,7 @@ describe("#7521: a volume's sizes, latencies and IOPS in the reader's digits", (
     [
       "de",
       "3,5\u00A0TiB von 10,0\u00A0TiB",
-      "420\u00A0µs / 2,35\u00A0ms",
+      "420\u00A0μs / 2,35\u00A0ms",
       "1,5K",
       "Lesen 1,2K · Schreiben 300",
     ],
@@ -653,7 +653,7 @@ describe("#7521: a volume's sizes, latencies and IOPS in the reader's digits", (
     [
       "fa",
       "۳٫۵\u00A0TiB از ۱۰٫۰\u00A0TiB",
-      `${apart("۴۲۰\u00A0میکروثانیه")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
+      `${apart("۴۲۰μs")} / ${apart("۲٫۳۵\u00A0میلی‌ثانیه")}`,
       "۱٫۵K",
       `خواندن ۱٫۲K${getInlineSeparator("fa")}نوشتن ۳۰۰`,
     ],
@@ -717,7 +717,7 @@ describe("#7521: a volume's sizes, latencies and IOPS in the reader's digits", (
     for (const figure of [
       "۳٫۵ TiB از ۱۰٫۰ TiB",
       // The Dashboard's durations, in Persian's own units (#7418, #8348).
-      "۴۲۰ میکروثانیه",
+      "۴۲۰μs",
       "۲٫۳۵ میلی‌ثانیه",
       "۱٫۲K",
       "۳۰۰",

@@ -798,7 +798,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **会自行解除的拒绝** — 之前的代理 Pod 仍在上报（没有正常关闭就被替换的 Pod），或者旧的集群内 Runner 在升级期间仍在关闭。代理会在服务器指定的等待时间之后重试。
 - **需要你处理的拒绝** — `clusterName` 为空或过长，或者项目已达到 AI 代理的上限；日志会指明需要更改什么。如果代理始终无法连接，且其日志显示 `Another Kubernetes AI agent for cluster "<name>" is online`，说明两个安装共用了同一个 `clusterName`（AI 代理页面也会对此发出警告）：已经连接的那个只要在运行就会一直占用它，因此请为每个集群提供自己的 `clusterName`，或移除多余的发布。带有 **固定的服务名称** 的摄取密钥无法注册代理——请给 chart 一个不带它的密钥。
 
-AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（Project Owner、Project Admin 或拥有 **Edit AI Rule** 权限者可以在其可编辑的集群上执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
+AI 代理页面上代理状态旁边 **⋯** 菜单中的 **重置代理**，会在你确认后让服务器忘记该代理的密钥（项目所有者、项目管理员或拥有 **Edit AI Rule** 权限者可以在其可编辑的集群上执行）；Pod 会在几分钟内自行重新连接。代理的就绪状态不依赖 OneUptime，因此配置错误的 AI 代理永远不会让 `helm upgrade --wait` 失败——只有无法拉取镜像的 Pod 才会。
 
 ## 升级代理
 
@@ -840,7 +840,7 @@ chart 现在默认运行 [Kubernetes AI 代理](#kubernetes-ai-代理)。它取�
 - `aiAccess.image` 和 `aiAccess.resources` 不会沿用：AI 代理是一个不同的镜像，有它自己的 `aiAgent.image` 和 `aiAgent.resources`。
 - 在 OneUptime 中，每个集群都会保留其 AI 设置，但升级服务器时会做两项更改：如果有人解绑或删除了某个集群的 Runner（集群内 Runner 或任何其他 Runner），该集群启动时 **使用 kubectl 调查** 和修复都处于关闭状态（请在其 AI 代理页面上重新开启）；而对于项目从未开启 **Enable AI Command Execution** 的集群，**自动** 或 **跳过批准** 会变为 **请求批准**——那个开关过去会拦住这些修复，而通过 AI 代理进行的修复已不再需要它。
 
-要回退，请使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 会列出修订版本），而不是 `helm upgrade --version <older version>`：旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会带回集群内 Runner，并且一旦 AI 代理停止，它会自行重新连接。超过这个期限，OneUptime 可能已经移除了旧的 Runner（集群的 **动态** 会显示具体时间）。此时回滚后的 Runner 会连接，但不会被使用，直到你用 API 或 Terraform 再次把它绑定到集群（集群的 **AI Access Runner**；Project Owner、Project Admin 或拥有 **Edit AI Rule** 权限者可以执行），或者再次升级 chart。
+要回退，请使用 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`（`helm history` 会列出修订版本），而不是 `helm upgrade --version <older version>`：旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会带回集群内 Runner，并且一旦 AI 代理停止，它会自行重新连接。超过这个期限，OneUptime 可能已经移除了旧的 Runner（集群的 **动态** 会显示具体时间）。此时回滚后的 Runner 会连接，但不会被使用，直到你用 API 或 Terraform 再次把它绑定到集群（集群的 **AI Access Runner**；项目所有者、项目管理员或拥有 **Edit AI Rule** 权限者可以执行），或者再次升级 chart。
 
 Kubernetes AI 代理与 OneUptime 12 中已停用的 AI Agent 无关。
 

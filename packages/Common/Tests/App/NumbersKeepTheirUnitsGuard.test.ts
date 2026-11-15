@@ -474,9 +474,8 @@ describe("a number keeps its unit on its line", () => {
       expect.arrayContaining([
         "{{value}} ms",
         "{{value}} s",
-        "{{value}} µs",
-        "{{value}} ns",
-        "{{value}} h",
+        "{{count}} ms",
+        "{{count}} s",
         "{{minutes}} min",
       ]),
     );

@@ -34,11 +34,13 @@ import path from "path";
  * taken from every team, key and role by the migration
  * RemoveServiceTelemetryLinkPermissions1809176500000).
  *
- * The sweep found 28 more of the same kind when it was written. They are
- * the baseline below, each with the issue that fixes it, rather than fixed
- * here: each needs its own decision between wiring the permission into the
- * model it was meant for (which widens access for whoever holds it) and
- * retiring it.
+ * The sweep found 28 more of the same kind when it was written, kept as a
+ * baseline while each was decided between wiring it in and retiring it.
+ * All 28 are retired now (#8275, #8276, #8277; the migration
+ * RemovePermissionsThatGrantNothing1809178600000), and the baseline is
+ * gone: the sweep finds nothing. A permission it finds is new, and grants
+ * nothing - wire it into the model it is named for, list the check outside
+ * the models that reads it below, or retire it as these were.
  */
 
 type ModelType = { new (): BaseModel };
@@ -52,6 +54,78 @@ const SERVICE_TELEMETRY_LINK_PERMISSIONS: Array<Permission> = [
   Permission.EditServiceTelemetryService,
   Permission.ReadServiceTelemetryService,
 ];
+
+// Feeds only record what happened: every one has update: [].
+const RETIRED_FEED_PERMISSIONS: Array<Permission> = [
+  Permission.EditAlertEpisodeFeed,
+  Permission.EditAlertFeed,
+  Permission.EditCephClusterFeed,
+  Permission.EditCloudResourceFeed,
+  Permission.EditDatabaseServerFeed,
+  Permission.EditDockerHostFeed,
+  Permission.EditDockerSwarmClusterFeed,
+  Permission.EditHostFeed,
+  Permission.EditIncidentEpisodeFeed,
+  Permission.EditIncidentFeed,
+  Permission.EditKubernetesClusterFeed,
+  Permission.EditMonitorFeed,
+  Permission.EditOnCallDutyPolicyFeed,
+  Permission.EditOpenStackCloudFeed,
+  Permission.EditPodmanHostFeed,
+  Permission.EditProxmoxClusterFeed,
+  Permission.EditScheduledMaintenanceFeed,
+  Permission.EditServiceFeed,
+  Permission.EditServiceLevelObjectiveFeed,
+  Permission.EditStorageArrayFeed,
+  Permission.EditVMwareVCenterFeed,
+];
+
+// A layer's people are checked with the layer's own permissions.
+const RETIRED_LAYER_USER_PERMISSIONS: Array<Permission> = [
+  Permission.CreateOnCallDutyPolicyScheduleLayerUser,
+  Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
+  Permission.EditOnCallDutyPolicyScheduleLayerUser,
+  Permission.ReadOnCallDutyPolicyScheduleLayerUser,
+];
+
+/*
+ * The 28 the sweep found when it was written, and the issue that retired
+ * each: offered, and checked by nothing.
+ */
+const RETIRED_FOR_GRANTING_NOTHING: Array<{
+  permission: Permission;
+  issue: number;
+}> = [
+  ...RETIRED_FEED_PERMISSIONS.map((permission: Permission) => {
+    return { permission, issue: 8275 };
+  }),
+  ...RETIRED_LAYER_USER_PERMISSIONS.map((permission: Permission) => {
+    return { permission, issue: 8276 };
+  }),
+  // Invoices come from the payment provider; labels take each resource's Edit.
+  ...[
+    Permission.CreateInvoices,
+    Permission.DeleteInvoices,
+    Permission.AddLabelsToProjectResources,
+  ].map((permission: Permission) => {
+    return { permission, issue: 8277 };
+  }),
+];
+
+const RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS: Array<string> =
+  RETIRED_FOR_GRANTING_NOTHING.map(
+    (entry: { permission: Permission }): string => {
+      return entry.permission.toString();
+    },
+  ).sort();
+
+// Every permission retired because nothing checks it.
+const RETIRED_PERMISSIONS: Array<string> = [
+  ...SERVICE_TELEMETRY_LINK_PERMISSIONS.map((permission: Permission) => {
+    return permission.toString();
+  }),
+  ...RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS,
+].sort();
 
 interface CheckedOutsideModels {
   permission: Permission;
@@ -97,57 +171,6 @@ const CHECKED_OUTSIDE_MODELS: Array<CheckedOutsideModels> = [
     file: "Server/Utils/Mcp/McpOAuthGrantAccess.ts",
     why: "a block of it refuses a member's MCP client grant; every member may connect one",
   },
-];
-
-/*
- * Offered, and checked by nothing. Each issue decides, for its own, between
- * wiring it in and retiring it. This list must only ever shrink: a new
- * entry is a new permission that grants nothing.
- */
-const KNOWN_UNCHECKED: Array<{ permission: Permission; issue: number }> = [
-  // Feeds are append-only: every one has update: [].
-  ...[
-    Permission.EditAlertEpisodeFeed,
-    Permission.EditAlertFeed,
-    Permission.EditCephClusterFeed,
-    Permission.EditCloudResourceFeed,
-    Permission.EditDatabaseServerFeed,
-    Permission.EditDockerHostFeed,
-    Permission.EditDockerSwarmClusterFeed,
-    Permission.EditHostFeed,
-    Permission.EditIncidentEpisodeFeed,
-    Permission.EditIncidentFeed,
-    Permission.EditKubernetesClusterFeed,
-    Permission.EditMonitorFeed,
-    Permission.EditOnCallDutyPolicyFeed,
-    Permission.EditOpenStackCloudFeed,
-    Permission.EditPodmanHostFeed,
-    Permission.EditProxmoxClusterFeed,
-    Permission.EditScheduledMaintenanceFeed,
-    Permission.EditServiceFeed,
-    Permission.EditServiceLevelObjectiveFeed,
-    Permission.EditStorageArrayFeed,
-    Permission.EditVMwareVCenterFeed,
-  ].map((permission: Permission) => {
-    return { permission, issue: 8275 };
-  }),
-  // A layer's people are checked with the layer's own permissions.
-  ...[
-    Permission.CreateOnCallDutyPolicyScheduleLayerUser,
-    Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
-    Permission.EditOnCallDutyPolicyScheduleLayerUser,
-    Permission.ReadOnCallDutyPolicyScheduleLayerUser,
-  ].map((permission: Permission) => {
-    return { permission, issue: 8276 };
-  }),
-  // Invoices come from the payment provider; labels take each resource's Edit.
-  ...[
-    Permission.CreateInvoices,
-    Permission.DeleteInvoices,
-    Permission.AddLabelsToProjectResources,
-  ].map((permission: Permission) => {
-    return { permission, issue: 8277 };
-  }),
 ];
 
 const MODELS: Array<BaseModel> = (AllModelTypes as Array<ModelType>).map(
@@ -236,7 +259,7 @@ const NAMED_BY_MODELS: Set<string> = new Set<string>([
 /*
  * The permissions of `offered` that no model names and no check outside
  * the models reads, sorted. Pure: the tests below hand it the catalogue as
- * it is, and as it was before the four were retired.
+ * it is, and as it was before each retired permission was retired.
  */
 function findOfferedButUnchecked(data: {
   offered: Array<PermissionProps>;
@@ -273,16 +296,23 @@ function offeredInCustomRoles(
   });
 }
 
+// The catalogue as it was before `permissions` were retired: offered.
+function catalogueOfferingAgain(
+  permissions: Array<string>,
+): Array<PermissionProps> {
+  return PermissionHelper.getAllPermissionProps().map(
+    (props: PermissionProps): PermissionProps => {
+      return permissions.includes(props.permission)
+        ? { ...props, isAssignableToTenant: true }
+        : props;
+    },
+  );
+}
+
 const CHECKED_OUTSIDE_MODEL_PERMISSIONS: Array<Permission> =
   CHECKED_OUTSIDE_MODELS.map((entry: CheckedOutsideModels): Permission => {
     return entry.permission;
   });
-
-const KNOWN_UNCHECKED_PERMISSIONS: Array<string> = KNOWN_UNCHECKED.map(
-  (entry: { permission: Permission }): string => {
-    return entry.permission.toString();
-  },
-).sort();
 
 // A file's code: its block and line comments taken out.
 function codeOf(file: string): string {
@@ -313,44 +343,66 @@ describe("every permission a custom role offers is checked", () => {
     expect(NAMED_BY_MODELS.size).toBeGreaterThan(1000);
   });
 
-  test("offers nothing no model and no listed check reads, but the known ones", () => {
+  test("offers nothing that no model and no listed check reads", () => {
     expect(
       findOfferedButUnchecked({
         offered: offeredNow(),
         namedByModels: NAMED_BY_MODELS,
         checkedOutsideModels: CHECKED_OUTSIDE_MODEL_PERMISSIONS,
       }),
-    ).toEqual(KNOWN_UNCHECKED_PERMISSIONS);
+    ).toEqual([]);
   });
 
   test("finds the four Service Telemetry Link permissions while they are offered", () => {
     // The catalogue as it was before #7637: the four offered.
-    const before: Array<PermissionProps> =
-      PermissionHelper.getAllPermissionProps().map(
-        (props: PermissionProps): PermissionProps => {
-          return SERVICE_TELEMETRY_LINK_PERMISSIONS.includes(props.permission)
-            ? { ...props, isAssignableToTenant: true }
-            : props;
-        },
-      );
-
     expect(
       findOfferedButUnchecked({
-        offered: offeredInCustomRoles(before),
+        offered: offeredInCustomRoles(
+          catalogueOfferingAgain(SERVICE_TELEMETRY_LINK_PERMISSIONS),
+        ),
         namedByModels: NAMED_BY_MODELS,
         checkedOutsideModels: CHECKED_OUTSIDE_MODEL_PERMISSIONS,
       }),
     ).toEqual(
-      [
-        ...SERVICE_TELEMETRY_LINK_PERMISSIONS.map(
-          (permission: Permission): string => {
-            return permission.toString();
-          },
-        ),
-        ...KNOWN_UNCHECKED_PERMISSIONS,
-      ].sort(),
+      SERVICE_TELEMETRY_LINK_PERMISSIONS.map(
+        (permission: Permission): string => {
+          return permission.toString();
+        },
+      ).sort(),
     );
   });
+
+  test("finds the 28 that grant nothing while they are offered, and no other", () => {
+    // The catalogue as it was before #8275, #8276 and #8277: the 28 offered.
+    expect(
+      findOfferedButUnchecked({
+        offered: offeredInCustomRoles(
+          catalogueOfferingAgain(RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS),
+        ),
+        namedByModels: NAMED_BY_MODELS,
+        checkedOutsideModels: CHECKED_OUTSIDE_MODEL_PERMISSIONS,
+      }),
+    ).toEqual(RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS);
+  });
+
+  test.each(
+    RETIRED_FOR_GRANTING_NOTHING.map(
+      (entry: { permission: Permission; issue: number }) => {
+        return [entry.permission.toString(), entry.issue];
+      },
+    ),
+  )(
+    "finds %s on its own, were it offered again (#%s)",
+    (permission: string) => {
+      expect(
+        findOfferedButUnchecked({
+          offered: offeredInCustomRoles(catalogueOfferingAgain([permission])),
+          namedByModels: NAMED_BY_MODELS,
+          checkedOutsideModels: CHECKED_OUTSIDE_MODEL_PERMISSIONS,
+        }),
+      ).toEqual([permission]);
+    },
+  );
 
   test("finds a permission a model stops checking", () => {
     // Read Service, as if the Service model's lists forgot it.
@@ -365,15 +417,10 @@ describe("every permission a custom role offers is checked", () => {
         namedByModels: namedWithoutReadService,
         checkedOutsideModels: CHECKED_OUTSIDE_MODEL_PERMISSIONS,
       }),
-    ).toEqual(
-      [
-        Permission.ReadService.toString(),
-        ...KNOWN_UNCHECKED_PERMISSIONS,
-      ].sort(),
-    );
+    ).toEqual([Permission.ReadService.toString()]);
   });
 
-  test("the pickers offer none of the four", () => {
+  test("the pickers offer none of the retired permissions", () => {
     const offered: Array<string> = offeredNow().map(
       (props: PermissionProps): string => {
         return props.permission.toString();
@@ -386,7 +433,9 @@ describe("every permission a custom role offers is checked", () => {
         },
       );
 
-    for (const permission of SERVICE_TELEMETRY_LINK_PERMISSIONS) {
+    expect(RETIRED_PERMISSIONS).toHaveLength(32);
+
+    for (const permission of RETIRED_PERMISSIONS) {
       expect({ permission, offered: offered.includes(permission) }).toEqual({
         permission,
         offered: false,
@@ -396,11 +445,38 @@ describe("every permission a custom role offers is checked", () => {
         tenant: false,
       });
     }
-
-    // The Services group still offers its services.
-    expect(offered).toContain(Permission.ReadService);
-    expect(offered).toContain(Permission.CreateService);
   });
+
+  test.each([
+    // The Services group still offers its services.
+    [Permission.ReadService],
+    [Permission.CreateService],
+    // Every feed is still read and written to with its own permissions.
+    [Permission.CreateIncidentFeed],
+    [Permission.ReadIncidentFeed],
+    [Permission.CreateServiceLevelObjectiveFeed],
+    [Permission.ReadServiceLevelObjectiveFeed],
+    // A layer's people are added, moved, taken out and read with these.
+    [Permission.CreateOnCallDutyPolicyScheduleLayer],
+    [Permission.EditOnCallDutyPolicyScheduleLayer],
+    [Permission.DeleteOnCallDutyPolicyScheduleLayer],
+    [Permission.ReadOnCallDutyPolicyScheduleLayer],
+    // Invoices are still read, and paid.
+    [Permission.ReadInvoices],
+    [Permission.EditInvoices],
+    // Labels are still made, and put on a resource with its Edit.
+    [Permission.CreateProjectLabel],
+    [Permission.EditProjectMonitor],
+  ])(
+    "%s, which something checks, is still offered",
+    (permission: Permission) => {
+      expect(
+        offeredNow().map((props: PermissionProps): string => {
+          return props.permission.toString();
+        }),
+      ).toContain(permission);
+    },
+  );
 });
 
 describe("the checks outside the models are real", () => {
@@ -445,7 +521,7 @@ describe("the checks outside the models are real", () => {
     expect(stale).toEqual([]);
   });
 
-  test("each is listed once, and none is also a known unchecked one", () => {
+  test("each is listed once, and none is also a retired one", () => {
     const names: Array<string> = CHECKED_OUTSIDE_MODEL_PERMISSIONS.map(
       (permission: Permission): string => {
         return permission.toString();
@@ -455,21 +531,21 @@ describe("the checks outside the models are real", () => {
     expect(new Set(names).size).toBe(names.length);
     expect(
       names.filter((name: string): boolean => {
-        return KNOWN_UNCHECKED_PERMISSIONS.includes(name);
+        return RETIRED_PERMISSIONS.includes(name);
       }),
     ).toEqual([]);
-    expect(new Set(KNOWN_UNCHECKED_PERMISSIONS).size).toBe(
-      KNOWN_UNCHECKED_PERMISSIONS.length,
-    );
+    expect(new Set(RETIRED_PERMISSIONS).size).toBe(RETIRED_PERMISSIONS.length);
   });
 });
 
 /*
  * The source the scan reads: the product's TypeScript - Common's (but its
  * tests), the App's feature sets, and the enterprise edition's - without
- * the catalogue itself and the migrations that remove the four by name
- * (RemoveServiceTelemetryLinkPermissions, and RemovePermissionsTeamsCannotBeGiven,
- * which removes them again with every other permission no team may hold).
+ * the catalogue itself and the migrations that remove the retired
+ * permissions by name (RemoveServiceTelemetryLinkPermissions;
+ * RemovePermissionsTeamsCannotBeGiven, which removes the four again with
+ * every other permission no team may hold; and
+ * RemovePermissionsThatGrantNothing, which removes the 28).
  */
 const SCANNED_DIRECTORIES: Array<string> = [
   "packages/Common/Server",
@@ -487,6 +563,7 @@ const NOT_SCANNED: Array<string> = [
   "packages/Common/Types/Permission.ts",
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809176500000-RemoveServiceTelemetryLinkPermissions.ts",
   "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809178100000-RemovePermissionsTeamsCannotBeGiven.ts",
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809178600000-RemovePermissionsThatGrantNothing.ts",
 ];
 
 const SKIPPED_DIRECTORY_NAMES: Set<string> = new Set<string>([
@@ -556,12 +633,7 @@ function whereNamed(permissions: Array<string>): Dictionary<Array<string>> {
 describe("what the sweep reports is checked nowhere", () => {
   // The scan reads every source file once, for every name together.
   const named: Dictionary<Array<string>> = whereNamed([
-    ...SERVICE_TELEMETRY_LINK_PERMISSIONS.map(
-      (permission: Permission): string => {
-        return permission.toString();
-      },
-    ),
-    ...KNOWN_UNCHECKED_PERMISSIONS,
+    ...RETIRED_PERMISSIONS,
     // A control: checked outside the models, so the scan must find it.
     Permission.DownloadPacketCapture.toString(),
   ]);
@@ -574,47 +646,40 @@ describe("what the sweep reports is checked nowhere", () => {
     );
   });
 
-  test("no model, API or page names the four Service Telemetry Link permissions", () => {
-    for (const permission of SERVICE_TELEMETRY_LINK_PERMISSIONS) {
+  test.each(
+    RETIRED_PERMISSIONS.map((permission: string) => {
+      return [permission];
+    }),
+  )(
+    "no model, API or page names %s, retired as nothing checks it",
+    (permission: string) => {
+      /*
+       * One that is named somewhere may be checked there: if so, it belongs
+       * in CHECKED_OUTSIDE_MODELS, with the file and why, and is offered.
+       */
       expect({ permission, namedIn: named[permission] || [] }).toEqual({
         permission,
         namedIn: [],
       });
       expect(NAMED_BY_MODELS.has(permission)).toBe(false);
-    }
-  });
-
-  test("no code names a known unchecked permission: none of them is a false positive", () => {
-    /*
-     * One that is named somewhere may be checked there: if so, it belongs
-     * in CHECKED_OUTSIDE_MODELS, with the file and why.
-     */
-    const namedSomewhere: Dictionary<Array<string>> = {};
-
-    for (const permission of KNOWN_UNCHECKED_PERMISSIONS) {
-      if (named[permission]) {
-        namedSomewhere[permission] = named[permission]!;
-      }
-    }
-
-    expect(namedSomewhere).toEqual({});
-  });
+    },
+  );
 });
 
 /*
- * Retiring the four changes no one's access: no list of any model names
- * them, so a role that held them reached nothing through them - and loses
- * nothing now they are gone - and a role that never held them gains
- * nothing either, since no list was changed to let it in.
+ * Retiring them changes no one's access: no list of any model names them,
+ * so a role that held them reached nothing through them - and loses nothing
+ * now they are gone - and a role that never held them gains nothing either,
+ * since no list was changed to let it in.
  */
-describe("a role holding the four Service Telemetry Link permissions reaches nothing through them", () => {
+describe("a role holding a retired permission reaches nothing through it", () => {
   test.each(
-    SERVICE_TELEMETRY_LINK_PERMISSIONS.map((p: Permission) => {
-      return [p];
+    RETIRED_PERMISSIONS.map((permission: string) => {
+      return [permission];
     }),
   )(
     "no database model lets %s create, read, change or delete a record or a column",
-    (permission: Permission) => {
+    (permission: string) => {
       const reaches: Array<string> = [];
 
       for (const model of MODELS) {
@@ -626,7 +691,7 @@ describe("a role holding the four Service Telemetry Link permissions reaches not
         };
 
         for (const operation of Object.keys(lists)) {
-          if (lists[operation]!.includes(permission)) {
+          if (lists[operation]!.includes(permission as Permission)) {
             reaches.push(`${model.tableName}: ${operation}`);
           }
         }
@@ -636,7 +701,11 @@ describe("a role holding the four Service Telemetry Link permissions reaches not
             model.getColumnAccessControlFor(column);
 
           for (const operation of ["create", "read", "update"] as const) {
-            if ((accessControl?.[operation] || []).includes(permission)) {
+            if (
+              (accessControl?.[operation] || []).includes(
+                permission as Permission,
+              )
+            ) {
               reaches.push(`${model.tableName}.${column}: ${operation}`);
             }
           }
@@ -648,10 +717,10 @@ describe("a role holding the four Service Telemetry Link permissions reaches not
   );
 
   test.each(
-    SERVICE_TELEMETRY_LINK_PERMISSIONS.map((p: Permission) => {
-      return [p];
+    RETIRED_PERMISSIONS.map((permission: string) => {
+      return [permission];
     }),
-  )("no analytics model lets %s reach its data", (permission: Permission) => {
+  )("no analytics model lets %s reach its data", (permission: string) => {
     const reaches: Array<string> = ANALYTICS_MODELS.filter(
       (model: AnalyticsBaseModel): boolean => {
         const columns: Dictionary<ColumnAccessControl> =
@@ -671,7 +740,7 @@ describe("a role holding the four Service Telemetry Link permissions reaches not
               ];
             },
           ),
-        ].includes(permission);
+        ].includes(permission as Permission);
       },
     ).map((model: AnalyticsBaseModel): string => {
       return model.tableName;
@@ -707,4 +776,132 @@ describe("a stored Service Telemetry Link permission still reads", () => {
     expect(props?.isRolePermission).toBe(false);
     expect(props?.isAccessControlPermission).toBe(false);
   });
+});
+
+/*
+ * A row stored before the 28 were retired, or a value an API call still
+ * sends, still parses and shows its title - unchanged, so the people who
+ * gave it recognise it - and its description says it grants nothing, and
+ * where the permission that does is.
+ */
+describe("a stored permission that granted nothing still reads", () => {
+  const TITLES: Dictionary<string> = {
+    [Permission.EditAlertEpisodeFeed]: "Edit Alert Episode Feed",
+    [Permission.EditAlertFeed]: "Edit Alert Feed",
+    [Permission.EditCephClusterFeed]: "Edit Ceph Cluster Feed",
+    [Permission.EditCloudResourceFeed]: "Edit Cloud Resource Feed",
+    [Permission.EditDatabaseServerFeed]: "Edit Database Feed",
+    [Permission.EditDockerHostFeed]: "Edit Docker Host Feed",
+    [Permission.EditDockerSwarmClusterFeed]: "Edit Docker Swarm Cluster Feed",
+    [Permission.EditHostFeed]: "Edit Host Feed",
+    [Permission.EditIncidentEpisodeFeed]: "Edit Incident Episode Feed",
+    [Permission.EditIncidentFeed]: "Edit Incident Feed",
+    [Permission.EditKubernetesClusterFeed]: "Edit Kubernetes Cluster Feed",
+    [Permission.EditMonitorFeed]: "Edit Monitor Feed",
+    [Permission.EditOnCallDutyPolicyFeed]: "Edit On-Call Policy Feed",
+    [Permission.EditOpenStackCloudFeed]: "Edit OpenStack Cloud Feed",
+    [Permission.EditPodmanHostFeed]: "Edit Podman Host Feed",
+    [Permission.EditProxmoxClusterFeed]: "Edit Proxmox Cluster Feed",
+    [Permission.EditScheduledMaintenanceFeed]: "Edit Scheduled Maintenance Log",
+    [Permission.EditServiceFeed]: "Edit Service Feed",
+    [Permission.EditServiceLevelObjectiveFeed]: "Edit SLO Feed",
+    [Permission.EditStorageArrayFeed]: "Edit Storage Array Feed",
+    [Permission.EditVMwareVCenterFeed]: "Edit vCenter Feed",
+    [Permission.CreateOnCallDutyPolicyScheduleLayerUser]:
+      "Create On-Call Schedule Layer User",
+    [Permission.DeleteOnCallDutyPolicyScheduleLayerUser]:
+      "Delete On-Call Schedule Layer User",
+    [Permission.EditOnCallDutyPolicyScheduleLayerUser]:
+      "Edit On-Call Schedule Layer User",
+    [Permission.ReadOnCallDutyPolicyScheduleLayerUser]:
+      "Read On-Call Schedule Layer User",
+    [Permission.CreateInvoices]: "Create Invoices",
+    [Permission.DeleteInvoices]: "Delete Invoices",
+    [Permission.AddLabelsToProjectResources]: "Add Label to Resources",
+  };
+
+  test("every one of the 28 has its title", () => {
+    expect(Object.keys(TITLES).sort()).toEqual(
+      RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS,
+    );
+  });
+
+  test.each(
+    RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS.map((permission: string) => {
+      return [permission];
+    }),
+  )(
+    "%s keeps its value, its title and its group, and is never offered",
+    (permission: string) => {
+      expect(Object.values(Permission)).toContain(permission);
+      expect(PermissionHelper.getTitle(permission as Permission)).toBe(
+        TITLES[permission],
+      );
+
+      const props: PermissionProps | undefined =
+        PermissionHelper.getAllPermissionPropsAsDictionary()[permission];
+
+      expect(props?.isAssignableToTenant).toBe(false);
+      expect(props?.isRolePermission).toBe(false);
+      expect(props?.isAccessControlPermission).toBe(false);
+      expect(PermissionHelper.isAssignableToTenant(permission)).toBe(false);
+      // A sentence that says so, first.
+      expect(PermissionHelper.getDescription(permission as Permission)).toMatch(
+        /^Grants nothing: [^\n]+\.$/,
+      );
+    },
+  );
+
+  test.each(
+    RETIRED_FEED_PERMISSIONS.map((permission: Permission) => {
+      return [permission];
+    }),
+  )("%s says a feed's entries are never edited", (permission: Permission) => {
+    expect(PermissionHelper.getDescription(permission)).toMatch(
+      /^Grants nothing: the feed of an? [^,]+ only records what happened, so no entry of it can be edited\.$/,
+    );
+  });
+
+  test.each([
+    [
+      Permission.CreateOnCallDutyPolicyScheduleLayerUser,
+      Permission.CreateOnCallDutyPolicyScheduleLayer,
+    ],
+    [
+      Permission.DeleteOnCallDutyPolicyScheduleLayerUser,
+      Permission.DeleteOnCallDutyPolicyScheduleLayer,
+    ],
+    [
+      Permission.EditOnCallDutyPolicyScheduleLayerUser,
+      Permission.EditOnCallDutyPolicyScheduleLayer,
+    ],
+    [
+      Permission.ReadOnCallDutyPolicyScheduleLayerUser,
+      Permission.ReadOnCallDutyPolicyScheduleLayer,
+    ],
+  ])(
+    "%s names the permission that does what it says: %s",
+    (retired: Permission, granting: Permission) => {
+      expect(PermissionHelper.getDescription(retired)).toContain(
+        PermissionHelper.getTitle(granting),
+      );
+      // And that one says it covers a layer's people.
+      expect(PermissionHelper.getDescription(granting)).toMatch(/people|who/);
+    },
+  );
+
+  test("Add Label to Resources names where labelling is granted", () => {
+    expect(
+      PermissionHelper.getDescription(Permission.AddLabelsToProjectResources),
+    ).toContain(PermissionHelper.getTitle(Permission.EditProjectMonitor));
+  });
+
+  test.each([[Permission.CreateInvoices], [Permission.DeleteInvoices]])(
+    "%s says invoices come from the payment provider",
+    (permission: Permission) => {
+      expect(PermissionHelper.getDescription(permission)).toContain(
+        "invoices come from the payment provider",
+      );
+    },
+  );
 });
