@@ -54691,6 +54691,11 @@
   "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "Valgfritt. Tell bare forespørslene som samsvarer med dette sporsøket på span-attributter og -navn, for eksempel -@http.route:/health. Tomt teller alle forespørsler fra tjenestene.",
   "Request Filter": "Forespørselsfilter",
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Hopp over denne regelen så lenge det lange vinduet har færre forespørsler enn dette, slik at en rolig time med én feil ikke varsler noen. La stå tom for ikke noe minimum.",
+  "The connected engine does not report this group.": "Den tilkoblede motoren rapporterer ikke denne gruppen.",
+  "The group could not be collected.": "Gruppen kunne ikke samles inn.",
+  "The group's query timed out.": "Spørringen for gruppen fikk tidsavbrudd.",
+  "The monitoring login is missing a grant.": "Påloggingen monitoren kobler til med, mangler en rettighet.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "Overvåkingsrollen kan ikke lese statistikken til andre økter. PostgreSQL rapporterer ikke dette som en feil - den returnerer i stillhet bare denne tilkoblingens egne rader -, så disse målingene hoppes over i stedet for å bli registrert med feil verdier.",
   "The request filter can be at most {{max}} characters long.": "Forespørselsfilteret kan være på høyst {{max}} tegn.",
   "The request filter can have at most {{max}} terms.": "Forespørselsfilteret kan ha høyst {{max}} betingelser.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Forespørselsfilteret tar span-attributter og spannets navn, for eksempel @http.route:/checkout* eller name:\"POST /checkout\". «{{text}}» er ingen av delene."

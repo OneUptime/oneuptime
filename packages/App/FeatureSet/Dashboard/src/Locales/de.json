@@ -54691,6 +54691,11 @@
   "Optional. Count only the requests that match this traces search of span attributes and names, such as -@http.route:/health. Empty counts every request of the services.": "Optional. Nur die Anfragen zählen, die zu dieser Trace-Suche nach Span-Attributen und -Namen passen, etwa -@http.route:/health. Leer gelassen zählen alle Anfragen der Dienste.",
   "Request Filter": "Anfragefilter",
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Diese Regel überspringen, solange ihr langes Zeitfenster weniger Anfragen enthält, damit eine ruhige Stunde mit einem einzigen Fehler niemanden alarmiert. Leer lassen für kein Minimum.",
+  "The connected engine does not report this group.": "Die verbundene Engine meldet diese Gruppe nicht.",
+  "The group could not be collected.": "Die Gruppe konnte nicht erfasst werden.",
+  "The group's query timed out.": "Bei der Abfrage der Gruppe ist ein Timeout aufgetreten.",
+  "The monitoring login is missing a grant.": "Dem Überwachungs-Login fehlt eine Berechtigung.",
+  "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.": "Die Überwachungsrolle kann die Statistiken anderer Sitzungen nicht lesen. PostgreSQL meldet das nicht als Fehler - es gibt stillschweigend nur die eigenen Zeilen dieser Verbindung zurück -, daher werden diese Metriken übersprungen, statt als falsche Werte erfasst zu werden.",
   "The request filter can be at most {{max}} characters long.": "Der Anfragefilter darf höchstens {{max}} Zeichen lang sein.",
   "The request filter can have at most {{max}} terms.": "Der Anfragefilter darf höchstens {{max}} Bedingungen haben.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Der Anfragefilter akzeptiert Span-Attribute und den Namen des Spans, etwa @http.route:/checkout* oder name:\"POST /checkout\". „{{text}}“ ist keins von beidem."
