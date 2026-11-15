@@ -531,7 +531,7 @@ Hva du må gjøre, avhenger av hvordan du har rullet ut:
 - **Docker Compose:** oppgrader på vanlig måte, med ett flagg som betyr noe – se [Oppgraderinger med Docker Compose](#oppgraderinger-med-docker-compose).
 - **Helm:** ingen endring av verdier, men hurtigbufferens pod gjenskapes og kommer tilbake tom – se [Oppgraderinger med Helm](#oppgraderinger-med-helm).
 - **Du peker OneUptime mot en hurtigbuffer du kjører selv** (administrert Redis, ElastiCache, Memorystore, din egen Valkey): les [Hvis du kjører din egen hurtigbuffer](#hvis-du-kjører-din-egen-hurtigbuffer). Dette er det ene oppsettet som i det stille kan slutte å nå serveren din.
-- **Du har dashbord, varsler, nettverksretningslinjer eller skript som bygger på navnene til Kubernetes-objektene:** de navnene endres – se [Oppgraderinger med Helm](#oppgraderinger-med-helm).
+- **Du har dashbord, varsler, nettverkspolicyer eller skript som bygger på navnene til Kubernetes-objektene:** de navnene endres – se [Oppgraderinger med Helm](#oppgraderinger-med-helm).
 
 ### Hva som endret seg, og hva som ikke gjorde det
 
@@ -698,7 +698,7 @@ De gamle linjene `AI_AGENT_*` kan bli værende i `config.env`; ingenting leser d
 ### Utrullinger med Helm
 
 - Gi blokken `aiAgent:` i verdioverstyringene dine det nye navnet `runner:`. Alle undernøkler (`enabled`, `replicaCount`, `resources`, `keda` og så videre) er uendret. Dette er et hardt brudd: chartets skjema avviser ukjente nøkler, så `helm upgrade` **feiler valideringen** så lenge det er en `aiAgent:`-blokk igjen.
-- Navnene på arbeidslastene endres fra `<release>-ai-agent` til `<release>-runner` – oppdater alt som bygger på de gamle navnene (dashbord, varsler, nettverksretningslinjer).
+- Navnene på arbeidslastene endres fra `<release>-ai-agent` til `<release>-runner` – oppdater alt som bygger på de gamle navnene (dashbord, varsler, nettverkspolicyer).
 - Nøkkelen i releasens secret endres fra `ai-agent-key` til `runner-key`. En ny nøkkel genereres ved oppgraderingen, og Runneren i klyngen registrerer seg selv på nytt automatisk, så det er ingenting å gjøre med mindre noe eksternt viste til den gamle secretverdien.
 - Bevisst uendret: KEDA-skaleringsmålingen heter fortsatt `oneuptime_ai_agent_queue_size` – ikke gi den nytt navn i egne skalerere.
 

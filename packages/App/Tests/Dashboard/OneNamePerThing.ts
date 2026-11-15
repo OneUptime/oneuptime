@@ -62,12 +62,42 @@ const SWEDISH_NOUN_FOR_A_WATCHER: RegExp = /övervakar(?=\p{L})/iu;
  * The words Norwegian dropped for an on-call or incoming call policy: a
  * vakt(tjeneste)retningslinje in any form, a retningslinje for vakttjeneste
  * or for innkommende anrop, and an (innkommende) anropsretningslinje. A
- * retningslinje on its own is read by the on-call keys' own check
- * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline and
- * a Kubernetes or network policy.
+ * retningslinje on its own is read by NORWEGIAN_RETNINGSLINJE_KEPT's check
+ * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline.
  */
 export const NORWEGIAN_ON_CALL_POLICY_DROPPED: RegExp =
   /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
+
+/*
+ * Every policy a product has is a "policy" in Norwegian, as the Dashboard
+ * draws it: a vaktpolicy, a varslingspolicy, an avspillingspolicy (Session
+ * Replay's), an omstartspolicy and a nettverkspolicy (Kubernetes'), a
+ * page's Content Security Policy (#8527, #8562). "Retningslinje" is a
+ * guideline, and is kept only where one is meant, with why: the texts below
+ * are taken out of a string or a docs block before it is read for the word.
+ */
+export const NORWEGIAN_RETNINGSLINJE_KEPT: {
+  keys: Readonly<Record<string, string>>;
+  phrases: ReadonlyArray<KeptPhrase>;
+} = {
+  keys: {
+    "Accepted Policies":
+      "the legal terms a Vercel Marketplace customer accepted when installing OneUptime, which Norwegian calls retningslinjer: not a product's policy",
+  },
+  phrases: [
+    {
+      phrase: /retningslinjene deres og lokal lov/u,
+      why: "a company's own guidelines (its legal and HR rules) for keeping people's AI chats: not a product's policy",
+    },
+    {
+      phrase: /Twilios SMS-retningslinjer/u,
+      why: "Twilio's own guidelines for SMS senders, which Twilio's Norwegian pages call so",
+    },
+  ],
+};
+
+// The word Norwegian keeps for a guideline only, in any form.
+export const NORWEGIAN_RETNINGSLINJE: RegExp = /retningslinj/iu;
 
 // Several keys kept for one reason.
 function keptForOneReason(
@@ -173,13 +203,16 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
    * capital ("Plantão > Prontidão"), and so does a label in Title Case
    * ("Minhas Políticas de Plantão"); in the middle of a name in sentence
    * case it is a common noun: "ID da política de plantão", as "Políticas
-   * de plantão" says it (#8435).
+   * de plantão" says it (#8435). The Incidents and Alerts menus' On-Call
+   * Rules are "Regras de plantão", which 28 docs lines wrote "Regras de
+   * Plantão", where no Title Case word comes first (#8565).
    */
   pt: [
     {
       title: "On-Call",
       word: /plantão/i,
-      others: /(?:^|\s)\p{Ll}\S* d[eoa] Plantão/u,
+      others:
+        /(?:^|\s)\p{Ll}\S* d[eoa] Plantão|(?<!\p{Lu}\p{Ll}*\s)Regras de Plantão/u,
     },
   ],
   da: [
@@ -310,6 +343,26 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "On-Call",
       word: /vakt/i,
       others: NORWEGIAN_ON_CALL_POLICY_DROPPED,
+    },
+    /*
+     * A network alert policy is a varslingspolicy, as a dozen Network
+     * sentences say it; the Network menu's Alert Policies page and its docs
+     * said Varslingsretningslinjer (#8562).
+     */
+    {
+      title: "Network",
+      word: /nettverk/i,
+      others: /varslingsretningslinj/i,
+    },
+    /*
+     * Session Replay's policy is an avspillingspolicy, as its page (Replay
+     * Policy) is titled; the Session Replay docs said retningslinje some 60
+     * times, and avspillingsretningslinje (#8562).
+     */
+    {
+      title: "Real User Monitoring",
+      word: /reelle brukere/i,
+      others: /avspillingsretningslinj|applikasjonens retningslinj/i,
     },
   ],
 };

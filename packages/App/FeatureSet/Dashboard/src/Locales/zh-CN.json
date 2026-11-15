@@ -8527,7 +8527,7 @@
   "Ceph agent documentation": "Ceph 代理文档",
   "Ceph cluster": "Ceph 集群",
   "Ceph clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Ceph Agent sends metrics, or can be manually registered.": "Ceph clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Ceph Agent sends metrics, or can be manually registered.",
-  "Ceph monitors and alerts": "Ceph 监控器和告警",
+  "Ceph monitors and alerts": "Ceph 监视器和告警",
   "Certificate Problem": "证书问题",
   "Certificate Reissue Requested At": "Certificate Reissue Requested At",
   "Certificate expiration date.": "Certificate expiration date.",

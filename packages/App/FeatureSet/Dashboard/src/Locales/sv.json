@@ -8527,7 +8527,7 @@
   "Ceph agent documentation": "Dokumentation för Ceph-agenten",
   "Ceph cluster": "Ceph-kluster",
   "Ceph clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Ceph Agent sends metrics, or can be manually registered.": "Ceph clusters that are being monitored in this project. Each cluster is auto-discovered when the OneUptime Ceph Agent sends metrics, or can be manually registered.",
-  "Ceph monitors and alerts": "Ceph-övervakare och -aviseringar",
+  "Ceph monitors and alerts": "Ceph-monitorer och -aviseringar",
   "Certificate Problem": "Certifikatproblem",
   "Certificate Reissue Requested At": "Certificate Reissue Requested At",
   "Certificate expiration date.": "Certificate expiration date.",
