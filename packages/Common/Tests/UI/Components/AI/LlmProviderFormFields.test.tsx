@@ -31,6 +31,7 @@ import { CardSelectOption } from "../../../../UI/Components/CardSelect/CardSelec
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import { createTranslator } from "../../../../UI/Utils/TranslateTemplate";
+import { EMPTY_VALUE_MARK } from "../../../../UI/Components/Detail/EmptyValue";
 
 /*
  * The LLM provider form (LlmProviderFormFields): which provider, then only
@@ -590,7 +591,7 @@ describe("a provider's page names what a blank field gets", () => {
         defaultValue: undefined,
         translator: english,
       }),
-    ).toBe("-");
+    ).toBe(EMPTY_VALUE_MARK);
   });
 
   describe("its Model Name, on its page and in every list", () => {
@@ -693,7 +694,7 @@ describe("a provider's page names what a blank field gets", () => {
             llmType: llmType,
             translator: english,
           }),
-        ).toBe("-");
+        ).toBe(EMPTY_VALUE_MARK);
       }
     });
   });

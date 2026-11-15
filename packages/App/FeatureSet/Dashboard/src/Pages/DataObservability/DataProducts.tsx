@@ -23,7 +23,9 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 const LATE_TABLES: PluralTemplate = {
   one: "{{count}} table late",
@@ -143,7 +145,10 @@ const DataObservabilityDataProductsPage: FunctionComponent<
                     className="block truncate font-medium text-gray-900"
                   />
                   <span className="block truncate text-xs text-gray-500">
-                    {describeDataProductSla(translator, product)}
+                    {getValueOrQuietDash(
+                      describeDataProductSla(translator, product),
+                      { isSmall: true },
+                    )}
                   </span>
                 </div>
               );

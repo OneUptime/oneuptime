@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import LlmType from "../../../Types/LLM/LlmType";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import LlmProviderEndpoint from "../../../Utils/LLM/LlmProviderEndpoint";
@@ -342,7 +343,7 @@ export function getLlmProviderShownValue(data: {
     );
   }
 
-  return "-";
+  return EMPTY_VALUE_MARK;
 }
 
 /*

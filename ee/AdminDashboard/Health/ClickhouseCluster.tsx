@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -28,7 +29,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many distributed-DDL / replica / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -50,7 +53,7 @@ const toNum: (value: unknown) => number = (value: unknown): number => {
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 const toNumOrNull: (value: unknown) => number | null = (
@@ -68,7 +71,7 @@ const bytesToReadable: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || isNaN(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (value === 0) {
     return "0 B";
@@ -225,7 +228,10 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                 )}
                 {errors > 0 ? (
                   <div className="text-xs text-gray-500 mt-0.5">
-                    {formatNumber(errors)} connection errors
+                    {getValueOrQuietDash(formatNumber(errors), {
+                      isSmall: true,
+                    })}{" "}
+                    connection errors
                   </div>
                 ) : (
                   <></>
@@ -274,7 +280,9 @@ const ClickhouseCluster: FunctionComponent = (): ReactElement => {
                   )}
                 </div>
                 <div className="text-xs text-gray-500">
-                  session up {formatNumber(uptime)}s
+                  session up{" "}
+                  {getValueOrQuietDash(formatNumber(uptime), { isSmall: true })}
+                  s
                 </div>
               </div>
               <Statusbubble

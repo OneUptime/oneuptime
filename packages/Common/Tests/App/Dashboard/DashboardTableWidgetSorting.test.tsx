@@ -49,6 +49,7 @@ import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTi
 import TimeRange from "../../../Types/Time/TimeRange";
 import IconProp from "../../../Types/Icon/IconProp";
 import Icon from "../../../UI/Components/Icon/Icon";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * Click-to-sort on the dashboard's table widgets (issue #5082), read
@@ -1056,7 +1057,12 @@ describe("a security events list", () => {
       return (cell.textContent || "").trim();
     });
 
-    expect(cells.slice(2)).toEqual(["—", "—", "—"]);
+    // The widget's cells draw the quiet dash, read out as "Not set" (#8262).
+    expect(cells.slice(2)).toEqual([
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+      QUIET_DASH_TEXT,
+    ]);
   });
 
   test("Host sorts A to Z first", async () => {

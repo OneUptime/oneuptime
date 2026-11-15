@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS } from "Common/Types/OpenStack/OpenStackHealthRules";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -226,7 +227,7 @@ const ShortageRow: FunctionComponent<{
             )
           : translator.translateTemplate(
               "No host has room for one, and {{resource}} is what ran out.",
-              { resource: resource || "-" },
+              { resource: resource || EMPTY_VALUE_MARK },
             );
       break;
     case "headroom-gone":
@@ -241,7 +242,7 @@ const ShortageRow: FunctionComponent<{
             shortage.resourceClass || "",
             shortage.shortBy || 0,
           ),
-          resource: resource || "-",
+          resource: resource || EMPTY_VALUE_MARK,
         },
         { setsValuesApart: true },
       );
@@ -249,7 +250,7 @@ const ShortageRow: FunctionComponent<{
     case "full":
       sentence = translator.translateTemplate(
         "{{resource}}: nothing left to allocate.",
-        { resource: resource || "-" },
+        { resource: resource || EMPTY_VALUE_MARK },
       );
       break;
     case "fills-up":
@@ -260,7 +261,7 @@ const ShortageRow: FunctionComponent<{
             "{{resource}}: full in about {{count}} days, at this week's growth.",
         },
         Math.max(1, Math.round(shortage.days)),
-        { resource: resource || "-" },
+        { resource: resource || EMPTY_VALUE_MARK },
       );
       break;
     default:

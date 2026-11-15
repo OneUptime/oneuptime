@@ -1,4 +1,5 @@
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import DirectionArrow from "Common/UI/Components/DirectionArrow/DirectionArrow";
@@ -879,16 +880,20 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {formatErrorRate(totals.calls, totals.errors, translator)}
+                {getValueOrQuietDash(
+                  formatErrorRate(totals.calls, totals.errors, translator),
+                )}
               </p>
               <p className="text-[11px] text-gray-400">{t("errors")}</p>
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">
-                {totals.avgDurationMs === null ? (
-                  <EmptyValue />
-                ) : (
-                  formatDurationMs(totals.avgDurationMs, translator)
+                {getValueOrQuietDash(
+                  totals.avgDurationMs === null ? (
+                    <EmptyValue />
+                  ) : (
+                    formatDurationMs(totals.avgDurationMs, translator)
+                  ),
                 )}
               </p>
               <p className="text-[11px] text-gray-400">{t("avg latency")}</p>

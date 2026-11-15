@@ -102,7 +102,9 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Service Map: the project's services and everything they call — other
@@ -435,7 +437,7 @@ export function statsForEntry(
       label: wordOf(STAT_AVERAGE, translator),
       value:
         traffic.avgDurationMs === null
-          ? "—"
+          ? undefined
           : formatDurationMs(traffic.avgDurationMs, translator),
     },
   ];
@@ -1378,20 +1380,24 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {formatErrorRate(
-                        entry.inbound.calls,
-                        entry.inbound.errors,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatErrorRate(
+                          entry.inbound.calls,
+                          entry.inbound.errors,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                      {entry.inbound.avgDurationMs === null ? (
-                        <TableEmptyValue />
-                      ) : (
-                        formatDurationMs(
-                          entry.inbound.avgDurationMs,
-                          translator,
-                        )
+                      {getValueOrQuietDash(
+                        entry.inbound.avgDurationMs === null ? (
+                          <TableEmptyValue />
+                        ) : (
+                          formatDurationMs(
+                            entry.inbound.avgDurationMs,
+                            translator,
+                          )
+                        ),
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-500">

@@ -1,4 +1,5 @@
 import URL from "Common/Types/API/URL";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
@@ -34,7 +35,9 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 // How many standby / slot / table rows to list before truncating.
 const MAX_ROWS_TO_SHOW: number = 10;
@@ -67,7 +70,7 @@ const isNum: (value: unknown) => boolean = (value: unknown): boolean => {
 
 const formatNumber: (value: unknown) => string = (value: unknown): string => {
   const parsed: number = Number(value);
-  return isNaN(parsed) ? "—" : parsed.toLocaleString();
+  return isNaN(parsed) ? EMPTY_VALUE_MARK : parsed.toLocaleString();
 };
 
 // Format a byte count into a human-readable string. Accepts unknown because values arrive as JSON.
@@ -77,7 +80,7 @@ const bytesToReadable: (value: unknown) => string = (
   const bytes: number = typeof value === "number" ? value : Number(value);
 
   if (value === null || value === undefined || isNaN(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (bytes === 0) {
@@ -100,7 +103,7 @@ const formatDuration: (value: unknown) => string = (value: unknown): string => {
   const seconds: number = Number(value);
 
   if (value === null || value === undefined || isNaN(seconds)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (seconds < 60) {
@@ -125,7 +128,7 @@ const formatMilliseconds: (value: unknown) => string = (
   const milliseconds: number = Number(value);
 
   if (value === null || value === undefined || isNaN(milliseconds)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   if (milliseconds < 1000) {
@@ -144,7 +147,7 @@ const timeAgo: (value: unknown) => string = (value: unknown): string => {
   const time: number = new Date(String(value)).getTime();
 
   if (isNaN(time)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
 
   return `${formatDuration((Date.now() - time) / 1000)} ago`;
@@ -487,7 +490,10 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                     {String(standby["syncState"] ?? "") || (
                       <TableEmptyValue isSmall={true} />
                     )}{" "}
-                    · replay lag {formatDuration(lag)}
+                    · replay lag{" "}
+                    {getValueOrQuietDash(formatDuration(lag), {
+                      isSmall: true,
+                    })}
                     {isNum(standby["bytesBehind"])
                       ? ` · ${bytesToReadable(standby["bytesBehind"])} behind`
                       : ""}
@@ -802,7 +808,8 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           </div>
           {blocked > 0 ? (
             <div className="text-xs text-red-700 mt-2">
-              {formatNumber(blocked)} session
+              {getValueOrQuietDash(formatNumber(blocked), { isSmall: true })}{" "}
+              session
               {blocked === 1 ? "" : "s"} blocked waiting on a lock.
             </div>
           ) : (
@@ -814,7 +821,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {renderStat(
             "Cache hit ratio",
-            cacheHit !== null ? `${cacheHit.toFixed(1)}%` : "—",
+            cacheHit !== null ? `${cacheHit.toFixed(1)}%` : EMPTY_VALUE_MARK,
             undefined,
             METRIC_INFO.cacheHitRatio,
           )}
@@ -832,7 +839,9 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
           )}
           {renderStat(
             "Wraparound headroom",
-            wrapHeadroom !== null ? `${wrapHeadroom.toFixed(0)}%` : "—",
+            wrapHeadroom !== null
+              ? `${wrapHeadroom.toFixed(0)}%`
+              : EMPTY_VALUE_MARK,
             undefined,
             METRIC_INFO.wraparoundHeadroom,
           )}
@@ -859,8 +868,14 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         {String(table["name"])}
                       </span>
                       <span className="text-gray-500 whitespace-nowrap">
-                        {formatNumber(table["deadTuples"])} dead · vac{" "}
-                        {timeAgo(table["lastAutovacuum"])}
+                        {getValueOrQuietDash(
+                          formatNumber(table["deadTuples"]),
+                          { isSmall: true },
+                        )}{" "}
+                        dead · vac{" "}
+                        {getValueOrQuietDash(timeAgo(table["lastAutovacuum"]), {
+                          isSmall: true,
+                        })}
                       </span>
                     </div>
                   );
@@ -1011,22 +1026,30 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["totalSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["totalSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["tableSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["tableSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["indexSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["indexSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {bytesToReadable(table["toastSizeInBytes"])}
+                      {getValueOrQuietDash(
+                        bytesToReadable(table["toastSizeInBytes"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(table["liveTuples"])}
+                      {getValueOrQuietDash(formatNumber(table["liveTuples"]))}
                     </td>
                     <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(table["deadTuples"])}
+                      {getValueOrQuietDash(formatNumber(table["deadTuples"]))}
                     </td>
                   </tr>
                 );
@@ -1097,11 +1120,18 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       className="rounded-md border border-red-200 bg-red-50 px-3 py-2 space-y-1"
                     >
                       <div className="text-xs font-medium text-red-800">
-                        PID {formatNumber(pair["blockedPid"])}
+                        PID{" "}
+                        {getValueOrQuietDash(formatNumber(pair["blockedPid"]), {
+                          isSmall: true,
+                        })}
                         {pair["blockedUser"]
                           ? ` (${String(pair["blockedUser"])})`
                           : ""}{" "}
-                        · waiting {formatDuration(pair["blockedForSeconds"])}
+                        · waiting{" "}
+                        {getValueOrQuietDash(
+                          formatDuration(pair["blockedForSeconds"]),
+                          { isSmall: true },
+                        )}
                       </div>
                       <div
                         className="text-xs font-mono text-gray-900 truncate"
@@ -1112,7 +1142,11 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                         )}
                       </div>
                       <div className="text-xs text-gray-600">
-                        blocked by PID {formatNumber(pair["blockingPid"])}
+                        blocked by PID{" "}
+                        {getValueOrQuietDash(
+                          formatNumber(pair["blockingPid"]),
+                          { isSmall: true },
+                        )}
                         {pair["blockingUser"]
                           ? ` (${String(pair["blockingUser"])})`
                           : ""}
@@ -1225,7 +1259,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       return (
                         <tr key={`postgres-active-query-${index}`}>
                           <td className="py-2 pr-4 text-sm text-gray-900 tabular-nums">
-                            {formatNumber(session["pid"])}
+                            {getValueOrQuietDash(formatNumber(session["pid"]))}
                           </td>
                           <td className="py-2 px-4">
                             <div className="text-sm text-gray-900 whitespace-nowrap">
@@ -1245,13 +1279,17 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                             )}
                           </td>
                           <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                            {formatDuration(session["queryAgeSeconds"])}
+                            {getValueOrQuietDash(
+                              formatDuration(session["queryAgeSeconds"]),
+                            )}
                           </td>
                           <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                            {isNum(session["transactionAgeSeconds"]) ? (
-                              formatDuration(session["transactionAgeSeconds"])
-                            ) : (
-                              <TableEmptyValue />
+                            {getValueOrQuietDash(
+                              isNum(session["transactionAgeSeconds"]) ? (
+                                formatDuration(session["transactionAgeSeconds"])
+                              ) : (
+                                <TableEmptyValue />
+                              ),
                             )}
                           </td>
                           <td className="py-2 pl-4">
@@ -1302,7 +1340,7 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                     vacuum["tableName"]
                       ? String(vacuum["tableName"])
                       : `PID ${formatNumber(vacuum["pid"])}`
-                  } · ${String(vacuum["phase"] ?? "—")}`;
+                  } · ${String(vacuum["phase"] ?? EMPTY_VALUE_MARK)}`;
 
                   return percent !== null ? (
                     <ResourceUsageBar
@@ -1479,19 +1517,25 @@ const PostgresCluster: FunctionComponent = (): ReactElement => {
                       </div>
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(statement["calls"])}
+                      {getValueOrQuietDash(formatNumber(statement["calls"]))}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-900 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["totalMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["totalMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["meanMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["meanMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums whitespace-nowrap">
-                      {formatMilliseconds(statement["maxMilliseconds"])}
+                      {getValueOrQuietDash(
+                        formatMilliseconds(statement["maxMilliseconds"]),
+                      )}
                     </td>
                     <td className="py-2 px-4 text-sm text-right text-gray-700 tabular-nums">
-                      {formatNumber(statement["rows"])}
+                      {getValueOrQuietDash(formatNumber(statement["rows"]))}
                     </td>
                     <td className="py-2 pl-4 text-sm text-right text-gray-700 tabular-nums">
                       {isNum(statement["cacheHitRatio"]) ? (

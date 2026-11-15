@@ -1,4 +1,5 @@
 import { DATABASE_SERVER_LIVE_WINDOW_MINUTES } from "./DatabaseServerPresentation";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
 } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
@@ -170,7 +171,7 @@ export function summarizeDatabaseFleet(
       value: formatCount(connected),
       sublabel:
         total === 0
-          ? "—"
+          ? EMPTY_VALUE_MARK
           : connected === 0
             ? "no Database Agent connected yet"
             : translateTemplate("{{percent}}% of databases", {

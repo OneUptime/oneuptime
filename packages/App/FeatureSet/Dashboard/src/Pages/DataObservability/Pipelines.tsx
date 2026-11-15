@@ -1,4 +1,5 @@
 import PageComponentProps from "../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ConnectSyncToolModal from "../../Components/DataObservability/ConnectSyncToolModal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -34,7 +35,9 @@ import {
   formatCompactDuration,
 } from "../../Utils/Milliseconds";
 import React, { FunctionComponent, ReactElement, useState } from "react";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How a run stands, at a glance.
@@ -67,7 +70,7 @@ export function formatRunDuration(
   seconds: number | undefined | null,
 ): string {
   if (seconds === undefined || seconds === null) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   /*
@@ -337,9 +340,11 @@ const DataObservabilityPipelinesPage: FunctionComponent<
                         : "text-gray-700"
                     }`}
                   >
-                    {formatRunDuration(
-                      translator,
-                      pipeline.lastRunDurationInSeconds,
+                    {getValueOrQuietDash(
+                      formatRunDuration(
+                        translator,
+                        pipeline.lastRunDurationInSeconds,
+                      ),
                     )}
                   </span>
                   {pipeline.typicalRunDurationInSeconds ? (

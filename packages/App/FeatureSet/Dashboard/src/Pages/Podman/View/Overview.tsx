@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
@@ -149,7 +151,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -158,7 +160,7 @@ const formatInt: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return Math.round(value).toString();
 };
@@ -1672,7 +1674,7 @@ const PodmanHostOverview: FunctionComponent<
                       </Link>
                     </div>
                     <div className="text-sm font-semibold text-gray-900">
-                      {formatPercent(value)}
+                      {getValueOrQuietDash(formatPercent(value))}
                     </div>
                   </div>
                 );

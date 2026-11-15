@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { ProductAnalyticsPersonDto } from "Common/Types/Rum/ProductAnalytics";
 import Card from "Common/UI/Components/Card/Card";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -78,7 +79,8 @@ export const ProductAnalyticsPersonSecondary: FunctionComponent<{
 
 interface PersonFact {
   label: string;
-  value: string;
+  // None, and it draws the quiet dash (#8262).
+  value?: string | undefined;
   // A second, quieter line: how long ago, or what the number covers.
   detail?: string | undefined;
   // The whole of it, under the pointer.
@@ -132,7 +134,7 @@ export const ProductAnalyticsPersonFacts: FunctionComponent<{
             props.person.countryCode,
             translator.language,
           )
-        : "-",
+        : undefined,
     },
   ];
 
@@ -156,7 +158,7 @@ export const ProductAnalyticsPersonFacts: FunctionComponent<{
                 className="mt-1 break-words text-sm font-medium text-gray-900"
                 title={fact.title}
               >
-                {fact.value}
+                {getValueOrQuietDash(fact.value)}
               </dd>
               {fact.detail ? (
                 <dd className="mt-0.5 break-words text-xs text-gray-500">

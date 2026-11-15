@@ -1,4 +1,5 @@
 import { getNumberLocale } from "Common/Types/DateLanguage";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import {
   TraceHealthHint,
@@ -99,7 +100,7 @@ export const TRACE_HEALTH_TILE_LABELS: Readonly<
 export const TRACE_HEALTH_NO_LOGS: string = translationKey("No logs");
 
 // A number that was not measured.
-const NOT_MEASURED: string = "—";
+const NOT_MEASURED: string = EMPTY_VALUE_MARK;
 
 /*
  * The card is shown once a report has come back with spans in it: never

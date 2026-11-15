@@ -220,7 +220,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       // Disabled, in gray, when the monitor's monitoring is off.
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const statusName: string = getMonitorListStatusName(status, translator);
-      const monitorType: string = (monitor.monitorType as string) || "—";
+      const monitorType: string | undefined = monitor.monitorType as string;
 
       const detailRoute: Route | undefined = monitorId
         ? RouteUtil.populateRouteParams(
@@ -250,7 +250,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
       const statusName: string = getMonitorListStatusName(status, translator);
       const statusColor: Color | null = status.color;
-      const monitorType: string = (monitor.monitorType as string) || "—";
+      const monitorType: string | undefined = monitor.monitorType as string;
       const name: string =
         (monitor.name as string) || getUnnamedText(translator);
 
