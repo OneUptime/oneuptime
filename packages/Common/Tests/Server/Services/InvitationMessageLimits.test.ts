@@ -82,6 +82,7 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import EmailVerificationToken from "../../../Models/DatabaseModels/EmailVerificationToken";
+import HashedString from "../../../Types/HashedString";
 import FakeCounterRedis from "../TestingUtils/Redis/FakeCounterRedis";
 import {
   InMemoryTable,
@@ -326,7 +327,8 @@ describe("an invitation to a project", () => {
     expect(mailsOf(EmailTemplateType.InviteMember)).toHaveLength(50);
   });
 
-  test("someone already in the project, added to team after team, is told each time and never counted", async () => {
+  test("a member who has not signed up yet, added to team after team, is sent their way in each time and never counted", async () => {
+    // invitee() has no password: the email carries a new sign-up link.
     existingUser = invitee();
     isMemberOfProject = true;
 
@@ -338,6 +340,20 @@ describe("an invitation to a project", () => {
 
     expect(mails).toHaveLength(20);
     expect(mails[0]!.subject).toBe("You have been added to Acme Production");
+    expect(invitationsCountedFor(ADDRESS)).toBe(0);
+  });
+
+  test("a member who has signed up, added by address to team after team, is neither emailed nor counted (#8568)", async () => {
+    const member: User = invitee();
+    member.password = new HashedString("already-registered", true);
+    existingUser = member;
+    isMemberOfProject = true;
+
+    for (let round: number = 0; round < 20; round++) {
+      await onBeforeCreate(invitation());
+    }
+
+    expect(sendMail).not.toHaveBeenCalled();
     expect(invitationsCountedFor(ADDRESS)).toBe(0);
   });
 

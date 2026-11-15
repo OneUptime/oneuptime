@@ -562,15 +562,70 @@ describe("a person named by address is emailed as before, once", () => {
     expect(findPersonSpy).not.toHaveBeenCalled();
   });
 
-  test("a member named by address and added to another team is still told", async () => {
+  /*
+   * #8568: by address and by id now agree on a member who has signed up -
+   * neither emails them about another team. By address, one who has not
+   * signed up yet is still sent their way in, a new sign-up link (theirs
+   * lasts 7 days), and a pending invitee a reminder: that form says it
+   * emails them, and it is how an invitation is sent again.
+   */
+  test("a member who has signed up, named by address for another team, is not emailed, as by id", async () => {
     isMemberSpy.mockResolvedValue(true);
+    hasMembershipSpy.mockResolvedValue(true);
+
+    await callHook(
+      "onBeforeCreate",
+      addById({ props: projectAdminProps(), email: PERSON_EMAIL.toString() }),
+    );
+    await callHook("onBeforeCreate", addById({ props: projectAdminProps() }));
+
+    expect(sendMailSpy).not.toHaveBeenCalled();
+    expect(askSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member who has not signed up yet, named by address, is sent a new sign-up link", async () => {
+    isMemberSpy.mockResolvedValue(true);
+    findByEmailSpy.mockResolvedValue(notSignedUpPerson());
 
     await callHook(
       "onBeforeCreate",
       addById({ props: projectAdminProps(), email: PERSON_EMAIL.toString() }),
     );
 
-    expect(sentMail().subject).toBe(`You have been added to ${PROJECT_NAME}`);
+    const mail: EmailMessage = sentMail();
+
+    expect(mail.subject).toBe(`You have been added to ${PROJECT_NAME}`);
+    expect(mail.vars["isNewUser"]).toBe("true");
+    expect(createTokenSpy).toHaveBeenCalledTimes(1);
+    // Told, not invited: not counted.
+    expect(askSpy).not.toHaveBeenCalled();
+  });
+
+  test("a pending invitee who has signed up, named by address for another team, is reminded and counted", async () => {
+    // Invited to another team, not joined: not a member yet.
+    isMemberSpy.mockResolvedValue(false);
+
+    await callHook(
+      "onBeforeCreate",
+      addById({ props: projectAdminProps(), email: PERSON_EMAIL.toString() }),
+    );
+
+    expect(sentMail().subject).toBe(`You have been invited to ${PROJECT_NAME}`);
+    expect(askSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("whether they are a member is asked only of an accepted membership by address with a password", async () => {
+    // Not a member, not signed up, invited: nothing to ask at the send.
+    findByEmailSpy.mockResolvedValue(notSignedUpPerson());
+
+    await callHook(
+      "onBeforeCreate",
+      addById({ props: projectAdminProps(), email: PERSON_EMAIL.toString() }),
+    );
+
+    // By the per-address limit and by the acceptance; the send asks nothing.
+    expect(isMemberSpy).toHaveBeenCalledTimes(2);
+    expect(sendMailSpy).toHaveBeenCalledTimes(1);
   });
 });
 

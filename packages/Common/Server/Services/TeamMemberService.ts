@@ -704,7 +704,29 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
         delete createBy.data.invitationAcceptedAt;
       }
 
-      if (invitedUser && invitationAddress) {
+      /*
+       * A member of the project who has signed up, named by address for
+       * another of its teams, is not emailed (#8568). They are in the
+       * project and sign in as ever, with nothing to accept or claim, and
+       * "You've Been Added to <project>" for every team told them only what
+       * they knew; a person picked by id is not emailed either
+       * (getInviteeToEmailById). A member who has not signed up yet is: the
+       * email carries a new sign-up link, and theirs lasts 7 days. So is a
+       * pending invitee, reminded of the invitation the form says it emails.
+       */
+      const isSignedUpMemberAlready: boolean = Boolean(
+        invitedEmail &&
+          invitedUser &&
+          !isNewUser &&
+          invitedUser.password &&
+          isInvitationAcceptedOnCreate &&
+          (await this.isUserMemberOfProject({
+            projectId: projectId,
+            userId: invitedUser.id!,
+          })),
+      );
+
+      if (invitedUser && invitationAddress && !isSignedUpMemberAlready) {
         const user: User = invitedUser;
         const email: Email = invitationAddress;
 
