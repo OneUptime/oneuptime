@@ -52335,7 +52335,7 @@
   "Notification Sent": "Notificación enviada",
   "Nullability changed": "Nulabilidad cambiada",
   "Open (invoice status)": "Pendiente",
-  "Paid": "Pagado",
+  "Paid": "Pagada",
   "Partitioned Table": "Tabla particionada",
   "Session Revoked": "Sesión revocada",
   "Session Timeout": "Tiempo de espera de la sesión",
@@ -52348,7 +52348,7 @@
   "Timeout": "Tiempo de espera agotado",
   "Type changed": "Tipo cambiado",
   "Uncollectible": "Incobrable",
-  "Void": "Anulado",
+  "Void": "Anulada",
   "Change (schema change)": "Cambio",
   "Table (database object)": "Tabla",
   "View (database object)": "Vista"
