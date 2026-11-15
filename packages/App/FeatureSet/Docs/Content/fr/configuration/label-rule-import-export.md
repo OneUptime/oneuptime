@@ -34,7 +34,7 @@ Téléversez un fichier d'export JSON, ou collez son contenu.
 
 ### Valider et prévisualiser
 
-Sélectionnez **Validate and preview**. Chaque règle est vérifiée avant qu'aucune ne soit créée, et les ressources référencées doivent exister dans le projet de destination avec des noms uniques et correspondants.
+Sélectionnez **Valider et prévisualiser**. Chaque règle est vérifiée avant qu'aucune ne soit créée, et les ressources référencées doivent exister dans le projet de destination avec des noms uniques et correspondants.
 
 ### Relire l'aperçu
 
@@ -42,7 +42,7 @@ Vérifiez les noms des règles, leur état, leurs étiquettes et leurs condition
 
 ### Importer
 
-Sélectionnez le bouton d'importation, qui compte les règles (par exemple **Import 2 rules**), et gardez la fenêtre ouverte jusqu'à l'affichage des résultats.
+Sélectionnez le bouton d'importation, qui compte les règles (par exemple **Importer 2 règles**), et gardez la fenêtre ouverte jusqu'à l'affichage des résultats.
 :::
 
 Une importation ajoute de nouvelles règles et conserve celles qui existent ; importer de nouveau le même fichier crée donc une autre copie. Les autorisations de création habituelles et la validation côté serveur s'appliquent à chaque règle.

@@ -34,20 +34,20 @@ Envie um arquivo de exportação JSON ou cole o conteúdo dele.
 
 ### Validar e pré-visualizar
 
-Selecione **Validate and preview**. Cada regra é verificada antes de qualquer uma ser criada, e os recursos referenciados precisam existir no projeto de destino com nomes únicos e correspondentes.
+Selecione **Validar e pré-visualizar**. Cada regra é verificada antes de qualquer uma ser criada, e os recursos referenciados precisam existir no projeto de destino com nomes únicos e correspondentes.
 
 ### Revisar a pré-visualização
 
-Confira os nomes das regras, o estado, os rótulos e as condições. Um lote grande é mostrado uma página por vez. Para corrigir algo, selecione **Edit JSON** e valide de novo.
+Confira os nomes das regras, o estado, os rótulos e as condições. Um lote grande é mostrado uma página por vez. Para corrigir algo, selecione **Editar JSON** e valide de novo.
 
 ### Importar
 
-Selecione o botão de importação, que conta as regras (por exemplo **Import 2 rules**), e mantenha a janela aberta até os resultados aparecerem.
+Selecione o botão de importação, que conta as regras (por exemplo **Importar 2 regras**), e mantenha a janela aberta até os resultados aparecerem.
 :::
 
 As importações adicionam regras novas e mantêm as existentes, então importar o mesmo arquivo de novo cria outra cópia. As permissões normais de criação e a validação do servidor valem para cada regra.
 
-Se algumas regras falharem, selecione **Download failed rules** para salvar só essas linhas, corrija-as e importe esse arquivo de novo. Se uma solicitação expirar, confira a lista de regras antes de tentar de novo: o servidor pode ter salvado a regra antes de a resposta se perder.
+Se algumas regras falharem, selecione **Baixar regras com falha** para salvar só essas linhas, corrija-as e importe esse arquivo de novo. Se uma solicitação expirar, confira a lista de regras antes de tentar de novo: o servidor pode ter salvado a regra antes de a resposta se perder.
 
 ## Criar um lote em JSON
 

@@ -391,10 +391,12 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       incident.incidentSeverity?.name,
     ),
     eventSecondDescription: incidentDeclaredAt
-      ? i18n.t("incidents.declaredAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          incidentDeclaredAt,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("incidents.declaredAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            incidentDeclaredAt,
+          ),
+        })
       : "",
     eventTypeColor: Red,
     labels:
@@ -687,10 +689,12 @@ export const getEpisodeEventItem: GetEpisodeEventItemFunction = (
       episode.incidentSeverity?.name,
     ),
     eventSecondDescription: episodeDeclaredAt
-      ? i18n.t("incidents.declaredAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          episodeDeclaredAt,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("incidents.declaredAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            episodeDeclaredAt,
+          ),
+        })
       : "",
     eventTypeColor: Red,
     labels:

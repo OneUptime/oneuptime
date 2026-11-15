@@ -609,7 +609,17 @@ work out, starts from a default for everything else, and folds what most people 
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
-  yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
+  yet", and a sentence joined from translated pieces keeps English's order, punctuation and digits
+  whatever each piece says: every table row's ⋯ button read "More actions for" and then the row's
+  name, where Japanese puts the name first, and the Correlate builder's "Remove condition 2" kept a
+  Latin 2 on a Persian page (#8076). A sentence with a value in it is one key with a
+  `{{placeholder}}` (`translateTemplate("Remove condition {{number}}", { number:
+  translator.formatNumber(index + 1) })`), a `translatePlural` for a count, or a `TranslatedSentence`
+  around an element. Two whole sentences side by side, a label that carries its own colon and its
+  value, facts set apart by " · ", a path and an aside in brackets are no sentence built from
+  pieces. Enforced by
+  [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
+  which reads template literals, `+` and `join()`.
 
 ### In every language
 
@@ -625,10 +635,29 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
   [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
-  and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts),
+  for the service map and the infrastructure explorer, whose cards built "3 active incidents"
   and "10.0% errors" in English at run time (#7725),
-  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
+  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts),
+  and, for the import screens (the label rule import, the CSV upload, the JSON import's editor,
+  Network's Auto Import Rules) and the docs that name their buttons,
+  [ImportScreensInEveryLanguage](../../packages/App/Tests/Dashboard/ImportScreensInEveryLanguage.test.ts).
+- **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
+  filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
+  operator as its English symbol between the key and the value ("http.route matches /api/*" under a
+  German form that said "stimmt überein"), and every rule table's Match Criteria glued `IP Address is
+  in "10.16.0.0/16"` in English, its quotes jumping on a Persian page (#7931, #7958). Draw an
+  attribute filter with `DictionaryFilterSentence` and a rule with `RuleCriteriaSummary`: each
+  condition is one sentence with its field and value as slots, the value set apart as typed, inside
+  the language's own quotes; an operator that is a symbol (=, >) stays one. And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
+  [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
+  [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
+  [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  and
+  [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
   description and legend, and the chart draws them as handed: the Kubernetes resource pages, Docker,
   Proxmox and the other resource pages handed English, so "CPU Utilization" read English under a
