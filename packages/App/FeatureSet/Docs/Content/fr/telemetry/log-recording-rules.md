@@ -180,7 +180,7 @@ Avec un regroupement défini, chaque passerelle est sa propre série : si WAN2 r
 - **Les horodatages viennent des journaux.** Un journal tombe dans la minute de son propre horodatage. Un équipement dont l'horloge dérive de plus d'un petit peu range ses journaux dans la mauvaise minute, ou complètement hors de la fenêtre.
 - **Pas de calcul rétroactif.** Une nouvelle règle commence par la minute qui précède sa première exécution ; les journaux plus anciens ne sont pas calculés.
 - **Supprimer une règle** l'arrête. Les points déjà écrits restent jusqu'à leur expiration.
-- **Les règles d'enregistrement voient tous les journaux du projet.** Quiconque peut lire la métrique de sortie voit des nombres calculés à partir de chaque journal auquel le filtre de la règle correspond : créer et modifier des règles d'enregistrement de journaux est donc réservé aux propriétaires et administrateurs du projet et aux autorisations **Create / Edit Log Recording Rule**.
+- **Les règles d'enregistrement voient tous les journaux du projet.** Quiconque peut lire la métrique de sortie voit des nombres calculés à partir de chaque journal auquel le filtre de la règle correspond : créer et modifier des règles d'enregistrement de journaux est donc réservé aux Propriétaires du projet et Administrateurs du projet et aux autorisations **Create / Edit Log Recording Rule**.
 
 ## Autorisations
 
@@ -191,7 +191,7 @@ Avec un regroupement défini, chaque passerelle est sa propre série : si WAN2 r
 | Delete Log Recording Rule | Supprimer des règles. |
 | Read Log Recording Rule | Voir les règles et ce qu'elles calculent. |
 
-Les propriétaires et administrateurs du projet peuvent tout faire. Les membres du projet, les lecteurs et les rôles de télémétrie peuvent lire les règles.
+Les Propriétaires du projet et Administrateurs du projet peuvent tout faire. Les Membres du projet, les Lecteurs et les rôles de télémétrie peuvent lire les règles.
 
 ## Étapes suivantes
 

@@ -193,10 +193,10 @@ describe("numbers on the cards", () => {
   });
 
   test("sizes are in binary units", () => {
-    expect(formatTopologyBytes(512)).toBe("512 B");
-    expect(formatTopologyBytes(1536)).toBe("1.5 KiB");
-    expect(formatTopologyBytes(10 * 1024 ** 3)).toBe("10.0 GiB");
-    expect(formatTopologyBytes(200 * 1024 ** 4)).toBe("200 TiB");
+    expect(formatTopologyBytes(512)).toBe("512\u00A0B");
+    expect(formatTopologyBytes(1536)).toBe("1.5\u00A0KiB");
+    expect(formatTopologyBytes(10 * 1024 ** 3)).toBe("10.0\u00A0GiB");
+    expect(formatTopologyBytes(200 * 1024 ** 4)).toBe("200\u00A0TiB");
     expect(formatTopologyBytes(undefined)).toBe("—");
   });
 

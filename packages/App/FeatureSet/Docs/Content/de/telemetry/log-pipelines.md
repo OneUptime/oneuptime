@@ -46,8 +46,8 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- Protokolle, die in OneUptime ankommen – über [OpenTelemetry](/docs/telemetry/open-telemetry), [Syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) oder eine Probe.
-- Die Berechtigung, Pipelines zu ändern. Projektinhaber und Admins haben sie; alle anderen brauchen die Berechtigungen **Create Log Pipeline** und **Create Log Pipeline Processor**.
+- Protokolle, die in OneUptime ankommen – über [OpenTelemetry](/docs/telemetry/open-telemetry), [Syslog](/docs/telemetry/syslog), [Fluentd](/docs/telemetry/fluentd) oder eine Sonde.
+- Die Berechtigung, Pipelines zu ändern. Projektinhaber und Projektadministratoren haben sie; alle anderen brauchen die Berechtigungen **Create Log Pipeline** und **Create Log Pipeline Processor**.
 
 ## Eine Pipeline erstellen
 
@@ -110,7 +110,7 @@ Die beiden Trennzeichen müssen verschieden sein, dürfen einander nicht enthalt
 
 ### Beispiel: Sophos-XGS-Firewall
 
-OneUptime liest Sophos- und FortiGate-Syslog von selbst in `sophos.*`- und `fortigate.*`-Attribute (siehe [Netzwerkereignisse](/docs/monitor/network-events)); dieses Beispiel baut dasselbe von Hand, wie Sie es für ein Format tun würden, das OneUptime nicht kennt. Wenn eine Sophos-XGS-Firewall Syslog an eine [Probe](/docs/monitor/network-device-monitor) sendet, wird jede Meldung als Protokoll des Netzwerkgeräts gespeichert, mit der Syslog-Meldung als Text. So parsen Sie sie:
+OneUptime liest Sophos- und FortiGate-Syslog von selbst in `sophos.*`- und `fortigate.*`-Attribute (siehe [Netzwerkereignisse](/docs/monitor/network-events)); dieses Beispiel baut dasselbe von Hand, wie Sie es für ein Format tun würden, das OneUptime nicht kennt. Wenn eine Sophos-XGS-Firewall Syslog an eine [Sonde](/docs/monitor/network-device-monitor) sendet, wird jede Meldung als Protokoll des Netzwerkgeräts gespeichert, mit der Syslog-Meldung als Text. So parsen Sie sie:
 
 :::steps
 #### Eine Pipeline für die Firewall erstellen

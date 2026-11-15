@@ -118,7 +118,7 @@ Klikk på **Liste** for å gå tilbake til selve linjene.
 
 ## Åpne tilhørende spor og målinger
 
-Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Metrikkutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
+Knappene **Spor** og **Målinger** ved siden av **Lagrede visninger** åpner [Sporutforsker](/docs/telemetry/traces-explorer) eller [Målingsutforsker](/docs/telemetry/metrics-explorer) for det samme tidsvinduet, med så mye av filtreringen din som den utforskeren kan bruke. Pek på en knapp for å se hva den ikke kan ta med.
 
 ## Innsikt i logger
 

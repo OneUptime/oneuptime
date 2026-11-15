@@ -144,11 +144,11 @@ A saved funnel or retention table goes on a dashboard too: the **Funnel** and **
 
 ## Who can see it
 
-Reading these pages takes what reading the session list takes: `ReadRumSessionReplay` (_List Session Replays_) or `ReadRumSessionReplayPayload` (_Watch Session Replays_), which project owners and admins hold. Seeing who a signed-in user is, and searching people by name, takes `ReadRumSessionReplayPayload` (_Watch Session Replays_), as [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) describes.
+Reading these pages takes what reading the session list takes: `ReadRumSessionReplay` (_List Session Replays_) or `ReadRumSessionReplayPayload` (_Watch Session Replays_), which Project Owners and Project Admins hold. Seeing who a signed-in user is, and searching people by name, takes `ReadRumSessionReplayPayload` (_Watch Session Replays_), as [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) describes.
 
 Saving, renaming and deleting saved funnels and retention tables takes the same permissions as reading these pages, and a dashboard widget shows one only to a reader who holds them.
 
-Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or a project owner's, admin's or member's role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people.
+Turning the events on or off takes `EditRumApplication` (_Edit RUM Application_) or the Project Owner, Project Admin or Project Member role. Listing user properties takes `EditRumApplication` or an owner's or admin's role, since it decides what is kept about signed-in people.
 
 ## Next steps
 

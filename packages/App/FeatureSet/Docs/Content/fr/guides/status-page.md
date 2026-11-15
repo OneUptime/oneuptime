@@ -13,7 +13,7 @@ flowchart TB
 ## Ce qu'il vous faut
 
 - Au moins un moniteur : une page de statut affiche des moniteurs. S'il n'y en a encore aucun, la configuration guidée propose d'abord **Configurer un moniteur**.
-- Le rôle de propriétaire ou d'administrateur du projet : la page demande l'autorisation de créer des pages de statut, et votre domaine celle d'ajouter et de vérifier les domaines du projet.
+- Le rôle de Propriétaire du projet ou d'Administrateur du projet : la page demande l'autorisation de créer des pages de statut, et votre domaine celle d'ajouter et de vérifier les domaines du projet.
 - Un domaine que vous contrôlez, et l'accès à ses enregistrements DNS chez votre fournisseur DNS.
 
 :::tabs

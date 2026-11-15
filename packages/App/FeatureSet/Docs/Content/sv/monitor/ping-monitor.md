@@ -152,6 +152,6 @@ Sonden som körde kontrollen kan inte skicka ping, så den kontrollerade i stäl
 :::cards
 - [IP-övervakning](/docs/monitor/ip-monitor): Bevaka en fast IPv4- eller IPv6-adress.
 - [Portövervakning](/docs/monitor/port-monitor): Kontrollera en tjänst på värden, inte bara värden.
-- [Anpassade probes](/docs/probe/custom-probe): Pinga värdar i ditt eget nätverk.
+- [Anpassade sonder](/docs/probe/custom-probe): Pinga värdar i ditt eget nätverk.
 - [Incidenter](/docs/incidents/index): Vad som händer efter att monitorn har deklarerat en.
 :::

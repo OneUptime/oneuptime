@@ -123,7 +123,7 @@ Verifique se **Habilitar IA** está ligado, e também **Classificar novos casos*
 :::
 
 :::details O cartão diz que o projeto ficou sem créditos de IA, ou que atingiu o limite diário de IA
-Um proprietário do projeto ou alguém com Manage Billing pode adicionar créditos em **Configurações do projeto → IA → Créditos de IA**, ou aumentar ou remover o limite em **Configurações do projeto → IA → Recursos de IA**. Depois, clique em **Classificar com IA** no caso.
+Um Proprietário do projeto ou alguém com Manage Billing pode adicionar créditos em **Configurações do projeto → IA → Créditos de IA**, ou aumentar ou remover o limite em **Configurações do projeto → IA → Recursos de IA**. Depois, clique em **Classificar com IA** no caso.
 :::
 
 :::details O cartão diz que um texto do caso parece conter instruções para uma IA

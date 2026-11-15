@@ -61,6 +61,7 @@ import {
   AI_READ_RECORD_TABLE_TITLES,
   AI_TOOL_CITATIONS,
   AI_READ_DATA_SECURITY_TERMS,
+  AI_READ_OPEN_STATUS_TERM,
 } from "../../../../Types/AI/AIReadTableWords";
 import {
   countFigure,
@@ -785,6 +786,16 @@ const DATA_SECURITY_WORDS: Readonly<Record<string, string>> = termsByValue(
   AI_READ_DATA_SECURITY_TERMS,
 );
 
+/*
+ * An issue's status, as the issues list's pill says it: "Open" by its
+ * meaning key, "Open (status)", since "Open" alone is every Open button's
+ * verb in every language (#8512). Its English, stored, is "Open".
+ */
+export const ISSUE_STATUS_WORDS: Readonly<Record<string, string>> = {
+  ...DATA_SECURITY_WORDS,
+  [DataSecurityIssueStatus.Open]: AI_READ_OPEN_STATUS_TERM,
+};
+
 const STATUS_FILTERS: Readonly<
   Record<string, Array<DataSecurityIssueStatus> | null>
 > = {
@@ -969,7 +980,7 @@ export const QueryDataSecurityIssuesTool: ObservabilityTool = {
                 ),
                 cells: termCells(rows, {
                   severity: DATA_SECURITY_WORDS,
-                  status: DATA_SECURITY_WORDS,
+                  status: ISSUE_STATUS_WORDS,
                 }),
               },
               columns: [

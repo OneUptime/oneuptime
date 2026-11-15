@@ -397,7 +397,7 @@ describe("the diagnosis in the reader's language", () => {
         marking,
       ).detail,
     ).toBe(
-      `${OPEN}This project used its 1 GB daily budget for session replay (2,5 GB used). Uploads resume tomorrow.${CLOSE}`,
+      `${OPEN}This project used its 1\u00A0GB daily budget for session replay (2,5\u00A0GB used). Uploads resume tomorrow.${CLOSE}`,
     );
   });
 
@@ -508,10 +508,10 @@ describe("the copy formatters in the reader's language", () => {
   });
 
   test("bytes: the reader's figure beside the unit, English without a translator", () => {
-    expect(formatBytesForCopy(2.5 * GB, marking)).toBe("2,5 GB");
-    expect(formatBytesForCopy(512 * MB, marking)).toBe("512 MB");
+    expect(formatBytesForCopy(2.5 * GB, marking)).toBe("2,5\u00A0GB");
+    expect(formatBytesForCopy(512 * MB, marking)).toBe("512\u00A0MB");
     expect(formatBytesForCopy(-1, marking)).toBe(`${OPEN}unknown${CLOSE}`);
-    expect(formatBytesForCopy(2.5 * GB)).toBe("2.5 GB");
+    expect(formatBytesForCopy(2.5 * GB)).toBe("2.5\u00A0GB");
     expect(formatBytesForCopy(-1)).toBe("unknown");
   });
 });

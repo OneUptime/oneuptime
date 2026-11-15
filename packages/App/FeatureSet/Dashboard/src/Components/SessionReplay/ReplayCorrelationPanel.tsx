@@ -640,7 +640,7 @@ function formatBytes(bytes: number): string {
   }
 
   // Plain bytes are whole: "512 B", never "512.0 B" (issue #7417).
-  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+  return `${value.toFixed(index === 0 ? 0 : 1)}\u00A0${units[index]}`;
 }
 
 function hasEntries(

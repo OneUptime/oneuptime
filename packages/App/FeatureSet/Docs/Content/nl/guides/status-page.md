@@ -13,7 +13,7 @@ flowchart TB
 ## Wat u nodig hebt
 
 - Minstens één monitor: een statuspagina toont monitoren. Is er nog geen, dan biedt de begeleide installatie eerst **Een monitor instellen** aan.
-- De rol van projecteigenaar of beheerder: voor de pagina hebt u de machtiging nodig om statuspagina's aan te maken, en voor uw domein de machtiging om domeinen van het project toe te voegen en te verifiëren.
+- De rol Projecteigenaar of Projectbeheerder: voor de pagina hebt u de machtiging nodig om statuspagina's aan te maken, en voor uw domein de machtiging om domeinen van het project toe te voegen en te verifiëren.
 - Een domein dat u beheert, en toegang tot de DNS-records ervan bij uw DNS-provider.
 
 :::tabs

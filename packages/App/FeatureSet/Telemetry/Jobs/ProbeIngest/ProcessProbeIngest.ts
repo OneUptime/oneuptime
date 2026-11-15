@@ -2,7 +2,7 @@ import {
   ProbeIngestJobData,
   IncomingEmailJobData,
 } from "../../Services/Queue/TelemetryQueueService";
-import logger from "Common/Server/Utils/Logger";
+import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -13,7 +13,9 @@ import MonitorTestService, {
 } from "Common/Server/Services/MonitorTestService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
-import ProbeReportIdentity from "Common/Server/Utils/Probe/ProbeReportIdentity";
+import ProbeReportIdentity, {
+  NamedProbe,
+} from "Common/Server/Utils/Probe/ProbeReportIdentity";
 import MonitorService from "Common/Server/Services/MonitorService";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import { ProbeCapabilityUtil } from "Common/Types/Probe/ProbeCapability";
@@ -51,6 +53,131 @@ import IncomingEmailWorkflowDelivery from "../../Services/IncomingEmailWorkflowD
 import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 
 /*
+ * A RESULT HELD TO ITS SENDER, OR REFUSED ONCE (issue #8424).
+ *
+ * A queued result that names another probe than the one that sent it
+ * (PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE), or a job that does not say
+ * which probe sent it (REPORTING_PROBE_NOT_KNOWN_MESSAGE), is refused the
+ * same way on every attempt: the job's data does not change between them.
+ * So the telemetry worker completes the job (isNonActionableIngestError)
+ * rather than failing it three times with an error and a stack each, and
+ * the refusal is logged once, here, at warn: a probe that reports another
+ * probe's results is misbehaving or tampered with, and this line is where
+ * someone sees it. The line names the probe that sent the result and the
+ * probe the result named - ids only, never the probe's key, which a job
+ * queued before the routes wrote the sender down still carries.
+ */
+
+// An id a queued job holds, as a log line may print it: a uuid, or nothing.
+function printableId(value: unknown): string | undefined {
+  const named: NamedProbe = ProbeReportIdentity.readNamedProbe(value);
+
+  return named.kind === "probe" && ObjectID.isValidUUID(named.probeId)
+    ? named.probeId
+    : undefined;
+}
+
+// The fields of a queued result, as the probe put it on the wire.
+function queuedResultFields(jobData: ProbeIngestJobData): JSONObject {
+  const result: unknown =
+    jobData.probeMonitorResponse?.["probeMonitorResponse"];
+
+  return result && typeof result === "object" && !Array.isArray(result)
+    ? (result as JSONObject)
+    : {};
+}
+
+// What a refused result was, for the log line and its attributes.
+function describeQueuedResult(jobData: ProbeIngestJobData): {
+  what: string;
+  attributes: LogAttributes;
+} {
+  const resultFields: JSONObject = queuedResultFields(jobData);
+
+  if (jobData.jobType === "monitor-test") {
+    const testId: string | undefined = printableId(jobData.testId);
+
+    return {
+      what: `a result for monitor test ${testId || "(no test named)"}`,
+      attributes: { monitorTestId: testId },
+    };
+  }
+
+  const monitorId: string | undefined = printableId(resultFields["monitorId"]);
+
+  return {
+    what: `a check result for monitor ${monitorId || "(no monitor named)"}`,
+    attributes: { monitorId: monitorId },
+  };
+}
+
+/*
+ * The probe that sent a queued result, as the route wrote it down. A job
+ * that does not say is refused, never guessed from the result - logged
+ * once, naming what the result itself names.
+ */
+function readSenderOfResult(jobData: ProbeIngestJobData): ObjectID {
+  const queuedResult: JSONObject | undefined = jobData.probeMonitorResponse;
+
+  try {
+    return ProbeReportIdentity.readSender(queuedResult?.["probeId"]);
+  } catch (err) {
+    const { what, attributes } = describeQueuedResult(jobData);
+    const named: string | undefined = printableId(
+      queuedResultFields(jobData)["probeId"],
+    );
+
+    logger.warn(
+      `${what.charAt(0).toUpperCase()}${what.slice(1)} was queued without the probe that sent it${
+        named ? ` (the result names probe ${named})` : ""
+      }. No probe can be held to it, so the result was refused.`,
+      { ...attributes, resultProbeId: named } as LogAttributes,
+    );
+
+    throw err;
+  }
+}
+
+/*
+ * Holds a queued result to the probe that sent it
+ * (ProbeReportIdentity.bindResultToSender). A result that names another
+ * probe, or a probe id that cannot be read, is refused - logged once,
+ * naming the probe that sent it and the probe it named.
+ */
+function bindResultToSender(data: {
+  jobData: ProbeIngestJobData;
+  probeResponse: ProbeMonitorResponse;
+  reportingProbeId: ObjectID;
+}): void {
+  try {
+    ProbeReportIdentity.bindResultToSender(
+      data.probeResponse,
+      data.reportingProbeId,
+    );
+  } catch (err) {
+    const { what, attributes } = describeQueuedResult(data.jobData);
+    // A refused result keeps the probe it named: the sender is never written in.
+    const namedId: string | undefined = printableId(data.probeResponse.probeId);
+    const sender: string = ProbeReportIdentity.normalize(
+      data.reportingProbeId,
+    ).toString();
+
+    logger.warn(
+      `Probe ${sender} sent ${what} that names ${
+        namedId ? `probe ${namedId}` : "a probe id that cannot be read"
+      }. A probe can only report its own results, so the result was refused.`,
+      {
+        ...attributes,
+        probeId: sender,
+        resultProbeId: namedId,
+      } as LogAttributes,
+    );
+
+    throw err;
+  }
+}
+
+/*
  * One probe's check result, or one step of a monitor test it ran.
  *
  * The result is the probe's that sent it (ProbeReportIdentity): the route
@@ -67,9 +194,7 @@ export async function processProbeFromQueue(
 ): Promise<void> {
   const queuedResult: JSONObject | undefined = jobData.probeMonitorResponse;
 
-  const reportingProbeId: ObjectID = ProbeReportIdentity.readSender(
-    queuedResult?.["probeId"],
-  );
+  const reportingProbeId: ObjectID = readSenderOfResult(jobData);
 
   const probeResponse: ProbeMonitorResponse = JSONFunctions.deserialize(
     queuedResult?.["probeMonitorResponse"] as JSONObject,
@@ -79,7 +204,11 @@ export async function processProbeFromQueue(
     throw new BadDataException("ProbeMonitorResponse not found");
   }
 
-  ProbeReportIdentity.bindResultToSender(probeResponse, reportingProbeId);
+  bindResultToSender({
+    jobData: jobData,
+    probeResponse: probeResponse,
+    reportingProbeId: reportingProbeId,
+  });
 
   // this is when the resource was ingested.
   probeResponse.ingestedAt = OneUptimeDate.getCurrentDate();
@@ -189,18 +318,25 @@ export async function processSnmpTrapFromQueue(
     throw new BadDataException("SNMP trap is missing source or trap OID");
   }
 
-  if (!requestBody["probeId"]) {
-    throw new BadDataException("Probe ID not found on SNMP trap request");
-  }
-
   /*
    * The probe that received the trap, as it authenticated: the route writes
    * it beside the trap (a job queued earlier carries the whole request body,
-   * whose top-level probeId is that same probe). Only its devices match.
+   * whose top-level probeId is that same probe). Only its devices match. A
+   * job that does not say is refused the same way on every attempt, so it
+   * is logged once here and the job completed (issue #8424,
+   * isNonActionableIngestError).
    */
-  const probeId: ObjectID = ProbeReportIdentity.readSender(
-    requestBody["probeId"],
-  );
+  let probeId: ObjectID;
+
+  try {
+    probeId = ProbeReportIdentity.readSender(requestBody["probeId"]);
+  } catch (err) {
+    logger.warn(
+      `An SNMP trap from ${snmpTrap.sourceIpAddress} was queued without the probe that received it. No probe's devices can be matched to it, so the trap was refused.`,
+    );
+
+    throw err;
+  }
 
   /*
    * Traps are matched through the NetworkDevice inventory: devices polled

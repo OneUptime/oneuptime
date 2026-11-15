@@ -1353,7 +1353,7 @@ describe("MonitorOverviewPresentationUtil facts", () => {
     expect(fact(presentation, "latest-result")).toEqual({
       key: "latest-result",
       label: "Latest result",
-      value: "Up · 120 ms · HTTP 200",
+      value: "Up · 120\u00A0ms · HTTP 200",
       secondary: "from London",
       tone: "good",
     });
@@ -1399,7 +1399,7 @@ describe("MonitorOverviewPresentationUtil facts", () => {
       failureCause: "Service Unavailable",
     });
 
-    expect(down.value).toBe("Down · 30,000 ms · HTTP 503");
+    expect(down.value).toBe("Down · 30,000\u00A0ms · HTTP 503");
     expect(down.secondary).toBe("Service Unavailable");
     expect(down.tone).toBe("danger");
 
@@ -1410,14 +1410,14 @@ describe("MonitorOverviewPresentationUtil facts", () => {
         responseTimeInMs: 12,
         responseCode: 200,
       }).value,
-    ).toBe("Up · 12 ms");
+    ).toBe("Up · 12\u00A0ms");
 
     expect(
       latest(MonitorType.SyntheticMonitor, {
         isOnline: true,
         responseTimeInMs: 4200,
       }).value,
-    ).toBe("Passed · 4,200 ms");
+    ).toBe("Passed · 4,200\u00A0ms");
     expect(
       latest(MonitorType.CustomJavaScriptCode, { isOnline: false }).value,
     ).toBe("Failed");
@@ -2373,7 +2373,7 @@ describe("MonitorOverviewPresentationUtil probes that disagree", () => {
 
     // Agreement keeps the newest result.
     expect(latest(MonitorType.API, { upCount: 2, downCount: 0 }).value).toBe(
-      "Up · 120 ms · HTTP 200",
+      "Up · 120\u00A0ms · HTTP 200",
     );
   });
 

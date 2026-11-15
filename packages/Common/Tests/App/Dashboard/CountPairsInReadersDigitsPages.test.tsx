@@ -517,7 +517,7 @@ describe("a probe's retry attempts", () => {
     const english: Array<string> = labels("en");
 
     expect(english[0]).toContain("Attempt 1/3");
-    expect(english[0]).toContain("1,234 ms");
+    expect(english[0]).toContain("1,234\u00A0ms");
 
     cleanup();
 
@@ -619,9 +619,9 @@ describe("a device ping's packet loss", () => {
 
     expect(rowValue(summary, "Packet loss")).toBe("۴۰٪ (۳/۵ دریافت‌شده)");
     // The round trips in Persian's own unit too, never a Latin "ms" (#7418).
-    expect(rowValue(summary, "Average RTT")).toBe("۱۲٫۴ میلی‌ثانیه");
+    expect(rowValue(summary, "Average RTT")).toBe("۱۲٫۴\u00A0میلی‌ثانیه");
     expect(rowValue(summary, "Min / Max RTT")).toBe(
-      "۱۰٫۲ میلی‌ثانیه / ۲۰٫۱ میلی‌ثانیه",
+      "۱۰٫۲\u00A0میلی‌ثانیه / ۲۰٫۱\u00A0میلی‌ثانیه",
     );
 
     for (const row of summary.rows) {
@@ -656,9 +656,9 @@ describe("a device ping's packet loss", () => {
     const summary: PingResultSummary = describePingResult(result);
 
     expect(rowValue(summary, "Packet loss")).toBe("40% (3/5 received)");
-    expect(rowValue(summary, "Average RTT")).toBe("12.4 ms");
+    expect(rowValue(summary, "Average RTT")).toBe("12.4\u00A0ms");
     expect(formatPercent(33.333)).toBe("33.3%");
-    expect(formatRoundTrip(0)).toBe("0.0 ms");
+    expect(formatRoundTrip(0)).toBe("0.0\u00A0ms");
   });
 
   test("German writes its decimal comma and its own percent", async () => {
@@ -668,7 +668,7 @@ describe("a device ping's packet loss", () => {
     expect(formatPercent(33.333)).toBe("33,3\u{00A0}%");
     expect(formatPercent(40)).toBe("40\u{00A0}%");
     // A round trip is written in the language of the page's words.
-    expect(formatRoundTrip(12.44)).toBe("12,4 ms");
+    expect(formatRoundTrip(12.44)).toBe("12,4\u00A0ms");
     await i18next.changeLanguage("en");
   });
 });

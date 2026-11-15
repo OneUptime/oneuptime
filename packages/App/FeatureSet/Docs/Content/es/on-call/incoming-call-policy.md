@@ -160,7 +160,7 @@ Una regla hace sonar a una persona en el número que verificó para llamadas ent
 
 Cada persona puede tener un número verificado por proyecto. Para cambiarlo, elimina primero el número antiguo. Estos números son distintos de los números de teléfono de **Métodos de notificación**, que usan los avisos de guardia. Consulta [Métodos de notificación](/docs/notifications/notification-methods).
 
-Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**.
+Los números para llamadas entrantes se verifican por SMS, así que primero el proyecto debe tener **SMS** activado. Un Propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** lo activa en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Canales de notificación**.
 
 ## Mensajes de voz y ajustes de la política
 
@@ -198,7 +198,7 @@ Una llamada se pierde cuando termina sin contactar con nadie: su estado es **Sin
 
 ### A quién se avisa
 
-Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política: los usuarios y los miembros de los equipos añadidos en la página **Propietarios** de la política. Si la política no tiene propietarios, se avisa en su lugar a los propietarios del proyecto.
+Cuando se pierde una llamada, OneUptime avisa a los propietarios de la política: los usuarios y los miembros de los equipos añadidos en la página **Propietarios** de la política. Si la política no tiene propietarios, se avisa en su lugar a los Propietarios del proyecto.
 
 El aviso dice quién llamó, qué número marcó, por qué nadie contestó, y a quién sonó y cómo terminó cada intento. Enlaza la llamada en el registro de llamadas.
 

@@ -11,7 +11,7 @@ För att skapa en instrumentpanel öppnar du **Produkter → Instrumentpaneler**
 
 ## Innan du börjar
 
-Projektägare och -administratörer kan skapa och redigera alla instrumentpaneler. Alla andra behöver en teambehörighet: `CreateDashboard` för att skapa instrumentpaneler och `EditDashboard` för att ändra dem. Projektmedlemmar och läsare kan läsa instrumentpaneler utan någon av dem. Den som inte får redigera en instrumentpanel kan ändå öppna dess **⋯**-meny, där **Redigera instrumentpanel** är låst och talar om vilken behörighet som krävs.
+Projektägare och Projektadministratörer kan skapa och redigera alla instrumentpaneler. Alla andra behöver en teambehörighet: `CreateDashboard` för att skapa instrumentpaneler och `EditDashboard` för att ändra dem. Projektmedlemmar och Tittare kan läsa instrumentpaneler utan någon av dem. Den som inte får redigera en instrumentpanel kan ändå öppna dess **⋯**-meny, där **Redigera instrumentpanel** är låst och talar om vilken behörighet som krävs.
 
 ## Skapa instrumentpanelen
 

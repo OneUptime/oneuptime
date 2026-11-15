@@ -49,7 +49,7 @@ So fügen Sie eine Projektkonfiguration hinzu:
 5. Speichern Sie. Ein Projekt hat einen Standard für SMS und einen für Anrufe, sodass eine auf **Nur SMS** und eine auf **Nur Anrufe** gestellte Konfiguration beide der Standard sein können: siehe [Ein Konto nur für SMS oder nur für Anrufe](#ein-konto-nur-für-sms-oder-nur-für-anrufe). Statusseiten verwenden die Konfiguration, die jeder Statusseite ausdrücklich zugewiesen ist.
 
 > [!IMPORTANT]
-> **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
+> **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projektinhaber, ein **Abrechnungs-Administrator** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
 :::
 
 Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin Dashboard > Einstellungen > Anrufe und SMS** öffnen, wählen, was das Konto sendet, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Die Benachrichtigungen der Mitglieder verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token vertraulich.

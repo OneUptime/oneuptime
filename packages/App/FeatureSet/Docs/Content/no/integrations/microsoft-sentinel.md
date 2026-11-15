@@ -1,6 +1,6 @@
 # Microsoft Sentinel
 
-Importer hendelsene som [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview)-analysereglene dine åpner, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i Azure.
+Importer hendelsene som [Microsoft Sentinel](https://learn.microsoft.com/en-us/azure/sentinel/overview)-analysereglene dine åpner, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i Azure.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En appregistrering, en rolle og skjemaet for tilkoblingen.

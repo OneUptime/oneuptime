@@ -1,6 +1,6 @@
 # Oversigt over integrationer
 
-OneUptime arbejder sammen med de værktøjer, dit team allerede bruger. Alarmeringsværktøjer opretter hændelser i det, og det opretter sager, vagtopkald og chatbeskeder i andre værktøjer. Nogle værktøjer forbindes fra en formular, andre fra en færdig workflowskabelon. Alle andre værktøjer med en webhook eller et API forbindes via et workflow, som du selv bygger.
+OneUptime arbejder sammen med de værktøjer, dit team allerede bruger. Alarmeringsværktøjer opretter hændelser i det, og det opretter sager, vagtopkald og chatbeskeder i andre værktøjer. Nogle værktøjer forbindes fra en formular, andre fra en færdig arbejdsgangsskabelon. Alle andre værktøjer med en webhook eller et API forbindes via en arbejdsgang, som du selv bygger.
 
 :::cards
 - [Vælg, hvordan du forbinder](#vælg-hvordan-du-forbinder): De fire måder at forbinde på, og hvornår du bruger hver af dem.
@@ -11,26 +11,26 @@ OneUptime arbejder sammen med de værktøjer, dit team allerede bruger. Alarmeri
 
 ## Sådan fungerer integrationer
 
-Hver integration flytter data i én retning eller i begge. **Indgående**: et andet værktøj fortæller OneUptime, at noget er galt, og OneUptime opretter en hændelse eller en advarsel og kalder vagtholdet op. **Udgående**: der sker noget i OneUptime, og et workflow fortæller det til et andet værktøj: det opretter en sag, kalder nogen op eller sender en besked.
+Hver integration flytter data i én retning eller i begge. **Indgående**: et andet værktøj fortæller OneUptime, at noget er galt, og OneUptime opretter en hændelse eller en advarsel og kalder vagtholdet op. **Udgående**: der sker noget i OneUptime, og en arbejdsgang fortæller det til et andet værktøj: det opretter en sag, kalder nogen op eller sender en besked.
 
 ```mermaid title="Indgående og udgående"
 flowchart TB
     tool["Alarmerings- eller<br/>sikkerhedsværktøj"] -->|"indgående"| record["Hændelse eller<br/>advarsel, vagt<br/>kaldt op"]
-    record -->|"udgående"| workflow["Workflow, f.eks.<br/>On Create Incident"]
+    record -->|"udgående"| workflow["Arbejdsgang, f.eks.<br/>On Create Incident"]
     workflow -->|"API-kald<br/>eller besked"| other["Sags-, opkalds-<br/>eller chatværktøj"]
     other -.->|"webhook tilbage"| record
 ```
 
-En tovejsintegration som Jira eller Dynamics 365 bruger begge retninger: ét workflow sender hændelsen ud, og et andet, startet af det andet værktøjs webhook, bringer ændringer tilbage.
+En tovejsintegration som Jira eller Dynamics 365 bruger begge retninger: én arbejdsgang sender hændelsen ud, og en anden, startet af det andet værktøjs webhook, bringer ændringer tilbage.
 
 ## Vælg, hvordan du forbinder
 
 | Måde | Bedst til | Eksempler |
 | --- | --- | --- |
 | En indbygget forbindelse | Værktøjer, som OneUptime selv forbinder til. Du udfylder en formular, og der er intet at bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), forbindelserne til [Sikkerhedshændelser](/docs/telemetry/security-events) |
-| En workflowskabelon | Sagsværktøjer, holdt i takt begge veje, overvågningsproblemer, sikkerhedshændelsesrapporter og chatbeskeder. Du vælger en skabelon og udfylder nogle få indstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| En monitor for indgående anmodninger | Alarmeringsværktøjer, der sender en webhook. Du får én hændelse pr. alarm, sendt til vagten og løst, når alarmen er overstået, uden workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
-| Et workflow, du selv bygger | Ethvert værktøj med en webhook eller et REST API, og al din egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
+| En arbejdsgangsskabelon | Sagsværktøjer, holdt i takt begge veje, overvågningsproblemer, sikkerhedshændelsesrapporter og chatbeskeder. Du vælger en skabelon og udfylder nogle få indstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
+| En monitor for indgående anmodninger | Alarmeringsværktøjer, der sender en webhook. Du får én hændelse pr. alarm, sendt til vagten og løst, når alarmen er overstået, uden arbejdsgang. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| En arbejdsgang, du selv bygger | Ethvert værktøj med en webhook eller et REST API, og al din egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at vedligeholde.
 
@@ -91,7 +91,7 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 | [IRC](/docs/integrations/irc) | Udgående | Sender opdateringer om hændelser til en IRC-kanal. |
 
 > [!TIP]
-> Slack og Microsoft Teams har også workflowtrin. Brug den indbyggede forbindelse til hændelseskanaler og vagter, og et workflowtrin, når du kun har brug for en besked i en kanal.
+> Slack og Microsoft Teams har også arbejdsgangstrin. Brug den indbyggede forbindelse til hændelseskanaler og vagter, og et arbejdsgangstrin, når du kun har brug for en besked i en kanal.
 
 ### Hostingplatforme
 
@@ -108,14 +108,14 @@ For at forlade et andet værktøj til vagter, oppetid eller statussider henter d
 
 ## Byg din egen integration
 
-Et værktøj uden vejledning passer stadig ind i et af to mønstre. Kan det sende en webhook, så brug det indgående mønster. Har det et REST API, så brug det udgående mønster. Begge er workflows: se [Workflows – Oversigt](/docs/workflows/index) for at komme i gang.
+Et værktøj uden vejledning passer stadig ind i et af to mønstre. Kan det sende en webhook, så brug det indgående mønster. Har det et REST API, så brug det udgående mønster. Begge er arbejdsgange: se [Arbejdsgange – Oversigt](/docs/workflows/index) for at komme i gang.
 
 ### Indgående: et andet værktøj sender data til OneUptime
 
-Til et alarmeringsværktøj starter du med en [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system): den opretter én hændelse pr. alarm og løser den, når alarmen er overstået, uden at du skal bygge noget. Byg et workflow, når du har brug for din egen logik:
+Til et alarmeringsværktøj starter du med en [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system): den opretter én hændelse pr. alarm og løser den, når alarmen er overstået, uden at du skal bygge noget. Byg en arbejdsgang, når du har brug for din egen logik:
 
 :::steps
-1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv workflowet et navn, og klik på **Opret arbejdsgang**.
+1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
 2. Klik på den stiplede blok **Vælg, hvad der starter denne arbejdsgang**, og vælg **Webhook**. Klik på triggeren og derefter på **Kopiér URL**.
 3. Send det andet værktøjs webhook til den URL som en `POST` med `Content-Type: application/json`.
 4. Tilføj de blokke, der handler på den. De læser anmodningen med referencer som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **If / Else**-blok til at kontrollere et felt og derefter **Create One Incident** til at erklære en hændelse.
@@ -128,7 +128,7 @@ URL'en er den eneste loginoplysning, så behandl den som en adgangskode. Se [Web
 
 :::steps
 1. Gem værktøjets API-nøgle som en hemmelig global variabel, som vist [nedenfor](#hold-loginoplysninger-sikre).
-2. Opret et workflow, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
+2. Opret en arbejdsgang, klik på den stiplede blok, og vælg en begivenhedstrigger, f.eks. **On Create Incident**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, der skal sendes, f.eks. **Beskrivelse**.
 3. Klik på **Tilføj komponent**, og tilføj en **API Post (JSON)**-blok. Forbind triggerens **Succes**-punkt med den.
 4. Udfyld dens **URL**, dens **Anmodningsheadere** med `Authorization`-headeren og dens **Anmodningsbrødtekst** med hændelsens felter, f.eks. `{{local.components.incident-on-create-1.returnValues.model.title}}`.
 5. Klik på **Kør arbejdsgang**, vælg en hændelse under **Hændelse**, og kør den. En testkørsel sender anmodningen for alvor. Slå derefter **Aktiveret** til.
@@ -146,7 +146,7 @@ Indsæt aldrig en API-nøgle eller et token i en blok. Gem den én gang som en h
 3. Indsæt nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
-Enhver blok læser den som `{{global.variables.JIRA_AUTH}}`. En variabels indhold kan ikke læses igen, når det er gemt, og indholdet af en hemmelig variabel erstattes med `[REDACTED]` i kørselslogs. Til tokens, der udløber, som dem fra Microsoft Entra ID, henter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv) selv et nyt. Se [Workflow-variabler](/docs/workflows/variables#globale-variabler).
+Enhver blok læser den som `{{global.variables.JIRA_AUTH}}`. En variabels indhold kan ikke læses igen, når det er gemt, og indholdet af en hemmelig variabel erstattes med `[REDACTED]` i kørselslogs. Til tokens, der udløber, som dem fra Microsoft Entra ID, henter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv) selv et nyt. Se [Arbejdsgangsvariabler](/docs/workflows/variables#globale-variabler).
 
 ### Snydeark til godkendelse
 
@@ -173,15 +173,15 @@ Brug `printf`, ikke `echo`: `echo` tilføjer et linjeskift, som kodes sammen med
 
 En selvhostet OneUptime kalder andre værktøjer fra dit netværk, og andre værktøjer kalder den fra deres:
 
-- **Udgående:** workflowanmodninger til private netværksadresser afvises, medmindre en administrator tillader dem. Se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
+- **Udgående:** arbejdsgangsanmodninger til private netværksadresser afvises, medmindre en administrator tillader dem. Se [Udgående netværksadgang](/docs/workflows/configuration#udgående-netværksadgang).
 - **Indgående:** et værktøjs webhooks skal nå din OneUptime via HTTPS, så et værktøj i skyen har brug for en offentlig adresse at kalde.
 - **Indbyggede integrationer** har hver deres opsætningsvejledning: [Slack](/docs/self-hosted/slack-integration), [Microsoft Teams](/docs/self-hosted/microsoft-teams-integration), [GitHub](/docs/self-hosted/github-integration), [Twilio](/docs/self-hosted/twilio-integration), [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email) og [Push Notifications](/docs/self-hosted/push-notifications).
 
 ## Næste trin
 
 :::cards
-- [Workflows – Oversigt](/docs/workflows/index): Hvordan workflows kører, og hvordan du bygger dit første.
-- [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Modtag alarmer fra ethvert værktøj uden workflow.
+- [Arbejdsgange – Oversigt](/docs/workflows/index): Hvordan arbejdsgange kører, og hvordan du bygger dit første.
+- [Indgående anmodning-monitor](/docs/monitor/incoming-request-monitor): Modtag alarmer fra ethvert værktøj uden arbejdsgang.
 - [Jira](/docs/integrations/jira): En komplet tovejsintegration ud fra skabeloner.
-- [Workflow-variabler](/docs/workflows/variables): Send data mellem blokke, og hold hemmeligheder ude af dem.
+- [Arbejdsgangsvariabler](/docs/workflows/variables): Send data mellem blokke, og hold hemmeligheder ude af dem.
 :::

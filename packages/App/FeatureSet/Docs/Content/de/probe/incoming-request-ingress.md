@@ -41,7 +41,7 @@ Wenn Ihre Dienste `https://oneuptime.com` (oder Ihre selbst gehostete URL) berei
 
 ## Bevor Sie beginnen
 
-- **Eine laufende benutzerdefinierte Sonde.** Ihr **Status** zeigt **Verbunden**. Wie Sie eine installieren, steht unter [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+- **Eine laufende benutzerdefinierte Sonde.** Ihr **Status** zeigt **Verbunden**. Wie Sie eine installieren, steht unter [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 - **Ein Monitor für eingehende Anfragen.** Seine Heartbeat-URL enthält den geheimen Schlüssel, den Ihr Dienst sendet: siehe [Eingehende-Anfrage-Überwachung](/docs/monitor/incoming-request-monitor).
 - **Ein Port auf dem Host der Sonde, den Ihre Dienste erreichen.** Die Beispiele verwenden `3875`.
 
@@ -176,7 +176,7 @@ curl -X POST http://probe.internal:3875/heartbeat/YOUR_SECRET_KEY \
 | `PROBE_INGRESS_FORWARD_TIMEOUT_MS` | `10000` | Wie lange jede Weiterleitung an OneUptime dauern darf, in Millisekunden. Ein Wert unter `1000` fällt auf den Standard zurück. |
 | `PROBE_INGRESS_FORWARD_RETRY_LIMIT` | `3` | Wie oft eine fehlgeschlagene Weiterleitung erneut versucht wird. `0` schaltet Wiederholungen aus. |
 
-Die üblichen Variablen der Sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` und die Proxy-Variablen) gelten alle: die vollständige Liste steht unter [Benutzerdefinierte Probes](/docs/probe/custom-probe).
+Die üblichen Variablen der Sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` und die Proxy-Variablen) gelten alle: die vollständige Liste steht unter [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
 
 ## Sicherheitshinweise
 
@@ -192,7 +192,7 @@ Die üblichen Variablen der Sonde (`PROBE_KEY`, `PROBE_ID`, `ONEUPTIME_URL` und 
 :::
 
 :::details Die Sonde protokolliert `Probe ingress: failed to forward to <url> after N attempts`
-Die Sonde konnte OneUptime auch nach ihren Wiederholungen nicht erreichen. Prüfen Sie die ausgehende Konnektivität der Sonde, ihre Proxy-Einstellungen und den Wert von `ONEUPTIME_URL`. Zeigt die Sonde außerdem **Getrennt**, finden Sie unter [Benutzerdefinierte Probes](/docs/probe/custom-probe) heraus, wo ihre Anfragen hängen bleiben.
+Die Sonde konnte OneUptime auch nach ihren Wiederholungen nicht erreichen. Prüfen Sie die ausgehende Konnektivität der Sonde, ihre Proxy-Einstellungen und den Wert von `ONEUPTIME_URL`. Zeigt die Sonde außerdem **Getrennt**, finden Sie unter [Benutzerdefinierte Sonden](/docs/probe/custom-probe) heraus, wo ihre Anfragen hängen bleiben.
 :::
 
 :::details Die Sonde protokolliert `Probe ingress: probe ID not available, forwarding without it`
@@ -211,5 +211,5 @@ Die Anfrage hat die Sonde nie erreicht. Prüfen Sie, ob der Dienst den Host der 
 
 :::cards
 - [Eingehende-Anfrage-Überwachung](/docs/monitor/incoming-request-monitor): Festlegen, was als gesunder Heartbeat zählt.
-- [Benutzerdefinierte Probes](/docs/probe/custom-probe): Die Sonde installieren, und jede Einstellung, die sie liest.
+- [Benutzerdefinierte Sonden](/docs/probe/custom-probe): Die Sonde installieren, und jede Einstellung, die sie liest.
 :::

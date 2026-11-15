@@ -249,7 +249,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 <div>
                   <div>{`${DiskSize.convertToDecimalPlaces(
                     (item["dataIngestedInGB"] as Decimal).value as number,
-                  )} GB`}</div>
+                  )}\u00A0GB`}</div>
                   {item["productType"] === ProductType.Traces &&
                   exceptionDataIngestedInGB > 0 ? (
                     <div

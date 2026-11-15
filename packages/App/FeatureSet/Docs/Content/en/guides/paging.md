@@ -51,7 +51,7 @@ Type your mobile number with its country code in **Your phone number**, such as 
 
 ![The step "Who else is on call?", with "Save and continue" ringed](screen:paging-who-else)
 
-Under **Who else is on call?**, you are already in **Paged first**. Click **Add teammates** to page others with you, then click **Save and continue**. In a project with no on-call policy yet, this creates `Default on-call policy`, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
+Under **Who else is on call?**, you are already in **Paged first**. Click **Add teammates** to page others with you, then click **Save and continue**. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
 
 ### Decide what happens if nobody answers
 
@@ -83,7 +83,7 @@ If the policy pages someone else, you can watch the escalation too: click **Open
 ## What can go wrong
 
 :::details There is no Text me a code button
-SMS is off, or cannot be sent, and the step says why. Only a project owner, or someone who manages billing, sees **Turn on SMS and phone calls**. On OneUptime Cloud, a balance of 1.00 USD or less hides the field. On a self-hosted server that cannot send SMS, its master admin sees **Set up SMS and calls**, which opens the Admin Dashboard to add Twilio, as [Twilio Integration](/docs/self-hosted/twilio-integration) shows.
+SMS is off, or cannot be sent, and the step says why. Only a Project Owner, or someone who manages billing, sees **Turn on SMS and phone calls**. On OneUptime Cloud, a balance of 1.00 USD or less hides the field. On a self-hosted server that cannot send SMS, its master admin sees **Set up SMS and calls**, which opens the Admin Dashboard to add Twilio, as [Twilio Integration](/docs/self-hosted/twilio-integration) shows.
 :::
 
 :::details Add balance says no payment method was found

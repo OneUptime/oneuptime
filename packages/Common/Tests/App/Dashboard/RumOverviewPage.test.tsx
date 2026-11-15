@@ -1403,9 +1403,9 @@ describe("RUM overview: INP by route", () => {
         return row.textContent || "";
       }),
     ).toEqual([
-      "/products/:id620 msPoor",
-      "/cart240 msNeeds work",
-      "/90 msGood",
+      "/products/:id620\u00A0msPoor",
+      "/cart240\u00A0msNeeds work",
+      "/90\u00A0msGood",
     ]);
     expect(screen.getByText("(app.route)")).toBeInTheDocument();
     expect(screen.getByText(/The 3 slowest of 12/)).toBeInTheDocument();

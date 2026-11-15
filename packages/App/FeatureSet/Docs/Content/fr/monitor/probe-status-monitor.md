@@ -53,17 +53,17 @@ Les filtres d'un moniteur d'état des sondes comptent des sondes :
 
 | Filtre | Ce qu'il compte |
 | --- | --- |
-| **Disconnected Probes** | Les sondes surveillées qui sont déconnectées. |
-| **Connected Probes** | Les sondes surveillées qui sont connectées. |
+| **Sondes déconnectées** | Les sondes surveillées qui sont déconnectées. |
+| **Sondes connectées** | Les sondes surveillées qui sont connectées. |
 
 Ce sont des nombres entiers, comparés avec **Supérieur à**, **Inférieur à**, **Égal à** et les autres comparaisons. Un nouveau moniteur commence avec deux critères :
 
 | Critère | Filtre | Ce qu'il fait |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** supérieur à `0` | Met le moniteur hors ligne et déclare un incident intitulé `Probe disconnected: {{disconnectedProbeNames}}`, qui se résout de lui-même. |
-| Check if every probe is connected | **Disconnected Probes** égal à `0` | Met le moniteur en état opérationnel. |
+| Vérifier si une sonde est déconnectée | **Sondes déconnectées** supérieur à `0` | Met le moniteur hors ligne et déclare un incident intitulé `Probe disconnected: {{disconnectedProbeNames}}`, qui se résout de lui-même. |
+| Vérifier si toutes les sondes sont connectées | **Sondes déconnectées** égal à `0` | Met le moniteur en état opérationnel. |
 
-**Connected Probes** convient à un moniteur qui surveille plusieurs sondes et peut en perdre une : **Connected Probes** inférieur à `2` ne déclare un incident que lorsqu'il en reste moins de deux.
+Le filtre **Sondes connectées** convient à un moniteur qui surveille plusieurs sondes et peut en perdre une : **Sondes connectées** inférieur à `2` ne déclare un incident que lorsqu'il en reste moins de deux.
 
 ### Attendre plus longtemps avant un incident
 

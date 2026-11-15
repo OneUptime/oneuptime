@@ -56,7 +56,7 @@
     "callsAndSms": "Anrufe und SMS",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
-    "globalProbes": "Globale Probes",
+    "globalProbes": "Globale Sonden",
     "globalRunners": "Globale Runner",
     "dataRetention": "Datenaufbewahrung",
     "globalLlmProviders": "Globale LLM-Anbieter",
@@ -126,7 +126,7 @@
     "settingsWhatsapp": "WhatsApp",
     "settingsTelegram": "Telegram",
     "settingsMonitoring": "Überwachung",
-    "settingsGlobalProbes": "Globale Probes",
+    "settingsGlobalProbes": "Globale Sonden",
     "settingsRunbooks": "Runbooks",
     "settingsGlobalRunners": "Globale Runner",
     "settingsDataRetention": "Datenaufbewahrung",
@@ -602,16 +602,16 @@
         "testFailure": "Fehler beim Senden der Test-Telegram-Nachricht."
       },
       "probes": {
-        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen Probes?",
+        "bannerTitle": "Benötigen Sie Hilfe bei der Einrichtung von Globalen Sonden?",
         "bannerDescription": "Hier ist eine Anleitung, die Ihnen bei der Einrichtung helfen wird",
-        "cardTitle": "Globale Probes",
-        "cardDescription": "Globale Probes helfen Ihnen, externe Ressourcen von verschiedenen Standorten auf der ganzen Welt zu überwachen.",
-        "noItems": "Keine Probes gefunden.",
+        "cardTitle": "Globale Sonden",
+        "cardDescription": "Globale Sonden helfen Ihnen, externe Ressourcen von verschiedenen Standorten auf der ganzen Welt zu überwachen.",
+        "noItems": "Keine Sonden gefunden.",
         "showIdKey": "ID und Schlüssel anzeigen",
-        "keyModalTitle": "Probe-Schlüssel",
-        "keyModalDescription": "Hier ist Ihr Probe-Schlüssel. Bitte halten Sie ihn geheim.",
-        "probeIdLabel": "Probe-ID:",
-        "probeKeyLabel": "Probe-Schlüssel:"
+        "keyModalTitle": "Sondenschlüssel",
+        "keyModalDescription": "Hier ist Ihr Sondenschlüssel. Bitte halten Sie ihn geheim.",
+        "probeIdLabel": "Sonden-ID:",
+        "probeKeyLabel": "Sondenschlüssel:"
       },
       "globalRunners": {
         "cardTitle": "Globale Runner",

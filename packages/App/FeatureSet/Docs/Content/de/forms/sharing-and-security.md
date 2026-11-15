@@ -98,7 +98,7 @@ Der Server muss auf Port 80 antworten, wo Let's Encrypt jede Domain prüft. Eine
 
 ### Wer Domains verwalten kann
 
-Projektinhaber und Administratoren sowie alle mit **Edit Form** können die Domains eines Formulars hinzufügen, prüfen, ihre Zertifikate neu ausstellen und sie löschen. Das können auch die Berechtigungen nur für die Domains eines Formulars, etwa **Edit Form Domain**: Die [Formulare – Übersicht](/docs/forms/index#berechtigungen) listet sie. Alle, die ein Formular lesen können, sehen seine Domains, ihren **Status** und den Eintrag in **DNS-Einrichtung**; für sie sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung sie brauchen. Ein API-Schlüssel funktioniert genauso auf `/form-domain`: `verify-cname`, `order-ssl` und `reissue-ssl` brauchen **Edit Form Domain** oder **Edit Form**.
+Projektinhaber und Projektadministratoren sowie alle mit **Edit Form** können die Domains eines Formulars hinzufügen, prüfen, ihre Zertifikate neu ausstellen und sie löschen. Das können auch die Berechtigungen nur für die Domains eines Formulars, etwa **Edit Form Domain**: Die [Formulare – Übersicht](/docs/forms/index#berechtigungen) listet sie. Alle, die ein Formular lesen können, sehen seine Domains, ihren **Status** und den Eintrag in **DNS-Einrichtung**; für sie sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung sie brauchen. Ein API-Schlüssel funktioniert genauso auf `/form-domain`: `verify-cname`, `order-ssl` und `reissue-ssl` brauchen **Edit Form Domain** oder **Edit Form**.
 
 ## Was ein Formular schützt
 

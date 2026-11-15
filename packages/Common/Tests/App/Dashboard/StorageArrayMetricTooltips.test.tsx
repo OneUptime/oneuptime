@@ -1251,9 +1251,9 @@ describe("STORAGE_ARRAY_METRIC_DESCRIPTIONS", () => {
     expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.readLatencyColumn).toMatch(
       /microseconds \(µs\) below a millisecond/,
     );
-    expect(formatLatencyUsec(250)).toBe("250 µs");
-    expect(formatLatencyUsec(999)).toBe("999 µs");
-    expect(formatLatencyUsec(1500)).toBe("1.50 ms");
+    expect(formatLatencyUsec(250)).toBe("250\u00A0µs");
+    expect(formatLatencyUsec(999)).toBe("999\u00A0µs");
+    expect(formatLatencyUsec(1500)).toBe("1.50\u00A0ms");
   });
 
   test("the active alerts text names the 10-minute window the card reads", () => {
@@ -1750,8 +1750,8 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
     };
     const stale: Row = { ...fresh, metricsUpdatedAt: minutesAgo(16) };
 
-    expect(cellText(latency, fresh)).toBe("250 µs");
-    expect(cellText(physical, fresh)).toBe("2.0 TiB");
+    expect(cellText(latency, fresh)).toBe("250\u00A0µs");
+    expect(cellText(physical, fresh)).toBe("2.0\u00A0TiB");
     expect(cellText(latency, stale)).toBe(QUIET_DASH_TEXT);
     expect(cellText(physical, stale)).toBe(QUIET_DASH_TEXT);
     expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.readLatencyColumn).toMatch(
@@ -1772,10 +1772,10 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
       metricsUpdatedAt: minutesAgo(60),
     };
 
-    expect(cellText(space, directory)).toBe("10.0 GiB");
+    expect(cellText(space, directory)).toBe("10.0\u00A0GiB");
     expect(
       cellText(space, { ...directory, metricsUpdatedAt: minutesAgo(89) }),
-    ).toBe("10.0 GiB");
+    ).toBe("10.0\u00A0GiB");
     expect(
       cellText(space, { ...directory, metricsUpdatedAt: minutesAgo(91) }),
     ).toBe(QUIET_DASH_TEXT);

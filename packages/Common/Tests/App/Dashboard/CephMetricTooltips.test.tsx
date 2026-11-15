@@ -1285,8 +1285,8 @@ describe("Ceph cluster overview", () => {
 
     // The 5000 GiB, 99.98%-full pool stopped reporting 20 minutes ago.
     expect(rowsOf("Largest Pools")).toEqual([
-      "rbd300 GiB",
-      "cephfs_data100 GiB",
+      "rbd300\u00A0GiB",
+      "cephfs_data100\u00A0GiB",
     ]);
     expect(rowsOf("Fullest Pools")).toEqual(["cephfs_data50.0%", "rbd30.0%"]);
     expect(screen.queryByText("stale-archive")).not.toBeInTheDocument();

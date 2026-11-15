@@ -42,7 +42,7 @@ Sous **Que devons-nous vérifier ?**, saisissez l'adresse dans **Adresse du site
 
 Sous **Qui faut-il prévenir ?**, ce que vous voyez dépend du projet :
 
-- Si le projet n'a encore ni politique d'astreinte ni règle d'astreinte, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Ajouter des membres de l'équipe** pour ajouter des personnes qui font déjà partie du projet, puis cliquez sur **Enregistrer et continuer**. Cela crée `Default on-call policy`, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte du projet.
+- Si le projet n'a encore ni politique d'astreinte ni règle d'astreinte, vous êtes déjà dans **Qui est alerté**. Cliquez sur **Ajouter des membres de l'équipe** pour ajouter des personnes qui font déjà partie du projet, puis cliquez sur **Enregistrer et continuer**. Cela crée la **Politique d'astreinte par défaut**, qui alerte ces personnes pour chaque nouvel incident et chaque nouvelle alerte du projet.
 - Si le projet a une politique ou une règle d'astreinte, ce sont ses propres règles qui décident qui est alerté : cliquez sur **Continuer**.
 - Si vous êtes membre, et ne pouvez donc pas configurer les alertes, l'étape vous indique que vous recevrez un e-mail en tant que propriétaire du moniteur : cliquez sur **Continuer**.
 

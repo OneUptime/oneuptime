@@ -19,7 +19,7 @@ flowchart TB
 :::cards
 - [Opsæt en politik](#opsæt-en-politik): Fra din Twilio-konto til et testopkald, i syv trin.
 - [Sådan routes et opkald](#sådan-routes-et-opkald): Hvem der ringes til, hvor længe, og hvad opkalderen hører.
-- [Ubesvarede opkald](#ubesvarede-opkald): Hvem der får besked, og hvordan du reagerer på dem i et workflow.
+- [Ubesvarede opkald](#ubesvarede-opkald): Hvem der får besked, og hvordan du reagerer på dem i en arbejdsgang.
 - [Fejlfinding](#fejlfinding): Opkald, der aldrig kommer frem eller aldrig når en ingeniør.
 :::
 
@@ -160,7 +160,7 @@ En regel ringer til en person på det nummer, personen har bekræftet til indgå
 
 Hver person kan have ét bekræftet nummer pr. projekt. For at skifte det skal du først slette det gamle nummer. Disse numre er adskilt fra telefonnumrene under **Notifikationsmetoder**, som vagttilkald bruger. Se [Notifikationsmetoder](/docs/notifications/notification-methods).
 
-Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
+Numre til indgående opkald bekræftes via SMS, så **SMS** skal først være slået til for projektet. En Projektejer, en **Faktureringsadministrator** eller en person med **Manage Billing** slår det til i kortet **Notifikationskanaler** på **Projektindstillinger > Notifikationer > Notifikationskanaler**.
 
 ## Talebeskeder og politikindstillinger
 
@@ -198,15 +198,15 @@ Et opkald er ubesvaret, når det slutter uden at nå nogen: dets status er **Int
 
 ### Hvem der får besked
 
-Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får projektets ejere besked i stedet.
+Når et opkald er ubesvaret, giver OneUptime politikkens ejere besked: brugerne og medlemmerne af de teams, der er tilføjet på politikkens side **Ejere**. Har politikken ingen ejere, får Projektejere besked i stedet.
 
 Notifikationen siger, hvem der ringede, hvilket nummer der blev ringet til, hvorfor ingen svarede, og hvem der blev ringet til, og hvordan hvert forsøg endte. Den linker til opkaldet i opkaldsloggen.
 
 Ejere får som standard en e-mail. Hver person kan vælge andre kanaler (SMS, opkald, push og mere) eller slå den fra i **Brugerindstillinger** > **Notifikationsindstillinger** under **Vagt** > **Indgående opkaldspolitikker** > **Ubesvaret opkald**. Se [Notifikationsindstillinger](/docs/notifications/notification-settings).
 
-### Reagér på ubesvarede opkald i et workflow
+### Reagér på ubesvarede opkald i en arbejdsgang
 
-Logs over indgående opkald er tilgængelige som workflowudløsere:
+Logs over indgående opkald er tilgængelige som arbejdsgangsudløsere:
 
 - **On Create Incoming Call Log** kører, når et opkald kommer ind.
 - **On Update Incoming Call Log** kører, efterhånden som opkaldet skrider frem. Den opdatering, der sætter **Ended At**, er opkaldets afslutning.
@@ -219,7 +219,7 @@ For kun at reagere på ubesvarede opkald, fx for at poste dem i Slack eller Micr
 3. Forbind dine trin til porten **Ja**.
 :::
 
-Et workflow kan læse opkaldslogs med **Find One** og **Find Many**, men det kan ikke oprette eller ændre dem.
+En arbejdsgang kan læse opkaldslogs med **Find One** og **Find Many**, men den kan ikke oprette eller ændre dem.
 
 ## Hvem der kan tilføje og frigive telefonnumre
 
@@ -283,6 +283,6 @@ SMS skal være slået til for projektet. På OneUptime Cloud betaler et projekt 
 :::cards
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Hvordan en vagtpolitik tilkalder folk, niveau for niveau.
 - [Vagtplaner](/docs/on-call/schedules): Byg de rotationer, dine regler ringer til.
-- [Workflows](/docs/workflows/index): Reagér på ubesvarede opkald: post dem i en kanal, eller åbn en sag.
+- [Arbejdsgange](/docs/workflows/index): Reagér på ubesvarede opkald: post dem i en kanal, eller åbn en sag.
 - [Twilio-integration til SMS og tale](/docs/self-hosted/twilio-integration): Opsæt Twilio til en selvhostet installation.
 :::

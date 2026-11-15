@@ -653,9 +653,9 @@ describe("a case's Evidence", () => {
         url: URL.fromString("https://example.com"),
       }),
     ).toBeNull();
-    expect(formatEvidenceSize(512)).toBe("512 B");
-    expect(formatEvidenceSize(1229)).toBe("1.2 KB");
-    expect(formatEvidenceSize(5 * 1024 * 1024)).toBe("5 MB");
+    expect(formatEvidenceSize(512)).toBe("512\u00A0B");
+    expect(formatEvidenceSize(1229)).toBe("1.2\u00A0KB");
+    expect(formatEvidenceSize(5 * 1024 * 1024)).toBe("5\u00A0MB");
     expect(formatEvidenceSize(undefined)).toBe("");
   });
 

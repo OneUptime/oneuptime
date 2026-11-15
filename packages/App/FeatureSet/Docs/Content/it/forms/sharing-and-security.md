@@ -98,7 +98,7 @@ Il server deve rispondere sulla porta 80, dove Let's Encrypt controlla ogni domi
 
 ### Chi può gestire i domini
 
-I proprietari e gli amministratori del progetto, e chiunque abbia **Edit Form**, possono aggiungere i domini di un modulo, controllarli, riemettere i loro certificati ed eliminarli. Possono farlo anche i permessi solo per i domini di un modulo, come **Edit Form Domain**: la [Panoramica dei moduli](/docs/forms/index#autorizzazioni) li elenca. Chiunque possa leggere un modulo vede i suoi domini, il loro **Stato** e il record in **Configurazione DNS**; per loro **Verifica ora** e **Reissue SSL** sono bloccati e dicono quale permesso serve. Una chiave API funziona allo stesso modo su `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` richiedono **Edit Form Domain** o **Edit Form**.
+I Proprietari del progetto e gli Amministratori del progetto, e chiunque abbia **Edit Form**, possono aggiungere i domini di un modulo, controllarli, riemettere i loro certificati ed eliminarli. Possono farlo anche i permessi solo per i domini di un modulo, come **Edit Form Domain**: la [Panoramica dei moduli](/docs/forms/index#autorizzazioni) li elenca. Chiunque possa leggere un modulo vede i suoi domini, il loro **Stato** e il record in **Configurazione DNS**; per loro **Verifica ora** e **Reissue SSL** sono bloccati e dicono quale permesso serve. Una chiave API funziona allo stesso modo su `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` richiedono **Edit Form Domain** o **Edit Form**.
 
 ## Cosa protegge un modulo
 
