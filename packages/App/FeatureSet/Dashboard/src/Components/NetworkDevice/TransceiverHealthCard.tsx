@@ -47,7 +47,10 @@ import Card from "Common/UI/Components/Card/Card";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
   ResizableColumns,
@@ -1104,7 +1107,10 @@ const ReadingDetails: FunctionComponent<ReadingDetailsProps> = (
         {thresholds.length > 0
           ? thresholds
               .map((item: ThresholdItem) => {
-                return `${translator.translateText(item.label)} ${formatReadingValue(props.kind, item.value)}`;
+                return translator.translateTemplate("{{label}} {{value}}", {
+                  label: translatableTerm(item.label),
+                  value: formatReadingValue(props.kind, item.value),
+                });
               })
               .join(" · ")
           : translator.translateText(

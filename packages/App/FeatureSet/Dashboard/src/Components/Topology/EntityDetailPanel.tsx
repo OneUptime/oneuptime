@@ -1091,7 +1091,10 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("reload")}
-              aria-label={`${t("Reload list")}: ${title}`}
+              aria-label={translator.translateTemplate(
+                "Reload list: {{title}}",
+                { title: translatableTerm(config.title) },
+              )}
               disabled={Boolean(pending)}
               aria-busy={pending === "reload"}
               ref={registerFocusable(reloadFocusId(config.section))}
@@ -1114,7 +1117,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             <button
               type="button"
               className={actionClassNameOf("more")}
-              aria-label={`${t("Show more")}: ${title}`}
+              aria-label={translator.translateTemplate("Show more: {{title}}", {
+                title: translatableTerm(config.title),
+              })}
               disabled={Boolean(pending)}
               aria-busy={pending === "more"}
               onClick={() => {

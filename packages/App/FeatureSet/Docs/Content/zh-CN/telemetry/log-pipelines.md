@@ -46,7 +46,7 @@ flowchart TB
 
 ## 开始之前
 
-- 正在进入 OneUptime 的日志，通过 [OpenTelemetry](/docs/telemetry/open-telemetry)、[syslog](/docs/telemetry/syslog)、[Fluentd](/docs/telemetry/fluentd) 或探针发送。
+- 正在进入 OneUptime 的日志，通过 [OpenTelemetry](/docs/telemetry/open-telemetry)、[syslog](/docs/telemetry/syslog)、[Fluentd](/docs/telemetry/fluentd) 或探测器发送。
 - 更改管道的权限。项目所有者和管理员拥有此权限；其他人需要 **Create Log Pipeline** 和 **Create Log Pipeline Processor** 权限。
 
 ## 创建管道
@@ -110,7 +110,7 @@ flowchart TB
 
 ### 示例：Sophos XGS 防火墙
 
-OneUptime 会自行把 Sophos 和 FortiGate 的 syslog 读取为 `sophos.*` 和 `fortigate.*` 属性（参见[网络事件](/docs/monitor/network-events)）；这个示例手动构建同样的结果，就像你为它不了解的格式所做的那样。当 Sophos XGS 防火墙把 syslog 发送到 [探针](/docs/monitor/network-device-monitor) 时，每条消息都会存储为该网络设备的日志，syslog 消息即为其正文。要解析它：
+OneUptime 会自行把 Sophos 和 FortiGate 的 syslog 读取为 `sophos.*` 和 `fortigate.*` 属性（参见[网络事件](/docs/monitor/network-events)）；这个示例手动构建同样的结果，就像你为它不了解的格式所做的那样。当 Sophos XGS 防火墙把 syslog 发送到 [探测器](/docs/monitor/network-device-monitor) 时，每条消息都会存储为该网络设备的日志，syslog 消息即为其正文。要解析它：
 
 :::steps
 #### 为防火墙创建管道

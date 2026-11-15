@@ -15,7 +15,7 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLangua
  * and each looks its strings up by their English text in the app's own
  * locale. The Admin locales lacked many of them - the row dialogs' Error and
  * "Something went wrong. Please try again.", the row menu's More actions
- * and "More actions for", the create button's "Add {{itemName}}", the
+ * and "More actions for {{name}}", the create button's "Add {{itemName}}", the
  * filters, the pagination - so every Admin list read them in English in
  * every language. Each is an entry of all 17 Admin locales now, before the
  * markdownCallouts block as those files keep their flat entries, worded as
@@ -93,7 +93,7 @@ const SHARED_COMPONENTS: ReadonlyArray<string> = [
 const ROW_STRINGS: ReadonlyArray<string> = [
   "Error",
   "More actions",
-  "More actions for",
+  "More actions for {{name}}",
   "Something went wrong. Please try again.",
 ];
 

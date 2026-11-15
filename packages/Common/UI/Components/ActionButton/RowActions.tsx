@@ -21,6 +21,8 @@ import GenericObject from "../../../Types/GenericObject";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -108,6 +110,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [error, setError] = useState<string>("");
 
@@ -379,12 +382,16 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
         <MoreMenu
           isMenuPortaled={true}
           /*
-           * Around the row's name, in the reader's words here; without one,
-           * English, for the menu to look up (#7790).
+           * One sentence around the row's name, in the reader's words and
+           * their order here - Japanese puts the name first - never English's
+           * order with the name tacked on (#8076); without a name, English,
+           * for the menu to look up (#7790).
            */
           ariaLabel={
             props.itemLabel
-              ? `${translateString("More actions for") || "More actions for"} ${props.itemLabel}`
+              ? translator.translateTemplate("More actions for {{name}}", {
+                  name: props.itemLabel,
+                })
               : "More actions"
           }
           isAriaLabelTranslated={Boolean(props.itemLabel)}

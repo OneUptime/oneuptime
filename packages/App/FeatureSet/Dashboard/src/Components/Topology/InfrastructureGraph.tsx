@@ -25,6 +25,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
   fillTemplate,
+  formatInline,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -56,7 +57,6 @@ import {
   formatErrorRate,
   metaForEntityType,
 } from "./TopologyMeta";
-import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
 /*
  * The map of ONE level of the infrastructure tree: the things directly inside
@@ -961,6 +961,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
+  const graphTranslator: Translator = useTranslator();
   const flowInstance: React.MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
   /* Null until the user picks one: then the default below applies. */
@@ -1119,11 +1120,21 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
    */
   const trafficStatus: string =
     linkCount > 0
-      ? `${linkCount.toLocaleString(getReaderNumberLocale())} ${t(
-          linkCount === 1 ? "connection" : "connections",
-        )} · ${t(
-          "Lines are calls between the services on these cards, measured per service.",
-        )}`
+      ? formatInline(
+          [
+            graphTranslator.translatePlural(
+              {
+                one: "{{count}} connection",
+                other: "{{count}} connections",
+              },
+              linkCount,
+            ),
+            t(
+              "Lines are calls between the services on these cards, measured per service.",
+            ),
+          ],
+          graphTranslator,
+        )
       : runsServices
         ? t(
             "The services on these cards were not seen calling each other in this time range.",

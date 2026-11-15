@@ -20,7 +20,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import SecurityEventRequestOutcomePill from "./SecurityEventRequestOutcomePill";
@@ -146,7 +149,10 @@ const OutcomeBar: FunctionComponent<{
         return (
           <div
             key={segment.key}
-            title={`${translator.translateText(segment.label)}: ${translator.formatNumber(segment.count)}`}
+            title={translator.translateTemplate("{{label}}: {{count}}", {
+              label: translatableTerm(segment.label),
+              count: translator.formatNumber(segment.count),
+            })}
             style={{
               width: `${Math.max(2, (segment.count / total) * 100)}%`,
               backgroundColor: segment.color.toString(),
