@@ -79,7 +79,18 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
  * in their place, when every card has loaded and found nothing.
  */
 export interface ComponentProps {
+  /*
+   * Words in English are looked up here, unless isTitleTranslated says
+   * otherwise; an element is drawn as given.
+   */
   title?: string | ReactElement | undefined;
+  /*
+   * The title's words are in the reader's language already: a sentence the
+   * page built around a value ("Container Metrics: {{containerName}}").
+   * Drawn as given, never looked up again (#8355): looked up again, a
+   * translation that is itself an English key reads as another word.
+   */
+  isTitleTranslated?: boolean | undefined;
   description?: string | ReactElement | undefined;
   queryConfigs?: Array<MetricQueryConfigData> | undefined;
   formulaConfigs?: Array<MetricFormulaConfigData> | undefined;
@@ -514,12 +525,14 @@ const EmbeddedMetricCard: FunctionComponent<ComponentProps> = (
    * Long titles truncate instead of pushing the action row onto the next
    * line — Card gives the title column min-w-0, so a block/truncate
    * wrapper is all that's needed. Card translates a title it is handed as
-   * words, not one inside an element, so the words are looked up here.
+   * words, not one inside an element, so the words are looked up here -
+   * once: words the page put in the reader's language already
+   * (isTitleTranslated) are drawn as given.
    */
   const truncatedTitle: ReactElement | undefined =
     props.title !== undefined ? (
       <span className="block truncate">
-        {typeof props.title === "string"
+        {typeof props.title === "string" && !props.isTitleTranslated
           ? translator.translateText(props.title) || props.title
           : props.title}
       </span>
