@@ -110,7 +110,7 @@ Med vertsnettverk (`--network host`, `network_mode: host`) bruker sonden vertens
 
 I løpet av et minutt eller to viser sondens **Status** i tabellen **Egendefinerte sonder** **Tilkoblet**. Viser den fortsatt **Frakoblet**, står årsaken i sondens logg: se [Undersøk en frakoblet sonde](#undersøk-en-frakoblet-sonde).
 
-### La sonden sjekke en overvåker
+### La sonden sjekke en monitor
 
 En sonde sjekker bare monitorene den er lagt til. En ny monitor velger sondene sine i trinnet **Sonder og intervall** i **Opprett monitor**. For en monitor som finnes fra før, åpner du den og går til **Konfigurasjon → Sonder og intervall**. Siden har tre kort:
 
@@ -276,7 +276,7 @@ Sonden leser innstillingene sine fra miljøet når den starter: endre en, og sta
 | `PROBE_ID` | Sondens ID, fra **Vis ID og nøkkel**. Uten den stopper sonden ved oppstart. |
 | `ONEUPTIME_URL` | Hvor OneUptime er: `https://oneuptime.com`, eller URL-en til din egen installasjon. Uten den stopper sonden ved oppstart. |
 
-### Sjekk av overvåkere
+### Sjekk av monitorer
 
 | Variabel | Standard | Hva den gjør |
 | --- | --- | --- |
@@ -288,10 +288,10 @@ Sonden leser innstillingene sine fra miljøet når den starter: endre en, og sta
 | `PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED` | `false` | Sett til `true` for å kjøre Chromium i syntetiske monitorer inne i sin egen sandkasse. Slå den bare på når sondens container kjører med en seccomp-profil som tillater sandkassen, som Playwrights: uten en kan ikke Chromium starte. Så lenge den er av, logger sonden en advarsel ved oppstart. |
 | `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` | `60000` | Tidsgrense for skriptene til Custom Code-monitorer, i millisekunder. |
 | `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS` | `false` | Sett til `true` for at Website-, API-, External Status Page- og Custom Code-monitorer på denne sonden skal kunne nå private adresser. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access). |
-| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-monitorer på denne sonden spør utstederen av et sertifikat om den har tilbakekalt sertifikatet, slik nettlesere gjør. Sett til `false` for å slutte å spørre, for eksempel på en sonde uten internettilgang. En utsteder sonden ikke når, regnes aldri som en tilbakekalling: sonden venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. Se [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor). |
+| `PROBE_CERTIFICATE_REVOCATION_CHECK_ENABLED` | `true` | SSL Certificate-, Website- og API-monitorer på denne sonden spør utstederen av et sertifikat om den har tilbakekalt sertifikatet, slik nettlesere gjør. Sett til `false` for å slutte å spørre, for eksempel på en sonde uten internettilgang. En utsteder sonden ikke når, regnes aldri som en tilbakekalling: sonden venter noen sekunder på hver responder den ikke når, omtrent én gang hvert 5. minutt. Se [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor). |
 | `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` | `25` | Hvor mange nettverksenheter sonden poller samtidig. Øk den for en sonde som poller mange enheter. |
 
-Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet og disken deres), står på siden [Syntetisk overvåking](/docs/monitor/synthetic-monitor).
+Grensene en syntetisk overvåker kjører innenfor (hvor mange samtidig, minnet og disken deres), står på siden [Syntetisk monitor](/docs/monitor/synthetic-monitor).
 
 ### Kommunikasjon med OneUptime
 
@@ -335,7 +335,7 @@ En sonde lager bare utgående tilkoblinger, med mindre du slår på en lytter el
 | Lytter | Innstilling | Standard | Les mer |
 | --- | --- | --- | --- |
 | Innkommende forespørsler og heartbeats | `PROBE_INGRESS_PORT` | Av | [Inngangsport for innkommende forespørsler](/docs/probe/incoming-request-ingress) |
-| SNMP-traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | På, UDP 162 | [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor) |
+| SNMP-traps | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | På, UDP 162 | [Monitor for nettverksenhet](/docs/monitor/network-device-monitor) |
 | Syslog | `PROBE_SYSLOG_RECEIVER_ENABLED` | På, UDP og TCP 5140 | [Nettverkshendelser](/docs/monitor/network-events) |
 | NetFlow, IPFIX og sFlow | `PROBE_NETFLOW_RECEIVER_ENABLED` | På, UDP 2055, 4739 og 6343 | [Nettverkstrafikk](/docs/monitor/network-traffic) |
 | Helsesjekker | `PORT` | På, TCP 3874 | `/status/live` og `/status/ready` |

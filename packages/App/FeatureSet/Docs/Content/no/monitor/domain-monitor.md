@@ -1,4 +1,4 @@
-# Domene-overvåking
+# Domene-monitor
 
 En domenemonitor leser domenets registreringspost etter en tidsplan for å følge utløpsdatoen, registraren, navneserverne og statuskodene, og varsler deg før det utløper. Bruk den for hvert domene som nettstedene, API-ene og e-posten din er avhengige av: en utløpt registrering tar ned alle på én gang.
 
@@ -185,8 +185,8 @@ Registeret publiserer ingen utløpsdato, eller en i en form som ikke kan tolkes.
 ## Neste steg
 
 :::cards
-- [SSL-sertifikat-overvåking](/docs/monitor/ssl-certificate-monitor): Bli varslet før sertifikatene på domenet utløper.
-- [DNS-overvåking](/docs/monitor/dns-monitor): Sjekk at domenets poster kan slås opp, og hva de sier.
-- [DNSSEC-overvåking](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
+- [SSL-sertifikat-monitor](/docs/monitor/ssl-certificate-monitor): Bli varslet før sertifikatene på domenet utløper.
+- [DNS-monitor](/docs/monitor/dns-monitor): Sjekk at domenets poster kan slås opp, og hva de sier.
+- [DNSSEC-monitor](/docs/monitor/dnssec-monitor): Valider tillitskjeden til en signert sone.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som blir tilkalt av varslene og hendelsene.
 :::

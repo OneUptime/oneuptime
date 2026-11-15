@@ -208,7 +208,7 @@ API 块的 **请求标头** ：
 
 :::cards
 - [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability): 预算、成本，以及熔断器监视的 span。
-- [跟踪监控](/docs/monitor/traces-monitor): span 过滤器和条件的详细说明。
+- [追踪监控](/docs/monitor/traces-monitor): span 过滤器和条件的详细说明。
 - [工作流](/docs/workflows/index): 触发器、组件、变量和运行。
 - [AI 网关](/docs/telemetry/ai-gateways): 让所有代理的模型调用通过一个导出发送。
 :::

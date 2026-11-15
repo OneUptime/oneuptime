@@ -120,7 +120,7 @@ OneUptime 以 5 分钟为一个步长统计每个 SLO 的良好请求数和总�
 ## 故障排除
 
 :::details SLO 显示 正在等待请求
-它的服务在窗口内都还没有处理过任何请求。请检查这些服务是否向 OneUptime 发送追踪，以及它们的 span 中是否包含入口 span：如果一个服务的 span 全部是内部 span，就没有可统计的请求。如果 SLO 设置了 **请求过滤器**，请用它在 [跟踪浏览器](/docs/telemetry/traces-explorer) 中搜索：如果它在那里匹配不到任何请求，SLO 也就没有可统计的请求。
+它的服务在窗口内都还没有处理过任何请求。请检查这些服务是否向 OneUptime 发送追踪，以及它们的 span 中是否包含入口 span：如果一个服务的 span 全部是内部 span，就没有可统计的请求。如果 SLO 设置了 **请求过滤器**，请用它在 [追踪浏览器](/docs/telemetry/traces-explorer) 中搜索：如果它在那里匹配不到任何请求，SLO 也就没有可统计的请求。
 :::
 
 :::details 更改服务后 SLI 变了

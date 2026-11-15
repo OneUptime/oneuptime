@@ -163,7 +163,7 @@ Apri uno SLO per vedere le sue pagine nel menu laterale:
 | **Metriche** | Le metriche `oneuptime.slo.*` dello SLO, la cronologia a lungo termine del suo budget di errore e le metriche degli incidenti e degli avvisi che lo riguardano. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics). |
 | **Incidenti** | Gli incidenti dichiarati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
 | **Avvisi** | Gli avvisi generati dalle sue regole del tasso di consumo e dalla sua policy del budget di errore. Il badge conta quelli aperti. |
-| **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs). |
+| **Feed** | Cosa è successo allo SLO, come cronologia. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs). |
 | **Monitor** | I monitor che misura, e se ognuno è stato collegato da una persona o da una regola. Solo per gli SLO di disponibilità dei monitor. |
 | **Regole dei monitor** | Le regole che collegano i monitor corrispondenti. Solo per gli SLO di disponibilità dei monitor. |
 | **Regole di tasso di consumo** | Le regole che generano avvisi e dichiarano incidenti quando il budget si consuma troppo in fretta. |

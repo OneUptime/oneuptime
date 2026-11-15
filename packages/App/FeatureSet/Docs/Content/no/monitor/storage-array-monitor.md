@@ -1,4 +1,4 @@
-# Lagringsarray-overvåking
+# Lagringsarray-monitor
 
 En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arrayet selv sender ut et varsel, går tom for plass, blir tregt, mister maskinvare eller en vertssti, eller henger etter med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade og leser målingene arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*` -, som OneUptime Storage Array Agent samler inn.
 
@@ -351,7 +351,7 @@ Grupper spørringen etter objektets etikett: `name` for volumer, pods, kataloger
 
 :::cards
 - [Lagringsarray-agent](/docs/telemetry/storage-arrays): Installer agenten som sender målingene.
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Samme type monitor for Ceph-lagringsclustere.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, fra hvilken som helst kilde.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Samme type monitor for Ceph-lagringsclustere.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, fra hvilken som helst kilde.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

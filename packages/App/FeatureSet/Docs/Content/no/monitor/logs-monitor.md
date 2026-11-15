@@ -1,4 +1,4 @@
-# Logg-overvåking
+# Logg-monitor
 
 En loggmonitor teller innenfor et tidsvindu loggene tjenestene dine sender til OneUptime som samsvarer med filtrene dine (tekst, alvorlighetsgrad, tjeneste, attributter). Når antallet oppfyller kriteriene dine, endrer den monitorens status, oppretter et varsel eller erklærer en hendelse. Bruk den til å oppdage en økning i feil, en bestemt feilmelding eller en tjeneste som har sluttet å logge.
 
@@ -262,6 +262,6 @@ Logger som mangler Group By-attributtet, telles med en tom verdi. Sjekk det nøy
 :::cards
 - [Loggpipelines](/docs/telemetry/log-pipelines): Del logglinjer opp i attributter du kan filtrere og gruppere på.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett gruppeverdier og antall inn i titler og beskrivelser.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om en måling, per vert eller per container.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet på samme måte om mislykkede spans.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om en måling, per vert eller per container.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet på samme måte om mislykkede spans.
 :::

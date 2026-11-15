@@ -57,8 +57,8 @@ OneUptime begynner å føre denne registreringen når du oppgraderer til en vers
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Varsle på en verts målinger.
-- [Server- / VM-overvåking](/docs/monitor/server-monitor): Få vite når en servers agent slutter å rapportere.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Gjør et heartbeat om til en dødmannsknapp.
+- [Verts-monitor](/docs/monitor/host-monitor): Varsle på en verts målinger.
+- [Server- / VM-monitor](/docs/monitor/server-monitor): Få vite når en servers agent slutter å rapportere.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Gjør et heartbeat om til en dødmannsknapp.
 - [Oppgradering](/docs/installation/upgrading): Oppgrader en selvhostet installasjon.
 :::

@@ -1,11 +1,11 @@
-# Egendefinert kode-overvåking
+# Egendefinert kode-monitor
 
 En monitor med egendefinert kode kjører et JavaScript-skript du skriver selv, fra en sonde, etter en tidsplan. Bruk den til kontroller som de andre monitortypene ikke kan uttrykke — en pålogging etterfulgt av et autentisert API-kall, en transaksjon i flere trinn eller en verdi du regner ut fra flere svar. Hvis skriptet kaster en feil, mislykkes kontrollen; det skriptet returnerer, er tilgjengelig for kriteriene og hendelsesmalene dine.
 
 :::cards
 - [Opprett monitoren](#opprett-en-monitor-med-egendefinert-kode): Skriv et skript, og velg sondene som kjører det.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar API-kontroll i flere trinn å starte fra.
-- [Bruk hemmeligheter](#bruk-av-overvåkingshemmeligheter): Hold passord og tokener utenfor skriptet.
+- [Bruk hemmeligheter](#bruk-av-monitorhemmeligheter): Hold passord og tokener utenfor skriptet.
 - [Samle egendefinerte målinger](#egendefinerte-målinger): Vis ethvert tall skriptet ditt regner ut, i en graf.
 :::
 
@@ -31,7 +31,7 @@ Sandkassen er ikke Node.js: det finnes ingen `require`, `process`, `fetch` eller
 
 - En **sonde** som når alle endepunktene skriptet kaller. Bruk en [egendefinert sonde](/docs/probe/custom-probe) for endepunkter inne i nettverket ditt.
 - For å kalle en privat adresse (som `10.0.0.5`) må sonden tillate det: sett `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true` på den sonden. Loopback-, link-local- og skymetadata-adresser avvises alltid. Se [Tilgang til privat nettverk](/docs/self-hosted/private-network-access).
-- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+- Alle passord, API-nøkler og tokener skriptet trenger, lagret som [monitorhemmeligheter](/docs/monitor/monitor-secrets).
 
 ## Opprett en monitor med egendefinert kode
 
@@ -98,7 +98,7 @@ For å se en kjøring åpner du monitorens **Oversikt**: kortet **Monitor-sammen
 > [!NOTE]
 > `axios` i denne sandkassen følger ikke omdirigeringer, og forespørslene går ikke gjennom en proxy som er konfigurert på sonden. Be om den endelige URL-en.
 
-## Bruk av overvåkingshemmeligheter
+## Bruk av monitorhemmeligheter
 
 Henvis til en hemmelighet som `{{monitorSecrets.NAME}}` hvor som helst i skriptet. OneUptime erstatter henvisningen med verdien til hemmeligheten, som ren tekst, før skriptet når sonden. Sett derfor en hemmelighet i anførselstegn for å bruke den som en streng, og la den stå uten anførselstegn for å bruke den som et tall eller en boolsk verdi:
 
@@ -114,7 +114,7 @@ const verbose = {{monitorSecrets.Verbose}};
 console.log(apiKey.length > 0);
 ```
 
-En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
+En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
 ## Egendefinerte målinger
 
@@ -249,13 +249,13 @@ Sonden tillater ikke adresser i private nettverk. Sett `PROBE_ALLOW_PRIVATE_NETW
 :::
 
 :::details En hemmelighet fylles ikke inn
-Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets).
+Monitoren kan ikke bruke hemmeligheten, eller navnet i henvisningen samsvarer ikke nøyaktig med navnet på hemmeligheten. Se [Monitorhemmeligheter](/docs/monitor/monitor-secrets).
 :::
 
 ## Neste trinn
 
 :::cards
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
-- [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Styr en ekte nettleser i stedet for å kalle API-er.
+- [Monitorhemmeligheter](/docs/monitor/monitor-secrets): Lagre påloggingsinformasjonen skriptet ditt bruker.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett skriptets resultat og logger inn i hendelser.
 :::

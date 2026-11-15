@@ -1,6 +1,6 @@
 # Docker Swarm-agent
 
-OneUptimes Docker Swarm-agent overvåker en Docker Swarm-klynge: nodene, tjenestene, oppgavene, stackene, overlay-nettverkene, secrets, configs og volumene, pluss målingene og loggene til hver container. Du kjører den med Docker Compose på en manager-node i swarmen, og klyngen vises i OneUptime med alt dette. [Docker Swarm-overvåkere](/docs/monitor/docker-swarm-monitor) varsler ut fra det som kommer inn.
+OneUptimes Docker Swarm-agent overvåker en Docker Swarm-klynge: nodene, tjenestene, oppgavene, stackene, overlay-nettverkene, secrets, configs og volumene, pluss målingene og loggene til hver container. Du kjører den med Docker Compose på en manager-node i swarmen, og klyngen vises i OneUptime med alt dette. [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): Installasjonsskriptet eller Docker Compose, på en manager-node.
@@ -129,7 +129,7 @@ AI-agentens egne innstillinger står under [AI-agent](#ai-agent).
 | Containerens CPU, minne, antall prosesser og oppetid | Mottakeren `docker_stats` | Siden **Målinger** |
 | Containerens stdout- og stderr-logger | Mottakeren `filelog` | Siden **Logger** |
 
-Målingene til hver oppgave bærer containerens identitet, som mottakeren `docker_stats` legger til (`container.name`, `container.image.name`, `container.id` og `container.runtime=docker`), tjenesten og nodens ID, som collectoren kopierer fra etikettene Swarm setter på oppgaven (`docker.swarm.service.name` og `docker.swarm.node.id`), og nodens navn fra `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-overvåkere](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på dem.
+Målingene til hver oppgave bærer containerens identitet, som mottakeren `docker_stats` legger til (`container.name`, `container.image.name`, `container.id` og `container.runtime=docker`), tjenesten og nodens ID, som collectoren kopierer fra etikettene Swarm setter på oppgaven (`docker.swarm.service.name` og `docker.swarm.node.id`), og nodens navn fra `DOCKER_SWARM_NODE_NAME` (`docker.swarm.node.name`). [Docker Swarm-monitorer](/docs/monitor/docker-swarm-monitor#monitorinnstillinger) filtrerer på dem.
 
 ### Slik skiller den seg fra Docker-agenten
 
@@ -271,7 +271,7 @@ Agentfiler eldre enn versjon 0.161.3 startet hvert snapshot med de samme bytene,
 ## Neste trinn
 
 :::cards
-- [Docker Swarm-overvåking](/docs/monitor/docker-swarm-monitor): Varsle om noder, tjenester, oppgaver og containere.
+- [Docker Swarm-monitor](/docs/monitor/docker-swarm-monitor): Varsle om noder, tjenester, oppgaver og containere.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva Docker Swarm-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [Docker-agent](/docs/telemetry/docker-host): Overvåk heller én enkelt Docker-vert.
 :::

@@ -43,7 +43,7 @@ En ny monitor börjar med **Cluster Stopped Reporting** under **Vad som ska larm
 | Var | Vad du väljer |
 | --- | --- |
 | **Vad som ska larmas om** | En [färdig larmmall](#färdiga-larmmallar). Den fyller i mätvärdet, omfattningen, tidsintervallet och kriterierna; du kan fortfarande ändra **Tidsintervall**. |
-| **Custom Metric** | Ett mätvärde från [måttkatalogen](#måttkatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
+| **Custom Metric** | Ett mätvärde från [mätvärdeskatalogen](#mätvärdeskatalog), sedan dess **Resursomfattning**, filter, **Aggregering** (Genomsnitt, Maximum, Minimum, Summa eller Antal) och **Tidsintervall**. |
 | **Avancerad** | **Resursomfattning**, filter och **Tidsintervall**, samt dina egna mätvärdesfrågor och formler under **Välj mätvärden**, med ett livediagram över resultatet. |
 
 ### Ange kriterierna
@@ -75,11 +75,11 @@ En containers och en podds mätvärden bär namnen på de arbetsbelastningar som
 
 **Tidsintervall** är det fönster som mätvärdesfrågan täcker varje gång monitorn utvärderas, från **Past 1 Minute** upp till **Past 365 Days**. Korta fönster (1 till 15 minuter) passar för larm; längre fönster jämnar ut brusiga mätvärden.
 
-### Måttfrågor och formler
+### Mätvärdesfrågor och formler
 
 På fliken **Avancerad** anger varje fråga ett mätvärde, hur dess värden aggregeras och valfria attributfilter. En **formel** kombinerar frågor med aritmetik – mallarna för nodutnyttjande delar till exempel användningen med den allokerbara kapaciteten.
 
-## Måttkatalog
+## Mätvärdeskatalog
 
 Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurstyp:
 

@@ -300,7 +300,7 @@ OneUptime 的 SIEM：来自你的日志、安全工具以及你发送的其他�
 
 一个请求逐步穿过你的服务的路径。每一步都是一个 span，带有它的耗时和结果。
 
-参见 [跟踪浏览器](/docs/telemetry/traces-explorer)。
+参见 [追踪浏览器](/docs/telemetry/traces-explorer)。
 
 ### 性能剖析
 

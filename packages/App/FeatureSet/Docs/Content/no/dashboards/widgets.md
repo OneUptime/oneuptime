@@ -142,7 +142,7 @@ Den som kan redigere dashbordet, bestemmer hva denne widgeten kjører, og alle s
 
 Sporwidgetene teller bare rotspenn, slik sporutforskeren gjør, med mindre du tar med underordnede spenn i innstillingene deres. Et vanlig mønster er et ventetidsdiagram øverst med en liste over trege spor under.
 
-## Hendelser, varsler og overvåkinger
+## Hendelser, varsler og monitorer
 
 | Widget | Hva den viser | Filtre |
 | --- | --- | --- |

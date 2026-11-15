@@ -1,4 +1,4 @@
-# Nettverksenhets-overvåking
+# Monitor for nettverksenhet
 
 Overvåk svitsjer, rutere, brannmurer, tilgangspunkter, PDU-er, kameraer og skrivere: alt som har en adresse på nettverket ditt, enten det snakker SNMP eller ikke.
 

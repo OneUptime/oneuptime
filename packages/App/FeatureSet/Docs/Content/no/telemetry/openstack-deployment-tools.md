@@ -39,7 +39,7 @@ Separat ble det en ekte agent sendte på DevStack og det Kolla-Ansibles Alertman
 Ethvert verktøy med en Alertmanager kan ha hendelser i dag: et varsel som utløses blir en hendelse, med vaktordning og statussider fra første time, og den løses når varselet gjør det. Det er ingenting å installere, og dette fungerer sammen med alt annet på denne siden.
 
 :::steps
-### Lag overvåkeren
+### Lag monitoren
 
 Lag en Incoming Request-overvåker slik [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#motta-varsler-med-en-monitor) sier, og kopier dens **Heartbeat URL**. Det er `<secret key>`-adressen i hvert verktøys mottaker nedenfor.
 

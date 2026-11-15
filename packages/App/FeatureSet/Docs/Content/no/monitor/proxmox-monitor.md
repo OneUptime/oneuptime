@@ -1,4 +1,4 @@
-# Proxmox-overvåking
+# Proxmox-monitor
 
 En Proxmox-monitor overvåker én Proxmox VE-klynge – nodene, VM-ene og LXC-containerne, lagringen, HA-tilstanden, dekningen av sikkerhetskopijobber og lagringsreplikeringen – og sier fra når en node blir frakoblet, en gjest stopper eller lagringen fylles opp. Den leser målingene `pve_*` som OneUptimes Proxmox-agent samler inn, så ingenting undersøkes utenfra.
 
@@ -296,7 +296,7 @@ Serier for nettverks- og disk-I/O er tellere over hele levetiden, og kriterier s
 
 :::cards
 - [Proxmox-agent](/docs/telemetry/proxmox): Installer agenten, eller sett opp det innebygde pushet.
-- [Ceph-overvåking](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
+- [Ceph-monitor](/docs/monitor/ceph-monitor): Overvåk Ceph-lagringen bak en Proxmox-klynge.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Samme type monitor for vSphere.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

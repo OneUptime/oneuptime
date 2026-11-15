@@ -1,4 +1,4 @@
-# Server- / VM-overvåking
+# Server- / VM-monitor
 
 En Server- / VM-monitor overvåker én maskin gjennom OneUptimes infrastrukturagent (`oneuptime-infrastructure-agent`), en liten tjeneste som hvert 30. sekund rapporterer CPU, minne, disker, belastning, nettverk og kjørende prosesser til OneUptime. Denne siden viser hvordan du kobler agenten til en Server- / VM-monitor, hva agenten rapporterer, og hvordan du skriver kriteriene som avgjør når serveren er tilkoblet eller frakoblet.
 
@@ -292,7 +292,7 @@ Bare et **Er tilkoblet**-kriterium markerer en stille server som frakoblet. Legg
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmålinger.
+- [Verts-monitor](/docs/monitor/host-monitor): Monitoren for nye servere, bygget på OpenTelemetry-vertsmålinger.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Send vertsmålinger og logger fra Linux, macOS og Windows.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett CPU-, minne-, disk- og prosessdetaljer i hendelsestitler.
 :::

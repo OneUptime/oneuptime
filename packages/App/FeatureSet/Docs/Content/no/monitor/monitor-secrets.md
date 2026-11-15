@@ -1,4 +1,4 @@
-# Overvåkingshemmeligheter
+# Monitorhemmeligheter
 
 Monitorhemmeligheter holder passordene, API-nøklene og tokenene som monitorene dine trenger, utenfor selve monitoren. Du lagrer en verdi én gang, kryptert, velger hvilke monitorer som kan bruke den, og viser til den som `{{monitorSecrets.NAME}}` der monitoren trenger den.
 
@@ -101,7 +101,7 @@ Bare feltene i tabellen ovenfor tar imot hemmeligheter. I ethvert annet felt sen
 ## Neste steg
 
 :::cards
-- [API-overvåking](/docs/monitor/api-monitor): Send en hemmelighet i et forespørselshode.
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Bruk en hemmelighet i et nettleserskript.
-- [SQL-spørring-overvåking](/docs/monitor/sql-monitor): Hold et databasepassord kryptert.
+- [API-monitor](/docs/monitor/api-monitor): Send en hemmelighet i et forespørselshode.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Bruk en hemmelighet i et nettleserskript.
+- [SQL-spørring-monitor](/docs/monitor/sql-monitor): Hold et databasepassord kryptert.
 :::

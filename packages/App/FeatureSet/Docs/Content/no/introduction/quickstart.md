@@ -166,7 +166,7 @@ En statusside viser en hendelse når en av hendelsens monitorer er på siden. Sj
 :::
 
 :::details Monitoren sier frakoblet, men nettstedet mitt virker
-Åpne monitoren, og se hva sondene mottok. Se feilsøkingsdelen i [Nettsted-overvåking](/docs/monitor/website-monitor).
+Åpne monitoren, og se hva sondene mottok. Se feilsøkingsdelen i [Nettsted-monitor](/docs/monitor/website-monitor).
 :::
 
 ## Neste steg
