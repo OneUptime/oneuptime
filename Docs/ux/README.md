@@ -940,7 +940,9 @@ then `npm run i18n:validate` from the root.
   "Statusseiten" (#8229). A string whose English names the thing says that word too, even where the
   other word has a meaning of its own: Korean said 알림, its word for a notification, for an alert in
   600 strings beside 경고 in 1,100, and Danish said "overvågning" (monitoring) for a monitor (#8628).
-  The docs prose says it on every line whose English line names the thing (#8692).
+  The docs prose says it on every line whose English line names the thing (#8692), and so do
+  the docs titles, with the headings, anchors and links that name them (#8705), and the Admin
+  Dashboard (#8740).
   A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
   in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the

@@ -2714,7 +2714,7 @@
   "Deleting an incoming call policy also releases its phone numbers, so they can no longer be called, and deletes its escalation rules and call logs.": "При удалении политики входящих звонков освобождаются и её номера телефонов — на них больше нельзя будет позвонить, — а также удаляются её правила эскалации и журналы вызовов.",
   "Deleting a workflow also deletes its variables and run logs.": "При удалении рабочего процесса удаляются и его переменные и журналы запусков.",
   "Deleting a dashboard also deletes its custom domains.": "При удалении панели удаляются и её пользовательские домены.",
-  "Deleting a runbook also deletes its run history.": "При удалении сценария удаляется и история его запусков.",
+  "Deleting a runbook also deletes its run history.": "При удалении сборника инструкций удаляется и история его запусков.",
   "Deleting an SLO also deletes its burn rate rules and its error budget policy.": "При удалении SLO удаляются и его правила скорости расхода, и его политика бюджета ошибок.",
   "Deleting a service also deletes its source maps, and the metric pipeline rules and LLM cost budgets set for it.": "При удалении сервиса удаляются и его карты исходников, а также заданные для него правила конвейера метрик и бюджеты затрат на LLM.",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "При удалении сетевого устройства удаляются и его интерфейсы, связи, конечные точки и любой монитор, созданный для него OneUptime, вместе с историей этого монитора.",
