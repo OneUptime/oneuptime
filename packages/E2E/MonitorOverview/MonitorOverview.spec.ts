@@ -518,6 +518,13 @@ async function factValue(page: Page, label: string): Promise<string> {
   return pair ? pair.value : "";
 }
 
+/*
+ * Each stat tile as it is drawn: its label, figure and description, without
+ * the words only a screen reader reads (.sr-only). A figure the monitor has
+ * no reading for is EmptyFigure (#8647): a quiet dash on screen, "Not set"
+ * out loud. Read whole, its textContent was "—Not set", which no one sees or
+ * hears (#8735); statFigureWords reads what is heard.
+ */
 async function statCells(page: Page): Promise<Array<StatCell>> {
   return statBar(page)
     .locator(":scope > div")
@@ -525,7 +532,11 @@ async function statCells(page: Page): Promise<Array<StatCell>> {
       return cells.map((cell: Element): StatCell => {
         const parts: Array<string> = Array.from(cell.children).map(
           (child: Element): string => {
-            return (child.textContent || "").trim();
+            const drawn: Element = child.cloneNode(true) as Element;
+            drawn.querySelectorAll(".sr-only").forEach((words: Element) => {
+              words.remove();
+            });
+            return (drawn.textContent || "").trim();
           },
         );
         const result: StatCell = {
@@ -536,6 +547,40 @@ async function statCells(page: Page): Promise<Array<StatCell>> {
           result.description = parts[2];
         }
         return result;
+      });
+    });
+}
+
+// What a screen reader hears of a stat tile's figure, and whether it is EmptyFigure.
+interface StatFigureWords {
+  heard: string;
+  isEmptyFigure: boolean;
+}
+
+/*
+ * Each stat tile's figure as a screen reader reads it: its text without
+ * what is hidden from one (aria-hidden), the quiet dash among it.
+ */
+async function statFigureWords(page: Page): Promise<Array<StatFigureWords>> {
+  return statBar(page)
+    .locator(":scope > div")
+    .evaluateAll((cells: Array<Element>): Array<StatFigureWords> => {
+      return cells.map((cell: Element): StatFigureWords => {
+        const figure: Element | undefined = cell.children[1];
+        if (!figure) {
+          return { heard: "", isEmptyFigure: false };
+        }
+        const heard: Element = figure.cloneNode(true) as Element;
+        heard
+          .querySelectorAll('[aria-hidden="true"]')
+          .forEach((hidden: Element) => {
+            hidden.remove();
+          });
+        return {
+          heard: (heard.textContent || "").trim(),
+          isEmptyFigure:
+            figure.querySelector('[data-testid="empty-figure"]') !== null,
+        };
       });
     });
 }
@@ -1780,6 +1825,12 @@ test.describe("roles", () => {
         "—|No access to status history",
         "—|No access to status history",
       ]);
+    // Each dash is the quiet one, heard as "Not set" (#8735).
+    expect((await statFigureWords(page)).slice(0, 3)).toEqual([
+      { heard: "Not set", isEmptyFigure: true },
+      { heard: "Not set", isEmptyFigure: true },
+      { heard: "Not set", isEmptyFigure: true },
+    ]);
     const history: Locator = card(page, "Uptime history");
     await expect(history.getByTestId("monitor-uptime-forbidden")).toContainText(
       "Uptime history is hidden",
@@ -1829,11 +1880,21 @@ test.describe("failures", () => {
       value: "—",
       description: "Uptime is unavailable",
     });
+    // The quiet dash, heard as "Not set" (#8735).
+    expect((await statFigureWords(page))[0]).toEqual({
+      heard: "Not set",
+      isEmptyFigure: true,
+    });
 
     await history.getByRole("button", { name: "Try again" }).click();
     await expect(uptimeBars(page)).toHaveCount(90);
     await expect(error).toHaveCount(0);
     expect((await statCells(page))[0]?.value).toBe("100%");
+    // A figure is heard as it is drawn.
+    expect((await statFigureWords(page))[0]).toEqual({
+      heard: "100%",
+      isEmptyFigure: false,
+    });
     expect(await apiRequestsTo(page, "/monitor/uptime-summary/")).toHaveLength(
       2,
     );
