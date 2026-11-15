@@ -148,6 +148,13 @@ import {
   parseSloReleaseCheckOptions,
 } from "Common/Utils/Slo/SloReleaseCheck";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  WorkflowTemplate,
+  WorkflowTemplateCategory,
+  getTemplateGraphSpec,
+  getWorkflowTemplateCategoryInfo,
+  getWorkflowTemplates,
+} from "Common/Types/Workflow/Templates";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -4346,5 +4353,97 @@ describe("Release Checks, against the product", () => {
     expect(page).toContain(
       "a request SLO with no services, a latency SLO with no threshold, a Metric SLO with no metric it can count, a monitor uptime SLO with no monitors - is answered with HTTP 400",
     );
+  });
+
+  /*
+   * Turn a feature flag off (#8447): the templates by the names the picker
+   * shows, in the category the page names, asking for the rule's ID by the
+   * title the wizard shows it under, which Show ID on the rules page gives.
+   */
+  describe("Turn a feature flag off", () => {
+    const flagSection: string = section(page, "Turn a feature flag off");
+    const templates: Array<WorkflowTemplate> = getWorkflowTemplates().filter(
+      (template: WorkflowTemplate): boolean => {
+        return template.category === WorkflowTemplateCategory.Slos;
+      },
+    );
+
+    type StepArgsFunction = (templateId: string, index: number) => JSONObject;
+
+    const stepArgs: StepArgsFunction = (
+      templateId: string,
+      index: number,
+    ): JSONObject => {
+      const nodes: Array<{ args?: JSONObject }> = (getTemplateGraphSpec(
+        templateId,
+      )?.nodes || []) as Array<{ args?: JSONObject }>;
+
+      return nodes[index]?.args || {};
+    };
+
+    it("lists each SLOs template by the name the picker shows, in a table of its own", () => {
+      expect(templates.length).toBe(2);
+      expect(firstCells(flagSection)).toEqual(
+        templates.map((template: WorkflowTemplate): string => {
+          return `**${template.name}**`;
+        }),
+      );
+    });
+
+    it("names the category by the label the picker shows", () => {
+      expect(flagSection).toContain(
+        `choose the **${getWorkflowTemplateCategoryInfo(WorkflowTemplateCategory.Slos).label}** category`,
+      );
+    });
+
+    it("has the rule's ID pasted where the wizard asks for it, from Show ID in the rule's menu", () => {
+      for (const template of templates) {
+        expect(template.variables[0]?.title).toBe("Burn Rate Rule ID");
+      }
+
+      expect(flagSection).toContain(
+        "Paste the rule's ID into **Burn Rate Rule ID**",
+      );
+      expect(flagSection).toContain("pick **Show ID**");
+      expect(readSource("burnRulesPage")).toContain("showViewIdButton={true}");
+    });
+
+    it("starts each time a rule fires: the two stamps of a fire are what the trigger watches", () => {
+      for (const template of templates) {
+        expect(
+          Object.keys(
+            (stepArgs(template.id, 0)["listen-on"] as JSONObject) || {},
+          ).sort(),
+        ).toEqual(["lastAlertCreatedAt", "lastIncidentCreatedAt"]);
+      }
+
+      expect(
+        new ServiceLevelObjectiveBurnRateRule().getTableColumnMetadata(
+          "lastAlertCreatedAt",
+        ).title,
+      ).toBe("Last Alert Created At");
+      expect(flagSection).toContain(
+        "The workflow starts each time a burn rate rule in the project raises an alert or declares an incident.",
+      );
+    });
+
+    it("says what each template's call does, as its API step makes it", () => {
+      const launchDarklyBody: JSONObject = JSON.parse(
+        stepArgs("slo-burn-launchdarkly-flag-off", 2)["request-body"] as string,
+      ) as JSONObject;
+
+      expect(launchDarklyBody["instructions"]).toEqual([
+        { kind: "turnFlagOff" },
+      ]);
+      expect(String(launchDarklyBody["comment"])).toContain("burn rate rule");
+      expect(flagSection).toContain(
+        "LaunchDarkly's `turnFlagOff` instruction, with a comment that names the rule and the SLO",
+      );
+
+      expect(String(stepArgs("slo-burn-unleash-flag-off", 2)["url"])).toMatch(
+        /\/environments\/\{\{local\.variables\.unleashEnvironment\}\}\/off$/,
+      );
+      expect(flagSection).toContain("Unleash's `off` for the environment");
+    });
   });
 });
