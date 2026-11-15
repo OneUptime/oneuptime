@@ -10,6 +10,7 @@ import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { withUnit } from "../SuiteHelpers/NoBreakSpaces";
 
 /*
  * Renders the real Incident, Alert, Scheduled Maintenance, Incident Episode
@@ -2655,6 +2656,10 @@ interface EvidenceCase {
   expectRows: (details: Locator) => Promise<void>;
 }
 
+/*
+ * When each query ran, in the browser's zone, UTC (#8475). How long it took
+ * is read as a raw string, its number held to its unit (#8302, #8689).
+ */
 const RAN_AT: LabelledValue = { label: "Ran at", value: "Sep 14, 6:01 PM UTC" };
 
 const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
@@ -2669,7 +2674,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Time window", value: "Created within the last 90 days" },
       { label: "Limit", value: "10" },
       RAN_AT,
-      { label: "Took", value: "412 ms" },
+      { label: "Took", value: withUnit(412, "ms") },
       { label: "Tool", value: "search_incidents" },
     ],
     openIn: { name: "Open in Incidents", href: `${DASHBOARD}/incidents` },
@@ -2697,7 +2702,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Aggregation", value: "P95" },
       { label: "Entity", value: "75000000…" },
       RAN_AT,
-      { label: "Took", value: "1.2 s" },
+      { label: "Took", value: withUnit(1.2, "s") },
       { label: "Tool", value: "query_metrics" },
     ],
     openIn: { name: "Open in Metrics", href: `${DASHBOARD}/metrics` },
@@ -2729,7 +2734,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Service", value: "75000000…" },
       { label: "Limit", value: "50" },
       RAN_AT,
-      { label: "Took", value: "864 ms" },
+      { label: "Took", value: withUnit(864, "ms") },
       { label: "Tool", value: "search_logs" },
     ],
     openIn: { name: "Open in Logs", href: `${DASHBOARD}/logs` },
@@ -2761,7 +2766,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Time window", value: "Sep 13, 6:02 PM – Sep 14, 6:02 PM UTC" },
       { label: "Limit per source", value: "20" },
       RAN_AT,
-      { label: "Took", value: "522 ms" },
+      { label: "Took", value: withUnit(522, "ms") },
       { label: "Tool", value: "recent_changes" },
     ],
     isPinned: true,
@@ -2783,7 +2788,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
     query: [
       { label: "Trace", value: "5c1e0b7a…" },
       RAN_AT,
-      { label: "Took", value: "640 ms" },
+      { label: "Took", value: withUnit(640, "ms") },
       { label: "Tool", value: "get_trace" },
     ],
     openIn: {
@@ -2795,8 +2800,12 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       await expect(details).toContainText(
         "Trace 5c1e0b7a…2a4c — POST /api/checkout",
       );
+      /*
+       * Its duration as formatMilliseconds writes it (9c6f55c0ee0): grouped,
+       * and held to its unit (#8302). A title is matched as written.
+       */
       await expect(
-        details.getByTitle("pg.pool.connect · 1940 ms"),
+        details.getByTitle(`pg.pool.connect · ${withUnit("1,940", "ms")}`),
       ).toBeVisible();
       await expect(details.getByTitle("Span recorded an error")).toHaveCount(2);
       await expect(details).toContainText("1,940 ms");
@@ -2813,7 +2822,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Include resolved", value: "No" },
       { label: "Limit", value: "10" },
       RAN_AT,
-      { label: "Took", value: "288 ms" },
+      { label: "Took", value: withUnit(288, "ms") },
       { label: "Tool", value: "top_exceptions" },
     ],
     openIn: {
@@ -2842,7 +2851,7 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       { label: "Incident", value: "20000000…" },
       { label: "Limit", value: "50" },
       RAN_AT,
-      { label: "Took", value: "204 ms" },
+      { label: "Took", value: withUnit(204, "ms") },
       { label: "Tool", value: "get_incident_timeline" },
     ],
     openIn: { name: "Open in Incident", href: INCIDENT_PATH },
@@ -2997,7 +3006,7 @@ test.describe("evidence checked", () => {
       { label: "Looked up", value: "Service" },
       { label: "Search", value: "“checkout”" },
       RAN_AT,
-      { label: "Took", value: "96 ms" },
+      { label: "Took", value: withUnit(96, "ms") },
       { label: "Tool", value: "lookup_context" },
     ]);
     await expect(details).toContainText(

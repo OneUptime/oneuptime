@@ -11,6 +11,7 @@ import fs from "fs/promises";
 import path from "path";
 import { inflateSync } from "zlib";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
+import { withSpacesShown, withUnit } from "../SuiteHelpers/NoBreakSpaces";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import {
   dashboardWord,
@@ -1812,7 +1813,10 @@ test.describe("what an answer carries fits where it is drawn", () => {
 
       if (view.lang === "de") {
         expect(date.text).toContain("Okt.");
-        expect(date.title).toContain("vor 3 Minuten");
+        // The number held to its unit, as Intl's relative time is (#8456).
+        expect(withSpacesShown(date.title)).toContain(
+          withSpacesShown(`vor ${withUnit(3, "Minuten")}`),
+        );
       } else {
         expect(date.text).toBe("Oct 27, 2:57 PM");
         expect(date.title).toMatch(WHOLE_DATE_UNDER_THE_POINTER);
