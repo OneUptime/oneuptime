@@ -2813,14 +2813,15 @@ test.describe("code in a sentence read from the right", () => {
         NAMES_HELP_IDS,
       );
 
-      // Arabic words all three; Persian leaves the authenticator in English.
+      /*
+       * Both languages word all three. Persian left the authenticator's
+       * help in English until 7ef63100d98 worded it (#8658).
+       */
       expect(
         starts.map((start: SentenceStart): string => {
           return start.testId;
         }),
-      ).toEqual(
-        language === "fa" ? ["names-smtp", "names-provider"] : NAMES_HELP_IDS,
-      );
+      ).toEqual(NAMES_HELP_IDS);
       expect(starts).toEqual(
         starts.map((start: SentenceStart): SentenceStart => {
           return {
