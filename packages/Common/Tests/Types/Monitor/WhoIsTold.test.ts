@@ -126,12 +126,14 @@ function breaksOf(data: {
   channels?: WhoIsToldChannels;
   incidentRules?: boolean;
   alertRules?: boolean;
+  policies?: boolean;
 }): Array<WhoIsToldBreak> {
   return getWhoIsToldBreaks({
     criteria: data.criteria,
     channels: data.channels || channels(),
     projectHasIncidentOnCallRules: data.incidentRules ?? true,
     projectHasAlertOnCallRules: data.alertRules ?? true,
+    projectHasOnCallPolicies: data.policies ?? true,
   });
 }
 
@@ -149,6 +151,7 @@ describe("how a page of one severity reaches one person", () => {
     ],
     hasNoRule: false,
     isOptedOut: false,
+    fallbackChannels: [OnCallPageChannel.Push],
     verifiedChannels: [OnCallPageChannel.Push],
     isFallbackEnabled: true,
     channelsOff: [],
@@ -200,7 +203,7 @@ describe("how a page of one severity reaches one person", () => {
     });
   });
 
-  test("with no rule for the severity, a page falls back to every verified method", () => {
+  test("with no rule for the severity, a page goes to what the fallback picks", () => {
     expect(
       getWhoIsToldPersonReach({ ...base, ruleMethods: [], hasNoRule: true }),
     ).toEqual({
@@ -216,6 +219,7 @@ describe("how a page of one severity reaches one person", () => {
         ...base,
         ruleMethods: [],
         hasNoRule: true,
+        fallbackChannels: [],
         verifiedChannels: [],
       }),
     ).toEqual({
@@ -278,6 +282,204 @@ describe("how a page of one severity reaches one person", () => {
       isFallback: false,
       isReachable: false,
       problem: WhoIsToldPersonProblem.ChannelsOff,
+    });
+  });
+});
+
+/*
+ * #7528: a person with no rule for the severity is reached by what the
+ * project's fallback picks (UserNotificationRuleService
+ * .executeFallbackNotification) - every free verified method, or else ONE
+ * paid one, or else a webhook - never by every method they verified. The
+ * card listed "Email, SMS and Phone call" for somebody a High page only
+ * emails.
+ */
+describe("a person with no rule for the severity is reached by what the fallback picks (#7528)", () => {
+  const noRule: Parameters<typeof getWhoIsToldPersonReach>[0] = {
+    ruleMethods: [],
+    hasNoRule: true,
+    isOptedOut: false,
+    fallbackChannels: [],
+    verifiedChannels: [],
+    isFallbackEnabled: true,
+    channelsOff: [],
+  };
+
+  test("a verified email, number and phone: the fallback emails them, and only that is said", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [
+          OnCallPageChannel.Email,
+          OnCallPageChannel.SMS,
+          OnCallPageChannel.Call,
+        ],
+      }),
+    ).toEqual({
+      channels: [OnCallPageChannel.Email],
+      isFallback: true,
+      isReachable: true,
+    });
+  });
+
+  test("no free method: the one paid method it picks, a text", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.SMS],
+        verifiedChannels: [OnCallPageChannel.SMS, OnCallPageChannel.Call],
+      }).channels,
+    ).toEqual([OnCallPageChannel.SMS]);
+  });
+
+  test("texts off in the project: the call it picks instead", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Call],
+        verifiedChannels: [OnCallPageChannel.SMS, OnCallPageChannel.Call],
+        channelsOff: [OnCallPageChannel.SMS],
+      }),
+    ).toEqual({
+      channels: [OnCallPageChannel.Call],
+      isFallback: true,
+      isReachable: true,
+    });
+  });
+
+  test("only a webhook: the webhook", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Webhook],
+      }).channels,
+    ).toEqual([OnCallPageChannel.Webhook]);
+  });
+
+  test("every free method, in the order the fallback sends them, each once", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [
+          OnCallPageChannel.Push,
+          OnCallPageChannel.Email,
+          OnCallPageChannel.Slack,
+          OnCallPageChannel.Email,
+        ],
+      }).channels,
+    ).toEqual([
+      OnCallPageChannel.Push,
+      OnCallPageChannel.Email,
+      OnCallPageChannel.Slack,
+    ]);
+  });
+
+  test("nothing verified: unreachable, with no verified method", () => {
+    expect(getWhoIsToldPersonReach(noRule)).toEqual({
+      channels: [],
+      isFallback: true,
+      isReachable: false,
+      problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+    });
+  });
+
+  test("the fallback picks nothing as their only method's channel is off: that switch is the break, as for a rule", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        verifiedChannels: [OnCallPageChannel.SMS, OnCallPageChannel.SMS],
+        channelsOff: [OnCallPageChannel.SMS, OnCallPageChannel.Call],
+      }),
+    ).toEqual({
+      channels: [OnCallPageChannel.SMS],
+      isFallback: true,
+      isReachable: false,
+      problem: WhoIsToldPersonProblem.ChannelsOff,
+    });
+  });
+
+  test("a verified method the fallback does not pick, on a channel that is on, is never said", () => {
+    const reach: ReturnType<typeof getWhoIsToldPersonReach> =
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [
+          OnCallPageChannel.Email,
+          OnCallPageChannel.SMS,
+          OnCallPageChannel.Call,
+          OnCallPageChannel.WhatsApp,
+        ],
+      });
+
+    expect(reach.channels).not.toContain(OnCallPageChannel.SMS);
+    expect(reach.channels).not.toContain(OnCallPageChannel.Call);
+    expect(reach.channels).not.toContain(OnCallPageChannel.WhatsApp);
+  });
+
+  test("the fallback off: unchanged - nothing is sent, whatever it would pick", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [OnCallPageChannel.Email],
+        isFallbackEnabled: false,
+      }),
+    ).toEqual({
+      channels: [],
+      isFallback: false,
+      isReachable: false,
+      problem: WhoIsToldPersonProblem.NoRuleNoFallback,
+    });
+  });
+
+  test("opted out: unchanged - nothing is sent, whatever it would pick", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [OnCallPageChannel.Email],
+        isOptedOut: true,
+      }),
+    ).toEqual({
+      channels: [],
+      isFallback: false,
+      isReachable: false,
+      problem: WhoIsToldPersonProblem.OptedOut,
+    });
+  });
+
+  test("somebody with a rule is reached by their rule, never by what the fallback would pick", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        hasNoRule: false,
+        ruleMethods: [{ channel: OnCallPageChannel.Call, isVerified: true }],
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [OnCallPageChannel.Email, OnCallPageChannel.Call],
+      }),
+    ).toEqual({
+      channels: [OnCallPageChannel.Call],
+      isFallback: false,
+      isReachable: true,
+    });
+  });
+
+  test("somebody with a rule whose method is unverified is not reached through the fallback's pick", () => {
+    expect(
+      getWhoIsToldPersonReach({
+        ...noRule,
+        hasNoRule: false,
+        ruleMethods: [{ channel: OnCallPageChannel.SMS, isVerified: false }],
+        fallbackChannels: [OnCallPageChannel.Email],
+        verifiedChannels: [OnCallPageChannel.Email],
+        channelsOff: [OnCallPageChannel.Email],
+      }),
+    ).toEqual({
+      channels: [],
+      isFallback: false,
+      isReachable: false,
+      problem: WhoIsToldPersonProblem.NoVerifiedMethod,
     });
   });
 });
@@ -394,6 +596,188 @@ describe("every break in a monitor's chain", () => {
         }),
       ),
     ).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+  });
+
+  /*
+   * #7369: in a project with no on-call policy yet - a new project's first
+   * monitor - "Set Up Paging" opened the incident on-call rules builder,
+   * whose rules page policies the project does not have. The fix is the
+   * on-call guided setup there, which makes the first policy with the
+   * rules that run it for every new incident and alert; a project with a
+   * policy keeps the rules.
+   */
+  describe("nobody paged in a project with no on-call policy yet (#7369)", () => {
+    test("an incident: the fix is the on-call guided setup, and the sentence says why", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [criteria({ events: [event({ rules: [], policies: [] })] })],
+        incidentRules: false,
+        alertRules: false,
+        policies: false,
+      });
+
+      expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.OnCallGuidedSetup);
+      expect(breaks[0]!.recordKind).toBe(OnCallTestPageRecordKind.Incident);
+      expect(breaks[0]!.message).toBe(
+        "Nobody is paged: this project has no on-call policy yet. Set up paging to make one that pages someone for every new incident and alert.",
+      );
+    });
+
+    test("an alert: the same fix, as the setup adds the alert rule too", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: false,
+        alertRules: false,
+        policies: false,
+      });
+
+      expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.OnCallGuidedSetup);
+      expect(breaks[0]!.recordKind).toBe(OnCallTestPageRecordKind.Alert);
+    });
+
+    test("an incident and an alert from one monitor: each is its own break, both to the setup", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({ rules: [], policies: [] }),
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: false,
+        alertRules: false,
+        policies: false,
+      });
+
+      expect(
+        breaks.map((brk: WhoIsToldBreak): Array<unknown> => {
+          return [brk.kind, brk.recordKind, brk.fix];
+        }),
+      ).toEqual([
+        [
+          WhoIsToldBreakKind.NobodyPaged,
+          OnCallTestPageRecordKind.Incident,
+          WhoIsToldFix.OnCallGuidedSetup,
+        ],
+        [
+          WhoIsToldBreakKind.NobodyPaged,
+          OnCallTestPageRecordKind.Alert,
+          WhoIsToldFix.OnCallGuidedSetup,
+        ],
+      ]);
+    });
+
+    test("a project with a policy keeps the rules as the fix, for incidents and alerts", () => {
+      const incident: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [criteria({ events: [event({ rules: [], policies: [] })] })],
+        incidentRules: false,
+        alertRules: false,
+        policies: true,
+      });
+      const alert: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: true,
+        alertRules: true,
+        policies: true,
+      });
+
+      expect(incident[0]!.fix).toBe(WhoIsToldFix.IncidentOnCallRules);
+      expect(incident[0]!.message).toContain(
+        "Add an on-call rule for incidents.",
+      );
+      expect(alert[0]!.fix).toBe(WhoIsToldFix.AlertOnCallRules);
+    });
+
+    /*
+     * Incident rules whose policies were all deleted page nobody either: the
+     * missing policy is the break, not the missing alert rule, as an alert
+     * rule would have no policy to page.
+     */
+    test("alerts while only incidents have rules, and no policy: the policy is what is missing", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: true,
+        alertRules: false,
+        policies: false,
+      });
+
+      expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.NobodyPaged]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.OnCallGuidedSetup);
+    });
+
+    test("alerts while only incidents have rules, with a policy: the alert rules, as before", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [
+          criteria({
+            events: [
+              event({
+                kind: OnCallTestPageRecordKind.Alert,
+                rules: [],
+                policies: [],
+              }),
+            ],
+          }),
+        ],
+        incidentRules: true,
+        alertRules: false,
+        policies: true,
+      });
+
+      expect(kindsOf(breaks)).toEqual([
+        WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+      ]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.AlertOnCallRules);
+    });
+
+    test("a chain that pages somebody has no break, policies or none", () => {
+      expect(breaksOf({ criteria: [criteria()], policies: false })).toEqual([]);
+    });
+
+    test("a monitor whose criteria do nothing is the criteria's break, not the setup's", () => {
+      const breaks: Array<WhoIsToldBreak> = breaksOf({
+        criteria: [],
+        policies: false,
+      });
+
+      expect(kindsOf(breaks)).toEqual([WhoIsToldBreakKind.NothingHappens]);
+      expect(breaks[0]!.fix).toBe(WhoIsToldFix.MonitorCriteria);
+    });
   });
 
   test("a policy with no escalation rules pages nobody, and names the policy", () => {
@@ -788,6 +1172,27 @@ describe("a break's sentence", () => {
         problem: WhoIsToldPersonProblem.NoRuleNoFallback,
       }),
     ).toContain("Someone this policy pages has no on-call rule");
+  });
+
+  test("nobody paged says why by its fix: no policy yet, or no rule that matches (#7369)", () => {
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.OnCallGuidedSetup,
+        recordKind: OnCallTestPageRecordKind.Alert,
+      }),
+    ).toBe(
+      "Nobody is paged: this project has no on-call policy yet. Set up paging to make one that pages someone for every new incident and alert.",
+    );
+    expect(
+      getWhoIsToldBreakMessage({
+        kind: WhoIsToldBreakKind.NobodyPaged,
+        fix: WhoIsToldFix.AlertOnCallRules,
+        recordKind: OnCallTestPageRecordKind.Alert,
+      }),
+    ).toBe(
+      "Nobody is paged: no on-call rule matches alerts from this monitor, and its criteria names no on-call policy. Add an on-call rule for alerts.",
+    );
   });
 
   test("every kind of break says something, and what to change", () => {

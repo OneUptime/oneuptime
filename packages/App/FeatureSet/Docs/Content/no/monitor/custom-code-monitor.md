@@ -149,7 +149,7 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte metrikker**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
+Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
 
 ### Grenser
 

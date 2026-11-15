@@ -88,6 +88,7 @@ import {
   getCreateFromRecordQuery,
 } from "../CreateFromRecord/CreateFromRecord";
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -743,7 +744,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: Incident): ReactElement => {
               if (!item.incidentNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               const numberLabel: string =
@@ -1018,7 +1019,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 !item.declaredAt ||
                 (isResolved && (isLoadingIncidentDurations || !resolvedAt))
               ) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (

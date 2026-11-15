@@ -79,7 +79,8 @@ export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
     job: "Know when your website or API is down",
     dashboardLabels: [
       "Know when my website or API is down",
-      "Owners",
+      // The Cloud tab: the button the step gives a Free plan with no card (#7367).
+      "Add Payment Method",
       "Home",
       "What do you want to do first?",
       "Continue",

@@ -16,7 +16,7 @@
 | Тип | Запись | Ресурс Terraform |
 | --- | --- | --- |
 | `Monitor` | Монитор | `oneuptime_monitor` |
-| `StatusPage` | Страница состояния | `oneuptime_status_page` |
+| `StatusPage` | Страница статуса | `oneuptime_status_page` |
 | `OnCallPolicy` | Политика дежурства | `oneuptime_on_call_policy` |
 | `Team` | Команда | `oneuptime_team` |
 | `Label` | Метка | `oneuptime_label` |

@@ -27,6 +27,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const kindOptions: Array<DropdownOption> = SCAN_KINDS.map(
   (kind: string): DropdownOption => {
@@ -127,7 +128,11 @@ const DataSecurityScansPage: FunctionComponent<
                   className="h-4 w-4 text-gray-400"
                 />
                 <span>
-                  {kind ? translator.translateText(kind) || kind : "-"}
+                  {kind ? (
+                    translator.translateText(kind) || kind
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               </span>
             );
@@ -186,7 +191,7 @@ const DataSecurityScansPage: FunctionComponent<
               );
             }
 
-            return <span className="text-sm text-gray-400">-</span>;
+            return <TableEmptyValue />;
           },
         },
         {
@@ -196,7 +201,7 @@ const DataSecurityScansPage: FunctionComponent<
           disableSort: true,
           getElement: (scan: DataSecurityScan): ReactElement => {
             if (!scan.status) {
-              return <span className="text-sm text-gray-400">-</span>;
+              return <TableEmptyValue />;
             }
 
             return (
@@ -224,7 +229,7 @@ const DataSecurityScansPage: FunctionComponent<
           isHiddenByDefault: true,
           getElement: (scan: DataSecurityScan): ReactElement => {
             if (scan.durationInMs === undefined || scan.durationInMs === null) {
-              return <span className="text-sm text-gray-400">-</span>;
+              return <TableEmptyValue />;
             }
 
             return (

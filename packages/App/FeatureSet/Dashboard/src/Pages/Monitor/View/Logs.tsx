@@ -52,6 +52,7 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -167,7 +168,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       });
 
     if (!observation) {
-      return <span className="text-sm text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
 
     const text: string = getTelemetryObservationText(translator, observation);
@@ -199,7 +200,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
       MonitorLogSummaryUtil.getIncomingEmailLogEntry(log.logBody);
 
     if (!entry) {
-      return <span className="text-sm text-gray-400">—</span>;
+      return <TableEmptyValue />;
     }
 
     if (entry.kind === IncomingEmailLogEntryKind.ScheduledCheck) {
@@ -461,7 +462,7 @@ const MonitorLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     const maxAttempts: number = getMaxAttempts(item.logBody);
 
                     if (maxAttempts === 0) {
-                      return <span className="text-sm text-gray-400">—</span>;
+                      return <TableEmptyValue />;
                     }
 
                     if (maxAttempts === 1) {

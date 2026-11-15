@@ -8,6 +8,7 @@ Un post mortem es el informe posterior a un incidente: qué pasó, por qué, qu�
 - [Publicarlo en su página de estado](#publicarlo-en-su-página-de-estado): Mostrarlo a los clientes y avisar a los suscriptores una vez.
 - [Seguir en qué punto está cada post mortem](#seguir-en-qué-punto-está-cada-post-mortem): No iniciado, Borrador, Completado o un estado propio.
 - [Ver todos los post mortem](#ver-todos-los-post-mortem): Filtrar por propietario, gravedad y estado para encontrar los pendientes.
+- [Controlar las acciones de seguimiento](#controlar-las-acciones-de-seguimiento): Lo que hará el equipo, quién es el propietario de cada una y en qué se convirtió.
 - [Post mortem de los episodios](#post-mortem-de-los-episodios): Un solo informe para un grupo de incidentes.
 :::
 
@@ -169,6 +170,47 @@ Filtre la lista con los chips de encima: **Propietario**, una persona o un equip
 
 Para cambiar muchos a la vez, selecciónelos y abra **Acciones masivas**: **Cambiar estado del post mortem** los mueve todos a un mismo estado, como **No necesario** para los incidentes que no lo necesitan, y **Añadir propietario** y **Quitar propietario** cambian sus propietarios.
 
+## Controlar las acciones de seguimiento
+
+Las acciones de seguimiento de un post mortem son lo que su equipo hará para que el incidente no vuelva a ocurrir. Cada una es un registro en el incidente, con un propietario, una fecha de vencimiento y un estado, para que ninguna se quede en una línea de la nota a la que nadie da seguimiento. La tarjeta **Acciones de seguimiento** está debajo de la tarjeta **Post mortem**, en la página **Post mortem** del incidente.
+
+- Para añadir una, escríbala en la línea que hay debajo de la lista y haga clic en **Añadir acción**.
+- Para darle un propietario, elija **Asignarme** o **Asignar a otra persona** en su menú **⋯**.
+- Para darle una fecha de vencimiento, elija **Editar acción** en su menú **⋯** y fije su **Fecha de vencimiento**. Una acción abierta cuya fecha de vencimiento ya pasó indica en rojo que está vencida.
+- Para cerrar una, marque su casilla cuando esté hecha. **Marcar como «No se hará»** en su menú **⋯** la cierra cuando el equipo decide no hacerla, y **Reabrir** la vuelve a abrir. Cada acción cerrada indica quién la cerró y cuándo.
+
+La tarjeta indica cuántas están hechas, sin contar las marcadas como **No se hará**. Añadir, cerrar y reasignar una acción queda registrado en el feed del incidente.
+
+### Controlar las acciones que enumera la nota
+
+El borrador de OneUptime AI y todas las plantillas de post mortem terminan con una sección de acciones de seguimiento: una lista de verificación, o una tabla con las columnas `Owner` y `Due Date`. Cuando la nota tiene una, la tarjeta nombra los puntos que el incidente aún no controla, con un botón para controlarlos todos. Cada uno se convierte en una acción de seguimiento:
+
+- una casilla marcada se registra como hecha;
+- una fecha de vencimiento que la nota escribe como fecha, por ejemplo 2026-11-20, pasa a ser su fecha de vencimiento, en su zona horaria;
+- un punto que ya se controla, según su título, se omite, así que volver a hacerlo no añade nada.
+
+El encabezado de la sección puede ser `Action Items`, `Follow-ups`, `Next Steps` o `How We Prevent It`, o las mismas palabras en otro de los idiomas del panel.
+
+### Convertir una acción en un pull request, una prueba o un monitor
+
+Cada acción abierta puede convertirse en lo que pide, desde su menú **⋯**:
+
+| Acción | Qué ocurre |
+| --- | --- |
+| **Abrir una pull request con IA** | OneUptime AI hace el cambio en un repositorio que usted elige y abre un pull request para revisarlo. El incidente y su post mortem acompañan la solicitud. |
+| **Escribir una prueba con IA** | OneUptime AI escribe una prueba que habría detectado el incidente, en el propio framework de pruebas del repositorio, y abre un pull request con ella. |
+| **Crear monitor** | **Crear monitor** se abre con el nombre de la acción. Una vez creado el monitor, la acción lo nombra y queda hecha. |
+
+La acción muestra después en qué se convirtió: la fase de su tarea, como **Tarea en curso** o **Pull request abierta**, enlazada a la tarea en [Código](/docs/ai/ai-agent), y su pull request; o el monitor. Cuando se fusiona el pull request, la acción queda hecha por sí sola, y el feed del incidente lo indica.
+
+Las dos acciones de IA necesitan que la IA esté activada para el proyecto y un repositorio en el que OneUptime AI pueda trabajar. Si no hay ninguno conectado, el menú ofrece **Conectar un repositorio** en su lugar. Pedirlas requiere lo mismo que pedir algo en Código, además del permiso para editar la acción.
+
+### Ver todas las acciones de seguimiento
+
+**Incidentes → Acciones de seguimiento** reúne las acciones de seguimiento de todos los post mortem del proyecto, primero la que vence antes, con el incidente, el propietario, la fecha de vencimiento y el estado de cada una. Filtre la lista por **Estado**, **Propietario** y **Fecha de vencimiento**, y **Ver** en una fila abre la página **Post mortem** del incidente.
+
+Leer las acciones de seguimiento requiere lo mismo que leer el incidente. Añadirlas, cambiarlas y eliminarlas requiere el rol Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, o un rol personalizado con el permiso correspondiente sobre las acciones de seguimiento. Igual que el incidente, las acciones de seguimiento de un incidente privado solo son visibles para sus usuarios propietarios, los miembros de sus equipos propietarios, los administradores y los propietarios del proyecto.
+
 ## Post mortem de los episodios
 
 Un episodio de incidentes también tiene una página **Post mortem**, en **Investigación**: un solo informe para todos los incidentes del episodio. Haga clic en **Editar análisis post mortem** para escribirlo. **Aplicar plantilla** y **Generar con IA** funcionan como en un incidente, y la IA lee el episodio y sus incidentes miembros.
@@ -190,6 +232,8 @@ Un post mortem es un conjunto de campos del incidente, que se leen y escriben a 
 | `postmortemStatusId` | El estado del post mortem: uno de los estados del proyecto, en `/api/incident-postmortem-status`. |
 
 Escribir `showPostmortemOnStatusPage` como `true` sobre una `postmortemNote` escrita publica el post mortem, igual que el diálogo. Además mueve el post mortem a **Completado**, salvo que la misma escritura fije `postmortemStatusId`.
+
+Las acciones de seguimiento de un post mortem son registros propios, en `/api/incident-postmortem-action-item`: cada una con su `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` y `status` (`Open`, `Done` o `WontDo`). Los flujos de trabajo pueden iniciarse cuando se crea, se cambia o se elimina una.
 
 ## Solución de problemas
 

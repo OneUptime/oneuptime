@@ -114,6 +114,7 @@ import {
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const IncidentEpisodeView: FunctionComponent<
   PageComponentProps
@@ -829,7 +830,7 @@ const IncidentEpisodeView: FunctionComponent<
                   fieldType: FieldType.Element,
                   getElement: (item: IncidentEpisode): ReactElement => {
                     if (!item.episodeNumber) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (
@@ -851,7 +852,7 @@ const IncidentEpisodeView: FunctionComponent<
                   fieldType: FieldType.Entity,
                   getElement: (item: IncidentEpisode): ReactElement => {
                     if (!item["currentIncidentState"]) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (
@@ -877,7 +878,7 @@ const IncidentEpisodeView: FunctionComponent<
                   fieldType: FieldType.Entity,
                   getElement: (item: IncidentEpisode): ReactElement => {
                     if (!item["incidentSeverity"]) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (

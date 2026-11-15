@@ -197,6 +197,25 @@ case "${HOST}" in
   *) export HOST_WITHOUT_PORT="${HOST%:*}" ;;
 esac
 
+# HOST's place in the primary server's name, after localhost and ingress
+# (`server_name localhost ingress ${HOST_SERVER_NAME};` in the template):
+# HOST without its port, or nothing when that is localhost or ingress, which
+# the name lists already.
+#
+# A server name listed twice for one address and port draws a warning from
+# nginx, once for each: under the default HOST=localhost the name read
+# "localhost ingress localhost", and every start logged
+# 'conflicting server name "localhost" on 0.0.0.0:7849, ignored' for 7849
+# and 7850, IPv4 and IPv6: four warnings in every install's log, where a real
+# problem was easy to miss (#8023). nginx ignored the second "localhost", so
+# leaving it out changes nothing nginx routes. nginx reads server names in
+# lower case, so "LOCALHOST" is "localhost" too.
+HOST_WITHOUT_PORT_LOWER=$(printf '%s' "${HOST_WITHOUT_PORT}" | tr '[:upper:]' '[:lower:]')
+case "${HOST_WITHOUT_PORT_LOWER}" in
+  localhost | ingress) export HOST_SERVER_NAME="" ;;
+  *) export HOST_SERVER_NAME="${HOST_WITHOUT_PORT}" ;;
+esac
+
 # Upstream connection pooling (keepalive). When enabled, proxy_pass targets the
 # named upstream{} pools (kept in the template above); the pool pins the backend
 # to an address resolved once at load, which is only safe when that address is

@@ -36,6 +36,7 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectTeamView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -290,7 +291,7 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
               type: FieldType.Element,
               getElement: (item: TeamMember): ReactElement => {
                 if (!item.user) {
-                  return <p>-</p>;
+                  return <TableEmptyValue />;
                 }
                 const name: string =
                   item.user.name?.toString() ||

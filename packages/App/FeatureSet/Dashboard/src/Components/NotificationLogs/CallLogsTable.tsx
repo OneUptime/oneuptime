@@ -20,6 +20,7 @@ import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import { JSONObject } from "Common/Types/JSON";
 import { CallStatusPill, getCallStatusPill } from "./CallStatusPill";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface CallLogsTableProps {
   query?: Query<BaseModel>;
@@ -58,7 +59,7 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: CallLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

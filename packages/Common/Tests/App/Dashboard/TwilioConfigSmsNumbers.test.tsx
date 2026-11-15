@@ -319,6 +319,7 @@ import Phone from "../../../Types/Phone";
 import Column from "../../../UI/Components/ModelTable/Column";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY_NUMBERS: string = "Twilio Secondary Phone Numbers";
@@ -883,7 +884,8 @@ describe("a config's numbers in its row", () => {
   test("one with no number yet shows a dash", () => {
     render(<TwilioConfigPhoneNumbers config={{}} />);
 
-    expect(screen.getByText("-")).toBeVisible();
+    // The quiet dash every empty cell is (#7603).
+    expect(screen.getByText(EMPTY_VALUE_MARK)).toBeVisible();
     expect(getTwilioConfigNumberLines({})).toEqual([]);
   });
 

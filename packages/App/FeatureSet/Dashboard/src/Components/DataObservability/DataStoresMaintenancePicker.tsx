@@ -12,6 +12,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   value: Array<string> | undefined;
@@ -129,7 +130,7 @@ export const DataStoresUnderMaintenance: FunctionComponent<{
   }, [props.ids.join(",")]);
 
   if (props.ids.length === 0) {
-    return <span className="text-sm text-gray-500">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (

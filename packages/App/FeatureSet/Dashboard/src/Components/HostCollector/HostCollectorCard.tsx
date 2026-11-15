@@ -42,6 +42,7 @@ import {
   summarizeCollectorError,
 } from "./HostCollectorStatus";
 import { describeHostCollectorConfigChoice } from "./HostCollectorConfigChoice";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The collector OneUptime manages on a host, on the host's Collector page:
@@ -280,7 +281,11 @@ const HostCollectorCard: FunctionComponent<ComponentProps> = (
           : null;
 
         if (!lastContact || isNaN(lastContact.getTime())) {
-          return <span data-testid="host-collector-last-report">—</span>;
+          return (
+            <span data-testid="host-collector-last-report">
+              <TableEmptyValue />
+            </span>
+          );
         }
 
         const clock: FeedClock = getFeedClock({

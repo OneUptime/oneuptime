@@ -27,6 +27,7 @@ import {
   METRIC_STALE_MS,
   formatUptime,
 } from "../../Pages/Proxmox/Utils/ProxmoxResourceUtils";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The cluster's nodes at a glance on its Overview - what Proxmox VE's own
@@ -123,7 +124,11 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
         <div className="mb-1 flex items-center justify-between gap-2 text-xs">
           <span className="text-gray-500">{tx(data.label)}</span>
           <span className="font-medium tabular-nums text-gray-700">
-            {percent === null ? "—" : `${Math.round(percent)}%`}
+            {percent === null ? (
+              <EmptyValue isSmall={true} />
+            ) : (
+              `${Math.round(percent)}%`
+            )}
           </span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-gray-100">

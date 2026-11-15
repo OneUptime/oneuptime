@@ -25,6 +25,7 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * `ceph_daemon` is the datapoint label every per-OSD series carries
@@ -193,7 +194,7 @@ function getUsageBarColor(percent: number): string {
 
 function renderUsageBar(percent: number | null): ReactElement {
   if (percent === null) {
-    return <span className="text-xs text-gray-400">—</span>;
+    return <TableEmptyValue isSmall={true} />;
   }
   const clamped: number = Math.max(0, Math.min(100, percent));
   return (

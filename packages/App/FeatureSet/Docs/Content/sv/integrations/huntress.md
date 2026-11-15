@@ -147,7 +147,7 @@ Huntress konfigurerades tidigare under **Incidenter → Integrationer → Huntre
 
 ## Använd e-post i stället
 
-Huntress skickar också incidentrapporter med e-post, och en [övervakare för inkommande e-post](/docs/monitor/incoming-email-monitor) kan öppna incidenter från de e-postmeddelandena, till exempel när ämnet innehåller `Critical Incident Report`. Den behandlar dock e-postmeddelandena som en enda övervakares status: medan dess incident är öppen öppnar nästa rapport ingen, och incidenten löses av övervakarens kriterier i stället för när Huntress stänger rapporten. Arbetsflödet öppnar en incident per rapport och löser var och en med sin rapport, så välj det. Så snart arbetsflödet tar emot rapporter slutar du skicka e-postmeddelandena till övervakaren, annars larmar varje rapport två gånger.
+Huntress skickar också incidentrapporter med e-post, och en [monitor för inkommande e-post](/docs/monitor/incoming-email-monitor) kan öppna incidenter från de e-postmeddelandena, till exempel när ämnet innehåller `Critical Incident Report`. Den behandlar dock e-postmeddelandena som en enda monitors status: medan dess incident är öppen öppnar nästa rapport ingen, och incidenten löses av monitorns kriterier i stället för när Huntress stänger rapporten. Arbetsflödet öppnar en incident per rapport och löser var och en med sin rapport, så välj det. Så snart arbetsflödet tar emot rapporter slutar du skicka e-postmeddelandena till monitorn, annars larmar varje rapport två gånger.
 
 ## Felsökning
 

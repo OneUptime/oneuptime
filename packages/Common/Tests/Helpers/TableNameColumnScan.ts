@@ -29,9 +29,10 @@ import ts from "typescript";
  *     row whole: each draws the record's name and nothing else, which
  *     TableNameRecordElements.test.tsx draws and checks;
  *   - and every word it draws is the row's field - `row.name`,
- *     `(row.name as string) || "—"`, `row.title?.toString()`, or a const
- *     holding just that. No other words, no translated text, no other
- *     value, no element drawn on a condition.
+ *     `(row.name as string) || <TableEmptyValue />`, `row.title?.toString()`,
+ *     or a const holding just that - or the quiet dash of a row with none.
+ *     No other words, no translated text, no other value, no element drawn
+ *     on a condition.
  */
 
 export type NameFieldKey = "name" | "title";
@@ -88,6 +89,30 @@ const LETTER_PATTERN: RegExp = /\p{L}/u;
 const NAME_FIELD_KEYS: ReadonlyArray<NameFieldKey> = ["name", "title"];
 
 type JsxTree = ts.JsxElement | ts.JsxSelfClosingElement | ts.JsxFragment;
+
+/*
+ * The quiet dash a cell draws for a value that is not there, as it is
+ * written - `<TableEmptyValue />` or `<EmptyValue />`, handed nothing but
+ * its size: it draws no words of the page's own.
+ */
+const QUIET_DASH_ELEMENTS: ReadonlyArray<string> = [
+  "TableEmptyValue",
+  "EmptyValue",
+];
+
+function isQuietDash(node: ts.Node): boolean {
+  return (
+    ts.isJsxSelfClosingElement(node) &&
+    QUIET_DASH_ELEMENTS.includes(node.tagName.getText()) &&
+    node.attributes.properties.every(
+      (attribute: ts.JsxAttributeLike): boolean => {
+        return (
+          ts.isJsxAttribute(attribute) && attribute.name.getText() === "isSmall"
+        );
+      },
+    )
+  );
+}
 
 function unwrap(expression: ts.Expression): ts.Expression {
   let current: ts.Expression = expression;
@@ -280,7 +305,10 @@ class NameOnlyReader {
       return this.isFieldRead(value.expression.expression);
     }
 
-    // row.name || "—": a fallback with no words of its own.
+    /*
+     * row.name || <TableEmptyValue />, or row.name || "—": a fallback with
+     * no words of its own.
+     */
     if (
       ts.isBinaryExpression(value) &&
       (value.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
@@ -290,9 +318,10 @@ class NameOnlyReader {
 
       return (
         this.isFieldRead(value.left) &&
-        (ts.isStringLiteral(fallback) ||
-          ts.isNoSubstitutionTemplateLiteral(fallback)) &&
-        !LETTER_PATTERN.test(fallback.text)
+        (isQuietDash(fallback) ||
+          ((ts.isStringLiteral(fallback) ||
+            ts.isNoSubstitutionTemplateLiteral(fallback)) &&
+            !LETTER_PATTERN.test(fallback.text)))
       );
     }
 
@@ -381,6 +410,11 @@ class NameOnlyReader {
     attributes: ts.JsxAttributes,
     node: ts.Node,
   ): string {
+    // The quiet dash of a row with no name: no words, nothing to turn round.
+    if (isQuietDash(node)) {
+      return "";
+    }
+
     if (RECORD_NAME_ELEMENTS.includes(tagName)) {
       /*
        * Handed the row and nothing else: an option (an icon beside the

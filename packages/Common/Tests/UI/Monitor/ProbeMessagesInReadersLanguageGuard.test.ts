@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
+import { REQUEST_FAILURE_DESCRIPTIONS } from "../../../Utils/Monitor/RequestFailureDescriptions";
 import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
 
 /*
@@ -31,7 +32,12 @@ import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
  *   - the monitor overview (its hero's Latest result and its Probes card)
  *     drawing a check's failure cause other than through
  *     getProbeFailureCauseText, which words the timeout sentence and
- *     leaves the rest as written (#8003).
+ *     leaves the rest as written (#8003);
+ *   - what a failed request means (Error Details, the root cause's Error
+ *     Description: "DNS resolution failed. ...") written by hand anywhere
+ *     but its table (Common/Utils/Monitor/RequestFailureDescriptions),
+ *     which the probe writes and every view reads back, and a check that
+ *     sets a request's errorDescription other than from there (#8001).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(
@@ -597,4 +603,214 @@ describe("the probe's timeout sentence", () => {
       );
     },
   );
+});
+
+/*
+ * WHAT A FAILED REQUEST MEANS (#8001): the Error Details a Website, API or
+ * Port summary shows and the root cause's Error Description, OneUptime's
+ * own fixed English. Written by hand, a sentence is one no view reads back,
+ * and it reads English on every page.
+ */
+
+const DESCRIPTIONS_FILE: string =
+  "packages/Common/Utils/Monitor/RequestFailureDescriptions.ts";
+
+// The checks that say what a failed request means.
+const DESCRIPTION_WRITERS: ReadonlyArray<string> = [
+  "packages/Common/Utils/API.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/PortMonitor.ts",
+  "packages/Probe/Utils/Monitors/MonitorTypes/NtpMonitor.ts",
+];
+
+const DESCRIPTION_WRITER: string = "writeRequestFailureDescription";
+
+const PLACEHOLDER_IN_TEMPLATE: RegExp = /\{\{\w+\}\}/;
+
+const PUNCTUATION_AT_ENDS: RegExp = /^[\s.]+|\s+$/g;
+
+/*
+ * What each explanation is found by in a source: the whole of one with no
+ * value, the longer side of the value of one with a value ("Server
+ * responded with HTTP status ", ". This indicates a server-side error."),
+ * without the stops and spaces a hand-written piece may leave to its
+ * neighbour (" This indicates a server-side error." was one).
+ */
+const DESCRIPTION_PARTS: ReadonlyArray<string> = Object.values(
+  REQUEST_FAILURE_DESCRIPTIONS,
+).map((english: string): string => {
+  return english
+    .split(PLACEHOLDER_IN_TEMPLATE)
+    .reduce((longest: string, piece: string): string => {
+      return piece.length > longest.length ? piece : longest;
+    }, "")
+    .replace(PUNCTUATION_AT_ENDS, "");
+});
+
+// Every errorDescription a source sets that is not written from the table.
+const findHandWrittenDescriptions: (
+  fileName: string,
+  source: string,
+) => Array<Finding> = (fileName: string, source: string): Array<Finding> => {
+  const sourceFile: ts.SourceFile = parse(fileName, source);
+  const found: Array<Finding> = [];
+
+  const isWrittenFromTheTable: (value: ts.Expression) => boolean = (
+    value: ts.Expression,
+  ): boolean => {
+    if (ts.isParenthesizedExpression(value)) {
+      return isWrittenFromTheTable(value.expression);
+    }
+
+    if (ts.isConditionalExpression(value)) {
+      return (
+        isWrittenFromTheTable(value.whenTrue) &&
+        isWrittenFromTheTable(value.whenFalse)
+      );
+    }
+
+    return (
+      ts.isCallExpression(value) &&
+      value.expression.getText(sourceFile) === DESCRIPTION_WRITER
+    );
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      node.name.getText(sourceFile) === "errorDescription" &&
+      !isWrittenFromTheTable(node.initializer)
+    ) {
+      found.push(findingAt(sourceFile, node));
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return found;
+};
+
+describe("what a failed request means", () => {
+  test("every explanation is found by a part long enough to be its own", () => {
+    expect(DESCRIPTION_PARTS).toHaveLength(
+      Object.keys(REQUEST_FAILURE_DESCRIPTIONS).length,
+    );
+
+    for (const part of DESCRIPTION_PARTS) {
+      expect({ part, long: part.length >= 15 }).toEqual({ part, long: true });
+    }
+  });
+
+  test("is written only by its table", () => {
+    const written: Array<string> = [];
+
+    for (const root of SENTENCE_SCAN_ROOTS) {
+      for (const file of listSourceFiles(path.join(REPOSITORY_ROOT, root))) {
+        const relativeFile: string = toRelativePath(REPOSITORY_ROOT, file);
+
+        if (relativeFile === DESCRIPTIONS_FILE || isTestFile(relativeFile)) {
+          continue;
+        }
+
+        const source: string = fs.readFileSync(file, "utf-8");
+
+        for (const part of DESCRIPTION_PARTS) {
+          if (!source.includes(part)) {
+            continue;
+          }
+
+          for (const finding of findWrittenSentence(file, source, part)) {
+            written.push(`${relativeFile}:${finding.line} ${finding.text}`);
+          }
+        }
+      }
+    }
+
+    expect(written).toEqual([]);
+  });
+
+  test("the table is where the scan says", () => {
+    const source: string = fs.readFileSync(
+      path.join(REPOSITORY_ROOT, DESCRIPTIONS_FILE),
+      "utf-8",
+    );
+
+    for (const part of DESCRIPTION_PARTS) {
+      expect({
+        part,
+        found: findWrittenSentence(DESCRIPTIONS_FILE, source, part).length > 0,
+      }).toEqual({ part, found: true });
+    }
+  });
+
+  test("negative control: the explanations as the checks wrote them by hand are found", () => {
+    const source: string = `
+      // DNS resolution failed. The hostname could not be resolved to an IP address.
+      const a = { errorDescription: "DNS resolution failed. The hostname could not be resolved to an IP address. Please verify the hostname is correct and that DNS is working properly." };
+      let description = \`Server responded with HTTP status \${status}.\`;
+      description += " This indicates a server-side error.";
+      const b = \`Request failed: \${API.getFriendlyErrorMessage(error)}\`;
+      const c = "The port check failed because of a network error.";
+    `;
+    const found: Array<number> = [];
+
+    for (const part of DESCRIPTION_PARTS) {
+      for (const finding of findWrittenSentence("Old.ts", source, part)) {
+        found.push(finding.line);
+      }
+    }
+
+    expect(Array.from(new Set(found)).sort()).toEqual([3, 4, 5, 6, 7]);
+  });
+
+  test.each(DESCRIPTION_WRITERS)(
+    "%s sets every errorDescription from the table",
+    (file: string) => {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf-8",
+      );
+
+      expect(source).toMatch(
+        /import \{\s*RequestFailureDescription,\s*writeRequestFailureDescription,\s*\} from "(?:Common\/Utils\/Monitor|\.\/Monitor)\/RequestFailureDescriptions";/,
+      );
+      expect(findHandWrittenDescriptions(file, source)).toEqual([]);
+      expect(source.split(`${DESCRIPTION_WRITER}(`).length - 1).toBeGreaterThan(
+        0,
+      );
+    },
+  );
+
+  test("negative control: an errorDescription set by hand is found, one from the table is not", () => {
+    const source: string = `
+      const a = {
+        errorDescription: "The port check failed because of a network error.",
+      };
+      const b = {
+        errorDescription: isInvalid
+          ? \`The monitor's target is not a valid HTTP or HTTPS destination. \${raw}\`
+          : writeRequestFailureDescription(RequestFailureDescription.TargetUnreachable),
+      };
+      const c = { errorDescription: description };
+      const d = {
+        errorDescription: writeRequestFailureDescription(
+          RequestFailureDescription.PortNetworkError,
+        ),
+      };
+      const e = {
+        errorDescription: isInvalid
+          ? writeRequestFailureDescription(RequestFailureDescription.InvalidTarget, { message: raw })
+          : writeRequestFailureDescription(RequestFailureDescription.TargetUnreachable),
+      };
+    `;
+
+    expect(
+      findHandWrittenDescriptions("Old.ts", source).map(
+        (finding: Finding): number => {
+          return finding.line;
+        },
+      ),
+    ).toEqual([3, 6, 10]);
+  });
 });

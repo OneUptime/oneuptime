@@ -72,7 +72,14 @@ The suite checks what jsdom cannot:
   "H...") one picker a line; in a dialog with no steps the field and the
   operator side by side over the value; on a page one line - each at 1280
   pixels, with the longest operator ("Does not match pattern") whole, right
-  to left, dark, and all of them a phone's at 390 pixels.
+  to left, dark, and all of them a phone's at 390 pixels;
+- a metric chart's title row (`ChartGroup`, `?section=charts`, with
+  `?lang=ru|fr` and `?zoomed=1`): on a 390 pixel phone in Russian, and on a
+  touch screen with no hover, no zoom hint and every title whole; at 1280 in
+  English the hint beside each title; at 1024 in French while zoomed, the
+  hint under a title it has no room beside (#8048); and no value axis tick
+  wraps or starts off the chart at 1280 or 390, a request rate written
+  "1.5K req/s" (#8049).
 
 `Fixture/Fixture.js` records every read on `window.__fixture.reads`, every
 write on `window.__fixture.updates`, and every read it does not model on

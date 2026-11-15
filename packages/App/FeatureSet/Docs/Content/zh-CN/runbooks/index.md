@@ -169,6 +169,7 @@ Runbooks:    [DB primary failover]
 - **[值班策略](/docs/on-call/schedules)** 决定呼叫谁。Runbook 决定这个人醒来后做什么。
 - Slack 和 Microsoft Teams 等 **[工作区连接](/docs/workspace-connections/slack)** 是发布更新的 HTTP 请求步骤的天然目标。
 - **[状态页面](/docs/status-pages/index)** 常常作为面向客户的 Runbook 中的一个 Manual 步骤来更新。
+- **[OneUptime AI](/docs/ai/ai-sre#将奏效的修复保存为运行手册)** 会根据自己奏效的修复编写 Runbook：在已验证的修复上点击 **保存为运行手册**，会保存已运行的步骤，并在你审核之前保持关闭。
 
 ## 后续步骤
 

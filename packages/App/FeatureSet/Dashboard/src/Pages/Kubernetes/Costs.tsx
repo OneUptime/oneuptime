@@ -52,6 +52,7 @@ import {
 import KubernetesCostTrendChart from "./View/KubernetesCostTrendChart";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * `description` explains a section whose chart has no title of its own -
@@ -233,7 +234,7 @@ const KubernetesCosts: FunctionComponent<
           );
 
           if (!row.clusterName) {
-            return <span className="text-gray-400">-</span>;
+            return <TableEmptyValue />;
           }
 
           if (!clusterId) {

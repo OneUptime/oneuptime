@@ -58,6 +58,7 @@ import {
   ProductAnalyticsPersonAvatar,
   ProductAnalyticsPersonSecondary,
 } from "./ProductAnalyticsPersonCard";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The people behind the numbers above (issue #6444): who was active, new,
@@ -133,7 +134,7 @@ export function buildProductAnalyticsPersonRoute(data: {
  */
 function SeenAt(props: { at: number; isRelative: boolean }): ReactElement {
   if (!(props.at > 0)) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <EmptyValue />;
   }
 
   const date: Date = new Date(props.at);

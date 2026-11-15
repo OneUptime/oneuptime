@@ -16,9 +16,9 @@ flowchart TB
 
 :::tabs
 @tab OneUptime Cloud
-Sonden in mehreren Regionen prüfen die Adresse, daher muss sie aus dem Internet erreichbar sein. Der Free-Tarif umfasst 10 aktive Monitore.
+Sonden in mehreren Regionen prüfen die Adresse, daher muss sie aus dem Internet erreichbar sein, und ein Vorfall wird erst eröffnet, wenn alle einen Ausfall feststellen. Der Free-Tarif umfasst 10 aktive Monitore. Sie werden nach Nutzung abgerechnet, daher braucht das Projekt zuerst eine Zahlungsmethode: Ohne sie sagt der erste Schritt das, mit **Zahlungsmethode hinzufügen**.
 @tab Selbst gehostet
-Die Adresse wird von der eigenen Sonde Ihres Servers geprüft, daher muss sie von dort aus erreichbar sein. Damit Sie per E-Mail benachrichtigt werden, muss der Server E-Mails senden können: Sein Master-Admin richtet das unter `/admin/setup` ein, wie die [Anleitung zum Selbsthosten](/docs/installation/self-hosting-guide) zeigt. Der Master-Admin wird nicht zum Eigentümer dessen, was er erstellt, und trägt sich deshalb auf der Seite **Eigentümer** des Monitors selbst ein, um per E-Mail benachrichtigt zu werden.
+Die Adresse wird von der eigenen Sonde Ihres Servers geprüft, daher muss sie von dort aus erreichbar sein. Damit Sie per E-Mail benachrichtigt werden, muss der Server E-Mails senden können: Sein Master-Admin richtet das unter `/admin/setup` ein, wie die [Anleitung zum Selbsthosten](/docs/installation/self-hosting-guide) zeigt.
 :::
 
 ## Schritte

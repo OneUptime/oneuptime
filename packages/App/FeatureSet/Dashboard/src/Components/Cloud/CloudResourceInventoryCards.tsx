@@ -47,6 +47,7 @@ import {
   groupCloudConnections,
 } from "./CloudConnectionGroups";
 import { getCloudRelationshipLabel } from "./CloudRelationshipWords";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * What a cloud account's inventory says about one of its resources, beyond
@@ -342,7 +343,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
                     mono ? "font-mono" : ""
                   }`}
                 >
-                  {pairs[key] || "—"}
+                  {pairs[key] || <EmptyValue />}
                 </dd>
               </div>
             );

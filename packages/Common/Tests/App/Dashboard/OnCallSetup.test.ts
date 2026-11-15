@@ -10,10 +10,12 @@ import {
   ON_CALL_SETUP_STEPS,
   OnCallPolicyRecord,
   OnCallProgressFacts,
+  OnCallRunValue,
   OnCallSetupStep,
   OnCallSummaryRow,
   PHONE_BALANCE_FLOOR_IN_USD_CENTS,
   PhoneChannelFacts,
+  RUN_VALUES_OF_THE_POLICY,
   ResponderReach,
   canAddPhone,
   describeFirstLevel,
@@ -25,6 +27,7 @@ import {
   getOnCallSummaryRows,
   getPhoneBreaks,
   getPolicyBreaks,
+  getRunWithoutPolicy,
   getVerifiedMethodsOfType,
   isOnCallSetupFinished,
   isPhoneBalanceTooLow,
@@ -183,6 +186,56 @@ describe("the setup", () => {
 
   test("waits the escalation form's default before someone else is paged", () => {
     expect(DEFAULT_ESCALATE_AFTER_IN_MINUTES).toBe(30);
+  });
+});
+
+/*
+ * #7516: a run whose policy is gone - found so when the page opens, or
+ * deleted in another tab or by a teammate while it is open - forgets the
+ * policy and every step built on it at once, and keeps who is reached.
+ */
+describe("what a run forgets with its policy (#7516)", () => {
+  test("the policy, whether it was the project's, and every step after it", () => {
+    expect([...RUN_VALUES_OF_THE_POLICY]).toEqual([
+      OnCallRunValue.PolicyId,
+      OnCallRunValue.PolicyIsExisting,
+      OnCallRunValue.NoAnswerDone,
+      OnCallRunValue.TestExecutionLogId,
+      OnCallRunValue.TestSkipped,
+    ]);
+  });
+
+  test("who is reached stays: it is the person's, not the policy's", () => {
+    expect(RUN_VALUES_OF_THE_POLICY).not.toContain(
+      OnCallRunValue.ReachConfirmed,
+    );
+    // Every other value of the run is the policy's.
+    expect(
+      Object.values(OnCallRunValue).filter((value: string): boolean => {
+        return value !== OnCallRunValue.ReachConfirmed;
+      }),
+    ).toEqual([...RUN_VALUES_OF_THE_POLICY]);
+  });
+
+  test("forgetting saves each of them as nothing, and nothing else", () => {
+    expect(getRunWithoutPolicy()).toEqual({
+      policyId: null,
+      policyIsExisting: null,
+      noAnswerDone: null,
+      testExecutionLogId: null,
+      testSkipped: null,
+    });
+    // A fresh object each time: a caller's change is not the next one's.
+    expect(getRunWithoutPolicy()).not.toBe(getRunWithoutPolicy());
+  });
+
+  test("the step says why in one sentence of its own, not another reason's", () => {
+    expect(ON_CALL_SETUP_COPY.policyDeleted).toBe(
+      "The on-call policy this setup was using was deleted, so pick or make one again.",
+    );
+    expect(ON_CALL_SETUP_COPY.policyDeleted).not.toBe(
+      ON_CALL_SETUP_COPY.policyMadeElsewhere,
+    );
   });
 });
 

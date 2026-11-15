@@ -235,6 +235,7 @@ const FIX_WORDS: Readonly<Record<SetupHealthFix, string>> = {
   [SetupHealthFix.CreateMonitor]: translationKey("Create Monitor"),
   [SetupHealthFix.IncidentOnCallRules]: translationKey("Set Up Paging"),
   [SetupHealthFix.AlertOnCallRules]: translationKey("Set Up Paging"),
+  [SetupHealthFix.OnCallGuidedSetup]: translationKey("Set Up Paging"),
   [SetupHealthFix.OnCallPolicy]: translationKey("Open On-Call Policy"),
   [SetupHealthFix.OnCallSchedule]: translationKey("Open On-Call Schedule"),
   [SetupHealthFix.OnCallReadiness]: translationKey("Open Readiness"),
@@ -264,6 +265,7 @@ const FIX_PAGES: Readonly<Partial<Record<SetupHealthFix, PageMap>>> = {
   [SetupHealthFix.IncidentOnCallRules]:
     PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES,
   [SetupHealthFix.AlertOnCallRules]: PageMap.ALERTS_SETTINGS_ON_CALL_RULES,
+  [SetupHealthFix.OnCallGuidedSetup]: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
   [SetupHealthFix.OnCallPolicy]: PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
   [SetupHealthFix.OnCallSchedule]: PageMap.ON_CALL_DUTY_SCHEDULE_VIEW_LAYERS,
   [SetupHealthFix.OnCallReadiness]: PageMap.ON_CALL_DUTY_READINESS,

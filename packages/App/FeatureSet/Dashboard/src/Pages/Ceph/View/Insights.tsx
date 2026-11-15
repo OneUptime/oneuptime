@@ -31,6 +31,7 @@ import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/Ti
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * Curated MetricView presets sharing one time-range state — the Ceph
@@ -290,7 +291,10 @@ const CephClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.ChartBar, "Capacity")}
         description="Cluster-wide capacity usage and per-pool stored bytes."
-        queryConfigs={getCapacityQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getCapacityQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -366,7 +370,10 @@ const CephClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.Clock, "Latency")}
         description="Apply and commit latency broken down per OSD."
-        queryConfigs={getLatencyQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getLatencyQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}
@@ -375,7 +382,10 @@ const CephClusterInsights: FunctionComponent<
       <EmbeddedMetricCard
         title={getSectionTitle(IconProp.ShieldCheck, "Data Health")}
         description="Degraded / misplaced objects and problem placement groups."
-        queryConfigs={getDataHealthQueries(clusterName)}
+        queryConfigs={chartWordsInReadersLanguage(
+          getDataHealthQueries(clusterName),
+          translator,
+        )}
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
         startAndEndDate={startAndEndDate}

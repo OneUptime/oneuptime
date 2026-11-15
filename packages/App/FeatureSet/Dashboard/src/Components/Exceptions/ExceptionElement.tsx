@@ -7,6 +7,7 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import React, { FunctionComponent, ReactElement } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   message: string;
@@ -88,7 +89,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
       {getArchivedIcon()}
       {!props.exceptionId && (
         <div className="mt-0.5 ml-2 font-mono break-words">
-          {props.message || "-"}
+          {props.message || <TableEmptyValue />}
         </div>
       )}
       {props.exceptionId && (
@@ -96,7 +97,7 @@ const TelemetryExceptionElement: FunctionComponent<ComponentProps> = (
           to={new Route(viewRoute.toString()).addRoute(props.exceptionId)}
         >
           <div className="mt-0.5 ml-2 font-mono break-words">
-            {props.message || "-"}
+            {props.message || <TableEmptyValue />}
           </div>
         </AppLink>
       )}

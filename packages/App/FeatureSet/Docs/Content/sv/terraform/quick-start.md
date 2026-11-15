@@ -230,7 +230,7 @@ Nyckeln har ingen behörighet för det slaget av post. Ge den **Projektadministr
 :::
 
 :::details Meddelandet ”No monitor status matches {name = "Offline"}”
-Ditt projekts monitorstatusar har andra namn. Använd de namn som du ser under **Övervakare → Inställningar → Monitorstatus**, eller slå i stället upp statusen med `is_offline_state = true`.
+Ditt projekts monitorstatusar har andra namn. Använd de namn som du ser under **Monitorer → Inställningar → Monitorstatus**, eller slå i stället upp statusen med `is_offline_state = true`.
 :::
 
 ## Nästa steg

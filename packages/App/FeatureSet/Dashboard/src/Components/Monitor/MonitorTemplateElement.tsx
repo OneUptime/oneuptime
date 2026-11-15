@@ -5,6 +5,7 @@ import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   monitorTemplate?: MonitorTemplate | undefined;
@@ -27,7 +28,7 @@ const MonitorTemplateElement: FunctionComponent<ComponentProps> = (
   const templateName: string = props.monitorTemplate?.templateName || "";
 
   if (!templateName) {
-    return <span className="text-sm text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
 
   const templateId: string | undefined =

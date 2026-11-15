@@ -197,7 +197,7 @@ curl -X POST "<url>" \
 
 :::cards
 - [工作流程範本](/docs/workflows/authoring): 從範本建立工作流程，並在建構器中修改它。
-- [Datadog](/docs/integrations/datadog): 相同的範本，適用於 Datadog 監控器。
+- [Datadog](/docs/integrations/datadog): 相同的範本，適用於 Datadog 監測器。
 - [上報規則](/docs/on-call/escalation-rules): 決定待命策略呼叫誰、何時呼叫。
 - [整合總覽](/docs/integrations/index): 你可以連接的其他工具。
 :::

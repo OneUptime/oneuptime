@@ -69,6 +69,7 @@ import {
   toggleSelectionForShownHosts,
 } from "../DiscoveredHostFilter";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
@@ -869,8 +870,8 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
               {entry.sysDescr}
             </div>
           ) : !vendor ? (
-            <div className="text-sm text-gray-300 max-md:hidden md:block">
-              —
+            <div className="max-md:hidden md:block">
+              <TableEmptyValue />
             </div>
           ) : (
             <></>

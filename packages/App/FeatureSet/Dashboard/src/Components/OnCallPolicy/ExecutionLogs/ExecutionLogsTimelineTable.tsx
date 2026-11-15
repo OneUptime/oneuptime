@@ -35,6 +35,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The card of one run's steps. It is the timeline of an on-call policy's
@@ -432,7 +433,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
-              return <p>-</p>;
+              return <TableEmptyValue />;
             },
           },
           {
@@ -458,7 +459,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 getNotifiedViaChannels(item["notificationChannels"]).length ===
                 0
               ) {
-                return <p>-</p>;
+                return <TableEmptyValue />;
               }
 
               return <NotifiedVia channels={item["notificationChannels"]} />;
@@ -513,7 +514,7 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
-              return <p>-</p>;
+              return <TableEmptyValue />;
             },
           },
           {
