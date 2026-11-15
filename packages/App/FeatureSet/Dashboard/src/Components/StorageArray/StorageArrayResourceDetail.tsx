@@ -59,6 +59,7 @@ import {
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../MetricDescriptions/StorageArrayMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { chartWordsInReadersLanguage } from "../Metrics/Utils/ChartWordsInReadersLanguage";
 
 export interface ComponentProps {
   kind: StorageArrayResourceKind;
@@ -488,10 +489,13 @@ const StorageArrayResourceDetail: FunctionComponent<ComponentProps> = (
           description={props.description}
         >
           <ResourceMetricsTab
-            queryConfigs={props.getQueryConfigs({
-              arrayName: arrayName,
-              externalId: externalId,
-            })}
+            queryConfigs={chartWordsInReadersLanguage(
+              props.getQueryConfigs({
+                arrayName: arrayName,
+                externalId: externalId,
+              }),
+              translator,
+            )}
           />
         </Card>
       ),

@@ -56,6 +56,7 @@ import {
   getOpenStackControlPlaneAttentionItems,
   getOpenStackDependencySummaries,
 } from "../Utils/OpenStackControlPlaneHealth";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * One thing the cloud stands on: how it is, what goes with it, each of its machines, and
@@ -535,7 +536,9 @@ const OpenStackCloudControlPlaneDependency: FunctionComponent<
             title="Over time"
             description="What it has said over the selected time range."
           >
-            <ResourceMetricsTab queryConfigs={queries} />
+            <ResourceMetricsTab
+              queryConfigs={chartWordsInReadersLanguage(queries, translator)}
+            />
           </Card>
         </div>
       ) : (

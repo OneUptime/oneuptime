@@ -8,6 +8,7 @@ import { getOpenStackMetricQuery } from "./OpenStackMetricQueries";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
 import useIsOpenStackProbeCollected from "./UseIsOpenStackProbeCollected";
+import { chartWordsInReadersLanguage } from "../../Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * What a load balancer and its listeners are moving. Octavia keeps counters since each was built, and a
@@ -154,21 +155,27 @@ const OpenStackLoadBalancerTraffic: FunctionComponent<{
         {translator.translateText("Load balancer")}
       </h3>
       <ResourceMetricsTab
-        queryConfigs={getOpenStackLoadBalancerTrafficQueries({
-          part: props.part,
-          scope: "loadbalancer",
-          loadBalancerId: props.part.externalId,
-        })}
+        queryConfigs={chartWordsInReadersLanguage(
+          getOpenStackLoadBalancerTrafficQueries({
+            part: props.part,
+            scope: "loadbalancer",
+            loadBalancerId: props.part.externalId,
+          }),
+          translator,
+        )}
       />
       <h3 className="mb-2 mt-6 text-sm font-medium text-gray-700">
         {translator.translateText("Listeners")}
       </h3>
       <ResourceMetricsTab
-        queryConfigs={getOpenStackLoadBalancerTrafficQueries({
-          part: props.part,
-          scope: "listener",
-          loadBalancerId: props.part.externalId,
-        })}
+        queryConfigs={chartWordsInReadersLanguage(
+          getOpenStackLoadBalancerTrafficQueries({
+            part: props.part,
+            scope: "listener",
+            loadBalancerId: props.part.externalId,
+          }),
+          translator,
+        )}
       />
     </div>
   );
