@@ -54002,5 +54002,9 @@
   "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.": "سابقهٔ داخلی هر مالکی که اعلان مالکِ یک حادثه یا هشدار باید به او برسد، و اینکه آیا به او رسیده است یا نه.",
   "Is Project Owner": "مالک پروژه است",
   "Owner Notification Deliveries": "تحویل‌های اعلان مالک",
-  "Owner Notification Delivery": "تحویل اعلان مالک"
+  "Owner Notification Delivery": "تحویل اعلان مالک",
+  "Active · seen {{time}}": "فعال · {{time}} دیده شد",
+  "Inactive · seen {{time}}": "غیرفعال · {{time}} دیده شد",
+  "Runs on {{count}} of these": "روی {{count}} مورد از این‌ها اجرا می‌شود",
+  "Runs on {{count}} of these_one": "روی {{count}} مورد از این‌ها اجرا می‌شود"
 }

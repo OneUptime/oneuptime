@@ -54002,5 +54002,9 @@
   "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.": "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.",
   "Is Project Owner": "Is Project Owner",
   "Owner Notification Deliveries": "Owner Notification Deliveries",
-  "Owner Notification Delivery": "Owner Notification Delivery"
+  "Owner Notification Delivery": "Owner Notification Delivery",
+  "Active · seen {{time}}": "使用中 · 最近出現於 {{time}}",
+  "Inactive · seen {{time}}": "不活躍 · 最近出現於 {{time}}",
+  "Runs on {{count}} of these": "在其中 {{count}} 個上執行",
+  "Runs on {{count}} of these_one": "在其中 {{count}} 個上執行"
 }

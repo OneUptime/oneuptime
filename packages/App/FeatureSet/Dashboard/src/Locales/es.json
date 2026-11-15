@@ -54002,5 +54002,9 @@
   "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.": "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.",
   "Is Project Owner": "Is Project Owner",
   "Owner Notification Deliveries": "Owner Notification Deliveries",
-  "Owner Notification Delivery": "Owner Notification Delivery"
+  "Owner Notification Delivery": "Owner Notification Delivery",
+  "Active · seen {{time}}": "Activo · visto {{time}}",
+  "Inactive · seen {{time}}": "Inactivo · visto {{time}}",
+  "Runs on {{count}} of these": "Se ejecuta en {{count}} de estos",
+  "Runs on {{count}} of these_one": "Se ejecuta en {{count}} de estos"
 }

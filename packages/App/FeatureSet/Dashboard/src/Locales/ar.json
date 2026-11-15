@@ -54002,5 +54002,9 @@
   "Internal record of each owner an incident's or an alert's owner notification is to reach, and whether it reached them.": "سجل داخلي لكل مالك يجب أن يصل إليه إشعار المالك الخاص بحادثة أو تنبيه، وما إذا كان قد وصل إليه.",
   "Is Project Owner": "هل هو مالك المشروع",
   "Owner Notification Deliveries": "عمليات تسليم إشعارات المالكين",
-  "Owner Notification Delivery": "تسليم إشعار المالك"
+  "Owner Notification Delivery": "تسليم إشعار المالك",
+  "Active · seen {{time}}": "نشط · آخر ظهور {{time}}",
+  "Inactive · seen {{time}}": "غير نشط · آخر ظهور {{time}}",
+  "Runs on {{count}} of these": "يعمل على {{count}} منها",
+  "Runs on {{count}} of these_one": "يعمل على {{count}} منها"
 }
