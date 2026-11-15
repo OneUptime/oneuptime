@@ -2690,7 +2690,7 @@
   "Color picker: {{color}}": "Color picker: {{color}}",
   "Copy {{name}}": "复制{{name}}",
   "+{{count}} more": "另外 {{count}} 个",
-  "+{{count}} more_one": "+{{count}} more",
+  "+{{count}} more_one": "另外 {{count}} 个",
   "Download {{name}}": "下载 {{name}}",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office 和 OpenDocument 文件、图片、文本、CSV、JSON、ZIP 或 PCAP，最大 {{size}}。",
   "Upload a file": "上传文件",

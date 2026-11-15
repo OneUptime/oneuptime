@@ -2690,7 +2690,7 @@
   "Color picker: {{color}}": "カラーピッカー: {{color}}",
   "Copy {{name}}": "{{name}} をコピー",
   "+{{count}} more": "ほか {{count}} 件",
-  "+{{count}} more_one": "+{{count}} more",
+  "+{{count}} more_one": "ほか {{count}} 件",
   "Download {{name}}": "{{name}} をダウンロード",
   "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP（最大 {{size}}）。",
   "Upload a file": "ファイルをアップロード",
