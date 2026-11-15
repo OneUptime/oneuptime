@@ -6,6 +6,7 @@ import {
   OnCallLogLineCode,
   readOnCallLogLine,
 } from "Common/Types/OnCallDutyPolicy/OnCallLogLine";
+import { CallOutcomeLine } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import {
   OnCallPolicyRunLine,
   OnCallPolicyRunLineCode,
@@ -514,6 +515,61 @@ export const LOG_PAGE_SEEN_BY_OBSERVER_SENTENCES: Readonly<
   ),
 };
 
+/*
+ * How a call ended (CallOutcome, #8576): answered - for how long, when
+ * Twilio said - rang out, busy or declined, or not connected; after the
+ * call's id when Twilio gave one.
+ */
+export const LOG_CALL_OUTCOME_SENTENCES: Readonly<
+  Record<CallOutcomeLine, string>
+> = {
+  [CallOutcomeLine.Answered]: translationKey("The call was answered."),
+  [CallOutcomeLine.RangOut]: translationKey(
+    "The call was not answered: it rang out.",
+  ),
+  [CallOutcomeLine.Busy]: translationKey(
+    "The call was not answered: the line was busy, or the call was declined.",
+  ),
+  [CallOutcomeLine.NotConnected]: translationKey(
+    "The call could not be connected.",
+  ),
+};
+
+export const LOG_CALL_ANSWERED_AND_LASTED: PluralTemplate = {
+  one: "The call was answered and lasted {{count}} second.",
+  other: "The call was answered and lasted {{count}} seconds.",
+};
+
+export const LOG_CALL_ID: string = translationKey("Call ID: {{id}}.");
+
+// A call's line, its id first: "Call ID: CA…. The call was answered."
+function getCallEndedSentence(
+  translator: Translator,
+  line: OnCallLogLine,
+): string | null {
+  if (!line.callOutcome) {
+    return null;
+  }
+
+  const outcome: string =
+    line.callOutcome === CallOutcomeLine.Answered && line.seconds !== undefined
+      ? translator.translatePlural(LOG_CALL_ANSWERED_AND_LASTED, line.seconds)
+      : translator.translateTemplate(
+          LOG_CALL_OUTCOME_SENTENCES[line.callOutcome],
+        );
+
+  return joinSentences([
+    line.id
+      ? translator.translateTemplate(
+          LOG_CALL_ID,
+          { id: line.id },
+          { setsValuesApart: true },
+        )
+      : "",
+    outcome,
+  ]);
+}
+
 // A notification the stuck check settled, by the minutes it waited.
 export const LOG_NOTIFICATION_STUCK: PluralTemplate = {
   one: "Sending did not finish within {{count}} minute, so this notification may not have been sent.",
@@ -631,6 +687,8 @@ function getPageLineSentence(
         : null;
     case OnCallLogLineCode.ProviderDelivery:
       return getProviderDeliverySentence(translator, line);
+    case OnCallLogLineCode.CallEnded:
+      return getCallEndedSentence(translator, line);
     case OnCallLogLineCode.EmailSentWithoutImages:
       return line.words
         ? joinSentences([

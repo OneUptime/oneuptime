@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+클라우드를 보관해도 이 중 어느 것도 꺼지지 않습니다. 보관된 클라우드는 목록에서 숨겨질 뿐, 계속 수집되며 API 점검과 라이프사이클 점검도 계속 실행됩니다. 점검을 멈추려면 그 점검을 끄세요.
+
 ## AI 에이전트
 
 에이전트의 `docker-compose.yml`은 **OpenStack AI 에이전트**인 `oneuptime-openstack-ai-agent`(이미지 `oneuptime/resource-ai-agent:release`)도 실행합니다. OneUptime AI가 이 클라우드의 인시던트나 알림을 조사하는 동안 이를 통해 읽기 전용 `openstack` 명령을 실행하고 (`openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list`) 실행한 명령을 인용합니다. 에이전트에는 `openstack` 바이너리도 셸도 없습니다. 각 명령은 해당 명령에 응답하는 서비스에 대한 `GET` 하나로 바뀌어 에이전트 자체 자격 증명으로 전송됩니다. 에이전트는 collector가 보고하는 것과 같은 `OPENSTACK_CLOUD_NAME`으로 등록되므로 이 클라우드를 담당합니다.

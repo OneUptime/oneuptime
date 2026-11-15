@@ -23,11 +23,44 @@ import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/Schedule
 import User from "Common/Models/DatabaseModels/User";
 import { createWhatsAppMessageFromTemplate } from "Common/Server/Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "Common/Types/WhatsApp/WhatsAppMessage";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
 
 RunCron(
   "ScheduledMaintenanceOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the scheduled maintenance event as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.ScheduledMaintenanceOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const scheduledMaintenance: ScheduledMaintenance | null =
+          await readScheduledMaintenance(delivery.notification.resourceId);
+
+        if (!scheduledMaintenance) {
+          await delivery.giveUp("the scheduled maintenance event is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          scheduledMaintenance: scheduledMaintenance,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const scheduledMaintenanceOwnerTeams: Array<ScheduledMaintenanceOwnerTeam> =
       await ScheduledMaintenanceOwnerTeamService.findAllBy({
         query: {
@@ -44,7 +77,7 @@ RunCron(
         },
       });
 
-    const scheduledMaintenanceOwnersMap: Dictionary<Array<User>> = {};
+    const scheduledMaintenanceOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const scheduledMaintenanceOwnerTeam of scheduledMaintenanceOwnerTeams) {
       const scheduledMaintenanceId: ObjectID =
@@ -62,23 +95,14 @@ RunCron(
         scheduledMaintenanceOwnersMap[scheduledMaintenanceId.toString()] = [];
       }
 
-      for (const user of users) {
-        (
-          scheduledMaintenanceOwnersMap[
-            scheduledMaintenanceId.toString()
-          ] as Array<User>
-        ).push(user);
-      }
-
-      // mark this as notified.
-      await ScheduledMaintenanceOwnerTeamService.updateOneById({
-        id: scheduledMaintenanceOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        scheduledMaintenanceOwnersMap[
+          scheduledMaintenanceId.toString()
+        ] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: scheduledMaintenanceOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -117,113 +141,167 @@ RunCron(
       (
         scheduledMaintenanceOwnersMap[
           scheduledMaintenanceId.toString()
-        ] as Array<User>
-      ).push(user);
-
-      // mark this as notified.
-      await ScheduledMaintenanceOwnerUserService.updateOneById({
-        id: scheduledMaintenanceOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+        ] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: scheduledMaintenanceOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
     // send email to all of these users.
 
     for (const scheduledMaintenanceId in scheduledMaintenanceOwnersMap) {
-      if (!scheduledMaintenanceOwnersMap[scheduledMaintenanceId]) {
+      const ownerRows: Array<OwnerRowAdded> =
+        scheduledMaintenanceOwnersMap[scheduledMaintenanceId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if (
-        (scheduledMaintenanceOwnersMap[scheduledMaintenanceId] as Array<User>)
-          .length === 0
-      ) {
-        continue;
-      }
-
-      const ownerUsers: Array<User> = scheduledMaintenanceOwnersMap[
-        scheduledMaintenanceId
-      ] as Array<User>;
-
-      // get all scheduled events of all the projects.
       const scheduledMaintenance: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneById({
-          id: new ObjectID(scheduledMaintenanceId),
-          props: {
-            isRoot: true,
-          },
+        await readScheduledMaintenance(new ObjectID(scheduledMaintenanceId));
 
-          select: {
-            _id: true,
-            title: true,
-            description: true,
-            projectId: true,
-            project: {
-              name: true,
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = scheduledMaintenance
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.ScheduledMaintenanceOwnerAdded,
+            projectId: scheduledMaintenance.projectId!,
+            resourceId: scheduledMaintenance.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
+
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose scheduled maintenance event is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await ScheduledMaintenanceOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
             },
-            currentScheduledMaintenanceState: {
-              name: true,
-              color: true,
+            props: {
+              isRoot: true,
             },
-            scheduledMaintenanceNumber: true,
-            scheduledMaintenanceNumberWithPrefix: true,
-          },
-        });
+          });
+        } else {
+          await ScheduledMaintenanceOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
+      }
 
       if (!scheduledMaintenance) {
         continue;
       }
 
-      /*
-       * A team row expands to every member row, pending invitations included,
-       * and a pending invitee has no notification settings yet (the defaults
-       * are added on accept). Tell only the accepted members of the project -
-       * the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: scheduledMaintenance.projectId!,
-          users: ownerUsers,
+      try {
+        await notifyOwnersAdded({
+          scheduledMaintenance: scheduledMaintenance,
+          deliveries: deliveries,
         });
-
-      if (users.length === 0) {
-        continue;
+      } catch (e) {
+        logger.error(
+          "Error in sending scheduled maintenance event owner added notification",
+          {
+            projectId: scheduledMaintenance.projectId?.toString(),
+            scheduledMaintenanceId: scheduledMaintenance.id?.toString(),
+          },
+        );
+        logger.error(e, {
+          projectId: scheduledMaintenance.projectId?.toString(),
+          scheduledMaintenanceId: scheduledMaintenance.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      const scheduledMaintenanceNumber: string =
-        scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
-        (scheduledMaintenance.scheduledMaintenanceNumber
-          ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
-          : "");
+async function readScheduledMaintenance(
+  scheduledMaintenanceId: ObjectID,
+): Promise<ScheduledMaintenance | null> {
+  return await ScheduledMaintenanceService.findOneById({
+    id: scheduledMaintenanceId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      title: true,
+      description: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+      currentScheduledMaintenanceState: {
+        name: true,
+        color: true,
+      },
+      scheduledMaintenanceNumber: true,
+      scheduledMaintenanceNumberWithPrefix: true,
+    },
+  });
+}
 
-      const vars: Dictionary<string> = {
-        scheduledMaintenanceTitle: scheduledMaintenance.title!,
-        scheduledMaintenanceNumber: scheduledMaintenanceNumber,
-        projectName: scheduledMaintenance.project!.name!,
-        currentState:
-          scheduledMaintenance.currentScheduledMaintenanceState!.name!,
-        ...EmailColorUtil.getTemplateVariables(
-          "currentState",
-          scheduledMaintenance.currentScheduledMaintenanceState?.color,
-        ),
-        scheduledMaintenanceDescription: await Markdown.convertToHTML(
-          scheduledMaintenance.description! || "",
-          MarkdownContentType.Email,
-        ),
-        scheduledMaintenanceViewLink: (
-          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
-            scheduledMaintenance.projectId!,
-            scheduledMaintenance.id!,
-          )
-        ).toString(),
-      };
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * scheduled maintenance event, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  scheduledMaintenance: ScheduledMaintenance;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const scheduledMaintenance: ScheduledMaintenance = data.scheduledMaintenance;
 
-      for (const user of users) {
+  if (ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
+
+  const scheduledMaintenanceNumber: string =
+    scheduledMaintenance.scheduledMaintenanceNumberWithPrefix ||
+    (scheduledMaintenance.scheduledMaintenanceNumber
+      ? `#${scheduledMaintenance.scheduledMaintenanceNumber}`
+      : "");
+
+  const vars: Dictionary<string> = {
+    scheduledMaintenanceTitle: scheduledMaintenance.title!,
+    scheduledMaintenanceNumber: scheduledMaintenanceNumber,
+    projectName: scheduledMaintenance.project!.name!,
+    currentState: scheduledMaintenance.currentScheduledMaintenanceState!.name!,
+    ...EmailColorUtil.getTemplateVariables(
+      "currentState",
+      scheduledMaintenance.currentScheduledMaintenanceState?.color,
+    ),
+    scheduledMaintenanceDescription: await Markdown.convertToHTML(
+      scheduledMaintenance.description! || "",
+      MarkdownContentType.Email,
+    ),
+    scheduledMaintenanceViewLink: (
+      await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+        scheduledMaintenance.projectId!,
+        scheduledMaintenance.id!,
+      )
+    ).toString(),
+  };
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerAdded,
           vars: vars,
@@ -291,7 +369,7 @@ RunCron(
           scheduledMaintenanceId: scheduledMaintenance.id!,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

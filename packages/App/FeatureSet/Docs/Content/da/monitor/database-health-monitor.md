@@ -152,8 +152,8 @@ En indesluttet databasebruger (`CREATE USER oneuptime_health WITH PASSWORD = '..
 Sonden genkender Azure SQL Database på `SERVERPROPERTY('EngineEdition')` og ikke på versionen — Azure SQL Database rapporterer `12.0.2000.8`, uanset hvad den faktisk kører, hvilket læses som SQL Server 2014. Derfor viser monitorens **Motor** `Azure SQL Database 12.0.2000.8`, og en manglende rettighed vises som Azure-sætningen ovenfor, aldrig som `VIEW SERVER STATE`.
 
 - **Replikering indsamles ikke på Azure SQL Database.** Azure SQL Database har ingen `sys.dm_hadr_database_replica_states`, så gruppen Replication springes over der i stedet for at blive rapporteret som fejlet ved hver kontrol. Azures egne replikavisninger (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) læses endnu ikke.
-- **Forbindelser gælder pr. database.** Med `VIEW DATABASE STATE` viser Azure SQL Database kun den overvågede databases sessioner, så Connections tæller den database og ikke den logiske server. Overvåg hver database, du holder øje med.
-- **I en elastisk pulje er TempDB Free Space puljens.** Databaserne i en pulje deler én tempdb.
+- **Forbindelser gælder pr. database.** Med `VIEW DATABASE STATE` viser Azure SQL Database kun den overvågede databases sessioner, så **Forbindelser** tæller den database og ikke den logiske server. Overvåg hver database, du holder øje med.
+- **I en elastisk pulje er "Ledig plads i TempDB" puljens.** Databaserne i en pulje deler én tempdb.
 
 ## Opret en Database Health-monitor
 
@@ -198,7 +198,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 
 ### Flere felter
 
-**Metric Groups** ligger her: hvilke grupper der kører, blandt Connections, Aktivitet, Throughput, Locks and Blocking, Lagerplads, Replication og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**.
+**Metric Groups** ligger her: hvilke grupper der kører, blandt Forbindelser, Aktivitet, Gennemløb, Låse og blokeringer, Lagerplads, Replikering og Vedligeholdelse. Alle er slået til som standard; se [Metrikgrupper](#metrikgrupper). Monitorens detaljer viser dem som **Collected Metric Groups**.
 
 | Felt | Standard | Maksimum | Hvad det begrænser |
 |---|---|---|---|
@@ -249,13 +249,13 @@ At fjerne markeringen fra alle grupper er ikke en måde at indsamle ingenting p�
 | Hvad fejler | Monitorstatus | Hvad du ser |
 |---|---|---|
 | **Forbindelsen** eller testforespørgslen — forkerte loginoplysninger, afvist forbindelse, TLS-fejl, timeout ved forbindelse | **Offline** | `Database Is Online` er false, og den hændelse og den vagtpolitik, du har knyttet til den, udløses. |
-| **En gruppe** — en manglende rettighed, en slået-fra `performance_schema`, en timeout for en sætning | **Forbliver online** | De metrikker, gruppen ikke kunne læse, **mangler** — de er ikke nul. Der tegnes ingen graflinje, ingen tærskel på de serier kan matche, og ingen hændelse kan opstå fra dem. Kontrollen registrerer ét indsamlingsproblem, der nævner gruppen, årsagen og — hvor der er en — den præcise `GRANT`, der skal køres; det vises i monitorens oversigt og tælles med i **Metric Groups Failed**. |
-| **Motoren kan slet ikke levere en metrik** — standard-MySQL har ingen deadlock-tæller; SQL Server lader som standard sit forbindelsesloft være ubegrænset, så en "brugt procent" ville være meningsløs | **Forbliver online** | Metrikken mangler bare. Det er **ikke** et indsamlingsproblem, tæller ikke med i Metric Groups Failed og skal ikke rettes. Se kolonnen Engines under [Indsamlede metrikker](#indsamlede-metrikker). |
+| **En gruppe** — en manglende rettighed, en slået-fra `performance_schema`, en timeout for en sætning | **Forbliver online** | De metrikker, gruppen ikke kunne læse, **mangler** — de er ikke nul. Der tegnes ingen graflinje, ingen tærskel på de serier kan matche, og ingen hændelse kan opstå fra dem. Kontrollen registrerer ét indsamlingsproblem, der nævner gruppen, årsagen og — hvor der er en — den præcise `GRANT`, der skal køres; det vises i monitorens oversigt og tælles med i **Mislykkede metrikgrupper**. |
+| **Motoren kan slet ikke levere en metrik** — standard-MySQL har ingen deadlock-tæller; SQL Server lader som standard sit forbindelsesloft være ubegrænset, så en "brugt procent" ville være meningsløs | **Forbliver online** | Metrikken mangler bare. Det er **ikke** et indsamlingsproblem, tæller ikke med i **Mislykkede metrikgrupper** og skal ikke rettes. Se kolonnen Engines under [Indsamlede metrikker](#indsamlede-metrikker). |
 
 Mangler betyder altid mangler. En værdi, der ikke er målt, rapporteres aldrig som `0`, for en graf med opdigtede nuller er værre end et hul — et hul kan du se.
 
 > [!TIP]
-> Brug `Database Collection Error` eller en tærskel på **Metric Groups Failed** for at få besked om tabt overblik. Gør begge til advarsler frem for hændelser: en tilbagekaldt rettighed er en sag i køen, ikke et vagtkald.
+> Brug `Database Collection Error` eller en tærskel på **Mislykkede metrikgrupper** for at få besked om tabt overblik. Gør begge til advarsler frem for hændelser: en tilbagekaldt rettighed er en sag i køen, ikke et vagtkald.
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ Enogfyrre serier fordelt på otte kategorier. Engines viser de motorer, der fakt
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Oppetid** (s) | `oneuptime.monitor.database.uptime.seconds` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Mislykkede metrikgrupper** | `oneuptime.monitor.database.metric.groups.failed` | Forbindelser | PostgreSQL, MySQL, SQL Server |
 
 ### Forbindelser
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Forbindelser | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Forbindelser | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Forbindelser | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Forbindelser | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Forbindelser | MySQL |
+| **Forbindelser** | `oneuptime.monitor.database.connections.total` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Aktive forbindelser** | `oneuptime.monitor.database.connections.active` | Forbindelser | PostgreSQL, MySQL, SQL Server |
+| **Maksimalt antal forbindelser** | `oneuptime.monitor.database.connections.max` | Forbindelser | PostgreSQL, MySQL |
+| **Brugte forbindelser** (%) | `oneuptime.monitor.database.connections.used.percent` | Forbindelser | PostgreSQL, MySQL |
+| **Inaktiv i transaktion** | `oneuptime.monitor.database.connections.idle.in.transaction` | Forbindelser | PostgreSQL |
+| **Afbrudte forbindelsesforsøg** | `oneuptime.monitor.database.connections.aborted.total` | Forbindelser | MySQL |
 
 ### Gennemløb
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Gennemløb | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Gennemløb | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Gennemløb | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Gennemløb | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Transaktioner** | `oneuptime.monitor.database.transactions.total` | Gennemløb | PostgreSQL, SQL Server |
+| **Forespørgsler** | `oneuptime.monitor.database.queries.total` | Gennemløb | MySQL, SQL Server |
+| **Langsomme forespørgsler** | `oneuptime.monitor.database.queries.slow.total` | Gennemløb | MySQL |
+| **Andel af rollbacks** (%) | `oneuptime.monitor.database.rollback.percent` | Gennemløb | PostgreSQL |
+| **Længst kørende forespørgsel** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Længst åbne transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Åbne transaktioner** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### Låse og blokeringer
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Blokerede sessioner** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Låseventetider** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
 | **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Ventetider på tabellåse** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-Standard-MySQL har ingen som helst deadlock-tæller, og derfor findes Deadlocks kun på PostgreSQL og SQL Server.
+Standard-MySQL har ingen som helst deadlock-tæller, og derfor findes **Deadlocks** kun på PostgreSQL og SQL Server.
 
 ### Cache og I/O
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Gennemløb | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Gennemløb | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Gennemløb | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Gennemløb | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Gennemløb | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Gennemløb | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Gennemløb | SQL Server |
+| **Cache-hitrate** (%) | `oneuptime.monitor.database.cache.hit.percent` | Gennemløb | PostgreSQL, MySQL, SQL Server |
+| **Disklæsninger** | `oneuptime.monitor.database.disk.reads.total` | Gennemløb | PostgreSQL, MySQL, SQL Server |
+| **Diskskrivninger** | `oneuptime.monitor.database.disk.writes.total` | Gennemløb | MySQL, SQL Server |
+| **I/O-læsetid** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Gennemløb | PostgreSQL, SQL Server |
+| **I/O-skrivetid** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Gennemløb | PostgreSQL, SQL Server |
+| **Sidelevetid** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Gennemløb | SQL Server |
+| **Ventende hukommelsestildelinger** | `oneuptime.monitor.database.memory.grants.pending` | Gennemløb | SQL Server |
 
 PostgreSQL måler kun læse- og skrivetid for I/O, når `track_io_timing` er slået til. Den er slået fra som standard, og så rapporterer PostgreSQL begge som `0` — på PostgreSQL betyder et fladt nul i de to serier derfor som regel "ikke målt", ikke "hurtig". Det er en serverindstilling, ikke et rettighedsproblem.
 
@@ -329,42 +329,42 @@ PostgreSQL måler kun læse- og skrivetid for I/O, når `track_io_timing` er sl�
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Database Size** (bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Databasestørrelse** (bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **Skrevne midlertidige bytes** (bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **Midlertidige tabeller på disk** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **Brugt logplads** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **Ledig plads i TempDB** (bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### Replikering
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Forbundne replikaer** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **Replikeringsforsinkelse** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **Replikeringsforsinkelse (bytes)** (bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **I gendannelse** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **Inaktive replikeringsslots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 Replikeringsmetrikker rapporteres fra den side af forbindelsen, monitoren er forbundet til. Ret en monitor mod den primære server for at se forbundne replikaer og sendekøen; ret en mod hver standby for at se, hvor langt bagud netop den standby faktisk er.
 
-Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når en replika er langt bagud, fordi intet nyt er blevet skrevet. **Replication Lag (Bytes)** har ikke den blinde vinkel, så send advarsler på begge.
+Forsinkelsen i sekunder står på nul på en inaktiv primær server, selv når en replika er langt bagud, fordi intet nyt er blevet skrevet. **Replikeringsforsinkelse (bytes)** har ikke den blinde vinkel, så send advarsler på begge.
 
 ### Vedligeholdelse
 
 | Metrik | Serie | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Brugte transaktions-id'er** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **Døde tupler** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **Tabeller aldrig kørt med autovacuum** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **Anmodede checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **Planlagte checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** fortjener et kriterium på hver PostgreSQL-monitor, du opretter. PostgreSQL afviser alle skrivninger, når værdien når 100 %, gendannelse kræver en vacuum i enkeltbrugertilstand med databasen nede, og næsten ingen holder øje med den. Send en advarsel i god tid før afgrunden — 80 % giver dages luft på de fleste arbejdsbelastninger.
+> **Brugte transaktions-id'er** fortjener et kriterium på hver PostgreSQL-monitor, du opretter. PostgreSQL afviser alle skrivninger, når værdien når 100 %, gendannelse kræver en vacuum i enkeltbrugertilstand med databasen nede, og næsten ingen holder øje med den. Send en advarsel i god tid før afgrunden — 80 % giver dages luft på de fleste arbejdsbelastninger.
 
-Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Uptime** viser dig).
+Tællere, der ender på `total`, er kumulative siden serverens start. Sammenlign to tidspunkter for at få en rate; en enkelt værdi giver kun mening i forhold til dens egen historik, og den nulstilles, når serveren genstarter (hvilket **Oppetid** viser dig).
 
-**Cache Hit Ratio** og **Rollback Ratio** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at sonden starter, og den første efter at serveren genstarter, har ingen af dem.
+**Cache-hitrate** og **Andel af rollbacks** beregnes ved hver kontrol ud fra, hvor meget deres tællere har flyttet sig siden monitorens forrige kontrol, ikke siden serverens start, så en cache, der begynder at fejle, ses med det samme. Den første kontrol efter at sonden starter, og den første efter at serveren genstarter, har ingen af dem.
 
 ## Opsæt kriterier
 
@@ -409,14 +409,14 @@ Til en tærskel på en enkelt metrik bør du vælge **Databasemetrik** frem for 
 | Rækkefølge | Kriterier | Filter |
 |---|---|---|
 | 1 | **Offline** | `Database Is Online` er `false`. |
-| 2 | **Forringet** | `Database Metric` → Connections Used er større end `90`, evalueret over 5 minutter med All Values, så en enkelt spids ikke tilkalder nogen. |
-| 3 | **Forringet** | `Database Metric` → Transaction ID Used er større end `80`. |
-| 4 | **Forringet** | `Database Metric` → Blocked Sessions er større end `0`, over 5 minutter. |
+| 2 | **Forringet** | `Database Metric` → **Brugte forbindelser** er større end `90`, evalueret over 5 minutter med All Values, så en enkelt spids ikke tilkalder nogen. |
+| 3 | **Forringet** | `Database Metric` → **Brugte transaktions-id'er** er større end `80`. |
+| 4 | **Forringet** | `Database Metric` → **Blokerede sessioner** er større end `0`, over 5 minutter. |
 | 5 | **Online** | `Database Is Online` er `true`. |
 
 Kriterier evalueres oppefra og ned, og det første match vinder, så placér de advarende kriterier først og det sunde sidst.
 
-Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Metric Groups Failed** eller `Database Collection Error`, være en advarsel uden tilknyttet vagtpolitik.
+Knyt en vagtpolitik til offline-kriteriet, og lad alt, der er afledt af **Mislykkede metrikgrupper** eller `Database Collection Error`, være en advarsel uden tilknyttet vagtpolitik.
 
 ## Det skal du være opmærksom på
 
@@ -441,11 +441,11 @@ Loginnet er hverken medlem af `pg_monitor` eller `pg_read_all_stats` og er ikke 
 Enten mangler loginnet `SELECT` på `performance_schema`, eller også er `performance_schema` slået fra på serveren; monitorens oversigt viser MySQL's meddelelse. Ved en manglende rettighed skal du køre sætningerne under [MySQL](#mysql). En slået-fra `performance_schema` kræver `performance_schema = ON` i serverens konfiguration og en genstart.
 :::
 
-:::details I/O Read Time og I/O Write Time er altid 0 på PostgreSQL
+:::details **I/O-læsetid** og **I/O-skrivetid** er altid 0 på PostgreSQL
 PostgreSQL måler dem kun, når `track_io_timing` er slået til, og den er slået fra som standard. Slå den til i serverens konfiguration eller i parametergruppen for din administrerede tjeneste for at se rigtige værdier. Det er ikke en manglende rettighed.
 :::
 
-:::details Metric Groups Failed er over 0 ved hver kontrol
+:::details **Mislykkede metrikgrupper** er over 0 ved hver kontrol
 En gruppe kan ikke indsamles ved nogen kontrol, så det samme indsamlingsproblem gentager sig. Monitorens oversigt nævner gruppen, årsagen og den `GRANT`, der løser det. Kør rettigheden, eller slå, hvis du ikke kan få den, gruppen fra under **Flere felter → Metric Groups**, så problemet holder op med at gentage sig.
 :::
 

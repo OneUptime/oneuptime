@@ -275,6 +275,7 @@
       "channelSlack": "Slack-arbeidsområde",
       "channelMicrosoftTeams": "Microsoft Teams-arbeidsområde",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dette abonnementet ble lagt til av teamet som driver denne statussiden. Hvis det er en delt adresse, for eksempel en e-postliste, stopper avslutning disse varslene for alle som mottar dem, og teamet blir varslet.",
       "confirmButton": "Avslutt abonnement",
       "manageInstead": "Velg heller hvilke varsler du mottar",

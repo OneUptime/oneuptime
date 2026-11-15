@@ -9,8 +9,11 @@ import { DOCKER_SWARM_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/
 import { DOCKER_SWARM_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationTranslations";
 import { CEPH_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
+import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
+import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getIoTSetupGuideWays,
   getCephSetupGuideWays,
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
@@ -148,6 +151,23 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "OneUptime AI agent",
         "AI",
         "AI agent",
+      ],
+    }),
+    product({
+      name: "IoT",
+      translations: IOT_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "IOT_DOCUMENTATION_TRANSLATIONS",
+      ways: getIoTSetupGuideWays,
+      options: IOT_INGESTION_METHODS,
+      dashboardWords: [
+        "IoT",
+        "Devices",
+        "Metrics",
+        "Fleet",
+        "Device",
+        "Device Registry",
+        "Metric conventions",
+        "MQTT topics and payloads",
       ],
     }),
   ];

@@ -107,6 +107,8 @@ const UI_FILES: ReadonlyArray<string> = [
  */
 const KEYS_FILES: ReadonlyArray<string> = [
   "packages/Common/Utils/SessionReplay/SessionReplayHealth.ts",
+  // The ages and durations it writes, the Dashboard's compact keys (#8455).
+  "packages/Common/Utils/Milliseconds.ts",
 ];
 
 /*

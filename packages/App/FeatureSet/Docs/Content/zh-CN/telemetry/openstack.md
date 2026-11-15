@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+归档云不会关闭其中任何一项。已归档的云只是不在列表中显示：它仍会被收集，其 API 检查和生命周期检查也会继续运行。要停止某项检查，请将其关闭。
+
 ## AI 代理
 
 代理的 `docker-compose.yml` 也会运行 **OpenStack AI 代理**，即 `oneuptime-openstack-ai-agent`（镜像 `oneuptime/resource-ai-agent:release`）。当 OneUptime AI 调查这朵云上的事件或警报时，它会通过该代理运行只读的 `openstack` 命令——`openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list`——并引用它运行过的内容。代理中没有 `openstack` 二进制文件，也没有 shell：每条命令都会变成对能回答它的服务的一次 `GET`，使用代理自己的凭据。代理使用与 collector 上报的相同的 `OPENSTACK_CLOUD_NAME` 进行注册，所以它服务于这朵云。

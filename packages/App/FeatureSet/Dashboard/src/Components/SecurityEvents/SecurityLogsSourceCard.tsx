@@ -440,6 +440,8 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
             value={isSwitchOn}
             disabled={isLoading || isSaving || !gate.isAllowed}
             tooltip={gate.isAllowed ? undefined : gate.disabledReason}
+            // The permission check words its reason in the reader's language.
+            isTooltipTranslated={true}
             dataTestId="security-logs-source-toggle"
             onChange={(value: boolean) => {
               void flip(value);

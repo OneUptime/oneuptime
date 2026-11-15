@@ -214,6 +214,132 @@ describe("JSONWebToken", () => {
     });
   });
 
+  /*
+   * A sign-out ends the session its own access token names, expired or not,
+   * when the refresh token it sent matches none: a renewal whose answer was
+   * lost rotated it (POST /identity/logout, issue #8592). acceptExpired
+   * takes the expiry away, and only the expiry: the signature and what the
+   * token is for are checked as ever.
+   */
+  describe("decode with acceptExpired", () => {
+    test("takes a session's token that has expired, with its user and session", () => {
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        sessionToken(-60 * 60),
+        JsonWebTokenPurpose.UserSession,
+        { acceptExpired: true },
+      );
+
+      expect(decoded.userId.toString()).toBe(userId.toString());
+      expect(decoded.sessionId?.toString()).toBe(sessionId.toString());
+    });
+
+    test("takes one that has not expired the same way", () => {
+      const decoded: JSONWebTokenData = JSONWebToken.decode(
+        sessionToken(300),
+        JsonWebTokenPurpose.UserSession,
+        { acceptExpired: true },
+      );
+
+      expect(decoded.sessionId?.toString()).toBe(sessionId.toString());
+    });
+
+    test("without it, or with it false, an expired token is refused as before", () => {
+      for (const options of [undefined, {}, { acceptExpired: false }]) {
+        expect(() => {
+          return JSONWebToken.decode(
+            sessionToken(-10),
+            JsonWebTokenPurpose.UserSession,
+            options,
+          );
+        }).toThrow(BadDataException);
+      }
+    });
+
+    test("still refuses a token signed with another key, expired or not", () => {
+      for (const expiresIn of [-60, 300]) {
+        const forged: string = jwt.sign(
+          {
+            userId: userId.toString(),
+            sessionId: sessionId.toString(),
+            [PURPOSE_CLAIM]: JsonWebTokenPurpose.UserSession,
+          },
+          "some-other-secret",
+          { expiresIn },
+        );
+
+        expect(() => {
+          return JSONWebToken.decode(forged, JsonWebTokenPurpose.UserSession, {
+            acceptExpired: true,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    test("still refuses what is not a session's token: an SSO sign-in, a status page's session, garbage", () => {
+      const statusPageSession: string = JSONWebToken.signJsonPayload(
+        {
+          userId: userId.toString(),
+          email: email.toString(),
+          statusPageId: ObjectID.generate().toString(),
+          sessionId: sessionId.toString(),
+          [PURPOSE_CLAIM]: JsonWebTokenPurpose.StatusPageSession,
+        },
+        -60,
+      );
+
+      for (const token of [
+        CookieUtil.getSSOToken({
+          user: buildUser(),
+          projectId: ObjectID.generate(),
+          ssoProviderId: ObjectID.generate(),
+          ssoProviderType: SsoProviderType.ProjectSSO,
+        }),
+        statusPageSession,
+        "not-a-token",
+        "",
+      ]) {
+        expect(() => {
+          return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, {
+            acceptExpired: true,
+          });
+        }).toThrow(BadDataException);
+      }
+    });
+
+    test("still refuses a session's token that names no session", () => {
+      const token: string = JSONWebToken.sign({
+        data: {
+          userId: userId,
+          email: email,
+          name: new Name("Test User"),
+          isMasterAdmin: false,
+          isGlobalLogin: false,
+        } as JSONWebTokenData,
+        expiresInSeconds: -60,
+        purpose: JsonWebTokenPurpose.UserSession,
+      });
+
+      expect(() => {
+        return JSONWebToken.decode(token, JsonWebTokenPurpose.UserSession, {
+          acceptExpired: true,
+        });
+      }).toThrow(BadDataException);
+    });
+
+    test("checks the signature once, as every decode does", () => {
+      const verify: jest.SpyInstance = jest.spyOn(jwt, "verify");
+
+      JSONWebToken.decode(sessionToken(-60), JsonWebTokenPurpose.UserSession, {
+        acceptExpired: true,
+      });
+
+      expect(verify).toHaveBeenCalledTimes(1);
+      expect(verify.mock.calls[0]![2]).toEqual({ ignoreExpiration: true });
+
+      verify.mockRestore();
+    });
+  });
+
   describe("sign", () => {
     test("should wrap a plain string payload under a data claim", () => {
       const token: string = JSONWebToken.sign({

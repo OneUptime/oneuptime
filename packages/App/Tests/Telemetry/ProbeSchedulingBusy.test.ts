@@ -169,7 +169,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/Monitor", () => {
 import "../../FeatureSet/Telemetry/API/ProbeIngest/Monitor";
 import "../../FeatureSet/Telemetry/API/ProbeIngest/NetworkDevicePoll";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const responseUtil: {
   sendJsonObjectResponse: AnyMock;

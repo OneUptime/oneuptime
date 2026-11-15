@@ -275,6 +275,7 @@
       "channelSlack": "Slack 工作区",
       "channelMicrosoftTeams": "Microsoft Teams 工作区",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}：",
       "addedByTeamWarning": "此订阅由运营此状态页的团队添加。如果这是一个共享地址（例如邮件列表），取消订阅后，所有接收者都将不再收到这些通知，团队也会收到通知。",
       "confirmButton": "取消订阅",
       "manageInstead": "改为选择您要接收的通知",

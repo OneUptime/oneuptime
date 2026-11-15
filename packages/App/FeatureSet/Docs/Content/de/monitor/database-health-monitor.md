@@ -152,8 +152,8 @@ Ein eigenständiger Datenbankbenutzer (`CREATE USER oneuptime_health WITH PASSWO
 Die Sonde erkennt Azure SQL Database an `SERVERPROPERTY('EngineEdition')` statt an der Version — Azure SQL Database meldet `12.0.2000.8`, egal was tatsächlich läuft, was sich wie SQL Server 2014 liest. Die **Engine** des Monitors lautet daher `Azure SQL Database 12.0.2000.8`, und eine fehlende Berechtigung wird als die Azure-Anweisung oben angezeigt, nie als `VIEW SERVER STATE`.
 
 - **Replikation wird auf Azure SQL Database nicht erfasst.** Azure SQL Database hat kein `sys.dm_hadr_database_replica_states`, daher wird die Gruppe Replication dort übersprungen, statt bei jeder Prüfung als fehlgeschlagen gemeldet zu werden. Die eigenen Replikat-Views von Azure (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) werden noch nicht gelesen.
-- **Verbindungen gelten je Datenbank.** Mit `VIEW DATABASE STATE` zeigt Azure SQL Database nur die Sitzungen der überwachten Datenbank, daher zählt Connections diese Datenbank statt des logischen Servers. Überwachen Sie jede Datenbank, die Ihnen wichtig ist.
-- **TempDB Free Space ist in einem Pool für elastische Datenbanken der Wert des Pools.** Die Datenbanken eines Pools teilen sich eine tempdb.
+- **Verbindungen gelten je Datenbank.** Mit `VIEW DATABASE STATE` zeigt Azure SQL Database nur die Sitzungen der überwachten Datenbank, daher zählt **Verbindungen** diese Datenbank statt des logischen Servers. Überwachen Sie jede Datenbank, die Ihnen wichtig ist.
+- **„Freier Speicher in TempDB“ ist in einem Pool für elastische Datenbanken der Wert des Pools.** Die Datenbanken eines Pools teilen sich eine tempdb.
 
 ## Einen Datenbank-Integritäts-Monitor erstellen
 
@@ -198,7 +198,7 @@ Wählen Sie die **Sonden**, die die Datenbank erreichen, und ein **Überwachungs
 
 ### Weitere Felder
 
-**Metrikgruppen** finden Sie hier: welche Gruppen laufen, aus Verbindungen, Aktivität, Durchsatz, Locks and Blocking, Speicher, Replikation und Wartung. Alle sind standardmäßig eingeschaltet; siehe [Metrikgruppen](#metrikgruppen). Die Details des Monitors führen sie als **Erfasste Metrikgruppen** auf.
+**Metrikgruppen** finden Sie hier: welche Gruppen laufen, aus Verbindungen, Aktivität, Durchsatz, Sperren und Blockierungen, Speicher, Replikation und Wartung. Alle sind standardmäßig eingeschaltet; siehe [Metrikgruppen](#metrikgruppen). Die Details des Monitors führen sie als **Erfasste Metrikgruppen** auf.
 
 | Feld | Standard | Maximum | Was es begrenzt |
 |---|---|---|---|
@@ -249,13 +249,13 @@ Alle Gruppen abzuwählen ist kein Weg, nichts zu erfassen — eine leere Liste w
 | Was fehlschlägt | Monitorstatus | Was Sie sehen |
 |---|---|---|
 | **Die Verbindung** oder die Testabfrage — falsche Zugangsdaten, abgelehnte Verbindung, TLS-Fehler, Verbindungs-Timeout | **Offline** | `Database Is Online` ist false, und jeder Vorfall und jede Bereitschaftsrichtlinie, die Sie daran gehängt haben, wird ausgelöst. |
-| **Eine Gruppe** — eine fehlende Berechtigung, ein deaktiviertes `performance_schema`, ein Statement-Timeout | **Bleibt online** | Die Metriken, die diese Gruppe nicht lesen konnte, **fehlen** — sie sind nicht null. Es wird keine Diagrammlinie gezeichnet, kein Schwellenwert auf diesen Zeitreihen kann zutreffen, und aus ihnen kann kein Vorfall entstehen. Die Prüfung vermerkt ein Erfassungsproblem mit der Gruppe, dem Grund und — wo es einen gibt — dem genauen `GRANT`, der auszuführen ist; es wird in der Zusammenfassung des Monitors angezeigt und in **Metric Groups Failed** gezählt. |
-| **Die Engine kann eine Metrik gar nicht liefern** — Standard-MySQL hat keinen Deadlock-Zähler; SQL Server lässt seine Verbindungsobergrenze standardmäßig unbegrenzt, sodass ein „genutzter Prozentsatz“ bedeutungslos wäre | **Bleibt online** | Die Metrik fehlt einfach. Das ist **kein** Erfassungsproblem, zählt nicht zu Metric Groups Failed und muss nicht behoben werden. Siehe die Spalte Engines unter [Erfasste Metriken](#erfasste-metriken). |
+| **Eine Gruppe** — eine fehlende Berechtigung, ein deaktiviertes `performance_schema`, ein Statement-Timeout | **Bleibt online** | Die Metriken, die diese Gruppe nicht lesen konnte, **fehlen** — sie sind nicht null. Es wird keine Diagrammlinie gezeichnet, kein Schwellenwert auf diesen Zeitreihen kann zutreffen, und aus ihnen kann kein Vorfall entstehen. Die Prüfung vermerkt ein Erfassungsproblem mit der Gruppe, dem Grund und — wo es einen gibt — dem genauen `GRANT`, der auszuführen ist; es wird in der Zusammenfassung des Monitors angezeigt und in **Fehlgeschlagene Metrikgruppen** gezählt. |
+| **Die Engine kann eine Metrik gar nicht liefern** — Standard-MySQL hat keinen Deadlock-Zähler; SQL Server lässt seine Verbindungsobergrenze standardmäßig unbegrenzt, sodass ein „genutzter Prozentsatz“ bedeutungslos wäre | **Bleibt online** | Die Metrik fehlt einfach. Das ist **kein** Erfassungsproblem, wird nicht in **Fehlgeschlagene Metrikgruppen** mitgezählt und muss nicht behoben werden. Siehe die Spalte Engines unter [Erfasste Metriken](#erfasste-metriken). |
 
 Fehlend bedeutet immer fehlend. Ein Wert, der nicht gemessen wurde, wird nie als `0` gemeldet, denn ein Diagramm aus erfundenen Nullen ist schlimmer als eine Lücke — eine Lücke können Sie sehen.
 
 > [!TIP]
-> Um bei verlorener Sicht zu alarmieren, nutzen Sie `Database Collection Error` oder einen Schwellenwert auf **Metric Groups Failed**. Machen Sie aus beiden Alarme statt Vorfällen: Eine entzogene Berechtigung ist ein Ticket, kein Bereitschaftsruf.
+> Um bei verlorener Sicht zu alarmieren, nutzen Sie `Database Collection Error` oder einen Schwellenwert auf **Fehlgeschlagene Metrikgruppen**. Machen Sie aus beiden Alarme statt Vorfällen: Eine entzogene Berechtigung ist ein Ticket, kein Bereitschaftsruf.
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ Einundvierzig Zeitreihen in acht Kategorien. Engines nennt die Engines, die die 
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Laufzeit** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Fehlgeschlagene Metrikgruppen** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
 
 ### Verbindungen
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Verbindungen** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Aktive Verbindungen** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Maximale Verbindungen** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
+| **Genutzte Verbindungen** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
+| **Leerlauf in Transaktion** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
+| **Abgebrochene Verbindungsversuche** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
 
 ### Durchsatz
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **Transaktionen** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
+| **Abfragen** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
+| **Langsame Abfragen** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
+| **Rollback-Anteil** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Am längsten laufende Abfrage** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Am längsten offene Transaktion** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **Offene Transaktionen** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### Sperren und Blockierungen
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Blockierte Sitzungen** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **Sperrwartevorgänge** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
 | **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **Wartevorgänge auf Tabellensperren** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-Standard-MySQL stellt keinerlei Deadlock-Zähler bereit, deshalb gibt es Deadlocks nur auf PostgreSQL und SQL Server.
+Standard-MySQL stellt keinerlei Deadlock-Zähler bereit, deshalb gibt es **Deadlocks** nur auf PostgreSQL und SQL Server.
 
 ### Cache und I/O
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache-Trefferquote** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
+| **Lesevorgänge auf der Festplatte** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
+| **Schreibvorgänge auf der Festplatte** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
+| **I/O-Lesezeit** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
+| **I/O-Schreibzeit** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
+| **Seitenlebenserwartung** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
+| **Ausstehende Speicherzuteilungen** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
 
 PostgreSQL misst Lese- und Schreibzeiten für I/O nur, wenn `track_io_timing` eingeschaltet ist. Standardmäßig ist es aus, und dann meldet PostgreSQL beide als `0` — auf PostgreSQL bedeutet eine flache Null in diesen beiden Zeitreihen also meist „nicht gemessen“, nicht „schnell“. Das ist eine Servereinstellung, kein Berechtigungsproblem.
 
@@ -329,42 +329,42 @@ PostgreSQL misst Lese- und Schreibzeiten für I/O nur, wenn `track_io_timing` ei
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Database Size** (Bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (Bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (Bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **Datenbankgröße** (Bytes) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **Geschriebene temporäre Bytes** (Bytes) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **Temporäre Tabellen auf der Festplatte** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **Belegter Protokollspeicher** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **Freier Speicher in TempDB** (Bytes) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### Replikation
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (Bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **Verbundene Replikate** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **Replikationsrückstand** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **Replikationsrückstand (Bytes)** (Bytes) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **Im Wiederherstellungsmodus** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **Inaktive Replikationsslots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 Replikationsmetriken werden von der Seite der Verbindung gemeldet, mit der der Monitor verbunden ist. Richten Sie einen Monitor auf den Primärserver, um verbundene Replikate und die Sendewarteschlange zu sehen; richten Sie je einen auf jeden Standby, um zu sehen, wie weit dieser Standby tatsächlich zurückliegt.
 
-Die Verzögerung in Sekunden steht auf einem untätigen Primärserver auf null, selbst wenn ein Replikat weit zurückliegt, weil nichts Neues geschrieben wurde. **Replication Lag (Bytes)** hat diesen blinden Fleck nicht, also alarmieren Sie auf beide.
+Die Verzögerung in Sekunden steht auf einem untätigen Primärserver auf null, selbst wenn ein Replikat weit zurückliegt, weil nichts Neues geschrieben wurde. **Replikationsrückstand (Bytes)** hat diesen blinden Fleck nicht, also alarmieren Sie auf beide.
 
 ### Wartung
 
 | Metrik | Zeitreihe | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **Verbrauchte Transaktions-IDs** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **Tote Tupel** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **Nie per Autovacuum bereinigte Tabellen** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **Angeforderte Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **Zeitgesteuerte Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used** verdient ein Kriterium auf jedem PostgreSQL-Monitor, den Sie anlegen. PostgreSQL verweigert alle Schreibvorgänge, wenn der Wert 100 % erreicht, die Wiederherstellung bedeutet ein Vacuum im Einzelbenutzermodus bei heruntergefahrener Datenbank, und fast niemand beobachtet ihn. Alarmieren Sie weit vor der Klippe — 80 % lassen bei den meisten Workloads Tage an Reserve.
+> **Verbrauchte Transaktions-IDs** verdient ein Kriterium auf jedem PostgreSQL-Monitor, den Sie anlegen. PostgreSQL verweigert alle Schreibvorgänge, wenn der Wert 100 % erreicht, die Wiederherstellung bedeutet ein Vacuum im Einzelbenutzermodus bei heruntergefahrener Datenbank, und fast niemand beobachtet ihn. Alarmieren Sie weit vor der Klippe — 80 % lassen bei den meisten Workloads Tage an Reserve.
 
-Zähler, die auf `total` enden, sind seit dem Serverstart kumulativ. Vergleichen Sie zwei Zeitpunkte, um eine Rate zu erhalten; ein einzelner Wert ist nur gegenüber seinem eigenen Verlauf aussagekräftig, und er springt beim Neustart des Servers auf null zurück (was Ihnen **Uptime** zeigt).
+Zähler, die auf `total` enden, sind seit dem Serverstart kumulativ. Vergleichen Sie zwei Zeitpunkte, um eine Rate zu erhalten; ein einzelner Wert ist nur gegenüber seinem eigenen Verlauf aussagekräftig, und er springt beim Neustart des Servers auf null zurück (was Ihnen **Laufzeit** zeigt).
 
-**Cache Hit Ratio** und **Rollback Ratio** werden bei jeder Prüfung aus dem berechnet, was sich ihre Zähler seit der vorherigen Prüfung des Monitors bewegt haben, nicht seit dem Serverstart; ein Cache, der anfängt, Treffer zu verfehlen, zeigt sich also sofort. Die erste Prüfung nach dem Start der Sonde und die erste nach einem Neustart des Servers liefern keinen der beiden Werte.
+**Cache-Trefferquote** und **Rollback-Anteil** werden bei jeder Prüfung aus dem berechnet, was sich ihre Zähler seit der vorherigen Prüfung des Monitors bewegt haben, nicht seit dem Serverstart; ein Cache, der anfängt, Treffer zu verfehlen, zeigt sich also sofort. Die erste Prüfung nach dem Start der Sonde und die erste nach einem Neustart des Servers liefern keinen der beiden Werte.
 
 ## Kriterien einrichten
 
@@ -409,14 +409,14 @@ Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Datenbankmetr
 | Reihenfolge | Kriterien | Filter |
 |---|---|---|
 | 1 | **Offline** | `Database Is Online` ist `false`. |
-| 2 | **Beeinträchtigt** | `Database Metric` → Connections Used ist größer als `90`, ausgewertet über 5 Minuten mit All Values, damit eine einzelne Spitze niemanden alarmiert. |
-| 3 | **Beeinträchtigt** | `Database Metric` → Transaction ID Used ist größer als `80`. |
-| 4 | **Beeinträchtigt** | `Database Metric` → Blocked Sessions ist größer als `0`, über 5 Minuten. |
+| 2 | **Beeinträchtigt** | `Database Metric` → **Genutzte Verbindungen** ist größer als `90`, ausgewertet über 5 Minuten mit All Values, damit eine einzelne Spitze niemanden alarmiert. |
+| 3 | **Beeinträchtigt** | `Database Metric` → **Verbrauchte Transaktions-IDs** ist größer als `80`. |
+| 4 | **Beeinträchtigt** | `Database Metric` → **Blockierte Sitzungen** ist größer als `0`, über 5 Minuten. |
 | 5 | **Online** | `Database Is Online` ist `true`. |
 
 Kriterien werden von oben nach unten ausgewertet, und der erste Treffer gewinnt — führen Sie also die alarmierenden Kriterien zuerst auf und das gesunde zuletzt.
 
-Hängen Sie eine Bereitschaftsrichtlinie an das Offline-Kriterium und lassen Sie alles, was von **Metric Groups Failed** oder `Database Collection Error` abgeleitet ist, als Alarm ohne Bereitschaftsrichtlinie.
+Hängen Sie eine Bereitschaftsrichtlinie an das Offline-Kriterium und lassen Sie alles, was von **Fehlgeschlagene Metrikgruppen** oder `Database Collection Error` abgeleitet ist, als Alarm ohne Bereitschaftsrichtlinie.
 
 ## Was zu beachten ist
 
@@ -441,11 +441,11 @@ Das Login ist weder Mitglied von `pg_monitor` oder `pg_read_all_stats` noch ein 
 Entweder fehlt dem Login `SELECT` auf `performance_schema`, oder `performance_schema` ist auf dem Server ausgeschaltet; die Zusammenfassung des Monitors zeigt die Meldung von MySQL. Bei einer fehlenden Berechtigung führen Sie die Anweisungen unter [MySQL](#mysql) aus. Ein deaktiviertes `performance_schema` braucht `performance_schema = ON` in der Serverkonfiguration und einen Neustart.
 :::
 
-:::details I/O Read Time und I/O Write Time sind auf PostgreSQL immer 0
+:::details **I/O-Lesezeit** und **I/O-Schreibzeit** sind auf PostgreSQL immer 0
 PostgreSQL misst sie nur, wenn `track_io_timing` eingeschaltet ist, und das ist standardmäßig aus. Schalten Sie es in der Serverkonfiguration oder in der Parametergruppe Ihres verwalteten Dienstes ein, um echte Werte zu sehen. Es ist keine fehlende Berechtigung.
 :::
 
-:::details Metric Groups Failed liegt bei jeder Prüfung über 0
+:::details **Fehlgeschlagene Metrikgruppen** liegt bei jeder Prüfung über 0
 Eine Gruppe kann bei keiner Prüfung erfasst werden, daher wiederholt sich dasselbe Erfassungsproblem. Die Zusammenfassung des Monitors nennt die Gruppe, den Grund und den `GRANT`, der es behebt. Führen Sie die Berechtigung aus oder schalten Sie, wenn Sie sie nicht bekommen, diese Gruppe unter **Weitere Felder → Metrikgruppen** aus, damit sich das Problem nicht mehr wiederholt.
 :::
 

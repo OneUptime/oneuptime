@@ -141,7 +141,7 @@ const OpenStackBareMetalNotices: FunctionComponent<ComponentProps> = (
         <OpenStackPartNotice testId="openstack-bare-metal-quiet" tone="warning">
           {translator.translateTemplate(
             isProbeCollected ? QUIET_ON_A_PROBE_NOTICE : QUIET_NOTICE,
-            { duration: formatOpenStackDuration(quietMinutes) },
+            { duration: formatOpenStackDuration(quietMinutes, translator) },
           )}
         </OpenStackPartNotice>
       ) : isDown ? (

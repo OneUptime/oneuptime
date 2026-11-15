@@ -64,6 +64,7 @@ import {
   FluentdRunsIn,
   getFluentBitConfig,
   getFluentBitDockerCompose,
+  getFluentBitHostCommands,
   getFluentdConfig,
   getFluentdDockerCompose,
   getFluentdHostCommands,
@@ -1733,7 +1734,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   label: translate("On the host"),
                   content: (
                     <CodeBlock
-                      code="fluent-bit -c fluent-bit.conf"
+                      code={withServiceName(
+                        getFluentBitHostCommands(),
+                        props.serviceName,
+                      )}
                       language="bash"
                     />
                   ),
