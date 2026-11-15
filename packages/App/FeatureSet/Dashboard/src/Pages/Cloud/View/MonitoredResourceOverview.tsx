@@ -252,6 +252,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
       valueNote: tile.valueNote,
       description: tile.description,
       percent: tile.percent,
+      // An availability's bar is at its best full, not at its worst.
+      higherIsBetter: tile.higherIsBetter,
+      thresholds: tile.thresholds,
       icon: tile.icon,
       iconColor: tile.iconColor,
     };

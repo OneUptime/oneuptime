@@ -96,9 +96,44 @@ export interface CloudHeadlineTile {
   description?: string | undefined;
   // For a percent: the tile's bar.
   percent?: number | null | undefined;
+  // A share that is better the fuller it is: availability, healthy backends.
+  higherIsBetter?: boolean | undefined;
+  // Where its bar turns amber and red, as its type's rules judge it.
+  thresholds?: { warn: number; danger: number } | undefined;
   icon: IconProp;
   iconColor: "blue" | "violet" | "amber" | "emerald" | "slate" | "sky" | "rose";
 }
+
+/*
+ * How a share's bar is coloured, where the default - amber from 70%, red
+ * from 90%, for what is worse the fuller it is (CPU, memory, storage) -
+ * would say the opposite of the health rules: an availability of 100% is
+ * the bar's best, red under 90% and amber under 99.9% as its rules judge
+ * it (CloudResourceHealth's availability); a load balancer's healthy
+ * backends red under half and amber under all; a share of requests that
+ * failed amber from 5% and red from half.
+ */
+const BARS: Record<
+  string,
+  {
+    higherIsBetter?: boolean | undefined;
+    thresholds: { warn: number; danger: number };
+  }
+> = {
+  [HEADLINE_AVAILABILITY]: {
+    higherIsBetter: true,
+    thresholds: { warn: 99.9, danger: 90 },
+  },
+  [HEADLINE_HEALTHY_BACKENDS]: {
+    higherIsBetter: true,
+    thresholds: { warn: 100, danger: 50 },
+  },
+  [HEADLINE_HEALTH]: {
+    higherIsBetter: true,
+    thresholds: { warn: 100, danger: 50 },
+  },
+  [HEADLINE_ERRORS]: { thresholds: { warn: 5, danger: 50 } },
+};
 
 const ICONS: Record<
   string,
@@ -341,12 +376,17 @@ export function getCloudHeadlineTiles(data: {
       translator: data.translator,
     });
 
+    const bar: (typeof BARS)[string] | undefined =
+      formatted.percent === undefined ? undefined : BARS[headline.label];
+
     tiles.push({
       key: headline.key,
       title: headline.label,
       value: formatted.value,
       sublabel: formatted.sublabel,
       percent: formatted.percent,
+      higherIsBetter: bar?.higherIsBetter,
+      thresholds: bar?.thresholds,
       icon: look.icon,
       iconColor: look.color,
     });

@@ -341,6 +341,83 @@ describe("what a resource's page leads with", () => {
     ]);
   });
 
+  test("a share that is better full - availability, healthy backends - draws its bar that way, as its rules judge it", () => {
+    const vm: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Compute/virtualMachines",
+      readings: {
+        percentage_cpu: reading(96),
+        vmavailabilitymetric: reading(1),
+      },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+    const tileOf: (
+      tiles: Array<CloudHeadlineTile>,
+      key: string,
+    ) => CloudHeadlineTile = (
+      tiles: Array<CloudHeadlineTile>,
+      key: string,
+    ): CloudHeadlineTile => {
+      return tiles.find((tile: CloudHeadlineTile): boolean => {
+        return tile.key === key;
+      })!;
+    };
+
+    // CPU: worse the fuller, the default bar.
+    expect(tileOf(vm, "percentage_cpu").higherIsBetter).toBeUndefined();
+    expect(tileOf(vm, "percentage_cpu").thresholds).toBeUndefined();
+    // Availability: best full, amber under 99.9% and red under 90%.
+    expect(tileOf(vm, "vmavailabilitymetric").higherIsBetter).toBe(true);
+    expect(tileOf(vm, "vmavailabilitymetric").thresholds).toEqual({
+      warn: 99.9,
+      danger: 90,
+    });
+
+    const balancer: Array<CloudHeadlineTile> = getCloudHeadlineTiles({
+      provider: "azure",
+      type: "Microsoft.Network/loadBalancers",
+      readings: { vipavailability: reading(100), dipavailability: reading(50) },
+      hasFreshReadings: true,
+      translator: ENGLISH,
+    });
+
+    expect(tileOf(balancer, "dipavailability").higherIsBetter).toBe(true);
+    expect(tileOf(balancer, "dipavailability").thresholds).toEqual({
+      warn: 100,
+      danger: 50,
+    });
+
+    // A share of requests that failed: amber from 5%, red from half.
+    const cdn: CloudHeadlineTile = tileOf(
+      getCloudHeadlineTiles({
+        provider: "azure",
+        type: "Microsoft.Cdn/profiles",
+        readings: { percentage5xx: reading(7) },
+        hasFreshReadings: true,
+        translator: ENGLISH,
+      }),
+      "percentage5xx",
+    );
+
+    expect(cdn.higherIsBetter).toBeUndefined();
+    expect(cdn.thresholds).toEqual({ warn: 5, danger: 50 });
+
+    // A count of errors draws no bar at all.
+    expect(
+      tileOf(
+        getCloudHeadlineTiles({
+          provider: "azure",
+          type: "Microsoft.Web/sites",
+          readings: { http5xx: reading(3) },
+          hasFreshReadings: true,
+          translator: ENGLISH,
+        }),
+        "http5xx",
+      ).thresholds,
+    ).toBeUndefined();
+  });
+
   test("two rows of tiles at most", () => {
     for (const [provider, type] of [
       ["azure", "Microsoft.Compute/virtualMachines"],
