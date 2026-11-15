@@ -377,6 +377,7 @@ const SlackOrganizationCard: FunctionComponent<ComponentProps> = (
                             SLACK_WORKSPACE_MAKE_DEFAULT_LABEL,
                             { workspace: name },
                           )}
+                          isAriaLabelTranslated={true}
                           buttonStyle={ButtonStyleType.OUTLINE}
                           buttonSize={ButtonSize.Small}
                           isLoading={makingDefaultId === workspace.id}

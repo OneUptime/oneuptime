@@ -211,7 +211,6 @@ function host(): PublicNoteApprovalHost<IncidentPublicNote> {
     modelType: IncidentPublicNote,
     service: fakeService() as never,
     parentIdColumn: "incidentId",
-    recordNoun: "incident",
     getRecord: async () => {
       return {
         label: "Incident INC-42",

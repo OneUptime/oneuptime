@@ -12,7 +12,7 @@ Underhållskalendern visar ditt schemalagda underhåll efter datum: på en egen 
 
 ```mermaid title="En lista med händelser, tre kalendrar"
 flowchart TB
-    events["Schemalagda<br/>underhållshändelser"] --> view["Kalendervyn<br/>i instrumentpanelen"]
+    events["Underhållshändelser"] --> view["Kalendervyn<br/>i instrumentpanelen"]
     events --> team["Teamets länk<br/>varje händelse"]
     events --> page["En statussidas länk<br/>det sidan visar"]
     team --> apps["Kalenderappar"]
@@ -59,11 +59,11 @@ Kopiera länken från kalenderns egna delningsinställningar: i Google Kalender 
 
 Varje kalender sparar sina händelser från 90 dagar bakåt till ett år framåt, upp till 2 000 av dem, de närmast i dag först. En kalender större än 5 MB läses inte. Återkommande händelser, deras undantag och deras tidszoner läses som kalenderappen skrev dem, och en heldagshändelse stannar på sitt datum i alla tidszoner. Ett projekt kan ha upp till 20 externa kalendrar, och en vy av kalendern ritar upp till 500 av deras händelser.
 
-De roller som skapar, redigerar och tar bort schemalagda underhållshändelser lägger till, ändrar och tar bort externa kalendrar, och alla som kan läsa händelserna ser dem i kalendern. OneUptime läser aldrig en adress på sin egen server eller en metadataadress i molnet, och OneUptime Cloud avvisar adresser på ett privat nätverk. En egen server kan läsa en kalender på ditt eget nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`.
+De roller som skapar, redigerar och tar bort underhållshändelser lägger till, ändrar och tar bort externa kalendrar, och alla som kan läsa händelserna ser dem i kalendern. OneUptime läser aldrig en adress på sin egen server eller en metadataadress i molnet, och OneUptime Cloud avvisar adresser på ett privat nätverk. En egen server kan läsa en kalender på ditt eget nätverk, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`.
 
 ## Teamets kalenderlänk
 
-**Prenumerera på kalender**, under kalendern, öppnar projektets kalenderlänk: en hemlig iCalendar-länk (`.ics`) som lägger in varje schemalagd underhållshändelse i projektet i Google Kalender, Outlook, Apple Kalender eller vilken app som helst som prenumererar på en kalender via en URL.
+**Prenumerera på kalender**, under kalendern, öppnar projektets kalenderlänk: en hemlig iCalendar-länk (`.ics`) som lägger in varje underhållshändelse i projektet i Google Kalender, Outlook, Apple Kalender eller vilken app som helst som prenumererar på en kalender via en URL.
 
 :::steps
 ### Publicera länken
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Alla som har länken ser varje schemalagd underhållshändelse i projektet utan att logga in. Behandla den som ett lösenord och skapa den på nytt om den delas av misstag.
+> Alla som har länken ser varje underhållshändelse i projektet utan att logga in. Behandla den som ett lösenord och skapa den på nytt om den delas av misstag.
 
 ### Vem som kan se länken
 
@@ -94,9 +94,9 @@ Länken visar varje händelse i projektet, så dialogen visar den bara för pers
 
 | Åtgärd | Vem som kan göra det |
 | --- | --- |
-| Kopiera länken | Alla som kan läsa varje schemalagd underhållshändelse i projektet |
-| **Publicera länk** | Alla som också kan skapa schemalagda underhållshändelser |
-| **Skapa länken på nytt**, **Inaktivera länk** | Alla som också kan redigera schemalagda underhållshändelser |
+| Kopiera länken | Alla som kan läsa varje underhållshändelse i projektet |
+| **Publicera länk** | Alla som också kan skapa underhållshändelser |
+| **Skapa länken på nytt**, **Inaktivera länk** | Alla som också kan redigera underhållshändelser |
 
 ### Hantera länken
 
@@ -158,6 +158,6 @@ Orsaken står under **Fungerar inte** i dess **Status**: ingen kalender på län
 
 :::cards
 - [Skapa underhållshändelser](/docs/scheduled-maintenance/creating-events): Formuläret, fält för fält, och vad som händer sedan.
-- [Prenumeranter och meddelanden](/docs/status-pages/subscribers#schemalagda-underhållshändelser): Vad en statussidas prenumeranter får veta om underhåll.
+- [Prenumeranter och meddelanden](/docs/status-pages/subscribers#underhållshändelser): Vad en statussidas prenumeranter får veta om underhåll.
 - [Kalenderflöden](/docs/on-call/calendar-feeds): Samma sorts länk för jourpass.
 :::

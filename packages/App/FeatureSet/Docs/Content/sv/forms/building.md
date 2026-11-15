@@ -92,7 +92,7 @@ En fråga av typen **Fil** eller **Flera filer** tar filer från inlämnarens da
 
 ### Fält på det formuläret skapar
 
-Fälten på en incident, eller på en schemalagd underhållshändelse, som en inlämnare kan besvara. Svaret blir fältets värde.
+Fälten på en incident, eller på en underhållshändelse, som en inlämnare kan besvara. Svaret blir fältets värde.
 
 | Incidentfält | Besvaras med |
 | --- | --- |

@@ -24,7 +24,7 @@ flowchart TB
 ## 開始之前
 
 - **你的角色。** 建立事件需要 **專案擁有者** 、 **專案管理員** 、 **專案成員** 、 **排定維護管理員** 或 **排定維護成員** ，或擁有 **Create Scheduled Maintenance** 權限的自訂角色。
-- **你的狀態頁面。** 若要通知客戶，你需要一個顯示排定維護事件的狀態頁面。請參閱 [狀態頁概觀](/docs/status-pages/index)。
+- **你的狀態頁面。** 若要通知客戶，你需要一個顯示維護事件的狀態頁面。請參閱 [狀態頁概觀](/docs/status-pages/index)。
 
 ## 建立事件
 
@@ -71,7 +71,7 @@ flowchart TB
 在你填寫時，有兩項內容會自動幫你填寫表單：
 
 - **連結的資源。** 當你選擇一個監測器時，與它連結的主機、叢集、服務和其他資源會加入 **其他受影響的資源** 下，欄位下方會有一行列出它們。移除你不需要的即可。雲端資源也會加入：事件進行期間，它們的監測器不會建立事件或警示。
-- **建議的狀態頁面。** 在 **在這些狀態頁面上顯示事件** 下，會建議顯示你的監測器的頁面：點選頁面名稱即可加入，或點選 **全部新增** 。不會替你自動選擇任何頁面。請參閱 [排定維護事件](/docs/status-pages/subscribers#排定維護事件)。
+- **建議的狀態頁面。** 在 **在這些狀態頁面上顯示事件** 下，會建議顯示你的監測器的頁面：點選頁面名稱即可加入，或點選 **全部新增** 。不會替你自動選擇任何頁面。請參閱 [維護事件](/docs/status-pages/subscribers#維護事件)。
 
 ## 從資源或範本開始
 
@@ -180,6 +180,6 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 :::cards
 - [維護狀態](/docs/scheduled-maintenance/states): 什麼會開始和結束事件，以及如何手動推進它。
 - [範本與週期性事件](/docs/scheduled-maintenance/templates): 儲存表單的答案以便下次使用。
-- [訂閱者與公告](/docs/status-pages/subscribers#排定維護事件): 確切說明誰會在何時收到通知。
+- [訂閱者與公告](/docs/status-pages/subscribers#維護事件): 確切說明誰會在何時收到通知。
 - [維護規則與設定](/docs/scheduled-maintenance/settings): 自動加入擁有者、標籤和提醒。
 :::

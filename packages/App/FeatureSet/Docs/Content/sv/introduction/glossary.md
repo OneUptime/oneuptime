@@ -384,7 +384,7 @@ Kallas även: **Uppgifter**. Se [Kod](/docs/ai/ai-agent).
 
 ### Formulär
 
-En sida som alla med länken kan fylla i, utan konto. Varje inskickat svar skapar en incident, för en problemrapport, eller en schemalagd underhållshändelse, för en ändringsbegäran.
+En sida som alla med länken kan fylla i, utan konto. Varje inskickat svar skapar en incident, för en problemrapport, eller en underhållshändelse, för en ändringsbegäran.
 
 Se [Formulär – översikt](/docs/forms/index).
 

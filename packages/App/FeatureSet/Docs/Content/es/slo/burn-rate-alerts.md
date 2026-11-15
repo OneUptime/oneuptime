@@ -255,7 +255,7 @@ Algunos cambios siempre resuelven lo que una regla tiene abierto, digan lo que d
 
 ## Mantenimiento programado
 
-Mientras algún monitor del SLO esté en un evento de mantenimiento programado en curso, sus reglas de tasa de consumo no generan alertas ni declaran incidentes: el trabajo planificado no debería avisar a nadie. Lo que las reglas ya tienen abierto se sigue resolviendo como siempre. El tiempo sigue contando para el presupuesto de errores, según los estados de inactividad del SLO.
+Mientras algún monitor del SLO esté en un evento de mantenimiento en curso, sus reglas de tasa de consumo no generan alertas ni declaran incidentes: el trabajo planificado no debería avisar a nadie. Lo que las reglas ya tienen abierto se sigue resolviendo como siempre. El tiempo sigue contando para el presupuesto de errores, según los estados de inactividad del SLO.
 
 ## El feed del SLO
 
@@ -271,8 +271,8 @@ Una regla solo se activa cuando el SLO tiene una ventana larga completa de histo
 La resolución automática sigue a la ventana larga: en cuanto la tasa de consumo de la ventana larga baja del umbral, la alerta se resuelve. Dale a la regla una ventana larga más larga, o desactiva **Resolver alerta automáticamente** y resuelve la alerta a mano.
 :::
 
-:::details No se activó nada durante un evento de mantenimiento programado
-Las reglas de tasa de consumo permanecen en silencio mientras alguno de los monitores del SLO esté en un evento de mantenimiento programado en curso. El tiempo de inactividad sigue contando para el presupuesto.
+:::details No se activó nada durante un evento de mantenimiento
+Las reglas de tasa de consumo permanecen en silencio mientras alguno de los monitores del SLO esté en un evento de mantenimiento en curso. El tiempo de inactividad sigue contando para el presupuesto.
 :::
 
 :::details ¿Hay un número mínimo de muestras?

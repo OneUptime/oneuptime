@@ -12,7 +12,7 @@ Vedlikeholdskalenderen viser det planlagte vedlikeholdet ditt etter dato: på en
 
 ```mermaid title="Én liste med hendelser, tre kalendere"
 flowchart TB
-    events["Planlagte<br/>vedlikeholdshendelser"] --> view["Kalendervisningen<br/>i dashbordet"]
+    events["Vedlikeholdshendelser"] --> view["Kalendervisningen<br/>i dashbordet"]
     events --> team["Teamets lenke<br/>hver hendelse"]
     events --> page["Statussidens lenke<br/>det siden viser"]
     team --> apps["Kalenderapper"]
@@ -59,11 +59,11 @@ Kopier lenken fra kalenderens egne delingsinnstillinger: i Google Kalender den h
 
 Hver kalender beholder hendelsene sine fra 90 dager tilbake til ett år frem, opptil 2 000 av dem, de nærmeste i dag først. En kalender større enn 5 MB leses ikke. Gjentakende hendelser, unntakene deres og tidssonene deres leses slik kalenderappen skrev dem, og en heldagshendelse blir stående på datoen sin i alle tidssoner. Et prosjekt kan ha opptil 20 eksterne kalendere, og én visning av kalenderen tegner opptil 500 av hendelsene deres.
 
-Rollene som oppretter, redigerer og sletter planlagte vedlikeholdshendelser, legger til, endrer og fjerner eksterne kalendere, og alle som kan lese hendelsene, ser dem i kalenderen. OneUptime leser aldri en adresse på sin egen server eller en metadataadresse i skyen, og OneUptime Cloud avviser adresser på et privat nettverk. En selvhostet server kan lese en kalender på ditt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.
+Rollene som oppretter, redigerer og sletter vedlikeholdshendelser, legger til, endrer og fjerner eksterne kalendere, og alle som kan lese hendelsene, ser dem i kalenderen. OneUptime leser aldri en adresse på sin egen server eller en metadataadresse i skyen, og OneUptime Cloud avviser adresser på et privat nettverk. En selvhostet server kan lese en kalender på ditt eget nettverk, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`.
 
 ## Teamets kalenderlenke
 
-**Abonner på kalender**, under kalenderen, åpner prosjektets kalenderlenke: én hemmelig iCalendar-lenke (`.ics`) som legger hver planlagte vedlikeholdshendelse i prosjektet inn i Google Kalender, Outlook, Apple Kalender eller hvilken som helst app som abonnerer på en kalender via en URL.
+**Abonner på kalender**, under kalenderen, åpner prosjektets kalenderlenke: én hemmelig iCalendar-lenke (`.ics`) som legger hver vedlikeholdshendelse i prosjektet inn i Google Kalender, Outlook, Apple Kalender eller hvilken som helst app som abonnerer på en kalender via en URL.
 
 :::steps
 ### Publiser lenken
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Alle som har lenken, ser hver planlagte vedlikeholdshendelse i prosjektet uten å logge inn. Behandle den som et passord, og generer den på nytt hvis den blir delt ved en feil.
+> Alle som har lenken, ser hver vedlikeholdshendelse i prosjektet uten å logge inn. Behandle den som et passord, og generer den på nytt hvis den blir delt ved en feil.
 
 ### Hvem som kan se lenken
 
@@ -94,9 +94,9 @@ Lenken viser hver hendelse i prosjektet, så dialogen viser den bare til persone
 
 | Handling | Hvem som kan gjøre det |
 | --- | --- |
-| Kopiere lenken | Alle som kan lese hver planlagte vedlikeholdshendelse i prosjektet |
-| **Publiser lenke** | Alle som også kan opprette planlagte vedlikeholdshendelser |
-| **Generer lenke på nytt**, **Deaktiver lenke** | Alle som også kan redigere planlagte vedlikeholdshendelser |
+| Kopiere lenken | Alle som kan lese hver vedlikeholdshendelse i prosjektet |
+| **Publiser lenke** | Alle som også kan opprette vedlikeholdshendelser |
+| **Generer lenke på nytt**, **Deaktiver lenke** | Alle som også kan redigere vedlikeholdshendelser |
 
 ### Administrer lenken
 
@@ -158,6 +158,6 @@ Sidens kalender inneholder det siden viser. Sjekk at hendelsen navngir siden, at
 
 :::cards
 - [Opprett vedlikeholdshendelser](/docs/scheduled-maintenance/creating-events): Skjemaet, felt for felt, og hva som skjer etterpå.
-- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser): Hva abonnentene til en statusside får vite om vedlikehold.
+- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#vedlikeholdshendelser): Hva abonnentene til en statusside får vite om vedlikehold.
 - [Kalenderfeeder](/docs/on-call/calendar-feeds): Samme slags lenke for vakter.
 :::

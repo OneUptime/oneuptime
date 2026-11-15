@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["Le Worker OneUptime<br/>exécute les étapes"]
 ```
 
-Un déclencheur démarre une exécution comme le fait **Exécuter maintenant** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance planifiée. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.
+Un déclencheur démarre une exécution comme le fait **Exécuter maintenant** : l'exécution porte sur les étapes actuelles du runbook et n'est rattachée à aucun incident, aucune alerte ni aucun événement de maintenance. Chaque exécution enregistre ce qui l'a démarrée. Les **Exécutions** du runbook et **Runbooks → Exécutions** l'affichent sous **Déclenché par**, avec l'heure prévue d'une exécution planifiée ou l'adresse qui a appelé le webhook, et les deux listes peuvent être filtrées sur ce critère.
 
 ## Avant de commencer
 

@@ -1,6 +1,6 @@
 # Visión general de los Runbooks
 
-Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de pasos manuales y automatizados que ejecutas sobre un incidente, una alerta o un evento de mantenimiento programado. Convierte el hilo de «¿y ahora qué hacemos?» en una lista de comprobación que cualquier persona de guardia puede seguir a las 3 de la madrugada, con los scripts, las llamadas a API y las aprobaciones ya escritos. Los runbooks son para los ingenieros de guardia que responden a los incidentes y para los equipos de plataforma que automatizan esa respuesta. Para elegir entre un runbook, un flujo de trabajo, un playbook y una regla de IA, consulta [¿Cuál uso?](/docs/introduction/which-one#flujo-de-trabajo-runbook-playbook-o-regla-de-ia).
+Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de pasos manuales y automatizados que ejecutas sobre un incidente, una alerta o un evento de mantenimiento. Convierte el hilo de «¿y ahora qué hacemos?» en una lista de comprobación que cualquier persona de guardia puede seguir a las 3 de la madrugada, con los scripts, las llamadas a API y las aprobaciones ya escritos. Los runbooks son para los ingenieros de guardia que responden a los incidentes y para los equipos de plataforma que automatizan esa respuesta. Para elegir entre un runbook, un flujo de trabajo, un playbook y una regla de IA, consulta [¿Cuál uso?](/docs/introduction/which-one#flujo-de-trabajo-runbook-playbook-o-regla-de-ia).
 
 :::cards
 - [Crear un runbook](/docs/runbooks/authoring): Crear un runbook y escribir sus pasos.
@@ -46,7 +46,7 @@ Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introdu
 | --- | --- |
 | **Runbook** | La plantilla. Un procedimiento con nombre y reutilizable, con una lista ordenada de pasos y un interruptor **Ejecutar este runbook**. |
 | **Paso** | Un elemento de un runbook. Tiene un tipo (Manual, JavaScript, HTTP request, Bash, SSH, kubectl o AI), un título, una descripción y ajustes propios de su tipo. |
-| **Regla de runbook** | Una regla que adjunta automáticamente uno o más runbooks a los incidentes, alertas o eventos de mantenimiento programado que cumplen sus condiciones: sus monitores, su gravedad, sus etiquetas, las etiquetas de sus monitores, su título o su descripción. |
+| **Regla de runbook** | Una regla que adjunta automáticamente uno o más runbooks a los incidentes, alertas o eventos de mantenimiento que cumplen sus condiciones: sus monitores, su gravedad, sus etiquetas, las etiquetas de sus monitores, su título o su descripción. |
 | **Ejecución** | Una ejecución de un runbook. Se crea cuando una regla se activa, cuando alguien hace clic en **Ejecutar runbook** en un evento o cuando alguien hace clic en **Ejecutar ahora** en el propio runbook. Guarda una instantánea de los pasos y el estado y la salida de cada paso. |
 | **Instantánea** | La copia congelada de los pasos del runbook que vive en cada ejecución. Puedes editar el runbook más tarde sin reescribir el historial de las ejecuciones anteriores. |
 | **Runner** | Un pequeño agente que ejecutas en un host de tu propia infraestructura. Ejecuta los pasos JavaScript, Bash, SSH y kubectl que lo nombran. También se llama agente de runbook. Un Runner global, uno de los que OneUptime ejecuta para todos los proyectos, ejecuta los pasos JavaScript que no nombran ninguno, salvo que el proyecto tenga un Runner predeterminado. |
@@ -74,7 +74,7 @@ Un runbook puede mezclarlos todos. La fuerza de los runbooks está en intercalar
 | Cómo | Dónde | La ejecución queda unida a |
 | --- | --- | --- |
 | Una regla de runbook | **Incidentes**, **Alertas** o **Mantenimiento programado** → **Reglas** → **Reglas de runbook** | El nuevo incidente, alerta o evento |
-| **Ejecutar runbook** | La página **Runbooks** de un incidente, una alerta o un evento de mantenimiento programado | Ese evento |
+| **Ejecutar runbook** | La página **Runbooks** de un incidente, una alerta o un evento de mantenimiento | Ese evento |
 | **Ejecutar ahora** | La página **Vista general** del runbook | Nada: una ejecución puntual |
 | Una regla de IA | Consulta [AI SRE](/docs/ai/ai-sre) | El incidente o la alerta |
 | La programación del runbook | La página **Desencadenantes** del runbook, consulta [Desencadenantes de runbook](/docs/runbooks/triggers#ejecutar-según-una-programación) | Nada: una ejecución desatendida |

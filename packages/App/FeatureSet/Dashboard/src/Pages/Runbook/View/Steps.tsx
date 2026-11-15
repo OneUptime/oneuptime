@@ -2516,6 +2516,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                             itemName: step.title || meta.label,
                                           },
                                         )}
+                                        isAriaLabelTranslated={true}
                                         onClick={() => {
                                           return remove(idx);
                                         }}
