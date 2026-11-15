@@ -7,8 +7,8 @@ import {
   DEFAULT_MONITOR_STATUS_NAMES,
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
 } from "Common/Types/StatusPage/DefaultStatusNames";
-import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";

@@ -1,6 +1,6 @@
 import { PermissionHelper, PermissionProps } from "Common/Types/Permission";
-import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { drawnDashboardLabel } from "./DocsDashboardLabels";
+import { escapeRegExp } from "./DocsTranslationChecks";
 
 /*
  * THE BUILT-IN ROLES' NAMES, IN EVERY DOCS LANGUAGE.
