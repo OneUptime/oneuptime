@@ -56,8 +56,8 @@ sequenceDiagram
 
 決定訊息要送到哪裡：伺服器的主機名稱，例如 `irc.libera.chat`，以及頻道，例如 `#your-channel`。
 
-- **IRC Server** 只填主機名稱，其他都不要：不要 `ircs://`，也不要連接埠。步驟透過 TLS 連線到連接埠 `6697`。如果你的伺服器在其他連接埠提供 TLS，請在 **更多欄位** 下的 **Port** 設定。
-- **Channel** 必須是頻道。在這裡填入暱稱會被拒絕，所以步驟絕不會誤把訊息私訊給某個人。
+- **IRC Server** 只填主機名稱，其他都不要：不要 `ircs://`，也不要連接埠。步驟透過 TLS 連線到連接埠 `6697`。如果你的伺服器在其他連接埠提供 TLS，請在 **更多欄位** 下的 **連接埠** 設定。
+- **頻道** 必須是頻道。在這裡填入暱稱會被拒絕，所以步驟絕不會誤把訊息私訊給某個人。
 
 伺服器必須是 OneUptime 獲准連線的。迴路位址（`localhost`、`127.0.0.1`）、鏈路本機位址與雲端中繼資料位址一律會被拒絕。在 OneUptime Cloud 上，位於私人網路位址的伺服器也會被拒絕。自架安裝可以連到自己網路中的 IRC 伺服器，除非 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` 設為 `true`。
 
@@ -89,7 +89,7 @@ sequenceDiagram
 1. 開啟 **工作流程**，點選 **建立工作流程**，選擇 **從零開始**，替工作流程命名，然後點選 **建立工作流程**。
 2. 在 **建構器** 中點選 **選擇啟動此工作流程的方式**，在 **熱門** 下選擇 **On Create Incident**。點選該觸發器，在 **Fields to pass on** 中選擇訊息要顯示的事件欄位，例如標題。
 3. 點選 **新增元件**，搜尋 `irc`，點選 **Send Message to IRC**。把觸發器的 **成功** 輸出連到這個步驟。
-4. 點選新步驟，填寫 **IRC Server**、**Channel** 和 **Message Text**。**Message Text** 中的 **{ }** 按鈕可以插入事件的欄位，例如標題。
+4. 點選新步驟，填寫 **IRC Server**、**頻道** 和 **Message Text**。**Message Text** 中的 **{ }** 按鈕可以插入事件的欄位，例如標題。
 5. 如果你在上一步存了密碼，開啟 **更多欄位**。在 **Server Password**、**SASL Password** 或 **Channel Key** 點選 **{ }**，在 **Global variables** 下選擇變數。在 **SASL Username** 填入你的帳號名稱。
 :::
 

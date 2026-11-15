@@ -51,7 +51,7 @@ Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Creat
 
 ### Het issue openen
 
-Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Success** van de trigger ermee. Zet zijn **URL** op `https://gitlab.com/api/v4/projects/12345678/issues`, met de ID van je project in plaats van `12345678`. Zet onder **Meer velden** zijn **Request Headers** op:
+Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbind het punt **Succes** van de trigger ermee. Zet zijn **URL** op `https://gitlab.com/api/v4/projects/12345678/issues`, met de ID van je project in plaats van `12345678`. Zet onder **Meer velden** zijn **Aanvraagheaders** op:
 
 ```json
 {
@@ -59,7 +59,7 @@ Klik op **Component toevoegen**, voeg een blok **API Post (JSON)** toe en verbin
 }
 ```
 
-En de **Request Body** op:
+En de **Verzoeklichaam** op:
 
 ```json
 {
@@ -81,11 +81,11 @@ Het blok stuurt JSON, dus het heeft geen header `Content-Type` nodig. GitLab maa
 - **Een eigen GitLab.** Stuur het verzoek in plaats daarvan naar je server: `https://gitlab.example.com/api/v4/projects/12345678/issues`. Een server op een privénetwerkadres heeft een zelf gehoste OneUptime nodig waarvan de beheerder dat toestaat: zie [Uitgaande netwerktoegang](/docs/workflows/configuration#uitgaande-netwerktoegang).
 - **Het projectpad in plaats van de ID.** Het pad werkt in plaats van de ID, met de `/` geschreven als `%2F`: `projects/your-group%2Fyour-project/issues`. De URL wordt precies zo verstuurd als hij is geschreven, dus codeer hem zelf.
 - **Wijs het toe.** Voeg `"assignee_ids": [42]` of `"due_date": "2026-12-31"` toe aan de body, of `"confidential": true` om het alleen aan projectleden te tonen.
-- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Yes** ervan, bijvoorbeeld voor één ernst.
+- **Alleen sommige incidenten.** Zet een blok **If / Else** tussen de trigger en het API-blok, en open alleen issues aan de kant **Ja** ervan, bijvoorbeeld voor één ernst.
 
 ## Problemen oplossen
 
-De stap **API Post (JSON)** neemt **Error** wanneer GitLab het verzoek weigert. Zijn **Response Status** en **Response Body** in de run zeggen waarom.
+De stap **API Post (JSON)** neemt **Fout** wanneer GitLab het verzoek weigert. Zijn **Response Status** en **Antwoordlichaam** in de run zeggen waarom.
 
 :::details GitLab antwoordt 401
 Het token is fout, verlopen of ingetrokken. Maak een nieuw token en vervang de inhoud van `GITLAB_TOKEN`.

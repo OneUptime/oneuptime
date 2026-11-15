@@ -106,6 +106,11 @@ import {
 } from "../Utils/DatabaseServerPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  formatMilliseconds,
+  formatMillisecondsInEnglish,
+  MillisecondsOptions,
+} from "../../../Utils/Milliseconds";
+import {
   translatableTerm,
   translationKey,
   Translator,
@@ -140,12 +145,28 @@ function formatErrorRate(value: number | null): string {
   return `${value.toFixed(1)}%`;
 }
 
-function formatMs(value: number | null): string {
+/*
+ * A query's p95: its milliseconds in the reader's words on the tile
+ * (issue #7418), and in English on the chart's value axis, as every
+ * chart's axis writes its figures (no translator).
+ */
+function formatMs(
+  value: number | null,
+  translator?: Translator | undefined,
+): string {
   if (value === null || !Number.isFinite(value)) {
     return "—";
   }
   if (value < 1000) {
-    return `${value.toFixed(value < 10 ? 1 : 0)} ms`;
+    const decimals: number = value < 10 ? 1 : 0;
+    const options: MillisecondsOptions = {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    };
+
+    return translator
+      ? formatMilliseconds(translator, value, options)
+      : formatMillisecondsInEnglish(value, options);
   }
   return `${(value / 1000).toFixed(2)} s`;
 }
@@ -665,7 +686,7 @@ const DatabaseServerOverview: FunctionComponent<
     },
     {
       title: "p95 query latency",
-      value: formatMs(m.p95DurationMs),
+      value: formatMs(m.p95DurationMs, translator),
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: telemetryLoading,

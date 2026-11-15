@@ -36,8 +36,8 @@ Hver fane i **Varselmetoder** har ett eller flere kort, ett per type metode:
 | **Telefonnumre for anropsvarsler** | **Direkte kontakt** | Et telefonnummer | En kode som leses opp i et anrop, eller ingen for et nummer som er verifisert for SMS |
 | **WhatsApp-numre for varsler** | **Direkte kontakt** | Et WhatsApp-nummer | En kode på WhatsApp |
 | **Telegram-kontoer for varsler** | **Direkte kontakt** | Telegram-kontoen din | En melding til OneUptime-boten |
-| **Slack Account for Notifications** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
-| **Microsoft Teams Account for Notifications** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Slack-konto for varsler** | **Arbeidsområdeapper** | Slack-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
+| **Microsoft Teams-konto for varsler** | **Arbeidsområdeapper** | Microsoft Teams-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
 | **Mattermost-konto for varsler** | **Arbeidsområdeapper** | Mattermost-kontoen din | Å koble kontoen din til prosjektets arbeidsområde |
 | **Enheter for push-varsler** | **Push-varsler** | En telefon med appen OneUptime On-Call, eller en nettleser | Å registrere enheten |
 | **Webhooks for varsler** | **Webhooker** | Et eget HTTPS-endepunkt | Ingen |
@@ -67,7 +67,7 @@ Raden er nå merket **Verifisert**. Lukket du dialogen for tidlig? Klikk **Verif
 :::
 
 - En kode gjelder i 15 minutter. Fem feil forsøk ugyldiggjør den, og du trenger en ny.
-- **Send a new code**, eller **Call me with a new code** for et anropsnummer, finnes i dialogen. Du kan be om en ny ett minutt etter den forrige.
+- **Send en ny kode**, eller **Ring meg med en ny kode** for et anropsnummer, finnes i dialogen. Du kan be om en ny ett minutt etter den forrige.
 - Et nummer du har verifisert for SMS, er også verifisert for anrop. Å legge det til under **Telefonnumre for anropsvarsler** krever ingen kode, og å verifisere et SMS-nummer verifiserer også anropsnummeret du har lagt til for det.
 - Påloggings-e-posten din er der allerede, verifisert, fra dagen du ble medlem av prosjektet.
 
@@ -80,11 +80,11 @@ Klikk **Legg til Telegram-konto** i **Telegram-kontoer for varsler**. **Telegram
 
 ### Skriv til boten
 
-Klikk **Verifiser** i den nye raden. Dialogen **Verifiser Telegram-konto** gir deg tre måter å nå OneUptime-boten på: skann QR-koden med telefonen din, klikk **Open in Telegram**, eller søk opp boten i Telegram og send den `/start`-kommandoen dialogen viser.
+Klikk **Verifiser** i den nye raden. Dialogen **Verifiser Telegram-konto** gir deg tre måter å nå OneUptime-boten på: skann QR-koden med telefonen din, klikk **Åpne i Telegram**, eller søk opp boten i Telegram og send den `/start`-kommandoen dialogen viser.
 
 ### Bekreft
 
-Tilbake i OneUptime klikker du **I've sent the message — check**. Så snart boten har meldingen din, er kontoen verifisert.
+Tilbake i OneUptime klikker du **Jeg har sendt meldingen – sjekk**. Så snart boten har meldingen din, er kontoen verifisert.
 :::
 
 **Roter kode** lager en ny kode for en konto som ikke er verifisert ennå. QR-koden og lenken du åpnet før, slutter da å virke. I en selvdriftet OneUptime kobler serverens administrator til en Telegram-bot før noen kan koble til en konto.
@@ -92,8 +92,8 @@ Tilbake i OneUptime klikker du **I've sent the message — check**. Så snart bo
 ## Slack, Microsoft Teams og Mattermost
 
 1. Koble din egen konto til prosjektets arbeidsområde: **Brukerinnstillinger → Arbeidsområde → Slack**, **Microsoft Teams** eller **Mattermost**. Se [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams) og [Mattermost](/docs/workspace-connections/mattermost).
-2. Klikk **Add Slack Account**, **Add Microsoft Teams Account** eller **Legg til Mattermost-konto** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
-3. Klikk **Send Test Message** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen, eller i Mattermost fra prosjektets bot.
+2. Klikk **Legg til Slack-konto**, **Legg til Microsoft Teams-konto** eller **Legg til Mattermost-konto** på fanen **Arbeidsområdeapper**. Kontoen er verifisert så snart den er lagt til.
+3. Klikk **Send testmelding** i raden dens. Tilkallinger kommer som direktemeldinger fra OneUptime-appen, eller i Mattermost fra prosjektets bot.
 
 ## Push-varsler
 
@@ -186,11 +186,11 @@ Den kanalen er slått av i dette prosjektet. Kortet sier hvem som kan slå den p
 :::
 
 :::details Koden kom aldri
-E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send a new code** i dialogen. **Prosjektinnstillinger → Varsler → Varsellogger** viser hva som skjedde med meldingen.
+E-poster kan ta noen minutter, og havner noen ganger i søppelpost; SMS kan ta ett minutt. Vent ett minutt, og klikk så **Send en ny kode** i dialogen. **Prosjektinnstillinger → Varsler → Varsellogger** viser hva som skjedde med meldingen.
 :::
 
 :::details Det mislykkes å legge til Slack-kontoen min
-Koble først til kontoen din under **Brukerinnstillinger → Arbeidsområde → Slack**, og klikk så **Add Slack Account** igjen. Feildialogen har en knapp som tar deg dit.
+Koble først til kontoen din under **Brukerinnstillinger → Arbeidsområde → Slack**, og klikk så **Legg til Slack-konto** igjen. Feildialogen har en knapp som tar deg dit.
 :::
 
 :::details Telefonen min får ingen push-varsler

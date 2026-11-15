@@ -5,15 +5,14 @@ import ProductKey from "Common/Types/Product/ProductKey";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 
 /*
- * Pinning a product to the nav bar (issue #6814), from wherever it is
- * pinned: its card in the products menu (`menu`) or beside its page's title
- * (`page`). The bar changes at once (ProjectProductsStore), and the event
+ * Pinning a product to the nav bar (issue #6814), from its card in the
+ * products menu (`menu`); the pin beside a product page's title went in
+ * #8138. The bar changes at once (ProjectProductsStore), and the event
  * says what was pinned and how many are pinned now (#6830) once the server
  * kept it.
  */
 export enum ProductPinSource {
   Menu = "menu",
-  Page = "page",
 }
 
 export const setProductPinned: (data: {

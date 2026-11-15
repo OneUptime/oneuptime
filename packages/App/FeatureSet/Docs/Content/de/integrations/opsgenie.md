@@ -53,13 +53,13 @@ Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsabla
 
 ### Den Alarm anlegen
 
-Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Success** des Triggers damit. Setzen Sie seine **URL** auf `https://api.opsgenie.com/v2/alerts`, in Europa auf `https://api.eu.opsgenie.com/v2/alerts`. Setzen Sie unter **Weitere Felder** seine **Request Headers** auf:
+Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API Post (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **URL** auf `https://api.opsgenie.com/v2/alerts`, in Europa auf `https://api.eu.opsgenie.com/v2/alerts`. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-Und seinen **Request Body** auf:
+Und seinen **Anfragetext** auf:
 
 ```json
 {
@@ -93,17 +93,17 @@ Legen Sie einen Workflow namens `Close Opsgenie alerts` an und wählen Sie **On 
 
 ### Prüfen, ob der Vorfall behoben ist
 
-Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Value to check** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Comparison** auf **is true**.
+Fügen Sie nach dem Trigger einen **If / Else**-Baustein hinzu. Setzen Sie **Zu prüfender Wert** auf `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` und **Vergleich** auf **ist wahr**.
 
 ### Den Alarm schließen
 
-Fügen Sie nach der Seite **Yes** einen **API Post (JSON)**-Baustein hinzu, mit denselben **Request Headers** und dieser **URL**:
+Fügen Sie nach der Seite **Ja** einen **API Post (JSON)**-Baustein hinzu, mit denselben **Anfrage-Header** und dieser **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-Setzen Sie seinen **Request Body** auf `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
+Setzen Sie seinen **Anfragetext** auf `{ "source": "OneUptime", "note": "Resolved in OneUptime" }`.
 
 ### Ihn einschalten
 
@@ -117,7 +117,7 @@ Schalten Sie **Aktiviert** ein und beheben Sie dann einen Testvorfall in OneUpti
 Um den Schweregrad jedes Vorfalls als Opsgenie-Priorität zu senden, fügen Sie zwischen dem Trigger und dem **API Post (JSON)**-Baustein einen **Run Custom JavaScript**-Baustein hinzu.
 
 1. Klicken Sie in den **Fields to pass on** des Triggers auf **Feld hinzufügen**, öffnen Sie **Vorfallsschweregrad** und wählen Sie **Name**.
-2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript Code** auf:
+2. Setzen Sie die **Arguments** des Bausteins auf `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` und seinen **JavaScript-Code** auf:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie antwortet mit `202`, bevor es die Anfrage verarbeitet, eine Anfrage, di
 :::
 
 :::details Der Workflow läuft nie
-Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **No** des **If / Else**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
+Prüfen Sie, dass er eingeschaltet ist: **Aktiviert**, oben in seinem **Editor**. Öffnen Sie dann **Protokolle → Ausführungen**: Eine Ausführung, die die Seite **Nein** des **If / Else**-Bausteins genommen hat, ist eine Aktualisierung, die keine Behebung war.
 :::
 
 ## Nächste Schritte

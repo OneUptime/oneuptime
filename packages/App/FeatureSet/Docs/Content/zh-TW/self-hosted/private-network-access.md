@@ -144,7 +144,7 @@ outboundConnections:
 
 ## 探測器和監測器
 
-受影響的監測器類型有四種：**API**、**網站**、**External Status Page** 和 **Custom JavaScript Code**。在預設的探測器上，它們可以存取公開的 HTTP(S) 目標，但會拒絕私有位址空間。API、Website 和 External Status Page 監測器會為每個連線驗證並固定 DNS 結果，並重新驗證每一次重新導向；Custom JavaScript Code 則在其沙箱橋接中套用相同的位址政策。
+受影響的監測器類型有四種：**API**、**網站**、**外部狀態頁面** 和 **自訂 JavaScript 程式碼**。在預設的探測器上，它們可以存取公開的 HTTP(S) 目標，但會拒絕私有位址空間。API、Website 和 External Status Page 監測器會為每個連線驗證並固定 DNS 結果，並重新驗證每一次重新導向；Custom JavaScript Code 則在其沙箱橋接中套用相同的位址政策。
 
 這個開關由 **探測器處理程序從它自己的環境中** 讀取，而不是從 API 伺服器的環境中讀取，而且每個探測器都會讀取它：Docker Compose 隨附的探測器、Helm chart 部署的探測器，以及你自行執行的任何[自訂探測器](/docs/probe/custom-probe)。誰部署探測器，誰就控制它的環境，也是知道該探測器能看到哪個網路的一方：自訂探測器通常是另一台機器，往往由另一個人執行，而且它從不讀取 API 伺服器的設定。
 
@@ -188,7 +188,7 @@ probes:
 - _"...private network address... Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it (probes.<name>.allowPrivateNetworkMonitors in the Helm chart). This is a global probe, so that allows it for every project on this instance; otherwise, select a private probe deployed on that network."_ — 執行該監測器的是隨附（全域）探測器，且它的開關是關閉的。如果執行個體上的每個專案都可以存取那個網路，請依上文所述為該探測器開啟開關；否則，請在監測器上選擇一個私有探測器。
 - _"...Global probes cannot monitor private network addresses. Deploy and select a private probe for this target."_ — 執行該監測器的是環境中有 `BILLING_ENABLED=true` 的全域探測器。在那裡，自動註冊的全域探測器無論開關如何設定都只存取公開網路；請在目標網路內部署一個私有探測器，並在監測器上選擇它。
 - _"Monitor target host ... could not be reached."_ — 目標為**主機名稱**的 API、Website 或 External Status Page 監測器，在名稱解析到被拒絕的位址時和 DNS 失敗時都會回報這則訊息，這樣監測器就無法被用來探查有哪些內部名稱存在。隨之顯示的錯誤詳細資料在兩種情況下都會提到 `PROBE_ALLOW_PRIVATE_NETWORK_MONITORS`，但不會說明屬於哪種情況。如果該名稱指向私有位址，請在探測器的啟動日誌中查看其私有網路政策；如果它是關閉的，解決方法與上面的訊息相同。設定 `LOG_LEVEL=DEBUG` 後，探測器還會記錄每個被拒絕名稱的確切原因。
-- _"Request URL could not be reached."_ — **Custom JavaScript Code** 監測器也遵循相同的規則：請求**主機名稱**的指令碼，在名稱解析到被拒絕的位址時和 DNS 失敗時都會收到這則訊息。設定 `LOG_LEVEL=DEBUG` 後，探測器會記錄確切原因。
+- _"Request URL could not be reached."_ — **自訂 JavaScript 程式碼** 監測器也遵循相同的規則：請求**主機名稱**的指令碼，在名稱解析到被拒絕的位址時和 DNS 失敗時都會收到這則訊息。設定 `LOG_LEVEL=DEBUG` 後，探測器會記錄確切原因。
 - _"Webhook URL could not be reached."_ 或者，來自工作流程的 _"Request URL could not be reached."_ — 執行個體以 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`（或 `BILLING_ENABLED=true`）執行，因此被拒絕的**主機名稱**不會得到解釋：它要麼解析到被拒絕的位址，要麼根本沒有解析成功。設定 `LOG_LEVEL=DEBUG` 後，app 或 worker 會記錄是哪一種情況以及位址。
 - _"...points to a private, loopback, or link-local address and is not allowed."_ — 目標位於禁止層級。對於 Webhook，如果確實需要，請在 `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` 中寫明確切的主機或 CIDR。對於監測器，沒有任何例外。
 - _"...hostname could not be resolved via DNS."_ — 容器無法解析該名稱。請檢查它是否與目標共用網路。

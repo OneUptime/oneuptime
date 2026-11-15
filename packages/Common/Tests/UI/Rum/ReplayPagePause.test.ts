@@ -615,8 +615,9 @@ describe("the stretch the page paused through, on the timeline and the stage", (
   }
 
   it("is skipped on its own, like an idle pause", () => {
-    expect(shouldAutoSkipBand(band("page"))).toBe(true);
-    expect(shouldAutoSkipBand(band())).toBe(true);
+    // With the Skip idle toggle off, as it is by default.
+    expect(shouldAutoSkipBand(band("page"), false)).toBe(true);
+    expect(shouldAutoSkipBand(band(), false)).toBe(true);
   });
 
   it("says the page paused recording when playback jumps it", () => {

@@ -1,5 +1,6 @@
 import { IoTResourceScope } from "./MonitorStepIoTMonitor";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
+import { translationKey } from "../Translator";
 
 export type IoTMetricCategory =
   | "Availability"
@@ -32,8 +33,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-device-up",
     friendlyName: "Device Up",
-    description:
+    description: translationKey(
       "Whether an IoT device is up (1) or down/offline (0). Reported per device — filter on the device.id label to scope to one device.",
+    ),
     metricName: "iot_device_up",
     category: "Availability",
     defaultAggregation: MetricsAggregationType.Min,
@@ -44,8 +46,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-battery-percent",
     friendlyName: "Battery Level",
-    description:
+    description: translationKey(
       "Remaining battery charge of a device as a percentage (0 to 100). Falling levels indicate a device that will soon go offline.",
+    ),
     metricName: "iot_battery_percent",
     category: "Power",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -57,8 +60,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-signal-strength",
     friendlyName: "Signal Strength",
-    description:
+    description: translationKey(
       "Wireless signal strength of a device in dBm (closer to 0 is stronger; more negative is weaker). Weak signal precedes connectivity loss.",
+    ),
     metricName: "iot_signal_strength_dbm",
     category: "Connectivity",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -70,8 +74,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-temperature",
     friendlyName: "Temperature",
-    description:
+    description: translationKey(
       "Temperature reported by a device in degrees Celsius. High readings can indicate overheating hardware or an environmental issue.",
+    ),
     metricName: "iot_temperature_celsius",
     category: "Environment",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -83,8 +88,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-cpu-usage",
     friendlyName: "CPU Usage Ratio",
-    description:
+    description: translationKey(
       "CPU usage of a device as a ratio of available CPU (0 to 1, where 1 = fully used).",
+    ),
     metricName: "iot_cpu_usage_ratio",
     category: "System",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -94,8 +100,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-memory-usage",
     friendlyName: "Memory Usage",
-    description:
+    description: translationKey(
       "Memory currently in use by a device, in bytes. Compare against the device's total memory to gauge memory pressure.",
+    ),
     metricName: "iot_memory_usage_bytes",
     category: "System",
     defaultAggregation: MetricsAggregationType.Avg,
@@ -105,8 +112,9 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   {
     id: "iot-uptime",
     friendlyName: "Uptime",
-    description:
+    description: translationKey(
       "How long a device has been running. Drops to zero when the device is restarted or rebooted.",
+    ),
     metricName: "iot_uptime_seconds",
     category: "System",
     defaultAggregation: MetricsAggregationType.Max,

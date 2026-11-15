@@ -101,6 +101,31 @@ const OPEN_IS_THE_VERB: Record<string, string> = {
     "the heading over the links that open a device's pages",
 };
 
+// The lists, the page and the menu section titled with a database's table (#8176).
+const TITLED_WITH_THE_DATABASES_TABLE: ReadonlyArray<string> = [
+  "Components/DataObservability/DataAssetTable.tsx",
+  "Pages/DataObservability/Reconciliations.tsx",
+  "Pages/DataObservability/SchemaChanges.tsx",
+  "Pages/DataObservability/TableView/Layout.tsx",
+  "Pages/DataObservability/TableView/Lineage.tsx",
+  "Pages/DataObservability/TableView/SideMenu.tsx",
+  "Pages/DataObservability/UnusedTables.tsx",
+  "Pages/DataProduct/View/Overview.tsx",
+];
+
+/*
+ * A table's Metrics: the chip that says which table its charts are scoped
+ * to. Its label is a value of a map, which the extractor does not read, so
+ * only its source is checked.
+ */
+const LABELLED_WITH_THE_DATABASES_TABLE: ReadonlyArray<string> = [
+  "Pages/DataObservability/TableView/Metrics.tsx",
+];
+
+// A title, a menu section's or a metric attribute's label that is the bare "Table".
+const BARE_TABLE_TITLE: RegExp =
+  /(?:\btitle(?::\s*|=)|\]:\s*)"Table"(?=[,\s>}])/;
+
 describe("one meaning per key", () => {
   test("the extractor finds a bare key wherever a file looks it up (negative control)", () => {
     const strings: Array<ExtractedString> = scanSourceText(
@@ -246,15 +271,20 @@ describe("one meaning per key", () => {
    * page. A database's view and table have keys of their own, and every
    * place that names a data asset's kind reads them through
    * DataAssetKindWords: the Tables lists, a table's Overview and the
-   * lineage cards.
+   * lineage cards. A database's table is also the title over the lists of
+   * tables, a table's page and its side menu's section (#8176), so those
+   * look its key up too.
    */
-  test("a database's view and table are their own keys, looked up only by the kinds' words", () => {
+  test("a database's view and table are their own keys, looked up only by the kinds' words and the titles over tables", () => {
     expect(filesLookingUp("View (database object)")).toEqual([
       "Components/DataObservability/DataAssetKindWords.ts",
     ]);
-    expect(filesLookingUp("Table (database object)")).toEqual([
-      "Components/DataObservability/DataAssetKindWords.ts",
-    ]);
+    expect(filesLookingUp("Table (database object)")).toEqual(
+      [
+        "Components/DataObservability/DataAssetKindWords.ts",
+        ...TITLED_WITH_THE_DATABASES_TABLE,
+      ].sort(),
+    );
 
     for (const file of [
       "Components/DataObservability/DataAssetKindWords.ts",
@@ -270,6 +300,94 @@ describe("one meaning per key", () => {
 
     expect(filesLookingUp("Table")).not.toContain(
       "Components/DataObservability/DataAssetKindWords.ts",
+    );
+  });
+
+  /*
+   * #8176: Data Observability titled a database's table with the bare
+   * "Table", which most places mean as a table on the page (a chart's
+   * Table view, a widget): French read "Tableau" and Chinese 表格 over a
+   * list of database tables, beside a Kind filter that said "Table".
+   */
+  test("no Data Observability or data product page titles a database's table with the bare Table", () => {
+    const DATA_OBSERVABILITY_FILE: RegExp =
+      /^(Components|Pages)\/(DataObservability|DataProduct)\//;
+
+    for (const file of filesLookingUp("Table")) {
+      expect({
+        file,
+        isDataObservability: DATA_OBSERVABILITY_FILE.test(file),
+      }).toEqual({ file, isDataObservability: false });
+    }
+
+    for (const file of [
+      ...TITLED_WITH_THE_DATABASES_TABLE,
+      ...LABELLED_WITH_THE_DATABASES_TABLE,
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, SOURCE, file),
+        "utf8",
+      );
+
+      expect({ file, bareTable: BARE_TABLE_TITLE.test(source) }).toEqual({
+        file,
+        bareTable: false,
+      });
+      expect({
+        file,
+        databasesTable: source.includes('"Table (database object)"'),
+      }).toEqual({ file, databasesTable: true });
+    }
+  });
+
+  test("the checks above find a bare Table title (negative control)", () => {
+    for (const bare of [
+      '          title: "Table",\n',
+      '      title="Table"\n',
+      '<SideMenuSection title="Table">',
+      '[DataObservabilityAttribute.TableId]: "Table",',
+    ]) {
+      expect({ bare, found: BARE_TABLE_TITLE.test(bare) }).toEqual({
+        bare,
+        found: true,
+      });
+    }
+
+    for (const fine of [
+      'title: "Table (database object)",',
+      'title: "Tables",',
+      'Table = "Table",',
+    ]) {
+      expect({ fine, found: BARE_TABLE_TITLE.test(fine) }).toEqual({
+        fine,
+        found: false,
+      });
+    }
+
+    const strings: Array<ExtractedString> = scanSourceText(
+      `${SOURCE}/Pages/DataObservability/Example.tsx`,
+      'export const COLUMNS = [{ title: "Table", type: FieldType.Text }];',
+      { kind: "ui" },
+    ).strings;
+
+    expect(
+      strings.map((entry: ExtractedString): string => {
+        return entry.text;
+      }),
+    ).toContain("Table");
+  });
+
+  /*
+   * #7535: the dbt Tests card headed its column of test names, and the
+   * filter for them, with the shared "Test", the Test buttons' verb:
+   * "Testen", "Probar" ("to try"), "Tester".
+   */
+  test("a dbt test is its own key, looked up only by the dbt Tests card, which never looks up the bare Test", () => {
+    expect(filesLookingUp("Test (dbt test)")).toEqual([
+      "Components/DataObservability/DbtTestTable.tsx",
+    ]);
+    expect(filesLookingUp("Test")).not.toContain(
+      "Components/DataObservability/DbtTestTable.tsx",
     );
   });
 
@@ -566,6 +684,48 @@ describe("the locales word each meaning as its own", () => {
    * "Modifier". Only Persian writes the noun as it writes the Change
    * buttons, تغییر: its buttons are named with the noun.
    */
+  /*
+   * #7535: the shared "Test" is the Test buttons' verb in most languages,
+   * which headed a column of dbt's tests "Testen", "Tester", "Probar",
+   * "Testa", "Testar". A dbt test is the noun in every language, the noun
+   * its "dbt Test" check type is named with.
+   */
+  test("a dbt test is worded as the noun, never the Test buttons' verb, where a language words them apart", () => {
+    const WORDS: Record<string, { verb: string; noun: string }> = {
+      de: { verb: "Testen", noun: "Test" },
+      fr: { verb: "Tester", noun: "Test" },
+      es: { verb: "Probar", noun: "Prueba" },
+      nl: { verb: "Testen", noun: "Test" },
+      sv: { verb: "Testa", noun: "Test" },
+      pt: { verb: "Testar", noun: "Teste" },
+    };
+
+    for (const language of Object.keys(WORDS)) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        verb: locale["Test"],
+        noun: locale["Test (dbt test)"],
+      }).toEqual({ language, ...WORDS[language] });
+    }
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+      const noun: string = locale["Test (dbt test)"] || "";
+
+      expect({
+        language,
+        worded: noun.length > 0 && noun !== "Test (dbt test)",
+        inItsCheckType: (locale["dbt Test"] || "")
+          .toLocaleLowerCase(language)
+          .includes(noun.toLocaleLowerCase(language) || "?"),
+      }).toEqual({ language, worded: true, inItsCheckType: true });
+    }
+  });
+
   test("a schema change is worded as the noun, never the Change buttons' verb, where a language words them apart", () => {
     const WORDED_ALIKE: ReadonlyArray<string> = ["fa"];
 

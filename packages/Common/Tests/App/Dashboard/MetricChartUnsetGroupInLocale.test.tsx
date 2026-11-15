@@ -22,8 +22,10 @@ import { initReactI18next } from "react-i18next";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { Chart } from "../../../UI/Components/Charts/ChartGroup/ChartGroup";
+import type { ComponentProps as LineChartProps } from "../../../UI/Components/Charts/Line/LineChart";
 import SeriesPoint from "../../../UI/Components/Charts/Types/SeriesPoints";
 import { Translator } from "../../../Types/Translator";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -52,7 +54,7 @@ jest.mock("../../../UI/Components/Charts/ChartGroup/ChartGroup", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Components/Charts/ChartGroup/ChartGroup",
   ) as Record<string, unknown>;
-  const ReactInMock: typeof React = jest.requireActual("react");
+  const ReactInMock: typeof React = jest.requireActual("react") as typeof React;
 
   return {
     ...actual,
@@ -524,7 +526,7 @@ describe("a grouped metric chart, drawn", () => {
       );
       expect(
         screen.getByRole("button", {
-          name: new RegExp(readerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          name: new RegExp(escapeRegExp(readerName)),
           expanded: false,
         }),
       ).toBeInTheDocument();
@@ -648,7 +650,7 @@ describe("a grouped metric chart, drawn", () => {
     const readerName: string = "service.name=(nicht gesetzt)";
 
     act(() => {
-      chart.props.onBucketClick?.(
+      (chart.props as LineChartProps).onBucketClick?.(
         new Date(WINDOW_START.getTime() + 10 * 60_000),
         new Date(WINDOW_START.getTime() + 11 * 60_000),
         { [readerName]: 40, [API_SERIES]: 12 },

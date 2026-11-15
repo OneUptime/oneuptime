@@ -19,6 +19,16 @@ import React, { ReactElement } from "react";
  * an analytics server that answers only when a test says so. Only the
  * chart itself (see ContainerChartZoomStandIn) and the details card, which
  * reports the refresher it is handed, are stood in for.
+ *
+ * Nothing here waits on the real clock. The app API's two reads - when
+ * OneUptime was not receiving data (ReceivingGaps), which every fetch waits
+ * for before it draws the charts, and the AI agent card's status - are
+ * answered by the suite, never by the network. They used to go out to
+ * http://localhost/api, and a paint then waited for a refused connection to
+ * come back: within the few event-loop turns flush() gives it on an idle
+ * machine, but not on a loaded one, where a refusal 200 ms late failed 16 of
+ * these 26 tests. Any request that would still leave fails the test that
+ * made it (see requestsThatLeft).
  */
 
 function mockStubModule(testId: string): {
@@ -65,14 +75,23 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
 import DockerHostOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Overview";
 import PodmanHostOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import {
+  RECEIVING_GAPS_ROUTE,
+  RECEIVING_GAPS_TIMEOUT_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/ReceivingGaps";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TimeRange from "../../../Types/Time/TimeRange";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { APP_API_URL } from "../../../UI/Config";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -92,6 +111,8 @@ import {
   expectRefreshSpinning,
 } from "./SlowLoadHarness";
 import {
+  Deferred,
+  deferred,
   flush,
   pickPreset,
   pickerLabel,
@@ -219,6 +240,71 @@ function serveAnalytics(): void {
     });
 }
 
+/*
+ * The app API's reads (API.post), answered here. The receiving-gaps read
+ * answers with gapsAnswer, at once with no gaps unless a test says
+ * otherwise; any other route, the AI agent card's status among them, is
+ * refused at once, which the card takes as a status it could not load.
+ */
+interface GapsRead {
+  startsAt: string;
+  endsAt: string;
+}
+
+interface PostOptions {
+  url: { toString: () => string };
+  data?: JSONObject | undefined;
+}
+
+type GapsAnswer = () => Promise<HTTPResponse<JSONObject>>;
+
+function noGaps(): Promise<HTTPResponse<JSONObject>> {
+  return Promise.resolve(new HTTPResponse<JSONObject>(200, { gaps: [] }, {}));
+}
+
+let gapsAnswer: GapsAnswer = noGaps;
+let gapsReads: Array<GapsRead> = [];
+
+function serveAppApi(): void {
+  jest
+    .spyOn(API, "post")
+    .mockImplementation((...args: Array<unknown>): Promise<never> => {
+      const options: PostOptions = args[0] as PostOptions;
+      const url: string = options.url.toString();
+
+      if (!url.endsWith(RECEIVING_GAPS_ROUTE)) {
+        return Promise.reject(new Error(`${url} is not served here.`));
+      }
+
+      gapsReads.push({
+        startsAt: String(options.data?.["startsAt"]),
+        endsAt: String(options.data?.["endsAt"]),
+      });
+
+      return gapsAnswer() as Promise<never>;
+    });
+}
+
+/*
+ * Every request that would still leave for the network, refused at once
+ * instead and listed here; afterEach fails the test that made one.
+ */
+const requestsThatLeft: Array<string> = [];
+
+function keepRequestsFromLeaving(): void {
+  jest
+    .spyOn(window.XMLHttpRequest.prototype, "open")
+    .mockImplementation((...args: Array<unknown>): void => {
+      const request: string = `${String(args[0])} ${String(args[1])}`;
+
+      requestsThatLeft.push(request);
+
+      throw new Error(
+        `${request} would have left for the network, and answered on the real clock.`,
+      );
+    });
+}
+
 interface RuntimeCase {
   Overview: React.FunctionComponent<PageComponentProps>;
   refreshStorageKey: string;
@@ -318,6 +404,11 @@ beforeEach(() => {
     });
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   serveAnalytics();
+  gapsAnswer = noGaps;
+  gapsReads = [];
+  serveAppApi();
+  requestsThatLeft.length = 0;
+  keepRequestsFromLeaving();
 });
 
 afterEach(() => {
@@ -325,6 +416,45 @@ afterEach(() => {
   jest.useRealTimers();
   jest.restoreAllMocks();
   window.localStorage.clear();
+  // Last, so a test that fails here still leaves the next one a clean page.
+  expect(requestsThatLeft).toEqual([]);
+});
+
+describe("this suite's network", () => {
+  test("a request that would leave is refused at once and listed, so the test that made it fails", () => {
+    const request: XMLHttpRequest = new window.XMLHttpRequest();
+
+    expect(() => {
+      request.open("POST", "http://localhost/api/receiving-gaps");
+    }).toThrow("would have left for the network");
+    expect(requestsThatLeft).toEqual([
+      "POST http://localhost/api/receiving-gaps",
+    ]);
+
+    // Listed on purpose here; the check after each test is for the others.
+    requestsThatLeft.length = 0;
+  });
+
+  test("the receiving-gaps read is answered here, and any other app API read is refused at once", async () => {
+    await expect(
+      API.post<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          RECEIVING_GAPS_ROUTE,
+        ),
+        data: { startsAt: "a", endsAt: "b" },
+      }),
+    ).resolves.toBeInstanceOf(HTTPResponse);
+    expect(gapsReads).toEqual([{ startsAt: "a", endsAt: "b" }]);
+
+    await expect(
+      API.post<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/resource-ai-access/status",
+        ),
+      }),
+    ).rejects.toThrow("is not served here");
+    expect(requestsThatLeft).toEqual([]);
+  });
 });
 
 describe.each(RUNTIME_CASES)(
@@ -372,6 +502,53 @@ describe.each(RUNTIME_CASES)(
 
       await backlog.release(endsAt(at("12:02")));
       expect(pageWindow()).toBe(windowText(at("11:32"), at("12:02")));
+      expectRefreshSettled();
+
+      // One receiving-gaps read per fetch, each for that fetch's window.
+      expect(gapsReads).toEqual([
+        { startsAt: at("11:30").toISOString(), endsAt: NOW.toISOString() },
+        {
+          startsAt: at("11:32").toISOString(),
+          endsAt: at("12:02").toISOString(),
+        },
+      ]);
+    });
+
+    test("the charts wait for when OneUptime was not receiving, and are drawn the moment that answer lands", async () => {
+      const held: Deferred<HTTPResponse<JSONObject>> =
+        deferred<HTTPResponse<JSONObject>>();
+      gapsAnswer = (): Promise<HTTPResponse<JSONObject>> => {
+        return held.promise;
+      };
+      await mount(runtimeCase);
+
+      await backlog.release(endsAt(NOW));
+      // The metrics are in, the gaps are not: nothing is drawn yet.
+      expect(charts()).toHaveLength(0);
+      expectRefreshSpinning();
+
+      held.resolve(new HTTPResponse<JSONObject>(200, { gaps: [] }, {}));
+      await flush();
+
+      expect(pageWindow()).toBe(windowText(at("11:30"), NOW));
+      expect(tileValue("Avg CPU")).toBe("20.0%");
+      expectRefreshSettled();
+    });
+
+    test("a receiving-gaps read that never answers holds the charts back for RECEIVING_GAPS_TIMEOUT_MS of the page's clock, and no longer", async () => {
+      gapsAnswer = (): Promise<HTTPResponse<JSONObject>> => {
+        return new Promise<HTTPResponse<JSONObject>>(() => {});
+      };
+      await mount(runtimeCase);
+
+      await backlog.release(endsAt(NOW));
+      await advance(RECEIVING_GAPS_TIMEOUT_MS - 1);
+      expect(charts()).toHaveLength(0);
+      expectRefreshSpinning();
+
+      await advance(1);
+      expect(pageWindow()).toBe(windowText(at("11:30"), NOW));
+      expect(tileValue("Avg CPU")).toBe("20.0%");
       expectRefreshSettled();
     });
 

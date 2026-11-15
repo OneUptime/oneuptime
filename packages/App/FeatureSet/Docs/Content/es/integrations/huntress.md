@@ -13,7 +13,7 @@ Esta integración es **entrante**: Huntress envía cada evento de un informe de 
 
 ## Cómo funciona
 
-Huntress envía un evento sobre un informe de incidente cuando se envía el informe, cuando alguien lo comenta y cuando se cierra. El disparador **Huntress Incident Report** inicia el flujo de trabajo una vez por cada evento, y su **Event** dice cuál fue: `created`, `comment-added` o `closed`.
+Huntress envía un evento sobre un informe de incidente cuando se envía el informe, cuando alguien lo comenta y cuando se cierra. El disparador **Huntress Incident Report** inicia el flujo de trabajo una vez por cada evento, y su **Evento** dice cuál fue: `created`, `comment-added` o `closed`.
 
 ```mermaid title="Un informe de incidente de Huntress en un flujo de trabajo"
 sequenceDiagram
@@ -79,19 +79,19 @@ Activa **Habilitado** en la parte superior del **Constructor**. En Huntress, abr
 
 ## Qué hace el flujo de trabajo
 
-Tras el disparador, **Incident From Another Tool** hace lo que pide cada **Event**, por el número del informe:
+Tras el disparador, **Incident From Another Tool** hace lo que pide cada **Evento**, por el número del informe:
 
 | Event | Qué hace el flujo de trabajo |
 | --- | --- |
-| `created` | Abre un incidente con la **Incident Severity ID** del disparador, etiquetado con su **Organization Label ID**. Para un informe alto o crítico, **Page an On-Call Policy** avisa a tu política; un informe bajo no avisa a nadie. Un informe que ya tiene un incidente no abre otro. |
+| `created` | Abre un incidente con la **ID de la gravedad del incidente** del disparador, etiquetado con su **Organization Label ID**. Para un informe alto o crítico, **Page an On-Call Policy** avisa a tu política; un informe bajo no avisa a nadie. Un informe que ya tiene un incidente no abre otro. |
 | `comment-added` | Busca el incidente del informe y le añade el comentario como nota privada. |
 | `closed` | Busca el incidente del informe y lo resuelve, salvo que ya esté resuelto. El motivo queda en su cronología: Huntress cerró el informe. |
 
-Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **If / Else** después de **Incident From Another Tool**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Switch / Case** sobre **Organization**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
+Es un flujo de trabajo como cualquier otro, así que puedes cambiar lo que hace: avisar solo por informes críticos cambiando lo que compara el **If / Else** después de **Incident From Another Tool**, publicar cada informe en un canal de chat con un paso de Slack o de Microsoft Teams, o enviar cada organización a su propia política de guardia con un **Switch / Case** sobre **Organización**. Cada ejecución aparece en las ejecuciones del flujo de trabajo, con lo que hizo cada paso.
 
 ### Gravedades
 
-Huntress da a cada informe de incidente una de tres gravedades. La **Incident Severity ID** del disparador es la gravedad de incidente con la que se abre el informe: la que elige su ajuste o, si no, el orden de tus gravedades de incidente, tal como las lista **Incidentes → Ajustes → Gravedad del incidente**:
+Huntress da a cada informe de incidente una de tres gravedades. La **ID de la gravedad del incidente** del disparador es la gravedad de incidente con la que se abre el informe: la que elige su ajuste o, si no, el orden de tus gravedades de incidente, tal como las lista **Incidentes → Ajustes → Gravedad del incidente**:
 
 | Gravedad en Huntress | Qué quiere decir Huntress | Ajuste | Gravedad de incidente cuando el ajuste está vacío |
 | --- | --- | --- | --- |
@@ -114,25 +114,25 @@ El disparador se abre en Huntress: su URL, una marca junto a cada paso de config
 
 | Valor | Qué contiene |
 | --- | --- |
-| **Event** | `created`, `comment-added` o `closed`. Un informe ya cerrado o descartado es `closed`, sea cual sea el evento que lo trajo. |
+| **Evento** | `created`, `comment-added` o `closed`. Un informe ya cerrado o descartado es `closed`, sea cual sea el evento que lo trajo. |
 | **Report ID** | El número del informe en Huntress. |
-| **Severity** | `critical`, `high` o `low`. |
-| **Status** | El estado del informe en Huntress, como `sent`, `closed` o `dismissed`. |
-| **Subject** | El asunto del informe, tal como lo escribe Huntress. |
-| **Summary** | Lo que escribió el analista del SOC. |
-| **Organization**, **Organization ID** | La organización de Huntress de la que trata el informe. |
-| **Affected** | El equipo o la identidad de los que trata el informe. |
-| **Platform**, **Indicators** | Dónde lo encontró Huntress y qué encontró. |
-| **Comment** | El comentario que añadió alguien, con `comment-added`. |
+| **Gravedad** | `critical`, `high` o `low`. |
+| **Estado** | El estado del informe en Huntress, como `sent`, `closed` o `dismissed`. |
+| **Asunto** | El asunto del informe, tal como lo escribe Huntress. |
+| **Resumen** | Lo que escribió el analista del SOC. |
+| **Organización**, **ID de la organización** | La organización de Huntress de la que trata el informe. |
+| **Afectado** | El equipo o la identidad de los que trata el informe. |
+| **Plataforma**, **Indicadores** | Dónde lo encontró Huntress y qué encontró. |
+| **Comentario** | El comentario que añadió alguien, con `comment-added`. |
 | **Report URL** | Dónde se abre el informe en Huntress. |
-| **Incident Title**, **Incident Description** | Un título y una descripción en Markdown para un incidente sobre el informe. |
-| **Note** | Markdown para una nota sobre el evento: el comentario, o que Huntress cerró el informe. |
-| **Incident Severity ID**, **Organization Label ID** | La gravedad de incidente y la etiqueta, como arriba. |
+| **Título del incidente**, **Descripción del incidente** | Un título y una descripción en Markdown para un incidente sobre el informe. |
+| **Nota** | Markdown para una nota sobre el evento: el comentario, o que Huntress cerró el informe. |
+| **ID de la gravedad del incidente**, **Organization Label ID** | La gravedad de incidente y la etiqueta, como arriba. |
 | **Received At** | Cuándo recibió OneUptime el evento. |
 
-**Summary** y **Comment** son texto que escribieron los analistas de Huntress. Para ponerlos en un incidente o una nota, usa **Incident Description** y **Note**: conservan el formato, y nada en ellos carga una imagen ni menciona a nadie.
+**Resumen** y **Comentario** son texto que escribieron los analistas de Huntress. Para ponerlos en un incidente o una nota, usa **Descripción del incidente** y **Nota**: conservan el formato, y nada en ellos carga una imagen ni menciona a nadie.
 
-Para probar el flujo de trabajo sin Huntress, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y escribe un **Event**, un **Report ID** y los campos que necesites. Usa el mismo **Report ID** para seguir un informe de `created` a `closed`.
+Para probar el flujo de trabajo sin Huntress, haz clic en **Ejecutar flujo de trabajo** en el **Constructor** y escribe un **Evento**, un **Report ID** y los campos que necesites. Usa el mismo **Report ID** para seguir un informe de `created` a `closed`.
 
 ## Conexiones de Huntress creadas antes
 

@@ -66,7 +66,7 @@ flowchart TB
 
 ### issue 열기
 
-**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 뒤, 트리거의 **Success** 점을 그 블록에 연결합니다. 블록의 **URL**을 `https://api.github.com/repos/your-org/your-repo/issues`로 설정하되, 저장소의 소유자와 이름으로 바꿉니다. **추가 필드**에서 **Request Headers**를 다음과 같이 설정합니다:
+**구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 뒤, 트리거의 **성공** 점을 그 블록에 연결합니다. 블록의 **URL**을 `https://api.github.com/repos/your-org/your-repo/issues`로 설정하되, 저장소의 소유자와 이름으로 바꿉니다. **추가 필드**에서 **요청 헤더**를 다음과 같이 설정합니다:
 
 ```json
 {
@@ -76,7 +76,7 @@ flowchart TB
 }
 ```
 
-**Request Body**는 다음과 같습니다:
+**요청 본문**은 다음과 같습니다:
 
 ```json
 {
@@ -97,11 +97,11 @@ flowchart TB
 
 - **GitHub Enterprise Server.** 대신 자체 서버로 요청을 보냅니다: `https://your-github-host/api/v3/repos/your-org/your-repo/issues`. 사설 네트워크 주소의 서버에는 관리자가 이를 허용한 자체 호스팅 OneUptime이 필요합니다. [아웃바운드 네트워크 접근](/docs/workflows/configuration#아웃바운드-네트워크-접근)을 참고하세요.
 - **담당자 지정.** 본문에 `"assignees": ["octocat"]`이나 `"milestone": 3`을 추가합니다. 토큰이 저장소에 push할 수 없으면 GitHub는 레이블, 담당자, 마일스톤을 아무 말 없이 버립니다.
-- **일부 인시던트만.** 트리거와 API 블록 사이에 **If / Else** 블록을 두고, 그 **Yes** 쪽에서만 issue를 엽니다. 예를 들어 한 심각도에서만 엽니다.
+- **일부 인시던트만.** 트리거와 API 블록 사이에 **If / Else** 블록을 두고, 그 **예** 쪽에서만 issue를 엽니다. 예를 들어 한 심각도에서만 엽니다.
 
 ## 문제 해결
 
-GitHub가 요청을 거부하면 **API Post (JSON)** 단계는 **Error**로 진행합니다. 실행의 **Response Status**와 **Response Body**에 이유가 나옵니다.
+GitHub가 요청을 거부하면 **API Post (JSON)** 단계는 **오류**로 진행합니다. 실행의 **Response Status**와 **응답 본문**에 이유가 나옵니다.
 
 :::details GitHub가 401로 응답함
 토큰이 잘못되었거나, 만료되었거나, 취소되었습니다. 새 토큰을 만들고 `GITHUB_TOKEN`의 내용을 바꾸세요.

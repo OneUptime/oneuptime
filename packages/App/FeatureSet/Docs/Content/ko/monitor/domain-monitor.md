@@ -56,7 +56,7 @@ RDAP 요청은 프로브의 `HTTP_PROXY_URL` / `HTTPS_PROXY_URL` / `NO_PROXY` �
 
 ### 도메인 입력
 
-**도메인 이름**(예: `example.com`)을 입력합니다. 다른 이유가 없다면 **조회 방법**는 **Auto**로 둡니다([조회 방법](#조회-방법) 참고).
+**도메인 이름**(예: `example.com`)을 입력합니다. 다른 이유가 없다면 **조회 방법**은 **Auto**로 둡니다([조회 방법](#조회-방법) 참고).
 
 ### 테스트
 
@@ -163,11 +163,11 @@ OneUptime이 이 경고를 추가하기 전에 만든 모니터에는 "곧 만�
 ## 문제 해결
 
 :::details WHOIS 서버가 "answered without any registration data"로 응답함
-TLD의 WHOIS 호스트가 폐지되었거나, 프로브에 속도 제한을 걸고 있거나, 잠시 고장 났습니다. Identity Digital TLD에 아직 대응되어 있는 호스트 같은 폐지된 호스트는 매번 `TLD is not supported.`라고 답합니다. **조회 방법**가 **WHOIS**인 상태로 실패가 계속되면 **Auto**로 바꿔, RDAP 서비스가 있는 TLD에서는 프로브가 그 서비스를 읽게 합니다.
+TLD의 WHOIS 호스트가 폐지되었거나, 프로브에 속도 제한을 걸고 있거나, 잠시 고장 났습니다. Identity Digital TLD에 아직 대응되어 있는 호스트 같은 폐지된 호스트는 매번 `TLD is not supported.`라고 답합니다. **조회 방법**이 **WHOIS**인 상태로 실패가 계속되면 **Auto**로 바꿔, RDAP 서비스가 있는 TLD에서는 프로브가 그 서비스를 읽게 합니다.
 :::
 
 :::details 확인이 "No RDAP service is published"로 실패함
-모니터가 **RDAP**를 사용하는데, 많은 ccTLD처럼 TLD가 RDAP 서비스를 게시하지 않습니다. **조회 방법**를 WHOIS로 대체하는 **Auto**로 바꿉니다.
+모니터가 **RDAP**를 사용하는데, 많은 ccTLD처럼 TLD가 RDAP 서비스를 게시하지 않습니다. **조회 방법**을 WHOIS로 대체하는 **Auto**로 바꿉니다.
 :::
 
 :::details 도메인이 등록되지 않았다고 보고됨

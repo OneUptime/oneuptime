@@ -53,13 +53,13 @@ flowchart TB
 
 ### अलर्ट बनाएं
 
-**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **Success** बिंदु को उससे जोड़ें। उसका **URL** `https://api.opsgenie.com/v2/alerts` पर सेट करें, या यूरोप में `https://api.eu.opsgenie.com/v2/alerts` पर। **और फ़ील्ड** के नीचे उसके **Request Headers** इस पर सेट करें:
+**घटक जोड़ें** पर क्लिक करें, एक **API Post (JSON)** ब्लॉक जोड़ें, और ट्रिगर के **सफलता** बिंदु को उससे जोड़ें। उसका **URL** `https://api.opsgenie.com/v2/alerts` पर सेट करें, या यूरोप में `https://api.eu.opsgenie.com/v2/alerts` पर। **और फ़ील्ड** के नीचे उसके **अनुरोध हेडर** इस पर सेट करें:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-और उसकी **Request Body** इस पर:
+और उसकी **अनुरोध बॉडी** इस पर:
 
 ```json
 {
@@ -93,17 +93,17 @@ Opsgenie की स्कीम है: शब्द `GenieKey`, एक स्�
 
 ### जांचें कि घटना सुलझ गई है
 
-ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **Value to check** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **Comparison** को **is true** पर सेट करें।
+ट्रिगर के बाद एक **If / Else** ब्लॉक जोड़ें। **जांचने वाला मान** को `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` पर और **तुलना** को **सत्य है** पर सेट करें।
 
 ### अलर्ट बंद करें
 
-**Yes** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उन्हीं **Request Headers** और इस **URL** के साथ:
+**हाँ** साइड के बाद एक **API Post (JSON)** ब्लॉक जोड़ें, उन्हीं **अनुरोध हेडर** और इस **URL** के साथ:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-उसकी **Request Body** को `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` पर सेट करें।
+उसकी **अनुरोध बॉडी** को `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` पर सेट करें।
 
 ### इसे चालू करें
 
@@ -117,7 +117,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 हर घटना की गंभीरता को Opsgenie प्राथमिकता के रूप में भेजने के लिए, ट्रिगर और **API Post (JSON)** ब्लॉक के बीच एक **Run Custom JavaScript** ब्लॉक जोड़ें।
 
 1. ट्रिगर के **Fields to pass on** में **फ़ील्ड जोड़ें** पर क्लिक करें, **घटना गंभीरता** खोलें और **नाम** चुनें।
-2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript Code** को इस पर सेट करें:
+2. ब्लॉक के **Arguments** को `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` पर, और उसके **JavaScript कोड** को इस पर सेट करें:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie अनुरोध प्रोसेस करने से पहल�
 :::
 
 :::details वर्कफ़्लो कभी नहीं चलता
-जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **No** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
+जांचें कि यह चालू है: उसके **बिल्डर** के ऊपर **सक्षम**। फिर **लॉग → रन** खोलें: जो रन **If / Else** ब्लॉक की **नहीं** साइड पर गया, वह ऐसा अपडेट था जो सुलझाना नहीं था।
 :::
 
 ## अगले कदम

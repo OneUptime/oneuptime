@@ -7,6 +7,7 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import DatabaseService from "../../../../Server/Services/DatabaseService";
 import logger from "../../../../Server/Utils/Logger";
 import MeasurementBackfillProgress, {
+  MeasurementBackfillCursor,
   MeasurementBackfillProgressWrite,
 } from "../../../../Server/Utils/Measurement/MeasurementBackfillProgress";
 import ObjectID from "../../../../Types/ObjectID";
@@ -41,7 +42,10 @@ import { DataSource, QueryRunner } from "typeorm";
  *   - that there is no window between the guard and the write: an edit that
  *     commits while the walk's write waits for the row is still never
  *     written over;
- *   - that a refused write is reported as refused through TypeORM.
+ *   - that a refused write is reported as refused through TypeORM;
+ *   - that the cursor's two columns - the createdAt and the id of the
+ *     record a page ended on (#8171) - are written together, and that an
+ *     edit's clearing of both is never written over.
  *
  * Opt in with RUN_POSTGRES_MEASUREMENT_BACKFILL_PROGRESS_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
@@ -71,6 +75,7 @@ const TABLES: Array<string> = [
 interface StoredBackfill {
   backfillRequestedAt: Date | null;
   backfillCursorCreatedAt: Date | null;
+  backfillCursorId: string | null;
   backfillCompletedAt: Date | null;
   version: number | null;
   updatedAt: Date | null;
@@ -84,8 +89,14 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
   let service: DatabaseService<IncidentMeasurement>;
 
   const UPDATED_AT: Date = new Date("2020-01-01T00:00:00.000Z");
-  const CURSOR: Date = new Date("2026-06-01T09:00:00.000Z");
-  const LATER_CURSOR: Date = new Date("2026-06-02T09:00:00.000Z");
+  const CURSOR: MeasurementBackfillCursor = {
+    createdAt: new Date("2026-06-01T09:00:00.000Z"),
+    id: new ObjectID("33333333-3333-4333-8333-333333333333"),
+  };
+  const LATER_CURSOR: MeasurementBackfillCursor = {
+    createdAt: new Date("2026-06-02T09:00:00.000Z"),
+    id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+  };
   const COMPLETED_AT: Date = new Date("2026-07-01T00:05:00.000Z");
 
   beforeAll(async () => {
@@ -186,7 +197,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
    * through updateOneById: a new stamp, the cursor and the completion
    * cleared - with the version and updatedAt the update moves too.
    */
-  const EDIT_SQL: string = `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = $2, "backfillCursorCreatedAt" = NULL, "backfillCompletedAt" = NULL, "version" = "version" + 1, "updatedAt" = now() WHERE "_id" = $1`;
+  const EDIT_SQL: string = `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = $2, "backfillCursorCreatedAt" = NULL, "backfillCursorId" = NULL, "backfillCompletedAt" = NULL, "version" = "version" + 1, "updatedAt" = now() WHERE "_id" = $1`;
 
   async function edit(id: ObjectID, requestedAt: Date): Promise<void> {
     await database.query(EDIT_SQL, [id.toString(), requestedAt]);
@@ -210,7 +221,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
     table: string = "IncidentMeasurement",
   ): Promise<StoredBackfill> {
     const rows: Array<StoredBackfill> = await database.query(
-      `SELECT "backfillRequestedAt", "backfillCursorCreatedAt", "backfillCompletedAt", "version", "updatedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+      `SELECT "backfillRequestedAt", "backfillCursorCreatedAt", "backfillCursorId"::text AS "backfillCursorId", "backfillCompletedAt", "version", "updatedAt" FROM "${schema}"."${table}" WHERE "_id" = $1`,
       [id.toString()],
     );
     return rows[0]!;
@@ -241,14 +252,15 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(true);
 
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCursorCreatedAt?.toISOString()).toBe(
-        CURSOR.toISOString(),
+        CURSOR.createdAt.toISOString(),
       );
+      expect(row.backfillCursorId).toBe(CURSOR.id.toString());
       expect(row.backfillCompletedAt).toBeNull();
       expect(row.backfillRequestedAt?.toISOString()).toBe(
         requestedAt.toISOString(),
@@ -266,17 +278,17 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         await save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
         await save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
         }),
         await save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ];
@@ -285,8 +297,9 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
 
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCursorCreatedAt?.toISOString()).toBe(
-        LATER_CURSOR.toISOString(),
+        LATER_CURSOR.createdAt.toISOString(),
       );
+      expect(row.backfillCursorId).toBe(LATER_CURSOR.id.toString());
       expect(row.backfillCompletedAt?.toISOString()).toBe(
         COMPLETED_AT.toISOString(),
       );
@@ -299,7 +312,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       await save({
         measurementId: id,
         requestedAt: requestedAt,
-        cursorCreatedAt: CURSOR,
+        cursor: CURSOR,
       });
 
       await expect(
@@ -312,8 +325,9 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
 
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCursorCreatedAt?.toISOString()).toBe(
-        CURSOR.toISOString(),
+        CURSOR.createdAt.toISOString(),
       );
+      expect(row.backfillCursorId).toBe(CURSOR.id.toString());
       expect(row.backfillCompletedAt?.toISOString()).toBe(
         COMPLETED_AT.toISOString(),
       );
@@ -336,7 +350,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
           {
             measurementId: id,
             requestedAt: requestedAt,
-            cursorCreatedAt: CURSOR,
+            cursor: CURSOR,
             completedAt: COMPLETED_AT,
           },
           tableService,
@@ -368,14 +382,14 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(true);
       await expect(
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ).resolves.toBe(true);
@@ -395,19 +409,21 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       await expect(
         service.compareAndSetColumnsByIdWithoutHooks({
           id: id,
-          data: { backfillCursorCreatedAt: CURSOR },
+          data: { backfillCursorCreatedAt: CURSOR.createdAt },
           expectedData: { backfillRequestedAt: await readRequest(id) },
         }),
       ).resolves.toBe(false);
 
-      expect((await readBackfill(id)).backfillCursorCreatedAt).toBeNull();
+      const cleared: StoredBackfill = await readBackfill(id);
+      expect(cleared.backfillCursorCreatedAt).toBeNull();
+      expect(cleared.backfillCursorId).toBeNull();
     });
 
     test("FirstPagedAt's own re-request (now()) is walked to completion", async () => {
       const id: ObjectID = await insertMeasurement();
       // What FirstPagedAt.backfill sets on every measurement it asks for again.
       await database.query(
-        `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = now(), "backfillCursorCreatedAt" = NULL, "backfillCompletedAt" = NULL WHERE "_id" = $1`,
+        `UPDATE "IncidentMeasurement" SET "backfillRequestedAt" = now(), "backfillCursorCreatedAt" = NULL, "backfillCursorId" = NULL, "backfillCompletedAt" = NULL WHERE "_id" = $1`,
         [id.toString()],
       );
 
@@ -417,22 +433,23 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(true);
       await expect(
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ).resolves.toBe(true);
 
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCursorCreatedAt?.toISOString()).toBe(
-        LATER_CURSOR.toISOString(),
+        LATER_CURSOR.createdAt.toISOString(),
       );
+      expect(row.backfillCursorId).toBe(LATER_CURSOR.id.toString());
       expect(row.backfillCompletedAt?.toISOString()).toBe(
         COMPLETED_AT.toISOString(),
       );
@@ -453,7 +470,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
           save({
             measurementId: id,
             requestedAt: requestedAt,
-            cursorCreatedAt: CURSOR,
+            cursor: CURSOR,
           }),
         ).resolves.toBe(false);
       }
@@ -462,7 +479,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: new Date("2026-07-01T00:00:00.123Z"),
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(true);
     });
@@ -482,7 +499,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(false);
 
@@ -491,6 +508,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         EDITED_AT.toISOString(),
       );
       expect(row.backfillCursorCreatedAt).toBeNull();
+      expect(row.backfillCursorId).toBeNull();
       expect(row.backfillCompletedAt).toBeNull();
     });
 
@@ -502,7 +520,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
         }),
       ).resolves.toBe(true);
 
@@ -512,11 +530,13 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
         }),
       ).resolves.toBe(false);
 
-      expect((await readBackfill(id)).backfillCursorCreatedAt).toBeNull();
+      const cleared: StoredBackfill = await readBackfill(id);
+      expect(cleared.backfillCursorCreatedAt).toBeNull();
+      expect(cleared.backfillCursorId).toBeNull();
     });
 
     test("an edit just before the completion: the completion is refused, and the measurement is still asked for", async () => {
@@ -526,7 +546,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       await save({
         measurementId: id,
         requestedAt: requestedAt,
-        cursorCreatedAt: CURSOR,
+        cursor: CURSOR,
       });
       await edit(id, EDITED_AT);
 
@@ -534,7 +554,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ).resolves.toBe(false);
@@ -542,6 +562,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCompletedAt).toBeNull();
       expect(row.backfillCursorCreatedAt).toBeNull();
+      expect(row.backfillCursorId).toBeNull();
       expect(row.backfillRequestedAt?.toISOString()).toBe(
         EDITED_AT.toISOString(),
       );
@@ -561,7 +582,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
           await save({
             measurementId: id,
             requestedAt: requestedAt,
-            cursorCreatedAt: CURSOR,
+            cursor: CURSOR,
             completedAt: COMPLETED_AT,
           }),
         );
@@ -574,7 +595,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: await readRequest(id),
-          cursorCreatedAt: CURSOR,
+          cursor: CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ).resolves.toBe(true);
@@ -602,7 +623,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       const completion: Promise<boolean> = save({
         measurementId: id,
         requestedAt: requestedAt,
-        cursorCreatedAt: LATER_CURSOR,
+        cursor: LATER_CURSOR,
         completedAt: COMPLETED_AT,
       }).finally(() => {
         settled = true;
@@ -632,6 +653,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       );
       expect(row.backfillCompletedAt).toBeNull();
       expect(row.backfillCursorCreatedAt).toBeNull();
+      expect(row.backfillCursorId).toBeNull();
     });
 
     test("an edit that rolls back while the walk's write waits leaves the walk's write to land", async () => {
@@ -646,7 +668,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       const completion: Promise<boolean> = save({
         measurementId: id,
         requestedAt: requestedAt,
-        cursorCreatedAt: LATER_CURSOR,
+        cursor: LATER_CURSOR,
         completedAt: COMPLETED_AT,
       });
 
@@ -673,7 +695,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
         save({
           measurementId: id,
           requestedAt: requestedAt,
-          cursorCreatedAt: LATER_CURSOR,
+          cursor: LATER_CURSOR,
           completedAt: COMPLETED_AT,
         }),
       ).resolves.toBe(true);
@@ -683,6 +705,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       const row: StoredBackfill = await readBackfill(id);
       expect(row.backfillCompletedAt).toBeNull();
       expect(row.backfillCursorCreatedAt).toBeNull();
+      expect(row.backfillCursorId).toBeNull();
     });
   });
 
@@ -691,7 +714,7 @@ describePostgres("MeasurementBackfillProgress against Postgres", () => {
       save({
         measurementId: ObjectID.generate(),
         requestedAt: new Date("2026-07-01T00:00:00.123Z"),
-        cursorCreatedAt: CURSOR,
+        cursor: CURSOR,
       }),
     ).resolves.toBe(false);
   });

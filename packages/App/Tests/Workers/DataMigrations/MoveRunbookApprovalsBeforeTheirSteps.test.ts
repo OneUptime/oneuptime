@@ -79,8 +79,9 @@ describe("MoveRunbookApprovalsBeforeTheirSteps", () => {
       expect(
         instantiations.indexOf("MoveRunbookSecretsAndCredentialsToVariables"),
       ).toBe(instantiations.indexOf("RemoveRunbookCredentials") - 1);
-      expect(instantiations.indexOf("RemoveRunbookCredentials")).toBe(
-        instantiations.indexOf("AddAuditLogMcpClientColumns") - 1,
+      // Before the last slot; later migrations go between the two.
+      expect(instantiations.indexOf("RemoveRunbookCredentials")).toBeLessThan(
+        instantiations.indexOf("AddAuditLogMcpClientColumns"),
       );
       expect(instantiations[instantiations.length - 1]).toBe(
         "AddAuditLogMcpClientColumns",

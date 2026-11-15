@@ -20,7 +20,7 @@ För att lägga till utlösaren klickar du på det streckade blocket **Välj vad
 | Klicka på en knapp för att köra arbetsflödet   | **Manuell**                  |
 | Köra enligt ett återkommande schema            | **Schema**                  |
 | Låta ett annat system skicka in data           | **Webhook**                 |
-| Börja från ett e-postmeddelande                | **Incoming Email**          |
+| Börja från ett e-postmeddelande                | **Inkommande e-post**          |
 | Agera på incidentrapporter från Huntress       | **Huntress Incident Report** |
 | Reagera på något i OneUptime                   | **OneUptime-händelse**      |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Värde                    | Vad det innehåller                                                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Varje header i förfrågan, med namn i gemener, som `content-type`.                                                      |
+| **Begärandehuvuden**      | Varje header i förfrågan, med namn i gemener, som `content-type`.                                                      |
 | **Request Query Params** | Frågeparametrarna i URL:en, efter namn.                                                                                |
-| **Request Body**         | Bodyn som anroparen skickade. En JSON-body, skickad med `Content-Type: application/json`, kan läsas fält för fält.     |
+| **Begärandekropp**         | Bodyn som anroparen skickade. En JSON-body, skickad med `Content-Type: application/json`, kan läsas fält för fält.     |
 
 Läs ett enskilt fält genom att lägga till dess namn i referensen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Varje e-postmeddelande startar en egen körning. Meddelandet når arbetsflödet 
 
 | Värde           | Vad det innehåller                                                                                       |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
-| **From**        | Avsändarens adress.                                                                                      |
-| **To**          | Alla som meddelandet var adresserat till, på en rad, som `ops@example.com, oncall@example.com`.          |
+| **Från**        | Avsändarens adress.                                                                                      |
+| **Till**          | Alla som meddelandet var adresserat till, på en rad, som `ops@example.com, oncall@example.com`.          |
 | **CC**          | Alla som meddelandet skickades som kopia till, på en rad.                                                |
-| **Subject**     | Ämnesraden.                                                                                              |
-| **Body**        | Meddelandets oformaterade text.                                                                          |
+| **Ämne**     | Ämnesraden.                                                                                              |
+| **Brödtext**        | Meddelandets oformaterade text.                                                                          |
 | **HTML Body**   | Meddelandets HTML, när det har någon. Body och HTML Body kapas vardera vid 1 MB.                         |
 | **Headers**     | Varje header i meddelandet, med namn i gemener, som `message-id`.                                        |
-| **Attachments** | Namn, typ och storlek för varje bilaga. Själva filerna sparas inte.                                      |
+| **Bilagor** | Namn, typ och storlek för varje bilaga. Själva filerna sparas inte.                                      |
 | **Received At** | När OneUptime tog emot meddelandet.                                                                      |
 
 När ett e-postmeddelande har kommit vet värdeväljaren i varje block efter utlösaren vad det innehöll: den visar varje header och varje bilaga meddelandet hade, med innehållet, så att du kan välja `headers.message-id` i stället för att skriva en sökväg. Fram till dess säger den att inget e-postmeddelande har nått adressen ännu. Se [Använd värden från tidigare block](/docs/workflows/authoring#använd-värden-från-tidigare-block).
@@ -148,7 +148,7 @@ Delen av adressen före `@` innehåller arbetsflödets hemliga nyckel, och alla 
 Om adressen läcker klickar du på **Återställ adress** på samma ställe: arbetsflödet får en ny adress och e-post till den gamla ignoreras från och med då, så ge den nya till allt som skickar e-post till arbetsflödet. Bara personer som får redigera arbetsflödet kan se eller återställa dess adress — se [Säkerhet för inkommande e-post](/docs/workflows/configuration#säkerhet-för-inkommande-e-post).
 
 > [!WARNING]
-> Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **From** är inget bevis på vem som skickade det. Kontrollera något som bara den riktiga avsändaren vet innan ett steg gör något viktigt.
+> Vem som helst kan sätta vilken avsändare som helst på ett e-postmeddelande, så **Från** är inget bevis på vem som skickade det. Kontrollera något som bara den riktiga avsändaren vet innan ett steg gör något viktigt.
 
 > [!NOTE]
 > På en självhostad installation tar OneUptime emot e-post via en leverantör av inkommande e-post som din administratör konfigurerar — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Fram till dess har utlösaren ingen adress, och dess inställningar säger det.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** och **On Create or Update** skickar posten vidare till nästa block, med de fält du väljer i utlösarens **Fields to pass on**. Till exempel skickar utlösaren **Incident → On Create** den nya incidenten vidare, så att nästa block kan läsa dess titel, beskrivning, allvarlighetsgrad eller vilket annat fält du har valt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Ett fält du inte valde kommer fram tomt. Detsamma gäller ett fält där posten inte har något, som monitorn för ett larm som ingen monitor har utlöst.
 
-**On Create or Update** skickar också vidare **What Happened**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **If / Else**-block, eller tar en väg för vardera med **Switch / Case**.
+**On Create or Update** skickar också vidare **Vad som hände**: `created` när en ny post startade körningen, och `updated` när en ändring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. För att hantera de två olika jämför du det i ett **If / Else**-block, eller tar en väg för vardera med **Switch / Case**.
 
 En sparning aktiverar den en gång. Det som OneUptime fyller i medan den skapar en post hör till skapandet, så en ny post aktiverar den en gång, som `created`. Ändringar som OneUptime gör senare, som att koppla en incidents Slack-kanal, är uppdateringar som alla andra: för att hålla dem utanför lägger du bara till de fält som spelar roll för dig i **Fields to watch**.
 

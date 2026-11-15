@@ -104,7 +104,7 @@ Malene for varsler gjør den samme jobben for varsler. Det er én færre, fordi 
 
 Ingen av malene OneUptime → Dynamics 365 sender en hendelse merket som **Privat hendelse**, eller et varsel merket som **Privat varsel**, til Dynamics 365: verken posten, tilstanden eller notatene, med mindre du slår det på. Se [Endre hva en mal gjør](#endre-hva-en-mal-gjør).
 
-**Monitorer utløser varsler av seg selv, og det kan bli mange.** **Create a Dynamics 365 case when an alert is created** oppretter en sak for hvert eneste ett. Med mindre hvert varsel fortjener en sak, setter du en **If / Else**-blokk mellom triggeren og resten av arbeidsflyten, for eksempel på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og kobler bare **Yes**-siden videre.
+**Monitorer utløser varsler av seg selv, og det kan bli mange.** **Create a Dynamics 365 case when an alert is created** oppretter en sak for hvert eneste ett. Med mindre hvert varsel fortjener en sak, setter du en **If / Else**-blokk mellom triggeren og resten av arbeidsflyten, for eksempel på `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, og kobler bare **Ja**-siden videre.
 
 ### Hva malene ber om
 
@@ -133,7 +133,7 @@ Hver arbeidsflyt har sin egen kopi. Når du bytter ut klienthemmeligheten, åpne
 4. Klikk på **Opprett arbeidsflyt**. Hver arbeidsflyt opprettes avslått: slå på **Aktivert** øverst i dens **Bygger**.
 :::
 
-Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** for varsler: alle andre maler OneUptime → Dynamics 365 av samme slag finner saken via koblingen denne skriver. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Logger → Kjøringer**. Kjøringen skal slutte som **Utført**, og **Response Body** i det siste trinnet, `create-case-1`, inneholder den nye sakens `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
+Start med **Create a Dynamics 365 case when an incident is declared**, eller **Create a Dynamics 365 case when an alert is created** for varsler: alle andre maler OneUptime → Dynamics 365 av samme slag finner saken via koblingen denne skriver. Slå den på, erklær en testhendelse eller opprett et testvarsel, og åpne arbeidsflytens **Logger → Kjøringer**. Kjøringen skal slutte som **Utført**, og **Svartekst** i det siste trinnet, `create-case-1`, inneholder den nye sakens `ticketnumber`, for eksempel `CAS-01001-X1Y2Z3`.
 
 ### Koble til malene Dynamics 365 → OneUptime
 
@@ -184,7 +184,7 @@ Før du stoler på noen av dem:
 Hver kjørings **Trinn** sier hva malen gjorde, så åpne kjøringen i **Logger → Kjøringer** og se hvordan den endte:
 
 - **Utført**: den gjorde jobben sin, og det siste trinnet nevner saken, hendelsen eller varselet.
-- **Utført**, med trinnet **Check With JavaScript** på **No**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra den andre siden, posten er privat, eller den nye tilstanden lukker ikke saken.
+- **Utført**, med trinnet **Check With JavaScript** på **Nei**: den hoppet over hendelsen med vilje, og trinnet sier hvorfor: saken er ikke koblet til en post av dette slaget, notatet kom fra den andre siden, posten er privat, eller den nye tilstanden lukker ikke saken.
 - **Feil**: et trinn mislyktes, og oppføringen under **Trinn** sier hvorfor. Ved et Dynamics 365-kall inneholder den svaret fra Dynamics 365.
 - **Feil** ved `link-case-1`: en mal som oppretter en post fra en sak, opprettet den, men Dynamics 365 godtok ikke koblingen, så de andre malene kan ikke finne den ennå. Skriv koblingen inn i sakens kolonne for hånd.
 
@@ -221,7 +221,7 @@ Behold markørene når du redigerer malene. De er konstantene `FROM_ONEUPTIME` o
 
 ### Endre hva en mal gjør
 
-Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript Code** i en **Check With JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler har de samme konstantene i de samme blokkene.
+Åpne arbeidsflytens **Bygger**, og klikk på blokken du vil endre. Innstillingene du mest sannsynlig vil endre, er konstanter øverst i et skript, **JavaScript-kode** i en **Check With JavaScript**-blokk, rett under den delte hjelpeblokken. Versjonene for hendelser og for varsler har de samme konstantene i de samme blokkene.
 
 | Konstant | Mal og blokk | Hva den styrer |
 | --- | --- | --- |
@@ -270,8 +270,8 @@ Scopet må være miljø-URL-en din etterfulgt av `/.default`. En feil miljø-URL
 
 :::steps
 1. Opprett en arbeidsflyt fra bunnen som heter `Incidents to Dynamics 365`. Klikk på den stiplede blokken, og legg til triggeren **On Create Incident**. **Fields to pass on** starter med **Tittel**: klikk på **Legg til felt**, og velg **Beskrivelse** og **Hendelsesnummer**. ID-en sendes alltid videre.
-2. Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **Identifier** til `create-case` og **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
-3. Sett **Request Headers** under **Flere felt** til:
+2. Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **Identifier** til `create-case` og **URL** til `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
+3. Sett **Forespørselshoder** under **Flere felt** til:
 
    ```json
    {
@@ -284,7 +284,7 @@ Scopet må være miljø-URL-en din etterfulgt av `/.default`. En feil miljø-URL
    }
    ```
 
-4. Sett **Request Body** til saken, med GUID-en til kontoen sakene dine hører til:
+4. Sett **Forespørselstekst** til saken, med GUID-en til kontoen sakene dine hører til:
 
    ```json
    {
@@ -324,8 +324,8 @@ Bygg dette som en egen arbeidsflyt, slik at en feil her aldri hindrer at saker o
 
 :::steps
 1. Opprett en arbeidsflyt som heter `Close Dynamics 365 cases`, med triggeren **On Update Incident**. Klikk på **Legg til felt** i **Fields to watch**, og velg **Current Incident State**. Klikk på **Legg til felt** i **Fields to pass on**, åpne **Current Incident State**, og velg **Is Resolved State**.
-2. Legg til en **If / Else**-blokk: **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Comparison** **is true**.
-3. Legg etter **Yes**-siden til en **API Get (JSON)**-blokk med **Identifier** `find-case`, de samme overskriftene uten `Prefer` og denne **URL**:
+2. Legg til en **If / Else**-blokk: **Verdi som skal sjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Sammenligning** **er sann**.
+3. Legg etter **Ja**-siden til en **API Get (JSON)**-blokk med **Identifier** `find-case`, de samme overskriftene uten `Prefer` og denne **URL**:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
@@ -362,8 +362,8 @@ Bygg først den mottakende arbeidsflyten:
 
    På en selvhostet installasjon har URL-en din egen vert. Behandle URL-en som et passord: alle som har den, kan starte arbeidsflyten. Hvis den lekker, klikker du på **Tilbakestill URL** på samme sted, og den gamle URL-en slutter å virke med en gang.
 
-3. Legg til en **If / Else**-blokk som sjekker en delt hemmelighet før alt annet: **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to**, **Compare with** en verdi du finner på selv, lagret i en hemmelig global variabel.
-4. Legg etter **Yes**-siden til en **Update One Incident**-blokk. Sett **Query** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON Object)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Find One Incident State**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Legg til en **If / Else**-blokk som sjekker en delt hemmelighet før alt annet: **Verdi som skal sjekkes** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Sammenligning** **er lik**, **Sammenlign med** en verdi du finner på selv, lagret i en hemmelig global variabel.
+4. Legg etter **Ja**-siden til en **Update One Incident**-blokk. Sett **Spørring** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, og **Data (JSON Object)** til endringen, f.eks. en ny `currentIncidentStateId`. En **Find One Incident State**-blokk med spørringen `{"name": "Resolved"}` gir deg den ID-en som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå den på, og få deretter Dynamics 365 til å kalle den:
 
@@ -395,7 +395,7 @@ Varsler fungerer på samme måte. Bytt posttypen, og ingenting annet endres:
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én arbeidsflyt hver. For å gjøre det samme Dynamics 365-arbeidet for begge bygger du det én gang i en arbeidsflyt med en **Manual**-trigger og starter den fra begge med en **Execute Workflow**-blokk.
+En arbeidsflyt har nøyaktig én trigger, så hendelser og varsler trenger én arbeidsflyt hver. For å gjøre det samme Dynamics 365-arbeidet for begge bygger du det én gang i en arbeidsflyt med en **Manuell**-trigger og starter den fra begge med en **Execute Workflow**-blokk.
 
 ## Feilsøking
 

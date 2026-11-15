@@ -67,6 +67,7 @@ import {
 } from "./DocsTranslationChecks";
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, it } from "@jest/globals";
+import { isStepNameOnPage } from "./DocsWorkflowStepNames";
 
 /*
  * Docs overhaul task 24b: the rest of the AI Observability group (Gemini
@@ -163,12 +164,14 @@ const CREATE_BUTTONS: Record<string, Array<string>> = {
 };
 
 /*
- * A workflow step's own names, which the workflow builder draws as the step
- * names them and the workflow pages keep in English: the trigger and the
- * blocks the circuit breaker uses, their settings, and their dots. "Error"
- * is also a span status on that page, which a translation draws as its
- * Dashboard does; the dot keeps it in English. AiToolingDocsFacts holds
- * each to the workflow components that define it.
+ * A workflow step's own names: the trigger and the blocks the circuit
+ * breaker uses, their settings, and their dots. AiToolingDocsFacts holds
+ * each to the workflow components that define it. The builder looks each
+ * up in the Dashboard's locale, so a translation names the ones a locale
+ * has a word for as its builder draws them - the URL, Request Headers and
+ * Request Body settings, the Success, Yes, No and Error dots (#7511,
+ * WorkflowStepNamesAsDrawnDocs) - and keeps the rest, the steps' titles,
+ * as written. "Error" is also a span status on that page, drawn the same.
  *
  * If / Else's Value to check, Comparison and Compare with are not among
  * them: its editor draws them in the reader's language (ConditionModel),
@@ -268,7 +271,12 @@ function listed(
 
 // Bold words a translation keeps exactly as the English page writes them.
 function keptAsWritten(page: string): Array<string> {
-  return [...listed(WORKFLOW_STEP_NAMES, page), ...listed(GLYPHS, page)];
+  return [
+    ...listed(WORKFLOW_STEP_NAMES, page).filter((name: string): boolean => {
+      return !isStepNameOnPage(page, name);
+    }),
+    ...listed(GLYPHS, page),
+  ];
 }
 
 // Whether a list accounts for a bold English word on a page.

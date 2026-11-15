@@ -247,7 +247,11 @@ describe("adding an action item", () => {
     miscDataProps?: JSONObject,
   ): OnCreate<IncidentPostmortemActionItem> {
     return {
-      createBy: { data, props: MAYA, miscDataProps },
+      createBy: {
+        data,
+        props: MAYA,
+        ...(miscDataProps ? { miscDataProps } : {}),
+      },
       carryForward: null,
     };
   }

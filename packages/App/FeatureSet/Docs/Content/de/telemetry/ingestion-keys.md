@@ -140,7 +140,7 @@ Die Seite des Schlüssels zählt mit: **Abgelehnte Telemetrie** listet, was in d
 Die übrigen Antworten, die ein OTLP-Exporter bekommen kann, finden Sie unter [Antworten](/docs/telemetry/open-telemetry#antworten).
 
 :::details Eine Minute nach dem Ausschalten des Schlüssels kommen noch Daten an
-Jeder OneUptime-Server merkt sich bis zu einer Minute lang, was er über einen Schlüssel weiß, daher erreicht eine Änderung alle Server innerhalb von etwa einer Minute. Anfragen danach werden abgelehnt.
+Jeder OneUptime-Server merkt sich bis zu einer Minute lang, was er über einen Schlüssel weiß, daher erreicht eine Änderung alle Server innerhalb von etwa einer Minute. Anfragen danach werden abgelehnt. Ein MQTT-Client, der sich mit dem Schlüssel verbunden hat, wird innerhalb weniger Sekunden getrennt.
 :::
 
 :::details Ein Browser-Schlüssel funktioniert auf meinem Laptop, aber nicht in Produktion

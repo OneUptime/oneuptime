@@ -87,10 +87,10 @@ Chaque modèle pour les alertes est construit comme son jumeau pour les incident
 **Les moniteurs lèvent des alertes d'eux-mêmes, et parfois beaucoup.** **Create a Jira issue when an alert is created** crée un ticket pour chacune. Sauf si chaque alerte mérite un ticket, placez une condition devant l'étape Jira. Pour ne créer des tickets que pour les alertes High :
 
 1. Ouvrez le **Constructeur** du workflow et ajoutez un bloc **If / Else**.
-2. Réglez **Value to check** sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparison** sur **is equal to** et **Compare with** sur `High`.
-3. Supprimez la ligne qui va de `alert-on-create-1` à `prepare-issue-1` en faisant glisser son extrémité hors du point (voir [Ranger](/docs/workflows/authoring#mettre-de-lordre)). Reliez ensuite **Success** du déclencheur au bloc **If / Else**, et son **Yes** à `prepare-issue-1`.
+2. Réglez **Valeur à vérifier** sur `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Comparaison** sur **est égal à** et **Comparer avec** sur `High`.
+3. Supprimez la ligne qui va de `alert-on-create-1` à `prepare-issue-1` en faisant glisser son extrémité hors du point (voir [Ranger](/docs/workflows/authoring#mettre-de-lordre)). Reliez ensuite **Succès** du déclencheur au bloc **If / Else**, et son **Oui** à `prepare-issue-1`.
 
-Une alerte qui prend le côté **No** termine là l'exécution, et aucun ticket n'est créé pour elle.
+Une alerte qui prend le côté **Non** termine là l'exécution, et aucun ticket n'est créé pour elle.
 
 ### Ce que demandent les modèles
 
@@ -129,7 +129,7 @@ Un **compte de service** Atlassian fonctionne aussi. Un administrateur de l'orga
 4. Cliquez sur **Créer un flux de travail**. Chaque workflow est créé désactivé : activez **Activé** en haut de son **Constructeur**.
 :::
 
-Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Response Body** de sa dernière étape, `create-issue-1`, nomme le nouveau ticket.
+Commencez par **Create a Jira issue when an incident is declared**, ou par **Create a Jira issue when an alert is created** pour les alertes : chaque autre modèle de OneUptime vers Jira du même genre retrouve le ticket grâce à l'étiquette que celui-ci ajoute. Activez-le, déclarez un incident de test ou créez une alerte de test, et ouvrez **Journaux → Exécutions** du workflow. L'exécution devrait se terminer avec **Exécuté**, et le **Corps de la réponse** de sa dernière étape, `create-issue-1`, nomme le nouveau ticket.
 
 Chaque workflow garde sa propre copie de ces valeurs. Quand vous remplacez le jeton, mettez à jour `jiraBasicAuthToken` sous **Variables de flux de travail** dans chaque workflow Jira qui l'a demandé. Si Jira change d'adresse, mettez à jour `jiraSiteUrl` et `jiraBaseUrl` de la même façon.
 
@@ -183,7 +183,7 @@ Avant de vous y fier :
 Les **Étapes** de chaque exécution disent ce qu'a fait le modèle : ouvrez donc l'exécution dans **Journaux → Exécutions** et regardez comment elle s'est terminée :
 
 - **Exécuté** : il a fait son travail, et sa dernière étape nomme le ticket, l'incident ou l'alerte.
-- **Exécuté**, avec son étape **Check With JavaScript** sur **No** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le ticket n'est lié à aucun enregistrement de ce genre, la note vient de Jira, l'enregistrement est privé, ou aucun statut Jira ne correspond au nouvel état.
+- **Exécuté**, avec son étape **Check With JavaScript** sur **Non** : il a ignoré l'événement exprès, et l'étape dit pourquoi : le ticket n'est lié à aucun enregistrement de ce genre, la note vient de Jira, l'enregistrement est privé, ou aucun statut Jira ne correspond au nouvel état.
 - **Erreur** : une étape a échoué, et son entrée dans **Étapes** dit pourquoi. Pour un appel à Jira, elle inclut la réponse de Jira.
 - **Erreur** à `link-issue-1` : un modèle qui crée un enregistrement à partir d'un ticket Jira l'a créé, mais Jira n'a pas accepté les étiquettes de lien, donc les autres modèles ne peuvent pas encore le trouver. Ajoutez les étiquettes à la main.
 
@@ -249,7 +249,7 @@ const STATE_TO_JIRA_STATUS = {
 
 ### Changer ce que fait un modèle
 
-Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **JavaScript Code** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes d'un modèle gardent les mêmes constantes dans les mêmes blocs :
+Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les réglages que vous voudrez le plus probablement changer sont des constantes en haut d'un script, le **Code JavaScript** d'un bloc **Check With JavaScript**, juste sous le bloc d'aide commun. Les versions pour les incidents et pour les alertes d'un modèle gardent les mêmes constantes dans les mêmes blocs :
 
 | Constante | Modèle, et bloc | Ce qu'elle règle |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ Ouvrez le **Constructeur** du workflow et cliquez sur le bloc à changer. Les r�
 
 Les noms d'état et de statut utilisés comme clés doivent être écrits exactement comme ils sont nommés, majuscules comprises. Évitez `{{` dans le code : un script est rempli comme tout autre paramètre avant de s'exécuter, donc deux accolades ouvrantes à la suite seraient lues comme une référence.
 
-Pour envoyer plus de champs sur les nouveaux tickets, modifiez le **Request Body** du bloc `create-issue-1` des modèles qui créent un ticket. Il contient le projet, le type, le résumé, les étiquettes et la description du ticket, et vous pouvez ajouter une priorité, des composants, une personne assignée ou des champs personnalisés dans `fields`, sous les formes que décrit [Remplir plus de champs](#remplir-plus-de-champs). Gardez les deux étiquettes. Le texte du résumé et de la description se trouve dans le script `prepare-issue-1`. La description donne la gravité, l'état et la description de l'enregistrement, puis sa cause et ses notes de remédiation quand il en a : un moniteur les remplit quand il lève un incident ou une alerte, et elles l'expliquent souvent.
+Pour envoyer plus de champs sur les nouveaux tickets, modifiez le **Corps de la requête** du bloc `create-issue-1` des modèles qui créent un ticket. Il contient le projet, le type, le résumé, les étiquettes et la description du ticket, et vous pouvez ajouter une priorité, des composants, une personne assignée ou des champs personnalisés dans `fields`, sous les formes que décrit [Remplir plus de champs](#remplir-plus-de-champs). Gardez les deux étiquettes. Le texte du résumé et de la description se trouve dans le script `prepare-issue-1`. La description donne la gravité, l'état et la description de l'enregistrement, puis sa cause et ses notes de remédiation quand il en a : un moniteur les remplit quand il lève un incident ou une alerte, et elles l'expliquent souvent.
 
-Les notes privées et les commentaires de modification sont marqués internes par l'entrée `properties`, `sd.public.comment`, du **Request Body** de leur bloc `post-comment-1`. Seul Jira Service Management la lit. Ne la supprimez que si les clients doivent voir ces commentaires.
+Les notes privées et les commentaires de modification sont marqués internes par l'entrée `properties`, `sd.public.comment`, du **Corps de la requête** de leur bloc `post-comment-1`. Seul Jira Service Management la lit. Ne la supprimez que si les clients doivent voir ces commentaires.
 
 ### Limites
 
@@ -307,8 +307,8 @@ Les jetons expirent par défaut au bout d'un an et ne se renouvellent pas. Pour 
 
 :::steps
 1. Créez à partir de zéro un workflow nommé `Incidents to Jira`. Cliquez sur le bloc en pointillés et ajoutez le déclencheur **On Create Incident**. Ses **Fields to pass on** commencent par **Titre** : cliquez sur **Ajouter un champ** et choisissez **Description** et **Numéro d'incident**. L'ID est toujours transmis. Laissez son **Identifiant** à `incident-on-create-1`.
-2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Success** du déclencheur. Réglez son **Identifiant** sur `create-issue`, son **URL** sur `{{global.variables.JIRA_URL}}/rest/api/3/issue` et, sous **Plus de champs**, ses **Request Headers** sur `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
-3. Réglez son **Request Body** sur le ticket, et remplacez `OPS` et `Bug` par la clé de votre projet et un type de ticket de ce projet :
+2. Cliquez sur **Ajouter un composant**, ajoutez un bloc **API Post (JSON)** et reliez-y le point **Succès** du déclencheur. Réglez son **Identifiant** sur `create-issue`, son **URL** sur `{{global.variables.JIRA_URL}}/rest/api/3/issue` et, sous **Plus de champs**, ses **En-têtes de la requête** sur `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
+3. Réglez son **Corps de la requête** sur le ticket, et remplacez `OPS` et `Bug` par la clé de votre projet et un type de ticket de ce projet :
 
    ```json
    {
@@ -391,8 +391,8 @@ Construisez cela dans un second workflow, pour qu'un échec ici n'empêche jamai
 
 :::steps
 1. Créez un workflow nommé `Incident updates to Jira`, avec le déclencheur **On Update Incident**. Dans **Fields to watch**, cliquez sur **Ajouter un champ** et choisissez **État actuel de l'incident**. Dans **Fields to pass on**, cliquez sur **Ajouter un champ**, ouvrez **État actuel de l'incident** et choisissez **Nom**.
-2. Ajoutez un bloc **If / Else** : **Value to check** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparison** **is equal to**, **Compare with** `Resolved`, ou le nom de votre état résolu.
-3. Après son côté **Yes**, trouvez le ticket avec un bloc **API Post (JSON)** dont l'**Identifiant** est `find-issue`, qui publie sur `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` :
+2. Ajoutez un bloc **If / Else** : **Valeur à vérifier** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparaison** **est égal à**, **Comparer avec** `Resolved`, ou le nom de votre état résolu.
+3. Après son côté **Oui**, trouvez le ticket avec un bloc **API Post (JSON)** dont l'**Identifiant** est `find-issue`, qui publie sur `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` :
 
    ```json
    {
@@ -425,7 +425,7 @@ Construisez d'abord le workflow qui reçoit :
 
    Une installation autogérée utilise son propre hôte. Traitez l'URL comme un mot de passe : quiconque l'a peut démarrer le workflow. Si elle fuite, cliquez sur **Réinitialiser l'URL** au même endroit, et l'ancienne URL cesse aussitôt de fonctionner.
 
-3. Depuis le déclencheur, ajoutez un bloc **Update One Incident**. Réglez sa **Query** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Depuis le déclencheur, ajoutez un bloc **Update One Incident**. Réglez sa **Requête** sur `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`, et son **Data (JSON Object)** sur le changement, par exemple un nouveau `currentIncidentStateId`. Un bloc **Find One Incident State** avec la requête `{"name": "Resolved"}` vous donne cet ID avec `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Activez-le, puis faites-le appeler par Jira, depuis une règle d'automatisation ou depuis un webhook :
 
@@ -447,7 +447,7 @@ Activez-le, puis faites-le appeler par Jira, depuis une règle d'automatisation 
 
 4. Activez la règle et faites passer un ticket de test à Done. Vérifiez le journal d'audit de la règle dans Jira, et **Journaux → Exécutions** dans OneUptime.
 
-Pour être sûr qu'une requête vient de votre règle, ajoutez un second en-tête, `X-OneUptime-Secret`, avec une valeur que vous inventez, et utilisez l'option **Hide** de l'action sur cet en-tête. Dans le workflow, placez un bloc **If / Else** avant la mise à jour : **Value to check** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparison** **is equal to** et **Compare with** la même valeur, gardée dans une variable globale secrète.
+Pour être sûr qu'une requête vient de votre règle, ajoutez un second en-tête, `X-OneUptime-Secret`, avec une valeur que vous inventez, et utilisez l'option **Hide** de l'action sur cet en-tête. Dans le workflow, placez un bloc **If / Else** avant la mise à jour : **Valeur à vérifier** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Comparaison** **est égal à** et **Comparer avec** la même valeur, gardée dans une variable globale secrète.
 
 Send web request n'appelle que les ports 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 8060, 8900 et 9900. Jira Cloud compte les exécutions de règles sur un quota mensuel qui dépend de votre offre, donc une règle sur chaque transition d'un projet chargé finit par peser.
 @tab Jira webhook
@@ -476,7 +476,7 @@ Commencez par les modèles pour les alertes de [Partir d'un modèle](#partir-dun
 | Étiquette `oneuptime-incident-<incident id>` | Étiquette `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
-Un workflow a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur workflow. Pour faire le même travail Jira pour les deux, construisez-le une fois dans un workflow avec un déclencheur **Manual**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
+Un workflow a exactement un déclencheur, donc les incidents et les alertes ont chacun besoin de leur workflow. Pour faire le même travail Jira pour les deux, construisez-le une fois dans un workflow avec un déclencheur **Manuel**, et démarrez-le depuis les deux avec un bloc **Execute Workflow**.
 
 ## Jira Data Center
 

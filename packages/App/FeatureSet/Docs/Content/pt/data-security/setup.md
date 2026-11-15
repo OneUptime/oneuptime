@@ -178,7 +178,7 @@ Cada varredura guarda um registro do que leu, por nome: os objetos, tabelas ou s
 
 ## Varrer um banco de dados que você executa
 
-A Segurança de dados amostra bancos de dados PostgreSQL e MySQL, de uma de duas formas. Um banco de dados que o produto Database monitora, ou um com que os seus serviços se comunicam no mapa de serviços, já é um repositório. Um banco de dados que nenhuma varredura encontra, adicione você mesmo como repositório.
+A Segurança de dados amostra bancos de dados PostgreSQL, MySQL e SQL Server, de uma de duas formas. Um banco de dados que o produto Database monitora, ou um com que os seus serviços se comunicam no mapa de serviços, já é um repositório. Um banco de dados que nenhuma varredura encontra, adicione você mesmo como repositório.
 
 - **A partir dos workers do OneUptime.** Nas **Configurações** do repositório, defina **String de conexão** como uma que só possa ler, como `postgresql://reader:password@db.internal:5432/app`. Ela é criptografada em repouso e nunca é retornada pela API. Use para ela um usuário de banco de dados que possa ler e não faça mais nada.
 - **A partir de uma sonda na sua rede.** Escolha a sonda em **Varrer a partir da sonda**, e informe em **Variável de conexão da sonda** o nome da variável de ambiente, nessa sonda, que contém a string de conexão. A sonda lê o banco de dados de dentro da sua rede e envia de volta só o que encontrou: a string de conexão nunca chega ao OneUptime. Veja [Sondas personalizadas](/docs/probe/custom-probe) para executar uma sonda.

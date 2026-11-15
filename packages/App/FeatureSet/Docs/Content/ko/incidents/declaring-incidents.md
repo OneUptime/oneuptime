@@ -229,7 +229,7 @@ curl -X POST https://oneuptime.com/api/incident \
 
 인시던트를 선언하면서 소유자를 추가하려면 그 ID를 `miscDataProps`에 `{ "ownerUsers": ["<user id>"], "ownerTeams": ["<team id>"] }` 형식으로 보내세요. 호출자가 그 소유자를 추가할 수 없는 요청은 무엇이든 저장되기 전에 거부됩니다. 그렇지 않으면 인시던트가 생기는 즉시 "추가되었습니다" 알림 없이 추가됩니다. API 키는 사람이 아니므로 소유자가 되지 않으며, 어떤 소유자 규칙도 API 키를 위해 생성자의 팀을 추가하지 않습니다. 어떤 소유자 규칙이 실행될지 알아보려면 양식이 들고 있는 그대로의 인시던트(`title`, `description`, `severityId`, `labelIds`, `monitorIds` 및 다른 리소스의 ID)를 `POST /api/incident/owner-rule-preview`로 보내세요. 응답에는 누군가를 추가할 각 규칙이 추가할 사람의 ID와 함께 나옵니다. 알림은 `POST /api/alert/owner-rule-preview`입니다.
 
-API 키는 템플릿에서 선언할 수 없습니다. `createdIncidentTemplateId`를 보내는 요청은 거부됩니다. 이 열은 [양식](/docs/forms/on-submit)으로 보고된 인시던트와 워크플로우의 **Create One Incident** 단계(**Incident Template** 설정에서 고른 템플릿으로 선언합니다)를 위해 OneUptime이 직접 설정합니다([워크플로우 구성 요소](/docs/workflows/components) 참고). API로 템플릿에서 선언하려면 `/api/incident-templates`에서 템플릿을 읽어 그 값을 요청에 담아 보내세요.
+API 키는 템플릿에서 선언할 수 없습니다. `createdIncidentTemplateId`를 보내는 요청은 거부됩니다. 이 열은 [양식](/docs/forms/on-submit)으로 보고된 인시던트와 워크플로우의 **Create One Incident** 단계(**인시던트 템플릿** 설정에서 고른 템플릿으로 선언합니다)를 위해 OneUptime이 직접 설정합니다([워크플로우 구성 요소](/docs/workflows/components) 참고). API로 템플릿에서 선언하려면 `/api/incident-templates`에서 템플릿을 읽어 그 값을 요청에 담아 보내세요.
 
 관련 엔드포인트는 `/api/incident-state`, `/api/incident-severity`, `/api/incident-state-timeline`입니다. 생성된 [API 참조](/reference)에는 모니터 같은 관계 항목을 표현하는 방법을 포함해 각각의 정확한 요청과 응답 형태가 있습니다.
 

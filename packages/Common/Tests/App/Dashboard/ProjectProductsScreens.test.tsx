@@ -27,11 +27,9 @@ import { HIDDEN_PRODUCTS_CHOOSE_LINK_TEST_ID } from "../../../../App/FeatureSet/
 import ExploreProducts from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
 import ProjectResources from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ProjectResources";
 import HiddenProductsWithData from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/HiddenProductsWithData";
-import ProductPinButton from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductPinButton";
 import ProductsSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import {
   HIDDEN_PRODUCTS_WITH_DATA_TEST_ID,
-  PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
   PRODUCTS_SETTINGS_TEST_ID,
   SHOW_EVERY_PRODUCT_TEST_ID,
   getProductSwitchTestId,
@@ -55,7 +53,6 @@ import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar
 import { PRODUCT_PIN_BUTTON_TEST_ID } from "../../../UI/Components/Navbar/NavBarMenuModal";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
-import ProjectUtil from "../../../UI/Utils/Project";
 import ProductEvents from "../../../UI/Utils/ProductEvents";
 import {
   DESKTOP_WIDTH,
@@ -603,86 +600,6 @@ describe("Home's line about a hidden product with data", () => {
   });
 });
 
-describe("the pin beside a product page's title", () => {
-  test("Pin pins the product for the person; Pinned unpins it", async () => {
-    given({ pinned: [] });
-    jest
-      .spyOn(ProjectProductsApi, "postPinnedProducts")
-      .mockImplementation(
-        async (
-          pinned: ReadonlyArray<ProductKey>,
-        ): Promise<ProjectProductsAnswer> => {
-          return answer({ pinned: [...pinned] });
-        },
-      );
-
-    render(wrap(<ProductPinButton product={ProductKey.Logs} />));
-
-    const button: HTMLElement = screen.getByTestId(
-      PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
-    );
-    expect(button).toHaveTextContent("Pin");
-    expect(button).toHaveAttribute("aria-pressed", "false");
-
-    await act(async () => {
-      fireEvent.click(button);
-    });
-
-    await waitFor(() => {
-      expect(button).toHaveTextContent("Pinned");
-    });
-    expect(button).toHaveAttribute("aria-pressed", "true");
-    expect(sent).toContainEqual({
-      name: ProductEventName.ProductPinned,
-      properties: { product: "logs", source: "page", pin_count: 1 },
-    });
-
-    await act(async () => {
-      fireEvent.click(button);
-    });
-
-    await waitFor(() => {
-      expect(button).toHaveAttribute("aria-pressed", "false");
-    });
-    expect(sent).toContainEqual({
-      name: ProductEventName.ProductUnpinned,
-      properties: { product: "logs", source: "page", pin_count: 0 },
-    });
-  });
-
-  test("with five pinned, another product's pin is locked and says why", () => {
-    given({
-      pinned: [
-        ProductKey.Monitors,
-        ProductKey.Incidents,
-        ProductKey.Alerts,
-        ProductKey.OnCall,
-        ProductKey.StatusPages,
-      ],
-    });
-
-    render(wrap(<ProductPinButton product={ProductKey.Logs} />));
-
-    const button: HTMLElement = screen.getByTestId(
-      PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
-    );
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute(
-      "title",
-      "You can pin up to 5 products. Unpin one first.",
-    );
-  });
-
-  test("outside a project there is nothing to pin", () => {
-    goTo("/dashboard");
-    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
-
-    render(wrap(<ProductPinButton product={ProductKey.Logs} />));
-
-    expect(screen.queryByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)).toBeNull();
-  });
-});
-
 describe("Home without the hidden products", () => {
   test("Explore leaves hidden products out, and a category all hidden has no tab", () => {
     given({
@@ -770,9 +687,9 @@ describe("the shortcuts list", () => {
 describe("who asks the server", () => {
   /*
    * The navbar, which every project page draws (shown or not), asks once per
-   * page load, and so does Project Settings > Products. The pin beside a
-   * title and Home's cards read what it got, so a page drawn on its own
-   * makes no request it did not make before.
+   * page load, and so does Project Settings > Products. Home's cards read
+   * what it got, so a page drawn on its own makes no request it did not
+   * make before.
    */
   let asked: number;
 
@@ -785,11 +702,10 @@ describe("who asks the server", () => {
     jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
   });
 
-  test("the pin beside a title and Home's cards ask nothing, and draw what is known", async () => {
+  test("Home's cards ask nothing, and draw what is known", async () => {
     render(
       wrapInRouter(
         <>
-          <ProductPinButton product={ProductKey.Logs} />
           <HiddenProductsWithData />
           <ExploreProducts projectId={PROJECT_ID} />
           <ProjectResources
@@ -806,32 +722,14 @@ describe("who asks the server", () => {
     });
 
     expect(asked).toBe(0);
-    expect(screen.getByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
   });
 
-  test("the navbar asks once, however many read the answer, and they all draw it", async () => {
-    render(
-      wrap(
-        <>
-          <DashboardNavbar show={true} />
-          <ProductPinButton product={ProductKey.Logs} />
-          <ProductPinButton product={ProductKey.Metrics} />
-        </>,
-      ),
-    );
+  test("the navbar asks once, and draws what is pinned", async () => {
+    render(wrap(<DashboardNavbar show={true} />));
 
     await waitFor(() => {
-      expect(
-        screen.getAllByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)[0],
-      ).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getAllByTestId(NAVBAR_PINNED_ITEM_TEST_ID)).toHaveLength(1);
     });
-    expect(
-      screen.getAllByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)[1],
-    ).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getAllByTestId(NAVBAR_PINNED_ITEM_TEST_ID)).toHaveLength(1);
     expect(asked).toBe(1);
   });
 

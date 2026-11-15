@@ -36,7 +36,7 @@ import { DataSource } from "typeorm";
  * _NAME; DATABASE_USERNAME, DATABASE_PASSWORD). Every write is to a schema
  * of its own; only the tables' structure is copied, never their rows.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CREATED_NOTIFICATION_HOLD_TESTS"] === "true"
     ? describe
     : describe.skip;

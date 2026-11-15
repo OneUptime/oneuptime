@@ -51,7 +51,7 @@ Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1`
 | `state` is `ACTIVATED` en `isAcknowledged` is `true` | Bevestigt het incident van het issue, waardoor de dienst niet verder escaleert. Waarom staat op de tijdlijn ervan. |
 | `state` is `CLOSED` | Lost het incident van het issue op, tenzij het al is opgelost. Waarom staat op de tijdlijn ervan. |
 
-Een bevestiging of een sluiting voor een issue zonder incident verandert niets. Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **No**, en de **Stappen** van de uitvoering zeggen waarom. Er gaat niets terug naar New Relic: het sluit zijn eigen issues wanneer het signaal herstelt, en daarmee wordt het incident opgelost.
+Een bevestiging of een sluiting voor een issue zonder incident verandert niets. Al het andere, zoals een verzoek van een ander hulpmiddel, blijft ongemoeid: `read-event-1` neemt **Nee**, en de **Stappen** van de uitvoering zeggen waarom. Er gaat niets terug naar New Relic: het sluit zijn eigen issues wanneer het signaal herstelt, en daarmee wordt het incident opgelost.
 
 ### Prioriteiten en oproepen
 
@@ -162,7 +162,7 @@ Test daarna vanuit New Relic: open het webhookbericht van de workflow en klik op
 :::
 
 :::details De workflow draait, maar opent niets
-Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **No** nam.
+Open de uitvoering in **Logboeken → Uitvoeringen**. De vermelding `read-event-1` in de **Stappen** ervan zegt waarom hij **Nee** nam.
 
 - `New Relic named no issue ID`: behoud de regel `"id": {{ json issueId }},` in de payload.
 - `is in no state`: behoud de regel `"state": {{ json state }},` in de payload.

@@ -52,7 +52,7 @@ Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og 
 
 ### Send trigger-hendelsen
 
-Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Success**-punkt til den. Sett **URL** til `https://events.pagerduty.com/v2/enqueue` og **Request Body** til:
+Klikk på **Legg til komponent**, legg til en **API Post (JSON)**-blokk, og koble triggerens **Suksess**-punkt til den. Sett **URL** til `https://events.pagerduty.com/v2/enqueue` og **Forespørselstekst** til:
 
 ```json
 {
@@ -92,11 +92,11 @@ Opprett en arbeidsflyt som heter `Resolve PagerDuty incidents`, og velg **On Upd
 
 ### Sjekk at hendelsen er løst
 
-Legg til en **If / Else**-blokk etter triggeren. Sett **Value to check** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Comparison** til **is true**.
+Legg til en **If / Else**-blokk etter triggeren. Sett **Verdi som skal sjekkes** til `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` og **Sammenligning** til **er sann**.
 
 ### Send resolve-hendelsen
 
-Legg til en **API Post (JSON)**-blokk etter **Yes**-siden, med samme **URL** og denne **Request Body**:
+Legg til en **API Post (JSON)**-blokk etter **Ja**-siden, med samme **URL** og denne **Forespørselstekst**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Slå på **Aktivert**, og løs deretter en testhendelse i OneUptime. PagerDuty l
 For å sende hver hendelses alvorlighetsgrad legger du til en **Run Custom JavaScript**-blokk mellom triggeren og **API Post (JSON)**-blokken, og leser svaret i innholdet.
 
 1. Klikk på **Legg til felt** i triggerens **Fields to pass on**, åpne **Hendelsesalvor**, og velg **Navn**.
-2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript Code** til:
+2. Sett blokkens **Arguments** til `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` og **JavaScript-kode** til:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
@@ -146,7 +146,7 @@ Begge hendelsene må ha nøyaktig den samme `dedup_key`. Sjekk at begge innholde
 :::
 
 :::details Arbeidsflyten kjører aldri
-Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **No**-siden av **If / Else**-blokken, er en oppdatering som ikke var en løsning.
+Sjekk at den er slått på: **Aktivert**, øverst i dens **Bygger**. Åpne deretter **Logger → Kjøringer**: en kjøring som tok **Nei**-siden av **If / Else**-blokken, er en oppdatering som ikke var en løsning.
 :::
 
 :::details PagerDuty viser en referanse i stedet for en verdi

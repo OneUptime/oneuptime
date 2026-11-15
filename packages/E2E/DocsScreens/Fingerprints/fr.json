@@ -139,7 +139,7 @@
     "text": [
       "1",
       "Que devons-nous vérifier ?",
-      "OneUptime le vérifie toutes les 5 minutes depuis plusieurs emplacements. Si aucune réponse n'arrive, ou si la réponse est une erreur, un incident est ouvert.",
+      "OneUptime le vérifie toutes les 5 minutes. Un incident est ouvert lorsque chaque emplacement qui le vérifie le trouve en panne : aucune réponse, ou une réponse en erreur.",
       "Adresse du site web ou de l'API",
       "Il s'agit d'un point de terminaison d'API",
       "Lancer la vérification",
@@ -165,7 +165,7 @@
       "Ajouter des membres de l'équipe",
       "AL",
       "Ada Lovelace",
-      "Cela crée la politique d'astreinte « Default on-call policy », qui les alerte pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
+      "Cela crée la politique d'astreinte « Politique d'astreinte par défaut », qui les alerte pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
       "Enregistrer et continuer"
     ],
     "outline": [
@@ -197,9 +197,9 @@
       "Vérifié",
       "Toutes les 5 minutes, depuis 2 emplacements.",
       "En cas de panne",
-      "Si aucune réponse n'arrive, ou si la réponse est une erreur, OneUptime ouvre un incident (Critical Incident).",
+      "Si aucune réponse n'arrive, ou si la réponse est une erreur, OneUptime ouvre un incident (Incident critique). Un changement de statut nécessite l'accord des deux sondes connectées.",
       "Qui est prévenu",
-      "La politique d'astreinte « Default on-call policy » alerte Ada Lovelace pour chaque nouvel incident et chaque nouvelle alerte. Vous êtes propriétaire de ce moniteur, vous recevez donc un e-mail lorsque son statut change.",
+      "La politique d'astreinte « Politique d'astreinte par défaut » alerte Ada Lovelace pour chaque nouvel incident et chaque nouvelle alerte. Vous êtes propriétaire de ce moniteur, vous recevez donc un e-mail lorsque son statut change.",
       "Testé",
       "Ada Lovelace l'a pris en compte par e-mail après 14 secondes.",
       "Prochaines étapes",
@@ -217,7 +217,7 @@
       "button: Vérifier une autre adresse"
     ],
     "width": 768,
-    "height": 511
+    "height": 531
   },
   "paging-reach-you": {
     "text": [
@@ -284,7 +284,7 @@
     "text": [
       "2",
       "Qui d'autre est d'astreinte ?",
-      "Cela crée la politique d'astreinte « Default on-call policy ». Elle alerte d'abord ces personnes, pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
+      "Cela crée la politique d'astreinte « Politique d'astreinte par défaut ». Elle alerte d'abord ces personnes, pour chaque nouvel incident et chaque nouvelle alerte de ce projet.",
       "Alertés en premier",
       "Ajouter des membres de l'équipe",
       "AL",
@@ -349,7 +349,7 @@
     "text": [
       "L'alerte est configurée",
       "Qui est alerté",
-      "Chaque nouvel incident ou nouvelle alerte exécute « Default on-call policy », qui alerte Ada Lovelace (E-mail, SMS, Appel téléphonique).",
+      "Chaque nouvel incident ou nouvelle alerte exécute « Politique d'astreinte par défaut », qui alerte Ada Lovelace (E-mail, SMS, Appel téléphonique).",
       "Si personne ne répond",
       "Si personne n'acquitte dans les 30 minutes, Grace Hopper est alerté.",
       "Testé",
@@ -386,7 +386,7 @@
       "Effacer",
       "1 sélectionné sur 1",
       "Acme website",
-      "Operational",
+      "Opérationnel",
       "La page est publique dès que vous la créez : toute personne disposant du lien voit le statut des moniteurs que vous avez choisis.",
       "Créer la page de statut",
       "value: Statut Acme Commerce",
@@ -410,7 +410,7 @@
       "Statut Acme Commerce",
       "ELLE AFFICHE",
       "Acme website",
-      "Operational",
+      "Opérationnel",
       "Lien public",
       "https://oneuptime.acme-commerce.example/status-page/90000000-0000-4000-8000-000000000020",
       "Un incident sur l'un de ces moniteurs apparaît ici automatiquement, et les abonnés reçoivent un e-mail.",
@@ -607,7 +607,7 @@
       "SEV-2",
       "Checkout API p95 latency above 2s",
       "Résoudre",
-      "Créé",
+      "Created",
       "Pris en compte",
       "Résolu",
       "EN COURS DEPUIS",

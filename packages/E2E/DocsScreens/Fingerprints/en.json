@@ -139,7 +139,7 @@
     "text": [
       "1",
       "What should we check?",
-      "OneUptime checks it every 5 minutes from several locations. If it does not answer, or answers with an error, an incident opens.",
+      "OneUptime checks it every 5 minutes. An incident opens when every location that checks it finds it down: no answer, or an answer with an error.",
       "Website or API address",
       "This is an API endpoint",
       "Start checking",
@@ -197,7 +197,7 @@
       "Checked",
       "Every 5 minutes, from 2 locations.",
       "When it goes down",
-      "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident).",
+      "If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). A status change needs both connected probes to agree.",
       "Who is told",
       "The on-call policy \"Default on-call policy\" pages Ada Lovelace for every new incident and alert. You own this monitor, so you are emailed when its status changes.",
       "Tested",

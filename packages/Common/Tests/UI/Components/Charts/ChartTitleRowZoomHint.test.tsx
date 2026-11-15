@@ -26,7 +26,10 @@ import React from "react";
  */
 
 jest.mock("recharts", () => {
-  const actual: Record<string, any> = jest.requireActual("recharts");
+  const actual: Record<string, any> = jest.requireActual("recharts") as Record<
+    string,
+    any
+  >;
   return {
     ...actual,
     ResponsiveContainer: ({ children }: { children: React.ReactElement }) => {

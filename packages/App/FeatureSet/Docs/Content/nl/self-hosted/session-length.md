@@ -52,7 +52,7 @@ flowchart TB
 
 - De server telt beide duren vanuit de sessie zelf: wanneer die is aangemeld, en wanneer de persoon ervan het laatst actief was. Hij controleert ze bij elk verzoek, elke vernieuwing en elke live-update, en laat het afmelden nooit aan de browser over.
 - De inactiviteitsduur telt vanaf de laatste klik, toetsaanslag of scrollbeweging in een willekeurig tabblad van het dashboard of het Admin Dashboard. Een tabblad dat open blijft staan, houdt een sessie niet in leven. Ook OneUptime opnieuw openen brengt die niet terug: wie langer dan de inactiviteitsduur weg was, met de browser gesloten of de computer in slaapstand, meldt zich opnieuw aan.
-- De mobiele app telt als actief elke keer dat die wordt gebruikt.
+- In de mobiele app telt de inactiviteitsduur vanaf de laatste tik of toetsaanslag. De tijd dat de app op de achtergrond staat of gesloten is, telt als tijd zonder gebruik: wie de app na de inactiviteitsduur opnieuw opent, meldt zich opnieuw aan.
 - Als een sessie eindigt, gaat de browser naar de aanmeldpagina, die zegt waarom. Na opnieuw aanmelden komt de persoon terug op de pagina waar die was.
 
 | Wijziging | Wat er gebeurt met de mensen die nu zijn aangemeld |

@@ -36,7 +36,9 @@ import {
  *              manifest is written from the pictures on disk;
  *   checking   what the languages found is put together as one check
  *              (check.json) and the staleness issue's text (stale-issue.md),
- *              which the job on main hands to ReportStale.js.
+ *              which the job on main hands to ReportStale.js. It runs after a
+ *              language failed for a stale shot as well, so the issue lists
+ *              every language's.
  *
  * Either way a summary is printed: what was written or found, and the
  * bytes the pictures take.

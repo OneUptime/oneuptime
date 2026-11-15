@@ -51,7 +51,7 @@ Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` 
 | `state` é `ACTIVATED` e `isAcknowledged` é `true` | Confirma o incidente do problema, o que faz o plantão parar de escalá-lo. O motivo fica na linha do tempo dele. |
 | `state` é `CLOSED` | Resolve o incidente do problema, a menos que ele já esteja resolvido. O motivo fica na linha do tempo dele. |
 
-Uma confirmação ou um fechamento de um problema sem incidente não muda nada. Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **No**, e as **Etapas** da execução dizem por quê. Nada volta para o New Relic: ele fecha os próprios problemas quando o sinal se recupera, e é isso que resolve o incidente.
+Uma confirmação ou um fechamento de um problema sem incidente não muda nada. Todo o resto, como uma requisição de outra ferramenta, é deixado como está: `read-event-1` segue por **Não**, e as **Etapas** da execução dizem por quê. Nada volta para o New Relic: ele fecha os próprios problemas quando o sinal se recupera, e é isso que resolve o incidente.
 
 ### Prioridades e chamadas
 
@@ -162,7 +162,7 @@ Depois teste a partir do New Relic: abra a mensagem do webhook do workflow e cli
 :::
 
 :::details O workflow roda, mas não abre nada
-Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **No**.
+Abra a execução em **Registros → Execuções**. A entrada `read-event-1` em **Etapas** diz por que ela seguiu por **Não**.
 
 - `New Relic named no issue ID`: mantenha a linha `"id": {{ json issueId }},` no payload.
 - `is in no state`: mantenha a linha `"state": {{ json state }},` no payload.

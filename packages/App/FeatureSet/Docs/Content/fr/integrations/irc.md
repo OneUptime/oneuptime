@@ -26,7 +26,7 @@ sequenceDiagram
         O->>S: JOIN du canal
         S-->>O: Canal rejoint
     end
-    loop Chaque ligne de Message Text, 15 au plus
+    loop Chaque ligne de Texte du message, 15 au plus
         O->>S: PRIVMSG vers le canal
     end
     O->>S: PING
@@ -37,7 +37,7 @@ sequenceDiagram
 1. **Connexion.** L'étape se connecte en TLS sur le port `6697` et vérifie le certificat du serveur.
 2. **Enregistrement.** Elle s'enregistre sous le nom `OneUptime`, sauf si vous définissez un autre **Nickname**, et se connecte avec SASL quand **SASL Username** et **SASL Password** sont renseignés.
 3. **Entrée dans le canal.** Elle rejoint le canal, sauf si **Send Without Joining** est activé, avec la **Channel Key** si le canal en a une.
-4. **Envoi.** Chaque ligne de **Message Text** part comme un message IRC à part entière, un `PRIVMSG`.
+4. **Envoi.** Chaque ligne de **Texte du message** part comme un message IRC à part entière, un `PRIVMSG`.
 5. **Confirmation.** IRC ne dit jamais « remis » : l'étape envoie donc un `PING` et attend le `PONG` du serveur. Un serveur répond dans l'ordre, si bien qu'à ce moment-là tout refus du message est déjà arrivé.
 6. **Départ.** Elle quitte le serveur.
 
@@ -57,7 +57,7 @@ L'étape prend sa sortie **Succès** dès que le serveur a accepté chaque ligne
 Décidez où vont les messages : le nom d'hôte du serveur, par exemple `irc.libera.chat`, et le canal, par exemple `#your-channel`.
 
 - **IRC Server** prend le nom d'hôte et rien d'autre : pas de `ircs://`, et pas de port. L'étape se connecte en TLS sur le port `6697`. Si votre serveur accepte TLS sur un autre port, indiquez-le dans **Port**, sous **Plus de champs**.
-- **Channel** doit être un canal. Un pseudo saisi à cet endroit est refusé, si bien que l'étape n'envoie jamais un message privé à quelqu'un par erreur.
+- **Canal** doit être un canal. Un pseudo saisi à cet endroit est refusé, si bien que l'étape n'envoie jamais un message privé à quelqu'un par erreur.
 
 Le serveur doit être un serveur auquel OneUptime a le droit de se connecter. Les adresses de bouclage (`localhost`, `127.0.0.1`), link-local et de métadonnées cloud sont toujours refusées. Sur OneUptime Cloud, un serveur sur une adresse de réseau privé est refusé aussi. Une installation auto-hébergée peut joindre un serveur IRC sur son propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`.
 
@@ -89,7 +89,7 @@ Le workflow s'ouvre dans le **Constructeur** avec deux étapes : **On Create Inc
 1. Ouvrez **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow et cliquez sur **Créer un flux de travail**.
 2. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Incident** sous **Populaires**. Cliquez sur le déclencheur et, dans **Fields to pass on**, choisissez les champs de l'incident que votre message affiche, par exemple son titre.
 3. Cliquez sur **Ajouter un composant**, cherchez `irc` et cliquez sur **Send Message to IRC**. Reliez la sortie **Succès** du déclencheur à cette étape.
-4. Cliquez sur la nouvelle étape et renseignez **IRC Server**, **Channel** et **Message Text**. Le bouton **{ }** de **Message Text** insère les champs de l'incident, par exemple son titre.
+4. Cliquez sur la nouvelle étape et renseignez **IRC Server**, **Canal** et **Texte du message**. Le bouton **{ }** de **Texte du message** insère les champs de l'incident, par exemple son titre.
 5. Si vous avez enregistré des mots de passe à l'étape précédente, ouvrez **Plus de champs**. Dans **Server Password**, **SASL Password** ou **Channel Key**, cliquez sur **{ }** et choisissez la variable sous **Variables globales**. Mettez le nom de votre compte dans **SASL Username**.
 :::
 
@@ -104,7 +104,7 @@ Pour tester sans ouvrir d'incident, cliquez sur **Exécuter le flux de travail**
 
 - **Publier sans rejoindre.** La plupart des canaux n'acceptent que les messages de leurs membres (mode `+n`) : l'étape rejoint donc le canal avant de publier et le quitte aussitôt après. Un canal en `-n` accepte les messages venus de l'extérieur : activez **Send Without Joining** sous **Plus de champs**, et le canal ne voit pas l'étape aller et venir.
 - **Se connecter avec SASL.** Sur les réseaux qui utilisent SASL, comme Libera.Chat, renseignez **SASL Username** et **SASL Password** pour vous connecter à votre compte. Libera.Chat l'exige pour les connexions depuis certaines adresses de cloud et de VPN. Voir [le guide SASL de Libera.Chat](https://libera.chat/guides/sasl).
-- **Tenir compte de la limite de 15 lignes.** Chaque ligne de **Message Text** est un message IRC à part entière, une ligne longue est découpée pour tenir, et les lignes vides sont ignorées. Un message est envoyé en 15 lignes IRC au plus : un message plus long est coupé, et sa dernière ligne le signale. Les quatre premières lignes partent d'un coup et les suivantes une par seconde, le rythme des clients IRC, si bien que 15 lignes prennent environ 11 secondes.
+- **Tenir compte de la limite de 15 lignes.** Chaque ligne de **Texte du message** est un message IRC à part entière, une ligne longue est découpée pour tenir, et les lignes vides sont ignorées. Un message est envoyé en 15 lignes IRC au plus : un message plus long est coupé, et sa dernière ligne le signale. Les quatre premières lignes partent d'un coup et les suivantes une par seconde, le rythme des clients IRC, si bien que 15 lignes prennent environ 11 secondes.
 - **Regrouper les rafales en un seul message.** Chaque exécution est une connexion à part, et les réseaux IRC limitent la fréquence à laquelle une même adresse peut se connecter. Une rafale d'exécutions peut être refusée avec une raison comme `Reconnecting too fast`, et prend **Erreur** comme tout autre refus. Pour un workflow qui peut se déclencher de nombreuses fois par minute, regroupez ce qu'il a à dire en un seul message, ou passez par votre propre serveur.
 - **Mettre en forme avec les codes d'IRC.** IRC n'a pas de Markdown : le texte est envoyé tel qu'il est saisi. Les codes de mise en forme d'IRC, comme le gras et les couleurs, fonctionnent.
 - **Un serveur sans TLS.** N'activez **Disable TLS** que pour un serveur qui ne propose pas TLS : l'étape se connecte alors sur le port `6667`, et tout mot de passe est envoyé en clair. Pour faire confiance au certificat d'un serveur émis par votre propre autorité de certification, une installation auto-hébergée définit plutôt `NODE_EXTRA_CA_CERTS`.

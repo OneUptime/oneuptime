@@ -53,13 +53,13 @@ flowchart TB
 
 ### ساختن هشدار
 
-روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **URL** آن را روی `https://api.opsgenie.com/v2/alerts` بگذارید، یا در اروپا روی `https://api.eu.opsgenie.com/v2/alerts`. زیر **فیلدهای بیشتر**، **Request Headers** آن را روی این بگذارید:
+روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **موفق** تریگر را به آن وصل کنید. **URL** آن را روی `https://api.opsgenie.com/v2/alerts` بگذارید، یا در اروپا روی `https://api.eu.opsgenie.com/v2/alerts`. زیر **فیلدهای بیشتر**، **هدرهای درخواست** آن را روی این بگذارید:
 
 ```json
 { "Authorization": "GenieKey {{global.variables.OPSGENIE_KEY}}" }
 ```
 
-و **Request Body** آن را روی این:
+و **بدنه درخواست** آن را روی این:
 
 ```json
 {
@@ -93,17 +93,17 @@ flowchart TB
 
 ### بررسی اینکه حادثه رفع شده است
 
-پس از تریگر یک بلوک **If / Else** اضافه کنید. **Value to check** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **Comparison** را روی **is true** بگذارید.
+پس از تریگر یک بلوک **If / Else** اضافه کنید. **مقدار مورد بررسی** را روی `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` و **مقایسه** را روی **درست است** بگذارید.
 
 ### بستن هشدار
 
-پس از سمت **Yes** یک بلوک **API Post (JSON)** اضافه کنید، با همان **Request Headers** و این **URL**:
+پس از سمت **بله** یک بلوک **API Post (JSON)** اضافه کنید، با همان **هدرهای درخواست** و این **URL**:
 
 ```text
 https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-update-1.returnValues.model._id}}/close?identifierType=alias
 ```
 
-**Request Body** آن را روی `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` بگذارید.
+**بدنه درخواست** آن را روی `{ "source": "OneUptime", "note": "Resolved in OneUptime" }` بگذارید.
 
 ### روشن کردن آن
 
@@ -117,7 +117,7 @@ https://api.opsgenie.com/v2/alerts/oneuptime-{{local.components.incident-on-upda
 برای فرستادن شدت هر حادثه به عنوان یک اولویت Opsgenie، یک بلوک **Run Custom JavaScript** میان تریگر و بلوک **API Post (JSON)** اضافه کنید.
 
 1. در **Fields to pass on** تریگر روی **افزودن فیلد** کلیک کنید، **شدت حادثه** را باز کنید و **نام** را برگزینید.
-2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **JavaScript Code** آن را روی این بگذارید:
+2. **Arguments** بلوک را روی `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` و **کد JavaScript** آن را روی این بگذارید:
 
    ```javascript
    // Your incident severities, by name, to Opsgenie's priorities.
@@ -149,7 +149,7 @@ Opsgenie پیش از پردازش درخواست با `202` پاسخ می‌ده
 :::
 
 :::details گردش کاری هرگز اجرا نمی‌شود
-بررسی کنید که روشن باشد: **فعال**، در بالای **سازنده** آن. سپس **لاگ‌ها** > **اجراها** را باز کنید: اجرایی که به سمت **No** بلوک **If / Else** رفته، به‌روزرسانی‌ای بوده که رفع نبوده است.
+بررسی کنید که روشن باشد: **فعال**، در بالای **سازنده** آن. سپس **لاگ‌ها** > **اجراها** را باز کنید: اجرایی که به سمت **خیر** بلوک **If / Else** رفته، به‌روزرسانی‌ای بوده که رفع نبوده است.
 :::
 
 ## گام‌های بعدی

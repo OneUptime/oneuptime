@@ -465,7 +465,7 @@ describe("readOnlyNamedDefinitions - marked's own reading", () => {
  * where marked lists them - each inline read's tokens.links - so the count
  * says the same on any machine, however loaded.
  */
-let inlineReads: SpyInstance | null = null;
+let inlineReads: SpyInstance<Lexer["inlineTokens"]> | null = null;
 
 afterEach(() => {
   inlineReads?.mockRestore();
@@ -483,7 +483,7 @@ const listedWhile: (work: () => Promise<unknown>) => Promise<Listing> = async (
   const listing: Listing = { reads: 0, listed: 0 };
   const original: Lexer["inlineTokens"] = Lexer.prototype.inlineTokens;
 
-  inlineReads = jest
+  const reads: SpyInstance<Lexer["inlineTokens"]> = jest
     .spyOn(Lexer.prototype, "inlineTokens")
     .mockImplementation(function (
       this: Lexer,
@@ -495,11 +495,12 @@ const listedWhile: (work: () => Promise<unknown>) => Promise<Listing> = async (
 
       return original.call(this, src, tokens);
     });
+  inlineReads = reads;
 
   try {
     await work();
   } finally {
-    inlineReads.mockRestore();
+    reads.mockRestore();
     inlineReads = null;
   }
 

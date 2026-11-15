@@ -31,6 +31,7 @@ import {
   formatBytes,
   formatCompact,
   formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
 } from "../TelemetryResource/telemetryFormat";
 import { CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS } from "../MetricDescriptions/CloudMetricDescriptions";
@@ -224,7 +225,10 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
     },
     {
       title: "Response time",
-      value: formatDurationMs(summary ? summary.responseTimeMs : null),
+      value: formatDurationMsInLanguage(
+        summary ? summary.responseTimeMs : null,
+        translator,
+      ),
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: isLoading,
@@ -236,6 +240,7 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
       value: formatAppServiceCpuTime(
         summary ? summary.cpuTimeSeconds : null,
         translator.language,
+        translator,
       ),
       icon: IconProp.ChartBar,
       iconColor: "blue",

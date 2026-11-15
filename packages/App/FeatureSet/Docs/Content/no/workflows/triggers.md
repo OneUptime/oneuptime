@@ -20,7 +20,7 @@ For å legge til triggeren klikker du på den stiplede blokken **Velg hva som st
 | Klikke på en knapp for å kjøre arbeidsflyten   | **Manuell**                  |
 | Kjøre etter en gjentakende tidsplan            | **Tidsplan**                |
 | La et annet system sende inn data              | **Webhook**                 |
-| Starte ut fra en e-post                        | **Incoming Email**          |
+| Starte ut fra en e-post                        | **Innkommende e-post**          |
 | Handle på hendelsesrapporter fra Huntress      | **Huntress Incident Report** |
 | Reagere på noe i OneUptime                     | **OneUptime-begivenhet**    |
 
@@ -92,9 +92,9 @@ sequenceDiagram
 
 | Verdi                    | Hva den inneholder                                                                                                     |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| **Request Headers**      | Hver header i forespørselen, etter navn med små bokstaver, som `content-type`.                                         |
+| **Forespørselshoder**      | Hver header i forespørselen, etter navn med små bokstaver, som `content-type`.                                         |
 | **Request Query Params** | Spørringsparameterne i URL-en, etter navn.                                                                             |
-| **Request Body**         | Bodyen den som kalte, sendte. En JSON-body, sendt med `Content-Type: application/json`, kan leses felt for felt.       |
+| **Forespørselstekst**         | Bodyen den som kalte, sendte. En JSON-body, sendt med `Content-Type: application/json`, kan leses felt for felt.       |
 
 Les ett enkelt felt ved å legge navnet til referansen, som i `{{local.components.webhook-1.returnValues.request-body.message}}`.
 
@@ -125,14 +125,14 @@ Hver e-post starter sin egen kjøring. E-posten når arbeidsflyten uansett om ad
 
 | Verdi           | Hva den inneholder                                                                                       |
 | --------------- | -------------------------------------------------------------------------------------------------------- |
-| **From**        | Avsenderens adresse.                                                                                     |
-| **To**          | Alle e-posten var adressert til, på én linje, som `ops@example.com, oncall@example.com`.                 |
+| **Fra**        | Avsenderens adresse.                                                                                     |
+| **Til**          | Alle e-posten var adressert til, på én linje, som `ops@example.com, oncall@example.com`.                 |
 | **CC**          | Alle e-posten ble sendt som kopi til, på én linje.                                                       |
-| **Subject**     | Emnelinjen.                                                                                              |
-| **Body**        | Ren tekst-versjonen av e-posten.                                                                         |
+| **Emne**     | Emnelinjen.                                                                                              |
+| **Brødtekst**        | Ren tekst-versjonen av e-posten.                                                                         |
 | **HTML Body**   | HTML-en i e-posten, når den har noe. Body og HTML Body kuttes hver ved 1 MB.                             |
 | **Headers**     | Hver header i e-posten, etter navn med små bokstaver, som `message-id`.                                  |
-| **Attachments** | Navn, type og størrelse på hvert vedlegg. Selve filene lagres ikke.                                      |
+| **Vedlegg** | Navn, type og størrelse på hvert vedlegg. Selve filene lagres ikke.                                      |
 | **Received At** | Når OneUptime mottok e-posten.                                                                           |
 
 Når en e-post har kommet, vet verdivelgeren i hver blokk etter triggeren hva som var i den: den viser hver header og hvert vedlegg e-posten hadde, med innholdet, slik at du kan velge `headers.message-id` i stedet for å skrive en sti. Inntil da sier den at ingen e-post har nådd adressen ennå. Se [Bruk verdier fra tidligere blokker](/docs/workflows/authoring#bruk-verdier-fra-tidligere-blokker).
@@ -148,7 +148,7 @@ Delen av adressen før `@` inneholder arbeidsflytens hemmelige nøkkel, og alle 
 Lekker adressen, klikker du på **Tilbakestill adresse** på samme sted: arbeidsflyten får en ny adresse, og e-post til den gamle ignoreres fra da av, så gi den nye til alt som sender e-post til arbeidsflyten. Bare personer som har lov til å redigere arbeidsflyten, kan se eller tilbakestille adressen — se [Sikkerhet for innkommende e-post](/docs/workflows/configuration#sikkerhet-for-innkommende-e-post).
 
 > [!WARNING]
-> Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **From** er ikke noe bevis på hvem som sendte den. Sjekk noe bare den ekte avsenderen vet, før et trinn gjør noe viktig.
+> Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **Fra** er ikke noe bevis på hvem som sendte den. Sjekk noe bare den ekte avsenderen vet, før et trinn gjør noe viktig.
 
 > [!NOTE]
 > På en selvhostet installasjon mottar OneUptime e-post gjennom en leverandør av innkommende e-post som administratoren din konfigurerer — se [SendGrid Inbound Email](/docs/self-hosted/sendgrid-inbound-email). Inntil da har triggeren ingen adresse, og innstillingene sier det.
@@ -187,7 +187,7 @@ flowchart TB
 
 **On Create**, **On Update** og **On Create or Update** sender posten videre til neste blokk, med feltene du velger i triggerens **Fields to pass on**. For eksempel sender triggeren **Incident → On Create** den nye hendelsen videre, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden eller et hvilket som helst annet felt du har valgt, som `{{local.components.incident-on-create-1.returnValues.model.title}}`. Et felt du ikke valgte, kommer tomt frem. Det samme gjelder et felt posten ikke har noe i, som monitoren til et varsel ingen monitor har utløst.
 
-**On Create or Update** sender også **What Happened** videre: `created` når en ny post startet kjøringen, og `updated` når en endring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For å behandle de to ulikt sammenligner du det i en **If / Else**-blokk, eller tar en vei for hver med **Switch / Case**.
+**On Create or Update** sender også **Hva som skjedde** videre: `created` når en ny post startet kjøringen, og `updated` når en endring gjorde det, som i `{{local.components.incident-on-create-or-update-1.returnValues.what-happened}}`. For å behandle de to ulikt sammenligner du det i en **If / Else**-blokk, eller tar en vei for hver med **Switch / Case**.
 
 Én lagring utløser den én gang. Det OneUptime fyller ut mens den oppretter en post, hører til opprettingen, så en ny post utløser den én gang, som `created`. Endringer OneUptime gjør senere, som å koble til Slack-kanalen til en hendelse, er oppdateringer som alle andre: for å holde dem utenfor legger du bare feltene du bryr deg om, til i **Fields to watch**.
 

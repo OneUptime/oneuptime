@@ -2534,6 +2534,29 @@ export class PermissionHelper {
     });
   }
 
+  /*
+   * The values a team, an API key or a custom role may be given: the
+   * tenant permissions, which every permission picker offers. The rest are
+   * OneUptime's own (Logged in User, Customer Support, User, Public and the
+   * markers with no props, which it gives where they apply), retired ones
+   * that grant nothing, or no permission at all.
+   */
+  public static getTenantPermissionValues(): Set<string> {
+    return new Set<string>(
+      this.getTenantPermissionProps().map((item: PermissionProps): string => {
+        return item.permission;
+      }),
+    );
+  }
+
+  // Whether `permission` is one a team, an API key or a custom role may be given.
+  public static isAssignableToTenant(permission: unknown): boolean {
+    return (
+      typeof permission === "string" &&
+      this.getTenantPermissionValues().has(permission)
+    );
+  }
+
   public static getRolePermissionProps(): Array<PermissionProps> {
     return this.getTenantPermissionProps().filter((item: PermissionProps) => {
       return item.isRolePermission;

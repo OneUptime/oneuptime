@@ -3,7 +3,7 @@
 Server / VM 监视器通过 OneUptime 基础设施代理（`oneuptime-infrastructure-agent`）监控一台机器。这个代理是一个小型服务，每 30 秒向 OneUptime 报告一次 CPU、内存、磁盘、负载、网络和正在运行的进程。本页介绍如何将代理连接到 Server / VM 监视器、代理报告哪些内容，以及如何编写判断服务器在线或离线的条件。
 
 > [!IMPORTANT]
-> **创建监视器** 中已不再提供 **Server / VM**。你已有的 Server / VM 监视器会继续工作，本页的所有内容都适用于它们。要监控新的服务器，请改为创建 [主机监视器](/docs/monitor/host-monitor)：它根据 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送的主机指标发出警报。
+> **创建监视器** 中已不再提供 **服务器 / 虚拟机**。你已有的 Server / VM 监视器会继续工作，本页的所有内容都适用于它们。要监控新的服务器，请改为创建 [主机监视器](/docs/monitor/host-monitor)：它根据 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 发送的主机指标发出警报。
 
 :::cards
 - [连接代理](#连接代理): 安装代理，提供监视器的密钥，然后启动它。

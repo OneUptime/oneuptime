@@ -140,7 +140,7 @@ De pagina van de sleutel houdt ook de telling bij: **Geweigerde telemetrie** too
 Voor de andere antwoorden die een OTLP-exporter kan krijgen, zie [Antwoorden](/docs/telemetry/open-telemetry#antwoorden).
 
 :::details Er komen nog gegevens binnen een minuut nadat ik de sleutel uitzette
-Elke OneUptime-server onthoudt wat hij over een sleutel weet hooguit een minuut, dus een wijziging bereikt ze allemaal binnen ongeveer een minuut. Verzoeken daarna worden geweigerd.
+Elke OneUptime-server onthoudt wat hij over een sleutel weet hooguit een minuut, dus een wijziging bereikt ze allemaal binnen ongeveer een minuut. Verzoeken daarna worden geweigerd. Een MQTT-client die met de sleutel verbonden is, wordt binnen een paar seconden afgesloten.
 :::
 
 :::details Een browsersleutel werkt op mijn laptop, maar niet in productie

@@ -2,7 +2,7 @@
 
 Telemetrie enthält alles, was Ihr Code schreibt: eine E-Mail-Adresse in einer Logzeile, eine Kartennummer in einem Span-Attribut, ein Token in einem Stacktrace, die Frage eines Kunden in einem Prompt. Datensicherheit behandelt die Logs, Traces, Ausnahmen und KI-Unterhaltungen jedes Dienstes und die Sitzungen jeder RUM-Anwendung als eigene Datenspeicher. Sie nimmt jede Stunde Stichproben davon, findet darin sensible Daten wie in einem Bucket, und **Bereinigen** macht aus einem Fund eine Bereinigungsregel, die diese Daten von da an bei der Aufnahme maskiert.
 
-Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gescannt, sofern **Telemetrie scannen** in den Einstellungen des Projekts nicht ausgeschaltet ist.
+Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gescannt, sofern **Telemetrie scannen** in den Einstellungen des Projekts nicht ausgeschaltet ist. Um die Logs, Traces oder ein anderes Signal eines Dienstes auszulassen, schalten Sie **Inhalt scannen** in den **Einstellungen** dieses Datenspeichers aus: Ab dem nächsten Scan wird nichts davon gelesen.
 
 :::cards
 - [Was gelesen wird](#was-gelesen-wird): Die Attribute, Bodys, Nachrichten und Prompts jedes Signals.

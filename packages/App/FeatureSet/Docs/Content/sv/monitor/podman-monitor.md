@@ -44,7 +44,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Podman Container
 
-Klicka på **Fler monitortyper** under **Monitortyp** och välj **Podman Container** under **Infrastruktur**, eller skriv `podman` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **Podman-container** under **Infrastruktur**, eller skriv `podman` i sökrutan. Ange ett **Namn** – det används i titlar på incidenter och larm – och klicka på **Nästa**.
 
 ### Välj värden
 

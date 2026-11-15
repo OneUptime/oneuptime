@@ -55,6 +55,7 @@ import {
   fetchWebVitals,
   formatCompact,
   formatDurationMs,
+  formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
   SpanMetrics,
@@ -830,7 +831,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Event duration (p95)",
-      value: m ? formatDurationMs(m.p95DurationMs) : "—",
+      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,

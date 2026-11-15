@@ -52,7 +52,7 @@ Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e
 
 ### Inviare l'evento di attivazione
 
-Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Success** del trigger. Imposta il suo **URL** su `https://events.pagerduty.com/v2/enqueue` e il suo **Request Body** su:
+Fai clic su **Aggiungi componente**, aggiungi un blocco **API Post (JSON)** e collegagli il punto **Successo** del trigger. Imposta il suo **URL** su `https://events.pagerduty.com/v2/enqueue` e il suo **Corpo della Richiesta** su:
 
 ```json
 {
@@ -92,11 +92,11 @@ Crea un workflow chiamato `Resolve PagerDuty incidents` e scegli **On Update Inc
 
 ### Controllare che l'incidente sia risolto
 
-Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Value to check** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Comparison** su **is true**.
+Aggiungi un blocco **If / Else** dopo il trigger. Imposta **Valore da verificare** su `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}` e **Confronto** su **è vero**.
 
 ### Inviare l'evento di risoluzione
 
-Aggiungi un blocco **API Post (JSON)** dopo il lato **Yes**, con lo stesso **URL** e questo **Request Body**:
+Aggiungi un blocco **API Post (JSON)** dopo il lato **Sì**, con lo stesso **URL** e questo **Corpo della Richiesta**:
 
 ```json
 {
@@ -118,7 +118,7 @@ Controllare `isResolvedState` invece del nome di uno stato continua a funzionare
 Per inviare la gravità di ogni incidente, aggiungi un blocco **Run Custom JavaScript** tra il trigger e il blocco **API Post (JSON)**, e leggi la sua risposta nel corpo.
 
 1. Nei **Fields to pass on** del trigger, fai clic su **Aggiungi campo**, apri **Gravità incidente** e scegli **Nome**.
-2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **JavaScript Code** su:
+2. Imposta gli **Arguments** del blocco su `{ "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}" }` e il suo **Codice JavaScript** su:
 
    ```javascript
    // Your incident severities, by name, to PagerDuty's.
