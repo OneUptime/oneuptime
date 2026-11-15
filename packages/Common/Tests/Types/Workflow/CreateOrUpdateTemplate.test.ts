@@ -157,6 +157,7 @@ describe("what it watches", () => {
     for (const bookkeeping of [
       "postUpdatesToWorkspaceChannels",
       "isOwnerNotifiedOfResourceCreation",
+      "createdNotificationHeldAt",
       "holdsMonitors",
       "nextReminderNotificationAt",
       "subscriberNotificationStatusOnIncidentCreated",

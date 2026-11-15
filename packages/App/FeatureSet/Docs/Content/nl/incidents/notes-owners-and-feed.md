@@ -363,7 +363,7 @@ Vijf taken sturen eigenaren meldingen, elk één keer per minuut:
 
 | Melding                    | Wanneer                                                      | Onderwerp van de e-mail                                        |
 | -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Incident aangemaakt**    | Het incident wordt gemeld.                                   | `[New Incident {number}] - {title}`                            |
+| **Incident aangemaakt**    | Ongeveer een minuut nadat het incident is gemeld.            | `[New Incident {number}] - {title}`                            |
 | **Er is een notitie geplaatst** | Er wordt een openbare *of* privénotitie geplaatst.      | `[Update Incident {number}] - {title}`                         |
 | **De status is gewijzigd** | Het incident gaat naar een andere status.                    | `[{State} Incident {number}] - {title}`                        |
 | **Je bent toegevoegd**     | Je wordt als eigenaar toegevoegd.                            | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Vijf taken sturen eigenaren meldingen, elk één keer per minuut:
 
 Elke melding gaat uit via de kanalen die de persoon heeft aangezet in **Gebruikersinstellingen → Meldingsinstellingen** — e-mail, sms, spraakoproep, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost of webhook — die bepalen wat er daadwerkelijk wordt verstuurd. Elke ontvanger kan elk van deze meldingen afzonderlijk uitzetten — de instellingen per gebruiker gaan over het sturen van de meldingen over een aangemaakt incident, een geplaatste notitie, een gewijzigde status, een toegevoegde eigenaar, een toegewezen lid, en een herinnering dat het nog openstaat. Wie alleen een oproep wil bij statuswijzigingen, kan precies dat krijgen. Zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) voor wat een statuswijziging betekent.
 
-**Incidenten zonder eigenaar zijn niet stil.** Heeft een incident helemaal geen eigenaren, dan vallen de meldingstaken terug op de eigenaren van het project, zodat er niets verloren gaat. De melding **Incident aangemaakt** van een incident dat via een formulier is gemeld waarvan het sjabloon eigenaren heeft, wacht in plaats daarvan op die eigenaren. Iedereen die een melding krijgt, wordt ook aan het bijbehorende feeditem toegevoegd, zodat je achteraf precies kunt zien wie bericht kreeg en op welk adres.
+**Incidenten zonder eigenaar zijn niet stil.** Heeft een incident helemaal geen eigenaren, dan vallen de meldingstaken terug op de eigenaren van het project, zodat er niets verloren gaat. De melding **Incident aangemaakt** wacht eerst op de eigenaren van het incident: ze gaat ongeveer een minuut nadat het incident is gemeld naar alle eigenaren die het dan heeft, ook eigenaren die een script, een workflow of de API direct na het aanmaken toevoegt, en alleen naar de eigenaren van het project als het er dan nog geen heeft. Start OneUptime opnieuw terwijl het incident wordt gemeld, dan gaat de melding toch uit, hooguit een paar minuten later. Iedereen die een melding krijgt, wordt ook aan het bijbehorende feeditem toegevoegd, zodat je achteraf precies kunt zien wie bericht kreeg en op welk adres.
 
 ## Volgende stappen
 

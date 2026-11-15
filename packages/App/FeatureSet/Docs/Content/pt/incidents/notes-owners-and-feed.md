@@ -363,7 +363,7 @@ Cinco tarefas notificam os proprietários, cada uma rodando uma vez por minuto:
 
 | Notificação                       | Quando                                                       | Assunto do e-mail                                              |
 | --------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Incidente criado**              | O incidente é declarado.                                     | `[New Incident {number}] - {title}`                            |
+| **Incidente criado**              | Cerca de um minuto depois de o incidente ser declarado.      | `[New Incident {number}] - {title}`                            |
 | **Uma nota foi publicada**        | Uma nota pública *ou* privada é publicada.                   | `[Update Incident {number}] - {title}`                         |
 | **O estado mudou**                | O incidente passa para outro estado.                         | `[{State} Incident {number}] - {title}`                        |
 | **Você foi adicionado**           | Você é adicionado como proprietário.                         | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Cinco tarefas notificam os proprietários, cada uma rodando uma vez por minuto:
 
 Cada notificação sai pelos canais que a pessoa ativou em **Configurações do usuário → Configurações de notificação** — e-mail, SMS, chamada de voz, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook — que decidem o que é realmente enviado. Cada destinatário pode desativar cada uma individualmente — as configurações por usuário são formuladas como o envio das notificações de incidente criado, nota publicada, estado alterado, proprietário adicionado, membro atribuído e lembrete de incidente ainda aberto. Quem só quer uma ligação para mudanças de estado pode ter exatamente isso. Veja [Estados e severidades de incidentes](/docs/incidents/states-and-severities) para o que uma mudança de estado significa.
 
-**Incidentes sem proprietário não ficam em silêncio.** Se um incidente não tem nenhum proprietário, as tarefas de notificação recorrem aos proprietários do projeto, para que nada se perca. A notificação **Incidente criado** de um incidente relatado por um formulário cujo modelo tem proprietários espera por esses proprietários. Cada pessoa notificada também é acrescentada ao item de feed correspondente, então depois você pode ver exatamente quem foi avisado e em qual endereço.
+**Incidentes sem proprietário não ficam em silêncio.** Se um incidente não tem nenhum proprietário, as tarefas de notificação recorrem aos proprietários do projeto, para que nada se perca. A notificação **Incidente criado** espera primeiro pelos proprietários do incidente: ela sai cerca de um minuto depois de o incidente ser declarado, para todos os proprietários que ele tiver até lá, inclusive os que um script, um workflow ou a API adicionar logo depois de criá-lo, e para os proprietários do projeto só se ele ainda não tiver nenhum. Se o OneUptime reiniciar enquanto o incidente é declarado, a notificação sai mesmo assim, no máximo alguns minutos depois. Cada pessoa notificada também é acrescentada ao item de feed correspondente, então depois você pode ver exatamente quem foi avisado e em qual endereço.
 
 ## Próximos passos
 
