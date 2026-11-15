@@ -548,9 +548,10 @@ work out, starts from a default for everything else, and folds what most people 
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message
   lost its full stop and its brackets to the line's other end (#7422, #7424). The timeout sentence,
   its count in the reader's plural forms, is written only by its template
-  (`Common/Utils/Monitor/ProbeFailureReading`), and a summary draws a probe's message with
-  `ProbeMessageLine`, which words that sentence and keeps any other message whole in a
-  right-to-left line. Enforced by
+  (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
+  Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
+  a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
+  any other message whole in a right-to-left line. Enforced by
   [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
