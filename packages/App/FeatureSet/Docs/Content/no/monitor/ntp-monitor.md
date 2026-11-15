@@ -1,4 +1,4 @@
-# NTP-overvåking
+# NTP-monitor
 
 En NTP-monitor kontrollerer at en tidsserver svarer på UDP-port 123 og leverer pålitelig tid: at den er synkronisert, på et fornuftig stratum, og at klokken dens stemmer med sondens. Bruk den for tidsserverne du drifter selv, som en GPS-klokke i datasenteret eller de interne serverne maskinene dine synkroniserer mot, og for de offentlige serverne du er avhengig av.
 
@@ -155,8 +155,8 @@ Sonden er langt fra serveren, eller veien er tregere den ene veien enn den andre
 ## Neste trinn
 
 :::cards
-- [Ping-overvåking](/docs/monitor/ping-monitor): Kontroller at selve verten kan nås.
-- [Port-overvåking](/docs/monitor/port-monitor): Kontroller TCP-tjenestene på samme vert.
+- [Ping-monitor](/docs/monitor/ping-monitor): Kontroller at selve verten kan nås.
+- [Port-monitor](/docs/monitor/port-monitor): Kontroller TCP-tjenestene på samme vert.
 - [Egendefinerte sonder](/docs/probe/custom-probe): Kontroller tidsservere på ditt eget nettverk.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett stratum og avvik i tittelen på en hendelse.
 :::

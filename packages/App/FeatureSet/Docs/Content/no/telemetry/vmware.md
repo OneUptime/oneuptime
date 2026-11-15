@@ -1,6 +1,6 @@
 # VMware-agent
 
-OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver måling med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-overvåkere](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
+OneUptimes VMware-agent overvåker VMware vSphere: vCenter Server, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. Den er en vanlig OpenTelemetry Collector der [`vcenter`-mottakeren](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) leser vSphere-API-et med en skrivebeskyttet bruker, stempler hver måling med navnet på vCenter-et ditt og sender den til OneUptime: ingen plugin på vCenter og ingenting inne i VM-ene. [VMware-monitorer](/docs/monitor/vmware-monitor) varsler ut fra det som kommer inn.
 
 :::cards
 - [Installer agenten](#installer-agenten): En skrivebeskyttet bruker, deretter installasjonsskriptet, Docker Compose eller systemd.
@@ -516,7 +516,7 @@ vSphere har ingen egen OpenTelemetry-push, så agenten (eller en hvilken som hel
 ## Neste trinn
 
 :::cards
-- [VMware-overvåking](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
+- [VMware-monitor](/docs/monitor/vmware-monitor): Varsle om verter, VM-er, datastores, klynger, datasentre og vSAN.
 - [VMware uten agent](/docs/telemetry/vmware-agentless): La en sonde samle inn vCenter-et i stedet.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva VMware-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Operativsystemets visning inne i VM-ene, eller av agentens maskin.

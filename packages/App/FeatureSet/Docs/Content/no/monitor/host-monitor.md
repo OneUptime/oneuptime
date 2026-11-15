@@ -1,4 +1,4 @@
-# Verts-overvåking
+# Verts-monitor
 
 En vertsmonitor overvåker én maskin – CPU, minne, disker, belastning og prosesser – og sier fra når den er mettet eller holder på å fylles opp. Den leser OpenTelemetry-målingene `system.*` som en OpenTelemetry Collector sender fra verten, de samme dataene som produktet **Verter** viser, så ingenting undersøkes utenfra.
 
@@ -40,7 +40,7 @@ OneUptime har to monitorer for maskiner. De kan kjøre på samme vert.
 | **Kriterier** | Terskler eller avviksdeteksjon på enhver målingsspørring eller formel | Innebygde kontroller som CPU-, minne- og diskbruk |
 | **Oppsett** | Installer collectoren; verten registrerer seg selv | Opprett monitoren, og gi deretter den hemmelige nøkkelen til agenten |
 
-Bruk vertsmonitoren når verten allerede sender OpenTelemetry-data, eller når du vil ha logger og rikere målinger fra samme collector. Se [Server- / VM-overvåking](/docs/monitor/server-monitor) for den andre.
+Bruk vertsmonitoren når verten allerede sender OpenTelemetry-data, eller når du vil ha logger og rikere målinger fra samme collector. Se [Server- / VM-monitor](/docs/monitor/server-monitor) for den andre.
 
 ## Før du begynner
 
@@ -227,7 +227,7 @@ Skrivebeskyttede pseudofilsystemer, som snap-loop-monteringer av typen `squashfs
 
 :::cards
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Installer og konfigurer collectoren denne monitoren leser.
-- [Server- / VM-overvåking](/docs/monitor/server-monitor): Monitoren for maskiner som en agent sender til.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på enhver måling, på tvers av verter og tjenester.
+- [Server- / VM-monitor](/docs/monitor/server-monitor): Monitoren for maskiner som en agent sender til.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på enhver måling, på tvers av verter og tjenester.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

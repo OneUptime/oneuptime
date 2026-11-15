@@ -168,7 +168,7 @@ Med Enterprise-abonnementet kan Cursor også sende forbruket mens det skjer, med
 
 Et budsjett teller det ene eller det andre. Under **Budsjetter** lager du et budsjett og setter **Tell utgifter fra** til **Leverandørkontoer**: det teller hva de tilkoblede kontoene ble fakturert for UTC-døgnet, avgrenset av **LLM-leverandør (valgfritt)** og **LLM-modell (valgfritt)** når du fyller dem ut. Leverandørene rapporterer en dags forbruk minutter til timer senere, så for varsler innen minutter bør du heller budsjettere **AI-kallene dine**.
 
-Forbruket til hver konto lagres som tre målinger, som du kan vise på et [dashbord](/docs/dashboards/index) eller overvåke med en [Målingsovervåking](/docs/monitor/metrics-monitor):
+Forbruket til hver konto lagres som tre målinger, som du kan vise på et [dashbord](/docs/dashboards/index) eller overvåke med en [Målingsmonitor](/docs/monitor/metrics-monitor):
 
 | Måling | Hva den er |
 | --- | --- |
@@ -237,5 +237,5 @@ En rapportert kostnad er leverandørens tall før skatter, kreditter og rabatter
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Samtaler, varsler og kostnad for AI-kallene fra dine egne apper.
 - [Virksomhetens AI-verktøy](/docs/telemetry/ai-company-tools): Hva folkene dine spør Claude Enterprise og Microsoft 365 Copilot om.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Spor hvert modellkall gjennom LiteLLM, Portkey eller OpenRouter.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på leverandørmålingene.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på leverandørmålingene.
 :::

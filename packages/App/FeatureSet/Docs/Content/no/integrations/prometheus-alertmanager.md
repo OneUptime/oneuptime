@@ -297,7 +297,7 @@ Når en nyere forespørsel når en monitor før en tidligere er evaluert, evalue
 ## Neste trinn
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [Grafana](/docs/integrations/grafana): Det samme oppsettet, for Grafana-varsler.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.

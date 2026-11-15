@@ -174,7 +174,7 @@ RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM �
 要自己构建监视器，请选择读取相应信号的那种：
 
 - [指标监控](/docs/monitor/metrics-monitor) ：某个核心 Web 指标，或你的应用发送的任何指标。
-- [跟踪监控](/docs/monitor/traces-monitor) ：客户端错误率或延迟。
+- [追踪监控](/docs/monitor/traces-monitor) ：客户端错误率或延迟。
 - [日志监控](/docs/monitor/logs-monitor) ：浏览器日志中的某种模式。
 - [异常监控](/docs/monitor/exceptions-monitor) ：新出现或激增的客户端异常。
 

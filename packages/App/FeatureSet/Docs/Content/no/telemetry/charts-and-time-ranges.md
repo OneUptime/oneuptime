@@ -86,5 +86,5 @@ Noen få visualiseringer har ingen tidsakse å dra over, er for små til å dra 
 :::cards
 - [Opprette et dashbord](/docs/dashboards/authoring): Zoom virker i alle diagrammer på et dashbord.
 - [Søkesyntaks](/docs/telemetry/search-syntax): Filtrere utforskerne når du har funnet øyeblikket.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Få varsel på målingen du så på.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Få varsel på målingen du så på.
 :::

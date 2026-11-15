@@ -1,10 +1,10 @@
-# Mått för aviseringsleverans
+# Mätvärden för aviseringsleverans
 
 OneUptime registrerar hur det går för aviseringarna det skickar: hur många incidenter och larm som kräver dem, om varje meddelande nådde sin leverantör, hur lång tid ett jourlarm tog på sig att gå ut och om det nådde telefonen. Skicka OneUptimes egen telemetri till ett OneUptime-projekt, eller till valfri OpenTelemetry-backend, för att sätta leveransmål för de människor din installation betjänar och kontrollera att du håller dem.
 
 :::cards
 - [Slå på dem](#slå-på-dem): Två inställningar, och utan dem registreras ingenting.
-- [Måtten](#måtten): Sju mätvärden, från utlösaren till telefonen.
+- [Mätvärdena](#mätvärdena): Sju mätvärden, från utlösaren till telefonen.
 - [Så tidsmäts ett larm](#så-tidsmäts-ett-larm): Vad tid till sändning och sändningsfördröjning räknas från.
 - [SLO:er att börja med](#sloer-att-börja-med): Fyra mål, fråga för fråga.
 :::
@@ -74,7 +74,7 @@ Skapa den bredvid `docker-compose.yml`, eller lägg till detta i den du har, och
 
 Det gäller varje mätvärde som OneUptime skickar om sig självt. En backend som själv läser löpande summor, som Prometheus, behöver ingen ändring.
 
-## Måtten
+## Mätvärdena
 
 | Mätvärde | Typ | Enhet | Vad det svarar på |
 | --- | --- | --- | --- |
@@ -189,10 +189,10 @@ En percentil beräknas från bucketarna och ritas som mitten av den bucket den h
 
 Fyra mål som de flesta installationer kan lova, vart och ett byggt av en eller två frågor i mätvärdesutforskaren i projektet som tar emot mätvärdena. De läser ett tidsintervall exakt när mätvärdena kommer fram som deltor: se [Skicka deltor till ett OneUptime-projekt](#skicka-deltor-till-ett-oneuptime-projekt).
 
-### Bygg ett i måttutforskaren
+### Bygg ett i mätvärdesutforskaren
 
 :::steps
-1. Öppna projektets [Måttutforskare](/docs/telemetry/metrics-explorer) och klicka på målets första mätvärden. Dess fråga är `a`.
+1. Öppna projektets [Mätvärdesutforskare](/docs/telemetry/metrics-explorer) och klicka på målets första mätvärden. Dess fråga är `a`.
 2. Välj dess aggregering under **Aggregera efter**. Öppna sedan **Filter och gruppering** och lägg till vart och ett av dess villkor under **Filtrera på attribut**.
 3. För en andra fråga klickar du på **Lägg till mätvärde** och ställer in `b` på samma sätt.
 4. För en formel klickar du på **Lägg till formel** och skriver den i **Formel**.
@@ -260,7 +260,7 @@ Slutliga statusar kommer från leverantörerna, senare, och bara där de kan rap
 ## Nästa steg
 
 :::cards
-- [Måttutforskare](/docs/telemetry/metrics-explorer): Rita, kombinera och jämför valfritt mätvärden.
+- [Mätvärdesutforskare](/docs/telemetry/metrics-explorer): Rita, kombinera och jämför valfritt mätvärden.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Larma när ett mål missas.
 - [Twilio-integration](/docs/self-hosted/twilio-integration): Låt Twilio rapportera vad som nådde telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Väntetiderna som sändningsfördröjningen räknas från.

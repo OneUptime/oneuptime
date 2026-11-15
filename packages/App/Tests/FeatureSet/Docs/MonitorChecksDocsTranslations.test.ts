@@ -868,9 +868,10 @@ describe("the helpers, on these pages' shapes", () => {
 
 /*
  * A page's H1 is its nav link's title, and some of these are one long word:
- * Norwegian "Overvåkingshemmeligheter" is wider than a 390px phone's column
- * at the title's size, and made the Norwegian Monitor Secrets page scroll
- * sideways until the title rule let it break.
+ * Norwegian "Monitorhemmeligheter" (once "Overvåkingshemmeligheter") is
+ * wider than a 390px phone's column at the title's size, and made the
+ * Norwegian Monitor Secrets page scroll sideways until the title rule let
+ * it break.
  */
 describe("a page title on a phone", () => {
   it("breaks a one-word title wider than the column instead of widening the page", () => {
@@ -897,6 +898,6 @@ describe("a page title on a phone", () => {
       }
     }
 
-    expect(longOneWordTitles).toContain("no: Overvåkingshemmeligheter");
+    expect(longOneWordTitles).toContain("no: Monitorhemmeligheter");
   });
 });

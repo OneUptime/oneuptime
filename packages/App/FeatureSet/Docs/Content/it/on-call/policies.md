@@ -5,7 +5,7 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 :::cards
 - [Creare una policy](#creare-una-policy): Un nome, e chi viene avvisato per primo.
 - [Che cosa esegue una policy](#che-cosa-esegue-una-policy): Regole, modelli, monitor, chat e voi stessi.
-- [Registri di esecuzione](#registri-di-esecuzione): Ogni esecuzione, regola per regola, e perché si è fermata.
+- [Log di esecuzione](#log-di-esecuzione): Ogni esecuzione, regola per regola, e perché si è fermata.
 - [Archiviare o eliminare una policy](#archiviare-o-eliminare-una-policy): Togliere una policy dal servizio.
 :::
 
@@ -92,7 +92,7 @@ Alcuni avvisi continuano dopo il riconoscimento, finché non risponde qualcuno c
 
 Una policy avviata a mano è una policy avviata con **Esegui policy di reperibilità**, o da un avviso da Slack o Microsoft Teams che la nomina. Avvisa livello per livello come qualsiasi esecuzione, chiamate e notifiche push ripetute comprese, e il riconoscimento dell'incidente da parte di qualcun altro non la ferma: è così che si avvisa un altro team per un incidente di cui qualcuno si sta già occupando. Chi ha ricevuto il suo avviso risponde dal messaggio dell'avviso, con una chiamata o un SMS, o riconoscendo personalmente l'incidente; una volta riconosciuto l'incidente, la sua pagina gli offre **Riconosci di nuovo**. **Escala** la passa al livello successivo. Su un incidente, un avviso o un episodio risolto non viene avviato nulla, e vi viene detto perché. Le sue notifiche dicono chi ha avviato quale policy, e riportano il messaggio inviato con un avviso da Slack o Microsoft Teams.
 
-## Registri di esecuzione
+## Log di esecuzione
 
 Ogni volta che una policy viene eseguita, scrive un log di esecuzione, e il log attraversa i suoi stati man mano che l'esecuzione prosegue:
 

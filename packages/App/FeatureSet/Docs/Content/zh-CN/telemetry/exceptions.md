@@ -231,5 +231,5 @@ OneUptime AI 每天（UTC）最多自行打开 5 个 pull request，每条发现
 - [异常监控](/docs/monitor/exceptions-monitor): 在异常激增时收到警报。
 - [源代码映射](/docs/telemetry/source-maps): 为浏览器代码提供可读的堆栈追踪。
 - [代码](/docs/ai/ai-agent): AI 如何修复代码并打开 pull request。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 查看异常发生时所在的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 查看异常发生时所在的请求。
 :::

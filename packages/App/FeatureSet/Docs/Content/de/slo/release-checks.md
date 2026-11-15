@@ -7,6 +7,7 @@ Eine Release-Prüfung fragt ein SLO „Ist es sicher, dieses Release weiter ausz
 - [Argo Rollouts](#argo-rollouts): Eine Analyse, die den Rollout abbricht.
 - [Flagger](#flagger): Ein Webhook, der den Canary anhält.
 - [GitHub Actions](#github-actions): Ein Schritt, der nach einem Deployment zurückrollt.
+- [Ein Feature-Flag ausschalten](#ein-feature-flag-ausschalten): Ein Workflow, der ein Flag ausschaltet, wenn das SLO sein Fehlerbudget zu schnell verbrennt.
 :::
 
 ## So funktioniert es
@@ -257,6 +258,37 @@ jobs:
 ```
 
 Der Schritt schlägt bei einem Nein fehl, und ebenso bei jeder Antwort ohne `isSafeToContinue: true` – einer falschen ID, einem Schlüssel, der das SLO nicht lesen kann, gar keiner Antwort –, sodass die Pipeline nie auf eine Antwort hin weitermacht, die sie nicht bekommen hat. Setzen Sie `service.version` beim Start des Dienstes auf den Commit (`${{ github.sha }}`), damit die Prüfung nur die neue Version beurteilt.
+
+## Ein Feature-Flag ausschalten
+
+Ein Release hinter einem Feature-Flag rollen Sie zurück, indem Sie das Flag ausschalten. Das kann ein Workflow für Sie erledigen: Wenn eine [Burn-Rate-Regel](/docs/slo/burn-rate-alerts) des SLO ihre Warnung auslöst oder ihren Vorfall meldet, schaltet der Workflow das Flag in LaunchDarkly oder Unleash aus. Ein misslungener Rollout ist dann in wenigen Minuten rückgängig gemacht, ohne dass jemand eingreifen muss.
+
+:::steps
+### Die ID der Burn-Rate-Regel kopieren
+
+Öffnen Sie das SLO und gehen Sie zu **Burn-Rate-Regeln**. Öffnen Sie das Menü der Regel, die das Flag ausschalten soll, und wählen Sie **ID anzeigen**. Am besten eignet sich eine Fast-Burn-Regel, weil sie schon wenige Minuten nach einem misslungenen Rollout auslöst.
+
+### Den Workflow aus einer Vorlage erstellen
+
+Öffnen Sie **Arbeitsabläufe** und klicken Sie auf **Arbeitsablauf erstellen**. Wählen Sie unter **Oder mit einer Vorlage beginnen** die Kategorie **SLOs** und dann die Vorlage Ihres Flag-Dienstes:
+
+| Vorlage | Was sie abfragt |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Ein API-Zugriffstoken, das das Flag ändern darf, und die Schlüssel des LaunchDarkly-Projekts, des Flags und der Umgebung. |
+| **Turn an Unleash flag off when an SLO burns too fast** | Ihre Unleash-Adresse, ein Dienstkonto-Token oder ein persönliches Zugriffstoken sowie das Projekt des Flags, seinen Namen und die Umgebung. |
+
+Fügen Sie die ID der Regel in **Burn Rate Rule ID** ein, füllen Sie den Rest aus und erstellen Sie den Workflow.
+
+### Den Workflow einschalten
+
+Workflows werden ausgeschaltet angelegt. Wenn Sie so weit sind, schalten Sie oben im **Editor** des Workflows den Schalter **Aktiviert** ein.
+:::
+
+Der Workflow startet jedes Mal, wenn eine Burn-Rate-Regel im Projekt eine Warnung auslöst oder einen Vorfall meldet. Sein Baustein **Wenn / Sonst** lässt ihn nur für die Regel weiterlaufen, deren ID Sie eingefügt haben, und der nächste Schritt ruft den Flag-Dienst auf: bei LaunchDarkly die Anweisung `turnFlagOff` mit einem Kommentar, der die Regel und das SLO nennt, oder bei Unleash `off` für die Umgebung. Beide schalten das Flag für alle in dieser Umgebung aus, unabhängig von seinem Targeting. Lehnt der Flag-Dienst den Aufruf ab, schlägt die Ausführung fehl, und ihr Protokoll sagt, warum. Die Warnung der Regel alarmiert weiterhin wie gewohnt.
+
+**Arbeitsablauf ausführen** im **Editor** führt den Workflow aus, als hätte die Regel, die Sie auswählen, gerade ausgelöst, und schaltet das Flag damit wirklich aus. Probieren Sie es zuerst mit einem Flag in einer Testumgebung aus.
+
+Für einen anderen Flag-Dienst oder eine LaunchDarkly-Instanz mit eigener Adresse beginnen Sie mit einer der beiden Vorlagen und ersetzen den Aufruf in ihrem API-Schritt durch einen, der das Flag für alle in der Umgebung ausschaltet. Wählen Sie einen Aufruf, der wie diese beiden auch Segmente und Targeting-Regeln übersteuert, sonst liefert ein schrittweiser Rollout das Flag weiter aus.
 
 ## Nächste Schritte
 

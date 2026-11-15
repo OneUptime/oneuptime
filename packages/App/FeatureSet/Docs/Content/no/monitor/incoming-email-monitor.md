@@ -1,4 +1,4 @@
-# Innkommende e-post-overvåking
+# Innkommende e-post-monitor
 
 En monitor for innkommende e-post gir deg en e-postadresse som hører til én monitor. Alt som kan sende e-post — en sikkerhetskopieringsjobb, et eldre system, varslingen til en skyleverandør — sender resultatene sine dit, og OneUptime sjekker hver e-post mot kriteriene dine for å markere monitoren som nede, åpne en hendelse eller opprette et varsel, og for å løse dem når klarsignalet kommer.
 
@@ -310,7 +310,7 @@ Klikk på **Vis flere detaljer** for å se resten:
 
 ### Tidligere e-poster
 
-Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for overvåking (dager)** i innstillingene i Admin Dashboard.
+Kortet viser bare den nyeste e-posten. Hver e-post monitoren evaluerer, skrives også til **Overvåkingslogger**: kolonnen **E-post** viser emnet og avsenderen, og **Vis sammendrag** på raden viser hele e-posten på samme måte som kortet. En monitor med overvåking slått av evaluerer ingenting, så e-postene den mottar, får ingen rader. Hvis et av kriteriene dine sjekker **E-post mottatt**, skriver monitoren også en rad hver gang den ser etter manglende e-post. Kolonnen **E-post** sier "Scheduled check" på de radene, og **Vis sammendrag** der viser den nyeste e-posten på tidspunktet for kontrollen, eller "No email yet" hvis ingen hadde kommet. Overvåkingslogger beholdes i én dag som standard. På en selvhostet server kan en administrator endre det med **Loggoppbevaring for monitorer (dager)** i innstillingene i Admin Dashboard.
 
 ## Selvhostet oppsett
 
@@ -356,6 +356,6 @@ Inntil det er satt opp, sier monitorens adressekort at innkommende e-post ikke e
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett emnet og innholdet i e-posten inn i varsler.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Motta heartbeats og webhooks over HTTP i stedet.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Motta heartbeats og webhooks over HTTP i stedet.
 - [SendGrid innkommende e-post](/docs/self-hosted/sendgrid-inbound-email): Sett opp innkommende e-post på en selvhostet server.
 :::

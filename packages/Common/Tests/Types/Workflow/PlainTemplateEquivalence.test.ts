@@ -58,11 +58,12 @@ const CHANGED: Array<string> = [
 ];
 
 /*
- * An integration's templates, which their own suites hold. The Datadog and
- * New Relic ones were built simple, so there is no old graph to hold them to.
+ * An integration's templates, which their own suites hold. The Datadog, New
+ * Relic and SLO ones were built simple, so there is no old graph to hold
+ * them to (the SLO ones: SloFlagOffTemplateSimulation).
  */
 const INTEGRATION_TEMPLATE: RegExp =
-  /^(jira|dynamics|zabbix|huntress|datadog|new-relic|openstack)-/;
+  /^(jira|dynamics|zabbix|huntress|datadog|new-relic|openstack|slo)-/;
 
 interface Shape {
   nodes: Record<string, { metadataId: string; arguments: JSONValue }>;

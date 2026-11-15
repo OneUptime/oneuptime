@@ -294,6 +294,6 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 - [AI / LLM 可观测性](/docs/telemetry/ai-llm-observability): 这些调用的对话、警报、用量和每日成本预算。
 - [AI 编程助手](/docs/telemetry/ai-coding-assistants): 在自己不发送遥测数据的工具前面放一个网关。
 - [AI 代理熔断器](/docs/telemetry/ai-agent-circuit-breaker): 当警报触发时让失控的代理停下。
-- [跟踪监控](/docs/monitor/traces-monitor): 针对 span 模式发出警报，例如在循环中被调用的工具。
+- [追踪监控](/docs/monitor/traces-monitor): 针对 span 模式发出警报，例如在循环中被调用的工具。
 - [AI 提供商账户](/docs/telemetry/ai-provider-accounts): 无需代码，查看网关背后账户的账单。
 :::

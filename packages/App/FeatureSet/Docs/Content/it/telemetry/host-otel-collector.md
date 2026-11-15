@@ -627,7 +627,7 @@ receivers:
 
 Molti parchi di Mac se la cavano bene con le metriche dell'host e qualche log da file, senza il log unificato.
 
-### Registri eventi di Windows
+### Log eventi di Windows
 
 La configurazione Windows qui sopra si abbona ai canali `System`, `Application` e `Security`. Per limitare il canale `Security`, ad alto volume, ad alcuni ID evento:
 
@@ -935,7 +935,7 @@ receivers:
     priority: warning # info and debug are dropped before export
 ```
 
-- Limita il canale di eventi `Security`, ad alto volume, agli ID evento che controlli con una `query:` (come in [Registri eventi di Windows](#registri-eventi-di-windows)), oppure scarta il canale.
+- Limita il canale di eventi `Security`, ad alto volume, agli ID evento che controlli con una `query:` (come in [Log eventi di Windows](#log-eventi-di-windows)), oppure scarta il canale.
 
 ### Raccogli le metriche meno spesso
 

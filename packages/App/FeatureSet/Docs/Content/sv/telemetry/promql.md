@@ -162,7 +162,7 @@ Frågan begär mer än en läsning får hålla. Lägg till etikettmatchare, kort
 ## Nästa steg
 
 :::cards
-- [Måttutforskare](/docs/telemetry/metrics-explorer): Visa mätvärden i diagram utan att skriva en fråga.
+- [Mätvärdesutforskare](/docs/telemetry/metrics-explorer): Visa mätvärden i diagram utan att skriva en fråga.
 - [Metrikövervakning](/docs/monitor/metrics-monitor): Larma när ett mätvärde passerar en tröskel.
 - [Externa datakällor](/docs/dashboards/data-sources): Visa en extern Prometheus i diagram på dina instrumentpaneler.
 :::

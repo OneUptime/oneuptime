@@ -7,6 +7,7 @@ Un contrôle de déploiement pose à un SLO la question « peut-on continuer à 
 - [Argo Rollouts](#argo-rollouts): Une analyse qui interrompt le déploiement.
 - [Flagger](#flagger): Un webhook qui arrête le canari.
 - [GitHub Actions](#github-actions): Une étape qui revient à la version précédente après un déploiement.
+- [Désactiver un drapeau de fonctionnalité](#désactiver-un-drapeau-de-fonctionnalité): Un flux de travail qui désactive un drapeau quand le SLO consomme son budget d'erreur trop vite.
 :::
 
 ## Comment ça marche
@@ -257,6 +258,37 @@ jobs:
 ```
 
 L'étape échoue sur un non, et sur toute réponse sans `isSafeToContinue: true` (un ID erroné, une clé qui ne peut pas lire le SLO, aucune réponse du tout) : le pipeline ne continue donc jamais sur la foi d'une réponse qu'il n'a pas reçue. Définissez `service.version` sur le commit (`${{ github.sha }}`) au démarrage du service, pour que le contrôle ne juge que la nouvelle version.
+
+## Désactiver un drapeau de fonctionnalité
+
+Pour annuler une version déployée derrière un drapeau de fonctionnalité, il suffit de désactiver le drapeau. Un flux de travail peut le faire à votre place : quand une [règle de taux de consommation](/docs/slo/burn-rate-alerts) du SLO déclenche son alerte ou déclare son incident, le flux de travail désactive le drapeau dans LaunchDarkly ou Unleash. Un mauvais déploiement est alors annulé en quelques minutes, sans attendre qu'une personne intervienne.
+
+:::steps
+### Copier l'ID de la règle de taux de consommation
+
+Ouvrez le SLO et allez dans **Règles de taux de consommation**. Ouvrez le menu de la règle qui doit désactiver le drapeau, et choisissez **Afficher l'ID**. Une règle de consommation rapide convient le mieux, car elle se déclenche dans les minutes qui suivent un mauvais déploiement.
+
+### Créer le flux de travail à partir d'un modèle
+
+Ouvrez **Flux de travail** et cliquez sur **Créer un flux de travail**. Sous **Ou partir d'un modèle**, choisissez la catégorie **SLO**, puis le modèle de votre service de drapeaux de fonctionnalité :
+
+| Modèle | Ce qu'il demande |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Un jeton d'accès à l'API qui peut modifier le drapeau, et les clés du drapeau, de son projet et de l'environnement. |
+| **Turn an Unleash flag off when an SLO burns too fast** | L'adresse de votre Unleash, un jeton de compte de service ou un jeton d'accès personnel, et le projet du drapeau, son nom et l'environnement. |
+
+Collez l'ID de la règle dans **Burn Rate Rule ID**, remplissez le reste, et créez le flux de travail.
+
+### L'activer
+
+Les flux de travail sont créés désactivés. Quand vous êtes prêt, activez l'interrupteur **Activé** en haut du **Constructeur** du flux de travail.
+:::
+
+Le flux de travail démarre chaque fois qu'une règle de taux de consommation du projet déclenche une alerte ou déclare un incident. Son bloc **Si / Sinon** ne laisse continuer l'exécution que pour la règle dont vous avez collé l'ID, et l'étape suivante appelle le service de drapeaux : l'instruction `turnFlagOff` de LaunchDarkly, avec un commentaire qui nomme la règle et le SLO, ou le `off` d'Unleash pour l'environnement. Les deux appels désactivent le drapeau pour tout le monde dans cet environnement, quel que soit son ciblage. Si le service de drapeaux refuse l'appel, l'exécution échoue, et son journal dit pourquoi. L'alerte de la règle continue de prévenir l'astreinte comme d'habitude.
+
+Dans le **Constructeur**, **Exécuter le flux de travail** lance le flux de travail comme si la règle que vous choisissez venait de se déclencher : le drapeau est donc désactivé pour de vrai. Essayez d'abord avec un drapeau dans un environnement de test.
+
+Pour un autre service de drapeaux, ou une instance LaunchDarkly qui a sa propre adresse, partez de l'un ou l'autre modèle et remplacez l'appel de son étape d'API par celui qui désactive le drapeau pour tout le monde dans l'environnement. Choisissez un appel qui l'emporte aussi sur les segments et les règles de ciblage, comme ces deux-là, sinon un déploiement progressif continue de servir le drapeau.
 
 ## Prochaines étapes
 
