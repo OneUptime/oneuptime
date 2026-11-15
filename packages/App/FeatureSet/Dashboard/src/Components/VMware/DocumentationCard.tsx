@@ -33,7 +33,9 @@ const VMwareDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("VMware key")}
       optionsLabel="How do you want to install the agent?"
       options={VMWARE_INSTALL_METHODS}
-      keyStepDescription="The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getVMwareSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,

@@ -55688,5 +55688,7 @@
   "Valid (OAuth token)": "유효",
   "Yes / No": "예 / 아니오",
   "which led to {{steps}}": "그 뒤 {{steps}}(으)로 이어짐",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}}은(는) 아직 실행되지 않았습니다. 실행되면 여기에 필드가 표시됩니다."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}}은(는) 아직 실행되지 않았습니다. 실행되면 여기에 필드가 표시됩니다.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
 }

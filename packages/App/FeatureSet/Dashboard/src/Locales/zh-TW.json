@@ -55688,5 +55688,7 @@
   "Valid (OAuth token)": "有效",
   "Yes / No": "是 / 否",
   "which led to {{steps}}": "隨後進入 {{steps}}",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未執行。執行後，其欄位會顯示在這裡。"
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} 尚未執行。執行後，其欄位會顯示在這裡。",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
 }

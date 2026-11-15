@@ -55688,5 +55688,7 @@
   "Valid (OAuth token)": "معتبر",
   "Yes / No": "بله / خیر",
   "which led to {{steps}}": "که به {{steps}} رسید",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند."
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} هنوز اجرا نشده است. پس از اجرا، فیلدهایش اینجا نمایش داده می‌شوند.",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
 }

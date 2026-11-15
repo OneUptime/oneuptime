@@ -55688,5 +55688,7 @@
   "Valid (OAuth token)": "有効",
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。"
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
+  "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.": "The agent sends your cluster's data to OneUptime with this key. Pick an existing key or create a new one — the install command below updates to use it.",
+  "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
 }
