@@ -624,19 +624,49 @@ export const BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD: ModelField<ServiceLevelObjec
     stepId: "burn-window",
   };
 
+export const BURN_RATE_RULE_MINIMUM_EVENTS_ERROR: string = translationKey(
+  "Minimum Events must be a whole number of events, 0 or more.",
+);
+
+// The same minimum, for a Metric SLO, whose events are its metric's (#8445).
+export const validateMinimumEvents: ValidateMinimumRequestsFunction = (
+  value: FormValues<ServiceLevelObjectiveBurnRateRule>,
+): string | null => {
+  return validateMinimumRequests(value)
+    ? BURN_RATE_RULE_MINIMUM_EVENTS_ERROR
+    : null;
+};
+
+/*
+ * A Metric SLO's quiet hour burns its budget as a request SLO's does, so
+ * its rule asks for the same minimum, counted in its metric's events.
+ */
+export const BURN_RATE_RULE_MINIMUM_EVENTS_FIELD: ModelField<ServiceLevelObjectiveBurnRateRule> =
+  {
+    ...BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
+    title: "Minimum Events",
+    description:
+      "Skip this rule while its long window holds fewer of its metric's events than this, so a quiet hour with one bad event does not page anyone. Leave empty for no minimum.",
+    customValidation: validateMinimumEvents,
+  };
+
 export type GetBurnRateRuleFormFieldsFunction = (data: {
+  // Counted in events: a request SLO, or a Metric SLO (#8445).
   isRequestSlo: boolean;
+  isMetricSlo?: boolean | undefined;
 }) => Array<ModelField<ServiceLevelObjectiveBurnRateRule>>;
 
 /*
  * The rule form's fields for the SLO they belong to: every SLO's, and for
- * a request SLO, Minimum Requests just before Re-fire Suppression.
+ * an SLO counted in events, its minimum just before Re-fire Suppression -
+ * Minimum Requests for a request SLO, Minimum Events for a Metric SLO.
  */
 export const getBurnRateRuleFormFields: GetBurnRateRuleFormFieldsFunction =
   (data: {
     isRequestSlo: boolean;
+    isMetricSlo?: boolean | undefined;
   }): Array<ModelField<ServiceLevelObjectiveBurnRateRule>> => {
-    if (!data.isRequestSlo) {
+    if (!data.isRequestSlo && !data.isMetricSlo) {
       return BURN_RATE_RULE_FORM_FIELDS;
     }
 
@@ -652,7 +682,9 @@ export const getBurnRateRuleFormFields: GetBurnRateRuleFormFieldsFunction =
     fields.splice(
       suppressionIndex < 0 ? fields.length : suppressionIndex,
       0,
-      BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
+      data.isMetricSlo
+        ? BURN_RATE_RULE_MINIMUM_EVENTS_FIELD
+        : BURN_RATE_RULE_MINIMUM_REQUESTS_FIELD,
     );
 
     return fields;

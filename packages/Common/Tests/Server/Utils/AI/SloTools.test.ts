@@ -1879,3 +1879,24 @@ describe("formatRequestBudgetForAssistant", () => {
     },
   );
 });
+
+// A Metric SLO's budget, in its metric's events (#8445).
+describe("formatRequestBudgetForAssistant - a Metric SLO", () => {
+  test.each([
+    [120, 1000, "120 of 1,000 bad events left"],
+    [1, 1, "1 of 1 bad event left"],
+    [-3, 1000, "3 bad events over budget"],
+    [-1, 1000, "1 bad event over budget"],
+  ])(
+    "%s of %s reads %s",
+    (remaining: number, total: number, expected: string) => {
+      expect(
+        formatRequestBudgetForAssistant({
+          sliType: SliType.Metric,
+          remaining: remaining,
+          total: total,
+        }),
+      ).toBe(expected);
+    },
+  );
+});
