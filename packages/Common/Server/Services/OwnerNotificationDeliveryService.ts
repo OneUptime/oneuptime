@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/OwnerNotificationDelivery";
 import ObjectID from "../../Types/ObjectID";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "../../Types/Notification/OwnerNotificationDelivery";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -14,7 +15,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 export interface OwnerNotificationEvent {
   kind: OwnerNotificationKind;
   projectId: ObjectID;
-  // The incident or alert the owners are told of.
+  // The record the owners are told of: an incident, an alert, a monitor...
   resourceId: ObjectID;
   // The record whose notification it is.
   eventId: ObjectID;
@@ -29,7 +30,10 @@ export interface OwnerNotificationDeliveryRow {
   isProjectOwner: boolean;
   status: OwnerNotificationDeliveryStatus;
   attempts: number;
+  // When a run last set out to tell this owner, or moved their row on.
   attemptedAt: Date;
+  // The notification's feed item: none when it writes none (#8510).
+  feedStatus: OwnerNotificationFeedStatus | null;
 }
 
 // An owner to write a row for.
@@ -44,7 +48,7 @@ export const OWNER_NOTIFICATION_DELIVERY_RETENTION_IN_DAYS: number = 7;
 const TABLE: string = '"OwnerNotificationDelivery"';
 
 // The columns every read below hands back, for toRow.
-const ROW_COLUMNS: string = `"_id", "userId", "isProjectOwner", "status", "attempts", "attemptedAt"`;
+const ROW_COLUMNS: string = `"_id", "userId", "isProjectOwner", "status", "attempts", "attemptedAt", "feedStatus"`;
 
 // The columns that say which notification a row is of.
 const EVENT_COLUMNS: string = `"kind", "projectId", "resourceId", "eventId", "occurrence"`;
@@ -56,8 +60,15 @@ const EVENT_COLUMNS: string = `"kind", "projectId", "resourceId", "eventId", "oc
  * written by hand because what it guarantees is its own to guarantee, in one
  * statement: a row per notification and owner however often it is written,
  * one run alone moving an owner from to be told to being told, and one run
- * alone taking up what a stopped run left. OwnerNotificationDeliveryPostgres
- * holds them to that on a migrated Postgres.
+ * alone taking up what a stopped run left - owners still to be told, or the
+ * feed item still to write once every owner was (#8510).
+ * OwnerNotificationDeliveryPostgres holds them to that on a migrated
+ * Postgres.
+ *
+ * Every statement that moves a row on stamps it with the time it is given
+ * (attemptedAt), from the clock of the runs that compare against it: so a
+ * notification none of whose rows moved for a while is one no run is still
+ * working on.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -79,6 +90,8 @@ export class Service extends DatabaseService<Model> {
     event: OwnerNotificationEvent;
     owners: Array<OwnerToTell>;
     at: Date;
+    // Whether the notification writes a feed item, which its rows then keep track of.
+    writesFeedItem: boolean;
   }): Promise<Array<OwnerNotificationDeliveryRow>> {
     const seen: Set<string> = new Set<string>();
     const owners: Array<{ userId: string; isProjectOwner: boolean }> = [];
@@ -105,8 +118,8 @@ export class Service extends DatabaseService<Model> {
 
     if (owners.length > 0) {
       await this.getRepository().manager.query(
-        `INSERT INTO ${TABLE} ("projectId", "kind", "resourceId", "eventId", "occurrence", "userId", "isProjectOwner", "status", "attempts", "attemptedAt", "version")
-         SELECT $1::uuid, $2, $3::uuid, $4::uuid, $5::integer, owner."userId"::uuid, owner."isProjectOwner", '${OwnerNotificationDeliveryStatus.Pending}', 1, $6::timestamptz, 1
+        `INSERT INTO ${TABLE} ("projectId", "kind", "resourceId", "eventId", "occurrence", "userId", "isProjectOwner", "status", "attempts", "attemptedAt", "feedStatus", "version")
+         SELECT $1::uuid, $2, $3::uuid, $4::uuid, $5::integer, owner."userId"::uuid, owner."isProjectOwner", '${OwnerNotificationDeliveryStatus.Pending}', 1, $6::timestamptz, $8::varchar, 1
          FROM jsonb_to_recordset($7::jsonb) AS owner("userId" text, "isProjectOwner" boolean)
          ORDER BY owner."userId"::uuid
          ON CONFLICT ("kind", "eventId", "occurrence", "userId") DO NOTHING`,
@@ -118,6 +131,7 @@ export class Service extends DatabaseService<Model> {
           data.event.occurrence,
           data.at,
           JSON.stringify(owners),
+          data.writesFeedItem ? OwnerNotificationFeedStatus.Pending : null,
         ],
       );
     }
@@ -147,13 +161,13 @@ export class Service extends DatabaseService<Model> {
    * being told, or their row is gone).
    */
   @CaptureSpan()
-  public async startTelling(id: ObjectID): Promise<boolean> {
+  public async startTelling(id: ObjectID, at: Date): Promise<boolean> {
     return (
       (
         await this.writeWhere({
-          setSql: `"status" = '${OwnerNotificationDeliveryStatus.Sending}'`,
+          setSql: `"status" = '${OwnerNotificationDeliveryStatus.Sending}', "attemptedAt" = $2::timestamptz`,
           whereSql: `"_id" = $1::uuid AND "status" = '${OwnerNotificationDeliveryStatus.Pending}'`,
-          params: [id.toString()],
+          params: [id.toString(), at],
         })
       ).length === 1
     );
@@ -166,13 +180,14 @@ export class Service extends DatabaseService<Model> {
     status:
       | OwnerNotificationDeliveryStatus.Sent
       | OwnerNotificationDeliveryStatus.Failed;
+    at: Date;
   }): Promise<boolean> {
     return (
       (
         await this.writeWhere({
-          setSql: `"status" = $2`,
+          setSql: `"status" = $2, "attemptedAt" = $3::timestamptz`,
           whereSql: `"_id" = $1::uuid AND "status" = '${OwnerNotificationDeliveryStatus.Sending}'`,
-          params: [data.id.toString(), data.status],
+          params: [data.id.toString(), data.status, data.at],
         })
       ).length === 1
     );
@@ -185,18 +200,46 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async giveUpTelling(
     ids: Array<ObjectID>,
+    at: Date,
   ): Promise<Array<OwnerNotificationDeliveryRow>> {
     if (ids.length === 0) {
       return [];
     }
 
     return await this.writeWhere({
-      setSql: `"status" = '${OwnerNotificationDeliveryStatus.Failed}'`,
+      setSql: `"status" = '${OwnerNotificationDeliveryStatus.Failed}', "attemptedAt" = $2::timestamptz`,
       whereSql: `"_id" = ANY($1::uuid[]) AND "status" = '${OwnerNotificationDeliveryStatus.Pending}'`,
       params: [
         ids.map((id: ObjectID): string => {
           return id.toString();
         }),
+        at,
+      ],
+    });
+  }
+
+  /*
+   * Says the notification's feed item is written, or never will be
+   * (NotWritten), on every row of it whose feed item was still to write.
+   * Hands back the rows it marked: none when no row was.
+   */
+  @CaptureSpan()
+  public async settleFeedItem(data: {
+    event: OwnerNotificationEvent;
+    feedStatus:
+      | OwnerNotificationFeedStatus.Written
+      | OwnerNotificationFeedStatus.NotWritten;
+    at: Date;
+  }): Promise<Array<OwnerNotificationDeliveryRow>> {
+    return await this.writeWhere({
+      setSql: `"feedStatus" = $4, "attemptedAt" = $5::timestamptz`,
+      whereSql: `"kind" = $1 AND "eventId" = $2::uuid AND "occurrence" = $3::integer AND "feedStatus" = '${OwnerNotificationFeedStatus.Pending}'`,
+      params: [
+        data.event.kind,
+        data.event.eventId.toString(),
+        data.event.occurrence,
+        data.feedStatus,
+        data.at,
       ],
     });
   }
@@ -226,15 +269,7 @@ export class Service extends DatabaseService<Model> {
         [data.kinds, data.attemptedBefore, data.limit],
       );
 
-    return rows.map((row: Record<string, unknown>): OwnerNotificationEvent => {
-      return {
-        kind: row["kind"] as OwnerNotificationKind,
-        projectId: new ObjectID(String(row["projectId"])),
-        resourceId: new ObjectID(String(row["resourceId"])),
-        eventId: new ObjectID(String(row["eventId"])),
-        occurrence: Number(row["occurrence"]),
-      };
-    });
+    return rows.map(toEvent);
   }
 
   /*
@@ -252,6 +287,63 @@ export class Service extends DatabaseService<Model> {
     return await this.writeWhere({
       setSql: `"attempts" = "attempts" + 1, "attemptedAt" = $5::timestamptz`,
       whereSql: `"kind" = $1 AND "eventId" = $2::uuid AND "occurrence" = $3::integer AND "status" = '${OwnerNotificationDeliveryStatus.Pending}' AND "attemptedAt" <= $4::timestamptz`,
+      params: [
+        data.event.kind,
+        data.event.eventId.toString(),
+        data.event.occurrence,
+        data.attemptedBefore,
+        data.at,
+      ],
+    });
+  }
+
+  /*
+   * The notifications of these kinds whose feed item is still to write
+   * although no owner is still to be told, none of whose rows moved since
+   * `attemptedBefore` - so no run is still at it: those a run stopped after
+   * its last owner and before the feed item (#8510). The longest waiting
+   * first, at most `limit`.
+   */
+  @CaptureSpan()
+  public async findFeedItemsLeftUnwritten(data: {
+    kinds: Array<OwnerNotificationKind>;
+    attemptedBefore: Date;
+    limit: number;
+  }): Promise<Array<OwnerNotificationEvent>> {
+    if (data.kinds.length === 0) {
+      return [];
+    }
+
+    const rows: Array<Record<string, unknown>> =
+      await this.getRepository().manager.query(
+        `SELECT ${EVENT_COLUMNS} FROM ${TABLE} AS "row"
+         WHERE "feedStatus" = '${OwnerNotificationFeedStatus.Pending}' AND "kind" = ANY($1::varchar[]) AND "attemptedAt" <= $2::timestamptz
+         AND NOT EXISTS (${stillMovingSql({ kind: `"row"."kind"`, eventId: `"row"."eventId"`, occurrence: `"row"."occurrence"`, attemptedBefore: "$2::timestamptz" })})
+         GROUP BY ${EVENT_COLUMNS}
+         ORDER BY MIN("attemptedAt") ASC
+         LIMIT $3::integer`,
+        [data.kinds, data.attemptedBefore, data.limit],
+      );
+
+    return rows.map(toEvent);
+  }
+
+  /*
+   * Takes up, for one run alone, a notification whose feed item a stopped
+   * run left unwritten (findFeedItemsLeftUnwritten): counts this run's
+   * attempt on every row of it and hands them back. Nothing for every other
+   * run - this run's attempt is newer than what theirs looks for - nor while
+   * an owner is still to be told or a row moved since `attemptedBefore`.
+   */
+  @CaptureSpan()
+  public async takeUpFeedItemLeftUnwritten(data: {
+    event: OwnerNotificationEvent;
+    attemptedBefore: Date;
+    at: Date;
+  }): Promise<Array<OwnerNotificationDeliveryRow>> {
+    return await this.writeWhere({
+      setSql: `"attempts" = "attempts" + 1, "attemptedAt" = $5::timestamptz`,
+      whereSql: `"kind" = $1 AND "eventId" = $2::uuid AND "occurrence" = $3::integer AND "feedStatus" = '${OwnerNotificationFeedStatus.Pending}' AND "attemptedAt" <= $4::timestamptz AND NOT EXISTS (${stillMovingSql({ kind: "$1", eventId: "$2::uuid", occurrence: "$3::integer", attemptedBefore: "$4::timestamptz" })})`,
       params: [
         data.event.kind,
         data.event.eventId.toString(),
@@ -282,6 +374,30 @@ export class Service extends DatabaseService<Model> {
   }
 }
 
+function toEvent(row: Record<string, unknown>): OwnerNotificationEvent {
+  return {
+    kind: row["kind"] as OwnerNotificationKind,
+    projectId: new ObjectID(String(row["projectId"])),
+    resourceId: new ObjectID(String(row["resourceId"])),
+    eventId: new ObjectID(String(row["eventId"])),
+    occurrence: Number(row["occurrence"]),
+  };
+}
+
+/*
+ * A row of the notification that says a run may still be at it: an owner
+ * still to be told, or a row that moved since `attemptedBefore`. Each part
+ * is SQL: a column of the outer row, or a parameter.
+ */
+function stillMovingSql(data: {
+  kind: string;
+  eventId: string;
+  occurrence: string;
+  attemptedBefore: string;
+}): string {
+  return `SELECT 1 FROM ${TABLE} AS "sibling" WHERE "sibling"."kind" = ${data.kind} AND "sibling"."eventId" = ${data.eventId} AND "sibling"."occurrence" = ${data.occurrence} AND ("sibling"."status" = '${OwnerNotificationDeliveryStatus.Pending}' OR "sibling"."attemptedAt" > ${data.attemptedBefore})`;
+}
+
 function toRow(row: Record<string, unknown>): OwnerNotificationDeliveryRow {
   return {
     id: new ObjectID(String(row["_id"])),
@@ -290,6 +406,9 @@ function toRow(row: Record<string, unknown>): OwnerNotificationDeliveryRow {
     status: row["status"] as OwnerNotificationDeliveryStatus,
     attempts: Number(row["attempts"]),
     attemptedAt: new Date(row["attemptedAt"] as Date | string),
+    feedStatus: row["feedStatus"]
+      ? (row["feedStatus"] as OwnerNotificationFeedStatus)
+      : null,
   };
 }
 

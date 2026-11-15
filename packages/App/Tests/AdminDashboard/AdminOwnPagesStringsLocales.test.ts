@@ -6,6 +6,7 @@ import {
   OwnNestedKey,
   OwnStrings,
   OwnText,
+  REPOSITORY_ROOT,
   findMissingEntries,
   isSourceFile,
   readAdminLocale,
@@ -48,9 +49,9 @@ import { ADMIN_DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLangua
  *     shrinks: an entry translated since fails it until it comes off).
  *
  * A text the extractor finds that no lookup reads is NOT_LOOKED_UP, with
- * its reason. An element's text the page draws as written (<th>Shard</th>)
- * is not looked up either, so it is left out (readOwnStrings): routing
- * those through translation is its own work.
+ * its reason. An element's text a page draws as written (<th>Shard</th>)
+ * is not looked up either, so it is left out (readOwnStrings); the Admin's
+ * own pages draw none (AdminOwnPagesDrawnAsWrittenGuard, #8555).
  *
  * Add a new text to en.json as itself and to every language, worded as
  * that language's Dashboard words the same text where it has one, at the
@@ -120,6 +121,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "Teams",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   fr: [
     "Question",
@@ -135,8 +139,11 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Description",
     "Transport",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
-  es: ["No", "Total"],
+  es: ["No", "Total", "Enterprise", "Shard", "Shard {{shard}}"],
   it: [
     "Home",
     "Feedback",
@@ -149,6 +156,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Provider",
     "Facebook App Secret",
     "Password",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   pt: [
     "Feedback",
@@ -157,6 +167,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "OAuth Client ID",
     "Client ID",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   nl: [
     "Feedback",
@@ -173,6 +186,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Model",
     "{{count}} products_one",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   da: [
     "Feedback",
@@ -191,6 +207,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Upload logo",
     "Facebook App Secret",
     "Total",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   no: [
     "Status",
@@ -202,6 +221,9 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "OAuth Client ID",
     "Test",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   sv: [
     "Version",
@@ -214,15 +236,19 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Transport",
     "OAuth Client ID",
     "Facebook App Secret",
+    "Enterprise",
+    "Shard",
+    "Shard {{shard}}",
   ],
   ru: [
     "Twilio Account SID",
     "Twilio Auth Token",
     "OAuth Client ID",
     "Client ID",
+    "Enterprise",
   ],
-  ja: ["App ID"],
-  ko: [],
+  ja: ["App ID", "Enterprise"],
+  ko: ["Enterprise"],
   "zh-CN": ["Bot Token", "Facebook App Secret"],
   "zh-TW": [
     "OAuth Client ID",
@@ -238,7 +264,130 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Bot Token",
     "Facebook App Secret",
     "App ID",
+    "Enterprise",
   ],
+  fa: [],
+  ar: [],
+};
+
+/*
+ * The Enterprise pages' names, codes and examples, read as written in every
+ * language when the checkout has ee/ (a query console's example queries, an
+ * example address, a channel's example name).
+ */
+const ENTERPRISE_READ_AS_WRITTEN: Readonly<Record<string, string>> = {
+  CorpoApp: "an example custom channel's name, typed over",
+  "buyer@acme.com": "an example address, typed over",
+  "enterprise@oneuptime.com": "an example address, typed over",
+  Postgres: "a product name",
+  OneUptime: "the product's name, the product name field's example",
+  'SELECT * FROM "User" ORDER BY "createdAt" DESC LIMIT 50;':
+    "an example query, typed over",
+  "SELECT * FROM system.tables WHERE database = currentDatabase() LIMIT 50;":
+    "an example query, typed over",
+  "# One command per line, redis-cli style.\nDBSIZE\nINFO server\nKEYS *":
+    "an example redis-cli script, typed over",
+};
+
+/*
+ * The Enterprise pages' words a language says as English does - a loanword
+ * ("Backup" in German), the deliberate one forms of its same-as-English list
+ * (i18n/Progress/<code>.json) - when the checkout has ee/. Each must still
+ * read as English.
+ */
+const ENTERPRISE_SAME_AS_ENGLISH_IN: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  de: [
+    "Backups",
+    "{{size}} in {{duration}}",
+    "Backup",
+    "Host",
+    "Shards",
+    "Online",
+    "Commits",
+    "Rollbacks",
+    "Deadlocks",
+    "Website",
+    "Logo",
+    "White Label",
+  ],
+  fr: [
+    "Destination",
+    "Type",
+    "Shards",
+    "Application",
+    "{{count}} instances",
+    "{{count}} instances_one",
+    "{{count}} instance",
+    "Activation",
+    "{{count}} minutes",
+    "Logo",
+  ],
+  es: ["{{count}} monitors_one", "Host", "Shards"],
+  it: [
+    "{{size}} in {{duration}}",
+    "Backup",
+    "{{count}} monitors_one",
+    "{{count}} files_one",
+    "Host",
+    "Online",
+    "Logo",
+  ],
+  pt: [
+    "Backups",
+    "Backup",
+    "{{count}} monitors_one",
+    "Host",
+    "Shards",
+    "Online",
+    "Commits",
+    "Deadlocks",
+  ],
+  nl: [
+    "{{size}} in {{duration}}",
+    "{{count}} projects_one",
+    "{{count}} monitors",
+    "{{count}} monitors_one",
+    "Type",
+    "Host",
+    "Shards",
+    "Online",
+    "Commits",
+    "Rollbacks",
+    "Deadlocks",
+    "Website",
+    "Logo",
+  ],
+  da: [
+    "Destination",
+    "{{count}} monitors_one",
+    "Send test",
+    "Type",
+    "Shards",
+    "Online",
+    "Commits",
+    "Rollbacks",
+    "Deadlocks",
+    "Download CSV",
+    "Upload",
+    "Logo",
+  ],
+  no: [
+    "{{count}} monitors_one",
+    "Send test",
+    "Type",
+    "Shards",
+    "Commits",
+    "Logo",
+  ],
+  sv: ["{{count}} monitors_one", "Shards", "Online", "Commits"],
+  ru: [],
+  ja: ["Webhook URL"],
+  ko: [],
+  "zh-CN": ["Webhook URL"],
+  "zh-TW": ["Webhook URL"],
+  hi: [],
   fa: [],
   ar: [],
 };
@@ -254,9 +403,51 @@ const hasLetters: (text: string) => boolean = (text: string): boolean => {
 
 const OWN: OwnStrings = readAdminOwnStrings();
 
-const LOOKED_UP: Array<OwnText> = OWN.texts.filter((text: OwnText): boolean => {
-  return !(text.key in NOT_LOOKED_UP);
-});
+/*
+ * The Enterprise Edition's admin pages (ee/AdminDashboard) draw through the
+ * same locales (#8554). The App's test job runs without ee/ in the
+ * checkout and ee/'s own jobs run with it, so they are read where they are.
+ */
+const ENTERPRISE_SOURCE: string = path.join(
+  REPOSITORY_ROOT,
+  "ee",
+  "AdminDashboard",
+);
+
+const ENTERPRISE_PRESENT: boolean = fs.existsSync(ENTERPRISE_SOURCE);
+
+const ENTERPRISE: OwnStrings = ENTERPRISE_PRESENT
+  ? readAdminOwnStrings(ENTERPRISE_SOURCE)
+  : { texts: [], nestedKeys: [], files: 0 };
+
+const LOOKED_UP: Array<OwnText> = [...OWN.texts, ...ENTERPRISE.texts].filter(
+  (text: OwnText): boolean => {
+    return !(text.key in NOT_LOOKED_UP);
+  },
+);
+
+const NESTED_KEYS: Array<OwnNestedKey> = [
+  ...OWN.nestedKeys,
+  ...ENTERPRISE.nestedKeys,
+];
+
+// What reads as written, the Enterprise pages' names and examples with it.
+const AS_WRITTEN: Readonly<Record<string, string>> = {
+  ...READ_AS_WRITTEN,
+  ...(ENTERPRISE_PRESENT ? ENTERPRISE_READ_AS_WRITTEN : {}),
+};
+
+// Each language's loanwords, the Enterprise pages' with them.
+const sameAsEnglishIn: (language: string) => ReadonlyArray<string> = (
+  language: string,
+): ReadonlyArray<string> => {
+  return [
+    ...(SAME_AS_ENGLISH_IN[language] || []),
+    ...(ENTERPRISE_PRESENT
+      ? ENTERPRISE_SAME_AS_ENGLISH_IN[language] || []
+      : []),
+  ];
+};
 
 const TEXTS: Map<string, string> = uniqueTexts(LOOKED_UP);
 
@@ -274,15 +465,14 @@ const englishLeftIn: (language: string, locale: LocaleTree) => Array<string> = (
   language: string,
   locale: LocaleTree,
 ): Array<string> => {
-  const sameAsEnglish: ReadonlyArray<string> =
-    SAME_AS_ENGLISH_IN[language] || [];
+  const sameAsEnglish: ReadonlyArray<string> = sameAsEnglishIn(language);
 
   return Array.from(TEXTS.entries())
     .filter(([key, english]: [string, string]): boolean => {
       return (
         locale[key] === english &&
         hasLetters(english) &&
-        !(key in READ_AS_WRITTEN) &&
+        !(key in AS_WRITTEN) &&
         !sameAsEnglish.includes(key)
       );
     })
@@ -327,12 +517,67 @@ describe("the Admin Dashboard's own pages", () => {
     }
   });
 
-  test("leave out an element's text the page draws as written, which no entry would change", () => {
-    // ClickHouse's capacity table heads its columns as plain <th> text.
-    expect(TEXTS.has("Shard")).toBe(false);
-    expect(TEXTS.has("Active parts")).toBe(false);
-    // The sentence "ClickHouse is {reachable / not reachable} from this instance." is glued from pieces.
+  test("hand over the texts #8555 routed through translation, which they drew as written", () => {
+    for (const text of [
+      // ClickHouse's capacity table headed its columns as plain text.
+      "Shard",
+      "Active parts",
+      // Glued from "ClickHouse is", "reachable" / "not reachable" and "from this instance.".
+      "ClickHouse is reachable from this instance.",
+      "ClickHouse is not reachable from this instance.",
+      "Fullest of {{count}} disks",
+      "Fullest of {{count}} disks_one",
+      "Recorded {{time}}",
+      "Pending migrations (run in order)",
+      "and {{count}} more…",
+      "{{count}} pending · failed",
+      "Loading teams...",
+      "Stuck at: {{step}}.",
+      "{{value}} (default)",
+      "{{feature}} is a OneUptime Enterprise Edition feature. Switch to the Enterprise Edition build to enable it.",
+      // Kept in a constant or handed to a helper the extractor did not read.
+      "Disk used",
+      "Capacity before",
+      "PostgreSQL schema migrations",
+      "Instance version & build",
+      "PostgreSQL cluster health",
+      "Waiting for Reclaim",
+    ]) {
+      expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+        text,
+        handedOver: true,
+      });
+    }
+
+    // The pieces it was glued from are no texts of their own.
     expect(TEXTS.has("not reachable")).toBe(false);
+    expect(TEXTS.has("ClickHouse is")).toBe(false);
+  });
+
+  test("leave out an element's text a page draws as written, which no entry would change", () => {
+    const read: { texts: Array<OwnText> } = readOwnStrings(
+      "packages/App/FeatureSet/AdminDashboard/src/Pages/Health/Fixture.tsx",
+      [
+        'import React from "react";',
+        "const Page = (props: { connected: boolean }) => {",
+        "  return (",
+        "    <table>",
+        "      <thead><tr><th>Shard</th></tr></thead>",
+        "      <caption>",
+        '        ClickHouse is {props.connected ? "reachable" : "not reachable"} from',
+        "        this instance.",
+        "      </caption>",
+        "    </table>",
+        "  );",
+        "};",
+      ].join("\n"),
+    );
+
+    expect(
+      read.texts.map((text: OwnText): string => {
+        return text.key;
+      }),
+    ).toEqual([]);
   });
 
   test("every text no lookup reads is one the pages still hand over, with its reason", () => {
@@ -381,13 +626,13 @@ describe("the Admin Dashboard's own pages", () => {
     "%s has every nested key the pages read",
     (language: string) => {
       const locale: LocaleTree = readAdminLocale(language);
-      const missing: Array<string> = OWN.nestedKeys
-        .filter((key: OwnNestedKey): boolean => {
+      const missing: Array<string> = NESTED_KEYS.filter(
+        (key: OwnNestedKey): boolean => {
           return readNested(locale, key.path) === undefined;
-        })
-        .map((key: OwnNestedKey): string => {
-          return `${key.path.join(".")} (${key.file}:${key.line})`;
-        });
+        },
+      ).map((key: OwnNestedKey): string => {
+        return `${key.path.join(".")} (${key.file}:${key.line})`;
+      });
 
       expect({ language, missing }).toEqual({ language, missing: [] });
     },
@@ -407,7 +652,7 @@ describe("the Admin Dashboard's own pages", () => {
     "%s's list of words it says as English names only texts it still says so",
     (language: string) => {
       const locale: LocaleTree = readAdminLocale(language);
-      const list: ReadonlyArray<string> = SAME_AS_ENGLISH_IN[language] || [];
+      const list: ReadonlyArray<string> = sameAsEnglishIn(language);
       const stale: Array<string> = list.filter((key: string): boolean => {
         return !TEXTS.has(key) || locale[key] !== TEXTS.get(key);
       });
@@ -422,7 +667,7 @@ describe("the Admin Dashboard's own pages", () => {
       [...LANGUAGES].sort(),
     );
 
-    for (const text of Object.keys(READ_AS_WRITTEN)) {
+    for (const text of Object.keys(AS_WRITTEN)) {
       expect({ text, handedOver: TEXTS.has(text) }).toEqual({
         text,
         handedOver: true,
@@ -430,6 +675,44 @@ describe("the Admin Dashboard's own pages", () => {
     }
   });
 });
+
+(ENTERPRISE_PRESENT ? describe : describe.skip)(
+  "the Enterprise Edition's admin pages (#8554)",
+  () => {
+    test("are read too: the licenses, live Health and White Label pages", () => {
+      expect(ENTERPRISE.files).toBeGreaterThan(50);
+      expect(ENTERPRISE.texts.length).toBeGreaterThan(300);
+
+      for (const text of [
+        "Total licenses",
+        "Over user limit",
+        "PostgreSQL health policy",
+        "Valkey health policy",
+        "Read-only mode is off",
+        "Ingestion by project",
+        "White Label",
+      ]) {
+        expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+          text,
+          handedOver: true,
+        });
+      }
+    });
+
+    test("their names and examples read as written are texts they hand over", () => {
+      for (const text of Object.keys(ENTERPRISE_READ_AS_WRITTEN)) {
+        expect({ text, handedOver: TEXTS.has(text) }).toEqual({
+          text,
+          handedOver: true,
+        });
+      }
+
+      expect(Object.keys(ENTERPRISE_SAME_AS_ENGLISH_IN).sort()).toEqual(
+        [...LANGUAGES].sort(),
+      );
+    });
+  },
+);
 
 /*
  * The checks above, run on fixtures: what they name when an entry goes

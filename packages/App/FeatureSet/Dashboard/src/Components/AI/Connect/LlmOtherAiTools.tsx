@@ -2,7 +2,9 @@ import IconProp from "Common/Types/Icon/IconProp";
 import LlmConnectionProvider from "Common/Types/LlmObservability/LlmConnectionProvider";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import LockedReason, {
+  LOCKED_CONTROL_CLASS_NAME,
+} from "Common/UI/Components/Tooltip/LockedReason";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -76,6 +78,11 @@ export interface ComponentProps {
   // Opens a tool's connection form (Cursor's); absent: no button.
   onConnect?: ((provider: LlmConnectionProvider) => void) | undefined;
   canConnect?: boolean | undefined;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
 }
 
@@ -108,6 +115,9 @@ const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
           const connects: LlmConnectionProvider | undefined =
             props.onConnect && tool.connects ? tool.connects : undefined;
           const canConnect: boolean = props.canConnect !== false;
+          // Locked with a reason: the wrapper around it takes the pointer.
+          const isExplainedLock: boolean =
+            !canConnect && Boolean(props.connectDisabledReason);
 
           const connectButton: ReactElement = connects ? (
             <button
@@ -122,7 +132,7 @@ const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
                   isLocked: !canConnect,
                   hoverClassName: "hover:text-indigo-700",
                 },
-              )}`}
+              )}${isExplainedLock ? ` ${LOCKED_CONTROL_CLASS_NAME}` : ""}`}
             >
               <Icon icon={IconProp.Link} className="h-4 w-4" />
               <span>
@@ -149,10 +159,13 @@ const LlmOtherAiTools: FunctionComponent<ComponentProps> = (
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                 {connects ? (
-                  !canConnect && props.connectDisabledReason ? (
-                    <Tooltip text={props.connectDisabledReason}>
+                  isExplainedLock && props.connectDisabledReason ? (
+                    <LockedReason
+                      reason={props.connectDisabledReason}
+                      dataTestId={`llm-other-ai-tool-connect-locked-${tool.key}`}
+                    >
                       {connectButton}
-                    </Tooltip>
+                    </LockedReason>
                   ) : (
                     connectButton
                   )

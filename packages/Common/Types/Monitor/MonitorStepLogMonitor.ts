@@ -131,7 +131,11 @@ export class MonitorStepLogMonitorUtil {
    *
    * "__proto__" is refused: the keys become the keys of a plain label
    * object, where it would replace the prototype instead of naming a
-   * group.
+   * group. Kept on purpose (issue #8487): the key would have to be an own
+   * key at every step a group takes - the worker's labels, the series'
+   * fingerprint, the resolving logs' groups, the alert's and incident's
+   * labels, the deep link to its logs - and each of those is a plain
+   * object today, for a key no log monitor has needed.
    */
   public static getGroupByAttributes(
     monitorStepLogMonitor:

@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+At arkivere clouden slår intet af dette fra. En arkiveret cloud er kun skjult i listerne: den indsamles stadig, og dens API-tjek og livscyklustjekket bliver ved med at køre. Slå et tjek fra for at stoppe det.
+
 ## AI-agent
 
 Agentens `docker-compose.yml` kører også **OpenStack AI-agent**, `oneuptime-openstack-ai-agent` (image `oneuptime/resource-ai-agent:release`). Mens OneUptime AI undersøger en hændelse eller advarsel på denne cloud, kører den skrivebeskyttede `openstack`-kommandoer gennem den — `openstack compute service list --host compute-01`, `openstack server list --all-projects --limit 50 --host compute-01`, `openstack server event list ID`, `openstack network agent list`, `openstack volume service list` — og angiver, hvad den kørte. Der er ingen `openstack`-binær i agenten og intet shell: hver kommando bliver til ét `GET` til den tjeneste, der besvarer den, med agentens egen legitimation. Agenten registrerer sig med det samme `OPENSTACK_CLOUD_NAME`, collectoren rapporterer, så den betjener denne cloud.

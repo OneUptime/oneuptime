@@ -45,6 +45,22 @@ export const UNSAID_PURPOSE_MESSAGE: string =
 
 const INVALID_TOKEN_MESSAGE: string = "AccessToken is invalid or expired";
 
+export interface DecodeOptions {
+  /*
+   * Takes a token that has expired, its signature and what it is for
+   * checked all the same. For ENDING the session a session's access token
+   * names, at a sign-out, and nothing else (POST /identity/logout, issue
+   * #8592): the server rotates the refresh token at every renewal, so a
+   * client whose renewal's answer was lost signs out with a refresh token
+   * that matches no session any more, and an access token of before - a
+   * sign-out is often the first request after a while - which still names
+   * the session. An expired token can end its own session there and get
+   * nothing else anywhere: what its holder asked for, and no more than a
+   * refresh token of the same session could do.
+   */
+  acceptExpired?: boolean | undefined;
+}
+
 class JSONWebToken {
   /*
    * A dashboard session's access token, the only token the API takes as a
@@ -229,12 +245,16 @@ class JSONWebToken {
    * person is read with decode, which asks.
    */
   @CaptureSpan()
-  public static decodeJsonPayload(token: string): JSONObject {
+  public static decodeJsonPayload(
+    token: string,
+    options?: DecodeOptions,
+  ): JSONObject {
     // The key object jsonwebtoken would make of the key (see signJsonPayload).
     const decodedToken: string = JSON.stringify(
       jwt.verify(
         token,
         JsonWebTokenKeys.forVerifying(TokenSigningKey.get()) as jwt.Secret,
+        options?.acceptExpired ? { ignoreExpiration: true } : undefined,
       ) as string,
     );
     const decoded: JSONObject = JSONFunctions.parseJSONObject(decodedToken);
@@ -326,15 +346,20 @@ class JSONWebToken {
    * `purpose` and it has not expired. Throws otherwise: a token made for
    * anything else is refused exactly as one that does not verify (isFor),
    * so an SSO sign-in is no session, a session no SSO sign-in, and a status
-   * page's session neither.
+   * page's session neither. With `acceptExpired` (DecodeOptions), one that
+   * has expired is taken too, for the one use that asks.
    */
   @CaptureSpan()
   public static decode(
     token: string,
     purpose: JsonWebTokenPurpose,
+    options?: DecodeOptions,
   ): JSONWebTokenData {
     try {
-      const decoded: JSONObject = JSONWebToken.decodeJsonPayload(token);
+      const decoded: JSONObject = JSONWebToken.decodeJsonPayload(
+        token,
+        options,
+      );
 
       if (!JSONWebToken.isFor(decoded, purpose)) {
         throw new BadDataException(

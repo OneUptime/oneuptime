@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -152,7 +153,7 @@ function answer(options: ListOptions): Array<unknown> {
   return [];
 }
 
-let navigateSpy: jest.SpiedFunction<typeof Navigation.navigate>;
+let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
 beforeEach(() => {
   pageDomains = [];
@@ -178,7 +179,7 @@ beforeEach(() => {
 
   navigateSpy = getJestSpyOn(Navigation, "navigate").mockImplementation(
     (): void => {},
-  ) as jest.SpiedFunction<typeof Navigation.navigate>;
+  ) as SpyInstance<typeof Navigation.navigate>;
 
   getJestSpyOn(PermissionGate, "checkColumnUpdate").mockImplementation(
     (): PermissionGateResult => {

@@ -21,7 +21,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   refreshToggle?: string | undefined;
   className?: string | undefined;
   alertType: HeaderAlertType;
+  // In English, looked up by the tooltip - unless isTooltipTranslated says.
   tooltip?: string | undefined;
+  // The tooltip is in the reader's words already: drawn as given (#8423).
+  isTooltipTranslated?: boolean | undefined;
 }
 
 const HeaderModelAlert: <TBaseModel extends BaseModel>(
@@ -94,6 +97,7 @@ const HeaderModelAlert: <TBaseModel extends BaseModel>(
       className={props.className}
       alertType={props.alertType}
       tooltip={props.tooltip}
+      isTooltipTranslated={props.isTooltipTranslated}
     />
   );
 };

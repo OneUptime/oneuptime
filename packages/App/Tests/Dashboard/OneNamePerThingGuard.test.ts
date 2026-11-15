@@ -1,6 +1,8 @@
 // UX rule: Docs/ux/README.md#in-every-language
 import {
   KeptPhrase,
+  NORWEGIAN_RETNINGSLINJE,
+  NORWEGIAN_RETNINGSLINJE_KEPT,
   ONE_NAME,
   OneName,
   otherWordIn,
@@ -102,19 +104,12 @@ const DOCS_NAV_DIR: string = path.join(APPS_DIR, "Docs/Locales");
  * dropped word, in pages written before the Dashboard settled on one. Every
  * other name's docs say the one name and are read for it. #8230 took the
  * last five off (French, Italian and Danish workflows, Russian dashboards,
- * Norwegian metrics): a name added to OneNamePerThing before its docs are
+ * Norwegian metrics), and #8565 the Italian and Portuguese on-call policy
+ * #8435 had put here: a name added to OneNamePerThing before its docs are
  * reworded goes here, and comes off when they say the one name - the test
  * fails while one is listed and clean.
  */
-const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
-  /*
-   * #8435 settled the Dashboard's Italian and Portuguese words for an
-   * on-call policy; their docs pages still say the dropped ones (#8565).
-   * Norwegian's docs say vaktpolicy since #8527.
-   */
-  { language: "it", title: "On-Call" },
-  { language: "pt", title: "On-Call" },
-];
+const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
 
 /*
  * Products whose page draws no title of its own, so the Products menu's
@@ -945,6 +940,201 @@ describe("Norwegian calls an on-call policy a policy (#8527)", () => {
   });
 });
 
+/*
+ * The Italian and Portuguese docs said the on-call words #8435 dropped from
+ * their Dashboards: "Esegui criterio di reperibilità", "un criterio di
+ * reperibilità archiviato", "Detalhes da política de Plantão" and "Regras
+ * de Plantão" on 28 lines (#8565). They are read for the one name now.
+ */
+describe("the Italian and Portuguese on-call words (#8565)", () => {
+  test("Italian: criterio di reperibilità is read, policy di reperibilità passes", () => {
+    const italian: OneName = nameOf("it", "On-Call");
+
+    expect(otherWordIn(italian, "**Esegui criterio di reperibilità**")).toBe(
+      "criterio di reperibilità",
+    );
+    expect(
+      otherWordIn(italian, "**Esegui policy di reperibilità**"),
+    ).toBeNull();
+  });
+
+  test("Portuguese: Plantão mid-name is read, a menu path and Title Case keep it", () => {
+    const portuguese: OneName = nameOf("pt", "On-Call");
+
+    for (const dropped of [
+      "**Detalhes da política de Plantão**",
+      "Abra **Incidentes → Regras → Regras de Plantão**.",
+      "- **Regras de Plantão** — executam uma política.",
+    ]) {
+      expect({
+        dropped,
+        read: otherWordIn(portuguese, dropped) !== null,
+      }).toEqual({ dropped, read: true });
+    }
+
+    for (const kept of [
+      "**Detalhes da política de plantão**",
+      "Abra **Incidentes → Regras → Regras de plantão**.",
+      "a página **Minhas Políticas de Plantão**",
+      "Abra **Plantão > Prontidão**.",
+    ]) {
+      expect({ kept, read: otherWordIn(portuguese, kept) }).toEqual({
+        kept,
+        read: null,
+      });
+    }
+  });
+
+  test("the pages read as fixed", () => {
+    expect(readPage("it", "on-call/policies")).toContain(
+      "**Esegui policy di reperibilità**",
+    );
+    expect(readPage("it", "installation/upgrading")).toContain(
+      "Eseguire una policy di reperibilità archiviata",
+    );
+    expect(readPage("pt", "on-call/policies")).toContain(
+      "**Detalhes da política de plantão**",
+    );
+    expect(readPage("pt", "on-call/policies")).toContain(
+      "**Incidentes → Regras → Regras de plantão**",
+    );
+  });
+});
+
+/*
+ * NORWEGIAN CALLS EVERY PRODUCT'S POLICY A POLICY (#8562).
+ *
+ * After #8527 a few policies still said retningslinje beside the
+ * Dashboard's policy: Session Replay's (its page is Avspillingspolicy, its
+ * docs said retningslinjen some 60 times), the Network menu's Alert
+ * Policies (Varslingsretningslinjer, beside a dozen sentences saying
+ * varslingspolicy), Kubernetes' and Cilium's (Samtidighetsretningslinje,
+ * nettverksretningslinjer, beside omstartspolicy and nettverkspolicyer),
+ * and a page's Content Security Policy in the RUM docs. Retningslinje is
+ * a guideline now, and is kept only where one is meant
+ * (NORWEGIAN_RETNINGSLINJE_KEPT, with why).
+ */
+describe("Norwegian calls every product's policy a policy (#8562)", () => {
+  // A text with the kept guidelines taken out.
+  function withoutKept(text: string): string {
+    return NORWEGIAN_RETNINGSLINJE_KEPT.phrases.reduce(
+      (rest: string, kept: KeptPhrase): string => {
+        return rest.replace(
+          new RegExp(kept.phrase.source, `${kept.phrase.flags}g`),
+          " ",
+        );
+      },
+      text,
+    );
+  }
+
+  test("reads a product's policy, and passes a guideline", () => {
+    for (const policy of [
+      "Varslingsretningslinjer",
+      "Samtidighetsretningslinje",
+      "Feil ved import av nettverksretningslinjer.",
+      "henter applikasjonens retningslinje fra OneUptime",
+      "Sidens retningslinje tillater ikke OneUptime ennå.",
+    ]) {
+      expect({
+        policy,
+        read: NORWEGIAN_RETNINGSLINJE.test(withoutKept(policy)),
+      }).toEqual({
+        policy,
+        read: true,
+      });
+    }
+
+    for (const guideline of [
+      "sjekk med juridisk avdeling eller HR hva retningslinjene deres og lokal lov krever.",
+      "Før du stoler på et nummer, sjekk [Twilios SMS-retningslinjer](https://www.twilio.com).",
+    ]) {
+      expect({
+        guideline,
+        read: NORWEGIAN_RETNINGSLINJE.test(withoutKept(guideline)),
+      }).toEqual({ guideline, read: false });
+    }
+  });
+
+  test.each(Object.keys(LOCALE_DIRS))(
+    "no Norwegian string of the %s says retningslinje for a policy",
+    (app: string) => {
+      const found: Array<Sighting> = [];
+
+      for (const [key, text] of stringsIn(LOCALE_DIRS[app]!, "no") || []) {
+        if (key in NORWEGIAN_RETNINGSLINJE_KEPT.keys) {
+          continue;
+        }
+
+        if (NORWEGIAN_RETNINGSLINJE.test(withoutKept(text))) {
+          found.push({ where: key, text: text, says: "retningslinje" });
+        }
+      }
+
+      expect(found).toEqual([]);
+    },
+  );
+
+  test("no Norwegian docs page or navigation title says retningslinje for a policy", () => {
+    const pages: Array<string> = listPages("no");
+
+    expect(pages.length).toBeGreaterThan(100);
+    expect(
+      pages.filter((page: string): boolean => {
+        return NORWEGIAN_RETNINGSLINJE.test(withoutKept(readPage("no", page)));
+      }),
+    ).toEqual([]);
+    expect(
+      Array.from(stringsIn(DOCS_NAV_DIR, "no")?.values() || []).filter(
+        (text: string): boolean => {
+          return NORWEGIAN_RETNINGSLINJE.test(withoutKept(text));
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("keeps only guidelines that are still there", () => {
+    const dashboard: Strings = stringsIn(LOCALE_DIRS["Dashboard"]!, "no")!;
+    const texts: Array<string> = [
+      ...listPages("no").map((page: string): string => {
+        return readPage("no", page);
+      }),
+      ...Array.from(dashboard.values()),
+    ];
+
+    for (const key of Object.keys(NORWEGIAN_RETNINGSLINJE_KEPT.keys)) {
+      expect({ key, says: dashboard.get(key) }).toEqual({
+        key,
+        says: expect.stringMatching(NORWEGIAN_RETNINGSLINJE),
+      });
+    }
+
+    for (const kept of NORWEGIAN_RETNINGSLINJE_KEPT.phrases) {
+      expect({
+        phrase: kept.phrase.source,
+        found: texts.some((text: string): boolean => {
+          return kept.phrase.test(text);
+        }),
+      }).toEqual({ phrase: kept.phrase.source, found: true });
+    }
+  });
+
+  test.each([
+    ["Replay Policy", "Avspillingspolicy"],
+    ["Alert Policies", "Varslingspolicyer"],
+    ["Concurrency Policy", "Samtidighetspolicy"],
+    ["Reclaim Policy", "Gjenvinningspolicy"],
+    ["Pod Management Policy", "Pod-administrasjonspolicy"],
+    ["Policy Rules", "Policyregler"],
+    [
+      "Not required by this application's policy",
+      "Ikke påkrevd av denne applikasjonens policy",
+    ],
+  ])("the Dashboard's %p reads %p", (key: string, worded: string) => {
+    expect(readDashboardLocale("no")[key]).toBe(worded);
+  });
+});
+
 describe("every name in OneNamePerThing", () => {
   test("names a Products-menu title", () => {
     for (const [language, names] of Object.entries(ONE_NAME)) {
@@ -978,7 +1168,8 @@ describe("every name in OneNamePerThing", () => {
    * The French, Italian and Danish docs said "workflow", the Russian
    * "дашборд" and the Norwegian "metrikk" in about 3,800 blocks and 35
    * navigation titles beside their Dashboard's word (#8230): they are read
-   * for it like every other name's.
+   * for it like every other name's. So are the Italian, Portuguese and
+   * Norwegian on-call policy's (#8565, #8527).
    */
   test.each([
     ["fr", "Workflows"],
@@ -986,6 +1177,9 @@ describe("every name in OneNamePerThing", () => {
     ["da", "Workflows"],
     ["ru", "Dashboards"],
     ["no", "Metrics"],
+    ["it", "On-Call"],
+    ["pt", "On-Call"],
+    ["no", "On-Call"],
   ])(
     "%s %s: its docs are read for the one name",
     (language: string, title: string) => {

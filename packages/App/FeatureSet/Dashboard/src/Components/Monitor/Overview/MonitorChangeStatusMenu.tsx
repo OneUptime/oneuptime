@@ -347,6 +347,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
           text="Change status"
           isDisabled={!gate.isAllowed}
           tooltip={gate.isAllowed ? undefined : gate.disabledReason}
+          isTooltipTranslated={true}
           dataTestId={MONITOR_CHANGE_STATUS_FALLBACK_TEST_ID}
           onClick={() => {
             Navigation.navigate(
@@ -374,6 +375,7 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
               color={choice.color}
               isDisabled={!gate.isAllowed}
               tooltip={gate.isAllowed ? undefined : gate.disabledReason}
+              isTooltipTranslated={true}
               dataTestId={MONITOR_CHANGE_STATUS_OPTION_TEST_ID}
               onClick={() => {
                 setSaveError("");

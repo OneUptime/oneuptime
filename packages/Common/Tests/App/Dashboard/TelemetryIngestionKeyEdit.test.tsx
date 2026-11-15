@@ -23,6 +23,14 @@ import Permission from "../../../Types/Permission";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { ComponentProps as CodeEditorProps } from "../../../UI/Components/CodeEditor/CodeEditor";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/telemetry-ingestion-budget/project"]);
 
 /*
  * The ingestion key DETAIL page, through the real CardModelDetail, ModelForm

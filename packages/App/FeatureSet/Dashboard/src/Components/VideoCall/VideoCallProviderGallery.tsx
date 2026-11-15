@@ -9,7 +9,9 @@ import {
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
-import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import LockedReason, {
+  LOCKED_CONTROL_CLASS_NAME,
+} from "Common/UI/Components/Tooltip/LockedReason";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -59,6 +61,11 @@ export const VIDEO_CALL_TILE_FOOTER_CLASS_NAME: string =
 export interface ComponentProps {
   connectionCounts: Partial<Record<VideoCallProvider, number>>;
   canConnect: boolean;
+  /*
+   * Why connecting is refused, as the permission check (PermissionGate)
+   * words it: in the reader's language already, so its tooltip draws it as
+   * given (#8423).
+   */
   connectDisabledReason?: string | undefined;
   onConnect: (provider: VideoCallProvider) => void;
 }
@@ -79,17 +86,21 @@ const ProviderTile: FunctionComponent<{
   const translator: Translator = useTranslator();
   const definition: VideoCallProviderDefinition = props.definition;
 
+  // Locked with a reason: the wrapper around it takes the pointer.
+  const isExplainedLock: boolean =
+    !props.canConnect && Boolean(props.connectDisabledReason);
+
   const button: ReactElement = (
     <button
       type="button"
       data-testid={`video-call-connect-${definition.provider}`}
       disabled={!props.canConnect}
       onClick={props.onConnect}
-      className={getHandDrawnLookClassName({
+      className={`${getHandDrawnLookClassName({
         className:
           "inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
         isLocked: !props.canConnect,
-      })}
+      })}${isExplainedLock ? ` ${LOCKED_CONTROL_CLASS_NAME}` : ""}`}
     >
       <Icon icon={IconProp.Add} className="h-4 w-4" />
       {props.count > 0
@@ -147,10 +158,15 @@ const ProviderTile: FunctionComponent<{
             : translator.translateText("Setup guide")}
           <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
         </Link>
-        {props.canConnect || !props.connectDisabledReason ? (
-          button
+        {isExplainedLock && props.connectDisabledReason ? (
+          <LockedReason
+            reason={props.connectDisabledReason}
+            dataTestId={`video-call-connect-locked-${definition.provider}`}
+          >
+            {button}
+          </LockedReason>
         ) : (
-          <Tooltip text={props.connectDisabledReason}>{button}</Tooltip>
+          button
         )}
       </div>
     </li>

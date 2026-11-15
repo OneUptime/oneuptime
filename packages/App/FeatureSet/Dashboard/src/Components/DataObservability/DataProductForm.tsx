@@ -12,6 +12,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../Utils/Milliseconds";
 import React, { ReactElement } from "react";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 
@@ -135,18 +136,23 @@ export function getDataProductStatusPill(
   }
 }
 
+// "2h", "1d", "90m", in the reader's units and digits ("۲ ساعت"; #8455).
 function describeMinutes(translator: Translator, minutes: number): string {
   if (minutes % MINUTES_PER_DAY === 0) {
-    return translator.translateTemplate("{{count}}d", {
-      count: minutes / MINUTES_PER_DAY,
+    return formatCompactDuration(translator, {
+      days: minutes / MINUTES_PER_DAY,
     });
   }
 
   if (minutes % 60 === 0) {
-    return translator.translateTemplate("{{count}}h", { count: minutes / 60 });
+    return formatCompactDuration(translator, { hours: minutes / 60 });
   }
 
-  return translator.translateTemplate("{{count}}m", { count: minutes });
+  return formatCompactDuration(
+    translator,
+    { minutes },
+    { decimals: 3, dropTrailingZeros: true },
+  );
 }
 
 // The SLA in a line: "Fresh by 07:00 UTC, never older than 2h".

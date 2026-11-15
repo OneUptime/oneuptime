@@ -36,6 +36,20 @@ import { decodeJwtPayload, type JwtPayload } from "../utils/jwt";
  * the session it happened in: a time kept for one sign-in never ends the
  * next one, nor hides one of the next one's own.
  *
+ * And the server must hear of it while the person is here (issue #8458).
+ * The server's five-minute sweep records an idle timeout within minutes of
+ * it running out, even for a phone that is never opened again - but only
+ * for a session whose last renewal promised that, while its person uses
+ * it, a renewal tells the server of their activity at least every
+ * ACTIVITY_REPORT_INTERVAL_MS (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD,
+ * Common/Types/UserSession/SessionLength.ts ACTIVITY_REPORTED_WITHIN_IN_
+ * MINUTES). The app keeps it: each renewal's report is noted as the
+ * activity the server has heard of (noteActivityReported), and each use
+ * of the app renews the session once that is ACTIVITY_REPORT_INTERVAL_MS
+ * old (isActivityReportDue, api/client.ts renewSessionAheadOfExpiry). An
+ * app nobody uses renews nothing, and the sweep then records its idle
+ * timeout instead of 30 days later.
+ *
  * Nothing here signs anyone out. The server decides; the report can only
  * end a session the idle timeout has ended, never keep one past it.
  */
@@ -48,6 +62,21 @@ export const USER_ACTIVITY_STORAGE_KEY: string =
 export const INACTIVE_FOR_IN_SECONDS_FIELD: string = "inactiveForInSeconds";
 
 export const LONGEST_INACTIVITY_FIELD: string = "longestInactivity";
+
+/*
+ * The field of a renewal in which the app says it renews while its person
+ * uses it (REPORTS_ACTIVITY_WHILE_IN_USE_FIELD): sent as true with every
+ * renewal (api/client.ts).
+ */
+export const REPORTS_ACTIVITY_WHILE_IN_USE_FIELD: string =
+  "reportsActivityWhileInUse";
+
+/*
+ * How old the activity the server last heard of may grow while the person
+ * uses the app before a renewal tells it of newer activity: the interval
+ * the server counts on (ACTIVITY_REPORTED_WITHIN_IN_MINUTES, 5).
+ */
+export const ACTIVITY_REPORT_INTERVAL_MS: number = 5 * 60 * 1000;
 
 /*
  * How often the newest activity is written down while the app is in use:
@@ -121,6 +150,12 @@ let lastWrittenAtMs: number | null = null;
 let writes: Promise<void> = Promise.resolve();
 
 let appStateSubscription: { remove: () => void } | null = null;
+
+/*
+ * The newest activity a renewal of this launch told the server of, on the
+ * phone's own clock, and the session it was told for.
+ */
+let reportedActivity: { atMs: number; sessionKey: string } | null = null;
 
 const listeners: Set<ActivityListener> = new Set<ActivityListener>();
 
@@ -519,6 +554,72 @@ export function forgetInactivityReportedBy(reportedAtMs: number): void {
   writeRecord();
 }
 
+/*
+ * A renewal went through that told the server of activity at
+ * `activityAtMs` (when it was read, less how long it said the person had
+ * not used the app): the newest activity the server has heard of, for the
+ * session signed in now. Kept on the phone's own clock rather than read
+ * from the access token the renewal brought back, whose lastActiveAt is on
+ * the server's: a phone a few minutes behind it would otherwise find that
+ * activity in its future after every renewal, and renew again at once.
+ * The latest renewal's word replaces the one before, even when it is
+ * earlier: only a clock that moved back makes it so, and the activity
+ * noted before the move would otherwise stay in the future for as long
+ * as the clock moved.
+ */
+export function noteActivityReported(activityAtMs: number): void {
+  const sessionKey: string | null = getCurrentSessionKey();
+
+  if (sessionKey === null || !isTime(activityAtMs)) {
+    return;
+  }
+
+  reportedActivity = { atMs: activityAtMs, sessionKey };
+}
+
+/*
+ * The newest activity the server has heard of for the session signed in
+ * now, in milliseconds: what this launch's renewals told it
+ * (noteActivityReported), or - none yet: just signed in, or the app just
+ * started - what its access token says the server knew (lastActiveAt, or
+ * its sign-in). Null when nobody is signed in or the token says nothing.
+ */
+export function getReportedActivityAtMs(): number | null {
+  const accessToken: string | null = getCachedAccessToken();
+  const sessionKey: string | null = getSessionKey(accessToken);
+
+  if (sessionKey === null) {
+    return null;
+  }
+
+  if (reportedActivity && reportedActivity.sessionKey === sessionKey) {
+    return reportedActivity.atMs;
+  }
+
+  return getServerKnownActivityAtMs(accessToken);
+}
+
+/*
+ * Whether activity at `nowMs` should be told to the server by a renewal:
+ * the newest activity it heard of is ACTIVITY_REPORT_INTERVAL_MS old, or
+ * there is none it heard of, or it is later than now - a clock that moved
+ * back, or a token signed by a server whose clock is ahead, which only a
+ * renewal sets right. Never while nobody is signed in.
+ */
+export function isActivityReportDue(nowMs: number = Date.now()): boolean {
+  if (getCurrentSessionKey() === null) {
+    return false;
+  }
+
+  const reportedAtMs: number | null = getReportedActivityAtMs();
+
+  if (reportedAtMs === null || nowMs < reportedAtMs) {
+    return true;
+  }
+
+  return nowMs - reportedAtMs >= ACTIVITY_REPORT_INTERVAL_MS;
+}
+
 // Every write asked for so far, done. For tests.
 export function flushUserActivityWrites(): Promise<void> {
   return writes;
@@ -538,4 +639,5 @@ export function resetUserActivityForTests(): void {
   lastActivityBeforeLoadMs = null;
   lastWrittenAtMs = null;
   writes = Promise.resolve();
+  reportedActivity = null;
 }

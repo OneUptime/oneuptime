@@ -82,6 +82,10 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -100,6 +104,8 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 
 `json_array true`는 버퍼의 청크마다 하나의 JSON 배열로 보내고, `flush_interval 10s`는 10초마다 버퍼를 보냅니다. `chunk_limit_size 900k`는 각 요청을 이 엔드포인트에서 OneUptime이 받는 최대 크기인 1MB 미만으로 유지합니다.
 
+`@type file`은 아직 보내지 않은 배치를 `path`가 가리키는 폴더에 보관하므로, Fluentd를 다시 시작해도 하나도 잃지 않습니다. Fluentd의 기본값인 메모리 버퍼는 보관하던 것을 잃습니다. Fluentd의 사용자가 그 폴더에 쓸 수 있어야 합니다. `/var/log/fluent`는 fluent-package의 폴더이고, `/var/log/td-agent`는 td-agent의, `/fluentd/log`는 `fluent/fluentd` 이미지의 폴더입니다. `total_limit_size 512m`은 그곳에 최대 512MB까지 보관하며, 가득 차면 배치가 전송될 때까지 Fluentd는 더 이상 레코드를 받지 않습니다.
+
 `retryable_response_codes 429,502,503,504`는 OneUptime이 바쁘거나(`429`) 다시 시작하는 중일 때(`502`, `503`, `504`) 배치를 다시 보냅니다. 이 설정이 없으면 Fluentd는 `503`이 아닌 모든 응답에서 배치를 버립니다. `retry_max_interval 30s`는 재시도 사이에 최대 30초를 기다리고, `retry_timeout 72h`는 72시간이 지나도 보내지 못한 배치를 버립니다. `record_transformer` 필터는 Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다. HTTP 출력은 레코드만 보내고, OneUptime은 로그의 시간을 레코드에서 읽기 때문입니다.
 
 ### Fluentd 다시 시작
@@ -113,7 +119,7 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 
 ## 전체 예시
 
-이 구성은 포트 `24224`에서 Fluentd의 forward 프로토콜로 레코드를 받아 모두 OneUptime으로 보냅니다.
+이 구성은 포트 `24224`에서 Fluentd의 forward 프로토콜로 이 호스트에서만 레코드를 받아 모두 OneUptime으로 보냅니다.
 
 ```text title="fluentd.conf"
 ####
@@ -125,7 +131,8 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 <source>
   @type forward
   port 24224
-  bind 0.0.0.0
+  # This host alone: see "Take records from other hosts" to open it
+  bind 127.0.0.1
 </source>
 
 # Send the time Fluentd gave each event: the HTTP output sends only the record
@@ -155,6 +162,10 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
     @type json
   </format>
   <buffer>
+    # Keep the batches on disk until OneUptime takes them: a restart of Fluentd loses none
+    @type file
+    path /var/log/fluent/buffer/oneuptime
+    total_limit_size 512m
     flush_interval 10s
     chunk_limit_size 900k
     # Try again at least every 30 seconds, for up to 72 hours
@@ -171,7 +182,61 @@ Fluentd의 구성 파일은 보통 `/etc/fluent/fluentd.conf`이고, 예전 td-a
 </label>
 ```
 
-서로 다른 소스를 서로 다른 서비스로 보내려면 태그마다 `<match>` 섹션을 하나씩 두고, 각각에 자체 `x-oneuptime-service-name`을 지정하세요.
+`bind 127.0.0.1`은 이 호스트에서만 레코드를 받습니다. 예를 들어 `localhost:24224`로 보내는 Docker의 `fluentd` 로그 드라이버의 레코드입니다. 서로 다른 소스를 서로 다른 서비스로 보내려면 태그마다 `<match>` 섹션을 하나씩 두고, 각각에 자체 `x-oneuptime-service-name`과 자체 버퍼 `path`를 지정하세요. 한 경로에 버퍼가 두 개 있으면 Fluentd가 시작되지 않습니다.
+
+## 다른 호스트에서 레코드 받기
+
+`bind 0.0.0.0`이고 `<security>` 섹션이 없으면, 포트 `24224`에 닿을 수 있는 누구나 여러분의 수집 키로 OneUptime에 로그를 보낼 수 있습니다. 다른 호스트의 Fluentd나 Fluent Bit에서 레코드를 받으려면 모든 주소에서 수신하고, 보내는 쪽마다 공유 키를 요구하고, TLS를 사용하세요. 전체 예시의 `<source>` 섹션을 다음으로 바꾸세요.
+
+```text title="fluentd.conf on this host"
+<source>
+  @type forward
+  port 24224
+  bind 0.0.0.0
+  <transport tls>
+    cert_path /etc/fluent/certs/fluentd.crt
+    private_key_path /etc/fluent/certs/fluentd.key
+  </transport>
+  <security>
+    self_hostname fluentd.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+</source>
+```
+
+`cert_path`와 `private_key_path`는 이 호스트 이름(여기서는 `fluentd.example.com`)의 인증서와 그 키이며, Fluentd의 사용자가 읽을 수 있어야 합니다. 키에 암호 문구가 없으면 Fluentd가 경고하며, `private_key_passphrase`로 설정할 수 있습니다. `YOUR_SHARED_KEY`를 `openssl rand -base64 32`로 만든 것 같은 길고 무작위한 비밀로 바꾸고, 보내는 쪽마다 같은 값을 주세요.
+
+```text title="fluentd.conf on each sender"
+<match **>
+  @type forward
+  transport tls
+  # The certificate of the authority that signed this host's; not needed for a public one
+  tls_cert_path /etc/fluent/certs/ca.crt
+  <security>
+    self_hostname app-1.example.com
+    shared_key YOUR_SHARED_KEY
+  </security>
+  <server>
+    host fluentd.example.com
+    port 24224
+  </server>
+  <buffer>
+    @type file
+    path /var/log/fluent/buffer/forward
+  </buffer>
+</match>
+
+# Keep Fluentd's own logs out of OneUptime
+<label @FLUENT_LOG>
+  <match **>
+    @type null
+  </match>
+</label>
+```
+
+Fluent Bit의 `forward` 출력도 같은 설정 `Shared_Key`, `Self_Hostname`, `tls On`, `tls.ca_file`을 받습니다.
+
+키나 TLS 없이 보내는 쪽은 거부됩니다. 키 자체는 네트워크를 지나가지 않으며, 양쪽이 키를 가지고 있음을 서로 증명합니다. TLS가 없으면 호스트 사이 네트워크에 있는 누구나 레코드를 읽을 수 있습니다. 호스트 방화벽에서는 포트 `24224`를 보내는 호스트에만 여세요. 로그 가이드의 Docker Compose 파일로 Fluentd를 실행한다면, 거기서도 포트를 모든 주소에 게시하고(`"24224:24224"`), 인증서 폴더를 컨테이너에 마운트하세요.
 
 ## 레코드를 읽는 방식
 
@@ -209,11 +274,15 @@ Fluentd 로그도 다른 로그처럼 [로그 파이프라인](/docs/telemetry/l
 :::
 
 :::details Fluentd가 `429`, `502`, `503` 또는 `504`를 기록함
-OneUptime이 바쁘거나 다시 시작하는 중입니다. 위 구성처럼 `<match>` 섹션에 `retryable_response_codes 429,502,503,504`가 있으면 Fluentd는 배치를 보관했다가 다시 보냅니다. 없으면 Fluentd는 배치를 버립니다.
+OneUptime이 바쁘거나 다시 시작하는 중입니다. 위 구성처럼 `<match>` 섹션에 `retryable_response_codes 429,502,503,504`가 있으면 Fluentd는 배치를 보관했다가 다시 보냅니다. 없으면 Fluentd는 배치를 버립니다. `<buffer>` 섹션에 `@type file`이 있으면 Fluentd는 다시 시작할 때도 배치를 보관합니다.
 :::
 
 :::details 로그에 자체 시간이 아니라 OneUptime이 받은 시간이 표시됨
-OneUptime은 로그의 시간을 레코드에서 읽고, Fluentd의 HTTP 출력은 레코드만 보냅니다. `<parse>` 섹션은 레코드에서 `time` 필드를 빼내므로, 여기에 `keep_time_key true`를 추가하세요. 위 구성의 `record_transformer` 필터도 추가하세요. Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다.
+OneUptime은 로그의 시간을 레코드에서 읽고, Fluentd의 HTTP 출력은 레코드만 보냅니다. `<parse>` 섹션은 레코드에서 `time` 필드를 이벤트 시간으로 빼내므로, 여기에 `time_key fluentd_time`을 추가해 어떤 레코드의 시간도 읽지 않고 `time`을 그대로 두게 하세요. 위 구성의 `record_transformer` 필터도 추가하세요. Fluentd가 각 레코드에 준 시간을 `fluentd_time`으로 추가합니다.
+:::
+
+:::details `time`이 `null`, `true`, 목록 또는 객체인 JSON 줄이 도착하지 않음
+Fluentd의 `json` 파서는 줄의 `time` 필드를 이벤트 시간으로 읽고, `time`이 텍스트도 숫자도 아닌 줄을 경고 없이 버립니다. 위와 같이 그 `<parse>` 섹션에 `time_key fluentd_time`을 추가하세요. 그러면 Fluentd는 `time`을 레코드에 그대로 둡니다. 위의 `record_transformer` 필터가 있으면 OneUptime은 Fluentd가 읽은 시간 `fluentd_time`에 로그를 저장하고, 없으면 OneUptime이 받은 시간에 저장합니다.
 :::
 
 :::details 로그가 `Fluentd` 서비스로 들어옴

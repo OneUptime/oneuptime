@@ -176,6 +176,14 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/Probe", () => {
 
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/network-device-discovery-import/active"]);
 
 const SNMP_CONFIG: JSONObject = {
   id: "core-v2c",

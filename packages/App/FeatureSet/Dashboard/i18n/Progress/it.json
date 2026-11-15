@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 8617
+    "keys": 54285,
+    "untranslated": 8565
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -97,6 +97,7 @@
     "Datacenter",
     "Datastore",
     "Datastores",
+    "Debug",
     "DeploymentConfigs",
     "Desktop",
     "Directory",

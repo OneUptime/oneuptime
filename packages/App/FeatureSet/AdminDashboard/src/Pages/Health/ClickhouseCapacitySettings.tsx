@@ -5,6 +5,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { translateText } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const isPruningEnabled: (values: FormValues<GlobalConfig>) => boolean = (
@@ -49,7 +50,9 @@ const validatePruningTarget: (
   }
 
   if (target >= trigger) {
-    return "The pruning target must be lower than the pruning trigger.";
+    return translateText(
+      "The pruning target must be lower than the pruning trigger.",
+    ) as string;
   }
 
   return null;

@@ -68,7 +68,7 @@ Nettverk-menyen holder det du åpner hver dag synlig: **Oversikt**, **Enheter**,
 | --- | --- |
 | **Topologi** | **Enhetstopologi**, **Oppdagede enheter**, **Latensmatrise**, **Lokasjonslenker**, **Enhetslenker** |
 | **Regler** | **Regler for automatisk import**, **Regler for lokasjonstildeling**, **Navneregler**, **Eierregler**, **Etikettregler**, **Lenkeregler** |
-| **Innstillinger** | **Varslingsretningslinjer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
+| **Innstillinger** | **Varslingspolicyer**, **SNMP-påloggingsinformasjon**, **Enhetsroller**, **Lokasjonstyper**, **Adressenavn**, **Maler for OID-innsamling** |
 | **Avansert** | **SNMP-walk**, **Arkiverte enheter** |
 
 ## Legg til en nettverksenhet
@@ -764,7 +764,7 @@ Polling gir deg status, inventar og diagrammer. Hendelser, varsler og utkallinge
 
 ### Varslingspolicyer
 
-**Nettverk → Innstillinger → Varslingsretningslinjer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
+**Nettverk → Innstillinger → Varslingspolicyer** er der en flåtes varsling skrives ned én gang. En policy sier hvilke enheter (et omfang av lokasjoner, enhetsroller og etiketter) og hva de varsler om (en monitormal for nettverksenheter), så "hver lagersvitsj oppretter en hendelse når den blir utilgjengelig" er én rad i stedet for to hundre monitorer.
 
 ```mermaid title="Hva en varslingspolicy vedlikeholder"
 flowchart TB

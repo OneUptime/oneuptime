@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { meetsCondition } from "../TestingUtils/QueryConditions";
 
@@ -166,10 +167,10 @@ function resourceReads(findBy: {
 }
 
 function mockService(rows: Array<StatusPageResource>): {
-  findOneBy: jest.SpiedFunction<typeof StatusPageResourceService.findOneBy>;
-  findBy: jest.SpiedFunction<typeof StatusPageResourceService.findBy>;
-  countBy: jest.SpiedFunction<typeof StatusPageResourceService.countBy>;
-  updateOneBy: jest.SpiedFunction<typeof StatusPageResourceService.updateOneBy>;
+  findOneBy: SpyInstance<typeof StatusPageResourceService.findOneBy>;
+  findBy: SpyInstance<typeof StatusPageResourceService.findBy>;
+  countBy: SpyInstance<typeof StatusPageResourceService.countBy>;
+  updateOneBy: SpyInstance<typeof StatusPageResourceService.updateOneBy>;
 } {
   const findOneBy: any = jest
     .spyOn(StatusPageResourceService, "findOneBy")

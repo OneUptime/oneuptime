@@ -5,6 +5,7 @@ import { getAdminDashboardPlugins } from "../../Enterprise/Plugins";
 import EnterpriseHealthUpgrade from "./EnterpriseHealthUpgrade";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 // Valkey health and its notifications: Enterprise Edition.
@@ -19,8 +20,10 @@ const HealthRedis: FunctionComponent = (): ReactElement => {
         renderUpsell={(): ReactElement => {
           return (
             <EnterpriseHealthUpgrade
-              featureName="Valkey health"
-              featureDescription="Connectivity and memory capacity for the Valkey backing this instance."
+              featureName={translationKey("Valkey health")}
+              featureDescription={translationKey(
+                "Connectivity and memory capacity for the Valkey backing this instance.",
+              )}
             />
           );
         }}

@@ -4,6 +4,9 @@ import Table from "../Table/Table";
 import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import TableEmptyValue from "../Table/TableEmptyValue";
+import { getGlobalTranslator, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import { formatCompactDurationAgo } from "../../../Utils/Milliseconds";
 
 export interface Condition {
   type: string;
@@ -45,35 +48,44 @@ function getStatusStyle(
   return "bg-gradient-to-r from-amber-50 to-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200/80";
 }
 
-function formatRelativeTime(timestamp: string): string {
+/*
+ * How long ago a condition last changed: "12s ago", "5m ago", "3h ago", "2d
+ * ago" in English, the reader's short units and digits in their language
+ * ("vor 5 Min.", "۵ دقیقه پیش"; #8455).
+ */
+export function formatRelativeTime(
+  timestamp: string,
+  translator: Translator = getGlobalTranslator(),
+  now: Date = new Date(),
+): string {
   if (!timestamp) {
     return "-";
   }
   const date: Date = new Date(timestamp);
-  const now: Date = new Date();
   const diffMs: number = now.getTime() - date.getTime();
   if (diffMs < 0) {
     return timestamp;
   }
   const diffSec: number = Math.floor(diffMs / 1000);
   if (diffSec < 60) {
-    return `${diffSec}s ago`;
+    return formatCompactDurationAgo(translator, { seconds: diffSec });
   }
   const diffMin: number = Math.floor(diffSec / 60);
   if (diffMin < 60) {
-    return `${diffMin}m ago`;
+    return formatCompactDurationAgo(translator, { minutes: diffMin });
   }
   const diffHrs: number = Math.floor(diffMin / 60);
   if (diffHrs < 24) {
-    return `${diffHrs}h ago`;
+    return formatCompactDurationAgo(translator, { hours: diffHrs });
   }
   const diffDays: number = Math.floor(diffHrs / 24);
-  return `${diffDays}d ago`;
+  return formatCompactDurationAgo(translator, { days: diffDays });
 }
 
 const ConditionsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const negativeTypes: Array<string> =
     props.negativeTypes || defaultNegativeTypes;
 
@@ -157,7 +169,10 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
                   className="text-gray-500"
                   title={condition.lastTransitionTime || ""}
                 >
-                  {formatRelativeTime(condition.lastTransitionTime || "")}
+                  {formatRelativeTime(
+                    condition.lastTransitionTime || "",
+                    translator,
+                  )}
                 </span>
               );
             },
