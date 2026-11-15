@@ -1194,6 +1194,9 @@ import MonitorProbeService, {
 import MonitorSecretService, {
   Service as MonitorSecretServiceType,
 } from "Common/Server/Services/MonitorSecretService";
+import IncomingRequestSecretService, {
+  Service as IncomingRequestSecretServiceType,
+} from "Common/Server/Services/IncomingRequestSecretService";
 import MonitorStatusService, {
   Service as MonitorStatusServiceType,
 } from "Common/Server/Services/MonitorStatusService";
@@ -1774,6 +1777,7 @@ import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
 import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
 import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
+import IncomingRequestSecret from "Common/Models/DatabaseModels/IncomingRequestSecret";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTimelineStatus from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
@@ -4257,6 +4261,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<MonitorSecret, MonitorSecretServiceType>(
         MonitorSecret,
         MonitorSecretService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<IncomingRequestSecret, IncomingRequestSecretServiceType>(
+        IncomingRequestSecret,
+        IncomingRequestSecretService,
       ).getRouter(),
     );
 

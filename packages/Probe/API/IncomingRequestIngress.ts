@@ -112,6 +112,23 @@ function getRequestBody(req: ExpressRequest): JSONObject | JSONArray {
   return { _raw: String(body) };
 }
 
+/*
+ * Whether OneUptime's answer to a forward is a refusal it would give again:
+ * a 4xx says the request itself is wrong - a project's incoming request
+ * secret missing or not one of its own (401), a body too large (413) - and
+ * sending the same request again cannot change that, it only keeps the probe
+ * busy through every backoff. A timeout (408) and rate limiting (429) are
+ * about the moment, not the request, so they are retried, with every 5xx.
+ */
+export function isRefusalNotWorthRetrying(statusCode: number): boolean {
+  return (
+    statusCode >= 400 &&
+    statusCode < 500 &&
+    statusCode !== 408 &&
+    statusCode !== 429
+  );
+}
+
 async function forwardWithRetry(
   forwardUrl: URL,
   method: HTTPMethod,
@@ -133,6 +150,13 @@ async function forwardWithRetry(
         });
 
       if (result instanceof HTTPErrorResponse) {
+        if (isRefusalNotWorthRetrying(result.statusCode)) {
+          logger.warn(
+            `Probe ingress: OneUptime refused the request forwarded to ${forwardUrl.toString()} with ${result.statusCode}, and would refuse it again, so it is not retried. ${result.message}`,
+          );
+          return;
+        }
+
         throw result;
       }
 
