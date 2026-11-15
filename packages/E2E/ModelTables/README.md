@@ -41,6 +41,15 @@ The pages:
 - `/dashboard/<project>/runbooks` - the Runbooks list of the maintainer's
   screenshot of the gap under a card's title, in the real Runbooks layout
   (its side menu and breadcrumbs) and as wide as the Dashboard draws it;
+- `/dashboard/<project>/data-observability/checks` and
+  `/dashboard/<project>/data-observability/reconciliations` - Data
+  Observability's Checks list (with its dbt Tests) and Reconciliations list,
+  in the real Data Observability layout (its side menu and breadcrumbs):
+  checks that alert when a value is unusually high or unusually low, one
+  with no alert and one whose alert is open (the fixture answers the check
+  health route, `DataObservabilityApi.getCheckHealth`); reconciliations in
+  step, drifted, and one whose side could not run, between tables named the
+  way a warehouse names them;
 - `/dashboard/<project>/card-headers` - every card header shape
   (`Fixture/CardHeaders.js`): a table's toolbar header with a one-line, a
   wrapped or no description, with no controls or only a status pill; the
@@ -147,6 +156,16 @@ a phone's cards with nothing to size, the dark theme's faint line, a
 tablet's finger (a 24px edge, a touch drag), and a list of 200 rows, where
 only the edge's line follows the pointer until it is let go. Its
 screenshots are `column-resize-*.png`.
+
+`DataObservabilityLists.spec.ts` measures Data Observability's Checks and
+Reconciliations lists at 1280 and 1100px beside the side menu, in English
+and German (#7534, #8345): the list never scrolls sideways, nothing runs
+under the sticky Run Now column (or, drawn as cards in a narrow card, every
+card is inside the list's box), every Status badge, alert and difference is
+whole, and a folded column is named over its value. It found the German
+Checks list 11px past its card at 1100px: a folded value's name and its
+first word could not break apart ("WarnungUngewöhnlich"), and every row
+said "Jetzt ausführen". Its screenshots are `data-observability-*.png`.
 
 `Fixture/Fixture.js` records every list read on
 `window.__fixture.listRequests`, every count on

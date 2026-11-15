@@ -2,7 +2,9 @@ import AggregationInterval from "../../../Types/BaseDatabase/AggregationInterval
 import { SloWidgetMetric } from "../../../Types/Dashboard/DashboardComponents/DashboardSloComponent";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import {
+  formatErrorBudgetRemainingRequests,
   formatErrorBudgetRemainingSeconds,
+  formatSloErrorBudgetSubline,
   formatSloBurnRate,
   formatSloChartValue,
   formatSloPercent,
@@ -19,6 +21,7 @@ import {
   SloWidgetTitleSentence,
 } from "../../../Utils/Slo/SloWidgetFormat";
 import { fillTemplate } from "../../../Types/Translator";
+import SliType from "../../../Types/ServiceLevelObjective/SliType";
 
 /** A fully evaluated SLO — the happy path every test narrows from. */
 function makeSlo(
@@ -750,5 +753,116 @@ describe("SloWidgetFormat", () => {
       expect(formatSloChartValue(SloWidgetMetric.Sli, NaN)).toBe("");
       expect(formatSloChartValue(SloWidgetMetric.BurnRate, Infinity)).toBe("");
     });
+  });
+});
+
+/*
+ * A request SLO's error budget is a count of requests (#8441): the widgets
+ * say "120 failed requests remaining" under its budget, where a monitor
+ * uptime SLO says "43 min remaining". The worker leaves a request SLO's
+ * budget in seconds empty, so the widgets used to say nothing there.
+ */
+describe("a request SLO's budget line", () => {
+  test.each([
+    [SliType.RequestSuccess, 120, "120 failed requests remaining"],
+    [SliType.RequestSuccess, 1, "1 failed request remaining"],
+    [SliType.RequestSuccess, 0, "0 failed requests remaining"],
+    [SliType.RequestLatency, 1234.4, "1,234 slow requests remaining"],
+    [SliType.RequestLatency, 1, "1 slow request remaining"],
+    [SliType.RequestSuccess, -50, "50 failed requests over budget"],
+    [SliType.RequestSuccess, -1, "1 failed request over budget"],
+    [SliType.RequestLatency, -2500.6, "2,501 slow requests over budget"],
+  ])(
+    "%s with %s left reads %s",
+    (sliType: SliType, remaining: number, expected: string) => {
+      expect(
+        formatErrorBudgetRemainingRequests({
+          sliType: sliType,
+          remainingEvents: remaining,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  test("reads a decimal column that arrives as text", () => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.RequestSuccess,
+        remainingEvents: "600.25",
+      }),
+    ).toBe("600 failed requests remaining");
+  });
+
+  test("a fraction of a request below zero is 0 remaining, never -0", () => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.RequestSuccess,
+        remainingEvents: -0.4,
+      }),
+    ).toBe("0 failed requests remaining");
+  });
+
+  test.each([undefined, null, "", "many", NaN, Infinity])(
+    "says nothing before the first evaluation (%s)",
+    (remaining: unknown) => {
+      expect(
+        formatErrorBudgetRemainingRequests({
+          sliType: SliType.RequestSuccess,
+          remainingEvents: remaining as number,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("the subline picks minutes for monitor uptime and requests for a request SLO", () => {
+    expect(formatSloErrorBudgetSubline(makeSlo())).toBe(
+      formatErrorBudgetRemainingSeconds(1764),
+    );
+    expect(
+      formatSloErrorBudgetSubline(
+        makeSlo({
+          sliType: SliType.MonitorUptime,
+          errorBudgetRemainingEvents: 99,
+        }),
+      ),
+    ).toBe(formatErrorBudgetRemainingSeconds(1764));
+    expect(
+      formatSloErrorBudgetSubline(
+        makeSlo({
+          sliType: SliType.RequestSuccess,
+          errorBudgetRemainingSeconds: null,
+          errorBudgetRemainingEvents: 99,
+        }),
+      ),
+    ).toBe("99 failed requests remaining");
+  });
+
+  test("a request SLO's error budget tile says requests under its percentage", () => {
+    const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: makeSlo({
+        sliType: SliType.RequestLatency,
+        errorBudgetRemainingSeconds: null,
+        errorBudgetRemainingEvents: -12,
+      }),
+    });
+
+    expect(tile.isEvaluated).toBe(true);
+    expect(tile.value).toBe("68%");
+    expect(tile.subline).toBe("12 slow requests over budget");
+  });
+
+  test("a request SLO counted nothing yet has its percentage and no line under it", () => {
+    const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
+      sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: makeSlo({
+        sliType: SliType.RequestSuccess,
+        errorBudgetRemainingSeconds: null,
+        errorBudgetRemainingEvents: null,
+      }),
+    });
+
+    expect(tile.value).toBe("68%");
+    expect(tile.subline).toBeNull();
   });
 });
