@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **La clé décide du projet.** Vous n'envoyez jamais d'ID de projet : les données envoyées avec une clé arrivent dans le projet auquel la clé appartient.
-- **Les changements atteignent chaque serveur en une minute.** Désactiver une clé, réinitialiser son secret, ou changer ses origines, son expiration ou sa limite prend effet en une minute environ.
+- **Les changements atteignent chaque serveur en quelques secondes.** Désactiver une clé, réinitialiser son secret, ou changer ses origines, son expiration ou sa limite prend effet sur chaque serveur en quelques secondes.
 - **Une clé peut avoir ses propres budgets.** Un budget quotidien et un débit par seconde pour chaque signal, dans la limite de ceux de son projet : voir [Budgets d'ingestion](/docs/telemetry/ingestion-budgets).
 - **Une clé de serveur est un mot de passe.** Quiconque l'a peut envoyer de la télémétrie dans votre projet. Gardez-la dans les secrets de vos serveurs, jamais dans le contrôle de version ni dans une page web.
 
@@ -139,8 +139,8 @@ La page de la clé tient aussi le compte : **Télémétrie refusée** liste ce q
 
 Pour les autres réponses qu'un exportateur OTLP peut recevoir, voir [Réponses](/docs/telemetry/open-telemetry#réponses).
 
-:::details Des données arrivent encore une minute après la désactivation de la clé
-Chaque serveur OneUptime garde ce qu'il sait d'une clé pendant une minute au plus, donc un changement les atteint tous en une minute environ. Les requêtes suivantes sont refusées. Un client MQTT connecté avec la clé est déconnecté en quelques secondes.
+:::details Des données arrivent encore après la désactivation de la clé
+Chaque serveur OneUptime vérifie au moins une fois par seconde si une clé a changé, donc un changement les atteint tous en quelques secondes, et les requêtes suivantes sont refusées. Tant qu'un serveur ne peut pas joindre le cache de OneUptime, il peut s'en tenir à ce qu'il savait de la clé pendant une minute au plus. Un client MQTT connecté avec la clé est déconnecté en quelques secondes.
 :::
 
 :::details Une clé de navigateur fonctionne sur mon portable mais pas en production
