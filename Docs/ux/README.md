@@ -687,13 +687,18 @@ work out, starts from a default for everything else, and folds what most people 
   words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
-  as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
-  plain space, listed with its reason. Intl writes a plain space there too ("5 Min.", "vor 5
-  Minuten", "2 Tage, 3 Stunden", #8456), so ask Intl for a unit or a relative time only through
-  `Common/Types/DateLanguage` (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`,
-  `getUnitAmountParts`, `formatRelativeAmount`), which holds the number to its unit in every
-  language, English included, and keeps French's own no-break spaces; never with `style: "unit"`
-  or `Intl.RelativeTimeFormat` yourself. Enforced by
+  as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
+  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457): a holder
+  named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
+  `noun`, `unitName`) and keeps its plain space ("5 minutes", "2,340 groups"). Text that is no page's -
+  a prompt, a Markdown export, a stored name, an API's answer the docs quote - keeps its plain
+  space, listed with its reason, and a CSV export writes a plain one (`TableColumnsToCsv`). Intl
+  writes a plain space there too ("5 Min.", "vor 5 Minuten", "2 Tage, 3 Stunden", #8456), so ask
+  Intl for a unit or a relative time only through `Common/Types/DateLanguage`
+  (`formatDurationUnit`, `formatDurationText`, `formatUnitAmount`, `getUnitAmountParts`,
+  `formatRelativeAmount`), which holds the number to its unit in every language, English
+  included, and keeps French's own no-break spaces; never with `style: "unit"` or
+  `Intl.RelativeTimeFormat` yourself. Enforced by
   [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts),
   [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts)
   and

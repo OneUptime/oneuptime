@@ -949,6 +949,12 @@ export interface UnitAmount {
   unitDisplay: "long" | "short" | "narrow";
   minimumFractionDigits?: number | undefined;
   maximumFractionDigits?: number | undefined;
+  /*
+   * "compact" writes a big amount in the language's own short scale ("1,5
+   * Tsd. Min.", "۱٫۵ هزار دقیقه"), as a chart's scaled figure is written
+   * (ValueFormatter). The standard notation when left out.
+   */
+  notation?: "standard" | "compact" | undefined;
 }
 
 const unitFormatCache: Map<string, Intl.NumberFormat | null> = new Map<
@@ -973,6 +979,7 @@ const getUnitFormat: (amount: UnitAmount) => Intl.NumberFormat | null = (
     amount.unitDisplay,
     amount.minimumFractionDigits ?? "",
     amount.maximumFractionDigits ?? "",
+    amount.notation || "standard",
   ].join("|");
 
   if (unitFormatCacheOwner !== Intl.NumberFormat) {
@@ -999,6 +1006,11 @@ const getUnitFormat: (amount: UnitAmount) => Intl.NumberFormat | null = (
 
     if (amount.maximumFractionDigits !== undefined) {
       options["maximumFractionDigits"] = amount.maximumFractionDigits;
+    }
+
+    if (amount.notation === "compact") {
+      options["notation"] = "compact";
+      options["compactDisplay"] = "short";
     }
 
     const candidate: Intl.NumberFormat = new Intl.NumberFormat(
