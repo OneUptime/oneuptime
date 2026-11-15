@@ -925,7 +925,11 @@ then `npm run i18n:validate` from the root.
   thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
   the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
   state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
-  a page draws together, with the files that draw it. Enforced by
+  a page draws together, with the files that draw it. Where a shared word cannot agree with every
+  page, the page takes a key of its own in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), read in English as
+  the bare word: a threat indicator's Expired is Russian "Истекло" while a token's stays "Истёк"
+  (#8659). Enforced by
   [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same

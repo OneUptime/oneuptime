@@ -12,6 +12,7 @@ import {
 import {
   dashboardLocale,
   drawnActionLabel,
+  drawnLabelOnPage,
   isActionLabel,
 } from "./DocsDashboardLabels";
 import {
@@ -418,11 +419,11 @@ describe.each(LANGUAGES)("%s workflow pages", (language: string) => {
       const missing: Array<string> = checkedLabels(entry.page)
         .filter((label: string): boolean => {
           return !translated.includes(
-            `**${drawnActionLabel(language, label)}**`,
+            `**${drawnLabelOnPage(language, entry.page, label)}**`,
           );
         })
         .map((label: string): string => {
-          return `${label} -> ${drawnActionLabel(language, label)}`;
+          return `${label} -> ${drawnLabelOnPage(language, entry.page, label)}`;
         });
 
       expect(missing).toEqual([]);
