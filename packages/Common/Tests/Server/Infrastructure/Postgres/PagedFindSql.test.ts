@@ -3,7 +3,15 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import PagedFind from "../../../../Server/Infrastructure/Postgres/PagedFind";
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
@@ -12,6 +20,7 @@ import {
   FindManyOptions,
   In,
   ObjectLiteral,
+  Raw,
   Repository,
   SelectQueryBuilder,
 } from "typeorm";
@@ -42,7 +51,15 @@ import { JoinAttribute } from "typeorm/query-builder/JoinAttribute";
  *    an operator, a later page, a take of 0 or a limit set by hand;
  *  - a repository that is not TypeORM's reads itself, with the options as
  *    given;
- *  - DatabaseService reads its pages through PagedFind.
+ *  - DatabaseService reads its pages through PagedFind;
+ *  - a read whose to-many joins are only selected - not filtered or
+ *    ordered through - takes its page's ids from its own table: the
+ *    primary key alone, the to-one joins its filter and order name and no
+ *    other, LIMIT and OFFSET in its own SQL, ordered by the primary key
+ *    last; and then the rows of those ids by TypeORM's own second query,
+ *    to the character;
+ *  - a read that filters or orders through a to-many relation, or sets an
+ *    option the id page does not read, keeps TypeORM's two queries.
  */
 
 let dataSource: DataSource;
@@ -547,5 +564,652 @@ describe("what reads through PagedFind", () => {
 
     expect(source).toContain("awaitPagedFind.find(this.getRepository(),{");
     expect(source).not.toContain("this.getRepository().find(");
+  });
+});
+
+/*
+ * The SQL TypeORM's second query of its two-query page runs for these ids
+ * (executeEntitiesAndRawResults): the read, unpaged, with the ids appended
+ * as the condition it appends.
+ */
+function typeOrmSecondQuery<T extends ObjectLiteral>(
+  repository: Repository<T>,
+  options: FindManyOptions<T>,
+  ids: Array<string>,
+): { sql: string; parameters: Array<unknown> } {
+  const builder: SelectQueryBuilder<T> = typeOrmBuilder(repository, options);
+  const mainAliasName: string = builder.expressionMap.mainAlias!.name;
+  const clone: SelectQueryBuilder<T> = builder.clone();
+
+  (
+    clone as unknown as {
+      mergeExpressionMap: (map: Record<string, unknown>) => unknown;
+    }
+  ).mergeExpressionMap({
+    extraAppendedAndWhereCondition: `${mainAliasName}._id IN (:...orm_distinct_ids)`,
+  });
+  clone.setParameters({ orm_distinct_ids: ids });
+
+  const [sql, parameters] = clone.getQueryAndParameters();
+
+  return { sql, parameters };
+}
+
+const INCIDENT_PROJECT_ID: string = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+
+// An Incidents list as the dashboard reads it: labels, monitors, a state.
+function incidentsListOptions(
+  overrides?: Partial<FindManyOptions<Incident>>,
+): FindManyOptions<Incident> {
+  return {
+    where: { projectId: INCIDENT_PROJECT_ID } as never,
+    select: {
+      _id: true,
+      createdAt: true,
+      title: true,
+      labels: { _id: true, name: true, color: true },
+      monitors: { _id: true, name: true },
+      currentIncidentState: { _id: true, name: true, color: true },
+    } as never,
+    relations: {
+      labels: true,
+      monitors: true,
+      currentIncidentState: true,
+    } as never,
+    order: { createdAt: "DESC", _id: "ASC" } as never,
+    skip: 20,
+    take: 10,
+    ...overrides,
+  };
+}
+
+describe("the ids of a page whose to-many joins are only selected", () => {
+  test("come from the table itself: its primary key, no join, LIMIT and OFFSET, the read's order", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = incidentsListOptions();
+
+    // TypeORM pages it in two queries: no LIMIT in its own SQL.
+    const typeOrm: Plan = planOf(typeOrmBuilder(repository, options));
+    expect(typeOrm.take).toBe(10);
+    expect(typeOrm.sql).not.toContain("LIMIT");
+
+    const idPage: SelectQueryBuilder<Incident> | null =
+      PagedFind.createIdPageQueryBuilder(repository, options);
+
+    expect(idPage).not.toBeNull();
+
+    const [sql, parameters] = idPage!.getQueryAndParameters();
+
+    expect(sql).toBe(
+      `SELECT "Incident"."_id" AS "Incident__id" FROM "Incident" "Incident" WHERE ( (("Incident"."projectId" = $1)) ) AND ( "Incident"."deletedAt" IS NULL ) ORDER BY "Incident"."createdAt" DESC, "Incident__id" ASC LIMIT 10 OFFSET 20`,
+    );
+    expect(parameters).toEqual([INCIDENT_PROJECT_ID]);
+  });
+
+  test("join only the to-one relations their filter and order name", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = incidentsListOptions({
+      where: {
+        projectId: INCIDENT_PROJECT_ID,
+        currentIncidentState: { isResolvedState: false },
+      } as never,
+      order: {
+        incidentSeverity: { order: "ASC" },
+        createdAt: "DESC",
+        _id: "ASC",
+      } as never,
+    });
+
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repository,
+      options,
+    )!.getQuery();
+
+    expect(sql).toContain('LEFT JOIN "IncidentState"');
+    expect(sql).toContain('LEFT JOIN "IncidentSeverity"');
+    expect(sql).not.toContain('"IncidentLabel"');
+    expect(sql).not.toContain('"IncidentMonitor"');
+    expect(sql).not.toContain('"Label"');
+    expect(sql).not.toContain("DISTINCT");
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity"."order" ASC, "Incident"."createdAt" DESC, "Incident__id" ASC LIMIT 10 OFFSET 20',
+    );
+    expect(
+      sql.startsWith('SELECT "Incident"."_id" AS "Incident__id" FROM'),
+    ).toBe(true);
+  });
+
+  test("are ordered by the primary key last, as TypeORM's own ids query is", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      incidentsListOptions({ order: { createdAt: "DESC" } as never }),
+    )!.getQuery();
+
+    expect(sql).toContain(
+      'ORDER BY "Incident"."createdAt" DESC, "Incident__id" ASC LIMIT 10',
+    );
+  });
+
+  test("keep a descending primary key the read asked for", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      incidentsListOptions({ order: { _id: "DESC" } as never }),
+    )!.getQuery();
+
+    expect(sql).toContain('ORDER BY "Incident__id" DESC LIMIT 10');
+    expect(sql).not.toContain("ASC");
+  });
+
+  test("read the deleted rows when the read does", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      incidentsListOptions({ withDeleted: true }),
+    )!.getQuery();
+
+    expect(sql).not.toContain("deletedAt");
+  });
+
+  test("keep a raw condition on the record's own column, as a privacy filter writes it", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      incidentsListOptions({
+        where: {
+          projectId: INCIDENT_PROJECT_ID,
+          isPrivate: Raw((alias: string): string => {
+            return `(${alias} IS NULL OR ${alias} = FALSE)`;
+          }),
+        } as never,
+      }),
+    )!.getQuery();
+
+    expect(sql).toContain(
+      '("Incident"."isPrivate" IS NULL OR "Incident"."isPrivate" = FALSE)',
+    );
+  });
+
+  test("are taken on every page size and offset, the first page included", () => {
+    for (const [skip, take] of [
+      [0, 10],
+      [0, 1],
+      [5, 25],
+      [9990, 10],
+    ] as Array<[number, number]>) {
+      const sql: string = PagedFind.createIdPageQueryBuilder(
+        repositoryOf(Incident),
+        incidentsListOptions({ skip: skip, take: take }),
+      )!.getQuery();
+
+      expect(sql).toContain(
+        skip ? `LIMIT ${take} OFFSET ${skip}` : `LIMIT ${take}`,
+      );
+    }
+  });
+
+  /*
+   * Every to-many relation of every model, selected on a page of a list:
+   * its ids come from the table itself, with no join at all.
+   */
+  test("for every to-many relation of every model", () => {
+    let checked: number = 0;
+    const missed: Array<string> = [];
+
+    for (const metadata of dataSource.entityMetadatas) {
+      if (metadata.primaryColumns.length !== 1) {
+        continue;
+      }
+
+      for (const relation of metadata.relations) {
+        if (
+          relation.relationType !== "many-to-many" &&
+          relation.relationType !== "one-to-many"
+        ) {
+          continue;
+        }
+
+        const options: FindManyOptions<ObjectLiteral> = {
+          relations: { [relation.propertyName]: true },
+          order: { createdAt: "DESC" },
+          take: 10,
+          skip: 0,
+        } as FindManyOptions<ObjectLiteral>;
+
+        const hasCreatedAt: boolean = Boolean(
+          metadata.findColumnWithPropertyName("createdAt"),
+        );
+
+        if (!hasCreatedAt) {
+          delete options.order;
+        }
+
+        const idPage: SelectQueryBuilder<ObjectLiteral> | null =
+          PagedFind.createIdPageQueryBuilder(
+            dataSource.getRepository(metadata.target),
+            options,
+          );
+
+        if (
+          !idPage ||
+          idPage.expressionMap.joinAttributes.length > 0 ||
+          !idPage.getQuery().includes("LIMIT 10")
+        ) {
+          missed.push(`${metadata.name}.${relation.propertyName}`);
+        }
+
+        checked++;
+      }
+    }
+
+    expect(missed).toEqual([]);
+    expect(checked).toBeGreaterThan(100);
+  });
+});
+
+describe("the rows of the page's ids", () => {
+  test("are read by TypeORM's own second query, to the character", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = incidentsListOptions({
+      where: {
+        projectId: INCIDENT_PROJECT_ID,
+        currentIncidentState: { isResolvedState: false },
+      } as never,
+    });
+    const ids: Array<string> = [
+      "00000000-0000-4000-8000-000000000003",
+      "00000000-0000-4000-8000-000000000001",
+    ];
+
+    const builder: SelectQueryBuilder<Incident> = PagedFind.createQueryBuilder(
+      repository,
+      options,
+    );
+    PagedFind.restrictToIds(builder, ids);
+
+    const [sql, parameters] = builder.getQueryAndParameters();
+    const typeOrm: { sql: string; parameters: Array<unknown> } =
+      typeOrmSecondQuery(repository, options, ids);
+
+    expect(sql).toBe(typeOrm.sql);
+    expect(parameters).toEqual(typeOrm.parameters);
+    expect(sql).toContain('AND ( "Incident"."_id" IN ($3, $4) )');
+    expect(sql).not.toContain("LIMIT");
+    // Unpaged: TypeORM's executeEntitiesAndRawResults reads it in one go.
+    expect(PagedFind.isTypeOrmTwoQueryPage(builder)).toBe(false);
+  });
+
+  test("of numeric ids are written inline, as TypeORM writes them", () => {
+    const builder: SelectQueryBuilder<Incident> = PagedFind.createQueryBuilder(
+      repositoryOf(Incident),
+      incidentsListOptions(),
+    );
+
+    PagedFind.restrictToIds(builder, [3, 1]);
+
+    expect(builder.expressionMap.extraAppendedAndWhereCondition).toBe(
+      "Incident._id IN (3, 1)",
+    );
+    expect(builder.getParameters()["orm_distinct_ids"]).toBeUndefined();
+  });
+});
+
+/*
+ * A list sorted by a column that shows a related record (#8134): the
+ * dashboard's table asks for the related record's field under the relation
+ * - an incident's severity by its place in the project's list, worst first,
+ * or the other way with the incidents that have none still last - and
+ * selects that field (ModelTable's ColumnSort). These are those reads.
+ */
+describe("a list sorted by a column that shows a related record", () => {
+  const SEVERITY_SELECTED: Record<string, unknown> = {
+    _id: true,
+    createdAt: true,
+    title: true,
+    labels: { _id: true, name: true, color: true },
+    monitors: { _id: true, name: true },
+    currentIncidentState: { _id: true, name: true, color: true },
+    incidentSeverity: { _id: true, name: true, color: true, order: true },
+  };
+
+  const SEVERITY_JOINED: Record<string, unknown> = {
+    labels: true,
+    monitors: true,
+    currentIncidentState: true,
+    incidentSeverity: true,
+  };
+
+  const bySeverity: (order: unknown) => FindManyOptions<Incident> = (
+    order: unknown,
+  ): FindManyOptions<Incident> => {
+    return incidentsListOptions({
+      select: SEVERITY_SELECTED as never,
+      relations: SEVERITY_JOINED as never,
+      order: { incidentSeverity: { order: order }, _id: "ASC" } as never,
+    });
+  };
+
+  const countOf: (sql: string, text: string) => number = (
+    sql: string,
+    text: string,
+  ): number => {
+    return sql.split(text).length - 1;
+  };
+
+  test("worst first: the page's ids by the severity's place, joining the severity alone", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      bySeverity("ASC"),
+    )!.getQuery();
+
+    expect(countOf(sql, 'LEFT JOIN "IncidentSeverity"')).toBe(1);
+    expect(sql).not.toContain('"IncidentLabel"');
+    expect(sql).not.toContain('"IncidentMonitor"');
+    expect(sql).not.toContain("DISTINCT");
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity"."order" ASC, "Incident__id" ASC LIMIT 10 OFFSET 20',
+    );
+  });
+
+  test("the other way, with the incidents that have no severity still last", () => {
+    const sql: string = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident),
+      bySeverity({ direction: "DESC", nulls: "LAST" }),
+    )!.getQuery();
+
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity"."order" DESC NULLS LAST, "Incident__id" ASC LIMIT 10 OFFSET 20',
+    );
+  });
+
+  test("the rows of those ids come in that order, through the one join that selects the severity", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = bySeverity({
+      direction: "DESC",
+      nulls: "LAST",
+    });
+    const ids: Array<string> = [
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000001",
+    ];
+
+    const builder: SelectQueryBuilder<Incident> = PagedFind.createQueryBuilder(
+      repository,
+      options,
+    );
+    PagedFind.restrictToIds(builder, ids);
+
+    const [sql]: [string, Array<unknown>] = builder.getQueryAndParameters();
+
+    expect(sql).toBe(typeOrmSecondQuery(repository, options, ids).sql);
+    expect(countOf(sql, 'LEFT JOIN "IncidentSeverity"')).toBe(1);
+    expect(sql).toContain(
+      '"Incident__Incident_incidentSeverity"."order" AS "Incident__Incident_incidentSeverity_order"',
+    );
+    // Ordered by the place it selected, under the name it selected it as.
+    expect(sql).toContain(
+      'ORDER BY "Incident__Incident_incidentSeverity_order" DESC NULLS LAST, "Incident__id" ASC',
+    );
+  });
+
+  test("a Monitors list by its status, joined only to one record a monitor, is one query", () => {
+    const builder: SelectQueryBuilder<Monitor> = PagedFind.createQueryBuilder(
+      repositoryOf(Monitor),
+      {
+        where: { projectId: INCIDENT_PROJECT_ID } as never,
+        select: {
+          _id: true,
+          name: true,
+          currentMonitorStatus: {
+            _id: true,
+            name: true,
+            color: true,
+            priority: true,
+          },
+        } as never,
+        relations: { currentMonitorStatus: true } as never,
+        order: {
+          currentMonitorStatus: {
+            priority: { direction: "DESC", nulls: "LAST" },
+          },
+          _id: "ASC",
+        } as never,
+        skip: 0,
+        take: 10,
+      },
+    );
+
+    const plan: Plan = planOf(builder);
+
+    expect(plan.take).toBeUndefined();
+    expect(plan.limit).toBe(10);
+    expect(plan.sql).not.toContain("DISTINCT");
+    expect(plan.sql).toContain(
+      'ORDER BY "Monitor__Monitor_currentMonitorStatus_priority" DESC NULLS LAST, "Monitor__id" ASC LIMIT 10 OFFSET 0',
+    );
+  });
+
+  /*
+   * Where PagedFind stands aside (another TypeORM), TypeORM pages the read
+   * in its own two queries, and its query for the page's ids orders by
+   * what the read selected: the severity's place is selected, so it can.
+   */
+  test("on TypeORM's own two queries, the page's ids are ordered by the severity's place it selected", () => {
+    const builder: SelectQueryBuilder<Incident> = typeOrmBuilder(
+      repositoryOf(Incident),
+      bySeverity({ direction: "DESC", nulls: "LAST" }),
+    );
+
+    expect(builder.getQuery()).toContain(
+      '"Incident__Incident_incidentSeverity"."order" AS "Incident__Incident_incidentSeverity_order"',
+    );
+
+    const [, orderBys]: [string, Record<string, unknown>] = (
+      builder as unknown as {
+        createOrderByCombinedWithSelectExpression: (
+          parentAlias: string,
+        ) => [string, Record<string, unknown>];
+      }
+    ).createOrderByCombinedWithSelectExpression("distinctAlias");
+
+    expect(Object.keys(orderBys)).toContain(
+      '"distinctAlias"."Incident__Incident_incidentSeverity_order"',
+    );
+  });
+});
+
+describe("reads that keep TypeORM's two queries", () => {
+  test.each([
+    [
+      "a filter through a to-many relation it also selects",
+      {
+        where: {
+          projectId: INCIDENT_PROJECT_ID,
+          labels: { _id: In(["00000000-0000-4000-8000-000000000001"]) },
+        },
+      },
+    ],
+    [
+      "a filter through a to-many relation it does not select",
+      {
+        where: {
+          projectId: INCIDENT_PROJECT_ID,
+          onCallDutyPolicies: { name: "Primary" },
+        },
+      },
+    ],
+    [
+      "an order through a to-many relation",
+      { order: { labels: { name: "ASC" }, _id: "ASC" } },
+    ],
+    [
+      "alternatives, one of them through a to-many relation",
+      {
+        where: [
+          { projectId: INCIDENT_PROJECT_ID },
+          { labels: { name: "Production" } },
+        ],
+      },
+    ],
+    ["a lock", { lock: { mode: "pessimistic_read" } }],
+    ["a cache", { cache: 1000 }],
+    ["a relation load strategy", { relationLoadStrategy: "query" }],
+    ["relation ids", { loadRelationIds: true }],
+  ])("%s", (_label: string, overrides: Record<string, unknown>) => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = incidentsListOptions(
+      overrides as Partial<FindManyOptions<Incident>>,
+    );
+
+    expect(PagedFind.createIdPageQueryBuilder(repository, options)).toBeNull();
+  });
+
+  test.each([
+    [
+      "a read without joins: TypeORM's own LIMIT",
+      {
+        where: { projectId: INCIDENT_PROJECT_ID },
+        select: { _id: true, title: true },
+        relations: undefined,
+        take: 10,
+      },
+    ],
+    [
+      "a read whose joins are all to-one: PagedFind's one query",
+      {
+        select: {
+          _id: true,
+          currentIncidentState: { _id: true },
+        },
+        relations: { currentIncidentState: true },
+      },
+    ],
+    [
+      "the first page of a record by its primary key: no page at all",
+      {
+        where: { _id: "00000000-0000-4000-8000-000000000009" },
+        skip: 0,
+        take: 1,
+      },
+    ],
+    ["a take of 0", { skip: 0, take: 0 }],
+  ])(
+    "not a two-query page, so no id page: %s",
+    (_label: string, overrides: Record<string, unknown>) => {
+      const options: FindManyOptions<Incident> = incidentsListOptions(
+        overrides as Partial<FindManyOptions<Incident>>,
+      );
+
+      expect(
+        PagedFind.createIdPageQueryBuilder(repositoryOf(Incident), options),
+      ).toBeNull();
+    },
+  );
+
+  test("a limit set by hand on the read", () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const options: FindManyOptions<Incident> = incidentsListOptions();
+    const builder: SelectQueryBuilder<Incident> = typeOrmBuilder(
+      repository,
+      options,
+    ).limit(5);
+
+    expect(
+      PagedFind.createIdPageQueryBuilder(repository, options, builder),
+    ).toBeNull();
+  });
+});
+
+describe("how find reads a page by its ids", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function fakeRows<T extends ObjectLiteral>(
+    rows: Array<Record<string, unknown>>,
+  ): SelectQueryBuilder<T> {
+    const builder: SelectQueryBuilder<T> = PagedFind.createIdPageQueryBuilder(
+      repositoryOf(Incident) as unknown as Repository<T>,
+      incidentsListOptions() as unknown as FindManyOptions<T>,
+    )!;
+
+    jest.spyOn(builder, "getRawMany").mockResolvedValue(rows as never);
+
+    return builder;
+  }
+
+  test("the ids come back in the page's order, each once", async () => {
+    expect(
+      await PagedFind.readIdPage(
+        fakeRows([
+          { Incident__id: "c" },
+          { Incident__id: "a" },
+          { Incident__id: "c" },
+          { Incident__id: null },
+          { Incident__id: "b" },
+        ]),
+      ),
+    ).toEqual(["c", "a", "b"]);
+  });
+
+  test("an empty id page reads no rows", async () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const getMany: ReturnType<typeof jest.fn> = jest.fn();
+    const idPage: SelectQueryBuilder<Incident> = fakeRows<Incident>([]);
+
+    jest
+      .spyOn(PagedFind, "createIdPageQueryBuilder")
+      .mockReturnValue(idPage as never);
+    jest.spyOn(PagedFind, "createQueryBuilder").mockReturnValue({
+      getMany: getMany,
+      expressionMap: {},
+    } as never);
+
+    expect(await PagedFind.find(repository, incidentsListOptions())).toEqual(
+      [],
+    );
+    expect(getMany).not.toHaveBeenCalled();
+  });
+
+  test("a page of ids reads their rows once, kept to them", async () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const rows: Array<Incident> = [new Incident()];
+    const full: SelectQueryBuilder<Incident> = PagedFind.createQueryBuilder(
+      repository,
+      incidentsListOptions(),
+    );
+    const getMany: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(full, "getMany")
+      .mockResolvedValue(rows as never);
+    // Built before createQueryBuilder is stood in for: it builds with it.
+    const idPage: SelectQueryBuilder<Incident> = fakeRows<Incident>([
+      { Incident__id: "x" },
+      { Incident__id: "y" },
+    ]);
+
+    jest.spyOn(PagedFind, "createQueryBuilder").mockReturnValue(full as never);
+    jest
+      .spyOn(PagedFind, "createIdPageQueryBuilder")
+      .mockReturnValue(idPage as never);
+
+    expect(await PagedFind.find(repository, incidentsListOptions())).toBe(rows);
+    expect(getMany).toHaveBeenCalledTimes(1);
+    expect(full.getParameters()["orm_distinct_ids"]).toEqual(["x", "y"]);
+    expect(full.expressionMap.skip).toBeUndefined();
+    expect(full.expressionMap.take).toBeUndefined();
+  });
+
+  test("a read with no id page is TypeORM's two queries, as before", async () => {
+    const repository: Repository<Incident> = repositoryOf(Incident);
+    const getMany: ReturnType<typeof jest.fn> = jest
+      .fn()
+      .mockResolvedValue([] as never);
+
+    jest.spyOn(PagedFind, "createIdPageQueryBuilder").mockReturnValue(null);
+    jest.spyOn(PagedFind, "createQueryBuilder").mockReturnValue({
+      getMany: getMany,
+      expressionMap: {},
+    } as never);
+
+    await PagedFind.find(repository, incidentsListOptions());
+
+    expect(getMany).toHaveBeenCalledTimes(1);
   });
 });

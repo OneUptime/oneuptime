@@ -34,6 +34,8 @@ const SecurityEventSeverityPill: FunctionComponent<ComponentProps> = (
     <Pill
       color={getSeverityColor(props.severityName)}
       text={props.severityName || OcsfSeverity.Unknown}
+      // OCSF's severity words (OcsfSeverity), never a name: looked up.
+      isUserContent={false}
       size={props.size}
     />
   );

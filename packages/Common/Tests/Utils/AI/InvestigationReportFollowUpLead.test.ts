@@ -18,7 +18,7 @@ import { MarkdownText } from "../../../Utils/Markdown/FeedMarkdown";
  * When an alert opens on an open incident's linked infrastructure after its
  * first analysis, OneUptime AI checks the incident again, and the server
  * writes one line of its own under the report's heading: "**Checked again**
- * after alert #12 opened on Host web-1, 2 minutes after this incident was
+ * after alert #12 opened on host web-1, 2 minutes after this incident was
  * declared: High CPU on web-1." Every reader of the report needs that line
  * apart from the model's analysis: the AI Investigation card draws it above
  * the Summary, the feed's entry says "OneUptime AI checked again after ...",
@@ -87,7 +87,7 @@ describe("the follow-up lead the server writes", () => {
 
   test("says what opened, where and when, then the alert's title", () => {
     expect(lead().toString()).toBe(
-      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared: High CPU on web-1.",
+      "**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared: High CPU on web-1.",
     );
   });
 
@@ -97,13 +97,13 @@ describe("the follow-up lead the server writes", () => {
         title: "[Docker] High CPU Usage (>80% of one core) - web-1",
       }).toString(),
     ).toBe(
-      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared: \\[Docker\\] High CPU Usage (>80% of one core) - web-1.",
+      "**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared: \\[Docker\\] High CPU Usage (>80% of one core) - web-1.",
     );
   });
 
   test("without a title it ends after when; without a resource it names the incident's infrastructure", () => {
     expect(lead({ title: "  " }).toString()).toBe(
-      "**Checked again** after alert #12 opened on Host web-1, 2 minutes after this incident was declared.",
+      "**Checked again** after alert #12 opened on host web-1, 2 minutes after this incident was declared.",
     );
     expect(lead({ withResource: false }).toString()).toBe(
       "**Checked again** after alert #12 opened on infrastructure linked to this incident, 2 minutes after this incident was declared: High CPU on web-1.",

@@ -239,7 +239,17 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
                       column.key,
                     )}`}
                     onClick={() => {
-                      setSort(column.key || null, props.sortOrder);
+                      /*
+                       * A column that says which way it runs first - a
+                       * severity, worst first - goes that way when it is
+                       * picked (Column's firstSortOrder).
+                       */
+                      setSort(
+                        column.key || null,
+                        !isSorted && column.firstSortOrder
+                          ? column.firstSortOrder
+                          : props.sortOrder,
+                      );
                     }}
                   />
                 );

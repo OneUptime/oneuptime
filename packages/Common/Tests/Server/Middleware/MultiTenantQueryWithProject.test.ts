@@ -52,6 +52,7 @@ import Permission, {
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
+import { answerMultiTenantReadsProjectByProject } from "../TestingUtils/MultiTenantReads";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -248,6 +249,8 @@ beforeEach(() => {
         : null;
     },
   );
+  // A request across projects, answered through the stubbed lookups above.
+  answerMultiTenantReadsProjectByProject();
   getJestSpyOn(TeamMemberService, "getTeamIdsForUser").mockResolvedValue([]);
   getJestSpyOn(HashedString, "hashValue").mockResolvedValue("hash");
   findApiKey = getJestSpyOn(ApiKeyService, "findApiKey").mockResolvedValue(

@@ -54,9 +54,10 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * check was fine, and its row drew the frozen status as if it were live.
  *
  * Read through the real widget, as a dashboard draws it: the query it sends
- * for each stored setting - the same the public dashboard's policy builds on
- * the server from the same setting - and what its rows and honeycomb say of
- * such a monitor, in every language. ModelAPI is stubbed to record the read.
+ * for each stored setting - naming the monitors the public dashboard's
+ * policy names on the server from the same setting - and what its rows and
+ * honeycomb say of such a monitor, in every language. ModelAPI is stubbed to
+ * record the read.
  */
 
 type ListRequest = {
@@ -254,6 +255,30 @@ function withoutProject(query: JSONObject): JSONObject {
   return rest;
 }
 
+/*
+ * The monitors a query names. The board's asks for a status in its project
+ * as well (issue #8096), which narrows nothing - a monitor's statuses are
+ * its project's - so without it the board's names what the public page's
+ * names.
+ */
+function namedMonitors(query: JSONObject): JSONObject {
+  const rest: JSONObject = withoutProject(query);
+  const status: unknown = rest["currentMonitorStatus"];
+
+  if (
+    status &&
+    typeof status === "object" &&
+    (status as JSONObject)["projectId"] !== undefined
+  ) {
+    expect((status as JSONObject)["projectId"]).toEqual(PROJECT_ID);
+    const statusAlone: JSONObject = { ...(status as JSONObject) };
+    delete statusAlone["projectId"];
+    rest["currentMonitorStatus"] = statusAlone;
+  }
+
+  return rest;
+}
+
 // The widget's query and the public policy's, from the same stored settings.
 async function queriesFor(widgetArguments: JSONObject): Promise<{
   widget: JSONObject;
@@ -319,21 +344,31 @@ describe("the monitors each status filter lists, on a board and on its public pa
     const { widget, publicPage } = await queriesFor({});
 
     expect(widget).toEqual({ isArchived: false });
-    expect(publicPage).toEqual(widget);
+    expect(publicPage).toEqual(namedMonitors(widget));
   });
 
+  /*
+   * The board asks for the status in its project (issue #8096): its read
+   * comes with a count, which then reads only the monitors in the project's
+   * problem statuses. The public page's read has no count, and asks for the
+   * status alone. Both name the same monitors.
+   */
   test("'non-operational' is the Not Operational rule: no monitor whose monitoring is off, no archived one", async () => {
     const { widget, publicPage } = await queriesFor({
       statusFilter: "non-operational",
     });
 
-    expect(widget).toEqual(NotOperationalMonitorQuery.getQuery());
+    expect(widget).toEqual(NotOperationalMonitorQuery.getQuery(PROJECT_ID));
     expect(widget).toEqual({
       isArchived: false,
       disableActiveMonitoring: false,
-      currentMonitorStatus: { isOperationalState: false },
+      currentMonitorStatus: {
+        isOperationalState: false,
+        projectId: PROJECT_ID,
+      },
     });
-    expect(publicPage).toEqual(widget);
+    expect(publicPage).toEqual(NotOperationalMonitorQuery.getQuery());
+    expect(publicPage).toEqual(namedMonitors(widget));
   });
 
   test("'operational' leaves out a monitor whose monitoring is off, however its last check went", async () => {
@@ -362,7 +397,7 @@ describe("the monitors each status filter lists, on a board and on its public pa
     expect(publicPage).toEqual(widget);
   });
 
-  test("with types and labels as well, both build the same query", async () => {
+  test("with types and labels as well, both name the same monitors", async () => {
     const { widget, publicPage } = await queriesFor({
       statusFilter: "non-operational",
       monitorStatusIds: [STATUS_ID],
@@ -373,12 +408,15 @@ describe("the monitors each status filter lists, on a board and on its public pa
     expect(widget).toEqual({
       isArchived: false,
       disableActiveMonitoring: false,
-      currentMonitorStatus: { isOperationalState: false },
+      currentMonitorStatus: {
+        isOperationalState: false,
+        projectId: PROJECT_ID,
+      },
       currentMonitorStatusId: new Includes([STATUS_ID]),
       monitorType: new Includes(["Website", "Ping"]),
       labels: new Includes([LABEL_ID]),
     });
-    expect(publicPage).toEqual(widget);
+    expect(publicPage).toEqual(namedMonitors(widget));
   });
 
   test("the read asks whether monitoring is off, on a board and on its public page", async () => {
@@ -418,6 +456,10 @@ describe("one rule for the board and its public page", () => {
     );
 
     expect(source).toContain("...getMonitorListQuery({");
+    // With the board's project (issue #8096).
+    expect(source).toMatch(
+      /getMonitorListQuery\(\s*\{\s*statusFilter,\s*monitorStatusIds\s*\},\s*projectId,?\s*\)/,
+    );
     expect(source).toContain("getMonitorListRowStatus(monitor)");
     expect(source).toContain("...MONITOR_LIST_WIDGET_SELECT");
     expect(source).not.toMatch(/isOperationalState/);
@@ -437,6 +479,10 @@ describe("one rule for the board and its public page", () => {
     const buildMonitorPolicy: string = source.slice(start, end);
 
     expect(buildMonitorPolicy).toContain("getMonitorListQuery({");
+    // With no project: its read fetches a page and no count (issue #8096).
+    expect(buildMonitorPolicy).toMatch(
+      /getMonitorListQuery\(\{\s*statusFilter,\s*monitorStatusIds,?\s*\}\)/,
+    );
     expect(buildMonitorPolicy).toContain("MONITOR_LIST_STATUS_FILTER_VALUES");
     expect(buildMonitorPolicy).not.toMatch(/isOperationalState/);
     expect(buildMonitorPolicy).not.toMatch(/currentMonitorStatusId/);

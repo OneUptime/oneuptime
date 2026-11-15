@@ -77,7 +77,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           // What the list shows: monitors with monitoring off are Disabled.
           countQuery: {
             projectId: props.project?._id,
-            ...NotOperationalMonitorQuery.getQuery(),
+            ...NotOperationalMonitorQuery.getQuery(props.project?._id),
           },
         },
         {

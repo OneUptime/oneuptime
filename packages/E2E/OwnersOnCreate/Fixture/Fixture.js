@@ -168,6 +168,12 @@ const project = new Project();
 project._id = PROJECT_ID;
 project.id = new ObjectID(PROJECT_ID);
 project.name = "Acme Production";
+/*
+ * Declare Incident reads the selected project for how its Notify Status Page
+ * Subscribers box starts (useNewIncidentNotifyDefault, #7606). The switch is
+ * on in every project until an owner turns it off, so this one has it on.
+ */
+project.notifyStatusPageSubscribersOfNewIncidentsByDefault = true;
 
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentProject = () => project;
@@ -287,6 +293,8 @@ const INCIDENT_OWNER_RULES = [
 ];
 
 const TABLES = {
+  // The selected project, read by Declare Incident (see above).
+  Project: [project],
   User: [ADA, GRACE, LINUS],
   Team: [PLATFORM, DATABASE, SRE, MEMBERS, FRONTEND, ...CROWDED_TEAMS],
   TeamMember: [

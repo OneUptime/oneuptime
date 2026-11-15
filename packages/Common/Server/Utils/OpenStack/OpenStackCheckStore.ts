@@ -54,6 +54,15 @@ import OpenStackCollectionSettings from "../../../Utils/OpenStack/OpenStackColle
 import OpenStackProbeCollectionStore, {
   OpenStackSqlManager,
 } from "./OpenStackProbeCollectionStore";
+import {
+  SetAsideCounts,
+  getClaimSetAsideParameters,
+  getClaimSetAsideStatement,
+  getMakeDueNowParameters,
+  getMakeDueNowStatement,
+  readSetAsideCounts,
+  setAsideAfterClaim,
+} from "../Probe/ClaimSetAside";
 import crypto from "crypto";
 
 /*
@@ -755,7 +764,9 @@ export default class OpenStackCheckStore {
   /*
    * The check rows that are due, moved an interval on, and locked while they are: nothing else can
    * hand these out. A check nobody may run any more is claimed and answered with nothing, so it
-   * does not sit at the head of every later claim.
+   * does not sit at the head of every later claim. A check the claim may not hand out at all -
+   * turned off, of an archived cloud, on a probe that may not run it, of a suspended project - is
+   * set aside after it (setAsideUnclaimable), for the same reason.
    *
    * One self-committing statement (OneUptime issue #7194), as the collection's claim explains
    * (OpenStackProbeCollectionStore.claimDueClouds): locked FOR NO KEY UPDATE SKIP LOCKED and moved
@@ -763,6 +774,21 @@ export default class OpenStackCheckStore {
    * getSafeApiInterval's or getSafeLifecycleInterval's rule, in SQL (the last parameter is the
    * default); the columns are NOT NULL integers, so it is the same rule. The ids come back in claim
    * order, the longest overdue first.
+   *
+   * A check runs on the probe it names, or, naming none, on the probe that collects its cloud. That
+   * used to be read as `COALESCE(ck."probeId", c."collectionProbeId") = $1`, which no index can
+   * serve - it spans two tables - so every claim of every probe read every check of every project.
+   * It is two branches now, each locking what it may hand out, oldest first, up to the limit:
+   * "ownProbeDue", the checks that name this probe, a range of the (probeId, due) index that stops
+   * at the limit; and "cloudProbeDue", the checks that name none, of the clouds this probe
+   * collects, read through OpenStackCloud's (collectionProbeId, ...) index and each cloud's one row
+   * of checks - at most one check per cloud of this probe. Each joins the probe it runs on by the
+   * column that names it in that branch, never by the COALESCE: joined on an expression of both
+   * tables, Postgres had to pair every check with its cloud before it could look the probe up, and
+   * read every cloud to do it. "due" keeps the oldest of the two, up to the limit; a row a branch
+   * locked that "due" does not keep is let go when the statement ends.
+   * `due <= now` and no longer `IS NULL OR`, ordered NULLS FIRST, which no btree serves: a check
+   * with no due time is made due by the set-aside.
    */
   private static async claimDueIds(
     service: OpenStackCheckService,
@@ -775,16 +801,11 @@ export default class OpenStackCheckStore {
   ): Promise<Array<string>> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
 
-    const nextColumn: string =
-      data.kind === "api" ? "nextApiCheckAt" : "nextLifecycleCheckAt";
+    const nextColumn: string = OpenStackCheckStore.getDueColumn(data.kind);
     const intervalColumn: string =
       data.kind === "api"
         ? "apiCheckIntervalInMinutes"
         : "lifecycleCheckIntervalInMinutes";
-    const isOnCondition: string =
-      data.kind === "api"
-        ? `ck."isApiCheckEnabled" = true`
-        : `(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)`;
 
     const runningIds: Array<string> = data.runningIds.filter(
       (id: string): boolean => {
@@ -792,39 +813,49 @@ export default class OpenStackCheckStore {
       },
     );
 
+    const claimable: string = OpenStackCheckStore.getClaimableSql({
+      kind: data.kind,
+      statusesParameter: "$4",
+      isBillingEnabledParameter: "$6",
+    });
+
     const claimedRows: unknown = await service.getRepository().manager.query(
       `
-      WITH "due" AS (
+      WITH "ownProbeDue" AS (
         SELECT ck."_id", ck."${nextColumn}" AS "dueAt"
         FROM "OpenStackCloudCheck" ck
         INNER JOIN "OpenStackCloud" c ON ck."openStackCloudId" = c."_id"
         INNER JOIN "Project" p ON ck."projectId" = p."_id"
-        INNER JOIN "Probe" pr
-          ON pr."_id" = COALESCE(ck."probeId", c."collectionProbeId")
-        WHERE COALESCE(ck."probeId", c."collectionProbeId") = $1
-          AND ${isOnCondition}
-          AND ck."deletedAt" IS NULL
-          AND c."deletedAt" IS NULL
-          AND c."isArchived" = false
-          AND (ck."${nextColumn}" IS NULL OR ck."${nextColumn}" <= $2)
+        INNER JOIN "Probe" pr ON pr."_id" = ck."probeId"
+        WHERE ck."probeId" = $1
           AND NOT (ck."_id" = ANY($5::uuid[]))
-          -- The tenancy backstop: the project's own probe, or a global
-          -- probe on an instance where those are the operator's own.
-          AND (
-            (pr."isGlobalProbe" = false AND pr."projectId" = ck."projectId")
-            OR (pr."isGlobalProbe" = true AND $6::boolean = false)
-          )
-          AND pr."deletedAt" IS NULL
-          AND p."deletedAt" IS NULL
-          AND p."isBlocked" = false
-          AND p."isSampleProject" = false
-          AND (p."paymentProviderSubscriptionStatus" IS NULL
-               OR p."paymentProviderSubscriptionStatus" = ANY($4::text[]))
-          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL
-               OR p."paymentProviderMeteredSubscriptionStatus" = ANY($4::text[]))
-        ORDER BY ck."${nextColumn}" ASC NULLS FIRST
+          AND ck."${nextColumn}" <= $2
+          AND ${claimable}
+        ORDER BY ck."${nextColumn}" ASC
         LIMIT $3
         FOR NO KEY UPDATE OF ck SKIP LOCKED
+      ),
+      "cloudProbeDue" AS (
+        SELECT ck."_id", ck."${nextColumn}" AS "dueAt"
+        FROM "OpenStackCloud" c
+        INNER JOIN "OpenStackCloudCheck" ck ON ck."openStackCloudId" = c."_id"
+        INNER JOIN "Project" p ON ck."projectId" = p."_id"
+        INNER JOIN "Probe" pr ON pr."_id" = c."collectionProbeId"
+        WHERE c."collectionProbeId" = $1
+          AND ck."probeId" IS NULL
+          AND NOT (ck."_id" = ANY($5::uuid[]))
+          AND ck."${nextColumn}" <= $2
+          AND ${claimable}
+        ORDER BY ck."${nextColumn}" ASC
+        LIMIT $3
+        FOR NO KEY UPDATE OF ck SKIP LOCKED
+      ),
+      "due" AS (
+        SELECT "_id", "dueAt" FROM "ownProbeDue"
+        UNION ALL
+        SELECT "_id", "dueAt" FROM "cloudProbeDue"
+        ORDER BY "dueAt" ASC
+        LIMIT $3
       ),
       "claimed" AS (
         UPDATE "OpenStackCloudCheck" AS ck
@@ -841,7 +872,7 @@ export default class OpenStackCheckStore {
       SELECT "due"."_id"
       FROM "due"
       INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id"
-      ORDER BY "due"."dueAt" ASC NULLS FIRST
+      ORDER BY "due"."dueAt" ASC
     `,
       [
         data.probeId.toString(),
@@ -856,11 +887,171 @@ export default class OpenStackCheckStore {
       ],
     );
 
-    return Array.isArray(claimedRows)
+    const claimedIds: Array<string> = Array.isArray(claimedRows)
       ? claimedRows.map((row: { _id: string }): string => {
           return row._id;
         })
       : [];
+
+    /*
+     * The due checks the claim stepped over - nothing may run them now - are set aside, so the
+     * next claim does not step over them again (Utils/Probe/ClaimSetAside).
+     */
+    await setAsideAfterClaim({
+      claim: data.kind === "api" ? "claimApiChecks" : "claimLifecycleChecks",
+      probeId: data.probeId,
+      rows: `OpenStack ${data.kind === "api" ? "API" : "lifecycle"} checks nothing may run now`,
+      round: async (): Promise<SetAsideCounts> => {
+        return await OpenStackCheckStore.setAsideUnclaimable(service, {
+          kind: data.kind,
+          probeId: data.probeId,
+          currentDate: currentDate,
+        });
+      },
+    });
+
+    return claimedIds;
+  }
+
+  // The column that says when a check of this kind is next due.
+  public static getDueColumn(kind: OpenStackCheckKind): string {
+    return kind === "api" ? "nextApiCheckAt" : "nextLifecycleCheckAt";
+  }
+
+  /*
+   * Sets aside the probe's due checks of one kind that nothing may run now (Utils/Probe/
+   * ClaimSetAside): that kind turned off, deleted, of a deleted or archived cloud, on a probe that
+   * may not run them, or of a suspended, blocked, sample or deleted project. Each is judged again
+   * by the claim's own rule (getClaimableSql, IS NOT TRUE), so a check the claim would hand out is
+   * never moved. The probe's checks are found as the claim finds them: those that name it, and
+   * those that name no probe, of the clouds it collects. Makes due the probe's checks with no due
+   * time of this kind at all.
+   *
+   * Returns how many it set aside, and how many it made due.
+   */
+  public static async setAsideUnclaimable(
+    service: OpenStackCheckService,
+    data: {
+      kind: OpenStackCheckKind;
+      probeId: ObjectID;
+      currentDate: Date;
+    },
+  ): Promise<SetAsideCounts> {
+    const rows: unknown = await service.getRepository().manager.query(
+      getClaimSetAsideStatement({
+        table: "OpenStackCloudCheck",
+        alias: "ck",
+        dueColumn: OpenStackCheckStore.getDueColumn(data.kind),
+        sources: [
+          {
+            from: `"OpenStackCloudCheck" ck`,
+            where: `ck."probeId" = $1`,
+          },
+          {
+            from: `"OpenStackCloud" c
+          INNER JOIN "OpenStackCloudCheck" ck ON ck."openStackCloudId" = c."_id"`,
+            where: `c."collectionProbeId" = $1
+            AND ck."probeId" IS NULL`,
+          },
+        ],
+        joins: `LEFT JOIN "OpenStackCloud" c ON ck."openStackCloudId" = c."_id"
+        LEFT JOIN "Project" p ON ck."projectId" = p."_id"
+        LEFT JOIN "Probe" pr
+          ON pr."_id" = COALESCE(ck."probeId", c."collectionProbeId")`,
+        isProbesRow: `COALESCE(ck."probeId", c."collectionProbeId") = $1`,
+        claimable: OpenStackCheckStore.getClaimableSql({
+          kind: data.kind,
+          statusesParameter: "$6",
+          isBillingEnabledParameter: "$7",
+        }),
+      }),
+      getClaimSetAsideParameters({
+        probeId: data.probeId,
+        currentDate: data.currentDate,
+        ruleParameters: [
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+          IsBillingEnabled,
+        ],
+      }),
+    );
+
+    return readSetAsideCounts(rows);
+  }
+
+  /*
+   * Whether a check of this kind may be handed to its probe now, as SQL over the aliases the
+   * claim's statements use - `ck` (the OpenStackCloudCheck), `c` (its OpenStackCloud), `p` (its
+   * Project) and `pr` (the probe it runs on: its own, or its cloud's) - with the served
+   * subscription statuses and whether billing is on bound as the parameters named. The claim keeps
+   * the checks it is true for and the set-aside moves the ones it is not true for: one definition,
+   * so a check the claim would hand out is never one the set-aside moves. Read through LEFT JOINs,
+   * a missing cloud, project or probe is NULL here, never true.
+   *
+   * - The kind is on: the API checks, or the lifecycle check or the sweep that clears up after it.
+   * - Neither the check nor its cloud is deleted, and the cloud is not archived.
+   * - The tenancy backstop: the project's own probe, or a global probe on an instance where those
+   *   are the operator's own (billing off).
+   * - The project is served (ProjectService.getActiveProjectStatusQuery): not deleted, not blocked,
+   *   not a sample, and its subscriptions not inactive.
+   *
+   * Which probe's checks these are is not part of it: that is the range each statement reads.
+   */
+  public static getClaimableSql(parameters: {
+    kind: OpenStackCheckKind;
+    statusesParameter: string;
+    isBillingEnabledParameter: string;
+  }): string {
+    return [
+      parameters.kind === "api"
+        ? `ck."isApiCheckEnabled" = true`
+        : `(ck."isLifecycleCheckEnabled" = true OR ck."isSweepPending" = true)`,
+      `ck."deletedAt" IS NULL`,
+      `c."deletedAt" IS NULL`,
+      `c."isArchived" = false`,
+      `((pr."isGlobalProbe" = false AND pr."projectId" = ck."projectId") OR (pr."isGlobalProbe" = true AND ${parameters.isBillingEnabledParameter}::boolean = false))`,
+      `pr."deletedAt" IS NULL`,
+      `p."deletedAt" IS NULL`,
+      `p."isBlocked" = false`,
+      `p."isSampleProject" = false`,
+      `(p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+      `(p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY(${parameters.statusesParameter}::text[]))`,
+    ].join("\n          AND ");
+  }
+
+  /*
+   * Makes checks due now, both kinds, unless they are due already (Utils/Probe/ClaimSetAside,
+   * getMakeDueNowStatement): for a write that makes a check the claim set aside claimable again
+   * and does not make it due itself, such as its cloud unarchived (OpenStackCloudService). A kind
+   * turned on, a sweep or a run asked for make themselves due (OpenStackCheckSettings). `byCloud`
+   * names the checks by their cloud. Any service's connection will do: this is one statement.
+   */
+  public static async makeDueNow(
+    service: Pick<OpenStackCheckService, "getRepository">,
+    data: {
+      ids: Array<ObjectID>;
+      byCloud?: boolean | undefined;
+    },
+  ): Promise<void> {
+    const parameters: Array<unknown> | null = getMakeDueNowParameters({
+      ids: data.ids,
+      currentDate: OneUptimeDate.getCurrentDate(),
+    });
+
+    if (!parameters) {
+      return;
+    }
+
+    await service.getRepository().manager.query(
+      getMakeDueNowStatement({
+        table: "OpenStackCloudCheck",
+        dueColumns: [
+          OpenStackCheckStore.getDueColumn("api"),
+          OpenStackCheckStore.getDueColumn("lifecycle"),
+        ],
+        idColumn: data.byCloud ? "openStackCloudId" : "_id",
+      }),
+      parameters,
+    );
   }
 
   private static async readClaimed(

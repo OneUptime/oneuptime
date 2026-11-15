@@ -18,7 +18,6 @@ import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEnd
 import DashboardViewConfig, {
   AutoRefreshInterval,
   getAutoRefreshIntervalInMs,
-  getAutoRefreshIntervalLabel,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -30,16 +29,20 @@ import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import AddWidgetModal from "./AddWidgetModal";
 import DashboardDefaultsBar from "./DashboardDefaultsBar";
 import useToolbarChoiceMenuKeys from "./UseToolbarChoiceMenuKeys";
+import useMenuKeptOnScreen from "./UseMenuKeptOnScreen";
 import {
   AUTO_REFRESH_DEFAULT_CHOICE_TEST_ID,
-  getAutoRefreshChoiceLabel,
+  getAutoRefreshDefaultChoiceValue,
 } from "./DashboardDefaultsCopy";
 import DashboardStackingLayers from "Common/UI/Utils/DashboardStackingLayers";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, composedValue } from "Common/UI/Utils/TranslateTemplate";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { DASHBOARD_TIME_RANGE_FALLBACK } from "Common/Types/Dashboard/DashboardTimeRange";
-import { DASHBOARD_AUTO_REFRESH_FALLBACK } from "Common/Types/Dashboard/DashboardAutoRefresh";
+import {
+  DASHBOARD_AUTO_REFRESH_FALLBACK,
+  formatAutoRefreshInterval,
+} from "Common/Types/Dashboard/DashboardAutoRefresh";
 import { getDefaultChoiceLabel } from "Common/UI/Utils/DefaultChoiceLabel";
 
 /*
@@ -172,6 +175,7 @@ interface CountdownCircleProps {
 const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
   props: CountdownCircleProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [progress, setProgress] = useState<number>(0);
   const startTimeRef: React.MutableRefObject<number> = useRef<number>(
     Date.now(),
@@ -255,8 +259,15 @@ const CountdownCircle: FunctionComponent<CountdownCircleProps> = (
             className="transition-none"
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600">
-          {remainingSec}
+        <div
+          className="absolute inset-0 flex items-center justify-center text-[8px] font-semibold text-indigo-600"
+          data-testid="dashboard-auto-refresh-countdown"
+        >
+          {/*
+           * The seconds left in the reader's digits, as the interval beside
+           * it is written: "۲۷" beside "۳۰ ثانیه" on a Persian page.
+           */}
+          {translator.formatNumber(remainingSec)}
         </div>
       </div>
       <span className="text-[11px] text-gray-500 font-medium">
@@ -300,6 +311,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
 
   // Arrows, Home, End, Escape and Tab, as the product's other menus take them.
   useToolbarChoiceMenuKeys({ isOpen, menuRef, buttonRef, close });
+
+  // On the screen, wherever a phone's toolbar wraps the button to.
+  useMenuKeptOnScreen({ isOpen, menuRef });
 
   // A choice made: the menu closes, and the focus goes back to its button.
   const choose: (pick: () => void) => void = (pick: () => void): void => {
@@ -351,7 +365,12 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
             durationMs={props.autoRefreshMs}
             size={20}
             strokeWidth={2}
-            label={getAutoRefreshIntervalLabel(props.autoRefreshInterval)}
+            label={
+              formatAutoRefreshInterval(
+                props.autoRefreshInterval,
+                translator.language,
+              ) || ""
+            }
             isRefreshing={props.isRefreshing}
           />
         ) : (
@@ -371,7 +390,8 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
        * Dropdown: as wide as its longest choice, so none wraps in a long
        * language, and hung from the button's end - its right, its left in
        * a right-to-left language - so it opens over the board, not past
-       * the toolbar's edge.
+       * the toolbar's edge; moved back onto the screen when a phone's
+       * toolbar wraps the button to the other side (useMenuKeptOnScreen).
        */}
       {isOpen && (
         <div
@@ -412,7 +432,9 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                 </span>
                 {getDefaultChoiceLabel({
                   translator,
-                  value: getAutoRefreshChoiceLabel(props.defaultInterval),
+                  value: getAutoRefreshDefaultChoiceValue(
+                    props.defaultInterval,
+                  ),
                 })}
               </button>
             </div>
@@ -452,7 +474,16 @@ const AutoRefreshDropdown: FunctionComponent<AutoRefreshDropdownProps> = (
                     : translator.translateTemplate(
                         "Refresh every {{interval}}",
                         {
-                          interval: getAutoRefreshIntervalLabel(interval),
+                          interval: composedValue(
+                            (sentence: Translator): string => {
+                              return (
+                                formatAutoRefreshInterval(
+                                  interval,
+                                  sentence.language,
+                                ) || ""
+                              );
+                            },
+                          ),
                         },
                       )}
                 </button>

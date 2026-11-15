@@ -298,10 +298,20 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               return;
             }
 
-            const sortOrder: SortOrder =
+            const turnedRound: SortOrder =
               props.sortOrder === SortOrder.Ascending
                 ? SortOrder.Descending
                 : SortOrder.Ascending;
+
+            /*
+             * A column that says which way it runs first - a severity,
+             * worst first - goes that way when it is not the sorted one
+             * yet (Column's firstSortOrder).
+             */
+            const sortOrder: SortOrder =
+              !isSorted && column.firstSortOrder
+                ? column.firstSortOrder
+                : turnedRound;
 
             props.onSortChanged(column.key, sortOrder);
           };

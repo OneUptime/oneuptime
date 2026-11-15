@@ -1,6 +1,7 @@
 import Includes from "../../Types/BaseDatabase/Includes";
 import { Gray500 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
+import ObjectID from "../../Types/ObjectID";
 import { translationKey } from "../../Types/Translator";
 import MonitoringOff, { MonitoringOffFlags } from "../Monitor/MonitoringOff";
 import NotOperationalMonitorQuery from "../Monitor/NotOperationalMonitorQuery";
@@ -12,7 +13,9 @@ import NotOperationalMonitorQuery from "../Monitor/NotOperationalMonitorQuery";
  * The widget in the browser and the public-dashboard policy on the server
  * (Server/Utils/Dashboard/PublicDashboardResourceListPolicy) both build their
  * query from getMonitorListQuery, so a board and its public page cannot list
- * different monitors. React-free and server-safe.
+ * different monitors. The board passes its project as well, which names the
+ * same monitors and reads them differently (getMonitorListQuery). React-free
+ * and server-safe.
  *
  * A monitor whose monitoring is turned off is not checked, so its status is
  * frozen at what its last check saw (Utils/Monitor/MonitoringOff). The list
@@ -66,18 +69,31 @@ export interface MonitorListFilter {
  * Validating the stored values is the caller's job: the public policy refuses
  * a status filter outside MONITOR_LIST_STATUS_FILTER_VALUES and a status id
  * that is not text, and the settings form offers nothing else.
+ *
+ * Given the project the list is read in, "non-operational" asks for the
+ * status in that project too (NotOperationalMonitorQuery, issue #8096): the
+ * same monitors, but Postgres starts from the project's few statuses that
+ * are not operational instead of reading every monitor of the project. That
+ * pays where the read comes with a count, as the board's does (a list counts
+ * what it lists), and the board passes its project. The public page's read
+ * fetches a page and no count, and for a page alone the plain query is the
+ * cheaper one in a big project, so its policy passes none. "operational" is
+ * asked as before either way: most monitors hold an operational status, so
+ * starting from the statuses would not narrow the read.
  */
 export type GetMonitorListQueryFunction = (
   filter: MonitorListFilter,
+  projectId?: ObjectID | string | null | undefined,
 ) => Record<string, unknown>;
 
 export const getMonitorListQuery: GetMonitorListQueryFunction = (
   filter: MonitorListFilter,
+  projectId?: ObjectID | string | null | undefined,
 ): Record<string, unknown> => {
   const query: Record<string, unknown> = { isArchived: false };
 
   if (filter.statusFilter === MONITOR_LIST_STATUS_FILTER_NON_OPERATIONAL) {
-    Object.assign(query, NotOperationalMonitorQuery.getQuery());
+    Object.assign(query, NotOperationalMonitorQuery.getQuery(projectId));
   } else if (filter.statusFilter === MONITOR_LIST_STATUS_FILTER_OPERATIONAL) {
     Object.assign(query, MonitoringOff.getMonitoredQuery(), {
       currentMonitorStatus: { isOperationalState: true },

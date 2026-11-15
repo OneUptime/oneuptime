@@ -351,7 +351,7 @@ describe("resolveInvestigationReferences", () => {
         markdown: [
           "## 🧠 AI — Automated Root Cause Analysis",
           "",
-          "**Checked again** after alert #318 opened on Host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
+          "**Checked again** after alert #318 opened on host web-1, 3 minutes after this incident was declared: High CPU on web-1.",
           "",
           "**Summary** — The host's CPU confirms the earlier analysis.",
         ].join("\n"),

@@ -12,11 +12,13 @@ import {
   composedValue,
   ComposedValue,
   createTranslator,
+  formatInline,
   PluralTemplate,
   translatableTerm,
   translationKey,
   Translator,
 } from "../../Types/Translator";
+import { formatMilliseconds } from "../Milliseconds";
 import MonitorCheckScheduleUtil, {
   MonitorCheckFreshness,
   MonitorCheckFreshnessResult,
@@ -36,6 +38,7 @@ import MonitorOverviewTargetUtil, {
   MonitorOverviewTarget,
 } from "./MonitorOverviewTargetUtil";
 import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
+import { getProbeFailureCauseText } from "./ProbeFailureReading";
 
 /*
  * The monitor overview's hero, facts, pulse and section switches, decided in
@@ -55,6 +58,13 @@ import { MonitorUptimeCaveat } from "./MonitorUptimeSummaryUtil";
  * for word as it always has. What a monitor's owner named - a probe, a
  * host - goes in as written; a status's name is drawn as StatusBadge draws
  * it, in the reader's words when it is one of OneUptime's own.
+ *
+ * Its figures are the reader's too: a count goes into its sentence as
+ * translator.formatNumber writes it ("۲ از ۳" in Persian, never "2 از 3"),
+ * a response time through the shared formatMilliseconds ("182 ms", "۱۸۲
+ * میلی‌ثانیه", "182 ملي ث"), and the facts of one line are set apart as the
+ * reader's language sets them (formatInline: " · ", or " • " in Persian,
+ * whose zero is a dot).
  */
 
 export enum MonitorOverviewRunState {
@@ -2328,8 +2338,8 @@ export default class MonitorOverviewPresentationUtil {
             : t.translateTemplate(
                 "{{disconnected}} of {{total}} disconnected",
                 {
-                  disconnected: disconnected,
-                  total: total,
+                  disconnected: t.formatNumber(disconnected),
+                  total: t.formatNumber(total),
                 },
               ),
         secondary: ProbeStatusMonitorUtil.joinProbeNames(
@@ -2345,8 +2355,8 @@ export default class MonitorOverviewPresentationUtil {
         total === 1
           ? t.translateTemplate("Connected")
           : t.translateTemplate("{{connected}} of {{total}} connected", {
-              connected: total,
-              total: total,
+              connected: t.formatNumber(total),
+              total: t.formatNumber(total),
             }),
       // One probe is named; several connected need no list.
       secondary:
@@ -2401,38 +2411,46 @@ export default class MonitorOverviewPresentationUtil {
         ...base,
         value: isScripted
           ? t.translateTemplate("Mixed · {{up}} passed, {{down}} failed", {
-              up: upCount,
-              down: downCount,
+              up: t.formatNumber(upCount),
+              down: t.formatNumber(downCount),
             })
           : t.translateTemplate("Mixed · {{up}} up, {{down}} down", {
-              up: upCount,
-              down: downCount,
+              up: t.formatNumber(upCount),
+              down: t.formatNumber(downCount),
             }),
         tone: "warning",
       };
     }
 
     /*
-     * The verdict in the reader's words, then the figures every language
-     * writes alike: "Up · 120 ms · HTTP 200".
+     * The verdict in the reader's words, then the response time in the
+     * reader's digits and unit, then the status code every language writes
+     * alike: "Up · 120 ms · HTTP 200", "Up · 120 ms · HTTP 200" in German,
+     * "فعال • ۱۲۰ میلی‌ثانیه • HTTP 200" in Persian.
      */
-    let value: string = t.translateTemplate("Reported");
+    let verdict: string = t.translateTemplate("Reported");
     let tone: MonitorOverviewTone = "neutral";
 
     if (result.isOnline === true) {
-      value = isScripted
+      verdict = isScripted
         ? t.translateTemplate("Passed")
         : t.translateTemplate("Up");
       tone = "good";
     } else if (result.isOnline === false) {
-      value = isScripted
+      verdict = isScripted
         ? t.translateTemplate("Failed")
         : t.translateTemplate("Down");
       tone = "danger";
     }
 
+    const parts: Array<string> = [verdict];
+
     if (result.responseTimeInMs !== undefined) {
-      value += ` · ${Math.round(result.responseTimeInMs)} ms`;
+      parts.push(
+        formatMilliseconds(t, result.responseTimeInMs, {
+          maximumFractionDigits: 0,
+        }),
+      );
     }
 
     if (
@@ -2440,17 +2458,32 @@ export default class MonitorOverviewPresentationUtil {
       (input.monitorType === MonitorType.API ||
         input.monitorType === MonitorType.Website)
     ) {
-      value += ` · HTTP ${result.responseCode}`;
+      // A protocol's status code, as the server answered it.
+      parts.push(`HTTP ${result.responseCode}`);
     }
 
-    // A failure cause is the probe's own message, as it wrote it.
+    /*
+     * A failure cause as every monitor summary draws it: the probe's own
+     * timeout sentence in the reader's words and digits, and any other
+     * message - the network's, a server's - as the probe wrote it
+     * (getProbeFailureCauseText). The hero draws a message that reads the
+     * other way from the page in its own direction (readAsWritten). A
+     * cause that is only space names the probe instead.
+     */
+    const failureCause: string =
+      result.isOnline === false
+        ? getProbeFailureCauseText({
+            translator: t,
+            failureCause: result.failureCause,
+          })
+        : "";
+
     return {
       ...base,
-      value: value,
+      value: formatInline(parts, t),
       secondary:
-        result.isOnline === false && result.failureCause
-          ? result.failureCause
-          : t.translateTemplate("from {{probe}}", { probe: result.probeName }),
+        failureCause ||
+        t.translateTemplate("from {{probe}}", { probe: result.probeName }),
       tone: tone,
     };
   }
@@ -2480,13 +2513,16 @@ export default class MonitorOverviewPresentationUtil {
 
     const probes: MonitorOverviewProbeSummary = input.probes;
     const downCount: number = probes.downCount || 0;
-    // Each part is a phrase of its own, so the " · " between them is no word.
+    /*
+     * Each part is a phrase of its own, so what stands between them is no
+     * word: " · ", or " • " in a language whose zero is a dot (formatInline).
+     */
     const connectionParts: Array<string> = [];
 
     if (probes.disabledCount > 0) {
       connectionParts.push(
         t.translateTemplate("{{count}} disabled", {
-          count: probes.disabledCount,
+          count: t.formatNumber(probes.disabledCount),
         }),
       );
     }
@@ -2494,7 +2530,7 @@ export default class MonitorOverviewPresentationUtil {
     if (probes.disconnectedCount > 0) {
       connectionParts.push(
         t.translateTemplate("{{count}} disconnected", {
-          count: probes.disconnectedCount,
+          count: t.formatNumber(probes.disconnectedCount),
         }),
       );
     }
@@ -2502,7 +2538,7 @@ export default class MonitorOverviewPresentationUtil {
     const joinParts: (parts: Array<string>) => string | undefined = (
       parts: Array<string>,
     ): string | undefined => {
-      return parts.length > 0 ? parts.join(" · ") : undefined;
+      return parts.length > 0 ? formatInline(parts, t) : undefined;
     };
 
     if (probes.enabledCount === 0) {
@@ -2522,7 +2558,7 @@ export default class MonitorOverviewPresentationUtil {
       return {
         ...base,
         value: t.translateTemplate("{{count}} enabled", {
-          count: probes.enabledCount,
+          count: t.formatNumber(probes.enabledCount),
         }),
         secondary: joinParts([
           t.translateTemplate("Checks paused"),
@@ -2546,14 +2582,18 @@ export default class MonitorOverviewPresentationUtil {
       input.monitorType === MonitorType.CustomJavaScriptCode;
     // A probe that reports Down is reporting, but it is not fine.
     const downPart: string = isScripted
-      ? t.translateTemplate("{{count}} failing", { count: downCount })
-      : t.translateTemplate("{{count}} down", { count: downCount });
+      ? t.translateTemplate("{{count}} failing", {
+          count: t.formatNumber(downCount),
+        })
+      : t.translateTemplate("{{count}} down", {
+          count: t.formatNumber(downCount),
+        });
 
     return {
       ...base,
       value: t.translateTemplate("{{reporting}} of {{enabled}} reporting", {
-        reporting: probes.reportingCount,
-        enabled: probes.enabledCount,
+        reporting: t.formatNumber(probes.reportingCount),
+        enabled: t.formatNumber(probes.enabledCount),
       }),
       secondary: joinParts(
         downCount > 0 ? [downPart, ...connectionParts] : connectionParts,

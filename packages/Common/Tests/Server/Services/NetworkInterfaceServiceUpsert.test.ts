@@ -1,4 +1,5 @@
 import NetworkInterfaceService, {
+  INTERFACE_SNAPSHOT_SELECT,
   InterfaceWalkUpsertResult,
 } from "../../../Server/Services/NetworkInterfaceService";
 import NetworkInterface from "../../../Models/DatabaseModels/NetworkInterface";
@@ -17,7 +18,10 @@ import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
  * _updateBy SELECTs before every UPDATE) — 101 statements for a 50-port
  * switch, ~26,700 statements/sec at 80,000 devices on a five-minute interval.
  * It must now be one findBy plus at most one INSERT per 500 new ports and one
- * UPDATE per 500 known ports, and never a round trip per port. The service
+ * UPDATE per 500 ports the walk writes again, and never a round trip per
+ * port. A port the walk would leave as it is costs nothing: which ones that
+ * is, InterfaceInventoryUtil.needsWrite decides (tested in
+ * Tests/Utils/Monitor/InterfaceInventoryWritePlan.test.ts). The service
  * builds raw parameterized SQL against the TypeORM manager, so these tests
  * mock the query runner (no Postgres) and assert on statements and
  * parameters; Postgres itself accepting the statements is proven separately
@@ -31,14 +35,22 @@ const DEVICE_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
 );
 
-const NOW: Date = new Date("2026-08-20T09:30:00.000Z");
+/*
+ * Half a minute past the quarter hour: no port's refresh window turns in the
+ * half minute before it (they turn on the minute), so a row written at
+ * JUST_WRITTEN is one a walk at NOW leaves alone unless it changed.
+ */
+const NOW: Date = new Date("2026-08-20T09:30:30.000Z");
+const JUST_WRITTEN: Date = new Date("2026-08-20T09:30:10.000Z");
 
 /*
- * Insert carries 13 columns per row; update carries 13 value columns per row
- * plus one leading networkDeviceId parameter for the whole statement.
+ * Insert carries 13 columns per row; update carries 12 value columns per row
+ * after two parameters for the whole statement: the networkDeviceId and the
+ * walk's time.
  */
 const INSERT_PARAMS_PER_ROW: number = 13;
-const UPDATE_PARAMS_PER_ROW: number = 13;
+const UPDATE_PARAMS_PER_ROW: number = 12;
+const UPDATE_STATEMENT_PARAMS: number = 2;
 
 // Must track INTERFACE_UPSERT_BATCH_SIZE in NetworkInterfaceService.
 const BATCH_SIZE: number = 500;
@@ -55,6 +67,10 @@ function walked(overrides?: Partial<SnmpInterface>): SnmpInterface {
   };
 }
 
+/*
+ * A stored row with no lastSeenAt: a walk always writes it, so these tests
+ * see the statements. storedAsWalked() is a row a walk would leave alone.
+ */
 function storedRow(
   interfaceIndex: number,
   isMonitored: boolean = true,
@@ -62,6 +78,19 @@ function storedRow(
   const row: NetworkInterface = new NetworkInterface();
   row.interfaceIndex = interfaceIndex;
   row.isMonitored = isMonitored;
+  return row;
+}
+
+// What walked() leaves in the database, last written at `lastSeenAt`.
+function storedAsWalked(
+  interfaceIndex: number,
+  lastSeenAt: Date = JUST_WRITTEN,
+): NetworkInterface {
+  const row: NetworkInterface = storedRow(interfaceIndex);
+  row.name = "GigabitEthernet0/1";
+  row.isOperationallyUp = true;
+  row.isAdministrativelyUp = true;
+  row.lastSeenAt = lastSeenAt;
   return row;
 }
 
@@ -142,6 +171,93 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       expect(querySpy).toHaveBeenCalledTimes(1);
       expect(updateCalls()).toHaveLength(1);
       expect(insertCalls()).toHaveLength(0);
+    });
+
+    /*
+     * What a poll of a switch that holds still costs now: the read, and no
+     * write for any port whose refresh is not due.
+     */
+    test("a 50-port switch that changed nothing costs one SELECT and no write", async () => {
+      const walkedInterfaces: Array<SnmpInterface> = [];
+      const rows: Array<NetworkInterface> = [];
+      for (let index: number = 1; index <= 50; index++) {
+        walkedInterfaces.push(walked({ interfaceIndex: index }));
+        rows.push(storedAsWalked(index));
+      }
+      findBySpy.mockResolvedValue(rows);
+
+      const result: InterfaceWalkUpsertResult = await run({
+        walkedInterfaces,
+      });
+
+      expect(findBySpy).toHaveBeenCalledTimes(1);
+      expect(querySpy).not.toHaveBeenCalled();
+      expect(result).toEqual({ unmonitoredInterfaceIndexes: [] });
+    });
+
+    test("only the ports that changed are in the UPDATE", async () => {
+      const walkedInterfaces: Array<SnmpInterface> = [];
+      const rows: Array<NetworkInterface> = [];
+      for (let index: number = 1; index <= 50; index++) {
+        walkedInterfaces.push(
+          walked({ interfaceIndex: index, isOperationallyUp: index !== 7 }),
+        );
+        rows.push(storedAsWalked(index));
+      }
+      findBySpy.mockResolvedValue(rows);
+
+      await run({ walkedInterfaces });
+
+      expect(updateCalls()).toHaveLength(1);
+      expect(updateCalls()[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + UPDATE_PARAMS_PER_ROW,
+      );
+      // Port 7 went down; nothing else changed.
+      expect(updateCalls()[0]![1][2]).toBe(7);
+      expect(updateCalls()[0]![1][7]).toBe(false);
+    });
+
+    test("every row is written again once it is fifteen minutes old", async () => {
+      const walkedInterfaces: Array<SnmpInterface> = [];
+      const rows: Array<NetworkInterface> = [];
+      for (let index: number = 1; index <= 50; index++) {
+        walkedInterfaces.push(walked({ interfaceIndex: index }));
+        rows.push(
+          storedAsWalked(index, new Date(NOW.getTime() - 15 * 60 * 1000)),
+        );
+      }
+      findBySpy.mockResolvedValue(rows);
+
+      await run({ walkedInterfaces });
+
+      expect(updateCalls()).toHaveLength(1);
+      expect(updateCalls()[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + 50 * UPDATE_PARAMS_PER_ROW,
+      );
+    });
+
+    /*
+     * Five minutes after a refresh, a third of a switch's ports come due:
+     * their windows turn a minute apart, by ifIndex, so a switch is
+     * refreshed a third at a time rather than all of it at once.
+     */
+    test("five minutes after its last refresh, a third of a switch is refreshed", async () => {
+      const walkedInterfaces: Array<SnmpInterface> = [];
+      const rows: Array<NetworkInterface> = [];
+      for (let index: number = 1; index <= 45; index++) {
+        walkedInterfaces.push(walked({ interfaceIndex: index }));
+        rows.push(
+          storedAsWalked(index, new Date(NOW.getTime() - 5 * 60 * 1000)),
+        );
+      }
+      findBySpy.mockResolvedValue(rows);
+
+      await run({ walkedInterfaces });
+
+      expect(updateCalls()).toHaveLength(1);
+      expect(updateCalls()[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + 15 * UPDATE_PARAMS_PER_ROW,
+      );
     });
 
     test("a 50-port switch of brand new interfaces costs one SELECT and one INSERT", async () => {
@@ -225,15 +341,63 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
     /*
      * isMonitored is read precisely because it is the one column the walk must
      * never write; without it in the select every muted port would look
-     * monitored and stop being pruned from the walk response.
+     * monitored and stop being pruned from the walk response. Every column
+     * the walk writes is read too: a column missing from the select would
+     * read as changed on every poll, and its row would be written every time.
      */
-    test("selects exactly the two columns planning needs", async () => {
+    test("selects isMonitored and every column the walk writes", async () => {
       await run({ walkedInterfaces: [walked()] });
 
-      expect(findBySpy.mock.calls[0][0]["select"]).toEqual({
-        interfaceIndex: true,
-        isMonitored: true,
-      });
+      expect(findBySpy.mock.calls[0][0]["select"]).toBe(
+        INTERFACE_SNAPSHOT_SELECT,
+      );
+      expect(Object.keys(INTERFACE_SNAPSHOT_SELECT).sort()).toEqual([
+        "alias",
+        "errorsPerSecond",
+        "inRateMbps",
+        "interfaceIndex",
+        "interfaceType",
+        "isAdministrativelyUp",
+        "isMonitored",
+        "isOperationallyUp",
+        "lastSeenAt",
+        "macAddress",
+        "name",
+        "outRateMbps",
+        "speedInMbps",
+        "utilizationPercent",
+      ]);
+    });
+
+    /*
+     * The UPDATE's SET list and the select are the same columns, bar the
+     * unique key and the mute: a column written but not read would always
+     * look changed.
+     */
+    test("reads every column the UPDATE writes", async () => {
+      findBySpy.mockResolvedValue([storedRow(1)]);
+
+      await run({ walkedInterfaces: [walked({ interfaceIndex: 1 })] });
+
+      const setList: string = updateCalls()[0]![0]
+        .split("SET")[1]!
+        .split("FROM")[0]!;
+      const written: Array<string> = Array.from(setList.matchAll(/"(\w+)" =/g))
+        .map((match: RegExpMatchArray): string => {
+          return match[1]!;
+        })
+        .filter((column: string): boolean => {
+          return column !== "version" && column !== "updatedAt";
+        })
+        .sort();
+
+      expect(written).toEqual(
+        Object.keys(INTERFACE_SNAPSHOT_SELECT)
+          .filter((column: string): boolean => {
+            return column !== "interfaceIndex" && column !== "isMonitored";
+          })
+          .sort(),
+      );
     });
   });
 
@@ -349,10 +513,25 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       const conflictBranch: string =
         insertCalls()[0]![0].split("DO UPDATE SET")[1]!;
       expect(conflictBranch).toMatch(
-        /WHERE "NetworkInterface"\."lastSeenAt" IS NULL\s+OR "NetworkInterface"\."lastSeenAt" < EXCLUDED\."lastSeenAt"\s*$/,
+        /WHERE \("NetworkInterface"\."lastSeenAt" IS NULL\s+OR "NetworkInterface"\."lastSeenAt" < EXCLUDED\."lastSeenAt"\)/,
       );
       // EXCLUDED."lastSeenAt" is this walk's receipt time.
       expect(insertCalls()[0]![1]).toContain(NOW);
+    });
+
+    /*
+     * And the update path's device rule: a device that records a newer
+     * successful walk has none of its rows written by this one, even one the
+     * newer walk left unwritten because it had not changed.
+     */
+    test("the conflict branch writes nothing for a device that records a newer walk", async () => {
+      await run({ walkedInterfaces: [walked()] });
+
+      const conflictBranch: string =
+        insertCalls()[0]![0].split("DO UPDATE SET")[1]!;
+      expect(conflictBranch.replace(/\s+/g, " ")).toContain(
+        'AND NOT EXISTS ( SELECT 1 FROM "NetworkDevice" AS d WHERE d."_id" = EXCLUDED."networkDeviceId" AND d."lastSnmpSeenAt" > EXCLUDED."lastSeenAt" )',
+      );
     });
 
     test("the insert column list omits the rate columns entirely", async () => {
@@ -410,10 +589,31 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const sql: string = updateCalls()[0]![0];
       expect(sql).toContain(
-        'AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < v."lastSeenAt")',
+        'AND (i."lastSeenAt" IS NULL OR i."lastSeenAt" < $2::timestamptz)',
       );
-      // v."lastSeenAt" is the walk's receipt time, the row's last value.
-      expect(updateCalls()[0]![1][UPDATE_PARAMS_PER_ROW]).toBe(NOW);
+      // $2 is the walk's receipt time.
+      expect(updateCalls()[0]![1][1]).toBe(NOW);
+    });
+
+    /*
+     * A newer walk that found a row unchanged left it unwritten, so the row's
+     * lastSeenAt can be older than this walk even when a newer walk saw it.
+     * The device knows: the newer walk's verdict moved its lastSnmpSeenAt.
+     * Asked once per statement - the subquery names no row of the join.
+     */
+    test("writes nothing for a device that records a newer successful walk", async () => {
+      await run({ walkedInterfaces: [walked({ interfaceIndex: 1 })] });
+
+      expect(updateCalls()[0]![0].replace(/\s+/g, " ")).toContain(
+        'AND NOT EXISTS ( SELECT 1 FROM "NetworkDevice" AS d WHERE d."_id" = $1 AND d."lastSnmpSeenAt" > $2::timestamptz )',
+      );
+    });
+
+    test("stamps every row it writes with the walk's time", async () => {
+      await run({ walkedInterfaces: [walked({ interfaceIndex: 1 })] });
+
+      expect(updateCalls()[0]![0]).toContain('"lastSeenAt" = $2::timestamptz');
+      expect(updateCalls()[0]![1][1]).toBe(NOW);
     });
 
     /*
@@ -427,7 +627,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       expect(updateCalls()[0]![0]).not.toContain("isMonitored");
     });
 
-    test("carries 13 value parameters per row after the device id", async () => {
+    test("carries 12 value parameters per row after the device id and the walk's time", async () => {
       await run({
         walkedInterfaces: [
           walked({
@@ -449,6 +649,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       expect(updateCalls()[0]![1]).toEqual([
         DEVICE_ID.toString(),
+        NOW,
         1,
         "Te1/0/1",
         "uplink",
@@ -461,7 +662,6 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
         7.654,
         12.5,
         0.25,
-        NOW,
       ]);
     });
 
@@ -496,16 +696,16 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const sql: string = updateCalls()[0]![0];
       expect(sql).toContain(
-        "($2::integer, $3::character varying, $4::character varying, $5::character varying, $6::integer, $7::boolean, $8::boolean, $9::numeric, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::timestamptz)",
+        "($3::integer, $4::character varying, $5::character varying, $6::character varying, $7::integer, $8::boolean, $9::boolean, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::numeric)",
       );
 
       /*
        * Every tuple is cast, not just the first — cheap, and it means a
        * future edit that reorders the chunk cannot reintroduce the bug.
-       * 13 casts per tuple, two tuples.
+       * 12 casts per tuple, two tuples.
        */
-      expect(sql.match(/::timestamptz/g)).toHaveLength(2);
-      expect(sql.match(/::/g)).toHaveLength(26);
+      const valuesList: string = sql.split("FROM (VALUES")[1]!.split(")\n")[0]!;
+      expect(valuesList.match(/::/g)).toHaveLength(24);
     });
 
     test("nulls the columns the walk stopped reporting", async () => {
@@ -513,8 +713,8 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const params: Array<unknown> = updateCalls()[0]![1];
       // alias, macAddress, interfaceType, speed, both rates, utilization, errors.
-      expect(params.slice(3, 6)).toEqual([null, null, null]);
-      expect(params.slice(8, 13)).toEqual([null, null, null, null, null]);
+      expect(params.slice(4, 7)).toEqual([null, null, null]);
+      expect(params.slice(9, 14)).toEqual([null, null, null, null, null]);
     });
 
     test("bumps the version counter the way _updateBy did", async () => {
@@ -539,9 +739,9 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       });
 
       const params: Array<unknown> = updateCalls()[0]![1];
-      expect(params[2]).toBe(long.substring(0, 100));
       expect(params[3]).toBe(long.substring(0, 100));
       expect(params[4]).toBe(long.substring(0, 100));
+      expect(params[5]).toBe(long.substring(0, 100));
     });
   });
 
@@ -579,9 +779,15 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const calls: Array<QueryCall> = updateCalls();
       expect(calls).toHaveLength(3);
-      expect(calls[0]![1]).toHaveLength(1 + BATCH_SIZE * UPDATE_PARAMS_PER_ROW);
-      expect(calls[1]![1]).toHaveLength(1 + BATCH_SIZE * UPDATE_PARAMS_PER_ROW);
-      expect(calls[2]![1]).toHaveLength(1 + 7 * UPDATE_PARAMS_PER_ROW);
+      expect(calls[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + BATCH_SIZE * UPDATE_PARAMS_PER_ROW,
+      );
+      expect(calls[1]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + BATCH_SIZE * UPDATE_PARAMS_PER_ROW,
+      );
+      expect(calls[2]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + 7 * UPDATE_PARAMS_PER_ROW,
+      );
     });
 
     test("each chunk restarts its placeholder numbering", async () => {
@@ -651,8 +857,10 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       });
 
       expect(updateCalls()).toHaveLength(1);
-      expect(updateCalls()[0]![1]).toHaveLength(1 + UPDATE_PARAMS_PER_ROW);
-      expect(updateCalls()[0]![1][2]).toBe("second");
+      expect(updateCalls()[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + UPDATE_PARAMS_PER_ROW,
+      );
+      expect(updateCalls()[0]![1][3]).toBe("second");
     });
   });
 
@@ -816,7 +1024,29 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       expect(result.unmonitoredInterfaceIndexes).toEqual([1]);
       // Both rows are in the single UPDATE — the inventory keeps every port.
-      expect(updateCalls()[0]![1]).toHaveLength(1 + 2 * UPDATE_PARAMS_PER_ROW);
+      expect(updateCalls()[0]![1]).toHaveLength(
+        UPDATE_STATEMENT_PARAMS + 2 * UPDATE_PARAMS_PER_ROW,
+      );
+    });
+
+    /*
+     * A muted port the walk leaves unwritten is still muted: the walk
+     * response is pruned by what the read found, not by what was written.
+     */
+    test("a muted port that changed nothing is reported muted, and written by nobody", async () => {
+      const muted: NetworkInterface = storedAsWalked(1);
+      muted.isMonitored = false;
+      findBySpy.mockResolvedValue([muted, storedAsWalked(2)]);
+
+      const result: InterfaceWalkUpsertResult = await run({
+        walkedInterfaces: [
+          walked({ interfaceIndex: 1 }),
+          walked({ interfaceIndex: 2 }),
+        ],
+      });
+
+      expect(result.unmonitoredInterfaceIndexes).toEqual([1]);
+      expect(querySpy).not.toHaveBeenCalled();
     });
 
     test("a walk with nothing muted reports an empty list", async () => {

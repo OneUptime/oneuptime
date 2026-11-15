@@ -495,7 +495,7 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts",
         ),
       ).toContain(
-        "monitorType: DatabaseQueryHelper.any(\n          MonitorTypeHelper.getTelemetryMonitorTypes(),\n        ),",
+        "monitorType: DatabaseQueryHelper.any(\n            MonitorTypeHelper.getTelemetryMonitorTypes(),\n          ),",
       );
       expect(MonitorTypeHelper.getTelemetryMonitorTypes()).toContain(
         facts.monitorType,

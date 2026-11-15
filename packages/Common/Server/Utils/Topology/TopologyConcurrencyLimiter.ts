@@ -1,4 +1,5 @@
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
+import KeyedConcurrencyLimiter from "../KeyedConcurrencyLimiter";
 
 /*
  * Bounds the Topology API's database work in one API process.
@@ -29,6 +30,8 @@ import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsEx
  *
  * Per process, like the response cache; there is no cross-process
  * coordination, so the cluster-wide bound is this times the API replicas.
+ *
+ * The queueing itself is KeyedConcurrencyLimiter's, keyed by project.
  */
 
 export const TOPOLOGY_BUSY_MESSAGE: string =
@@ -66,26 +69,28 @@ export class TopologyRequestAbandonedError extends Error {
   }
 }
 
-interface Waiter {
-  projectId: string;
-  start: () => void;
-  timer: ReturnType<typeof setTimeout> | null;
-  detach: () => void;
-}
-
 export class TopologyConcurrencyLimiter {
-  private running: number = 0;
-  private runningByProject: Map<string, number> = new Map<string, number>();
-  /*
-   * Arrival order. Invariant between calls: no waiter here could start (the
-   * process is full, or its project is), so a new request that can start
-   * never overtakes one that could have.
-   */
-  private waiting: Array<Waiter> = [];
+  private limiter: KeyedConcurrencyLimiter;
 
   public constructor(
-    private limits: TopologyConcurrencyLimits = TOPOLOGY_CONCURRENCY_LIMITS,
-  ) {}
+    limits: TopologyConcurrencyLimits = TOPOLOGY_CONCURRENCY_LIMITS,
+  ) {
+    this.limiter = new KeyedConcurrencyLimiter({
+      limits: {
+        maxRunning: limits.maxRunning,
+        maxRunningPerKey: limits.maxRunningPerProject,
+        maxWaiting: limits.maxWaiting,
+        maxWaitingPerKey: limits.maxWaitingPerProject,
+        maxWaitMs: limits.maxWaitMs,
+      },
+      busyError: (): Error => {
+        return new TooManyRequestsException(TOPOLOGY_BUSY_MESSAGE);
+      },
+      abandonedError: (): Error => {
+        return new TopologyRequestAbandonedError();
+      },
+    });
+  }
 
   /*
    * Runs `work` once a slot for `projectId` is free, and frees it when the
@@ -99,130 +104,15 @@ export class TopologyConcurrencyLimiter {
     work: () => Promise<T>,
     signal?: AbortSignal | undefined,
   ): Promise<T> {
-    await this.acquire(projectId, signal);
-    try {
-      if (signal?.aborted) {
-        throw new TopologyRequestAbandonedError();
-      }
-      return await work();
-    } finally {
-      this.release(projectId);
-    }
+    return await this.limiter.run<T>(projectId, work, { signal });
   }
 
   public runningCount(projectId?: string): number {
-    if (projectId === undefined) {
-      return this.running;
-    }
-    return this.runningByProject.get(projectId) || 0;
+    return this.limiter.runningCount(projectId);
   }
 
   public waitingCount(projectId?: string): number {
-    if (projectId === undefined) {
-      return this.waiting.length;
-    }
-    return this.waiting.filter((waiter: Waiter): boolean => {
-      return waiter.projectId === projectId;
-    }).length;
-  }
-
-  private canStart(projectId: string): boolean {
-    return (
-      this.running < this.limits.maxRunning &&
-      this.runningCount(projectId) < this.limits.maxRunningPerProject
-    );
-  }
-
-  private take(projectId: string): void {
-    this.running++;
-    this.runningByProject.set(projectId, this.runningCount(projectId) + 1);
-  }
-
-  private acquire(
-    projectId: string,
-    signal: AbortSignal | undefined,
-  ): Promise<void> {
-    if (signal?.aborted) {
-      return Promise.reject(new TopologyRequestAbandonedError());
-    }
-
-    if (this.canStart(projectId)) {
-      this.take(projectId);
-      return Promise.resolve();
-    }
-
-    if (
-      this.waiting.length >= this.limits.maxWaiting ||
-      this.waitingCount(projectId) >= this.limits.maxWaitingPerProject
-    ) {
-      return Promise.reject(
-        new TooManyRequestsException(TOPOLOGY_BUSY_MESSAGE),
-      );
-    }
-
-    return new Promise<void>(
-      (resolve: () => void, reject: (error: Error) => void): void => {
-        /* Leaves the queue (if still in it) and rejects with `error`. */
-        const leave: (error: Error) => void = (error: Error): void => {
-          const index: number = this.waiting.indexOf(waiter);
-          if (index >= 0) {
-            this.waiting.splice(index, 1);
-            waiter.detach();
-            reject(error);
-          }
-        };
-        const onAbort: () => void = (): void => {
-          leave(new TopologyRequestAbandonedError());
-        };
-        const waiter: Waiter = {
-          projectId,
-          start: resolve,
-          timer: null,
-          detach: (): void => {
-            if (waiter.timer) {
-              clearTimeout(waiter.timer);
-            }
-            signal?.removeEventListener("abort", onAbort);
-          },
-        };
-        if (Number.isFinite(this.limits.maxWaitMs)) {
-          waiter.timer = setTimeout((): void => {
-            leave(new TooManyRequestsException(TOPOLOGY_BUSY_MESSAGE));
-          }, this.limits.maxWaitMs);
-        }
-        signal?.addEventListener("abort", onAbort);
-        this.waiting.push(waiter);
-      },
-    );
-  }
-
-  private release(projectId: string): void {
-    this.running--;
-    const remaining: number = this.runningCount(projectId) - 1;
-    if (remaining > 0) {
-      this.runningByProject.set(projectId, remaining);
-    } else {
-      this.runningByProject.delete(projectId);
-    }
-    this.startWaiters();
-  }
-
-  /* Hands free slots to waiters in arrival order, skipping full projects. */
-  private startWaiters(): void {
-    if (this.waiting.length === 0) {
-      return;
-    }
-    const stillWaiting: Array<Waiter> = [];
-    for (const waiter of this.waiting) {
-      if (this.canStart(waiter.projectId)) {
-        this.take(waiter.projectId);
-        waiter.detach();
-        waiter.start();
-      } else {
-        stillWaiting.push(waiter);
-      }
-    }
-    this.waiting = stillWaiting;
+    return this.limiter.waitingCount(projectId);
   }
 }
 

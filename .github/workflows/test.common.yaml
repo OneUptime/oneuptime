@@ -61,13 +61,23 @@ jobs:
     strategy:
       # One slow or broken shard should not hide the results of the others.
       fail-fast: false
-      # Eight shards. Type-checking inside jest had grown every shard to 25-29
-      # of its 30 minutes, and the slowest kept crossing the cap; transpiling
-      # only (see above) brought a shard to about two and a half minutes at
-      # sixteen, so eight leaves the 30-minute cap a real tripwire without
-      # asking the runner queue for twice the machines.
+      # Type-checking inside jest had grown every shard to 25-29 of its 30
+      # minutes, and the slowest kept crossing the cap; transpiling only (see
+      # above) brought a shard to about two and a half minutes at sixteen, so
+      # eight left the 30-minute cap a real tripwire without asking the runner
+      # queue for twice the machines.
+      #
+      # Sixteen again since 2026-11-14: the suite had grown to 10,942 files.
+      # At eight, shards took 17 to 28 minutes of jest's own time on 14.0.110,
+      # and on 14.0.111 shard 5 reached the cap after 1,256 of its files: the
+      # same files took 1.6 times as long on that runner, no one of them the
+      # cause. jest deals the files out by a hash of their paths, so the
+      # slowest shard runs about two thirds longer than the quickest; at
+      # sixteen the slowest takes about 15 minutes on a usual runner and about
+      # 25 on one as slow as that. When a shard passes about 15 minutes, add
+      # shards here rather than raise the cap.
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
@@ -97,6 +107,10 @@ jobs:
       # rule read's shape is compiled only with it on (PostgresJitOffPostgres).
       # A schema of its own, dropped after.
       RUN_POSTGRES_JIT_TESTS: "true"
+      # A sign-in still gets a connection while queue jobs and probe
+      # scheduling saturate a pool of 10 (ConnectionSharesUnderLoadPostgres,
+      # #7920). Creates nothing.
+      RUN_POSTGRES_CONNECTION_SHARE_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

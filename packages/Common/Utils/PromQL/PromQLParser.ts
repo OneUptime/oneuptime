@@ -31,6 +31,7 @@ import {
 import { PromQLToken, PromQLTokenType, tokenizePromQL } from "./PromQLLexer";
 import { compilePromQLRegex } from "./PromQLRegex";
 import { describePatternProblem } from "../LinearRegExp/PatternCache";
+import lookupTable from "../LookupTable";
 
 /*
  * Parses a PromQL query into a checked syntax tree (promql/parser).
@@ -61,12 +62,18 @@ const AGGREGATES_WITH_PARAMETER: ReadonlySet<PromQLAggregateOperator> =
     PromQLAggregateOperator.CountValues,
   ]);
 
-const KEYWORD_BINARY_OPERATORS: Record<string, PromQLBinaryOperator> = {
-  and: PromQLBinaryOperator.And,
-  or: PromQLBinaryOperator.Or,
-  unless: PromQLBinaryOperator.Unless,
-  atan2: PromQLBinaryOperator.Atan2,
-};
+/*
+ * Read by the word a query writes after an expression, so a Map: a plain
+ * object would read `up constructor up` as an operation whose operator is
+ * the function every object inherits, not as the word no operator is.
+ */
+const KEYWORD_BINARY_OPERATORS: ReadonlyMap<string, PromQLBinaryOperator> =
+  lookupTable<PromQLBinaryOperator>({
+    and: PromQLBinaryOperator.And,
+    or: PromQLBinaryOperator.Or,
+    unless: PromQLBinaryOperator.Unless,
+    atan2: PromQLBinaryOperator.Atan2,
+  });
 
 const SYMBOL_BINARY_OPERATORS: ReadonlyMap<
   PromQLTokenType,
@@ -251,7 +258,7 @@ class PromQLParser {
     const token: PromQLToken = this.peek();
 
     if (token.type === PromQLTokenType.Identifier) {
-      return KEYWORD_BINARY_OPERATORS[token.text.toLowerCase()];
+      return KEYWORD_BINARY_OPERATORS.get(token.text.toLowerCase());
     }
 
     return SYMBOL_BINARY_OPERATORS.get(token.type);

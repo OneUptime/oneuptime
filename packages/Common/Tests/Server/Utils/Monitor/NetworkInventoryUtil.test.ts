@@ -1163,6 +1163,41 @@ describe("NetworkInventoryUtil.updateFromWalk — endpoint discovery", () => {
       },
     ]);
   });
+
+  /*
+   * An endpoint the walk finds unchanged is written again once its own
+   * 15-minute window turns (EndpointAttachmentUtil.endpointRefreshSlot),
+   * whatever the device's polling interval, so the endpoint write is told
+   * no interval and the device is not read for one.
+   */
+  test("hands the endpoint write what the walk saw, and no polling interval", async () => {
+    mockServices([], { pollingIntervalInMinutes: 10 });
+
+    await runWalk({
+      arpEntries: [
+        {
+          ipAddress: "10.0.0.5",
+          macAddress: "aa:bb:cc:00:11:22",
+          interfaceIndex: 3,
+          entryType: "dynamic",
+        },
+      ],
+    });
+
+    expect(Object.keys(endpointUpsertSpy.mock.calls[0][0]).sort()).toEqual(
+      [
+        "attachments",
+        "deviceId",
+        "deviceSiteId",
+        "ipBindings",
+        "now",
+        "projectId",
+      ].sort(),
+    );
+    expect(deviceFindSpy.mock.calls[0][0]["select"]).not.toHaveProperty(
+      "pollingIntervalInMinutes",
+    );
+  });
 });
 
 /*

@@ -20,6 +20,11 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import OneUptimeDate from "Common/Types/Date";
 import { KUBERNETES_FAILING_WAIT_REASONS } from "Common/Types/Kubernetes/KubernetesHealth";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import {
+  KubernetesResourceReading,
+  readKubernetesResourceValue,
+} from "./KubernetesResourceQuantity";
 
 /*
  * A container's state as kubectl shows it: the reason when Kubernetes
@@ -48,74 +53,38 @@ export function getContainerStateBadge(status: KubernetesContainerStatus): {
   return { text: text, type: StatusBadgeType.Danger };
 }
 
-function formatK8sResourceValue(key: string, value: string): string {
-  if (!value) {
-    return value;
-  }
-
-  // CPU values: millicores (e.g. "250m" = 0.25 cores)
-  const cpuMilliMatch: RegExpMatchArray | null = value.match(/^(\d+)m$/);
-  if (cpuMilliMatch && key.toLowerCase() === "cpu") {
-    const millis: number = parseInt(cpuMilliMatch[1] || "0");
-    if (millis >= 1000) {
-      return `${value} (${millis / 1000} CPU cores)`;
-    }
-    return `${value} (${(millis / 1000).toFixed(2)} CPU cores)`;
-  }
-
-  // CPU whole cores (e.g. "2" = 2 cores)
-  const wholeNumberRegex: RegExp = /^\d+$/;
-  if (key.toLowerCase() === "cpu" && wholeNumberRegex.test(value)) {
-    const cores: number = parseInt(value);
-    return `${value} (${cores} CPU core${cores !== 1 ? "s" : ""})`;
-  }
-
-  // Memory values: Ki, Mi, Gi, Ti
-  const memMatch: RegExpMatchArray | null = value.match(/^(\d+)(Ki|Mi|Gi|Ti)$/);
-  if (memMatch) {
-    const num: number = parseInt(memMatch[1] || "0");
-    const unit: string = memMatch[2] || "";
-    const explanations: Record<string, string> = {
-      Ki: `${(num / 1024).toFixed(num >= 1024 ? 1 : 2)} MB`,
-      Mi: num >= 1024 ? `${(num / 1024).toFixed(1)} GB` : `${num} MB`,
-      Gi: `${num} GB`,
-      Ti: `${num} TB`,
-    };
-    const readable: string | undefined = explanations[unit];
-    if (readable) {
-      return `${value} (${readable})`;
-    }
-  }
-
-  // Ephemeral storage: same units
-  const storageMatch: RegExpMatchArray | null = value.match(/^(\d+)(K|M|G|T)$/);
-  if (storageMatch) {
-    const num: number = parseInt(storageMatch[1] || "0");
-    const unit: string = storageMatch[2] || "";
-    const explanations: Record<string, string> = {
-      K: `${(num / 1000).toFixed(num >= 1000 ? 1 : 2)} MB`,
-      M: num >= 1000 ? `${(num / 1000).toFixed(1)} GB` : `${num} MB`,
-      G: `${num} GB`,
-      T: `${num} TB`,
-    };
-    const readable: string | undefined = explanations[unit];
-    if (readable) {
-      return `${value} (${readable})`;
-    }
-  }
-
-  return value;
-}
-
-function annotateResourceValues(
-  resources: Record<string, string>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const key of Object.keys(resources)) {
-    result[key] = formatK8sResourceValue(key, resources[key] || "");
-  }
-  return result;
-}
+/*
+ * A request's or a limit's value: Kubernetes' own ("250m"), as written and
+ * set apart, then what it means in the reader's words and digits - "(0.25
+ * CPU cores)", "(۰٫۲۵ هستهٔ پردازنده)", "(۵۱۲ MB)" - each part reading its
+ * own way on an Arabic or Persian page.
+ */
+export const KubernetesResourceValue: FunctionComponent<{
+  reading: KubernetesResourceReading;
+}> = (props: { reading: KubernetesResourceReading }): ReactElement => {
+  return (
+    <span className="text-gray-600" data-testid="kubernetes-resource-value">
+      <IsolatedText
+        text={props.reading.quantity}
+        className="font-mono"
+        dataTestId="kubernetes-resource-quantity"
+      />
+      {props.reading.meaning ? (
+        <>
+          {" "}
+          <span
+            className="text-gray-500"
+            data-testid="kubernetes-resource-meaning"
+          >
+            (<IsolatedText text={props.reading.meaning} />)
+          </span>
+        </>
+      ) : (
+        <></>
+      )}
+    </span>
+  );
+};
 
 export interface ComponentProps {
   containers: Array<KubernetesContainerSpec>;
@@ -189,6 +158,17 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
     Object.keys(props.container.resources.requests).length > 0 ||
     Object.keys(props.container.resources.limits).length > 0;
 
+  const renderResourceValue: (key: string, value: string) => ReactElement = (
+    key: string,
+    value: string,
+  ): ReactElement => {
+    return (
+      <KubernetesResourceValue
+        reading={readKubernetesResourceValue({ key, value, translator })}
+      />
+    );
+  };
+
   // Its state as its badge colours it: red when it cannot run.
   const isCritical: boolean = Boolean(
     props.status &&
@@ -240,7 +220,11 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
               }
               value={
                 <StatusBadge
-                  text={String(props.status.restartCount)}
+                  /*
+                   * A count, in the reader's digits ("۲" on a Persian page),
+                   * as the cores beside it are.
+                   */
+                  text={translator.formatNumber(props.status.restartCount)}
                   type={
                     props.status.restartCount > 0
                       ? StatusBadgeType.Warning
@@ -389,9 +373,8 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                   />
                 </div>
                 <DictionaryOfStringsViewer
-                  value={annotateResourceValues(
-                    props.container.resources.requests,
-                  )}
+                  value={props.container.resources.requests}
+                  renderValue={renderResourceValue}
                 />
               </div>
             )}
@@ -408,9 +391,8 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                   />
                 </div>
                 <DictionaryOfStringsViewer
-                  value={annotateResourceValues(
-                    props.container.resources.limits,
-                  )}
+                  value={props.container.resources.limits}
+                  renderValue={renderResourceValue}
                 />
               </div>
             )}

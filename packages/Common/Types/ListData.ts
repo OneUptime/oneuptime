@@ -8,12 +8,14 @@ export default class ListData {
     skip: PositiveNumber;
     limit: PositiveNumber;
     hasMore?: boolean | undefined;
+    isCountCapped?: boolean | undefined;
   }) {
     this.data = obj.data;
     this.count = obj.count;
     this.skip = obj.skip;
     this.limit = obj.limit;
     this.hasMore = obj.hasMore;
+    this.isCountCapped = obj.isCountCapped;
   }
 
   public data: JSONArray;
@@ -29,6 +31,14 @@ export default class ListData {
    */
   public hasMore?: boolean | undefined;
 
+  /*
+   * When true, more records match than the list counted: the request asked
+   * for a count up to a cap (countUpTo) and `count` is that cap - a reader
+   * sees "10,000+". It also means records follow this page. Absent when the
+   * count is exact.
+   */
+  public isCountCapped?: boolean | undefined;
+
   public toJSON(): JSONObject {
     const json: JSONObject = {
       data: this.data,
@@ -39,6 +49,10 @@ export default class ListData {
 
     if (this.hasMore !== undefined) {
       json["hasMore"] = this.hasMore;
+    }
+
+    if (this.isCountCapped) {
+      json["isCountCapped"] = true;
     }
 
     return json;

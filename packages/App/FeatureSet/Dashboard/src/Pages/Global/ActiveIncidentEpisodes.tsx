@@ -9,6 +9,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -218,6 +220,10 @@ const ActiveIncidentEpisodes: FunctionComponent<
                   <Pill
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -241,6 +247,10 @@ const ActiveIncidentEpisodes: FunctionComponent<
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

@@ -23,7 +23,7 @@ flowchart TB
     trace --> criteria
 ```
 
-Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Network Path at Time of Failure**, så du kan se hvor ruten brøt sammen.
+Når en sjekk feiler, sporer sonden også ruten til verten og slår opp navnet, og legger det den fant ved resultatet som **Nettverksbane på feiltidspunktet**, så du kan se hvor ruten brøt sammen.
 
 > [!NOTE]
 > Noen vertsleverandører blokkerer ICMP på maskinene en sonde kjører på. En sonde som ikke kan sende ping i det hele tatt, sjekker i stedet TCP-port `80` på verten, så monitoren fortsatt sier om verten kan nås. Pakketap og jitter måles da ikke.
@@ -136,7 +136,7 @@ For bare å varsle når forsinkelsen holder seg høy, slår du på **Evaluer dis
 ## Feilsøking
 
 :::details Verten er oppe, men monitoren sier frakoblet
-Verten, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Mange servere og skynettverk dropper ping som standard. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på verten med en [port-monitor](/docs/monitor/port-monitor). **Network Path at Time of Failure** på den mislykkede sjekken viser hvor langt ruten kom.
+Verten, eller en brannmur foran den, svarer ikke på ICMP-ekkoforespørsler fra sonden. Mange servere og skynettverk dropper ping som standard. Tillat ICMP-ekkoforespørsler fra sondene, eller overvåk heller en tjeneste på verten med en [port-monitor](/docs/monitor/port-monitor). **Nettverksbane på feiltidspunktet** på den mislykkede sjekken viser hvor langt ruten kom.
 :::
 
 :::details Sjekken feiler med "This probe could not resolve" for verten
