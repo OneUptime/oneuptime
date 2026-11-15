@@ -4,18 +4,18 @@ Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendels
 
 :::cards
 - [Slik blir en innsending til en hendelse](#slik-blir-en-innsending-til-en-hendelse): Hvert felt på den nye hendelsen, og hvor verdien kommer fra.
-- [Slik blir en innsending til en planlagt vedlikeholdsbegivenhet](#slik-blir-en-innsending-til-en-planlagt-vedlikeholdsbegivenhet): Det samme, for en forespørsel om vedlikehold.
+- [Slik blir en innsending til en vedlikeholdshendelse](#slik-blir-en-innsending-til-en-vedlikeholdshendelse): Det samme, for en forespørsel om vedlikehold.
 - [Innstillingene Ved innsending](#innstillingene-ved-innsending): Standardverdier, hva som alltid knyttes til, eiere og publisering.
 - [Det private notatet](#det-private-notatet): Hvem som sendte det, og svarene som ikke står i noe felt.
 :::
 
 ## Hva som skjer ved innsending
 
-```mermaid title="Fra en innsending til en hendelse eller en vedlikeholdsbegivenhet"
+```mermaid title="Fra en innsending til en hendelse eller en vedlikeholdshendelse"
 flowchart TB
     submit["Send inn"] --> checks["Beskyttelser og<br/>sjekk av svarene"]
     checks --> fields["Hvert felt: svaret,<br/>ellers innstillingene Ved innsending,<br/>ellers hendelsesmalen"]
-    fields --> record["Hendelsen eller<br/>vedlikeholdsbegivenheten"]
+    fields --> record["Hendelsen eller<br/>vedlikeholdshendelsen"]
     record --> note["Et privat notat: hvem som sendte det,<br/>og de andre svarene"]
     record --> runs["Regler, vaktpolicyer<br/>og arbeidsflyter kjører"]
 ```
@@ -27,14 +27,14 @@ En innsending som ikke består en sjekk, oppretter ingenting. Se [Hva som beskyt
 Kortet **Hva hver innsending oppretter** inneholder valget du tok da du opprettet skjemaet:
 
 - **Hendelse** — hver innsending oppretter en hendelse, så vaktteamet ditt får beskjed med en gang. Bruk det for problemrapporter.
-- **Planlagt vedlikehold** — hver innsending planlegger en vedlikeholdsbegivenhet. Bruk det for endrings- og vedlikeholdsforespørsler.
+- **Planlagt vedlikehold** — hver innsending planlegger en vedlikeholdshendelse. Bruk det for endrings- og vedlikeholdsforespørsler.
 
 Å velge det andre ber deg bekrefte, fordi skjemaet endres med det:
 
 - Tittelen, beskrivelsen, monitorene og etikettene forblir koblet: begge typer poster har dem.
 - Hvert annet koblet spørsmål — en alvorlighetsgrad, et valg av statusside, et egendefinert felt av den gamle typen — blir et av skjemaets egne spørsmål, med samme ordlyd, der svaret vises i det private notatet.
 - Innstillingene Ved innsending starter på nytt, siden innstillingene for en hendelse og for en begivenhet er forskjellige.
-- Et skjema som nå oppretter vedlikeholdsbegivenheter, spør når vedlikeholdet starter og slutter.
+- Et skjema som nå oppretter vedlikeholdshendelser, spør når vedlikeholdet starter og slutter.
 
 Spørsmålene lagres med en gang, sammen med endringen. Sjekk dem på siden **Bygg**.
 
@@ -92,7 +92,7 @@ Slå på **Synlig på statussiden** fra hendelsens side **Innstillinger**.
 Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varselet "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
 :::
 
-## Slik blir en innsending til en planlagt vedlikeholdsbegivenhet
+## Slik blir en innsending til en vedlikeholdshendelse
 
 | Felt | Kommer fra |
 | --- | --- |

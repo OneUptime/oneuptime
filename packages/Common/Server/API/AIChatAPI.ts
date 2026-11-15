@@ -33,6 +33,7 @@ import {
 } from "../../Types/AI/AIChatTypes";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import { readRequestedReaderLanguage } from "../../Types/ReaderLanguage";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIConversation from "../../Models/DatabaseModels/AIConversation";
@@ -475,6 +476,14 @@ router.post(
         offersPageInfrastructure: true,
         // The language the asker reads the Dashboard in (#7247).
         language: readRequestedReaderLanguage(req.body["language"]),
+        /*
+         * The asker's time zone: a chart over days cuts them at their
+         * midnight (#7922). A hint like the page context - one the list
+         * does not name is dropped, never an error.
+         */
+        timezone: AggregationIntervalUtil.readRequestedTimezone(
+          req.body["timezone"],
+        ),
       }).catch((error: Error) => {
         logger.error(`AI chat turn crashed: ${error.message}`);
       });
@@ -748,6 +757,10 @@ router.post(
            * approved setup action writes into the records it makes (#7247).
            */
           language: readRequestedReaderLanguage(req.body["language"]),
+          // The approver's time zone, for the charts the turn goes on to draw.
+          timezone: AggregationIntervalUtil.readRequestedTimezone(
+            req.body["timezone"],
+          ),
         },
         decisions,
       ).catch((error: Error) => {

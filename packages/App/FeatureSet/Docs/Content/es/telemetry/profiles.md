@@ -35,7 +35,7 @@ Necesita una clave de ingesta de telemetría de tipo **Servidor**. Si todavía n
 
 Vaya a **Productos → Ajustes del proyecto**, abra **Telemetría y APM** en el menú lateral y seleccione **Claves de ingesta**.
 
-![La página de claves de ingesta de telemetría en los ajustes del proyecto](/docs/static/images/TelemetryIngestionKeys.png)
+![La lista «Claves de ingesta», con «Crear clave de ingesta» resaltado](screen:ingestion-keys)
 
 ### Crear una clave
 

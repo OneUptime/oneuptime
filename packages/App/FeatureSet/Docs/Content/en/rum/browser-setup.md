@@ -38,7 +38,7 @@ flowchart TB
 3. Click **Create Ingestion Key**, and pick **Browser** as the **Key Type**.
 4. On the **Browser Settings** step, list your origins in **Allowed Origins** as a JSON array, such as `["https://app.example.com"]`, then create the key. On OneUptime Cloud's Free plan, a last **Billing** step shows the telemetry price first.
 
-![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The "Ingestion Keys" list, with "Create Ingestion Key" ringed](screen:ingestion-keys)
 
 The new key opens on its own page. Copy its **Secret Key**: it is the token the SDK sends as `x-oneuptime-token`.
 

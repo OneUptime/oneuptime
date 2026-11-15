@@ -128,7 +128,7 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۵ قالب د
 | VM Disk Usage High | ماشین مجازی | هشدار | `vcenter.vm.disk.utilization`، Avg به ازای هر ماشین مجازی | بیش از ۹۰٪ ذخیره‌سازی تأمین‌شده‌اش به کار گرفته شده: یک ماشین مجازی thin-provisioned در آستانه گرفتن اندازه کاملش است | ۸۱٪ یا کمتر |
 | Datastore Capacity Warning | Datastore | هشدار | `vcenter.datastore.disk.utilization`، Avg به ازای هر `resource.vcenter.datastore.name` | بیش از ۸۰٪: یک هشدار زودهنگام، چون دیسک‌های thin و snapshotها باقی‌مانده را به‌سرعت مصرف می‌کنند | ۷۲٪ یا کمتر |
 | Datastore Capacity Critical | Datastore | بحرانی | `vcenter.datastore.disk.utilization`، Avg به ازای هر دیتااستور | بیش از ۹۰٪: دیتااستور پر هر ماشین مجازی‌ای را که دیسکی روی آن دارد متوقف می‌کند | ۸۱٪ یا کمتر |
-| Cluster Host Not Effective | خوشه | بحرانی | `vcenter.cluster.host.count` با فیلتر `effective = false`، Max به ازای هر `resource.vcenter.cluster.name` | بیش از ۰: یک میزبان در حالت نگهداری، قطع یا بی‌پاسخ است، پس خوشه با ظرفیتی کمتر از آنچه برایش طراحی شده کار می‌کند | برابر ۰ |
+| Cluster Host Not Effective | خوشه | بحرانی | `vcenter.cluster.host.count` با فیلتر `effective = false`، Max به ازای هر `resource.vcenter.cluster.name` | بیش از ۰: یک میزبان در حالت تعمیر و نگهداری، قطع یا بی‌پاسخ است، پس خوشه با ظرفیتی کمتر از آنچه برایش طراحی شده کار می‌کند | برابر ۰ |
 | Datacenter Hosts Unhealthy | مرکز داده | بحرانی | `vcenter.datacenter.host.count` با فیلتر `status = red`، Max به ازای هر `resource.vcenter.datacenter.name` | بیش از ۰: یک میزبان هشدار بحرانی دارد، مانند یک حسگر سخت‌افزاری، یک مسیر ذخیره‌سازی ازدست‌رفته یا خطای عامل HA | برابر ۰ |
 | Datacenter Hosts Degraded | مرکز داده | هشدار | `vcenter.datacenter.host.count` با فیلتر `status = yellow`، Max به ازای هر دیتاسنتر | بیش از ۰: یک میزبان هشدار سطح هشدار دارد | برابر ۰ |
 | Datacenter Hosts Not Responding | مرکز داده | بحرانی | `vcenter.datacenter.host.count` با فیلتر `power_state = unknown`، Max به ازای هر دیتاسنتر | بیش از ۰: vCenter ارتباطش را با یک میزبان از دست داده است – از کار افتاده، برق یا شبکه مدیریتش قطع شده، یا جدا شده است. میزبانی که عمداً خاموش شده یا DPM آن را به حالت آماده‌باش برده به حساب نمی‌آید | برابر ۰ |
@@ -168,10 +168,10 @@ OneUptime برای مشکلات رایج VMware در مجموع ۲۵ قالب د
 
 | متریک | یکا | توضیح |
 | --- | --- | --- |
-| `vcenter.cluster.cpu.effective` | `MHz` | CPU که خوشه واقعاً می‌تواند زمان‌بندی کند – بدون میزبان‌های در حالت نگهداری یا بی‌پاسخ. برای ظرفیت خارج از سرویس با `vcenter.cluster.cpu.limit` مقایسه کنید |
+| `vcenter.cluster.cpu.effective` | `MHz` | CPU که خوشه واقعاً می‌تواند زمان‌بندی کند – بدون میزبان‌های در حالت تعمیر و نگهداری یا بی‌پاسخ. برای ظرفیت خارج از سرویس با `vcenter.cluster.cpu.limit` مقایسه کنید |
 | `vcenter.cluster.cpu.limit` | `MHz` | کل CPU همه میزبان‌های ESXi خوشه، صرف‌نظر از وضعیت میزبان |
-| `vcenter.cluster.host.count` | `{hosts}` | میزبان‌های ESXi خوشه، تفکیک‌شده بر پایه `effective` (`"true"` / `"false"`). میزبان در حالت نگهداری، قطع یا بی‌پاسخ مؤثر نیست |
-| `vcenter.cluster.memory.effective` | `By` | حافظه‌ای که خوشه واقعاً می‌تواند به ماشین‌های مجازی بدهد – بدون میزبان‌های در حالت نگهداری / بی‌پاسخ و حافظه رزرو‌شده خود ESXi |
+| `vcenter.cluster.host.count` | `{hosts}` | میزبان‌های ESXi خوشه، تفکیک‌شده بر پایه `effective` (`"true"` / `"false"`). میزبان در حالت تعمیر و نگهداری، قطع یا بی‌پاسخ مؤثر نیست |
+| `vcenter.cluster.memory.effective` | `By` | حافظه‌ای که خوشه واقعاً می‌تواند به ماشین‌های مجازی بدهد – بدون میزبان‌های در حالت تعمیر و نگهداری / بی‌پاسخ و حافظه رزرو‌شده خود ESXi |
 | `vcenter.cluster.memory.limit` | `By` | کل حافظه فیزیکی همه میزبان‌های ESXi خوشه |
 | `vcenter.cluster.vm.count` | `{virtual_machines}` | ماشین‌های مجازی خوشه، تفکیک‌شده بر پایه `power_state`. برای کل، جمع بگیرید؛ برای ماشین‌های مجازی در حال اجرا `power_state = on` را فیلتر کنید |
 | `vcenter.cluster.vm_template.count` | `{virtual_machine_templates}` | قالب‌های ماشین مجازی در خوشه |

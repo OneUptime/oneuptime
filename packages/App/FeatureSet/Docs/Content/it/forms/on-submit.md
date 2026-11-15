@@ -4,7 +4,7 @@ Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente** o
 
 :::cards
 - [Come un invio diventa un incidente](#come-un-invio-diventa-un-incidente): Ogni campo del nuovo incidente, e da dove viene il suo valore.
-- [Come un invio diventa un evento di manutenzione programmata](#come-un-invio-diventa-un-evento-di-manutenzione-programmata): Lo stesso, per una richiesta di manutenzione.
+- [Come un invio diventa un evento di manutenzione](#come-un-invio-diventa-un-evento-di-manutenzione): Lo stesso, per una richiesta di manutenzione.
 - [Le impostazioni All'invio](#le-impostazioni-allinvio): Valori predefiniti, ciò che viene sempre allegato, proprietari e pubblicazione.
 - [La nota privata](#la-nota-privata): Chi l'ha inviato, e le risposte che nessun campo contiene.
 :::
@@ -92,7 +92,7 @@ Attiva **Visibile sulla pagina di stato** dalla pagina **Impostazioni** dell'inc
 Poiché l'incidente è stato dichiarato con **Notifica gli iscritti alla pagina di stato** disattivato, pubblicarlo non invia la notifica «incidente creato». Per avvisare gli iscritti, pubblica una nota pubblica con **Notifica gli iscritti alla pagina di stato** spuntato — vedi [Pubblicare una nota pubblica](/docs/incidents/notes-owners-and-feed#pubblicare-una-nota-pubblica).
 :::
 
-## Come un invio diventa un evento di manutenzione programmata
+## Come un invio diventa un evento di manutenzione
 
 | Campo | Viene da |
 | --- | --- |

@@ -345,6 +345,7 @@ const TraceRecordingRuleSourceEditor: FunctionComponent<ComponentProps> = (
                         "Remove attribute filter {{number}}",
                         { number: index + 1 },
                       )}
+                      isAriaLabelTranslated={true}
                       icon={IconProp.Trash}
                       buttonStyle={ButtonStyleType.OUTLINE}
                       buttonSize={ButtonSize.Small}

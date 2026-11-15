@@ -384,7 +384,7 @@ Also called: **Tasks**. See [Code](/docs/ai/ai-agent).
 
 ### Form
 
-A page anyone with its link can fill in, without an account. Each submission creates an incident, for a problem report, or a scheduled maintenance event, for a change request.
+A page anyone with its link can fill in, without an account. Each submission creates an incident, for a problem report, or a maintenance event, for a change request.
 
 See [Forms Overview](/docs/forms/index).
 

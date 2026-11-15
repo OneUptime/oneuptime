@@ -65,6 +65,7 @@ import { IsNull, UpdateResult } from "typeorm";
 import FeedMarkdown, { MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import logger, { LogAttributes } from "../Utils/Logger";
 import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
+import OnCallRunPageMessage from "../Utils/OnCall/OnCallRunPageMessage";
 import OnCallFeedText, {
   OnCallDirectPagePager,
 } from "../Utils/OnCall/OnCallFeedText";
@@ -326,6 +327,18 @@ export class Service extends ProjectReferencesService<Model> {
           getOnCallPolicyStartedOnResolvedRecordMessage(resolvedRecordKind),
         );
       }
+    }
+
+    /*
+     * What the person who paged wrote, for a policy a page from Slack or
+     * Microsoft Teams starts as them (OnCallRunPageMessage): on the run
+     * from its creation, so the notifications its first level sends as it
+     * is created carry it. OneUptime's to write, never the caller's.
+     */
+    const pageMessage: string | undefined = OnCallRunPageMessage.take();
+
+    if (pageMessage) {
+      onCreate.createBy.data.pageMessage = pageMessage;
     }
 
     if (!props.workflowId) {

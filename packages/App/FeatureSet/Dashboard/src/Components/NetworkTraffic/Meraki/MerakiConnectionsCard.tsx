@@ -1455,6 +1455,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                             "More actions for {{name}}",
                             { name: facts.connection.name },
                           )}
+                          isAriaLabelTranslated={true}
                           elementToBeShownInsteadOfButton={
                             <button
                               type="button"

@@ -380,7 +380,7 @@ const CallRow: FunctionComponent<CallRowProps> = (
                 icon={IconProp.Trash}
                 buttonStyle={ButtonStyleType.ICON}
                 buttonSize={ButtonSize.Small}
-                ariaLabel={translator.translateText("Remove this call")}
+                ariaLabel="Remove this call"
                 tooltip={translator.translateText(
                   "Remove this call from the page. The meeting itself is not deleted.",
                 )}

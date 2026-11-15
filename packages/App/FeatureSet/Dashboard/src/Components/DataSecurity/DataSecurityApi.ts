@@ -1,8 +1,10 @@
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Timezone from "Common/Types/Timezone";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
@@ -60,9 +62,18 @@ async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
 }
 
 export default class DataSecurityApi {
+  /*
+   * In the reader's zone: the issue trend counts the reader's days, as every
+   * other day chart does (issue #7925). A zone the list does not name is not
+   * sent, and those days stay UTC's.
+   */
   public static async getOverview(): Promise<DataSecurityOverview> {
+    const timezone: Timezone | undefined =
+      AggregationIntervalUtil.getListedReaderTimezone();
+
     return (await post(
       DATA_SECURITY_API_ROUTES.overview,
+      timezone ? { timezone } : {},
     )) as unknown as DataSecurityOverview;
   }
 

@@ -163,7 +163,7 @@ Per collegare Huntress, fai clic sul trigger **Huntress Incident Report** sulla 
 
 ## Trigger di eventi OneUptime
 
-Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione pianificata, pagine di stato, policy di reperibilità, team — può avviare un workflow. Ognuno offre fino a quattro trigger:
+Quasi tutto in OneUptime — monitor, incidenti, avvisi, eventi di manutenzione, pagine di stato, policy di reperibilità, team — può avviare un workflow. Ognuno offre fino a quattro trigger:
 
 - **On Create** — scatta quando ne viene aggiunto uno nuovo.
 - **On Update** — scatta quando uno viene modificato. Salvare un record con i valori che ha già, come un modulo salvato senza modifiche o un interruttore inviato com'è già, non è una modifica e non lo fa scattare.

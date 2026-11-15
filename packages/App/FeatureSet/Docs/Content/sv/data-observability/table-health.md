@@ -41,7 +41,7 @@ Välj **Rekommenderade larm** för en databas under **Databaser**. Varje rekomme
 
 Välj allvarlighetsgrader, jourpolicyer, ägare och etiketter när du skapar dem. Därefter är de vanliga monitorer: redigera dem, tysta dem eller lägg dem på en statussida som vilken annan som helst.
 
-En ifyllnad eller en migrering ska inte larma någon. Ange databasen under **Dataobserverbarhet Databaser** på en [schemalagd underhållshändelse](/docs/scheduled-maintenance/index), eller lägg dess databasserver i en, så är dess datalarm tysta medan händelsen pågår.
+En ifyllnad eller en migrering ska inte larma någon. Ange databasen under **Dataobserverbarhet Databaser** på en [underhållshändelse](/docs/scheduled-maintenance/index), eller lägg dess databasserver i en, så är dess datalarm tysta medan händelsen pågår.
 
 ## Mätvärden som varje tabell skriver
 

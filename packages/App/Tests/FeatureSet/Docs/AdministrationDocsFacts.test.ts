@@ -192,7 +192,7 @@ const SMTP_FORM_LINK: string = "/docs/emails/smtp#open-the-form";
 const NO_EMAIL_STEP: string =
   "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**. A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**. Anyone else asks the server's admin to [set up email](/docs/emails/smtp#open-the-form).";
 const NO_EMAIL_ANSWER: string =
-  "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link, which works once, only for that address, for 7 days.";
+  "On a self-hosted server that cannot send email yet, signing up cannot email them a new link either: it tells them to ask for their invitation link. Once the server's admin has [set up email](/docs/emails/smtp#open-the-form), signing up works as above. Until then, a master admin can send them a new link, which works once, only for that address, for 7 days: on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.";
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const PARAGRAPH_BREAK: RegExp = /\n[ \t]*\n/;
@@ -882,7 +882,7 @@ describe("Inviting People", () => {
       );
       // Done closes the dialog and goes on to the person's page.
       expect(usersPage).toContain(
-        "const viewPageRoute: Route = invitationLinkFor.viewPageRoute; setInvitationLinkFor(null); Navigation.navigate(viewPageRoute);",
+        "const viewPageRoute: Route | null = invitationLinkFor.viewPageRoute; setInvitationLinkFor(null); if (viewPageRoute) { Navigation.navigate(viewPageRoute); }",
       );
 
       // The dialog: its title, the link with its copy button, and Done.
@@ -945,7 +945,12 @@ describe("Inviting People", () => {
         "The invitation does not depend on the email. Ask them to sign up with the address you invited: OneUptime emails that address a new link to finish creating the account. Someone who already has an account signs in and finds the invitation waiting.",
         NO_EMAIL_ANSWER,
       ]);
-      expect(boldNames(NO_EMAIL_ANSWER)).toEqual([]);
+      // The list, its row menu and the action, as the Dashboard draws them.
+      expect(boldNames(NO_EMAIL_ANSWER)).toEqual([
+        "Users",
+        "⋯",
+        "Get Invitation Link",
+      ]);
     });
 
     it("says signing up cannot email a new link there, and tells them to ask for their invitation link", () => {
@@ -974,30 +979,48 @@ describe("Inviting People", () => {
       );
     });
 
-    it("gets a new link by removing the person and inviting them again: a pending person cannot be invited to the same team twice", () => {
-      const service: string = readCommonSource(
-        "Server/Services/TeamMemberService.ts",
-      );
-      const removal: string = between(
+    /*
+     * A pending person invited by somebody else, or whose link ran out, has
+     * their link one click away for a master admin (#7168): it was only ever
+     * shown after the master admin's own Invite, and a pending person cannot
+     * be invited to the same team twice.
+     */
+    it("gets a new link from Get Invitation Link in the person's row menu on Users, for a master admin", () => {
+      const route: string = between(
         collapsed(readCommonSource("Server/API/TeamMemberAPI.ts")),
+        "/invitation-link`",
         "/remove-user-from-project`",
-        "/:id/leave`",
       );
 
-      // Inviting them to the same team again is refused while they are pending.
-      expect(service).toContain("Errors.TeamMemberService.ALREADY_INVITED");
-      // Remove from Project takes every membership, joined or not.
-      expect(removal).toContain(
-        "await this.service.deleteBy({ query: { userId: new ObjectID(userIdParam), projectId: projectId, } as Query<TeamMember>,",
+      // The Users list offers it on a pending row, to a master admin, on a server that cannot send email.
+      expect(usersPage).toContain(
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), onOpen: (teamMemberId: ObjectID) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, }); }, }), ]}",
       );
-      expect(removal).not.toContain("hasAcceptedInvitation");
-      // Each invitation's dialog reads its own link.
+      expect(serverEmail).toContain(
+        "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",
+      );
+      expect(invitationLink).toContain(
+        'getLink: translationKey("Get Invitation Link"),',
+      );
+      expect(invitationLink).toContain("title: INVITATION_LINK_COPY.getLink,");
+      expect(invitationLink).toContain(
+        "data.isAvailable && !item.hasAcceptedInvitation && Boolean(item.id)",
+      );
+      // In the row menu: the row's button is View, which ModelTable puts first.
+      expect(invitationLink).not.toContain("ActionButtonPlacement.Primary");
+      // The dialog it opens reads a fresh link, which only a master admin is handed.
       expect(invitationLink).toContain(
         "fetchInvitationLink(props.teamMemberId)",
       );
+      expect(route).toContain(
+        "MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,",
+      );
 
       expect(NO_EMAIL_ANSWER).toContain(
-        "Until then, a master admin can remove them from the project and invite them again, and send them the new invitation link,",
+        "Until then, a master admin can send them a new link,",
+      );
+      expect(NO_EMAIL_ANSWER).toContain(
+        "on **Users**, open the person's row menu, **⋯**, and click **Get Invitation Link**.",
       );
     });
 
@@ -1020,7 +1043,7 @@ describe("Inviting People", () => {
         `It works once, only for this address, for ${days} days.`,
       );
       expect(NO_EMAIL_ANSWER).toContain(
-        `which works once, only for that address, for ${days} days.`,
+        `which works once, only for that address, for ${days} days:`,
       );
     });
   });

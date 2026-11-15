@@ -65,10 +65,13 @@ import {
 import {
   SERVER_EMAIL_COPY,
   ServerEmail,
+  canGetInvitationLinks,
   cannotSendEmail,
   useServerEmail,
 } from "../../Utils/ServerEmail";
-import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import InvitationLinkModal, {
+  getInvitationLinkRowAction,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -84,12 +87,14 @@ const Users: FunctionComponent<PageComponentProps> = (
   /*
    * Whether the server can send the invitation email (Utils/ServerEmail):
    * the dialog says so before anyone invites, and a master admin is then
-   * handed the link the email would have carried.
+   * handed the link the email would have carried - and can read it again
+   * from Get Invitation Link on any pending person's row (#7168), which
+   * leaves them on this list (no viewPageRoute).
    */
   const serverEmail: ServerEmail = useServerEmail();
   const [invitationLinkFor, setInvitationLinkFor] = React.useState<{
     teamMemberId: ObjectID;
-    viewPageRoute: Route;
+    viewPageRoute: Route | null;
   } | null>(null);
 
   /*
@@ -317,6 +322,23 @@ const Users: FunctionComponent<PageComponentProps> = (
         isEditable={false}
         isCreateable={false}
         isViewable={true}
+        /*
+         * A pending person's row: their invitation link, for a master admin
+         * on a server that cannot send email. The row stands for every team
+         * the person is invited to, and its id is one of those invitations;
+         * the link is the person's, whichever one it is read from.
+         */
+        actionButtons={[
+          getInvitationLinkRowAction<TeamMember>({
+            isAvailable: canGetInvitationLinks(serverEmail),
+            onOpen: (teamMemberId: ObjectID) => {
+              setInvitationLinkFor({
+                teamMemberId: teamMemberId,
+                viewPageRoute: null,
+              });
+            },
+          }),
+        ]}
         topContent={filterBar}
         emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
@@ -619,9 +641,12 @@ const Users: FunctionComponent<PageComponentProps> = (
         <InvitationLinkModal
           teamMemberId={invitationLinkFor.teamMemberId}
           onClose={() => {
-            const viewPageRoute: Route = invitationLinkFor.viewPageRoute;
+            const viewPageRoute: Route | null = invitationLinkFor.viewPageRoute;
             setInvitationLinkFor(null);
-            Navigation.navigate(viewPageRoute);
+
+            if (viewPageRoute) {
+              Navigation.navigate(viewPageRoute);
+            }
           }}
         />
       )}

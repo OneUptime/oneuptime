@@ -38,7 +38,7 @@ flowchart TB
 3. Cliquez sur **Créer une clé d'ingestion** et choisissez **Navigateur** comme **Type de clé**.
 4. À l'étape **Paramètres du navigateur**, listez vos origines dans **Origines autorisées** sous forme de tableau JSON, par exemple `["https://app.example.com"]`, puis créez la clé. Avec le plan gratuit de OneUptime Cloud, une dernière étape **Facturation** affiche d'abord le prix de la télémétrie.
 
-![La page des clés d'ingestion de télémétrie dans les paramètres du projet](/docs/static/images/TelemetryIngestionKeys.png)
+![La liste « Clés d'ingestion », avec « Créer une clé d'ingestion » entouré](screen:ingestion-keys)
 
 La nouvelle clé s'ouvre sur sa propre page. Copiez sa **Clé secrète** : c'est le jeton que le SDK envoie dans `x-oneuptime-token`.
 

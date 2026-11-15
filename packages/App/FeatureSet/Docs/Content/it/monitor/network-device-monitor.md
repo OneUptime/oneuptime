@@ -1022,6 +1022,18 @@ Un dispositivo non visto da 30 giorni viene rimosso dall'elenco e dalla mappa, a
 
 I proprietari e gli amministratori del progetto scelgono il layout predefinito: passate a un layout e selezionate **Make default for everyone**. Da quel momento ogni vista della mappa dei dispositivi si apre su di esso: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**. Sul layout predefinito, **Clear default** riporta ogni mappa al proprio layout predefinito. Le posizioni trascinate vengono salvate per ogni layout nel vostro browser, quindi la mappa si apre con la disposizione che avete fatto in quel layout.
 
+### Orientarsi in una rete di grandi dimensioni
+
+Nel layout **Parent and child**, un dispositivo con sei o più dispositivi che non hanno nulla sotto di sé li disegna come una griglia compatta sotto di sé invece che in una lunga fila, collegati da linee ad angolo retto che non attraversano alcun dispositivo né il suo nome. Il layout sceglie la forma della griglia che fa stare tutta la mappa sullo schermo alla dimensione più grande.
+
+Un dispositivo con qualcosa sotto di sé ha un pulsante `−` sotto il nome: selezionalo per comprimere il ramo al dispositivo e al numero di dispositivi che contiene, ad esempio `+24`, e seleziona il numero per espanderlo di nuovo. **Comprimi tutti i rami** ed **Espandi tutti i rami**, accanto ai pulsanti di zoom, riducono la mappa al suo schema e la riaprono. Il browser ricorda i rami compressi per ogni sito.
+
+Per esaminare un ramo da solo, fai clic sul suo dispositivo e seleziona **Mostra solo questo ramo**. La mappa mostra quel dispositivo e tutto ciò che sta sotto, con in alto il percorso dalla cima della rete: seleziona un passaggio per allargare la vista al ramo di quel dispositivo, oppure **Mostra tutta la mappa** per rivedere tutto.
+
+La ricerca sposta la mappa sui dispositivi trovati. Le frecce accanto al numero di corrispondenze, o Invio nella casella di ricerca, passano a ogni corrispondenza a turno e la evidenziano con un anello. Nel layout **Parent and child** il percorso dalla cima della rete fino a ogni corrispondenza resta evidenziato, e anche una corrispondenza in un ramo compresso viene contata, con un pulsante che apre i rami in cui si trova.
+
+Dopo aver trascinato dei dispositivi, un selettore in cima alla mappa passa tra **Layout personalizzato · 2 spostati** e **Layout originale**: il layout originale è la mappa come la dispone OneUptime, e il tuo layout personalizzato viene mantenuto finché non torni a esso. **Reset layout** lo elimina.
+
 ### Esportare la mappa in PDF
 
 **Esporta PDF**, in cima alla mappa, scarica la mappa che stai guardando come PDF da allegare a una valutazione, a una richiesta di modifica o a una revisione di un incidente, o da leggere offline. Ogni vista della mappa dei dispositivi lo ha: **Topologia del dispositivo**, un sito nella **Mappa** e la scheda **Rete** di **Topologia**.

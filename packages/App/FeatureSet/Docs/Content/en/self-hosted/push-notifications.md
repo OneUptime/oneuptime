@@ -204,7 +204,7 @@ A device keeps the system sound until it runs a version of the app that offers t
 
 ### Repeating a page until it is acknowledged
 
-A push rule can send its page again until somebody acknowledges it. Under **User Settings > How to Reach Me**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row: every minute, or every 2, 3, 5, 10, 15 or 30 minutes. The page is sent again at that interval, up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. It is stored per rule in `UserNotificationRule.repeatEveryMinutes`, where 0, the default, sends the page once.
+A push rule can send its page again until somebody acknowledges it. Under **User Settings > How to Reach Me**, set **Repeat until acknowledged** when adding a push rule, or change it later on the rule's row: every minute, or every 2, 3, 5, 10, 15 or 30 minutes. The page is sent again at that interval, up to 10 more times, and stops as soon as the incident, alert or episode is acknowledged. A page that goes on after an acknowledgement, such as a page again, repeats until somebody it paged answers it or the incident, alert or episode is resolved: [When several policies page](/docs/on-call/policies#when-several-policies-page) lists them. It is stored per rule in `UserNotificationRule.repeatEveryMinutes`, where 0, the default, sends the page once.
 
 ## Troubleshooting
 

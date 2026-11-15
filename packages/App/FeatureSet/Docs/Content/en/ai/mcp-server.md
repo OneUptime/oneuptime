@@ -253,7 +253,7 @@ Without an API key or a sign-in, a client can use the public tools:
 - **`oneuptime_describe_resource`**: a resource's fields, and how to filter, sort and select on them
 - **`get_public_status_page_overview`**: the overview of a public status page
 - **`get_public_status_page_incidents`**: the incidents of a public status page
-- **`get_public_status_page_scheduled_maintenance`**: its scheduled maintenance events
+- **`get_public_status_page_scheduled_maintenance`**: its maintenance events
 - **`get_public_status_page_announcements`**: its announcements
 
 The public status page tools take a status page's ID (a UUID) or its domain name. To use only these, connect with the address and no credentials:
@@ -414,7 +414,7 @@ These work without credentials, with the public status page tools alone:
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 

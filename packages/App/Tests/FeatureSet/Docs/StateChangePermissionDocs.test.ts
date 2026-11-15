@@ -139,7 +139,7 @@ describe("Docs: changing a state takes the state timeline's create permission", 
       ["An alert", STATE_TIMELINE_PERMISSIONS[1]],
       ["An alert episode", STATE_TIMELINE_PERMISSIONS[2]],
       ["An incident episode", STATE_TIMELINE_PERMISSIONS[3]],
-      ["A scheduled maintenance event", STATE_TIMELINE_PERMISSIONS[4]],
+      ["A maintenance event", STATE_TIMELINE_PERMISSIONS[4]],
       ["A monitor (its status)", STATE_TIMELINE_PERMISSIONS[5]],
     ]) {
       expect(body).toContain(`| ${record} | ${permission} |`);

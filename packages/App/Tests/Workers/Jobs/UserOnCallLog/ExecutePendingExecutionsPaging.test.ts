@@ -455,15 +455,27 @@ describe("the person's-log worker, a page at a time", () => {
     expect(ruleService.findBy).not.toHaveBeenCalled();
   });
 
-  test("a log whose incident is gone stays paging, to be read again next minute", async () => {
+  /*
+   * It used to stay paging - a plain error, read as one a retry could fix -
+   * and failed, and logged an error, every minute, forever (issue #8106).
+   * A deleted incident does not come back. ExecutePendingExecutionsRecordGone
+   * pins every kind of record.
+   */
+  test("ends a log whose incident is gone, saying so, without reading its rules", async () => {
     logs.push(pagingLog({ index: 1 }));
     incidentService.findBy.mockResolvedValue([]);
 
     await tick();
 
-    // As reading it on its own did: a plain error, not a permanent one.
-    expect(logService.updateOneById).not.toHaveBeenCalled();
-    expect(logger.error).toHaveBeenCalled();
+    expect(logService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(
+      (logService.updateOneById.mock.calls[0]![0] as { data: unknown }).data,
+    ).toEqual({
+      status: UserNotificationExecutionStatus.Completed,
+      statusMessage: "Execution completed because incident is deleted.",
+    });
+    expect(ruleService.findBy).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   test("stops at its deadline", async () => {

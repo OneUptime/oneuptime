@@ -41,7 +41,7 @@ jest.mock("Common/Server/Services/MonitorService", () => {
     __esModule: true,
     default: {
       findOneById: jest.fn(),
-      findAllBy: jest.fn(),
+      findBy: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       getEnabledMonitorQuery: jest.fn(),
     },
@@ -107,7 +107,7 @@ const supportBot: ObjectID = ObjectID.generate();
 
 const findOneById: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
-const findAllBy: jest.Mock = MonitorService.findAllBy as unknown as jest.Mock;
+const findBy: jest.Mock = MonitorService.findBy as unknown as jest.Mock;
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
 const countAnswers: jest.Mock =
@@ -187,7 +187,7 @@ async function runOnce(): Promise<void> {
 beforeEach(() => {
   ReceivingCoverage.clearCache();
   findOneById.mockReset();
-  findAllBy.mockReset().mockResolvedValue([]);
+  findBy.mockReset().mockResolvedValue([]);
   monitorResource.mockReset().mockResolvedValue({});
   countAnswers
     .mockReset()
@@ -407,7 +407,7 @@ describe("The telemetry scheduler", () => {
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
     const query: Record<string, unknown> = (
-      findAllBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      findBy.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
     const operator: { objectLiteralParameters?: Record<string, unknown> } =
       query["monitorType"] as {

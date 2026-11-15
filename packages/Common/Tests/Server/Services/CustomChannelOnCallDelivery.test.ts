@@ -5,6 +5,7 @@ import CustomNotificationChannelService from "../../../Server/Services/CustomNot
 import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import OnCallDutyPolicyEscalationRuleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
+import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import TeamService from "../../../Server/Services/TeamService";
@@ -32,6 +33,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
+import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import Project from "../../../Models/DatabaseModels/Project";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
@@ -571,6 +573,110 @@ describe("a page through a custom channel", () => {
       status: UserNotificationStatus.Error,
       statusMessage: "Error sending to CorpoApp.",
     });
+  });
+});
+
+/*
+ * A custom channel most often stands in for push: the company's own app on
+ * the responder's phone. Its title and message are the push's, so a page a
+ * person asked for and a policy a person started by hand say who paged
+ * there too, with their message (#7838) - where they said "New Incident
+ * INC-42" from nobody.
+ */
+describe("a page a person asked for, through a custom channel", () => {
+  const RUN_ID: ObjectID = ObjectID.generate();
+  const ALICE_ID: ObjectID = ObjectID.generate();
+
+  function run(fields: { policyName?: string }): OnCallDutyPolicyExecutionLog {
+    const model: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
+    model._id = RUN_ID.toString();
+    model.triggeredByUserId = ALICE_ID;
+    const user: User = new User();
+    user.name = new Name("Alice Kim");
+    model.triggeredByUser = user;
+    model.pageMessage = "Can you check the database?";
+    model.userNotificationEventType = UserNotificationEventType.IncidentCreated;
+
+    if (fields.policyName) {
+      model.onCallDutyPolicyId = POLICY_ID;
+      const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+      policy.name = fields.policyName;
+      model.onCallDutyPolicy = policy;
+    }
+
+    return model;
+  }
+
+  test("a policy started by hand: its title and message say who started which policy, with the message", async () => {
+    const paged: Incident = incident();
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(paged);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(run({ policyName: "Database escalation" }) as never);
+
+    await internals().deliverNotificationForRule(
+      channelRule(),
+      options(UserNotificationEventType.IncidentCreated, {
+        triggeredByIncidentId: paged.id!,
+        onCallPolicyExecutionLogId: RUN_ID,
+      }),
+    );
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["title"]).toBe(
+      "Alice Kim started Database escalation: Incident INC-42",
+    );
+    expect(payload["message"]).toBe(
+      "API latency high, in Agency A. “Can you check the database?” Click to view details.",
+    );
+    expect(payload["isPageAgain"]).toBe(false);
+  });
+
+  test("a page a person sent to people: its title says who paged whom", async () => {
+    const paged: Incident = incident();
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(paged);
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(run({}) as never);
+
+    await internals().deliverNotificationForRule(
+      channelRule(),
+      options(UserNotificationEventType.IncidentCreated, {
+        triggeredByIncidentId: paged.id!,
+        onCallPolicyExecutionLogId: RUN_ID,
+        onCallPolicyId: undefined,
+      }),
+    );
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["title"]).toBe("Alice Kim paged SRE: Incident INC-42");
+    expect(payload["message"]).toContain("“Can you check the database?”");
+  });
+
+  test("a run OneUptime started keeps the words it always had", async () => {
+    const paged: Incident = incident();
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(paged);
+    const automatic: OnCallDutyPolicyExecutionLog = run({
+      policyName: "Database escalation",
+    });
+    automatic.triggeredByUserId = undefined;
+    automatic.triggeredByUser = undefined;
+    jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findOneById")
+      .mockResolvedValue(automatic as never);
+
+    await internals().deliverNotificationForRule(
+      channelRule(),
+      options(UserNotificationEventType.IncidentCreated, {
+        triggeredByIncidentId: paged.id!,
+        onCallPolicyExecutionLogId: RUN_ID,
+      }),
+    );
+
+    expect(sentPayload()["title"]).toBe(
+      "New Incident INC-42: API latency high",
+    );
   });
 });
 

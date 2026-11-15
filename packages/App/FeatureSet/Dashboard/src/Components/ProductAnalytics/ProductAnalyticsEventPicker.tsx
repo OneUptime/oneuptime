@@ -31,8 +31,13 @@ export interface ProductAnalyticsEventPickerProps {
   events: ReadonlyArray<ProductAnalyticsEventNameDto>;
   value: ProductAnalyticsEventRef | null;
   onChange: (event: ProductAnalyticsEventRef) => void;
-  // What the picker is for, as English the page translates ("Event", "Step 2").
+  /*
+   * What the picker is for, in English ("Event"): the dropdown looks it up.
+   * A sentence the page builds around a value ("Step 2") is put in the
+   * reader's words there, and said so with isAriaLabelTranslated (#7790).
+   */
   ariaLabel: string;
+  isAriaLabelTranslated?: boolean | undefined;
   dataTestId: string;
   placeholder?: string | undefined;
   /*
@@ -124,7 +129,8 @@ const ProductAnalyticsEventPicker: FunctionComponent<
       options={groups}
       value={selectedOption}
       isClearable={false}
-      ariaLabel={translator.translateText(props.ariaLabel) || props.ariaLabel}
+      ariaLabel={props.ariaLabel}
+      isAriaLabelTranslated={props.isAriaLabelTranslated}
       placeholder={
         props.isLoading ? PRODUCT_ANALYTICS_EVENTS_LOADING : props.placeholder
       }

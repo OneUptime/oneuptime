@@ -198,7 +198,7 @@ export const LinkExporterModal: FunctionComponent<{
         <Dropdown
           options={options}
           placeholder="Pick a device"
-          ariaLabel={translator.translateText("Device")}
+          ariaLabel="Device"
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             setSelected(value ? String(value) : null);
           }}

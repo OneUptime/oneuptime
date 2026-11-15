@@ -24,7 +24,7 @@ flowchart TB
 ## Før du begynner
 
 - **Rollen din.** Å opprette en hendelse krever **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Vedlikeholdsadministrator** eller **Vedlikeholdsmedlem**, eller en egendefinert rolle med **Create Scheduled Maintenance**.
-- **Statussidene dine.** For å informere kundene trenger du en statusside som viser planlagte vedlikeholdshendelser. Se [Statussider – Oversikt](/docs/status-pages/index).
+- **Statussidene dine.** For å informere kundene trenger du en statusside som viser vedlikeholdshendelser. Se [Statussider – Oversikt](/docs/status-pages/index).
 
 ## Opprett en hendelse
 
@@ -71,7 +71,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 To ting fyller ut skjemaet for deg underveis:
 
 - **Tilknyttede ressurser.** Når du velger en monitor, legges vertene, klyngene, tjenestene og andre ressurser den er knyttet til, under **Andre berørte ressurser**, og en linje under feltet nevner dem. Fjern dem du ikke vil ha. Skyressurser legges også til: Mens hendelsen pågår, åpner monitorene deres ingen hendelse eller varsel.
-- **Foreslåtte statussider.** Under **Vis hendelse på disse statussidene** foreslås sidene som viser monitorene dine: klikk på navnet til en side for å legge den til, eller på **Legg til alle**. Ingenting velges for deg. Se [Planlagte vedlikeholdshendelser](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser).
+- **Foreslåtte statussider.** Under **Vis hendelse på disse statussidene** foreslås sidene som viser monitorene dine: klikk på navnet til en side for å legge den til, eller på **Legg til alle**. Ingenting velges for deg. Se [Vedlikeholdshendelser](/docs/status-pages/subscribers#vedlikeholdshendelser).
 
 ## Start fra en ressurs eller en mal
 
@@ -180,6 +180,6 @@ En hendelse publiseres slik at kundene dine hører om arbeidet før det begynner
 :::cards
 - [Vedlikeholdstilstander](/docs/scheduled-maintenance/states): Hva som starter og avslutter en hendelse, og hvordan du flytter den manuelt.
 - [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates): Lagre svarene i skjemaet til neste gang.
-- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#planlagte-vedlikeholdshendelser): Nøyaktig hvem som får beskjed, og når.
+- [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#vedlikeholdshendelser): Nøyaktig hvem som får beskjed, og når.
 - [Vedlikeholdsregler og innstillinger](/docs/scheduled-maintenance/settings): Legg til eiere, etiketter og påminnelser automatisk.
 :::

@@ -22,17 +22,26 @@ import TeamElement from "../../../Components/Team/Team";
 import {
   SERVER_EMAIL_COPY,
   ServerEmail,
+  canGetInvitationLinks,
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
+import InvitationLinkModal, {
+  getInvitationLinkRowAction,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 
 const UserViewTeams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const userId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  // A server that cannot send email sent no invitation (Utils/ServerEmail).
+  /*
+   * A server that cannot send email sent no invitation (Utils/ServerEmail):
+   * a master admin reads a pending team's invitation link from its row.
+   */
   const serverEmail: ServerEmail = useServerEmail();
+  const [invitationLinkFor, setInvitationLinkFor] =
+    React.useState<ObjectID | null>(null);
 
   /*
    * A user is in the project only through their teams, so removing their last
@@ -125,6 +134,14 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           });
         }}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
+        actionButtons={[
+          getInvitationLinkRowAction<TeamMember>({
+            isAvailable: canGetInvitationLinks(serverEmail),
+            onOpen: (teamMemberId: ObjectID) => {
+              setInvitationLinkFor(teamMemberId);
+            },
+          }),
+        ]}
         filters={[
           /*
            * The table lists the project's teams for this filter itself, by
@@ -187,6 +204,14 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+      {invitationLinkFor && (
+        <InvitationLinkModal
+          teamMemberId={invitationLinkFor}
+          onClose={() => {
+            setInvitationLinkFor(null);
+          }}
+        />
+      )}
     </Fragment>
   );
 };

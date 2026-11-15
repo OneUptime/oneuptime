@@ -115,7 +115,7 @@ You cannot set the three flags from this form — they belong to the seeded rows
 
 ## Order is a real constraint, not a display preference
 
-The order is enforced when a state change is written, not just when the list is drawn. One rule holds every state change of an incident, an alert, an incident or alert episode and a scheduled maintenance event, whoever makes it — the dashboard, Slack, Microsoft Teams, the API, Terraform, a workflow or OneUptime itself — and whether it is sent as a row of the record's state timeline or as an update of its current state:
+The order is enforced when a state change is written, not just when the list is drawn. One rule holds every state change of an incident, an alert, an incident or alert episode and a maintenance event, whoever makes it — the dashboard, Slack, Microsoft Teams, the API, Terraform, a workflow or OneUptime itself — and whether it is sent as a row of the record's state timeline or as an update of its current state:
 
 - **Backwards transitions are rejected.** Moving an incident to a state that sits earlier in the order than its current state fails with an error naming both states: "Incident cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states." An episode is held to it exactly as the incidents it groups are, in its own name ("Episode cannot transition to …"), so a resolved episode is not moved back to an earlier state — nor, through it, are its incidents. An update that would move a record back is refused before anything is saved.
 - **Re-selecting the current state is rejected.** Setting an incident to the state it is already in fails with "Incident state cannot be same as previous state."
@@ -222,7 +222,7 @@ Each change has two actions:
 - **View Cause** — opens a **Root Cause** modal rendering the markdown recorded with that state change.
 - **View Logs** — opens a modal explaining why the status changed, with an **Incident State Log** viewer.
 
-**Timeline** and **Table**, in the card's header, switch between the timeline and the table the page used to be: a row per change with **Starts At**, **Ends At** and **Duration**, filters, saved views and bulk actions. Your choice is kept in your browser, for every status timeline. Alerts, episodes and scheduled maintenance events draw their state timelines the same way. A monitor's and a network site's **Status Timeline** open on the past month instead, picked as any other time range is, with the period before and after it a click away.
+**Timeline** and **Table**, in the card's header, switch between the timeline and the table the page used to be: a row per change with **Starts At**, **Ends At** and **Duration**, filters, saved views and bulk actions. Your choice is kept in your browser, for every status timeline. Alerts, episodes and maintenance events draw their state timelines the same way. A monitor's and a network site's **Status Timeline** open on the past month instead, picked as any other time range is, with the period before and after it a click away.
 
 In the dashboard, timeline rows can be added and deleted, but not edited; an incident always keeps at least one row. Through the API, a row's `startsAt` can be corrected, and every measurement worked out from the timeline follows it.
 
@@ -296,7 +296,7 @@ This holds however the incident is written: the dashboard, the API, Terraform, a
 **Episodes follow the same rule.** A private incident episode is hidden from every status page, whatever its **Visible on Status Page** switch says, and its subscribers hear nothing about it. On the episode's **Settings** page the switch says so, and stays off while the episode is private. A private incident never brings its episode onto a status page: an episode reaches a page only through incidents that are not private.
 
 :::details Upgrading from a version without these rules
-Incidents and episodes stored private with **Visible on Status Page** still on, from before these rules, have it switched off when you upgrade. Nothing is sent to anyone. The images such an incident or episode had made viewable by everyone are made private again, unless something your status pages show still has them in it. So are the images in public notes of incidents, episodes and scheduled maintenance events your status pages do not show, which stayed viewable by everyone before.
+Incidents and episodes stored private with **Visible on Status Page** still on, from before these rules, have it switched off when you upgrade. Nothing is sent to anyone. The images such an incident or episode had made viewable by everyone are made private again, unless something your status pages show still has them in it. So are the images in public notes of incidents, episodes and maintenance events your status pages do not show, which stayed viewable by everyone before.
 :::
 
 How much resolved history the page keeps is a status page setting, not an incident one. See [Status Page Resources & Groups](/docs/status-pages/resources-and-groups) for how monitors on the page decide which incidents show up at all.

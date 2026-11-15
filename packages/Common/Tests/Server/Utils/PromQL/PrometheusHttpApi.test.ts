@@ -31,6 +31,7 @@ import {
   PromQLLabels,
   matchesPromQLMatchers,
 } from "../../../../Utils/PromQL/PromQLLabels";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -423,6 +424,175 @@ describe("running queries", () => {
     });
   });
 
+  /*
+   * A label pattern's flag groups, as Grafana sends them: Prometheus
+   * compiles ^(?s:<pattern>)$, so a flag group covers the rest of its group
+   * and never the anchors around the pattern.
+   */
+  test("an instant query reads a label pattern's flag groups as Prometheus does", async () => {
+    // The jobs of the series the query finds.
+    const jobsOf: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const answer: JSONObject = await runPrometheusInstantQuery({
+        engine,
+        params: { query, time: "180" },
+        nowMs: 0,
+      });
+      const result: Array<{ metric: { job: string } }> = (
+        answer["data"] as unknown as {
+          result: Array<{ metric: { job: string } }>;
+        }
+      ).result;
+
+      return result.map((item: { metric: { job: string } }): string => {
+        return item.metric.job;
+      });
+    };
+
+    expect(await jobsOf('up{job=~"a(?i)PI"}')).toEqual(["api"]);
+    // The "A" before the flag group is matched as written.
+    expect(await jobsOf('up{job=~"A(?i)PI"}')).toEqual([]);
+    expect(await jobsOf('up{job=~"(?i)API|(?-i)WEB"}')).toEqual(["api"]);
+    // (?m) leaves the anchors at the ends of the whole value.
+    expect(await jobsOf('up{job=~"(?m)ap"}')).toEqual([]);
+    expect(await jobsOf('up{job!~"(?m)ap"}')).toEqual(["api", "web"]);
+  });
+
+  test("match[] reads a label pattern's flag groups as Prometheus does", async () => {
+    const series: Array<PromQLLabels> = await listPrometheusSeries({
+      source: SOURCE,
+      selectors: readMatchSelectors({ "match[]": 'up{job=~"w(?i)EB"}' }),
+      startTimeMs: 0,
+      endTimeMs: 200000,
+      limit: 100,
+    });
+
+    expect(series).toEqual([{ __name__: "up", instance: "b", job: "web" }]);
+  });
+
+  test("a label pattern RE2 refuses is a bad query that says why", async () => {
+    // A repeat of a repeat, which (?U) must not join into one.
+    const error: PromQLError = await errorOf(() => {
+      return runPrometheusInstantQuery({
+        engine,
+        params: { query: 'up{job=~"(?U)a*???"}', time: "180" },
+        nowMs: 0,
+      });
+    });
+
+    expect(toPrometheusErrorAnswer(error)).toEqual({
+      statusCode: 400,
+      body: {
+        status: "error",
+        errorType: "bad_data",
+        error:
+          'The pattern "(?U)a*???" for the label "job" repeats a repeat with ? right after it, which Prometheus does not read either. Put the first repeat in a group to repeat it again, as in (?:a*)?.',
+      },
+    });
+  });
+
+  // What the PromQL tab and Grafana are answered for a query.
+  const answerFor: (
+    run: () => unknown,
+  ) => Promise<PrometheusErrorAnswer | undefined> = async (
+    run: () => unknown,
+  ): Promise<PrometheusErrorAnswer | undefined> => {
+    return toPrometheusErrorAnswer(await errorOf(run));
+  };
+
+  test("a POSIX class Prometheus does not have is a bad query, named in the answer, through match[] too", async () => {
+    const expected: PrometheusErrorAnswer = {
+      statusCode: 400,
+      body: {
+        status: "error",
+        errorType: "bad_data",
+        error:
+          'The pattern "[[:nosuch:]]" for the label "job" names the character class [:nosuch:], which Prometheus does not read either. The classes are [:alnum:], [:alpha:], [:ascii:], [:blank:], [:cntrl:], [:digit:], [:graph:], [:lower:], [:print:], [:punct:], [:space:], [:upper:], [:word:] and [:xdigit:], written in lowercase, and [:^digit:] matches every character [:digit:] does not.',
+      },
+    };
+
+    expect(
+      await answerFor(() => {
+        return runPrometheusInstantQuery({
+          engine,
+          params: { query: 'up{job=~"[[:nosuch:]]"}', time: "180" },
+          nowMs: 0,
+        });
+      }),
+    ).toEqual(expected);
+    expect(
+      await answerFor(() => {
+        return readMatchSelectors({ "match[]": 'up{job=~"[[:nosuch:]]"}' });
+      }),
+    ).toEqual(expected);
+  });
+
+  test("label_replace's pattern Prometheus refuses cannot run, said in a sentence", async () => {
+    expect(
+      await answerFor(() => {
+        return runPrometheusInstantQuery({
+          engine,
+          params: {
+            query: 'label_replace(up, "x", "$1", "job", "(?<=a)(p)")',
+            time: "180",
+          },
+          nowMs: 0,
+        });
+      }),
+    ).toEqual({
+      statusCode: 422,
+      body: {
+        status: "error",
+        errorType: "execution",
+        error:
+          'The pattern "(?<=a)(p)" in label_replace() uses the look-behind (?<=, which Prometheus does not read either. Match the text itself instead, or leave values out with a second matcher that uses !~.',
+      },
+    });
+  });
+
+  test("RE2's spellings read as Prometheus reads them, through an instant query and match[]", async () => {
+    // The jobs of the series a selector finds.
+    const jobsOf: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const answer: JSONObject = await runPrometheusInstantQuery({
+        engine,
+        params: { query, time: "180" },
+        nowMs: 0,
+      });
+
+      return (
+        answer["data"] as unknown as {
+          result: Array<{ metric: { job: string } }>;
+        }
+      ).result.map((item: { metric: { job: string } }): string => {
+        return item.metric.job;
+      });
+    };
+
+    // \x{61} is "a", \Q ... \E its text, [[:^digit:]] any but a digit.
+    expect(await jobsOf('up{job=~"\\\\x{61}pi"}')).toEqual(["api"]);
+    expect(await jobsOf('up{job=~"\\\\Qw\\\\Eeb"}')).toEqual(["web"]);
+    expect(await jobsOf('up{job=~"[[:^digit:]]{3}"}')).toEqual(["api", "web"]);
+    // A count with a leading zero is its characters, which no job has.
+    expect(await jobsOf('up{job=~"ap{01}i"}')).toEqual([]);
+    // (?i) joins the long s with s: "\u017f" is no job's, "web" has none.
+    expect(await jobsOf('up{job=~"(?i)WEB|\u017f"}')).toEqual(["web"]);
+
+    const series: Array<PromQLLabels> = await listPrometheusSeries({
+      source: SOURCE,
+      selectors: readMatchSelectors({
+        "match[]": 'up{job=~"\\\\Aa\\\\w+\\\\z"}',
+      }),
+      startTimeMs: 0,
+      endTimeMs: 200000,
+      limit: 100,
+    });
+
+    expect(series).toEqual([{ __name__: "up", instance: "a", job: "api" }]);
+  });
+
   test.each([
     [{ start: "0", end: "1", step: "1" }, "The query parameter is required."],
     [{ query: "up", end: "1", step: "1" }, "The start parameter is required."],
@@ -458,6 +628,45 @@ describe("series, label names and label values", () => {
     expect(labelNamesOf(series)).toEqual(["__name__", "instance", "job"]);
     expect(labelValuesOf(series, "job")).toEqual(["api", "web"]);
   });
+
+  test("a label named like an Object member has values only where a series has it", () => {
+    const series: Array<PromQLLabels> = [
+      { __name__: "up", job: "api" },
+      { __name__: "up", job: "web", constructor: "c1" },
+    ];
+
+    expect(labelValuesOf(series, "constructor")).toEqual(["c1"]);
+    expect(labelValuesOf(series, "toString")).toEqual([]);
+    expect(labelValuesOf(series, "__proto__")).toEqual([]);
+  });
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "/label/%s/values lists only the values series have, and names it only where one does",
+    (name: string) => {
+      const without: Array<PromQLLabels> = [
+        { __name__: "up", job: "api" },
+        { __name__: "up", job: "web" },
+      ];
+
+      expect(labelValuesOf(without, name)).toEqual([]);
+      expect(labelNamesOf(without)).toEqual(["__name__", "job"]);
+
+      // __proto__ is the one name a label set cannot hold yet (issue #8025).
+      if (name === "__proto__") {
+        return;
+      }
+
+      const withIt: Array<PromQLLabels> = [
+        ...without,
+        { __name__: "up", job: "db", [name]: "second" },
+        { __name__: "up", job: "cache", [name]: "first" },
+        { __name__: "up", job: "queue", [name]: "first" },
+      ];
+
+      expect(labelValuesOf(withIt, name)).toEqual(["first", "second"]);
+      expect(labelNamesOf(withIt)).toEqual(["__name__", "job", name].sort());
+    },
+  );
 
   test("the series list stops at the limit", async () => {
     expect(

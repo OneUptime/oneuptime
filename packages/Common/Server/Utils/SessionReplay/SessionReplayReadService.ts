@@ -1,5 +1,10 @@
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
+import {
+  hasPathSpellings,
+  pathSpellingOfValue,
+  pathSpellingSql,
+} from "../AnalyticsDatabase/PathSpelling";
 import RumSessionService from "../../Services/RumSessionService";
 import RumSessionChunkService from "../../Services/RumSessionChunkService";
 import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
@@ -101,31 +106,6 @@ const RETENTION_FILTER: string = " AND retentionDate >= now()";
 function toHashRoutePathSql(url: string): string {
   return `if(startsWith(fragment(${url}), '!/'), substring(fragment(${url}), 2), fragment(${url}))`;
 }
-
-/*
- * A stored path, or the prefix it is matched with, in one spelling: the
- * spelling a User Flows key has (UrlScrubber.normalizePathSpelling), for
- * the URLs stored before the scrubber wrote it. Every escape is decoded
- * and the text composed (NFC), so "%c3%a9", "%C3%A9" and "e%CC%81" all
- * read "é". An escape of an ASCII character is decoded behind U+FFFF,
- * which no stored path holds unescaped, so it never reads as the character
- * itself: "/a%2Fb" stays apart from "/a/b", while "%2f" reads as "%2F".
- * Bytes that are not UTF-8 read as U+FFFD (normalizeUTF8NFC refuses
- * them), so two such paths can read alike, but never as a page of words.
- * The three characters NFC turns into ASCII (U+037E, U+1FEF, U+212A) read
- * as that character, where a key keeps their escape. The expression goes
- * between the two halves.
- */
-const PATH_SPELLING_OPEN: string =
-  "normalizeUTF8NFC(toValidUTF8(decodeURLComponent(replaceRegexpAll(";
-const PATH_SPELLING_CLOSE: string =
-  ", '%([0-7][0-9A-Fa-f])', '%EF%BF%BF%\\\\1'))))";
-
-/*
- * A prefix that can be spelled more ways than one: it has an escape, or a
- * character beyond ASCII.
- */
-const SPELLED_PREFIX: RegExp = /[%\u0080-\uffff]/;
 
 /*
  * Wall-clock cap. 'throw' rather than 'break': see (2) above. 30s is well
@@ -4312,24 +4292,24 @@ export default class SessionReplayReadService {
        * but a session recorded before it holds whichever the browser had.
        * So a prefix with more than one spelling (an escape or a character
        * beyond ASCII) is also matched in one spelling against each stored
-       * path and hash route that has an escape (PATH_SPELLING_OPEN). A
-       * prefix in plain ASCII has one spelling, and is matched as written.
+       * path and hash route that has an escape (AnalyticsDatabase/
+       * PathSpelling, the reads' side of UrlScrubber.normalizePathSpelling).
+       * A prefix in plain ASCII has one spelling, and is matched as written.
        */
+      const prefix: string = filters.urlPrefix;
       const prefixParameter: { type: TableColumnType; value: string } = {
         type: TableColumnType.Text,
-        value: filters.urlPrefix,
+        value: prefix,
       };
 
-      const matchesSpellings: boolean = SPELLED_PREFIX.test(filters.urlPrefix);
+      const matchesSpellings: boolean = hasPathSpellings(prefix);
 
       const appendSpellingArm: (path: string) => void = (
         path: string,
       ): void => {
-        statement.append(
-          `startsWith(${PATH_SPELLING_OPEN}${path}${PATH_SPELLING_CLOSE}, ${PATH_SPELLING_OPEN}`,
-        );
-        statement.append(SQL`${prefixParameter}`);
-        statement.append(`${PATH_SPELLING_CLOSE})`);
+        statement.append(`startsWith(${pathSpellingSql(path)}, `);
+        statement.append(pathSpellingOfValue(prefix));
+        statement.append(")");
       };
 
       const appendUrlArms: (url: string) => void = (url: string): void => {
