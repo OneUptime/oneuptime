@@ -24,6 +24,7 @@ import HealthLicenseRequired, {
 } from "./HealthLicenseRequired";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translationKey } from "Common/Types/Translator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -82,43 +83,63 @@ type MetricInfoKey =
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
     title: "Overall status",
-    body: "Valkey backs OneUptime's caching and queues. This card tracks reachability: Connected means this instance can reach Valkey; Unreachable means it can't, which stalls cache reads and queued jobs. There is no partial state here — it's a binary reachability check, not a degraded/healthy scale.",
+    body: translationKey(
+      "Valkey backs OneUptime's caching and queues. This card tracks reachability: Connected means this instance can reach Valkey; Unreachable means it can't, which stalls cache reads and queued jobs. There is no partial state here — it's a binary reachability check, not a degraded/healthy scale.",
+    ),
   },
   memoryUtilization: {
     title: "Valkey memory utilization",
-    body: "Used memory as a share of Valkey's configured maxmemory. As this approaches 100%, Valkey begins evicting keys per its eviction policy (or rejecting writes if no policy is set). If maxmemory is unset, no percentage can be shown.",
+    body: translationKey(
+      "Used memory as a share of Valkey's configured maxmemory. As this approaches 100%, Valkey begins evicting keys per its eviction policy (or rejecting writes if no policy is set). If maxmemory is unset, no percentage can be shown.",
+    ),
   },
   memoryUsed: {
     title: "Memory used",
-    body: "Total memory Valkey currently holds — cached data plus its own bookkeeping overhead (used_memory from INFO).",
+    body: translationKey(
+      "Total memory Valkey currently holds — cached data plus its own bookkeeping overhead (used_memory from INFO).",
+    ),
   },
   memoryLimit: {
     title: "Memory limit",
-    body: "The maxmemory ceiling Valkey will use before it starts evicting keys or rejecting writes. 'Not configured' means Valkey can grow until the host itself runs out of memory.",
+    body: translationKey(
+      "The maxmemory ceiling Valkey will use before it starts evicting keys or rejecting writes. 'Not configured' means Valkey can grow until the host itself runs out of memory.",
+    ),
   },
   evictionPolicy: {
     title: "Eviction policy",
-    body: "What Valkey does at the memory limit. Any allkeys-* or volatile-* policy discards keys to make room, silently losing cached data and queued job state. 'noeviction' instead rejects writes outright, so background jobs start failing.",
+    body: translationKey(
+      "What Valkey does at the memory limit. Any allkeys-* or volatile-* policy discards keys to make room, silently losing cached data and queued job state. 'noeviction' instead rejects writes outright, so background jobs start failing.",
+    ),
   },
   connections: {
     title: "Client connections",
-    body: "Clients connected right now against the maxclients limit. Valkey refuses new connections once maxclients is reached, which stalls every OneUptime process that needs the cache or a job queue.",
+    body: translationKey(
+      "Clients connected right now against the maxclients limit. Valkey refuses new connections once maxclients is reached, which stalls every OneUptime process that needs the cache or a job queue.",
+    ),
   },
   blockedClients: {
     title: "Blocked clients",
-    body: "Clients parked in a blocking command such as BLPOP — normal for job-queue workers waiting on work. A number far above your worker count suggests commands that are not completing.",
+    body: translationKey(
+      "Clients parked in a blocking command such as BLPOP — normal for job-queue workers waiting on work. A number far above your worker count suggests commands that are not completing.",
+    ),
   },
   evictedKeys: {
     title: "Keys evicted",
-    body: "Keys Valkey has discarded since it last restarted because it hit its memory limit. Any non-zero value means cached data or queued job state was lost. This counter only resets when Valkey restarts.",
+    body: translationKey(
+      "Keys Valkey has discarded since it last restarted because it hit its memory limit. Any non-zero value means cached data or queued job state was lost. This counter only resets when Valkey restarts.",
+    ),
   },
   rejectedConnections: {
     title: "Rejected connections",
-    body: "Connection attempts Valkey turned away since it last restarted, because maxclients was already reached. Any non-zero value means some part of OneUptime could not reach Valkey.",
+    body: translationKey(
+      "Connection attempts Valkey turned away since it last restarted, because maxclients was already reached. Any non-zero value means some part of OneUptime could not reach Valkey.",
+    ),
   },
   persistence: {
     title: "Persistence",
-    body: "Whether Valkey's last write to disk succeeded. When this is failing, Valkey still serves from memory but everything since the last good write is lost on restart — usually a full disk or a permissions problem on the data directory.",
+    body: translationKey(
+      "Whether Valkey's last write to disk succeeded. When this is failing, Valkey still serves from memory but everything since the last good write is lost on restart — usually a full disk or a permissions problem on the data directory.",
+    ),
   },
 };
 

@@ -228,71 +228,103 @@ type MetricInfoKey =
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
     title: "Overall status",
-    body: "A roll-up of the signals below. Healthy (green): nothing notable. Degraded (yellow): a soft signal — cache-hit ratio under 90%, connections at 75%+, a standby not streaming, replication lag over 10s, an inactive slot, or 10+ idle-in-transaction sessions. Needs attention (red): a hard problem — sessions blocked on a lock, connections at 90%+, wraparound headroom under 10%, a lost replication slot, or replication lag over 60s.",
+    body: translationKey(
+      "A roll-up of the signals below. Healthy (green): nothing notable. Degraded (yellow): a soft signal — cache-hit ratio under 90%, connections at 75%+, a standby not streaming, replication lag over 10s, an inactive slot, or 10+ idle-in-transaction sessions. Needs attention (red): a hard problem — sessions blocked on a lock, connections at 90%+, wraparound headroom under 10%, a lost replication slot, or replication lag over 60s.",
+    ),
   },
   databaseSize: {
     title: "Database size",
-    body: "Total on-disk size of the current database — tables, indexes, and TOAST data combined — as reported by pg_database_size().",
+    body: translationKey(
+      "Total on-disk size of the current database — tables, indexes, and TOAST data combined — as reported by pg_database_size().",
+    ),
   },
   commits: {
     title: "Commits",
-    body: "Transactions committed in this database since the statistics were last reset. A steady climb is just normal write traffic; it's shown next to the reset age so the number has context.",
+    body: translationKey(
+      "Transactions committed in this database since the statistics were last reset. A steady climb is just normal write traffic; it's shown next to the reset age so the number has context.",
+    ),
   },
   rollbacks: {
     title: "Rollbacks",
-    body: "Transactions rolled back since the last stats reset. A high count relative to commits can point to application errors, deadlocks, or frequently aborted work.",
+    body: translationKey(
+      "Transactions rolled back since the last stats reset. A high count relative to commits can point to application errors, deadlocks, or frequently aborted work.",
+    ),
   },
   tempFiles: {
     title: "Temp files",
-    body: "Temporary files Postgres spilled to disk since the last stats reset, with total bytes written. Large volumes mean sorts or hashes are exceeding work_mem and falling back to disk.",
+    body: translationKey(
+      "Temporary files Postgres spilled to disk since the last stats reset, with total bytes written. Large volumes mean sorts or hashes are exceeding work_mem and falling back to disk.",
+    ),
   },
   streamingReplication: {
     title: "Streaming replication",
-    body: "The primary's view of each connected standby — its state and how far behind it is in receiving, writing, flushing, and replaying WAL. Empty on a single-node deployment.",
+    body: translationKey(
+      "The primary's view of each connected standby — its state and how far behind it is in receiving, writing, flushing, and replaying WAL. Empty on a single-node deployment.",
+    ),
   },
   replicationSlots: {
     title: "Replication slots",
-    body: "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.",
+    body: translationKey(
+      "Named slots that make the primary retain WAL until a consumer (a standby or logical subscriber) has read it. Inactive slots can pile up WAL and fill the disk; a 'lost' slot has already dropped WAL a consumer still needed.",
+    ),
   },
   connections: {
     title: "Connections",
-    body: "Server connections in use versus max_connections. Postgres runs one backend process per connection, so approaching the limit starves new sessions. A pooler such as PgBouncer keeps this low.",
+    body: translationKey(
+      "Server connections in use versus max_connections. Postgres runs one backend process per connection, so approaching the limit starves new sessions. A pooler such as PgBouncer keeps this low.",
+    ),
   },
   active: {
     title: "Active",
-    body: "Backends currently executing a query.",
+    body: translationKey("Backends currently executing a query."),
   },
   idle: {
     title: "Idle",
-    body: "Backends connected but not running a query — usually sessions held open by a connection pool.",
+    body: translationKey(
+      "Backends connected but not running a query — usually sessions held open by a connection pool.",
+    ),
   },
   idleInTransaction: {
     title: "Idle in transaction",
-    body: "Backends that have an open transaction but aren't doing anything. They hold locks and pin old row versions, which blocks vacuum — worth watching closely.",
+    body: translationKey(
+      "Backends that have an open transaction but aren't doing anything. They hold locks and pin old row versions, which blocks vacuum — worth watching closely.",
+    ),
   },
   waitingOnLock: {
     title: "Waiting on lock",
-    body: "Backends blocked waiting to acquire a lock held by another session. Sustained values indicate lock contention.",
+    body: translationKey(
+      "Backends blocked waiting to acquire a lock held by another session. Sustained values indicate lock contention.",
+    ),
   },
   cacheHitRatio: {
     title: "Cache hit ratio",
-    body: "Share of block reads served from Postgres' shared buffers rather than the OS or disk, since the last stats reset. Under ~90% suggests shared_buffers is small relative to the working set. Note: reads served by the OS page cache still count as misses here, so true disk-hit rate is usually higher.",
+    body: translationKey(
+      "Share of block reads served from Postgres' shared buffers rather than the OS or disk, since the last stats reset. Under ~90% suggests shared_buffers is small relative to the working set. Note: reads served by the OS page cache still count as misses here, so true disk-hit rate is usually higher.",
+    ),
   },
   longestTransaction: {
     title: "Longest transaction",
-    body: "Age of the oldest transaction still running. Long-lived transactions hold locks and stop vacuum from reclaiming dead rows.",
+    body: translationKey(
+      "Age of the oldest transaction still running. Long-lived transactions hold locks and stop vacuum from reclaiming dead rows.",
+    ),
   },
   deadlocks: {
     title: "Deadlocks",
-    body: "Deadlocks detected since the last stats reset. Postgres automatically aborts one transaction to break each one; recurring deadlocks point to conflicting lock ordering in the application.",
+    body: translationKey(
+      "Deadlocks detected since the last stats reset. Postgres automatically aborts one transaction to break each one; recurring deadlocks point to conflicting lock ordering in the application.",
+    ),
   },
   wraparoundHeadroom: {
     title: "Wraparound headroom",
-    body: "How much room remains before the oldest transaction ID reaches the ~2.1B wraparound limit. As it nears zero, Postgres forces aggressive autovacuum and ultimately refuses new writes. Higher is safer.",
+    body: translationKey(
+      "How much room remains before the oldest transaction ID reaches the ~2.1B wraparound limit. As it nears zero, Postgres forces aggressive autovacuum and ultimately refuses new writes. Higher is safer.",
+    ),
   },
   autovacuumHotspots: {
     title: "Autovacuum hotspots",
-    body: "Autovacuum is Postgres' background housekeeping process: it reclaims storage from dead tuples (row versions left behind by updates and deletes) and refreshes the planner's statistics, without blocking reads or writes. This lists the tables with the most dead tuples and when each was last autovacuumed — rising dead-tuple counts alongside stale vacuum times cause table bloat and slower scans.",
+    body: translationKey(
+      "Autovacuum is Postgres' background housekeeping process: it reclaims storage from dead tuples (row versions left behind by updates and deletes) and refreshes the planner's statistics, without blocking reads or writes. This lists the tables with the most dead tuples and when each was last autovacuumed — rising dead-tuple counts alongside stale vacuum times cause table bloat and slower scans.",
+    ),
   },
 };
 

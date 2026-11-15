@@ -43,7 +43,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // CPU Metrics
   {
     id: "container-cpu-usage-total",
-    friendlyName: "Container CPU Usage (Total)",
+    friendlyName: translationKey("Container CPU Usage (Total)"),
     description: translationKey("Total CPU time consumed by the container"),
     metricName: "container.cpu.usage.total",
     category: "CPU",
@@ -52,7 +52,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-cpu-utilization",
-    friendlyName: "Container CPU Utilization",
+    friendlyName: translationKey("Container CPU Utilization"),
     description: translationKey(
       "CPU utilization of the container as a percentage (100% = 1 full CPU core)",
     ),
@@ -63,7 +63,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-cpu-throttled-time",
-    friendlyName: "Container CPU Throttled Time",
+    friendlyName: translationKey("Container CPU Throttled Time"),
     description: translationKey(
       "Total time the container CPU has been throttled",
     ),
@@ -76,7 +76,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Memory Metrics
   {
     id: "container-memory-usage-total",
-    friendlyName: "Container Memory Usage",
+    friendlyName: translationKey("Container Memory Usage"),
     description: translationKey("Total memory usage of the container"),
     metricName: "container.memory.usage.total",
     category: "Memory",
@@ -85,7 +85,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-memory-usage-limit",
-    friendlyName: "Container Memory Limit",
+    friendlyName: translationKey("Container Memory Limit"),
     description: translationKey("Memory limit configured for the container"),
     metricName: "container.memory.usage.limit",
     category: "Memory",
@@ -94,7 +94,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-memory-percent",
-    friendlyName: "Container Memory Percent",
+    friendlyName: translationKey("Container Memory Percent"),
     description: translationKey(
       "Memory usage as a percentage of the container limit or host total",
     ),
@@ -107,7 +107,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Network Metrics
   {
     id: "container-network-rx-bytes",
-    friendlyName: "Container Network Received",
+    friendlyName: translationKey("Container Network Received"),
     description: translationKey(
       "Bytes received over the network by the container",
     ),
@@ -118,7 +118,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-network-tx-bytes",
-    friendlyName: "Container Network Transmitted",
+    friendlyName: translationKey("Container Network Transmitted"),
     description: translationKey(
       "Bytes transmitted over the network by the container",
     ),
@@ -131,7 +131,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Block I/O Metrics
   {
     id: "container-blockio-read",
-    friendlyName: "Container Block I/O Read",
+    friendlyName: translationKey("Container Block I/O Read"),
     description: translationKey(
       "Bytes the container has read from each block device since it started. A lifetime counter, per device: chart it as a rate.",
     ),
@@ -147,7 +147,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-blockio-write",
-    friendlyName: "Container Block I/O Write",
+    friendlyName: translationKey("Container Block I/O Write"),
     description: translationKey(
       "Bytes the container has written to each block device since it started. A lifetime counter, per device: chart it as a rate.",
     ),
@@ -161,7 +161,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   // Container Info Metrics
   {
     id: "container-uptime",
-    friendlyName: "Container Uptime",
+    friendlyName: translationKey("Container Uptime"),
     description: translationKey("How long the container has been running"),
     metricName: "container.uptime",
     category: "Container",
@@ -170,7 +170,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-restarts",
-    friendlyName: "Container Restarts",
+    friendlyName: translationKey("Container Restarts"),
     description: translationKey("Number of times the container has restarted"),
     metricName: "container.restarts",
     category: "Container",
@@ -186,7 +186,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
    */
   {
     id: "container-restarts-increase",
-    friendlyName: "Container Restarts (Increase)",
+    friendlyName: translationKey("Container Restarts (Increase)"),
     description: translationKey(
       "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
     ),
@@ -197,7 +197,7 @@ const dockerMetricCatalog: Array<DockerMetricDefinition> = [
   },
   {
     id: "container-pids-count",
-    friendlyName: "Container Process Count",
+    friendlyName: translationKey("Container Process Count"),
     description: translationKey(
       "Tasks in the container: processes and their threads, as the cgroup pids controller counts them.",
     ),
@@ -238,4 +238,23 @@ export function getDockerMetricByMetricName(
 
 export function getAllDockerMetricCategories(): Array<DockerMetricCategory> {
   return ["CPU", "Memory", "Network", "BlockIO", "Container"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<DockerMetricCategory, string> = {
+  CPU: translationKey("CPU"),
+  Memory: translationKey("Memory"),
+  Network: translationKey("Network"),
+  BlockIO: translationKey("Block I/O"),
+  Container: translationKey("Container"),
+};
+
+export function getDockerMetricCategoryLabel(
+  category: DockerMetricCategory,
+): string {
+  return categoryLabels[category] || category;
 }
