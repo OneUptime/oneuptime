@@ -45,7 +45,7 @@ Tant qu'il est activé, un incident qui fait partie d'un épisode n'est ajouté 
 - **Ajouter à un épisode existant** indique combien des incidents sélectionnés font partie d'un autre épisode, et n'ajoute que les autres. Quand tous font déjà partie d'un épisode, la boîte de dialogue indique qu'il n'y a rien à ajouter.
 - **Ajouter à un nouvel épisode** laisse de côté les incidents sélectionnés qui font déjà partie d'un épisode, et indique combien. Quand c'est le cas de tous, elle indique qu'il n'y a rien à ajouter.
 - Les **Règles de regroupement** laissent un incident qui fait déjà partie d'un épisode là où il est.
-- **L'API, les workflows et Terraform** suivent la même règle : l'ajout d'un incident qui fait partie d'un autre épisode est refusé, avec la raison.
+- **L'API, les flux de travail et Terraform** suivent la même règle : l'ajout d'un incident qui fait partie d'un autre épisode est refusé, avec la raison.
 
 L'activer ne retire aucun incident d'un épisode : un incident qui fait déjà partie de plusieurs y reste. Pour déplacer un incident, retirez-le avec **Supprimer** sur la page **Incidents des membres** de son épisode, puis ajoutez-le à l'autre épisode.
 

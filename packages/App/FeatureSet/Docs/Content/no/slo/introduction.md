@@ -154,7 +154,7 @@ Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværen
 | Side | Hva den viser |
 | --- | --- |
 | **Oversikt** | Statusen, nøkkeltallene, forbruket av feilbudsjettet, nylig aktivitet, åpne varsler og hendelser og forbruksratereglene. |
-| **Målinger** | `oneuptime.slo.*`-metrikkene til SLO-et, den langsiktige historikken for feilbudsjettet og metrikkene for hendelsene og varslene som påvirker det. Se [SLO-metrikker og -dashbord](/docs/slo/metrics). |
+| **Målinger** | `oneuptime.slo.*`-målingene til SLO-et, den langsiktige historikken for feilbudsjettet og målingene for hendelsene og varslene som påvirker det. Se [SLO-målinger og -dashbord](/docs/slo/metrics). |
 | **Hendelser** | Hendelsene som forbruksratereglene og feilbudsjettpolicyen har erklært. Merket teller de åpne. |
 | **Varsler** | Varslene som forbruksratereglene og feilbudsjettpolicyen har utløst. Merket teller de åpne. |
 | **Feed** | Hva som har skjedd med SLO-et, som en tidslinje. Se [SLO-feed og revisjonslogger](/docs/slo/feed-and-audit-logs). |
@@ -210,7 +210,7 @@ Arkiver et SLO du ikke lenger måler, men vil beholde, som en tjeneste som er fa
 Et arkivert SLO:
 
 - er skjult i SLO-listen, statusflisene og SLO-velgerne og -listene på dashbord;
-- evalueres ikke: tallene blir stående som ved siste evaluering, forbruksratereglene utløses ikke, og det sender ingen metrikker;
+- evalueres ikke: tallene blir stående som ved siste evaluering, forbruksratereglene utløses ikke, og det sender ingen målinger;
 - får de åpne forbruksratevarslene og -hendelsene sine løst;
 - beholder innstillingene, historikken, reglene og eierne. Monitorreglene holder monitorlisten oppdatert, så det fortsetter med de riktige monitorene.
 
@@ -262,5 +262,5 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 - [Monitorer og monitorregler](/docs/slo/monitor-rules): Knytt til monitorer for hånd eller med regler.
 - [Feilbudsjetter](/docs/slo/error-budget): Budsjettberegningen, rekkevidden og hvordan budsjettet kommer tilbake.
 - [Forbruksratevarsler og -hendelser](/docs/slo/burn-rate-alerts): Varsle vaktteamet ditt når budsjettet brennes for fort.
-- [SLO-metrikker og -dashbord](/docs/slo/metrics): Vis SLO-er i diagrammer, og bygg et SLO-dashbord.
+- [SLO-målinger og -dashbord](/docs/slo/metrics): Vis SLO-er i diagrammer, og bygg et SLO-dashbord.
 :::

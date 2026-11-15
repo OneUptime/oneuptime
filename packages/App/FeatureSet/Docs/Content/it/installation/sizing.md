@@ -38,7 +38,7 @@ flowchart TB
 | Archivio | Cosa memorizza | Cosa ne determina la dimensione |
 | --- | --- | --- |
 | **ClickHouse** | Tutta la telemetria – log, metriche, tracce, eccezioni, profili | La telemetria: **velocità di ingestione × conservazione**. È circa il 95% del tuo storage e il costo principale. |
-| **PostgreSQL** | Configurazione e stato – monitor, incidenti, avvisi, utenti, team, progetti, workflow, pagine di stato, dashboard | **Numero di entità e cronologia**, non il volume di telemetria. Cresce lentamente. |
+| **PostgreSQL** | Configurazione e stato – monitor, incidenti, avvisi, utenti, team, progetti, flussi di lavoro, pagine di stato, dashboard | **Numero di entità e cronologia**, non il volume di telemetria. Cresce lentamente. |
 | **Valkey** | Cache, code di lavoro e sessioni | **Profondità delle code e sessioni attive**. Legato alla memoria e modesto. Non è una fonte di verità. |
 
 OneUptime non ha mai bisogno di un object storage (S3, MinIO) per funzionare, e non sposta la telemetria più vecchia su object storage. Ti serve un object storage solo se scegli backup su object storage: il plugin Barman Cloud per CloudNativePG, oppure [clickhouse-backup](https://github.com/Altinity/clickhouse-backup) per ClickHouse. Il backup CloudNativePG del chart (`postgresOperator.cnpg.backup`) crea snapshot dei volumi e non richiede alcun object storage. CloudNativePG non elimina mai i vecchi snapshot: rimuovili tu, altrimenti continuano ad accumularsi.

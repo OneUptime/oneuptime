@@ -16,7 +16,7 @@ flowchart TB
         subgraph Data["Datalagre"]
             direction LR
             Postgres[("PostgreSQL<br/>konfigurasjon<br/>og tilstand")]
-            ClickHouse[("ClickHouse<br/>logger,<br/>metrikker,<br/>traces")]
+            ClickHouse[("ClickHouse<br/>logger,<br/>målinger,<br/>traces")]
             Valkey[("Valkey<br/>hurtigbuffer og<br/>køer")]
         end
     end
@@ -40,7 +40,7 @@ flowchart TB
   - Interne/private tjenester bak brannmuren din.
   - Eksterne/offentlige ressurser på internett.
 - Proberesultater sendes til appen, legges i kø i Valkey og behandles av bakgrunnsjobbene inn i datalagrene dine. En probe et annet sted i nettverket ditt når appen gjennom ingress, på OneUptime-URL-en din.
-- Telemetri (metrikker, traces, logger og mer) tas inn av den samme appen og lagres i ClickHouse.
+- Telemetri (målinger, traces, logger og mer) tas inn av den samme appen og lagres i ClickHouse.
 
 > [!NOTE]
 > Hvis du bruker ekstern PostgreSQL, Valkey (eller Redis) eller ClickHouse i stedet for de medfølgende, kobler appen seg til de eksterne endepunktene dine i stedet. Den logiske flyten forblir den samme.
@@ -56,7 +56,7 @@ flowchart TB
 | Probe | `probe-1` | `probes` | Kjører monitorkontroller og sender resultatene tilbake. Hver medfølgende probe er en global probe som alle prosjekter kan bruke. |
 | Global Runner | `global-runner` | `globalRunner` | En [global Runner](/docs/runbooks/agents#globale-runnere): den kjører JavaScript-trinnene til alle prosjekter som ikke velger sin egen Runner, hvert i en sandkasse som bare når internett, og koderettingene til OneUptime AI i hvert koderepositorium som ikke velger noen. Den har sin egen nøkkel og ingenting annet fra serveren. Bash-, SSH- og kubectl-trinn kjører på [Runnere](/docs/runbooks/agents) som du installerer der de skal kjøre. |
 | PostgreSQL | `postgres` | `postgresql`, eller `postgresOperator.cnpg` | Prosjekter, monitorer, hendelser, brukere og alle andre innstillinger og tilstander. |
-| ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Logger, metrikker, traces, unntak, profiler og monitorlogger. |
+| ClickHouse | `clickhouse` | `clickhouse`, eller `clickhouseOperator.altinity` | Logger, målinger, traces, unntak, profiler og monitorlogger. |
 | Valkey | `valkey` | `valkey` | Hurtigbufferen, jobbkøene og kortvarig tilstand som ventende push-kvitteringer. |
 
 Alle rollene til appen er det samme imaget: Docker Compose kjører dem i én `app`-container, og Helm-chartet kan kjøre worker og telemetry writer som egne deployments. Hvordan du dimensjonerer hvert lag, står i [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing).

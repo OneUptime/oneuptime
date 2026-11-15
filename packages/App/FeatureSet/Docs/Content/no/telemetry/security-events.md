@@ -1,6 +1,6 @@
 # Sikkerhetshendelser (SIEM)
 
-OneUptime lagrer sikkerhetshendelser ved siden av loggene, trasene og metrikkene dine, og gir alle samme form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), uansett hvilket format de kom i. Send hendelser fra hvilken som helst kilde, søk i dem, og finn de viktige med Sigma-deteksjonsregler, trusseletterretning og monitorer. Det de finner, blir [saker](/docs/telemetry/security-cases) som skal behandles, og playbooks reagerer på dem.
+OneUptime lagrer sikkerhetshendelser ved siden av loggene, trasene og målingene dine, og gir alle samme form, [OCSF](https://schema.ocsf.io/) (Open Cybersecurity Schema Framework), uansett hvilket format de kom i. Send hendelser fra hvilken som helst kilde, søk i dem, og finn de viktige med Sigma-deteksjonsregler, trusseletterretning og monitorer. Det de finner, blir [saker](/docs/telemetry/security-cases) som skal behandles, og playbooks reagerer på dem.
 
 :::cards
 - [Send hendelser](#send-sikkerhetshendelser): En HTTPS-POST, en Fluent Bit-utgang eller en tilkobling til et sikkerhetsprodukt.

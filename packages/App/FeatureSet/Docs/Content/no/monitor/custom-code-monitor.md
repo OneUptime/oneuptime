@@ -6,12 +6,12 @@ En monitor med egendefinert kode kjører et JavaScript-skript du skriver selv, f
 - [Opprett monitoren](#opprett-en-monitor-med-egendefinert-kode): Skriv et skript, og velg sondene som kjører det.
 - [Skriv skriptet](#skriv-skriptet): En kjørbar API-kontroll i flere trinn å starte fra.
 - [Bruk hemmeligheter](#bruk-av-overvåkingshemmeligheter): Hold passord og tokener utenfor skriptet.
-- [Samle egendefinerte metrikker](#egendefinerte-metrikker): Vis ethvert tall skriptet ditt regner ut, i en graf.
+- [Samle egendefinerte målinger](#egendefinerte-målinger): Vis ethvert tall skriptet ditt regner ut, i en graf.
 :::
 
 ## Slik fungerer det
 
-Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med overvåkingshemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og metrikkene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
+Ved hver kontroll kjører en sonde skriptet ditt i en isolert JavaScript-sandkasse, med overvåkingshemmelighetene dine allerede fylt inn. Skriptet kaller det det trenger, og returnerer deretter et resultat eller kaster en feil. Sonden rapporterer resultatet, skriptets loggmeldinger, hvor lenge det kjørte og målingene det samlet inn, og OneUptime evaluerer kriteriene dine mot dem.
 
 ```mermaid title="Én kjøring av en monitor med egendefinert kode"
 sequenceDiagram
@@ -21,7 +21,7 @@ sequenceDiagram
     O->>P: Skript, hemmeligheter<br/>fylt inn
     P->>A: Forespørsler fra skriptet
     A-->>P: Svar
-    P->>O: Resultat, logger,<br/>tid, metrikker
+    P->>O: Resultat, logger,<br/>tid, målinger
     O->>O: Evaluer kriteriene
 ```
 
@@ -116,9 +116,9 @@ console.log(apiKey.length > 0);
 
 En hemmelig verdi som inneholder et anførselstegn, ødelegger strengen rundt den. En henvisning som monitoren ikke kan bruke, blir stående i skriptet slik den er skrevet. Se [Overvåkingshemmeligheter](/docs/monitor/monitor-secrets) for å opprette en hemmelighet og velge hvilke monitorer som kan bruke den.
 
-## Egendefinerte metrikker
+## Egendefinerte målinger
 
-Du kan samle inn egendefinerte metrikker fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse metrikkene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
+Du kan samle inn egendefinerte målinger fra skriptet ditt med funksjonen `oneuptime.captureMetric()`. Disse målingene lagres i OneUptime og kan vises i grafer på dashbord med Metric Explorer.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);
@@ -126,9 +126,9 @@ oneuptime.captureMetric(name, value, attributes);
 
 | Parameter | Type | Beskrivelse |
 | --- | --- | --- |
-| `name` | string, påkrevd | Navnet på metrikken (f.eks. `"api.response.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
-| `value` | number, påkrevd | Den numeriske verdien til metrikken. En verdi som ikke er et tall, ignoreres. |
-| `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. Strenger, tall og boolske verdier registreres (tall og boolske verdier lagres som tekst, fordi metrikkattributter er dimensjoner og ikke målinger). Verdier av alle andre typer ignoreres. |
+| `name` | string, påkrevd | Navnet på målingen (f.eks. `"api.response.time"`). Det lagres automatisk med prefikset `custom.monitor.`. |
+| `value` | number, påkrevd | Den numeriske verdien til målingen. En verdi som ikke er et tall, ignoreres. |
+| `attributes` | object, valgfritt | Nøkkel-verdi-par med ekstra kontekst. Strenger, tall og boolske verdier registreres (tall og boolske verdier lagres som tekst, fordi målingsattributter er dimensjoner og ikke målinger). Verdier av alle andre typer ignoreres. |
 
 ### Eksempel
 
@@ -149,27 +149,27 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
+Når de er samlet inn, vises disse målingene i Metric Explorer under navn som `custom.monitor.api.response.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt, slik at du kan vise dem i grafer, varsle på dem og filtrere etter monitor, sonde eller egendefinerte attributter du har oppgitt.
 
 ### Grenser
 
 | Grense | Verdi | Over grensen |
 | --- | --- | --- |
-| Metrikker per skriptkjøring | 100 | Flere kall ignoreres. |
-| Lengde på metrikknavn | 200 tegn | Navnet kuttes. |
-| Attributter per metrikk | 50 | Flere attributter forkastes. |
+| Målinger per skriptkjøring | 100 | Flere kall ignoreres. |
+| Lengde på målingsnavn | 200 tegn | Navnet kuttes. |
+| Attributter per måling | 50 | Flere attributter forkastes. |
 | Lengde på attributtnøkkel | 200 tegn | Nøkkelen kuttes. |
 | Lengde på attributtverdi | 1000 tegn | Verdien kuttes. |
 
 ### Reserverte attributtnøkler
 
-Noen attributtnavn tilhører OneUptime selv, og et skript kan ikke skrive dem. Hvis skriptet ditt setter et av dem, forkastes attributtet — selve metrikken registreres likevel — og en advarsel med navnet på nøkkelen skrives til serverloggene til OneUptime. Det gjelder:
+Noen attributtnavn tilhører OneUptime selv, og et skript kan ikke skrive dem. Hvis skriptet ditt setter et av dem, forkastes attributtet — selve målingen registreres likevel — og en advarsel med navnet på nøkkelen skrives til serverloggene til OneUptime. Det gjelder:
 
 - Monitorens identitet: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
 - Alt i navnerommene `oneuptime.` eller `resource.` — de bærer identifikatorene OneUptime setter på ved inntak.
 - Attributter for ressursidentitet: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` og `docker.swarm.cluster.name`.
 
-Disse navnene er ikke bare etiketter — OneUptime leser dem tilbake som en påstand om hvilken ressurs et datapunkt tilhører. En metrikk merket `service.name: payments-api` ville dukke opp på fanen Målinger for den tjenesten, og hvis du senere bygde en metrikkmonitor gruppert etter `service.name`, ville varslene den gir, bli knyttet til den tjenesten, tilkalle eierne av tjenesten og tie under et vedlikeholdsvindu på den. Bruk i stedet monitorens egne etiketter for å knytte en monitor til en tjeneste eller en vert.
+Disse navnene er ikke bare etiketter — OneUptime leser dem tilbake som en påstand om hvilken ressurs et datapunkt tilhører. En måling merket `service.name: payments-api` ville dukke opp på fanen Målinger for den tjenesten, og hvis du senere bygde en målingsmonitor gruppert etter `service.name`, ville varslene den gir, bli knyttet til den tjenesten, tilkalle eierne av tjenesten og tie under et vedlikeholdsvindu på den. Bruk i stedet monitorens egne etiketter for å knytte en monitor til en tjeneste eller en vert.
 
 ## Kriterier
 
@@ -225,7 +225,7 @@ Legg til ett filter per felt du vil sjekke; hvert filter kan ha sitt eget vilkå
 | `crypto` | `createHash` og `createHmac` (kall `update()` én gang, deretter `digest()`), `randomBytes`, `randomInt` og `randomUUID`. Det er ikke `crypto`-modulen i Node.js: det finnes ingen chiffer eller signaturer. |
 | `http`, `https` | Bare klassen `Agent`, til å gi videre til `axios` — for eksempel `httpsAgent: new https.Agent({ rejectUnauthorized: false })`. Det finnes ingen `request` eller `get`. |
 | `console.log` | Logger data for feilsøking. Bare `console.log` finnes; `console.error` og de andre gjør ikke det. |
-| `oneuptime.captureMetric` | Samler inn en egendefinert metrikk. Se [Egendefinerte metrikker](#egendefinerte-metrikker). |
+| `oneuptime.captureMetric` | Samler inn en egendefinert måling. Se [Egendefinerte målinger](#egendefinerte-målinger). |
 | `setTimeout`, `clearTimeout`, `sleep(ms)` | Vent inne i skriptet. En forsinkelse varer aldri lenger enn skriptets tidsavbrudd. |
 
 ## Ting å tenke på

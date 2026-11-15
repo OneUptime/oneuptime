@@ -14,7 +14,7 @@ Overvåk en vCenter Server, eller en frittstående ESXi-vert, uten å installere
 flowchart TB
     OU["OneUptime"] -->|"samle inn<br/>nå, med noen<br/>minutters<br/>mellomrom"| P["Sonden din"]
     P -->|"HTTPS 443, skrivebeskyttet<br/>vSphere-API"| VC["vCenter Server<br/>eller ESXi-vert"]
-    P -->|"metrikker,<br/>slik VMware-<br/>agenten<br/>sender dem"| OU
+    P -->|"målinger,<br/>slik VMware-<br/>agenten<br/>sender dem"| OU
     OU --> V["VMware-sider,<br/>monitorer, varsler og AI"]
 ```
 
@@ -27,7 +27,7 @@ Med noen minutters mellomrom logger sonden på vCenter med kontoen du lagret, le
 | Hva du kjører | En sonde du allerede kjører, eller en ny | Agenten, på en egen maskin |
 | Hvor kontoen lagres | Kryptert i OneUptime, sendes bare til sonden | I agentens `.env`-fil |
 | Hva den må nå | vCenter på TCP 443, fra sonden | vCenter på TCP 443, fra agenten |
-| Største vCenter | Omtrent 48 MiB metrikker per innsamling | Ingen grense |
+| Største vCenter | Omtrent 48 MiB målinger per innsamling | Ingen grense |
 | ESXi-syslog og AI-agenten | Ikke inkludert | Inkludert |
 
 Begge sender de samme dataene. Du kan bytte en vCenter fra den ene til den andre når som helst på siden **Innstillinger** for den.
@@ -83,7 +83,7 @@ Et lagret passord sendes bare noensinne til adressen, gjennom sonden og til sert
 Åpne siden **Innstillinger** for vCenter-en. Kortet **Datainnsamling** tilbyr **Samle inn med en sonde** for en vCenter som agenten sender, og **Bruk VMware-agenten** for en som en sonde samler inn. Bytte til agenten glemmer det lagrede passordet.
 
 > [!WARNING]
-> Stopp VMware-agenten så snart sondens første innsamling lykkes. Mens begge kjører, kommer hver metrikk to ganger.
+> Stopp VMware-agenten så snart sondens første innsamling lykkes. Mens begge kjører, kommer hver måling to ganger.
 
 ## Referanse
 
@@ -117,7 +117,7 @@ Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn VMware-
 :::
 
 :::details Denne vCenter er for stor til å samles inn av en sonde
-Metrikkene er større enn én opplasting fra en sonde kan være. Bruk [VMware-agenten](/docs/telemetry/vmware) for denne vCenter-en.
+Målingene er større enn én opplasting fra en sonde kan være. Bruk [VMware-agenten](/docs/telemetry/vmware) for denne vCenter-en.
 :::
 
 ## Neste trinn

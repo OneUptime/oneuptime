@@ -68,7 +68,7 @@ Une rotation où plusieurs personnes sont d'astreinte en même temps devient un 
 ## Ce qui n'est pas importé
 
 - **Les incidents, les alertes et leur historique.** OneUptime démarre avec votre configuration, pas avec vos incidents passés.
-- **Les workflows, pages de statut, routes d'alerte et intégrations.** Dirigez plutôt vos moniteurs et sources d'alertes vers OneUptime, comme indiqué dans [Terminer la migration](#terminer-la-migration).
+- **Les flux de travail, pages de statut, routes d'alerte et intégrations.** Dirigez plutôt vos moniteurs et sources d'alertes vers OneUptime, comme indiqué dans [Terminer la migration](#terminer-la-migration).
 - **Les champs personnalisés dont les options viennent du catalogue,** et les statuts sans état dans OneUptime : declined, merged, canceled et learning.
 - **Les remplacements de planning, et les modifications d'une rotation prévues plus tard.** L'aperçu nomme chaque modification prévue, pour que vous la fassiez dans OneUptime le moment venu.
 - **Les étapes d'escalade sans équivalent exact dans OneUptime.** Une étape qui publie dans un canal Slack ou Microsoft Teams est laissée de côté, car ce sont les règles de notification de l'espace de travail qui s'en chargent dans OneUptime, tout comme une étape qui passe la main à un autre chemin d'escalade. Une étape qui alerte la personne d'astreinte suivante est importée sous la forme la plus proche dont dispose OneUptime, et l'aperçu indique ce qui change.

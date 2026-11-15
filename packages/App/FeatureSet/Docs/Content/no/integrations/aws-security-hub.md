@@ -1,6 +1,6 @@
 # AWS Security Hub
 
-Importer funn fra [AWS Security Hub](https://aws.amazon.com/security-hub/) til sikkerhetshendelsene i OneUptime: funn fra GuardDuty, Inspector, Macie og IAM Access Analyzer, Security Hubs egne kontrollsjekker og funn fra partnerprodukter. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en tilgangsnøkkel du selv oppretter, som bare får utføre én skrivebeskyttet handling, og endrer ingenting i AWS. Det er ingen agent, EventBridge-regel eller S3-eksport å sette opp.
+Importer funn fra [AWS Security Hub](https://aws.amazon.com/security-hub/) til sikkerhetshendelsene i OneUptime: funn fra GuardDuty, Inspector, Macie og IAM Access Analyzer, Security Hubs egne kontrollsjekker og funn fra partnerprodukter. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en tilgangsnøkkel du selv oppretter, som bare får utføre én skrivebeskyttet handling, og endrer ingenting i AWS. Det er ingen agent, EventBridge-regel eller S3-eksport å sette opp.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En IAM-policy, en tilgangsnøkkel og skjemaet for tilkoblingen.

@@ -1,6 +1,6 @@
 # Elastic Security
 
-Importer deteksjonsvarslene som reglene dine i [Elastic Security](https://www.elastic.co/security) utløser, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem via deteksjonsmotor-API-et i Kibana med en API-nøkkel du selv oppretter, og endrer ingenting i Elastic.
+Importer deteksjonsvarslene som reglene dine i [Elastic Security](https://www.elastic.co/security) utløser, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem via deteksjonsmotor-API-et i Kibana med en API-nøkkel du selv oppretter, og endrer ingenting i Elastic.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En API-nøkkel, rettighetene den trenger og skjemaet for tilkoblingen.

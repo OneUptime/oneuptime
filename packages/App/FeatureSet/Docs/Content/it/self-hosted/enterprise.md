@@ -34,7 +34,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 
 | Funzionalità | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Monitoraggio, avvisi, incidenti, reperibilità, pagine di stato, log, metriche, trace, eccezioni, dashboard, workflow, funzionalità di IA, API e Terraform | Sì | Sì | Tutti i piani |
+| Monitoraggio, avvisi, incidenti, reperibilità, pagine di stato, log, metriche, trace, eccezioni, dashboard, flussi di lavoro, funzionalità di IA, API e Terraform | Sì | Sì | Tutti i piani |
 | Accesso con password, autenticazione a due fattori, team, ruoli predefiniti e chiavi API | Sì | Sì | Tutti i piani |
 | [SSO SAML e OpenID Connect](/docs/identity/sso) per l'accesso ai progetti | Sì | Sì | Piano Scale e superiori |
 | SSO SAML e OpenID Connect per l'accesso alle pagine di stato private | Sì | Sì | Piano Scale e superiori |

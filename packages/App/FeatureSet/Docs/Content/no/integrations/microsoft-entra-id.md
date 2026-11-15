@@ -1,6 +1,6 @@
 # Microsoft Entra ID
 
-Importer påloggingene, katalogendringene og risikoregistreringene i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) til sikkerhetshendelsene i OneUptime og, hvis du vil, påloggingene apper gjør i bakgrunnen og aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-revisjonsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i leieren din.
+Importer påloggingene, katalogendringene og risikoregistreringene i [Microsoft Entra ID](https://learn.microsoft.com/en-us/entra/identity/) til sikkerhetshendelsene i OneUptime og, hvis du vil, påloggingene apper gjør i bakgrunnen og aktiviteten i Exchange, SharePoint, OneDrive og Teams fra [Microsoft 365-revisjonsloggen](https://learn.microsoft.com/en-us/purview/audit-log-activities). Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem med en appregistrering som du oppretter, og endrer ingenting i leieren din.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): En appregistrering, tillatelsene dens og skjemaet for tilkoblingen.

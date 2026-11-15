@@ -96,5 +96,5 @@ La **Chronologie** d'un magasin de données indique ce qui lui est arrivé, et q
 - [Configurer la Sécurité des données](/docs/data-security/setup): Les trois niveaux, les autorisations que chacun accorde, et l'analyse de vos propres bases de données.
 - [Types de données sensibles](/docs/data-security/data-types): Comment une valeur est trouvée, et chaque type de données que connaît Sécurité des données.
 - [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues): Chaque contrôle, le score de risque et ce qu'il advient d'un problème.
-- [Intégrations de Sécurité des données](/docs/data-security/integrations): Dossiers de sécurité, alertes, propriétaires, workflows et OneUptime AI.
+- [Intégrations de Sécurité des données](/docs/data-security/integrations): Dossiers de sécurité, alertes, propriétaires, flux de travail et OneUptime AI.
 :::

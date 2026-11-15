@@ -1,6 +1,6 @@
 # Bytt fra Uptime Kuma
 
-Uptime Kuma kjører på dine egne maskiner, så **Importer fra et annet verktøy** leser det fra en fil i stedet for med en nøkkel: sikkerhetskopien Uptime Kuma 1 eksporterer, eller metrikksiden alle versjoner tilbyr. OneUptime leser monitorene dine fra den, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i Uptime Kuma.
+Uptime Kuma kjører på dine egne maskiner, så **Importer fra et annet verktøy** leser det fra en fil i stedet for med en nøkkel: sikkerhetskopien Uptime Kuma 1 eksporterer, eller målingssiden alle versjoner tilbyr. OneUptime leser monitorene dine fra den, viser deg hva det fant, og oppretter det du krysser av for. Ingenting endres i Uptime Kuma.
 
 :::cards
 - [Importer monitorene dine](#importer-uptime-kuma-monitorene-dine): Lagre filen, les den og kryss av for det som skal overføres.
@@ -12,21 +12,21 @@ Uptime Kuma kjører på dine egne maskiner, så **Importer fra et annet verktøy
 
 ```mermaid title="Fra en Uptime Kuma-fil til en rapport"
 flowchart TB
-    key["Sikkerhetskopi- eller<br/>metrikkfil"] --> read["OneUptime leser<br/>filen"]
+    key["Sikkerhetskopi- eller<br/>målingsfil"] --> read["OneUptime leser<br/>filen"]
     read --> preview["Du ser hva som ble funnet<br/>og krysser av for det som skal overføres"]
     preview --> import["Importen kjører<br/>i bakgrunnen"]
     import --> report["En rapport lenker til<br/>hver opprettet post"]
 ```
 
 - **Filen leses én gang.** OneUptime leser den mens den lastes opp, for å finne monitorene dine, og lagrer den aldri. Passord, tokener og push-nøkler i den kopieres aldri.
-- **OneUptime kobler seg aldri til Uptime Kuma.** Alt kommer fra filen. En fil som verken er en sikkerhetskopi eller en metrikkside fra Uptime Kuma, avvises med årsaken.
+- **OneUptime kobler seg aldri til Uptime Kuma.** Alt kommer fra filen. En fil som verken er en sikkerhetskopi eller en målingsside fra Uptime Kuma, avvises med årsaken.
 - **Ingenting opprettes før du starter importen.** Forhåndsvisningen viser for hvert element om det er nytt, allerede finnes i OneUptime (og brukes som det er), ble overført av en tidligere import, eller hvorfor det ikke kan overføres.
 - **Å kjøre den på nytt oppretter aldri noe to ganger.** OneUptime husker hva hver import overførte, etter Uptime Kuma-ID-en. Les en nyere fil etter at du har lagt til monitorer, så opprettes bare de nye.
 
 ## Før du begynner
 
 - **Et OneUptime-prosjekt og retten til å opprette det du overfører.** Prosjekteiere og prosjektadministratorer kan overføre alt. Andre roller kan også kjøre en import og overføre de typene poster de kan opprette. Resten vises som ikke overført, med årsaken.
-- **En fil fra Uptime Kuma.** I Uptime Kuma 1 inneholder JSON-sikkerhetskopien hver monitor med innstillingene sine. Uptime Kuma 2 har ingen sikkerhetskopi, så lagre metrikksiden i stedet: Den oppgir navn, type og adresse for hver monitor, men ikke hvor ofte den kontrolleres eller hva den ser etter.
+- **En fil fra Uptime Kuma.** I Uptime Kuma 1 inneholder JSON-sikkerhetskopien hver monitor med innstillingene sine. Uptime Kuma 2 har ingen sikkerhetskopi, så lagre målingssiden i stedet: Den oppgir navn, type og adresse for hver monitor, men ikke hvor ofte den kontrolleres eller hva den ser etter.
 - **En betalingsmåte, i OneUptime Cloud.** Monitorer som utfører kontroller, faktureres etter bruk, også på Free-abonnementet, så legg til en under **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** før du importerer. Uten en vises de monitorene som ikke overført.
 
 ## Importer Uptime Kuma-monitorene dine
@@ -54,7 +54,7 @@ Rapporten teller hva som ble opprettet og ikke overført, og viser hvert element
 
 | I Uptime Kuma | I OneUptime | Hvordan |
 | --- | --- | --- |
-| Monitors | Monitorer | Fra en sikkerhetskopi blir hver monitor en monitor av samme type, med samme adresse, intervall, tidsavbrudd og statuskodene som regnes som oppe. Fra metrikksiden overføres hver av dem med en kontroll hvert femte minutt: Sjekk hver av dem etter importen. |
+| Monitors | Monitorer | Fra en sikkerhetskopi blir hver monitor en monitor av samme type, med samme adresse, intervall, tidsavbrudd og statuskodene som regnes som oppe. Fra målingssiden overføres hver av dem med en kontroll hvert femte minutt: Sjekk hver av dem etter importen. |
 
 - **HTTP(S)- og nøkkelordmonitorer** blir nettstedmonitorer, eller API-monitorer når de sender en annen metode, headere eller en JSON-body, med nøkkelordet der det skal være.
 - **JSON-spørringsmonitorer** blir API-monitorer, uten spørringen: Legg den til som kriterium i OneUptime.
@@ -98,7 +98,7 @@ Når OneUptime kontrollerer de samme tingene, setter du dem på pause i Uptime K
 ## Feilsøking
 
 :::details Filen ble avvist
-OneUptime sier hvorfor: en fil på over 10 MB, en som ikke er gyldig JSON, eller en som verken er en sikkerhetskopi eller metrikksiden fra Uptime Kuma. Eksporter sikkerhetskopien på nytt, eller lagre `/metrics` på nytt som ren tekst, og velg den igjen.
+OneUptime sier hvorfor: en fil på over 10 MB, en som ikke er gyldig JSON, eller en som verken er en sikkerhetskopi eller målingssiden fra Uptime Kuma. Eksporter sikkerhetskopien på nytt, eller lagre `/metrics` på nytt som ren tekst, og velg den igjen.
 :::
 
 :::details En monitor vises som ikke overført

@@ -344,7 +344,7 @@ Se [Deling & offentlige dashboards](/docs/dashboards/sharing).
 
 En automatisering uden kode: blokke på et lærred, der kører, når deres trigger udløses, for eksempel en besked i Slack, når en hændelse erklæres, eller et kald til et andet værktøj.
 
-Se [Workflows – Oversigt](/docs/workflows/index).
+Se [Arbejdsgange – Oversigt](/docs/workflows/index).
 
 ### Runbook
 

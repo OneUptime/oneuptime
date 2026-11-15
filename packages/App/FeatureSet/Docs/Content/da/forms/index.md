@@ -231,7 +231,7 @@ En formulars skabeloner er dens kolonne `templates`, en JSON-liste i den rækkef
 }
 ```
 
-Spørgsmål, skabeloner og indstillinger kontrolleres, hver gang de gemmes (fra dashboardet, API'et, Terraform eller et workflow), og en liste, der bryder en regel, afvises med en besked, der nævner, hvad der er galt. `shareKey`, nøglen i formularens link, angives af OneUptime, når formularen oprettes, og at ændre den er det, **Nulstil link** gør.
+Spørgsmål, skabeloner og indstillinger kontrolleres, hver gang de gemmes (fra dashboardet, API'et, Terraform eller en arbejdsgang), og en liste, der bryder en regel, afvises med en besked, der nævner, hvad der er galt. `shareKey`, nøglen i formularens link, angives af OneUptime, når formularen oprettes, og at ændre den er det, **Nulstil link** gør.
 
 ### Branding i API'et
 
@@ -255,9 +255,9 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `name`, `fileType` og `size`. Selve filerne ligger på det, indsendelsen oprettede: i dets brugerdefinerede filfelt eller vedhæftet dets private note.
 
-### Workflows
+### Arbejdsgange
 
-Formularer har de genererede workflow-komponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
+Formularer har de genererede arbejdsgangskomponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

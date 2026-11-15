@@ -1,6 +1,6 @@
 # Datasikkerhedsintegrationer
 
-Datasikkerhed har ingen personsøger eller sikkerhedskø af sin egen. Den giver det, den finder, videre til de dele af OneUptime, der allerede har det: et kritisk problem bliver til en sikkerhedssag, det kan tilkalde den, der har vagt, eller erklære en hændelse, og hvert nyt problem sendes på e-mail til datalagerets ejere. Workflows, OneUptime AI, API'et, Terraform og MCP-serveren når alt, hvad den gemmer.
+Datasikkerhed har ingen personsøger eller sikkerhedskø af sin egen. Den giver det, den finder, videre til de dele af OneUptime, der allerede har det: et kritisk problem bliver til en sikkerhedssag, det kan tilkalde den, der har vagt, eller erklære en hændelse, og hvert nyt problem sendes på e-mail til datalagerets ejere. Arbejdsgange, OneUptime AI, API'et, Terraform og MCP-serveren når alt, hvad den gemmer.
 
 :::cards
 - [Security Operations](#security-operations): En sikkerhedssag for hvert datalager med et kritisk problem.
@@ -20,7 +20,7 @@ flowchart TB
     critical -->|"Ja, hvis advarsler<br/>er slået til"| alert["En advarsel,<br/>der tilkalder<br/>den, der<br/>har vagt"]
     critical -->|"Ja, hvis hændelser<br/>er slået til"| incident["En hændelse,<br/>som din<br/>proces håndterer"]
     issue --> owners["En e-mail til<br/>datalagerets<br/>ejere"]
-    issue --> flows["Workflows, der<br/>holder øje<br/>med problemer"]
+    issue --> flows["Arbejdsgange, der<br/>holder øje<br/>med problemer"]
 ```
 
 Hver af disse kører, når en evaluering åbner et problem eller åbner det igen. Hver af dem er best effort: problemet er allerede åbent og står på sin tidslinje, så en integration, der fejler, logges og springes over i stedet for at blive forsøgt igen og give en ekstra sag eller en ekstra tilkaldelse. Det, hver af dem gjorde, skrives på problemets **Tidslinje**, og problemets side linker til den sag, den advarsel og den hændelse, det startede.
@@ -77,15 +77,15 @@ Regler angiver ejere og etiketter for dig, efterhånden som datalagre findes:
 
 En regel matcher et datalager ud fra dets etiketter, ud fra et mønster for dets navn eller beskrivelse eller ud fra **Cloud-tag-mønster**: et mønster, der matches mod hvert af datalagerets cloud-tags, skrevet `key=value`. `^team=payments$` matcher hvert datalager med tagget `team=payments`, og `^env=` hvert datalager med et `env`-tag. Et nyt datalager får projektets regler, i det øjeblik det findes, og en ejerregels **Underret ejere** angiver, om de ejere, den tilføjer, får besked. [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) forklarer, hvordan hver regel matcher, og hvornår regler kører.
 
-## Workflows
+## Arbejdsgange
 
-**Datalager** og **Datasikkerhedsproblem** er workflow-udløsere, hver med **Ved oprettelse**, **Ved opdatering**, **Ved oprettelse eller opdatering** og **Ved sletning**. Vælg dem i panelet **Tilføj udløser** under **OneUptime-ressourcer**.
+**Datalager** og **Datasikkerhedsproblem** er arbejdsgangsudløsere, hver med **Ved oprettelse**, **Ved opdatering**, **Ved oprettelse eller opdatering** og **Ved sletning**. Vælg dem i panelet **Tilføj udløser** under **OneUptime-ressourcer**.
 
 - **Datasikkerhedsproblem → Ved oprettelse** kører, når et problem åbnes for første gang. Læs dets alvorlighed i en blok af typen **Hvis / Ellers**, og send de kritiske til en kanal, eller opret en ticket i dit sagsstyringsværktøj.
 - **Datasikkerhedsproblem → Ved opdatering**, med **Felter, der skal overvåges** sat til dets status, kører, når et problem løses, accepteres eller åbnes igen.
 - **Datalager → Ved oprettelse** kører, når discovery finder et datalager, f.eks. for at fortælle et team om hver ny bucket.
 
-Se [Workflow-udløsere](/docs/workflows/triggers) for de felter, hver udløser sender videre.
+Se [Arbejdsgangsudløsere](/docs/workflows/triggers) for de felter, hver udløser sender videre.
 
 ## OneUptime AI
 
@@ -155,6 +155,6 @@ Nogle få svar beregnes på forespørgsel i stedet for at blive gemt. Hver af de
 :::cards
 - [Sikkerhedssager og playbooks (SOAR)](/docs/telemetry/security-cases): Behandl de sager, Datasikkerhed åbner.
 - [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules): Hvordan regler matcher, og hvornår de kører.
-- [Workflow-udløsere](/docs/workflows/triggers): Kør et workflow, når et problem åbnes, eller et datalager findes.
+- [Arbejdsgangsudløsere](/docs/workflows/triggers): Kør en arbejdsgang, når et problem åbnes, eller et datalager findes.
 - [Datasikkerhedskontroller og problemer](/docs/data-security/checks-and-issues): Hvad hvert problem betyder, og hvordan det rettes.
 :::

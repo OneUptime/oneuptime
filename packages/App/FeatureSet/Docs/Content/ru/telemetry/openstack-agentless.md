@@ -99,7 +99,7 @@ Heat, Magnum, Manila, Trove, Gnocchi, Designate, Swift и Barbican читают�
 
 ## Подключение облака через API или Terraform
 
-Параметры подключения облака являются обычными полями [ресурса OpenStack Cloud](/reference/open-stack-cloud) в API по адресу `/api/openstack-cloud`, поэтому облако можно подключить совсем без дашборда. В Terraform для этого есть `oneuptime_openstack_cloud`:
+Параметры подключения облака являются обычными полями [ресурса OpenStack Cloud](/reference/open-stack-cloud) в API по адресу `/api/openstack-cloud`, поэтому облако можно подключить совсем без панели. В Terraform для этого есть `oneuptime_openstack_cloud`:
 
 ```hcl
 resource "oneuptime_openstack_cloud" "prod_eu" {

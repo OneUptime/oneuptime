@@ -1,6 +1,6 @@
 # Integrazioni di Sicurezza dei dati
 
-Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza propri. Passa ciò che trova alle parti di OneUptime che lo fanno già: un problema Critico diventa un caso di sicurezza, può chiamare chi è di reperibilità o dichiarare un incidente, e ogni nuovo problema viene inviato via email ai proprietari dell'archivio. I workflow, OneUptime AI, l'API, Terraform e il server MCP raggiungono tutto ciò che conserva.
+Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza propri. Passa ciò che trova alle parti di OneUptime che lo fanno già: un problema Critico diventa un caso di sicurezza, può chiamare chi è di reperibilità o dichiarare un incidente, e ogni nuovo problema viene inviato via email ai proprietari dell'archivio. I flussi di lavoro, OneUptime AI, l'API, Terraform e il server MCP raggiungono tutto ciò che conserva.
 
 :::cards
 - [Security Operations](#security-operations): Un caso di sicurezza per ogni archivio con un problema Critico.
@@ -20,7 +20,7 @@ flowchart TB
     critical -->|"Sì, se gli avvisi<br/>sono attivi"| alert["Un avviso<br/>che chiama<br/>chi è di<br/>reperibilità"]
     critical -->|"Sì, se gli incidenti<br/>sono attivi"| incident["Un incidente<br/>gestito<br/>dal tuo processo"]
     issue --> owners["Un'email ai<br/>proprietari<br/>dell'archivio"]
-    issue --> flows["I workflow che<br/>osservano<br/>i problemi"]
+    issue --> flows["I flussi di lavoro che<br/>osservano<br/>i problemi"]
 ```
 
 Ognuna di queste viene eseguita quando una valutazione apre un problema, o lo riapre. Ognuna è best effort: il problema è già aperto e nella sua cronologia, quindi un'integrazione non riuscita viene registrata e saltata, mai ritentata fino a creare un secondo caso o una seconda chiamata. Ciò che ha fatto ognuna viene scritto nella **Cronologia** del problema, e la pagina del problema rimanda al caso, all'avviso e all'incidente che ha avviato.
@@ -77,15 +77,15 @@ Le regole impostano proprietari ed etichette al posto tuo, man mano che gli arch
 
 Una regola corrisponde a un archivio in base alle sue etichette, a un pattern del suo nome o della sua descrizione, oppure al **Modello di tag cloud**: un pattern confrontato con ciascuno dei tag cloud dell'archivio, scritti `key=value`. `^team=payments$` corrisponde a ogni archivio con il tag `team=payments`, e `^env=` a ogni archivio con un tag `env`. Un nuovo archivio riceve le regole del progetto nel momento in cui viene trovato, e la **Notifica ai proprietari** di una regola del proprietario dice se i proprietari che aggiunge vengono avvisati. [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) spiega come corrisponde ogni regola e quando vengono eseguite le regole.
 
-## Workflow
+## Flussi di lavoro
 
-**Archivio dati** e **Problema di sicurezza dei dati** sono trigger dei workflow, ciascuno con **Alla creazione**, **All'aggiornamento**, **Alla creazione o all'aggiornamento** e **All'eliminazione**. Sceglili nel pannello **Aggiungi trigger**, sotto **Risorse OneUptime**.
+**Archivio dati** e **Problema di sicurezza dei dati** sono trigger dei flussi di lavoro, ciascuno con **Alla creazione**, **All'aggiornamento**, **Alla creazione o all'aggiornamento** e **All'eliminazione**. Sceglili nel pannello **Aggiungi trigger**, sotto **Risorse OneUptime**.
 
 - **Problema di sicurezza dei dati → Alla creazione** viene eseguito quando un problema si apre per la prima volta. Leggine la gravità in un blocco **If / Else**, e pubblica quelli Critici in un canale o apri un ticket nel tuo tracker.
 - **Problema di sicurezza dei dati → All'aggiornamento**, con **Campi da osservare** impostato sul suo stato, viene eseguito quando un problema viene risolto, accettato o si riapre.
 - **Archivio dati → Alla creazione** viene eseguito quando la discovery trova un archivio, per esempio per avvisare un team di ogni nuovo bucket.
 
-Vedi [Trigger dei workflow](/docs/workflows/triggers) per i campi che passa ogni trigger.
+Vedi [Trigger dei flussi di lavoro](/docs/workflows/triggers) per i campi che passa ogni trigger.
 
 ## OneUptime AI
 
@@ -155,6 +155,6 @@ Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare,
 :::cards
 - [Casi di sicurezza e playbook (SOAR)](/docs/telemetry/security-cases): Gestisci i casi che apre Sicurezza dei dati.
 - [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules): Come corrispondono le regole, e quando vengono eseguite.
-- [Trigger dei workflow](/docs/workflows/triggers): Esegui un workflow quando si apre un problema o viene trovato un archivio.
+- [Trigger dei flussi di lavoro](/docs/workflows/triggers): Esegui un flusso di lavoro quando si apre un problema o viene trovato un archivio.
 - [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues): Cosa significa ogni problema, e come correggerlo.
 :::

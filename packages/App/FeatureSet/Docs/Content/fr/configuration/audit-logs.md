@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **Elle est désactivée au départ.** Un projet n'enregistre rien tant que personne n'active la journalisation d'audit, et rien d'avant ce moment.
-- **Elle enregistre ce que font les gens.** Une modification faite par une personne, une clé API, un client MCP ou un workflow est enregistrée. Une modification que OneUptime fait de lui-même, comme celle d'une tâche de fond, est laissée de côté, sauf si vous activez **Stocker les événements système**.
+- **Elle enregistre ce que font les gens.** Une modification faite par une personne, une clé API, un client MCP ou un flux de travail est enregistrée. Une modification que OneUptime fait de lui-même, comme celle d'une tâche de fond, est laissée de côté, sauf si vous activez **Stocker les événements système**.
 - **Les entrées ne peuvent pas être modifiées.** Personne ne peut modifier ni supprimer une entrée, dans le tableau de bord ou par l'API. Une entrée ne disparaît qu'à la fin de sa rétention.
 
 ## Avant de commencer
@@ -67,7 +67,7 @@ Une modification de ces paramètres s'applique en moins d'une minute.
 | **Quand** | Il y a combien de temps, avec la date et l'heure. |
 | **Action** | `Create`, `Update` ou `Delete`, `Download` pour un fichier de capture de paquets que quelqu'un a téléchargé, ou `Sign In`, `Sign Out`, `Session Timeout` ou `Session Revoked` pour une session. |
 | **Ressource** | Le nom de la ressource, qui l'ouvre tant qu'elle existe, et son type. |
-| **Acteur** | Qui a fait la modification : une personne, une clé API, un workflow, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. |
+| **Acteur** | Qui a fait la modification : une personne, une clé API, un flux de travail, ou `System` pour une modification que OneUptime a faite de lui-même. La modification d'une personne faite via un client MCP indique lequel. |
 | **Modifications** | Combien de champs ont changé, ou ont été capturés pour une création ou une suppression. Pour une session, comment elle s'est connectée ou pourquoi elle s'est terminée. Cliquez dessus pour voir chaque champ. |
 
 Filtrez par **Type de ressource**, **Nom de la ressource**, **Action**, **E-mail de l'utilisateur** ou **Heure**. Une modification ne liste que les champs qui ont changé, avant et après, et un enregistrement qui ne change rien n'ajoute aucune entrée.
@@ -78,12 +78,12 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 
 ## Ce qui est enregistré
 
-Tout ce que les personnes créent, modifient ou suppriment dans un projet est enregistré : moniteurs, incidents, alertes, pages de statut, workflows et leurs étapes, files d'attente, tableaux de bord, politiques d'astreinte, équipes et qui en fait partie, clés d'API et chaque réglage. **Type de ressource** indique sur quoi porte une entrée, par exemple `Monitor`, `Workflow` ou `Queue`.
+Tout ce que les personnes créent, modifient ou suppriment dans un projet est enregistré : moniteurs, incidents, alertes, pages de statut, flux de travail et leurs étapes, files d'attente, tableaux de bord, politiques d'astreinte, équipes et qui en fait partie, clés d'API et chaque réglage. **Type de ressource** indique sur quoi porte une entrée, par exemple `Monitor`, `Workflow` ou `Queue`.
 
 | Non enregistré | Pourquoi |
 | --- | --- |
 | Journaux de messages | Chacun est déjà la trace d'un e-mail, d'un SMS, d'un appel, d'une notification push ou d'un message de chat que OneUptime a envoyé ou reçu. |
-| Traces d'exécutions | Chacune est déjà la trace d'une exécution de workflow, d'une escalade d'astreinte, d'une analyse, d'une importation ou d'une exécution d'IA. |
+| Traces d'exécutions | Chacune est déjà la trace d'une exécution de flux de travail, d'une escalade d'astreinte, d'une analyse, d'une importation ou d'une exécution d'IA. |
 | Ce que signalent les agents et la télémétrie | Les ressources découvertes, les relevés et l'utilisation changent à chaque rapport, pas parce que quelqu'un les a modifiés. |
 | Flux d'activité | Un flux affiche des modifications que le journal d'audit enregistre déjà. |
 | L'état de travail de OneUptime | Les sessions des lecteurs des pages de statut, les tâches en attente et les autres états que OneUptime conserve pendant son travail. |
@@ -92,7 +92,7 @@ Tout ce que les personnes créent, modifient ou suppriment dans un projet est en
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 
-Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Quand OneUptime en écrit un parce que quelqu'un le lui a demandé, comme fusionner une exception avec une autre ou réinitialiser l'URL d'un webhook, l'entrée l'enregistre comme une modification de cette personne. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un workflow sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
+Les champs que seul OneUptime écrit, comme le moment où un hôte a été vu pour la dernière fois, sont omis de chaque entrée, tout comme les champs que personne ne peut lire. Quand OneUptime en écrit un parce que quelqu'un le lui a demandé, comme fusionner une exception avec une autre ou réinitialiser l'URL d'un webhook, l'entrée l'enregistre comme une modification de cette personne. Les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur. Les étapes d'un flux de travail sont enregistrées comme ce qui a changé, en nommant les réglages d'une étape mais jamais ce qui y a été saisi, et le déplacement d'une étape sur le canevas n'est pas enregistré.
 
 Ce que OneUptime fait parce que quelqu'un le lui a demandé est aussi enregistré comme une modification de cette personne, que le projet stocke ou non les événements système :
 

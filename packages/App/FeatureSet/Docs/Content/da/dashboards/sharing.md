@@ -158,7 +158,7 @@ På dashboardets side **Branding** kan du konfigurere:
 - **Tema**: lyst, mørkt eller som hver besøgendes enhed er indstillet; se [Tema](#tema).
 - **Favicon**: det lille ikon i browserfanen.
 
-Logoet, logoet til mørkt tema og faviconet er filer, der er uploadet i dashboardets eget projekt, og det kontrolleres, hver gang et af dem gemmes: fra dashboardet, API'et, Terraform eller et workflow. En fil, der er uploadet i et andet projekt, afvises med de ord, som en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashboard viser kun billeder fra sit eget projekt.
+Logoet, logoet til mørkt tema og faviconet er filer, der er uploadet i dashboardets eget projekt, og det kontrolleres, hver gang et af dem gemmes: fra dashboardet, API'et, Terraform eller en arbejdsgang. En fil, der er uploadet i et andet projekt, afvises med de ord, som en fil, der ikke længere findes, får: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." eller "The favicon's file could not be found. Upload the favicon again." Det offentlige dashboard viser kun billeder fra sit eget projekt.
 
 Sidetitlen og beskrivelsen står også øverst i dashboardets værktøjslinje for dit team, i stedet for dets navn og beskrivelse. Logoerne, temaet og faviconet gælder kun for det offentlige dashboard.
 

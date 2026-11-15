@@ -150,7 +150,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 ## Отправка событий безопасности в Splunk
 
-OneUptime также может отправлять то, что находит, в Splunk через его HTTP Event Collector (HEC), чтобы ваши поиски и дашборды видели обнаружения OneUptime рядом с вашими собственными. Каждое событие безопасности — это одно событие HEC с sourcetype `oneuptime:security`, а его поля названы так, как их называет Common Information Model Splunk: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` и `severity`.
+OneUptime также может отправлять то, что находит, в Splunk через его HTTP Event Collector (HEC), чтобы ваши поиски и панели видели обнаружения OneUptime рядом с вашими собственными. Каждое событие безопасности — это одно событие HEC с sourcetype `oneuptime:security`, а его поля названы так, как их называет Common Information Model Splunk: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` и `severity`.
 
 :::steps
 ### Создайте токен HEC

@@ -445,7 +445,7 @@ Collectoren lager én innhentingsjobb per OpenStack-tjeneste, gjennom exporteren
 
 De ni siste er tjenester en sky kanskje ikke kjører. Når exporteren blir spurt om en som ikke står i katalogen, logger den inn på Keystone, logger én linje (`No suitable endpoint could be found in the service catalog`) og svarer med ingenting, og den skyen viser ikke spor av tjenesten. Det er én innlogging hvert 5. minutt per tjeneste og region, og det er derfor alle disse er på 5 minutter. For å spørre bare om tjenestene du kjører, sett `OPENSTACK_AGENT_SERVICES`, for eksempel `identity|compute|placement|network|volume|image`.
 
-Hver tjeneste rapporterer også `openstack_<service>_up`, for eksempel `openstack_nova_up`. [OpenStack-monitoren](/docs/monitor/openstack-monitor#innsamlede-metrikker) lister hver serie med hva den betyr. Hver serie har:
+Hver tjeneste rapporterer også `openstack_<service>_up`, for eksempel `openstack_nova_up`. [OpenStack-monitoren](/docs/monitor/openstack-monitor#innsamlede-målinger) lister hver serie med hva den betyr. Hver serie har:
 
 | Attributt | Hva det sier |
 | --- | --- |
@@ -649,7 +649,7 @@ Ceilometer sier bare det `polling.yaml` ber om, og filen den leveres med utelate
 | `memory.resident` | Ingenting sier hva instansene holder på hypervisoren sin, så ingen **Hypervisor Memory Pressure** |
 | `disk.device.read.latency`, `disk.device.write.latency` | Ingen disklatens, så ingen **Instance Disk Latency High** |
 
-OneUptime gjør begge om til ett sett serier etter hvert som de kommer inn, ved siden av originalene: `openstack.instance.*` for hver instans, etter UUID-en, og `openstack.hypervisor.instances.*` for det en hypervisors instanser summerer seg til. [OpenStack-monitoren](/docs/monitor/openstack-monitor#innsamlede-metrikker) lister dem. Så sider og varsler betyr det samme uansett hvilken kilde en sky har:
+OneUptime gjør begge om til ett sett serier etter hvert som de kommer inn, ved siden av originalene: `openstack.instance.*` for hver instans, etter UUID-en, og `openstack.hypervisor.instances.*` for det en hypervisors instanser summerer seg til. [OpenStack-monitoren](/docs/monitor/openstack-monitor#innsamlede-målinger) lister dem. Så sider og varsler betyr det samme uansett hvilken kilde en sky har:
 
 | Hva den leser | libvirt | Ceilometer |
 | --- | --- | --- |
@@ -946,14 +946,14 @@ Ingenting er registrert om at en database nådde `ACTIVE`, fordi Nova avviste gj
 
 ## Gnocchi
 
-En sky som kjører Gnocchi får API-et sitt på **Tjenester** av seg selv, og en som ikke gjør det viser ikke spor av det. Gnocchi har ingen deler noen åpner én og én, så det den sier står på det API-ets egen side: hvor mange målinger og metrikker som venter, og hvor mange prosessorer den har.
+En sky som kjører Gnocchi får API-et sitt på **Tjenester** av seg selv, og en som ikke gjør det viser ikke spor av det. Gnocchi har ingen deler noen åpner én og én, så det den sier står på det API-ets egen side: hvor mange målinger og målinger som venter, og hvor mange prosessorer den har.
 
 Ingen prosessorer havner i **Krever oppmerksomhet**, og det gjør også en bakkelogg forbi 10 000 målinger. Gnocchis API fortsetter å svare og ta imot målinger med `gnocchi-metricd` stoppet, registrert, så prosessorene er det eneste stedet som viser det. Ingenting går tapt så lenge det varer, men ingenting nyere kan leses.
 
 | Hva | Agent, Full visning | Probe, Full visning | Alt mindre |
 | --- | --- | --- | --- |
 | Om API-et svarer | Ja | Ja | Ingenting: se nedenfor |
-| Hvor mange målinger og metrikker som venter, og hvor mange prosessorer den har | Ja | Ja | Nei |
+| Hvor mange målinger og målinger som venter, og hvor mange prosessorer den har | Ja | Ja | Nei |
 
 Exporteren leser Gnocchis status, som bare en admin kan. Gnocchi avviser alt mindre, og exporteren leser en avvisning akkurat som den leser at Gnocchi er stoppet: `openstack_gnocchi_up` leses 0. Så en legitimasjon som aldri har lest Gnocchi får beskjed om det, i stedet for at Gnocchi er nede, og får ikke tilbud om varslene. En probe skiller de to: Gnocchi svarte, så API-et leses oppe, og tilkoblingstesten sier at det ble avvist.
 

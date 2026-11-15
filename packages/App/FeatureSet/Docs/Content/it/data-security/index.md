@@ -96,5 +96,5 @@ La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: qu
 - [Configurare Sicurezza dei dati](/docs/data-security/setup): I tre livelli, i permessi che concede ciascuno e la scansione dei tuoi database.
 - [Tipi di dati sensibili](/docs/data-security/data-types): Come viene trovato un valore, e ogni tipo di dati che Sicurezza dei dati conosce.
 - [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues): Ogni controllo, il punteggio di rischio e cosa succede a un problema.
-- [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations): Casi di sicurezza, avvisi, proprietari, workflow e OneUptime AI.
+- [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations): Casi di sicurezza, avvisi, proprietari, flussi di lavoro e OneUptime AI.
 :::

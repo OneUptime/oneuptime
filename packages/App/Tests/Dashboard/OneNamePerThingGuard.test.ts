@@ -6,6 +6,15 @@ import {
   otherWordIn,
   wordsOf,
 } from "./OneNamePerThing";
+import {
+  DocsBlock,
+  PairedBlock,
+  blocksOf,
+  diagramWordsOf,
+  ownWordsOf,
+  pairedBlocksOf,
+} from "../FeatureSet/Docs/DocsBlocks";
+import { readPage } from "../FeatureSet/Docs/DocsContentSupport";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -53,9 +62,15 @@ import { PRODUCT_TITLES } from "Common/Types/Product/ProductCatalog";
  *     any app's locale file (Dashboard, Admin Dashboard, sign-in pages,
  *     status page, public dashboards, API reference, the server) says one of
  *     the words the language dropped;
- *   - the docs pages, their Mermaid diagrams, and the docs navigation, of the
- *     languages whose docs follow the Dashboard (DOCS_FOLLOW). The rest are
- *     DOCS_STILL_APART, each until its docs say the one name too.
+ *   - the docs pages, their Mermaid diagrams' labels, and the docs
+ *     navigation, of every language: each block of a page beside its English
+ *     block, so what the English has word for word - a label the Dashboard
+ *     draws in English, a message the product writes in English, a row not
+ *     translated yet - is the English kept as written and not read
+ *     (DocsBlocks' ownWordsOf), and a diagram's node ids, which a
+ *     translation keeps as the English page has them, are not words. A name
+ *     whose docs still say a dropped word would be DOCS_STILL_APART until
+ *     they say the one name too; none is since #8230.
  *
  * A failure names the app, the key or page and the word: write the
  * language's one name there, minding its grammar (gender, case, plural). If
@@ -66,7 +81,6 @@ import { PRODUCT_TITLES } from "Common/Types/Product/ProductCatalog";
 
 const APPS_DIR: string = path.resolve(__dirname, "../../FeatureSet");
 const COMMON_DIR: string = path.resolve(__dirname, "../../../Common");
-const DOCS_CONTENT: string = path.join(APPS_DIR, "Docs/Content");
 
 // Every app's locale folder, by the app's name.
 const LOCALE_DIRS: Readonly<Record<string, string>> = {
@@ -82,32 +96,15 @@ const LOCALE_DIRS: Readonly<Record<string, string>> = {
 const DOCS_NAV_DIR: string = path.join(APPS_DIR, "Docs/Locales");
 
 /*
- * The languages and names whose translated docs - pages and navigation -
- * say the Dashboard's one name.
+ * The names whose translated docs - pages and navigation - still say a
+ * dropped word, in pages written before the Dashboard settled on one. Every
+ * other name's docs say the one name and are read for it. #8230 took the
+ * last five off (French, Italian and Danish workflows, Russian dashboards,
+ * Norwegian metrics): a name added to OneNamePerThing before its docs are
+ * reworded goes here, and comes off when they say the one name - the test
+ * fails while one is listed and clean.
  */
-const DOCS_FOLLOW: ReadonlyArray<{ language: string; title: string }> = [
-  { language: "sv", title: "Monitors" },
-  { language: "zh-CN", title: "Monitors" },
-  { language: "zh-TW", title: "Monitors" },
-  { language: "zh-TW", title: "Scheduled Maintenance" },
-  { language: "ru", title: "Status Pages" },
-  { language: "hi", title: "Status Pages" },
-  { language: "hi", title: "Metrics" },
-];
-
-/*
- * The names whose translated docs still say a dropped word, in pages written
- * before the Dashboard settled on one (#8029, #8030; to follow in #8230).
- * Each comes off when its docs say the one name: the test fails while one is
- * listed and clean.
- */
-const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [
-  { language: "fr", title: "Workflows" },
-  { language: "it", title: "Workflows" },
-  { language: "da", title: "Workflows" },
-  { language: "ru", title: "Dashboards" },
-  { language: "no", title: "Metrics" },
-];
+const DOCS_STILL_APART: ReadonlyArray<{ language: string; title: string }> = [];
 
 /*
  * Products whose Products-menu title (navbar.items.*Title) still names
@@ -202,83 +199,53 @@ function sightingsInLocale(
   return sightings;
 }
 
-// Every Markdown page of a language's docs, as "category/page.md".
-function docsPages(language: string): Array<string> {
-  const root: string = path.join(DOCS_CONTENT, language);
-  const pages: Array<string> = [];
+/*
+ * The words of a docs block a reader reads in the language's own words: a
+ * diagram line's labels (its node ids are the English page's), and of a
+ * block beside its English block, only what the English does not have word
+ * for word (DocsBlocks' ownWordsOf).
+ */
+function ownTextOf(block: DocsBlock, english?: DocsBlock): string {
+  if (english) {
+    return ownWordsOf(english, block);
+  }
 
-  const walk: (directory: string) => void = (directory: string): void => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const entryPath: string = path.join(directory, entry.name);
-
-      if (entry.isDirectory()) {
-        walk(entryPath);
-      } else if (entry.name.endsWith(".md")) {
-        pages.push(path.relative(root, entryPath));
-      }
-    }
-  };
-
-  walk(root);
-
-  return pages.sort();
+  return block.diagram ? diagramWordsOf(block.text) : block.text;
 }
 
-// A line that opens or closes a fenced block, and what the block holds.
-const FENCE: RegExp = /^[ \t]*(```|~~~)\s*(\w*)/;
+// The blocks of a language's docs that say a word `name` dropped.
+function sightingsInDocs(language: string, name: OneName): Array<Sighting> {
+  const sightings: Array<Sighting> = [];
+  const { paired, unpaired } = pairedBlocksOf(language);
 
-/*
- * The lines of a docs page a reader reads as words: everything but fenced
- * code (commands, YAML, output). A Mermaid diagram is drawn as text, its
- * boxes and title in the page's language, so its lines are read too.
- */
-function readLinesOf(markdown: string): Array<string> {
-  const lines: Array<string> = [];
-  let fence: string | null = null;
-  let diagram: boolean = false;
+  for (const block of paired as Array<PairedBlock>) {
+    const says: string | null = otherWordIn(
+      name,
+      ownTextOf(block.translation, block.english),
+    );
 
-  for (const line of markdown.split("\n")) {
-    const opens: RegExpMatchArray | null = line.match(FENCE);
-
-    if (fence === null && opens) {
-      fence = opens[1]!;
-      diagram = opens[2] === "mermaid";
-
-      if (diagram) {
-        lines.push(line.replace(FENCE, " "));
-      }
-
-      continue;
-    }
-
-    if (fence !== null && line.trim().startsWith(fence)) {
-      fence = null;
-      continue;
-    }
-
-    if (fence === null || diagram) {
-      lines.push(line);
+    if (says) {
+      sightings.push({
+        where: `${block.page}:${block.line}`,
+        text: block.translation.text.trim(),
+        says: says,
+      });
     }
   }
 
-  return lines;
-}
-
-// The lines of a docs page that say a word `name` dropped.
-function sightingsInDocs(language: string, name: OneName): Array<Sighting> {
-  const sightings: Array<Sighting> = [];
-
-  for (const page of docsPages(language)) {
-    const markdown: string = fs.readFileSync(
-      path.join(DOCS_CONTENT, language, page),
-      "utf8",
-    );
-
-    for (const line of readLinesOf(markdown)) {
-      const says: string | null = otherWordIn(name, line);
+  // A page that does not pair with its English page is read whole.
+  for (const page of unpaired) {
+    for (const block of blocksOf(readPage(language, page))) {
+      const says: string | null = block.code
+        ? null
+        : otherWordIn(name, ownTextOf(block));
 
       if (says) {
-        sightings.push({ where: page, text: line.trim(), says: says });
+        sightings.push({
+          where: `${page}:${block.line + 1}`,
+          text: block.text.trim(),
+          says: says,
+        });
       }
     }
   }
@@ -400,53 +367,127 @@ describe("the check of a text for a dropped word", () => {
   });
 });
 
-describe("the lines of a docs page that are read", () => {
-  test("leave fenced code out, and read a diagram's boxes and title", () => {
+describe("the words of a docs block that are read", () => {
+  function block(text: string, diagram: boolean = false): DocsBlock {
+    return { line: 0, text, code: false, diagram };
+  }
+
+  const french: OneName = nameOf("fr", "Workflows");
+  const russian: OneName = nameOf("ru", "Dashboards");
+
+  test("a diagram says its labels, not the node ids it keeps from the English page", () => {
+    const english: DocsBlock = block(
+      '    declared["Incident declared"] --> workflow["Workflow:<br/>On Create Incident"]',
+      true,
+    );
+
     expect(
-      readLinesOf(
-        [
-          "Open **Monitors**.",
-          "",
-          "```yaml",
-          "monitor: övervakare",
-          "```",
-          "",
-          '```mermaid title="Hur en övervakare larmar"',
-          '    A["Övervakare"] --> B',
-          "```",
-          "After.",
-        ].join("\n"),
-      ).map((line: string): string => {
-        return line.trim();
-      }),
-    ).toEqual([
-      "Open **Monitors**.",
-      "",
-      "",
-      'title="Hur en övervakare larmar"',
-      'A["Övervakare"] --> B',
-      "After.",
-    ]);
+      otherWordIn(
+        french,
+        ownTextOf(
+          block(
+            '    declared["Incident déclaré"] --> workflow["Flux de travail :<br/>On Create Incident"]',
+            true,
+          ),
+          english,
+        ),
+      ),
+    ).toBeNull();
+    // A label still in the dropped word is read.
+    expect(
+      otherWordIn(
+        french,
+        ownTextOf(
+          block(
+            '    declared["Incident déclaré"] --> workflow["Workflow :<br/>On Create Incident"]',
+            true,
+          ),
+          english,
+        ),
+      ),
+    ).toBe("Workflow");
+    expect(
+      otherWordIn(
+        french,
+        ownTextOf(block("    participant W as Workflow", true)),
+      ),
+    ).toBe("Workflow");
   });
 
-  test("never take a blank line for a fence's indent", () => {
+  test("what the English block has word for word is the English kept as written", () => {
+    const english: DocsBlock = block(
+      "Add an **Execute Workflow** block. Another workflow starts.",
+    );
+
     expect(
-      readLinesOf(
-        [
-          "Before.",
-          "",
-          "```",
-          "code",
-          "```",
-          "",
-          "Between.",
-          "",
-          "```js",
-          "more",
-          "```",
-        ].join("\n"),
+      otherWordIn(
+        french,
+        ownTextOf(
+          block(
+            "Ajoutez un bloc **Execute Workflow**. Un autre flux de travail démarre.",
+          ),
+          english,
+        ),
       ),
-    ).toEqual(["Before.", "", "", "Between.", ""]);
+    ).toBeNull();
+    expect(
+      otherWordIn(
+        french,
+        ownTextOf(
+          block(
+            "Ajoutez un bloc **Execute Workflow**. Un autre workflow démarre.",
+          ),
+          english,
+        ),
+      ),
+    ).toBe("workflow");
+    // A row not translated yet says nothing of its own.
+    expect(
+      otherWordIn(
+        french,
+        ownTextOf(
+          block("- Decide what monitors, webhooks and workflows may reach."),
+          block("- Decide what monitors, webhooks and workflows may reach."),
+        ),
+      ),
+    ).toBeNull();
+  });
+
+  test("a word the reader reads alone in bold is read", () => {
+    expect(
+      otherWordIn(
+        russian,
+        ownTextOf(
+          block("Откройте **Дашборды**."),
+          block("Open **Dashboards**."),
+        ),
+      ),
+    ).toBe("Дашборд");
+  });
+
+  test("another product's thing keeps its word", () => {
+    expect(
+      otherWordIn(
+        french,
+        "Vérifiez que le workflow dans New Relic est actif, puis le flux de travail OneUptime.",
+      ),
+    ).toBeNull();
+    expect(
+      otherWordIn(
+        french,
+        "Un ID de transition appartient au workflow Jira du ticket.",
+      ),
+    ).toBeNull();
+    expect(
+      otherWordIn(russian, "Наблюдаемость данных читает каждый BI-дашборд."),
+    ).toBeNull();
+    // Only the kept phrase keeps it.
+    expect(
+      otherWordIn(french, "Le workflow New Relic notifie le workflow."),
+    ).toBe("workflow");
+    expect(
+      otherWordIn(russian, "Каждый BI-дашборд и каждый дашборд проекта."),
+    ).toBe("дашборд");
   });
 });
 
@@ -658,6 +699,80 @@ describe("every name in OneNamePerThing", () => {
     }
   });
 
+  test("lists as still apart in the docs only its own names", () => {
+    for (const entry of DOCS_STILL_APART) {
+      expect(nameOf(entry.language, entry.title).title).toBe(entry.title);
+    }
+  });
+
+  /*
+   * The French, Italian and Danish docs said "workflow", the Russian
+   * "дашборд" and the Norwegian "metrikk" in about 3,800 blocks and 35
+   * navigation titles beside their Dashboard's word (#8230): they are read
+   * for it like every other name's.
+   */
+  test.each([
+    ["fr", "Workflows"],
+    ["it", "Workflows"],
+    ["da", "Workflows"],
+    ["ru", "Dashboards"],
+    ["no", "Metrics"],
+  ])(
+    "%s %s: its docs are read for the one name",
+    (language: string, title: string) => {
+      expect(nameOf(language, title).title).toBe(title);
+      expect(
+        DOCS_STILL_APART.some(
+          (entry: { language: string; title: string }): boolean => {
+            return entry.language === language && entry.title === title;
+          },
+        ),
+      ).toBe(false);
+    },
+  );
+
+  /*
+   * A kept phrase that keeps nothing any more would let the word back in
+   * unseen: each keeps a word in a docs block or a locale string of its
+   * language.
+   */
+  test("keeps only phrases that still keep a dropped word", () => {
+    const stale: Array<{ language: string; phrase: string }> = [];
+
+    for (const [language, names] of Object.entries(ONE_NAME)) {
+      const texts: Array<string> = [
+        ...pairedBlocksOf(language).paired.map((block: PairedBlock): string => {
+          return wordsOf(ownTextOf(block.translation, block.english));
+        }),
+        ...Object.values(LOCALE_DIRS).flatMap(
+          (directory: string): Array<string> => {
+            return Array.from(
+              stringsIn(directory, language)?.values() || [],
+            ).map((text: string): string => {
+              return wordsOf(text);
+            });
+          },
+        ),
+      ];
+
+      for (const name of names) {
+        for (const kept of name.keptPhrases || []) {
+          const keeps: boolean = texts.some((text: string): boolean => {
+            const match: RegExpMatchArray | null = text.match(kept.phrase);
+
+            return match !== null && name.others.test(match[0]);
+          });
+
+          if (!keeps) {
+            stale.push({ language: language, phrase: kept.phrase.source });
+          }
+        }
+      }
+    }
+
+    expect(stale).toEqual([]);
+  });
+
   test("keeps only keys that exist and still say the dropped word", () => {
     const stale: Array<{ language: string; key: string }> = [];
 
@@ -731,26 +846,13 @@ describe.each(Object.keys(ONE_NAME))(
         },
       );
 
-      const followsInDocs: boolean = DOCS_FOLLOW.some(
-        (entry: { language: string; title: string }): boolean => {
-          return entry.language === language && entry.title === name.title;
-        },
-      );
       const stillApartInDocs: boolean = DOCS_STILL_APART.some(
         (entry: { language: string; title: string }): boolean => {
           return entry.language === language && entry.title === name.title;
         },
       );
 
-      test("its docs follow the Dashboard, or are listed as still apart", () => {
-        expect({ followsInDocs, stillApartInDocs }).toEqual(
-          followsInDocs
-            ? { followsInDocs: true, stillApartInDocs: false }
-            : { followsInDocs: false, stillApartInDocs: true },
-        );
-      });
-
-      if (followsInDocs) {
+      if (!stillApartInDocs) {
         test("no docs page says a dropped word", () => {
           expect(sightingsInDocs(language, name)).toEqual([]);
         });

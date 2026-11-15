@@ -51,7 +51,7 @@ flowchart TB
 | `probe-1` | `oneuptime/probe` | En global probe som kjører monitorenes sjekker. Den bruker vertens nettverk. |
 | `global-runner` | `oneuptime/runner` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene i runbooks og koderettingene til OneUptime AI for alle prosjekter. |
 | `postgres` | `postgres:15` | Konfigurasjon og tilstand: monitorer, hendelser, brukere. Lagret i volumet `postgres`. |
-| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logger, metrikker, traces og unntak. Lagret i volumet `clickhouse`. |
+| `clickhouse` | `clickhouse/clickhouse-server:26.7` | Telemetri: logger, målinger, traces og unntak. Lagret i volumet `clickhouse`. |
 | `valkey` | `valkey/valkey:9.1-alpine` | Hurtigbuffer og køer. Den lagrer ingenting på disk. |
 
 > [!NOTE]
@@ -61,7 +61,7 @@ For produksjon i stor skala, eller når du trenger høy tilgjengelighet, bruk i 
 
 ## Krav
 
-Velg størrelsen på serveren etter hva du skal kjøre på den. Det er telemetrien (logger, metrikker, traces) som bestemmer minne og disk; se [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing) når du kjenner volumene dine.
+Velg størrelsen på serveren etter hva du skal kjøre på den. Det er telemetrien (logger, målinger, traces) som bestemmer minne og disk; se [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing) når du kjenner volumene dine.
 
 | | Anbefalt | Minimum for et homelab |
 | --- | --- | --- |
@@ -469,7 +469,7 @@ MQTT_INGEST_ENABLED=false
 | Innstilling | Hva den gjør |
 | --- | --- |
 | `SERVER_PRODUCTS=monitoring-and-status-pages` | Alle prosjekter tilbyr Monitorer, Hendelser, Vakt, Statussider og Planlagt vedlikehold. |
-| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime beholder ingen av loggene, metrikkene, tracene eller profilene det blir sendt. Logger, Målinger, Spor, Ytelsesprofiler og Unntak vises som slått av. |
+| `DISABLE_TELEMETRY_INGESTION=true` | OneUptime beholder ingen av loggene, målingene, tracene eller profilene det blir sendt. Logger, Målinger, Spor, Ytelsesprofiler og Unntak vises som slått av. |
 | `GLOBAL_RUNNER_REPLICAS=0` | Tjenesten `global-runner` starter ikke. Bare runbooks og koderettingene til OneUptime AI bruker den. |
 | `MQTT_INGEST_ENABLED=false` | MQTT-lytterne som IoT-enheter sender til, er slått av. |
 

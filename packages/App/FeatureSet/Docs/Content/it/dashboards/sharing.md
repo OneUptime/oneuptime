@@ -158,7 +158,7 @@ Nella pagina **Branding** della dashboard, puoi configurare:
 - **Tema**: chiaro, scuro o come è impostato il dispositivo di ogni visitatore; vedi [Tema](#tema).
 - **Favicon**: la piccola icona nella scheda del browser.
 
-Il logo, il logo per il tema scuro e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un workflow. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
+Il logo, il logo per il tema scuro e la favicon sono file caricati nel progetto stesso della dashboard, e questo viene verificato ogni volta che ne viene salvato uno: dalla dashboard, dall'API, da Terraform o da un flusso di lavoro. Un file caricato in un altro progetto viene rifiutato con le stesse parole che riceve un file che non esiste più: "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." oppure "The favicon's file could not be found. Upload the favicon again." La dashboard pubblica mostra solo immagini del proprio progetto.
 
 Il titolo e la descrizione della pagina compaiono anche in cima alla barra degli strumenti della dashboard per il tuo team, al posto del suo nome e della sua descrizione. I loghi, il tema e la favicon valgono solo per la dashboard pubblica.
 

@@ -64,7 +64,7 @@ Komponenter overføres som i drift. Forhåndsvisningen nevner hver komponent som
 
 - **Hendelser, planlagt vedlikehold og historikken deres.** En hendelse i OneUptime er en levende post som varsler personer, så tidligere hendelser blir i Statuspage.
 - **Abonnenter via SMS, webhook, Slack eller Microsoft Teams.** Forhåndsvisningen teller dem. Bare e-postabonnenter overføres.
-- **Hendelsesmaler og systemmetrikker.** Legg til det du fortsatt trenger, i OneUptime.
+- **Hendelsesmaler og systemmålinger.** Legg til det du fortsatt trenger, i OneUptime.
 - **En statussides eget domene og merkevare.** Legg i OneUptime til domenet under **Egendefinerte domener** og logoen under **Merkevare**.
 
 ## Grenser

@@ -10,7 +10,7 @@ flowchart TB
     subgraph Install["Ваша сеть"]
         direction TB
         Ingress["Ingress<br/>(Nginx, TLS)"]
-        App["Приложение<br/>дашборды,<br/>страницы<br/>статуса,<br/>API, приём<br/>данных,<br/>фоновые задачи"]
+        App["Приложение<br/>панели,<br/>страницы<br/>статуса,<br/>API, приём<br/>данных,<br/>фоновые задачи"]
         Runner["Глобальный Runner"]
         Probe["Пробы"]
         subgraph Data["Хранилища данных"]

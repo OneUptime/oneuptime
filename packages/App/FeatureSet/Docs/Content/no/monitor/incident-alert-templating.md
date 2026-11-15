@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### Verdier fra en gruppert monitor
 
-En metrikkbasert monitor med attributter i **Grupper etter** åpner én hendelse per serie, og verdien til hvert attributt er en variabel under attributtets navn. Gruppering etter `host.name` gir `{{host.name}}`, og gruppering etter `resource.k8s.pod.name` gir `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` inneholder alle, som et objekt.
+En målingsbasert monitor med attributter i **Grupper etter** åpner én hendelse per serie, og verdien til hvert attributt er en variabel under attributtets navn. Gruppering etter `host.name` gir `{{host.name}}`, og gruppering etter `resource.k8s.pod.name` gir `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` inneholder alle, som et objekt.
 
 En gruppert [Logg-overvåking](/docs/monitor/logs-monitor) fungerer på samme måte: verdien til hvert grupperingsattributt er en variabel under nøkkelen sin.
 
@@ -423,17 +423,17 @@ En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `isOnline` | Om proben kunne koble til og kjøre grunnspørringen. Manglende metrikker gjør den aldri usann. | `boolean` |
+| `isOnline` | Om proben kunne koble til og kjøre grunnspørringen. Manglende målinger gjør den aldri usann. | `boolean` |
 | `responseTimeInMs` | Tiden det tok å koble til og kjøre grunnspørringen, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 | `connectionError` | Tilkoblingsfeilen, uten påloggingsinformasjon eller tilkoblingsstrengen. | `string` |
 | `engineVersion` | Versjonen databaseserveren rapporterte. | `string` |
-| `collectedGroups` | Metrikkgruppene som ga verdier ved denne sjekken. | `Array<string>` |
+| `collectedGroups` | Målingsgruppene som ga verdier ved denne sjekken. | `Array<string>` |
 | `unavailableGroups` | Gruppene som ikke kunne samles inn, hver som `{group, reason, message, remediation}`. | `Array<Object>` |
 | `collectionIssueSummary` | Én linje om hver utilgjengelig gruppe, klar for en tittel. Tom når alt ble samlet inn. | `string` |
 | `metrics` | De innsamlede verdiene, etter serienavn. | `Object` |
 
-Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En metrikk som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
+Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.connections.used.percent`, og en mal kan likevel plukke ut én: skriv hele navnet etter `metrics.`, som i `{{metrics.oneuptime.monitor.database.connections.used.percent}}`. Sett inn `{{metrics}}` i sin helhet, som JSON, eller bruk `{{collectionIssueSummary}}`. En måling som ikke ble samlet inn, mangler i `metrics`; den er ikke null. For å handle på én verdi sammenligner du den i kriteriet med et [JavaScript-uttrykk](/docs/monitor/javascript-expression).
 
 ### Monitorer for eksterne statussider
 
@@ -450,13 +450,13 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 | `responseTimeInMs` | Hvor lang tid statussiden brukte på å svare, i millisekunder. | `number` |
 | `failureCause` | Hvorfor sjekken feilet, når den gjorde det. | `string` |
 
-### Metrikk- og infrastrukturmonitorer
+### Målings- og infrastrukturmonitorer
 
 Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
-| `metricName` | Navnet på metrikken monitorens første spørring leser, som `container.cpu.time`. | `string` |
+| `metricName` | Navnet på målingen monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
 Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 

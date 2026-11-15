@@ -85,6 +85,24 @@ const BI_TOOLS_DASHBOARDS: ReadonlyArray<string> = [
   "Read its dashboards every hour.",
 ];
 
+/*
+ * Other products' workflows, which the docs name by that product's own
+ * word: New Relic's (its alert routing, which New Relic names Workflows in
+ * every language it has) and Jira's (an issue type's statuses and
+ * transitions).
+ */
+const ANOTHER_PRODUCTS_WORKFLOW: string =
+  "another product's own workflow - New Relic's alert routing, a Jira issue's statuses and transitions - which that product names so: not a OneUptime workflow";
+
+const PAGERDUTY_INCIDENT_WORKFLOWS: string =
+  "PagerDuty's Incident Workflows, a PagerDuty feature named so in the list of what does not move to OneUptime";
+
+const TEAMS_WORKFLOWS: string =
+  "Microsoft Teams' Workflows app, which makes an incoming webhook URL: Microsoft's name for it";
+
+const WORKFLOW_STEPS_MESSAGE: string =
+  "the run log's own message, which the product writes in English and the page quotes as written";
+
 const RUSSIAN_BI_DASHBOARDS: string =
   "A BI tool's own dashboard, which Russian BI users call a дашборд: set apart from OneUptime's Панели, as another product's workflow keeps its name";
 
@@ -94,6 +112,18 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /flux de travail/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          phrase: /workflows?\s+(?:New Relic|dans New Relic|Jira)/i,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Workflows de Teams/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
     },
   ],
   it: [
@@ -101,6 +131,18 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /fluss[oi] di lavoro/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          phrase: /workflows?\s+(?:New Relic|in New Relic|di New Relic|Jira)/i,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Workflows di Teams/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
     },
   ],
   da: [
@@ -108,6 +150,23 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       title: "Workflows",
       word: /arbejdsgang/i,
       others: /workflow/i,
+      keptPhrases: [
+        {
+          // Jira's own word in Danish is arbejdsgang, as Atlassian's Danish screens say it.
+          phrase: /New Relic-workflow\p{L}*|workflow\p{L}* i New Relic/iu,
+          why: ANOTHER_PRODUCTS_WORKFLOW,
+        },
+        { phrase: /Incident Workflows/, why: PAGERDUTY_INCIDENT_WORKFLOWS },
+        { phrase: /Teams Workflows|Teams-workflow/, why: TEAMS_WORKFLOWS },
+        {
+          phrase: /CI-workflows/,
+          why: "a CI system's own workflows (GitHub Actions and the like), which a repository says how it is built and tested in: not OneUptime workflows",
+        },
+        {
+          phrase: /Workflow steps can do only what/,
+          why: WORKFLOW_STEPS_MESSAGE,
+        },
+      ],
     },
   ],
   sv: [
@@ -124,7 +183,7 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       others: /监控项|监控器/,
       keptPhrases: [
         {
-          phrase: /^\| 监控项 \||监控项原型/,
+          phrase: /^\s*\| 监控项 \||监控项原型/,
           why: "Zabbix's own words for an item and an item prototype, in the network device page's table of what a Zabbix user knows each thing as",
         },
       ],
@@ -153,6 +212,11 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       word: /панел/i,
       others: /дашборд/i,
       keptKeys: keptForOneReason(BI_TOOLS_DASHBOARDS, RUSSIAN_BI_DASHBOARDS),
+      keptPhrases: [
+        // The docs call a BI tool's own dashboard a BI-дашборд, as the BI Dashboards section does.
+        { phrase: /BI-дашборд\p{L}*/iu, why: RUSSIAN_BI_DASHBOARDS },
+        { phrase: /дашборд\p{L}* Power BI/iu, why: RUSSIAN_BI_DASHBOARDS },
+      ],
     },
   ],
   hi: [

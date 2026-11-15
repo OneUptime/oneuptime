@@ -110,7 +110,7 @@ Når banken din fortsatt behandler en betaling, sier OneUptime det: noen banker 
 
 | Kolonne | Hva den viser |
 | --- | --- |
-| **Produkt** | Logger, sporinger, metrikker og de andre typene telemetri. |
+| **Produkt** | Logger, sporinger, målinger og de andre typene telemetri. |
 | **Dag** | Dagen den ble sendt. |
 | **Tjeneste** | Tjenesten, eller verten, klyngen eller den andre ressursen som sendte den. |
 | **Data inntatt (i GB)** | Hvor mye som kom inn. |

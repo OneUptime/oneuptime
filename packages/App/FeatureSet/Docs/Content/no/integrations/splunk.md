@@ -1,6 +1,6 @@
 # Splunk Enterprise Security
 
-Importer notable events som korrelasjonssøkene i [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) oppretter, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og metrikker, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem ved å kjøre et søk på search headen din som en Splunk-bruker du selv oppretter, og endrer ingenting i Splunk. Siden det bare er et søk, importerer det hvilken som helst indeks eller utdataene fra et hvilket som helst lagret søk, ikke bare notable events.
+Importer notable events som korrelasjonssøkene i [Splunk Enterprise Security](https://www.splunk.com/en_us/products/enterprise-security.html) oppretter, til sikkerhetshendelsene i OneUptime. Der søker du i dem ved siden av logger, sporinger og målinger, korrelerer dem med alle andre kilder og varsler vakten om dem som betyr noe. OneUptime leser dem ved å kjøre et søk på search headen din som en Splunk-bruker du selv oppretter, og endrer ingenting i Splunk. Siden det bare er et søk, importerer det hvilken som helst indeks eller utdataene fra et hvilket som helst lagret søk, ikke bare notable events.
 
 :::cards
 - [Sett opp tilkoblingen](#sett-opp-tilkoblingen): Et token, en rolle og skjemaet for tilkoblingen.

@@ -68,7 +68,7 @@ En rotation med flere personer på vagt samtidig bliver én OneUptime-vagtplan p
 ## Hvad overføres ikke
 
 - **Hændelser, alarmer og deres historik.** OneUptime starter med din opsætning, ikke med dine tidligere hændelser.
-- **Workflows, statussider, alert routes og integrationer.** Ret i stedet dine monitorer og alarmkilder mod OneUptime, som beskrevet i [Gør skiftet færdigt](#gør-skiftet-færdigt).
+- **Arbejdsgange, statussider, alert routes og integrationer.** Ret i stedet dine monitorer og alarmkilder mod OneUptime, som beskrevet i [Gør skiftet færdigt](#gør-skiftet-færdigt).
 - **Brugerdefinerede felter, hvis valgmuligheder kommer fra kataloget,** og statusser, som OneUptime ikke har en tilstand for: declined, merged, canceled og learning.
 - **Overstyringer af vagtplaner og ændringer af en rotation, der er planlagt til senere.** Forhåndsvisningen nævner hver planlagt ændring, så du kan foretage den i OneUptime, når den skal ske.
 - **Eskaleringstrin, som OneUptime ikke har et præcist modstykke til.** Et trin, der skriver i en Slack- eller Microsoft Teams-kanal, udelades, fordi arbejdsområdets notifikationsregler gør det i OneUptime, og det samme gælder et trin, der giver videre til en anden eskaleringssti. Et trin, der tilkalder den, der har vagt næste gang, overføres som det nærmeste, OneUptime har, og forhåndsvisningen fortæller, hvad der ændres.

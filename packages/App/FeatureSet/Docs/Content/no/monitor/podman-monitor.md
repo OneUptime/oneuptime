@@ -1,11 +1,11 @@
 # Podman-overvåking
 
-En Podman-monitor overvåker containerne på én Podman-vert og sier fra når en container går varm, går tom for minne eller stadig starter på nytt. Den leser metrikkene som OneUptimes Podman-agent sender fra verten, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
+En Podman-monitor overvåker containerne på én Podman-vert og sier fra når en container går varm, går tom for minne eller stadig starter på nytt. Den leser målingene som OneUptimes Podman-agent sender fra verten, så ingenting undersøkes utenfra: installer agenten, og opprett deretter monitoren fra en mal eller din egen spørring.
 
 :::cards
 - [Opprett monitoren](#opprett-en-podman-monitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Seks ferdige varsler, én hendelse per container.
-- [Metrikker](#innsamlede-metrikker): Hva agenten samler inn, og hva hver metrikk betyr.
+- [Målinger](#innsamlede-målinger): Hva agenten samler inn, og hva hver måling betyr.
 - [Logger](#innsamlede-logger): Containerlogger og loggdriveren de trenger.
 :::
 
@@ -13,7 +13,7 @@ En Podman-monitor overvåker containerne på én Podman-vert og sier fra når en
 
 OneUptimes Podman-agent kjører som en container på verten. Hvert 30. sekund leser den containerstatistikk gjennom Podmans Docker-kompatible API-socket, følger containernes loggfiler og sender begge deler til OneUptime over OTLP. De første dataene fra en vert registrerer den i OneUptime.
 
-En Podman-monitor er knyttet til én vert. Hvert minutt kjører den spørringen sin over vertens containermetrikker og sammenligner resultatet med kriteriene sine.
+En Podman-monitor er knyttet til én vert. Hvert minutt kjører den spørringen sin over vertens containermålinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra en Podman-vert til en hendelse"
 flowchart TB
@@ -21,7 +21,7 @@ flowchart TB
         direction LR
         containers["Containere"] --> agent["OneUptimes Podman-agent"]
     end
-    agent -->|"metrikker og logger over OTLP"| oneuptime["OneUptime"]
+    agent -->|"målinger og logger over OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"første data"| registered["Podman-vert registrert"]
     oneuptime --> monitor["Podman-monitor"]
     monitor -->|"hvert minutt"| criteria{"Kriterier oppfylt?"}
@@ -54,13 +54,13 @@ Velg verten i **Podman-vert** under **Podman Monitor Configuration**. Hver vert 
 
 En ny monitor starter med **Host Stopped Reporting** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir metrikken, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) – velg én metrikk i **Podman Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **Containernavn** og **Container-bilde** snevrer den inn til bestemte containere.
+- **Endre** – velg en annen [mal](#ferdige-varslingsmaler). Den angir målingen, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) – velg én måling i **Podman Metric**, og angi deretter **Aggregering** og **Tidsintervall**. **Containernavn** og **Container-bilde** snevrer den inn til bestemte containere.
 - **Avansert** (under **Flere felt**) – bygg spørringer og formler selv under **Velg målinger**. Bruk **Grupper etter** `resource.container.name` for å vurdere hver container for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at metrikken ikke sender data, så angi din egen terskel.
+Åpne hvert kriterium under **Kriterier** og kontroller **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at målingen ikke sender data, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -75,10 +75,10 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
 | **Podman-vert** | Alle | Påkrevd. Avgrenser hver spørring til vertens `resource.host.name`. OneUptime legger også til `resource.container.runtime = podman` i hver spørring. |
-| **Podman Metric** | Custom Metric | Én metrikk fra agentens katalog, gruppert som CPU, minne, nettverk, blokk-I/O og container. |
+| **Podman Metric** | Custom Metric | Én måling fra agentens katalog, gruppert som CPU, minne, nettverk, blokk-I/O og container. |
 | **Containernavn** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.name`, for eksempel `my-container`. |
 | **Container-bilde** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `resource.container.image.name`, for eksempel `nginx:latest`. |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
@@ -101,7 +101,7 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 
 **Host Stopped Reporting** utløses når ingenting kommer fra verten på ti minutter: verten er nede, eller agenten har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt. Den løses når data kommer tilbake. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra. En vert uten andre containere rapporterer likevel, fordi agenten kjører som en container og rapporterer sin egen container.
 
-De to prosentmalene bruker **Gjennomsnitt**: metrikkene deres er allerede prosenter per container, så gjennomsnittet for et minutt er den vedvarende verdien. Prosessantallet bruker **Maximum**, der én måling over grensen er signalet.
+De to prosentmalene bruker **Gjennomsnitt**: målingene deres er allerede prosenter per container, så gjennomsnittet for et minutt er den vedvarende verdien. Prosessantallet bruker **Maximum**, der én måling over grensen er signalet.
 
 > [!NOTE]
 > `container.cpu.utilization` er tallet `podman stats` skriver ut, i snitt over agentens intervall på 30 sekunder: 100 % er én hel CPU-kjerne, ikke containerens samlede CPU-tildeling. En container som har fått flere kjerner, ligger godt over 100 mens den er frisk, så hev terskelen for slike.
@@ -112,15 +112,15 @@ De to prosentmalene bruker **Gjennomsnitt**: metrikkene deres er allerede prosen
 > [!CAUTION]
 > `container.uptime` finnes bare for kjørende containere. En container som stopper og forblir stoppet, sender ingen data, så **Container Restarted (Low Uptime)** fanger omstarter og nye utrullinger, ikke en permanent nedstengning. En container som er ment å kjøre i mindre enn to minutter, forblir i varslingstilstand hele levetiden.
 
-Det finnes ingen mal for CPU-struping. Strupemetrikkene agenten samler inn, bare vokser, og et varsel om «strupet i det hele tatt» ville utløses én gang og aldri opphøre. Begge samles fortsatt inn, så du kan vise dem i diagrammer.
+Det finnes ingen mal for CPU-struping. Strupemålingene agenten samler inn, bare vokser, og et varsel om «strupet i det hele tatt» ville utløses én gang og aldri opphøre. Begge samles fortsatt inn, så du kan vise dem i diagrammer.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
-Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docker-kompatible socket, `/run/podman/podman.sock`, hvert 30. sekund. Hver containers metrikker bærer identiteten dens som ressursattributter: `resource.container.name`, `resource.container.image.name`, `resource.container.id`, `resource.container.runtime` (`podman`) og `resource.host.name`.
+Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docker-kompatible socket, `/run/podman/podman.sock`, hvert 30. sekund. Hver containers målinger bærer identiteten dens som ressursattributter: `resource.container.name`, `resource.container.image.name`, `resource.container.id`, `resource.container.runtime` (`podman`) og `resource.host.name`.
 
 ### CPU
 
-| Metrikk | Beskrivelse |
+| Måling | Beskrivelse |
 | --- | --- |
 | `container.cpu.utilization` | CPU containeren brukte i hvert intervall på 30 sekunder, der 100 % er én hel CPU-kjerne. |
 | `container.cpu.usage.total` | Brukt CPU-tid siden containeren startet, i nanosekunder. En teller over hele levetiden. |
@@ -129,7 +129,7 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docke
 
 ### Minne
 
-| Metrikk | Beskrivelse |
+| Måling | Beskrivelse |
 | --- | --- |
 | `container.memory.usage.total` | Minne i bruk, i byte. |
 | `container.memory.usage.limit` | Minnegrense, i byte. |
@@ -137,20 +137,20 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docke
 
 ### Nettverk
 
-| Metrikk | Beskrivelse |
+| Måling | Beskrivelse |
 | --- | --- |
 | `container.network.io.usage.rx_bytes` | Mottatte byte. En teller over hele levetiden. |
 | `container.network.io.usage.tx_bytes` | Sendte byte. En teller over hele levetiden. |
 
 ### Blokk-I/O
 
-| Metrikk | Beskrivelse |
+| Måling | Beskrivelse |
 | --- | --- |
 | `container.blockio.io_service_bytes_recursive` | Byte lest og skrevet på hver blokkenhet siden containeren startet, delt etter `operation` (`read`, `write`). En teller over hele levetiden. Listen tilbyr den filtrert på lesing og på skriving. |
 
 ### Container
 
-| Metrikk | Beskrivelse |
+| Måling | Beskrivelse |
 | --- | --- |
 | `container.uptime` | Sekunder siden containeren startet. Bare kjørende containere rapporterer den. |
 | `container.restarts` | Antall ganger containeren har startet på nytt. En løpende sum. |
@@ -161,19 +161,19 @@ Agenten bruker OpenTelemetry-mottakeren `docker_stats`, rettet mot Podmans Docke
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Podman-monitor har ingen **Filtertype**: hver regel kontrollerer metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en Podman-monitor har ingen **Filtertype**: hver regel kontrollerer målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Måling** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når målingen har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare avviksbetingelser. 14 dager (standard), 28, 60 eller 90 dager med historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 Hvert kriterium sier også hva som skal skje når det samsvarer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriterier kontrolleres ovenfra og ned, og det første som samsvarer, avgjør.
 
@@ -187,7 +187,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Innsamlede logger
 
@@ -215,7 +215,7 @@ Agenten leser filene som Podmans loggdriver `k8s-file` skriver, i `/var/lib/cont
 | `journald` | Ingenting: loggene ligger i systemd-journalen. |
 | `none` | Ingenting: loggene forkastes. |
 
-Metrikker avhenger ikke av loggdriveren: en vert der containerne bruker `journald`, rapporterer fortsatt metrikker, bare siden **Logger** forblir tom.
+Målinger avhenger ikke av loggdriveren: en vert der containerne bruker `journald`, rapporterer fortsatt målinger, bare siden **Logger** forblir tom.
 
 Kontroller driveren til en container, og Podmans standard:
 
@@ -275,7 +275,7 @@ Fjern og opprett deretter hver container på nytt.
 Verter registrerer seg selv fra agentens data. Kontroller at agentcontaineren kjører, at Podmans API-socket er aktivert, og at verten står under **Produkter → Infrastruktur → Podman → Alle verter**. [Veiledningen for Podman-agenten](/docs/telemetry/podman-host) har kontrollene du kan kjøre på verten.
 :::
 
-:::details Metrikker kommer, men siden Logger er tom
+:::details Målinger kommer, men siden Logger er tom
 Containerne bruker nesten helt sikkert `journald`. Bytt dem du vil ha logger fra, til `k8s-file` (se [Krav til loggdriveren](#krav-til-loggdriveren)), og opprett dem på nytt.
 :::
 

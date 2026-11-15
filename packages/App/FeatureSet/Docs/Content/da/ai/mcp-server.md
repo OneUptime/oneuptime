@@ -88,7 +88,7 @@ Føj dette til din MCP-konfiguration (se [VS Code med GitHub Copilot](#vs-code-m
 
 Enhver anden klient, der understøtter MCP-autorisation, fungerer på samme måde: giv den adressen, så finder den selv resten. Se [Log ind (OAuth 2.1)](#log-ind-oauth-21) for protokollen.
 
-Dashboardet har også disse trin, med din instans' adresse udfyldt: **Projektindstillinger → AI → MCP-server**. Og fra enhver ressource (en monitor, en hændelse, en statusside og så videre) folder du **Udvikler** ud i dens sidemenu og vælger **AI-assistenter**: den side foreslår også prompts, der nævner ressourcen og dens id, så assistenten finder den med det samme. For en ressource, som MCP-serveren endnu ikke har værktøjer til, såsom et workflow, viser siden, hvordan en assistent, der kan køre kommandoer, i stedet kan arbejde med den gennem REST API'et.
+Dashboardet har også disse trin, med din instans' adresse udfyldt: **Projektindstillinger → AI → MCP-server**. Og fra enhver ressource (en monitor, en hændelse, en statusside og så videre) folder du **Udvikler** ud i dens sidemenu og vælger **AI-assistenter**: den side foreslår også prompts, der nævner ressourcen og dens id, så assistenten finder den med det samme. For en ressource, som MCP-serveren endnu ikke har værktøjer til, såsom en arbejdsgang, viser siden, hvordan en assistent, der kan køre kommandoer, i stedet kan arbejde med den gennem REST API'et.
 
 ## Log ind med OneUptime
 

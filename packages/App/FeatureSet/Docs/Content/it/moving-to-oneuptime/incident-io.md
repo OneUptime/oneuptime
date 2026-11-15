@@ -68,7 +68,7 @@ Una rotazione con più persone reperibili contemporaneamente diventa una pianifi
 ## Cosa non viene importato
 
 - **Incidenti, avvisi e la loro cronologia.** OneUptime parte dalla tua configurazione, non dai tuoi incidenti passati.
-- **Workflow, pagine di stato, alert route e integrazioni.** Indirizza invece i tuoi monitor e le fonti di avvisi verso OneUptime, come descritto in [Completa il passaggio](#completa-il-passaggio).
+- **Flussi di lavoro, pagine di stato, alert route e integrazioni.** Indirizza invece i tuoi monitor e le fonti di avvisi verso OneUptime, come descritto in [Completa il passaggio](#completa-il-passaggio).
 - **I campi personalizzati le cui opzioni vengono dal catalogo,** e gli stati per cui OneUptime non ha uno stato: declined, merged, canceled e learning.
 - **Le sostituzioni delle pianificazioni e le modifiche a una rotazione previste per più avanti.** L'anteprima nomina ogni modifica prevista, così puoi farla in OneUptime al momento giusto.
 - **I passaggi di escalation senza un equivalente esatto in OneUptime.** Un passaggio che pubblica in un canale Slack o Microsoft Teams viene escluso, perché in OneUptime lo fanno le regole di notifica dell'area di lavoro, e lo stesso vale per un passaggio che passa a un altro percorso di escalation. Un passaggio che avvisa chi sarà reperibile dopo viene importato come la cosa più vicina che OneUptime ha, e l'anteprima indica cosa cambia.

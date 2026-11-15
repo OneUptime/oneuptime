@@ -158,7 +158,7 @@ Sur la page **Image de marque** du tableau de bord, vous pouvez configurer :
 - **Thème** — clair, sombre, ou selon le réglage de l'appareil de chaque visiteur ; voir [Thème](#thème).
 - **Favicon** — la petite icône dans l'onglet du navigateur.
 
-Le logo, le logo du thème sombre et le favicon sont des fichiers téléversés dans le projet du tableau de bord, et c'est vérifié à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un workflow. Un fichier téléversé dans un autre projet est refusé avec les mots que reçoit un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." ou "The favicon's file could not be found. Upload the favicon again." Le tableau de bord public n'affiche que des images de son propre projet.
+Le logo, le logo du thème sombre et le favicon sont des fichiers téléversés dans le projet du tableau de bord, et c'est vérifié à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un flux de travail. Un fichier téléversé dans un autre projet est refusé avec les mots que reçoit un fichier qui n'existe plus : "The logo's file could not be found. Upload the logo again.", "The dark theme logo's file could not be found. Upload the dark theme logo again." ou "The favicon's file could not be found. Upload the favicon again." Le tableau de bord public n'affiche que des images de son propre projet.
 
 Le titre et la description de la page figurent aussi en tête de la barre d'outils du tableau de bord pour votre équipe, à la place de son nom et de sa description. Les logos, le thème et le favicon ne s'appliquent qu'au tableau de bord public.
 

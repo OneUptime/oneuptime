@@ -17,7 +17,7 @@ Bruker du heller Docker Compose-installasjonen på én server? Den er enklere å
 ## Dimensjoner installasjonen din
 
 :::steps
-1. Finn ut hvor mye telemetri du sender: antall GB logger, metrikker og traces per dag. Mål det på en liten installasjon hvis du kan.
+1. Finn ut hvor mye telemetri du sender: antall GB logger, målinger og traces per dag. Mål det på en liten installasjon hvis du kan.
 2. Bestem hvor mange dager du vil beholde det. Oppbevaringen ganger ClickHouse-disken (se [Oppbevaring](#oppbevaring-og-hvordan-den-påvirker-lagringen)).
 3. Regn ut ClickHouse-disken med [lagringsformelen](#lagringsformel), og deretter PostgreSQL og Valkey ut fra deres egne avsnitt.
 4. Velg [startnivået](#startnivåer) som ligger nærmest tallene dine, og sett CPU, minne og lagring for det i Helm-values.
@@ -30,14 +30,14 @@ OneUptime trenger tre datalagre i produksjon. Hvert vokser med noe forskjellig, 
 
 ```mermaid title="Hva hvert datalager vokser med"
 flowchart TB
-    Tel["Logger,<br/>metrikker,<br/>traces"] -->|"inntakshastighet<br/>× oppbevaring"| CH[("ClickHouse")]
+    Tel["Logger,<br/>målinger,<br/>traces"] -->|"inntakshastighet<br/>× oppbevaring"| CH[("ClickHouse")]
     State["Monitorer,<br/>hendelser,<br/>brukere"] -->|"antall<br/>objekter og<br/>historikk"| PG[("PostgreSQL")]
     Work["Køer, cache, økter"] -->|"kødybde"| VK[("Valkey")]
 ```
 
 | Datalager | Hva det lagrer | Hva som bestemmer størrelsen |
 | --- | --- | --- |
-| **ClickHouse** | All telemetri – logger, metrikker, traces, exceptions, profiler | Telemetri: **inntakshastighet × oppbevaring**. Dette er ~95 % av lagringen din og den største kostnaden. |
+| **ClickHouse** | All telemetri – logger, målinger, traces, exceptions, profiler | Telemetri: **inntakshastighet × oppbevaring**. Dette er ~95 % av lagringen din og den største kostnaden. |
 | **PostgreSQL** | Konfigurasjon og tilstand – monitorer, hendelser, varsler, brukere, team, prosjekter, arbeidsflyter, statussider, dashbord | **Antall objekter og historikk**, ikke telemetrimengden. Vokser sakte. |
 | **Valkey** | Cache, arbeidskøer og økter | **Kødybde og aktive økter**. Minnebundet og beskjedent. Ikke en autoritativ datakilde. |
 
@@ -45,7 +45,7 @@ OneUptime trenger aldri objektlagring (S3, MinIO) for å kjøre, og det flytter 
 
 ## ClickHouse – den største faktoren
 
-Nesten all lagringen din og en stor del av minnet går til ClickHouse, fordi hver logglinje, hvert metrikkpunkt, hvert trace-span og hver exception ligger der.
+Nesten all lagringen din og en stor del av minnet går til ClickHouse, fordi hver logglinje, hvert målingspunkt, hvert trace-span og hver exception ligger der.
 
 ### Lagringsformel
 
@@ -58,12 +58,12 @@ Komprimeringen avhenger av signalet:
 | Signal | Typisk komprimering | Hva som endrer den |
 | --- | --- | --- |
 | Logger | Omtrent 5:1 | Logger komprimeres godt. |
-| Metrikker | Omtrent 2:1 | Høy **kardinalitet** på etiketter blåser opp disk og minne raskere enn det rå volumet gjør. Hold kardinaliteten på etikettene lav. |
+| Målinger | Omtrent 2:1 | Høy **kardinalitet** på etiketter blåser opp disk og minne raskere enn det rå volumet gjør. Hold kardinaliteten på etikettene lav. |
 | Traces | Midt imellom | Span-attributtene du sender. |
 
 ### Regneeksempel
 
-En flåte på **10 clustere**, hvert med rundt 10 noder og 100 poder som logger på INFO-nivå, produserer grovt regnet **50–150 GB rå logger per cluster over 30 dager** (omtrent 1,7–5 GB per dag per cluster). For hele flåten, med metrikker og traces lagt til og etter komprimering, budsjetterer du grovt regnet **5–15 GB komprimert telemetri per dag**.
+En flåte på **10 clustere**, hvert med rundt 10 noder og 100 poder som logger på INFO-nivå, produserer grovt regnet **50–150 GB rå logger per cluster over 30 dager** (omtrent 1,7–5 GB per dag per cluster). For hele flåten, med målinger og traces lagt til og etter komprimering, budsjetterer du grovt regnet **5–15 GB komprimert telemetri per dag**.
 
 | Oppbevaring | Én replika | 2 replikaer + 30 % reserve |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ Lagringen vokser **lineært med oppbevaringen**: Et vindu på 90 dager koster om
 
 - **Bruk NVMe eller SSD.** Telemetri er skrivetung med utbrudd av aggregeringslesinger; ClickHouse sliter på roterende disker.
 - **Gi ClickHouse rikelig med minne.** Aggregeringsspørringer krever mye minne. Som tommelfingerregel dimensjonerer du minnet til 25–50 % av dine *varme* (nylig spurte) komprimerte data, med et praktisk minimum på 16 GB for enhver ekte produksjonsflåte.
-- **Hold kardinaliteten til metrikker i sjakk.** Den er den største enkeltstående spaken på både minne og disk i ClickHouse. Innfør etikettkonvensjoner med lav kardinalitet der du samler inn metrikker, og følg med på antallet aktive serier.
+- **Hold kardinaliteten til målinger i sjakk.** Den er den største enkeltstående spaken på både minne og disk i ClickHouse. Innfør etikettkonvensjoner med lav kardinalitet der du samler inn målinger, og følg med på antallet aktive serier.
 
 ## PostgreSQL – konfigurasjon og tilstand
 
@@ -134,9 +134,9 @@ Chartets innebygde datalagre kjører som standard som **enkeltinstanser**. For h
 
 ## Oppbevaring og hvordan den påvirker lagringen
 
-Oppbevaring av telemetri er en **ClickHouse-TTL regnet i dager**. Hver utgave har prosjektets standard under **Prosjektinnstillinger > Telemetri og APM > Dataoppbevaring** (**Standard oppbevaring (dager)**); når ingenting er satt, er den 15 dager. [Enterprise Edition](/docs/self-hosted/enterprise) legger til overstyringer: per signal (logger, traces, metrikker, profiler), per alvorlighetsgrad for logger og trace-status, og per tjeneste eller ressurs.
+Oppbevaring av telemetri er en **ClickHouse-TTL regnet i dager**. Hver utgave har prosjektets standard under **Prosjektinnstillinger > Telemetri og APM > Dataoppbevaring** (**Standard oppbevaring (dager)**); når ingenting er satt, er den 15 dager. [Enterprise Edition](/docs/self-hosted/enterprise) legger til overstyringer: per signal (logger, traces, målinger, profiler), per alvorlighetsgrad for logger og trace-status, og per tjeneste eller ressurs.
 
-Logger og metrikker slettes én dag om gangen, ved den første midnatt (servertiden til ClickHouse) etter at oppbevaringen deres er ute, slik at ClickHouse slipper å skrive om hver dag av dem med noen timers mellomrom mens den går ut. Like før midnatt ligger det fortsatt opptil én dag mer enn oppbevaringsvinduet på disken: Dimensjoner logger og metrikker for **oppbevaringsdager + 1**.
+Logger og målinger slettes én dag om gangen, ved den første midnatt (servertiden til ClickHouse) etter at oppbevaringen deres er ute, slik at ClickHouse slipper å skrive om hver dag av dem med noen timers mellomrom mens den går ut. Like før midnatt ligger det fortsatt opptil én dag mer enn oppbevaringsvinduet på disken: Dimensjoner logger og målinger for **oppbevaringsdager + 1**.
 
 Fordi oppbevaringen ganger lagringen i ClickHouse, bestemmer du den før du dimensjonerer disken. OneUptime arkiverer **ikke** gammel telemetri og flytter den heller ikke til objektlagring. For flerårig oppbevaring av hensyn til etterlevelse forlenger du oppbevaringsvinduet og dimensjonerer lagringen i ClickHouse deretter, eller eksporterer til et eksternt arkiv du velger selv.
 

@@ -1,19 +1,19 @@
 # IoT-enhets-overvåking
 
-En IoT-enhetsmonitor følger med på én flåte av enheter og sier fra når en enhet går offline, batteriet blir svakt, signalet svekkes, den blir overopphetet, eller CPU-en forblir opptatt. Den leser `iot_*`-metrikkene enhetene dine sender til OneUptime over OpenTelemetry eller MQTT, så ingenting sjekkes utenfra, og ingen probe er involvert.
+En IoT-enhetsmonitor følger med på én flåte av enheter og sier fra når en enhet går offline, batteriet blir svakt, signalet svekkes, den blir overopphetet, eller CPU-en forblir opptatt. Den leser `iot_*`-målingene enhetene dine sender til OneUptime over OpenTelemetry eller MQTT, så ingenting sjekkes utenfra, og ingen probe er involvert.
 
 :::cards
 - [Opprett monitoren](#opprett-en-iot-enhetsmonitor): Seks trinn i dashbordet.
 - [Maler](#ferdige-varslingsmaler): Fem ferdige varsler, én hendelse per enhet.
 - [Offline-deteksjon](#offline-deteksjon): Hvordan en død eller taus enhet oppdages.
-- [Metrikker](#innsamlede-metrikker): `iot_*`-seriene monitoren leser.
+- [Målinger](#innsamlede-målinger): `iot_*`-seriene monitoren leser.
 :::
 
 ## Slik fungerer det
 
 Enhetene dine, eller gatewayen de snakker med, sender målingene sine til OneUptime: over OpenTelemetry eller rett til OneUptimes MQTT-endepunkt. Hver måling bærer flåtens navn, `iot.fleet.name`, og enhetens egen ID, `device.id`. De første dataene registrerer flåten.
 
-En IoT-enhetsmonitor er knyttet til én flåte. Hvert minutt kjører den spørringen sin på den flåtens metrikker og sammenligner resultatet med kriteriene sine. Malene grupperer etter `device.id`, så 30 sensorer som er offline, åpner 30 hendelser, som hver nevner enheten sin og hver løser seg selv når enheten kommer seg.
+En IoT-enhetsmonitor er knyttet til én flåte. Hvert minutt kjører den spørringen sin på den flåtens målinger og sammenligner resultatet med kriteriene sine. Malene grupperer etter `device.id`, så 30 sensorer som er offline, åpner 30 hendelser, som hver nevner enheten sin og hver løser seg selv når enheten kommer seg.
 
 ```mermaid title="Fra en enhet til en hendelse"
 flowchart TB
@@ -22,7 +22,7 @@ flowchart TB
         device["Enhet"] --> gateway["Gateway eller<br/>OpenTelemetry-SDK"]
         device2["Enhet"] --> mqtt["OneUptime MQTT"]
     end
-    gateway -->|"IoT-metrikker over OTLP"| oneuptime["OneUptime"]
+    gateway -->|"IoT-målinger over OTLP"| oneuptime["OneUptime"]
     mqtt --> oneuptime
     oneuptime -->|"første data"| registered["Flåte registrert"]
     oneuptime --> monitor["IoT-enhetsmonitor"]
@@ -33,7 +33,7 @@ flowchart TB
 
 ## Før du begynner
 
-- **Få enhetene dine til å sende data.** [Veiledningen for IoT-enheter](/docs/telemetry/iot-devices) viser hvordan du sender metrikker med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
+- **Få enhetene dine til å sende data.** [Veiledningen for IoT-enheter](/docs/telemetry/iot-devices) viser hvordan du sender målinger med en OpenTelemetry-SDK eller -Collector, eller over MQTT.
 - **Sjekk at flåten er registrert.** Den vises under **Produkter → Infrastruktur → IoT → Alle flåter**, oppkalt etter `iot.fleet.name` som enhetene sender.
 - **Registrer enhetene du forventer**, under flåtens **Enhetsregister**, for å få beskjed når en blir taus: se [Offline-deteksjon](#offline-deteksjon).
 
@@ -56,13 +56,13 @@ Velg flåten i **IoT-flåte** under **IoT Monitor Configuration**. Hver flåte s
 
 En ny monitor starter med **Device Offline** under **Hva det skal varsles om**. Slik overvåker du noe annet:
 
-- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter metrikken, aggregeringen, tidsintervallet, en gruppering på `device.id` og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
-- **Custom Metric** (under **Flere felt**) - velg én metrikk i **IoT Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én enhet eller én enhetstype. En egendefinert metrikk grupperes ikke: den vurderer flåten som helhet.
-- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, også over dine egne metrikknavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Grupper etter** `device.id` for å vurdere hver enhet for seg.
+- **Endre** - velg en annen [mal](#ferdige-varslingsmaler). Den setter målingen, aggregeringen, tidsintervallet, en gruppering på `device.id` og tersklene og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
+- **Custom Metric** (under **Flere felt**) - velg én måling i **IoT Metric**, og sett deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én enhet eller én enhetstype. En egendefinert måling grupperes ikke: den vurderer flåten som helhet.
+- **Avansert** (under **Flere felt**) - bygg spørringer og formler selv under **Velg målinger**, også over dine egne målingsnavn, for eksempel minne i bruk i prosent av en enhets minnestørrelse. Bruk **Grupper etter** `device.id` for å vurdere hver enhet for seg.
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier**, og sjekk **Select Metric Variable**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare oppdager at målingen ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -79,8 +79,8 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **IoT-flåte** | Alle | Påkrevd. Begrenser hver spørring til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avansert | Valgfritt. Én enhet, via `device.id`, som `sensor-001`. |
 | **Enhetstype** | Custom Metric, Avansert | Valgfritt. Enhetene som rapporterer denne `iot.device.type`, som `sensor` eller `gateway`. |
-| **IoT Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
+| **IoT Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). |
+| **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
@@ -88,7 +88,7 @@ Filtrene virker sammen: med en **Device ID** og en **Enhetstype** samsvarer en e
 
 ## Ferdige varslingsmaler
 
-Listen under **Hva det skal varsles om** tilbyr 5 maler. Hver bygger en komplett monitor: metrikkspørringen, en gruppering på `device.id`, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+Listen under **Hva det skal varsles om** tilbyr 5 maler. Hver bygger en komplett monitor: målingsspørringen, en gruppering på `device.id`, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet - unntatt **Device Offline**, som utløser ved den første målingen under 1. Et terskelkriterium gjenoppretter 10 % forbi terskelen, så en verdi som svinger rundt linjen, ikke skifter fram og tilbake.
 
@@ -113,7 +113,7 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 | Hvordan | Hva som skjer |
 | --- | --- |
 | **Gatewayen rapporterer det** | Gatewayen eller collectoren sender `iot_device_up = 0` for en enhet den ikke lenger kan nå. |
-| **MQTT Last Will** | En enhet som er koblet til OneUptimes MQTT-endepunkt, registrerer en Last Will på emnet `status`. Når enheten dør, sender brokeren `iot_device_up = 0` for den i det øyeblikket økten faller: ingen avspørring, ingen venting på en manglende rapport. Se [Sende metrikker via MQTT](/docs/telemetry/iot-devices#sende-metrikker-via-mqtt). |
+| **MQTT Last Will** | En enhet som er koblet til OneUptimes MQTT-endepunkt, registrerer en Last Will på emnet `status`. Når enheten dør, sender brokeren `iot_device_up = 0` for den i det øyeblikket økten faller: ingen avspørring, ingen venting på en manglende rapport. Se [Sende målinger via MQTT](/docs/telemetry/iot-devices#sende-målinger-via-mqtt). |
 | **Enheten er registrert** | En enhet i flåtens **Enhetsregister** forventes. Når den ikke sender noe i hele vinduet, behandler monitoren den som om den rapporterte `0`, så den får sin egen hendelse, som løser seg selv når enheten rapporterer igjen. |
 
 En registrert enhet beholdes også som offline i flåtens inventar, mens en uregistrert fjernes etter 15 minutter med stillhet. Deteksjon av stillhet krever regelen **Treat As Zero** for manglende data på kriteriet for `iot_device_up`, som Device Offline-monitorer opprettet fra malen har. En Device Offline-monitor som ble opprettet før enhetsregistrering fantes, må få den satt manuelt eller opprettes på nytt fra malen.
@@ -123,11 +123,11 @@ En registrert enhet beholdes også som offline i flåtens inventar, mens en ureg
 > [!NOTE]
 > En uregistrert enhet som blir taus uten en Last Will eller en gatewayrapport, slutter bare å sende data, og en monitor som grupperer per enhet, kan ikke peke den ut. Registrer enhetene dine, eller gi en kritisk enhet sin egen monitor (**Custom Metric**, med dens **Device ID**), og sett **Hvis ingen data** til **Utløser**. Deteksjon av stillhet krever også at minst én annen enhet i flåten fortsatt rapporterer: en flåte som blir helt mørk, for eksempel under et gatewaybrudd, sender ut én hendelse for monitoren, ikke én per enhet.
 
-## Innsamlede metrikker
+## Innsamlede målinger
 
 Hver serie bærer enhetens etikett `device.id` og attributtene `iot.device.type` og `iot.device.kind`.
 
-| Metrikk | Enhet | Beskrivelse |
+| Måling | Enhet | Beskrivelse |
 | --- | --- | --- |
 | `iot_device_up` | — | 1 når enheten kjører, 0 når den er nede eller offline. |
 | `iot_battery_percent` | `%` | Gjenværende batterilading, fra 0 til 100. Et fallende nivå betyr at enheten snart slutter å rapportere. |
@@ -139,20 +139,20 @@ Hver serie bærer enhetens etikett `device.id` og attributtene `iot.device.type`
 
 ## Overvåkingskriterier
 
-Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en IoT-enhetsmonitor tilbyr én **Filtertype**, **Målingsverdi**: hver regel sjekker metrikkverdien, med disse feltene.
+Et kriterium sammenligner en av monitorens spørringer eller formler med en terskel. Kriteriene til en IoT-enhetsmonitor tilbyr én **Filtertype**, **Målingsverdi**: hver regel sjekker målingsverdien, med disse feltene.
 
 | Felt | Hva det gjør |
 | --- | --- |
 | **Filtertype** | Alltid **Målingsverdi**, den eneste sjekken denne monitoren tilbyr. |
 | **Select Metric Variable** | Spørringen eller formelen som skal sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må samsvare, i hele vinduet) eller **Minst én verdi** (én er nok). |
-| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
-| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når metrikken har en enhet. Vises ikke for anomalibetingelser. |
+| **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når målingens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
+| **Terskel** | Verdien det sammenlignes med. En enhetsliste står ved siden av når målingen har en enhet. Vises ikke for anomalibetingelser. |
 | **Følsomhet** | Bare anomalibetingelser. **Lav** (4σ), **Middels** (3σ, standarden) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare anomalibetingelser. 14 dager (standarden), 28, 60 eller 90 dagers historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når en serie ikke har noen prøver i vinduet: **Ignore** (standarden) hopper over den, **Treat As Zero** leser den som `0`, og **Utløser** får kriteriet til å samsvare. |
 
-Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som metrikkene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til metrikken. En persentil av et histogram blir alltid værende i den tilstanden.
+Anomalibetingelser sammenligner hver verdi med den samme timen i uken i grunnlinjen. De blir værende i tilstanden "Learning", og sender ikke ut noe, til grunnlinjevinduet inneholder nok historikk. Denne monitoren filtrerer spørringene sine etter attributter, så hver spørring, og hver serie i en gruppert spørring, sammenlignes med sin egen historikk, så langt tilbake som målingene dine beholdes. Er det under to uker, blir en sum, en telling eller en spørring på et histogram værende i den tilstanden for alltid, og alt annet sammenlignes med alle seriene til målingen. En persentil av et histogram blir alltid værende i den tilstanden.
 
 ### Standardkriterier
 
@@ -164,7 +164,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | Den første spørringen har data | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> En verdi på `0` er data, så en metrikk som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Terraform
 
@@ -217,13 +217,13 @@ De rapporterer sjeldnere enn vinduet på 30 minutter dekker, så noen vinduer in
 :::
 
 :::details En mal viser ingen data
-Malene leser `iot_*`-metrikknavnene nøyaktig og grupperer etter etiketten `device.id`. Sammenlign det enhetene dine sender, på flåtens side **Målinger**, med [metrikkonvensjonene](/docs/telemetry/iot-devices#metrikkonvensjoner).
+Malene leser `iot_*`-målingsnavnene nøyaktig og grupperer etter etiketten `device.id`. Sammenlign det enhetene dine sender, på flåtens side **Målinger**, med [målingskonvensjonene](/docs/telemetry/iot-devices#målingskonvensjoner).
 :::
 
 ## Neste steg
 
 :::cards
-- [IoT-enheter](/docs/telemetry/iot-devices): Send enhetsmetrikker over OpenTelemetry eller MQTT.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst metrikk, ikke bare IoT-metrikker.
+- [IoT-enheter](/docs/telemetry/iot-devices): Send enhetsmålinger over OpenTelemetry eller MQTT.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på hvilken som helst måling, ikke bare IoT-målinger.
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett enhetens ID i hendelsestitler.
 :::

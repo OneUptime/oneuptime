@@ -176,5 +176,5 @@ En statusside viser en hendelse når en av hendelsens monitorer er på siden. Sj
 - [Ordliste](/docs/introduction/glossary): Hvert ord du møtte underveis, forklart med en setning eller to.
 - [Vaktplaner](/docs/on-call/schedules): Del vaktene med teamet ditt.
 - [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains): Gjør statussiden til din egen.
-- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
 :::

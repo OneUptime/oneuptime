@@ -233,7 +233,7 @@ En postmortem er et sæt felter på hændelsen, som læses og skrives via `/api/
 
 At skrive `showPostmortemOnStatusPage` som `true` oven på en skrevet `postmortemNote` offentliggør postmortem, ligesom dialogen gør. Det flytter også postmortem til **Fuldført**, medmindre samme skrivning sætter `postmortemStatusId`.
 
-En postmortems handlingspunkter er selvstændige poster under `/api/incident-postmortem-action-item`: hver med `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` og `status` (`Open`, `Done` eller `WontDo`). Workflows kan starte, når et oprettes, ændres eller slettes.
+En postmortems handlingspunkter er selvstændige poster under `/api/incident-postmortem-action-item`: hver med `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` og `status` (`Open`, `Done` eller `WontDo`). Arbejdsgange kan starte, når et oprettes, ændres eller slettes.
 
 ## Fejlfinding
 

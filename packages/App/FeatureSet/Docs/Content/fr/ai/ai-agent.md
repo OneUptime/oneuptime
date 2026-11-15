@@ -179,7 +179,7 @@ L'interrupteur est activé pour les dépôts connectés à partir de maintenant,
 
 ## Vérification avant la pull request
 
-Un dépôt dit comment il se compile et se teste dans un `AGENTS.md` à sa racine, le fichier que lisent les agents de code. Avant de modifier quoi que ce soit, l'agent de code lit le `AGENTS.md` du dépôt (ou son `CLAUDE.md`, quand il n'a pas de `AGENTS.md`) sur la branche d'où part la tâche, et travaille comme il le dit. Sans l'un ni l'autre, il l'apprend du `CONTRIBUTING.md` du dépôt, du README, des scripts du paquet, du `Makefile` ou des workflows de CI. Il n'y a rien à configurer dans OneUptime.
+Un dépôt dit comment il se compile et se teste dans un `AGENTS.md` à sa racine, le fichier que lisent les agents de code. Avant de modifier quoi que ce soit, l'agent de code lit le `AGENTS.md` du dépôt (ou son `CLAUDE.md`, quand il n'a pas de `AGENTS.md`) sur la branche d'où part la tâche, et travaille comme il le dit. Sans l'un ni l'autre, il l'apprend du `CONTRIBUTING.md` du dépôt, du README, des scripts du paquet, du `Makefile` ou des flux de travail de CI. Il n'y a rien à configurer dans OneUptime.
 
 | Où l'IA travaille | Ce qu'elle fait du build et des tests du dépôt |
 | --- | --- |

@@ -2,11 +2,11 @@
 
 Pubblica gli aggiornamenti degli incidenti in un canale di qualsiasi rete IRC: Libera.Chat, OFTC o un server tuo.
 
-IRC non ha webhook, quindi il passo di workflow **Send Message to IRC** di OneUptime si collega da sé al server, come qualsiasi client IRC. Non c'è niente da installare e nessuna app da registrare. Questa integrazione è **in uscita**: OneUptime pubblica nel canale e non legge quello che vi si dice.
+IRC non ha webhook, quindi il passo del flusso di lavoro **Send Message to IRC** di OneUptime si collega da sé al server, come qualsiasi client IRC. Non c'è niente da installare e nessuna app da registrare. Questa integrazione è **in uscita**: OneUptime pubblica nel canale e non legge quello che vi si dice.
 
 :::cards
 - [Come funziona](#come-funziona): Che cosa dice al server un'esecuzione del passo.
-- [Configurazione](#configurare-lintegrazione): Server e canale, password, poi il workflow: dal modello o da zero.
+- [Configurazione](#configurare-lintegrazione): Server e canale, password, poi il flusso di lavoro: dal modello o da zero.
 - [Suggerimenti](#suggerimenti): Pubblicare senza entrare, SASL, messaggi lunghi e raffiche.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Che cosa significano gli errori del passo e che cosa cambiare.
 :::
@@ -45,8 +45,8 @@ Il passo prende l'uscita **Successo** appena il server ha accettato ogni riga. P
 
 ## Prima di iniziare
 
-- Su OneUptime Cloud, il piano **Growth** o uno superiore: i workflow e le loro variabili ne fanno parte. Le installazioni self-hosted senza fatturazione non hanno limiti di piano.
-- Un ruolo che costruisce workflow: **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore dei flussi di lavoro**.
+- Su OneUptime Cloud, il piano **Growth** o uno superiore: i flussi di lavoro e le loro variabili ne fanno parte. Le installazioni self-hosted senza fatturazione non hanno limiti di piano.
+- Un ruolo che costruisce flussi di lavoro: **Proprietario del progetto**, **Amministratore del progetto** o **Amministratore dei flussi di lavoro**.
 - Un account sulla rete IRC, se ti chiede di accedere. Libera.Chat lo chiede per le connessioni da alcuni indirizzi cloud e VPN.
 
 ## Configurare l'integrazione
@@ -63,7 +63,7 @@ Il server deve essere uno a cui OneUptime può collegarsi. Gli indirizzi di loop
 
 ### Salvare le password come variabili segrete
 
-Salta questo passo se server, rete e canale non richiedono password. Altrimenti salva ogni password come [variabile globale](/docs/workflows/variables#variabili-globali) segreta. Il workflow contiene così il nome della variabile invece della password, e cambi la password in un solo punto.
+Salta questo passo se server, rete e canale non richiedono password. Altrimenti salva ogni password come [variabile globale](/docs/workflows/variables#variabili-globali) segreta. Il flusso di lavoro contiene così il nome della variabile invece della password, e cambi la password in un solo punto.
 
 | Impostazione        | Compilala quando                                                                           | Variabile, per esempio |
 | ------------------- | ------------------------------------------------------------------------------------------ | ---------------------- |
@@ -73,9 +73,9 @@ Salta questo passo se server, rete e canale non richiedono password. Altrimenti 
 
 Per salvarne una, apri **Flussi di lavoro → Variabili globali** e fai clic su **Crea: Variabile del flusso di lavoro**. Scrivi il nome in **Nome** e fai clic su **Avanti**. Incolla la password in **Contenuto**, attiva **Segreto** e fai clic su **Crea: Variabile del flusso di lavoro**. I log delle esecuzioni mostrano `[REDACTED]` al posto del valore di una variabile segreta.
 
-### Costruire il workflow
+### Costruire il flusso di lavoro
 
-Parti dal modello, che costruisce tutto il workflow per te, oppure da zero.
+Parti dal modello, che costruisce tutto il flusso di lavoro per te, oppure da zero.
 
 :::tabs
 @tab Dal modello
@@ -84,9 +84,9 @@ Parti dal modello, che costruisce tutto il workflow per te, oppure da zero.
 3. Tieni il nome **Notify IRC on new incident** o cambialo, e fai clic su **Avanti**.
 4. Inserisci **IRC Server** e **IRC Channel** e fai clic su **Crea flusso di lavoro**.
 
-Il workflow si apre nel **Costruttore** con due passi: **On Create Incident** e **Send Message to IRC**, che pubblica numero, titolo, gravità e stato dell'incidente in due righe. Un messaggio che non viene consegnato fa fallire l'esecuzione, e il registro dell'esecuzione dice perché. Il server e il canale vengono salvati come variabili `ircServer` e `ircChannel` del workflow. Se nel passo precedente hai salvato delle password, fai clic su **Send Message to IRC**, apri **Altri campi** e scegli ogni variabile con il pulsante **{ }** della sua impostazione.
+Il flusso di lavoro si apre nel **Costruttore** con due passi: **On Create Incident** e **Send Message to IRC**, che pubblica numero, titolo, gravità e stato dell'incidente in due righe. Un messaggio che non viene consegnato fa fallire l'esecuzione, e il registro dell'esecuzione dice perché. Il server e il canale vengono salvati come variabili `ircServer` e `ircChannel` del flusso di lavoro. Se nel passo precedente hai salvato delle password, fai clic su **Send Message to IRC**, apri **Altri campi** e scegli ogni variabile con il pulsante **{ }** della sua impostazione.
 @tab Da zero
-1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al workflow e fai clic su **Crea flusso di lavoro**.
+1. Apri **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, scegli **Parti da zero**, dai un nome al flusso di lavoro e fai clic su **Crea flusso di lavoro**.
 2. Nel **Costruttore**, fai clic su **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident** sotto **Popolari**. Fai clic sul trigger e, in **Fields to pass on**, scegli i campi dell'incidente che il tuo messaggio mostra, per esempio il titolo.
 3. Fai clic su **Aggiungi componente**, cerca `irc` e fai clic su **Send Message to IRC**. Collega l'uscita **Successo** del trigger a questo passo.
 4. Fai clic sul nuovo passo e compila **IRC Server**, **Canale** e **Message Text**. Il pulsante **{ }** di **Message Text** inserisce i campi dell'incidente, per esempio il titolo.
@@ -105,7 +105,7 @@ Per provarlo senza aprire un incidente, fai clic su **Esegui flusso di lavoro** 
 - **Pubblicare senza entrare.** La maggior parte dei canali accetta messaggi solo dai propri membri (modalità `+n`), quindi il passo entra prima di pubblicare ed esce subito dopo. Un canale impostato a `-n` accetta messaggi dall'esterno: attiva **Send Without Joining** sotto **Altri campi**, e il canale non vede il passo entrare e uscire.
 - **Accedere con SASL.** Sulle reti che usano SASL, come Libera.Chat, compila **SASL Username** e **SASL Password** per accedere al tuo account. Libera.Chat lo richiede per le connessioni da alcuni indirizzi cloud e VPN. Vedi [la guida SASL di Libera.Chat](https://libera.chat/guides/sasl).
 - **Attenzione al limite di 15 righe.** Ogni riga di **Message Text** è un messaggio IRC a sé, una riga lunga viene divisa per starci e le righe vuote vengono saltate. Un messaggio viene inviato come 15 righe IRC al massimo: uno più lungo viene troncato, e la sua ultima riga lo dice. Le prime quattro righe partono subito e le altre una al secondo, il ritmo dei client IRC, quindi 15 righe richiedono circa 11 secondi.
-- **Raggruppa le raffiche in un solo messaggio.** Ogni esecuzione è una connessione a sé, e le reti IRC limitano quanto spesso uno stesso indirizzo può collegarsi. Una raffica di esecuzioni può essere rifiutata con un motivo come `Reconnecting too fast`, e prende **Errore** come qualsiasi altro rifiuto. Per un workflow che può scattare molte volte al minuto, raggruppa ciò che ha da dire in un solo messaggio, oppure invialo tramite un server tuo.
+- **Raggruppa le raffiche in un solo messaggio.** Ogni esecuzione è una connessione a sé, e le reti IRC limitano quanto spesso uno stesso indirizzo può collegarsi. Una raffica di esecuzioni può essere rifiutata con un motivo come `Reconnecting too fast`, e prende **Errore** come qualsiasi altro rifiuto. Per un flusso di lavoro che può scattare molte volte al minuto, raggruppa ciò che ha da dire in un solo messaggio, oppure invialo tramite un server tuo.
 - **Formatta con i codici di IRC.** IRC non ha Markdown, quindi il testo viene inviato così come è scritto. I codici di formattazione di IRC, come il grassetto e i colori, funzionano.
 - **Un server senza TLS.** Attiva **Disable TLS** solo per un server che non offre TLS: il passo si collega allora sulla porta `6667`, e qualsiasi password viene inviata in chiaro. Per fidarsi del certificato di un server emesso dalla propria autorità di certificazione, un'installazione self-hosted imposta invece `NODE_EXTRA_CA_CERTS`.
 - **Un altro nickname.** I messaggi arrivano da `OneUptime` a meno che tu non imposti **Nickname**. Se il nickname è occupato, il passo aggiunge un trattino basso o un numero.
@@ -139,6 +139,6 @@ Il certificato del server non è uno di cui OneUptime si fida. Un'installazione 
 :::cards
 - [Componenti → IRC](/docs/workflows/components#irc): Ogni impostazione del passo e che cosa significano le sue uscite.
 - [Variabili](/docs/workflows/variables#variabili-globali): Le variabili globali segrete e come le usano i passi.
-- [Esecuzioni](/docs/workflows/runs-and-logs): Leggi che cosa ha fatto ogni esecuzione del workflow.
+- [Esecuzioni](/docs/workflows/runs-and-logs): Leggi che cosa ha fatto ogni esecuzione del flusso di lavoro.
 - [Panoramica delle integrazioni](/docs/integrations/index): Il modello in uscita e gli altri strumenti che puoi collegare.
 :::

@@ -227,9 +227,9 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 Hvert element i `criteria` er én regel: når filtrene stemmer, gjør det regelen sier.
 
-Kriteriene bedømmes fra toppen, og det første som stemmer, bestemmer, så sett kriteriene som varsler, først, det mest alvorlige først (kritisk, deretter advarsel), og det friske sist. Et friskt kriterium øverst er den vanligste måten å bygge en monitor som aldri varsler på: en bred regel som `Is Online` er `True`, eller en metrikkverdi `Greater Than` `0`, stemmer med nesten hver sjekk, og kriteriene under den blir aldri vurdert. Plassert sist stemmer den bare når ingenting over den stemte, og det er det du vil.
+Kriteriene bedømmes fra toppen, og det første som stemmer, bestemmer, så sett kriteriene som varsler, først, det mest alvorlige først (kritisk, deretter advarsel), og det friske sist. Et friskt kriterium øverst er den vanligste måten å bygge en monitor som aldri varsler på: en bred regel som `Is Online` er `True`, eller en målingsverdi `Greater Than` `0`, stemmer med nesten hver sjekk, og kriteriene under den blir aldri vurdert. Plassert sist stemmer den bare når ingenting over den stemte, og det er det du vil.
 
-Grupperte metrikkmonitorer er det ene unntaket. Når spørringen til en metrikkmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
+Grupperte målingsmonitorer er det ene unntaket. Når spørringen til en målingsmonitor er gruppert (`groupByAttributeKeys` angitt i JSON-en for `metric_monitor`, ved `metricViewConfig.queryConfigs[].metricQueryData.groupByAttributeKeys`), åpner monitoren ett varsel eller én hendelse for hver gruppe (hver vert, container eller monteringspunkt), og hvert kriterium bedømmes, så et kritisk kriterium og et advarselskriterium kan slå til for forskjellige verter på samme sjekk. En vert som bryter begge, tilkalles likevel bare én gang, av det første kriteriet som stemmer, så det mest alvorlige skal fortsatt stå først. Se [Målingsovervåking](/docs/monitor/metrics-monitor).
 
 | Attributt | Type | Hva det er |
 | --- | --- | --- |
@@ -311,7 +311,7 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Unntak | `Exception Count` |
 | Profiler | `Profile Count`, `Function Share (in %)` |
 | KI / LLM | `Bad AI Answers (in %)`, `Bad AI Answers`, `AI Answers` |
-| Metrikker | `Metric Value` (metrikkfiltre kan ta JSON i `metric_monitor_options`) |
+| Målinger | `Metric Value` (målingsfiltre kan ta JSON i `metric_monitor_options`) |
 | Egendefinert kode / Synthetic | `Result Value` (kan sammenligne ett felt i de returnerte dataene, angitt i JSON-en i `custom_code_monitor_options`, f.eks. `jsonencode({ resultValuePath = "status" })` — se nedenfor), `Error`, `Execution Time (in ms)` |
 | DNS | `DNS Is Online`, `DNS Response Time (in ms)`, `DNS Record Value`, `DNS Record Exists` |
 | Domene | `Domain Expires In Days`, `Domain Is Expired`, `Domain Registrar`, `Domain Name Server` |
@@ -332,8 +332,8 @@ Et filter kan også bedømme et tidsvindu i stedet for den siste sjekken: angi `
 | Heartbeats | `Recieved In Minutes`, `Not Recieved In Minutes` (stavet slik API-et staver dem) |
 | Serverprosesser | `Is Executing`, `Is Not Executing` |
 | Skript | `Evaluates To True` |
-| Avvik, for metrikker, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
-| Prognoser, for metrikker | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
+| Avvik, for målinger, logger og spor | `Anomalously High`, `Anomalously Low`, `Anomalous` |
+| Prognoser, for målinger | `Forecast Above`, `Forecast Below` (tidshorisonten er `forecast.horizonInHours` i `metric_monitor_options`: en uke hvis den utelates) |
 
 Et filter som stemmer når et SSL-sertifikat utløper om 14 dager eller mindre:
 
@@ -435,6 +435,6 @@ Provideren bygger dette fra HCL-en din når den skriver, og leser det tilbake ti
 :::cards
 - [Eksempler](/docs/terraform/examples): Ping-, port-, SSL-sertifikat- og API-monitorer, klare til bruk.
 - [Komplett guide](/docs/terraform/complete-guide): Datakilder, state og oppgraderinger.
-- [Metrikk-overvåking](/docs/monitor/metrics-monitor): Metrikkspørringer, gruppering og avvik.
+- [Målingsovervåking](/docs/monitor/metrics-monitor): Målingsspørringer, gruppering og avvik.
 - [Feilsøking](/docs/terraform/troubleshooting): Blant annet et inkonsistent resultat etter apply på en monitor.
 :::

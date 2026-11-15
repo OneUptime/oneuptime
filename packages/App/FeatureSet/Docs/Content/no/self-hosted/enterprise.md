@@ -34,7 +34,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 
 | Funksjon | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
-| Overvåking, varsler, hendelser, vakt, statussider, logger, metrikker, sporinger, unntak, dashbord, arbeidsflyter, KI-funksjoner, API og Terraform | Ja | Ja | Alle abonnementer |
+| Overvåking, varsler, hendelser, vakt, statussider, logger, målinger, sporinger, unntak, dashbord, arbeidsflyter, KI-funksjoner, API og Terraform | Ja | Ja | Alle abonnementer |
 | Pålogging med passord, tofaktorautentisering, team, innebygde roller og API-nøkler | Ja | Ja | Alle abonnementer |
 | [SAML-SSO og OpenID Connect](/docs/identity/sso) for pålogging i prosjekter | Ja | Ja | Abonnementet Scale og høyere |
 | SAML-SSO og OpenID Connect for pålogging på private statussider | Ja | Ja | Abonnementet Scale og høyere |
@@ -42,7 +42,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | [SCIM-klargjøring](/docs/identity/scim) for prosjekter og statussider | Nei | Ja | Abonnementet Scale og høyere |
 | Innstillinger for teamsamsvar | Nei | Ja | Abonnementet Scale og høyere |
 | Revisjonslogger | Nei | Ja | Abonnementet Enterprise |
-| Overstyringer av oppbevaring: oppbevaring etter telemetritype (logger, sporinger, metrikker, profiler, med regler etter loggalvorlighet og sporingsstatus) og oppbevaring per tjeneste og per ressurs | Nei | Ja | Abonnementet Scale og høyere |
+| Overstyringer av oppbevaring: oppbevaring etter telemetritype (logger, sporinger, målinger, profiler, med regler etter loggalvorlighet og sporingsstatus) og oppbevaring per tjeneste og per ressurs | Nei | Ja | Abonnementet Scale og høyere |
 | Egendefinerte roller: sett med tillatelser du gir navn én gang og gir til team og API-nøkler | Nei | Ja | Abonnementet Scale og høyere |
 | IP-tillatelseslister for statussider, offentlige dashbord og skjemaer | Nei | Ja | Abonnementet Scale og høyere |
 | Tilgangskontroll for statussider: hvor lenge lesere av en privat statusside forblir pålogget, og hvem som kan abonnere | Nei | Ja | Abonnementet Scale og høyere |

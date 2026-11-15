@@ -231,7 +231,7 @@ Les modèles d'un formulaire sont sa colonne `templates`, une liste JSON dans l'
 }
 ```
 
-Les questions, les modèles et les paramètres sont vérifiés à chaque enregistrement (depuis le tableau de bord, l'API, Terraform ou un workflow), et une liste qui enfreint une règle est refusée avec un message qui nomme le problème. `shareKey`, la clé du lien du formulaire, est définie par OneUptime à la création du formulaire, et la changer est ce que fait **Réinitialiser le lien**.
+Les questions, les modèles et les paramètres sont vérifiés à chaque enregistrement (depuis le tableau de bord, l'API, Terraform ou un flux de travail), et une liste qui enfreint une règle est refusée avec un message qui nomme le problème. `shareKey`, la clé du lien du formulaire, est définie par OneUptime à la création du formulaire, et la changer est ce que fait **Réinitialiser le lien**.
 
 ### L'image de marque dans l'API
 
@@ -255,9 +255,9 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 La réponse à une question de fichiers, ce sont les fichiers tels qu'ils ont été enregistrés, chacun avec son `fileId`, `name`, `fileType` et `size`. Les fichiers eux-mêmes sont sur ce que la soumission a créé : dans son champ personnalisé de fichier, ou joints à sa note privée.
 
-### Workflows
+### Flux de travail
 
-Les formulaires ont les composants de workflow générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Maintenance Event**.
+Les formulaires ont les composants de flux de travail générés : **On Create Form**, **On Update Form**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **On Create Incident** ou **On Create Maintenance Event**.
 
 ### Les points de terminaison propres à la page publique
 

@@ -309,9 +309,9 @@ flowchart TB
 
 Оповещение бюджета может также запустить рабочий процесс, который остановит вышедшего из-под контроля агента: см. [Предохранители для ИИ-агентов](/docs/telemetry/ai-agent-circuit-breaker).
 
-## Дашборды и оповещения по метрикам
+## Панели и оповещения по метрикам
 
-Метрики GenAI, такие как `gen_ai.client.token.usage` и `gen_ai.client.operation.duration`, приходят как обычные метрики OpenTelemetry. Выводите их на [дашборд](/docs/dashboards/index) или настраивайте по ним оповещения с помощью [мониторинга метрик](/docs/monitor/metrics-monitor), например когда p95 для `gen_ai.client.operation.duration` превышает порог, с группировкой по модели.
+Метрики GenAI, такие как `gen_ai.client.token.usage` и `gen_ai.client.operation.duration`, приходят как обычные метрики OpenTelemetry. Выводите их на [панель](/docs/dashboards/index) или настраивайте по ним оповещения с помощью [мониторинга метрик](/docs/monitor/metrics-monitor), например когда p95 для `gen_ai.client.operation.duration` превышает порог, с группировкой по модели.
 
 ## Конфиденциальность и маскирование
 

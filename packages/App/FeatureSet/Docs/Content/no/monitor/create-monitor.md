@@ -48,7 +48,7 @@ Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendel
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 
-En logg-, trase-, unntaks- eller metrikkmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
+En logg-, trase-, unntaks- eller målingsmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
 
 ### Gå til neste trinn
 
@@ -96,7 +96,7 @@ Alle andre typer unntatt Manual opprettes fra trinnet **Kriterier**.
 
 ## Start fra en mal eller en lenke
 
-En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et metrikkdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
+En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på et målingsdiagram, en nettverksenhet eller en deteksjonsregel), åpner **Opprett monitor** med typen valgt og resten fylt ut. Klikk på **Endre** for å velge en annen type. Skjemaet til en mal bruker den samme typevelgeren: se [Monitormaler](/docs/monitor/monitor-templates).
 
 Hver monitortype har sin egen side med innstillingene sine, standardkriteriene og eksempler. Gode steder å gå videre:
 

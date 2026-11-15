@@ -1,6 +1,6 @@
 # Spørg AI
 
-Spørg AI er OneUptimes chat over dit projekts data. Spørg om logs, traces, metrikker, undtagelser, hændelser, advarsler, monitorer, vagtordning, statussider, SLO'er, runbooks eller workflows: chatten forespørger dit projekt live, underbygger hver påstand med en kilde og handler for dig, når du tillader det.
+Spørg AI er OneUptimes chat over dit projekts data. Spørg om logs, traces, metrikker, undtagelser, hændelser, advarsler, monitorer, vagtordning, statussider, SLO'er, runbooks eller arbejdsgange: chatten forespørger dit projekt live, underbygger hver påstand med en kilde og handler for dig, når du tillader det.
 
 :::cards
 - [Åbn Spørg AI](#åbn-spørg-ai): Fra topbjælken, tastaturet, et diagram eller produktmenuen.
@@ -56,7 +56,7 @@ Spørg AI læser dit projekt med dine egne tilladelser, så den ser det, du må 
 | Hændelseshåndtering | Hændelser og advarsler med tilstandsfiltre ("hvad er aktivt lige nu?"), deres aktivitetstidslinjer (tilstandsskift, interne og offentlige noter, feedet) og ejere samt en søgning i tidligere hændelser for at genbruge, hvordan de blev løst. |
 | Vagter | Hvem der har vagt nu, politikker og eskaleringskæder, og om de seneste udkald blev leveret og kvitteret. |
 | AI'ens eget arbejde | Resultaterne af AI SRE-undersøgelser og AI-indsigter, så "hvad fandt AI'en?" besvares ud fra den offentliggjorte analyse i stedet for at blive udledt igen. |
-| Platform | Monitorer (med statusfiltre), planlagt vedligeholdelse, statussider og deres meddelelser, SLO'er, runbooks, workflow-kørsler, sondernes sundhed, teams og koden i forbundne repositories på GitHub, GitLab, Forgejo, Gitea og Azure DevOps (se [Hvad AI læser i et Git-repositorie](/docs/ai/ai-agent#hvad-ai-læser-i-et-git-repositorie)). |
+| Platform | Monitorer (med statusfiltre), planlagt vedligeholdelse, statussider og deres meddelelser, SLO'er, runbooks, arbejdsgangskørsler, sondernes sundhed, teams og koden i forbundne repositories på GitHub, GitLab, Forgejo, Gitea og Azure DevOps (se [Hvad AI læser i et Git-repositorie](/docs/ai/ai-agent#hvad-ai-læser-i-et-git-repositorie)). |
 
 ## Sidekontekst
 
