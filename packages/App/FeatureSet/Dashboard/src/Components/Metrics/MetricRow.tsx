@@ -147,11 +147,20 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         </div>
         {/*
          * Description, read the way it is written: a provider's English one
-         * on a Persian page kept its full stop at its start.
+         * on a Persian page kept its full stop at its start. One a monitor
+         * stored from its catalog (a Database monitor's) is a key of the
+         * Dashboard's, so it is looked up here, once, and reads in the
+         * reader's language (#8014); a provider's is no key and reads as
+         * the provider wrote it.
          */}
         {metric.description && (
           <p className={METRIC_ROW_DESCRIPTION_CLASS_NAME}>
-            <IsolatedText text={metric.description} />
+            <IsolatedText
+              text={
+                translator.translateText(metric.description) ||
+                metric.description
+              }
+            />
           </p>
         )}
         {/* Services */}

@@ -59,6 +59,7 @@ import SampleProjectSeeder, {
   SampleProjectSeedResult,
 } from "../../../../Server/Utils/SampleProject/SampleProjectSeeder";
 import SampleProjectTelemetry from "../../../../Server/Utils/SampleProject/SampleProjectTelemetry";
+import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -161,6 +162,15 @@ let creates: Array<CreateCall>;
 let backdates: Array<{ id: string; createdAt: Date }>;
 let written: jest.SpyInstance;
 let result: SampleProjectSeedResult;
+
+// The numbers the project had given before its sample was made.
+const ALERTS_THE_PROJECT_HAD: number = 41;
+const MAINTENANCE_EVENTS_THE_PROJECT_HAD: number = 6;
+
+type NumberedKind = "incident" | "alert" | "maintenance";
+
+let counters: Record<NumberedKind, number>;
+let takenThrough: Record<NumberedKind, jest.SpyInstance>;
 
 const rowsOf: (service: string) => Array<Record<string, unknown>> = (
   service: string,
@@ -315,18 +325,42 @@ beforeEach(async () => {
     ]) as never,
   );
 
-  let incidentNumber: number = 0;
+  /*
+   * The project's own counters, as ProjectService keeps them: each call
+   * hands out the next number of its kind. This project has already given
+   * alert and maintenance numbers of its own, so the sample's can only have
+   * come from here.
+   */
+  counters = {
+    incident: 0,
+    alert: ALERTS_THE_PROJECT_HAD,
+    maintenance: MAINTENANCE_EVENTS_THE_PROJECT_HAD,
+  };
   jest
     .spyOn(ProjectService, "incrementAndGetIncidentCounter")
     .mockImplementation(async () => {
-      return { counter: ++incidentNumber, prefix: "INC-" };
+      return { counter: ++counters.incident, prefix: "INC-" };
     });
   jest
     .spyOn(ProjectService, "incrementAndGetAlertCounter")
-    .mockResolvedValue({ counter: 1, prefix: "ALT-" });
+    .mockImplementation(async () => {
+      return { counter: ++counters.alert, prefix: "ALT-" };
+    });
   jest
     .spyOn(ProjectService, "incrementAndGetScheduledMaintenanceCounter")
-    .mockResolvedValue({ counter: 1, prefix: "SM-" });
+    .mockImplementation(async () => {
+      return { counter: ++counters.maintenance, prefix: "SM-" };
+    });
+
+  // Each kind's record service, which a real record is numbered through.
+  takenThrough = {
+    incident: jest.spyOn(IncidentService, "takeNextIncidentNumber"),
+    alert: jest.spyOn(AlertService, "takeNextAlertNumber"),
+    maintenance: jest.spyOn(
+      ScheduledMaintenanceService,
+      "takeNextScheduledMaintenanceNumber",
+    ),
+  };
 
   jest
     .spyOn(OpenTelemetryIngestService, "telemetryServiceFromName")
@@ -704,6 +738,154 @@ describe("what it makes", () => {
     expect(rowsOf("DashboardService")).toHaveLength(1);
     expect(rowsOf("DashboardService")[0]!["dashboardViewConfig"]).toBeTruthy();
     expect(result.serviceId).toEqual(id("svc"));
+  });
+});
+
+/*
+ * A sample record is numbered as a real one is: it takes the next number of
+ * its kind from the project's counter, through its record service's own
+ * method (RecordNumbersTakenInOnePlaceGuard holds the source to that one
+ * place). Numbered by hand, a sample record would leave the counter behind
+ * it, and the project's next real incident, alert or maintenance event
+ * would be given a number the sample already shows.
+ */
+describe("its numbers come from the project's counters", () => {
+  const KINDS: Array<NumberedKind> = ["incident", "alert", "maintenance"];
+
+  // SAMPLE_MAINTENANCE is the one maintenance event.
+  const SAMPLE_COUNT: Record<NumberedKind, number> = {
+    incident: SAMPLE_INCIDENTS.length,
+    alert: SAMPLE_ALERTS.length,
+    maintenance: 1,
+  };
+  const NUMBERS_THE_PROJECT_HAD: Record<NumberedKind, number> = {
+    incident: 0,
+    alert: ALERTS_THE_PROJECT_HAD,
+    maintenance: MAINTENANCE_EVENTS_THE_PROJECT_HAD,
+  };
+  const PREFIX: Record<NumberedKind, string> = {
+    incident: "INC-",
+    alert: "ALT-",
+    maintenance: "SM-",
+  };
+
+  type Numbered = { number: number | undefined; withPrefix: string };
+
+  const numbersOf: (kind: NumberedKind) => Array<Numbered> = (
+    kind: NumberedKind,
+  ): Array<Numbered> => {
+    if (kind === "incident") {
+      return (rowsOf("IncidentService") as unknown as Array<Incident>).map(
+        (incident: Incident): Numbered => {
+          return {
+            number: incident.incidentNumber,
+            withPrefix: incident.incidentNumberWithPrefix!,
+          };
+        },
+      );
+    }
+
+    if (kind === "alert") {
+      return (rowsOf("AlertService") as unknown as Array<Alert>).map(
+        (alert: Alert): Numbered => {
+          return {
+            number: alert.alertNumber,
+            withPrefix: alert.alertNumberWithPrefix!,
+          };
+        },
+      );
+    }
+
+    return (
+      rowsOf(
+        "ScheduledMaintenanceService",
+      ) as unknown as Array<ScheduledMaintenance>
+    ).map((maintenance: ScheduledMaintenance): Numbered => {
+      return {
+        number: maintenance.scheduledMaintenanceNumber,
+        withPrefix: maintenance.scheduledMaintenanceNumberWithPrefix!,
+      };
+    });
+  };
+
+  // How a real record of each kind takes its number (its onBeforeCreate).
+  const takeNextRealNumber: (
+    kind: NumberedKind,
+  ) => Promise<{ counter: number; prefix: string | undefined }> = async (
+    kind: NumberedKind,
+  ): Promise<{ counter: number; prefix: string | undefined }> => {
+    if (kind === "incident") {
+      return await IncidentService.takeNextIncidentNumber(PROJECT_ID);
+    }
+
+    if (kind === "alert") {
+      return await AlertService.takeNextAlertNumber(PROJECT_ID);
+    }
+
+    return await ScheduledMaintenanceService.takeNextScheduledMaintenanceNumber(
+      PROJECT_ID,
+    );
+  };
+
+  test.each(KINDS)(
+    "each sample %s takes the next number from the project's counter, through its record service",
+    (kind: NumberedKind) => {
+      const count: number = SAMPLE_COUNT[kind];
+
+      expect(count).toBeGreaterThan(0);
+
+      // Through its record service's method, once a record, for this project.
+      expect(takenThrough[kind]).toHaveBeenCalledTimes(count);
+      for (const call of takenThrough[kind].mock.calls) {
+        expect(String(call[0])).toBe(PROJECT_ID.toString());
+      }
+
+      // The project's counter moved on by one for every sample record.
+      expect(counters[kind]).toBe(NUMBERS_THE_PROJECT_HAD[kind] + count);
+
+      // Each record carries the counter's number, with the project's prefix.
+      const expected: Array<Numbered> = [];
+      for (let taken: number = 1; taken <= count; taken++) {
+        const number: number = NUMBERS_THE_PROJECT_HAD[kind] + taken;
+        expected.push({ number, withPrefix: `${PREFIX[kind]}${number}` });
+      }
+
+      expect(numbersOf(kind)).toEqual(expected);
+    },
+  );
+
+  test.each(KINDS)(
+    "the project's next real %s is numbered on from the sample, as none of its numbers",
+    async (kind: NumberedKind) => {
+      const sampleNumbers: Array<number | undefined> = numbersOf(kind).map(
+        (numbered: Numbered) => {
+          return numbered.number;
+        },
+      );
+
+      expect(sampleNumbers).toHaveLength(SAMPLE_COUNT[kind]);
+
+      const next: { counter: number; prefix: string | undefined } =
+        await takeNextRealNumber(kind);
+
+      expect(sampleNumbers).not.toContain(next.counter);
+      expect(next.counter).toBe(
+        NUMBERS_THE_PROJECT_HAD[kind] + SAMPLE_COUNT[kind] + 1,
+      );
+      expect(next.prefix).toBe(PREFIX[kind]);
+    },
+  );
+
+  test("no two sample records of a kind share a number", () => {
+    for (const kind of KINDS) {
+      const withPrefix: Array<string> = numbersOf(kind).map(
+        (numbered: Numbered) => {
+          return numbered.withPrefix;
+        },
+      );
+
+      expect(new Set(withPrefix).size).toBe(withPrefix.length);
+    }
   });
 });
 

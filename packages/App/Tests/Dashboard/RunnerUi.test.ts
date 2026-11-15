@@ -564,8 +564,51 @@ describe("capabilities render as pills", () => {
     expect(source).toContain('translator.translateText("None")');
   });
 
-  test("the capability labels are translated", () => {
-    expect(source).toContain("translateString(capability) || capability");
+  /*
+   * A capability is a plain English word, so the page hands it to the Pill
+   * as it is and the Pill looks it up, once (480eeb219b4, #8067). Worded by
+   * the page as well, it was looked up twice, and wherever a translated word
+   * is also an English key it was swapped for that key's translation.
+   */
+  test("the capability labels are translated by the Pill, once", () => {
+    expect(source).toContain("text={capability}");
+    expect(source).not.toContain("translateString(capability)");
+    expect(source).not.toContain("translateText(capability)");
+    // Marked as the user's own words, the Pill would draw it in English.
+    expect(source).not.toMatch(/text=\{capability\}[^>]*isUserContent/);
+    expect(source).toContain('capabilities.push("Runbooks")');
+
+    const pill: string = squash(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Components",
+          "Pill",
+          "Pill.tsx",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(pill).toContain(
+      "props.isUserContent ? props.text : translateString(props.text) ?? props.text",
+    );
+  });
+
+  test("every Dashboard language words the Runbooks capability", () => {
+    for (const code of TRANSLATED_CODES) {
+      const value: string | undefined = readLocale(code)["Runbooks"];
+
+      expect({
+        code,
+        worded: typeof value === "string" && value !== "",
+      }).toEqual({ code, worded: true });
+    }
   });
 });
 
