@@ -1,7 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import IconProp from "Common/Types/Icon/IconProp";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -19,31 +18,20 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import Pill from "Common/UI/Components/Pill/Pill";
 import {
-  Gray500,
-  Green500,
-  Red500,
-  Yellow500,
-  Blue500,
-} from "Common/Types/BrandColors";
+  getRunStatusColor,
+  getRunStatusFilterOptions,
+  getRunStatusLabel,
+} from "../../../Components/Runbook/RunbookRunStatus";
 
+// In the words the Status filter offers it in.
 function statusPill(status: RunbookExecutionStatus): ReactElement {
-  switch (status) {
-    case RunbookExecutionStatus.Completed:
-      return <Pill text="Completed" color={Green500} isMinimal={true} />;
-    case RunbookExecutionStatus.Failed:
-      return <Pill text="Failed" color={Red500} isMinimal={true} />;
-    case RunbookExecutionStatus.Running:
-      return <Pill text="Running" color={Blue500} isMinimal={true} />;
-    case RunbookExecutionStatus.WaitingForManualStep:
-      return <Pill text="Waiting" color={Yellow500} isMinimal={true} />;
-    case RunbookExecutionStatus.Cancelled:
-      return <Pill text="Cancelled" color={Gray500} isMinimal={true} />;
-    case RunbookExecutionStatus.Scheduled:
-    default:
-      return (
-        <Pill text={status || "Scheduled"} color={Gray500} isMinimal={true} />
-      );
-  }
+  return (
+    <Pill
+      text={getRunStatusLabel(status)}
+      color={getRunStatusColor(status)}
+      isMinimal={true}
+    />
+  );
 }
 
 const RunbookExecutionsList: FunctionComponent<
@@ -109,9 +97,8 @@ const RunbookExecutionsList: FunctionComponent<
             field: { status: true },
             title: "Status",
             type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              RunbookExecutionStatus,
-            ),
+            // "Waiting", never the stored "WaitingForManualStep".
+            filterDropdownOptions: getRunStatusFilterOptions(),
           },
           {
             field: { triggerType: true },

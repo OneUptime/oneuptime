@@ -35,7 +35,7 @@ You need a **Server** telemetry ingestion key. If you do not have one yet:
 
 Go to **Products → Project Settings**, open **Telemetry & APM** in the side menu and select **Ingestion Keys**.
 
-![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The "Ingestion Keys" list, with "Create Ingestion Key" ringed](screen:ingestion-keys)
 
 ### Create a key
 

@@ -371,10 +371,10 @@ describe("UrlScrubber", () => {
     });
   });
 
-  describe("getScrubbedPathname", () => {
+  describe("getScrubbedPage", () => {
     it("returns just the scrubbed path", () => {
       expect(
-        UrlScrubber.getScrubbedPathname(
+        UrlScrubber.getScrubbedPage(
           "https://app.example.com/orders/3f1a9c7e-5b2d-4801-96a3-c9e7b1d5028f?x=1",
         ),
       ).toBe("/orders/[redacted]");
@@ -382,18 +382,115 @@ describe("UrlScrubber", () => {
 
     it("is stable across reloads of the same page with different queries", () => {
       /*
-       * Refresh-rage detection compares pathnames across reloads, so a
+       * Refresh-rage detection compares pages across reloads, so a
        * changing query string must not make two reloads of the same page
        * look like two different pages.
        */
-      const first: string = UrlScrubber.getScrubbedPathname(
+      const first: string = UrlScrubber.getScrubbedPage(
         "https://app.example.com/checkout?attempt=1",
       );
-      const second: string = UrlScrubber.getScrubbedPathname(
+      const second: string = UrlScrubber.getScrubbedPage(
         "https://app.example.com/checkout?attempt=2",
       );
 
       expect(first).toBe(second);
+    });
+
+    /*
+     * #8015: every route of a hash-routed app has the path "/", so the path
+     * alone made loads of #/a and #/b one page: the refresh-rage log
+     * counted them as reloads, and the support bundle lost the route.
+     */
+    describe("a hash router's route", () => {
+      it("is part of the page, scrubbed as scrub keeps it", () => {
+        expect(
+          UrlScrubber.getScrubbedPage(
+            "https://shop.example.com/#/orders/123456789012?token=abc",
+          ),
+        ).toBe("/#/orders/[redacted]");
+        expect(
+          UrlScrubber.getScrubbedPage(
+            "https://shop.example.com/app/#!/u/someone@example.com",
+          ),
+        ).toBe("/app/#!/u/[redacted]");
+        expect(UrlScrubber.getScrubbedPage("https://shop.example.com/#/")).toBe(
+          "/#/",
+        );
+      });
+
+      it("tells one route from another, and a route from the page's own path", () => {
+        const pages: Array<string> = [
+          "https://shop.example.com/#/a",
+          "https://shop.example.com/#/b",
+          "https://shop.example.com/#!/a",
+          "https://shop.example.com/a",
+          "https://shop.example.com/",
+        ].map((url: string): string => {
+          return UrlScrubber.getScrubbedPage(url);
+        });
+
+        expect(pages).toEqual(["/#/a", "/#/b", "/#!/a", "/a", "/"]);
+      });
+
+      it("is one page whatever the route's query or the origin", () => {
+        for (const url of [
+          "https://shop.example.com/#/a?attempt=1",
+          "https://shop.example.com/#/a?attempt=2",
+          "https://shop.example.com/?x=1#/a",
+          "https://other.example.com/#/a",
+          "/#/a",
+        ]) {
+          expect([url, UrlScrubber.getScrubbedPage(url)]).toEqual([
+            url,
+            "/#/a",
+          ]);
+        }
+      });
+
+      it("drops a fragment that is not a route, as scrub does", () => {
+        for (const url of [
+          "https://shop.example.com/pricing#plans",
+          "https://shop.example.com/pricing#faq",
+          "https://shop.example.com/pricing#!plans",
+          "https://shop.example.com/pricing#access_token=abc",
+          "https://shop.example.com/pricing#",
+        ]) {
+          expect([url, UrlScrubber.getScrubbedPage(url)]).toEqual([
+            url,
+            "/pricing",
+          ]);
+        }
+      });
+
+      it("writes the route in its one spelling", () => {
+        for (const url of [
+          "https://shop.example.com/#/caf%C3%A9",
+          "https://shop.example.com/#/caf%c3%a9",
+          "https://shop.example.com/#/cafe%CC%81",
+        ]) {
+          expect([url, UrlScrubber.getScrubbedPage(url)]).toEqual([
+            url,
+            "/#/caf%C3%A9",
+          ]);
+        }
+      });
+
+      it("reads its own output as the same page", () => {
+        for (const url of [
+          "https://shop.example.com/#/orders/123456789012?token=abc",
+          "https://shop.example.com/app/#!/caf%c3%a9",
+          "https://shop.example.com/pricing#plans",
+        ]) {
+          const page: string = UrlScrubber.getScrubbedPage(url);
+
+          expect(UrlScrubber.getScrubbedPage(page)).toBe(page);
+        }
+      });
+    });
+
+    it("fails closed on what it cannot read", () => {
+      expect(UrlScrubber.getScrubbedPage("")).toBe("[redacted]");
+      expect(UrlScrubber.getScrubbedPage("http://[::1")).toBe("[redacted]");
     });
   });
 });

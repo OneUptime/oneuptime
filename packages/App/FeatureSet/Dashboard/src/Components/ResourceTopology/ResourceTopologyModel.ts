@@ -74,6 +74,11 @@ export function worseHealth(
 export interface ResourceTopologyText {
   text: string;
   values?: Record<string, string> | undefined;
+  /*
+   * A count-dependent text: `text` is its general form, `one` the form for
+   * the counts the reader's language calls one ("1 unhealthy host").
+   */
+  plural?: { one: string; count: number } | undefined;
 }
 
 /* A small number on a card: "CPU 45%". The value is never translated. */
@@ -199,12 +204,26 @@ export interface ResourceTopologyGraph {
   alertCount: number;
   /* What a product could not read in full (a cap was hit). */
   truncations: Array<ResourceTopologyTruncation>;
+  /*
+   * Every relation between two parts, the ones the tree already draws by
+   * nesting included (a network interface runs in the network it sits in):
+   * what the Connections view draws. null when the product describes no
+   * connections, so the view is not offered.
+   */
+  connections: Array<ResourceTopologyRelation> | null;
+  /* Every connection a node is at either end of. */
+  connectionsByNode: Map<string, Array<ResourceTopologyRelation>>;
 }
 
 export interface BuildResourceTopologyGraphInput {
   rootId: string;
   nodes: Array<ResourceTopologyNodeInput>;
   relations?: Array<ResourceTopologyRelation> | undefined;
+  /*
+   * Every relation between two parts, nesting included, for the
+   * Connections view: a product that passes none is not offered it.
+   */
+  connections?: Array<ResourceTopologyRelation> | undefined;
   /* Node id -> its open incidents and alerts. */
   issues?: Map<string, Array<ResourceTopologyIssue>> | undefined;
   truncations?: Array<ResourceTopologyTruncation> | undefined;
@@ -530,6 +549,54 @@ export function buildResourceTopologyGraph(
     }
   }
 
+  /*
+   * Connections between parts that are there, once each, nesting kept: the
+   * Connections view draws what a part is connected to, whichever of the
+   * two holds the other on the tree.
+   */
+  let connections: Array<ResourceTopologyRelation> | null = null;
+  const connectionsByNode: Map<
+    string,
+    Array<ResourceTopologyRelation>
+  > = new Map<string, Array<ResourceTopologyRelation>>();
+
+  if (input.connections) {
+    connections = [];
+    const seenConnections: Set<string> = new Set<string>();
+
+    for (const connection of input.connections) {
+      if (
+        connection.from === connection.to ||
+        connection.from === input.rootId ||
+        connection.to === input.rootId ||
+        !nodes.has(connection.from) ||
+        !nodes.has(connection.to)
+      ) {
+        continue;
+      }
+
+      const key: string = JSON.stringify([
+        connection.from,
+        connection.to,
+        connection.label,
+      ]);
+
+      if (seenConnections.has(key)) {
+        continue;
+      }
+
+      seenConnections.add(key);
+      connections.push(connection);
+
+      for (const end of [connection.from, connection.to]) {
+        const list: Array<ResourceTopologyRelation> =
+          connectionsByNode.get(end) || [];
+        list.push(connection);
+        connectionsByNode.set(end, list);
+      }
+    }
+  }
+
   const countsByKind: Map<string, number> = new Map<string, number>(
     root.descendantCountsByKind,
   );
@@ -555,6 +622,8 @@ export function buildResourceTopologyGraph(
     incidentCount: incidentCount,
     alertCount: alertCount,
     truncations: input.truncations || [],
+    connections: connections,
+    connectionsByNode: connectionsByNode,
   };
 }
 

@@ -43,7 +43,10 @@ import {
   readPagingLadder,
 } from "Common/Types/NotificationRule/PagingLadder";
 import ObjectID from "Common/Types/ObjectID";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -66,11 +69,12 @@ import React, {
  * HOW TO REACH ME (#6820): how somebody is reached when they are paged.
  *
  * It opens on one ladder - "Push and SMS at once, then a call after five
- * minutes" - for every kind of page and every severity. That is what most
- * people mean, and it is what the product already makes: a verified method
- * starts with a rule in every card, at once. The per-severity grid (the
- * tabs and cards of OnCallRulesTabs) is one click away, "Different for
- * Some Severities", and opens by itself:
+ * minutes" - for every kind of page and every severity, drawn as numbered
+ * steps (#8139). That is what most people mean, and it is what the product
+ * already makes: a verified method starts with a rule in every card, at
+ * once. The per-severity grid (the tabs and cards of OnCallRulesTabs) is
+ * one click away, "Different for Some Severities" at the ladder's foot,
+ * and opens by itself:
  *
  *   - for somebody whose rules already differ between cards, with the
  *     differences named and an offer to use one ladder;
@@ -315,29 +319,52 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     },
   );
 
-  // Under the steps: what is waiting for its code, and where to add more.
+  /*
+   * Under the steps: a method waiting for its code, which cannot be a step
+   * until it is verified, and why nothing can be added yet. Setting up
+   * another method is the last item of every Add menu; with nothing
+   * verified there is no menu, so it is a link here.
+   */
   const footer: ReactElement = (
     <div className="flex flex-col gap-3" data-testid="paging-ladder-footer">
       {!hasVerifiedMethod ? (
-        <p
-          className="text-sm text-gray-600"
-          data-testid="paging-ladder-no-methods"
-        >
-          {memberName
-            ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoMethods, {
-                name: memberName,
-              })
-            : translator.translateText(PAGING_LADDER_COPY.ownNoMethods)}
-        </p>
+        <div className="flex flex-col items-start gap-1.5">
+          <p
+            className="text-sm text-gray-600"
+            data-testid="paging-ladder-no-methods"
+          >
+            {memberName
+              ? translator.translateTemplate(
+                  PAGING_LADDER_COPY.memberNoMethods,
+                  {
+                    name: memberName,
+                  },
+                )
+              : translator.translateText(PAGING_LADDER_COPY.ownNoMethods)}
+          </p>
+          {isOwn ? (
+            <Link
+              to={methodsPage}
+              className="inline-flex w-fit items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              {translator.translateText(PAGING_LADDER_COPY.setUpMoreMethods)}
+            </Link>
+          ) : (
+            <></>
+          )}
+        </div>
       ) : (
         <></>
       )}
       {notVerified.length > 0 ? (
-        <div data-testid="paging-ladder-not-verified">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <div
+          className="max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
+          data-testid="paging-ladder-not-verified"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
             {translator.translateText(PAGING_LADDER_COPY.notVerifiedTitle)}
           </p>
-          <ul className="mt-1 flex flex-col gap-1.5">
+          <ul className="mt-1.5 flex flex-col gap-1.5">
             {notVerified.map((choice: PagingMethodChoice) => {
               return (
                 <li
@@ -348,6 +375,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
                   <Button
                     title={PAGING_LADDER_COPY.verify}
                     buttonStyle={ButtonStyleType.LINK}
+                    buttonSize={ButtonSize.ExtraSmall}
                     dataTestId="paging-ladder-verify"
                     onClick={() => {
                       setVerifying(choice);
@@ -358,16 +386,6 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
             })}
           </ul>
         </div>
-      ) : (
-        <></>
-      )}
-      {isOwn ? (
-        <Link
-          to={methodsPage}
-          className="inline-flex w-fit items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          {translator.translateText(PAGING_LADDER_COPY.setUpMoreMethods)}
-        </Link>
       ) : (
         <></>
       )}
@@ -508,16 +526,10 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
           differences={differences}
           severityColors={data!.severityColors}
           memberName={memberName}
-          headerButtons={[
-            {
-              title: PAGING_LADDER_COPY.differentForSome,
-              buttonStyle: ButtonStyleType.NORMAL,
-              icon: IconProp.TableCells,
-              onClick: () => {
-                openView(HowToReachMeView.Grid);
-              },
-            },
-          ]}
+          onOpenGrid={() => {
+            openView(HowToReachMeView.Grid);
+          }}
+          setUpMoreMethodsRoute={isOwn && isEditable ? methodsPage : undefined}
           onSave={save}
           footer={
             isEditable ? (

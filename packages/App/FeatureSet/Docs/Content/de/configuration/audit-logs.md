@@ -120,7 +120,7 @@ Jedes Mal, wenn sich ein Mitglied des Projekts bei OneUptime anmeldet, erfasst d
 
 Die **Ressource** eines Eintrags ist die Sitzung, benannt nach dem Gerät, von dem aus sie angemeldet wurde, etwa `Chrome 130 on macOS`. Sein **Akteur** ist die Person, der die Sitzung gehört, sodass ein Filter nach **Benutzer-E-Mail** jede ihrer Anmeldungen und Sitzungen findet. Seine Details nennen, wie sich die Person angemeldet hat und mit welchem zweiten Faktor, die IP-Adresse und den Standort, und bei einer beendeten Sitzung, wann sie angemeldet wurde, wann sie zuletzt genutzt wurde und wann sie abgelaufen ist. Der eigene SSO-Anbieter eines Projekts wird nur im Audit-Protokoll dieses Projekts genannt.
 
-Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer wird erfasst, sobald der offene Tab der Person oder die mobile App OneUptime das nächste Mal erreicht.
+Anmeldungen und Sitzungen werden erfasst, ob das Projekt Systemereignisse speichert oder nicht. Eine Sitzungsdauer oder 30 Tage ohne Nutzung werden innerhalb weniger Minuten nach ihrem Ablauf erfasst. Eine Inaktivitätsdauer wird erfasst, sobald der Browser der Person oder die mobile App OneUptime das nächste Mal erreicht: aus einem offen gelassenen Tab oder wenn die Person OneUptime wieder öffnet.
 
 ## Wie lange Einträge bleiben
 

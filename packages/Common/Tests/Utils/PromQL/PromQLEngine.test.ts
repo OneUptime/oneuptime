@@ -372,6 +372,135 @@ describe("instant selectors", () => {
     ).toEqual(['up{instance="host-1:9100", job="node", x="[]"}']);
   });
 
+  test("a label pattern reads a value's newlines as Prometheus does", async () => {
+    // Label values with a newline in them, such as a log line's.
+    const lines: PromQLEngine = new PromQLEngine(
+      new MemorySource([
+        {
+          labels: { __name__: "log_line", text: "GET /api\nok" },
+          samples: [[600, 1]],
+        },
+        {
+          labels: { __name__: "log_line", text: "x\napi" },
+          samples: [[600, 2]],
+        },
+      ]),
+    );
+    // An instant vector as { 'labels': value }.
+    const answer: (query: string) => Promise<Record<string, number>> = async (
+      query: string,
+    ): Promise<Record<string, number>> => {
+      const result: PromQLQueryResult = await lines.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      const values: Record<string, number> = {};
+
+      for (const sample of result.samples) {
+        values[formatPromQLLabels(sample.labels)] = sample.value;
+      }
+
+      return values;
+    };
+    const getLine: string = 'log_line{text="GET /api\\nok"}';
+    const apiLine: string = 'log_line{text="x\\napi"}';
+
+    // "." matches "\n" (DotNL), as in Prometheus' ^(?s:<pattern>)$.
+    expect(await answer('log_line{text=~"GET.*ok"}')).toEqual({
+      [getLine]: 1,
+    });
+    // (?m) stays inside: the pattern still has to match the whole value.
+    expect(await answer('log_line{text=~"(?m)api"}')).toEqual({});
+    expect(await answer('log_line{text!~"(?m)api"}')).toEqual({
+      [getLine]: 1,
+      [apiLine]: 2,
+    });
+    expect(await answer('log_line{text=~"(?m)x$\\n^api"}')).toEqual({
+      [apiLine]: 2,
+    });
+    // label_replace() too: (.*) matches the whole value, newline and all.
+    expect(
+      await answer('label_replace(log_line, "copy", "$1", "text", "(.*)")'),
+    ).toEqual({
+      'log_line{copy="GET /api\\nok", text="GET /api\\nok"}': 1,
+      'log_line{copy="x\\napi", text="x\\napi"}': 2,
+    });
+  });
+
+  test("a flag group in a label pattern covers the rest of its group, as in Prometheus", async () => {
+    const services: PromQLEngine = new PromQLEngine(
+      new MemorySource(
+        ["apiServer", "APIserver", "api-SERVER", "WEB", "web"].map(
+          (service: string, index: number): TestSeries => {
+            return {
+              labels: { __name__: "up", service },
+              samples: [[600, index + 1]],
+            };
+          },
+        ),
+      ),
+    );
+    // Which services a selector finds, in order.
+    const found: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await services.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      return result.samples
+        .map((sample: PromQLVectorResultSample): string => {
+          return sample.labels["service"] ?? "";
+        })
+        .sort();
+    };
+
+    // "api" as written, then SERVER in either case.
+    expect(await found('up{service=~"api(?i)SERVER"}')).toEqual(["apiServer"]);
+    expect(await found('up{service!~"api(?i)SERVER"}')).toEqual([
+      "APIserver",
+      "WEB",
+      "api-SERVER",
+      "web",
+    ]);
+    // (?i) reaches the alternatives after it; (?-i) clears it for the rest.
+    expect(await found('up{service=~"(?i)apiserver|(?-i)web"}')).toEqual([
+      "APIserver",
+      "apiServer",
+      "web",
+    ]);
+    // A group's ")" ends the flags its flag groups set.
+    expect(await found('up{service=~"(a(?i)PI)-SERVER"}')).toEqual([
+      "api-SERVER",
+    ]);
+    expect(await found('up{service=~"(a(?i)PI)-server"}')).toEqual([]);
+    // label_replace() reads the same pattern the same way.
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(HOST(?i)-1):.*")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node"}']);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(h(?i)OST-1):.*")',
+        ),
+      ),
+    ).toEqual(['up{host="host-1", instance="host-1:9100", job="node"}']);
+  });
+
   /*
    * No series here has a label named constructor, toString or __proto__, so
    * each reads "" (Prometheus' Labels.Get), as a label no series has does:
@@ -489,6 +618,95 @@ describe("instant selectors", () => {
     expect(
       await vector('absent(nonexistent{constructor="x", constructor="y"})'),
     ).toEqual({ "{}": 1 });
+  });
+
+  test("a label pattern reads RE2's spellings as Prometheus does", async () => {
+    const texts: PromQLEngine = new PromQLEngine(
+      new MemorySource(
+        [
+          "a b",
+          "a\u000bb",
+          "A",
+          "x41",
+          "a.b",
+          "axb",
+          "kube",
+          "\u212aube",
+          "a{01}",
+          "a",
+          "a1",
+        ].map((text: string, index: number): TestSeries => {
+          return {
+            labels: { __name__: "v", text },
+            samples: [[600, index + 1]],
+          };
+        }),
+      ),
+    );
+    // The texts a selector finds, sorted.
+    const found: (query: string) => Promise<Array<string>> = async (
+      query: string,
+    ): Promise<Array<string>> => {
+      const result: PromQLQueryResult = await texts.instantQuery(
+        query,
+        600_000,
+      );
+
+      if (result.resultType !== PromQLResultType.Vector) {
+        throw new Error(`Expected a vector, got ${result.resultType}.`);
+      }
+
+      return result.samples
+        .map((sample: PromQLVectorResultSample): string => {
+          return sample.labels["text"] ?? "";
+        })
+        .sort();
+    };
+
+    // RE2's \s is [\t\n\f\r ]: a vertical tab is none of them.
+    expect(await found('v{text=~"a\\\\sb"}')).toEqual(["a b"]);
+    expect(await found('v{text=~"a\\\\Sb"}')).toEqual([
+      "a\u000bb",
+      "a.b",
+      "axb",
+    ]);
+    // \x{41} is "A", and \Q ... \E its text.
+    expect(await found('v{text=~"\\\\x{41}"}')).toEqual(["A"]);
+    expect(await found('v{text=~"\\\\Qa.b\\\\E"}')).toEqual(["a.b"]);
+    // (?i) joins the Kelvin sign with k, as Go's case folding does.
+    expect(await found('v{text=~"(?i)KUBE"}')).toEqual(["kube", "\u212aube"]);
+    // A count with a leading zero is no count: "{01}" is its characters.
+    expect(await found('v{text=~"a{01}"}')).toEqual(["a{01}"]);
+    // [[:^digit:]] is any character but a digit.
+    expect(await found('v{text=~"a[[:^digit:]]"}')).toEqual([]);
+    expect(await found('v{text=~"a[[:^digit:]].*"}')).toEqual([
+      "a\u000bb",
+      "a b",
+      "a.b",
+      "axb",
+      "a{01}",
+    ]);
+    // \A and \z are the value's start and end.
+    expect(await found('v{text=~"\\\\Aa\\\\z"}')).toEqual(["a"]);
+  });
+
+  test("a label pattern Prometheus refuses is a bad query that says why", async () => {
+    const error: PromQLError = await queryError(() => {
+      return instant('up{job=~"[[:nosuch:]]"}');
+    });
+
+    expect(error.message).toBe(
+      'The pattern "[[:nosuch:]]" for the label "job" names the character class [:nosuch:], which Prometheus does not read either. The classes are [:alnum:], [:alpha:], [:ascii:], [:blank:], [:cntrl:], [:digit:], [:graph:], [:lower:], [:print:], [:punct:], [:space:], [:upper:], [:word:] and [:xdigit:], written in lowercase, and [:^digit:] matches every character [:digit:] does not.',
+    );
+    expect(error.errorType).toBe(PromQLErrorType.BadData);
+    // Through !~ too, and a name every object inherits.
+    expect(
+      (
+        await queryError(() => {
+          return instant('up{job!~"[[:constructor:]]+"}');
+        })
+      ).message,
+    ).toContain("names the character class [:constructor:]");
   });
 
   test("an offset moves the selector back in time", async () => {
@@ -1393,6 +1611,68 @@ describe("other functions", () => {
     ).toEqual(['up{instance="host-1:9100", job="node"}']);
   });
 
+  test("label_replace reads RE2's (?U), as Prometheus does: x+ is lazy, x+? greedy", async () => {
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(?U)(.+)(.*)")',
+        ),
+      ),
+    ).toEqual(['up{host="h", instance="host-1:9100", job="node"}']);
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "$1", "instance", "(?U)(.+?)(.*)")',
+        ),
+      ),
+    ).toEqual(['up{host="host-1:9100", instance="host-1:9100", job="node"}']);
+  });
+
+  test("label_replace reads RE2's group names: a digit first, and two of one name", async () => {
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "host", "${1a}", "instance", "(?P<1a>[a-z]+)-1:.*")',
+        ),
+      ),
+    ).toEqual(['up{host="host", instance="host-1:9100", job="node"}']);
+    // $h is the first group named h that took part, as Go's Expand reads it.
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "port", "$h", "instance", "x(?P<h>.*)|host-1:(?P<h>.*)")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", port="9100"}']);
+    // A name no group has is "".
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "port", "[$nosuch]", "instance", "host-1:(?P<h>.*)")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", port="[]"}']);
+  });
+
+  test("label_replace repeats what RE2 repeats: the part before a flag group, and a repeat", async () => {
+    // (h)(?i)+ is (h)+: the + repeats the group before the flag group.
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "x", "$1", "instance", "(h)(?i)+OST-1:.*")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", x="h"}']);
+    // (?:(.)*)? with ?? greedy under (?U): $1 is the last character before ":".
+    expect(
+      Object.keys(
+        await vector(
+          'label_replace(up, "x", "$1", "instance", "(?:host-)(.)*(?U)??:9100")',
+        ),
+      ),
+    ).toEqual(['up{instance="host-1:9100", job="node", x="1"}']);
+  });
+
   test("label_replace is anchored, as Prometheus anchors it: a pattern that matches part of the value leaves the series alone", async () => {
     expect(
       Object.keys(
@@ -1427,8 +1707,22 @@ describe("other functions", () => {
       'The pattern "(a)\\1" in label_replace() refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.',
     ],
     [
-      'label_replace(up, "host", "$1", "instance", "(.{0,50000})")',
-      'The pattern "(.{0,50000})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.',
+      `label_replace(up, "host", "$1", "instance", "(${".{1000}".repeat(11)})")`,
+      `The pattern "(${".{1000}".repeat(11)})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.`,
+    ],
+    // Refused as Prometheus refuses them, saying why.
+    [
+      'label_replace(up, "host", "$1", "instance", "(?=a)")',
+      'The pattern "(?=a)" in label_replace() uses the look-ahead (?=, which Prometheus does not read either. Match the text itself instead, or leave values out with a second matcher that uses !~.',
+    ],
+    [
+      'label_replace(up, "host", "$1", "instance", "(.{1001})")',
+      'The pattern "(.{1001})" in label_replace() repeats a part more than 1000 times ({1001}), counting a repeat inside another as the two counts multiplied, and Prometheus repeats a part at most 1000 times. Repeat it fewer times, or use * or + for any number of times.',
+    ],
+    // Prometheus' label matchers refuse it; its label_replace() pastes it.
+    [
+      'label_replace(up, "host", "$1", "instance", "a)|(b")',
+      '"a)|(b" in label_replace() is not a regular expression.',
     ],
   ])(
     "label_replace refuses %s with a sentence",
@@ -1746,8 +2040,11 @@ describe("a question the linear-time matcher stops at its work limit", () => {
     return `${text}Q`;
   };
 
-  // A pattern that needs many steps for each character of a long value.
-  const PATTERN: string = ".*(?:[ab]*a[ab]{14}|[ab]{0,2000})Q";
+  /*
+   * A pattern that needs many steps for each character of a long value,
+   * each repeat at most the 1000 times Prometheus allows.
+   */
+  const PATTERN: string = ".*(?:[ab]*a[ab]{14}|[ab]{0,1000}[ab]{0,1000})Q";
 
   const engineOver: (labels: PromQLLabels) => PromQLEngine = (
     labels: PromQLLabels,

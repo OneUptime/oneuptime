@@ -1,6 +1,6 @@
 # Onderhoudsagenda
 
-De onderhoudsagenda toont je gepland onderhoud per datum: op een eigen pagina in het dashboard, in de eigen agenda-apps van je team via een geheime link en in de agenda's van de mensen die je statuspagina's volgen. Op die pagina kunnen naast je gebeurtenissen ook agenda's van buiten het project staan, zoals feestdagen of een wijzigingsstop. Deze pagina legt de agendapagina uit, externe agenda's, de agendalink van het team, de agenda van een statuspagina en wat elke agenda-afspraak bevat.
+De onderhoudsagenda toont je geplande onderhoud per datum: op een eigen pagina in het dashboard, in de eigen agenda-apps van je team via een geheime link en in de agenda's van de mensen die je statuspagina's volgen. Op die pagina kunnen naast je gebeurtenissen ook agenda's van buiten het project staan, zoals feestdagen of een wijzigingsstop. Deze pagina legt de agendapagina uit, externe agenda's, de agendalink van het team, de agenda van een statuspagina en wat elke agenda-afspraak bevat.
 
 :::cards
 - [De agendapagina](#de-agendapagina): Elke gebeurtenis op een maand, een week of een dag, in de kleur van haar status.
@@ -21,7 +21,7 @@ flowchart TB
 
 ## De agendapagina
 
-Open **Geplande onderhoud → Onderhoudsagenda**, in het onderdeel **Agenda** van het zijmenu. **Alle onderhoudsgebeurtenissen** toont dezelfde gebeurtenissen als lijst.
+Open **Gepland onderhoud → Onderhoudsagenda**, in het onderdeel **Agenda** van het zijmenu. **Alle onderhoudsgebeurtenissen** toont dezelfde gebeurtenissen als lijst.
 
 - De agenda opent op deze maand, met vandaag gemarkeerd. **Maand**, **Week** en **Dag** bepalen hoeveel hij toont; blader met de pijlen en ga terug met **Vandaag**. De tijden staan in je eigen tijdzone.
 - Elke gebeurtenis is een blok in de kleur van haar status, en de kleuren van de statussen staan onder de agenda. Klik op een gebeurtenis om haar te openen.
@@ -38,7 +38,7 @@ De agendapagina kan ook de gebeurtenissen tonen van agenda's van buiten het proj
 :::steps
 ### De agenda toevoegen
 
-Kies **Externe agenda toevoegen** in het menu **⋯** van de agenda, of open **Geplande onderhoud → Agenda-instellingen**, in het onderdeel **Instellingen** van het zijmenu, en klik op **Externe agenda toevoegen**. Vul **Naam** in en plak de link in **Agendalink**. **Meer velden** bevat haar **Kleur** en **Vernieuwen**, hoe vaak ze wordt gelezen: **Elk uur**, tenzij je iets anders kiest.
+Kies **Externe agenda toevoegen** in het menu **⋯** van de agenda, of open **Gepland onderhoud → Agenda-instellingen**, in het onderdeel **Instellingen** van het zijmenu, en klik op **Externe agenda toevoegen**. Vul **Naam** in en plak de link in **Agendalink**. **Meer velden** bevat haar **Kleur** en **Vernieuwen**, hoe vaak ze wordt gelezen: **Elk uur**, tenzij je iets anders kiest.
 
 ### Controleren dat ze is gelezen
 

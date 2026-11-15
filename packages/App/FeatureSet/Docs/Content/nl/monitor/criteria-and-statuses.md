@@ -89,7 +89,7 @@ flowchart TB
 - **Sluiten.** Bij een latere controle waarbij een ander criterium overeenkomt, of geen, wordt een incident opgelost waarvan het criterium **Incident automatisch oplossen** aan heeft, en ook een waarschuwing met **Waarschuwing automatisch oplossen**. Beide staan onder **Meer velden** in het incident of de waarschuwing, en de criteria waarmee een nieuwe monitor begint, hebben ze aan.
 - **Meerdere sondes.** Een monitor die door meer dan één sonde wordt gecontroleerd, verandert alleen als zijn sondes het eens zijn. Zie [Hoe criteria worden geëvalueerd](/docs/monitor/create-monitor#hoe-criteria-worden-geëvalueerd).
 - **Een bovenliggende monitor die uitvalt.** Op de pagina **Configuratie → Afhankelijkheden** van een monitor noemt **Afhankelijk van monitors** de monitoren waarvan hij afhangt. Zolang een van die monitoren een status heeft die onder **Onderdrukken als status van bovenliggende monitor is** staat (elke offline-status als dat leeg blijft), opent de monitor geen incidenten of waarschuwingen. Zijn status verandert nog steeds, en wat open staat, wordt nog steeds opgelost.
-- **Gepland onderhoud.** Een monitor in een lopend onderhoudsevenement wordt niet gecontroleerd, dus zijn criteria draaien niet. Zie [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index).
+- **Gepland onderhoud.** Een monitor in een lopende onderhoudsgebeurtenis wordt niet gecontroleerd, dus zijn criteria draaien niet. Zie [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index).
 
 Om te zien hoe een controle is beoordeeld, opent u het **Overzicht** van de monitor: de kaart **Monitorsamenvatting** toont welk criterium overeenkwam en wat elk criterium deed, inclusief een incident dat werd overgeslagen omdat er al een open stond.
 

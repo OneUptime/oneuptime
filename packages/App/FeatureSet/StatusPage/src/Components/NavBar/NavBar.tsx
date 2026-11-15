@@ -32,6 +32,11 @@ export interface ComponentProps {
 
 interface NavItem {
   id: string;
+  /*
+   * The page's name in the reader's words (t("nav.*")): every NavBarItem
+   * here says so, and draws it as given. Looked up again, a translation
+   * that is itself an English word read as another word (#7790).
+   */
   title: string;
   icon: IconProp;
   route: Route;
@@ -237,6 +242,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
               id="mobile-active-nav-bar-item"
               title={activeItem.title}
+              isTitleTranslated={true}
               icon={activeItem.icon}
               exact={true}
               route={undefined}
@@ -255,6 +261,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               dataTestId="mobile-nav-toggle"
               // An icon alone: named for what it opens, as Common's NavBar's is.
               ariaLabel={t("a11y.navigation")}
+              isAriaLabelTranslated={true}
               ariaExpanded={isMobileMenuOpen}
             />
           </div>
@@ -269,6 +276,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     <NavBarItem
                       id={`mobile-${item.id}`}
                       title={item.title}
+                      isTitleTranslated={true}
                       icon={item.icon}
                       exact={true}
                       route={item.route}
@@ -292,6 +300,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               key={item.id}
               id={item.id}
               title={item.title}
+              isTitleTranslated={true}
               icon={item.icon}
               exact={true}
               route={item.route}

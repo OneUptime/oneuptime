@@ -50,96 +50,7 @@ function onlySiteOf(text: string): FilterOptionsSite {
   return sites[0]!;
 }
 
-/*
- * Words the product's filters offer that are no key of the English locale
- * yet. Each reads in English for every reader - in the menu, the chip and
- * the rows alike, so the three never disagree - until it is added to every
- * locale, or, for a stored value with no words of its own ("TimedOut",
- * "MicrosoftTeams"), given a label of words. A follow-up of #7690.
- *
- * The list only shrinks: a word that becomes a key, or leaves its filter,
- * fails the guard until its entry goes too, and a word that is new here
- * fails it at once. ee's filters are read when the checkout has ee/.
- */
-const SUBSCRIBER_EVENT_TYPES: ReadonlyArray<string> = [
-  "Subscriber Subscription Confirmation",
-  "Subscriber Subscribed",
-  "Subscriber Manage Subscription",
-  "Subscriber Incident Created",
-  "Subscriber Incident State Changed",
-  "Subscriber Incident Note Created",
-  "Subscriber Incident Note Updated",
-  "Subscriber Incident Postmortem Published",
-  "Subscriber Episode Created",
-  "Subscriber Episode State Changed",
-  "Subscriber Episode Note Created",
-  "Subscriber Episode Note Updated",
-  "Subscriber Announcement Created",
-  "Subscriber Announcement Updated",
-  "Subscriber Scheduled Maintenance Created",
-  "Subscriber Scheduled Maintenance State Changed",
-  "Subscriber Scheduled Maintenance Note Created",
-  "Subscriber Scheduled Maintenance Note Updated",
-  "Subscriber Report",
-];
-
 const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
-
-const WORDS_WITH_NO_KEY_YET: Readonly<Record<string, ReadonlyArray<string>>> = {
-  "ee/Dashboard/AuditLogs/AuditLogsTable.tsx": [
-    "Sign In",
-    "Sign Out",
-    "Session Timeout",
-    "Session Revoked",
-  ],
-  [`${DASHBOARD}/Components/DataObservability/DataAssetTable.tsx`]: [
-    "Materialized View",
-    "Partitioned Table",
-    "Foreign Table",
-    "Storage Path",
-  ],
-  [`${DASHBOARD}/Components/NotificationLogs/WorkspaceLogsTable.tsx`]: [
-    "MicrosoftTeams",
-  ],
-  [`${DASHBOARD}/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx`]:
-    [
-      "Executing",
-      "Execution Completed",
-      "Execution Completed - No One Notified",
-    ],
-  [`${DASHBOARD}/Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTimelineTable.tsx`]:
-    ["Executing", "Successfully Acknowledged", "Notification Sent"],
-  [`${DASHBOARD}/Pages/DataObservability/SchemaChanges.tsx`]: [
-    "Column added",
-    "Column removed",
-    "Column renamed",
-    "Type changed",
-    "Nullability changed",
-    "Table dropped",
-    "Table restored",
-  ],
-  [`${DASHBOARD}/Pages/Kubernetes/View/AI/Logs.tsx`]: ["Claimed", "TimedOut"],
-  [`${DASHBOARD}/Pages/Runbook/Executions.tsx`]: ["WaitingForManualStep"],
-  [`${DASHBOARD}/Pages/Runbook/View/Executions.tsx`]: ["WaitingForManualStep"],
-  [`${DASHBOARD}/Pages/Settings/Invoices.tsx`]: [
-    "Paid",
-    "Void",
-    "Uncollectible",
-  ],
-  [`${DASHBOARD}/Pages/StatusPages/Settings/SubscriberNotificationTemplates.tsx`]:
-    SUBSCRIBER_EVENT_TYPES,
-  [`${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`]:
-    SUBSCRIBER_EVENT_TYPES,
-  [`${DASHBOARD}/Pages/UserSettings/OnCallLogs.tsx`]: ["Executing"],
-  [`${DASHBOARD}/Pages/Workflow/Logs.tsx`]: [
-    "Timeout",
-    "Workflow Count Exceeded",
-  ],
-  [`${DASHBOARD}/Pages/Workflow/View/Logs.tsx`]: [
-    "Timeout",
-    "Workflow Count Exceeded",
-  ],
-};
 
 // Every filter's options in the front ends, read once.
 const ALL_SITES: ReadonlyArray<FilterOptionsSite> =
@@ -326,42 +237,13 @@ describe("every filter's options in the front ends", () => {
     },
   );
 
+  /*
+   * Every word a key: the 72 that read English in every language - the
+   * stored "TimedOut", "WaitingForManualStep" and "MicrosoftTeams" among
+   * them - were given keys, words of their own or a name's mark (#7781).
+   * ee's filters are read when the checkout has ee/.
+   */
   test("are each the product's words, a key of every locale, or a name marked isUserContent", () => {
-    const outOfRule: Array<FilterOptionLabelFinding> = findings.filter(
-      (finding: FilterOptionLabelFinding): boolean => {
-        return !(
-          finding.word !== undefined &&
-          (WORDS_WITH_NO_KEY_YET[finding.file] || []).includes(finding.word)
-        );
-      },
-    );
-
-    expect(formatFilterOptionLabelFindings(outOfRule)).toBe("");
-  });
-
-  test("leave no word on the list of those with no key yet that has since got one, or gone", () => {
-    const stale: Array<string> = [];
-
-    for (const file of Object.keys(WORDS_WITH_NO_KEY_YET)) {
-      // ee's filters are read only when the checkout has ee/.
-      if (!fs.existsSync(path.join(REPOSITORY_ROOT, file))) {
-        expect(file.startsWith("ee/")).toBe(true);
-        continue;
-      }
-
-      for (const word of WORDS_WITH_NO_KEY_YET[file] || []) {
-        const isStillFound: boolean = findings.some(
-          (finding: FilterOptionLabelFinding): boolean => {
-            return finding.file === file && finding.word === word;
-          },
-        );
-
-        if (!isStillFound) {
-          stale.push(`${file}: "${word}"`);
-        }
-      }
-    }
-
-    expect(stale).toEqual([]);
+    expect(formatFilterOptionLabelFindings(findings)).toBe("");
   });
 });

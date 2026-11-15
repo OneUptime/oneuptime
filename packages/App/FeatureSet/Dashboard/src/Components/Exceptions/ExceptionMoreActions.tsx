@@ -143,7 +143,7 @@ const ExceptionMoreActions: FunctionComponent<ComponentProps> = (
 
   return (
     <MoreMenu
-      ariaLabel={translator.translateText("More actions")}
+      ariaLabel="More actions"
       dataTestId={EXCEPTION_MORE_ACTIONS_TEST_IDS.trigger}
       elementToBeShownInsteadOfButton={
         <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />

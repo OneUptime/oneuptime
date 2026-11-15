@@ -1,4 +1,5 @@
 import Filter from "../ModelFilter/Filter";
+import { toDateFilterQueryValue } from "../Filters/DateFilterValue";
 import FilterData from "../Filters/Types/FilterData";
 import FieldType from "../Types/FieldType";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -117,6 +118,12 @@ const buildQueryFromFilterData: BuildQueryFromFilterDataFunction = <
   for (const key in filterData) {
     const value: unknown = filterData[key];
 
+    const filterType: FieldType | undefined = filters.find(
+      (f: Filter<TBaseModel>) => {
+        return f.field && (f.field as any)[key];
+      },
+    )?.type;
+
     if (value && typeof value === Typeof.String) {
       query[key as keyof TBaseModel] = (value || "").toString();
     }
@@ -141,12 +148,7 @@ const buildQueryFromFilterData: BuildQueryFromFilterDataFunction = <
       query[key as keyof TBaseModel] = value as any;
     }
 
-    if (
-      filters.find((f: Filter<TBaseModel>) => {
-        return f.field && (f.field as any)[key];
-      })?.type === FieldType.JSON &&
-      typeof value === Typeof.Object
-    ) {
+    if (filterType === FieldType.JSON && typeof value === Typeof.Object) {
       query[key as keyof TBaseModel] = value as any;
     }
 
@@ -163,6 +165,23 @@ const buildQueryFromFilterData: BuildQueryFromFilterDataFunction = <
      */
     if (value instanceof QueryOperator) {
       query[key as keyof TBaseModel] = value as any;
+    }
+
+    /*
+     * A date filter asks for the span its moments stand for - the whole
+     * minute, or the whole day for a date - as its controls and its chip
+     * read it (DateFilterValue, #7719), whether its value came from the
+     * controls, a link or a saved view from before: an old "Is" was the
+     * instant 11:15:00.000, and found nothing its chip named.
+     */
+    if (
+      (filterType === FieldType.Date || filterType === FieldType.DateTime) &&
+      query[key as keyof TBaseModel] !== undefined
+    ) {
+      query[key as keyof TBaseModel] = toDateFilterQueryValue(
+        query[key as keyof TBaseModel],
+        filterType === FieldType.DateTime,
+      ) as any;
     }
   }
 

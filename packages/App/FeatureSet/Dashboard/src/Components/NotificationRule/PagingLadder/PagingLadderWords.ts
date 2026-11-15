@@ -33,16 +33,23 @@ export const PAGING_LADDER_COPY: {
   memberNoSteps: string;
   ownAddPlaceholder: string;
   memberAddPlaceholder: string;
+  add: string;
+  addStep: string;
   ownNoMethods: string;
   memberNoMethods: string;
   setUpMoreMethods: string;
   notVerifiedTitle: string;
   verify: string;
-  waitLabel: string;
-  removeStep: string;
+  changeWait: string;
+  ifNobodyAcknowledged: string;
+  remove: string;
+  removeMethod: string;
   save: string;
   discard: string;
+  unsaved: string;
+  leaveDescription: string;
   saved: string;
+  scope: string;
   differentForSome: string;
   useOneLadder: string;
   backToLadder: string;
@@ -62,11 +69,12 @@ export const PAGING_LADDER_COPY: {
 } = {
   ownTitle: translationKey("How to reach me when I am on call"),
   memberTitle: translationKey("How to reach {{name}} when they are on call"),
+  // What the steps below do, said once, under the title (#8139).
   ownDescription: translationKey(
-    "One list for every incident, alert and episode, of every severity. Each step is used after its wait, until somebody acknowledges.",
+    "When you are paged, OneUptime tries each step in turn until somebody acknowledges.",
   ),
   memberDescription: translationKey(
-    "One list for every incident, alert and episode {{name}} is paged for, of every severity. Each step is used after its wait, until somebody acknowledges.",
+    "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.",
   ),
   ownNoSteps: translationKey(
     "Nothing reaches you when you are paged yet. Add a way to reach you.",
@@ -74,8 +82,13 @@ export const PAGING_LADDER_COPY: {
   memberNoSteps: translationKey(
     "Nothing reaches {{name}} when they are paged yet.",
   ),
+  // The empty ladder's button, and what each step's Add says to a screen reader.
   ownAddPlaceholder: translationKey("Add a way to reach you"),
   memberAddPlaceholder: translationKey("Add a way to reach {{name}}"),
+  // A method more in a step: it goes out with the others at that step's time.
+  add: translationKey("Add"),
+  // One step more at the end, after the last one's time.
+  addStep: translationKey("Add Step"),
   ownNoMethods: translationKey(
     "You have no verified notification method yet. Add your phone or the app in Notification Methods, then come back to put it in your ladder.",
   ),
@@ -85,11 +98,24 @@ export const PAGING_LADDER_COPY: {
   setUpMoreMethods: translationKey("Set up more ways to be reached"),
   notVerifiedTitle: translationKey("Not verified yet"),
   verify: translationKey("Verify"),
-  waitLabel: translationKey("When to use it"),
-  removeStep: translationKey("Remove this step"),
-  save: translationKey("Save Ladder"),
+  // A step's time, said to a screen reader on the button that changes it.
+  changeWait: translationKey("{{wait}}. Change when this step is sent."),
+  // Beside every step but one sent at once: it is skipped once somebody acknowledges.
+  ifNobodyAcknowledged: translationKey("If nobody has acknowledged yet"),
+  remove: translationKey("Remove"),
+  // "Remove SMS: +15550100", said to a screen reader on a method's ×.
+  removeMethod: translationKey("Remove {{name}}"),
+  save: translationKey("Save Changes"),
   discard: translationKey("Discard Changes"),
+  unsaved: translationKey("You have unsaved changes"),
+  leaveDescription: translationKey(
+    "You have unsaved changes to these steps. If you leave now, they will be lost.",
+  ),
   saved: translationKey("Saved. Every severity now uses this ladder."),
+  // What the steps are for, beside the way to make some severities differ.
+  scope: translationKey(
+    "Used for every incident, alert and episode, of every severity.",
+  ),
   differentForSome: translationKey("Different for Some Severities"),
   useOneLadder: translationKey("Use One Ladder for Everything"),
   backToLadder: translationKey("Back to One Ladder"),

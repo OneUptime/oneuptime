@@ -409,6 +409,13 @@ export default class ServerChannelSetup {
    * getGlobalSMTPConfig: an SMTP server, or Microsoft Graph when that is the
    * transport. Nothing filled in is no email at all; a field left blank of
    * what the transport and the sign-in it uses need refuses the email.
+   *
+   * A port alone is nothing filled in (#7458): an installation's settings
+   * were seeded with port 25 when SMTP_PORT was not set
+   * (UpdateGlobalConfigFromEnv), so a server nobody had touched read as
+   * half set up, and its first missing field - the From Email - was named
+   * as if the rest were done. A port is only ever one of the fields still
+   * missing once something else is set.
    */
   private static getCustomSmtpProblem(
     config: ServerChannelSetupSettings,
@@ -425,7 +432,6 @@ export default class ServerChannelSetup {
         isPresent(config.smtpTokenUrl)
       : isPresent(config.smtpFromEmail) ||
         isPresent(config.smtpHost) ||
-        isPresent(config.smtpPort) ||
         isPresent(config.smtpUsername) ||
         isPresent(config.smtpPassword) ||
         isPresent(config.smtpFromName);

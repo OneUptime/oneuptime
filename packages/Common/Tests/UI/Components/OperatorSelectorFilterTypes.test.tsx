@@ -975,6 +975,7 @@ describe("OperatorSelector as each filter type uses it", () => {
       expect((value as GreaterThan<number>).value).toBe(5);
     });
 
+    // Before a day: before that day starts (#7719).
     test("DateFilter: picking 'is before' keeps the date and writes LessThan", () => {
       const onFilterChanged: (filterData: FilterData<Resource>) => void =
         jest.fn();
@@ -1000,13 +1001,16 @@ describe("OperatorSelector as each filter type uses it", () => {
       const value: unknown = written(onFilterChanged)["createdAt"];
 
       expect(value).toBeInstanceOf(LessThan);
-      expect((value as LessThan<Date>).value.getTime()).toBe(date.getTime());
+      expect((value as LessThan<Date>).value.getTime()).toBe(
+        OneUptimeDate.getStartOfDay(date).getTime(),
+      );
     });
 
     /*
      * A Date field has no time component, so "is" has to widen to the whole
-     * day; a DateTime field keeps the exact instant. Same operator, two
-     * encodings — the branch DateFilter.buildValue takes on `isDateTime`.
+     * day; a DateTime field shows and takes a minute, so "is" widens to the
+     * whole minute (#7719) - the exact instant matched nothing a person did.
+     * Same operator, two spans - DateFilterValue, on `isDateTime`.
      */
     test("DateFilter (Date): picking 'is' widens to the bounds of that day", () => {
       const onFilterChanged: (filterData: FilterData<Resource>) => void =
@@ -1041,7 +1045,7 @@ describe("OperatorSelector as each filter type uses it", () => {
       );
     });
 
-    test("DateFilter (DateTime): picking 'is' keeps the exact instant", () => {
+    test("DateFilter (DateTime): picking 'is' widens to the bounds of that minute", () => {
       const onFilterChanged: (filterData: FilterData<Resource>) => void =
         jest.fn();
 
@@ -1065,9 +1069,14 @@ describe("OperatorSelector as each filter type uses it", () => {
 
       const value: unknown = written(onFilterChanged)["lastSeenAt"];
 
-      expect(value).toBeInstanceOf(EqualTo);
-      expect(value).not.toBeInstanceOf(InBetween);
-      expect((value as EqualTo<Date>).value.getTime()).toBe(date.getTime());
+      expect(value).not.toBeInstanceOf(EqualTo);
+      expect(value).toBeInstanceOf(InBetween);
+      expect(
+        new Date((value as InBetween<Date>).startValue).toISOString(),
+      ).toBe("2024-03-04T05:06:00.000Z");
+      expect(new Date((value as InBetween<Date>).endValue).toISOString()).toBe(
+        "2024-03-04T05:06:59.999Z",
+      );
     });
 
     test("EntityFilter (EntityArray): picking 'has all of' keeps the selected ids", () => {

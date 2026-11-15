@@ -259,7 +259,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
             <CheckboxElement
               disabled={!props.hasTableItems}
               value={selectBulkSelectCheckbox}
-              ariaLabel={translateString("Select all items")}
+              ariaLabel="Select all items"
               /*
                * Half-filled when only part of the page is selected. Without
                * it, a page where some rows cannot be selected at all can

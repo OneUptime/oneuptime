@@ -6,6 +6,7 @@ import {
   setProductPinned,
 } from "../../Utils/ProjectProducts/ProductPinActions";
 import { getItemProduct } from "../../Utils/ProjectProducts/ProductsMenu";
+import { loadQuietly } from "../../Utils/ProjectProducts/UseProjectProducts";
 import { HiddenProductsMenuNote } from "./HiddenProductsMenuNote";
 import URL from "Common/Types/API/URL";
 import ProductKey from "Common/Types/Product/ProductKey";
@@ -101,13 +102,20 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
        */
       moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}
       moreMenuFooter={moreMenuFooter}
+      /*
+       * Keyed texts, in the reader's words here: drawn as given, never
+       * looked up again (#7682, #7790).
+       */
+      isMoreMenuFooterTranslated={true}
       moreMenuSearchPlaceholder={t("navbar.search.placeholder")}
       moreMenuSearchLabel={PRODUCTS_SEARCH_LABEL}
-      // A keyed text, in the reader's words here: drawn as given (#7682).
       isMoreMenuSearchPlaceholderTranslated={true}
       moreMenuNoResultsText={t("navbar.search.noResults")}
+      isMoreMenuNoResultsTextTranslated={true}
       moreMenuKeyboardHint={t("navbar.search.hint")}
+      isMoreMenuKeyboardHintTranslated={true}
       moreMenuRecentLabel={t("navbar.search.recent")}
+      isMoreMenuRecentLabelTranslated={true}
       /*
        * The products the project hides (#6814): one row at the foot of the
        * menu, found by Search, with a word on why they are there.
@@ -126,6 +134,13 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
       pinnedLabel={PINNED_PRODUCTS_LABEL}
       onTogglePin={togglePin}
       canPinMore={canPinAnotherProduct(products.answer.pinned)}
+      /*
+       * Its "Not set up" marks as they are now, as the menu is read: asked
+       * again once the answer is older than REFRESH_AFTER_MS (#7465).
+       */
+      onMenuOpen={() => {
+        loadQuietly();
+      }}
       /*
        * Cmd/Ctrl+K belongs to the command palette on the dashboard — the
        * products menu stays reachable via its button and the palette itself.

@@ -173,12 +173,26 @@ describe("dashboard locale bundling contract (source-pinned)", () => {
 
     expect(buildConfig).toContain('require("Common/UI/esbuild-locales")');
     expect(buildConfig).toMatch(
-      /additionalPlugins: \[ createRuntimeLocalesPlugin\(\{ localesDirectory: path\.join\(__dirname, "src", "Locales"\), fallbackLanguage: "en", \}\), \]/,
+      /additionalPlugins: \[ createRuntimeLocalesPlugin\(\{ localesDirectory: path\.join\(__dirname, "src", "Locales"\), fallbackLanguage: "en", sameAsEnglishFile: path\.join\(__dirname, "i18n", "SameAsEnglish\.json"\), progressDirectory: path\.join\(__dirname, "i18n", "Progress"\), \}\), \]/,
     );
     // The directory the plugin is pointed at is the one the loader imports.
     expect(fs.existsSync(path.join(DASHBOARD_SRC, "Locales", "en.json"))).toBe(
       true,
     );
+    /*
+     * The same-as-English lists it marks "_one" forms from are the ones the
+     * translation tooling keeps (scripts/i18n/LocaleStatus.ts).
+     */
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "..", "i18n", "SameAsEnglish.json"),
+      ),
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "..", "i18n", "Progress", "fr.json"),
+      ),
+    ).toBe(true);
   });
 
   test("the first render waits for i18next readiness so a non-English boot never paints raw keys", () => {

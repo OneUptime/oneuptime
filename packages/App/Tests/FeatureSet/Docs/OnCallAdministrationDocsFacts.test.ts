@@ -37,6 +37,11 @@ import OnCallDutyPolicyTimeLog from "Common/Models/DatabaseModels/OnCallDutyPoli
 import OnCallDutyPolicyUserOverride from "Common/Models/DatabaseModels/OnCallDutyPolicyUserOverride";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import {
+  OnCallPersonPageNotice,
+  getOnCallPersonPageEmailMessageLine,
+  getOnCallPersonPageLead,
+} from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
   DEFAULT_ESCALATE_AFTER_IN_MINUTES,
@@ -1583,6 +1588,38 @@ describe("when several policies page", () => {
     );
     expect(severalPolicies()).toContain(
       "once the incident is acknowledged, its page offers them **Acknowledge again**. **Escalate** passes it to the next level. On an incident, alert or episode that is resolved, nothing is started, and you are told why.",
+    );
+  });
+
+  /*
+   * A policy started by hand's notifications said what an automatic run's
+   * say - "A new incident has been created" - from nobody (#7838): they now
+   * name who started which policy, and carry the message a page from Slack
+   * or Microsoft Teams that names it wrote, on the run as it is created.
+   */
+  it("says its notifications name who started which policy and carry the page's message, as they word them", () => {
+    const notice: OnCallPersonPageNotice = {
+      pagedByName: "Alice Kim",
+      policyName: "Database escalation",
+      policyLevel: 1,
+      message: "Can you check the database?",
+    };
+
+    expect(getOnCallPersonPageLead(notice)).toBe(
+      "Alice Kim started Database escalation",
+    );
+    expect(getOnCallPersonPageEmailMessageLine(notice)).toBe(
+      "Alice Kim wrote: “Can you check the database?”",
+    );
+    expect(readCommonSource("Server/Services/OnCallPageService.ts")).toContain(
+      "OnCallRunPageMessage.startWith(",
+    );
+    expect(
+      readCommonSource("Server/Services/UserNotificationRuleService.ts"),
+    ).toContain("isOnCallPolicyStartedByHand(run)");
+
+    expect(severalPolicies()).toContain(
+      "you are told why. Its notifications say who started which policy, and carry the message sent with a page from Slack or Microsoft Teams.",
     );
   });
 });

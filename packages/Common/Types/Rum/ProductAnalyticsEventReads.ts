@@ -151,9 +151,22 @@ export function toProductAnalyticsSegmentFilter(
     return null;
   }
 
+  const kept: string = raw.slice(0, PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH);
+
   return {
     ...ref,
-    value: raw.slice(0, PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH),
+    /*
+     * A page as the events keep one, in its one spelling: a link or a saved
+     * segment with "/caf%c3%a9" names the page stored as "/caf%C3%A9". ""
+     * is still "no page".
+     */
+    value:
+      ref.field === ProductAnalyticsEventField.Page
+        ? toProductAnalyticsPage(kept).slice(
+            0,
+            PRODUCT_ANALYTICS_MAX_SEGMENT_VALUE_LENGTH,
+          )
+        : kept,
   };
 }
 

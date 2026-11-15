@@ -84,6 +84,8 @@ import AIRunLimitsReader from "../AIRunLimitsReader";
 import User from "../../../../Models/DatabaseModels/User";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import { readRequestedReaderLanguage } from "../../../../Types/ReaderLanguage";
+import AggregationIntervalUtil from "../../../../Types/BaseDatabase/AggregationIntervalUtil";
+import Timezone from "../../../../Types/Timezone";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
@@ -175,6 +177,16 @@ export interface ChatTurnRequest {
    * make in it (#7247). It changes nothing the model is asked or told.
    */
   language?: string | undefined;
+  /*
+   * The time zone of the person asking, sent with the question and again
+   * with the approval that resumes the turn (the Dashboard's
+   * OneUptimeDate.getCurrentTimezone(), when the Timezone list names it).
+   * The tools read it as ToolContext.readerTimezone, and a chart over more
+   * than a week cuts its days at that person's midnight (#7922). Kept only
+   * when the list names it (AggregationIntervalUtil.readRequestedTimezone);
+   * anything else leaves the days UTC's, as a turn with none has.
+   */
+  timezone?: Timezone | undefined;
 }
 
 /*
@@ -1746,9 +1758,11 @@ export default class ChatAgentRunner {
 
   /*
    * The tools' context for one turn: the person's props, the subject the
-   * turn is about, which a tool acting from a page reads, and the language
-   * the person reads the Dashboard in, which a tool writing OneUptime's
-   * words into a record reads (ToolContext.language).
+   * turn is about, which a tool acting from a page reads, the language the
+   * person reads the Dashboard in, which a tool writing OneUptime's words
+   * into a record reads (ToolContext.language), and the time zone they read
+   * its charts in, which a tool charting days reads
+   * (ToolContext.readerTimezone).
    */
   private static buildToolContext(
     request: ChatTurnRequest,
@@ -1757,12 +1771,15 @@ export default class ChatAgentRunner {
     const language: string | undefined = readRequestedReaderLanguage(
       request.language,
     );
+    const readerTimezone: Timezone | undefined =
+      AggregationIntervalUtil.readRequestedTimezone(request.timezone);
 
     return {
       projectId: request.projectId,
       props: request.props,
       ...(pageContext ? { pageContext } : {}),
       ...(language ? { language } : {}),
+      ...(readerTimezone ? { readerTimezone } : {}),
     };
   }
 

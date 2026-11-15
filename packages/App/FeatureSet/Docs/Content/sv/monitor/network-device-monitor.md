@@ -1022,6 +1022,18 @@ En enhet som inte har setts på 30 dagar tas bort från listan och kartan, om de
 
 Projektägare och projektadministratörer väljer standarden: byt till en layout och välj **Make default for everyone**. Därefter öppnas varje vy av enhetskartan med den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**. På standardlayouten skickar **Clear default** tillbaka varje karta till dess egen standard. Flyttade positioner sparas för varje layout i din webbläsare, så kartan öppnas med den placering du gjorde i den layouten.
 
+### Hitta rätt i ett stort nätverk
+
+I layouten **Parent and child** ritar en enhet med sex eller fler enheter som inte har något under sig dem som ett kompakt rutnät under sig i stället för en lång rad, förbundna med rätvinkliga linjer som inte korsar någon enhet eller något namn. Layouten väljer den rutnätsform som får hela kartan att få plats på skärmen i största möjliga storlek.
+
+En enhet med något under sig har en knapp `−` under namnet: välj den för att fälla ihop grenen till enheten och antalet enheter den innehåller, till exempel `+24`, och välj antalet för att fälla ut den igen. **Fäll ihop alla grenar** och **Fäll ut alla grenar**, bredvid zoomknapparna, fäller ihop kartan till en översikt och ut igen. Din webbläsare kommer ihåg hopfällda grenar för varje plats.
+
+Om du vill se en gren för sig klickar du på dess enhet och väljer **Visa bara den här grenen**. Kartan visar då enheten och allt under den, med vägen från nätverkets topp överst: välj ett steg för att vidga vyn till den enhetens gren, eller **Visa hela kartan** för att se allt igen.
+
+Sökningen flyttar kartan till enheterna den hittar. Pilarna bredvid antalet träffar, eller Enter i sökrutan, går till varje träff i tur och ordning och markerar den med en ring. I layouten **Parent and child** förblir vägen från nätverkets topp ned till varje träff markerad, och en träff i en hopfälld gren räknas också, med en knapp som öppnar grenarna den finns i.
+
+När du har dragit enheter växlar en knapp överst på kartan mellan **Anpassad layout · 2 flyttade** och **Ursprunglig layout**: den ursprungliga layouten är kartan som OneUptime ordnar den, och din anpassade layout sparas tills du växlar tillbaka. **Reset layout** tar bort den.
+
 ### Exportera kartan som PDF
 
 **Exportera PDF**, överst på kartan, laddar ner kartan som du tittar på som en PDF som du kan bifoga en bedömning, en ändringsbegäran eller en incidentgenomgång, eller läsa offline. Varje vy av enhetskartan har den: **Enhetstopologi**, en plats på **Karta** och fliken **Nätverk** under **Topologi**.

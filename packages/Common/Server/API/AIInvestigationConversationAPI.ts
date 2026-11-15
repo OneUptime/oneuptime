@@ -12,6 +12,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { readRequestedReaderLanguage } from "../../Types/ReaderLanguage";
+import AggregationIntervalUtil from "../../Types/BaseDatabase/AggregationIntervalUtil";
 import {
   assertSubjectReadableInTenant,
   getLoggedInProps,
@@ -166,6 +167,10 @@ router.post(
             typeof permissionMode === "string" ? permissionMode : undefined,
           // The language the asker reads the Dashboard in (#7247).
           language: readRequestedReaderLanguage(req.body["language"]),
+          // The asker's time zone: a chart over days cuts them there (#7922).
+          timezone: AggregationIntervalUtil.readRequestedTimezone(
+            req.body["timezone"],
+          ),
         });
 
       Response.sendJsonObjectResponse(req, res, {
@@ -225,6 +230,10 @@ router.post(
            * approved setup action writes into the records it makes (#7247).
            */
           language: readRequestedReaderLanguage(req.body["language"]),
+          // The decider's time zone, for the charts the turn goes on to draw.
+          timezone: AggregationIntervalUtil.readRequestedTimezone(
+            req.body["timezone"],
+          ),
         });
 
       Response.sendJsonObjectResponse(req, res, {
