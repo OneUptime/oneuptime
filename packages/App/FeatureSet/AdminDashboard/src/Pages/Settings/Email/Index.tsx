@@ -45,6 +45,7 @@ import {
   useServerSetupChecklist,
   UseServerSetupChecklistResult,
 } from "Common/UI/Utils/ServerSetupChecklist";
+import ServerSendingStatusLoader from "Common/UI/Utils/ServerSending";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -141,7 +142,12 @@ const Settings: FunctionComponent = (): ReactElement => {
     useServerEmailEnvironment();
 
   const onSettingsSaved: () => void = (): void => {
-    // Saving the settings starts email again at "not tested yet".
+    /*
+     * Saving the settings starts email again at "not tested yet": the
+     * banner at the top of the page reads where email stands again too, so
+     * "Email is not set up" goes once it is (#7459).
+     */
+    ServerSendingStatusLoader.clear();
     void checklist.reload();
   };
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
