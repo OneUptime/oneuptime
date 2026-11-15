@@ -178,12 +178,9 @@ const translateChartWord: (text: string, translator: Translator) => string = (
  * language moves the count where its grammar puts it.
  */
 export const SLO_BURN_RATE_CHART_DESCRIPTION: PluralTemplate = {
-  one: translationKey(
-    "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
-  ),
-  other: translationKey(
+  one: "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
+  other:
     "How fast the error budget is being spent, measured over the trailing {{count}} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
-  ),
 };
 
 export type GetSloMetricChartDescriptionFunction = (

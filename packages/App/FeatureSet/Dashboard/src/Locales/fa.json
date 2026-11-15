@@ -53509,7 +53509,6 @@
   "Downtime the SLO can still absorb in its compliance window before it breaches. Negative once the budget is overspent.": "Downtime the SLO can still absorb in its compliance window before it breaches. Negative once the budget is overspent.",
   "Error Budget Remaining Time": "Error Budget Remaining Time",
   "Host Uptime": "Host Uptime",
-  "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.": "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
   "How fast the error budget is being spent, measured over the trailing {{count}} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.": "How fast the error budget is being spent, measured over the trailing {{count}} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
   "How fast the error budget is being spent, measured over the trailing {{count}} minutes. 1x spends the budget exactly over the compliance window; anything higher exhausts it early._one": "How fast the error budget is being spent, measured over the trailing {{count}} minute. 1x spends the budget exactly over the compliance window; anything higher exhausts it early.",
   "Incident Duration": "Incident Duration",
