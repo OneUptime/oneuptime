@@ -33,7 +33,8 @@ import path from "path";
  * definite determiner ("het geplande onderhoud", "dit geplande onderhoud").
  *
  * Every string the product writes is held here: the Dashboard, the status
- * page, the Admin Dashboard, the docs navigation and the server's.
+ * page, the Admin Dashboard, the docs navigation and the server's (whose
+ * "Maintenance Event" row title #8083 worded as each Dashboard does).
  */
 
 const APP_DIR: string = path.resolve(__dirname, "../../FeatureSet");
@@ -121,19 +122,6 @@ function pairs(app: string, language: string): Array<Pair> {
   return result;
 }
 
-/*
- * The server's "Maintenance Event", the new maintenance event email's
- * detail row title, says plain "maintenance" in 16 languages: #8083 words
- * it as each Dashboard does, in a pull request of its own.
- */
-const WORDED_ELSEWHERE: Record<string, ReadonlyArray<string>> = {
-  Server: ["Maintenance Event"],
-};
-
-function isWordedElsewhere(app: string, key: string): boolean {
-  return (WORDED_ELSEWHERE[app] || []).includes(key);
-}
-
 const TRANSLATED: Array<string> = Object.keys(MAINTENANCE_EVENT_WORDS).filter(
   (language: string): boolean => {
     return language !== "en";
@@ -149,10 +137,7 @@ function recordWordProblems(
   const problems: Array<{ key: string; translation: string; why: string }> = [];
 
   for (const pair of pairs(app, language)) {
-    if (
-      !SAYS_A_MAINTENANCE_EVENT.test(pair.english) ||
-      isWordedElsewhere(app, pair.key)
-    ) {
+    if (!SAYS_A_MAINTENANCE_EVENT.test(pair.english)) {
       continue;
     }
 
@@ -289,10 +274,7 @@ describe("Danish, Korean, Hindi and Persian call maintenance by one word", () =>
         const problems: Array<{ key: string; translation: string }> = [];
 
         for (const pair of pairs(app, language)) {
-          if (
-            !SAYS_MAINTENANCE.test(pair.english) ||
-            isWordedElsewhere(app, pair.key)
-          ) {
+          if (!SAYS_MAINTENANCE.test(pair.english)) {
             continue;
           }
 
