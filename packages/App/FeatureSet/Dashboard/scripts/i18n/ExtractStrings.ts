@@ -560,6 +560,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The banner at the top of an SLO's pages: each notice's title, its
+   * sentence of what to do and its link (#8446). The banner looks them up;
+   * the worker's statuses they are read from stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloHealth.ts",
+    kind: "keys",
+  },
+  /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No
    * recent data, Waiting for data - and what each means: the Serverless

@@ -90,6 +90,8 @@ const NO_OWNER_CHIP: Record<string, string> = {
     "OneUptime's global Runners: no project owns them.",
   "Pages/Monitor/View/Slos.tsx#monitor-slos-table":
     "The SLOs one monitor's downtime spends; the SLOs list filters them by owner.",
+  "Pages/Service/View/Slos.tsx#service-slos-table":
+    "The SLOs one service's requests spend; the SLOs list filters them by owner.",
   "Pages/Slo/View/Monitors.tsx#slo-monitors-table":
     "The monitors an SLO is measured on, added and removed by hand; the Monitors list filters them by owner.",
   "Pages/NetworkSite/View/Devices.tsx#network-site-devices-table":

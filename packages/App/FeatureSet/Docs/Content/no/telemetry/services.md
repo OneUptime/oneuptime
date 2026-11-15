@@ -61,7 +61,7 @@ Sidemenyen til en tjeneste har fem seksjoner:
 
 | Seksjon | Sider |
 | --- | --- |
-| **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Anbefalinger**: ferdige monitorer for tjenesten, valgt etter språket. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
+| **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Anbefalinger**: ferdige monitorer for tjenesten, valgt etter språket. **SLOs**: SLO-ene som måler forespørslene dens, der du kan opprette et som allerede måler tjenesten. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
 | **Telemetri** | **Logger**, **Spor**, **Målinger**, **Profiler**, **Unntak** og **Source maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
 | **Utvikler** | **Terraform**, **API**, **CLI** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |

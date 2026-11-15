@@ -804,7 +804,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Events",
-      value: m ? formatCompact(m.total) : "—",
+      value: m ? formatCompact(m.total, translator) : "—",
       icon: IconProp.Activity,
       iconColor: "sky",
       loading: metricsLoading,
@@ -813,7 +813,7 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
@@ -821,7 +821,7 @@ const RumApplicationOverview: FunctionComponent<
         ? "could not load"
         : m
           ? translator.translateTemplate("{{errors}} errored", {
-              errors: formatCompact(m.errors),
+              errors: formatCompact(m.errors, translator),
             })
           : undefined,
       percent: m ? m.errorRatePercent : null,
@@ -853,7 +853,7 @@ const RumApplicationOverview: FunctionComponent<
       value:
         clientCountFailed || clientCount === null
           ? "—"
-          : formatCompact(clientCount),
+          : formatCompact(clientCount, translator),
       icon: IconProp.Window,
       iconColor: "amber",
       loading: clientCount === null && !clientCountFailed,
@@ -867,7 +867,7 @@ const RumApplicationOverview: FunctionComponent<
         ? "—"
         : sessionReplayCount === null
           ? "—"
-          : `${formatCompact(sessionReplayCount)}${
+          : `${formatCompact(sessionReplayCount, translator)}${
               sessionReplayHasMore ? "+" : ""
             }`,
       icon: IconProp.Film,

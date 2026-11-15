@@ -137,6 +137,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Sparkles}
         />
 
+        {/*
+         * The SLOs that measure this service's requests (#8443), as a
+         * monitor's menu lists the SLOs that measure the monitor.
+         */}
+        <SideMenuItem
+          link={{
+            title: "SLOs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW_SLOS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Gauge}
+        />
+
         <SideMenuItem
           link={{
             title: "Owners",

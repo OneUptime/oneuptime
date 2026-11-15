@@ -12,7 +12,11 @@ import {
   SloNoticeActionTarget,
   SloNoticeData,
   SloNoticeType,
+  SLO_TARGET_OUT_OF_RANGE_BODY_TEMPLATE,
+  SLO_TARGET_OUT_OF_RANGE_FIGURES,
 } from "../../../Utils/Slo/SloHealth";
+import fs from "fs";
+import path from "path";
 
 const SECONDS_PER_DAY: number = 24 * 60 * 60;
 
@@ -808,5 +812,157 @@ describe("SloHealth notices of a request SLO", () => {
     expect(
       getSloNotice({ ...REQUEST, sloStatus: SloStatus.Healthy }),
     ).toBeNull();
+  });
+});
+
+/*
+ * Every notice the banner can show, worded in the reader's language
+ * (#8446). Its title, body and action label are translation keys of the
+ * Dashboard's English locale, so the extractor keeps them and every
+ * language words them; the one body that states figures is a template
+ * whose figures the banner writes in the reader's digits.
+ */
+describe("SloHealth notices are translation keys", () => {
+  const ENGLISH_LOCALE: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+      ),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+
+  const BASE: SloNoticeData = {
+    isEnabled: true,
+    isArchived: false,
+    sliType: SliType.MonitorUptime,
+    monitorCount: 2,
+    serviceCount: 1,
+    latencyThresholdInMilliseconds: 300,
+    targetPercentage: 99.9,
+    lastEvaluatedAt: new Date("2026-09-21T12:00:00.000Z"),
+  };
+
+  // One input for every notice getSloNotice gives.
+  const EVERY_NOTICE: Array<SloNotice | null> = [
+    getSloNotice({ ...BASE, isArchived: true }),
+    getSloNotice({ ...BASE, isEnabled: false }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.Metric,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      monitorCount: 0,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.RequestSuccess,
+      serviceCount: 0,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.RequestLatency,
+      latencyThresholdInMilliseconds: null,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      targetPercentage: 100,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({
+      ...BASE,
+      sliType: SliType.RequestSuccess,
+      sloStatus: SloStatus.Misconfigured,
+    }),
+    getSloNotice({ ...BASE, sloStatus: SloStatus.Misconfigured }),
+    getSloNotice({ ...BASE, sloStatus: SloStatus.Paused }),
+    getSloNotice({ ...BASE, lastEvaluatedAt: null }),
+  ];
+
+  test("the inputs reach every notice, each once", () => {
+    const titles: Array<string> = EVERY_NOTICE.map(
+      (notice: SloNotice | null): string => {
+        return notice?.title || "";
+      },
+    );
+
+    expect(titles).toEqual([
+      "This SLO is archived",
+      "This SLO is disabled",
+      "This SLO cannot be evaluated",
+      "No monitors attached",
+      "No services chosen",
+      "No latency threshold",
+      "The target is out of range",
+      "Waiting for requests",
+      "Waiting for SLO evaluation",
+      "Measurement is paused",
+      "Not evaluated yet",
+    ]);
+  });
+
+  test("every title, body and action label is a key of the Dashboard's English", () => {
+    const missing: Array<string> = [];
+
+    for (const notice of EVERY_NOTICE) {
+      const texts: Array<string> = [
+        notice!.title,
+        notice!.bodyTemplate || notice!.body,
+        ...(notice!.action ? [notice!.action.label] : []),
+      ];
+
+      for (const text of texts) {
+        if (typeof ENGLISH_LOCALE[text] !== "string") {
+          missing.push(text);
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test("only the out-of-range target states figures, as a template the banner fills in", () => {
+    const withFigures: Array<SloNotice | null> = EVERY_NOTICE.filter(
+      (notice: SloNotice | null): boolean => {
+        return Boolean(notice?.bodyTemplate);
+      },
+    );
+
+    expect(withFigures).toHaveLength(1);
+
+    const notice: SloNotice = withFigures[0]!;
+
+    expect(notice.title).toBe("The target is out of range");
+    expect(notice.bodyTemplate).toBe(SLO_TARGET_OUT_OF_RANGE_BODY_TEMPLATE);
+    expect(notice.bodyFigures).toEqual(SLO_TARGET_OUT_OF_RANGE_FIGURES);
+    expect(SLO_TARGET_OUT_OF_RANGE_FIGURES).toEqual({
+      min: { value: 0, isPercent: false },
+      max: { value: 100, isPercent: false },
+      fullTarget: { value: 100, isPercent: true },
+      exampleTarget: { value: 99.9, isPercent: false },
+    });
+    // The English reads exactly as it always did.
+    expect(notice.body).toBe(
+      "A target must be greater than 0 and less than 100 — a 100% target leaves no error budget to track. Set a target such as 99.9 in Settings.",
+    );
+  });
+
+  test("no other notice's words hold a figure a reader would write in their own digits", () => {
+    for (const notice of EVERY_NOTICE) {
+      if (notice?.bodyTemplate) {
+        continue;
+      }
+
+      expect({ title: notice?.title, body: notice?.body }).toEqual({
+        title: notice?.title,
+        body: notice?.body?.replace(/\d/g, ""),
+      });
+    }
   });
 });
