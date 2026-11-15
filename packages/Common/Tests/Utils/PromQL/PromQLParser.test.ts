@@ -36,6 +36,7 @@ import {
 import {
   CompiledPromQLRegex,
   compilePromQLRegex,
+  MAX_PATTERN_STEPS,
   PromQLPatternError,
   readNamedCapture,
 } from "../../../Utils/PromQL/PromQLRegex";
@@ -43,7 +44,9 @@ import { WIDER_CASE_FOLDS } from "../../../Utils/PromQL/RE2CharacterClass";
 import { getCaseVariants } from "../../../Utils/LinearRegExp/CaseCanonicalization";
 import LinearRegExp, {
   LinearRegExpMatch,
+  MAX_PATTERN_LENGTH,
 } from "../../../Utils/LinearRegExp/LinearRegExp";
+import { DEFAULT_MAX_STEPS } from "../../../Utils/LinearRegExp/Program";
 import {
   clearLinearRegExpCache,
   getCachedPatternCount,
@@ -1248,8 +1251,8 @@ describe("PromQL regular expressions", () => {
     // RE2 has no back-references: \1 and \8 without a group are refused too.
     ["\\1", PatternProblemReason.BackReference],
     ["\\8", PatternProblemReason.BackReference],
-    // Eleven repeats of 1000, each one Prometheus reads: too large to run.
-    [".{1000}".repeat(11), PatternProblemReason.TooLarge],
+    // Forty-one repeats of 1000, each one Prometheus reads: past MAX_PATTERN_STEPS.
+    [".{1000}".repeat(41), PatternProblemReason.TooLarge],
   ])(
     "%s is refused by the linear-time matcher",
     (pattern: string, reason: PatternProblemReason) => {
@@ -1259,6 +1262,99 @@ describe("PromQL regular expressions", () => {
       expect((refusal as PatternProblemError).reason).toBe(reason);
     },
   );
+
+  /*
+   * An alternation of hundreds of values, as a Grafana variable writes one
+   * for "All", is about a step a character: past about 9,000 characters it
+   * was refused as too large (issue #8464), where Prometheus reads it. A
+   * pattern may compile to MAX_PATTERN_STEPS, twice MAX_PATTERN_LENGTH, so
+   * any pattern with no repeat in it compiles.
+   */
+  describe("a long alternation compiles, as Prometheus reads it", () => {
+    // Values `${prefix}0`, `${prefix}1`, ..., as many as fit in `length`.
+    const valuesUpTo: (prefix: string, length: number) => Array<string> = (
+      prefix: string,
+      length: number,
+    ): Array<string> => {
+      const values: Array<string> = [];
+
+      for (let index: number = 0; ; index++) {
+        const value: string = `${prefix}${String(index).padStart(4, "0")}`;
+
+        if ([...values, value].join("|").length > length) {
+          return values;
+        }
+
+        values.push(value);
+      }
+    };
+
+    test("1,000 host names, the issue's case", () => {
+      const hosts: Array<string> = valuesUpTo("web-server-", 16000).slice(
+        0,
+        1000,
+      );
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(hosts.join("|"));
+
+      expect(hosts).toHaveLength(1000);
+      expect(compiled.test("web-server-0000")).toBe(true);
+      expect(compiled.test("web-server-0500")).toBe(true);
+      expect(compiled.test("web-server-0999")).toBe(true);
+      expect(compiled.test("web-server-1000")).toBe(false);
+      expect(compiled.test("web-server-0999x")).toBe(false);
+      expect(compiled.test("")).toBe(false);
+      // Refused before: more than DEFAULT_MAX_STEPS.
+      expect(compiled.regex.steps).toBeGreaterThan(2 * DEFAULT_MAX_STEPS);
+    });
+
+    test("one as long as a pattern may be, case-insensitive and with captures too", () => {
+      const hosts: Array<string> = valuesUpTo(
+        "kube-system-svc-",
+        MAX_PATTERN_LENGTH - 6,
+      );
+      const pattern: string = `(?i)(${hosts.join("|")})`;
+
+      expect(pattern.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
+      expect(compilePromQLRegex(pattern).test(hosts[0]!.toUpperCase())).toBe(
+        true,
+      );
+      expect(
+        compilePromQLRegex(pattern, { captures: true }).exec(
+          hosts[hosts.length - 1]!,
+        )?.captures,
+      ).toEqual([hosts[hosts.length - 1]]);
+    });
+
+    test("the widest alternation, one character each, compiles", () => {
+      const characters: Array<string> = [];
+
+      while (characters.join("|").length + 2 <= MAX_PATTERN_LENGTH) {
+        characters.push(String.fromCharCode(0x4e00 + characters.length));
+      }
+
+      const compiled: CompiledPromQLRegex = compilePromQLRegex(
+        characters.join("|"),
+      );
+
+      expect(compiled.test(characters[characters.length - 1]!)).toBe(true);
+      expect(compiled.test("a")).toBe(false);
+    });
+
+    test("a pattern that compiles to more steps than MAX_PATTERN_STEPS is still refused, saying so", () => {
+      expect(MAX_PATTERN_STEPS).toBe(2 * MAX_PATTERN_LENGTH);
+      // Each .{1000} is a thousand steps: 39 of them fit, 41 do not.
+      expect(
+        compilePromQLRegex(".{1000}".repeat(39)).test("a".repeat(39000)),
+      ).toBe(true);
+
+      const refusal: unknown = refusalOf(".{1000}".repeat(41));
+
+      expect(refusal).toBeInstanceOf(PatternProblemError);
+      expect((refusal as Error).message).toBe(
+        `The pattern is too large: it would take more than ${MAX_PATTERN_STEPS} steps to run.`,
+      );
+    });
+  });
 
   test("are compiled once and kept, by the pattern", () => {
     clearLinearRegExpCache();
@@ -1383,9 +1479,9 @@ describe("PromQL selectors", () => {
       { start: 8, end: 16 },
     ],
     [
-      `up{path!~"${".{1000}".repeat(11)}"}`,
-      `The pattern "${".{1000}".repeat(11)}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.`,
-      { start: 9, end: 88 },
+      `up{path!~"${".{1000}".repeat(41)}"}`,
+      `The pattern "${".{1000}".repeat(41)}" for the label "path" is too large to run. Shorten it, or repeat its parts fewer times.`,
+      { start: 9, end: 298 },
     ],
     [
       'up{job=~"[[:nosuch:]]"}',

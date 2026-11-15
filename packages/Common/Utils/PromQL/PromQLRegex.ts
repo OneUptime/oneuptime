@@ -136,7 +136,8 @@ import {
  * and kept (PatternCache), by the pattern, so a query that asks it about
  * every series compiles it once. The pattern a person wrote is held to the
  * matcher's MAX_PATTERN_LENGTH; the JavaScript written from it may be
- * longer (MAX_WRITTEN_PATTERN_LENGTH).
+ * longer (MAX_WRITTEN_PATTERN_LENGTH), and may compile to more steps than
+ * the matcher's default (MAX_PATTERN_STEPS), so a long alternation runs.
  */
 
 /*
@@ -182,6 +183,17 @@ const MAX_REPEAT: number = 1000;
  * bounds the program it compiles to.
  */
 export const MAX_WRITTEN_PATTERN_LENGTH: number = 10 * MAX_PATTERN_LENGTH;
+
+/*
+ * How many steps a pattern may compile to (issue #8464): about one a
+ * character and two a "|", so a pattern of MAX_PATTERN_LENGTH with no
+ * repeat in it compiles in this many - such as the alternation of hundreds
+ * of values a Grafana variable writes for "All", which Prometheus reads and
+ * the matcher's DEFAULT_MAX_STEPS (10,000) refused past about 9,000
+ * characters. A repeat's copies still count, so a pattern that compiles to
+ * more - many large counts - is still refused as too large to run.
+ */
+export const MAX_PATTERN_STEPS: number = 2 * MAX_PATTERN_LENGTH;
 
 // The code point a lone surrogate is read as: Go's utf8.RuneError.
 const REPLACEMENT_CHARACTER: number = 0xfffd;
@@ -1786,6 +1798,7 @@ export const compilePromQLRegex: (
     regex: getLinearRegExp(`^(?s:${translation.source})$`, "", {
       captures: options?.captures === true,
       maxLength: MAX_WRITTEN_PATTERN_LENGTH,
+      maxSteps: MAX_PATTERN_STEPS,
     }),
     anchoredPattern: `^(?s:${pattern})$`,
     groupNames: translation.groupNames,

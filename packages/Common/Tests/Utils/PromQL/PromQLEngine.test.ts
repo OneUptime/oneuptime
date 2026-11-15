@@ -810,6 +810,34 @@ describe("instant selectors", () => {
     ]);
   });
 
+  /*
+   * The pattern a Grafana variable writes for "All": hundreds of values,
+   * refused as too large past about 9,000 characters before (issue #8464).
+   */
+  test("a selector whose pattern lists 1,000 values finds each it lists", async () => {
+    const hosts: Array<string> = [];
+
+    for (let index: number = 0; index < 1000; index++) {
+      hosts.push(`web-server-${String(index).padStart(4, "0")}`);
+    }
+
+    const found: (query: string) => Promise<Array<string>> = textsFound([
+      "web-server-0000",
+      "web-server-0999",
+      "web-server-1000",
+      "db-server-0001",
+    ]);
+
+    expect(await found(`v{text=~"${hosts.join("|")}"}`)).toEqual([
+      "web-server-0000",
+      "web-server-0999",
+    ]);
+    expect(await found(`v{text!~"${hosts.join("|")}"}`)).toEqual([
+      "db-server-0001",
+      "web-server-1000",
+    ]);
+  });
+
   test("a label matcher refuses a class name only label_replace() reads, saying what to write", async () => {
     const error: PromQLError = await queryError(() => {
       return instant('up{job=~"\\\\p{Letter}+"}');
@@ -2049,8 +2077,8 @@ describe("other functions", () => {
       'The pattern "(a)\\1" in label_replace() refers back to what an earlier group matched (\\1 or \\k<name>). Patterns are run in time that grows only in line with the text they read, which a back-reference cannot do. Write the pattern without it.',
     ],
     [
-      `label_replace(up, "host", "$1", "instance", "(${".{1000}".repeat(11)})")`,
-      `The pattern "(${".{1000}".repeat(11)})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.`,
+      `label_replace(up, "host", "$1", "instance", "(${".{1000}".repeat(41)})")`,
+      `The pattern "(${".{1000}".repeat(41)})" in label_replace() is too large to run. Shorten it, or repeat its parts fewer times.`,
     ],
     // Refused as Prometheus refuses them, saying why.
     [
