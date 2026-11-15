@@ -69,7 +69,7 @@ En banner visar sedan hur många påminnelser som skickades, hoppades över elle
 
 ## Det veckovisa e-postmeddelandet om beredskap
 
-En gång i veckan kontrollerar OneUptime varje projekt som har en jourpolicy. När någon där är **Onåbar** eller **Behöver konfigureras** får projektets ägare ett e-postmeddelande som listar dem i två grupper, vem som inte kan larmas alls och vem som kan nås med luckor, upp till 20 namn i varje, med en länk till sidan Beredskap.
+En gång i veckan kontrollerar OneUptime varje projekt som har en jourpolicy. När någon där är **Onåbar** eller **Behöver konfigureras** får Projektägare ett e-postmeddelande som listar dem i två grupper, vem som inte kan larmas alls och vem som kan nås med luckor, upp till 20 namn i varje, med en länk till sidan Beredskap.
 
 En vecka då alla är klara skickas inget, så e-postmeddelandet betyder alltid att något behöver åtgärdas. När någon inte kan larmas alls börjar ämnesraden med `[Action Required]`.
 
@@ -100,7 +100,7 @@ Listan innehåller bara personer som en jourpolicy kan larma. En teammedlem som 
 :::
 
 :::details Ägarna får aldrig det veckovisa e-postmeddelandet
-Det skickas bara en vecka då någon är **Onåbar** eller **Behöver konfigureras**, och bara till projektets ägare.
+Det skickas bara en vecka då någon är **Onåbar** eller **Behöver konfigureras**, och bara till Projektägare.
 :::
 
 ## Nästa steg

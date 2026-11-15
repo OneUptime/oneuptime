@@ -735,6 +735,161 @@ describe("Realtime (UI) subscriptions", () => {
     });
   });
 
+  /*
+   * #8626: the products menu hears that what a project uses changed, on
+   * the same connection, in the project's usage room. The subscription is
+   * kept and re-sent like every other, with its own join.
+   */
+  describe("a project's usage room", () => {
+    const usageRoom: string = RealtimeUtil.getProjectUsageRoomId(TENANT_ID);
+
+    const usageRequests: () => Array<unknown> = (): Array<unknown> => {
+      return mockSocket.emitted
+        .filter((emitted: EmittedEvent): boolean => {
+          return emitted.event === EventName.ListenToProjectUsage;
+        })
+        .map((emitted: EmittedEvent): unknown => {
+          return emitted.data;
+        });
+    };
+
+    test("asks to join it with the project alone, and hears each change there", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      let heard: number = 0;
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {
+        heard++;
+      });
+
+      expect(usageRequests()).toEqual([{ tenantId: TENANT_ID.toString() }]);
+      // Not a model's request: no model is asked for.
+      expect(mockSocket.listenRequests()).toEqual([]);
+
+      mockSocket.deliver(usageRoom, {});
+      mockSocket.deliver(usageRoom, {});
+      // Another project's room is another project's.
+      mockSocket.deliver(
+        RealtimeUtil.getProjectUsageRoomId(OTHER_TENANT_ID),
+        {},
+      );
+
+      expect(heard).toBe(2);
+    });
+
+    test("the room is named as the server names it: the project's id first, in lower case", () => {
+      expect(usageRoom).toBe(
+        `${TENANT_ID.toString().toLowerCase()}-ProjectUsage`,
+      );
+      expect(
+        RealtimeUtil.getProjectUsageRoomId(TENANT_ID.toString().toUpperCase()),
+      ).toBe(usageRoom);
+    });
+
+    test("asked for before the socket connects: sent once, on connect", () => {
+      Realtime.init();
+
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {});
+      expect(usageRequests()).toEqual([]);
+
+      mockSocket.acceptConnection();
+
+      expect(usageRequests()).toEqual([{ tenantId: TENANT_ID.toString() }]);
+      expect(
+        mockSocket.emitted.every((emitted: EmittedEvent): boolean => {
+          return emitted.whileConnected;
+        }),
+      ).toBe(true);
+    });
+
+    test("asked for again on every reconnect, beside the model subscriptions, and once for two listeners", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      let first: number = 0;
+      let second: number = 0;
+      Realtime.listenToModelEvent(
+        {
+          modelType: Incident,
+          eventType: ModelEventType.Create,
+          tenantId: TENANT_ID,
+        },
+        () => {},
+      );
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {
+        first++;
+      });
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {
+        second++;
+      });
+
+      mockSocket.disconnect();
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+
+      expect(usageRequests()).toEqual([{ tenantId: TENANT_ID.toString() }]);
+      expect(mockSocket.listenRequests()).toEqual([
+        requestFor("Incident", ModelEventType.Create),
+      ]);
+
+      mockSocket.deliver(usageRoom, {});
+      expect([first, second]).toEqual([1, 1]);
+    });
+
+    test("stopping one listener leaves the other, and a stopped one is not asked for again", () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      let kept: number = 0;
+      let stopped: number = 0;
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {
+        kept++;
+      });
+      const stop: () => void = Realtime.listenToProjectUsage(
+        OTHER_TENANT_ID,
+        (): void => {
+          stopped++;
+        },
+      );
+
+      stop();
+      stop();
+
+      mockSocket.deliver(
+        RealtimeUtil.getProjectUsageRoomId(OTHER_TENANT_ID),
+        {},
+      );
+      mockSocket.deliver(usageRoom, {});
+      expect([kept, stopped]).toEqual([1, 0]);
+
+      mockSocket.disconnect();
+      mockSocket.clearEmitted();
+      mockSocket.acceptConnection();
+
+      expect(usageRequests()).toEqual([{ tenantId: TENANT_ID.toString() }]);
+    });
+
+    test("a refused join is answered as a model's: the session refreshed, the connection made again, the room asked for again", async () => {
+      Realtime.init();
+      mockSocket.acceptConnection();
+
+      Realtime.listenToProjectUsage(TENANT_ID, (): void => {});
+      mockSocket.clearEmitted();
+
+      mockSocket.deliver(EventName.AuthenticationRequired, {
+        tenantId: TENANT_ID.toString(),
+      });
+      await flush();
+
+      expect(refreshSession).toHaveBeenCalledTimes(1);
+      expect(mockSocket.disconnectCalls).toBe(1);
+      expect(mockSocket.connectCalls).toBe(1);
+
+      mockSocket.acceptConnection();
+      expect(usageRequests()).toEqual([{ tenantId: TENANT_ID.toString() }]);
+    });
+  });
+
   describe("the server says the handshake's session is missing or expired", () => {
     type SubscribeHeaderCountersFunction = () => void;
 

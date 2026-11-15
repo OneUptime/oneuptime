@@ -125,19 +125,19 @@ Open **Producten → Workflows** en klik op **Workflow maken**. Klik op **Vanaf 
 
 ### Voeg de trigger toe
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Fields to pass on** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
+Klik op het gestippelde blok **Kies wat deze workflow start** en kies **On Create Alert** in het paneel **Trigger toevoegen**. Klik op de trigger: **Velden om door te geven** begint met de titel, dus klik op **Veld toevoegen**, vink de beschrijving aan en klik op **Opslaan**. De ID op het blok, `alert-on-create-1`, is hoe latere blokken ernaar verwijzen.
 
 ### Controleer de titel
 
-Klik op **Component toevoegen**, kies **If / Else** en verbind het punt **Succes** van de trigger ermee. Zet **Te controleren waarde** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Vergelijking** op **bevat** en **Vergelijken met** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
+Klik op **Component toevoegen**, kies **Als / Anders** en verbind het punt **Succes** van de trigger ermee. Zet **Te controleren waarde** op de titel van de waarschuwing (klik op **{ }** en kies hem), **Vergelijking** op **bevat** en **Vergelijken met** op het begin dat de titels van je struikeldraden delen, zoals `LLM budget exceeded`.
 
 ### Roep je endpoint aan
 
-Voeg **API Post (JSON)** toe en verbind het punt **Ja** van de **If / Else** ermee. Zet de **URL** op je endpoint, zoals `https://agents.example.com/circuit-breaker`, en vul de headers en de body hieronder in.
+Voeg **API-aanroep POST (JSON)** toe en verbind het punt **Ja** van de **Als / Anders** ermee. Zet de **URL** op je endpoint, zoals `https://agents.example.com/circuit-breaker`, en vul de headers en de body hieronder in.
 
 ### Meld een mislukking
 
-Voeg **Send Message to Slack** of **Send Email** toe en verbind het punt **Fout** van het API-blok ermee. Een circuit breaker die niet afgaat, is precies de waarschuwing die een mens moet zien.
+Voeg **Bericht naar Slack sturen** of **E-mail versturen** toe en verbind het punt **Fout** van het API-blok ermee. Een circuit breaker die niet afgaat, is precies de waarschuwing die een mens moet zien.
 
 ### Zet hem aan
 
@@ -164,7 +164,7 @@ Zijn **Verzoeklichaam**:
 }
 ```
 
-Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde beginnen, of koppel je meer **If / Else**-blokken aan het punt **Nee**. Zie [Een workflow bouwen](/docs/workflows/authoring) voor het canvas en [Variabelen](/docs/workflows/variables) voor de `{{…}}`-verwijzingen.
+Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde beginnen, of koppel je meer **Als / Anders**-blokken aan het punt **Nee**. Zie [Een workflow bouwen](/docs/workflows/authoring) voor het canvas en [Variabelen](/docs/workflows/variables) voor de `{{…}}`-verwijzingen.
 
 ## Test de circuit breaker
 
@@ -180,7 +180,7 @@ Om op meerdere struikeldraden te reageren, laat je al hun titels hetzelfde begin
 - Een budget telt de UTC-dag, dus het percentage begint om middernacht UTC weer bij 0. Een budgetwaarschuwing kan dan opgelost raken, en de volgende slechte dag opent een nieuwe waarschuwing die de circuit breaker opnieuw laat afgaan.
 - Een monitor houdt zijn waarschuwing open zolang aan de criteria wordt voldaan. Met **Waarschuwing automatisch oplossen** aan, lost de waarschuwing op wanneer dat niet meer zo is, en de volgende overschrijding opent een nieuwe waarschuwing.
 - Resetten is aan beide kanten de beslissing van een mens: los de waarschuwing in OneUptime op, en reset de circuit breaker in je runner.
-- Elke nieuwe waarschuwing in het project start de workflow. De **If / Else** houdt andere waarschuwingen weg bij de circuit breaker: laat hem niet weg.
+- Elke nieuwe waarschuwing in het project start de workflow. De **Als / Anders** houdt andere waarschuwingen weg bij de circuit breaker: laat hem niet weg.
 
 ## Probleemoplossing
 
@@ -189,7 +189,7 @@ Controleer of **Ingeschakeld** aan staat bovenaan de **Bouwer**: workflows worde
 :::
 
 :::details De workflow draait, maar neemt altijd de tak No
-De titel is leeg of komt niet overeen. Een veld dat niet in **Fields to pass on** van de trigger staat, komt leeg aan, dus voeg de titel daar toe. Vergelijk daarna de titel van de waarschuwing met **Vergelijken met**: **bevat** moet precies die tekst erin vinden.
+De titel is leeg of komt niet overeen. Een veld dat niet in **Velden om door te geven** van de trigger staat, komt leeg aan, dus voeg de titel daar toe. Vergelijk daarna de titel van de waarschuwing met **Vergelijken met**: **bevat** moet precies die tekst erin vinden.
 :::
 
 :::details Je endpoint antwoordt 401
@@ -201,7 +201,7 @@ Het **Tijdsbereik** van de monitor is korter dan de 15 minuten tussen twee punte
 :::
 
 :::details Het verzoek bereikt je endpoint nooit
-Open de run onder **Workflows → Logboeken → Uitvoeringen** en de stap **API Post (JSON)**: daar staat waarom het verzoek mislukte. Op OneUptime Cloud moet het endpoint vanaf internet bereikbaar zijn; een zelf gehoste installatie weigert privénetwerkadressen, tenzij een beheerder ze toestaat.
+Open de run onder **Workflows → Logboeken → Uitvoeringen** en de stap **API-aanroep POST (JSON)**: daar staat waarom het verzoek mislukte. Op OneUptime Cloud moet het endpoint vanaf internet bereikbaar zijn; een zelf gehoste installatie weigert privénetwerkadressen, tenzij een beheerder ze toestaat.
 :::
 
 ## Volgende stappen

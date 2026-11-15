@@ -33,11 +33,7 @@ import {
   CUSTOM_DOMAIN_STATUS,
   CustomDomainCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
-import {
-  CREATED_IMPORT_RESULT,
-  CREATED_IMPORT_RESULT_IN_ENGLISH,
-  getCreatedImportResultLabel,
-} from "../../../FeatureSet/Dashboard/src/Utils/ImportResultWords";
+import { CREATED_IMPORT_RESULT } from "../../../FeatureSet/Dashboard/src/Utils/ImportResultWords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import { describe, expect, it } from "@jest/globals";
@@ -315,11 +311,13 @@ interface OwnKeyLabel {
 const OWN_KEY: Record<string, Array<OwnKeyLabel>> = {
   [RESOURCES_AND_GROUPS]: [
     {
-      english: CREATED_IMPORT_RESULT_IN_ENGLISH,
+      english: "Created",
       key: CREATED_IMPORT_RESULT,
-      draw: getCreatedImportResultLabel,
+      draw: (translator: Translator): string => {
+        return translator.translateText(CREATED_IMPORT_RESULT) || "";
+      },
       file: "App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal.tsx",
-      draws: "getCreatedImportResultLabel(translator)",
+      draws: "translator.translateText(CREATED_IMPORT_RESULT)",
     },
   ],
 };

@@ -83,6 +83,8 @@ import {
   ServiceMapStatus,
   ServiceMapVisibility,
   buildServiceMapModel,
+  detailLabelInLanguage,
+  entryLabelInLanguage,
   layoutServiceMap,
   resolveServiceMapVisibility,
   summarizeRunsOn,
@@ -277,7 +279,9 @@ export function statusLabelForEntry(
  * What a node is, and the language or engine it reports when it does:
  * "Service · Node.js", "Datenbank · PostgreSQL". On a page read from the
  * right the name is set apart, so a name in Latin letters never takes the
- * separator into its run.
+ * separator into its run. A browser service's runtime is the one detail
+ * that is a word, not a product's name, and reads in the reader's
+ * language: "سرویس • مرورگر" (#8260).
  */
 export function subtitleForEntry(
   entry: ServiceMapEntry,
@@ -291,7 +295,7 @@ export function subtitleForEntry(
     [
       typeText,
       setApartInSentence(
-        entry.detailLabel,
+        detailLabelInLanguage(entry.detailLabel, translator),
         getReadingDirection(translator.language),
       ),
     ],
@@ -377,7 +381,7 @@ const ServiceMapCanvasNode: FunctionComponent<NodeProps<ServiceNodeData>> = (
   return (
     <TopologyNodeCard
       testId={`service-map-node-${entry.key}`}
-      title={entry.label}
+      title={props.data.label}
       subtitle={props.data.subtitle}
       icon={KIND_ICONS[entry.kind]}
       color={metaForEntityType(entry.entity.entityType).color}
@@ -808,7 +812,8 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         ...(size ? { width: size.width, height: size.height } : {}),
         data: {
           entry,
-          label: entry.label,
+          // An unnamed node in the reader's words (#8260).
+          label: entryLabelInLanguage(entry, translator),
           subtitle: subtitleForEntry(entry, translator),
           statusLabel: statusLabelForEntry(entry, translator),
           stats: statsForEntry(entry, props.metricsWindowSeconds, translator),
@@ -1190,7 +1195,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-gray-900">
-                    {entry.label}
+                    {entryLabelInLanguage(entry, translator)}
                   </span>
                   <span className="block truncate text-xs text-gray-500">
                     {runsOn
@@ -1340,7 +1345,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                               selectNode(entry.key);
                             }}
                           >
-                            {entry.label}
+                            {entryLabelInLanguage(entry, translator)}
                           </button>
                           <span
                             className="mt-0.5 block text-xs text-gray-500"
@@ -1403,7 +1408,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                         className="whitespace-nowrap text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                         aria-label={translator.translateTemplate(
                           "Show on map {{name}}",
-                          { name: entry.label },
+                          { name: entryLabelInLanguage(entry, translator) },
                         )}
                         onClick={() => {
                           focusOn(entry.key);

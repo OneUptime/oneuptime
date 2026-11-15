@@ -73,7 +73,7 @@ Ein über ein Formular gemeldeter Vorfall ist ein gewöhnlicher Vorfall, mit ein
 
 - **Auf Statusseiten verborgen.** **Auf Statusseite sichtbar** ist aus, ebenso **Statusseiten-Abonnenten benachrichtigen**. Bis ein Responder ihn veröffentlicht, erreicht nichts über den Vorfall eine Statusseite oder einen Abonnenten — außer der Änderung des Monitorstatus durch eine Vorlage, siehe oben.
 - **Von niemandem gemeldet.** Die einreichende Person ist kein OneUptime-Benutzer, daher wird kein Benutzer als meldende Person des Vorfalls festgehalten.
-- **Seine Eigentümer erfahren davon.** Die Eigentümer, die die Einstellungen und die Vorlage nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle des Vorfalls existieren, und benachrichtigt — die Benachrichtigung **Vorfall erstellt** des Vorfalls wartet, bis sie seine Eigentümer sind, und geht so an sie statt an die Eigentümer des Projekts.
+- **Seine Eigentümer erfahren davon.** Die Eigentümer, die die Einstellungen und die Vorlage nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle des Vorfalls existieren, und benachrichtigt — die Benachrichtigung **Vorfall erstellt** des Vorfalls wartet, bis sie seine Eigentümer sind, und geht so an sie statt an die Projektinhaber.
 - **Eine private Notiz hält die Einreichung fest** — siehe [Die private Notiz](#die-private-notiz).
 
 Alles, was für einen neuen Vorfall läuft, läuft auch für diese: Datenschutz-, Eigentümer-, Beschriftungs-, Bereitschafts- und Runbook-Regeln, Bereitschaftsrichtlinien und Workflows **On Create Incident**. Bereitschaftsregeln treffen auf die Vorfälle eines Formulars wie auf alle anderen zu — auch über ihren Titel und ihre Beschreibung, die die einreichende Person geschrieben hat.

@@ -11,7 +11,7 @@ Dette bør du vite før du retter en arbeidsflyt mot ekte trafikk: hvordan du sl
 
 ## Å slå en arbeidsflyt på eller av
 
-Hver arbeidsflyt har en bryter, **Aktivert**, øverst i **Bygger** og på siden **Oversikt**. Når den er av, er triggeren satt på pause — webhook-kall, innkommende e-post, planlagte tidspunkter, OneUptime-begivenheter og andre arbeidsflyters **Execute Workflow**-trinn starter den ikke. **Kjør arbeidsflyt** og **Run just this step** gjør det: en kjøring du starter selv mens arbeidsflyten er av, er en **Testkjøring**. Nye arbeidsflyter starter deaktivert.
+Hver arbeidsflyt har en bryter, **Aktivert**, øverst i **Bygger** og på siden **Oversikt**. Når den er av, er triggeren satt på pause — webhook-kall, innkommende e-post, planlagte tidspunkter, OneUptime-begivenheter og andre arbeidsflyters **Kjør en annen arbeidsflyt**-trinn starter den ikke. **Kjør arbeidsflyt** og **Run just this step** gjør det: en kjøring du starter selv mens arbeidsflyten er av, er en **Testkjøring**. Nye arbeidsflyter starter deaktivert.
 
 Bruk denne bryteren som «klar til bruk»-porten din:
 
@@ -22,14 +22,14 @@ Bruk denne bryteren som «klar til bruk»-porten din:
 4. Slå på **Aktivert** når den er klar: fra da av utløses triggeren ved ekte begivenheter.
 :::
 
-Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner. Testkjøringer fortsetter. For å slå flere på eller av samtidig merker du dem i listen **Arbeidsflyter** og velger **Aktiver** eller **Deaktiver** under **Massehandlinger**.
+Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Pause**-blokk, avbrytes når den våkner. Testkjøringer fortsetter. For å slå flere på eller av samtidig merker du dem i listen **Arbeidsflyter** og velger **Aktiver** eller **Deaktiver** under **Massehandlinger**.
 
 ## Å arkivere en arbeidsflyt
 
 Arkiver en arbeidsflyt du ikke lenger trenger, men vil beholde. En arkivert arbeidsflyt:
 
-- **Kjører aldri**, fra noen trigger. Manuelle kjøringer og **Run just this step**, webhook-kall, tidsplaner, OneUptime-begivenheter, innkommende e-post og **Execute Workflow**-trinn i andre arbeidsflyter avvises alle. Et webhook-kall til en arkivert arbeidsflyt får en feil som sier at arbeidsflyten er arkivert.
-- **Stopper kjøringer som venter.** En kjøring som sover i et **Sleep**-trinn, avbrytes når den våkner, og en kjøring som sto i kø, men ennå ikke hadde startet, slutter med "Workflow was archived before this run started, so it did not run."
+- **Kjører aldri**, fra noen trigger. Manuelle kjøringer og **Run just this step**, webhook-kall, tidsplaner, OneUptime-begivenheter, innkommende e-post og **Kjør en annen arbeidsflyt**-trinn i andre arbeidsflyter avvises alle. Et webhook-kall til en arkivert arbeidsflyt får en feil som sier at arbeidsflyten er arkivert.
+- **Stopper kjøringer som venter.** En kjøring som sover i et **Pause**-trinn, avbrytes når den våkner, og en kjøring som sto i kø, men ennå ikke hadde startet, slutter med "Workflow was archived before this run started, so it did not run."
 - **Forsvinner fra listen over arbeidsflyter.** Du finner den under **Arbeidsflyter → Avansert → Arkivert**.
 - **Beholder alt.** Trinnene, variablene, eierne, etikettene og kjøringshistorikken forblir som de var.
 
@@ -96,7 +96,7 @@ Webhook-triggere gir deg en unik URL. Alle som kjenner URL-en, kan kalle den. Sl
 - Behandle URL-en som et passord. Ikke del den offentlig, og ikke legg den i et offentlig repo. Webhook-triggeren skjuler den hemmelige nøkkelen i URL-en til du klikker på **Vis**, og **Kopier URL** kopierer URL-en uten å vise den.
 - Lekker URL-en, klikker du på Webhook-triggeren i **Bygger** og deretter på **Tilbakestill URL**. Arbeidsflyten får en ny URL, og den gamle slutter å virke med en gang.
 - Sier triggeren at URL-en ender på ID-en til arbeidsflyten, tilbakestiller du den. Arbeidsflyter som ble opprettet før webhook-URL-er fikk sin egen hemmelige nøkkel, bruker i stedet ID-en til arbeidsflyten, og den kan alle som kan åpne arbeidsflyten, se.
-- For sensitive arbeidsflyter ber du systemet som kaller, sende et delt token som header (som `X-Webhook-Token`), og sjekker det med en **If / Else**-blokk før noe viktig skjer. Lagre det forventede tokenet som en hemmelig variabel.
+- For sensitive arbeidsflyter ber du systemet som kaller, sende et delt token som header (som `X-Webhook-Token`), og sjekker det med en **Hvis / Ellers**-blokk før noe viktig skjer. Lagre det forventede tokenet som en hemmelig variabel.
 - For svært sensitive arbeidsflyter er en OneUptime-begivenhetstrigger og et manuelt importtrinn å foretrekke fremfor en offentlig webhook.
 
 Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadministrator**, **Arbeidsflytadministrator** eller **Edit Workflow** — kan se eller tilbakestille webhook-URL-en. Alle med URL-en kan starte arbeidsflyten hvor som helst fra, uten å logge inn, så alle andre ser en merknad om hvem de kan spørre i stedet. Det gjelder også en **Arbeidsflytmedlem**, som kjører arbeidsflyten manuelt fra **Bygger**.
@@ -107,7 +107,7 @@ Incoming Email-triggeren gir arbeidsflyten sin egen adresse, og alle som kjenner
 
 - Ikke publiser den, og ikke legg den i et offentlig repo. Triggeren skjuler nøkkelen til du klikker på **Vis**, og **Kopier adresse** kopierer adressen uten å vise den.
 - Lekker adressen, klikker du på Incoming Email-triggeren i **Bygger** og deretter på **Tilbakestill adresse**. Arbeidsflyten får en ny adresse, og e-post til den gamle ignoreres fra da av.
-- Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **Fra** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **If / Else**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
+- Hvem som helst kan sette en hvilken som helst avsender på en e-post, så **Fra** beviser ikke hvem som sendte den. Før en arbeidsflyt gjør noe viktig, sjekker du noe bare den ekte avsenderen vet — et token i emnet eller i en header — med en **Hvis / Ellers**-blokk. Lagre det forventede tokenet som en hemmelig variabel.
 - Nøkkelen skjules i alt kjøringen mottar — **Til**, **CC**, headerne og innholdet — fordi loggen til kjøringen er synlig for alle som kan lese kjøringene til arbeidsflyten.
 
 Bare personer som kan redigere arbeidsflyten — **Prosjekteier**, **Prosjektadministrator**, **Arbeidsflytadministrator** eller **Edit Workflow** — kan se eller tilbakestille adressen. Alle andre ser en merknad om hvem de kan spørre.
@@ -120,27 +120,27 @@ Hvilke adresser en blokk kan nå, avhenger av blokken:
 
 | Blokker                                                        | Loopback, link-local, skymetadata                                            | Private nettverksadresser                                                                                                                         |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **API**- og **Mattermost**-blokker samt forespørsler fra **Run Custom JavaScript** | Avvises, med mindre den nøyaktige verten står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvises, med mindre en administrator av en selvhostet installasjon tillater dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** og OAuth 2.0-token-URL-er             | Avvises                                                                      | Avvises i OneUptime Cloud. Tillatt på en selvhostet installasjon, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                     |
+| **API**- og **Mattermost**-blokker samt forespørsler fra **Kjør egen JavaScript** | Avvises, med mindre den nøyaktige verten står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvises, med mindre en administrator av en selvhostet installasjon tillater dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
+| **Send e-post**, **IRC** og OAuth 2.0-token-URL-er             | Avvises                                                                      | Avvises i OneUptime Cloud. Tillatt på en selvhostet installasjon, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                     |
 | Slack, Microsoft Teams, Discord og Telegram                    | Avvises                                                                      | Avvises: hver sender bare til adressene til sin egen tjeneste                                                                                     |
 
 Se [Tilgang til private nettverk](/docs/self-hosted/private-network-access) for hvordan en administrator av en selvhostet installasjon åpner for dem.
 
 ## AI-komponenter
 
-**Generate Text with AI** sender én forespørsel til en LLM: prosjektets standard-LLM-leverandør, eller installasjonens globale leverandør når prosjektet ikke har noen. Sett opp leverandører under **Prosjektinnstillinger → KI → LLM-leverandører**, og legg aldri API-nøkkelen til en leverandør eller et eget endepunkt i en arbeidsflyt.
+**Generer tekst med AI** sender én forespørsel til en LLM: prosjektets standard-LLM-leverandør, eller installasjonens globale leverandør når prosjektet ikke har noen. Sett opp leverandører under **Prosjektinnstillinger → KI → LLM-leverandører**, og legg aldri API-nøkkelen til en leverandør eller et eget endepunkt i en arbeidsflyt.
 
 Hva leverandøren mottar, og hva modellen kan gjøre med det:
 
-- **Bare det du legger i blokken.** OneUptime sender en fast sikkerhetsinstruksjon og deretter blokkens **System Instructions**, **Prompt** og **Kontekst**, med referansene fylt ut. **Kontekst** kommer sist, etter en markør, og sikkerhetsinstruksjonen forteller modellen at alt etter markøren er upålitelige data, også tekst som ser ut som instruksjoner.
+- **Bare det du legger i blokken.** OneUptime sender en fast sikkerhetsinstruksjon og deretter blokkens **Systeminstruksjoner**, **Prompt** og **Kontekst**, med referansene fylt ut. **Kontekst** kommer sist, etter en markør, og sikkerhetsinstruksjonen forteller modellen at alt etter markøren er upålitelige data, også tekst som ser ut som instruksjoner.
 - **Ingenting annet.** Dataene fra triggeren, historikken til arbeidsflyten, utdata fra andre blokker, prosjektposter, telemetri og hemmeligheter legges aldri ved. De forlater bare OneUptime når du viser til dem i en av de tre innstillingene.
 - **Tekst, og ingen verktøy.** Modellen kan ikke spørre OneUptime, gjøre HTTP-forespørsler eller endre data. Ekstra parametere fra en leverandør slipper bare gjennom en tillatelsesliste med felt som kun justerer genereringen: de kan ikke erstatte meldingene, legge til verktøy, nettsøk eller andre datakilder, be om noe annet enn tekst eller om flere svar, strømme, la leverandøren beholde forespørselen eller heve grensen for utdata i blokken. Felt OneUptime ikke kjenner, forkastes.
 - **Modellen er administratorens valg.** Må genereringen holde seg frakoblet, velger du en modell som ikke henter noe på egen hånd hos leverandøren.
 
 Hva som logges:
 
-- Loggen til kjøringen skjuler blokkens **System Instructions**, **Prompt**, **Kontekst** og **Svar**. Senere blokker kan fortsatt bruke dem under kjøringen, og en blokk du setter en av dem inn i, logger den etter sine egne regler, så å sette en inn er et valg om å vise den.
-- Leverandøren, modellen, antall tokener, **LLM Log ID** og en trygg feilmelding forblir synlige, for drift og fakturering. Den rå feilen fra en leverandør holdes utenfor alle logger, fordi en leverandør kan gjenta forespørselen i den.
+- Loggen til kjøringen skjuler blokkens **Systeminstruksjoner**, **Prompt**, **Kontekst** og **Svar**. Senere blokker kan fortsatt bruke dem under kjøringen, og en blokk du setter en av dem inn i, logger den etter sine egne regler, så å sette en inn er et valg om å vise den.
+- Leverandøren, modellen, antall tokener, **LLM-logg-ID** og en trygg feilmelding forblir synlige, for drift og fakturering. Den rå feilen fra en leverandør holdes utenfor alle logger, fordi en leverandør kan gjenta forespørselen i den.
 - Hvert kall står under **Prosjektinnstillinger → KI → AI-logger** med leverandør, modell, status, tokener, kostnad og fakturering, uten prompten, svaret eller den rå feilen.
 
 Hva blokken krever, og hva den koster:
@@ -151,9 +151,9 @@ Hva blokken krever, og hva den koster:
 
 | Grense                                                        | Verdi                                                                    |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** og **Kontekst** til sammen | 50 000 tegn                                                              |
+| **Systeminstruksjoner**, **Prompt** og **Kontekst** til sammen | 50 000 tegn                                                              |
 | **Temperatur**                                               | Fra `0` til `1`                                                          |
-| **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
+| **Maksimalt antall utdatatokener**                                     | Fra `1` til `4096`, `1024` som standard                                  |
 | Én forespørsel                                                | Forsøkes én gang, i høyst 60 sekunder                                    |
 | Kall samtidig                                                 | 3 per prosjekt. Flere tar **Feil**, og en senere kjøring kan prøve igjen. |
 
@@ -220,24 +220,24 @@ Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger
 
 | Grense                                                            | Standard       | Innstilling ved selvhosting     |
 | ----------------------------------------------------------------- | -------------- | ------------------------------- |
-| En kjøring, fra starten eller fra den våkner etter en **Sleep**    | 2 minutter     | `WORKFLOW_TIMEOUT_IN_MS`        |
-| En **Run Custom JavaScript**-blokk                                | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| En **Sleep**-blokk                                                | Høyst 30 dager | —                               |
+| En kjøring, fra starten eller fra den våkner etter en **Pause**    | 2 minutter     | `WORKFLOW_TIMEOUT_IN_MS`        |
+| En **Kjør egen JavaScript**-blokk                                | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| En **Pause**-blokk                                                | Høyst 30 dager | —                               |
 
-Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Tidsavbrudd** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
+Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Tidsavbrudd** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Pause**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
 
 ## Grense for å kalle andre arbeidsflyter
 
-Komponenten **Execute Workflow** lar én arbeidsflyt starte en annen. For å hindre løkker der arbeidsflyt A starter B, som starter A igjen, avvises en kjede av arbeidsflyter som starter hverandre, når den ville gått tilbake til en arbeidsflyt som allerede er i den, eller gått dypere enn 10 arbeidsflyter. Blokken **Execute Workflow** tar da utgangen **Feil**, og feilen viser kjeden.
+Komponenten **Kjør en annen arbeidsflyt** lar én arbeidsflyt starte en annen. For å hindre løkker der arbeidsflyt A starter B, som starter A igjen, avvises en kjede av arbeidsflyter som starter hverandre, når den ville gått tilbake til en arbeidsflyt som allerede er i den, eller gått dypere enn 10 arbeidsflyter. Blokken **Kjør en annen arbeidsflyt** tar da utgangen **Feil**, og feilen viser kjeden.
 
-Har du et reelt behov for en lang kjede (som en jobb som behandler ett element per kjøring), er det vanligvis enklere å gå i løkke inne i én enkelt arbeidsflyt med **Run Custom JavaScript**.
+Har du et reelt behov for en lang kjede (som en jobb som behandler ett element per kjøring), er det vanligvis enklere å gå i løkke inne i én enkelt arbeidsflyt med **Kjør egen JavaScript**.
 
 ## Når arbeidsflyter ikke er riktig verktøy
 
 Noen tilfeller der du bør gripe til noe annet:
 
 - **Tunge beregninger eller store datasett** — arbeidsflyter er laget for lett limarbeid, ikke tallknusing. Kjør tungt arbeid i din egen infrastruktur, og la en arbeidsflyt sette det i gang.
-- **Langvarig aktiv beregning** — en kjøring har 2 minutter som standard. For en passiv pause som «gjør A, vent to timer, gjør B» bruker du komponenten **Sleep**; den legger kjøringen til side og gjenopptar den senere uten å oppta en worker.
+- **Langvarig aktiv beregning** — en kjøring har 2 minutter som standard. For en passiv pause som «gjør A, vent to timer, gjør B» bruker du komponenten **Pause**; den legger kjøringen til side og gjenopptar den senere uten å oppta en worker.
 - **Trinnvis hendelseshåndtering med mennesker involvert** — det er det [Runbooks](/docs/runbooks/index) er til. Arbeidsflyter er for automatisering uten tilsyn.
 
 ## Neste trinn

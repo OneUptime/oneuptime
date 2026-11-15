@@ -104,7 +104,7 @@ Dataverse에는 Jira의 레이블 같은 것이 없으므로, 사례와 OneUptim
 
 OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인시던트**로 표시된 인시던트나 **비공개 경고**로 표시된 알림을 Dynamics 365에 보내지 않습니다. 레코드도, 그 상태도, 노트도 보내지 않습니다. [템플릿이 하는 일 바꾸기](#템플릿이-하는-일-바꾸기)를 참고하세요.
 
-**모니터는 스스로 알림을 발생시키며, 아주 많이 발생시킬 수도 있습니다.** **Create a Dynamics 365 case when an alert is created**는 그 하나하나에 사례를 엽니다. 모든 알림에 사례가 필요한 것이 아니라면, 트리거와 워크플로의 나머지 사이에 예를 들어 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`을 확인하는 **If / Else** 블록을 두고, 그 **예** 쪽만 다음 블록에 연결하세요.
+**모니터는 스스로 알림을 발생시키며, 아주 많이 발생시킬 수도 있습니다.** **Create a Dynamics 365 case when an alert is created**는 그 하나하나에 사례를 엽니다. 모든 알림에 사례가 필요한 것이 아니라면, 트리거와 워크플로의 나머지 사이에 예를 들어 `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`을 확인하는 **조건 분기** 블록을 두고, 그 **예** 쪽만 다음 블록에 연결하세요.
 
 ### 템플릿이 묻는 내용
 
@@ -184,7 +184,7 @@ Dynamics 365 → OneUptime 템플릿(인시던트용 3개, 알림용 3개)은 [W
 각 실행의 **단계**에 템플릿이 한 일이 나오므로, **로그 → 실행 기록**에서 실행을 열고 어떻게 끝났는지 보세요:
 
 - **실행됨**: 할 일을 마쳤고, 마지막 단계에 사례, 인시던트 또는 알림이 나옵니다.
-- **실행됨**이고 **Check With JavaScript** 단계가 **아니오**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
+- **실행됨**이고 **JavaScript로 확인** 단계가 **아니오**로 감: 일부러 이벤트를 건너뛰었고, 그 단계가 이유를 알려 줍니다. 사례가 이 종류의 레코드에 연결되지 않았거나, 메모가 반대편에서 왔거나, 레코드가 비공개이거나, 새 상태가 사례를 종결하지 않는 경우입니다.
 - **오류**: 단계가 실패했고, **단계**에 있는 그 항목에 이유가 나옵니다. Dynamics 365 호출이라면 Dynamics 365의 응답도 포함됩니다.
 - `link-case-1`에서 **오류**: 사례에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Dynamics 365가 링크를 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 사례의 열에 링크를 직접 입력하세요.
 
@@ -221,7 +221,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 템플릿이 하는 일 바꾸기
 
-워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **Check With JavaScript** 블록의 **JavaScript 코드**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다.
+워크플로의 **빌더**를 열고 바꾸려는 블록을 클릭하세요. 가장 바꾸고 싶을 만한 설정은 스크립트 맨 위 근처의 상수로, **JavaScript로 확인** 블록의 **JavaScript 코드**에서 공유 도우미 블록 바로 아래에 있습니다. 템플릿의 인시던트용과 알림용 버전은 같은 블록에 같은 상수를 둡니다.
 
 | 상수 | 템플릿과 블록 | 제어하는 내용 |
 | --- | --- | --- |
@@ -269,8 +269,8 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 ### 인시던트마다 사례 열기
 
 :::steps
-1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **Fields to pass on**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
-2. **구성 요소 추가**를 클릭하고 **API Post (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
+1. `Incidents to Dynamics 365`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다.
+2. **구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-case`로, **URL**을 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`로 설정합니다.
 3. **추가 필드**에서 **요청 헤더**를 다음으로 설정합니다:
 
    ```json
@@ -306,7 +306,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 ### 우선순위와 상태 매핑하기
 
-Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `prioritycode`를 설정하고, 심각도마다 우선순위를 주려면 **If / Else** 블록으로 인시던트의 심각도에 따라 분기하세요. 이 열들은 숫자로 보냅니다:
+Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `prioritycode`를 설정하고, 심각도마다 우선순위를 주려면 **조건 분기** 블록으로 인시던트의 심각도에 따라 분기하세요. 이 열들은 숫자로 보냅니다:
 
 | 열 | 값 |
 | --- | --- |
@@ -323,15 +323,15 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 사례 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **Fields to watch**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **Fields to pass on**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
-2. **If / Else** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **비교**는 **참임**입니다.
-3. 그 **예** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API Get (JSON)** 블록을 추가합니다:
+1. **On Update Incident** 트리거가 있는 `Close Dynamics 365 cases`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **Is Resolved State**를 고릅니다.
+2. **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **비교**는 **참임**입니다.
+3. 그 **예** 쪽 뒤에 **Identifier**가 `find-case`이고, `Prefer`를 뺀 같은 헤더와 다음 **URL**을 가진 **API 호출 GET (JSON)** 블록을 추가합니다:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'
    ```
 
-4. 그 뒤에 같은 헤더와 다음 본문으로 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`에 보내는 **API Post (JSON)** 블록을 추가합니다:
+4. 그 뒤에 같은 헤더와 다음 본문으로 `https://yourorg.crm.dynamics.com/api/data/v9.2/CloseIncident`에 보내는 **API 호출 POST (JSON)** 블록을 추가합니다:
 
    ```json
    {
@@ -347,7 +347,7 @@ Dynamics 365의 `severitycode`에는 옵션이 하나뿐이므로 대신 `priori
 
 URL은 쓰인 그대로 전송되므로 `$filter`의 공백은 `%20`으로 씁니다. 쿼리는 `value` 목록으로 응답하며, `value[0]`이 첫 번째 사례입니다. `Status`는 Resolved 상태의 `statuscode`이며, `5`는 Problem Solved입니다.
 
-해결에는 `CloseIncident`를 사용하고, `PATCH`로 `statecode`를 바꾸지 마세요. 이 작업은 해결된 사례에 있어야 하는 Case Resolution을 기록하며, 관리자가 상태 전환을 구성한 곳에서는 `PATCH`가 거부됩니다. 우선순위나 제목처럼 그 밖의 것은 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)`에 **API Patch (JSON)** 블록으로 보내되, 새 사례를 만들지 않게 하는 `If-Match: *` 헤더와 바꾸는 열만 담으세요.
+해결에는 `CloseIncident`를 사용하고, `PATCH`로 `statecode`를 바꾸지 마세요. 이 작업은 해결된 사례에 있어야 하는 Case Resolution을 기록하며, 관리자가 상태 전환을 구성한 곳에서는 `PATCH`가 거부됩니다. 우선순위나 제목처럼 그 밖의 것은 `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents(<the case id>)`에 **API 호출 PATCH (JSON)** 블록으로 보내되, 새 사례를 만들지 않게 하는 `If-Match: *` 헤더와 바꾸는 열만 담으세요.
 
 ### Dynamics 365에서 변경 사항 받기
 
@@ -362,8 +362,8 @@ URL은 쓰인 그대로 전송되므로 `$filter`의 공백은 `%20`으로 씁�
 
    자체 호스팅 설치에서는 URL에 자체 호스트가 들어갑니다. URL을 비밀번호처럼 다루세요. URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정**을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
-3. 무엇보다 먼저 공유 시크릿을 확인하는 **If / Else** 블록을 추가합니다: **확인할 값**은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **비교**는 **같음**, **비교 대상**은 직접 정해 시크릿 전역 변수에 보관한 값입니다.
-4. 그 **예** 쪽 뒤에 **Update One Incident** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **Data (JSON Object)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
+3. 무엇보다 먼저 공유 시크릿을 확인하는 **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **비교**는 **같음**, **비교 대상**은 직접 정해 시크릿 전역 변수에 보관한 값입니다.
+4. 그 **예** 쪽 뒤에 **Update One Incident** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
 
 워크플로를 켠 다음 Dynamics 365가 이를 호출하게 하세요:
 
@@ -378,7 +378,7 @@ Microsoft Dataverse 커넥터는 프리미엄 커넥터입니다. 흐름의 소�
 @tab Dataverse webhook
 1. [Plug-in Registration Tool](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/register-web-hook)로 워크플로의 URL을 등록합니다. **HttpHeader** 인증과 헤더 `X-OneUptime-Secret`으로 **Register New WebHook**을 합니다.
 2. `incident`의 **Update** 메시지에 대한 단계를 등록합니다. **Filtering Attributes**는 필요한 열로 제한하고, **PostOperation**과 **Asynchronous**를 사용합니다.
-3. 워크플로에서 페이로드를 읽습니다. 페이로드는 플러그인 실행 컨텍스트이며, 그 안의 `InputParameters`는 `{key, value}` 쌍의 목록이고 바뀐 행은 `Target` 아래에 있습니다. 읽는 데는 **Run Custom JavaScript** 블록이 가장 쉽습니다.
+3. 워크플로에서 페이로드를 읽습니다. 페이로드는 플러그인 실행 컨텍스트이며, 그 안의 `InputParameters`는 `{key, value}` 쌍의 목록이고 바뀐 행은 `Target` 아래에 있습니다. 읽는 데는 **사용자 지정 JavaScript 실행** 블록이 가장 쉽습니다.
 
 Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리며, `502`, `503`, `504`일 때만 한 번 다시 시도합니다. 업데이트에는 바뀐 열만 들어 있으므로, 나머지 열이 필요하면 사후 이미지(post image)를 등록하세요.
 :::
@@ -395,7 +395,7 @@ Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리�
 | **Find One Incident State** | **Find One Alert State** |
 | **Update One Incident** | **Update One Alert** |
 
-워크플로에는 트리거가 정확히 하나이므로 인시던트와 알림에는 각각 워크플로가 필요합니다. 둘 다에 같은 Dynamics 365 작업을 하려면 **수동** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **Execute Workflow** 블록으로 시작하세요.
+워크플로에는 트리거가 정확히 하나이므로 인시던트와 알림에는 각각 워크플로가 필요합니다. 둘 다에 같은 Dynamics 365 작업을 하려면 **수동** 트리거가 있는 워크플로에 한 번만 만들고, 둘 다에서 **다른 워크플로 실행** 블록으로 시작하세요.
 
 ## 문제 해결
 
@@ -430,7 +430,7 @@ Dataverse는 포트 80과 443만 호출하고, 응답을 60초 동안 기다리�
 :::
 
 :::details 429 Too Many Requests
-Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6,000개의 요청과 20분의 실행 시간을 허용합니다. 응답에는 초 단위의 `Retry-After`가 있습니다. 요청이 몰리는 워크플로에는 **Sleep** 블록을 두거나, 작업을 예약된 워크플로로 옮기세요.
+Dataverse의 서비스 보호 한도는 임의의 5분 동안 사용자당 약 6,000개의 요청과 20분의 실행 시간을 허용합니다. 응답에는 초 단위의 `Retry-After`가 있습니다. 요청이 몰리는 워크플로에는 **대기** 블록을 두거나, 작업을 예약된 워크플로로 옮기세요.
 :::
 
 :::details OneUptime에 아무것도 도착하지 않음

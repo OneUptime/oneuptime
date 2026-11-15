@@ -73,8 +73,14 @@ const UNSUPPORTED_MESSAGE_PREFIX: string =
   "Unsupported public dashboard resource widget: ";
 
 /*
- * The seven display fields (plus the row id) both SLO widgets render. Pinned
+ * The nine display fields (plus the row id) both SLO widgets render. Pinned
  * as a literal: this IS what an anonymous viewer can read.
+ *
+ * A request SLO's budget line - "120 failed requests remaining" - is worded
+ * from its SLI type and its budget in requests (#8441), so those two are
+ * published. The type says only "failed" or "slow", which the line itself
+ * says; what the SLO measures (its services, threshold and request filter)
+ * stays withheld below.
  */
 const PUBLISHED_SLO_SELECT: JSONObject = {
   _id: true,
@@ -85,6 +91,8 @@ const PUBLISHED_SLO_SELECT: JSONObject = {
   errorBudgetRemainingSeconds: true,
   currentBurnRate: true,
   sloStatus: true,
+  sliType: true,
+  errorBudgetRemainingEvents: true,
 };
 
 type WidgetArguments = Record<string, unknown>;
@@ -260,7 +268,13 @@ const SENSITIVE_SLO_COLUMNS: Array<string> = [
   "downtimeMonitorStatuses",
   "multiMonitorMode",
   "metricQueryConfig",
-  "sliType",
+  // What a request SLO measures, and how much traffic it counts (#6799, #8444).
+  "services",
+  "latencyThresholdInMilliseconds",
+  "requestFilter",
+  "goodEventCount",
+  "totalEventCount",
+  "errorBudgetTotalEvents",
   "windowType",
   "windowDays",
   "timezone",
@@ -606,12 +620,12 @@ describe("SLO dashboard template on a public dashboard", () => {
     });
 
     /*
-     * The SLO widget's seven display fields plus `isEnabled`. A disabled SLO
+     * The SLO widget's nine display fields plus `isEnabled`. A disabled SLO
      * keeps the status it was frozen at, so without the flag the public list
      * published that status as live (regression). The flag is withheld from
      * the single-SLO widget, which has no use for it.
      */
-    it("publishes the SLO widget's seven display fields plus isEnabled, and nothing else", () => {
+    it("publishes the SLO widget's nine display fields plus isEnabled, and nothing else", () => {
       const config: DashboardViewConfig = storedConfig();
       const select: JSONObject = buildPolicy({
         config,

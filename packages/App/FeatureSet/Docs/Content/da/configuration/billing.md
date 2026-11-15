@@ -138,7 +138,7 @@ Klik på **Genoplad saldo** på sidens kort **Aktuel saldo**. Indtast et beløb 
 Klik på **Rediger Automatisk genopfyldning** på kortet **Automatisk genopfyldning**, og slå **Aktivér automatisk genopfyldning** til. Den er slået fra fra start. Når den er slået til, lægger OneUptime $20 til, hver gang saldoen falder til $10, eller de beløb, du vælger.
 :::
 
-Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper, og projektets ejere får en e-mail. Se [Når en tilkaldelse ikke sendes](/docs/on-call/escalation-rules#når-et-tilkald-ikke-sendes) og [Når AI-kreditterne slipper op](/docs/ai/ai-sre#når-ai-kreditterne-slipper-op).
+Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper, og Projektejere får en e-mail. Se [Når en tilkaldelse ikke sendes](/docs/on-call/escalation-rules#når-et-tilkald-ikke-sendes) og [Når AI-kreditterne slipper op](/docs/ai/ai-sre#når-ai-kreditterne-slipper-op).
 
 ## Hvem må hvad
 

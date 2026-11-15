@@ -139,7 +139,7 @@ Pour Copilot, accordez le consentement administrateur pour les permissions Graph
 :::
 
 :::details Quelqu'un ne voit pas les conversations
-**Qui peut lire les conversations** est réglé sur **Propriétaires du projet et Administrateurs du projet**. Un propriétaire ou un administrateur peut le changer avec **Modifier** dans la ligne de la connexion.
+**Qui peut lire les conversations** est réglé sur **Propriétaires du projet et Administrateurs du projet**. Un Propriétaire du projet ou un Administrateur du projet peut le changer avec **Modifier** dans la ligne de la connexion.
 :::
 
 :::details Les conversations montrent qui a demandé, mais pas les mots

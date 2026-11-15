@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og velger **Målinge
 
 ### Legg til målingsspørringene
 
-I **Måling å følge med på** velger du en **Måling** og hvordan den aggregeres med **Aggregate by**. Åpne **Filters & grouping** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til måling** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser de siste timene, med regelens verdi som en rød linje, så du ser verdiene regelen kommer til å sjekke.
+I **Måling å følge med på** velger du en **Måling** og hvordan den aggregeres med **Aggreger etter**. Åpne **Filtre og gruppering** for å filtrere etter attributter eller gruppere med **Grupper etter**. Klikk på **Legg til måling** for en spørring til, eller på **Legg til formel** for å kombinere dem. Diagrammet under spørringene viser de siste timene, med regelens verdi som en rød linje, så du ser verdiene regelen kommer til å sjekke.
 
 ### Si når det skal varsles
 
@@ -63,9 +63,9 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | Felt | Hva det gjør | Standard |
 | --- | --- | --- |
 | **Måling** | Målingen det spørres etter. | Påkrevd |
-| **Aggregate by** | Hvordan verdiene i hvert tidsintervall kombineres til ett datapunkt: Gj.snitt, Sum, Min, Max, Antall eller en persentil (P50, P75, P90, P95 eller P99). | Gj.snitt |
-| **Filter by attributes** (under **Filters & grouping**) | Bare serier der attributtene oppfyller disse vilkårene. | Ingen filter |
-| **Grupper etter** (under **Filters & grouping**) | Én serie per unike verdi av disse attributtene (se [Varsler per serie](#varsler-per-serie-group-by)). | Én serie |
+| **Aggreger etter** | Hvordan verdiene i hvert tidsintervall kombineres til ett datapunkt: Gj.snitt, Sum, Min, Max, Antall eller en persentil (P50, P75, P90, P95 eller P99). | Gj.snitt |
+| **Filtrer etter attributter** (under **Filtre og gruppering**) | Bare serier der attributtene oppfyller disse vilkårene. | Ingen filter |
+| **Grupper etter** (under **Filtre og gruppering**) | Én serie per unike verdi av disse attributtene (se [Varsler per serie](#varsler-per-serie-group-by)). | Én serie |
 
 Hver spørring og formel får en variabel (`a`, `b`, `c` og så videre) i den rekkefølgen du legger dem til.
 
@@ -97,7 +97,7 @@ Jo lengre vinduet er, desto bredere er hvert tidsintervall, så ett datapunkt st
 ## Slik evalueres den
 
 - **Hvert minutt.** En målingsmonitor sjekkes ikke av sonder, så den har ikke noe intervall å angi og ingen side **Sonder og intervall**.
-- **Først spørringer, så formler.** Hver spørring returnerer ett datapunkt per tidsintervall i tidsintervallet, med sin **Aggregate by**. Formler regnes ut for hvert intervall fra spørringenes datapunkter.
+- **Først spørringer, så formler.** Hver spørring returnerer ett datapunkt per tidsintervall i tidsintervallet, med sin **Aggreger etter**. Formler regnes ut for hvert intervall fra spørringenes datapunkter.
 - **Deretter regelens mål.** Regelen reduserer datapunktene for målingen sin til det den sammenligner med verdien sin, slik **Målt som** sier:
 
 | Målt som | I de egne kriteriene | Betingelsen sjekkes mot… |
@@ -160,7 +160,7 @@ En ny målingsmonitor som er opprettet via API-et eller Terraform uten kriterier
 
 ## Gjennomgått eksempel: en kø som vokser
 
-Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggregate by** Max, og **Tidsvindu** er **Siste 5 minutter**. Én evaluering ser disse fem datapunktene på ett minutt hver:
+Du vil ha en hendelse når checkout-køen forblir dyp. Spørring `a` er måleren `checkout.queue.depth`, med **Aggreger etter** Max, og **Tidsvindu** er **Siste 5 minutter**. Én evaluering ser disse fem datapunktene på ett minutt hver:
 
 | Minutt | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |

@@ -55,7 +55,7 @@ Depois [configure o Datadog](#configurar-o-datadog) para enviar os alertas dele 
 
 ### O que o workflow faz
 
-Depois do gatilho **Webhook**, a etapa **Check With JavaScript** `read-event-1` lê o `transition` que o Datadog envia, e **Incident From Another Tool**, ou **Alert From Another Tool** no modelo de alertas, faz o que ele significa, pela chave de ciclo do alerta. O Datadog mantém essa chave desde o momento em que um alerta dispara até ele se recuperar, e na próxima vez que disparar a chave é nova, então cada vez ganha um incidente próprio. O incidente guarda a chave no seu campo personalizado `datadogAlertCycleKey`.
+Depois do gatilho **Webhook**, a etapa **Verificar com JavaScript** `read-event-1` lê o `transition` que o Datadog envia, e **Incidente de outra ferramenta**, ou **Alerta de outra ferramenta** no modelo de alertas, faz o que ele significa, pela chave de ciclo do alerta. O Datadog mantém essa chave desde o momento em que um alerta dispara até ele se recuperar, e na próxima vez que disparar a chave é nova, então cada vez ganha um incidente próprio. O incidente guarda a chave no seu campo personalizado `datadogAlertCycleKey`.
 
 | Transição | O que o workflow faz |
 | --- | --- |
@@ -82,7 +82,7 @@ Um novo incidente chama as políticas de plantão que você escolheu quando o mo
 Com gravidades próprias, P1, P2 e sem prioridade vão para a sua mais grave, P3 para a do meio, e P4 e P5 para a sua menos grave.
 
 - Para mapear uma prioridade para uma das suas pelo nome, edite `SEVERITY_BY_NAME` na etapa `read-event-1`, como `{ P3: 'Minor Incident' }`.
-- Para chamar o plantão também para P3, defina **Comparar com** da etapa `if-page-1` **If / Else** como `3`.
+- Para chamar o plantão também para P3, defina **Comparar com** da etapa `if-page-1` **Se / Senão** como `3`.
 
 ## Receber alertas com um monitor
 

@@ -28,6 +28,17 @@ export default class RealtimeUtil {
    * in lower case, as records' ids are written, so a page that asked in
    * capitals still hears its record.
    */
+  /*
+   * A project's usage room (#8626): where the Dashboard's products menu
+   * hears that what the project uses changed, to ask the server again
+   * (EventName.ListenToProjectUsage). Named after its project first, as
+   * every room is, so a project's rooms are found by their name; the id is
+   * read in lower case, so the server and the page name it alike.
+   */
+  public static getProjectUsageRoomId(tenantId: string | ObjectID): string {
+    return `${tenantId.toString().toLowerCase()}-ProjectUsage`;
+  }
+
   public static getRecordRoomId(
     tenantId: string | ObjectID,
     modelName: string,

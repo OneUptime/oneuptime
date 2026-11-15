@@ -1070,9 +1070,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           value={
             alertStartedAt ? (
               <EventStartTileValue startedAt={alertStartedAt} />
-            ) : (
-              "-"
-            )
+            ) : undefined
           }
           note={getImpactBeforeStartText(
             {

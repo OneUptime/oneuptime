@@ -123,7 +123,7 @@ Het incident neemt de titel, beschrijving, monitor, getroffen resources en label
 
 ## Privacy- en runbook-regels
 
-**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de beheerders en eigenaren van het project kunnen ze zien. Een regel heeft twee stappen: **Overeenkomst**, de waarschuwingen die ze privé maakt, en dan **Naam**, al ingevuld als "Waarschuwingen privé maken". Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
+**Privacyregels** maken overeenkomende nieuwe waarschuwingen privé, voordat er iets anders draait: alleen hun eigenaren en de Projectbeheerders en Projecteigenaren kunnen ze zien. Een regel heeft twee stappen: **Overeenkomst**, de waarschuwingen die ze privé maakt, en dan **Naam**, al ingevuld als "Waarschuwingen privé maken". Zie [Privéwaarschuwingen](/docs/alerts/index#privéwaarschuwingen).
 
 **Runbook-regels** starten een runbook wanneer een nieuwe waarschuwing overeenkomt, tenzij de waarschuwing opgelost werd aangemaakt. Zie [Runbook-regels](/docs/runbooks/rules).
 

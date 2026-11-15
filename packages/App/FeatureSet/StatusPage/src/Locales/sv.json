@@ -84,7 +84,7 @@
     "declared": "Registrerad",
     "oneIncidentOnThisDay": "1 incident rapporterad den här dagen",
     "incidentsOnThisDay": "{{total}} incidenter rapporterade den här dagen",
-    "scheduledMaintenance": "Planerat underhåll",
+    "scheduledMaintenance": "Schemalagt underhåll",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "1 underhållshändelse",
     "maintenanceEvents": "{{total}} underhållshändelser",
@@ -137,7 +137,7 @@
   "scheduledEvents": {
     "title": "Schemalagt underhåll",
     "singular": "Underhållshändelse",
-    "scheduledMaintenance": "Planerat underhåll",
+    "scheduledMaintenance": "Schemalagt underhåll",
     "ongoing": "Pågående underhåll",
     "upcoming": "Kommande underhåll",
     "completed": "Slutfört underhåll",
@@ -149,8 +149,8 @@
     "notFound": "Ingen underhållshändelse hittades för den här statussidan.",
     "calendar": {
       "subscribe": "Prenumerera på kalender",
-      "subscribeTitle": "Prenumerera på planerat underhåll",
-      "subscribeDescription": "Få den här sidans planerade underhåll i din kalenderapp. Den håller sig själv uppdaterad.",
+      "subscribeTitle": "Prenumerera på schemalagt underhåll",
+      "subscribeDescription": "Få den här sidans schemalagda underhåll i din kalenderapp. Den håller sig själv uppdaterad.",
       "eventTitle": "Lägg till i kalender",
       "eventDescription": "Lägg till den här underhållshändelsen i din kalenderapp.",
       "addToCalendar": "Lägg till i kalender",

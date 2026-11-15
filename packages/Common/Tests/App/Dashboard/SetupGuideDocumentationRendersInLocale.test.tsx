@@ -62,6 +62,7 @@ import PodmanDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pa
 import DockerSwarmDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Documentation";
 import CephDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Documentation";
 import IoTDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Documentation";
+import KubernetesDocumentationPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Documentation";
 import DockerDocumentationCard from "../../../../App/FeatureSet/Dashboard/src/Components/Docker/DocumentationCard";
 import SetupGuideCard from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideCard";
 import {
@@ -86,6 +87,8 @@ import { getCephSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Page
 import { CEPH_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationTranslations";
 import { getIoTSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationMarkdown";
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
+import { getKubernetesSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -101,6 +104,7 @@ const WORDS: Record<string, Record<string, SetupGuideTranslation>> = {
   DockerSwarm: {},
   Ceph: {},
   IoT: {},
+  Kubernetes: {},
 };
 
 /*
@@ -121,6 +125,14 @@ function dockerSwarmGuide(): SetupGuideContent {
     oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     method: "install-script",
+  });
+}
+
+function kubernetesGuide(): SetupGuideContent {
+  return getKubernetesSetupGuide({
+    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
+    platform: "standard",
   });
 }
 
@@ -253,6 +265,9 @@ beforeAll(async () => {
     ).default;
     WORDS["IoT"]![language] = (
       await IOT_DOCUMENTATION_TRANSLATIONS[language]!()
+    ).default;
+    WORDS["Kubernetes"]![language] = (
+      await KUBERNETES_DOCUMENTATION_TRANSLATIONS[language]!()
     ).default;
   }
 
@@ -441,6 +456,49 @@ describe("Docker Swarm > Help > Documentation", () => {
       for (const markdown of mockDrawnMarkdown) {
         expect(markdown.readingDirection).toBe(
           language === "ar" ? "rtl" : "ltr",
+        );
+      }
+    },
+  );
+});
+
+describe("Kubernetes > Help > Documentation", () => {
+  test.each(["de", "fa"])(
+    "in %s, the Kubernetes guide, its title and its platforms in the reader's words, the Helm values as written",
+    async (language: string) => {
+      await drawIn(language, <KubernetesDocumentationPage {...PAGE_PROPS} />);
+
+      const drawn: string = drawnTexts().join("\n");
+
+      for (const piece of getSetupGuideWordPieces(kubernetesGuide())) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: false,
+        });
+      }
+      for (const piece of getSetupGuideWordPieces(
+        inLanguage("Kubernetes", kubernetesGuide(), language),
+      )) {
+        expect({ piece, drawn: drawn.includes(piece) }).toEqual({
+          piece,
+          drawn: true,
+        });
+      }
+
+      // The card's own words, and its platform picker's, come from the locale files.
+      const locale: Record<string, string> = readDashboardLocale(language);
+      expect(
+        screen.getByText(locale["Connect a Kubernetes Cluster"]!),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Connect a Kubernetes Cluster")).toBeNull();
+      expect(
+        screen.getByText(locale["Standard Kubernetes"]!),
+      ).toBeInTheDocument();
+      // The Helm values the reader sets are the English's.
+      expect(drawn).toContain("aiAgent.enabled");
+      for (const markdown of mockDrawnMarkdown) {
+        expect(markdown.readingDirection).toBe(
+          language === "fa" ? "rtl" : "ltr",
         );
       }
     },

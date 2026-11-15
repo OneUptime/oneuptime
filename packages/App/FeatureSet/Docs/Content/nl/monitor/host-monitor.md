@@ -91,7 +91,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | **Host Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken), gegroepeerd als CPU, geheugen, schijf, netwerk, belasting en processen. |
 | **Aggregatie** | Custom Metric | Hoe metingen worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het schuivende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; sjablonen stellen hun eigen in. |
-| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
+| **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregeren op**, **Filteren op attributen**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om query's te combineren. |
 
 ## Kant-en-klare waarschuwingssjablonen
 

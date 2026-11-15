@@ -151,7 +151,7 @@ Välj de **Sonder** som når databasen och ett **Övervakningsintervall**, och k
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hur länge det väntas på att en anslutning upprättas. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den hårda gränsen för hur länge frågan får köras. |
-| **Max Rows** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
+| **Max antal rader** | `100` | `1000` | Den övre gränsen för hur många rader som läses tillbaka från databasen. |
 
 Ett värde över maximum sänks till maximum.
 

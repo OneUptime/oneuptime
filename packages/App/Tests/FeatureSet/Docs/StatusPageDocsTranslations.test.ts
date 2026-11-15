@@ -13,6 +13,7 @@ import {
   isActionLabel,
 } from "./DocsDashboardLabels";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
+import { SUBSCRIBER_NOTIFICATION_EVENT_TYPE_LABELS } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberNotificationEventTypeOptions";
 import {
   boldLabels,
   boldPaths,
@@ -76,10 +77,11 @@ import path from "path";
  *     (StatusPage/src/Locales), by key (STATUS_PAGE_APP), and so are the
  *     messages the pages quote from it (STATUS_PAGE_APP_MESSAGES).
  *
- * Plans, permissions, the template event types, the maintenance states
- * every project starts with and what the server writes in English (feed
- * entries, the email's rows, a chat button) stay in English
- * (KEPT_IN_ENGLISH). The Notification Settings path of the SMS line is held
+ * Plans, permissions, the maintenance states every project starts with
+ * and what the server writes in English (feed entries, the email's rows, a
+ * chat button) stay in English (KEPT_IN_ENGLISH). A template's event type
+ * is a Dashboard label like any other: each language names it as its
+ * Dashboard draws it (#8179). The Notification Settings path of the SMS line is held
  * by NotificationChannelsWhoCanDocs (HELD_ELSEWHERE). Every other bold word
  * is one of the pages' own leads or terms (PROSE), which a translation words
  * freely. A new bold word on these English pages fails "know every bold
@@ -412,27 +414,24 @@ const DASHBOARD_QUOTES: Record<string, Array<string>> = {
 
 /*
  * Names every language shows in English: plans and permissions, as the
- * team pages, the API and Terraform name them; the template event types the
- * Notification Templates table lists; the states every project's scheduled
- * maintenance starts with, which are its own data; and what the server
- * writes in English (feed entries, an email's rows, a chat button, a
+ * team pages, the API and Terraform name them; the states every project's
+ * scheduled maintenance starts with, which are its own data; and what the
+ * server writes in English (feed entries, an email's rows, a chat button, a
  * workflow component).
+ *
+ * The template event types are not among them any more: the Dashboard draws
+ * each in the reader's language (#8179), so a page names it as its
+ * language's Dashboard does, through drawnActionLabel like any other label.
  */
+const TEMPLATE_EVENT_TYPE_LABELS: Array<string> = Object.values(
+  SUBSCRIBER_NOTIFICATION_EVENT_TYPE_LABELS,
+);
+
 const KEPT_IN_ENGLISH: Array<string> = [
   "Growth",
   "Scale",
   "Manage Billing",
   "Create Scheduled Maintenance Status Page Note",
-  "Subscriber Incident Created",
-  "Subscriber Incident State Changed",
-  "Subscriber Incident Note Created",
-  "Subscriber Incident Note Updated",
-  "Subscriber Incident Postmortem Published",
-  "Subscriber Scheduled Maintenance Note Created",
-  "Subscriber Scheduled Maintenance Note Updated",
-  "Subscriber Announcement Updated",
-  "Subscriber Episode Note Updated",
-  "Subscriber Report",
   "Note Updated",
   "Scheduled",
   "Ongoing",
@@ -1252,7 +1251,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("keeps the plans, permissions, template events, maintenance states and server texts in English", () => {
+    it("keeps the plans, permissions, maintenance states and server texts in English", () => {
       const translated: string = readPage(language, entry.page);
       const names: Array<string> = boldLabels(english).filter(
         (span: string): boolean => {
@@ -1265,6 +1264,71 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
       expect(missing).toEqual([]);
     });
+
+    /*
+     * A template's event type, as the Notification Templates list, its
+     * filter and the template form draw it in this language (#8179): never
+     * the stored name the Dashboard no longer shows a reader of it.
+     */
+    it("names each template event type as this language's Dashboard draws it", () => {
+      const translated: string = readPage(language, entry.page);
+      const eventTypes: Array<string> = boldLabels(english).filter(
+        (span: string): boolean => {
+          return TEMPLATE_EVENT_TYPE_LABELS.includes(span);
+        },
+      );
+
+      expect({
+        missing: eventTypes
+          .map((eventType: string): string => {
+            return drawnActionLabel(language, eventType);
+          })
+          .filter((drawn: string): boolean => {
+            return !translated.includes(`**${drawn}**`);
+          }),
+        storedNames: eventTypes.filter((eventType: string): boolean => {
+          return translated.includes(`**${eventType}**`);
+        }),
+      }).toEqual({ missing: [], storedNames: [] });
+    });
+  });
+});
+
+describe("the template event types the pages name", () => {
+  it("are the Dashboard's event type labels, each drawn in every docs language in words of its own", () => {
+    const named: Array<string> = PAGE_NAMES.flatMap(
+      (page: string): Array<string> => {
+        return boldLabels(englishPage(page)).filter((span: string): boolean => {
+          return TEMPLATE_EVENT_TYPE_LABELS.includes(span);
+        });
+      },
+    );
+
+    // Every event type a template can be for, each its stored name in English.
+    expect(TEMPLATE_EVENT_TYPE_LABELS).toHaveLength(19);
+    // Subscribers & Announcements names ten of them.
+    expect(new Set<string>(named).size).toBe(10);
+    expect(named).toContain("Subscriber Report");
+
+    for (const eventType of named) {
+      for (const language of LANGUAGES) {
+        const drawn: string = drawnActionLabel(language, eventType);
+
+        expect({ language, eventType, inWords: drawn !== eventType }).toEqual({
+          language,
+          eventType,
+          inWords: true,
+        });
+      }
+    }
+
+    // English reads each as the API and Terraform name it.
+    expect(drawnActionLabel("en", "Subscriber Incident Created")).toBe(
+      "Subscriber Incident Created",
+    );
+    expect(drawnActionLabel("de", "Subscriber Incident Created")).toBe(
+      "Vorfall erstellt",
+    );
   });
 });
 

@@ -14,7 +14,11 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   IngestionKeyFormOptions,
@@ -94,6 +98,50 @@ const UNUSABLE_KEY_LABELS: Readonly<
   "turned-off": translationKey("{{name}} (turned off)"),
   expired: translationKey("{{name}} (expired)"),
 };
+
+// What the picker calls a key that has no name.
+export const UNNAMED_KEY: string = translationKey("Unnamed Key");
+
+/*
+ * A key as the picker offers it: its name, with why it is refused when it
+ * is ("prod (expired)", in the reader's words). Each label says how it
+ * reads, so it is looked up exactly once (Dropdown's isUserContent):
+ *
+ *   - a refused key's label is a sentence translated here, its name - or,
+ *     for a key with no name, the reader's word for "Unnamed Key" - inside
+ *     it, drawn as given. An unnamed refused key read "Unnamed Key" inside
+ *     a Spanish sentence, and the translated sentence was looked up a
+ *     second time (#8297);
+ *   - a usable key's label is its name, as written, or "Unnamed Key", the
+ *     product's word, which the Dropdown looks up.
+ */
+export function getIngestionKeyOption(
+  key: TelemetryIngestionKey,
+  now: Date,
+  translator: Translator,
+): DropdownOption {
+  const unusable: IngestionKeyUnusableReason | null =
+    getIngestionKeyUnusableReason(key, now);
+  const value: string = key.id?.toString() || "";
+
+  if (unusable) {
+    return {
+      value: value,
+      label: translator.translateTemplate(
+        UNUSABLE_KEY_LABELS[unusable],
+        { name: key.name || translatableTerm(UNNAMED_KEY) },
+        { setsValuesApart: true },
+      ),
+      isUserContent: true,
+    };
+  }
+
+  return {
+    value: value,
+    label: key.name || UNNAMED_KEY,
+    isUserContent: Boolean(key.name),
+  };
+}
 
 const UNUSABLE_KEY_CAUTIONS: Readonly<
   Record<IngestionKeyUnusableReason, string>
@@ -377,21 +425,15 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // A key's name in the picker, with why it is refused when it is.
-  const getKeyLabel: (key: TelemetryIngestionKey) => string = (
+  // A key as the picker offers it, with why it is refused when it is.
+  const getKeyOption: (key: TelemetryIngestionKey) => DropdownOption = (
     key: TelemetryIngestionKey,
-  ): string => {
-    const name: string = key.name || "Unnamed Key";
-    const unusable: IngestionKeyUnusableReason | null =
-      getIngestionKeyUnusableReason(key, OneUptimeDate.getCurrentDate());
-
-    return unusable
-      ? translator.translateTemplate(
-          UNUSABLE_KEY_LABELS[unusable],
-          { name },
-          { setsValuesApart: true },
-        )
-      : name;
+  ): DropdownOption => {
+    return getIngestionKeyOption(
+      key,
+      OneUptimeDate.getCurrentDate(),
+      translator,
+    );
   };
 
   const renderContent: () => ReactElement = (): ReactElement => {
@@ -473,32 +515,13 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
         >
           <div className="min-w-[min(14rem,100%)] flex-1">
             <Dropdown
-              options={ingestionKeys.map(
-                (key: TelemetryIngestionKey): DropdownOption => {
-                  return {
-                    value: key.id?.toString() || "",
-                    label: getKeyLabel(key),
-                    /*
-                     * The key's name, in a sentence already translated when
-                     * it is refused; "Unnamed Key" in its place is the
-                     * product's word, looked up.
-                     */
-                    isUserContent: Boolean(key.name),
-                  };
-                },
-              )}
+              options={ingestionKeys.map(getKeyOption)}
               value={
                 ingestionKeys
                   .filter((key: TelemetryIngestionKey) => {
                     return key.id?.toString() === selectedKeyId;
                   })
-                  .map((key: TelemetryIngestionKey): DropdownOption => {
-                    return {
-                      value: key.id?.toString() || "",
-                      label: getKeyLabel(key),
-                      isUserContent: Boolean(key.name),
-                    };
-                  })[0]
+                  .map(getKeyOption)[0]
               }
               onChange={(
                 value: DropdownValue | Array<DropdownValue> | null,

@@ -36,6 +36,7 @@ import {
 } from "../../Billing/PayAsYouGo";
 import ResourceConnectionWatch from "../../ResourceOnboarding/ResourceConnectionWatch";
 import TelemetryDocumentation from "../../Telemetry/Documentation";
+import { getProductsSetUpByGuide } from "../../Telemetry/TelemetryGuideProducts";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -337,6 +338,10 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           modelType={Service}
           viewPage={PageMap.SERVICE_VIEW}
           viewText="View service"
+          products={getProductsSetUpByGuide({
+            telemetryType: "traces",
+            everySignal: true,
+          })}
           onConnected={(record: BaseModel) => {
             const id: string = record._id?.toString() || "";
             const name: unknown = record.getColumnValue("name");

@@ -386,6 +386,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                         }
                         isDisabled={!updateGate.isAllowed}
                         tooltip={disabledTooltip}
+                        isTooltipTranslated={true}
                         dataTestId={
                           SECURITY_CASE_HEADER_TEST_IDS.priorityOption
                         }
@@ -409,6 +410,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
                 text="Assign to Someone Else"
                 isDisabled={isUpdateLocked}
                 tooltip={disabledTooltip}
+                isTooltipTranslated={true}
                 dataTestId={SECURITY_CASE_HEADER_TEST_IDS.assignToSomeoneElse}
                 onClick={props.onAssignToSomeoneElse}
               />,
@@ -420,6 +422,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           text="Change Status"
           isDisabled={isUpdateLocked}
           tooltip={disabledTooltip}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.changeStatus}
           onClick={props.onPickStatus}
         />,
@@ -429,6 +432,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           text="Edit Case"
           isDisabled={!updateGate.isAllowed}
           tooltip={disabledTooltip}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.edit}
           onClick={props.onEdit}
         />,
@@ -441,6 +445,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           isDestructive={true}
           isDisabled={!deleteGate.isAllowed}
           tooltip={deleteGate.isAllowed ? undefined : deleteGate.disabledReason}
+          isTooltipTranslated={true}
           dataTestId={SECURITY_CASE_HEADER_TEST_IDS.delete}
           onClick={props.onDelete}
         />,

@@ -28,7 +28,7 @@ flowchart TB
 ## Innan du börjar
 
 - **En ansluten Azure-prenumeration.** Anslut den först under **Moln → Anslut**: se [Anslut ett molnkonto](/docs/telemetry/cloud-accounts).
-- **En projektägare eller administratör.** Bara de kan slå på läsning och sluta strömma.
+- **En Projektägare eller Projektadministratör.** Bara de kan slå på läsning och sluta strömma.
 - **Azure Cloud Shell**, inloggad som **Owner** för prenumerationerna, eller som **Contributor** som också är **User Access Administrator**: kommandot skapar en resursgrupp och en rolltilldelning, och ändrar diagnostikinställningar.
 - **En väg ut till Azure, på en egen OneUptime-installation.** OneUptime läser varje namnrymd på `<namespace>.servicebus.windows.net` på port 9093, och namnrymderna tar emot anslutningar från internet.
 

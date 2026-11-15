@@ -36,7 +36,7 @@ flowchart TB
     wired -->|"Não"| saved["Execução salva com os passos e o log"]
 ```
 
-Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não precisa de código nenhum; quando algum precisa, um bloco **Run Custom JavaScript** roda algumas linhas de JavaScript.
+Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não precisa de código nenhum; quando algum precisa, um bloco **Executar JavaScript personalizado** roda algumas linhas de JavaScript.
 
 ## O que dá para fazer com workflows
 
@@ -44,7 +44,7 @@ Você monta tudo isso visualmente, em um canvas. A maioria dos workflows não pr
 - **Reagir ao que acontece no OneUptime** — quando um incidente é criado, avisar o canal certo e abrir um ticket automaticamente.
 - **Rodar tarefas agendadas** — a cada cinco minutos, toda noite, toda segunda de manhã.
 - **Receber dados de fora** — deixar outros sistemas iniciarem um workflow chamando a URL dele ou mandando e-mail para o endereço dele.
-- **Reutilizar automações comuns** — monte uma vez e inicie a partir de qualquer outro workflow com um bloco **Execute Workflow**.
+- **Reutilizar automações comuns** — monte uma vez e inicie a partir de qualquer outro workflow com um bloco **Executar outro fluxo de trabalho**.
 
 ## Termos principais
 
@@ -107,7 +107,7 @@ Este workflow envia um resumo em JSON de cada novo incidente para uma URL sua �
 
 ```mermaid title="O exemplo pronto"
 flowchart TB
-    trigger["On Create Incident"] -->|"Sucesso"| post["API Post (JSON)"]
+    trigger["On Create Incident"] -->|"Sucesso"| post["Chamada de API POST (JSON)"]
     post -->|"Erro"| log["Registro"]
     post -->|"Sucesso"| done["A execução termina"]
 ```
@@ -130,13 +130,13 @@ O gatilho ocupa o lugar do bloco tracejado. O ID que aparece nele, `incident-on-
 
 ### Escolher os campos do incidente
 
-Clique no gatilho. **Fields to pass on** começa com o título: clique em **Adicionar campo**, marque a descrição e qualquer outro campo que a requisição deva levar, e clique em **Salvar**.
+Clique no gatilho. **Campos a repassar** começa com o título: clique em **Adicionar campo**, marque a descrição e qualquer outro campo que a requisição deva levar, e clique em **Salvar**.
 
 O gatilho repassa o novo incidente com esses campos. Um campo que você não seleciona chega vazio.
 
 ### Adicionar o bloco de API
 
-Clique em **Adicionar componente** e depois em **API Post (JSON)**, em **Populares**. Arraste do ponto **Sucesso** do gatilho até o ponto superior do novo bloco.
+Clique em **Adicionar componente** e depois em **Chamada de API POST (JSON)**, em **Populares**. Arraste do ponto **Sucesso** do gatilho até o ponto superior do novo bloco.
 
 ### Preencher a requisição
 
@@ -162,7 +162,7 @@ Uma requisição que falha — uma URL inacessível ou uma resposta que não é 
 
 Clique em **Executar fluxo de trabalho** e escolha um incidente deste projeto em **Incidente**: os mais recentes são listados, e digitar o número dele ou parte do título encontra outro. Clique em **Executar fluxo de trabalho manualmente** e confirme com **Executar**. O workflow continua desligado, então esta é uma **Execução de teste**, e a requisição é enviada de verdade.
 
-Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **API Post (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
+Um painel **Execução do Fluxo de Trabalho** se abre e acompanha a execução. Abra o passo **Chamada de API POST (JSON)** para ver o corpo que ele enviou e a resposta que recebeu.
 
 ### Ligar
 

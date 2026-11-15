@@ -43,7 +43,7 @@ New Relic 工作流程用它的篩選器挑選要傳送的問題，並在問題�
 
 ### 工作流程做什麼
 
-在 **Webhook** 觸發器之後， **Check With JavaScript** 步驟 `read-event-1` 讀取 New Relic 傳送的 `state`，再由 **Incident From Another Tool**（警示範本中為 **Alert From Another Tool** ）依問題的 ID 執行它所代表的操作。事件把該 ID 保存在其自訂欄位 `newRelicIssueId` 中。
+在 **Webhook** 觸發器之後， **用 JavaScript 檢查** 步驟 `read-event-1` 讀取 New Relic 傳送的 `state`，再由 **來自其他工具的事件**（警示範本中為 **來自其他工具的警示** ）依問題的 ID 執行它所代表的操作。事件把該 ID 保存在其自訂欄位 `newRelicIssueId` 中。
 
 | New Relic 傳送的內容 | 工作流程做什麼 |
 | --- | --- |

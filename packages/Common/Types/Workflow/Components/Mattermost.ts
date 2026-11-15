@@ -5,6 +5,7 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 /*
  * A Mattermost post holds at most 16,383 characters, and Mattermost splits a
@@ -46,18 +47,19 @@ export const MATTERMOST_INCOMING_WEBHOOK_URL_PATTERN: RegExp =
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.MattermostSendMessageToChannel,
-    title: "Send Message to Mattermost",
-    category: "Mattermost",
+    title: translationKey("Send Message to Mattermost"),
+    category: translationKey("Mattermost"),
     logo: ProviderLogo.Mattermost,
-    description: "Send message to Mattermost channel",
+    description: translationKey("Send message to Mattermost channel"),
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: "webhook-url",
-        name: "Mattermost Incoming Webhook URL",
-        description:
+        name: translationKey("Mattermost Incoming Webhook URL"),
+        description: translationKey(
           "Need help creating a webhook? Check docs here: https://docs.mattermost.com/developers/integrate/webhooks/incoming",
+        ),
         type: ComponentInputType.URL,
         required: true,
         isSensitive: true,
@@ -72,18 +74,20 @@ const components: Array<ComponentMetadata> = [
        */
       {
         id: "text",
-        name: "Message Text",
-        description:
+        name: translationKey("Message Text"),
+        description: translationKey(
           "Message to send to Mattermost, sent exactly as typed. Mattermost's Markdown works: **bold**, _italic_, [link](https://example.com).",
+        ),
         type: ComponentInputType.LongText,
         required: true,
         placeholder: "Test Mattermost message from OneUptime",
       },
       {
         id: "channel",
-        name: "Channel",
-        description:
+        name: translationKey("Channel"),
+        description: translationKey(
           "Channel to post in instead of the webhook's own, by its name in the channel's URL, such as town-square. @ and a username sends a direct message.",
+        ),
         type: ComponentInputType.Text,
         required: false,
         isAdvanced: true,
@@ -91,9 +95,10 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "username",
-        name: "Username",
-        description:
+        name: translationKey("Username"),
+        description: translationKey(
           "Name to post under instead of the webhook's. Mattermost uses it only where integrations may override usernames.",
+        ),
         type: ComponentInputType.Text,
         required: false,
         isAdvanced: true,
@@ -101,9 +106,10 @@ const components: Array<ComponentMetadata> = [
       },
       {
         id: "icon-url",
-        name: "Icon URL",
-        description:
+        name: translationKey("Icon URL"),
+        description: translationKey(
           "Picture to post with instead of the webhook's. Mattermost uses it only where integrations may override profile picture icons.",
+        ),
         type: ComponentInputType.URL,
         required: false,
         isAdvanced: true,
@@ -113,29 +119,32 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         id: "error",
-        name: "Error",
-        description: "Error, if there is any.",
+        name: translationKey("Error"),
+        description: translationKey("Error, if there is any."),
         type: ComponentInputType.Text,
         required: false,
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "Runs once Mattermost has taken the message.",
+        title: translationKey("Success"),
+        description: translationKey(
+          "Runs once Mattermost has taken the message.",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when there is an error",
+        title: translationKey("Error"),
+        description: translationKey("This is executed when there is an error"),
         id: "error",
       },
     ],

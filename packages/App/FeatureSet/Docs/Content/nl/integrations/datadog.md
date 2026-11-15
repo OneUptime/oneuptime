@@ -55,7 +55,7 @@ Daarna [configureer je Datadog](#datadog-configureren) zodat het zijn waarschuwi
 
 ### Wat de workflow doet
 
-Na de trigger **Webhook** leest de stap **Check With JavaScript** `read-event-1` de `transition` die Datadog stuurt, en **Incident From Another Tool**, of **Alert From Another Tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de cyclussleutel van de waarschuwing. Datadog bewaart die sleutel vanaf het moment dat een waarschuwing afgaat tot ze herstelt, en de volgende keer dat ze afgaat is de sleutel nieuw, zodat elke keer een eigen incident krijgt. Het incident bewaart de sleutel in zijn aangepaste veld `datadogAlertCycleKey`.
+Na de trigger **Webhook** leest de stap **Controleren met JavaScript** `read-event-1` de `transition` die Datadog stuurt, en **Incident uit een andere tool**, of **Waarschuwing uit een andere tool** in het sjabloon voor waarschuwingen, doet wat die betekent, via de cyclussleutel van de waarschuwing. Datadog bewaart die sleutel vanaf het moment dat een waarschuwing afgaat tot ze herstelt, en de volgende keer dat ze afgaat is de sleutel nieuw, zodat elke keer een eigen incident krijgt. Het incident bewaart de sleutel in zijn aangepaste veld `datadogAlertCycleKey`.
 
 | Overgang | Wat de workflow doet |
 | --- | --- |
@@ -82,7 +82,7 @@ Een nieuw incident roept het bereikbaarheidsbeleid op dat je hebt gekozen wannee
 Met eigen ernstniveaus gaan P1, P2 en geen prioriteit naar je ernstigste, P3 naar het middelste en P4 en P5 naar je minst ernstige.
 
 - Om een prioriteit op naam aan een van de jouwe toe te wijzen, bewerk je `SEVERITY_BY_NAME` in de stap `read-event-1`, zoals `{ P3: 'Minor Incident' }`.
-- Om ook voor P3 op te roepen, zet je **Vergelijken met** van de stap `if-page-1` **If / Else** op `3`.
+- Om ook voor P3 op te roepen, zet je **Vergelijken met** van de stap `if-page-1` **Als / Anders** op `3`.
 
 ## Waarschuwingen ontvangen met een monitor
 

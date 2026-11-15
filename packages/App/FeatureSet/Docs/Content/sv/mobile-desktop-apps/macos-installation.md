@@ -67,7 +67,7 @@ Appen visar notiser när du har registrerat den för push-aviseringar, i varje p
 Klicka på **Registrera enhet**, behåll det föreslagna **Enhetsnamn**, till exempel `Safari on macOS`, eller ändra det, och klicka på **Registrera enhet** igen. När macOS eller webbläsaren frågar om OneUptime får skicka notiser väljer du **Tillåt**.
 
 ### Skicka ett test
-Klicka på **Send Test Notification** i dialogrutan **Browser Registered**. Visas ingenting, titta på datorns notisinställningar: se [Felsökning](#felsökning).
+Klicka på **Skicka testavisering** i dialogrutan **Webbläsare registrerad**. Visas ingenting, titta på datorns notisinställningar: se [Felsökning](#felsökning).
 :::
 
 En webbläsare kan inte ringa igenom ett Fokus som Stör ej. Använd mobilappen med kritiska larm för larm som måste väcka dig: se [iOS-installation](/docs/mobile-desktop-apps/ios-installation#ring-igenom-tyst-läge).

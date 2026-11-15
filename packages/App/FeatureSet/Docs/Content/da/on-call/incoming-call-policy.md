@@ -214,8 +214,8 @@ Logs over indgående opkald er tilgængelige som arbejdsgangsudløsere:
 For kun at reagere på ubesvarede opkald, fx for at poste dem i Slack eller Microsoft Teams eller for at åbne en sag:
 
 :::steps
-1. Tilføj udløseren **On Update Incoming Call Log**. Sæt **Fields to watch** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
-2. Tilføj et trin **If / Else**. Tjek udløserens **Status** med sammenligningen **er ikke lig med** og `Completed`.
+1. Tilføj udløseren **On Update Incoming Call Log**. Sæt **Felter, der holdes øje med** til **Ended At**, og vælg de felter, du vil bruge, fx **Status**, **Caller Phone Number** og **Routing Phone Number**.
+2. Tilføj et trin **Hvis / Ellers**. Tjek udløserens **Status** med sammenligningen **er ikke lig med** og `Completed`.
 3. Forbind dine trin til porten **Ja**.
 :::
 

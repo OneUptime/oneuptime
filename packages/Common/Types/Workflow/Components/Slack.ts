@@ -5,22 +5,24 @@ import ComponentMetadata, {
   ComponentInputType,
   ComponentType,
 } from "./../Component";
+import { translationKey } from "../../Translator";
 
 const components: Array<ComponentMetadata> = [
   {
     id: ComponentID.SlackSendMessageToChannel,
-    title: "Send Message to Slack",
-    category: "Slack",
+    title: translationKey("Send Message to Slack"),
+    category: translationKey("Slack"),
     logo: ProviderLogo.Slack,
-    description: "Send message to slack channel",
+    description: translationKey("Send message to slack channel"),
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,
     arguments: [
       {
         id: "webhook-url",
-        name: "Slack Incoming Webhook URL",
-        description:
+        name: translationKey("Slack Incoming Webhook URL"),
+        description: translationKey(
           "Need help creating a webhook? Check docs here: https://api.slack.com/messaging/webhooks",
+        ),
         type: ComponentInputType.URL,
         required: true,
         isSensitive: true,
@@ -37,9 +39,10 @@ const components: Array<ComponentMetadata> = [
        */
       {
         id: "text",
-        name: "Message Text",
-        description:
+        name: translationKey("Message Text"),
+        description: translationKey(
           "Message to send to Slack, sent exactly as typed. Slack formatting works: *bold*, _italic_, <https://example.com|link>.",
+        ),
         type: ComponentInputType.LongText,
         required: true,
         placeholder: "Test Slack message from OneUptime",
@@ -48,29 +51,32 @@ const components: Array<ComponentMetadata> = [
     returnValues: [
       {
         id: "error",
-        name: "Error",
-        description: "Error, if there is any.",
+        name: translationKey("Error"),
+        description: translationKey("Error, if there is any."),
         type: ComponentInputType.Text,
         required: false,
       },
     ],
     inPorts: [
       {
-        title: "In",
-        description:
+        title: translationKey("In"),
+        description: translationKey(
           "Please connect components to this port for this component to work.",
+        ),
         id: "in",
       },
     ],
     outPorts: [
       {
-        title: "Success",
-        description: "This is executed when the message is successfully posted",
+        title: translationKey("Success"),
+        description: translationKey(
+          "This is executed when the message is successfully posted",
+        ),
         id: "success",
       },
       {
-        title: "Error",
-        description: "This is executed when there is an error",
+        title: translationKey("Error"),
+        description: translationKey("This is executed when there is an error"),
         id: "error",
       },
     ],

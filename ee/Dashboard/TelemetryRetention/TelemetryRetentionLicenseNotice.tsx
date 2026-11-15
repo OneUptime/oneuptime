@@ -4,7 +4,14 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
-import React, { FunctionComponent, ReactElement } from "react";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * What the retention override cards show above themselves when the
@@ -26,22 +33,53 @@ import React, { FunctionComponent, ReactElement } from "react";
  * not claim they stopped.
  */
 
-export const TELEMETRY_RETENTION_LAPSED_TITLE: string =
-  "Enterprise license required: retention overrides are not applied, and they are read-only.";
+export const TELEMETRY_RETENTION_LAPSED_TITLE: string = translationKey(
+  "Enterprise license required: retention overrides are not applied, and they are read-only.",
+);
 
-export const TELEMETRY_RETENTION_LAPSED_DESCRIPTION: string =
-  "Without a valid Enterprise license, new telemetry is kept for the project's default retention, whatever these overrides say. Telemetry already stored keeps the retention it was written with. Nothing configured here is deleted: activate or renew the Enterprise license in the Admin Dashboard and the overrides apply again.";
+export const TELEMETRY_RETENTION_LAPSED_DESCRIPTION: string = translationKey(
+  "Without a valid Enterprise license, new telemetry is kept for the project's default retention, whatever these overrides say. Telemetry already stored keeps the retention it was written with. Nothing configured here is deleted: activate or renew the Enterprise license in the Admin Dashboard and the overrides apply again.",
+);
 
-export const TELEMETRY_RETENTION_NOT_INCLUDED_TITLE: string =
-  "Your Enterprise license does not include retention overrides: they are not applied, and they are read-only.";
+export const TELEMETRY_RETENTION_NOT_INCLUDED_TITLE: string = translationKey(
+  "Your Enterprise license does not include retention overrides: they are not applied, and they are read-only.",
+);
 
 export const TELEMETRY_RETENTION_NOT_INCLUDED_DESCRIPTION: string =
-  "The installed license leaves retention overrides out, so new telemetry is kept for the project's default retention, whatever these overrides say. Nothing configured here is deleted: activate a license that includes retention overrides in the Admin Dashboard and they apply again.";
+  translationKey(
+    "The installed license leaves retention overrides out, so new telemetry is kept for the project's default retention, whatever these overrides say. Nothing configured here is deleted: activate a license that includes retention overrides in the Admin Dashboard and they apply again.",
+  );
 
-export const TELEMETRY_RETENTION_GRACE_TITLE: string =
-  "No valid Enterprise license: retention overrides stop applying when the trial or grace period ends.";
+export const TELEMETRY_RETENTION_GRACE_TITLE: string = translationKey(
+  "No valid Enterprise license: retention overrides stop applying when the trial or grace period ends.",
+);
 
-export const TELEMETRY_RETENTION_GRACE_DESCRIPTION: string = `Retention overrides apply as configured during the ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial of an installation with no license, or the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires. When it ends, new telemetry is kept for the project's default retention until an Enterprise license is activated in the Admin Dashboard.`;
+// The grace period's days are values of one whole sentence (#8461).
+const TELEMETRY_RETENTION_GRACE_DESCRIPTION_TEMPLATE: string = translationKey(
+  "Retention overrides apply as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, new telemetry is kept for the project's default retention until an Enterprise license is activated in the Admin Dashboard.",
+);
+
+export const getTelemetryRetentionGraceDescription: (
+  translator: Translator,
+) => string = (translator: Translator): string => {
+  return translator.translateTemplate(
+    TELEMETRY_RETENTION_GRACE_DESCRIPTION_TEMPLATE,
+    {
+      trialDays: translator.formatNumber(
+        ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+      ),
+      graceDays: translator.formatNumber(
+        ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+      ),
+    },
+  );
+};
+
+// The same, in English.
+export const TELEMETRY_RETENTION_GRACE_DESCRIPTION: string =
+  getTelemetryRetentionGraceDescription(
+    createTranslator(undefined, DEFAULT_LANGUAGE),
+  );
 
 export interface TelemetryRetentionNoticeCopy {
   type: AlertType;
@@ -96,6 +134,7 @@ export interface ComponentProps {
 const TelemetryRetentionLicenseNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const copy: TelemetryRetentionNoticeCopy | null =
     getTelemetryRetentionNoticeCopy(props.mode);
 
@@ -107,7 +146,19 @@ const TelemetryRetentionLicenseNotice: FunctionComponent<ComponentProps> = (
     <Alert
       type={copy.type}
       strongTitle={copy.title}
-      title={copy.description}
+      /*
+       * The grace period's sentence is worded here, with its days, and
+       * drawn as given; the others are keys Alert looks up.
+       */
+      title={
+        props.mode === EnterpriseLicenseMode.Grace ? (
+          <Fragment>
+            {getTelemetryRetentionGraceDescription(translator)}
+          </Fragment>
+        ) : (
+          copy.description
+        )
+      }
       dataTestId={copy.dataTestId}
       className="mb-5"
     />
