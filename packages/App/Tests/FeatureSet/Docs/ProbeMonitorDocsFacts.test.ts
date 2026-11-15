@@ -38,6 +38,10 @@ import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/Adva
 import MonitorDestinationUtil, {
   ParsedMonitorDestination,
 } from "Common/Utils/Monitor/MonitorDestinationUtil";
+import {
+  ProbeFailureCause,
+  writeProbeFailureCause,
+} from "Common/Utils/Monitor/ProbeFailureCauses";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1187,10 +1191,21 @@ describe("ping and IP checks", () => {
     },
   );
 
+  /*
+   * The probe writes the failure through the shared failure causes
+   * (ProbeFailureCauses), so the Dashboard can word it in every language:
+   * the ping monitor names the cause and the host it could not resolve.
+   */
   it("the Ping page quotes the probe's failure when a name does not resolve", () => {
     expect(ping).toMatch(
-      new RegExp("This probe could not resolve \\$\\{hostAddress\\}"),
+      /writeProbeFailureCause\(ProbeFailureCause\.PingCouldNotResolve, \{\s*host: hostAddress,/,
     );
+    expect(
+      writeProbeFailureCause(ProbeFailureCause.PingCouldNotResolve, {
+        host: "db.internal",
+        output: "ping: unknown host",
+      }),
+    ).toBe("This probe could not resolve db.internal: ping: unknown host");
     expect(englishPage(PING)).toContain('"This probe could not resolve"');
   });
 

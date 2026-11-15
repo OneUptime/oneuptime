@@ -486,7 +486,7 @@ const CloudEnvironmentOverview: FunctionComponent<
   const tiles: Array<ResourceOverviewTile> = [
     {
       title: "CPU",
-      value: instancesLoaded ? formatPercent(avgCpu, translator) : "—",
+      value: instancesLoaded ? formatPercent(avgCpu, translator) : undefined,
       valueNote: cpuNote,
       icon: IconProp.ChartBar,
       iconColor: "blue",
@@ -499,7 +499,9 @@ const CloudEnvironmentOverview: FunctionComponent<
     {
       title: "Memory",
       value:
-        instancesLoaded && hasMemory ? formatBytes(totalMem, translator) : "—",
+        instancesLoaded && hasMemory
+          ? formatBytes(totalMem, translator)
+          : undefined,
       valueNote: memoryNote,
       icon: IconProp.SquareStack,
       iconColor: "violet",
@@ -511,7 +513,7 @@ const CloudEnvironmentOverview: FunctionComponent<
       title: "Instances",
       value: instancesLoaded
         ? formatCompact(liveInstances.length, translator)
-        : "—",
+        : undefined,
       valueNote: instancesNote,
       icon: IconProp.Cube,
       iconColor: "amber",
@@ -526,7 +528,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Requests",
-      value: m ? formatCompact(m.total, translator) : "—",
+      value: m ? formatCompact(m.total, translator) : undefined,
       valueNote: traceNote,
       icon: IconProp.Workflow,
       iconColor: "sky",
@@ -540,7 +542,7 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "Error rate",
-      value: m ? formatPercent(m.errorRatePercent, translator) : "—",
+      value: m ? formatPercent(m.errorRatePercent, translator) : undefined,
       valueNote: traceNote,
       icon: IconProp.Alert,
       iconColor: "rose",
@@ -559,7 +561,9 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
     {
       title: "p95 latency",
-      value: m ? formatDurationMsInLanguage(m.p95DurationMs, translator) : "—",
+      value: m
+        ? formatDurationMsInLanguage(m.p95DurationMs, translator)
+        : undefined,
       valueNote: traceNote,
       icon: IconProp.Clock,
       iconColor: "emerald",

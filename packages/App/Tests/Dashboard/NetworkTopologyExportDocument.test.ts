@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
   NetworkTopologyEdge,
@@ -1337,7 +1338,7 @@ describe("the tables list every device and every connection", () => {
       "IP phone",
       "Unmanaged peer",
       "Unknown",
-      "-",
+      EMPTY_VALUE_MARK,
       "10.42.3.40",
     ]);
     expect(row("Till 1")[2]).toBe("Endpoint");
@@ -1386,7 +1387,7 @@ describe("the tables list every device and every connection", () => {
       "Perimeter firewall",
       "port1",
       "Down",
-      "-",
+      EMPTY_VALUE_MARK,
       "LLDP",
     ]);
     // The interface's own name wins over the advertised port.
@@ -1405,12 +1406,12 @@ describe("the tables list every device and every connection", () => {
     ]);
     expect(row("Back office switch", "Backup NAS").slice(4)).toEqual([
       "Healthy",
-      "-",
+      EMPTY_VALUE_MARK,
       "Drawn by hand",
     ]);
     expect(row("Back office switch", "Till 1").slice(4)).toEqual([
       "No data",
-      "-",
+      EMPTY_VALUE_MARK,
       "Forwarding table",
     ]);
   });

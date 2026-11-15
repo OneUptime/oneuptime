@@ -55,7 +55,7 @@ Angiv endpointets fulde URL under **API-URL**, som `https://api.example.com/heal
 
 ### Test den
 
-Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Overvågningstestresultat** viser, hvad API'et svarede.
+Klik på **Test monitor**, vælg en sonde under **Vælg sonde**, og klik på **Kør test**. **Monitortestresultat** viser, hvad API'et svarede.
 
 ### Gennemgå kriterierne
 

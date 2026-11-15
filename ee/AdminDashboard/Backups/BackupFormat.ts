@@ -24,7 +24,14 @@ import {
 } from "Common/Types/Backup/BackupSchedule";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
-import { getHourOption } from "Common/Types/DateLanguage";
+import {
+  DurationTextUnit,
+  formatDurationUnit,
+  formatRelativeAmount,
+  formatUnitAmount,
+  getHourOption,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
 import {
   FeedClock,
   formatFeedTimeAgo,
@@ -42,30 +49,9 @@ import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 /*
  * The parts of Intl the page uses beyond ES2017's library, which ee
  * compiles against; every browser the Admin Dashboard supports has them.
+ * A size, a duration and a time to come are DateLanguage's, each number
+ * held to its unit by a no-break space (#8456).
  */
-interface UnitNumberFormat {
-  format: (value: number) => string;
-}
-
-type UnitNumberFormatConstructor = new (
-  locale: string,
-  options: {
-    style: "unit";
-    unit: string;
-    unitDisplay: "short" | "long";
-    maximumFractionDigits?: number;
-  },
-) => UnitNumberFormat;
-
-interface RelativeTimeFormatter {
-  format: (value: number, unit: string) => string;
-}
-
-type RelativeTimeFormatConstructor = new (
-  locale: string,
-  options: { numeric: "always"; style: "long" },
-) => RelativeTimeFormatter;
-
 interface ListFormatter {
   format: (items: Array<string>) => string;
 }
@@ -111,19 +97,15 @@ export function formatBackupSize(bytes: number, language: string): string {
 
   const digits: number = unit === "byte" || amount >= 10 ? 0 : 1;
 
-  try {
-    const NumberFormat: UnitNumberFormatConstructor =
-      Intl.NumberFormat as unknown as UnitNumberFormatConstructor;
-
-    return new NumberFormat(getFeedLocale(language), {
-      style: "unit",
-      unit,
+  return (
+    formatUnitAmount({
+      value: amount,
+      unit: unit,
+      locale: getFeedLocale(language),
       unitDisplay: "short",
       maximumFractionDigits: digits,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(digits)} ${ENGLISH_BYTE_SYMBOLS[unit] || "B"}`;
-  }
+    }) || `${amount.toFixed(digits)} ${ENGLISH_BYTE_SYMBOLS[unit] || "B"}`
+  );
 }
 
 const ENGLISH_DURATION_UNITS: Record<string, [string, string]> = {
@@ -139,7 +121,7 @@ const ENGLISH_DURATION_UNITS: Record<string, [string, string]> = {
  */
 export function formatBackupDuration(ms: number, language: string): string {
   const seconds: number = Math.max(1, Math.round((ms || 0) / 1000));
-  let unit: string = "second";
+  let unit: DurationTextUnit = "second";
   let count: number = seconds;
 
   if (seconds >= 86400) {
@@ -153,19 +135,18 @@ export function formatBackupDuration(ms: number, language: string): string {
     count = Math.round(seconds / 60);
   }
 
-  try {
-    const NumberFormat: UnitNumberFormatConstructor =
-      Intl.NumberFormat as unknown as UnitNumberFormatConstructor;
+  const written: string | null = formatDurationUnit({
+    part: { count: count, unit: unit },
+    locale: getFeedLocale(language),
+    unitDisplay: "long",
+  });
 
-    return new NumberFormat(getFeedLocale(language), {
-      style: "unit",
-      unit,
-      unitDisplay: "long",
-    }).format(count);
-  } catch {
-    const names: [string, string] = ENGLISH_DURATION_UNITS[unit]!;
-    return `${count} ${count === 1 ? names[0] : names[1]}`;
+  if (written) {
+    return written;
   }
+
+  const names: [string, string] = ENGLISH_DURATION_UNITS[unit]!;
+  return `${count} ${count === 1 ? names[0] : names[1]}`;
 }
 
 /*
@@ -209,7 +190,7 @@ export function formatBackupTimeUntil(date: Date, clock: FeedClock): string {
     return "";
   }
 
-  let unit: string = "minute";
+  let unit: RelativeDateUnit = "minute";
   let count: number = Math.max(1, Math.round(seconds / 60));
 
   if (seconds >= 86400 * 1.5) {
@@ -220,21 +201,15 @@ export function formatBackupTimeUntil(date: Date, clock: FeedClock): string {
     count = Math.max(1, Math.round(seconds / 3600));
   }
 
-  try {
-    const RelativeTimeFormat: RelativeTimeFormatConstructor | undefined = (
-      Intl as unknown as {
-        RelativeTimeFormat?: RelativeTimeFormatConstructor | undefined;
-      }
-    ).RelativeTimeFormat;
+  const until: string | null = formatRelativeAmount({
+    count: count,
+    unit: unit,
+    isFuture: true,
+    locale: getFeedLocale(clock.language),
+  });
 
-    if (RelativeTimeFormat) {
-      return new RelativeTimeFormat(getFeedLocale(clock.language), {
-        numeric: "always",
-        style: "long",
-      }).format(count, unit);
-    }
-  } catch {
-    // English below.
+  if (until) {
+    return until;
   }
 
   const names: [string, string] = ENGLISH_DURATION_UNITS[unit]!;

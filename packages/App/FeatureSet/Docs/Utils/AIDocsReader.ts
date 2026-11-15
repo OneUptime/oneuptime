@@ -1,14 +1,17 @@
 import { ContentPath } from "./Config";
 import {
   DOCS_SEARCH_COMPOUNDING_LANGUAGES,
+  DOCS_SEARCH_WORD_ENDINGS,
   DocsSearchSynonym,
   DocsVocabulary,
   DocsVocabularyMatch,
   DocsWordEndings,
+  DocsWordForms,
   LATIN_SCRIPT_WORD,
   foldDocsSearchWord,
   getDocsSearchQuestionPhrases,
   getDocsSearchQuestionWords,
+  getDocsSearchSeparableParticles,
   getDocsSearchSynonyms,
   getDocsWordEndings,
   getTypoAllowance,
@@ -189,15 +192,117 @@ const longestFirst: (forms: DocsWordEndings) => Array<string> = (
     return cached;
   }
 
-  const sorted: Array<string> = [...forms.endings].sort(
-    (a: string, b: string): number => {
-      return Array.from(b).length - Array.from(a).length;
-    },
-  );
+  const sorted: Array<string> = [
+    ...forms.endings,
+    ...Object.keys(forms.rewrites || {}),
+  ].sort((a: string, b: string): number => {
+    return Array.from(b).length - Array.from(a).length;
+  });
 
   sortedEndings.set(forms, sorted);
 
   return sorted;
+};
+
+const hasOwn: (
+  record: Readonly<Record<string, unknown>>,
+  key: string,
+) => boolean = (
+  record: Readonly<Record<string, unknown>>,
+  key: string,
+): boolean => {
+  return Object.prototype.hasOwnProperty.call(record, key);
+};
+
+/*
+ * A word as one of the forms its language lists (DocsWordForms, #8335):
+ * the stem it is read as, when the word is one of `forms.stems` itself or
+ * with one of `forms.prefixes` before it and one of `forms.endings` after
+ * it. Persian "بسازم" (may I make) is "ب", "ساز" and "م", so "ساخت".
+ */
+const readWordForm: (
+  word: string,
+  forms: DocsWordForms | undefined,
+) => string | undefined = (
+  word: string,
+  forms: DocsWordForms | undefined,
+): string | undefined => {
+  if (!forms) {
+    return undefined;
+  }
+
+  for (const prefix of ["", ...forms.prefixes]) {
+    if (!word.startsWith(prefix)) {
+      continue;
+    }
+
+    const rest: string = word.slice(prefix.length);
+
+    for (const ending of ["", ...forms.endings]) {
+      if (!rest.endsWith(ending) || rest.length === ending.length) {
+        continue;
+      }
+
+      const stem: string = rest.slice(0, rest.length - ending.length);
+
+      if (hasOwn(forms.stems, stem)) {
+        return forms.stems[stem];
+      }
+    }
+  }
+
+  return undefined;
+};
+
+/*
+ * A word of another script with `language`'s ending written onto it
+ * (DocsWordEndings.writtenOnto): Korean "slack을" is "slack", read as a
+ * Latin-script word is. Undefined for any other word.
+ */
+const stemWrittenOnto: (
+  word: string,
+  language?: string | undefined,
+) => string | undefined = (
+  word: string,
+  language?: string | undefined,
+): string | undefined => {
+  const own: DocsWordEndings | undefined =
+    language && hasOwn(DOCS_SEARCH_WORD_ENDINGS, language)
+      ? DOCS_SEARCH_WORD_ENDINGS[language]
+      : undefined;
+  const written: RegExpExecArray | null = own?.writtenOnto?.exec(word) || null;
+
+  if (!own || !written || !own.endings.includes(written[2]!)) {
+    return undefined;
+  }
+
+  return stemDocsWord(written[1]!, language);
+};
+
+// `word` without the longest of its endings that may come off, or null for none.
+const takeEndingOff: (word: string, forms: DocsWordEndings) => string | null = (
+  word: string,
+  forms: DocsWordEndings,
+): string | null => {
+  const length: number = Array.from(word).length;
+
+  for (const ending of longestFirst(forms)) {
+    const shortest: number = Math.max(
+      forms.shortestStem,
+      forms.longerStems?.[ending] || 0,
+    );
+    const before: string = word.slice(0, word.length - ending.length);
+
+    if (
+      word.endsWith(ending) &&
+      length - Array.from(ending).length >= shortest &&
+      !forms.keptAfter?.[ending]?.test(before)
+    ) {
+      return `${before}${forms.rewrites?.[ending] || ""}`;
+    }
+  }
+
+  return null;
 };
 
 export const stemDocsWord: (
@@ -207,31 +312,34 @@ export const stemDocsWord: (
   const forms: DocsWordEndings | null = getDocsWordEndings(word, language);
 
   if (!forms) {
-    return word;
+    return stemWrittenOnto(word, language) ?? word;
   }
 
   const folded: string = LATIN_SCRIPT_WORD.test(word)
     ? word.normalize("NFKD").replace(/\p{M}/gu, "")
     : word;
-  const length: number = Array.from(folded).length;
+  const asForm: string | undefined = readWordForm(folded, forms.forms);
+
+  if (asForm !== undefined) {
+    return asForm;
+  }
+
   let stem: string = folded;
+  let next: string | null = takeEndingOff(folded, forms);
 
-  for (const ending of longestFirst(forms)) {
-    const shortest: number = Math.max(
-      forms.shortestStem,
-      forms.longerStems?.[ending] || 0,
-    );
+  while (next !== null) {
+    stem = next;
+    // One ending, but for a language whose endings stack (DocsWordEndings.stacksEndings).
+    next = forms.stacksEndings ? takeEndingOff(stem, forms) : null;
 
-    if (
-      folded.endsWith(ending) &&
-      length - Array.from(ending).length >= shortest
-    ) {
-      stem = folded.slice(0, folded.length - ending.length);
-      break;
+    if (next !== null && next.length >= stem.length) {
+      next = null;
     }
   }
 
-  return undouble(stem, forms);
+  stem = undouble(stem, forms);
+
+  return readWordForm(stem, forms.forms) ?? stem;
 };
 
 const DOUBLED_CONSONANT_AT_END: RegExp = /([bcdfghjklmnpqrstvwxz])\1$/;
@@ -958,14 +1066,24 @@ export default class DocsAIReader implements AIDocsReader {
     index: AIDocsLanguageIndex,
     words: Array<string>,
   ): Array<string> {
-    if (!DOCS_SEARCH_COMPOUNDING_LANGUAGES.has(index.language)) {
+    const particles: ReadonlySet<string> = getDocsSearchSeparableParticles(
+      index.language,
+    );
+    const isCompounding: boolean = DOCS_SEARCH_COMPOUNDING_LANGUAGES.has(
+      index.language,
+    );
+
+    if (!isCompounding && particles.size === 0) {
       return [];
     }
 
     const parts: Array<string> = Array.from(
       new Set<string>(
         words.filter((word: string): boolean => {
-          return LATIN_SCRIPT_WORD.test(word) && word.length >= 3;
+          return (
+            LATIN_SCRIPT_WORD.test(word) &&
+            (word.length >= 3 || particles.has(word))
+          );
         }),
       ),
     );
@@ -979,12 +1097,29 @@ export default class DocsAIReader implements AIDocsReader {
           continue;
         }
 
-        for (const joined of [
-          `${first}${second}`,
-          `${first}s${second}`,
-          `${firstStem}${second}`,
-          `${firstStem}s${second}`,
-        ]) {
+        /*
+         * Where a language joins only a verb's first part to it
+         * (DOCS_SEARCH_SEPARABLE_PARTICLES), the part comes first and the
+         * verb after, as the docs write the verb whole: Dutch "uit" and
+         * "nodig" are "uitnodig".
+         */
+        let joins: Array<string> = [];
+
+        if (isCompounding) {
+          joins = [
+            `${first}${second}`,
+            `${first}s${second}`,
+            `${firstStem}${second}`,
+            `${firstStem}s${second}`,
+          ];
+        } else if (particles.has(first) && !particles.has(second)) {
+          joins = [
+            `${first}${second}`,
+            `${first}${stemDocsWord(second, index.language)}`,
+          ];
+        }
+
+        for (const joined of joins) {
           const term: string = stemDocsWord(joined, index.language);
 
           if (index.documentFrequency.has(term)) {

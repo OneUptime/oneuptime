@@ -207,7 +207,7 @@ L'agente segue anche il file `*-json.log` di ogni container e invia ogni riga co
 | `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
 | `time` | Il timestamp del demone Docker per la riga. |
 
-I log compaiono nella pagina **Registri** dell'host e nella pagina di ogni container.
+I log compaiono nella pagina **Log** dell'host e nella pagina di ogni container.
 
 ### Requisito del driver di log
 
@@ -276,7 +276,7 @@ docker run ... <image>
 Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione e che l'host compaia in **Prodotti → Infrastruttura → Docker → Tutti gli host**. La [guida all'agente Docker](/docs/telemetry/docker-host) contiene i controlli da eseguire sull'host.
 :::
 
-:::details Le metriche arrivano ma la pagina Registri è vuota
+:::details Le metriche arrivano ma la pagina Log è vuota
 Quasi certamente i container non usano il driver di log `json-file`. Verificateli con i comandi di [Requisito del driver di log](#requisito-del-driver-di-log), cambiate quelli di cui volete i log e ricreateli.
 :::
 

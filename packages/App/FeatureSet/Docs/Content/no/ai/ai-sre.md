@@ -61,7 +61,7 @@ OneUptime avgjør dette ut fra det den vet, aldri ut fra det analysen sier: den 
 
 ## Hva en undersøkelse leser
 
-En undersøkelse starter ved hendelsen eller varselet og ved infrastrukturen den er koblet til: vertene, Docker- og Podman-vertene, Kubernetes-klyngene, databasene og tjenestene som overvåkingene dens følger med på. En nettsted-, API- eller syntetisk overvåking følger med på det du kobler den til under **Overvåking → Oversikt → Tilkoblede ressurser**, så koble den til vertene som leverer det den sjekker, og hver undersøkelse av hendelsene dens starter der. Før alt dette leser den prosjektets [AI-kontekst](/docs/ai/ai-context): det teamet ditt har skrevet ned for OneUptime AI om deres egne systemer, med notatene fra AI-reglene som samsvarer.
+En undersøkelse starter ved hendelsen eller varselet og ved infrastrukturen den er koblet til: vertene, Docker- og Podman-vertene, Kubernetes-klyngene, databasene og tjenestene som monitorene dens følger med på. En nettsted-, API- eller syntetisk monitor følger med på det du kobler den til under **Monitor → Oversikt → Tilkoblede ressurser**, så koble den til vertene som leverer det den sjekker, og hver undersøkelse av hendelsene dens starter der. Før alt dette leser den prosjektets [AI-kontekst](/docs/ai/ai-context): det teamet ditt har skrevet ned for OneUptime AI om deres egne systemer, med notatene fra AI-reglene som samsvarer.
 
 - Varslene på den infrastrukturen som ble åpnet i de 30 minuttene før hendelsen, eller som fortsatt er åpne, de nyeste først, som varselet om høy CPU på verten bak et tregt nettsted. Private varsler utelates.
 - Infrastrukturens egne målinger, lest slik folk leser dem. Vertsmålinger som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang per tilstand, og tilstandene summerer til 100 %, så ett gjennomsnitt over alle sier ingenting. OneUptime AI leser dem én tilstand om gangen (opptatt CPU er user pluss system), og enhver måling per container, per monteringspunkt eller etter et hvilket som helst annet attributt.
@@ -188,7 +188,7 @@ Så lenge **Rett nye hendelser automatisk** er på og ingen AI-regel er satt opp
 
 - telemetrien den ble utløst fra, nevner klyngen (en målings-, logg- eller trace-monitor på klyngens data);
 - monitoren er en Kubernetes-monitor for klyngen;
-- monitoren er knyttet til klyngen under **Overvåking → Oversikt → Tilkoblede ressurser**, som er måten å knytte en nettsted-, API- eller syntetisk monitor til klyngen som leverer det den sjekker;
+- monitoren er knyttet til klyngen under **Monitor → Oversikt → Tilkoblede ressurser**, som er måten å knytte en nettsted-, API- eller syntetisk monitor til klyngen som leverer det den sjekker;
 - Spør AI erklærte den på klyngens side, eller knyttet den til klyngen da den ble bedt om det;
 - noen valgte klyngen under **Andre berørte ressurser** da den ble erklært (å velge en tilknyttet monitor legger den til der for deg);
 - noen valgte klyngen da den ble erklært fra [Slack](/docs/workspace-connections/slack) eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams).

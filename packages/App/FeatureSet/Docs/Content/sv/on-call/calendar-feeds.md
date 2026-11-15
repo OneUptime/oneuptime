@@ -315,7 +315,7 @@ Länken är okänd, har tagits bort, eller dess frist har gått ut. Skapa en ny 
 :::
 
 :::details Länken svarar 503
-Antingen är `DISABLE_ON_CALL_CALENDAR_FEED` inställd, eller så är servern upptagen: högst några få flöden byggs åt gången, och ett schema som tar mycket lång tid att räkna ut avbryts. När det finns en tidigare kopia av flödet levererar servern den i stället, med en `Warning: 110`-rubrik, så en 503 betyder att det inte fanns något att falla tillbaka på. Klienter behåller sin senaste kopia och försöker igen efter intervallet i `Retry-After`. Fastmail inaktiverar en prenumeration efter fem fel i rad; lägg till den igen när servern fungerar. Måttet `oncall_calendar_render_duration_ms` visar driftpersonalen vilka flöden som är långsamma.
+Antingen är `DISABLE_ON_CALL_CALENDAR_FEED` inställd, eller så är servern upptagen: högst några få flöden byggs åt gången, och ett schema som tar mycket lång tid att räkna ut avbryts. När det finns en tidigare kopia av flödet levererar servern den i stället, med en `Warning: 110`-rubrik, så en 503 betyder att det inte fanns något att falla tillbaka på. Klienter behåller sin senaste kopia och försöker igen efter intervallet i `Retry-After`. Fastmail inaktiverar en prenumeration efter fem fel i rad; lägg till den igen när servern fungerar. Mätvärdet `oncall_calendar_render_duration_ms` visar driftpersonalen vilka flöden som är långsamma.
 :::
 
 :::details 429 eller "too many requests"

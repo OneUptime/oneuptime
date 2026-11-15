@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelTable from "Common/UI/Components/ModelTable/AnalyticsModelTable";
@@ -67,7 +68,9 @@ import {
   TelemetryFirstStepsSignal,
 } from "../Telemetry/TelemetryFirstSteps";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 const PROFILE_TYPE_FILTER_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "CPU time", value: "cpu" },
@@ -879,12 +882,12 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
                         durationNano,
                         "nanoseconds",
                       )
-                    : "—";
+                    : EMPTY_VALUE_MARK;
 
                 return (
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-gray-900">
-                      {durationLabel}
+                      {getValueOrQuietDash(durationLabel)}
                     </span>
                     <span className="text-xs text-gray-500">
                       {translator.translatePlural(

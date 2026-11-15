@@ -431,9 +431,9 @@ OneUptime 会在你的 **日志** 中查找异常，并把它们汇入追踪错�
 | 检测方式 | 适用的日志 | 工作方式 |
 | --- | --- | --- |
 | **异常属性**（推荐） | 任意日志 | 带有 OpenTelemetry `exception.type`、`exception.message` 或 `exception.stacktrace` 属性的日志记录会直接变成异常。大多数日志集成在你记录异常时都会设置这些属性：Logback 和 Log4j appender、Serilog、Python 日志插桩。这种方式精确，并适用于任何语言。 |
-| **正文中的堆栈跟踪** | 不带追踪 ID 和 span ID 的错误级和致命级日志 | OneUptime 会在正文的前 16 KB 中查找 JavaScript、Python、Java、Go、Ruby、C#/.NET 或 PHP 堆栈跟踪，并从中提取类型、消息和帧。在 span 内写入的日志会被跳过，因为该 span 本身会上报异常。 |
+| **正文中的堆栈跟踪** | 不带追踪 ID 和 span ID 的错误级和致命级日志 | OneUptime 会在正文的前 16 KB 中查找 JavaScript、Python、Java、Go、Ruby、C#/.NET 或 PHP 堆栈追踪，并从中提取类型、消息和帧。在 span 内写入的日志会被跳过，因为该 span 本身会上报异常。 |
 
-正文扫描适用于 Collector 读取的纯文本日志，例如原始 stdout、journald 或 syslog。多行堆栈跟踪必须作为一条日志记录到达，因此请在 Collector 中启用多行合并，参见 [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 指南。
+正文扫描适用于 Collector 读取的纯文本日志，例如原始 stdout、journald 或 syslog。多行堆栈追踪必须作为一条日志记录到达，因此请在 Collector 中启用多行合并，参见 [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) 指南。
 
 检测默认开启。在自托管安装中，在 `app` 服务上设置 `TELEMETRY_LOG_EXCEPTION_EXTRACTION_ENABLED=false` 即可关闭；如果你运行了 Helm chart 的专用 worker，也要在 `worker` 上设置。
 

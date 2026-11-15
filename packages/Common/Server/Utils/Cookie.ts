@@ -20,9 +20,31 @@ import {
 } from "../../Types/Dashboard/MasterPassword";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import RequestTransport from "./RequestTransport";
+import { IdentityRoute } from "../../ServiceRoute";
 
 // The default life of an SSO sign-in's proof: thirty days.
 const SSO_SIGN_IN_LIFETIME_IN_DAYS: number = 30;
+
+/*
+ * The cookie that says which session a browser holds, for its sign-out and
+ * nothing else (JSONWebToken.signSessionSignOutToken, issue #8638). The
+ * server rotates the refresh token at every renewal and keeps only the new
+ * one, and the access-token cookie lives fifteen minutes: after a renewal
+ * whose answer the browser never got, its sign-out would otherwise carry
+ * nothing that names its session, and the session would stay signed in on
+ * the server. Set beside the refresh token and for as long, HttpOnly and
+ * SameSite=Strict, read only by POST /identity/logout.
+ */
+export const SESSION_SIGN_OUT_COOKIE_NAME: string = "user-sign-out";
+
+/*
+ * Where a browser signs out - POST /identity/logout, the address the
+ * dashboards post their sign-out to (UserUtil.logout, IDENTITY_URL) - and
+ * the only path the sign-out cookie is sent to. So no other request carries
+ * it, and a renewal that is refused, which clears the cookies it was sent,
+ * leaves it for the sign-out the dashboard sends next.
+ */
+export const SESSION_SIGN_OUT_COOKIE_PATH: string = `${IdentityRoute.toString()}/logout`;
 
 export default class CookieUtil {
   // set cookie with express response
@@ -264,6 +286,27 @@ export default class CookieUtil {
       maxAge: refreshTokenTtl,
       httpOnly: true,
     });
+
+    /*
+     * Which session this browser holds, for its sign-out only
+     * (SESSION_SIGN_OUT_COOKIE_NAME): renewed with the refresh token, for
+     * as long, and never sent anywhere but the sign-out.
+     */
+    CookieUtil.setCookie(
+      res,
+      CookieUtil.getSessionSignOutKey(),
+      JSONWebToken.signSessionSignOutToken({
+        userId: user.id!,
+        sessionId: sessionId,
+        expiresInSeconds: refreshTokenTtl / 1000,
+      }),
+      {
+        maxAge: refreshTokenTtl,
+        httpOnly: true,
+        sameSite: "strict",
+        path: SESSION_SIGN_OUT_COOKIE_PATH,
+      },
+    );
 
     if (user.id) {
       // set user id cookie
@@ -593,6 +636,37 @@ export default class CookieUtil {
     return `${CookieName.RefreshToken}-${id.toString()}`;
   }
 
+  // The cookie that says which session a browser holds, for its sign-out.
+  @CaptureSpan()
+  public static getSessionSignOutKey(): string {
+    return SESSION_SIGN_OUT_COOKIE_NAME;
+  }
+
+  /*
+   * The sign-out cookie a browser sent, which it sends only to
+   * POST /identity/logout (SESSION_SIGN_OUT_COOKIE_PATH). Read from the
+   * cookie only: never from a body or a header.
+   */
+  @CaptureSpan()
+  public static getSessionSignOutTokenFromExpressRequest(
+    req: ExpressRequest,
+  ): string | undefined {
+    return CookieUtil.getCookieFromExpressRequest(
+      req,
+      CookieUtil.getSessionSignOutKey(),
+    );
+  }
+
+  // Clears the sign-out cookie on the path, and with the attributes, it was set with.
+  @CaptureSpan()
+  public static removeSessionSignOutCookie(res: ExpressResponse): void {
+    CookieUtil.removeCookie(res, CookieUtil.getSessionSignOutKey(), {
+      path: SESSION_SIGN_OUT_COOKIE_PATH,
+      sameSite: "strict",
+      httpOnly: true,
+    });
+  }
+
   @CaptureSpan()
   public static getStatusPageMasterPasswordKey(id: ObjectID): string {
     return `${CookieName.StatusPageMasterPassword}-${id.toString()}`;
@@ -618,7 +692,12 @@ export default class CookieUtil {
     return CookieName.GlobalSSOToken;
   }
 
-  // delete all cookies.
+  /*
+   * Clears every cookie the request carries, on "/" - and the sign-out
+   * cookie on its own path, which only a sign-out carries. So a refused
+   * renewal, which is not sent it, leaves it for the sign-out the dashboard
+   * sends next (SESSION_SIGN_OUT_COOKIE_PATH).
+   */
   @CaptureSpan()
   public static removeAllCookies(
     req: ExpressRequest,
@@ -626,6 +705,11 @@ export default class CookieUtil {
   ): void {
     const cookies: Dictionary<string> = this.getAllCookies(req);
     for (const key in cookies) {
+      if (key === this.getSessionSignOutKey()) {
+        this.removeSessionSignOutCookie(res);
+        continue;
+      }
+
       this.removeCookie(res, key);
     }
 

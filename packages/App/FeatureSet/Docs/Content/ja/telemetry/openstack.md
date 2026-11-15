@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### ワークフローからの修正
 
-ワークフローは OpenStack のアラートから開始して修正を提案できます。**Propose an OpenStack fix** ステップは、アラートまたはインシデントと、コマンドを受け取ります。OneUptime AI が提案する修正と同じポリシー、同じ書き込み範囲、変更が触れるものの同じ読み取りを通り、AI モデルは不要で、人がアラート上で承認します。ワークフロー自身が変更を行ったり、提案したものを承認したりすることはできません。クラウドの修正モードがどうであってもです。**Propose taking a failing OpenStack compute service out of scheduling** テンプレートが出発点になります。
+ワークフローは OpenStack のアラートから開始して修正を提案できます。**OpenStack の修正を提案** ステップは、アラートまたはインシデントと、コマンドを受け取ります。OneUptime AI が提案する修正と同じポリシー、同じ書き込み範囲、変更が触れるものの同じ読み取りを通り、AI モデルは不要で、人がアラート上で承認します。ワークフロー自身が変更を行ったり、提案したものを承認したりすることはできません。クラウドの修正モードがどうであってもです。**Propose taking a failing OpenStack compute service out of scheduling** テンプレートが出発点になります。
 
 ## systemd サービスとして動かす
 

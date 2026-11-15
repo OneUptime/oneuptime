@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import HostAddressUtil from "Common/Utils/HostAddressUtil";
@@ -26,7 +27,7 @@ const formatDurationInMs: (
   durationInMs: number | undefined,
 ): string => {
   if (durationInMs === undefined) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   return formatMilliseconds(translator, durationInMs, {

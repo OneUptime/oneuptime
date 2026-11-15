@@ -89,12 +89,13 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *
  *   - the ⋯ menu, a symbol in every language;
  *   - the Owned permission scope, which no locale has as a key;
- *   - the workflow trigger On Update and its Fields to watch setting, which the
- *     workflow builder draws as the component catalog writes them.
+ *   - the workflow trigger On Update, which the workflow builder draws as
+ *     the component catalog writes it. Its Fields to watch setting is worded
+ *     in every language now, so each page names it as drawn.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [API_REFERENCE]: ["⋯", "Owned", "On Update", "Fields to watch"],
+    [API_REFERENCE]: ["⋯", "Owned", "On Update"],
   };
 
 /*

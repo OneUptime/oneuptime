@@ -1098,18 +1098,18 @@ describe("date input round trip", () => {
 
 describe("getNoteTimeLabel", () => {
   test("a recent note reads relative to the feed's now, not the wall clock", () => {
-    expect(getNoteTimeLabel(ago(12 * MINUTE), NOW)).toBe("12 minutes ago");
-    expect(getNoteTimeLabel(ago(2 * HOUR), NOW)).toBe("2 hours ago");
+    expect(getNoteTimeLabel(ago(12 * MINUTE), NOW)).toBe("12\u00A0minutes ago");
+    expect(getNoteTimeLabel(ago(2 * HOUR), NOW)).toBe("2\u00A0hours ago");
     expect(getNoteTimeLabel(ago(10 * 1000), NOW)).toBe("just now");
   });
 
   test.each([
     [0, "just now"],
     [59 * 1000, "just now"],
-    [MINUTE, "1 minute ago"],
-    [59 * MINUTE, "59 minutes ago"],
-    [HOUR, "1 hour ago"],
-    [5 * HOUR + 59 * MINUTE, "5 hours ago"],
+    [MINUTE, "1\u00A0minute ago"],
+    [59 * MINUTE, "59\u00A0minutes ago"],
+    [HOUR, "1\u00A0hour ago"],
+    [5 * HOUR + 59 * MINUTE, "5\u00A0hours ago"],
     [-5 * MINUTE, "just now"],
   ])("%p ms reads as %p", (ageMs: number, label: string) => {
     expect(getRelativeTimeLabel(ageMs)).toBe(label);

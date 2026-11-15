@@ -1,8 +1,9 @@
 {
   /*
    * The project every file in this directory belongs to: exactly
-   * ../../../tsconfig.tests.server-utils.json, the part of
-   * `npm run compile-tests` that type-checks Tests/Server/Utils. Its
+   * ../../../tsconfig.tests.server-utils.json, the whole of
+   * Tests/Server/Utils, which `npm run compile-tests` checks in three parts
+   * (tsconfig.tests.server-utils-ai.json, -a-o.json and -p-z.json). Its
    * "include" is inherited and resolves against packages/Common, where it is
    * written.
    *

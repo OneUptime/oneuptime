@@ -1,3 +1,5 @@
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -231,7 +233,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
         status: status.displayLabel,
         color: status.color,
         tooltip: {
-          title: (span.name as string) || "—",
+          title: (span.name as string) || getUnnamedText(),
           details: [
             {
               label: "Duration",
@@ -265,7 +267,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
           <ResourceListNameCell
-            name={(span.name as string) || "—"}
+            name={span.name as string}
             className="px-3 py-2 text-xs text-gray-700 font-mono truncate"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums font-medium">
@@ -284,7 +286,7 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             className="px-3 py-2 text-xs text-gray-500 tabular-nums whitespace-nowrap"
             title={startTime.title}
           >
-            {startTime.label}
+            {getValueOrQuietDash(startTime.label, { isSmall: true })}
           </td>
         </tr>
       );

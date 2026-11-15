@@ -184,7 +184,7 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
               item: WebhookLog,
               onCompleteAction: VoidFunction,
             ) => {
-              setModalText((item["requestBody"] as string) || "-");
+              setModalText((item["requestBody"] as string) || "");
               setModalTitle("Request Body");
               setShowModal(true);
               onCompleteAction();
@@ -209,7 +209,7 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
               if (body) {
                 parts.push(body);
               }
-              setModalText(parts.join("\n\n") || "-");
+              setModalText(parts.join("\n\n") || "");
               setShowModal(true);
               onCompleteAction();
             },
@@ -220,7 +220,7 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
             icon: IconProp.Error,
             onClick: (item: WebhookLog, onCompleteAction: VoidFunction) => {
               setModalTitle("Status Message");
-              setModalText((item["statusMessage"] as string) || "-");
+              setModalText((item["statusMessage"] as string) || "");
               setShowModal(true);
               onCompleteAction();
             },
@@ -231,7 +231,7 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
       {showModal && (
         <ConfirmModal
           title={modalTitle}
-          description={modalText || "-"}
+          description={modalText || "No data"}
           onSubmit={() => {
             setShowModal(false);
           }}

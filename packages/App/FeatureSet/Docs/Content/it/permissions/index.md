@@ -257,7 +257,7 @@ Un blocco con etichette su un'autorizzazione di telemetria esclude la telemetria
 
 L'eliminazione della telemetria si attiene alle stesse risorse: un'eliminazione raggiunge le righe delle risorse che raggiungono sia la vostra autorizzazione a leggere il segnale sia quella a eliminarlo, meno quelle che un blocco con etichette su una delle due esclude, e avviene in un progetto alla volta.
 
-I log dei monitor, la cronologia degli SLO, i flussi di rete e le allocazioni dei costi Kubernetes si leggono allo stesso modo, attraverso il monitor, lo SLO, il dispositivo di rete o il cluster a cui appartengono: Possedute ed Etichette raggiungono le righe dei record che potete leggere, e un blocco con etichette esclude le righe dei record che portano quelle etichette. Il registro di audit e gli indicatori di threat intelligence li legge in tutto il progetto chi può leggerli.
+I log dei monitor, la cronologia degli SLO, i flussi di rete e le allocazioni dei costi Kubernetes si leggono allo stesso modo, attraverso il monitor, lo SLO, il dispositivo di rete o il cluster a cui appartengono: Possedute ed Etichette raggiungono le righe dei record che potete leggere, e un blocco con etichette esclude le righe dei record che portano quelle etichette. Il log di audit e gli indicatori di threat intelligence li legge in tutto il progetto chi può leggerli.
 
 ## Chiavi API
 

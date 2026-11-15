@@ -91,7 +91,7 @@ En regel som ärver kan lämna **Etiketter att lägga till** (eller **Ägare**) 
 | --- | --- |
 | **Ärv etiketter från monitorer** | _Ärv etiketter från: monitorer_ |
 | **Ärv etiketter från monitorer** och **Ärv etiketter från värdar** | _Ärv etiketter från: monitorer, värdar_ |
-| **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: övervakning_ |
+| **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: monitor_ |
 
 Namnet följer brytarna tills du väljer en etikett (då får regeln namn efter sina etiketter) eller skriver ett eget namn.
 

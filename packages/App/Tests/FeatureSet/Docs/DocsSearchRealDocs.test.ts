@@ -7,6 +7,7 @@ import DocsSearch, {
 import {
   ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
   ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+  ASK_AI_QUESTIONS_BY_LANGUAGE,
   ASK_AI_WEBSITE_QUESTIONS,
   AskAiHowDoIQuestionTranslated,
 } from "./AskAiHowDoIQuestions";
@@ -57,12 +58,28 @@ const BUILD_TIMEOUT_MS: number = 600000;
 /*
  * Questions of AskAiHowDoIQuestions that the docs search box does not
  * show a page for in its first ten, each with why. Ask AI's search finds
- * each in the six it shows the model. This list only shrinks: a question
- * the box finds fails its test until it is deleted here.
+ * each in the six it shows the model, but for the two its own list
+ * (AskAiHowDoIRetrieval's NOT_IN_THE_FIRST_SIX) names. This list only
+ * shrinks: a question the box finds fails its test until it is deleted
+ * here.
  */
 const NOT_IN_THE_BOX_FIRST_TEN: Record<string, string> = {
-  "ko 모니터를 어떻게 만드나요?":
-    "만드나요 (make?) is 만드, the name's 만들기 (making) is 만들기: the ㄹ of an irregular verb drops (#8335). 15th.",
+  "de Wie eskaliere ich, wenn niemand antwortet?":
+    'Escalation Rules ("Eskalationsregeln") is named for none of its words: "eskaliere" is "eskalier", the name one word of its own. The box lifts only a page named for half a question\'s words; Ask AI finds it first.',
+  "es ¿Cómo se suscriben mis clientes a la página de estado?":
+    '"suscriben" (they subscribe) keeps its "-en", and the page says "Suscriptores" (AskAiHowDoIRetrieval\'s NOT_IN_THE_FIRST_SIX says why).',
+  "pt Como meus clientes assinam a página de status?":
+    '"assinam" (they subscribe) keeps its "-am", and the page says "Assinantes".',
+  "nl Hoe zet ik tweestapsverificatie aan?":
+    'The answer is a section of Your Account ("Tweestapsverificatie inschakelen"), and the box lifts a page named for a question, never a section; the section says "inschakelen", not "aanzetten".',
+  "da Hvordan slår jeg totrinsgodkendelse til?":
+    'A section of Your Account ("Slå totrinsgodkendelse til"): "slår" (present) is not its "slå", and the box lifts pages, not sections.',
+  "no Hvordan slår jeg på tofaktorautentisering?":
+    'A section of Your Account ("Slå på totrinnsbekreftelse"): "slår" is not its "slå", and the box lifts pages, not sections.',
+  "sv Hur aktiverar jag tvåfaktorsautentisering?":
+    'A section of Your Account ("Slå på tvåfaktorsautentisering"), which says "slå på" (turn on), not "aktivera"; the box lifts pages, not sections.',
+  "ja 二要素認証を有効にするにはどうすればいいですか？":
+    "A section of Your Account (2 要素認証をオンにする), which writes 2 for 二 and オン for 有効; the box lifts pages, not sections.",
   "zh-TW 如何安排維護？":
     "The maintenance pages say 排定 (schedule), never 安排 (arrange): the box reads 安排維護 as 安排, 排維 and 維護, and they hold one of the three, while Home, OpenStack and Declaring an Incident say 安排維護 in passing.",
 };
@@ -460,6 +477,7 @@ describe("docs search, on the real docs", () => {
       ...ASK_AI_WEBSITE_QUESTIONS,
       ...ASK_AI_HOW_DO_I_QUESTIONS_IN_EVERY_LANGUAGE,
       ...ASK_AI_HOW_DO_I_QUESTIONS_TRANSLATED,
+      ...ASK_AI_QUESTIONS_BY_LANGUAGE,
     ].map(
       (
         entry: AskAiHowDoIQuestionTranslated,
@@ -549,16 +567,28 @@ describe("docs search, on the real docs", () => {
   );
 
   test(
-    "Russian: the same words typed as keywords leave Website Monitor out, asked as a question they find it first",
+    "Russian: asked as a question, the words find Website Monitor first; typed as keywords, only results that hold both",
     async () => {
-      const keywords: Array<string> = urls(
-        await search("ru", "отслеживать сайт ", 30),
+      const index: AIDocsLanguageIndex = await DocsAIReader.getIndex("ru");
+      const keywords: DocsSearchAnswer = DocsSearch.rank(
+        index,
+        "настроить сайт ",
+        30,
       );
       const question: Array<string> = urls(
         await search("ru", "Как отслеживать мой сайт?", 30),
       );
+      const words: Array<DocsQueryWord> = DocsSearch.readQuery(
+        index,
+        "настроить сайт ",
+      );
 
-      expect(opensPage(keywords, "ru", "monitor/website-monitor")).toBe(false);
+      expect(keywords.results.length).toBeGreaterThan(0);
+      expect(
+        keywords.results.every((result: DocsSearchResult): boolean => {
+          return holdsEveryWord(index, result, words);
+        }),
+      ).toBe(true);
       expect(
         opensPage(question.slice(0, 3), "ru", "monitor/website-monitor"),
       ).toBe(true);

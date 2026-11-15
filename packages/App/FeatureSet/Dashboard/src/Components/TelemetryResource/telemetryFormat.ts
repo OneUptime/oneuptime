@@ -1,4 +1,5 @@
 import { Translator } from "Common/Types/Translator";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { writeFigureInLanguage } from "Common/Types/DateLanguage";
 import {
   formatDurationInUnit,
@@ -32,7 +33,7 @@ export const formatCompact: (
   translator?: Translator,
 ) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (n < 1000) {
     return inLanguage(String(Math.round(n)), translator);
@@ -54,7 +55,7 @@ export const formatPercent: (
   translator?: Translator,
 ) => string = (n: number | null, translator?: Translator): string => {
   if (n === null || !Number.isFinite(n)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return inLanguage(`${n.toFixed(1)}%`, translator);
 };
@@ -72,7 +73,7 @@ export const formatDurationMsInLanguage: (
   translator: Translator,
 ) => string = (ms: number | null, translator: Translator): string => {
   if (ms === null || !Number.isFinite(ms)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   if (ms < 1) {
     return formatDurationInUnit(translator, ms * 1000, "microsecond", {
@@ -131,11 +132,11 @@ export const formatBytes: (
   translator?: Translator,
 ) => string = (bytes: number | null, translator?: Translator): string => {
   if (bytes === null || !Number.isFinite(bytes)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   const reading: BytesReading = getBytesReading(bytes);
   return inLanguage(
-    `${reading.value.toFixed(reading.decimals)} ${reading.unit}`,
+    `${reading.value.toFixed(reading.decimals)}\u00A0${reading.unit}`,
     translator,
   );
 };

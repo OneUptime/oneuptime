@@ -363,7 +363,11 @@ export function formatDatabaseHealthRatio(ratio: number): string {
   return floorTo(ratio, 1).toFixed(1);
 }
 
-// "1.2 GB", "512 GB", "310 MB": decimal units, as the alerts' lines are.
+/*
+ * "1.2 GB", "512 GB", "310 MB": decimal units, as the alerts' lines are,
+ * the figure held to its unit by a no-break space: a value in a translated
+ * reason is put in as it is written (#8457).
+ */
 export function formatDatabaseHealthBytes(bytes: number): string {
   const units: Array<{ size: number; unit: string }> = [
     { size: 1e12, unit: "TB" },
@@ -374,10 +378,10 @@ export function formatDatabaseHealthBytes(bytes: number): string {
   for (const { size, unit } of units) {
     if (Math.abs(bytes) >= size) {
       const scaled: number = floorTo(bytes / size, 1);
-      return `${Number.isInteger(scaled) ? scaled.toFixed(0) : scaled.toFixed(1)} ${unit}`;
+      return `${Number.isInteger(scaled) ? scaled.toFixed(0) : scaled.toFixed(1)}\u00A0${unit}`;
     }
   }
-  return `${Math.round(bytes)} B`;
+  return `${Math.round(bytes)}\u00A0B`;
 }
 
 function wholeCount(value: number): number {

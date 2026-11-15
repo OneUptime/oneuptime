@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 8214
+    "keys": 55628,
+    "untranslated": 8210
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -138,6 +138,7 @@
     "Slug",
     "Splunk On-Call API ID",
     "StatusPage",
+    "Stripe Payments API",
     "Swarm ID",
     "TLS",
     "TTL",
@@ -159,6 +160,7 @@
     "VM 102 · pve2",
     "VM CPU",
     "VM CPU Ready",
+    "VM vSAN IOPS",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",

@@ -1,4 +1,5 @@
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import {
   formatReaderFigure,
   getDateDisplayLanguage,
@@ -117,7 +118,7 @@ export const formatEfficiency: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !Number.isFinite(value)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   return formatReaderFigure(Math.round(value * 100), {
     decimals: 0,

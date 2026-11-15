@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 8403
+    "keys": 55628,
+    "untranslated": 8399
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -31,6 +31,7 @@
     "App",
     "Appliance",
     "Appliance {{appliance}}",
+    "Appliances",
     "Application credential",
     "Application credential {{id}}",
     "Array",
@@ -296,6 +297,7 @@
     "Status",
     "StatusPage",
     "Stratum",
+    "Stripe Payments API",
     "Switch",
     "System",
     "TLS",

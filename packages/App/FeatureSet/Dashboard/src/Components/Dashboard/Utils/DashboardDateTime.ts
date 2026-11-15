@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 
 /**
  * Every timestamp a dashboard widget shows goes through here.
@@ -19,7 +20,7 @@ import OneUptimeDate from "Common/Types/Date";
  */
 
 // What a cell shows when there is no usable timestamp.
-export const NO_DATE_LABEL: string = "—";
+export const NO_DATE_LABEL: string = EMPTY_VALUE_MARK;
 
 export interface DashboardDateTime {
   // Compact, for the cell itself: "Jul 16, 2026 14:32".

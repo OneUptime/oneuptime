@@ -422,7 +422,12 @@ export enum FeedHealth {
 export const FEED_HEALTH_LABELS: Record<FeedHealth, string> = {
   [FeedHealth.Active]: translationKey("Active"),
   [FeedHealth.WaitingForFirstSync]: translationKey("Waiting for first sync"),
-  [FeedHealth.NotFetched]: translationKey("Not fetched yet"),
+  /*
+   * The link's own key (MeaningKeys), read in English as the mobile app's
+   * words: shared with a token's, Russian's feminine "Ещё не запрашивалась"
+   * read beside the link's neuter "Активно" and "Отключено" (#8659).
+   */
+  [FeedHealth.NotFetched]: translationKey("Not fetched yet (calendar feed)"),
   [FeedHealth.Disabled]: translationKey("Disabled"),
   [FeedHealth.NeedsRegeneration]: translationKey("Needs regeneration"),
 };

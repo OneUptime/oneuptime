@@ -203,7 +203,7 @@ L'agente segue anche il file `ctr.log` di ogni container e invia ogni riga come 
 | `body` | La riga scritta dal container. Le righe che iniziano con uno spazio o una parentesi chiusa, come le righe di uno stack trace, vengono unite alla riga precedente. |
 | `time` | Il timestamp di Podman per la riga. |
 
-I log compaiono nella pagina **Registri** dell'host e nella pagina di ogni container.
+I log compaiono nella pagina **Log** dell'host e nella pagina di ogni container.
 
 ### Requisito del driver di log
 
@@ -215,7 +215,7 @@ L'agente legge i file scritti dal driver di log `k8s-file` di Podman, in `/var/l
 | `journald` | Niente: i log sono nel journal di systemd. |
 | `none` | Niente: i log vengono scartati. |
 
-Le metriche non dipendono dal driver di log: un host i cui container usano `journald` comunica comunque le metriche, solo la sua pagina **Registri** resta vuota.
+Le metriche non dipendono dal driver di log: un host i cui container usano `journald` comunica comunque le metriche, solo la sua pagina **Log** resta vuota.
 
 Verificate il driver di un container, e quello predefinito di Podman:
 
@@ -275,7 +275,7 @@ Poi rimuovete e ricreate ogni container.
 Gli host si registrano da soli a partire dai dati dell'agente. Verificate che il container dell'agente sia in esecuzione, che il socket API di Podman sia abilitato e che l'host compaia in **Prodotti → Infrastruttura → Podman → Tutti gli host**. La [guida all'agente Podman](/docs/telemetry/podman-host) contiene i controlli da eseguire sull'host.
 :::
 
-:::details Le metriche arrivano ma la pagina Registri è vuota
+:::details Le metriche arrivano ma la pagina Log è vuota
 Quasi certamente i container usano `journald`. Passate a `k8s-file` quelli di cui volete i log (vedete [Requisito del driver di log](#requisito-del-driver-di-log)) e ricreateli.
 :::
 

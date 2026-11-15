@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import DnssecMonitorResponse, {
@@ -23,7 +24,9 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -74,7 +77,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
     dateStr: string | undefined,
   ): string => {
     if (!dateStr) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
     try {
       const date: Date = new Date(dateStr);
@@ -88,7 +91,7 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
     value: boolean | undefined,
   ): string => {
     if (value === undefined) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
     return translator.translateTemplate(value ? "Yes" : "No");
   };
@@ -235,10 +238,12 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                             {check.resolver}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
-                            {yesNo(check.adFlag)}
+                            {getValueOrQuietDash(yesNo(check.adFlag))}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
-                            {yesNo(check.servfailWhenValidating)}
+                            {getValueOrQuietDash(
+                              yesNo(check.servfailWhenValidating),
+                            )}
                           </td>
                           <td
                             className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
@@ -326,7 +331,9 @@ const DnssecMonitorView: FunctionComponent<ComponentProps> = (
                             {check.soaSerial || <TableEmptyValue />}
                           </td>
                           <td className="px-4 py-2 text-sm text-gray-900">
-                            {formatDateText(check.rrsigExpiration)}
+                            {getValueOrQuietDash(
+                              formatDateText(check.rrsigExpiration),
+                            )}
                           </td>
                           <td
                             className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_TEXT_CLASS_NAME}`}
