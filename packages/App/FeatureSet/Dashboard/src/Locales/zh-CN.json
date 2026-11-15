@@ -55877,5 +55877,6 @@
   "an unverified phone number for calls": "未验证的通话电话号码",
   "an unverified push notification device": "未验证的推送通知设备",
   "{{channels}} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此项目已关闭 {{channels}} 通知，因此即使成员满足此规则，也不会通过这些渠道收到通知。项目所有者或拥有“账单管理员”角色或“Manage Billing”权限的用户可以在“项目设置 > 通知 > 通知渠道”中开启。",
-  "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此项目已关闭 {{channel}} 通知，因此即使成员满足此规则，也不会通过 {{channel}} 收到通知。项目所有者或拥有“账单管理员”角色或“Manage Billing”权限的用户可以在“项目设置 > 通知 > 通知渠道”中开启。"
+  "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此项目已关闭 {{channel}} 通知，因此即使成员满足此规则，也不会通过 {{channel}} 收到通知。项目所有者或拥有“账单管理员”角色或“Manage Billing”权限的用户可以在“项目设置 > 通知 > 通知渠道”中开启。",
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "在 SLO 过快消耗错误预算时采取行动，例如关闭功能开关。"
 }

@@ -55877,5 +55877,6 @@
   "an unverified phone number for calls": "未驗證的通話電話號碼",
   "an unverified push notification device": "未驗證的推播通知裝置",
   "{{channels}} notifications are switched off for this project, so members will not be notified on these channels even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此專案已關閉 {{channels}} 通知，因此即使成員符合此規則，也不會透過這些管道收到通知。專案擁有者或擁有「帳單管理員」角色或「Manage Billing」權限的使用者可以在「專案設定 > 通知 > 通知管道」中開啟。",
-  "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此專案已關閉 {{channel}} 通知，因此即使成員符合此規則，也不會透過 {{channel}} 收到通知。專案擁有者或擁有「帳單管理員」角色或「Manage Billing」權限的使用者可以在「專案設定 > 通知 > 通知管道」中開啟。"
+  "{{channel}} notifications are switched off for this project, so members will not be notified by {{channel}} even when they meet this rule. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.": "此專案已關閉 {{channel}} 通知，因此即使成員符合此規則，也不會透過 {{channel}} 收到通知。專案擁有者或擁有「帳單管理員」角色或「Manage Billing」權限的使用者可以在「專案設定 > 通知 > 通知管道」中開啟。",
+  "Act when an SLO burns its error budget too fast, such as turning a feature flag off.": "在 SLO 過快消耗錯誤預算時採取行動，例如關閉功能旗標。"
 }
