@@ -255,10 +255,10 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     pushIf(translationKey("Priority"), jobObject["priority"]);
     pushIf(translationKey("Delay (ms)"), jobObject["delayMs"]);
     pushIf(translationKey("Worker"), jobObject["processedBy"]);
-    pushIf("Queue", jobObject["queueQualifiedName"]);
-    pushIf("Repeat key", jobObject["repeatJobKey"]);
-    pushIf("Dedup id", jobObject["deduplicationId"]);
-    pushIf("Parent", jobObject["parentKey"]);
+    pushIf(translationKey("Queue"), jobObject["queueQualifiedName"]);
+    pushIf(translationKey("Repeat key"), jobObject["repeatJobKey"]);
+    pushIf(translationKey("Dedup id"), jobObject["deduplicationId"]);
+    pushIf(translationKey("Parent"), jobObject["parentKey"]);
 
     if (fields.length === 0) {
       return <></>;
