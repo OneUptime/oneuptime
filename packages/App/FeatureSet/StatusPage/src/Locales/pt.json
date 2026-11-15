@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidade",
-    "uptimePercent": "{{percent}}% de disponibilidade",
+    "uptimePercent": "{{percent}} de disponibilidade",
     "operational": "Operacional",
     "notMonitored": "Não monitorado",
     "noResourcesInGroup": "Nenhum recurso adicionado a este grupo.",

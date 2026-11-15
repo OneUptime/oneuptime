@@ -53688,5 +53688,6 @@
   "{{filter}} (applied filter)": "{{filter}} (применённый фильтр)",
   "{{filter}}, locked filter": "{{filter}}, закреплённый фильтр",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, закреплённый фильтр. Нажмите Enter, чтобы скопировать его синтаксис поиска.",
-  "{{summary}} - view session details": "{{summary}} — открыть сведения о сеансе"
+  "{{summary}} - view session details": "{{summary}} — открыть сведения о сеансе",
+  "{{rate}}/s": "{{rate}}/с"
 }

@@ -1,4 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import {
+  createTranslator,
+  DEFAULT_LANGUAGE,
+  Translator,
+} from "../../../Types/Translator";
 import * as OverviewPresentation from "../../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueOverviewPresentation";
 import {
   MESSAGE_QUEUE_DISCOVERY_CLOUD_METRIC_WINDOW_MINUTES,
@@ -7,7 +12,7 @@ import {
   MESSAGE_QUEUE_LIVE_WINDOW_MINUTES,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
+  formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
   formatMessageQueueMetricValue,
   getMessageQueueDocsRoute,
@@ -170,10 +175,16 @@ describe("the numbers", () => {
     expect(formatMessageQueueCount(null)).toBe("—");
     expect(formatMessageQueueErrorRate(4)).toBe("4.0%");
     expect(formatMessageQueueErrorRate(null)).toBe("—");
-    expect(formatMessageQueueDurationMs(0.85)).toBe("850 µs");
-    expect(formatMessageQueueDurationMs(12.3)).toBe("12 ms");
-    expect(formatMessageQueueDurationMs(1250)).toBe("1.25 s");
-    expect(formatMessageQueueDurationMs(null)).toBe("—");
+    const english: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+    expect(formatMessageQueueDurationMsInLanguage(0.85, english)).toBe(
+      "850 µs",
+    );
+    expect(formatMessageQueueDurationMsInLanguage(12.3, english)).toBe("12 ms");
+    expect(formatMessageQueueDurationMsInLanguage(1250, english)).toBe(
+      "1.25 s",
+    );
+    expect(formatMessageQueueDurationMsInLanguage(null, english)).toBe("—");
   });
 
   test("a broker metric in its catalog unit: a gauge's level, a counter's rate", () => {

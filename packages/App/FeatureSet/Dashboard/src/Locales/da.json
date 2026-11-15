@@ -53688,5 +53688,6 @@
   "{{filter}} (applied filter)": "{{filter}} (anvendt filter)",
   "{{filter}}, locked filter": "{{filter}}, låst filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, låst filter. Tryk på Enter for at kopiere dets søgesyntaks.",
-  "{{summary}} - view session details": "{{summary}} - se sessionsdetaljer"
+  "{{summary}} - view session details": "{{summary}} - se sessionsdetaljer",
+  "{{rate}}/s": "{{rate}}/s"
 }

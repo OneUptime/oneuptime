@@ -53688,5 +53688,6 @@
   "{{filter}} (applied filter)": "{{filter}} (angewendeter Filter)",
   "{{filter}}, locked filter": "{{filter}}, gesperrter Filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, gesperrter Filter. Drücken Sie die Eingabetaste, um seine Suchsyntax zu kopieren.",
-  "{{summary}} - view session details": "{{summary}} - Sitzungsdetails ansehen"
+  "{{summary}} - view session details": "{{summary}} - Sitzungsdetails ansehen",
+  "{{rate}}/s": "{{rate}}/s"
 }

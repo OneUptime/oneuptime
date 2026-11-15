@@ -54,7 +54,6 @@ import {
   fetchWebVitalByRoute,
   fetchWebVitals,
   formatCompact,
-  formatDurationMs,
   formatDurationMsInLanguage,
   formatPercent,
   LogAndExceptionSignals,
@@ -887,7 +886,7 @@ const RumApplicationOverview: FunctionComponent<
 
   const syncId: string = `rum-${modelId.toString()}`;
   const durationFormatter: (n: number) => string = (n: number): string => {
-    return formatDurationMs(n);
+    return formatDurationMsInLanguage(n, translator);
   };
 
   const charts: ReactElement = (

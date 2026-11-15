@@ -53688,5 +53688,6 @@
   "{{filter}} (applied filter)": "{{filter}} (عامل تصفية مطبّق)",
   "{{filter}}, locked filter": "{{filter}}، عامل تصفية مقفل",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، عامل تصفية مقفل. اضغط Enter لنسخ صيغة البحث الخاصة به.",
-  "{{summary}} - view session details": "{{summary}} - عرض تفاصيل الجلسة"
+  "{{summary}} - view session details": "{{summary}} - عرض تفاصيل الجلسة",
+  "{{rate}}/s": "{{rate}}/ث"
 }

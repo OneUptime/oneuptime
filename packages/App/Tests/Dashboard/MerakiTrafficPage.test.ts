@@ -74,7 +74,7 @@ import {
   UNKNOWN_VALUE,
   compareUplinkNames,
   countListedNetworks,
-  formatLatency,
+  formatLatencyInLanguage,
   formatLoss,
   getClientDetails,
   getClientLabel,
@@ -1354,9 +1354,11 @@ describe("the page's uplinks, side by side", () => {
   });
 
   test("latency and loss read as people read them", () => {
-    expect(formatLatency(21.6)).toBe("22\u00a0ms");
-    expect(formatLatency(1.24)).toBe("1.2\u00a0ms");
-    expect(formatLatency(0)).toBe("0.0\u00a0ms");
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(formatLatencyInLanguage(21.6, english)).toBe("22\u00a0ms");
+    expect(formatLatencyInLanguage(1.24, english)).toBe("1.2\u00a0ms");
+    expect(formatLatencyInLanguage(0, english)).toBe("0.0\u00a0ms");
     expect(formatLoss(0)).toBe("0%");
     expect(formatLoss(0.04)).toBe("<0.1%");
     expect(formatLoss(0.25)).toBe("0.3%");

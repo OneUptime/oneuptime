@@ -28,6 +28,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  formatReaderFigure,
+  getDateDisplayLanguage,
+} from "Common/Types/DateLanguage";
 import { VMwareResourceKind } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
@@ -149,7 +153,9 @@ function formatBytesPerSecond(value: number | null): string {
     return "—";
   }
 
-  return ValueFormatter.formatValue(value, "By/s");
+  return ValueFormatter.formatValue(value, "By/s", {
+    language: getDateDisplayLanguage(),
+  });
 }
 
 const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
@@ -443,7 +449,10 @@ const VMwareHostOverviewTab: FunctionComponent<ComponentProps> = (
   const percentFormatter: (value: number) => string = (
     value: number,
   ): string => {
-    return `${Math.round(value)}%`;
+    return formatReaderFigure(Math.round(value), {
+      decimals: 0,
+      isPercent: true,
+    });
   };
 
   const renderCharts: () => ReactElement = (): ReactElement => {

@@ -53688,5 +53688,6 @@
   "{{filter}} (applied filter)": "{{filter}} (लागू फ़िल्टर)",
   "{{filter}}, locked filter": "{{filter}}, लॉक किया गया फ़िल्टर",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, लॉक किया गया फ़िल्टर। इसका खोज सिंटैक्स कॉपी करने के लिए Enter दबाएँ।",
-  "{{summary}} - view session details": "{{summary}} - सेशन विवरण देखें"
+  "{{summary}} - view session details": "{{summary}} - सेशन विवरण देखें",
+  "{{rate}}/s": "{{rate}}/सेकंड"
 }

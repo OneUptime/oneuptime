@@ -521,6 +521,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                     result.value,
                     result.definition.unit,
                     result.definition.kind,
+                    translator,
                   )}
                 </div>
                 <div className="mt-1 truncate font-mono text-xs text-gray-400">
@@ -562,6 +563,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
                 return formatDatabaseMetricAxisValue(
                   value,
                   result.definition.unit,
+                  translator,
                 );
               }}
             />
