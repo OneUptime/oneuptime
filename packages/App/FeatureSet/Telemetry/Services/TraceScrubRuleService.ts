@@ -18,6 +18,7 @@ import {
 import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "Common/Utils/Telemetry/ScrubNestedValues";
+import { copyOwnValues } from "Common/Utils/LookupTable";
 
 interface CompiledRule {
   rule: TraceScrubRule;
@@ -420,7 +421,8 @@ export class TraceScrubRuleService {
       return content;
     }
 
-    const attributes: JSONObject = { ...content.attributes };
+    // Copied with every key, one named __proto__ too.
+    const attributes: JSONObject = copyOwnValues(content.attributes);
     const heldAsText: ReadonlySet<string> =
       this.holdOversizedValuesAsText([attributes]).get(attributes) ||
       NOTHING_HELD;

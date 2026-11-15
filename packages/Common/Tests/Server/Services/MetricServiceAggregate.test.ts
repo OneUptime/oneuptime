@@ -21,6 +21,8 @@ import {
 import { keyForContainer } from "../../../Server/Utils/Telemetry/TelemetryEntity";
 import InventoryItemService from "../../../Server/Services/InventoryItemService";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
+import { readOwnValue } from "../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 
 describe("MetricService aggregate statement generation", () => {
   const projectId: ObjectID = ObjectID.generate();
@@ -498,6 +500,74 @@ describe("MetricService aggregate statement generation", () => {
           "resource.k8s.pod.name": "",
         });
       });
+
+      /*
+       * Issue #8026: the two reads are joined by the series' grouped values,
+       * read from each row's map. A plain read of a key every object
+       * inherits found the inherited member on a row whose map lacks it,
+       * so a series grouped by constructor or toString never met its
+       * sample, and a key named __proto__ read the prototype itself.
+       */
+      it.each(INHERITED_PROPERTY_NAMES)(
+        "joins a series grouped by %s with its sample, by the row's own values",
+        async (name: string) => {
+          // ClickHouse's JSON answer: own keys, __proto__ included.
+          const row: (
+            time: string,
+            value: number,
+            attributes: Record<string, string>,
+          ) => Record<string, unknown> = (
+            time: string,
+            value: number,
+            attributes: Record<string, string>,
+          ): Record<string, unknown> => {
+            return JSON.parse(
+              JSON.stringify({ value, time, attributes }),
+            ) as Record<string, unknown>;
+          };
+
+          answer(
+            [
+              row("2026-07-09 19:12:00", 4, { [name]: "a" }),
+              row("2026-07-09 19:12:00", 9, { [name]: "b" }),
+              // A bucket whose map does not hold the key: the series "".
+              row("2026-07-09 19:12:00", 7, {}),
+            ],
+            [
+              row(NEWEST_TIME, 1, {
+                [name]: "b",
+                "resource.k8s.node.name": "node-b",
+              }),
+              row(NEWEST_TIME, 1, {
+                [name]: "a",
+                "resource.k8s.node.name": "node-a",
+              }),
+              row(NEWEST_TIME, 1, {
+                [name]: "",
+                "resource.k8s.node.name": "node-none",
+              }),
+            ],
+          );
+
+          const result: AggregatedResult = await service.aggregateBy(
+            buildAggregateBy({
+              groupByAttributeKeys: [name],
+              includeSampleAttributes: true,
+            }),
+          );
+
+          expect(
+            result.data.map(
+              (bucket: AggregatedResult["data"][number]): unknown => {
+                return readOwnValue(
+                  bucket["attributes"] as Record<string, unknown>,
+                  "resource.k8s.node.name",
+                );
+              },
+            ),
+          ).toEqual(["node-a", "node-b", "node-none"]);
+        },
+      );
 
       it("is one read, as before, when nothing asks for the map", async () => {
         const statements: Array<string> = answer(
