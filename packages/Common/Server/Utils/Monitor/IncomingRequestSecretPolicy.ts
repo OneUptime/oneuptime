@@ -60,9 +60,9 @@ export interface IncomingRequestSecretDecision {
   matchedSecretId?: string | undefined;
 }
 
-export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project requires a secret on every incoming request. Send one of the project's incoming request secrets in the ${INCOMING_REQUEST_SECRET_HEADER} header, or as a Bearer token in the Authorization header. A project owner or admin finds them under Monitors > Settings > Incoming Request Secrets.`;
+export const INCOMING_REQUEST_SECRET_MISSING_MESSAGE: string = `This project requires a secret on every incoming request. Send one of the project's incoming request secrets in the ${INCOMING_REQUEST_SECRET_HEADER} header, or as a Bearer token in the Authorization header. A Project Owner or Project Admin finds them under Monitors > Settings > Incoming Request Secrets.`;
 
-export const INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE: string = `The secret sent with this request is not one of this project's incoming request secrets. Check the value in the ${INCOMING_REQUEST_SECRET_HEADER} header or the Authorization header against Monitors > Settings > Incoming Request Secrets, where a project owner or admin can also create a new one.`;
+export const INCOMING_REQUEST_SECRET_NOT_RECOGNIZED_MESSAGE: string = `The secret sent with this request is not one of this project's incoming request secrets. Check the value in the ${INCOMING_REQUEST_SECRET_HEADER} header or the Authorization header against Monitors > Settings > Incoming Request Secrets, where a Project Owner or Project Admin can also create a new one.`;
 
 export default class IncomingRequestSecretPolicy {
   public static readonly NAMESPACE: string = "incoming-request-secret-policy";

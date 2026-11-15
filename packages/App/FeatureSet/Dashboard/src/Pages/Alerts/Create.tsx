@@ -290,7 +290,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   title: "Private Alert",
                   stepId: "alert-details",
                   description:
-                    "Only the alert's owners, project admins and project owners can see it.",
+                    "Only the alert's owners, Project Admins and Project Owners can see it.",
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: false,
                   required: false,

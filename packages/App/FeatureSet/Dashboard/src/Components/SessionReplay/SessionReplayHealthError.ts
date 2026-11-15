@@ -65,7 +65,7 @@ export function describeHealthError(
     return {
       title: translateLine("You cannot see recording health"),
       detail: translator.translateTemplate(
-        'Reading recording health needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.',
+        'Reading recording health needs the "{{permission}}" permission (Project Owners, admins and telemetry admins have it). Ask a Project Admin to grant it, or to run this check for you.',
         {
           permission: getSessionReplayPermissionTitle(
             Permission.ReadRumSessionReplay,

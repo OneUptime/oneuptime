@@ -299,7 +299,7 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
             />
             <div className="text-sm text-gray-600">
               {translator.translateTemplate(
-                'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.',
+                'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (Project Owners, admins and telemetry admins have it). Ask a Project Admin to arm the target for you.',
                 {
                   permission: getSessionReplayPermissionTitle(
                     Permission.EditRumApplication,

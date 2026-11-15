@@ -1098,16 +1098,16 @@ export const PRIVACY_RULE_NAMES: Record<PrivacyRuleRecord, string> = {
 export const PRIVACY_RULE_NAME_DESCRIPTIONS: Record<PrivacyRuleRecord, string> =
   {
     incident: translationKey(
-      "Incidents this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Incidents this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     incidentEpisode: translationKey(
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     alert: translationKey(
-      "Alerts this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Alerts this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
     alertEpisode: translationKey(
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
     ),
   };
 

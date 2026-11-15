@@ -83,7 +83,7 @@ describe("who may arrange cover for every policy", () => {
     expect(accessOf([row("OnCallMember", { scope: "Owned" })])).toBe("limited");
   });
 
-  test("a project owner or admin reaches the whole project whatever scope their row carries", () => {
+  test("a Project Owner or Project Admin reaches the whole project whatever scope their row carries", () => {
     for (const permission of ["ProjectOwner", "ProjectAdmin"]) {
       expect(accessOf([row(permission, { scope: "Owned" })])).toBe("allowed");
       expect(

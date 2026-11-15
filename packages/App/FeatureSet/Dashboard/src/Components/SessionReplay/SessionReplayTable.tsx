@@ -2829,7 +2829,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 dataTestId="identity-filter-ignored"
                 strongTitle="User filter ignored"
                 title={translator.translateTemplate(
-                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
+                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a Project Admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
                   {
                     user: advancedFilters.identifiedUserRef.trim(),
                     // End-user identity is read with the watch permission.

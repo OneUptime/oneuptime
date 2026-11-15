@@ -344,7 +344,7 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   Record<CodeTaskBlockerType, string>
 > = {
   [CodeTaskBlockerType.NoPermission]: translationKey(
-    "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a project admin for it.",
+    "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a Project Admin for it.",
   ),
   [CodeTaskBlockerType.PlanRequired]: translationKey(
     "AI in Code needs the Growth plan or above.",
@@ -548,31 +548,31 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
   Record<CodeTaskBlockerType, string>
 > = {
   [CodeTaskBlockerType.AiDisabled]: translationKey(
-    "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
+    "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.",
   ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
-    "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+    "A Project Admin can add an LLM provider in Project Settings → AI → LLM Providers.",
   ),
   [CodeTaskBlockerType.RepositoryTokenRefused]: translationKey(
-    "A project admin can replace the access token in this repository's settings.",
+    "A Project Admin can replace the access token in this repository's settings.",
   ),
   [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.RunnerNotOnline]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.GlobalRunnersOff]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.GlobalRunnersTakeNoCodeFixes]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.RunnerTakesNoCodeFixes]: translationKey(
-    "A project admin can pick this repository's Runner in its settings.",
+    "A Project Admin can pick this repository's Runner in its settings.",
   ),
 };
 

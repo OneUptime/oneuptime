@@ -1181,7 +1181,7 @@ export class UsedByServiceClass {
 
     if (!record) {
       throw new NotFoundException(
-        "This record was not found in the project, or you may not read it. Check the link, or ask a project admin for access.",
+        "This record was not found in the project, or you may not read it. Check the link, or ask a Project Admin for access.",
       );
     }
 
