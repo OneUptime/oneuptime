@@ -30,7 +30,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import { getLowestBurnRateThreshold } from "Common/Utils/Slo/SloProjection";
 import { isComparedWithCurrentBurnRate } from "Common/Utils/Slo/SloEvaluation";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import React, {
   Fragment,
   FunctionComponent,
@@ -162,7 +162,7 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * chose its services when it was created, and its notice banner says so
    * if it has none.
    */
-  const isRequestSlo: boolean = isRequestSliType(slo.sliType);
+  const isRequestSlo: boolean = isEventSliType(slo.sliType);
 
   const serviceCount: number = (
     (slo.services as Array<Service> | undefined) || []

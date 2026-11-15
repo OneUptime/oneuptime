@@ -367,7 +367,10 @@ describe("SloNoticeBanner", () => {
   });
 
   test("still warns when attached monitors cannot make an unsupported SLI type evaluable", async () => {
-    serveSlo({ sloStatus: SloStatus.Misconfigured, sliType: SliType.Metric });
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      sliType: "Availability" as SliType,
+    });
 
     render(<SloNoticeBanner sloId={SLO_ID} />);
 
@@ -379,7 +382,9 @@ describe("SloNoticeBanner", () => {
       screen.getByText("This SLO cannot be evaluated"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/monitor uptime, request success or request latency/),
+      screen.getByText(
+        /monitor uptime, request success, request latency or a metric/,
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText(WAITING_TITLE)).toBeNull();
     // What it measures is chosen in Settings now, so the banner leads there.

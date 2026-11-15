@@ -132,7 +132,7 @@ Em **Regra**, informe um **Nome**, como "Fast burn". Uma regra nova fica ligada;
 
 ### Definir a janela de consumo
 
-Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**. A regra de um SLO de requisições também aceita um **Mínimo de requisições**, por exemplo `100`: a regra ignora uma janela longa que tenha menos requisições do que isso.
+Em **Janela de consumo**, defina o **Limite da taxa de consumo** (por exemplo `14.4`), a **Janela longa (minutos)** e a **Janela curta (minutos)**, e se quiser a **Supressão de novo disparo (minutos)**. A regra de um SLO de requisições também aceita um **Mínimo de requisições**, por exemplo `100`: a regra ignora uma janela longa que tenha menos requisições do que isso. A regra de um SLO de métrica aceita um **Mínimo de eventos** do mesmo jeito, contado nos eventos da métrica dele.
 
 ### Escolher o que ela declara
 
@@ -152,6 +152,7 @@ O OneUptime confere os números de uma regra quando você a salva:
 | **Janela longa (minutos)** | Mais longa que a janela curta. |
 | **Supressão de novo disparo (minutos)** | 0 ou mais. Vazio significa a duração da janela longa. |
 | **Mínimo de requisições** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
+| **Mínimo de eventos** | Um número inteiro, 0 ou mais. Vazio significa sem mínimo. |
 
 Toda resposta a **Quando dispara** abre algo. A API recusa uma regra que não criaria nenhum alerta nem declararia nenhum incidente, porque seria verificada a cada avaliação sem nunca declarar nada.
 

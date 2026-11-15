@@ -42,6 +42,7 @@ sequenceDiagram
 チェックが読み取るものは、SLO の測定対象によって異なります:
 
 - [リクエスト SLO](/docs/slo/request-slos) は、時間枠内のサービスのリクエストで判定されます。リクエストは、届いたスパンから読み取ります。新しいバージョンのリクエストだけで判定するには `serviceVersion` を追加します。OneUptime はこれをスパンの `service.version` リソース属性と照合します。この属性は、OpenTelemetry SDK が `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` から設定します。こうすれば、カナリアは古いバージョンのリクエストに薄められることなく、自身のリクエストで判定されます。
+- [メトリクス SLO](/docs/slo/request-slos#メトリクスに基づく-slo) は、時間枠内のメトリクスのイベントで判定されます。イベントは SLI と同じ方法で数えるため、`minimumRequestCount`、`goodRequestCount`、`totalRequestCount` はイベント数になります。`serviceVersion` を付けると、`service.version` リソース属性がその値のメトリクスのポイントだけを数えます。OpenTelemetry SDK は、この属性をスパンと同じようにメトリクスにも設定します。
 - モニターの稼働率の SLO は、時間枠内のモニターのステータスのタイムラインで判定されます。`minimumRequestCount` は適用されず、`serviceVersion` を付けたチェックは拒否されます。モニターにはバージョンがないためです。
 
 ## 始める前に
@@ -126,7 +127,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` と `errorBudgetPolicyTier` | SLO のエラーバジェットポリシーがデプロイを許可しているかどうかと、SLO がいる段階。 |
 | `checkedAt` | チェックを測定した日時。 |
 
-測定できない SLO (サービスのないリクエスト SLO、しきい値のないレイテンシ SLO、モニターのないモニターの稼働率の SLO) には、HTTP 400 と修正すべき内容が返ります。そのため、ロールアウトは推測ではなく明確なエラーで止まります。セルフホストのインストールでは、oneuptime.com の代わりにそのインストール自身のアドレスを使います。
+測定できない SLO (サービスのないリクエスト SLO、しきい値のないレイテンシ SLO、数えられるメトリクスのないメトリクス SLO、モニターのないモニターの稼働率の SLO) には、HTTP 400 と修正すべき内容が返ります。そのため、ロールアウトは推測ではなく明確なエラーで止まります。セルフホストのインストールでは、oneuptime.com の代わりにそのインストール自身のアドレスを使います。
 
 ## Argo Rollouts
 

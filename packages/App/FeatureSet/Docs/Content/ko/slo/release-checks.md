@@ -42,6 +42,7 @@ sequenceDiagram
 검사가 읽는 데이터는 SLO의 측정 대상에 따라 다릅니다:
 
 - [요청 SLO](/docs/slo/request-slos)는 기간 동안 서비스가 처리한 요청으로 판정하며, 요청은 스팬이 도착하는 대로 스팬에서 읽습니다. 새 버전의 요청만 판정하려면 `serviceVersion` 을 추가하세요. OneUptime은 이 값을 스팬의 `service.version` 리소스 속성과 비교하며, OpenTelemetry SDK는 `OTEL_RESOURCE_ATTRIBUTES=service.version=1.4.2` 에서 이 속성을 설정합니다. 이렇게 하면 카나리는 이전 버전의 요청에 희석되지 않고 자기 요청만으로 판정됩니다.
+- [메트릭 SLO](/docs/slo/request-slos#메트릭-기반-slo)는 기간 동안 메트릭의 이벤트로 판정하며, 이벤트는 SLI와 같은 방식으로 셉니다. 따라서 `minimumRequestCount`, `goodRequestCount`, `totalRequestCount` 는 이벤트 수입니다. `serviceVersion` 을 추가하면 `service.version` 리소스 속성이 그 값인 메트릭 포인트만 셉니다. OpenTelemetry SDK는 이 속성을 스팬과 마찬가지로 메트릭에도 설정합니다.
 - 모니터 가동률 SLO는 기간 동안 모니터의 상태 타임라인으로 판정합니다. `minimumRequestCount` 는 적용되지 않으며, `serviceVersion` 이 있는 검사는 거부됩니다. 모니터에는 버전이 없기 때문입니다.
 
 ## 시작하기 전에
@@ -126,7 +127,7 @@ curl -sS "https://oneuptime.com/api/service-level-objective/<slo-id>/release-che
 | `deploymentsAllowed` 와 `errorBudgetPolicyTier` | SLO의 오류 예산 정책이 배포를 허용하는지, 그리고 SLO가 있는 단계. |
 | `checkedAt` | 검사를 측정한 시각. |
 
-측정할 수 없는 SLO(서비스가 없는 요청 SLO, 임계값이 없는 지연 시간 SLO, 모니터가 없는 모니터 가동률 SLO)에는 HTTP 400과 고쳐야 할 내용으로 응답하므로, 롤아웃은 추측이 아니라 분명한 오류에서 멈춥니다. 자체 호스팅 설치에서는 oneuptime.com 대신 그 설치의 주소를 사용하세요.
+측정할 수 없는 SLO(서비스가 없는 요청 SLO, 임계값이 없는 지연 시간 SLO, 셀 수 있는 메트릭이 없는 메트릭 SLO, 모니터가 없는 모니터 가동률 SLO)에는 HTTP 400과 고쳐야 할 내용으로 응답하므로, 롤아웃은 추측이 아니라 분명한 오류에서 멈춥니다. 자체 호스팅 설치에서는 oneuptime.com 대신 그 설치의 주소를 사용하세요.
 
 ## Argo Rollouts
 

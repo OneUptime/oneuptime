@@ -866,3 +866,21 @@ describe("a request SLO's budget line", () => {
     expect(tile.subline).toBeNull();
   });
 });
+
+// A Metric SLO's events are whatever its metric counts (#8445).
+describe("a Metric SLO's budget line", () => {
+  test.each([
+    [120, "120 bad events remaining"],
+    [1, "1 bad event remaining"],
+    [0, "0 bad events remaining"],
+    [-50, "50 bad events over budget"],
+    [-1, "1 bad event over budget"],
+  ])("%s left reads %s", (remaining: number, expected: string) => {
+    expect(
+      formatErrorBudgetRemainingRequests({
+        sliType: SliType.Metric,
+        remainingEvents: remaining,
+      }),
+    ).toBe(expected);
+  });
+});
