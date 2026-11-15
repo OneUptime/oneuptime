@@ -52402,5 +52402,8 @@
   "more sites not shown": "표시되지 않은 사이트 더 있음",
   "{{count}} without coordinates": "좌표 없음 {{count}}곳",
   "{{count}} without coordinates_one": "좌표 없음 {{count}}곳",
-  "{{used}} of {{capacity}}": "{{capacity}} 중 {{used}}"
+  "{{used}} of {{capacity}}": "{{capacity}} 중 {{used}}",
+  "{{count}}c / {{memory}}": "코어 {{count}}개 / {{memory}}",
+  "{{count}}c / {{memory}}_one": "코어 {{count}}개 / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "실행 중 {{running}} / 중지됨 {{stopped}}"
 }

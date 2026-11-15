@@ -52402,5 +52402,8 @@
   "more sites not shown": "показаны не все площадки",
   "{{count}} without coordinates": "Без координат: {{count}}",
   "{{count}} without coordinates_one": "{{count}} без координат",
-  "{{used}} of {{capacity}}": "{{used}} из {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} из {{capacity}}",
+  "{{count}}c / {{memory}}": "Ядер: {{count}} / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} ядро / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "Запущено: {{running}} / остановлено: {{stopped}}"
 }

@@ -38,8 +38,7 @@ const COMPONENTS_DIR: string = path.resolve(
 
 // The cells a list cuts short that hold a figure, not a name: by file, what each draws.
 const FIGURE_CELLS: ReadonlyArray<string> = [
-  "DashboardHostListComponent.tsx: {cpuMem}",
-  "DashboardHostListComponent.tsx: {formatRelative(lastSeenAt)}",
+  "DashboardHostListComponent.tsx: {formatHostLastSeen(lastSeenAt, translator)}",
   "DashboardStorageArrayVolumeListComponent.tsx: {formatUsedOfProvisioned(r)}",
 ];
 

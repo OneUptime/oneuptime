@@ -43,6 +43,12 @@ import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  getGlobalTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.name": "name",
@@ -92,7 +98,15 @@ function getContainerStateInfo(state: string | undefined): {
   );
 }
 
-export function formatBytes(bytes: number | null | undefined): string {
+/*
+ * A container's memory in the reader's digits and decimal sign (#7519):
+ * "1.25 GiB" in English as it always read, "1,25 GiB" in German, "۱٫۲۵
+ * GiB" in Persian.
+ */
+export function formatBytes(
+  bytes: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (bytes === null || bytes === undefined) {
     return "—";
   }
@@ -106,12 +120,33 @@ export function formatBytes(bytes: number | null | undefined): string {
   // Plain bytes are whole: "512 B", never "512.00 B" (issue #7417).
   const precision: number =
     unitIdx === 0 || value >= 100 ? 0 : value >= 10 ? 1 : 2;
-  return `${value.toFixed(precision)} ${units[unitIdx]}`;
+  return `${formatReaderFigure(value, {
+    decimals: precision,
+    language: translator.language,
+  })} ${units[unitIdx]}`;
+}
+
+// A container's CPU, as a share: "12.5%", "12,5 %", "۱۲٫۵٪".
+export function formatCpuPercent(
+  percent: number | null | undefined,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (percent === null || percent === undefined || !Number.isFinite(percent)) {
+    return "—";
+  }
+
+  return formatReaderFigure(percent, {
+    decimals: 1,
+    isPercent: true,
+    language: translator.language,
+  });
 }
 
 const DashboardPodmanContainerListComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
+  // The reader's language, for the figures each row writes.
+  const translator: Translator = useTranslator();
   const [containers, setContainers] = useState<Array<PodmanResource>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -315,10 +350,10 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
             className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {cpu !== null ? `${cpu.toFixed(1)}%` : "—"}
+            {formatCpuPercent(cpu, translator)}
           </td>
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {formatBytes(mem)}
+            {formatBytes(mem, translator)}
           </td>
           <ResourceListNameCell
             name={hostName}

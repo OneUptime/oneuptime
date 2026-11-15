@@ -242,8 +242,11 @@ const HELD: Readonly<Record<string, Held>> = {
     { wholeBytesRule: "value.toFixed(value >= 100 || index === 0 ? 0 : 1)" },
   "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareHostListComponent.tsx":
     { calledAs: "the VMware host list widget" },
-  "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardHostListComponent.tsx":
-    { wholeBytesRule: "value.toFixed(value >= 100 || i === 0 ? 0 : 1)" },
+  "App/FeatureSet/Dashboard/src/Components/Dashboard/Components/HostListFigures.ts":
+    {
+      wholeBytesRule: "decimals: value >= 100 || i === 0 ? 0 : 1",
+      provenBy: "Common/Tests/App/Dashboard/HostListWidgetInLocale.test.tsx",
+    },
   "App/FeatureSet/Dashboard/src/Pages/DataObservability/Spend.tsx": {
     wholeBytesRule: "scaled >= 100 || unit === 0 ? Math.round(scaled)",
   },

@@ -5693,7 +5693,7 @@
   "Continue pending": "Continua in sospeso",
   "Copy trace id": "Copia ID traccia",
   "Count": "Conteggio",
-  "CPU / Mem": "CPU / Mem",
+  "CPU / Mem": "CPU / Memoria",
   "CPU samples": "Campioni CPU",
   "CPU time": "Tempo CPU",
   "Credit Card": "Carta di credito",
@@ -52402,5 +52402,8 @@
   "more sites not shown": "altri siti non mostrati",
   "{{count}} without coordinates": "{{count}} senza coordinate",
   "{{count}} without coordinates_one": "{{count}} senza coordinate",
-  "{{used}} of {{capacity}}": "{{used}} di {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} di {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} core / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} core / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} in esecuzione / {{stopped}} arrestati"
 }

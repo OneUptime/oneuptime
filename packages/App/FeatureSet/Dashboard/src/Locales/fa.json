@@ -52402,5 +52402,8 @@
   "more sites not shown": "سایت‌های بیشتری نشان داده نشده است",
   "{{count}} without coordinates": "{{count}} بدون مختصات",
   "{{count}} without coordinates_one": "{{count}} بدون مختصات",
-  "{{used}} of {{capacity}}": "{{used}} از {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} از {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} هسته / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} هسته / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} در حال اجرا / {{stopped}} متوقف"
 }

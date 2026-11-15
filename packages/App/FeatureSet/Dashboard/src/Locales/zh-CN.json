@@ -52402,5 +52402,8 @@
   "more sites not shown": "更多站点未显示",
   "{{count}} without coordinates": "{{count}} 个无坐标",
   "{{count}} without coordinates_one": "{{count}} 个无坐标",
-  "{{used}} of {{capacity}}": "{{capacity}} 中的 {{used}}"
+  "{{used}} of {{capacity}}": "{{capacity}} 中的 {{used}}",
+  "{{count}}c / {{memory}}": "{{count}} 核 / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} 核 / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "运行中 {{running}} / 已停止 {{stopped}}"
 }

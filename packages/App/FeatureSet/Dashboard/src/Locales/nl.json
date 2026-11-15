@@ -52402,5 +52402,8 @@
   "more sites not shown": "meer locaties niet getoond",
   "{{count}} without coordinates": "{{count}} zonder coördinaten",
   "{{count}} without coordinates_one": "{{count}} zonder coördinaten",
-  "{{used}} of {{capacity}}": "{{used}} van {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} van {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} kernen / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} kern / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} actief / {{stopped}} gestopt"
 }

@@ -52402,5 +52402,8 @@
   "more sites not shown": "表示されていないサイトがあります",
   "{{count}} without coordinates": "座標なし {{count}} 件",
   "{{count}} without coordinates_one": "座標なし {{count}} 件",
-  "{{used}} of {{capacity}}": "{{capacity}} 中 {{used}}"
+  "{{used}} of {{capacity}}": "{{capacity}} 中 {{used}}",
+  "{{count}}c / {{memory}}": "{{count}} コア / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} コア / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "実行中 {{running}} / 停止 {{stopped}}"
 }

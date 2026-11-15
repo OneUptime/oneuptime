@@ -52402,5 +52402,8 @@
   "more sites not shown": "flere lokationer vises ikke",
   "{{count}} without coordinates": "{{count}} uden koordinater",
   "{{count}} without coordinates_one": "{{count}} uden koordinater",
-  "{{used}} of {{capacity}}": "{{used}} af {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} af {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} kerner / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} kerne / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} kører / {{stopped}} stoppet"
 }

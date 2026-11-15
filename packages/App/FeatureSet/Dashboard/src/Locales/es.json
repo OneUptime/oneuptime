@@ -52402,5 +52402,8 @@
   "more sites not shown": "más sitios sin mostrar",
   "{{count}} without coordinates": "{{count}} sin coordenadas",
   "{{count}} without coordinates_one": "{{count}} sin coordenadas",
-  "{{used}} of {{capacity}}": "{{used}} de {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} de {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} núcleos / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} núcleo / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "{{running}} en ejecución / {{stopped}} detenidos"
 }

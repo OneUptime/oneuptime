@@ -52402,5 +52402,8 @@
   "more sites not shown": "مواقع أخرى غير معروضة",
   "{{count}} without coordinates": "بلا إحداثيات: {{count}}",
   "{{count}} without coordinates_one": "{{count}} بلا إحداثيات",
-  "{{used}} of {{capacity}}": "{{used}} من {{capacity}}"
+  "{{used}} of {{capacity}}": "{{used}} من {{capacity}}",
+  "{{count}}c / {{memory}}": "{{count}} من الأنوية / {{memory}}",
+  "{{count}}c / {{memory}}_one": "{{count}} نواة / {{memory}}",
+  "{{running}} running / {{stopped}} stopped": "قيد التشغيل: {{running}} / متوقفة: {{stopped}}"
 }
