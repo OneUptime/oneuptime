@@ -1800,7 +1800,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   label: onTheHost,
                   content: (
                     <CodeBlock
-                      code={getFluentdHostCommands()}
+                      code={withServiceName(
+                        getFluentdHostCommands(),
+                        props.serviceName,
+                      )}
                       language="bash"
                     />
                   ),
