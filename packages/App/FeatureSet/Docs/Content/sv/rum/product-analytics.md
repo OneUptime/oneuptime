@@ -76,7 +76,7 @@ OneUptimeReplay.metric("cart.value", 42.5, { currency: "EUR" });
 Innan inspelaren har laddats lägger du samma anrop i `window.OneUptimeReplayQueue` som `["track", name, properties]` och `["metric", name, value, attributes]` (se [JavaScript-API](/docs/telemetry/session-replay#javascript-api)).
 
 - **Varje session, inspelad eller inte.** Uppspelningens urval och uppladdningspolicyn avgör vilka sessioner som spelas in, inte vilka som räknas. Inget skickas under Do Not Track eller Global Privacy Control, och inget sparas från ett ursprung som applikationen inte tillåter. När policyn kräver samtycke väntar händelserna på `grantConsent()`, högst 500 av dem, och `revokeConsent()` kastar dem.
-- **Maskerade som inspelningen.** Under _Mask all text_ maskeras värdena för egenskaper och attribut innan de lämnar sidan. En sida skickas som sin sökväg, utan frågesträng och fragment.
+- **Maskerade som inspelningen.** Under _Mask all text_ maskeras värdena för egenskaper och attribut innan de lämnar sidan, så en uppdelning efter något av dem visar platshållare, inte dina värden; händelsenamn, egenskapsnycklar och mätvärden skickas som de är skrivna. Ett värde du behöver kunna läsa i det läget hör hemma i en sessionstagg (`setTags()`), som aldrig maskeras, så håll personuppgifter utanför den. Taggar visas på sessionen och i en sökning med `tag:key=value` i sessionslistan, inte i uppdelningarna på de här sidorna. En sida skickas som sin sökväg, utan frågesträng och fragment.
 - **I små omgångar**, var 5:e sekund och när fliken döljs. En händelse som når OneUptime mer än 3 dagar efter att den hände kastas, och ett projekt får skicka 60 000 händelser och mätpunkter per minut, alla dess applikationer tillsammans; därutöver väntar inspelaren och skickar dem igen.
 
 `metric()` skickar inget medan händelserna är av, och `getDiagnostics().productAnalytics` säger om de är på (se [`getDiagnostics()`](/docs/telemetry/session-replay#getdiagnostics)).
@@ -144,7 +144,7 @@ En sparad tratt eller kvarhållningstabell kan också visas på en instrumentpan
 
 ## Vem kan se det
 
-Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektägare och administratörer har. Att se vem en inloggad användare är, och att söka efter personer på namn, kräver den identitetsbehörighet som [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) beskriver.
+Att läsa de här sidorna kräver detsamma som att läsa sessionslistan: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektägare och administratörer har. Att se vem en inloggad användare är, och att söka efter personer på namn, kräver `ReadRumSessionReplayPayload` (_Watch Session Replays_), som [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) beskriver.
 
 Att spara, byta namn på och ta bort sparade trattar och kvarhållningstabeller kräver samma behörigheter som att läsa de här sidorna, och en widget på en instrumentpanel visar en bara för en läsare som har dem.
 
