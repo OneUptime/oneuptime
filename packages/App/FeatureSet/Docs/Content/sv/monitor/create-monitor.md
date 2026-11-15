@@ -76,7 +76,7 @@ Incidenter och larm som är inställda på att lösas automatiskt, som standardk
 
 ## Sonder och intervall
 
-Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
+Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL-fråga, Databashälsa, Syntetisk monitor, Anpassad JavaScript-kod och Extern statussida. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
 
 :::steps
 ### Välj sonderna
@@ -85,7 +85,7 @@ Behåll de valda **Sonder** eller välj andra. En monitor utan sonder kontroller
 
 ### Välj hur ofta kontrollen körs
 
-Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
+Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Syntetisk monitor, Anpassad JavaScript-kod och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
 
 ### Skapa monitorn
 
