@@ -11,6 +11,7 @@ import {
   getVMwareSetupGuide,
   resolveVMwareInstallMethod,
 } from "../../Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../Pages/VMware/Utils/DocumentationTranslations";
 
 export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
@@ -33,7 +34,9 @@ const VMwareDocumentationCard: FunctionComponent<ComponentProps> = (
       newKeyName={translationKey("VMware key")}
       optionsLabel="How do you want to install the agent?"
       options={VMWARE_INSTALL_METHODS}
-      keyStepDescription="The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it."
+      keyStepDescription={translationKey(
+        "The agent sends your vCenter's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+      )}
       getContent={(context: SetupGuideRenderContext): SetupGuideContent => {
         return getVMwareSetupGuide({
           oneuptimeUrl: context.oneuptimeUrl,
@@ -43,6 +46,7 @@ const VMwareDocumentationCard: FunctionComponent<ComponentProps> = (
           vcenterName: props.vcenterName,
         });
       }}
+      translations={VMWARE_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

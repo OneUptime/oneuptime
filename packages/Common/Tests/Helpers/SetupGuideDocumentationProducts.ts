@@ -18,8 +18,11 @@ import { STORAGE_ARRAY_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSe
 import { OPENSTACK_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
 import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
+import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
+import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
+  getVMwareSetupGuideWays,
   getStorageArraySetupGuideWays,
   getKubernetesSetupGuideWays,
   getIoTSetupGuideWays,
@@ -251,6 +254,30 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Not sure, or something else",
         "Red Hat OpenShift",
         "What the agent collects, and what it costs your cloud",
+      ],
+    }),
+    product({
+      name: "VMware",
+      translations: VMWARE_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "VMWARE_DOCUMENTATION_TRANSLATIONS",
+      ways: getVMwareSetupGuideWays,
+      options: VMWARE_INSTALL_METHODS,
+      dashboardWords: [
+        "VMware",
+        "Agent Version",
+        "OneUptime AI agent",
+        "AI",
+        "AI agent",
+        // The vSphere objects the inventory table names, as the pages do.
+        "Datacenter",
+        "Cluster",
+        "ESXi host",
+        "Datastore",
+        "Resource pool",
+        // The guide's own topics, named from other topics.
+        "How VM power state is worked out",
+        "vCenter rejects the login",
+        "x509 or other TLS errors",
       ],
     }),
   ];

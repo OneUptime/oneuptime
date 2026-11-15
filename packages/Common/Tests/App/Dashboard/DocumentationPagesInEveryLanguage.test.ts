@@ -62,6 +62,7 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
   OpenStack: { way: "a setup guide's words" },
+  VMware: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
@@ -102,7 +103,6 @@ const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Host",
   "MessageQueue",
   "Proxmox",
-  "VMware",
 ];
 
 // Every product that has a Help > Documentation page.
