@@ -60,11 +60,19 @@
      * why "react", "react-dom", "react-beautiful-dnd" and every other
      * @types-backed package resolve from an App file with nothing here. A
      * self-typed package - react-router-dom, react-i18next, i18next,
-     * use-async-effect, reactflow, recharts - never reaches that fallback, so
-     * without an entry it is TS2307 in CI and clean locally. A package Common
-     * does not install AT ALL is a third case and belongs in
+     * use-async-effect, reactflow, recharts, typescript - never reaches that
+     * fallback, so without an entry it is TS2307 in CI and clean locally. A
+     * package Common does not install AT ALL is a third case and belongs in
      * Typings/Index.d.ts as an ambient `declare module` instead (see
      * i18next-browser-languagedetector there).
+     *
+     * "typescript" is the compiler, which no page imports: the Dashboard's
+     * string extractor (App/FeatureSet/Dashboard/scripts/i18n) reads source
+     * with it, and a Common test reads a card's keys through that extractor
+     * (Tests/App/Dashboard/MonitorProbesAndNetworkPathInEveryLanguage). From
+     * scripts/, as from src/, the walk never reaches Common's node_modules,
+     * so compile-common and Common Test failed on it while a machine with
+     * App's or the root's packages installed passed.
      *
      * The pairing with Common/jest.config.json's moduleNameMapper runs ONE
      * WAY: every entry here needs a twin there, never the reverse. Most of
@@ -122,7 +130,8 @@
       "use-async-effect": ["./node_modules/use-async-effect"],
       "reactflow": ["./node_modules/reactflow"],
       "recharts": ["./node_modules/recharts"],
-      "recharts/*": ["./node_modules/recharts/*"]
+      "recharts/*": ["./node_modules/recharts/*"],
+      "typescript": ["./node_modules/typescript"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
