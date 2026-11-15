@@ -89,7 +89,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | **Ceph Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur mätpunkter kombineras: **Genomsnitt**, **Maximum** eller **Minimum**. Börjar med mätvärdets vanliga aggregering. En summa eller ett antal skulle lägga ihop varje skrapning under en minut, så de lämnas till **Avancerad**. |
 | **Tidsintervall** | Alla | Det glidande fönster som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
-| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
+| **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregera efter**, **Filtrera på attribut**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
 Poolernas dataserier har bara etiketten `pool_id`: Poolens namn finns bara i `ceph_pool_metadata`. Filtrera och gruppera poolserier efter `pool_id`, och slå upp namnet i `ceph_pool_metadata` när du behöver det.
 

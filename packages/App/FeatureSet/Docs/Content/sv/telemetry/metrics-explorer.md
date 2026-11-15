@@ -56,11 +56,11 @@ Klicka på mätvärdet i **Tittare**. Utforskaren öppnas med en fråga, `a`, f�
 
 ### Välj hur det ska aggregeras
 
-Under **Aggregate by** väljer du hur värdena i varje punkt i diagrammet kombineras: Avg, som är standard, Sum, Min, Max, Count, eller en percentil, P50, P75, P90, P95 eller P99. En percentil av ett histogram, till exempel varaktigheten för en förfrågan, räknas ut från dess hinkar.
+Under **Aggregera efter** väljer du hur värdena i varje punkt i diagrammet kombineras: Avg, som är standard, Sum, Min, Max, Count, eller en percentil, P50, P75, P90, P95 eller P99. En percentil av ett histogram, till exempel varaktigheten för en förfrågan, räknas ut från dess hinkar.
 
 ### Filtrera och gruppera det
 
-Öppna **Filters & grouping**. **Filter by attributes** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Gruppera efter** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
+Öppna **Filter och gruppering**. **Filtrera på attribut** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Gruppera efter** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
 
 ### Justera diagrammet
 

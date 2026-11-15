@@ -49,13 +49,13 @@ Questi quattro widget leggono una query di metriche, costruita come la costruisc
 
 ### Grafico
 
-Una serie temporale di una o più query di metriche nell'intervallo di tempo della dashboard. **Chart Type** la disegna come grafico a linee, a barre, ad aree, ad aree sovrapposte o a torta. **Additional Queries** sovrappone altre metriche sugli stessi assi, e **Formulas** le combina con `+`, `-`, `*`, `/`, `%`, `^` e parentesi, come in `(1 - a) * 100`. Le impostazioni di visualizzazione di ogni query aggiungono una legenda e un'unità, un colore, linee di avviso e critiche, e una frequenza al secondo per i contatori che crescono soltanto.
+Una serie temporale di una o più query di metriche nell'intervallo di tempo della dashboard. **Tipo di grafico** la disegna come grafico a linee, a barre, ad aree, ad aree sovrapposte o a torta. **Query aggiuntive** sovrappone altre metriche sugli stessi assi, e **Formule** le combina con `+`, `-`, `*`, `/`, `%`, `^` e parentesi, come in `(1 - a) * 100`. Le impostazioni di visualizzazione di ogni query aggiungono una legenda e un'unità, un colore, linee di avviso e critiche, e una frequenza al secondo per i contatori che crescono soltanto.
 
 Usalo quando è la forma della linea a raccontare la storia: latenza, errori, throughput o profondità di una coda.
 
 ### Valore
 
-Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, ciascuna metà calcolata allo stesso modo, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. Punta il cursore sulla freccia per vedere il valore di ciascuna metà, e sullo sparkline per leggere valore e ora di qualsiasi punto. **Soglia di avviso** rende lo sfondo giallo e **Soglia critica** rosso quando il valore li raggiunge.
+Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, ciascuna metà calcolata allo stesso modo, colorata in base a **Direzione dell'andamento**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. Punta il cursore sulla freccia per vedere il valore di ciascuna metà, e sullo sparkline per leggere valore e ora di qualsiasi punto. **Soglia di avviso** rende lo sfondo giallo e **Soglia critica** rosso quando il valore li raggiunge.
 
 Usalo quando un numero risponde alla domanda: il tasso di errori, la latenza P95 o le richieste servite oggi.
 
@@ -67,7 +67,7 @@ Usalo quando il valore vive in un intervallo noto: l'uso di CPU o disco in perce
 
 ### Tabella
 
-Valori di metriche come righe. **Group By Attributes** dà una riga per valore, per esempio una per `host.name`; senza, ogni riga è un intervallo di tempo. **Metrics & Columns** imposta le colonne: metriche, e formule su di esse, come la disponibilità in percentuale. Quando raggruppi, **Reduce across time** trasforma la serie di ogni riga in un solo valore: l'ultimo valore, la media, la somma, il minimo o il massimo.
+Valori di metriche come righe. **Raggruppa per attributi** dà una riga per valore, per esempio una per `host.name`; senza, ogni riga è un intervallo di tempo. **Metriche e colonne** imposta le colonne: metriche, e formule su di esse, come la disponibilità in percentuale. Quando raggruppi, **Riduci nel tempo** trasforma la serie di ogni riga in un solo valore: l'ultimo valore, la media, la somma, il minimo o il massimo.
 
 Attiva **Colora in base alle soglie** in una colonna per colorarne i valori: un valore che raggiunge la **Soglia di avviso** diventa ambra, con un triangolo, e uno che raggiunge la **Soglia critica** diventa rosso e in grassetto, con un cerchio. Una colonna in percentuale parte da 80 e 90. Per una colonna in cui il problema sono i valori bassi, come lo spazio libero su disco, scegli **Più basso è peggio** in **Direzione**.
 
@@ -120,11 +120,11 @@ Il widget si ricarica ogni volta che la dashboard si aggiorna, quindi un widget 
 
 #### Autorizzazioni
 
-**Run JavaScript** (attivo per impostazione predefinita) esegue il tuo script. Disattivalo per rendere solo markup e stili: lo script viene allora escluso del tutto dal widget, anziché essere semplicemente bloccato.
+**Esegui JavaScript** (attivo per impostazione predefinita) esegue il tuo script. Disattivalo per rendere solo markup e stili: lo script viene allora escluso del tutto dal widget, anziché essere semplicemente bloccato.
 
-**Open links in a new tab** (attivo per impostazione predefinita) permette ai link e a `window.open` di aprire una scheda del browser. I link si aprono sempre in una nuova scheda; il widget non può mai far navigare la dashboard stessa.
+**Apri i link in una nuova scheda** (attivo per impostazione predefinita) permette ai link e a `window.open` di aprire una scheda del browser. I link si aprono sempre in una nuova scheda; il widget non può mai far navigare la dashboard stessa.
 
-**Allow forms to submit** (disattivato per impostazione predefinita) permette a un `<form>` dentro il widget di essere inviato.
+**Consenti l'invio dei moduli** (disattivato per impostazione predefinita) permette a un `<form>` dentro il widget di essere inviato.
 
 Chi può modificare la dashboard decide che cosa esegue questo widget, e tutti quelli che visualizzano la dashboard lo eseguono: su una dashboard pubblica, questo include i visitatori anonimi. Tratta l'accesso in modifica a una dashboard con un widget HTML come tratteresti l'accesso a qualsiasi altro codice che rilasci.
 
@@ -160,7 +160,7 @@ Un singolo obiettivo del livello di servizio, disegnato come un solo numero o co
 
 **Impostazioni**: quale SLO, oppure lo SLO scelto in una variabile della dashboard; quale dei suoi tre numeri (SLI, Error Budget Remaining o Burn Rate); la visualizzazione Tile o Grafico; e un titolo facoltativo.
 
-- **Tile** mostra il numero attuale, più una seconda riga quando c'è: l'obiettivo sotto lo SLI, i minuti rimanenti sotto l'error budget. Un'etichetta di stato colora l'insieme.
+- **Riquadro** mostra il numero attuale, più una seconda riga quando c'è: l'obiettivo sotto lo SLI, i minuti rimanenti sotto l'error budget. Un'etichetta di stato colora l'insieme.
 - **Grafico** disegna lo stesso numero sull'intervallo di tempo della dashboard, con l'obiettivo segnato da una linea tratteggiata sulla serie dello SLI. Lo storico viene scritto ogni pochi minuti dal worker di valutazione, quindi uno SLO appena creato appare vuoto nel grafico finché non viene valutato per la prima volta.
 
 Usalo quando la dashboard risponde a "stiamo rispettando ciò che abbiamo promesso?" piuttosto che a "che cosa sta succedendo adesso?".

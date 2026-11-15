@@ -27,7 +27,7 @@ flowchart TB
 ## 开始之前
 
 - **一个已连接的 Google Cloud 项目。** 先在 **云 → 连接** 中连接它：参见 [连接云账户](/docs/telemetry/cloud-accounts)。
-- **项目所有者或管理员。** 只有他们可以创建流密钥和停止流式传输。
+- **项目所有者或项目管理员。** 只有他们可以创建流密钥和停止流式传输。
 - **Google Cloud Shell**，以项目的 **Owner** 身份登录，或以可在这些项目中创建服务账号、Pub/Sub 主题和日志接收器的人员身份登录。
 - **在自托管的 OneUptime 上，需要 HTTPS 地址。** Pub/Sub 只推送到 `https://` 地址，证书须受 Google 信任，并且该地址必须能从 Google Cloud 访问。
 

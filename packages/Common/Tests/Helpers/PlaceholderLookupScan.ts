@@ -347,6 +347,63 @@ function containsLookup(node: ts.Node): boolean {
   return Boolean(ts.forEachChild(node, containsLookup));
 }
 
+/*
+ * A permission check's names: the type of what it answers, and the class
+ * that asks it (Common/UI/Utils/PermissionGate).
+ */
+const GATE_RESULT_TYPE: string = "PermissionGateResult";
+const GATE_CLASS: string = "PermissionGate";
+const GATE_REASON: string = "disabledReason";
+
+/*
+ * Whether a node is a permission check's reason: `gate.disabledReason`,
+ * where gate is a constant of the code around it that a permission check
+ * answered - written as a PermissionGateResult, or the answer of
+ * PermissionGate.check(...) (#8586). PermissionGate words its reason in
+ * the reader's language (buildFirstSentence), so it is looked up already,
+ * as t() is: a control that looks it up again reads the translation of
+ * the translation.
+ */
+function isGateReason(node: ts.Node): boolean {
+  if (
+    !ts.isPropertyAccessExpression(node) ||
+    node.name.text !== GATE_REASON ||
+    !ts.isIdentifier(node.expression)
+  ) {
+    return false;
+  }
+
+  const declaration: ts.VariableDeclaration | null = findDeclaration(
+    node.expression.text,
+    node,
+  );
+
+  if (!declaration) {
+    return false;
+  }
+
+  if (
+    declaration.type &&
+    declaration.type.getText().includes(GATE_RESULT_TYPE)
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    declaration.initializer &&
+      declaration.initializer.getText().includes(`${GATE_CLASS}.`),
+  );
+}
+
+// A lookup call, or a permission check's reason, anywhere in a node.
+function containsLookedUpText(node: ts.Node): boolean {
+  if (isLookupCall(node) || isGateReason(node)) {
+    return true;
+  }
+
+  return Boolean(ts.forEachChild(node, containsLookedUpText));
+}
+
 // A flag written as plainly true: a bare attribute, or true itself.
 function isPlainlyTrue(node: ts.Node | undefined): boolean {
   if (!node) {
@@ -439,7 +496,7 @@ function isLookedUpValue(value: ts.Node, at: ts.Node): boolean {
       return;
     }
 
-    if (isLookupCall(node)) {
+    if (isLookupCall(node) || isGateReason(node)) {
       found = true;
       return;
     }
@@ -457,7 +514,10 @@ function isLookedUpValue(value: ts.Node, at: ts.Node): boolean {
         at,
       );
 
-      if (declaration?.initializer && containsLookup(declaration.initializer)) {
+      if (
+        declaration?.initializer &&
+        containsLookedUpText(declaration.initializer)
+      ) {
         found = true;
         return;
       }

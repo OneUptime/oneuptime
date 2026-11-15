@@ -60,10 +60,12 @@ const BOLD_SPAN: RegExp = /\*\*[^*\n]+?\*\*/g;
 
 // The page's running text: what is left once code and bold spans are out.
 export function runningText(markdown: string): string {
-  return markdown
-    .replace(FENCED_CODE, " ")
-    .replace(INLINE_CODE, " ")
-    .replace(BOLD_SPAN, " ");
+  return proseText(markdown).replace(BOLD_SPAN, " ");
+}
+
+// The page outside its code, its bold spans and bold leads included.
+export function proseText(markdown: string): string {
+  return markdown.replace(FENCED_CODE, " ").replace(INLINE_CODE, " ");
 }
 
 /*
@@ -109,6 +111,10 @@ export const KEPT_IN_ENGLISH: ReadonlyArray<KeptEnglish> = [
   {
     text: "Ask a Project Admin for access to them.",
     why: "The Slack and Microsoft Teams reply when no incident state is in reach, quoted as the bot writes it, in English.",
+  },
+  {
+    text: "so only its owners, Project Owners and Project Admins can see it.",
+    why: "The Slack and Microsoft Teams reply on a private incident the person does not own, quoted as the bot writes it, in English.",
   },
 ];
 
@@ -257,6 +263,87 @@ function drawnRolePattern(language: string, role: string): string {
       return escapeRegExp(kept) + (letters.length <= 3 ? "" : WORD_LETTERS);
     })
     .join("[\\s\\u200c]+");
+}
+
+/*
+ * THE ENGLISH PAGES NAME THE ROLES THEY MEAN (#8493, #8595).
+ *
+ * A translation names each role its English page names (above), so a role
+ * the English page words in general terms - "the project's owners are
+ * emailed", "**A project owner or admin.**" - is a role no translation
+ * names either: Japanese wrote "プロジェクトのオーナー", German "die
+ * Eigentümer des Projekts". The English pages name the role instead:
+ * "Project Owners are emailed", "**A Project Owner or Project Admin.**".
+ *
+ * These are the general words: a built-in role's name in lowercase ("a
+ * project admin"; "project members", the people in a project, is not one),
+ * "the project's owners" or "admins", and "owners and admins". They are
+ * read outside code, bold leads included.
+ */
+const LOWERCASE_ROLE_NAME: RegExp = new RegExp(
+  `(?<![A-Za-z])(${BUILT_IN_ROLE_NAMES.filter((name: string): boolean => {
+    return name.includes(" ") && name !== "Project Member";
+  })
+    .map((name: string): string => {
+      return escapeRegExp(name.toLowerCase());
+    })
+    .sort((first: string, second: string): number => {
+      return second.length - first.length;
+    })
+    .join("|")})s?(?![A-Za-z])`,
+  "g",
+);
+
+const GENERAL_ROLE_WORDS: ReadonlyArray<RegExp> = [
+  LOWERCASE_ROLE_NAME,
+  /\b(?:[Tt]he|[Aa]|[Yy]our) project's (?:owners?|admins?|administrators?)\b/g,
+  /\b(?:[Oo]wners?|[Aa]dmins?) (?:and|or) (?:owners?|admins?)\b/g,
+];
+
+// General words that are not the built-in roles.
+export const GENERAL_WORDS_NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
+  {
+    text: "An organization admin or owner clicks **Connect with Slack**",
+    why: "a Slack organization's own admin or owner",
+  },
+  {
+    text: "a workspace can let only its owners and admins change them",
+    why: "a Slack workspace's own owners and admins",
+  },
+  {
+    text: "for example through the project's owner rules",
+    why: "the project's incident and alert owner rules, not its owners",
+  },
+];
+
+/*
+ * The general words for a built-in role in an English page's prose, in
+ * order, past the ones listed as something else.
+ */
+export function generalRoleWords(markdown: string): Array<string> {
+  return generalRoleWordsIn(
+    GENERAL_WORDS_NOT_THE_ROLES.reduce(
+      (prose: string, kept: KeptEnglish): string => {
+        return prose.split(kept.text).join(" ");
+      },
+      proseText(markdown),
+    ),
+  );
+}
+
+// The general words for a built-in role in any English text, in order.
+export function generalRoleWordsIn(text: string): Array<string> {
+  return GENERAL_ROLE_WORDS.flatMap(
+    (words: RegExp): Array<RegExpMatchArray> => {
+      return Array.from(text.matchAll(words));
+    },
+  )
+    .sort((first: RegExpMatchArray, second: RegExpMatchArray): number => {
+      return (first.index || 0) - (second.index || 0);
+    })
+    .map((match: RegExpMatchArray): string => {
+      return match[0];
+    });
 }
 
 /*

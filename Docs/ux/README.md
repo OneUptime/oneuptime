@@ -250,6 +250,13 @@ work out, starts from a default for everything else, and folds what most people 
   [DisclosureTogglesGuard](../../packages/Common/Tests/UI/DisclosureTogglesGuard.test.ts).
 - **A fold never cuts off what it holds.** No fixed height cap on an open fold. Enforced by
   [FoldHeightCapGuard](../../packages/Common/Tests/UI/Components/FoldHeightCapGuard.test.ts).
+- **A folded line never cuts off the choice it names.** Folded on a type it holds, More monitor types
+  names it after its words: "More monitor types · Selected: Kubernetes". The choice goes on the
+  words' line when it fits, under them, whole, when it does not, and wraps between its words when it
+  is wider than a line by itself. It is never cut off with an ellipsis and a tooltip, which a phone
+  cannot show. German's "Ausgewählt: Benutzerdefinierter JavaScript-Code" takes two lines on a 390px
+  phone, and that is right (#8380). Enforced by
+  [FoldedChoiceNamedWholeGuard](../../packages/Common/Tests/UI/Components/FoldedChoiceNamedWholeGuard.test.tsx).
 
 ### Help text
 
@@ -383,8 +390,11 @@ work out, starts from a default for everything else, and folds what most people 
   field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
   (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
   fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
-  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
-  not empty values. Enforced by
+  labels attached."). A stat tile's figure (`text-lg` and up) draws `EmptyFigure`: the same light
+  grey dash at the figure's size, read out as "Not set", where tiles drew bare dashes of their own
+  in several greys that a screen reader heard as "dash" (#8264). Every tile draws it for a value
+  that is missing, blank or a dash, so a tile is handed no value. A dash between two values, a
+  minus sign and code are not empty values. Enforced by
   [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
   and
   [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
@@ -653,7 +663,13 @@ work out, starts from a default for everything else, and folds what most people 
   hours, days, each language's own short unit), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min`
   by hand: a Persian row read "1.25 s" under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and its
   tooltip write it so too; only the AI chat's PDF export writes it in English
-  (`formatMillisecondsInEnglish`). Enforced by
+  (`formatMillisecondsInEnglish`). A compact duration ("12s", "4m 05s", "2d 5h", "3mo") is
+  `formatCompactDuration`, and an age ("5m ago") `formatCompactDurationAgo`: the Dashboard's compact
+  keys, worded by every language, each figure in the reader's digits ("۴ دقیقه ۰۵ ثانیه"), never
+  `${diffSec}s`, `${minutes}m ${rest}s` or `{minutes}m {seconds}s` by hand - a Kubernetes object's
+  age, an uptime and an SLA's countdown read English letters and Latin digits on every page
+  (#8455). A token the code parses back or a file's name keeps its compact English, listed with its
+  reason. Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
@@ -677,8 +693,13 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Utils/Monitor/ProbeFailureReading`), and so is what a failed request means, its Error
   Details ("DNS resolution failed. ...", `Common/Utils/Monitor/RequestFailureDescriptions`, #8001);
   a summary draws a probe's message with `ProbeMessageLine`, which words those sentences and keeps
-  any other message whole in a right-to-left line. Enforced by
-  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts).
+  any other message whole in a right-to-left line. A Database Health check's collection issues read
+  the same way (`Common/Utils/Monitor/DatabaseCollectionIssueReading`, #8609): the group by its
+  Metric Groups switch's name, OneUptime's own sentence in the reader's words, and a database's own
+  error kept as written after a sentence that says what kind of failure it is. Enforced by
+  [ProbeMessagesInReadersLanguageGuard](../../packages/Common/Tests/UI/Monitor/ProbeMessagesInReadersLanguageGuard.test.ts)
+  and
+  [DatabaseCollectionIssuesInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseCollectionIssuesInReadersLanguage.test.tsx).
 - **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
   never by an hour or a step guessed from the window's length. Enforced by
   [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
@@ -849,11 +870,16 @@ then `npm run i18n:validate` from the root.
   and headed its schema changes "Cambiar" ("change it", #8078). List the key in
   [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
   the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
-  Enforced by
+  Look such a key up as any key, and never write its English by hand: no `hasTranslation` check,
+  no constant holding "Created", no lookup that falls back to the word, no options translated up
+  front to get the English right (#8180). A word one list words for its own noun takes such a key
+  too: an invoice's Deleted is "Eliminada" beside its "Pagada", where the Dashboard's shared
+  "Deleted" is "Eliminado" (#8181). Enforced by
   [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts),
-  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
+  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts),
+  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx)
   and
-  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
+  [MeaningKeyFallbacksGuard](../../packages/Common/Tests/Types/MeaningKeyFallbacksGuard.test.ts).
 - **A thing has one name in each language: the one its menus say.** The side menu, the Products menu
   and a page's title name a thing, and every count, sentence and button on its pages says the same
   noun, in every app and in the docs that quote them. French said "Archiver ce workflow" under a list

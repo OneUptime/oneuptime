@@ -172,6 +172,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    */
   lockedReason?: string | undefined;
   /*
+   * The locked reason is in the reader's words already - a permission
+   * check's reason (PermissionGate words it), a sentence the page built
+   * around a value: drawn as given, never looked up again (#8586). Left
+   * unset, it is English, looked up here.
+   */
+  isLockedReasonTranslated?: boolean | undefined;
+  /*
    * The switches that belong to this one ("Open a fix pull request when an
    * investigation finds a code change" under "Fix new incidents
    * automatically"). Turning this one on turns every one of them on, and
@@ -583,7 +590,9 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
   const lockedReason: string | undefined =
     updateGate.disabledReason ||
     (props.lockedReason
-      ? translator.translateText(props.lockedReason) || props.lockedReason
+      ? props.isLockedReasonTranslated
+        ? props.lockedReason
+        : translator.translateText(props.lockedReason) || props.lockedReason
       : undefined) ||
     (planNeededToFlip
       ? translator.translateTemplate(SWITCH_PLAN_LOCKED_COPY, {

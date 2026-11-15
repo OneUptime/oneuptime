@@ -91,6 +91,10 @@ const NOT_A_ROLE_PHRASES: ReadonlyArray<KeptEnglish> = [
   },
   { text: "Viewers enter a value", why: "a dashboard's viewers" },
   { text: "Viewers can still click", why: "a dashboard's viewers" },
+  {
+    text: "Viewer's timezone",
+    why: "a dashboard clock's option: the time zone of whoever views it",
+  },
 ];
 
 // The text whose role words are the built-in roles.

@@ -165,14 +165,14 @@ const NOT_A_PROJECT_STATE_NAME: ReadonlyArray<{
   why: string;
 }> = [
   {
-    file: "ee/Dashboard/TeamCompliance/ComplianceRulesCard.tsx",
-    text: "severity.name || severity.id",
-    why: "Team Compliance is not translated yet: every word on the page is English, so a severity's name reads as stored beside them.",
-  },
-  {
-    file: "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSecurityEventsListComponent.tsx",
-    text: "severity",
-    why: "A security event's severity is OCSF's word for it (Critical, High), not a record of a project's list.",
+    /*
+     * The security event widgets draw an event's severity through this one
+     * helper (#8295), so the Security Events list and flow widgets say it
+     * as the Security Events page's severity pill does.
+     */
+    file: "packages/App/FeatureSet/Dashboard/src/Components/Dashboard/Components/SecurityEventsWidgetData.ts",
+    text: "severityName",
+    why: "A security event's severity is OCSF's word for it (Critical, High), not a record of a project's list: always the product's word, looked up.",
   },
   {
     file: "packages/App/FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx",

@@ -97,8 +97,8 @@ Brug aggregeringen fra tabellen ovenfor: Avg for procenterne og varighederne, Ma
 
 | Indstilling | Hvordan den opfører sig |
 | --- | --- |
-| **Service Level Objective** | Fastgør widgetten til ét SLO. Vælgeren viser SLO'er, der ikke er arkiveret. |
-| **Follow SLO Variable** | Viser det SLO, der er valgt i en dashboardvariabel: en variabel af typen **Telemetriattribut** på nøglen `sloName`. Ignoreres, så længe et SLO er fastgjort. |
+| **Serviceniveaumål** | Fastgør widgetten til ét SLO. Vælgeren viser SLO'er, der ikke er arkiveret. |
+| **Følg SLO-variabel** | Viser det SLO, der er valgt i en dashboardvariabel: en variabel af typen **Telemetriattribut** på nøglen `sloName`. Ignoreres, så længe et SLO er fastgjort. |
 
 På et [offentligt dashboard](/docs/dashboards/sharing) lader en widget, der følger en variabel, seerne vælge et hvilket som helst ikke-arkiveret SLO i projektet efter navn. En fastgjort widget viser kun sit eget SLO og bliver ved med at vise de seneste tal for et SLO, der senere arkiveres.
 

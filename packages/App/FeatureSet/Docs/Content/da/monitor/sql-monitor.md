@@ -151,7 +151,7 @@ Vælg de **Sonder**, der kan nå databasen, og et **Overvågningsinterval**, og 
 |---|---|---|---|
 | **Connection Timeout (ms)** | `10000` | `30000` | Hvor længe der ventes på at oprette en forbindelse. |
 | **Statement Timeout (ms)** | `15000` | `60000` | Den hårde grænse for, hvor længe forespørgslen må køre. |
-| **Max Rows** | `100` | `1000` | Den øvre grænse for, hvor mange rækker der læses tilbage fra databasen. |
+| **Maks. rækker** | `100` | `1000` | Den øvre grænse for, hvor mange rækker der læses tilbage fra databasen. |
 
 En værdi over maksimum sænkes til maksimum.
 

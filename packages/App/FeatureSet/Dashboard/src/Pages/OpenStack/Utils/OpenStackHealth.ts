@@ -66,7 +66,12 @@ import {
   OpenStackResourceKind,
   OpenStackServiceType,
 } from "Common/Types/OpenStack/OpenStackResourceKind";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 import {
   ResourceAttentionItem,
   ResourceAttentionSeverity,
@@ -330,15 +335,27 @@ function formatPercent(percent: number): string {
   return `${Math.round(percent)}%`;
 }
 
-// How long something has been in a state, as a reason and a list both write it.
-export function formatOpenStackDuration(minutes: number): string {
+/*
+ * How long something has been in a state, as a reason and a list both
+ * write it: "45m", "3h", "2d" in English, the reader's short unit and
+ * digits in their language ("45 Min.", "۲ روز"; #8455). A reason's
+ * sentence the reader's language has not worded yet puts the English back.
+ */
+export function formatOpenStackDuration(
+  minutes: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (minutes < 120) {
-    return `${Math.round(minutes)}m`;
+    return formatCompactDuration(translator, { minutes: Math.round(minutes) });
   }
   if (minutes < 48 * 60) {
-    return `${Math.round(minutes / 60)}h`;
+    return formatCompactDuration(translator, {
+      hours: Math.round(minutes / 60),
+    });
   }
-  return `${Math.round(minutes / (24 * 60))}d`;
+  return formatCompactDuration(translator, {
+    days: Math.round(minutes / (24 * 60)),
+  });
 }
 
 function factsOf(row: OpenStackResource): JSONObject {

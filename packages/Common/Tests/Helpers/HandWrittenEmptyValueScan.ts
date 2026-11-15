@@ -24,10 +24,18 @@ import ts from "typescript";
  *     `{String(host ?? "—")}`;
  *   - dash-words: a dash handed to a component as its words for an empty
  *     value - `emptyText="-"`, `groupFallbackLabel="—"`;
- *   - dash-value: a dash handed to a component that draws a value - a
- *     monitor summary's `<SummaryFact value={probe || "-"} />`, a
- *     `<Pill text="—" />`. A fact draws the quiet dash itself for a value
- *     that is not there.
+ *   - dash-value: a dash handed to a component that draws a value - any
+ *     component's `value` (a monitor summary's `<SummaryFact value={probe
+ *     || "-"} />`, a stat tile's `<GoldenMetricTile value={x === null ?
+ *     "—" : fmt(x)} />`), a `<Pill text="—" />`. A fact and a tile draw
+ *     the quiet dash themselves for a value that is not there (#8264);
+ *   - dash-figure: a dash drawn in a figure - an element whose classes
+ *     draw it from `text-lg` up, a stat tile's number - as its only
+ *     content or as a value's fallback (`<span className="text-2xl
+ *     text-gray-300">—</span>`, `{count === null ? "—" : count}`), and the
+ *     table's quiet dash put there, a speck on a figure's line. A figure
+ *     draws `<EmptyFigure />`: the quiet dash at the figure's size, read
+ *     out as "Not set" (#8264).
  *
  * What it leaves alone, because a dash there is not an empty value:
  *
@@ -42,8 +50,8 @@ import ts from "typescript";
  *   - code and the like (`<code>`, `<kbd>`, `<pre>`, `<samp>`), a select's
  *     `<option>`, and SVG text (`<text>`, `<tspan>`, `<title>`), which holds
  *     no element;
- *   - a figure: an element whose classes draw it from `text-lg` up, a
- *     stat tile's number, where the quiet dash would be a speck;
+ *   - an intrinsic element's `value` (`<option value="-">`, an input's),
+ *     which is a choice or what was typed, not a value drawn;
  *   - attributes no one reads as a value (`title`, `aria-label`, a
  *     `breakAfter`), comments, and words with a dash in them ("--", "-1",
  *     "e-mail").
@@ -53,7 +61,8 @@ export type HandWrittenDashKind =
   | "dash-element"
   | "dash-fallback"
   | "dash-words"
-  | "dash-value";
+  | "dash-value"
+  | "dash-figure";
 
 export interface HandWrittenDash {
   // Repository-relative, with forward slashes.
@@ -92,13 +101,24 @@ const FIGURE_CLASS: RegExp = /(^|:)text-(lg|xl|[2-9]xl)$/;
 const EMPTY_WORDS_ATTRIBUTE: RegExp =
   /^(emptyText|emptyLabel|emptyMessage|noValueMessage|noValueText|noItemsMessage|fallbackText|fallbackLabel|groupFallbackLabel)$/;
 
-// The components that draw a value handed to them, and the prop it is in.
+/*
+ * The components that draw a value handed to them, and the prop it is in,
+ * besides any component's `value` (VALUE_ATTRIBUTE): a monitor summary's
+ * fact, every stat tile (GoldenMetricTile, EventStatTile, LlmTile, ...),
+ * InfoCard.
+ */
 export const VALUE_ATTRIBUTES: ReadonlyArray<{
   component: string;
   attribute: string;
-}> = [
-  { component: "SummaryFact", attribute: "value" },
-  { component: "Pill", attribute: "text" },
+}> = [{ component: "Pill", attribute: "text" }];
+
+// The prop a component draws as its value: any component's.
+const VALUE_ATTRIBUTE: string = "value";
+
+// The table's and the card's quiet dash: a speck in a figure.
+const QUIET_DASH_COMPONENTS: ReadonlyArray<string> = [
+  "TableEmptyValue",
+  "EmptyValue",
 ];
 
 type JsxTree = ts.JsxElement | ts.JsxFragment;
@@ -241,6 +261,39 @@ function isFigure(tree: JsxTree): boolean {
         return FIGURE_CLASS.test(token);
       });
   });
+}
+
+// A component (GoldenMetricTile, ui.Tile), not an element (option, input).
+const COMPONENT_NAME: RegExp = /^[A-Z]|\./;
+
+function isComponentName(tagName: string): boolean {
+  return COMPONENT_NAME.test(tagName);
+}
+
+/*
+ * The figure a quiet dash is drawn in, if it is drawn in one: its element,
+ * through the conditions and fallbacks it is the empty branch of -
+ * `<span className="text-2xl">{count ?? <TableEmptyValue />}</span>`.
+ */
+function figureDrawing(node: ts.JsxSelfClosingElement): JsxTree | null {
+  let holder: ts.Node = holderOf(node);
+
+  while (
+    ts.isConditionalExpression(holder) ||
+    ts.isBinaryExpression(holder) ||
+    (ts.isJsxExpression(holder) && !ts.isJsxAttribute(holder.parent))
+  ) {
+    holder = holderOf(holder);
+  }
+
+  if (
+    (ts.isJsxElement(holder) || ts.isJsxFragment(holder)) &&
+    isFigure(holder)
+  ) {
+    return holder;
+  }
+
+  return null;
 }
 
 function isLiteralTag(tree: JsxTree): boolean {
@@ -418,10 +471,9 @@ export function findHandWrittenDashes(
       if (
         !isLiteralTag(node) &&
         !isHiddenFromScreenReaders(node) &&
-        !isFigure(node) &&
         !isSeparator(node)
       ) {
-        add(node, "dash-element", node);
+        add(node, isFigure(node) ? "dash-figure" : "dash-element", node);
       }
 
       return;
@@ -436,8 +488,20 @@ export function findHandWrittenDashes(
       const dash: ts.Node | null = dashFallbackOf(node.expression);
       const parent: JsxTree = node.parent;
 
-      if (dash && !isLiteralTag(parent) && !isFigure(parent)) {
-        add(dash, "dash-fallback", node);
+      if (dash && !isLiteralTag(parent)) {
+        add(dash, isFigure(parent) ? "dash-figure" : "dash-fallback", node);
+      }
+    }
+
+    // <span className="text-2xl">{count ?? <TableEmptyValue />}</span>
+    if (
+      ts.isJsxSelfClosingElement(node) &&
+      QUIET_DASH_COMPONENTS.includes(tagNameOf(node))
+    ) {
+      const figure: JsxTree | null = figureDrawing(node);
+
+      if (figure) {
+        add(node, "dash-figure", figure);
       }
     }
 
@@ -453,11 +517,13 @@ export function findHandWrittenDashes(
         add(node, "dash-words", node);
       }
 
-      const drawsValue: boolean = VALUE_ATTRIBUTES.some(
-        (entry: { component: string; attribute: string }): boolean => {
-          return entry.component === component && entry.attribute === name;
-        },
-      );
+      const drawsValue: boolean =
+        (name === VALUE_ATTRIBUTE && isComponentName(component)) ||
+        VALUE_ATTRIBUTES.some(
+          (entry: { component: string; attribute: string }): boolean => {
+            return entry.component === component && entry.attribute === name;
+          },
+        );
 
       if (
         drawsValue &&

@@ -39,7 +39,7 @@ U kunt hem gebruiken om:
 
 | Provider | Beschrijving |
 | ------------------------ | ---------------------------------------------------------------------- |
-| **Auto** (standaard) | Stelt het formaat van de statuspagina automatisch vast |
+| **Automatisch** (standaard) | Stelt het formaat van de statuspagina automatisch vast |
 | **Atlassian Statuspage** | Statuspagina's die draaien op Atlassian Statuspage (JSON-API) |
 | **incident.io** | Statuspagina's die draaien op incident.io (bijv. `https://status.openai.com`) |
 | **OneUptime Status Page** | Statuspagina's die met OneUptime zijn gemaakt: de status van elke resource, en wat in onderhoud is |
@@ -48,7 +48,7 @@ U kunt hem gebruiken om:
 
 ### Automatische detectie
 
-Staat de provider op **Auto**, dan stelt OneUptime het formaat van de statuspagina automatisch vast, in deze volgorde:
+Staat de provider op **Automatisch**, dan stelt OneUptime het formaat van de statuspagina automatisch vast, in deze volgorde:
 
 1. Eerst probeert het de API voor statuspagina's van incident.io (`/proxy/<host>`).
 2. Daarna probeert het de JSON-API van Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` en `/api/v2/incidents/unresolved.json`).
@@ -70,7 +70,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** o
 
 ### De URL van de statuspagina invoeren
 
-Voer de **URL statuspagina** in. Laat de **Provider** op **Auto** staan, tenzij u het formaat kent.
+Voer de **URL statuspagina** in. Laat de **Provider** op **Automatisch** staan, tenzij u het formaat kent.
 
 ### Componenten kiezen, als dat nodig is
 
@@ -94,7 +94,7 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 | Optie | Wat u invoert | Standaard |
 | --- | --- | --- |
 | **URL statuspagina** | De URL van de statuspagina. Voor sites die draaien op Atlassian Statuspage en incident.io is dit meestal de hoofd-URL (bijv. `https://status.example.com`). Voer voor RSS-/Atom-feeds direct de URL van de feed in. | — |
-| **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Auto** |
+| **Provider** | **Automatisch** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Automatisch** |
 | **Componenten** | De componenten die u volgt, gekozen uit de lijst van de pagina of ingetypt. | De hele pagina |
 | **Componentgroepfilter** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
 | **Time-out (ms)** | Hoe lang maximaal op de statuspagina wordt gewacht. Onder **Meer velden**. | `10000` (10 seconden) |
@@ -152,7 +152,7 @@ Omdat het aantal actieve incidenten en de componentstatussen de gekozen componen
 
 ## OneUptime-statuspagina's
 
-Kies **OneUptime Status Page** als provider, of laat **Auto** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
+Kies **OneUptime Status Page** als provider, of laat **Automatisch** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
 
 De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Kies resources in **Componenten**, of volg één groep met **Componentgroepfilter**.
 
@@ -215,7 +215,7 @@ Als u incidenten of waarschuwingen maakt vanuit monitoren voor externe statuspag
 
 ## Populaire statuspagina-URL's
 
-Hier is een lijst met statuspagina's van populaire diensten. Veel daarvan gebruiken Atlassian Statuspage of incident.io, dus de provider **Auto** herkent ze automatisch. Een pagina die op geen van beide is gebouwd en geen feed is, krijgt alleen de controle op bereikbaarheid — bewaak in dat geval liever de RSS- of Atom-feed van de provider, als die er een publiceert.
+Hier is een lijst met statuspagina's van populaire diensten. Veel daarvan gebruiken Atlassian Statuspage of incident.io, dus de provider **Automatisch** herkent ze automatisch. Een pagina die op geen van beide is gebouwd en geen feed is, krijgt alleen de controle op bereikbaarheid — bewaak in dat geval liever de RSS- of Atom-feed van de provider, als die er een publiceert.
 
 | Dienst | URL statuspagina |
 | ---------------------------- | --------------------------------------------- |

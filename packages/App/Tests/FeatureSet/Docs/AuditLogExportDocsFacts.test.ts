@@ -865,7 +865,7 @@ describeWhenEnterprisePresent(
         "await sendInstanceHealthNotificationToMasterAdmins({",
       );
       expect(fails).toContain(
-        "A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's.",
+        "A failing export emails the people who can fix it: the Project Owners for a project's export, and every master admin for the instance's.",
       );
 
       /*

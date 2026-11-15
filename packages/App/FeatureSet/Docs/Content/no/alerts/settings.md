@@ -123,7 +123,7 @@ Hendelsen får varselets tittel, beskrivelse, monitor, berørte ressurser og eti
 
 ## Personvern- og runbook-regler
 
-**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og prosjektets administratorer og eiere kan se dem. En regel har to trinn: **Treff**, varslene den gjør private, og deretter **Navn**, allerede fylt ut som "Gjør varsler private". Se [Private varsler](/docs/alerts/index#private-varsler).
+**Personvernregler** gjør nye varsler som samsvarer, private før noe annet kjører: Bare eierne deres og Prosjektadministratorer og Prosjekteiere kan se dem. En regel har to trinn: **Treff**, varslene den gjør private, og deretter **Navn**, allerede fylt ut som "Gjør varsler private". Se [Private varsler](/docs/alerts/index#private-varsler).
 
 **Runbook-regler** starter en runbook når et nytt varsel samsvarer, med mindre varselet ble opprettet løst. Se [Runbook-regler](/docs/runbooks/rules).
 

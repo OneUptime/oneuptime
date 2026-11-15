@@ -3,7 +3,6 @@ import {
   ComplianceVerdict,
   ComplianceVerdictKind,
   MemberStatusFilter,
-  countOf,
   getComplianceVerdict,
   getEvaluatedAt,
   summarizeCompliance,
@@ -19,6 +18,16 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { useWriteDatesInSentenceLanguage } from "Common/UI/Utils/SentenceLanguage";
+import {
+  composedValue,
+  getInlineSeparator,
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -84,9 +93,81 @@ const PRESENTATIONS: Record<ComplianceVerdictKind, VerdictPresentation> = {
 // How often "checked 3 minutes ago" is re-worded while the page stays open.
 const RELATIVE_TIME_TICK_MS: number = 60 * 1000;
 
+// What the subline says the verdict was checked against, by how many rules.
+const CHECKED_AGAINST: PluralTemplate = {
+  one: "Checked against {{count}} active rule",
+  other: "Checked against {{count}} active rules",
+};
+
+const CHECKED_AGAINST_WITH_PAUSED: PluralTemplate = {
+  one: "Checked against {{count}} active rule ({{paused}} paused)",
+  other: "Checked against {{count}} active rules ({{paused}} paused)",
+};
+
+/*
+ * When it was checked: a clause after "Checked against ...", a sentence of
+ * its own after a sentence that says nothing is measured.
+ */
+const CHECKED_AT: string = translationKey("checked {{time}}");
+
+const LAST_CHECKED_AT: string = translationKey("Last checked {{time}}.");
+
+const BAR_LABEL: string = translationKey("{{compliant}}, {{attention}}");
+
+const COMPLIANT_OF_MEMBERS: PluralTemplate = {
+  one: "{{compliant}} of {{count}} member compliant",
+  other: "{{compliant}} of {{count}} members compliant",
+};
+
+const NEED_ATTENTION: PluralTemplate = {
+  one: "{{count}} needs attention",
+  other: "{{count}} need attention",
+};
+
+const SHOW_COMPLIANT_MEMBERS: PluralTemplate = {
+  one: "Show the {{count}} compliant member",
+  other: "Show the {{count}} compliant members",
+};
+
+const SHOW_MEMBERS_NEEDING_ATTENTION: PluralTemplate = {
+  one: "Show the {{count}} member who needs attention",
+  other: "Show the {{count}} members who need attention",
+};
+
+const PAUSED_RULES: PluralTemplate = {
+  one: "{{count}} paused",
+  other: "{{count}} paused",
+};
+
+/*
+ * The time it was checked, written in the language of the sentence around
+ * it (TranslatedSentence): "vor 3 Minuten" in a German sentence, never in an
+ * English one.
+ */
+const CheckedAt: FunctionComponent<{ date: Date }> = (props: {
+  date: Date;
+}): ReactElement => {
+  const writeDates: <T>(write: () => T) => T =
+    useWriteDatesInSentenceLanguage();
+
+  return (
+    <time
+      dateTime={props.date.toISOString()}
+      title={writeDates((): string => {
+        return OneUptimeDate.getDateAsLocalFormattedString(props.date);
+      })}
+    >
+      {writeDates((): string => {
+        return OneUptimeDate.fromNow(props.date);
+      })}
+    </time>
+  );
+};
+
 const ComplianceHero: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [, setTick] = useState<number>(0);
 
   useEffect(() => {
@@ -102,7 +183,7 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
   }, []);
 
   const summary: ComplianceSummary = summarizeCompliance(props.status);
-  const verdict: ComplianceVerdict = getComplianceVerdict(summary);
+  const verdict: ComplianceVerdict = getComplianceVerdict(summary, translator);
   const presentation: VerdictPresentation = PRESENTATIONS[verdict.kind];
   const evaluatedAt: Date | null = getEvaluatedAt(props.status);
 
@@ -115,10 +196,13 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
       return verdict.detail;
     }
 
-    const paused: string =
-      summary.pausedRuleCount > 0 ? ` (${summary.pausedRuleCount} paused)` : "";
-
-    return `Checked against ${countOf(summary.activeRuleCount, "active rule")}${paused}`;
+    return summary.pausedRuleCount > 0
+      ? translator.translatePlural(
+          CHECKED_AGAINST_WITH_PAUSED,
+          summary.activeRuleCount,
+          { paused: translator.formatNumber(summary.pausedRuleCount) },
+        )
+      : translator.translatePlural(CHECKED_AGAINST, summary.activeRuleCount);
   };
 
   const getTime: () => ReactElement = (): ReactElement => {
@@ -127,20 +211,18 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * After "Checked against N active rules" the time reads as one clause;
-     * after a sentence (the states where nothing is measured) it gets a
-     * sentence of its own rather than trailing a full stop.
+     * After "Checked against N active rules" the time reads as one clause,
+     * set off as the language sets off two facts on a line; after a
+     * sentence (the states where nothing is measured) it gets a sentence of
+     * its own.
      */
     return (
       <>
-        {isMeasured ? " · checked " : " Last checked "}
-        <time
-          dateTime={evaluatedAt.toISOString()}
-          title={OneUptimeDate.getDateAsLocalFormattedString(evaluatedAt)}
-        >
-          {OneUptimeDate.fromNow(evaluatedAt)}
-        </time>
-        {isMeasured ? "" : "."}
+        {isMeasured ? getInlineSeparator(translator.language) : " "}
+        <TranslatedSentence
+          template={isMeasured ? CHECKED_AT : LAST_CHECKED_AT}
+          slots={{ time: <CheckedAt date={evaluatedAt} /> }}
+        />
       </>
     );
   };
@@ -158,12 +240,21 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
       <div className="mt-5" data-testid="compliance-hero-bar">
         <div
           role="img"
-          aria-label={`${summary.compliantCount} of ${countOf(
-            summary.memberCount,
-            "member",
-          )} compliant, ${summary.attentionCount} ${
-            summary.attentionCount === 1 ? "needs" : "need"
-          } attention`}
+          aria-label={translator.translateTemplate(BAR_LABEL, {
+            compliant: composedValue((sentence: Translator): string => {
+              return sentence.translatePlural(
+                COMPLIANT_OF_MEMBERS,
+                summary.memberCount,
+                { compliant: sentence.formatNumber(summary.compliantCount) },
+              );
+            }),
+            attention: composedValue((sentence: Translator): string => {
+              return sentence.translatePlural(
+                NEED_ATTENTION,
+                summary.attentionCount,
+              );
+            }),
+          })}
           className="flex h-2 w-full overflow-hidden rounded-full bg-gray-100"
         >
           {summary.compliantCount > 0 ? (
@@ -195,7 +286,9 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
               aria-hidden="true"
               className="h-2 w-2 rounded-full bg-emerald-500"
             />
-            {`${compliantPercent}% compliant`}
+            {translator.translateTemplate("{{percent}}% compliant", {
+              percent: translator.formatNumber(compliantPercent),
+            })}
           </span>
           {summary.attentionCount > 0 ? (
             <span className="inline-flex items-center gap-1.5">
@@ -203,7 +296,9 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
                 aria-hidden="true"
                 className="h-2 w-2 rounded-full bg-red-500"
               />
-              {`${100 - compliantPercent}% need attention`}
+              {translator.translateTemplate("{{percent}}% need attention", {
+                percent: translator.formatNumber(100 - compliantPercent),
+              })}
             </span>
           ) : (
             <></>
@@ -221,10 +316,12 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
    */
   const getFact: (data: {
     testId: string;
+    // English, a key: looked up here.
     label: string;
     value: number;
     tone?: "positive" | "critical" | undefined;
     filter?: MemberStatusFilter | undefined;
+    // In the reader's words already.
     pressLabel?: string | undefined;
     hint?: string | undefined;
   }) => ReactElement = (data: {
@@ -250,10 +347,13 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
     const isPressable: boolean =
       Boolean(filter) && isMeasured && data.value > 0;
     const isPressed: boolean = isPressable && props.memberFilter === filter;
+    const value: string = translator.formatNumber(data.value);
 
     return (
       <div className="min-w-0" data-testid={data.testId}>
-        <dt className="text-xs font-medium text-gray-500">{data.label}</dt>
+        <dt className="text-xs font-medium text-gray-500">
+          {translator.translateText(data.label)}
+        </dt>
         <dd className="mt-1 flex items-baseline gap-1.5">
           {isPressable && filter ? (
             <button
@@ -270,7 +370,7 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
                 isPressed ? "underline" : ""
               }`}
             >
-              {data.value}
+              {value}
               <Icon
                 icon={IconProp.ChevronRight}
                 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
@@ -280,7 +380,7 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
             <span
               className={`text-base font-semibold tabular-nums ${valueClassName}`}
             >
-              {isMeasured || !filter ? data.value : <EmptyValue />}
+              {isMeasured || !filter ? value : <EmptyValue />}
             </span>
           )}
           {data.hint ? (
@@ -310,9 +410,11 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
             </div>
             <div className="min-w-0">
               <div data-testid="compliance-hero-badge">
+                {/* In the reader's words already (getComplianceVerdict). */}
                 <StatusBadge
                   text={verdict.badgeText}
                   type={presentation.badgeType}
+                  isUserContent={true}
                 />
               </div>
               <h2
@@ -352,7 +454,10 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
             data-testid="compliance-hero-refresh-error"
             className="mt-4 text-sm text-red-700"
           >
-            {`Could not check again - showing the last results that loaded. ${props.refreshError}`}
+            {translator.translateTemplate(
+              "Could not check again - showing the last results that loaded. {{error}}",
+              { error: props.refreshError },
+            )}
           </p>
         ) : (
           <></>
@@ -360,41 +465,46 @@ const ComplianceHero: FunctionComponent<ComponentProps> = (
       </div>
 
       <dl
-        aria-label="Team compliance at a glance"
+        aria-label={translator.translateText("Team compliance at a glance")}
         className="grid grid-cols-2 gap-5 rounded-b-xl border-t border-gray-100 bg-gray-50 px-5 py-4 sm:px-6 lg:grid-cols-4"
       >
         {getFact({
           testId: "compliance-fact-members",
-          label: "Members",
+          label: translationKey("Members"),
           value: summary.memberCount,
         })}
         {getFact({
           testId: "compliance-fact-compliant",
-          label: "Compliant",
+          label: translationKey("Compliant"),
           value: summary.compliantCount,
           tone: "positive",
           filter: MemberStatusFilter.Compliant,
-          pressLabel: `Show the ${countOf(summary.compliantCount, "compliant member")}`,
+          pressLabel: translator.translatePlural(
+            SHOW_COMPLIANT_MEMBERS,
+            summary.compliantCount,
+          ),
         })}
         {getFact({
           testId: "compliance-fact-attention",
-          label: "Need attention",
+          label: translationKey("Need attention"),
           value: summary.attentionCount,
           tone: "critical",
           filter: MemberStatusFilter.NeedsAttention,
-          pressLabel: `Show the ${countOf(
+          pressLabel: translator.translatePlural(
+            SHOW_MEMBERS_NEEDING_ATTENTION,
             summary.attentionCount,
-            "member who needs",
-            "members who need",
-          )} attention`,
+          ),
         })}
         {getFact({
           testId: "compliance-fact-rules",
-          label: "Active rules",
+          label: translationKey("Active rules"),
           value: summary.activeRuleCount,
           hint:
             summary.pausedRuleCount > 0
-              ? `${summary.pausedRuleCount} paused`
+              ? translator.translatePlural(
+                  PAUSED_RULES,
+                  summary.pausedRuleCount,
+                )
               : undefined,
         })}
       </dl>

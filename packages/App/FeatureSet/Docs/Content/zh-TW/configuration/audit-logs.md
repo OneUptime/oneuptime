@@ -43,7 +43,7 @@ flowchart TB
 
 ### 編輯設定
 
-點選 **Edit Audit Log Settings**。
+點選 **編輯稽核日誌設定**。
 
 ### 開啟
 

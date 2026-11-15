@@ -26,6 +26,7 @@ import { RESOURCE_CONNECTION_STEP_TITLE } from "../ResourceOnboarding/ResourceOn
 import TelemetryDocumentation, {
   TelemetryType,
 } from "../Telemetry/Documentation";
+import { getProductsSetUpByGuide } from "../Telemetry/TelemetryGuideProducts";
 import {
   TelemetryFirstRunHost,
   TelemetryFirstRunHostContext,
@@ -175,6 +176,9 @@ export const TelemetrySetupModal: FunctionComponent<SetupModalProps> = (
             }}
             ingestionKey={ingestionKey}
             dataPage={props.firstRun.dataPage}
+            products={getProductsSetUpByGuide({
+              telemetryType: props.firstRun.telemetryType,
+            })}
             onDataArrived={() => {
               props.onConnected?.();
             }}

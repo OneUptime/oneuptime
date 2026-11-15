@@ -165,7 +165,7 @@ A page that is not sent says why in the person's **On-Call Logs** (User Settings
 - the project's balance could not pay for it, and who can add balance;
 - the channel is off in the project, and who can turn it on.
 
-The project's owners are emailed about it once, until the balance is topped up or the channel is on again.
+Project Owners are emailed about it once, until the balance is topped up or the channel is on again.
 
 A page that could not reach OneUptime's notification service says `Could not reach the Notification service to send this (ECONNREFUSED).`, with the network error's code in the brackets. A page whose send never finished, for example because a server restarted while sending it, says `Sending did not finish within 15 minutes, so this notification may not have been sent.` If the send finishes after all, its result replaces that message.
 

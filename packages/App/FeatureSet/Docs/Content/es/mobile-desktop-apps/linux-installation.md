@@ -60,7 +60,7 @@ En la aplicación, abra **Ajustes de usuario → Métodos de notificación** y l
 Haga clic en **Registrar dispositivo**, mantenga el valor sugerido en **Nombre del dispositivo**, por ejemplo `Chrome on Linux`, o cámbielo, y vuelva a hacer clic en **Registrar dispositivo**. Cuando el navegador pregunte si OneUptime puede mostrar notificaciones, elija **Permitir**.
 
 ### Enviar una prueba
-En el cuadro de diálogo **Browser Registered**, haga clic en **Send Test Notification**. Su escritorio la muestra a través de su servicio de notificaciones; si no aparece nada, consulte [Solución de problemas](#solución-de-problemas).
+En el cuadro de diálogo **Navegador registrado**, haga clic en **Enviar notificación de prueba**. Su escritorio la muestra a través de su servicio de notificaciones; si no aparece nada, consulte [Solución de problemas](#solución-de-problemas).
 :::
 
 Un navegador no puede sonar pese al No molestar de su escritorio. Para los avisos que deben despertarle, use la aplicación móvil con alertas críticas: consulte [Instalación en Android](/docs/mobile-desktop-apps/android-installation#sonar-pese-al-modo-silencio).

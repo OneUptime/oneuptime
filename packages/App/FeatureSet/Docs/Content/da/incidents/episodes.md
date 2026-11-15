@@ -51,7 +51,7 @@ At slå den til tager ingen hændelse ud af en episode: en hændelse, der allere
 
 ## Hvem kan tilføje
 
-Tilføjelse kræver tilladelse til at føje hændelser til en episode, som rollerne Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator og Hændelsesmedlem har, ligesom en brugerdefineret rolle med Create Incident Episode Member. Du kan kun tilføje hændelser, du kan se: en privat hændelse kan kun tilføjes af sine ejere og af projektets ejere og administratorer. Tilføj til ny episode kræver også tilladelse til at oprette en episode. Når du ikke kan bruge en handling, er den låst, og dens værktøjstip nævner den tilladelse, der mangler.
+Tilføjelse kræver tilladelse til at føje hændelser til en episode, som rollerne Projektejer, Projektadministrator, Projektmedlem, Hændelsesadministrator og Hændelsesmedlem har, ligesom en brugerdefineret rolle med Create Incident Episode Member. Du kan kun tilføje hændelser, du kan se: en privat hændelse kan kun tilføjes af sine ejere og af Projektejere og Projektadministratorer. Tilføj til ny episode kræver også tilladelse til at oprette en episode. Når du ikke kan bruge en handling, er den låst, og dens værktøjstip nævner den tilladelse, der mangler.
 
 ## Med API'et
 

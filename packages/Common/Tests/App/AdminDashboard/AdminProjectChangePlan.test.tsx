@@ -491,7 +491,7 @@ describe("Admin > Project > Subscription > Change Plan", () => {
 
   test("a refused change keeps the dialog open, with the plan picked and why", async () => {
     const why: string =
-      "This project has no payment method, and its plan cannot change without one. Ask the project's owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
+      "This project has no payment method, and its plan cannot change without one. Ask a Project Owner to add one under Project Settings > Billing and Invoices > Billing, then try again.";
 
     onProject({ planId: "price_free_month" });
     changesAreRefused(why);

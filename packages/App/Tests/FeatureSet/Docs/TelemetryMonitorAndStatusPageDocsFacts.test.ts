@@ -1154,8 +1154,14 @@ describe("log severities", () => {
     const ingest: string = readSource(
       "App/FeatureSet/Telemetry/Services/OtelLogsIngestService.ts",
     );
+    /*
+     * Ingest stores a log's severity from its number with the shared reader
+     * (709ea4429f3), so Fluent Bit and OTLP exporters land alike.
+     */
+    expect(ingest).toContain("logSeverityFromNumber(");
+    const severities: string = readSource("Common/Types/Log/LogSeverity.ts");
     const ranges: Array<Array<string>> = Array.from(
-      ingest.matchAll(
+      severities.matchAll(
         /severityNumber >= (\d+) && severityNumber <= (\d+)\) \{\s*return LogSeverity\.(\w+);/g,
       ),
       (match: RegExpMatchArray): Array<string> => {
@@ -1167,7 +1173,7 @@ describe("log severities", () => {
     );
 
     expect(ranges).toHaveLength(6);
-    expect(ingest).toMatch(/\}\s*return LogSeverity\.Unspecified;\s*\}/);
+    expect(severities).toMatch(/\}\s*return LogSeverity\.Unspecified;\s*\}/);
 
     const rows: Array<Array<string>> = tableRows(
       sectionOf(LOGS, "### Log severity"),

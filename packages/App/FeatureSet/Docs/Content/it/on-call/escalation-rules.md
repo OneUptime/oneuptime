@@ -165,7 +165,7 @@ Un avviso non inviato indica il motivo nei **Registri di reperibilità** della p
 - il saldo del progetto non ha potuto pagarlo, e chi può aggiungere saldo;
 - il canale è disattivato nel progetto, e chi può attivarlo.
 
-I proprietari del progetto ricevono un'email una volta, finché il saldo non viene ricaricato o il canale non viene riattivato.
+I Proprietari del progetto ricevono un'email una volta, finché il saldo non viene ricaricato o il canale non viene riattivato.
 
 Un avviso che non ha potuto raggiungere il servizio di notifica di OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con il codice dell'errore di rete tra le parentesi. Un avviso il cui invio non è mai terminato, per esempio perché un server si è riavviato durante l'invio, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se l'invio termina comunque, il suo risultato sostituisce quel messaggio.
 
