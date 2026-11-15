@@ -887,7 +887,7 @@ describe("the meta line", () => {
 
   test("the previous Runner has no agent version but the same scope reading", () => {
     expect(getAiAgentMetaParts(legacyStatus())).toEqual([
-      "last seen 2 minutes ago",
+      "last seen 2\u00A0minutes ago",
       "kubectl v1.30.0",
       "Read-only",
     ]);

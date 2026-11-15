@@ -4,6 +4,7 @@ import {
   isEnglishDateLanguage,
 } from "../../Types/DateLanguage";
 import NtpMonitorUtil from "../../Types/Monitor/NtpMonitor/NtpMonitorUtil";
+import { NO_BREAK_SPACE } from "../../Types/NoBreakSpaces";
 import {
   ComposedValue,
   PluralTemplate,
@@ -425,7 +426,9 @@ export const readWrittenDuration: (
  * A duration in the reader's words and digits, as the sentence round it
  * reads: Intl's long unit, which writes each language's own numeral phrase
  * ("7 дней", "3 дня", "7 أيام", "۷ روز") where a label's plural would not
- * ("7 дн.", "الأيام: 7"). English as the engine wrote it.
+ * ("7 дн.", "الأيام: 7"), asked of Intl through DateLanguage, which holds
+ * the number to its unit (#8456). English as the engine wrote it, its
+ * number held to its word too (#8669).
  */
 const durationInWords: (duration: ReadDuration) => ComposedValue = (
   duration: ReadDuration,
@@ -439,7 +442,7 @@ const durationInWords: (duration: ReadDuration) => ComposedValue = (
       }
 
       if (isEnglishDateLanguage(translator.language)) {
-        return `${duration.count} ${duration.unit}${duration.count === 1 ? "" : "s"}`;
+        return `${duration.count}${NO_BREAK_SPACE}${duration.unit}${duration.count === 1 ? "" : "s"}`;
       }
 
       // The number held to its unit, as every amount Intl writes is.

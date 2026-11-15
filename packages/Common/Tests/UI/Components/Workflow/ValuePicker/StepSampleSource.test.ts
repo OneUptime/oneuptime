@@ -786,7 +786,7 @@ describe("the default time words", () => {
     )[0];
 
     expect(item(group, BODY)?.drillIn?.note).toBe(
-      "From the request received 5 minutes ago.",
+      "From the request received 5\u00A0minutes ago.",
     );
   });
 });

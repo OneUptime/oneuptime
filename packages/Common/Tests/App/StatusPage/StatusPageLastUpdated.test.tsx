@@ -88,7 +88,7 @@ describe("LastUpdated", () => {
       />,
     );
 
-    expect(text()).toBe("Updated 2 minutes ago");
+    expect(text()).toBe("Updated 2\u00A0minutes ago");
   });
 
   /*
@@ -110,13 +110,13 @@ describe("LastUpdated", () => {
       jest.advanceTimersByTime(60 * 1000);
     });
 
-    expect(text()).toBe("Updated 1 minute ago");
+    expect(text()).toBe("Updated 1\u00A0minute ago");
 
     act(() => {
       jest.advanceTimersByTime(60 * 60 * 1000);
     });
 
-    expect(text()).toBe("Updated 1 hour ago");
+    expect(text()).toBe("Updated 1\u00A0hour ago");
   });
 
   test("its timer is cleaned up when it goes away", () => {

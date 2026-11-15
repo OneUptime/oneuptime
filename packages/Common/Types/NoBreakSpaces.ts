@@ -595,6 +595,58 @@ const withUnitsOfTwoWordsHeld: (words: string) => string = (
 };
 
 /*
+ * ENGLISH THAT NAMES A DURATION'S UNIT IN A WORD.
+ *
+ * Some English OneUptime writes itself, in words, not through Intl or a
+ * translated sentence: moment's "5 hours ago" and "in 3 days", a friendly
+ * duration's "1 min 47 secs", a table's "10 days, 23 hours", a fallback's
+ * "2 minutes ago". A line could end with "5" and start the next with
+ * "hours ago" (#8669), as one could in what Intl writes before #8456. Each
+ * number written right before a duration's word is held to it with a
+ * no-break space. A number before any other word ("5 hosts", "3 errors")
+ * is not, nor a duration's word with no number before it ("a few seconds
+ * ago", "an hour ago").
+ */
+export const ENGLISH_DURATION_WORDS: ReadonlyArray<string> = [
+  "second",
+  "seconds",
+  "sec",
+  "secs",
+  "minute",
+  "minutes",
+  "min",
+  "mins",
+  "hour",
+  "hours",
+  "hr",
+  "hrs",
+  "day",
+  "days",
+  "week",
+  "weeks",
+  "month",
+  "months",
+  "year",
+  "years",
+];
+
+const SPACES_BEFORE_A_DURATION_WORD: RegExp = new RegExp(
+  `(?<=\\p{Nd})${BREAKING_SPACES}(?=(?:${ENGLISH_DURATION_WORDS.join("|")})(?![\\p{L}\\p{M}\\p{N}_]))`,
+  "gu",
+);
+
+// `text` with each number held to the duration's word right after it.
+export const withDurationWordsHeld: (text: string) => string = (
+  text: string,
+): string => {
+  if (!text || !HAS_A_BREAKING_SPACE.test(text)) {
+    return text;
+  }
+
+  return text.replace(SPACES_BEFORE_A_DURATION_WORD, NO_BREAK_SPACE);
+};
+
+/*
  * `words`, a wording of `english` in `language`, as the language sets a
  * line: each number with its unit, and French's marks with the words
  * before and after them.

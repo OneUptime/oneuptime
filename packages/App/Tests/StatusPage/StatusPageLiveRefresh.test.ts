@@ -208,7 +208,7 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
         secondsAgo: 90,
         locale: "not a locale!!",
       }),
-    ).toBe("1 minute ago");
+    ).toBe("1\u00A0minute ago");
   });
 
   test("no locale at all still produces a sentence", () => {
@@ -229,16 +229,16 @@ describe("StatusPageLiveRefreshUtil.formatRelativeTime", () => {
 
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 60 }),
-      ).toBe("1 minute ago");
+      ).toBe("1\u00A0minute ago");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 180 }),
-      ).toBe("3 minutes ago");
+      ).toBe("3\u00A0minutes ago");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 1 }),
       ).toBe("now");
       expect(
         StatusPageLiveRefreshUtil.formatRelativeTime({ secondsAgo: 86400 }),
-      ).toBe("1 day ago");
+      ).toBe("1\u00A0day ago");
     } finally {
       (Intl as unknown as { RelativeTimeFormat: unknown }).RelativeTimeFormat =
         original;

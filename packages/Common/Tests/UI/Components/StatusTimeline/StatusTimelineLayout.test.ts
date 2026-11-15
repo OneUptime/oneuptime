@@ -1319,9 +1319,9 @@ describe("formatStatusTimelineCompactDuration", () => {
       formatStatusTimelineCompactDuration(
         29 * 86400 + 23 * 3600 + 52 * 60 + 12,
       ),
-    ).toBe("29 days 23 hours");
+    ).toBe("29\u00A0days 23\u00A0hours");
     expect(formatStatusTimelineCompactDuration(3600 + 2 * 60 + 3)).toBe(
-      "1 hour 2 mins",
+      "1\u00A0hour 2\u00A0mins",
     );
   });
 
@@ -1345,9 +1345,9 @@ describe("formatStatusTimelineCompactDuration", () => {
   });
 
   test("a short duration reads whole", () => {
-    expect(formatStatusTimelineCompactDuration(38)).toBe("38 secs");
+    expect(formatStatusTimelineCompactDuration(38)).toBe("38\u00A0secs");
     expect(formatStatusTimelineCompactDuration(41 * 60 + 1)).toBe(
-      "41 mins 1 sec",
+      "41\u00A0mins 1\u00A0sec",
     );
   });
 });

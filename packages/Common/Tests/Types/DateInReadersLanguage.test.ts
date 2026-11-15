@@ -203,10 +203,12 @@ const ENGLISH: Record<string, string> = {
   "a weekday in another zone": "Tue, Oct 6, 2026, 05:05 EDT",
   "several zones": "Oct 06 2026, 09:05 UTC | Oct 06 2026, 14:35 IST",
   "a status page report's month": "October 2026",
-  "hours and minutes": "2 hours 5 minutes",
-  "days, hours, minutes and seconds": "2 days, 3 hours, 4 minutes, 5 seconds",
-  "days, hours and minutes": "2 days, 3 hours, 0 minutes",
-  "a friendly time": "1 year 1 month 4 days 3 hours 5 mins 6 secs",
+  "hours and minutes": "2\u00A0hours 5\u00A0minutes",
+  "days, hours, minutes and seconds":
+    "2\u00A0days, 3\u00A0hours, 4\u00A0minutes, 5\u00A0seconds",
+  "days, hours and minutes": "2\u00A0days, 3\u00A0hours, 0\u00A0minutes",
+  "a friendly time":
+    "1\u00A0year 1\u00A0month 4\u00A0days 3\u00A0hours 5\u00A0mins 6\u00A0secs",
   "a span's duration": "1.72 s",
 };
 
@@ -661,7 +663,7 @@ describe("how long ago", () => {
       new Date(Date.now() - 5 * 3600000),
     );
 
-    expect(getEnglishOf(text)).toBe("5 hours ago");
+    expect(getEnglishOf(text)).toBe("5\u00A0hours ago");
   });
 });
 
