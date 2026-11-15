@@ -135,7 +135,7 @@ En app som ikke sender noe på 30 dager, fjernes sammen med revisjonene sine, og
 | EC2, Compute Engine, Azure VM (`aws_ec2`, `gcp_compute_engine`, `azure_vm`) | **Verter** | En virtuell maskin er en vert. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
 | EKS, GKE, AKS, selvadministrert Kubernetes | **Kubernetes** | Rutes etter attributtene `k8s.*`. Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent) |
 | Lambda, Cloud Functions, Azure Functions (`aws_lambda`, `gcp_cloud_functions`, `azure_functions`) | **Serverløse funksjoner** | Rutes etter `faas.name`, eller etter `service.name` på en `cloud.platform` for FaaS. Se [Serverløse funksjoner](/docs/telemetry/serverless-functions) |
-| Lastbalanserere, bøtter, administrerte databaser og andre IaaS- eller PaaS-ressurser | **Skyressurser** | Oppdaget fra metrikkene som Azure Monitor, CloudWatch og Cloud Monitoring publiserer. Se [Skyressurser](/docs/telemetry/cloud-resources) |
+| Lastbalanserere, bøtter, administrerte databaser og andre IaaS- eller PaaS-ressurser | **Skyressurser** | Oppdaget fra målingene som Azure Monitor, CloudWatch og Cloud Monitoring publiserer. Se [Skyressurser](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
 > Cloud Run og App Engine vises med vilje på to steder. Detektoren deres setter både en administrert `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funksjon**, mens **Skymiljø** samler alle tjenestene i det prosjektet og den regionen. Den samme telemetrien arkiveres under begge.
@@ -205,7 +205,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyr at tokenet er godtatt. `401` betyr at det er ukjent, tilbakekalt, deaktivert eller utløpt, og svarets `message` sier hvilket. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer**.
+`200` med `"valid": true` betyr at tokenet er godtatt. `401` betyr at det er ukjent, tilbakekalt, deaktivert eller utløpt, og svarets `message` sier hvilket. Innen ett minutt etter det første spennet, den første loggen eller målingen vises miljøet under **App-plattformer → Alle miljøer**.
 :::
 
 > [!TIP]
@@ -216,12 +216,12 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 **Oversikt** for et miljø viser:
 
 - **Forespørsler**, **Feilrate** og **p95-latens** fra spennene der forespørsler går inn i tjenestene dine, med diagrammer over forespørsler, feil og minne i tidsrommet du velger og en stiplet linje ved hver utrulling.
-- **CPU** og **Minne** på tvers av de levende instansene, og en liste **Toppinstanser etter CPU**. De kommer fra metrikkene `container.cpu.utilization` og `container.memory.usage` som bærer instansidentiteten; på ECS fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`.
+- **CPU** og **Minne** på tvers av de levende instansene, og en liste **Toppinstanser etter CPU**. De kommer fra målingene `container.cpu.utilization` og `container.memory.usage` som bærer instansidentiteten; på ECS fra `ecs.task.cpu.utilized` og `ecs.task.memory.utilized` fra receiveren `awsecscontainermetrics`.
 - **Instanser**: hvor mange som har rapportert de siste 15 minuttene. Fanen **Instanser** har én rad for hver.
 - **Apper**: appene miljøet kjører, de som trenger et blikk først, med forespørslene og feilene deres den siste timen.
 - Fanene **Logger**, **Spor** og **Målinger**, filtrert til miljøet.
 
-Et miljø som ennå ikke har sendt noe, viser **Venter**. Et der telemetrien stopper i 15 minutter, viser **Frakoblet**, og det neste spennet, den neste loggen eller metrikken bringer det tilbake til **Tilkoblet**. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med i de 15 minuttene.
+Et miljø som ennå ikke har sendt noe, viser **Venter**. Et der telemetrien stopper i 15 minutter, viser **Frakoblet**, og det neste spennet, den neste loggen eller målingen bringer det tilbake til **Tilkoblet**. Tid da OneUptime selv var nede eller holdt på å ta igjen etterslep, teller ikke med i de 15 minuttene.
 
 ### Etiketter og eiere
 

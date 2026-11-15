@@ -307,7 +307,7 @@ Créez une [surveillance des métriques](/docs/monitor/metrics-monitor) sur `one
 Réglez la fenêtre glissante du moniteur sur 30 minutes. Un budget publie un point toutes les 15 minutes, si bien que la fenêtre par défaut de 1 minute ne trouverait rien entre deux points.
 :::
 
-Une alerte de budget peut aussi lancer un workflow qui arrête un agent incontrôlé : voir [Disjoncteurs pour agents IA](/docs/telemetry/ai-agent-circuit-breaker).
+Une alerte de budget peut aussi lancer un flux de travail qui arrête un agent incontrôlé : voir [Disjoncteurs pour agents IA](/docs/telemetry/ai-agent-circuit-breaker).
 
 ## Tableaux de bord et alertes sur métriques
 

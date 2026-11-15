@@ -4,7 +4,7 @@ Alcune cose in OneUptime si somigliano. Questa pagina mette ogni gruppo fianco a
 
 :::cards
 - [Incidente, avviso o un altro tipo di problema?](#incidente-avviso-o-un-altro-tipo-di-problema): Cosa diventa un problema in OneUptime.
-- [Workflow, runbook, playbook o regola IA?](#workflow-runbook-playbook-o-regola-ia): Con cosa automatizzare.
+- [Flussi di lavoro, runbook, playbook o regola IA?](#flussi-di-lavoro-runbook-playbook-o-regola-ia): Con cosa automatizzare.
 - [Gruppo di monitor, servizio o etichetta?](#gruppo-di-monitor-servizio-o-etichetta): Come raggruppare ciò che monitori.
 - [Sonda, agente, collector o Runner?](#sonda-agente-collector-o-runner): Cosa installare, e la chiave che usa ciascuno.
 - [Dashboard, dashboard pubblica o pagina di stato?](#dashboard-dashboard-pubblica-o-pagina-di-stato): Cosa condividere, e con chi.
@@ -25,7 +25,7 @@ La maggior parte dei problemi è un incidente o un avviso: scegli in base a chi 
 
 Un avviso può essere collegato all'incidente di cui si è rivelato parte, quindi iniziare con un avviso non fa perdere nulla.
 
-## Workflow, runbook, playbook o regola IA?
+## Flussi di lavoro, runbook, playbook o regola IA?
 
 Tutti e quattro possono eseguirsi da soli. Scegli in base a ciò su cui agiscono e a chi ha scritto i passaggi.
 

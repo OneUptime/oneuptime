@@ -4,7 +4,7 @@ Certaines choses se ressemblent dans OneUptime. Cette page met chaque groupe cô
 
 :::cards
 - [Incident, alerte ou autre type de problème ?](#incident-alerte-ou-autre-type-de-problème): Ce que devient un problème dans OneUptime.
-- [Workflow, runbook, playbook ou règle IA ?](#workflow-runbook-playbook-ou-règle-ia): Avec quoi automatiser.
+- [Flux de travail, runbook, playbook ou règle IA ?](#flux-de-travail-runbook-playbook-ou-règle-ia): Avec quoi automatiser.
 - [Groupe de moniteurs, service ou étiquette ?](#groupe-de-moniteurs-service-ou-étiquette): Comment regrouper ce que vous surveillez.
 - [Sonde, agent, collecteur ou agent Runbook ?](#sonde-agent-collecteur-ou-agent-runbook): Quoi installer, et la clé que chacun utilise.
 - [Tableau de bord, tableau de bord public ou page de statut ?](#tableau-de-bord-tableau-de-bord-public-ou-page-de-statut): Quoi partager, et avec qui.
@@ -25,7 +25,7 @@ La plupart des problèmes sont un incident ou une alerte : choisissez selon qui 
 
 Une alerte peut être liée à l'incident dont elle s'avère faire partie : commencer par une alerte ne fait donc rien perdre.
 
-## Workflow, runbook, playbook ou règle IA ?
+## Flux de travail, runbook, playbook ou règle IA ?
 
 Tous les quatre peuvent s'exécuter tout seuls. Choisissez selon ce sur quoi ils agissent et qui a écrit les étapes.
 

@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **All'inizio è disattivato.** Un progetto non registra nulla finché qualcuno non attiva il registro di audit, e nulla di prima di quel momento.
-- **Registra ciò che fanno le persone.** Una modifica fatta da una persona, una chiave API, un client MCP o un workflow viene registrata. Una modifica che OneUptime fa da solo, come quella di un'attività in background, resta fuori a meno che tu non attivi **Memorizza eventi di sistema**.
+- **Registra ciò che fanno le persone.** Una modifica fatta da una persona, una chiave API, un client MCP o un flusso di lavoro viene registrata. Una modifica che OneUptime fa da solo, come quella di un'attività in background, resta fuori a meno che tu non attivi **Memorizza eventi di sistema**.
 - **Le voci non si possono modificare.** Nessuno può modificare o eliminare una voce, né dalla dashboard né tramite l'API. Una voce se ne va solo quando finisce la sua conservazione.
 
 ## Prima di iniziare
@@ -67,7 +67,7 @@ Una modifica di queste impostazioni vale entro un minuto.
 | **Quando** | Quanto tempo fa, con data e ora. |
 | **Azione** | `Create`, `Update` o `Delete`, `Download` per un file di cattura dei pacchetti che qualcuno ha scaricato, oppure `Sign In`, `Sign Out`, `Session Timeout` o `Session Revoked` per una sessione. |
 | **Risorsa** | Il nome della risorsa, che la apre finché esiste, e il suo tipo. |
-| **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un workflow, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. |
+| **Attore** | Chi ha fatto la modifica: una persona, una chiave API, un flusso di lavoro, oppure `System` per una modifica che OneUptime ha fatto da solo. La modifica di una persona fatta tramite un client MCP indica quale. |
 | **Modifiche** | Quanti campi sono cambiati, o sono stati acquisiti in una creazione o un'eliminazione. Per una sessione, come è stato fatto l'accesso o perché è finita. Fai clic per vedere ogni campo. |
 
 Filtra per **Tipo di risorsa**, **Nome della risorsa**, **Azione**, **Email utente** o **Ora**. Una modifica elenca solo i campi cambiati, prima e dopo, e un salvataggio che non cambia nulla non aggiunge alcuna voce.
@@ -78,12 +78,12 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 
 ## Che cosa viene registrato
 
-Viene registrato tutto ciò che le persone creano, modificano o eliminano in un progetto: monitor, incidenti, avvisi, pagine di stato, workflow e i loro passaggi, code, dashboard, criteri di reperibilità, team e chi ne fa parte, chiavi API e ogni impostazione. **Tipo di risorsa** indica di che cosa tratta una voce, per esempio `Monitor`, `Workflow` o `Queue`.
+Viene registrato tutto ciò che le persone creano, modificano o eliminano in un progetto: monitor, incidenti, avvisi, pagine di stato, flussi di lavoro e i loro passaggi, code, dashboard, criteri di reperibilità, team e chi ne fa parte, chiavi API e ogni impostazione. **Tipo di risorsa** indica di che cosa tratta una voce, per esempio `Monitor`, `Workflow` o `Queue`.
 
 | Non registrato | Perché |
 | --- | --- |
 | Registri dei messaggi | Ognuno è già la traccia di un'email, un SMS, una chiamata, una notifica push o un messaggio di chat che OneUptime ha inviato o ricevuto. |
-| Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione di workflow, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
+| Tracce delle esecuzioni | Ognuna è già la traccia di un'esecuzione del flusso di lavoro, un'escalation di reperibilità, una scansione, un'importazione o un'esecuzione di IA. |
 | Ciò che riportano agenti e telemetria | Le risorse scoperte, le letture e l'utilizzo cambiano a ogni rapporto, non perché qualcuno li abbia modificati. |
 | Feed di attività | Un feed mostra modifiche che il registro di audit registra già. |
 | Lo stato di lavoro di OneUptime | Sessioni dei lettori delle pagine di stato, job in coda e altri stati che OneUptime conserva mentre lavora. |
@@ -92,7 +92,7 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 
-I campi che scrive solo OneUptime, come quando un host è stato visto l'ultima volta, sono esclusi da ogni voce, così come i campi che nessuno può leggere. Quando OneUptime ne scrive uno perché qualcuno gliel'ha chiesto, come unire un'eccezione a un'altra o reimpostare l'URL di un webhook, la voce lo registra come una modifica di quella persona. Chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore. I passaggi di un workflow vengono registrati come ciò che è cambiato, con i nomi delle impostazioni di un passaggio ma mai ciò che vi è stato scritto, e lo spostamento di un passaggio sull'area di lavoro non viene registrato.
+I campi che scrive solo OneUptime, come quando un host è stato visto l'ultima volta, sono esclusi da ogni voce, così come i campi che nessuno può leggere. Quando OneUptime ne scrive uno perché qualcuno gliel'ha chiesto, come unire un'eccezione a un'altra o reimpostare l'URL di un webhook, la voce lo registra come una modifica di quella persona. Chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore. I passaggi di un flusso di lavoro vengono registrati come ciò che è cambiato, con i nomi delle impostazioni di un passaggio ma mai ciò che vi è stato scritto, e lo spostamento di un passaggio sull'area di lavoro non viene registrato.
 
 Ciò che OneUptime fa perché qualcuno gliel'ha chiesto è registrato anch'esso come modifica di quella persona, che il progetto memorizzi o no gli eventi di sistema:
 

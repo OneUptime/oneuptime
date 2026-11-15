@@ -42,7 +42,7 @@ Under **Vad ska vi kontrollera?** skriver du adressen i **Adress till webbplats 
 
 Under **Vem ska få veta?** beror det du ser på projektet:
 
-- Om projektet ännu inte har någon jourpolicy eller jourregel finns du redan i **Vem som larmas**. Klicka på **Lägg till teammedlemmar** för att lägga till personer som redan finns i projektet, och klicka sedan på **Spara och fortsätt**. Då skapas `Default on-call policy`, som larmar dem vid varje ny incident och varje nytt larm i projektet.
+- Om projektet ännu inte har någon jourpolicy eller jourregel finns du redan i **Vem som larmas**. Klicka på **Lägg till teammedlemmar** för att lägga till personer som redan finns i projektet, och klicka sedan på **Spara och fortsätt**. Då skapas **Standardjourpolicy**, som larmar dem vid varje ny incident och varje nytt larm i projektet.
 - Om projektet har en jourpolicy eller jourregel avgör projektets egna regler vem som larmas: klicka på **Fortsätt**.
 - Är du medlem, och får alltså inte konfigurera larmning, får du veta att du kommer att få e-post som monitorns ägare: klicka på **Fortsätt**.
 

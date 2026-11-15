@@ -46,7 +46,7 @@ En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkef�
 
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Velg en type, si hva som skal sjekkes, og hvor ofte.
-- [Egendefinerte probes](/docs/probe/custom-probe): Sjekk det bare ditt eget nettverk kan nå.
+- [Egendefinerte sonder](/docs/probe/custom-probe): Sjekk det bare ditt eget nettverk kan nå.
 :::
 
 ## Det du overvåker
@@ -54,7 +54,7 @@ En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkef�
 En monitor sjekker én ting. Rundt monitorene dine fører OneUptime en oversikt over det du kjører, og du møter disse postene i menyen:
 
 - En **monitorgruppe** samler flere monitorer i én status, slik at en statusside kan vise noe som består av mange deler, for eksempel Checkout, som én rad.
-- En **tjeneste** er en applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, og samler loggene, sporene, metrikkene, unntakene og hendelsene dens på én side.
+- En **tjeneste** er en applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, og samler loggene, sporene, målingene, unntakene og hendelsene dens på én side.
 - **Verter**, klynger i **Kubernetes** og resten av **Infrastruktur** er maskinene og plattformene du kjører, fylt ut av agentene du installerer.
 - **Inventar** er én liste over alt sammen: tjenester, verter, klynger, enheter, skyressurser og de tingene som ikke sender telemetri i det hele tatt.
 
@@ -132,10 +132,10 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 ## Telemetri
 
-**Telemetri** er det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer. I menyen åpner **Logger**, **Målinger**, **Spor**, **Profiler** og **Unntak** hver sin type; **AI / LLM** følger samtalene til AI-en din, **Dataobserverbarhet** følger med på tabellene i databasene dine, og **Topologi** kartlegger hvordan alt henger sammen.
+**Telemetri** er det systemene dine sender til OneUptime: logger, målinger, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer. I menyen åpner **Logger**, **Målinger**, **Spor**, **Profiler** og **Unntak** hver sin type; **AI / LLM** følger samtalene til AI-en din, **Dataobserverbarhet** følger med på tabellene i databasene dine, og **Topologi** kartlegger hvordan alt henger sammen.
 
 :::cards
-- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.
+- [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
 - [Logg-overvåking](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
 :::
 

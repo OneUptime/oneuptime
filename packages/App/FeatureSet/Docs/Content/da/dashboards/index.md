@@ -94,7 +94,7 @@ Målet: én side for checkout-tjenesten med dens latenstid, fejlrate, åbne hæn
 - **Overvågninger og telemetri** er der, hvor dataene kommer fra. Alle metrikker, logs og traces, du sender, kan komme på en widget.
 - **Hændelser og advarsler** vises i widgets **Hændelsesliste** og **Advarselsliste**. Et dashboard viser dem kun: du arbejder med dem på deres egne sider.
 - **Statussider** fortæller dine kunder, om din tjeneste kører. Dashboards viser i detaljer, hvordan den opfører sig. De to arbejder side om side.
-- **Workflows** handler på det, der sker. Dashboards er der, hvor du læser det.
+- **Arbejdsgange** handler på det, der sker. Dashboards er der, hvor du læser det.
 
 ## Næste trin
 

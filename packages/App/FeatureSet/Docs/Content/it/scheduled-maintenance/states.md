@@ -91,7 +91,7 @@ L'avviso indica l'ora pianificata e lo stato che l'evento non ha ancora raggiunt
 
 ## L'ordine è obbligatorio
 
-Ogni cambio di stato viene controllato rispetto all'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un workflow o OneUptime stesso.
+Ogni cambio di stato viene controllato rispetto all'elenco, chiunque lo faccia: la dashboard, Slack, Microsoft Teams, l'API, Terraform, un flusso di lavoro o OneUptime stesso.
 
 - **I passi indietro vengono rifiutati**, con un messaggio che nomina entrambi gli stati: "Scheduled Maintenance cannot transition to Scheduled state from Ongoing state because Scheduled is before Ongoing in the order of scheduled maintenance states."
 - **Passare allo stato in cui si trova già viene rifiutato**: "Scheduled Maintenance state cannot be same as previous state."

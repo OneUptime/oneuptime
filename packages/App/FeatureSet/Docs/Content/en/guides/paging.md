@@ -51,7 +51,7 @@ Type your mobile number with its country code in **Your phone number**, such as 
 
 ![The step "Who else is on call?", with "Save and continue" ringed](screen:paging-who-else)
 
-Under **Who else is on call?**, you are already in **Paged first**. Click **Add teammates** to page others with you, then click **Save and continue**. In a project with no on-call policy yet, this creates `Default on-call policy`, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
+Under **Who else is on call?**, you are already in **Paged first**. Click **Add teammates** to page others with you, then click **Save and continue**. In a project with no on-call policy yet, this creates **Default on-call policy**, which pages them for every new incident and alert. In a project that has one, pick it under **On-call policy**, and add people under **Add to the first escalation rule** instead. If someone cannot be reached yet, the step stays open on **Can a page reach them?**: click **Send setup reminder** for them, then **Continue**.
 
 ### Decide what happens if nobody answers
 

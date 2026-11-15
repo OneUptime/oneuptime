@@ -53,17 +53,17 @@ De filters van een sondestatusmonitor tellen sondes:
 
 | Filter | Wat hij telt |
 | --- | --- |
-| **Disconnected Probes** | De bewaakte sondes die losgekoppeld zijn. |
-| **Connected Probes** | De bewaakte sondes die verbonden zijn. |
+| **Losgekoppelde sondes** | De bewaakte sondes die losgekoppeld zijn. |
+| **Verbonden sondes** | De bewaakte sondes die verbonden zijn. |
 
 Beide zijn gehele getallen, vergeleken met **Groter dan**, **Kleiner dan**, **Gelijk aan** en de andere vergelijkingen. Een nieuwe monitor begint met twee criteria:
 
 | Criterium | Filter | Wat het doet |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** groter dan `0` | Zet de monitor offline en meldt een incident met de titel `Probe disconnected: {{disconnectedProbeNames}}`, dat zichzelf oplost. |
-| Check if every probe is connected | **Disconnected Probes** gelijk aan `0` | Zet de monitor op operationeel. |
+| Controleer of een sonde losgekoppeld is | **Losgekoppelde sondes** groter dan `0` | Zet de monitor offline en meldt een incident met de titel `Probe disconnected: {{disconnectedProbeNames}}`, dat zichzelf oplost. |
+| Controleer of alle sondes verbonden zijn | **Losgekoppelde sondes** gelijk aan `0` | Zet de monitor op operationeel. |
 
-**Connected Probes** past bij een monitor die meerdere sondes bewaakt en er een kan missen: **Connected Probes** kleiner dan `2` meldt pas een incident als er minder dan twee over zijn.
+De filter **Verbonden sondes** past bij een monitor die meerdere sondes bewaakt en er een kan missen: **Verbonden sondes** kleiner dan `2` meldt pas een incident als er minder dan twee over zijn.
 
 ### Langer wachten voor een incident
 
@@ -89,7 +89,7 @@ De incident- en waarschuwingssjablonen van een sondestatusmonitor kunnen deze va
 ## Problemen oplossen
 
 :::details De monitor zegt dat hij op gegevens wacht
-Een nieuwe monitor toont zijn eerste evaluatie binnen een à twee minuten. Bewaakt hij geen enkele sonde, dan toont hij in plaats daarvan **Not set up**: kies de sondes onder **Criteria**.
+Een nieuwe monitor toont zijn eerste evaluatie binnen een à twee minuten. Bewaakt hij geen enkele sonde, dan toont hij in plaats daarvan **Niet ingesteld**: kies de sondes onder **Criteria**.
 :::
 
 :::details Een sonde viel weg en er werd geen incident gemeld

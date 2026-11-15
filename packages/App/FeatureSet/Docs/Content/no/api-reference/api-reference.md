@@ -158,7 +158,7 @@ Ingenting slettes eller slås av. Nøklene og tilkoblingene beholdes, og de fung
 
 Under **Growth** viser **Prosjektinnstillinger** > **Avansert** > **API-nøkler** nøklene prosjektet fortsatt har, og sier at de har stoppet, så hvem som helst av dem kan slettes (tilbakekalles) på alle abonnementer. Å opprette eller endre nøkler krever **Growth**. **Prosjektinnstillinger** > **Fakturering og fakturaer** > **Fakturering** oppgir hvor mange API-nøkler et lavere abonnement stopper og hvor mange SCIM-tilkoblinger det begrenser, på hvert abonnement du kan velge, og hva prosjektets abonnement har stoppet; prosjektets eiere får en e-post når en abonnementsendring stopper dem. Eierne av prosjekter som allerede lå under disse abonnementene da dette begynte, får én e-post som sier hva som har stoppet, og hvordan det slås på igjen.
 
-Bare et prosjekts API-nøkler og SCIM-tilkoblinger berøres. Personer berøres ikke: innlogging i dashbordet, og MCP-klienter som er koblet til ved innlogging, fungerer som før. Inntaksnøkler for telemetri, probenøkler og agentnøkler er ikke API-nøkler og fortsetter å fungere. Selvdriftede installasjoner har ingen abonnementer, så for dem endres ingenting.
+Bare et prosjekts API-nøkler og SCIM-tilkoblinger berøres. Personer berøres ikke: innlogging i dashbordet, og MCP-klienter som er koblet til ved innlogging, fungerer som før. Inntaksnøkler for telemetri, sondenøkler og agentnøkler er ikke API-nøkler og fortsetter å fungere. Selvdriftede installasjoner har ingen abonnementer, så for dem endres ingenting.
 
 ## Navngi og skrive poster
 
@@ -168,7 +168,7 @@ Forespørsler som leser, endrer eller sletter én ressurs, nevner den med ID-en,
 
 ### Poster en forespørsel nevner
 
-Mange ressurser nevner andre poster: en monitor etikettene og probene sine, en abonnent på en statusside statussiden sin, en nettverksenhet stedet sitt, et medlem av en hendelse hendelsen og rollen. Hver regel nedenfor gjelder likt for API-et, Terraform og arbeidsflyter:
+Mange ressurser nevner andre poster: en monitor etikettene og sondene sine, en abonnent på en statusside statussiden sin, en nettverksenhet stedet sitt, et medlem av en hendelse hendelsen og rollen. Hver regel nedenfor gjelder likt for API-et, Terraform og arbeidsflyter:
 
 | Når en forespørsel | må den | Ellers |
 | --- | --- | --- |
@@ -188,7 +188,7 @@ Hver ID du sender for en post som en ressurs nevner, må være en post i prosjek
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
 ```
 
-Personer kontrolleres ut fra medlemskap: en som ikke er medlem av prosjektet, avvises på samme måte. En global probe, som alle prosjekter kan bruke, regnes som prosjektets. En endring av en ressurs kontrollerer bare ID-ene endringen legger til, så en ressurs som nevner noe som senere har forsvunnet, kan fortsatt lagres.
+Personer kontrolleres ut fra medlemskap: en som ikke er medlem av prosjektet, avvises på samme måte. En global sonde, som alle prosjekter kan bruke, regnes som prosjektets. En endring av en ressurs kontrollerer bare ID-ene endringen legger til, så en ressurs som nevner noe som senere har forsvunnet, kan fortsatt lagres.
 
 #### Poster som leses via en annen
 
@@ -208,7 +208,7 @@ Eierne av en ressurs - bruker- og teameierpostene for en monitor, en vaktpolicy,
 
 Postene en opprettelse eller endring lister opp - en hendelses monitorer og vaktpolicyer, et varsels tjenester, statussidene til en vedlikeholdshendelse, en regels runbooks - holder seg til tillatelsen din til å lese den typen post når du har en, og i alle tilfeller til en blokkering med etiketter av lesingen: en post utenfor dem avvises med samme `400`. En endring kontrollerer bare postene den legger til i en liste, så de som listen allerede har, blir værende.
 
-Den ene posten en opprettelse eller endring nevner i et eget felt - et varsels monitor, monitoren en statussideressurs viser, et kostnadsbudsjetts tjeneste, hendelsen en runbook-kjøring er knyttet til - følger samme regel, under begge navnene sine: en post utenfor tillatelsen din til å lese den typen post, eller med en etikett som en blokkering av lesingen fjerner, avvises med samme `400`. En endring kontrollerer den bare når den nevner en annen post enn den feltet allerede har. OneUptimes globale prober og AI-agenter, som alle prosjekter kan bruke, er fortsatt åpne for alle prosjekter. Postene en mal fyller ut for deg, kontrolleres på samme måte når de er fylt ut, før noe lagres: monitorene, statussidene og vaktpolicyene en hendelsesmal legger til en hendelse som erklæres fra den, må være poster du får lese, som om du hadde valgt dem selv.
+Den ene posten en opprettelse eller endring nevner i et eget felt - et varsels monitor, monitoren en statussideressurs viser, et kostnadsbudsjetts tjeneste, hendelsen en runbook-kjøring er knyttet til - følger samme regel, under begge navnene sine: en post utenfor tillatelsen din til å lese den typen post, eller med en etikett som en blokkering av lesingen fjerner, avvises med samme `400`. En endring kontrollerer den bare når den nevner en annen post enn den feltet allerede har. OneUptimes globale sonder og AI-agenter, som alle prosjekter kan bruke, er fortsatt åpne for alle prosjekter. Postene en mal fyller ut for deg, kontrolleres på samme måte når de er fylt ut, før noe lagres: monitorene, statussidene og vaktpolicyene en hendelsesmal legger til en hendelse som erklæres fra den, må være poster du får lese, som om du hadde valgt dem selv.
 
 #### Innstillinger som inneholder legitimasjon
 

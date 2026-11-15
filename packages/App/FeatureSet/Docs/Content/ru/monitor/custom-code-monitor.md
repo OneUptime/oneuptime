@@ -118,7 +118,7 @@ console.log(apiKey.length > 0);
 
 ## Пользовательские метрики
 
-Скрипт может собирать пользовательские метрики с помощью функции `oneuptime.captureMetric()`. Эти метрики хранятся в OneUptime, и их можно выводить на графиках дашбордов через Metric Explorer.
+Скрипт может собирать пользовательские метрики с помощью функции `oneuptime.captureMetric()`. Эти метрики хранятся в OneUptime, и их можно выводить на графиках панелей через Metric Explorer.
 
 ```javascript
 oneuptime.captureMetric(name, value, attributes);

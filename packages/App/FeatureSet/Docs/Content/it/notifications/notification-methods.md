@@ -167,7 +167,7 @@ function isFromOneUptime(rawBody, signatureHeader, secret) {
 }
 ```
 
-Un webhook non richiede verifica, quindi aggiungerlo aggiunge subito le sue regole. Gli indirizzi privati e interni vengono rifiutati, a meno che l'amministratore di un server self-hosted non li consenta: vedete [Accesso alla rete privata](/docs/self-hosted/private-network-access#webhook-e-workflow).
+Un webhook non richiede verifica, quindi aggiungerlo aggiunge subito le sue regole. Gli indirizzi privati e interni vengono rifiutati, a meno che l'amministratore di un server self-hosted non li consenta: vedete [Accesso alla rete privata](/docs/self-hosted/private-network-access#webhook-e-flussi-di-lavoro).
 
 ## Attivare un canale per il progetto
 

@@ -1,6 +1,6 @@
 # Google Cloud Run
 
-Send spor, logger og metrikker fra Cloud Run-tjenestene og -jobbene dine til OneUptime. Alt som rapporterer `cloud.platform=gcp_cloud_run`, havner i ett **Skymiljø** per Google Cloud-prosjekt og region, for eksempel _GCP Cloud Run · us-central1 · my-project_, og hver tjeneste vises også under **Serverløse funksjoner**.
+Send spor, logger og målinger fra Cloud Run-tjenestene og -jobbene dine til OneUptime. Alt som rapporterer `cloud.platform=gcp_cloud_run`, havner i ett **Skymiljø** per Google Cloud-prosjekt og region, for eksempel _GCP Cloud Run · us-central1 · my-project_, og hver tjeneste vises også under **Serverløse funksjoner**.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva GCP-detektoren setter, og hvorfor en tjeneste vises på to steder.
@@ -271,7 +271,7 @@ Bare containeren som tar imot forespørsler (`app`), oppgir `ports`; en sidecar 
 ## Hva du får
 
 - **Oversikt**: forespørsler, feilrate og p95-latens fra sporene dine.
-- **Instanser**: én rad per Cloud Run-instans, navngitt etter `faas.instance`. Cloud Run viser ikke en containers ressursbruk til en sidecar, så flisene **CPU** og **Minne** forblir tomme, med mindre du selv sender metrikkene `container.cpu.utilization` og `container.memory.usage` med den samme `faas.instance`. Les flisene for forespørsler her, og overlat CPU og minne for instansene til Cloud Monitoring.
+- **Instanser**: én rad per Cloud Run-instans, navngitt etter `faas.instance`. Cloud Run viser ikke en containers ressursbruk til en sidecar, så flisene **CPU** og **Minne** forblir tomme, med mindre du selv sender målingene `container.cpu.utilization` og `container.memory.usage` med den samme `faas.instance`. Les flisene for forespørsler her, og overlat CPU og minne for instansene til Cloud Monitoring.
 - **Logger**, **Spor** og **Målinger**, filtrert til miljøet.
 - Den samme tjenesten under **Serverløse funksjoner** (etter `faas.name`) og under **Tjenester** (etter `service.name`).
 

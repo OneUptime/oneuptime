@@ -115,7 +115,7 @@ Sondens nätverk når inte vCenter på TCP 443. Tillåt trafiken genom brandväg
 :::
 
 :::details Sonden plockade inte upp detta
-Sonden är offline, eller kör en OneUptime-version som är äldre än VMware-insamlingen. Kontrollera att den är ansluten i tabellen **Anpassade probes**, och uppdatera den.
+Sonden är offline, eller kör en OneUptime-version som är äldre än VMware-insamlingen. Kontrollera att den är ansluten i tabellen **Anpassade sonder**, och uppdatera den.
 :::
 
 :::details Denna vCenter är för stor för att samlas in av en sond

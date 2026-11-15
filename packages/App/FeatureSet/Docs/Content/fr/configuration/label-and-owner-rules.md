@@ -25,7 +25,7 @@ Les étiquettes et les propriétaires servent à filtrer et à regrouper les res
 
 ## Où trouver les règles
 
-Chaque produit doté d'étiquettes et de propriétaires a les deux, dans ses **Paramètres** (pour les incidents, les alertes, la maintenance planifiée et Sécurité des données, dans **Règles**) : moniteurs, incidents et épisodes d'incident, alertes et épisodes d'alerte, événements de maintenance, pages de statut, services, hôtes, clusters Kubernetes, hôtes Docker, clusters Docker Swarm, hôtes Podman, clusters Proxmox, clouds OpenStack, vCenter VMware, clusters Ceph, baies de stockage, bases de données, magasins de données, tables, files d'attente, flottes IoT, fonctions serverless, ressources cloud, applications RUM, tableaux de bord, politiques d'astreinte, plannings d'astreinte, politiques d'appels entrants, workflows, runbooks, équipements réseau et SLO.
+Chaque produit doté d'étiquettes et de propriétaires a les deux, dans ses **Paramètres** (pour les incidents, les alertes, la maintenance planifiée et Sécurité des données, dans **Règles**) : moniteurs, incidents et épisodes d'incident, alertes et épisodes d'alerte, événements de maintenance, pages de statut, services, hôtes, clusters Kubernetes, hôtes Docker, clusters Docker Swarm, hôtes Podman, clusters Proxmox, clouds OpenStack, vCenter VMware, clusters Ceph, baies de stockage, bases de données, magasins de données, tables, files d'attente, flottes IoT, fonctions serverless, ressources cloud, applications RUM, tableaux de bord, politiques d'astreinte, plannings d'astreinte, politiques d'appels entrants, flux de travail, runbooks, équipements réseau et SLO.
 
 Par exemple, les règles d'étiquettes des moniteurs se trouvent dans **Moniteurs → Paramètres → Règles d'étiquettes**, et celles des incidents dans **Incidents → Règles → Règles d'étiquettes**. **Paramètres** et **Règles** sont repliés au départ dans le menu latéral : cliquez sur le titre de la section pour l'ouvrir. Les pages des incidents et des alertes ont un onglet **Règles d'incident** (ou **Règles d'alerte**) et un onglet **Règles d'épisode**.
 
@@ -61,7 +61,7 @@ Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un 
 
 ### Quelle que soit la façon dont la règle est créée
 
-Il en va de même pour une règle créée par l'API, Terraform, un workflow ou une [importation de règles d'étiquettes](/docs/configuration/label-rule-import-export) : OneUptime refuse une nouvelle règle qui n'ajoute rien, avec un message qui nomme les champs à remplir. Ces messages sont en anglais dans toutes les langues.
+Il en va de même pour une règle créée par l'API, Terraform, un flux de travail ou une [importation de règles d'étiquettes](/docs/configuration/label-rule-import-export) : OneUptime refuse une nouvelle règle qui n'ajoute rien, avec un message qui nomme les champs à remplir. Ces messages sont en anglais dans toutes les langues.
 
 | Règle | Message |
 | --- | --- |
@@ -97,7 +97,7 @@ Le nom suit les interrupteurs jusqu'à ce que vous choisissiez une étiquette (l
 
 ### L'équipe du créateur
 
-Une règle de propriétaires d'incident ou d'alerte a une entrée de plus, la dernière de sa section **Hériter des propriétaires** : **Équipe du créateur**, une liste d'équipes. Quand la personne qui déclare un incident correspondant, ou crée une alerte correspondante, est membre d'une équipe de la liste, cette équipe devient elle aussi propriétaire. C'est une liste plutôt que toutes ses équipes, car chacun rejoint par défaut l'équipe **Membres** du projet, et rendre tout le monde propriétaire n'aide personne. Un incident ou une alerte créé par un moniteur, un workflow, un formulaire ou une clé API n'a pas de créateur, et ne reçoit donc aucune de ces équipes. Elles sont notifiées selon **Notifier les propriétaires** de la règle, et une règle qui n'ajoute qu'elles s'appelle _Ajouter l'équipe du créateur comme propriétaire_. Via l'API, la liste est `creatorTeams`.
+Une règle de propriétaires d'incident ou d'alerte a une entrée de plus, la dernière de sa section **Hériter des propriétaires** : **Équipe du créateur**, une liste d'équipes. Quand la personne qui déclare un incident correspondant, ou crée une alerte correspondante, est membre d'une équipe de la liste, cette équipe devient elle aussi propriétaire. C'est une liste plutôt que toutes ses équipes, car chacun rejoint par défaut l'équipe **Membres** du projet, et rendre tout le monde propriétaire n'aide personne. Un incident ou une alerte créé par un moniteur, un flux de travail, un formulaire ou une clé API n'a pas de créateur, et ne reçoit donc aucune de ces équipes. Elles sont notifiées selon **Notifier les propriétaires** de la règle, et une règle qui n'ajoute qu'elles s'appelle _Ajouter l'équipe du créateur comme propriétaire_. Via l'API, la liste est `creatorTeams`.
 
 La personne qui déclare un incident ou crée une alerte en devient propriétaire quoi que disent les règles, et les formulaires de création listent dans leur récapitulatif chaque règle de propriétaire qui s'exécutera, et qui elle ajoutera : voir [Qui en sera propriétaire](/docs/incidents/declaring-incidents#qui-en-sera-propriétaire).
 

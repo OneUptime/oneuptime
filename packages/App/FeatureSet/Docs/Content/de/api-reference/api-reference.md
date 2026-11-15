@@ -158,7 +158,7 @@ Nichts wird gelöscht oder ausgeschaltet. Die Schlüssel und Verbindungen bleibe
 
 Unterhalb von **Growth** listet **Projekteinstellungen** > **Erweitert** > **API-Schlüssel** die Schlüssel auf, die das Projekt noch hat, und sagt, dass sie angehalten wurden, sodass jeder von ihnen in jedem Tarif gelöscht (widerrufen) werden kann. Schlüssel anzulegen oder zu ändern braucht **Growth**. **Projekteinstellungen** > **Abrechnung und Rechnungen** > **Abrechnung** nennt, wie viele API-Schlüssel ein niedrigerer Tarif anhält und wie viele SCIM-Verbindungen er einschränkt, für jeden Tarif, den Sie wählen können, und was der Tarif des Projekts angehalten hat; die Eigentümer des Projekts erhalten eine E-Mail, wenn eine Tarifänderung sie anhält. Die Eigentümer von Projekten, die bereits unter diesen Tarifen lagen, als dies begann, erhalten eine einzige E-Mail, die sagt, was angehalten wurde und wie man es wieder einschaltet.
 
-Betroffen sind nur die API-Schlüssel und SCIM-Verbindungen eines Projekts. Personen sind nicht betroffen: Die Anmeldung im Dashboard und MCP-Clients, die per Anmeldung verbunden sind, funktionieren wie zuvor. Telemetrie-Ingestion-Schlüssel, Probe-Schlüssel und Agent-Schlüssel sind keine API-Schlüssel und funktionieren weiter. Selbst gehostete Installationen haben keine Tarife, für sie ändert sich also nichts.
+Betroffen sind nur die API-Schlüssel und SCIM-Verbindungen eines Projekts. Personen sind nicht betroffen: Die Anmeldung im Dashboard und MCP-Clients, die per Anmeldung verbunden sind, funktionieren wie zuvor. Telemetrie-Ingestion-Schlüssel, Sondenschlüssel und Agent-Schlüssel sind keine API-Schlüssel und funktionieren weiter. Selbst gehostete Installationen haben keine Tarife, für sie ändert sich also nichts.
 
 ## Datensätze benennen und schreiben
 
@@ -168,7 +168,7 @@ Anfragen, die eine Ressource lesen, ändern oder löschen, nennen sie über ihre
 
 ### Datensätze, die eine Anfrage nennt
 
-Viele Ressourcen nennen andere Datensätze: ein Monitor seine Labels und Probes, ein Abonnent einer Statusseite seine Statusseite, ein Netzwerkgerät seinen Standort, das Mitglied eines Vorfalls den Vorfall und die Rolle. Jede Regel unten gilt für die API, Terraform und Workflows gleichermaßen:
+Viele Ressourcen nennen andere Datensätze: ein Monitor seine Labels und Sonden, ein Abonnent einer Statusseite seine Statusseite, ein Netzwerkgerät seinen Standort, das Mitglied eines Vorfalls den Vorfall und die Rolle. Jede Regel unten gilt für die API, Terraform und Workflows gleichermaßen:
 
 | Wenn eine Anfrage | muss sie | Sonst |
 | --- | --- | --- |
@@ -188,7 +188,7 @@ Jede ID, die Sie für einen Datensatz senden, den eine Ressource nennt, muss ein
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
 ```
 
-Personen werden über ihre Mitgliedschaft geprüft: Wer kein Mitglied des Projekts ist, wird auf dieselbe Weise abgelehnt. Eine globale Probe, die jedes Projekt nutzen kann, zählt als die Ihres Projekts. Eine Änderung an einer Ressource prüft nur die IDs, die die Änderung hinzufügt, sodass eine Ressource, die etwas nennt, das inzwischen verschwunden ist, weiterhin gespeichert werden kann.
+Personen werden über ihre Mitgliedschaft geprüft: Wer kein Mitglied des Projekts ist, wird auf dieselbe Weise abgelehnt. Eine globale Sonde, die jedes Projekt nutzen kann, zählt als die Ihres Projekts. Eine Änderung an einer Ressource prüft nur die IDs, die die Änderung hinzufügt, sodass eine Ressource, die etwas nennt, das inzwischen verschwunden ist, weiterhin gespeichert werden kann.
 
 #### Datensätze, die über einen anderen gelesen werden
 
@@ -208,7 +208,7 @@ Die Eigentümer einer Ressource - die Benutzer- und Team-Eigentümer-Datensätze
 
 Die Datensätze, die ein Anlegen oder eine Änderung auflistet - die Monitore und Bereitschaftsrichtlinien eines Vorfalls, die Dienste einer Warnung, die Statusseiten eines Wartungsereignisses, die Runbooks einer Regel -, halten sich an Ihre Berechtigung, diese Art Datensatz zu lesen, wenn Sie eine haben, und in jedem Fall an eine Sperre mit Labels beim Lesen: Einer außerhalb davon wird mit demselben `400` abgelehnt. Eine Änderung prüft nur die Datensätze, die sie einer Liste hinzufügt, sodass die bleiben, die die Liste bereits enthält.
 
-Der eine Datensatz, den ein Anlegen oder eine Änderung in einem eigenen Feld nennt - der Monitor einer Warnung, der Monitor, den eine Statusseiten-Ressource zeigt, der Dienst eines Kostenbudgets, der Vorfall, mit dem ein Runbook-Lauf verknüpft ist -, folgt derselben Regel, unter jedem seiner beiden Namen: Einer außerhalb Ihrer Berechtigung, diese Art Datensatz zu lesen, oder einer mit einem Label, das eine Sperre beim Lesen wegnimmt, wird mit demselben `400` abgelehnt. Eine Änderung prüft ihn nur, wenn sie einen anderen Datensatz nennt als den, den das Feld bereits enthält. Die globalen Probes und KI-Agenten von OneUptime, die jedes Projekt nutzen kann, bleiben für jedes Projekt offen. Die Datensätze, die eine Vorlage für Sie ausfüllt, werden auf dieselbe Weise geprüft, sobald sie ausgefüllt sind, bevor irgendetwas gespeichert wird: Die Monitore, Statusseiten und Bereitschaftsrichtlinien, die eine Vorfallvorlage einem aus ihr gemeldeten Vorfall hinzufügt, müssen solche sein, die Sie lesen dürfen, als hätten Sie sie ausgewählt.
+Der eine Datensatz, den ein Anlegen oder eine Änderung in einem eigenen Feld nennt - der Monitor einer Warnung, der Monitor, den eine Statusseiten-Ressource zeigt, der Dienst eines Kostenbudgets, der Vorfall, mit dem ein Runbook-Lauf verknüpft ist -, folgt derselben Regel, unter jedem seiner beiden Namen: Einer außerhalb Ihrer Berechtigung, diese Art Datensatz zu lesen, oder einer mit einem Label, das eine Sperre beim Lesen wegnimmt, wird mit demselben `400` abgelehnt. Eine Änderung prüft ihn nur, wenn sie einen anderen Datensatz nennt als den, den das Feld bereits enthält. Die globalen Sonden und KI-Agenten von OneUptime, die jedes Projekt nutzen kann, bleiben für jedes Projekt offen. Die Datensätze, die eine Vorlage für Sie ausfüllt, werden auf dieselbe Weise geprüft, sobald sie ausgefüllt sind, bevor irgendetwas gespeichert wird: Die Monitore, Statusseiten und Bereitschaftsrichtlinien, die eine Vorfallvorlage einem aus ihr gemeldeten Vorfall hinzufügt, müssen solche sein, die Sie lesen dürfen, als hätten Sie sie ausgewählt.
 
 #### Einstellungen, die Zugangsdaten enthalten
 

@@ -42,7 +42,7 @@ Under **Hvad skal vi tjekke?** skriver du adressen i **Adresse på website eller
 
 Under **Hvem skal have besked?** afhænger det af projektet, hvad du ser:
 
-- Har projektet endnu ingen vagtpolitik eller vagtregel, er du allerede med i **Hvem der tilkaldes**. Klik på **Tilføj teammedlemmer** for at tilføje personer, der allerede er med i projektet, og klik derefter på **Gem og fortsæt**. Dermed oprettes `Default on-call policy`, som tilkalder dem ved hver ny hændelse og advarsel i projektet.
+- Har projektet endnu ingen vagtpolitik eller vagtregel, er du allerede med i **Hvem der tilkaldes**. Klik på **Tilføj teammedlemmer** for at tilføje personer, der allerede er med i projektet, og klik derefter på **Gem og fortsæt**. Dermed oprettes **Standardvagtpolitik**, som tilkalder dem ved hver ny hændelse og advarsel i projektet.
 - Har projektet en vagtpolitik eller vagtregel, afgør projektets egne regler, hvem der tilkaldes: klik på **Fortsæt**.
 - Som medlem må du ikke sætte tilkaldelse op, så trinnet fortæller, at du får e-mails som monitorens ejer: klik på **Fortsæt**.
 

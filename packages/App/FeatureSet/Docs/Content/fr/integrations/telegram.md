@@ -1,10 +1,10 @@
 # Telegram
 
-Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://telegram.org) quand une alerte se déclenche ou qu'un incident s'ouvre. L'étape de workflow **Send Message to Telegram** de OneUptime l'envoie au nom d'un bot que vous créez, et un modèle prêt à l'emploi construit le workflow pour les alertes. Cette intégration est **sortante** : le bot envoie des messages et ne lit pas ce qui se dit dans la discussion.
+Envoyez un message à une discussion, un groupe ou un canal [Telegram](https://telegram.org) quand une alerte se déclenche ou qu'un incident s'ouvre. L'étape de flux de travail **Send Message to Telegram** de OneUptime l'envoie au nom d'un bot que vous créez, et un modèle prêt à l'emploi construit le flux de travail pour les alertes. Cette intégration est **sortante** : le bot envoie des messages et ne lit pas ce qui se dit dans la discussion.
 
 :::cards
-- [Fonctionnement](#fonctionnement): Ce que fait le workflow quand une alerte se déclenche.
-- [Mise en place](#mettre-en-place-lintégration): Un bot, sa discussion, puis le workflow : à partir du modèle ou de zéro.
+- [Fonctionnement](#fonctionnement): Ce que fait le flux de travail quand une alerte se déclenche.
+- [Mise en place](#mettre-en-place-lintégration): Un bot, sa discussion, puis le flux de travail : à partir du modèle ou de zéro.
 - [Conseils](#conseils): Texte brut, longs messages et incidents.
 - [Dépannage](#dépannage): Ce que signifient les erreurs de Telegram, et quoi changer.
 :::
@@ -24,7 +24,7 @@ L'étape envoie le **Texte du message** à la discussion, au nom de votre bot, v
 ## Avant de commencer
 
 - Un compte Telegram, pour créer le bot et l'ajouter à la discussion.
-- Dans OneUptime, le droit de créer des workflows et des variables. Sur OneUptime Cloud, les workflows demandent l'offre **Growth** ou une offre supérieure.
+- Dans OneUptime, le droit de créer des flux de travail et des variables. Sur OneUptime Cloud, les flux de travail demandent l'offre **Growth** ou une offre supérieure.
 
 ## Mettre en place l'intégration
 
@@ -42,9 +42,9 @@ Dans Telegram, envoyez `/newbot` à [@BotFather](https://t.me/BotFather) et rép
 
 Un canal public peut être désigné par son `@username` au lieu d'un ID.
 
-### Construire le workflow
+### Construire le flux de travail
 
-Partez du modèle, qui construit tout le workflow pour les alertes, ou de zéro.
+Partez du modèle, qui construit tout le flux de travail pour les alertes, ou de zéro.
 
 :::tabs
 @tab À partir du modèle
@@ -53,10 +53,10 @@ Partez du modèle, qui construit tout le workflow pour les alertes, ou de zéro.
 3. Gardez le nom **Notify Telegram on new alert** ou changez-le, et cliquez sur **Suivant**.
 4. Collez le jeton dans **Telegram Bot Token** et l'ID dans **Telegram Chat ID**, et cliquez sur **Créer un flux de travail**.
 
-Le workflow s'ouvre dans le **Constructeur** avec deux étapes : **On Create Alert**, et **Send Message to Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du workflow, et l'ID comme `telegramChatId`.
+Le flux de travail s'ouvre dans le **Constructeur** avec deux étapes : **On Create Alert**, et **Send Message to Telegram**, qui envoie le numéro, le titre, la gravité et l'état de l'alerte. Le jeton est enregistré comme variable secrète `telegramBotToken` du flux de travail, et l'ID comme `telegramChatId`.
 @tab De zéro
 1. Enregistrez le jeton comme variable globale secrète : allez dans **Flux de travail → Variables globales**, cliquez sur **Créer : Variable de flux de travail**, nommez-la `TELEGRAM_BOT_TOKEN`, et cliquez sur **Suivant**. Collez le jeton dans **Contenu**, activez **Secret**, et cliquez sur **Créer : Variable de flux de travail**.
-2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le workflow, et cliquez sur **Créer un flux de travail**.
+2. Allez dans **Flux de travail**, cliquez sur **Créer un flux de travail**, choisissez **Partir de zéro**, nommez le flux de travail, et cliquez sur **Créer un flux de travail**.
 3. Dans le **Constructeur**, cliquez sur **Choisissez ce qui démarre ce flux de travail** et choisissez **On Create Alert** sous **Populaires**. Cliquez sur le déclencheur : ses **Fields to pass on** commencent par **Titre**, alors cliquez sur **Ajouter un champ** et choisissez les autres champs que votre message affiche, par exemple **Numéro d'alerte avec préfixe**.
 4. Cliquez sur **Ajouter un composant**, cherchez `telegram`, et cliquez sur **Send Message to Telegram**. Reliez la sortie **Succès** du déclencheur à cette étape.
 5. Cliquez sur la nouvelle étape. Dans **Telegram Bot Token**, cliquez sur **{ }** et choisissez `TELEGRAM_BOT_TOKEN` sous **Variables globales**. Saisissez l'ID de la discussion dans **Chat ID**, écrivez le message dans **Texte du message**, et insérez les champs de l'alerte avec **{ }**.
@@ -80,7 +80,7 @@ Pour tester sans lever d'alerte, cliquez sur **Exécuter le flux de travail** et
 
 - **Texte brut.** L'étape envoie le texte tel qu'il est saisi, sans la mise en forme de Telegram : `*` et `_` s'affichent donc tels quels.
 - **Tenir compte de la limite de 4 096 caractères.** Telegram accepte les messages de 4 096 caractères au plus. Un message plus long est coupé, et se termine par "… (truncated — see OneUptime for the full text)", au lieu d'être refusé.
-- **Les incidents aussi.** Construisez le même workflow sur **On Create Incident**, ou sur **On Update Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **If / Else** avant l'étape.
+- **Les incidents aussi.** Construisez le même flux de travail sur **On Create Incident**, ou sur **On Update Incident** pour les changements d'état. Pour n'envoyer que certaines alertes, placez un bloc **If / Else** avant l'étape.
 - **La forme du jeton est vérifiée.** Un jeton qui n'a pas la forme `123456789:ABCdef…` arrête l'exécution avant tout envoi, et le jeton n'est jamais écrit dans le journal.
 
 ## Dépannage
@@ -106,8 +106,8 @@ Telegram limite la vitesse à laquelle un bot envoie, surtout vers un groupe. Un
 ## Étapes suivantes
 
 :::cards
-- [Composants de workflow](/docs/workflows/components#telegram): Chaque paramètre de l'étape, et ce que signifient ses sorties.
+- [Composants de flux de travail](/docs/workflows/components#telegram): Chaque paramètre de l'étape, et ce que signifient ses sorties.
 - [Discord](/docs/integrations/discord): La même idée, dans un canal Discord.
-- [Exécutions de workflow](/docs/workflows/runs-and-logs): Lire ce qu'a fait chaque exécution du workflow.
+- [Exécutions de flux de travail](/docs/workflows/runs-and-logs): Lire ce qu'a fait chaque exécution du flux de travail.
 - [Présentation des intégrations](/docs/integrations/index): Le schéma sortant, et les autres outils que vous pouvez connecter.
 :::

@@ -1,10 +1,10 @@
 # Telegram
 
-Send en besked til en [Telegram](https://telegram.org)-chat, -gruppe eller -kanal, når en advarsel udløses eller en hændelse åbnes. OneUptimes workflowtrin **Send Message to Telegram** sender den som en bot, du selv opretter, og en færdig skabelon bygger workflowet til advarsler. Denne integration er **udgående**: botten sender beskeder og læser ikke, hvad der bliver sagt i chatten.
+Send en besked til en [Telegram](https://telegram.org)-chat, -gruppe eller -kanal, når en advarsel udløses eller en hændelse åbnes. OneUptimes arbejdsgangstrin **Send Message to Telegram** sender den som en bot, du selv opretter, og en færdig skabelon bygger arbejdsgangen til advarsler. Denne integration er **udgående**: botten sender beskeder og læser ikke, hvad der bliver sagt i chatten.
 
 :::cards
-- [Sådan fungerer det](#sådan-fungerer-det): Hvad workflowet gør, når en advarsel udløses.
-- [Opsætning](#opsæt-integrationen): En bot, dens chat og så workflowet: fra skabelonen eller fra bunden.
+- [Sådan fungerer det](#sådan-fungerer-det): Hvad arbejdsgangen gør, når en advarsel udløses.
+- [Opsætning](#opsæt-integrationen): En bot, dens chat og så arbejdsgangen: fra skabelonen eller fra bunden.
 - [Tips](#tips): Ren tekst, lange beskeder og hændelser.
 - [Fejlfinding](#fejlfinding): Hvad Telegrams fejl betyder, og hvad du skal ændre.
 :::
@@ -24,7 +24,7 @@ Trinnet sender **Message Text** til chatten som din bot via Telegrams Bot API. D
 ## Før du går i gang
 
 - En Telegram-konto til at oprette botten og føje den til chatten.
-- I OneUptime retten til at oprette workflows og variabler. På OneUptime Cloud kræver workflows planen **Growth** eller højere.
+- I OneUptime retten til at oprette arbejdsgange og variabler. På OneUptime Cloud kræver arbejdsgange planen **Growth** eller højere.
 
 ## Opsæt integrationen
 
@@ -42,9 +42,9 @@ Send `/newbot` til [@BotFather](https://t.me/BotFather) i Telegram, og besvar de
 
 En offentlig kanal kan angives med sit `@username` i stedet for et ID.
 
-### Byg workflowet
+### Byg arbejdsgangen
 
-Start fra skabelonen, der bygger hele workflowet til advarsler, eller fra bunden.
+Start fra skabelonen, der bygger hele arbejdsgangen til advarsler, eller fra bunden.
 
 :::tabs
 @tab Fra skabelonen
@@ -53,10 +53,10 @@ Start fra skabelonen, der bygger hele workflowet til advarsler, eller fra bunden
 3. Behold navnet **Notify Telegram on new alert**, eller ændr det, og klik på **Næste**.
 4. Indsæt tokenet i **Telegram Bot Token** og ID'et i **Telegram Chat ID**, og klik på **Opret arbejdsgang**.
 
-Workflowet åbner i **Bygger** med to trin: **On Create Alert** og **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som workflowets hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
+Arbejdsgangen åbner i **Bygger** med to trin: **On Create Alert** og **Send Message to Telegram**, der sender advarslens nummer, titel, alvorlighed og tilstand. Tokenet gemmes som arbejdsgangens hemmelige variabel `telegramBotToken` og ID'et som `telegramChatId`.
 @tab Fra bunden
 1. Gem tokenet som en hemmelig global variabel: gå til **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, giv den navnet `TELEGRAM_BOT_TOKEN`, og klik på **Næste**. Indsæt tokenet i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
-2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv workflowet et navn, og klik på **Opret arbejdsgang**.
+2. Gå til **Arbejdsgange**, klik på **Opret arbejdsgang**, vælg **Start fra bunden**, giv arbejdsgangen et navn, og klik på **Opret arbejdsgang**.
 3. Klik i **Bygger** på **Vælg, hvad der starter denne arbejdsgang**, og vælg **On Create Alert** under **Populære**. Klik på triggeren: dens **Fields to pass on** starter med **Titel**, så klik på **Tilføj felt**, og vælg de andre felter, din besked viser, for eksempel **Alert Number With Prefix**.
 4. Klik på **Tilføj komponent**, søg efter `telegram`, og klik på **Send Message to Telegram**. Forbind triggerens udgang **Succes** til den.
 5. Klik på det nye trin. Klik i **Telegram Bot Token** på **{ }**, og vælg `TELEGRAM_BOT_TOKEN` under **Global variables**. Angiv chattens ID i **Chat ID**, skriv beskeden i **Message Text**, og indsæt advarslens felter med **{ }**.
@@ -80,7 +80,7 @@ For at teste uden at udløse en advarsel klikker du på **Kør arbejdsgang** og 
 
 - **Ren tekst.** Trinnet sender teksten, som den er skrevet, uden Telegrams formatering, så `*` og `_` vises, som de er.
 - **Hold øje med grænsen på 4.096 tegn.** Telegram tager imod beskeder på op til 4.096 tegn. En længere bliver afkortet og slutter med "… (truncated — see OneUptime for the full text)" i stedet for at blive afvist.
-- **Også hændelser.** Byg det samme workflow på **On Create Incident**, eller på **On Update Incident** til tilstandsændringer. For kun at sende nogle advarsler sætter du en blok **If / Else** før trinnet.
+- **Også hændelser.** Byg den samme arbejdsgang på **On Create Incident**, eller på **On Update Incident** til tilstandsændringer. For kun at sende nogle advarsler sætter du en blok **If / Else** før trinnet.
 - **Tokenets form kontrolleres.** Et token, der ikke har formen `123456789:ABCdef…`, stopper kørslen, før noget sendes, og tokenet skrives aldrig til loggen.
 
 ## Fejlfinding
@@ -106,8 +106,8 @@ Telegram begrænser, hvor hurtigt én bot sender, især til en gruppe. En byge a
 ## Næste trin
 
 :::cards
-- [Workflow-komponenter](/docs/workflows/components#telegram): Hver indstilling i trinnet, og hvad dets udgange betyder.
+- [Arbejdsgangskomponenter](/docs/workflows/components#telegram): Hver indstilling i trinnet, og hvad dets udgange betyder.
 - [Discord](/docs/integrations/discord): Den samme idé, i en Discord-kanal.
-- [Workflow-kørsler](/docs/workflows/runs-and-logs): Læs, hvad hver kørsel af workflowet gjorde.
+- [Arbejdsgangskørsler](/docs/workflows/runs-and-logs): Læs, hvad hver kørsel af arbejdsgangen gjorde.
 - [Oversigt over integrationer](/docs/integrations/index): Det udgående mønster og de andre værktøjer, du kan forbinde.
 :::
