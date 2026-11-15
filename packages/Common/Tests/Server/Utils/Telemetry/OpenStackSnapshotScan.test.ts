@@ -21,6 +21,8 @@ import {
   OpenStackServiceType,
 } from "../../../../Types/OpenStack/OpenStackResourceKind";
 import { readOpenStackRatedByPeriod } from "../../../../Types/OpenStack/OpenStackSpendSnapshot";
+import { readOwnValue } from "../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 
 /*
  * The OpenStack snapshot scan, fed with OTLP datapoints in the exact JSON shape
@@ -2345,4 +2347,110 @@ describe("a scrape of a service this product knows and a cloud may not run", () 
       ).name,
     ).toBe("orchestration");
   });
+});
+
+/*
+ * Issue #8025: a Placement resource class and a subnet are named by the
+ * exporter's labels (resourcetype, subnet_name or cidr), and each was read
+ * from its entry's map with a plain read. For one named __proto__ that read
+ * found the prototype every object shares, and the fold wrote the reading
+ * onto it - total, reserved, ratio and usage, or total, used, cidr and
+ * ipVersion - into every object of the ingest process. A class or subnet of
+ * each such name is a reading of its own now, and nothing else changes.
+ */
+describe("a resource class or a subnet named like what every object inherits", () => {
+  const PROTOTYPE_KEYS: Array<string> = Object.getOwnPropertyNames(
+    Object.prototype,
+  ).sort();
+  const OBJECT_FUNCTION_KEYS: Array<string> =
+    Object.getOwnPropertyNames(Object).sort();
+
+  afterEach(() => {
+    expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+      PROTOTYPE_KEYS,
+    );
+    expect(Object.getOwnPropertyNames(Object).sort()).toEqual(
+      OBJECT_FUNCTION_KEYS,
+    );
+  });
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a Placement resource class named %s is the hypervisor's own reading",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+
+      for (const [metric, value] of [
+        ["total", 8],
+        ["reserved", 1],
+        ["allocation_ratio", 2],
+        ["usage", 3],
+      ] as Array<[string, number]>) {
+        fold(buffer, `openstack_placement_resource_${metric}`, {
+          value,
+          labels: { hostname: "compute-01", resourcetype: name },
+        });
+      }
+
+      expect(({} as Record<string, unknown>)["total"]).toBeUndefined();
+      expect(({} as Record<string, unknown>)["usage"]).toBeUndefined();
+
+      const entry: OpenStackResourceBufferEntry | undefined = buffer.get(
+        `${OpenStackResourceKind.Hypervisor}/RegionOne/compute-01`,
+      );
+
+      expect(entry).toBeDefined();
+      expect(Object.keys(entry!.placement)).toEqual([name]);
+      expect(readOwnValue(entry!.placement, name)).toEqual({
+        total: 8,
+        reserved: 1,
+        ratio: 2,
+        usage: 3,
+      });
+      expect(Object.getPrototypeOf(entry!.placement)).toBe(Object.prototype);
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a subnet named %s is the network's own, and counts towards its addresses",
+    (name: string) => {
+      const buffer: Buffer = new Map();
+      const labels: LabelMap = {
+        network_id: "net-1",
+        network_name: "public",
+        subnet_name: name,
+        cidr: "10.0.0.0/24",
+        ip_version: "4",
+        project_id: "admin",
+      };
+
+      fold(buffer, "openstack_neutron_network_ip_availabilities_total", {
+        value: 250,
+        labels,
+      });
+      fold(buffer, "openstack_neutron_network_ip_availabilities_used", {
+        value: 10,
+        labels,
+      });
+
+      expect(({} as Record<string, unknown>)["cidr"]).toBeUndefined();
+      expect(({} as Record<string, unknown>)["used"]).toBeUndefined();
+
+      const row: OpenStackResourceBufferEntry = rowOf(
+        buffer,
+        OpenStackResourceKind.Network,
+        "net-1",
+      );
+      const subnets: JSONObject = row.facts["ipsBySubnet"] as JSONObject;
+
+      expect(Object.keys(subnets)).toEqual([name]);
+      expect(readOwnValue(subnets, name)).toEqual({
+        total: 250,
+        used: 10,
+        cidr: "10.0.0.0/24",
+        ipVersion: "4",
+      });
+      expect(row.facts["ipsTotal"]).toBe(250);
+      expect(row.facts["ipsUsed"]).toBe(10);
+    },
+  );
 });
