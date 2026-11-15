@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} 님이 경고 에피소드를 인지했습니다.",
   "{{name}} acknowledged the alert.": "{{name}} 님이 경고를 인지했습니다.",
   "{{name}} acknowledged the incident episode.": "{{name}} 님이 인시던트 에피소드를 인지했습니다.",
-  "{{name}} acknowledged the incident.": "{{name}} 님이 인시던트를 인지했습니다."
+  "{{name}} acknowledged the incident.": "{{name}} 님이 인시던트를 인지했습니다.",
+  "Deleted (invoice status)": "삭제됨",
+  "Undefined (invoice status)": "정의되지 않음"
 }

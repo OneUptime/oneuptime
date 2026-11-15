@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} اپیزود هشدار را تأیید کرد.",
   "{{name}} acknowledged the alert.": "{{name}} هشدار را تأیید کرد.",
   "{{name}} acknowledged the incident episode.": "{{name}} اپیزود حادثه را تأیید کرد.",
-  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد."
+  "{{name}} acknowledged the incident.": "{{name}} حادثه را تأیید کرد.",
+  "Deleted (invoice status)": "حذف‌شده",
+  "Undefined (invoice status)": "تعریف‌نشده"
 }

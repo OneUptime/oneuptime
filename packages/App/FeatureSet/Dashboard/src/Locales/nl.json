@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} heeft de waarschuwingsepisode bevestigd.",
   "{{name}} acknowledged the alert.": "{{name}} heeft de waarschuwing bevestigd.",
   "{{name}} acknowledged the incident episode.": "{{name}} heeft de incidentepisode bevestigd.",
-  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd."
+  "{{name}} acknowledged the incident.": "{{name}} heeft het incident bevestigd.",
+  "Deleted (invoice status)": "Verwijderd",
+  "Undefined (invoice status)": "Ongedefinieerd"
 }

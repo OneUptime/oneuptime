@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "Эпизод оповещений подтверждён пользователем {{name}}.",
   "{{name}} acknowledged the alert.": "Оповещение подтверждено пользователем {{name}}.",
   "{{name}} acknowledged the incident episode.": "Эпизод инцидентов подтверждён пользователем {{name}}.",
-  "{{name}} acknowledged the incident.": "Инцидент подтверждён пользователем {{name}}."
+  "{{name}} acknowledged the incident.": "Инцидент подтверждён пользователем {{name}}.",
+  "Deleted (invoice status)": "Удалено",
+  "Undefined (invoice status)": "Не определено"
 }

@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "أقرّ {{name}} بحلقة التنبيهات.",
   "{{name}} acknowledged the alert.": "أقرّ {{name}} بالتنبيه.",
   "{{name}} acknowledged the incident episode.": "أقرّ {{name}} بحلقة الحوادث.",
-  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة."
+  "{{name}} acknowledged the incident.": "أقرّ {{name}} بالحادثة.",
+  "Deleted (invoice status)": "محذوفة",
+  "Undefined (invoice status)": "غير معرّفة"
 }

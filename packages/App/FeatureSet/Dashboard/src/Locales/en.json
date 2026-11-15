@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} acknowledged the alert episode.",
   "{{name}} acknowledged the alert.": "{{name}} acknowledged the alert.",
   "{{name}} acknowledged the incident episode.": "{{name}} acknowledged the incident episode.",
-  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident."
+  "{{name}} acknowledged the incident.": "{{name}} acknowledged the incident.",
+  "Deleted (invoice status)": "Deleted (invoice status)",
+  "Undefined (invoice status)": "Undefined (invoice status)"
 }

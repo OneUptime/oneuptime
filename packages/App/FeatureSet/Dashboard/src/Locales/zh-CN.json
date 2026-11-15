@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} 已确认警报片段。",
   "{{name}} acknowledged the alert.": "{{name}} 已确认警报。",
   "{{name}} acknowledged the incident episode.": "{{name}} 已确认事件片段。",
-  "{{name}} acknowledged the incident.": "{{name}} 已确认事件。"
+  "{{name}} acknowledged the incident.": "{{name}} 已确认事件。",
+  "Deleted (invoice status)": "已删除",
+  "Undefined (invoice status)": "未定义"
 }

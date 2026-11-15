@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} がアラートエピソードを確認しました。",
   "{{name}} acknowledged the alert.": "{{name}} がアラートを確認しました。",
   "{{name}} acknowledged the incident episode.": "{{name}} がインシデントエピソードを確認しました。",
-  "{{name}} acknowledged the incident.": "{{name}} がインシデントを確認しました。"
+  "{{name}} acknowledged the incident.": "{{name}} がインシデントを確認しました。",
+  "Deleted (invoice status)": "削除済み",
+  "Undefined (invoice status)": "未定義"
 }

@@ -54322,5 +54322,7 @@
   "{{name}} acknowledged the alert episode.": "{{name}} ने अलर्ट एपिसोड को स्वीकार किया।",
   "{{name}} acknowledged the alert.": "{{name}} ने अलर्ट को स्वीकार किया।",
   "{{name}} acknowledged the incident episode.": "{{name}} ने घटना एपिसोड को स्वीकार किया।",
-  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।"
+  "{{name}} acknowledged the incident.": "{{name}} ने घटना को स्वीकार किया।",
+  "Deleted (invoice status)": "हटाया गया",
+  "Undefined (invoice status)": "अपरिभाषित"
 }
