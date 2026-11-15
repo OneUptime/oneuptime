@@ -155,6 +155,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetSetupCopy";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import DashboardBaseComponent from "../../../Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardDataSourceTableComponent from "../../../Types/Dashboard/DashboardComponents/DashboardDataSourceTableComponent";
+import DashboardLogChartComponent from "../../../Types/Dashboard/DashboardComponents/DashboardLogChartComponent";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { DataSourceTableColumnType } from "../../../Types/DataSource/DataSourceTableResult";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -532,7 +534,7 @@ describe("the Log Chart's empty state still takes the double-click that undoes a
             // A drag is not made here.
           },
         })}
-        component={WIDGETS[0]!.component()}
+        component={WIDGETS[0]!.component() as DashboardLogChartComponent}
       />,
     );
 
@@ -582,7 +584,9 @@ describe("a Data Source Table whose query returns columns and no rows", () => {
       render(
         <DashboardDataSourceTableComponentElement
           {...baseProps()}
-          component={WIDGETS[4]!.component()}
+          component={
+            WIDGETS[4]!.component() as DashboardDataSourceTableComponent
+          }
         />,
       );
 

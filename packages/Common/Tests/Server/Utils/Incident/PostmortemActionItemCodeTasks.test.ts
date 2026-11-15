@@ -80,7 +80,7 @@ let started: Array<JSONObject>;
 let columnWrites: Array<{
   id: string;
   data: JSONObject;
-  expectedData?: JSONObject;
+  expectedData?: JSONObject | undefined;
 }>;
 let feedItems: Array<JSONObject>;
 let contextInputs: Array<CodeTaskContextInput>;

@@ -257,8 +257,10 @@ describe("a part the array reports a status for", () => {
     ]) {
       expect(getKnownStorageArrayStatusKey(reported)).toBeUndefined();
 
-      const word: { label: string; values?: Record<string, string> } =
-        getStorageArrayStatusWord(reported);
+      const word: {
+        label: string;
+        values?: Record<string, string> | undefined;
+      } = getStorageArrayStatusWord(reported);
 
       expect(word.label).toBe("{{status}}");
       expect(typeof word.values?.["status"]).toBe("string");
