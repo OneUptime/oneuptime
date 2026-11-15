@@ -156,13 +156,15 @@ export async function processIncomingRequestFromQueue(
      * the ingest endpoint regardless of the monitor being disabled in
      * OneUptime, so these requests arrive continuously. Without this
      * short-circuit, every one would still invoke monitorResource() — a
-     * monitor fetch, a per-monitor Redis lock, and a thrown MonitorDisabled
-     * — only for the result to be discarded. This mirrors monitorResource()'s
-     * own disabled handling (it throws before persisting anything), so
-     * skipping here is behaviour-preserving while avoiding the wasted
-     * queue/DB/lock work. A paused monitor is never kept, so it is looked
-     * up - and skipped - every time; one paused within the minute it is kept
-     * ends in monitorResource's MonitorDisabled, which completes the job.
+     * monitor fetch, a per-monitor Redis lock, and a thrown refusal - only
+     * for the result to be discarded. This mirrors monitorResource()'s own
+     * handling of a monitor that is archived, disabled, or paused by a
+     * manually created incident or a maintenance event (it refuses the
+     * result before persisting anything), so skipping here is
+     * behaviour-preserving while avoiding the wasted queue/DB/lock work. A
+     * paused monitor is never kept, so it is looked up - and skipped - every
+     * time; one paused within the minute it is kept ends in monitorResource's
+     * refusal, which completes the job (isNonActionableIngestError).
      */
     if (MonitorPauseState.isPaused(monitor)) {
       logger.debug(
