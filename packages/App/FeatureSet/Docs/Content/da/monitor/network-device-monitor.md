@@ -1022,6 +1022,18 @@ En enhed, der ikke er set i 30 dage, fjernes fra listen og kortet, medmindre den
 
 Projektejere og projektadministratorer vælger standarden: skift til et layout, og vælg **Make default for everyone**. Derefter åbner hver visning af enhedskortet med det: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**. På standardlayoutet sender **Clear default** hvert kort tilbage til dets egen standard. Flyttede positioner gemmes for hvert layout i din browser, så kortet åbner med den opstilling, du lavede i det layout.
 
+### Find rundt i et stort netværk
+
+I layoutet **Parent and child** tegner en enhed med seks eller flere enheder, der ikke har noget under sig, dem som et kompakt gitter under sig i stedet for én lang række, forbundet med retvinklede linjer, der ikke krydser nogen enhed eller noget navn. Layoutet vælger den gitterform, der får hele kortet til at passe på skærmen i den største størrelse.
+
+En enhed med noget under sig har en knap `−` under sit navn: vælg den for at folde grenen sammen til enheden og antallet af enheder i den, f.eks. `+24`, og vælg antallet for at folde den ud igen. **Fold alle grene sammen** og **Fold alle grene ud** ved siden af zoomknapperne folder kortet sammen til et overblik og ud igen. Din browser husker sammenfoldede grene for hver lokation.
+
+For at se én gren for sig selv skal du klikke på dens enhed og vælge **Vis kun denne gren**. Kortet viser så enheden og alt under den, med stien fra toppen af netværket øverst: vælg et trin for at udvide visningen til den enheds gren, eller **Vis hele kortet** for at se alt igen.
+
+Søgningen flytter kortet til de enheder, den finder. Pilene ved siden af antallet af match, eller Enter i søgefeltet, går til hvert match efter tur og markerer det med en ring. I layoutet **Parent and child** forbliver stien fra toppen af netværket ned til hvert match fremhævet, og et match i en sammenfoldet gren tælles også med, med en knap, der åbner de grene, det ligger i.
+
+Når du har trukket enheder, skifter en kontakt øverst på kortet mellem **Tilpasset layout · 2 flyttet** og **Oprindeligt layout**: det oprindelige layout er kortet, som OneUptime placerer det, og dit tilpassede layout bevares, indtil du skifter tilbage. **Reset layout** kasserer det.
+
 ### Eksportér kortet som PDF
 
 **Eksportér PDF**, øverst på kortet, downloader det kort, du kigger på, som en PDF, du kan vedhæfte en vurdering, en ændringsanmodning eller en hændelsesgennemgang, eller læse offline. Hver visning af enhedskortet har den: **Enhedstopologi**, en lokation på **Kort** og fanen **Netværk** under **Topologi**.

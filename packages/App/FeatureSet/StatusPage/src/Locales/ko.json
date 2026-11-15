@@ -68,7 +68,7 @@
     "daysAgo": "{{days}}일 전",
     "today": "오늘",
     "notAvailable": "사용할 수 없음",
-    "underMaintenance": "유지보수 중"
+    "underMaintenance": "유지 관리 중"
   },
   "uptimeHistory": {
     "graphLabel": "최근 {{total}}일간의 가동 기록",
@@ -84,7 +84,7 @@
     "declared": "선언됨",
     "oneIncidentOnThisDay": "이 날짜에 1건의 인시던트가 보고되었습니다",
     "incidentsOnThisDay": "이 날짜에 {{total}}건의 인시던트가 보고되었습니다",
-    "scheduledMaintenance": "예정된 유지보수",
+    "scheduledMaintenance": "예정된 유지 관리",
     "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
     "oneMaintenanceEvent": "유지 관리 이벤트 1건",
     "maintenanceEvents": "유지 관리 이벤트 {{total}}건",
@@ -135,7 +135,7 @@
   "scheduledEvents": {
     "title": "예정된 유지 관리",
     "singular": "유지 관리 이벤트",
-    "scheduledMaintenance": "예정된 유지보수",
+    "scheduledMaintenance": "예정된 유지 관리",
     "ongoing": "진행 중인 유지 관리",
     "upcoming": "향후 유지 관리",
     "completed": "완료된 유지 관리",
@@ -146,10 +146,10 @@
     "notFound": "이 상태 페이지에서 유지 관리 이벤트를 찾을 수 없습니다.",
     "calendar": {
       "subscribe": "캘린더 구독",
-      "subscribeTitle": "예정된 유지보수 구독",
-      "subscribeDescription": "이 페이지의 예정된 유지보수를 캘린더 앱에서 받아 보세요. 자동으로 최신 상태가 유지됩니다.",
+      "subscribeTitle": "예정된 유지 관리 구독",
+      "subscribeDescription": "이 페이지의 예정된 유지 관리를 캘린더 앱에서 받아 보세요. 자동으로 최신 상태가 유지됩니다.",
       "eventTitle": "캘린더에 추가",
-      "eventDescription": "이 유지보수를 캘린더 앱에 추가합니다.",
+      "eventDescription": "이 유지 관리 이벤트를 캘린더 앱에 추가합니다.",
       "addToCalendar": "캘린더에 추가",
       "addHeading": "내 캘린더에 추가",
       "google": "Google 캘린더",

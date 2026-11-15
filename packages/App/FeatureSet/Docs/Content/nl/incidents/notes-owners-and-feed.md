@@ -242,7 +242,7 @@ Het eigenlijke bericht dat abonnees krijgen, wordt per statuspagina en per kanaa
 
 ## Goedkeuring van openbare notities
 
-Een project kan zijn openbare notities laten goedkeuren voordat klanten ze lezen, zodat iemand een update, bijvoorbeeld over een beveiligingslek, controleert voordat hij de deur uitgaat. Goedkeuring staat uit tot een projecteigenaar of -beheerder haar aanzet en kiest wie goedkeurt: in **Incidenten → Instellingen → Goedkeuring van openbare notities** voor incidenten en incidentepisodes, en in **Geplande onderhoud → Instellingen → Goedkeuring van openbare notities** voor onderhoudsgebeurtenissen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities).
+Een project kan zijn openbare notities laten goedkeuren voordat klanten ze lezen, zodat iemand een update, bijvoorbeeld over een beveiligingslek, controleert voordat hij de deur uitgaat. Goedkeuring staat uit tot een projecteigenaar of -beheerder haar aanzet en kiest wie goedkeurt: in **Incidenten → Instellingen → Goedkeuring van openbare notities** voor incidenten en incidentepisodes, en in **Gepland onderhoud → Instellingen → Goedkeuring van openbare notities** voor onderhoudsgebeurtenissen. Zie [Goedkeuring van openbare notities](/docs/incidents/settings#goedkeuring-van-openbare-notities).
 
 Zolang ze aanstaat, zegt de editor dat de notitie wordt gepubliceerd zodra ze is goedgekeurd en noemt hij wie haar goedkeurt, en wordt **Update plaatsen** **Ter goedkeuring versturen**. De notitie wordt opgeslagen met de badge **Wacht op goedkeuring** en toont eronder wie haar kan goedkeuren en, bij meerdere stappen, op welke ze wacht. Tot ze is goedgekeurd, geldt voor een notitie:
 

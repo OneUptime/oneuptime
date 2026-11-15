@@ -133,7 +133,7 @@ E-mailen skal være én almindelig adresse, som `ada@example.com` — ikke et na
 
 ## En ny formulars spørgsmål
 
-En ny formular starter med de spørgsmål, den næsten altid bør stille, så den virker i det øjeblik, den oprettes: **Titel**, påkrævet; **Beskrivelse**; for en vedligeholdelsesformular **Begynder den** og **Slutter den**; og **Dit navn** og **Din e-mail**, påkrævet. Deres ordlyd er på dit dashboards sprog. Ændr, skjul eller fjern dem, som du vil — undtagen en vedligeholdelsesbegivenheds start og slut, uden hvilke ingen begivenhed kan planlægges. Når dine egne spørgsmål siger det hele, så skjul **Beskrivelse** i stedet for at efterlade en boks, ingen burde skrive i: se [Skjulte spørgsmål](#skjulte-spørgsmål).
+En ny formular starter med de spørgsmål, den næsten altid bør stille, så den virker i det øjeblik, den oprettes: **Titel**, påkrævet; **Beskrivelse**; for en vedligeholdelsesformular **Begynder den** og **Slutter den**; og **Dit navn** og **Din e-mail**, påkrævet. Deres ordlyd er på dit dashboards sprog. Ændr, skjul eller fjern dem, som du vil — undtagen en vedligeholdelseshændelses start og slut, uden hvilke ingen begivenhed kan planlægges. Når dine egne spørgsmål siger det hele, så skjul **Beskrivelse** i stedet for at efterlade en boks, ingen burde skrive i: se [Skjulte spørgsmål](#skjulte-spørgsmål).
 
 ## Påkrævede spørgsmål
 
@@ -151,7 +151,7 @@ Skjul et spørgsmål, når svaret er dit teams at bestemme, ikke indsenderens:
 - **Et brugerdefineret felt, som dine arbejdsgange eller regler læser**, som en notifikationstype, sat af hver skabelon.
 - **Et af formularens egne spørgsmål**, hvis svar kun dit team har brug for i den private note.
 
-Et skjult spørgsmål beholder sin plads, sin etiket og sine indstillinger, så du kan vise det igen når som helst. Et felt, uden hvilket formularens mål ikke kan oprettes — en vedligeholdelsesbegivenheds **Begynder den** og **Slutter den** — kan ikke skjules. Et skjult spørgsmåls svar tjekkes og gemmes præcis, som et indtastet svar ville blive, og gemmes med indsendelsen.
+Et skjult spørgsmål beholder sin plads, sin etiket og sine indstillinger, så du kan vise det igen når som helst. Et felt, uden hvilket formularens mål ikke kan oprettes — en vedligeholdelseshændelses **Begynder den** og **Slutter den** — kan ikke skjules. Et skjult spørgsmåls svar tjekkes og gemmes præcis, som et indtastet svar ville blive, og gemmes med indsendelsen.
 
 ## Skabeloner
 
@@ -199,7 +199,7 @@ Forskellige tilfælde kræver forskellige spørgsmål: et nedbrud kræver den be
 | Berørte faciliteter | Påkrævet | Valgfrit |
 | Dato for planlagt vedligeholdelse | Skjult | Påkrævet |
 
-Hvert spørgsmål starter på **Formularens standard**, og det gør hvert spørgsmål, du senere føjer til formularen, også, i hver skabelon. En vedligeholdelsesbegivenheds **Begynder den** og **Slutter den** spørges altid om og er altid påkrævede: ingen skabelon kan ændre dem. En skabelon kan skjule alle andre spørgsmål og selv besvare dem: dens link er så en formular med én knap, **Indsend** — praktisk til et tilfælde som **Tjeneste gendannet**.
+Hvert spørgsmål starter på **Formularens standard**, og det gør hvert spørgsmål, du senere føjer til formularen, også, i hver skabelon. En vedligeholdelseshændelses **Begynder den** og **Slutter den** spørges altid om og er altid påkrævede: ingen skabelon kan ændre dem. En skabelon kan skjule alle andre spørgsmål og selv besvare dem: dens link er så en formular med én knap, **Indsend** — praktisk til et tilfælde som **Tjeneste gendannet**.
 
 Siden følger den skabelon, indsenderen vælger: at vælge en anden tegner formularen igen med den skabelons spørgsmål, og **Forhåndsvisning** gør det samme. Serveren holder hver indsendelse op mod de spørgsmål, den skabelon, den nævner, stiller, uanset hvad der sendte den: et spørgsmål, skabelonen kræver, skal besvares, og et, den skjuler, læses ikke fra anmodningen — skabelonens eget svar bruges. En indsendelse, der ikke nævner nogen skabelon, eller en skabelon, der siden er slettet, holdes op mod formularens egne indstillinger. Et spørgsmål, formularen skjuler, vises kun for den offentlige side, når en skabelon spørger om det.
 
@@ -231,7 +231,7 @@ Efter indsendelsen siger siden "Tak — dit svar er sendt." og giver nummeret p�
 | Svar | Grænse |
 | --- | --- |
 | En hændelses **Titel** | 500 tegn, uden at tælle mellemrum i hver ende. |
-| En vedligeholdelsesbegivenheds **Titel** | 100 tegn. |
+| En vedligeholdelseshændelses **Titel** | 100 tegn. |
 | **Beskrivelse** | 20.000 tegn. |
 | Ethvert andet tekstsvar | 10.000 tegn. |
 | Et flervalgssvar | 100 valg. |
@@ -245,7 +245,7 @@ En indsendelse, der overskrider en grænse, udelader et påkrævet svar eller gi
 ## Næste trin
 
 :::cards
-- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne Ved indsendelse bliver til en hændelse eller en vedligeholdelsesbegivenhed.
+- [Hvad en indsendelse opretter](/docs/forms/on-submit): Hvordan svarene og indstillingerne Ved indsendelse bliver til en hændelse eller en vedligeholdelseshændelse.
 - [Deling & sikkerhed](/docs/forms/sharing-and-security): Del linket, et link til hver skabelon, og hvad der beskytter dem.
 - [Hændelsesindstillinger og automatisering](/docs/incidents/settings): Brugerdefinerede felter og skabeloner for hændelser.
 :::

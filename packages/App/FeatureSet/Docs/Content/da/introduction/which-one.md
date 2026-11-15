@@ -32,7 +32,7 @@ Alle fire kan køre af sig selv. Vælg ud fra, hvad de handler på, og hvem der 
 | Værktøj | Hvad det gør | Brug det, når |
 | --- | --- | --- |
 | [Arbejdsgang](/docs/workflows/index) | Blokke på et lærred, der kører, når deres trigger udløses: en hændelse oprettes, en tidsplan er nået, et andet værktøj kalder en URL. | Du vil forbinde OneUptime med andre værktøjer eller handle på dets poster uden at skrive kode. |
-| [Runbook](/docs/runbooks/index) | Din responsprocedure som trin, fra manuelle tjeklister til scripts, HTTP-anmodninger og kubectl, kørt på en hændelse, en advarsel eller en vedligeholdelsesbegivenhed. | De vagthavende skal følge de samme trin hver gang. Runbook-regler starter et runbook på de hændelser, der passer. |
+| [Runbook](/docs/runbooks/index) | Din responsprocedure som trin, fra manuelle tjeklister til scripts, HTTP-anmodninger og kubectl, kørt på en hændelse, en advarsel eller en vedligeholdelseshændelse. | De vagthavende skal følge de samme trin hver gang. Runbook-regler starter et runbook på de hændelser, der passer. |
 | [Playbook](/docs/telemetry/security-cases#playbooks) | Trin, der reagerer på en sikkerhedssag: sikre beviserne, tilkalde den, der har vagt, suspendere en bruger. | Dit sikkerhedsteam reagerer på den samme slags trussel på samme måde hver gang. |
 | [AI-regel](/docs/ai/ai-sre#hvilke-hændelser-der-undersøges-og-rettes) | Afgør, hvilke nye hændelser og advarsler OneUptime AI undersøger og retter, og om den spørger først. | OneUptime AI skal kun arbejde på nogle hændelser eller rette uden at spørge. Uden en regel undersøger den hver eneste. |
 
