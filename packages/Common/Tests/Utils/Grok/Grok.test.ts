@@ -14,6 +14,7 @@ import GrokPatterns, {
 } from "../../../Utils/Grok/GrokPatterns";
 import { readOwnValue } from "../../../Utils/LookupTable";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 
 /*
  * The grok engine behind the LogPipeline GrokParser processor
@@ -221,6 +222,107 @@ describe("Grok - capture semantics", () => {
     ).toBe("first");
   });
 });
+
+/*
+ * Every name a plain object answers for without being given it - the
+ * members of Object.prototype: constructor, toString, valueOf,
+ * hasOwnProperty, __proto__ and the rest - as a field name and as a
+ * pattern name. A field so named is captured as the record's own field,
+ * as any other field is. A pattern so named is one the library does not
+ * have, as any name it does not list.
+ */
+describe.each(INHERITED_PROPERTY_NAMES)(
+  "Grok - the name %s",
+  (name: string) => {
+    const fieldsOf: (
+      pattern: string,
+      input: string,
+    ) => Record<string, GrokValue> = (
+      pattern: string,
+      input: string,
+    ): Record<string, GrokValue> => {
+      const fields: Record<string, GrokValue> | null = parseWithGrokPattern(
+        pattern,
+        input,
+      );
+
+      if (fields === null) {
+        throw new Error(`Expected ${pattern} to match "${input}".`);
+      }
+
+      return fields;
+    };
+
+    it("is a field like any other: captured, listed and serialised as the record's own", () => {
+      const fields: Record<string, GrokValue> = fieldsOf(
+        `%{WORD:${name}} %{WORD:after}`,
+        "alpha beta",
+      );
+
+      expect(Object.keys(fields)).toEqual([name, "after"]);
+      expect(readOwnValue(fields, name)).toBe("alpha");
+      expect(Object.prototype.hasOwnProperty.call(fields, name)).toBe(true);
+      // Still a plain object, which serialises the field as any other.
+      expect(Object.getPrototypeOf(fields)).toBe(Object.prototype);
+      expect(JSON.stringify(fields)).toBe(`{"${name}":"alpha","after":"beta"}`);
+      expect(Object.entries(fields)).toEqual([
+        [name, "alpha"],
+        ["after", "beta"],
+      ]);
+    });
+
+    it("is coerced to the type the pattern names", () => {
+      expect(readOwnValue(fieldsOf(`%{INT:${name}:int}`, "42"), name)).toBe(42);
+      expect(
+        readOwnValue(fieldsOf(`%{NUMBER:${name}:float}`, "1.5"), name),
+      ).toBe(1.5);
+      expect(
+        readOwnValue(fieldsOf(`%{WORD:${name}:boolean}`, "yes"), name),
+      ).toBe(true);
+      expect(
+        readOwnValue(fieldsOf(`%{WORD:${name}:boolean}`, "no"), name),
+      ).toBe(false);
+    });
+
+    it("keeps the first value a branch captured for it", () => {
+      const fields: Record<string, GrokValue> = fieldsOf(
+        `(?:%{INT:${name}:int}|%{WORD:${name}}) %{WORD:${name}}`,
+        "web second",
+      );
+
+      expect(Object.keys(fields)).toEqual([name]);
+      expect(readOwnValue(fields, name)).toBe("web");
+    });
+
+    it("is left out when its group captured nothing, as any field is", () => {
+      const fields: Record<string, GrokValue> = fieldsOf(
+        `%{WORD:first}(?: %{INT:${name}})?`,
+        "alpha",
+      );
+
+      expect(Object.keys(fields)).toEqual(["first"]);
+      expect(Object.prototype.hasOwnProperty.call(fields, name)).toBe(false);
+    });
+
+    it("names no pattern of the library", () => {
+      for (const pattern of [
+        `%{${name}}`,
+        `%{${name}:field}`,
+        `%{${name}:field:int}`,
+        `%{WORD:first} %{${name}:second}`,
+      ]) {
+        expect(() => {
+          return compileGrokPattern(pattern);
+        }).toThrow(`Unknown grok pattern "%{${name}}"`);
+        expect(() => {
+          return compileGrokPattern(pattern, { OTHER: "%{WORD}" });
+        }).toThrow(`Unknown grok pattern "%{${name}}"`);
+      }
+
+      expect(getGrokPatternNames()).not.toContain(name);
+    });
+  },
+);
 
 describe("Grok - pattern library", () => {
   it("parses a combined Apache access log line", () => {
