@@ -699,12 +699,13 @@ then `npm run i18n:validate` from the root.
   page, an on-call page and a status page's messages decide by the same rule, each handed its
   record's list: an incident state a project named "Degraded" read "Beeinträchtigt" on a German
   status page and in its emails, because Degraded is a default monitor status, while the Dashboard
-  drew it as written. A label's description, in its hover tip, reads as written too. And a badge is
-  never handed words already in the reader's language without saying so: a plain English word goes
-  over in English, for the badge to look up once, and a sentence, a plural or a front end's own keyed
-  text the page has worded is marked as written (`isUserContent`, `isTooltipUserContent`), with none
-  of its words left in English. Looked up again, a translation that is itself a key read as another
-  word: Spanish "Red" (Network) read "Rojo" (#8067). Enforced by
+  drew it as written. A label's description, in its hover tip, reads as written too. And a badge or
+  a menu's item is never handed words already in the reader's language without saying so: a plain
+  English word goes over in English, for the badge to look up once, and a sentence, a plural or a
+  front end's own keyed text the page has worded is marked as written (`isUserContent`,
+  `isTooltipUserContent`), with none of its words left in English. Looked up again, a translation
+  that is itself a key read as another word: Spanish "Red" (Network) read "Rojo" (#8067), in a
+  row's ⋯ menu too. Enforced by
   [StatusPageNamesByTheirList](../../packages/Common/Tests/App/StatusPage/StatusPageNamesByTheirList.test.ts),
   [RecordNamesInPillsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInPillsGuard.test.ts),
   [RecordNamesInOptionsGuard](../../packages/Common/Tests/App/Dashboard/RecordNamesInOptionsGuard.test.ts),
@@ -714,7 +715,8 @@ then `npm run i18n:validate` from the root.
   [RecordNamesInEntityPickersInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInEntityPickersInSpanish.test.tsx),
   [RecordNamesInSentencesInSpanish](../../packages/Common/Tests/App/Dashboard/RecordNamesInSentencesInSpanish.test.tsx),
   [RecordNamesAsTextInGerman](../../packages/Common/Tests/App/Dashboard/RecordNamesAsTextInGerman.test.tsx),
-  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx)
+  [RecordNamesReadAsWrittenInEveryLanguage](../../packages/Common/Tests/App/Dashboard/RecordNamesReadAsWrittenInEveryLanguage.test.tsx),
+  [MoreMenuItemWordsAsGiven](../../packages/Common/Tests/UI/Components/MoreMenuItemWordsAsGiven.test.tsx)
   and
   [BadgeWordsLookedUpOnce](../../packages/Common/Tests/App/Dashboard/BadgeWordsLookedUpOnce.test.tsx).
 - **Pick words that translate as you mean them.** "About" read "Regarding" in 13 languages, so the

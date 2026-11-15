@@ -279,6 +279,8 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             ? translator.translateText("Copy failed")!
             : translator.translateText("Copy OID")!
       }
+      // Translated here: drawn as given, never looked up again (#8067).
+      isUserContent={true}
       onClick={() => {
         clipboard.copy(row.oid).catch(() => {
           // useClipboardCopy says itself when the browser refused.

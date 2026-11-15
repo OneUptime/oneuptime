@@ -274,11 +274,14 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     menuItems.push(
       <MoreMenuItem
         key={`action-${entry.index}`}
+        // Both translated above: drawn as given, never looked up again.
         text={title}
+        isUserContent={true}
         icon={entry.button.icon}
         isDestructive={isDestructive}
         isDisabled={lock.isDisabled}
         tooltip={translateString(lock.tooltip)}
+        isTooltipUserContent={true}
         onClick={() => {
           runAction(entry);
         }}
