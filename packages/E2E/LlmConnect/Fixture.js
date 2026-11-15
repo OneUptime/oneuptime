@@ -12,9 +12,8 @@ import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import LlmConnectPage from "../../App/FeatureSet/Dashboard/src/Pages/Llm/Connect";
 import LlmUsagePage from "../../App/FeatureSet/Dashboard/src/Pages/Llm/Usage";
-import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
-import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
-import FA from "../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import EN from "../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import { localeResources } from "../SuiteHelpers/FixtureLocales";
 import LlmObservabilityConnection from "Common/Models/DatabaseModels/LlmObservabilityConnection";
 import LlmCostBudget from "Common/Models/DatabaseModels/LlmCostBudget";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -82,15 +81,33 @@ if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
+/*
+ * English, the fallback, is in the bundle; Japanese, German and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as
+ * the Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as
+ * the Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
+ * Imported whole, they were parsed on every page load of every test (#8366).
+ */
+const LOCALE_LOADERS = {
+  ja: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/ja.json");
+  },
+  de: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+  },
+  fa: () => {
+    return import("../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+  },
+};
+
 await i18next.use(initReactI18next).init({
   lng: language,
-  fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    ja: { translation: JA },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  fallbackLng: "en",
+  resources: await localeResources({
+    language: language,
+    english: EN,
+    loaders: LOCALE_LOADERS,
+  }),
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

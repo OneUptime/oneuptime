@@ -2,6 +2,7 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * AI / LLM > Connect, end to end in a browser, on the real page
@@ -1210,4 +1211,18 @@ test.describe("the Connect page in the dark theme and in Japanese", () => {
     ).toHaveText("Cursor を接続");
     await expect(panel(page, "tools")).not.toContainText("カーソル");
   });
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German, Persian and Japanese whole, parsed on every page load of every
+ * test. English is in the bundle now, and each other language a chunk of its
+ * own, loaded only by a page drawn in it (SuiteHelpers/FixtureLocales.js),
+ * built as the Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de", "fa", "ja"],
+  address: (language: string): string => {
+    return language === "en" ? "/" : `/?lang=${language}`;
+  },
 });
