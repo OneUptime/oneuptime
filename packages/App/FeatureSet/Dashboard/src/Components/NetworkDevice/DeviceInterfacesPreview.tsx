@@ -26,6 +26,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -200,15 +201,17 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-4 text-sm text-gray-600">
                   <span className="max-sm:hidden sm:inline">
-                    {row.inRateMbps !== undefined && row.inRateMbps !== null
-                      ? translator.translateTemplate(
-                          "{{inRate}} / {{outRate}} Mbps",
-                          {
-                            inRate: row.inRateMbps,
-                            outRate: row.outRateMbps ?? "—",
-                          },
-                        )
-                      : "—"}
+                    {row.inRateMbps !== undefined && row.inRateMbps !== null ? (
+                      translator.translateTemplate(
+                        "{{inRate}} / {{outRate}} Mbps",
+                        {
+                          inRate: row.inRateMbps,
+                          outRate: row.outRateMbps ?? "—",
+                        },
+                      )
+                    ) : (
+                      <TableEmptyValue />
+                    )}
                   </span>
                   <span
                     className={

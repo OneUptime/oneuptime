@@ -87,6 +87,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   // Which of the queue's pages this list is; the open cases when not given.
@@ -180,7 +181,7 @@ const CaseMoment: FunctionComponent<{ value: Date | undefined }> = (props: {
   value: Date | undefined;
 }): ReactElement => {
   if (!props.value) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <TableEmptyValue />;
   }
 
   return (
@@ -647,7 +648,7 @@ const SecurityCasesList: FunctionComponent<{
       hideOnMobile: true,
       getElement: (item: SecurityCase): ReactElement => {
         if (!item.assignedToTeam?.name) {
-          return <span className="text-sm text-gray-400">-</span>;
+          return <TableEmptyValue />;
         }
 
         return <SecurityCaseTeamName name={item.assignedToTeam.name} />;

@@ -63,6 +63,7 @@ import {
   readCloudAiChange,
 } from "./CloudChangesScope";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * What changed in a cloud resource or a cloud account: the operations its
@@ -204,7 +205,13 @@ export const CloudChangeTitle: FunctionComponent<{
   });
 
   if (!facts) {
-    return <>{getCloudChangeTitleText(props.change, translator) || "—"}</>;
+    return (
+      <>
+        {getCloudChangeTitleText(props.change, translator) || (
+          <TableEmptyValue />
+        )}
+      </>
+    );
   }
 
   const operation: string = facts.operation.trim();
@@ -673,7 +680,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
                 {actor}
               </div>
             ) : (
-              <span className="text-sm text-gray-400">—</span>
+              <TableEmptyValue />
             );
           },
         },
@@ -697,7 +704,7 @@ const CloudChangesTable: FunctionComponent<ComponentProps> = (
                   return region ? (
                     <span className="text-sm text-gray-700">{region}</span>
                   ) : (
-                    <span className="text-sm text-gray-400">—</span>
+                    <TableEmptyValue />
                   );
                 },
               },

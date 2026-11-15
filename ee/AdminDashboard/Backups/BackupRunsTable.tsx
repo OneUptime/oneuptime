@@ -41,6 +41,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The backups (or the restores) of the instance, newest first: when each
@@ -274,7 +275,11 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
 
                   return (
                     <span className="text-gray-900">
-                      {when ? formatBackupDateTime(when, clock) : "—"}
+                      {when ? (
+                        formatBackupDateTime(when, clock)
+                      ) : (
+                        <TableEmptyValue />
+                      )}
                     </span>
                   );
                 },
@@ -321,9 +326,11 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
 
             return (
               <span className="whitespace-nowrap text-gray-700">
-                {duration !== null && item.finishedAt
-                  ? formatBackupDuration(duration, translator.language)
-                  : "—"}
+                {duration !== null && item.finishedAt ? (
+                  formatBackupDuration(duration, translator.language)
+                ) : (
+                  <TableEmptyValue />
+                )}
               </span>
             );
           },

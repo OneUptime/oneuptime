@@ -18,6 +18,7 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * What a data product is made of: its name, its consumers and owner, its
@@ -83,7 +84,7 @@ const DataProductSettingsPage: FunctionComponent<
               title: "Owner Team",
               fieldType: FieldType.Element,
               getElement: (product: DataProduct): ReactElement => {
-                return <span>{product.ownerTeam?.name || "-"}</span>;
+                return <span>{product.ownerTeam?.name || <EmptyValue />}</span>;
               },
             },
             {

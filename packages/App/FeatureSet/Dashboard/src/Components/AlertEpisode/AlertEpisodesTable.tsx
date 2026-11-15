@@ -50,6 +50,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
@@ -366,7 +367,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: AlertEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (
@@ -460,7 +461,11 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             getElement: (item: AlertEpisode): ReactElement => {
               if (item["alertGroupingRule"]) {
-                return <span>{item.alertGroupingRule.name || "-"}</span>;
+                return (
+                  <span>
+                    {item.alertGroupingRule.name || <TableEmptyValue />}
+                  </span>
+                );
               }
               return <span>{translator.translateText("Manual")}</span>;
             },

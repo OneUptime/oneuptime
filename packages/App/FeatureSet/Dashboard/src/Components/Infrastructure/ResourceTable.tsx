@@ -28,7 +28,9 @@ import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
 import { formatReaderFigure } from "Common/Types/DateLanguage";
 import ResourceStatusCell from "./ResourceStatusCell";
 import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
-import { isDashPlaceholder } from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  isDashPlaceholder,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -210,7 +212,10 @@ export interface ComponentProps {
   showGroupColumn?: boolean | undefined;
   /* Column + filter title for the grouping column. Defaults to "Group". */
   groupColumnTitle?: string | undefined;
-  /* Badge text when `resource.namespace` is empty. Defaults to "-". */
+  /*
+   * Badge text when `resource.namespace` is empty ("(no stack)"). Left out,
+   * a row in no group draws the quiet dash every empty cell is.
+   */
   groupFallbackLabel?: string | undefined;
   /*
    * Where the grouping column's badge goes while the table runs out of room
@@ -426,7 +431,8 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const showGroupColumn: boolean = props.showGroupColumn !== false;
   const groupColumnTitle: string = props.groupColumnTitle || "Group";
-  const groupFallbackLabel: string = props.groupFallbackLabel || "-";
+  const groupFallbackLabel: string | undefined =
+    props.groupFallbackLabel?.trim() || undefined;
   const showStatus: boolean = props.showStatus !== false;
   const showResourceMetrics: boolean = props.showResourceMetrics !== false;
   const formatMemory: (bytes: number | null) => string = (
@@ -639,9 +645,16 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         ? { hideBelowLargeScreen: true, foldInto: props.groupColumnFoldInto }
         : {}),
       getElement: (resource: InfrastructureResource): ReactElement => {
+        const group: string | undefined =
+          resource.namespace || groupFallbackLabel;
+
+        if (!group) {
+          return <TableEmptyValue />;
+        }
+
         return (
           <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-50 text-blue-700">
-            {resource.namespace || groupFallbackLabel}
+            {group}
           </span>
         );
       },
@@ -930,7 +943,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       headerTooltip: props.builtInColumnDescriptions?.age,
       getElement: (resource: InfrastructureResource): ReactElement => {
         if (!resource.age) {
-          return <span className="text-gray-400">-</span>;
+          return <TableEmptyValue />;
         }
         return <span className="text-sm text-gray-600">{resource.age}</span>;
       },

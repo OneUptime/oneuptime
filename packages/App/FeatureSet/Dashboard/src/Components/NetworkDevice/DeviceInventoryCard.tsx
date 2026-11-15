@@ -52,6 +52,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -222,7 +223,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     item: NetworkDevice,
   ): ReactElement => {
     if (!item.lastRebootedAt) {
-      return <span>-</span>;
+      return <EmptyValue />;
     }
 
     return (
@@ -329,7 +330,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     sharedSource: AssetFactSource | undefined,
   ): ReactElement => {
     if (!detail.value) {
-      return <span>-</span>;
+      return <EmptyValue />;
     }
 
     return (

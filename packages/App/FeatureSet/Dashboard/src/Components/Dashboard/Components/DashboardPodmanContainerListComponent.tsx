@@ -43,6 +43,7 @@ import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "container.name": "name",
@@ -315,7 +316,11 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
             className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
           />
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
-            {cpu !== null ? `${cpu.toFixed(1)}%` : "—"}
+            {cpu !== null ? (
+              `${cpu.toFixed(1)}%`
+            ) : (
+              <TableEmptyValue isSmall={true} />
+            )}
           </td>
           <td className="px-3 py-2 text-xs text-gray-600 tabular-nums text-right">
             {formatBytes(mem)}

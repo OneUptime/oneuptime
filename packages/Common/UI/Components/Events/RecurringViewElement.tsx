@@ -3,6 +3,7 @@ import Recurring from "../../../Types/Events/Recurring";
 import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 export interface ComponentProps {
   value?: Recurring | undefined;
@@ -27,7 +28,7 @@ const RecurringViewElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
 
   if (!props.value) {
-    return <p>-</p>;
+    return <TableEmptyValue />;
   }
 
   const value: Recurring = Recurring.fromJSON(props.value);

@@ -22,6 +22,7 @@ import StorageArrayResourceTable from "../../../Components/StorageArray/StorageA
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
 import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The array's hardware, one table per kind of part, each with a status pill
@@ -38,7 +39,7 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 function textCell(text: string): ReactElement {
   if (!text) {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
   return <span className="text-sm text-gray-700">{text}</span>;
 }

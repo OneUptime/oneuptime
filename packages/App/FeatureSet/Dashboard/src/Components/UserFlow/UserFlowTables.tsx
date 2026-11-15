@@ -39,6 +39,7 @@ import {
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The map's companions, under one tab strip:
@@ -489,7 +490,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                             )}
                           </span>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <TableEmptyValue />
                         )}
                       </td>
                       <td className={CELL}>
@@ -610,7 +611,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           {formatUserFlowCount(page.errorSessions, translator)}
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <TableEmptyValue />
                       )}
                     </td>
                     <td className={CELL}>
@@ -622,7 +623,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           )}
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <TableEmptyValue />
                       )}
                     </td>
                     <td className={`${CELL} whitespace-nowrap`}>

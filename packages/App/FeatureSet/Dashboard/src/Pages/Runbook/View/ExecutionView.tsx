@@ -71,6 +71,7 @@ import {
 } from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 import RunbookRunInputs from "../../../Components/Runbook/Triggers/RunbookRunInputs";
 import RunbookRunElapsed from "../../../Components/Runbook/RunbookRunElapsed";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -293,7 +294,7 @@ function renderTrigger(
               <span>{sm.title || translateText("View")}</span>
             </AppLink>
           ) : (
-            <span>{sm.title || "—"}</span>
+            <span>{sm.title || <TableEmptyValue />}</span>
           )}
         </span>
       </div>
@@ -748,11 +749,13 @@ const ExecutionView: FunctionComponent<
                 {translator.translateText("Started")}
               </div>
               <div className="text-sm text-gray-900">
-                {execution.startedAt
-                  ? OneUptimeDate.getDateAsLocalFormattedString(
-                      execution.startedAt,
-                    )
-                  : "—"}
+                {execution.startedAt ? (
+                  OneUptimeDate.getDateAsLocalFormattedString(
+                    execution.startedAt,
+                  )
+                ) : (
+                  <TableEmptyValue />
+                )}
               </div>
             </div>
             <div className="rounded-lg border border-gray-200 bg-white px-4 py-3">

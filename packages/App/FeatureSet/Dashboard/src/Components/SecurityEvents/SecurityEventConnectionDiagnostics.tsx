@@ -69,6 +69,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   connection: SecurityEventConnection;
@@ -954,13 +955,15 @@ const SecurityEventConnectionDiagnostics: FunctionComponent<ComponentProps> = (
                            * Grouped as the run's own figures are ("12.345"
                            * in German), so a row and its details agree.
                            */}
-                          {result
-                            ? `${result.fetchedCount.toLocaleString(
-                                getReaderNumberLocale(),
-                              )} / ${result.ingestedCount.toLocaleString(
-                                getReaderNumberLocale(),
-                              )}`
-                            : "—"}
+                          {result ? (
+                            `${result.fetchedCount.toLocaleString(
+                              getReaderNumberLocale(),
+                            )} / ${result.ingestedCount.toLocaleString(
+                              getReaderNumberLocale(),
+                            )}`
+                          ) : (
+                            <TableEmptyValue />
+                          )}
                         </td>
                         <td className="py-2">
                           <Button

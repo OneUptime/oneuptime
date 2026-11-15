@@ -362,9 +362,17 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty value is the quiet dash, never a hyphen a page writes.** An empty cell or detail field
   draws the light grey dash a screen reader reads as "Not set" (`TableEmptyValue`,
   `Detail/EmptyValue`). A column's `noValueMessage: "-"` or a field's `placeholder: "-"` drew a
-  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). A page
-  that wants words writes words ("Never", "No labels attached."). Enforced by
-  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts).
+  darker hyphen of its own, so one row could show both marks for the same nothing (#7264). So did
+  some six hundred dashes pages wrote by hand: `<span className="text-gray-400">—</span>`, or
+  `{team.name || "-"}`, which a phone's card showed as "Team: -" where it leaves every other empty
+  field out (#7603, #8209). Draw `<TableEmptyValue />` or `<EmptyValue />` where the dash was
+  (`{team.name || <TableEmptyValue />}`, `isSmall` in a line of `text-xs`); a monitor summary's
+  fact is handed no value and draws it itself. A page that wants words writes words ("Never", "No
+  labels attached."). A dash between two values, a minus sign, code and a tile's big figure are
+  not empty values. Enforced by
+  [TableEmptyValueDashGuard](../../packages/Common/Tests/UI/Components/Table/TableEmptyValueDashGuard.test.ts)
+  and
+  [HandWrittenEmptyValueGuard](../../packages/Common/Tests/UI/Components/Table/HandWrittenEmptyValueGuard.test.ts).
 
 ### Empty states and suggestions
 
