@@ -127,6 +127,60 @@ export const isEmptyErrorPhrase: (
 };
 
 /*
+ * What a proxy, a gateway or a web server says on its own for a 413, when
+ * it says anything but a page: its status, in the words of whichever RFC or
+ * product it follows - nginx's and HAProxy's "Request Entity Too Large",
+ * RFC 7231's "Payload Too Large", RFC 9110's "Content Too Large", Amazon
+ * API Gateway's "Request Too Long", Go's "http: request body too large",
+ * Kong's "Request size limit exceeded". Compared as isEmptyErrorPhrase
+ * compares, after a leading "413" or "Error 413".
+ */
+export const TOO_LARGE_PHRASES: ReadonlyArray<string> = [
+  "request entity too large",
+  "payload too large",
+  "content too large",
+  "entity too large",
+  "request too large",
+  "request too long",
+  "request body too large",
+  "http request body too large",
+  "body too large",
+  "request size limit exceeded",
+  "request body size limit exceeded",
+  "request content length exceeded",
+];
+
+// What may come before a 413's own phrase: "413", "Error 413", "HTTP 413".
+const TOO_LARGE_STATUS_PREFIXES: ReadonlyArray<string> = [
+  "error 413 ",
+  "http 413 ",
+  "status 413 ",
+  "413 ",
+];
+
+/*
+ * Whether the message is only what a proxy says for a 413 (TOO_LARGE_PHRASES),
+ * which says that it was too large and nothing about what to do. A message
+ * OneUptime wrote for a 413 is a sentence that says more ("Request body too
+ * large. The gzip body of a gzip-encoded request may not exceed 4194304
+ * bytes.") and is not one.
+ */
+export const isTooLargePhrase: (
+  message: string | undefined | null,
+) => boolean = (message: string | undefined | null): boolean => {
+  let words: string = toWords(message || "");
+
+  for (const prefix of TOO_LARGE_STATUS_PREFIXES) {
+    if (words.startsWith(prefix)) {
+      words = words.substring(prefix.length);
+      break;
+    }
+  }
+
+  return TOO_LARGE_PHRASES.includes(words);
+};
+
+/*
  * Whether the "message" is a page rather than a message: the HTML (or XML)
  * a gateway, a proxy or a web server answers with - nginx's "<html><head>
  * <title>502 Bad Gateway</title>...", a load balancer's 503, a CDN's error
