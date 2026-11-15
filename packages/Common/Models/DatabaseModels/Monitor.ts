@@ -41,6 +41,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import IncomingEmailMonitorRequest from "../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import IncomingMonitorRequest from "../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import { IncomingRequestSecretProblem } from "../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import ServerMonitorResponse from "../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
@@ -2623,6 +2624,108 @@ export default class Monitor extends BaseModel {
     nullable: true,
   })
   public incomingMonitorRequestAsReceived?: IncomingMonitorRequest = undefined;
+
+  /*
+   * Whether this Incoming Request monitor's senders send one of the project's
+   * incoming request secrets (issue #8498): when a request with one last
+   * came, when one without came, and why that one had none. Written by the
+   * ingest path alone - the endpoint for a request it refuses, the worker for
+   * every request it processes - and only while the project has a secret,
+   * at most once per monitor every five minutes
+   * (IncomingRequestSecretActivity), hence `create: []` and `update: []`.
+   * Monitors > Settings > Incoming Request Secrets lists the monitors that
+   * received a request without a valid secret in the last day, so an admin
+   * knows which senders to fix before requiring one; the monitor's heartbeat
+   * URL says its requests are refused, or would be. Not marked computed, as
+   * incomingMonitorRequestAsReceived is not: a create that carries one is
+   * refused.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Request With Secret At",
+    description:
+      "About when this Incoming Request monitor last received a request that sent one of its project's incoming request secrets, to the nearest five minutes. Empty until one does.",
+    example: "2026-11-15T09:30:00Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public incomingRequestWithSecretAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Last Request Without Secret At",
+    description:
+      "About when this Incoming Request monitor last received a request without a valid incoming request secret, to the nearest five minutes - refused if its project requires one. Recorded only while the project has a secret.",
+    example: "2026-11-15T09:30:00Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public incomingRequestWithoutSecretAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    title: "Last Request Without Secret Reason",
+    description:
+      "Why the request in Last Request Without Secret At had no valid secret: it sent none, or one that is not one of the project's.",
+    allowedValues: Object.values(IncomingRequestSecretProblem),
+    example: IncomingRequestSecretProblem.NoSecret,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public incomingRequestWithoutSecretReason?: IncomingRequestSecretProblem =
+    undefined;
 
   // Incoming Email Monitor fields
 

@@ -202,6 +202,10 @@ Gå til **Monitorer → Indstillinger → Hemmeligheder til indgående anmodning
 
 Send hemmeligheden i headeren `X-OneUptime-Secret` eller som Bearer-token i headeren `Authorization`, alt efter hvad din afsender kan sætte.
 
+### Find de afsendere, du har glemt
+
+Så snart projektet har en hemmelighed, tjekker OneUptime hver anmodning for en, uden at afvise nogen endnu. **Anmodninger uden hemmelighed** på samme side viser hver overvågning af indgående anmodninger, der har fået en anmodning uden en gyldig hemmelighed inden for de seneste 24 timer, og hvorfor: Der blev ikke sendt nogen, eller der blev sendt en forkert. Ret de afsendere. En overvågning, hvis afsendere er rettet, viser et senere tidspunkt under **Sidst med hemmelighed** end under **Sidst uden hemmelighed** og forsvinder fra listen inden for 24 timer.
+
 ### Slå kravet til
 
 Slå **Kræv en hemmelighed ved hver anmodning** til. Kravet kan ikke slås til, mens projektet ingen hemmelighed har, så ingen afsender afvises ved en fejl.
@@ -429,6 +433,10 @@ Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, ell
 
 :::details Min afsender får en 401
 Projektet kræver en hemmelighed ved hver anmodning, og anmodningen sendte ingen eller en, der ikke er projektets: Svaret siger hvilken. Send en af projektets hemmeligheder i headeren `X-OneUptime-Secret` eller som Bearer-token, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser. En afvist anmodning når aldrig frem til overvågningen.
+:::
+
+:::details Overvågningen får ikke længere anmodninger, efter at der kræves en hemmelighed
+Dens afsendere sender ingen hemmelighed eller en forkert, så hver anmodning, de sender, afvises. En linje under overvågningens **Heartbeat URL** siger, hvornår den seneste afviste anmodning kom, og **Anmodninger uden hemmelighed** viser hver overvågning, der har fået en inden for de seneste 24 timer, og hvorfor. Send en af projektets hemmeligheder fra de afsendere, som [Kræv en hemmelighed ved hver anmodning](#kræv-en-hemmelighed-ved-hver-anmodning) viser.
 :::
 
 :::details Monitoren går aldrig offline, når heartbeats stopper

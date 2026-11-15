@@ -116,7 +116,7 @@ describe("Result Value field path in the criteria list", () => {
   test("no path keeps the line it always had", () => {
     expect(
       CriteriaFilterUtil.translateFilterToText(resultValueFilter({})),
-    ).toBe('Check if "Result Value" is greater than 90 ');
+    ).toBe('Check if "Result Value" is greater than 90');
   });
 });
 
