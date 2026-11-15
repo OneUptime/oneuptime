@@ -113,6 +113,7 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectUsers.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

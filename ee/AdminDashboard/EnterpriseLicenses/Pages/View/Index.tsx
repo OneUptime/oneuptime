@@ -244,19 +244,23 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
       modelType={EnterpriseLicense}
       modelAPI={AdminModelAPI}
       title={t("pages.enterpriseLicenseView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.enterpriseLicenses"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.ENTERPRISE_LICENSES] as Route,
           ),
         },
         {
           title: t("breadcrumbs.enterpriseLicense"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.ENTERPRISE_LICENSE_VIEW] as Route,
             {
