@@ -76,6 +76,7 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
       return {
         value: row.openStackProjectId || "",
         label: row.name || row.openStackProjectId || "",
+        isUserContent: true,
       };
     });
   }, [props.openStackCloudId.toString(), props.month]);

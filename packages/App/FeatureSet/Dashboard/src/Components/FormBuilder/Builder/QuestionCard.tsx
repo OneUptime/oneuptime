@@ -48,6 +48,7 @@ import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
 
@@ -264,6 +265,15 @@ const QuestionCard: FunctionComponent<ComponentProps> = (
         const option: DropdownOption = {
           value: record.id,
           label: record.name,
+          /*
+           * A source is named as its records' table: a severity's default
+           * name is OneUptime's word, looked up; a monitor's, a label's or
+           * a status page's name is drawn as written.
+           */
+          isUserContent: isRecordNameAsWritten(
+            targetDefinition.optionsSource,
+            record.name,
+          ),
         };
 
         if (record.color) {

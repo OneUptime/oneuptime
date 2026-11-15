@@ -225,6 +225,7 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
           (team: Team): DropdownOption => {
             return {
               label: team.name?.toString() || "",
+              isUserContent: true,
               value: team.id?.toString() || "",
             };
           },

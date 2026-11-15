@@ -1089,11 +1089,19 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           .filter(Boolean)
           .join(" · ");
 
+        /*
+         * The provider's name and model as they are called, and the word
+         * for the project's default in the reader's language: put together
+         * here, so never looked up again.
+         */
         return {
           value: provider.id,
           label: `${provider.name}${detail ? ` (${detail})` : ""}${
-            provider.isDefault ? " · default" : ""
+            provider.isDefault
+              ? ` · ${translator.translateText("default") || "default"}`
+              : ""
           }`,
+          isUserContent: true,
         };
       },
     );

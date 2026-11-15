@@ -140,6 +140,8 @@ const ActiveAlertEpisodes: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },

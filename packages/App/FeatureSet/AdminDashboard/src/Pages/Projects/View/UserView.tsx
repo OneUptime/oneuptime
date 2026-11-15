@@ -244,6 +244,8 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                       return {
                         label: team.name?.toString() || "",
                         value: team._id?.toString() || "",
+                        // A team's name is its project's, drawn as written.
+                        isUserContent: true,
                       };
                     });
                   },

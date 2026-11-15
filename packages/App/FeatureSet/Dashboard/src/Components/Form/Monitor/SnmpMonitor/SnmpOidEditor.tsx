@@ -201,6 +201,8 @@ const SnmpOidEditor: FunctionComponent<ComponentProps> = (
       return {
         label: `${template.name} (${template.oid})`,
         value: template.oid,
+        // A MIB object's name and its OID, as the MIB writes them.
+        isUserContent: true,
       };
     });
 

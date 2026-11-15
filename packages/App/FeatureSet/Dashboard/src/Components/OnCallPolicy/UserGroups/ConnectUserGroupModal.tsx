@@ -265,7 +265,11 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
             defaultValue: pickedSlackWorkspaceId,
             dropdownOptions: slackWorkspaces.map(
               (workspace: WorkspaceUserGroupTeam): DropdownOption => {
-                return { label: workspace.name, value: workspace.teamId };
+                return {
+                  label: workspace.name,
+                  isUserContent: true,
+                  value: workspace.teamId,
+                };
               },
             ),
           },
@@ -299,6 +303,8 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
                     group: group,
                     translator: translator,
                   }),
+                  // The group's name, its count and state already translated.
+                  isUserContent: true,
                   value: group.workspaceGroupId,
                 };
               },
@@ -398,7 +404,11 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
             available.teams.length === 1 ? available.teams[0]!.teamId : "",
           dropdownOptions: available.teams.map(
             (team: WorkspaceUserGroupTeam): DropdownOption => {
-              return { label: team.name, value: team.teamId };
+              return {
+                label: team.name,
+                isUserContent: true,
+                value: team.teamId,
+              };
             },
           ),
         },

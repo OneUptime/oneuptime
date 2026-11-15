@@ -185,7 +185,22 @@ describe("the conditions this suite reads", () => {
       "UI/Components/Dropdown/Dropdown.tsx",
     );
     expect(criteriaFilter).toContain(CONDITION_DROPDOWN);
-    expect(criteriaFilter).not.toContain("isUserContent");
+    /*
+     * The conditions are the util's options, as it builds them, never marked
+     * as a name: the form's other pickers mark theirs (an OID's, an
+     * interface's, a metric's in the reader's words, #8065), these not.
+     */
+    expect(criteriaFilter.replace(/\s+/g, " ")).toContain(
+      "setFilterTypeOptions( criteriaFilter?.checkOn ? CriteriaFilterUiUtil.getFilterTypeOptionsByCheckOn( criteriaFilter?.checkOn, ) : [], );",
+    );
+    expect(
+      readDashboardSource("Utils/Form/Monitor/CriteriaFilter.ts"),
+    ).not.toContain("isUserContent");
+    expect(
+      responseTime.some((option: { isUserContent?: boolean }): boolean => {
+        return option.isUserContent === true;
+      }),
+    ).toBe(false);
     expect(dropdown).toContain(DRAWN_OPTION);
     expect(dropdown).toContain(DRAWN_THROUGH_TRANSLATOR);
     expect(dropdown).toContain(TRANSLATED_LABEL);

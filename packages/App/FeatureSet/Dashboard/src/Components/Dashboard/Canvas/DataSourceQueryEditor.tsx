@@ -139,6 +139,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
         label: `${dataSource.name || getUnnamedText(translator)} (${
           dataSource.dataSourceType || translator.translateText("Unknown")
         })`,
+        isUserContent: true,
       };
     });
   }, [dataSources, translator.language]);
