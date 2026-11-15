@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "Moniteurs",
       "monitorsDescription": "Vérifiez vos sites web, API et serveurs, et soyez prévenu en cas de panne.",
-      "slosTitle": "SLO",
+      "slosTitle": "SLOs",
       "slosDescription": "Objectifs de fiabilité, et ce qu'il reste du budget d'erreur.",
       "statusPagesTitle": "Pages de statut",
       "storageArraysDescription": "Surveillez les baies de stockage comme Pure Storage FlashArray et FlashBlade.",
@@ -14543,8 +14543,8 @@
   "Probe ID:": "ID de la sonde :",
   "Probe Key:": "Clé de la sonde :",
   "Probe not available": "Sonde indisponible",
-  "Probe — pinged by the assigned probe on its schedule; walked over SNMP when credentials are set": "Probe — pinged by the assigned probe on its schedule; walked over SNMP when credentials are set",
-  "Probe — pinged by the assigned probe; walked over SNMP when credentials are set": "Probe — pinged by the assigned probe; walked over SNMP when credentials are set",
+  "Probe — pinged by the assigned probe on its schedule; walked over SNMP when credentials are set": "Sonde — pingué par la sonde assignée selon son calendrier ; interrogé par SNMP quand des identifiants sont définis",
+  "Probe — pinged by the assigned probe; walked over SNMP when credentials are set": "Sonde — pingué par la sonde assignée ; interrogé par SNMP quand des identifiants sont définis",
   "Probes & Interval": "Sondes et intervalle",
   "Probes Could Not Be Loaded": "Probes Could Not Be Loaded",
   "Probes are hidden: you need permission to read this monitor's probes.": "Les sondes sont masquées : vous avez besoin de l'autorisation de lire les sondes de ce moniteur.",
@@ -29045,7 +29045,6 @@
   "Which on-call policies": "Quelles politiques d'astreinte",
   "Which maintenance events": "Quels événements de maintenance",
   "Who joins the channel": "Qui rejoint le canal",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Votre compte GitHub ne gère encore aucune installation de l'application. Veuillez l'installer avec « Se connecter avec l'application GitHub ».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Votre compte GitHub gère l'application sur plusieurs comptes. Choisissez celui dont ce projet doit utiliser les dépôts.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Vos permanences des 30 prochains jours. Heures affichées dans le fuseau {{timezone}}.",
   "at least {{time}}": "au moins {{time}}",
@@ -29594,7 +29593,7 @@
   "These devices move into the site and count toward its health. A device without a probe uses the site's default probe.": "Ces équipements rejoignent le site et comptent dans sa santé. Un équipement sans sonde utilise la sonde par défaut du site.",
   "These labels must pick out exactly one device, or the rule draws nothing.": "Ces étiquettes doivent désigner exactement un équipement, sinon la règle ne dessine rien.",
   "They must reach the device's network. Leave it empty to use the default probes.": "Elles doivent joindre le réseau de l'équipement. Laissez vide pour utiliser les sondes par défaut.",
-  "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it.": "Cet équipement est un remplacement par moniteur lié : rien ne l'interroge. Passez à Probe ci-dessus pour qu'une sonde le pingue.",
+  "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it.": "Cet équipement est un remplacement par moniteur lié : rien ne l'interroge. Passez à Sonde ci-dessus pour qu'une sonde le pingue.",
   "This scan sweeps {{range}}.": "Cette analyse balaie {{range}}.",
   "Tried in order on each host that answers ping. The first set that works is used.": "Essayés dans l'ordre sur chaque hôte qui répond au ping. Le premier jeu qui fonctionne est utilisé.",
   "Turn it off for roles that do not speak SNMP. Adding one from the map then uses a monitor.": "Désactivez-le pour les rôles qui ne parlent pas SNMP. Un ajout depuis la carte utilise alors un moniteur.",
@@ -29620,7 +29619,7 @@
   "A policy adds one monitor to every device it covers, and each monitor counts towards your plan. Deleting a policy deletes its monitors.": "Une politique ajoute un moniteur à chaque équipement qu'elle couvre, et chaque moniteur compte dans votre forfait. Supprimer une politique supprime ses moniteurs.",
   "A probe-polled device is pinged here, and walked over SNMP once it has credentials. A monitor-backed device is only identified by it.": "Un équipement interrogé par une sonde est pingué à cette adresse, et parcouru via SNMP dès qu'il a des identifiants. Un équipement adossé à un moniteur est seulement identifié par elle.",
   "Its status becomes the device's status. Leave it empty to bind a monitor later: until then the device reads Pending, tagged \"No monitor\".": "Son statut devient celui de l'équipement. Laissez vide pour lier un moniteur plus tard : d'ici là, l'équipement affiche En attente, avec la mention « Aucun moniteur ».",
-  "Probe is the normal choice: a device with no SNMP credentials is simply pinged. Pick Bound monitor only when no probe can reach it.": "Probe est le choix habituel : un équipement sans identifiants SNMP est simplement pingué. Choisissez Moniteur lié uniquement si aucune sonde ne peut le joindre.",
+  "Probe is the normal choice: a device with no SNMP credentials is simply pinged. Pick Bound monitor only when no probe can reach it.": "Sonde est le choix habituel : un équipement sans identifiants SNMP est simplement pingué. Choisissez Moniteur lié uniquement si aucune sonde ne peut le joindre.",
   "Put devices into sites by address or name as they are added, or with Run Now. The highest matching rule wins: drag to reorder. A device you put in a site by hand stays there until its address or name changes.": "Placez les équipements dans des sites selon leur adresse ou leur nom à leur ajout, ou avec Run Now. La règle correspondante la plus haute l'emporte : faites glisser pour réordonner. Un équipement que vous placez à la main dans un site y reste jusqu'à ce que son adresse ou son nom change.",
   "The probe already pings this device. The monitor counts towards your plan, and its incidents are off at first. For many devices, use Alert Policies.": "La sonde pingue déjà cet équipement. Le moniteur compte dans votre forfait et ses incidents sont désactivés au départ. Pour de nombreux équipements, utilisez les politiques d'alerte.",
   "What is plugged into your switches and routers, read from their address tables. Nothing is removed on its own: Last Seen says when each was last there.": "Ce qui est branché sur vos commutateurs et routeurs, lu dans leurs tables d'adresses. Rien n'est retiré automatiquement : Dernière fois vu indique quand chacun était là.",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "Note d'événement de maintenance mise à jour",
   "Subscriber Scheduled Maintenance State Changed": "État de l'événement de maintenance modifié",
   "Subscriber Subscribed": "Abonnement effectué",
-  "Subscriber Subscription Confirmation": "Confirmation d'abonnement"
+  "Subscriber Subscription Confirmation": "Confirmation d'abonnement",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Votre compte GitHub ne gère encore aucune installation de l'application. Veuillez l'installer avec « {{connectGitHub}} »."
 }

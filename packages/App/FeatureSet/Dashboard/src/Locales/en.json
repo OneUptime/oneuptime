@@ -29045,7 +29045,6 @@
   "Which on-call policies": "Which on-call policies",
   "Which maintenance events": "Which maintenance events",
   "Who joins the channel": "Who joins the channel",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Your shifts over the next 30 days. Times are in {{timezone}}.",
   "at least {{time}}": "at least {{time}}",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "Subscriber Scheduled Maintenance Note Updated",
   "Subscriber Scheduled Maintenance State Changed": "Subscriber Scheduled Maintenance State Changed",
   "Subscriber Subscribed": "Subscriber Subscribed",
-  "Subscriber Subscription Confirmation": "Subscriber Subscription Confirmation"
+  "Subscriber Subscription Confirmation": "Subscriber Subscription Confirmation",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}."
 }

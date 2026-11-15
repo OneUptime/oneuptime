@@ -52,7 +52,7 @@
       "monitorsDescription": "Prüfen Sie Websites, APIs und Server und erfahren Sie, wenn sie ausfallen.",
       "slosTitle": "SLOs",
       "slosDescription": "Zuverlässigkeitsziele und wie viel Fehlerbudget noch übrig ist.",
-      "statusPagesTitle": "Status-Seiten",
+      "statusPagesTitle": "Statusseiten",
       "storageArraysDescription": "Speicher-Arrays wie Pure Storage FlashArray und FlashBlade überwachen.",
       "storageArraysTitle": "Speicher-Arrays",
       "statusPagesDescription": "Zeigen Sie Ihren Kunden, was läuft und was ausgefallen ist.",
@@ -29045,7 +29045,6 @@
   "Which on-call policies": "Welche Bereitschaftsrichtlinien",
   "Which maintenance events": "Welche Wartungsereignisse",
   "Who joins the channel": "Wer dem Kanal beitritt",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Ihr GitHub-Konto verwaltet noch keine Installation der App. Installieren Sie sie bitte über „Mit GitHub-App verbinden“.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Ihr GitHub-Konto verwaltet die App auf mehr als einem Konto. Wählen Sie das Konto, dessen Repositories dieses Projekt verwenden soll.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Ihre Schichten der nächsten 30 Tage. Alle Zeiten in {{timezone}}.",
   "at least {{time}}": "mindestens {{time}}",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "Notiz zum Wartungsereignis aktualisiert",
   "Subscriber Scheduled Maintenance State Changed": "Status des Wartungsereignisses geändert",
   "Subscriber Subscribed": "Abonnement abgeschlossen",
-  "Subscriber Subscription Confirmation": "Abonnementbestätigung"
+  "Subscriber Subscription Confirmation": "Abonnementbestätigung",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ihr GitHub-Konto verwaltet noch keine Installation der App. Installieren Sie sie bitte über „{{connectGitHub}}“."
 }

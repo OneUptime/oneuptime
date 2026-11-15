@@ -29045,7 +29045,6 @@
   "Which on-call policies": "対象のオンコールポリシー",
   "Which maintenance events": "対象のメンテナンスイベント",
   "Who joins the channel": "チャネルに参加するメンバー",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「GitHub App で接続」からインストールしてください。",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "お使いの GitHub アカウントは、複数のアカウントでアプリを管理しています。このプロジェクトで使うリポジトリがあるアカウントを選んでください。",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "今後 30 日間のシフトです。時刻は {{timezone}} で表示しています。",
   "at least {{time}}": "少なくとも {{time}}",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "メンテナンスイベントのメモ更新済み",
   "Subscriber Scheduled Maintenance State Changed": "メンテナンスイベントの状態変更済み",
   "Subscriber Subscribed": "購読完了",
-  "Subscriber Subscription Confirmation": "購読の確認"
+  "Subscriber Subscription Confirmation": "購読の確認",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "お使いの GitHub アカウントは、まだアプリのインストールを管理していません。「{{connectGitHub}}」からインストールしてください。"
 }

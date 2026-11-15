@@ -163,7 +163,7 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT="NO_CONTENT"
 ```
 :::
 
-`callback_settings` 是顶层键，不是 `litellm_settings` 下的键。要保留提示词但遮盖其中一部分，请改用 **跟踪 → 设置** 下的清理规则。
+`callback_settings` 是顶层键，不是 `litellm_settings` 下的键。要保留提示词但遮盖其中一部分，请改用 **追踪 → 设置** 下的清理规则。
 
 :::details LiteLLM 的 OpenTelemetry v2 模式
 较新的 LiteLLM 版本有一个可选的 OpenTelemetry v2 模式（`LITELLM_OTEL_V2=true`，无需修改 `config.yaml`）。它为每个请求发送一条跟踪，把 HTTP 处理、身份验证、防护规则和模型调用作为名称类似 `chat gpt-4o` 的 GenAI span。在 v2 模式下，提示词默认关闭；用 `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` 打开它们。成本以 `litellm.cost.total` 到达，OneUptime 也会读取它。请只使用其中一种模式，不要同时使用两种。
@@ -198,7 +198,7 @@ services:
 - 标头是以逗号分隔的 `key=value` 对。`EXPERIMENTAL_GEN_AI_OTEL_RESOURCE_ATTRIBUTES` 以同样的方式添加资源属性，例如 `deployment.environment=production`。
 - Portkey 只以 JSON 格式通过 HTTP 发送 OTLP，OneUptime 无需中间的收集器即可接受。
 - 每次调用都是一个名为 `{operation} {model}` 的 span，例如 `chat gpt-4o`，位于服务 `portkey` 下，带有 `gen_ai.provider.name`、请求的模型和实际响应的模型、token 计数、`gen_ai.conversation.id`，以及 `gen_ai.input.messages` 和 `gen_ai.output.messages` 中的消息。
-- 完整的提示词和回答始终包含在内。请用 **跟踪 → 设置** 下的清理规则遮盖需要遮盖的内容。
+- 完整的提示词和回答始终包含在内。请用 **追踪 → 设置** 下的清理规则遮盖需要遮盖的内容。
 - 每次调用在响应后单独发送，没有批处理，也没有重试：导出失败就会丢失。请把它当作可观测性，而不是审计日志。
 - 如果你的 `x-portkey-trace-id` 是有效的跟踪 ID（32 个十六进制字符），Portkey 会复用它，让网关的 span 接入你自己应用的跟踪。
 
@@ -273,7 +273,7 @@ LiteLLM 使用完整路径 `https://oneuptime.com/otlp/v1/traces`。Portkey 使�
 :::
 
 :::details span 到达了，但没有出现在 AI / LLM 中
-在 **跟踪** 中按网关的服务（`litellm`、`portkey` 或你的 `OTEL_SERVICE_NAME`）过滤，查看原始 span。只有带 `gen_ai.*` 属性的 span 才算作模型调用：请检查回调是否为 `otel`，以及这次调用是否发往了模型。
+在 **追踪** 中按网关的服务（`litellm`、`portkey` 或你的 `OTEL_SERVICE_NAME`）过滤，查看原始 span。只有带 `gen_ai.*` 属性的 span 才算作模型调用：请检查回调是否为 `otel`，以及这次调用是否发往了模型。
 :::
 
 :::details 支出显示为未归属

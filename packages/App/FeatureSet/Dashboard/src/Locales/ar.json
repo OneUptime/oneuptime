@@ -14544,7 +14544,7 @@
   "Probe Key:": "مفتاح المسبار:",
   "Probe not available": "المسبار غير متاح",
   "Probe — pinged by the assigned probe on its schedule; walked over SNMP when credentials are set": "المسبار — يرسل إليه المسبار المُسند ping وفق جدوله؛ ويُستعرض عبر SNMP عند ضبط بيانات الاعتماد",
-  "Probe — pinged by the assigned probe; walked over SNMP when credentials are set": "مسبار — يفحصه المسبار المعيّن بـ ping؛ ويُستعرض عبر SNMP عند تعيين بيانات الاعتماد",
+  "Probe — pinged by the assigned probe; walked over SNMP when credentials are set": "المسبار — يفحصه المسبار المعيّن بـ ping؛ ويُستعرض عبر SNMP عند تعيين بيانات الاعتماد",
   "Probes & Interval": "المسابير والفاصل الزمني",
   "Probes Could Not Be Loaded": "تعذّر تحميل المسابير",
   "Probes are hidden: you need permission to read this monitor's probes.": "المسابير مخفية: تحتاج إلى إذن بقراءة مسابير هذه المراقبة.",
@@ -29045,7 +29045,6 @@
   "Which on-call policies": "أي سياسات المناوبة",
   "Which maintenance events": "أي أحداث الصيانة",
   "Who joins the channel": "من ينضم إلى القناة",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «الربط عبر GitHub App».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "يدير حساب GitHub الخاص بك التطبيق على أكثر من حساب. اختر الحساب الذي يجب أن يستخدم هذا المشروع مستودعاته.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "نوباتك خلال الأيام الـ30 القادمة. الأوقات بتوقيت {{timezone}}.",
   "at least {{time}}": "{{time}} على الأقل",
@@ -29594,7 +29593,7 @@
   "These devices move into the site and count toward its health. A device without a probe uses the site's default probe.": "تنتقل هذه الأجهزة إلى الموقع وتُحتسب ضمن صحته. ويستخدم الجهاز الذي ليس له مسبار المسبار الافتراضي للموقع.",
   "These labels must pick out exactly one device, or the rule draws nothing.": "يجب أن تحدد هذه التسميات جهازًا واحدًا بالضبط، وإلا فلن ترسم القاعدة شيئًا.",
   "They must reach the device's network. Leave it empty to use the default probes.": "يجب أن تصل إلى شبكة الجهاز. اتركه فارغًا لاستخدام المسابير الافتراضية.",
-  "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it.": "هذا الجهاز مرتبط بمراقبة تحل محل الاستطلاع: لا شيء يستطلعه. بدّل إلى «مسبار» أعلاه ليفحصه مسبار بـ ping.",
+  "This device is a bound-monitor override: nothing polls it. Switch to Probe above to have a probe ping it.": "هذا الجهاز مرتبط بمراقبة تحل محل الاستطلاع: لا شيء يستطلعه. بدّل إلى «المسبار» أعلاه ليفحصه مسبار بـ ping.",
   "This scan sweeps {{range}}.": "{{range}}: النطاق الذي يمسحه هذا الفحص.",
   "Tried in order on each host that answers ping. The first set that works is used.": "تُجرَّب بالترتيب على كل مضيف يستجيب لـ ping. وتُستخدم أول مجموعة تعمل.",
   "Turn it off for roles that do not speak SNMP. Adding one from the map then uses a monitor.": "أوقفه للأدوار التي لا تدعم SNMP. وعندئذ تستخدم إضافة جهاز منها من الخريطة مراقبة.",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "تم تحديث ملاحظة حدث صيانة",
   "Subscriber Scheduled Maintenance State Changed": "تغيرت حالة حدث الصيانة",
   "Subscriber Subscribed": "اكتمال الاشتراك",
-  "Subscriber Subscription Confirmation": "تأكيد الاشتراك"
+  "Subscriber Subscription Confirmation": "تأكيد الاشتراك",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «{{connectGitHub}}»."
 }

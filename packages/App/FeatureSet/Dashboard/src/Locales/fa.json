@@ -50,7 +50,7 @@
     "items": {
       "monitorsTitle": "مانیتورها",
       "monitorsDescription": "وب‌سایت‌ها، APIها و سرورها را بررسی کنید و از خرابی آن‌ها باخبر شوید.",
-      "slosTitle": "SLOها",
+      "slosTitle": "SLOs",
       "slosDescription": "اهداف پایداری، و این‌که چقدر از بودجهٔ خطا باقی مانده است.",
       "statusPagesTitle": "صفحات وضعیت",
       "storageArraysDescription": "آرایه‌های ذخیره‌سازی مانند Pure Storage FlashArray و FlashBlade را پایش کنید.",
@@ -29045,7 +29045,6 @@
   "Which on-call policies": "کدام سیاست‌های آنکال",
   "Which maintenance events": "کدام رویدادهای تعمیر و نگهداری",
   "Who joins the channel": "چه کسانی به کانال می‌پیوندند",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «اتصال GitHub» نصب کنید.",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "حساب GitHub شما برنامه را در بیش از یک حساب مدیریت می‌کند. حسابی را انتخاب کنید که این پروژه باید از مخزن‌های آن استفاده کند.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "نوبت‌های شما در ۳۰ روز آینده. زمان‌ها به وقت {{timezone}} است.",
   "at least {{time}}": "دست‌کم {{time}}",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "یادداشت رویداد تعمیر و نگهداری به‌روزرسانی شد",
   "Subscriber Scheduled Maintenance State Changed": "وضعیت رویداد تعمیر و نگهداری تغییر کرد",
   "Subscriber Subscribed": "اشتراک انجام شد",
-  "Subscriber Subscription Confirmation": "تأیید اشتراک"
+  "Subscriber Subscription Confirmation": "تأیید اشتراک",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "حساب GitHub شما هنوز هیچ نصبی از برنامه را مدیریت نمی‌کند. لطفاً آن را با «{{connectGitHub}}» نصب کنید."
 }

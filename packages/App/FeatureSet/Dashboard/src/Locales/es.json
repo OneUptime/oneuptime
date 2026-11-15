@@ -70,7 +70,7 @@
       "logsDescription": "Busca y analiza registros.",
       "securityEventsTitle": "Eventos de seguridad",
       "sentinelInsightsDescription": "Hallazgos proactivos de la vigilancia de telemetría de OneUptime AI — nuevas excepciones, picos, regresiones de latencia y desviaciones de métricas.",
-      "sentinelInsightsTitle": "Hallazgos",
+      "sentinelInsightsTitle": "Análisis",
       "securityEventsDescription": "Señales SIEM correlacionadas con tus datos de observabilidad.",
       "metricsTitle": "Métricas",
       "metricsDescription": "Monitorea y visualiza las métricas del sistema en tus servicios.",
@@ -29045,7 +29045,6 @@
   "Which on-call policies": "Qué políticas de guardia",
   "Which maintenance events": "Qué eventos de mantenimiento",
   "Who joins the channel": "Quién se une al canal",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with Connect with GitHub App.": "Tu cuenta de GitHub todavía no administra ninguna instalación de la aplicación. Instálala con «Conectar con la GitHub App».",
   "Your GitHub account manages the app on more than one account. Pick the one whose repositories this project should use.": "Tu cuenta de GitHub administra la aplicación en más de una cuenta. Elige aquella cuyos repositorios debe usar este proyecto.",
   "Your shifts over the next 30 days. Times are in {{timezone}}.": "Tus turnos de los próximos 30 días. Horas en la zona horaria {{timezone}}.",
   "at least {{time}}": "al menos {{time}}",
@@ -55054,5 +55053,6 @@
   "Subscriber Scheduled Maintenance Note Updated": "Nota de evento de mantenimiento actualizada",
   "Subscriber Scheduled Maintenance State Changed": "Estado del evento de mantenimiento cambiado",
   "Subscriber Subscribed": "Suscripción completada",
-  "Subscriber Subscription Confirmation": "Confirmación de suscripción"
+  "Subscriber Subscription Confirmation": "Confirmación de suscripción",
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Tu cuenta de GitHub todavía no administra ninguna instalación de la aplicación. Instálala con «{{connectGitHub}}»."
 }
