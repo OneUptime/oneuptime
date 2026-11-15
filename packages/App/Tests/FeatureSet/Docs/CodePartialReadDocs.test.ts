@@ -1,5 +1,5 @@
 import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
-import { dashboardLocale } from "./DocsDashboardLabels";
+import { dashboardLocale, readAsTheDocsWriteIt } from "./DocsDashboardLabels";
 import { readRepoFile } from "./InventoryAndApiDocsSupport";
 import {
   AI_ACTION_CODE_FILE,
@@ -57,10 +57,13 @@ const translatorFor: (language: string) => Translator = (
 ): Translator => {
   const words: Record<string, unknown> = dashboardLocale(language);
 
-  return createTranslator((text: string): string | undefined => {
-    const value: unknown = words[text];
-    return typeof value === "string" ? value : undefined;
-  }, language);
+  // What it draws, as the page writes it (asTheDocsWriteIt).
+  return readAsTheDocsWriteIt(
+    createTranslator((text: string): string | undefined => {
+      const value: unknown = words[text];
+      return typeof value === "string" ? value : undefined;
+    }, language),
+  );
 };
 
 // The bullet about proposing code changes, which says it all.

@@ -7,6 +7,7 @@ import {
   getDocsLanguageDirection,
   isSupportedDocsLanguage,
 } from "Common/Types/Docs/DocsLanguage";
+import { withNoBreakSpaces } from "Common/Types/NoBreakSpaces";
 
 import en from "../Locales/en.json";
 import de from "../Locales/de.json";
@@ -99,10 +100,17 @@ const lookup: (
   const enLocale: LocaleStrings = Locales[DEFAULT_DOCS_LANGUAGE]!;
 
   const fromLang: string | undefined = langLocale?.[section]?.[key];
-  if (fromLang) {
-    return fromLang;
-  }
   const fromEn: string | undefined = enLocale[section]?.[key];
+  if (fromLang) {
+    /*
+     * The language's own words as it sets a line: each number with its
+     * unit, and French's marks with their words (Common/Types/
+     * NoBreakSpaces). English left in a locale stays English.
+     */
+    return fromLang === fromEn
+      ? fromLang
+      : withNoBreakSpaces(fromLang, fromEn ?? key, lang);
+  }
   return fromEn ?? key;
 };
 

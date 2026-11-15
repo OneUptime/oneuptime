@@ -324,7 +324,7 @@ describe("what the card says", () => {
     );
     expect(text.headline).toBe(germanLocale["A size half as big would do."]);
     expect(withoutIsolateMarks(text.why[0]!)).toBe(
-      "Mit m5.xlarge läge die CPU zu 95 % der Zeit bei höchstens 48%.",
+      "Mit m5.xlarge läge die CPU zu 95\u00A0% der Zeit bei höchstens 48%.",
     );
     expect(withoutIsolateMarks(text.saving!)).toMatch(
       /^Spart etwa 140,\d\d\s\$ pro Monat/,

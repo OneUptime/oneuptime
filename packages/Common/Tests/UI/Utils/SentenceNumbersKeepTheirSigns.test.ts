@@ -286,9 +286,12 @@ describe("what is still set apart", () => {
       APART,
     );
 
-    expect(sentence).toBe(`بين ${isolated("10")}–${isolated("20")} مللي ثانية`);
+    // The figure keeps its unit on its line (NoBreakSpaces).
+    expect(sentence).toBe(
+      `بين ${isolated("10")}–${isolated("20")}\u00A0مللي ثانية`,
+    );
     expect(drawnFromTheRight(sentence)).toBe(
-      drawnFromTheRight("بين 10–20 مللي ثانية"),
+      drawnFromTheRight("بين 10–20\u00A0مللي ثانية"),
     );
   });
 });

@@ -27,6 +27,7 @@ import {
   getPathArrows,
   withArrowsDecoded,
 } from "Common/Tests/Helpers/PathArrows";
+import { withNoBreakSpaces } from "Common/Types/NoBreakSpaces";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { beforeAll, describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
@@ -197,6 +198,29 @@ interface EndpointEntry {
   descriptionElement: RenderedElement;
 }
 
+const ENGLISH_STRINGS: Map<string, string> = (LOCALES.find(
+  ([code]: [string, Map<string, string>]): boolean => {
+    return code === "en";
+  },
+) || ["en", new Map<string, string>()])[1];
+
+/*
+ * A string as the page draws it: the language's own words set as it sets
+ * a line, French's marks with their words (Common/Types/NoBreakSpaces).
+ */
+function drawnString(
+  code: string,
+  strings: Map<string, string>,
+  key: string,
+): string | undefined {
+  const text: string | undefined = strings.get(key);
+  const english: string | undefined = ENGLISH_STRINGS.get(key);
+
+  return text === undefined || text === english
+    ? text
+    : withNoBreakSpaces(text, english ?? key, code);
+}
+
 /*
  * Each endpoint the page lists, in order: its path, and the description its
  * entry ends with.
@@ -288,7 +312,11 @@ describe.each(LOCALES)(
           }): [string, string | undefined] => {
             return [
               `${BASE_PATH}${api.path}`,
-              strings.get(`pages.masterAdminApis.${api.key}Desc`),
+              drawnString(
+                code,
+                strings,
+                `pages.masterAdminApis.${api.key}Desc`,
+              ),
             ];
           },
         ),

@@ -1599,7 +1599,10 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     // Pointing at a block opens its card, each value under its label.
     fireEvent.mouseEnter(block);
     for (const label of ["Service:", "Duration:", "Self Time:"]) {
-      expect(screen.getByText(word(language, label))).toBeInTheDocument();
+      // As a text query reads it: a no-break space is a space there.
+      expect(
+        screen.getByText(word(language, label).replace(/\s+/g, " ")),
+      ).toBeInTheDocument();
     }
 
     // A double-click zooms into the block's subtree, and offers the way back.
@@ -1892,7 +1895,10 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
       }),
     );
     expect(summary).toHaveTextContent(
-      sentence(language, "Search: “{{search}}”", { search: "SELECT" }),
+      sentence(language, "Search: “{{search}}”", { search: "SELECT" }).replace(
+        /\s+/g,
+        " ",
+      ),
     );
     expect(
       within(summary).getByRole("button", {
@@ -1941,10 +1947,15 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     const pathSummary: HTMLElement = screen.getByTestId(
       "trace-critical-path-summary",
     );
-    expect(pathSummary).toHaveTextContent(word(language, "Critical path:"));
+    // As the page's text reads it: a no-break space is a space there.
+    const pathLabel: string = word(language, "Critical path:").replace(
+      /\s+/g,
+      " ",
+    );
+    expect(pathSummary).toHaveTextContent(pathLabel);
     const pathLength: number = Number(
       (textOf(pathSummary)
-        .replace(word(language, "Critical path:"), "")
+        .replace(pathLabel, "")
         .match(/[\d٠-٩۰-۹]+/) || ["0"])[0]
         .replace(/[٠-٩]/g, (digit: string): string => {
           return String(digit.charCodeAt(0) - 0x0660);
@@ -1955,11 +1966,9 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     );
     expect(pathLength).toBeGreaterThan(0);
     expect(textOf(pathSummary)).toBe(
-      `${word(language, "Critical path:")} ${counted(
-        language,
-        CRITICAL_PATH_SUMMARY,
-        pathLength,
-      )}`,
+      `${pathLabel} ${counted(language, CRITICAL_PATH_SUMMARY, pathLength)}`
+        .replace(/\s+/g, " ")
+        .trim(),
     );
   });
 
@@ -2097,7 +2106,7 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     expect(events[1]).toHaveTextContent(
       sentence(language, "Exception: {{name}}", {
         name: "could not serialize access",
-      }),
+      }).replace(/\s+/g, " "),
     );
 
     // Logs: none were written in this span, and it ran in no pod.
@@ -2485,7 +2494,7 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
       word(
         language,
         "Large traces load in batches; totals above cover the loaded spans.",
-      ),
+      ).replace(/\s+/g, " "),
     );
     expect(textOf(screen.getByTestId("trace-load-next"))).toBe(
       counted(language, LOAD_MORE, 500),
@@ -2616,7 +2625,9 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
 
     expect(
       await screen.findByTestId("llm-span-log-events-note"),
-    ).toHaveTextContent(word(language, LLM_LOG_EVENTS_NOT_ALLOWED));
+    ).toHaveTextContent(
+      word(language, LLM_LOG_EVENTS_NOT_ALLOWED).replace(/\s+/g, " "),
+    );
     cleanup();
 
     // Failed: says so, with a way to try again.
