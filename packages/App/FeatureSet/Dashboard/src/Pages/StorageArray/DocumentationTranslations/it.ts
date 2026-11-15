@@ -50,7 +50,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
     "Scegli una chiave di ingestione nel passaggio 1 per compilare `<YOUR_API_KEY>`.",
   "Look for `Everything is ready. Begin running and processing data.` in the logs. The array then appears automatically in the **Storage Arrays** section after its first scrape, usually within a minute or two.":
-    "Cerca `Everything is ready. Begin running and processing data.` nei registri. Poi l'array appare automaticamente nella sezione **Array di storage** dopo la sua prima raccolta, di solito entro un paio di minuti.",
+    "Cerca `Everything is ready. Begin running and processing data.` nei log. Poi l'array appare automaticamente nella sezione **Array di storage** dopo la sua prima raccolta, di solito entro un paio di minuti.",
   "The install script writes these to `/opt/oneuptime-storage-array-agent/.env`; a Docker Compose install reads them from the `.env` file next to `docker-compose.yml`. After changing one, apply it with `docker compose up -d` in the agent's folder.":
     "Lo script di installazione le scrive in `/opt/oneuptime-storage-array-agent/.env`; un'installazione con Docker Compose le legge dal file `.env` accanto a `docker-compose.yml`. Dopo averne cambiata una, applicala con `docker compose up -d` nella cartella dell'agente.",
   "| Variable | Required | Description |":
@@ -90,7 +90,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "This is the full `otel-collector-config.yaml` the agent runs; the `.env` file supplies the `${env:...}` values:":
     "Questo è l'`otel-collector-config.yaml` completo che l'agente esegue; il file `.env` fornisce i valori `${env:...}`:",
   "The agent ships metrics only until you turn on its syslog receivers. Arrays forward their alerts and audit events as syslog; the agent stamps `storage.array.name` on every line, so they land on this array's **Logs** page.":
-    "L'agente invia solo metriche finché non attivi i suoi receiver syslog. Gli array inoltrano i loro avvisi ed eventi di audit come syslog; l'agente appone `storage.array.name` su ogni riga, così finiscono nella pagina **Registri** di questo array.",
+    "L'agente invia solo metriche finché non attivi i suoi receiver syslog. Gli array inoltrano i loro avvisi ed eventi di audit come syslog; l'agente appone `storage.array.name` su ogni riga, così finiscono nella pagina **Log** di questo array.",
   "1. In `otel-collector-config.yaml`, uncomment the `syslog/tcp` and `syslog/udp` receivers and the `logs` pipeline. Classic BSD syslog timestamps carry no time zone: set `location` to the array's time zone unless its clock runs on UTC.":
     "1. In `otel-collector-config.yaml`, togli il commento ai receiver `syslog/tcp` e `syslog/udp` e alla pipeline `logs`. I timestamp syslog BSD classici non hanno fuso orario: imposta `location` sul fuso orario dell'array, a meno che il suo orologio non sia in UTC.",
   "2. In `docker-compose.yml`, uncomment the `ports:` block that publishes `5514/tcp` and `5514/udp`, and open the port on the machine's firewall for the array's management network.":
@@ -139,7 +139,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "It ends with a verdict naming the most likely cause.":
     "Termina con un verdetto che nomina la causa più probabile.",
   "1. Check the collector logs: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` means the array refused the API token, `404` means the FlashArray has no native endpoint, `x509` means TLS verification is on against the array's self-signed certificate, `no such host` or `connection refused` means a wrong `PURE_FA_ENDPOINT`, and an export `401` means a bad ingestion key.":
-    "1. Controlla i registri del collector: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` significa che l'array ha rifiutato il token API, `404` che il FlashArray non ha un endpoint nativo, `x509` che la verifica TLS è attiva contro il certificato autofirmato dell'array, `no such host` o `connection refused` un `PURE_FA_ENDPOINT` errato, e un `401` in esportazione una chiave di ingestione errata.",
+    "1. Controlla i log del collector: `docker logs oneuptime-storage-array-agent`. `server returned HTTP status 401` significa che l'array ha rifiutato il token API, `404` che il FlashArray non ha un endpoint nativo, `x509` che la verifica TLS è attiva contro il certificato autofirmato dell'array, `no such host` o `connection refused` un `PURE_FA_ENDPOINT` errato, e un `401` in esportazione una chiave di ingestione errata.",
   "2. Make sure `STORAGE_ARRAY_NAME` is set — discovery keys on the `storage.array.name` resource attribute, and the collector refuses to start without it.":
     "2. Assicurati che `STORAGE_ARRAY_NAME` sia impostato: il rilevamento si basa sull'attributo di risorsa `storage.array.name`, e senza di esso il collector si rifiuta di avviarsi.",
   "3. Make sure `STORAGE_ARRAY_COLLECTOR_CONFIG` and `COMPOSE_PROFILES` name the same platform.":
@@ -155,7 +155,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "1. Check that the agent is running: `docker ps --filter name=oneuptime-storage-array-agent`":
     "1. Verifica che l'agente sia in esecuzione: `docker ps --filter name=oneuptime-storage-array-agent`",
   "2. Check the agent logs for errors: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`":
-    "2. Cerca errori nei registri dell'agente: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`",
+    "2. Cerca errori nei log dell'agente: `docker logs oneuptime-storage-array-agent 2>&1 | grep -i error`",
   "3. Verify your OneUptime URL and ingestion key are correct.":
     "3. Verifica che l'URL di OneUptime e la chiave di ingestione siano corretti.",
   "4. Ensure the agent machine can reach the OneUptime instance over the network.":

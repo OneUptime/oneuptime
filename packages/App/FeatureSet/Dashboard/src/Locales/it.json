@@ -24545,7 +24545,7 @@
   "Read and write latency, IOPS and bandwidth as hosts see them, and capacity used, for this array.": "Latenza di lettura e scrittura, IOPS e larghezza di banda come le vedono gli host, e capacità usata, per questo array.",
   "Read operations per second (IOPS) in the latest report, computed by the array itself. Shows a dash if it has not reported recently.": "Operazioni di lettura al secondo (IOPS) nell'ultimo rapporto, calcolate dall'array stesso. Mostra un trattino se non ha inviato dati di recente.",
   "Read {{read}} · Write {{write}}": "Lettura {{read}} · Scrittura {{write}}",
-  "Receive the alerts and audit events the array forwards, to fill the Logs page.": "Ricevi gli avvisi e gli eventi di audit che l'array inoltra, per riempire la pagina Registri.",
+  "Receive the alerts and audit events the array forwards, to fill the Logs page.": "Ricevi gli avvisi e gli eventi di audit che l'array inoltra, per riempire la pagina Log.",
   "Received / Transmitted": "Ricevuti / Trasmessi",
   "Rejected by your team": "Rifiutato dal tuo team",
   "Remote": "Remoto",

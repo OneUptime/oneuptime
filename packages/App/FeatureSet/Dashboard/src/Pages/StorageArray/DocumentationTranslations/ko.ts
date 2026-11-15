@@ -89,7 +89,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "This is the full `otel-collector-config.yaml` the agent runs; the `.env` file supplies the `${env:...}` values:":
     "에이전트가 실행하는 전체 `otel-collector-config.yaml`입니다. `${env:...}` 값은 `.env` 파일이 제공합니다:",
   "The agent ships metrics only until you turn on its syslog receivers. Arrays forward their alerts and audit events as syslog; the agent stamps `storage.array.name` on every line, so they land on this array's **Logs** page.":
-    "에이전트는 syslog 리시버를 켜기 전까지 메트릭만 보냅니다. 어레이는 알림과 감사 이벤트를 syslog로 전달하며, 에이전트가 모든 줄에 `storage.array.name`을 붙이므로 이 어레이의 **로그** 페이지에 도착합니다.",
+    "에이전트는 syslog 리시버를 켜기 전까지 메트릭만 보냅니다. 어레이는 경고와 감사 이벤트를 syslog로 전달하며, 에이전트가 모든 줄에 `storage.array.name`을 붙이므로 이 어레이의 **로그** 페이지에 도착합니다.",
   "1. In `otel-collector-config.yaml`, uncomment the `syslog/tcp` and `syslog/udp` receivers and the `logs` pipeline. Classic BSD syslog timestamps carry no time zone: set `location` to the array's time zone unless its clock runs on UTC.":
     "1. `otel-collector-config.yaml`에서 `syslog/tcp`, `syslog/udp` 리시버와 `logs` 파이프라인의 주석을 해제합니다. 기존 BSD syslog 타임스탬프에는 시간대가 없으므로, 어레이의 시계가 UTC로 동작하지 않는다면 `location`을 어레이의 시간대로 설정하세요.",
   "2. In `docker-compose.yml`, uncomment the `ports:` block that publishes `5514/tcp` and `5514/udp`, and open the port on the machine's firewall for the array's management network.":
@@ -104,10 +104,10 @@ const TRANSLATION: SetupGuideTranslation = {
   "The array shows up tagged `team:storage` and `env:production`. Labels are matched case-insensitively, so an existing `Production` label is reused; labels added in the OneUptime UI are never removed by the agent.":
     "어레이는 `team:storage`와 `env:production` 레이블이 붙은 채 나타납니다. 레이블은 대소문자를 구분하지 않고 비교하므로 기존 `Production` 레이블이 재사용되며, OneUptime 화면에서 추가한 레이블은 에이전트가 절대 제거하지 않습니다.",
   "Every value is a gauge the FlashArray computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "모든 값은 FlashArray가 직접 계산하는 게이지입니다. 지연 시간은 작업당 마이크로초, 처리량은 초당 값입니다. OneUptime의 스토리지 어레이 페이지, 메트릭 카탈로그, 알림 템플릿은 다음을 바탕으로 합니다:",
+    "모든 값은 FlashArray가 직접 계산하는 게이지입니다. 지연 시간은 작업당 마이크로초, 처리량은 초당 값입니다. OneUptime의 스토리지 어레이 페이지, 메트릭 카탈로그, 경고 템플릿은 다음을 바탕으로 합니다:",
   "| Endpoint | Data |": "| 엔드포인트 | 데이터 |",
   "| **Array** (`/metrics/array`) | `purefa_info`, capacity and data reduction (`purefa_array_space_*`), performance, open alerts (`purefa_alerts_open`), hardware components, drives, controllers and network interfaces |":
-    "| **어레이** (`/metrics/array`) | `purefa_info`, 용량과 데이터 절감(`purefa_array_space_*`), 성능, 열린 알림(`purefa_alerts_open`), 하드웨어 구성 요소, 드라이브, 컨트롤러, 네트워크 인터페이스 |",
+    "| **어레이** (`/metrics/array`) | `purefa_info`, 용량과 데이터 절감(`purefa_array_space_*`), 성능, 열린 경고(`purefa_alerts_open`), 하드웨어 구성 요소, 드라이브, 컨트롤러, 네트워크 인터페이스 |",
   "| **Volumes** (`/metrics/volumes`) | Latency, IOPS, bandwidth, space and data reduction per volume |":
     "| **볼륨** (`/metrics/volumes`) | 볼륨별 지연 시간, IOPS, 대역폭, 용량, 데이터 절감 |",
   "| **Hosts** (`/metrics/hosts`) | Connectivity, connected volumes, latency, IOPS and space per host |":
@@ -198,9 +198,9 @@ const TRANSLATION: SetupGuideTranslation = {
   "4. On the FlashBlade, as an administrator, add a syslog server `udp://<agent-host>:5514` (or `tcp://`) in its syslog settings.":
     "4. FlashBlade에서 관리자로 syslog 설정에 syslog 서버 `udp://<agent-host>:5514`(또는 `tcp://`)를 추가합니다.",
   "Every value is a gauge the FlashBlade computes itself — latency per operation in microseconds, throughput per second. OneUptime's Storage Array pages, metric catalog and alert templates are built on:":
-    "모든 값은 FlashBlade가 직접 계산하는 게이지입니다. 지연 시간은 작업당 마이크로초, 처리량은 초당 값입니다. OneUptime의 스토리지 어레이 페이지, 메트릭 카탈로그, 알림 템플릿은 다음을 바탕으로 합니다:",
+    "모든 값은 FlashBlade가 직접 계산하는 게이지입니다. 지연 시간은 작업당 마이크로초, 처리량은 초당 값입니다. OneUptime의 스토리지 어레이 페이지, 메트릭 카탈로그, 경고 템플릿은 다음을 바탕으로 합니다:",
   "| **Array** (`/metrics/array`) | `purefb_info`, capacity and data reduction (`purefb_array_space_*`), performance per protocol, open alerts (`purefb_alerts_open`), hardware health (`purefb_hardware_health`) |":
-    "| **어레이** (`/metrics/array`) | `purefb_info`, 용량과 데이터 절감(`purefb_array_space_*`), 프로토콜별 성능, 열린 알림(`purefb_alerts_open`), 하드웨어 상태(`purefb_hardware_health`) |",
+    "| **어레이** (`/metrics/array`) | `purefb_info`, 용량과 데이터 절감(`purefb_array_space_*`), 프로토콜별 성능, 열린 경고(`purefb_alerts_open`), 하드웨어 상태(`purefb_hardware_health`) |",
   "| **File systems** (`/metrics/filesystems`) | Space, data reduction and performance per file system |":
     "| **파일 시스템** (`/metrics/filesystems`) | 파일 시스템별 용량, 데이터 절감, 성능 |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
