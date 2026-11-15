@@ -138,7 +138,7 @@ This project's daily logs ingestion budget of 10 GB is used up, so OneUptime is 
 
 ## 예산 알림 받기
 
-OneUptime은 5분마다 각 예산의 그날 수치를 프로젝트의 메트릭으로 기록하며, [메트릭 모니터](/docs/monitor/metrics-monitor)로 다른 메트릭과 똑같이 이 수치에 대한 알림을 받을 수 있습니다.
+OneUptime은 5분마다 각 예산의 그날 수치를 프로젝트의 메트릭으로 기록하며, [메트릭 모니터](/docs/monitor/metrics-monitor)로 다른 메트릭과 똑같이 이 수치에 대한 경고를 받을 수 있습니다.
 
 | 메트릭 | 단위 | 담긴 값 |
 | --- | --- | --- |
@@ -157,10 +157,10 @@ OneUptime은 5분마다 각 예산의 그날 수치를 프로젝트의 메트릭
 | `ingestionKeyId` | 키의 ID(키의 자체 예산인 경우). |
 | `ingestionKeyName` | 포인트를 기록할 때의 키 이름(키의 자체 예산인 경우). |
 
-프로젝트의 로그 예산이 90%에 이를 때 알림을 받으려면, `oneuptime.telemetry.budget.used.percent`에 대해 `signal` `logs`와 `scope` `project`로 필터링하고 최댓값이 90을 넘으면 알림을 보내는 메트릭 모니터를 만듭니다.
+프로젝트의 로그 예산이 90%에 이를 때 경고를 받으려면, `oneuptime.telemetry.budget.used.percent`에 대해 `signal` `logs`와 `scope` `project`로 필터링하고 최댓값이 90을 넘으면 경고를 보내는 메트릭 모니터를 만듭니다.
 
 - **최댓값으로 집계하세요.** 각 수치는 예산일 동안 늘어나기만 합니다.
-- **15분 이상의 기간을 사용하세요.** 포인트는 5분마다 기록되며, 포인트가 하나도 없는 기간이 되면 알림이 해결됩니다.
+- **15분 이상의 기간을 사용하세요.** 포인트는 5분마다 기록되며, 포인트가 하나도 없는 기간이 되면 경고가 해결됩니다.
 - **0이 아니라 빈 구간을 예상하세요.** 값이 0인 수치나, 집계를 읽을 수 없는 동안에는 아무것도 기록되지 않습니다.
 - **비용이 들지 않습니다.** 이 메트릭은 어떤 예산에도, 텔레메트리 사용량에도 집계되지 않으며, 모니터 메트릭과 같은 기간 동안 보관됩니다. 인스턴스 관리자가 바꾸지 않으면 30일입니다. `oneuptime.telemetry.budget.`로 시작하는 메트릭 이름은 이 메트릭용으로 예약되어 있어, 애플리케이션이 그런 이름으로 보내는 메트릭은 버려집니다.
 
@@ -188,5 +188,5 @@ OneUptime이 예산을 집계하는 Valkey에 연결할 수 없습니다. 연결
 - [텔레메트리 사용량](/docs/telemetry/usage): 각 프로젝트와 서비스가 보내는 양을 확인합니다.
 - [드롭 필터 및 스크럽 규칙](/docs/telemetry/drop-filters-and-scrub-rules): 필요 없는 텔레메트리를 저장하지 않습니다.
 - [수집 키](/docs/telemetry/ingestion-keys): 보내는 쪽마다 키를 두어 각각 예산을 가질 수 있게 합니다.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 예산 메트릭에 대한 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 예산 메트릭에 대한 경고를 받습니다.
 :::

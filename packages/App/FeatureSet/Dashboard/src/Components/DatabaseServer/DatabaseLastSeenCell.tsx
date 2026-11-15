@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -41,7 +42,7 @@ const DatabaseLastSeenCell: FunctionComponent<ComponentProps> = (
       title={lastSeen.title || undefined}
       data-testid="database-last-seen"
     >
-      {lastSeen.text}
+      {getValueOrQuietDash(lastSeen.text)}
     </span>
   );
 };

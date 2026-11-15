@@ -28,7 +28,7 @@ Adressen sjekkes fra serverens egen sonde, så den må kunne nås derfra. For at
 
 ![Hjem spør «Hva vil du gjøre først?», med «Vite når nettstedet eller API-et mitt er nede» avkrysset](screen:home-goal-website)
 
-Siden **Hjem** i et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**. Klikk deretter på **Opprett din første overvåker** i sjekklisten **Velkommen til OneUptime 👋**. Mangler steget i sjekklisten, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` og velger **Vite når nettstedet eller API-et mitt er nede**.
+Siden **Hjem** i et nytt prosjekt spør først **Hva vil du gjøre først?**: kryss av for **Vite når nettstedet eller API-et mitt er nede**, og klikk på **Fortsett**. Klikk deretter på **Opprett din første monitor** i sjekklisten **Velkommen til OneUptime 👋**. Mangler steget i sjekklisten, trykker du `Ctrl+K` (`Cmd+K` på en Mac), skriver `website down` og velger **Vite når nettstedet eller API-et mitt er nede**.
 
 ### Skriv inn adressen
 
@@ -63,7 +63,7 @@ Under **Send en test** klikker du på **Send meg et testoppkall**. Velg en **Alv
 
 - Oppsettet slutter med et sammendrag, hentet fra det som faktisk er lagret: **Sjekket**, **Når den går ned**, **Hvem som får beskjed** og **Testet**.
 - Klikk på **Åpne monitoren**, og deretter på **Vis kjeden** på kortet **Når den går ned**: da vises kjeden fra monitoren til personene den når, og det står **Ingenting stopper kjeden.** når ingenting ville stoppe den.
-- På **Hjem** merker sjekklisten **Opprett din første overvåker** som ferdig så snart den første sjekken kommer inn. Var det det siste steget, er sjekklisten borte.
+- På **Hjem** merker sjekklisten **Opprett din første monitor** som ferdig så snart den første sjekken kommer inn. Var det det siste steget, er sjekklisten borte.
 
 For å sette opp en annen adresse senere åpner du oppsettet på nytt og klikker på **Sjekk en annen adresse**.
 

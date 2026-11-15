@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import ObjectID from "Common/Types/ObjectID";
 import SideOver, { SideOverSize } from "Common/UI/Components/SideOver/SideOver";
@@ -137,7 +138,9 @@ const FigureGrid: FunctionComponent<{ figures: Array<Figure> }> = (props: {
               {getFigure(figure.value)}
             </dd>
             {figure.detail ? (
-              <dd className="text-xs text-gray-500">{figure.detail}</dd>
+              <dd className="text-xs text-gray-500">
+                {getValueOrQuietDash(figure.detail, { isSmall: true })}
+              </dd>
             ) : (
               <></>
             )}
@@ -199,7 +202,7 @@ const LinkedList: FunctionComponent<{
                     </span>
                     {row.detail ? (
                       <span className="block truncate text-xs text-gray-500">
-                        {row.detail}
+                        {getValueOrQuietDash(row.detail, { isSmall: true })}
                       </span>
                     ) : (
                       <></>

@@ -570,8 +570,8 @@ function allocatableScan(
 const ALLOCATABLE_LIST: string = [
   "**Affected Resources** (2 total)",
   "",
-  `1. **Node** \`${NODE_1}\` — **258 GB**`,
-  `2. **Node** \`${NODE_2}\` — **191 GB**`,
+  `1. **Node** \`${NODE_1}\` — **258\u00A0GB**`,
+  `2. **Node** \`${NODE_2}\` — **191\u00A0GB**`,
 ].join("\n");
 
 describe("Kubernetes raw scan: the criteria's own query is the one listed", () => {
@@ -600,13 +600,15 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
     expect(text).toContain(ALLOCATABLE_LIST);
 
     // None of the sibling (used_mem) scan's numbers.
-    expect(text).not.toContain("229 GB");
-    expect(text).not.toContain("99.8 GB");
+    expect(text).not.toContain("229\u00A0GB");
+    expect(text).not.toContain("99.8\u00A0GB");
 
     // "258 GB", never the 257760964608 it used to print.
     expect(text).not.toMatch(RAW_NUMBER);
 
-    expect(text).toContain(`Most affected node: \`${NODE_1}\` (**258 GB**)`);
+    expect(text).toContain(
+      `Most affected node: \`${NODE_1}\` (**258\u00A0GB**)`,
+    );
   });
 
   test("a criteria on `used_mem` lists the used_mem scan instead", async () => {
@@ -631,15 +633,17 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
       [
         "**Affected Resources** (2 total)",
         "",
-        `1. **Node** \`${NODE_1}\` — **229 GB**`,
-        `2. **Node** \`${NODE_2}\` — **99.8 GB**`,
+        `1. **Node** \`${NODE_1}\` — **229\u00A0GB**`,
+        `2. **Node** \`${NODE_2}\` — **99.8\u00A0GB**`,
       ].join("\n"),
     );
     expect(text).toContain(
       `- Metric: ${kubernetesName("k8s.node.memory.usage")} (\`k8s.node.memory.usage\`)`,
     );
-    expect(text).toContain(`Node \`${NODE_1}\` memory usage is at **229 GB**.`);
-    expect(text).not.toContain("258 GB");
+    expect(text).toContain(
+      `Node \`${NODE_1}\` memory usage is at **229\u00A0GB**.`,
+    );
+    expect(text).not.toContain("258\u00A0GB");
     expect(text).not.toMatch(RAW_NUMBER);
   });
 
@@ -739,8 +743,8 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
     const text: string = context || "";
 
     expect(text).not.toContain("**Affected Resources**");
-    expect(text).not.toContain("258 GB");
-    expect(text).not.toContain("229 GB");
+    expect(text).not.toContain("258\u00A0GB");
+    expect(text).not.toContain("229\u00A0GB");
   });
 
   test("a legacy untagged singular breakdown still renders for a query target", async () => {
@@ -779,7 +783,7 @@ describe("Kubernetes raw scan: the criteria's own query is the one listed", () =
     const text: string = context || "";
 
     expect(text).not.toContain("**Affected Resources**");
-    expect(text).not.toContain("258 GB");
+    expect(text).not.toContain("258\u00A0GB");
   });
 
   test("with no criteria at all, the legacy singular breakdown renders as before", async () => {
@@ -931,10 +935,10 @@ function proxmoxSelectionCase(): PlatformSelectionCase {
     expectedQueryList: [
       "**Affected Resources** (1 total)",
       "",
-      "1. **Virtual Machine** `web-vm` (`qemu/100`) — **8 GB**",
+      "1. **Virtual Machine** `web-vm` (`qemu/100`) — **8\u00A0GB**",
       "   - Node: `pve1`",
     ],
-    siblingValue: "4 GB",
+    siblingValue: "4\u00A0GB",
     formulaAlias: "mem_pct",
     expectedFormulaLines: [
       "- Metric: Guest Memory Used (%)",
@@ -1222,10 +1226,10 @@ function cephSelectionCase(): PlatformSelectionCase {
     expectedQueryList: [
       "**Affected Resources** (1 total)",
       "",
-      "1. **Daemon** `osd.3` — **1.5 TB**",
+      "1. **Daemon** `osd.3` — **1.5\u00A0TB**",
       "   - Host: `ceph-1`",
     ],
-    siblingValue: "4 TB",
+    siblingValue: "4\u00A0TB",
     formulaAlias: "osd_fill",
     expectedFormulaLines: [
       "- Metric: OSD Fill (%)",
@@ -1334,13 +1338,13 @@ describe("Platform raw scan: the catalog unit wins over the scan's declared unit
      * a healthy node and is not listed under the alert.
      */
     expect(text).toContain("**Affected Resources** (1 total)");
-    expect(text).toContain("1. **Node** `node-b` — **1.4 cores**");
+    expect(text).toContain("1. **Node** `node-b` — **1.4\u00A0cores**");
     expect(text).not.toContain("node-a");
     expect(text).toContain(
       `- Metric: ${kubernetesName(metricName)} (\`${metricName}\`)`,
     );
     expect(text).toContain(
-      "Node `node-b` is at **1.4 cores** CPU utilization.",
+      "Node `node-b` is at **1.4\u00A0cores** CPU utilization.",
     );
     expect(text).not.toContain("140.00%");
     expect(text).not.toContain("%");
@@ -1920,10 +1924,10 @@ describe("Platform templates: fall criteria list the resources that fell", () =>
       [
         "**Affected Tasks** (2 total)",
         "",
-        "1. **Task** `web.2.def` — **12 sec**",
+        "1. **Task** `web.2.def` — **12\u00A0sec**",
         "   - Service: `web`",
         "   - Node: `swarm-2`",
-        "2. **Task** `web.1.abc` — **45 sec**",
+        "2. **Task** `web.1.abc` — **45\u00A0sec**",
         "   - Service: `web`",
         "   - Node: `swarm-1`",
       ].join("\n"),

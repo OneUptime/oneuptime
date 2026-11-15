@@ -287,19 +287,23 @@ const readText: (value: unknown, limit?: number) => string | null = (
 };
 
 export default class InstallationHealthUtil {
-  // Bytes as people read a disk: "8.4 GB", "120 GB", "512 MB".
+  /*
+   * Bytes as people read a disk: "8.4 GB", "120 GB", "512 MB", the figure
+   * held to its unit by a no-break space: a value in a translated sentence
+   * is put in as it is written (#8457).
+   */
   public static formatBytes(bytes: number): string {
     if (!Number.isFinite(bytes) || bytes < 0) {
-      return "0 MB";
+      return "0\u00A0MB";
     }
 
     if (bytes < GIGABYTE) {
-      return `${Math.round(bytes / (1000 * 1000))} MB`;
+      return `${Math.round(bytes / (1000 * 1000))}\u00A0MB`;
     }
 
     const gigabytes: number = bytes / GIGABYTE;
 
-    return `${gigabytes >= 10 ? Math.round(gigabytes) : Math.round(gigabytes * 10) / 10} GB`;
+    return `${gigabytes >= 10 ? Math.round(gigabytes) : Math.round(gigabytes * 10) / 10}\u00A0GB`;
   }
 
   // A date as a terminal and a browser alike read it: "2026-11-12 14:05 UTC".

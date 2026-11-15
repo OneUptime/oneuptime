@@ -116,7 +116,7 @@ La richiesta parte da OneUptime. Su OneUptime Cloud, il tuo endpoint deve essere
 
 ## Costruisci il flusso di lavoro
 
-Per prima cosa salva il token dell'endpoint dove il flusso di lavoro può usarlo senza mostrarlo: apri **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Variabile del flusso di lavoro**, chiamala `AGENT_KILL_TOKEN`, metti il token in **Contenuto** e attiva **Segreto**. Un valore segreto viene rimosso dai registri delle esecuzioni e dalle tracce dei passi.
+Per prima cosa salva il token dell'endpoint dove il flusso di lavoro può usarlo senza mostrarlo: apri **Flussi di lavoro → Variabili globali**, fai clic su **Crea: Variabile del flusso di lavoro**, chiamala `AGENT_KILL_TOKEN`, metti il token in **Contenuto** e attiva **Segreto**. Un valore segreto viene rimosso dai log delle esecuzioni e dalle tracce dei passi.
 
 :::steps
 ### Crea il flusso
@@ -169,7 +169,7 @@ Per reagire a più inneschi, fai iniziare tutti i loro titoli allo stesso modo, 
 ## Prova il circuit breaker
 
 :::steps
-1. Fallo scattare a mano. Apri **Avvisi**, fai clic su **Crea avviso** e creane uno intitolato `LLM budget exceeded: test`. L'esecuzione compare in **Flussi di lavoro → Registri → Esecuzioni**, e il tuo endpoint riceve la chiamata.
+1. Fallo scattare a mano. Apri **Avvisi**, fai clic su **Crea avviso** e creane uno intitolato `LLM budget exceeded: test`. L'esecuzione compare in **Flussi di lavoro → Log → Esecuzioni**, e il tuo endpoint riceve la chiamata.
 2. Fallo scattare sul serio. Crea un budget con un limite minuscolo, come `0.01` USD, sul servizio di un agente di prova, punta un monitor di budget su di esso e lascia girare l'agente: la percentuale supera 100, l'avviso si apre, il flusso di lavoro si esegue e il circuit breaker scatta. Per l'avviso di ciclo, dai a un agente di prova uno strumento che fallisce sempre.
 3. Fallo scattare due volte. Crea di nuovo lo stesso avviso: il tuo endpoint deve accettare il secondo scatto senza cambiare nulla.
 :::
@@ -201,7 +201,7 @@ L'**Intervallo di tempo** del monitor è più breve dei 15 minuti tra due punti 
 :::
 
 :::details La richiesta non raggiunge mai il tuo endpoint
-Apri l'esecuzione in **Flussi di lavoro → Registri → Esecuzioni** e il passo **Chiamata API POST (JSON)**: dice perché la richiesta è fallita. Su OneUptime Cloud, l'endpoint deve essere raggiungibile da internet; un'installazione self-hosted rifiuta gli indirizzi di rete privati a meno che un amministratore non li consenta.
+Apri l'esecuzione in **Flussi di lavoro → Log → Esecuzioni** e il passo **Chiamata API POST (JSON)**: dice perché la richiesta è fallita. Su OneUptime Cloud, l'endpoint deve essere raggiungibile da internet; un'installazione self-hosted rifiuta gli indirizzi di rete privati a meno che un amministratore non li consenta.
 :::
 
 ## Passaggi successivi

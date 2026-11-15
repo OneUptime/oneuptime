@@ -23,7 +23,7 @@ flowchart TB
     collector -->|"OTLP över HTTPS"| oneuptime
 ```
 
-Supervisorn ber OneUptime om värdens konfiguration ungefär var 30:e sekund, med din intagningsnyckel, och rapporterar vilken konfiguration värden kör och om den startade. Värden registreras under **Värdar** när supervisorn ansluter första gången, med datorns namn, och dess sidor fylls i allteftersom dess mått och loggar kommer in.
+Supervisorn ber OneUptime om värdens konfiguration ungefär var 30:e sekund, med din intagningsnyckel, och rapporterar vilken konfiguration värden kör och om den startade. Värden registreras under **Värdar** när supervisorn ansluter första gången, med datorns namn, och dess sidor fylls i allteftersom dess mätvärden och loggar kommer in.
 
 Varje värd kör en konfiguration, vald i den här ordningen:
 
@@ -76,7 +76,7 @@ Varje OneUptime tillhandahåller sina egna installationsprogram, så en egenvär
 
 ### Vänta på värden
 
-Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mått kommer in, oftast inom en minut, och sedan med sin hälsa, **Felfri** när inget på den behöver ses över, och sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
+Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mätvärden kommer in, oftast inom en minut, och sedan med sin hälsa, **Felfri** när inget på den behöver ses över, och sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Se vilka värdar som kräver uppmärksamhet
@@ -91,7 +91,7 @@ Under det säger varje värds **Status** med ett ord hur den mår, med orsaken u
 | **Försämrad** | Något behöver ses över: ett filsystem eller dess inoder mer än 85 % fullt, minne mer än 90 % använt, swap mer än 80 % använt, ett belastningsmedelvärde över 15 minuter över dubbla antalet kärnor, en misslyckad systemd-enhet eller en insamlarkonfiguration som inte startade. |
 | **Ej felfri** | Något är kritiskt: ett filsystem eller dess inoder mer än 95 % fullt, eller minne mer än 95 % använt. |
 | **Ingen rapportering** | Inget har kommit från den på 15 minuter. Dess senaste mätvärden stämmer inte längre, så dess rad visar inga siffror och säger när den senast rapporterade. |
-| **Startar** | Dess insamlare registrerade sig under de senaste tio minuterna, och dess första mått är på väg. En värd som inte har skickat något efter det visar **Inga data ännu**. |
+| **Startar** | Dess insamlare registrerade sig under de senaste tio minuterna, och dess första mätvärden är på väg. En värd som inte har skickat något efter det visar **Inga data ännu**. |
 | **Rapporterar** | Den rapporterar, men skickar inga av de mätvärden som de här reglerna bedömer, till exempel en värd vars insamlare konfigurerats utan `hostmetrics`. |
 
 Mätvärdena är värdens senaste rapport, som OneUptime sparar på värden ungefär en gång i minuten, så listan har inget tidsintervall att välja. En stapel blir gul där en värd behöver ses över och röd där den är kritisk. **CPU** är upptagen tid över alla kärnor och blir gul över 90 %, aldrig röd: en upptagen CPU är en värd i arbete, och belastningsmedelvärdet säger när arbete köar. **Disk** är det fullaste filsystemet, med dess monteringspunkt under, så som `df` visar sin `Use%`: utrymme reserverat för root räknas inte.

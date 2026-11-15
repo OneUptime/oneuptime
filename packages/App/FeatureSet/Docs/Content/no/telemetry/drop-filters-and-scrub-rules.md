@@ -23,7 +23,7 @@ flowchart TB
 ```
 
 - **De virker bare på nye poster.** En regel du oppretter eller endrer, gjelder for poster som kommer inn omtrent ett minutt senere. Poster som allerede er lagret, endres ikke.
-- **En forkastet post er borte.** Ingen søk, grafer, overvåkinger eller opptaksregler ser den noen gang, og det lages ikke noe unntak fra den. På OneUptime Cloud blir den heller ikke fakturert.
+- **En forkastet post er borte.** Ingen søk, grafer, monitorer eller opptaksregler ser den noen gang, og det lages ikke noe unntak fra den. På OneUptime Cloud blir den heller ikke fakturert.
 - **Hver liste kjører i rekkefølge.** Dra radene i en liste for å endre rekkefølgen. Bare aktiverte filtre og regler kjører.
 
 Drop-filtre og scrub-regler for logger gjelder like mye for logger fra OpenTelemetry, Syslog, Fluent Bit og Fluentd. [Loggpipelines](/docs/telemetry/log-pipelines) forklarer trinnet etter dem.

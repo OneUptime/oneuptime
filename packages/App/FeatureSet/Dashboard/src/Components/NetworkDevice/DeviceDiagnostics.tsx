@@ -1,4 +1,5 @@
 import TracerouteHopsTable from "./TracerouteHopsTable";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import ProbeMessageLine from "../Monitor/SummaryView/ProbeMessageLine";
 import {
   DIAGNOSTIC_MAX_CONSECUTIVE_POLL_FAILURES,
@@ -451,7 +452,7 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
                     {diagnosticRow.isProbeMessage ? (
                       <ProbeMessageLine message={diagnosticRow.value} />
                     ) : (
-                      diagnosticRow.value
+                      getValueOrQuietDash(diagnosticRow.value)
                     )}
                   </dd>
                 </div>

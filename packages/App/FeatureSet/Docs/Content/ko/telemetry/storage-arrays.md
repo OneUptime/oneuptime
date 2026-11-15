@@ -1,6 +1,6 @@
 # 스토리지 어레이 에이전트
 
-OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링합니다. 대상은 용량과 데이터 절감, 지연 시간, IOPS와 대역폭, 볼륨, 호스트, 포드와 복제, 하드웨어 상태, 파일 시스템과 버킷입니다. 이 에이전트는 표준 OpenTelemetry Collector로, 읽기 전용 사용자의 API 토큰으로 어레이의 OpenMetrics 엔드포인트를 스크레이프하고, 모든 메트릭에 어레이의 식별 정보를 붙여 OneUptime으로 보냅니다. 들어온 데이터에는 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)로 알림을 보낼 수 있습니다.
+OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링합니다. 대상은 용량과 데이터 절감, 지연 시간, IOPS와 대역폭, 볼륨, 호스트, 포드와 복제, 하드웨어 상태, 파일 시스템과 버킷입니다. 이 에이전트는 표준 OpenTelemetry Collector로, 읽기 전용 사용자의 API 토큰으로 어레이의 OpenMetrics 엔드포인트를 스크레이프하고, 모든 메트릭에 어레이의 식별 정보를 붙여 OneUptime으로 보냅니다. 들어온 데이터에는 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)로 경고를 보낼 수 있습니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 읽기 전용 사용자, 그다음 설치 스크립트 또는 Docker Compose.
@@ -136,7 +136,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime에서 어레이 찾기
 
-**제품 → 인프라 → 스토리지 어레이 → 모든 스토리지 어레이** 메뉴를 여세요. 첫 스크레이프(약 1분) 후에 어레이가 용량, 성능, 열린 알림, 하드웨어와 함께 표시됩니다. 볼륨, 호스트, 포드는 2분 안에, FlashBlade의 파일 시스템과 버킷은 5분 안에, FlashArray 디렉터리는 30분 안에 뒤따릅니다. 어레이의 **토폴로지** 페이지는 호스트, 볼륨, 파일 시스템, 하드웨어를 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
+**제품 → 인프라 → 스토리지 어레이 → 모든 스토리지 어레이** 메뉴를 여세요. 첫 스크레이프(약 1분) 후에 어레이가 용량, 성능, 열린 경고, 하드웨어와 함께 표시됩니다. 볼륨, 호스트, 포드는 2분 안에, FlashBlade의 파일 시스템과 버킷은 5분 안에, FlashArray 디렉터리는 30분 안에 뒤따릅니다. 어레이의 **토폴로지** 페이지는 호스트, 볼륨, 파일 시스템, 하드웨어를 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
 ## 환경 변수
@@ -171,12 +171,12 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 
 | 엔드포인트 | 메트릭 패밀리 | OneUptime이 이것으로 만드는 것 |
 | --- | --- | --- |
-| FlashArray `/metrics/array` | `purefa_info`, `purefa_alerts_open`, `purefa_array_space_*`, `purefa_array_performance_*`, `purefa_hw_component_status`, `purefa_hw_component_temperature_celsius`, `purefa_hw_controller_info`, `purefa_drive_capacity_bytes`, `purefa_network_interface_*` | 어레이의 이름, Purity 버전, 시스템 ID. 용량, 사용 공간, 데이터 절감. 열린 알림 수. 어레이의 상태. **하드웨어** 페이지(구성 요소, 드라이브, 컨트롤러, 네트워크 인터페이스) |
+| FlashArray `/metrics/array` | `purefa_info`, `purefa_alerts_open`, `purefa_array_space_*`, `purefa_array_performance_*`, `purefa_hw_component_status`, `purefa_hw_component_temperature_celsius`, `purefa_hw_controller_info`, `purefa_drive_capacity_bytes`, `purefa_network_interface_*` | 어레이의 이름, Purity 버전, 시스템 ID. 용량, 사용 공간, 데이터 절감. 열린 경고 수. 어레이의 상태. **하드웨어** 페이지(구성 요소, 드라이브, 컨트롤러, 네트워크 인터페이스) |
 | FlashArray `/metrics/volumes` | `purefa_volume_performance_*`, `purefa_volume_space_*`, `purefa_volume_qos_*` | **볼륨** 페이지: 볼륨별 프로비저닝 크기와 물리 크기, 데이터 절감, 읽기 및 쓰기 지연 시간, IOPS와 대역폭 |
 | FlashArray `/metrics/hosts` | `purefa_host_connectivity_info`, `purefa_host_connections_info`, `purefa_host_performance_*`, `purefa_host_space_*` | **호스트** 페이지: 호스트별 연결 상태(중복 경로 여부), 연결된 볼륨, 지연 시간, IOPS와 대역폭 |
 | FlashArray `/metrics/pods` | `purefa_pod_performance_*`, `purefa_pod_space_*`, `purefa_pod_replica_links_*`, `purefa_pod_mediator_status` | **복제** 페이지: ActiveCluster와 ActiveDR 포드, 복제본 링크 상태와 지연 |
 | FlashArray `/metrics/directories` | `purefa_directory_performance_*`, `purefa_directory_space_*` | **디렉터리** 페이지(FlashArray File Services) |
-| FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade의 이름, Purity 버전, 시스템 ID. 용량과 데이터 절감. 열린 알림 수. 어레이의 상태. **하드웨어** 페이지 |
+| FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade의 이름, Purity 버전, 시스템 ID. 용량과 데이터 절감. 열린 경고 수. 어레이의 상태. **하드웨어** 페이지 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **파일 시스템** 페이지: 파일 시스템별 프로비저닝 공간과 사용 공간, 데이터 절감, 지연 시간, IOPS와 대역폭 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **버킷** 페이지: 버킷별 공간, 할당량, 객체 수, 성능. 계정별로 묶어 표시 |
 
@@ -186,17 +186,17 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 
 어레이의 **개요**는 주의가 필요한 항목에 따라 상태를 **정상**, **저하됨** 또는 **비정상**으로 나타내고, 그 항목을 **확인 필요**에 가장 급한 것부터, 각각 살펴볼 곳까지 한 단계로 갈 수 있게 나열합니다:
 
-- **어레이 자체.** 어레이가 심각 수준으로 발생시킨 열린 알림은 심각이고, 경고 수준의 알림은 확인이 필요합니다. 사용 가능 용량의 80%를 넘으면 확인이 필요하고 90%를 넘으면 심각이며, 이는 Capacity Above 80%와 Capacity Above 90% 알림이 발생하는 수준입니다. 평균 읽기 또는 쓰기 지연 시간이 5ms를 넘는 FlashArray나 읽기가 10ms보다 오래 걸리는 FlashBlade는 확인이 필요합니다.
+- **어레이 자체.** 어레이가 심각 수준으로 발생시킨 열린 경고는 심각이고, 경고 수준의 경고는 확인이 필요합니다. 사용 가능 용량의 80%를 넘으면 확인이 필요하고 90%를 넘으면 심각이며, 이는 Capacity Above 80%와 Capacity Above 90% 경고가 발생하는 수준입니다. 평균 읽기 또는 쓰기 지연 시간이 5ms를 넘는 FlashArray나 읽기가 10ms보다 오래 걸리는 FlashBlade는 확인이 필요합니다.
 - **하드웨어.** 어레이가 심각, 실패, 누락, 비정상으로 보고하는 구성 요소, 드라이브, 컨트롤러, 네트워크 인터페이스는 심각입니다. 부품을 교체할 때까지 이중화가 사라진 상태입니다. 저하됨, 알 수 없음, 인식되지 않음, 준비 안 됨으로 보고되는 것은 확인이 필요합니다. 설치되지 않았거나 전원이 꺼졌거나 사용하지 않는 부품은 나열되지 않습니다.
 - **호스트.** 더 이상 두 컨트롤러를 통해 어레이에 닿지 않는 호스트는 확인이 필요하며, 이유도 함께 표시됩니다. 컨트롤러 하나만 통하는 경우, 경로가 고르지 않은 경우, 경로가 전혀 없는 경우입니다.
 - **Pod.** 어레이가 복제본 링크를 비정상으로 보고하는 Pod는 심각이고, 1분 넘게 뒤처진 Pod는 확인이 필요합니다.
 - **파일 시스템.** 프로비저닝 크기의 여유가 10% 미만인 FlashBlade 파일 시스템은 확인이 필요합니다.
 
-**호스트**, **복제**, **파일 시스템** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. 호스트와 파일 시스템의 개별 페이지는 주의가 필요한 항목과 그것을 감시하는 어레이 알림을 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. 볼륨과 버킷을 포함한 모든 부분의 페이지는 열린 항목을 보여 줍니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 어레이의 마지막 보고가 더 이상 사실이 아니기 때문입니다. 위의 각 기준선은 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)에 나열된 대로 해당 알림 템플릿이 발생하는 수준입니다.
+**호스트**, **복제**, **파일 시스템** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. 호스트와 파일 시스템의 개별 페이지는 주의가 필요한 항목과 그것을 감시하는 어레이 경고를 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. 볼륨과 버킷을 포함한 모든 부분의 페이지는 열린 항목을 보여 줍니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 어레이의 마지막 보고가 더 이상 사실이 아니기 때문입니다. 위의 각 기준선은 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)에 나열된 대로 해당 경고 템플릿이 발생하는 수준입니다.
 
 ## 선택 사항 — 어레이의 syslog 보내기
 
-기본적으로 에이전트는 메트릭만 보내므로 어레이의 **로그** 페이지는 비어 있습니다. 어레이는 알림과 감사 이벤트를 syslog로 전달하며, 함께 제공되는 모든 Collector 구성에는 주석 처리된 `syslog` 리시버 쌍(포트 5514의 TCP와 UDP, RFC 3164)이 있고, 이는 주석 처리된 `logs` 파이프라인에 연결되어 있습니다. 이 파이프라인이 `storage.array.name`을 붙이므로 로그가 어레이로 들어갑니다.
+기본적으로 에이전트는 메트릭만 보내므로 어레이의 **로그** 페이지는 비어 있습니다. 어레이는 경고와 감사 이벤트를 syslog로 전달하며, 함께 제공되는 모든 Collector 구성에는 주석 처리된 `syslog` 리시버 쌍(포트 5514의 TCP와 UDP, RFC 3164)이 있고, 이는 주석 처리된 `logs` 파이프라인에 연결되어 있습니다. 이 파이프라인이 `storage.array.name`을 붙이므로 로그가 어레이로 들어갑니다.
 
 :::steps
 ### 리시버 켜기
@@ -332,7 +332,7 @@ OneUptime은 스토리지 어레이를 `storage.array.name`으로 등록하며, 
 ## 다음 단계
 
 :::cards
-- [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor): 어레이 알림, 용량, 지연 시간, 하드웨어, 호스트 경로, 복제, 파일 시스템에 대해 알림을 보냅니다.
+- [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor): 어레이 경고, 용량, 지연 시간, 하드웨어, 호스트 경로, 복제, 파일 시스템에 대해 경고를 보냅니다.
 - [VMware 에이전트](/docs/telemetry/vmware): 이 어레이에서 VMware를 실행한다면 데이터스토어와 VM도 확인하세요.
 - [호스트 OpenTelemetry 수집기](/docs/telemetry/host-otel-collector): 어레이를 사용하는 머신을 운영체제 관점에서 봅니다.
 :::

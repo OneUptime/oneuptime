@@ -1,5 +1,7 @@
 import { AIChatWidget, AIChatWidgetColumn } from "Common/Types/AI/AIChatTypes";
+import { isNoValue } from "Common/Types/EmptyValueMark";
 import { JSONObject } from "Common/Types/JSON";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
@@ -163,9 +165,15 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                             ? "whitespace-nowrap"
                             : "min-w-[5rem] text-left"
                       }`}
-                      title={cell.fullText}
+                      title={isNoValue(cell.text) ? undefined : cell.fullText}
                     >
-                      {column.type === "number" ? (
+                      {/*
+                       * A cell with nothing in it - the export's plain-text
+                       * mark - is the quiet dash, read out as "Not set" (#8679).
+                       */}
+                      {isNoValue(cell.text) ? (
+                        <TableEmptyValue />
+                      ) : column.type === "number" ? (
                         cell.text
                       ) : cell.dateTime ? (
                         <time dateTime={cell.dateTime}>{cell.text}</time>

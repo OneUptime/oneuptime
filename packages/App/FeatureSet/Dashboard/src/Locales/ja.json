@@ -55688,5 +55688,6 @@
   "Valid (OAuth token)": "有効",
   "Yes / No": "はい / いいえ",
   "which led to {{steps}}": "その後 {{steps}} に進みました",
-  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。"
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} はまだ実行されていません。実行されると、ここにフィールドが表示されます。",
+  "Insights (explorer analytics)": "インサイト"
 }

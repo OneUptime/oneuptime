@@ -48,7 +48,7 @@ Angi **Domenenavn** som skal slås opp, som `example.com`, og velg **Posttype**.
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser postene sonden fikk tilbake.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser postene sonden fikk tilbake.
 
 ### Gå gjennom kriteriene
 

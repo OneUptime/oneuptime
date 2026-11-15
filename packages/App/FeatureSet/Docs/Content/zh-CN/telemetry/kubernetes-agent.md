@@ -397,7 +397,7 @@ Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有
 
 所以 `api` 模式有意比 `daemonset` 模式丢弃得更少：Python traceback 或 `npm ERR!` 不带严重性关键字，悄悄删除它们正是阈值应当避免的失败。在混合模式（`logs.windowsPods.enabled`）下，两行规则都按节点操作系统适用：Linux Pod 遵循 `daemonset`，Windows Pod 遵循 `api`。
 
-两种模式在过滤之前都会把多行事件重新拼合，因此 Java 堆栈跟踪按其第一行判断，整体保留或整体丢弃。
+两种模式在过滤之前都会把多行事件重新拼合，因此 Java 堆栈追踪按其第一行判断，整体保留或整体丢弃。
 
 > [!IMPORTANT]
 > Kubernetes 事件和资源规格永远不会被它过滤。它们来自 Kubernetes API，没有自己的严重性，因此阈值会删除整个数据流，包括你最需要的 `FailedScheduling`、`BackOff` 和 `OOMKilling` 警告。它们数量少而价值高，所以代理总是发送它们；要精简它们，请在 OneUptime 中使用 **日志 → 设置 → 丢弃过滤器**。

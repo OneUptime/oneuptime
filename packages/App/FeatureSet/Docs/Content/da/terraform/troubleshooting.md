@@ -28,7 +28,7 @@ Slå den meddelelse, Terraform skrev, eller det, du så ske, op i tabellen neden
 | En `priority` eller `order` ændres efter apply | Giv hver enkelt et nummer, som ingen anden har: se [En prioritet eller rækkefølge, der flytter sig](#en-prioritet-eller-rækkefølge-der-flytter-sig) |
 | `Invalid Configuration for Read-Only Attribute` | Fjern attributten fra konfigurationen: se [Skrivebeskyttede attributter](#skrivebeskyttede-attributter) |
 | `has been renamed to` | Omdøb ressourcetypen med en `moved`-blok: se [En omdøbt ressourcetype](#en-omdøbt-ressourcetype) |
-| En overvågning, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Overvågninger fra før trin-ID'er](#overvågninger-fra-før-trin-ider) |
+| En monitor, der er lavet med Terraform, viser aldrig sine tjek | Opgradér OneUptime: se [Overvågninger fra før trin-ID'er](#overvågninger-fra-før-trin-ider) |
 | `must contain at least 1 elements` | Udelad attributten i stedet for at lade den være tom: se [Tomme værdier](#tomme-værdier) |
 | `Not an ID` | Henvis til posten i stedet for at nævne den: se [Et navn, hvor et ID hører hjemme](#et-navn-hvor-et-id-hører-hjemme) |
 | JSON fra dashboardet i en `.tf`-fil | Skriv det som HCL: se [JSON fra dashboardet](#json-fra-dashboardet) |
@@ -79,7 +79,7 @@ At sætte sådan en indstilling tilbage til standardværdien, hvilket slår funk
 
 Det samme gælder for de ressourcer, dit abonnement sælger, og som et projekt beholder, efter det er nedgraderet - SSO-udbydere, SCIM-forbindelser, API-nøgler, vagtplaner, og regler og opsummeringer for Slack og Microsoft Teams: under abonnementet (mens projektet stadig er på Growth, som providerens egen API-nøgle kræver) kan dem, projektet allerede har, stadig læses (så `terraform plan` og `import` virker), slettes (så det kan anvendes at fjerne dem fra konfigurationen, eller `terraform destroy`) og slås fra, hvor de har en attribut `is_enabled`. At oprette dem, ændre dem eller slå dem til igen svarer stadig 402.
 
-Andre ressourcer, dit abonnement sælger, som skabeloner, brugerdefinerede felter og overvågningsgrupper, kræver stadig abonnementet for at blive læst, så en plan, der genindlæser dem, svarer 402; de kan dog stadig slettes, for eksempel med `terraform destroy -refresh=false`.
+Andre ressourcer, dit abonnement sælger, som skabeloner, brugerdefinerede felter og monitorgrupper, kræver stadig abonnementet for at blive læst, så en plan, der genindlæser dem, svarer 402; de kan dog stadig slettes, for eksempel med `terraform destroy -refresh=false`.
 
 En API-nøgles tilladelser slettes ikke én ad gangen under Growth, da det at slette en blokerende tilladelse ville give nøglen mere adgang: kør `terraform state rm` på tilladelsesressourcerne, ødelæg derefter nøglen, og dens tilladelser forsvinder med den.
 
@@ -91,7 +91,7 @@ En API-nøgles tilladelser slettes ikke én ad gangen under Growth, da det at sl
 
 ### ID'er fra et andet projekt
 
-Hvert ID, en ressource nævner - en overvågnings etiketter, en statussidegruppes statusside, en netværksenheds site, en eskaleringsregels teams - skal være en post i det projekt, din API-nøgle hører til. Et ID på en post i et andet projekt, et ID, der ikke findes, og et ID på en post, nøglen ikke må læse, får alle det samme svar, som nævner feltet og ID'et:
+Hvert ID, en ressource nævner - en monitor etiketter, en statussidegruppes statusside, en netværksenheds site, en eskaleringsregels teams - skal være en post i det projekt, din API-nøgle hører til. Et ID på en post i et andet projekt, et ID, der ikke findes, og et ID på en post, nøglen ikke må læse, får alle det samme svar, som nævner feltet og ID'et:
 
 ```text
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
@@ -107,7 +107,7 @@ En datakilde finder præcis én post, eller den stopper planen. `Not Found` sige
 
 ### Inkonsistent resultat efter apply
 
-`Provider produced inconsistent result after apply` betyder, at provideren returnerede andre værdier, end den havde planlagt. Ældre providere gjorde det med værdier, som serveren beregner: standardværdier, som serveren tilføjer inde i `monitor_steps`, tidsstempler, som serveren skrev på en anden måde, indpakkede værdier som `probe_version`, og attributter, som serveren holder opdateret, som hvornår en overvågning af indgående forespørgsler sidst modtog sit heartbeat. De læste også et decimaltal som null, når API'et sendte det som tekst, så hver apply af en farveregel for statussidebjælker fejlede på `uptime_percent_greater_than_or_equal_to`. Nuværende providere håndterer alt dette: tidsstempler sammenlignes som tidspunkter, lister af etiketter er mængder, tal læses tilbage, som du skrev dem, og en attribut, du ikke har angivet, beholder sin planlagte værdi, indtil næste genindlæsning læser serverens.
+`Provider produced inconsistent result after apply` betyder, at provideren returnerede andre værdier, end den havde planlagt. Ældre providere gjorde det med værdier, som serveren beregner: standardværdier, som serveren tilføjer inde i `monitor_steps`, tidsstempler, som serveren skrev på en anden måde, indpakkede værdier som `probe_version`, og attributter, som serveren holder opdateret, som hvornår en monitor af indgående forespørgsler sidst modtog sit heartbeat. De læste også et decimaltal som null, når API'et sendte det som tekst, så hver apply af en farveregel for statussidebjælker fejlede på `uptime_percent_greater_than_or_equal_to`. Nuværende providere håndterer alt dette: tidsstempler sammenlignes som tidspunkter, lister af etiketter er mængder, tal læses tilbage, som du skrev dem, og en attribut, du ikke har angivet, beholder sin planlagte værdi, indtil næste genindlæsning læser serverens.
 
 :::steps
 1. Opgradér provideren: behold `version = "{{TERRAFORM_PROVIDER_VERSION}}"` i providerkravet, og kør `terraform init -upgrade`.
@@ -158,9 +158,9 @@ moved {
 
 ### Overvågninger fra før trin-ID'er
 
-ID'erne inde i en overvågnings trin - for hvert trin, kriterium og hver hændelses- og alarmskabelon - er serverens at give. Ældre OneUptime-versioner gav kun kriterier ID'er, og et nyt sæt ved hver skrivning, så en overvågning, der blev skrevet via API'et, som hver overvågning, provideren lavede, blev gemt med et trin uden ID. Dens sonder tjekkede den stadig, og dens status ændrede sig stadig, men overvågningens side kunne ikke finde dens tjek, dens hændelser kunne ikke løse sig selv, og hver `terraform apply`, der ændrede `monitor_steps`, rev åbne hændelser løs fra deres kriterier.
+ID'erne inde i en monitor trin - for hvert trin, kriterium og hver hændelses- og alarmskabelon - er serverens at give. Ældre OneUptime-versioner gav kun kriterier ID'er, og et nyt sæt ved hver skrivning, så en monitor, der blev skrevet via API'et, som hver monitor, provideren lavede, blev gemt med et trin uden ID. Dens sonder tjekkede den stadig, og dens status ændrede sig stadig, men monitorens side kunne ikke finde dens tjek, dens hændelser kunne ikke løse sig selv, og hver `terraform apply`, der ændrede `monitor_steps`, rev åbne hændelser løs fra deres kriterier.
 
-Den nuværende OneUptime giver hver af dem et ID ved oprettelse, beholder dem ved hver apply, og udfylder de manglende på eksisterende overvågninger, når den opgraderes. Intet ændres i din konfiguration: der er stadig ingen ID'er at skrive. En hændelse, som den gamle opførsel efterlod åben, lukkes ved overvågningens næste gendannelse, så længe det kriterium, der åbnede den, stadig findes; en, hvis kriterium en tidligere apply erstattede, skal løses én gang i hånden.
+Den nuværende OneUptime giver hver af dem et ID ved oprettelse, beholder dem ved hver apply, og udfylder de manglende på eksisterende monitorer, når den opgraderes. Intet ændres i din konfiguration: der er stadig ingen ID'er at skrive. En hændelse, som den gamle opførsel efterlod åben, lukkes ved monitorens næste gendannelse, så længe det kriterium, der åbnede den, stadig findes; en, hvis kriterium en tidligere apply erstattede, skal løses én gang i hånden.
 
 ## Konfiguration, som provideren afviser
 
@@ -190,7 +190,7 @@ Den JSON, som dashboardet og API'et viser for en ressource, er det, API'et sende
 
 - For at overtage ressourcen skal du [importere den](/docs/terraform/importing-resources): dashboardets side **Terraform** skriver konfigurationen for dig.
 - For at skrive en ny skal du starte fra [Eksempler](/docs/terraform/examples).
-- For en overvågnings trin skal du skrive den typede attribut `monitor_steps`, som [Monitortrin](/docs/terraform/monitor-steps) beskriver: drop `{_type, value}`-indpakningerne, skriv camelCase-nøglerne i snake_case, og udelad hvert `id`.
+- For en monitor trin skal du skrive den typede attribut `monitor_steps`, som [Monitortrin](/docs/terraform/monitor-steps) beskriver: drop `{_type, value}`-indpakningerne, skriv camelCase-nøglerne i snake_case, og udelad hvert `id`.
 
 ## Versioner og registret
 
@@ -245,5 +245,5 @@ Opret et issue på [github.com/OneUptime/oneuptime/issues](https://github.com/On
 - [Import af ressourcer](/docs/terraform/importing-resources): Overtag det, du har lavet i dashboardet, og ret importfejl.
 - [Selv-hostet opsætning](/docs/terraform/self-hosted): Adressen, versionen og certifikaterne for din egen OneUptime.
 - [Komplet vejledning](/docs/terraform/complete-guide): Godkendelse, datakilder, state og opgraderinger.
-- [Monitortrin](/docs/terraform/monitor-steps): Hver attribut i en overvågnings tjek.
+- [Monitortrin](/docs/terraform/monitor-steps): Hver attribut i en monitor tjek.
 :::

@@ -120,7 +120,7 @@ API는 `/api/prometheus` 아래에서 Prometheus HTTP API의 경로에 `GET` 또
 | `/api/v1/label/<name>/values` | 레이블 하나의 값. `__name__`은 메트릭 이름을 나열합니다. |
 | `/api/v1/metadata` | 각 메트릭의 유형, 도움말, 단위. |
 
-시각은 Unix 초 또는 RFC 3339로, 기간은 초 또는 `15s` 같은 기간으로 쓰며, 응답은 Prometheus 형식입니다. `/api/v1/status/buildinfo`는 Prometheus 3 서버로서 응답합니다. 규칙과 알림은 비어 있는데, OneUptime은 [모니터](/docs/monitor/metrics-monitor)로 알림을 보내기 때문입니다.
+시각은 Unix 초 또는 RFC 3339로, 기간은 초 또는 `15s` 같은 기간으로 쓰며, 응답은 Prometheus 형식입니다. `/api/v1/status/buildinfo`는 Prometheus 3 서버로서 응답합니다. 규칙과 경고는 비어 있는데, OneUptime은 [모니터](/docs/monitor/metrics-monitor)로 경고를 보내기 때문입니다.
 
 ## 지원하는 PromQL 기능
 

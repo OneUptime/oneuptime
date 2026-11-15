@@ -1183,8 +1183,9 @@ describe("Session replay storage budget alerts docs", (): void => {
 
       expect(own).toContain("Alert on the percent, not the bytes");
       expect(own).toContain('the Health page\'s "GB" is 1024³ bytes');
+      // The chart holds its figure to its unit (#8457); the page writes a plain space.
       expect(own).toContain(
-        `a day that spends the default ${healthCopy} limit charts as about ${chartCopy}`,
+        `a day that spends the default ${healthCopy} limit charts as about ${chartCopy.replace(/\u00A0/g, " ")}`,
       );
     });
   });

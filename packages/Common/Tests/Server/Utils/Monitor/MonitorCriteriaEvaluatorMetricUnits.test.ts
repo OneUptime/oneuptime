@@ -190,7 +190,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
   test("renders bytes at human scale instead of raw digits", () => {
     const context: string = rootCause(makeContext({ unit: "By" }));
 
-    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`);
+    expect(sampleItem(context)).toBe(
+      `1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`,
+    );
     expect(sampleDetails(context)).toEqual([]);
     expect(context).not.toContain("1073741824");
   });
@@ -206,7 +208,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
       }),
     );
 
-    expect(sampleValue(context)).toBe("1.5 sec");
+    expect(sampleValue(context)).toBe("1.5\u00A0sec");
   });
 
   test("renders a value the user typed a GB threshold against in GB terms", () => {
@@ -225,7 +227,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
       }),
     );
 
-    expect(sampleValue(context)).toBe("2.5 TB");
+    expect(sampleValue(context)).toBe("2.5\u00A0TB");
   });
 
   test("each sample names the unit IT landed on", () => {
@@ -248,8 +250,10 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
      * rides each value instead of a heading — no single unit could
      * describe both samples.
      */
-    expect(context).toContain("1. `2026-08-14T10:29:00.000Z` — **922 KB**");
-    expect(context).toContain(`2. \`${BREACH_TIME_ISO}\` — **1.26 MB**`);
+    expect(context).toContain(
+      "1. `2026-08-14T10:29:00.000Z` — **922\u00A0KB**",
+    );
+    expect(context).toContain(`2. \`${BREACH_TIME_ISO}\` — **1.26\u00A0MB**`);
   });
 
   test("a ratio metric's fraction is shown as the percentage it means", () => {
@@ -351,7 +355,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples values", () => {
       }),
     );
 
-    expect(sampleItem(context)).toBe(`1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`);
+    expect(sampleItem(context)).toBe(
+      `1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`,
+    );
     expect(sampleDetails(context)).toEqual(["   - `k8s.pod.name`: `web-1`"]);
   });
 });
@@ -396,9 +402,9 @@ describe("MonitorCriteriaEvaluator - Breaching Samples formula components", () =
     const context: string = rootCause(formulaContext());
 
     expect(sampleItemLines(context)).toEqual([
-      `1. \`${BREACH_TIME_ISO}\` — **1.07 GB**`,
-      "   - `a`: 537 MB",
-      "   - `b`: 1.5 sec",
+      `1. \`${BREACH_TIME_ISO}\` — **1.07\u00A0GB**`,
+      "   - `a`: 537\u00A0MB",
+      "   - `b`: 1.5\u00A0sec",
     ]);
   });
 
@@ -453,7 +459,7 @@ describe("MonitorCriteriaEvaluator - Breaching Samples formula components", () =
 
     const context: string = rootCause(ctx);
 
-    expect(sampleDetails(context)).toEqual(["   - `a`: 537 MB"]);
+    expect(sampleDetails(context)).toEqual(["   - `a`: 537\u00A0MB"]);
     expect(context).not.toContain("`b`:");
     expect(context).not.toContain(": -");
   });
@@ -531,14 +537,16 @@ describe("MonitorCriteriaEvaluator - the Unit line", () => {
 
     expect(rows).toHaveLength(1);
     // The row holds the value as text, as the exporter wrote it...
-    expect(rows[0]!.formattedValue).toBe("1073741824 <!here>");
+    expect(rows[0]!.formattedValue).toBe("1073741824\u00A0<!here>");
 
     // ...and the list places it as text.
     const valueCell: string = Evaluator.renderAffectedRowValue(
       rows[0]!,
     ).toString();
 
-    expect(valueCell.replace(/\\|\u2060/g, "")).toBe("**1073741824 <!here>**");
+    expect(valueCell.replace(/\\|\u2060/g, "")).toBe(
+      "**1073741824\u00A0<!here>**",
+    );
     expect(valueCell).not.toMatch(/(^|[^\\])<[A-Za-z!@#/]/);
     expect(SlackUtil.convertMarkdownToSlackRichText(valueCell)).not.toMatch(
       /<[!@#][A-Za-z]/,
