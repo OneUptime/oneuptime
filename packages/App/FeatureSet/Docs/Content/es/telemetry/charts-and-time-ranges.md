@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Indicaciones en los gráficos
 
-La mayoría de los gráficos con zoom indican el gesto encima del área de trazado, **Arrastra para hacer zoom** o **Haz clic o arrastra para ampliar**, y, mientras hay un zoom activo, añaden el recordatorio **haz doble clic para restablecer**. Las tarjetas de métricas, el explorador de métricas y los gráficos de volumen de los exploradores muestran siempre la indicación. En las tarjetas de gráficos de los resúmenes de recursos y de los SLO, y en algunos widgets de panel, solo aparece mientras señala la tarjeta o entra en ella con el tabulador.
+La mayoría de los gráficos con zoom indican el gesto encima del área de trazado, **Arrastra para hacer zoom** o **Haz clic o arrastra para ampliar**, y, mientras hay un zoom activo, añaden el recordatorio **haz doble clic para restablecer**. Las tarjetas de métricas, el explorador de métricas y los gráficos de volumen de los exploradores muestran siempre la indicación. En las tarjetas de gráficos de los resúmenes de recursos y de los SLO, y en algunos widgets de panel, solo aparece mientras señala la tarjeta o entra en ella con el tabulador. En un teléfono o una tableta, las tarjetas de métricas y las tarjetas de gráficos no muestran la indicación: con el dedo no se puede arrastrar un área de zoom.
 
 ## Dónde funciona
 

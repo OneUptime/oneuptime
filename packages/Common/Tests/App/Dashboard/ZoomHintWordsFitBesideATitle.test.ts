@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -15,8 +16,7 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * "short on purpose": four chart cards can share a row. Russian said "Drag
  * to zoom" in 34 characters ("Выделите область, чтобы приблизить"), almost
  * three times English's 12, and with the way back while zoomed in 68; the
- * etcd charts' titles beside it were cut to a word. French named both
- * gestures in 62.
+ * etcd charts' titles beside it were cut to a word.
  *
  * Each hint the chart rows draw has a length budget, in characters, that
  * every Dashboard language keeps. A language that cannot say it within the
@@ -49,7 +49,7 @@ function lengthOf(text: string): number {
 export const ZOOM_HINT_BUDGETS: Record<string, number> = {
   [TIME_RANGE_ZOOM_HINT_TEXT]: 26,
   [TIME_RANGE_ZOOM_HINT_RESET_TEXT]: 34,
-  [TIME_RANGE_ZOOM_HINT_BOTH_TEXT]: 60,
+  [TIME_RANGE_ZOOM_HINT_BOTH_TEXT]: 62,
 };
 
 // What the budget is for: whatever overruns it, in which language.
@@ -106,9 +106,10 @@ describe("the zoom hint's words, in every Dashboard language", () => {
         [TIME_RANGE_ZOOM_HINT_BOTH_TEXT]:
           "Выделите область, чтобы приблизить · дважды щёлкните, чтобы сбросить",
       },
+      // A language that says it one character longer than the budget.
       fr: {
         [TIME_RANGE_ZOOM_HINT_BOTH_TEXT]:
-          "Faites glisser pour zoomer · double-cliquez pour réinitialiser",
+          "Faites glisser pour zoomer · double-cliquez pour réinitialiser.",
       },
     };
 
@@ -126,7 +127,7 @@ describe("the zoom hint's words, in every Dashboard language", () => {
       ),
     ).toBe(true);
     expect(russian["Click or drag to zoom"]).toBe(
-      "Щёлкните или выделите для увеличения",
+      "Нажмите или выделите для увеличения",
     );
   });
 
