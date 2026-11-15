@@ -25,6 +25,10 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import { translatableTerm, translationKey } from "Common/Types/Translator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { LABEL_WITH_COLON } from "Common/UI/Utils/LabelWithColon";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -112,6 +116,7 @@ export interface FailedJobsModalProps {
 const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
   props: FailedJobsModalProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<HealthRequestError | null>(null);
   const [failedJobs, setFailedJobs] = useState<JSONArray>([]);
@@ -190,14 +195,18 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
             size={SizeProp.Small}
             className="h-3.5 w-3.5"
           />
-          {isOpen ? `Hide ${label}` : `Show ${label}`}
+          {translator.translateTemplate(
+            isOpen ? "Hide {{section}}" : "Show {{section}}",
+            { section: translatableTerm(label, { inSentence: true }) },
+          )}
         </button>
         {isOpen ? (
           <div>
             {isSensitive ? (
               <div className="mt-1 text-xs text-amber-600">
-                May contain customer data — credentials are scrubbed, but review
-                before sharing.
+                {translator.translateText(
+                  "May contain customer data — credentials are scrubbed, but review before sharing.",
+                )}
               </div>
             ) : (
               <></>
@@ -227,25 +236,25 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     };
 
     pushIf(
-      "Created",
+      translationKey("Created"),
       jobObject["createdAt"],
       formatTimestamp(jobObject["createdAt"]),
     );
     pushIf(
-      "Processed",
+      translationKey("Processed"),
       jobObject["processedAt"],
       formatTimestamp(jobObject["processedAt"]),
     );
     pushIf(
-      "Finished",
+      translationKey("Finished"),
       jobObject["finishedAt"],
       formatTimestamp(jobObject["finishedAt"]),
     );
-    pushIf("Attempts started", jobObject["attemptsStarted"]);
-    pushIf("Stalled count", jobObject["stalledCounter"]);
-    pushIf("Priority", jobObject["priority"]);
-    pushIf("Delay (ms)", jobObject["delayMs"]);
-    pushIf("Worker", jobObject["processedBy"]);
+    pushIf(translationKey("Attempts started"), jobObject["attemptsStarted"]);
+    pushIf(translationKey("Stalled count"), jobObject["stalledCounter"]);
+    pushIf(translationKey("Priority"), jobObject["priority"]);
+    pushIf(translationKey("Delay (ms)"), jobObject["delayMs"]);
+    pushIf(translationKey("Worker"), jobObject["processedBy"]);
     pushIf("Queue", jobObject["queueQualifiedName"]);
     pushIf("Repeat key", jobObject["repeatJobKey"]);
     pushIf("Dedup id", jobObject["deduplicationId"]);
@@ -264,7 +273,11 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
           ): ReactElement => {
             return (
               <div key={i} className="text-xs">
-                <span className="text-gray-400">{field.label}: </span>
+                <span className="text-gray-400">
+                  {translator.translateTemplate(LABEL_WITH_COLON, {
+                    label: translatableTerm(field.label),
+                  })}{" "}
+                </span>
                 <span className="font-medium text-gray-700">{field.value}</span>
               </div>
             );
@@ -292,10 +305,10 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
             className="h-10 w-10 text-green-500"
           />
           <div className="mt-3 text-sm font-medium text-gray-800">
-            No failed jobs
+            {translator.translateText("No failed jobs")}
           </div>
           <div className="mt-1 text-sm text-gray-500">
-            This queue has no recent failures.
+            {translator.translateText("This queue has no recent failures.")}
           </div>
         </div>
       );
@@ -304,8 +317,14 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
     return (
       <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
         <div className="text-xs text-gray-500">
-          Showing the {failedJobs.length} most recent failed{" "}
-          {failedJobs.length === 1 ? "job" : "jobs"} with full detail.
+          {translator.translatePlural(
+            {
+              one: "Showing the {{count}} most recent failed job with full detail.",
+              other:
+                "Showing the {{count}} most recent failed jobs with full detail.",
+            },
+            failedJobs.length,
+          )}
         </div>
         {failedJobs.map((job: unknown, index: number): ReactElement => {
           const jobObject: JSONObject = job as JSONObject;
@@ -330,8 +349,10 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                    {countLabel(jobObject["attemptsMade"])} attempt
-                    {toCount(jobObject["attemptsMade"]) === 1 ? "" : "s"}
+                    {translator.translatePlural(
+                      { one: "{{count}} attempt", other: "{{count}} attempts" },
+                      toCount(jobObject["attemptsMade"]),
+                    )}
                   </span>
                   <span className="text-xs text-gray-400">
                     {formatTimestamp(jobObject["finishedAt"])}
@@ -340,7 +361,8 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               </div>
 
               <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                {String(jobObject["failedReason"] || "No reason provided")}
+                {String(jobObject["failedReason"] || "") ||
+                  translator.translateText("No reason provided")}
               </div>
 
               {renderMetaChips(jobObject)}
@@ -348,7 +370,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               {dataKeys.length > 0 ? (
                 <div className="mt-2 text-xs text-gray-500">
                   <span className="font-medium text-gray-600">
-                    Payload keys:{" "}
+                    {translator.translateText("Payload keys:")}{" "}
                   </span>
                   <span className="font-mono">
                     {dataKeys
@@ -365,7 +387,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               {stackTrace
                 ? renderCollapsible(
                     `${index}:stack`,
-                    "stack trace",
+                    translationKey("stack trace"),
                     <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                       {stackTrace}
                     </pre>,
@@ -375,7 +397,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
 
               {renderCollapsible(
                 `${index}:body`,
-                "job body",
+                translationKey("job body"),
                 <pre className="mt-2 max-h-72 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                   {formatJson(jobObject["data"])}
                 </pre>,
@@ -385,7 +407,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               {hasValue(jobObject["options"])
                 ? renderCollapsible(
                     `${index}:options`,
-                    "options",
+                    translationKey("options"),
                     <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                       {formatJson(jobObject["options"])}
                     </pre>,
@@ -396,7 +418,7 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               {hasValue(jobObject["returnValue"])
                 ? renderCollapsible(
                     `${index}:return`,
-                    "return value",
+                    translationKey("return value"),
                     <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                       {formatJson(jobObject["returnValue"])}
                     </pre>,
@@ -407,7 +429,9 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
               {logs.length > 0
                 ? renderCollapsible(
                     `${index}:logs`,
-                    `job logs (${logs.length})`,
+                    translator.translateTemplate("job logs ({{count}})", {
+                      count: translator.formatNumber(logs.length),
+                    }),
                     <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
                       {logs
                         .map((line: unknown): string => {
@@ -427,7 +451,9 @@ const QueueFailedJobsModal: FunctionComponent<FailedJobsModalProps> = (
 
   return (
     <Modal
-      title={`Failed jobs · ${props.queueName} queue`}
+      title={translator.translateTemplate("Failed jobs · {{queue}} queue", {
+        queue: props.queueName,
+      })}
       description="The latest jobs this queue failed to process, with the reason, stack trace, job body and logs of each."
       modalWidth={ModalWidth.Large}
       isBodyLoading={isLoading}
@@ -473,6 +499,7 @@ export interface ComponentProps {
 const BackgroundQueues: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedQueue, setSelectedQueue] = useState<string | null>(null);
 
   /*
@@ -578,7 +605,11 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
     if (failed > 0) {
       return (
         <Statusbubble
-          text={`${failed.toLocaleString()} failing`}
+          text={translator.translatePlural(
+            { one: "{{count}} failing", other: "{{count}} failing" },
+            failed,
+          )}
+          isUserContent={true}
           color={Red}
           shouldAnimate={false}
         />
@@ -627,81 +658,81 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                   className="py-2 pr-4 font-medium"
                   resize={queueColumns.getResize(
                     "queue",
-                    "Queue",
+                    translator.translateText("Queue") as string,
                     ColumnWidthKind.Name,
                   )}
                 >
-                  <span>Queue</span>
+                  <span>{translator.translateText("Queue")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium"
                   resize={queueColumns.getResize(
                     "status",
-                    "Status",
+                    translator.translateText("Status") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Status</span>
+                  <span>{translator.translateText("Status")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "waiting",
-                    "Waiting",
+                    translator.translateText("Waiting") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Waiting</span>
+                  <span>{translator.translateText("Waiting")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "active",
-                    "Active",
+                    translator.translateText("Active") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Active</span>
+                  <span>{translator.translateText("Active")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "completed",
-                    "Completed",
+                    translator.translateText("Completed") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Completed</span>
+                  <span>{translator.translateText("Completed")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "failed",
-                    "Failed",
+                    translator.translateText("Failed") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Failed</span>
+                  <span>{translator.translateText("Failed")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "delayed",
-                    "Delayed",
+                    translator.translateText("Delayed") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Delayed</span>
+                  <span>{translator.translateText("Delayed")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   className="py-2 px-4 font-medium tabular-nums"
                   resize={queueColumns.getResize(
                     "total",
-                    "Total",
+                    translator.translateText("Total") as string,
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>Total</span>
+                  <span>{translator.translateText("Total")}</span>
                 </ResizableHeaderCell>
                 <th className="py-2 pl-4 font-medium" />
               </tr>
@@ -724,7 +755,9 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                         className="py-3 px-4 italic text-gray-400"
                         colSpan={7}
                       >
-                        Stats unavailable — could not reach the queue.
+                        {translator.translateText(
+                          "Stats unavailable — could not reach the queue.",
+                        )}
                       </td>
                     </tr>
                   );
@@ -778,7 +811,7 @@ const BackgroundQueues: FunctionComponent<ComponentProps> = (
                             size={SizeProp.Small}
                             className="h-3.5 w-3.5"
                           />
-                          View failures
+                          {translator.translateText("View failures")}
                         </button>
                       ) : (
                         <></>
