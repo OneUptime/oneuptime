@@ -9,7 +9,12 @@ import {
   recordDrawnBoxes,
   waitForFrames,
 } from "./DrawnBoxes";
-import { boxesInOneFrame, FrameBox } from "./Frames";
+import {
+  boxesInOneFrame,
+  FrameBox,
+  joinPiecesByLine,
+  lineBoxesInOneFrame,
+} from "./Frames";
 import {
   dashboardLocalesIn,
   dashboardWord,
@@ -17,6 +22,12 @@ import {
   LocaleWatch,
   watchDashboardLocales,
 } from "./LocaleChunks";
+import {
+  NO_BREAK_SPACE,
+  NO_BREAK_SPACE_SHOWN_AS,
+  withSpacesShown,
+  withUnit,
+} from "./NoBreakSpaces";
 import { expectNoSidewaysScroll, sidewaysScrollOf } from "./PageFit";
 
 /*
@@ -255,6 +266,247 @@ test.describe("boxesInOneFrame", () => {
     await page.setContent("<!doctype html><html><body></body></html>");
 
     expect(await boxesInOneFrame([])).toEqual([]);
+  });
+});
+
+/*
+ * #8690: Cloud Connect's Persian Azure health line read OneUptime's words,
+ * which started beside Azure's sentence and wrapped onto the next line, by
+ * their bounding box - which spans both lines - and found them over Azure's
+ * sentence. lineBoxesInOneFrame reads an element line by line.
+ */
+test.describe("lineBoxesInOneFrame and joinPiecesByLine", () => {
+  /*
+   * Lines ten monospace characters wide: "abcd efgh" fits the first, and
+   * "ijkl" wraps onto the second. "abcd" is set apart as Cloud Connect sets
+   * Azure's words apart (<bdi>), so on a right-to-left line it starts the
+   * line at its right, and "efgh" follows it, to its left.
+   */
+  function tenCharacterLines(direction: "ltr" | "rtl"): string {
+    return `<!doctype html><html><head><meta charset="utf-8"></head>
+<body style="margin:0">
+  <p id="line" dir="${direction}" style="margin:0;width:10ch;font:16px/20px monospace"><bdi id="before">abcd</bdi> <span id="wrapped">efgh ijkl</span></p>
+</body></html>`;
+  }
+
+  // Whether two edges are the same, to well under a pixel.
+  function expectSameEdge(edge: number, other: number, what: string): void {
+    expect(Math.abs(edge - other), what).toBeLessThan(0.5);
+  }
+
+  /*
+   * Whether two lists of boxes are the same, to a hundredth of a pixel:
+   * Firefox's bounding box can be 114.00003 pixels wide over pieces that
+   * add up to 114.
+   */
+  function expectSameBoxes(
+    boxes: Array<FrameBox>,
+    others: Array<FrameBox>,
+  ): void {
+    expect(boxes).toHaveLength(others.length);
+    for (const [index, box] of boxes.entries()) {
+      for (const side of ["x", "y", "width", "height"] as const) {
+        expect(box[side], `box ${index + 1}'s ${side}`).toBeCloseTo(
+          others[index]![side],
+          2,
+        );
+      }
+    }
+  }
+
+  /*
+   * Whether `lower` is drawn on a line under `upper`'s. An inline box can be
+   * taller than its line - Firefox draws a 16px monospace line of 20px in a
+   * box of 21 - so the next line's box starts a pixel above where this one
+   * ends; it never starts above this one's middle.
+   */
+  function expectLineUnder(lower: FrameBox, upper: FrameBox): void {
+    expect(lower.y).toBeGreaterThan(upper.y + upper.height / 2);
+  }
+
+  test("an element on one line has one box, its bounding box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(`<!doctype html><html><body style="margin:0">
+  <p style="margin:0;font:16px/20px monospace">abcd <span id="word">efgh</span></p>
+  <div id="block" style="width:120px;height:30px"></div>
+</body></html>`);
+
+    const [word, block]: Array<Array<FrameBox>> = await lineBoxesInOneFrame([
+      page.locator("#word"),
+      page.locator("#block"),
+    ]);
+    const [wordBounds, blockBounds]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("#word"),
+      page.locator("#block"),
+    ]);
+
+    expectSameBoxes(word!, [wordBounds!]);
+    expectSameBoxes(block!, [blockBounds!]);
+    expect(block![0]!.width).toBe(120);
+  });
+
+  test("an element that wraps has a box on each line, where its bounding box spans them and overlaps what shares its first line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(tenCharacterLines("ltr"));
+
+    const [[line], [before], wrapped]: Array<Array<FrameBox>> =
+      await lineBoxesInOneFrame([
+        page.locator("#line"),
+        page.locator("#before"),
+        page.locator("#wrapped"),
+      ]);
+    const [bounds]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("#wrapped"),
+    ]);
+
+    expect(wrapped).toHaveLength(2);
+    // Its first line after "abcd ", its second from the line's start, under it.
+    expect(wrapped[0]!.y).toBe(before!.y);
+    expect(wrapped[0]!.x).toBeGreaterThanOrEqual(before!.x + before!.width);
+    expectSameEdge(wrapped[1]!.x, line!.x, "the second line's start");
+    expectLineUnder(wrapped[1]!, wrapped[0]!);
+    // The bounding box starts at the first line's top and overlaps "abcd".
+    expect(bounds!.y).toBe(wrapped[0]!.y);
+    expect(bounds!.x).toBeLessThan(before!.x + before!.width);
+  });
+
+  test("right to left, a wrapped element's first line is left of what starts the line, and its next starts at the right", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(tenCharacterLines("rtl"));
+
+    const [[line], [before], wrapped]: Array<Array<FrameBox>> =
+      await lineBoxesInOneFrame([
+        page.locator("#line"),
+        page.locator("#before"),
+        page.locator("#wrapped"),
+      ]);
+    const [bounds]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("#wrapped"),
+    ]);
+    const rightOf: (box: FrameBox) => number = (box: FrameBox): number => {
+      return box.x + box.width;
+    };
+
+    expect(wrapped).toHaveLength(2);
+    // "abcd" starts the line at its right; "efgh" follows it, to its left.
+    expectSameEdge(rightOf(before!), rightOf(line!), "abcd starts the line");
+    expect(wrapped[0]!.y).toBe(before!.y);
+    expect(rightOf(wrapped[0]!)).toBeLessThanOrEqual(before!.x + 0.5);
+    // "ijkl" starts the next line at its right.
+    expectSameEdge(
+      rightOf(wrapped[1]!),
+      rightOf(line!),
+      "the second line's start",
+    );
+    expectLineUnder(wrapped[1]!, wrapped[0]!);
+    // The bounding box reaches the right edge, over "abcd": the trap of #8690.
+    expect(rightOf(bounds!)).toBeGreaterThan(before!.x);
+    expect(bounds!.y).toBe(before!.y);
+  });
+
+  test("a line that runs both ways is one box, whatever pieces the browser draws it in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">
+  <p dir="rtl" style="margin:0;width:600px;font:16px/20px sans-serif"><span id="mixed">علت آن Azure بود.</span></p>
+</body></html>`);
+
+    const [mixed]: Array<Array<FrameBox>> = await lineBoxesInOneFrame([
+      page.locator("#mixed"),
+    ]);
+    const [bounds]: Array<FrameBox> = await boxesInOneFrame([
+      page.locator("#mixed"),
+    ]);
+
+    expectSameBoxes(mixed!, [bounds!]);
+  });
+
+  test("fails naming an element that is not displayed, as boxesInOneFrame does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(`<!doctype html><html><body>
+  <div id="shown" style="width:40px;height:20px"></div>
+  <div id="hidden" style="display:none"></div>
+</body></html>`);
+
+    const failure: string = await lineBoxesInOneFrame([
+      page.locator("#shown"),
+      page.locator("#hidden"),
+    ]).then(
+      (): string => {
+        return "it read the boxes";
+      },
+      (error: Error): string => {
+        return error.message;
+      },
+    );
+
+    expect(failure).toContain(
+      "lineBoxesInOneFrame: not displayed, so there is no box to compare",
+    );
+    expect(failure).toContain("#hidden");
+    expect(failure).not.toContain("#shown");
+    expect(await lineBoxesInOneFrame([])).toEqual([]);
+  });
+
+  test("joinPiecesByLine joins the pieces on a line, a pixel apart or out of order, and keeps lines apart, top to bottom", () => {
+    expect(joinPiecesByLine([])).toEqual([]);
+
+    // Three pieces of one line, right to left, the Latin one a pixel lower.
+    expect(
+      joinPiecesByLine([
+        { x: 100, y: 10, width: 40, height: 15 },
+        { x: 60, y: 11, width: 36, height: 15 },
+        { x: 20, y: 10, width: 30, height: 15 },
+      ]),
+    ).toEqual([{ x: 20, y: 10, width: 120, height: 16 }]);
+
+    // Two lines given bottom first, each in two pieces.
+    expect(
+      joinPiecesByLine([
+        { x: 0, y: 26, width: 30, height: 15 },
+        { x: 50, y: 10, width: 30, height: 15 },
+        { x: 34, y: 26, width: 10, height: 15 },
+        { x: 0, y: 10, width: 40, height: 15 },
+      ]),
+    ).toEqual([
+      { x: 0, y: 10, width: 80, height: 15 },
+      { x: 0, y: 26, width: 44, height: 15 },
+    ]);
+
+    // Lines that touch are still two: neither middle is within the other.
+    expect(
+      joinPiecesByLine([
+        { x: 0, y: 0, width: 10, height: 20 },
+        { x: 0, y: 20, width: 10, height: 20 },
+      ]),
+    ).toHaveLength(2);
+  });
+
+  test("joinPiecesByLine leaves out a piece with no width - the space a line wraps at - unless it is all there is", () => {
+    expect(
+      joinPiecesByLine([
+        { x: 200, y: 0, width: 0, height: 15 },
+        { x: 0, y: 16, width: 40, height: 15 },
+      ]),
+    ).toEqual([{ x: 0, y: 16, width: 40, height: 15 }]);
+
+    expect(joinPiecesByLine([{ x: 12, y: 4, width: 0, height: 15 }])).toEqual([
+      { x: 12, y: 4, width: 0, height: 15 },
+    ]);
   });
 });
 
@@ -1123,5 +1375,167 @@ test.describe("watchDashboardLocales", () => {
     expect(dashboardWord("de", "A sentence no locale holds, 8366")).toBe(
       "A sentence no locale holds, 8366",
     );
+  });
+});
+
+/*
+ * #8689: a spec compared the product's "182 ms" - a number held to its unit
+ * by a no-break space (#8302) - with "182 ms" typed with a plain space, and
+ * failed on a code point nobody reading it could see. withUnit writes the
+ * quantity as the product draws it, and withSpacesShown makes a failure
+ * say which space it read.
+ */
+test.describe("withUnit and withSpacesShown", () => {
+  interface WordPlace {
+    word: string;
+    top: number;
+    left: number;
+  }
+
+  // Where each word of #line is drawn: the top and left of its first piece.
+  async function wordPlaces(page: Page): Promise<Array<WordPlace>> {
+    return page.locator("#line").evaluate((line: Element): Array<WordPlace> => {
+      const text: Node = line.firstChild as Node;
+      const content: string = text.textContent || "";
+      const places: Array<WordPlace> = [];
+      const words: RegExp = /[^\s\u00A0]+/g;
+      let match: RegExpExecArray | null = words.exec(content);
+
+      while (match) {
+        const range: Range = document.createRange();
+        range.setStart(text, match.index);
+        range.setEnd(text, match.index + match[0].length);
+        const box: DOMRect = range.getClientRects()[0] as DOMRect;
+        places.push({
+          word: match[0],
+          top: Math.round(box.top),
+          left: Math.round(box.left),
+        });
+        match = words.exec(content);
+      }
+
+      return places;
+    });
+  }
+
+  // A line too narrow for "Up · 182 ms" whole, so it breaks somewhere.
+  function narrowLine(text: string): string {
+    return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0"><p id="line" style="margin:0;width:9ch;font:16px/20px monospace">${text}</p></body></html>`;
+  }
+
+  function placeOf(places: Array<WordPlace>, word: string): WordPlace {
+    const place: WordPlace | undefined = places.find(
+      (candidate: WordPlace): boolean => {
+        return candidate.word === word;
+      },
+    );
+
+    expect(place, `"${word}" is drawn`).toBeDefined();
+
+    return place!;
+  }
+
+  test("writes a figure and its unit joined by U+00A0, the figure as given", () => {
+    expect(NO_BREAK_SPACE).toBe(String.fromCharCode(0xa0));
+    expect(withUnit(182, "ms")).toBe(`182${String.fromCharCode(0xa0)}ms`);
+    expect(withUnit(0.5, "s")).toBe("0.5\u00A0s");
+    expect(withUnit(0, "%")).toBe("0\u00A0%");
+    expect(withUnit(-3, "°C")).toBe("-3\u00A0°C");
+    // A string is kept as the page writes it: its separators and its digits.
+    expect(withUnit("2,410", "ms")).toBe("2,410\u00A0ms");
+    expect(withUnit("1.5", "MB/s")).toBe("1.5\u00A0MB/s");
+    expect(withUnit("۱۸۲", "میلی\u200Cثانیه")).toBe("۱۸۲\u00A0میلی\u200Cثانیه");
+    // French's thousands keep their own narrow no-break space.
+    expect(withUnit("1\u202F234", "ms")).toBe("1\u202F234\u00A0ms");
+    expect(withUnit("2,410", "ms")).not.toBe("2,410 ms");
+  });
+
+  test("throws for a figure or a unit a spec got wrong, rather than write a quantity no page draws", () => {
+    expect(() => {
+      return withUnit("182 ms", "ms");
+    }).toThrow('withUnit: the figure "182 ms" holds a space');
+    expect(() => {
+      return withUnit(182, " ms");
+    }).toThrow('withUnit: the unit " ms" holds a space');
+    expect(() => {
+      return withUnit("182\u00A0", "ms");
+    }).toThrow(/the figure .* holds a space/);
+    expect(() => {
+      return withUnit("", "ms");
+    }).toThrow("withUnit: the figure is empty.");
+    expect(() => {
+      return withUnit(182, "");
+    }).toThrow("withUnit: the unit is empty.");
+    expect(() => {
+      return withUnit(Number.NaN, "ms");
+    }).toThrow("withUnit: NaN is no figure");
+    expect(() => {
+      return withUnit(Number.POSITIVE_INFINITY, "ms");
+    }).toThrow("withUnit: Infinity is no figure");
+  });
+
+  test("withSpacesShown draws each no-break space as ⍽, and leaves every other space", () => {
+    expect(NO_BREAK_SPACE_SHOWN_AS).toBe("⍽");
+    expect(withSpacesShown(`Up · ${withUnit(182, "ms")} · HTTP 200`)).toBe(
+      "Up · 182⍽ms · HTTP 200",
+    );
+    expect(withSpacesShown("Up · 182 ms")).toBe("Up · 182 ms");
+    expect(withSpacesShown("a\u00A0b\u00A0c d\u202Fe")).toBe("a⍽b⍽c d\u202Fe");
+    expect(withSpacesShown("")).toBe("");
+    // So the two spaces no longer read alike in a failure.
+    expect(withSpacesShown("182\u00A0ms")).not.toBe(withSpacesShown("182 ms"));
+    expect(() => {
+      return withSpacesShown("182⍽ms");
+    }).toThrow('already holds "⍽"');
+  });
+
+  test("a quantity withUnit writes stays on its line, where a plain space lets the unit break off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(narrowLine("Up · 182 ms"));
+    const broken: Array<WordPlace> = await wordPlaces(page);
+    expect(
+      placeOf(broken, "ms").top,
+      'a plain space lets "ms" start the next line',
+    ).toBeGreaterThan(placeOf(broken, "182").top);
+
+    await page.setContent(narrowLine(`Up · ${withUnit(182, "ms")}`));
+    const kept: Array<WordPlace> = await wordPlaces(page);
+    expect(
+      kept.map((place: WordPlace): string => {
+        return place.word;
+      }),
+    ).toEqual(["Up", "·", "182", "ms"]);
+    expect(placeOf(kept, "ms").top, "the unit on the figure's line").toBe(
+      placeOf(kept, "182").top,
+    );
+    expect(placeOf(kept, "ms").left).toBeGreaterThan(placeOf(kept, "182").left);
+    // The line still breaks: before the quantity, never inside it.
+    expect(placeOf(kept, "182").top).toBeGreaterThan(placeOf(kept, "Up").top);
+  });
+
+  test("toHaveText folds a no-break space into a plain one, and a string read keeps it: compare the string to hold the space", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      `<!doctype html><html><head><meta charset="utf-8"></head><body><p id="line">Up · ${withUnit(182, "ms")}</p></body></html>`,
+    );
+    const line: Locator = page.locator("#line");
+
+    // Either space passes toHaveText and toContainText: they cannot tell.
+    await expect(line).toHaveText("Up · 182 ms");
+    await expect(line).toHaveText(`Up · ${withUnit(182, "ms")}`);
+    await expect(line).toContainText("182 ms");
+
+    // The text as read keeps the page's space, so a string compare holds it.
+    const read: string = (await line.textContent()) || "";
+    expect(read).toBe(`Up · ${withUnit(182, "ms")}`);
+    expect(read).not.toBe("Up · 182 ms");
+    expect(await line.innerText()).toBe(`Up · ${withUnit(182, "ms")}`);
+    expect(withSpacesShown(read)).toBe("Up · 182⍽ms");
   });
 });
