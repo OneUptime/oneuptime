@@ -281,7 +281,7 @@ describe("the switch", () => {
     expect(sections).toEqual(["other", "other", FixApprovalsCopy.cardTitle]);
   });
 
-  test("a project owner turns it on: it saves that column alone, at once, and the folded header follows", async () => {
+  test("a Project Owner turns it on: it saves that column alone, at once, and the folded header follows", async () => {
     openAiFeaturesPage();
     fireEvent.click(moreSettingsHeader());
 
@@ -318,7 +318,7 @@ describe("the switch", () => {
     );
   });
 
-  test("a project admin may change it too", async () => {
+  test("a Project Admin may change it too", async () => {
     PermissionGate.clearPermissionPropsCache();
     grant([...BASE_PERMISSIONS, Permission.ProjectAdmin]);
 

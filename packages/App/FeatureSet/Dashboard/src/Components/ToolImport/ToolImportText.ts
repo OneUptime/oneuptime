@@ -1001,7 +1001,7 @@ export const TOOL_IMPORT_SERVER_MESSAGES: ReadonlyArray<string> = [
     "You are no longer a member of this project, so the import was stopped.",
   ),
   translationKey(
-    "You may not create anything an import brings over. Ask a project owner or admin to run the import.",
+    "You may not create anything an import brings over. Ask a Project Owner or Project Admin to run the import.",
   ),
 ];
 

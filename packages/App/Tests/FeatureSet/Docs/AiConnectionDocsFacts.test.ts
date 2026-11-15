@@ -852,10 +852,10 @@ describe("the Company AI Tools page", () => {
     expect(form).toContain('title: "Who can read conversations",');
     expect(form).toContain("defaultValue: LlmConversationReaders.Admins,");
     // Two answers in view, as radio buttons.
-    expect(form).toContain('title: "Project owners and admins",');
+    expect(form).toContain('title: "Project Owners and Project Admins",');
     expect(form).toContain('title: "Everyone who can read AI calls",');
     expect(readers[1]).toContain(
-      "**Project owners and admins**, the default: nobody else in the project sees these conversations",
+      "**Project Owners and Project Admins**, the default: nobody else in the project sees these conversations",
     );
     expect(readers[1]).toContain("**Everyone who can read AI calls**");
 

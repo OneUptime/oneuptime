@@ -115,7 +115,7 @@ export const STATUS_PAGE_SETUP_COPY: {
     "Guided setup: name a status page, pick what it shows and see what your customers see, on this page.",
   ),
   cannotCreate: translationKey(
-    "Creating a status page needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
+    "Creating a status page needs permission you do not have in this project. Ask a Project Admin to give it to you, or to set this up.",
   ),
   goToStatusPages: translationKey("Go to Status Pages"),
   pickTitle: translationKey("Name it, and pick what it shows"),

@@ -552,7 +552,7 @@ export function describeSessionReplayListError(
       detail:
         text ||
         translator.translateTemplate(
-          'Your role lacks the "{{permission}}" permission. Ask a project admin for it.',
+          'Your role lacks the "{{permission}}" permission. Ask a Project Admin for it.',
           {
             permission: getSessionReplayPermissionTitle(
               Permission.ReadRumSessionReplay,

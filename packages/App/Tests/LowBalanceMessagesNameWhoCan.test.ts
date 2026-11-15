@@ -410,7 +410,7 @@ describe("the dashboard links to the balance pages, and recharges, only for peop
     expect(unguarded).toEqual([]);
   });
 
-  test("no AI credits step sends the reader to a project admin", () => {
+  test("no AI credits step sends the reader to a Project Admin", () => {
     for (const file of [
       "Components/ResourceAiAgent/ResourceAiAgentPage.tsx",
       "Pages/Kubernetes/View/AI/Agent.tsx",

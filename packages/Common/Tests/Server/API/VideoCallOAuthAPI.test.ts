@@ -291,7 +291,7 @@ describe("Video call one-click Connect", () => {
   }
 
   describe("starting", () => {
-    test("a project admin gets Zoom's sign-in URL, for this server's redirect URI and a one-use state", async () => {
+    test("a Project Admin gets Zoom's sign-in URL, for this server's redirect URI and a one-use state", async () => {
       const response: ProbeResponse = await start("zoom");
 
       expect(response.status).toBe(200);

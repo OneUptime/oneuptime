@@ -115,11 +115,11 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const EVALUATED_AT: string = "2026-09-17T12:24:00.000Z";
 const NEXT_EVALUATED_AT: string = "2026-09-17T12:25:00.000Z";
 const AI_DISABLED_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
 const NO_CREDITS_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can add AI credits.";
+  "A Project Owner or someone with Manage Billing can add AI credits.";
 const DAILY_LIMIT_WHO_CAN_ACT: string =
-  "A project owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
+  "A Project Owner or someone with Manage Billing can change the project's daily AI limits in Project Settings → AI → AI Features.";
 
 /*
  * What the server sends: a code, how it was decided, and its own English
@@ -143,7 +143,7 @@ const REASONS: Array<ReasonExample> = [
     code: "ai_disabled",
     title: "AI is disabled for this project",
     description: "The project AI switch is off.",
-    nextStep: "A project owner can enable AI for future events.",
+    nextStep: "A Project Owner can enable AI for future events.",
   },
   {
     code: "automatic_investigation_disabled",

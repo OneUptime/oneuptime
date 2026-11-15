@@ -4671,7 +4671,7 @@ describe("Session replay playback API", () => {
         PermissionHelper.getTitle(Permission.ReadRumSessionReplayPayload),
       ).toBe("Watch Session Replays");
       expect(message).toBe(
-        'Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead. Ask a project admin for the "Watch Session Replays" permission.',
+        'Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead. Ask a Project Admin for the "Watch Session Replays" permission.',
       );
       expect(message).not.toContain("identity permission");
     });

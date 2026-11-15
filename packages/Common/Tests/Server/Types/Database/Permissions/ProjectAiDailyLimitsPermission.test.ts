@@ -118,7 +118,7 @@ function whoMayUpdate(column: string): Array<Permission> {
 }
 
 describe.each(LIMIT_COLUMNS)("Project.%s", (column: string) => {
-  test("a project owner or someone who manages billing may set it, and nobody else", () => {
+  test("a Project Owner or someone who manages billing may set it, and nobody else", () => {
     expect(whoMayUpdate(column)).toEqual(
       [Permission.ManageProjectBilling, Permission.ProjectOwner].sort(),
     );
@@ -141,7 +141,7 @@ describe.each(LIMIT_COLUMNS)("Project.%s", (column: string) => {
    * A project admin tunes the incident and alert limits; the project's own
    * ceiling over them is not theirs to raise.
    */
-  test("a project admin may set the incident limits under it, but not it", () => {
+  test("a Project Admin may set the incident limits under it, but not it", () => {
     expect(
       mayUpdate("incidentAiDailyAutonomousTokenLimit", [
         Permission.ProjectAdmin,

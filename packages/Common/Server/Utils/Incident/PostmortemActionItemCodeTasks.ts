@@ -125,7 +125,7 @@ export default class PostmortemActionItemCodeTasks {
       )
     ) {
       throw new NotAuthorizedException(
-        "Asking OneUptime AI to write an action item's pull request takes permission to edit the action item. Ask a project admin for the Edit Postmortem Action Item permission.",
+        "Asking OneUptime AI to write an action item's pull request takes permission to edit the action item. Ask a Project Admin for the Edit Postmortem Action Item permission.",
       );
     }
 

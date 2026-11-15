@@ -100,7 +100,7 @@ const PRIVACY_FILTERS: Record<string, SelfPrivacyFilter> = {
  */
 export default class WorkspaceActionAuthorization {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
-    "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.";
+    "Your OneUptime account is not a member of this project. Ask a Project Admin to invite you, then try again.";
 
   /*
    * What a record is answered with, after "You do not have permission to
@@ -111,7 +111,7 @@ export default class WorkspaceActionAuthorization {
    * there is nothing new to them, and nothing else about it is told.
    */
   public static getNotIncludedReason(noun: string): string {
-    return `your access in this project does not include this ${noun}. Ask a project admin for access to it.`;
+    return `your access in this project does not include this ${noun}. Ask a Project Admin for access to it.`;
   }
 
   /*
@@ -132,7 +132,7 @@ export default class WorkspaceActionAuthorization {
    * of it.
    */
   public static getPrivateWriteReason(noun: string): string {
-    return `this ${noun} is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.`;
+    return `this ${noun} is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`;
   }
 
   /*

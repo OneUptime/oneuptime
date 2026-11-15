@@ -432,7 +432,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.LongText,
     title: "Finance / Accounting Email",
     description:
-      "Invoices, receipts and billing related notifications will be sent to these emails in addition to project owner. Separate multiple emails with a comma.",
+      "Invoices, receipts and billing related notifications will be sent to these emails in addition to Project Owner. Separate multiple emails with a comma.",
     example: "accounting@example.com, finance@example.com",
   })
   @Column({

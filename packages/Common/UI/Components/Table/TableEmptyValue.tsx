@@ -19,9 +19,16 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * On the row's 24px line, in the grey a missing value is drawn in, so it
  * sits level with the values in the cells beside it.
+ *
+ * `relative`: the words a screen reader hears are sr-only, which is
+ * position: absolute. Without a positioned box of their own, they were
+ * placed against the page, past a table that scrolls sideways inside its
+ * card (overflow: auto, which clips only what it is the containing block
+ * of), and a phone's page scrolled sideways as far as the table's last
+ * empty cell.
  */
 export const TABLE_EMPTY_VALUE_CLASS_NAME: string =
-  "text-sm leading-6 text-gray-400";
+  "relative text-sm leading-6 text-gray-400";
 
 export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
 
@@ -32,7 +39,7 @@ export const TABLE_EMPTY_VALUE_TEST_ID: string = "table-empty-value";
  * empty value.
  */
 export const TABLE_EMPTY_VALUE_SMALL_CLASS_NAME: string =
-  "text-xs text-gray-400";
+  "relative text-xs text-gray-400";
 
 /*
  * The marks pages draw for "nothing here" in a cell of their own, and

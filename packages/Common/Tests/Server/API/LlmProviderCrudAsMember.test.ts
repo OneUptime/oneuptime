@@ -147,8 +147,8 @@ const savedPlanEnvironment: Record<string, string | undefined> = {};
  * providers, and a member given only the LLM permissions.
  */
 const WALKERS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a project member", [Permission.ProjectMember]],
   [
     "a member given Create, Edit, Read and Delete LLM",

@@ -19,6 +19,7 @@ import {
   translateSetupGuidePiece,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuideTranslation";
 import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "../../../Types/Dashboard/DashboardLanguage";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
@@ -60,6 +61,13 @@ const ARABIC_SCRIPT: RegExp = /\p{Script=Arabic}/u;
 
 // A half-width ? or ! right after a Chinese or Japanese character.
 const HALF_WIDTH_AFTER_CJK: RegExp = /[\u3040-\u30ff\u3400-\u9fff][?!]/u;
+
+// A bold mark, and what CommonMark reads beside one: space and punctuation.
+const BOLD_MARK: RegExp = /\*\*/g;
+
+const MARKDOWN_SPACE: RegExp = /\s/u;
+
+const MARKDOWN_PUNCTUATION: RegExp = /[\p{P}\p{S}]/u;
 
 // Each language's words for each product, as its module exports them.
 const MODULES: Record<string, Record<string, SetupGuideTranslation>> = {};
@@ -127,11 +135,6 @@ function keysOf(content: SetupGuideContent): Array<string> {
   return keys;
 }
 
-// A text, read as a regular expression matching only itself.
-function asPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /*
  * The locale key a title is: itself, or - for a title the guide fills in
  * with translateTemplate, in the reader's language where it is drawn
@@ -152,7 +155,7 @@ function keyOf(text: string): string {
       }
       const pattern: string = key
         .split(/\{\{\s*[\w.]+\s*\}\}/)
-        .map(asPattern)
+        .map(escapeRegExp)
         .join(".+");
       return new RegExp(`^${pattern}$`).test(text);
     },
@@ -207,6 +210,55 @@ function boldRuns(text: string): Array<string> {
 
 function withoutEndMark(text: string): string {
   return text.replace(/[\s:.]+$/, "");
+}
+
+// The start or end of a text reads as a space beside a mark.
+function isMarkdownSpace(character: string | undefined): boolean {
+  return character === undefined || MARKDOWN_SPACE.test(character);
+}
+
+function isMarkdownPunctuation(character: string | undefined): boolean {
+  return character !== undefined && MARKDOWN_PUNCTUATION.test(character);
+}
+
+/*
+ * The bold marks of a text that CommonMark (LazyMarkdownViewer) would draw
+ * as asterisks: each odd ** has to open a bold run and each even one close
+ * it. A mark beside punctuation, a code span's backtick or a bracket, only
+ * does so with a space or more punctuation on its other side, so a Korean
+ * particle or an Arabic "و" glued to the mark leaves it showing, as in
+ * "**`web-1`**용". Code spans are read as their backticks.
+ */
+function boldMarksThatShow(text: string): Array<string> {
+  const read: string = text.replace(CODE_SPAN, (span: string): string => {
+    return "`" + "x".repeat(span.length - 2) + "`";
+  });
+
+  return Array.from(read.matchAll(BOLD_MARK))
+    .filter((match: RegExpMatchArray, nth: number): boolean => {
+      const at: number = match.index!;
+      const before: string | undefined = read[at - 1];
+      const after: string | undefined = read[at + 2];
+
+      if (nth % 2 === 0) {
+        return (
+          isMarkdownSpace(after) ||
+          (isMarkdownPunctuation(after) &&
+            !isMarkdownSpace(before) &&
+            !isMarkdownPunctuation(before))
+        );
+      }
+
+      return (
+        isMarkdownSpace(before) ||
+        (isMarkdownPunctuation(before) &&
+          !isMarkdownSpace(after) &&
+          !isMarkdownPunctuation(after))
+      );
+    })
+    .map((match: RegExpMatchArray): string => {
+      return text.slice(Math.max(0, match.index! - 12), match.index! + 14);
+    });
 }
 
 beforeAll(async () => {
@@ -530,6 +582,16 @@ describe.each(
         expect(halfWidthAfterTheirText).toEqual([]);
       });
 
+      test("every bold run opens and closes as Markdown reads it, its asterisks never drawn", () => {
+        const showing: Array<string> = Object.values(
+          MODULES[product.name]![language]!,
+        ).flatMap((translated: string): Array<string> => {
+          return boldMarksThatShow(translated);
+        });
+
+        expect(showing).toEqual([]);
+      });
+
       test("Advanced and Troubleshooting are named as the guide's own sections are", () => {
         const locale: Record<string, string> = readDashboardLocale(language);
 
@@ -667,5 +729,29 @@ describe("the checks above (negative control)", () => {
       locale["Overview"],
     );
     expect(isWordedInDashboardLocale("Overview", "de")).toBe(true);
+  });
+
+  test("a bold mark glued to a word on its punctuation side is caught, and one set apart is not", () => {
+    expect(
+      boldMarksThatShow("이 명령은 **`web-1`**용으로 설치합니다"),
+    ).toHaveLength(1);
+    expect(
+      boldMarksThatShow("**(k8s-file 로그 드라이버)**을 참조하세요"),
+    ).toHaveLength(1);
+    expect(boldMarksThatShow("في الخطوة 1، و**`swarm-1`** اسمًا")).toHaveLength(
+      1,
+    );
+    expect(boldMarksThatShow("** loose** and **loose **")).toHaveLength(2);
+
+    expect(
+      boldMarksThatShow("이 명령은 **`web-1`** 호스트용으로 설치합니다"),
+    ).toEqual([]);
+    expect(boldMarksThatShow("وأدخل **`swarm-1`** اسمًا")).toEqual([]);
+    expect(
+      boldMarksThatShow(
+        "die **Übersicht**, der **`json-file`**-Treiber und (**N**)",
+      ),
+    ).toEqual([]);
+    expect(boldMarksThatShow("`a**b` **`ceph-1`**: ok")).toEqual([]);
   });
 });

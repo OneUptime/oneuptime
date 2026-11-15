@@ -707,7 +707,7 @@ export const RESTRICTED_GAP_NEXT_STEP: string =
   "Ask someone who can edit this Kubernetes cluster's AI access to fix it on the cluster's AI agent page (AI → Agent).";
 
 export const RESTRICTED_PROJECT_GAP_NEXT_STEP: string =
-  "Ask a project owner or admin to change this in Project Settings (AI Features, AI Credits or LLM Providers).";
+  "Ask a Project Owner or Project Admin to change this in Project Settings (AI Features, AI Credits or LLM Providers).";
 
 /*
  * The gaps fixed in Project Settings rather than on the cluster. Every

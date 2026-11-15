@@ -139,8 +139,8 @@ async function canAsk(props: DatabaseCommonInteractionProps): Promise<boolean> {
 
 describe("who may ask AI to work in a repository", () => {
   test.each([
-    ["a project owner", Permission.ProjectOwner],
-    ["a project admin", Permission.ProjectAdmin],
+    ["a Project Owner", Permission.ProjectOwner],
+    ["a Project Admin", Permission.ProjectAdmin],
     ["a project member", Permission.ProjectMember],
   ])("%s may", async (_who: string, permission: Permission) => {
     expect(await canAsk(callerWith([row(permission)]))).toBe(true);

@@ -482,7 +482,7 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
                                 "Everyone who can read AI calls",
                               )
                             : translator.translateText(
-                                "Project owners and admins",
+                                "Project Owners and Project Admins",
                               )}
                         </div>
                         {item.storeConversationText === false ? (
