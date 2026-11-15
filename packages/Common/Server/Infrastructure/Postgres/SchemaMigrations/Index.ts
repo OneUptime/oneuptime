@@ -1008,6 +1008,7 @@ import { RemovePermissionsTeamsCannotBeGiven1809178100000 } from "./180917810000
 import { AddMeasurementBackfillCursorId1809178200000 } from "./1809178200000-AddMeasurementBackfillCursorId";
 import { RemovePermissionsThatGrantNothing1809178600000 } from "./1809178600000-RemovePermissionsThatGrantNothing";
 import { AddServiceLevelObjectiveRequestSli1809178700000 } from "./1809178700000-AddServiceLevelObjectiveRequestSli";
+import { AddIncomingRequestSecret1809178800000 } from "./1809178800000-AddIncomingRequestSecret";
 
 export default [
   InitialMigration,
@@ -2020,4 +2021,5 @@ export default [
   AddMeasurementBackfillCursorId1809178200000,
   RemovePermissionsThatGrantNothing1809178600000,
   AddServiceLevelObjectiveRequestSli1809178700000,
+  AddIncomingRequestSecret1809178800000,
 ];

@@ -211,4 +211,24 @@ export default class MicrosoftTeamsTimezone {
 
     return `${zoned.format("MMM D, YYYY, HH:mm")} (${timezone.label})`;
   }
+
+  /*
+   * A moment in a reply to whoever sent `activity`: in their zone (resolve),
+   * and named - "Nov 5, 2026, 05:14 (America/New_York)". A record's details
+   * ("Created At") read "11/5/2026, 5:14:00 AM": the server's zone, UTC in
+   * the containers, and not named, so nobody could tell (issue #8231).
+   */
+  public static formatForActivity(
+    date: Date | string,
+    activity: unknown,
+  ): string {
+    return this.format(
+      new Date(date),
+      this.resolve({
+        activity: (activity && typeof activity === "object"
+          ? activity
+          : {}) as JSONObject,
+      }),
+    );
+  }
 }

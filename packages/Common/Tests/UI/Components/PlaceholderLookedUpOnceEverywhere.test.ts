@@ -456,15 +456,24 @@ describe("every nav title, menu word, aria label and empty value's words written
         );
       }).length,
     ).toBeGreaterThanOrEqual(26);
-    expect(
-      sitesIn(
-        "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
-      ).filter((site: PlaceholderSite): boolean => {
-        return site.handedTo === "<PlaceholderText text>";
-      }),
-    ).toEqual([
-      expect.objectContaining({ isLookedUp: true, isSaidTranslated: true }),
-    ]);
+    /*
+     * Every placeholder the subscription page draws is looked up once and
+     * said translated - however many it has: it gained a second, for a
+     * project with no user limit, after this was first written.
+     */
+    const subscriptionPlaceholders: Array<PlaceholderSite> = sitesIn(
+      "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
+    ).filter((site: PlaceholderSite): boolean => {
+      return site.handedTo === "<PlaceholderText text>";
+    });
+
+    expect(subscriptionPlaceholders.length).toBeGreaterThanOrEqual(1);
+
+    for (const site of subscriptionPlaceholders) {
+      expect(site).toEqual(
+        expect.objectContaining({ isLookedUp: true, isSaidTranslated: true }),
+      );
+    }
   });
 });
 

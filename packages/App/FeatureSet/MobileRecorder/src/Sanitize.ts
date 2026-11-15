@@ -32,6 +32,13 @@ const OBJECT_ID_SEGMENT: RegExp = /^[0-9a-f]{24}$/iu;
 const EMAIL_SEGMENT: RegExp = /^[^@\s/]{1,64}@[^@\s/]{1,253}\.[^@\s/]{1,63}$/u;
 const LONG_DIGIT_SEGMENT: RegExp = /^\d{9,}$/u;
 const OPAQUE_TOKEN_SEGMENT: RegExp = /^[A-Za-z0-9_-]{32,}$/u;
+/*
+ * A JSON Web Token, signed, unsigned or encrypted: a header of base64url
+ * JSON ("eyJ") and one to four more parts joined by dots, which kept it out
+ * of the token rule (Common's UrlScrubber, #8385). Anchored at both ends of
+ * one segment, and no part can hold a dot, so a segment is read once.
+ */
+const JWT_SEGMENT: RegExp = /^eyJ[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]*){1,4}$/u;
 const ABSOLUTE_URL_PATTERN: RegExp = /^[A-Za-z][A-Za-z0-9+.-]*:\/\//;
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTER_PATTERN: RegExp = /[\u0000-\u001F\u007F]/gu;
@@ -187,18 +194,28 @@ export function sanitizeRoute(route: unknown): string {
     .split("/")
     .map((segment: string): string => {
       let decoded: string = segment;
-      try {
-        decoded = decodeURIComponent(segment);
-      } catch {
-        decoded = segment;
+      /*
+       * Decoded once, and once more for an address escaped twice
+       * ("someone%2540example.com"), as Common's UrlScrubber reads it.
+       */
+      for (let pass: number = 0; pass < 2; pass++) {
+        try {
+          decoded = decodeURIComponent(decoded);
+        } catch {
+          // Matched as it is.
+        }
+        if (
+          UUID_SEGMENT.test(decoded) ||
+          OBJECT_ID_SEGMENT.test(decoded) ||
+          EMAIL_SEGMENT.test(decoded) ||
+          LONG_DIGIT_SEGMENT.test(decoded) ||
+          OPAQUE_TOKEN_SEGMENT.test(decoded) ||
+          JWT_SEGMENT.test(decoded)
+        ) {
+          return "[redacted]";
+        }
       }
-      return UUID_SEGMENT.test(decoded) ||
-        OBJECT_ID_SEGMENT.test(decoded) ||
-        EMAIL_SEGMENT.test(decoded) ||
-        LONG_DIGIT_SEGMENT.test(decoded) ||
-        OPAQUE_TOKEN_SEGMENT.test(decoded)
-        ? "[redacted]"
-        : segment;
+      return segment;
     })
     .join("/");
 

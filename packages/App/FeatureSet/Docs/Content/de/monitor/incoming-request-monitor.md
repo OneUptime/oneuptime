@@ -78,13 +78,13 @@ https://oneuptime.com/heartbeat/YOUR_SECRET_KEY
 
 Ersetzen Sie `https://oneuptime.com` durch die URL Ihrer OneUptime-Instanz, wenn Sie selbst hosten.
 
-Senden Sie **GET**- oder **POST**-Anfragen an diese URL. HEAD wird angenommen und wie GET behandelt; PUT, PATCH und DELETE liefern 404. Der geheime Schlüssel im Pfad ist der einzige Berechtigungsnachweis — kein Header und kein Token ist nötig. Query-Strings werden ignoriert: Senden Sie, was Kriterien lesen sollen, im Body oder in den Headern.
+Senden Sie **GET**- oder **POST**-Anfragen an diese URL. HEAD wird angenommen und wie GET behandelt; PUT, PATCH und DELETE liefern 404. Der geheime Schlüssel im Pfad ist der Berechtigungsnachweis: Kein Header und kein Token ist nötig, es sei denn, das Projekt [verlangt bei jeder Anfrage ein Geheimnis](#bei-jeder-anfrage-ein-geheimnis-verlangen). Query-Strings werden ignoriert: Senden Sie, was Kriterien lesen sollen, im Body oder in den Headern.
 
 > [!WARNING]
 > Jeder, der diese URL kennt, kann den Monitor als gesund markieren, behandeln Sie sie also als Geheimnis. Wird sie bekannt, öffnen Sie die Seite **Einstellungen** des Monitors und klicken Sie auf **Geheimen Schlüssel für eingehende Anfragen zurücksetzen**, und aktualisieren Sie dann jeden Absender. Die Übersicht des Monitors zeigt die letzte Anfrage so, wie seine Protokolle sie behalten: mit maskierten Geheimnissen und personenbezogenen Daten, und ohne Header und Body, wenn **Anfrageinhalt behalten** ausgeschaltet ist. Die Maskierung erkennt nur die Namen und Muster, die sie kennt — senden Sie an diesen Endpunkt also keine API-Schlüssel oder Tokens.
 
 > [!IMPORTANT]
-> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen.
+> OneUptime antwortet sofort mit `200` und einem leeren JSON-Objekt (`{}`) und verarbeitet die Anfrage über eine Warteschlange. Diese Antwort wird geschrieben, bevor irgendeine Prüfung stattfindet, ein `200` ist also **keine** Bestätigung, dass die Anfrage angenommen wurde — ein falscher geheimer Schlüssel, ein gelöschter Monitor und ein deaktivierter Monitor liefern ebenfalls `200`. Prüfen Sie in der Zeitleiste des Monitors, ob Anfragen ankommen. Die einzige Ausnahme ist ein Projekt, das bei jeder Anfrage ein Geheimnis verlangt: Eine Anfrage ohne Geheimnis wird mit `401` beantwortet.
 
 ### Einen Anfragetext senden
 
@@ -188,6 +188,38 @@ Invoke-RestMethod -Method Post `
   -Body '{"status": "healthy", "version": "1.2.3"}'
 ```
 :::
+
+## Bei jeder Anfrage ein Geheimnis verlangen
+
+Wer die URL eines Monitors hat, kann ihm Anfragen senden. Ein Projektinhaber oder -administrator kann jeden Monitor für eingehende Anfragen im Projekt zusätzlich eines der eigenen Geheimnisse des Projekts verlangen lassen, egal wer den Monitor eingerichtet hat: Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Eine Anfrage ohne Geheimnis wird mit `401` und dem Grund abgelehnt, bevor sie als Heartbeat zählt, als letzte Anfrage des Monitors gespeichert wird oder Kriterien erreicht. Eine Anfrage mit Geheimnis geht wie bisher an die eigenen Kriterien des Monitors.
+
+:::steps
+### Ein Geheimnis erstellen
+
+Gehen Sie zu **Monitore → Einstellungen → Geheimnisse für eingehende Anfragen** und erstellen Sie ein Geheimnis. Geben Sie ihm einen Namen, OneUptime generiert den Wert; kopieren Sie ihn aus der Liste.
+
+### Es von jedem Absender senden
+
+Senden Sie das Geheimnis im Header `X-OneUptime-Secret` oder als Bearer-Token im Header `Authorization`, je nachdem, was Ihr Absender setzen kann.
+
+### Die Anforderung aktivieren
+
+Aktivieren Sie **Bei jeder Anfrage ein Geheimnis verlangen**. Solange das Projekt kein Geheimnis hat, lässt sich die Anforderung nicht aktivieren, sodass kein Absender versehentlich abgelehnt wird.
+:::
+
+```bash
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "X-OneUptime-Secret: YOUR_PROJECT_SECRET"
+
+# Or as a bearer token
+curl -X POST https://oneuptime.com/heartbeat/YOUR_SECRET_KEY \
+  -H "Authorization: Bearer YOUR_PROJECT_SECRET"
+```
+
+OneUptime speichert das Geheimnis nie: Es entfernt den Header aus der Anfrage und maskiert ein Bearer-Token, das eines der Geheimnisse des Projekts ist, bevor es etwas speichert.
+
+> [!TIP]
+> Um ein Geheimnis zu ersetzen, ohne jemanden abzulehnen, erstellen Sie ein zweites, stellen Ihre Absender darauf um und löschen das alte, sobald sich sein Wert unter **Zuletzt verwendet** nicht mehr ändert. Jedes Geheimnis des Projekts wird angenommen, und das letzte lässt sich nicht löschen, solange die Anforderung aktiv ist.
 
 ## Überwachungskriterien
 
@@ -393,6 +425,10 @@ Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dess
 
 :::details Mein Absender bekommt 200, aber am Monitor erscheint nichts
 Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht, dass die Anfrage angenommen wurde. Prüfen Sie, ob der geheime Schlüssel in der URL zur **Heartbeat-URL** des Monitors passt und ob der Monitor nicht deaktiviert ist. Sehen Sie dann in der Zeitleiste des Monitors nach, ob Anfragen ankommen.
+:::
+
+:::details Mein Absender bekommt 401
+Das Projekt verlangt bei jeder Anfrage ein Geheimnis, und die Anfrage hat keines gesendet oder eines, das nicht zum Projekt gehört: Die Antwort sagt, was davon zutrifft. Senden Sie eines der Geheimnisse des Projekts im Header `X-OneUptime-Secret` oder als Bearer-Token, wie [Bei jeder Anfrage ein Geheimnis verlangen](#bei-jeder-anfrage-ein-geheimnis-verlangen) zeigt. Eine abgelehnte Anfrage erreicht den Monitor nie.
 :::
 
 :::details Der Monitor geht nie offline, wenn die Heartbeats ausbleiben
