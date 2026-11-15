@@ -354,6 +354,18 @@ import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/P
 import PrivateRecordPublicNotes, {
   PrivateRecordKind,
 } from "../../../Types/StatusPage/PrivateRecordPublicNotes";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/incident-episode-public-note/approval/policy",
+  "/incident-public-note/approval/policy",
+  "/scheduled-maintenance-public-note/approval/policy",
+]);
 
 const NOW: Date = new Date("2026-09-14T18:20:00.000Z");
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";

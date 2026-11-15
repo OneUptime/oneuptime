@@ -141,7 +141,10 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     );
   }
   if (backup.state === "ok" && backup.bytes !== null) {
-    const duration: string = formatProxmoxDuration(backup.durationSeconds);
+    const duration: string = formatProxmoxDuration(
+      backup.durationSeconds,
+      translator,
+    );
     backupDetails.push(
       duration
         ? translator.translateTemplate("{{size}} in {{duration}}", {
@@ -285,7 +288,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
     });
   }
   const uptime: string =
-    row.isUp !== false ? formatUptime(row.uptimeSeconds) : "";
+    row.isUp !== false ? formatUptime(row.uptimeSeconds, translator) : "";
   if (uptime) {
     detailRows.push({
       key: "uptime",

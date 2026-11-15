@@ -479,7 +479,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                         </div>
                       </td>
                       <td className={CELL}>
-                        {formatUserFlowDuration(path.avgDurationMs)}
+                        {formatUserFlowDuration(path.avgDurationMs, translator)}
                       </td>
                       <td className={CELL}>
                         {path.errorSessions > 0 ? (

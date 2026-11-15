@@ -179,6 +179,19 @@ import {
   seededRandom,
   shuffled,
 } from "../../Helpers/SeededRandom";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo([
+  "/on-call-page/pass-on/alert-episode/*",
+  "/on-call-page/pass-on/incident-episode/*",
+  "/workspace-channel-link/alert-episode/*",
+  "/workspace-channel-link/incident-episode/*",
+]);
 
 const PROJECT_ID: string = "22222222-2222-4222-8222-222222222222";
 const EPISODE_ID: string = "44444444-4444-4444-8444-444444444444";

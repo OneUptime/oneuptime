@@ -22,9 +22,14 @@
  * `x + " ms"` anywhere in the Dashboard, and any "ms" written beside a
  * figure in any of its files (issue #7418);
  * ChartValueAxesInReadersLanguageGuard keeps formatMillisecondsInEnglish in
- * the PDF export.
+ * the PDF export. formatCompactDuration writes a short duration ("12s",
+ * "4m 05s", "2d 5h") with the Dashboard's compact keys, and
+ * formatCompactDurationAgo an age ("5m ago"), each figure the reader's
+ * ("۴ دقیقه ۰۵ ثانیه"; English exactly as it was hand-written, #8455).
  */
 export {
+  formatCompactDuration,
+  formatCompactDurationAgo,
   formatDurationInUnit,
   formatMilliseconds,
   formatMillisecondsInEnglish,
@@ -32,6 +37,9 @@ export {
   roundMilliseconds,
 } from "Common/Utils/Milliseconds";
 export type {
+  CompactDuration,
+  CompactDurationOptions,
+  CompactDurationUnit,
   DurationInUnit,
   DurationInUnitOptions,
   MillisecondsOptions,

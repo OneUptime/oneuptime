@@ -444,7 +444,7 @@ function getUserRollupCells(
     </div>,
     <div key="3">
       <div className="font-mono text-sm font-medium tabular-nums text-gray-900">
-        {formatSessionDuration(row.totalDurationMs)}
+        {formatSessionDuration(row.totalDurationMs, translator)}
       </div>
       <div className="text-xs text-gray-500">
         {translator.translatePlural(

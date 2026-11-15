@@ -110,6 +110,14 @@ jest.mock("../../../UI/Utils/User", () => {
 import DashboardNavbar, {
   PRODUCTS_SEARCH_LABEL,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
+import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+
+/*
+ * Reads the page makes that these tests leave unanswered: refused at
+ * once, as the network refused them, and taken as reads it could not
+ * make (Tests/Helpers/RealNetworkRequests.ts).
+ */
+refuseRequestsTo(["/project-products"]);
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 

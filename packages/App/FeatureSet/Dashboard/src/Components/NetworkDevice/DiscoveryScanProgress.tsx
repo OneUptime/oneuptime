@@ -124,7 +124,7 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
             : isFailed
               ? "Stopped after {{duration}}"
               : "Finished in {{duration}}",
-          { duration: formatDiscoveryDuration(end - startedAt) },
+          { duration: formatDiscoveryDuration(end - startedAt, translator) },
         )
       : null;
 

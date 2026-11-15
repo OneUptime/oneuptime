@@ -275,6 +275,7 @@
       "channelSlack": "Slack-Workspace",
       "channelMicrosoftTeams": "Microsoft Teams-Workspace",
       "channelWebhook": "Webhook",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "Dieses Abonnement wurde vom Team hinzugefügt, das diese Statusseite betreibt. Handelt es sich um eine gemeinsam genutzte Adresse wie eine Mailingliste, erhält nach dem Abbestellen niemand mehr diese Benachrichtigungen, der sie über diese Adresse bekommt, und das Team wird informiert.",
       "confirmButton": "Abbestellen",
       "manageInstead": "Stattdessen auswählen, welche Benachrichtigungen Sie erhalten",
