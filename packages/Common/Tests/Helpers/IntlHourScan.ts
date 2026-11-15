@@ -1,3 +1,9 @@
+import {
+  CallArguments,
+  lineOf,
+  readCallArguments,
+  readReceiver,
+} from "./CallScan";
 import fs from "fs";
 import path from "path";
 
@@ -155,13 +161,6 @@ const enclosingObject: (text: string, index: number) => string = (
   return text.slice(span.start, span.end + 1);
 };
 
-const lineOf: (text: string, index: number) => number = (
-  text: string,
-  index: number,
-): number => {
-  return text.slice(0, index).split("\n").length;
-};
-
 const describeObject: (data: {
   file: string;
   text: string;
@@ -232,6 +231,117 @@ export const findNumericHoursOffATwelveHourClock: (
 
   for (const match of text.matchAll(HAND_WRITTEN_HOUR_RULE)) {
     found.push(`${file}:${lineOf(text, match.index!)} ${match[0]}`);
+  }
+
+  return found;
+};
+
+/*
+ * A DATE THE BROWSER WRITES ON ITS OWN (issue #8231).
+ *
+ * Date.prototype.toLocaleString, toLocaleDateString and toLocaleTimeString
+ * given at most a locale write the browser's zone - not the one the reader
+ * picked in User Settings - the language's own clock, not the reader's,
+ * and the seconds: "5.11.2026, 05:14:00" on a German page in a US browser
+ * whose reader keeps a 12-hour clock and a zone of their own, beside every
+ * table's "5. Nov. 2026, 5:14 AM". The guards above read options objects,
+ * and these pass none. Given options with no timeZone, the zone is still
+ * the browser's: a tool import's dates were. A component writes a date
+ * with OneUptimeDate (or Common/UI/Utils/ReaderMoments), and one that must
+ * call Intl itself passes its options, a timeZone among them.
+ *
+ * toLocaleString is a number's writer too ("1,234"), so it is refused only
+ * for a date: given a date's locale (getReaderDateLocale, getDateLocale),
+ * or called on `new Date(...)`, on `date`, or on a name that ends in Date
+ * or At (`expiresAt`, `point.date`, `startDate`).
+ */
+const BROWSER_DATE_WRITE: RegExp =
+  /\.(toLocaleString|toLocaleDateString|toLocaleTimeString)\s*\(/g;
+
+const DATE_LOCALE_ARGUMENT: RegExp =
+  /\b(getReaderDateLocale|getDateLocale)\s*\(/;
+
+// Options that say which zone they write: timeZone, or a spread that may.
+const OPTIONS_NAME_A_ZONE: RegExp = /\btimeZone\b|\.\.\./;
+
+const DATE_RECEIVER: RegExp =
+  /(^new\s+Date\b|(^|\.)date$|[a-z0-9_$](Date|At)$)/;
+
+/*
+ * The one write left to the browser: getUserPrefers12HourFormat's last
+ * resort, which reads the browser's own clock from a time it writes and
+ * shows nobody.
+ */
+export const BROWSER_DATE_WRITES_ALLOWED: ReadonlyArray<{
+  file: string;
+  receiver: string;
+  reason: string;
+}> = [
+  {
+    file: "packages/Common/Types/Date.ts",
+    receiver: "new Date()",
+    reason:
+      "getUserPrefers12HourFormat's fallback probe: it looks for AM/PM in a time it writes and shows nobody.",
+  },
+];
+
+// The receiver with what only types it ("!", "?") taken off its end.
+const receiverName: (receiver: string) => string = (
+  receiver: string,
+): string => {
+  return receiver.replace(/[!?]+$/, "");
+};
+
+export const findDatesWrittenOffTheReadersClock: (
+  file: string,
+  text: string,
+) => Array<string> = (file: string, text: string): Array<string> => {
+  const found: Array<string> = [];
+
+  for (const match of text.matchAll(BROWSER_DATE_WRITE)) {
+    const method: string = match[1]!;
+    const call: CallArguments | null = readCallArguments(
+      text,
+      match.index! + match[0].length - 1,
+    );
+
+    if (!call || call.count > 2) {
+      continue;
+    }
+
+    /*
+     * With options, the options say the zone: a timeZone in so many words,
+     * or options spread in that may carry one. Their clock is the guards
+     * above's to judge (and #7651's).
+     */
+    if (call.count === 2 && OPTIONS_NAME_A_ZONE.test(call.text)) {
+      continue;
+    }
+
+    const receiver: string = receiverName(readReceiver(text, match.index!));
+
+    if (
+      BROWSER_DATE_WRITES_ALLOWED.some(
+        (allowed: { file: string; receiver: string }): boolean => {
+          return allowed.file === file && allowed.receiver === receiver;
+        },
+      )
+    ) {
+      continue;
+    }
+
+    const isDate: boolean =
+      method !== "toLocaleString" ||
+      DATE_LOCALE_ARGUMENT.test(call.text) ||
+      DATE_RECEIVER.test(receiver);
+
+    if (isDate) {
+      found.push(
+        `${file}:${lineOf(text, match.index!)} ${receiver}.${method}(${call.text
+          .replace(WHITESPACE, " ")
+          .trim()})`,
+      );
+    }
   }
 
   return found;

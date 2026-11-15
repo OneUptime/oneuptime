@@ -7,6 +7,8 @@ import Link from "Common/UI/Components/Link/Link";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import IncomingRequestSecretNote from "../../IncomingRequestSecret/IncomingRequestSecretNote";
+import useIncomingRequestSecretRequirement from "../../IncomingRequestSecret/UseIncomingRequestSecretRequirement";
 
 export interface ComponentProps {
   secretKey: ObjectID;
@@ -33,6 +35,8 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const heartbeatUrl: URL = getHeartbeatUrl(props.secretKey);
+  // Whether the project refuses requests without one of its secrets.
+  const isSecretRequired: boolean = useIncomingRequestSecretRequirement();
 
   return (
     <Card
@@ -60,6 +64,10 @@ const IncomingMonitorLink: FunctionComponent<ComponentProps> = (
             title="Copy heartbeat URL"
           />
         </div>
+        <IncomingRequestSecretNote
+          isRequired={isSecretRequired}
+          className="mt-3"
+        />
       </div>
     </Card>
   );

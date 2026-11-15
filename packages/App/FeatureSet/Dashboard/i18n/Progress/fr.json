@@ -779,6 +779,7 @@
     "{{minutes}} min",
     "{{protocol}} port {{port}}",
     "{{rate}}/min",
+    "{{rate}}/s",
     "{{up}}/{{count}} OSD up",
     "{{value}} ms",
     "{{value}} s"

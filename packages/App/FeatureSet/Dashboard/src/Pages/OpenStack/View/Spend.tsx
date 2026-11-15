@@ -1,7 +1,8 @@
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import {
-  getNumberLocale,
-  getReaderNumberLocale,
-} from "Common/Types/DateLanguage";
+  writeReaderDay,
+  writeReaderMoment,
+} from "Common/UI/Utils/ReaderMoments";
 import PageComponentProps from "../../PageComponentProps";
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
 import Route from "Common/Types/API/Route";
@@ -236,9 +237,7 @@ export function getOpenStackSpendTiles(data: {
             sublabel: translator.translateTemplate(
               translationKey("Only counted from {{date}}"),
               {
-                date: new Date(lastMonthFrom as string).toLocaleDateString(
-                  getNumberLocale(translator.language || "en"),
-                ),
+                date: writeReaderDay(new Date(lastMonthFrom as string)),
               },
             ),
             sublabelIsTranslated: true,
@@ -445,9 +444,7 @@ const OpenStackCloudSpend: FunctionComponent<
               {translator.translateTemplate(
                 translationKey("CloudKitty was last read at {{time}}."),
                 {
-                  time: new Date(snapshot.cloudKittyReadAt).toLocaleString(
-                    getNumberLocale(translator.language || "en"),
-                  ),
+                  time: writeReaderMoment(new Date(snapshot.cloudKittyReadAt)),
                 },
               )}
             </>

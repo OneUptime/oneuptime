@@ -1087,6 +1087,14 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
                     plan.groupBy,
                   ),
                   link: target,
+                  // The days the read was cut in, to be drawn in (#8206).
+                  bucketTimezone:
+                    AggregationIntervalUtil.getCalendarBucketTimezone({
+                      startDate: startTime,
+                      endDate: endTime,
+                      aggregationInterval: interval,
+                      timezone: ctx.readerTimezone,
+                    }),
                 })
               : undefined,
           note: [
@@ -1206,6 +1214,15 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
                 },
               ],
               link: target,
+              // The days the read was cut in, to be drawn in (#8206).
+              bucketTimezone: AggregationIntervalUtil.getCalendarBucketTimezone(
+                {
+                  startDate: startTime,
+                  endDate: endTime,
+                  aggregationInterval: interval,
+                  timezone: ctx.readerTimezone,
+                },
+              ),
             })
           : undefined;
       const truncated: boolean = Boolean(

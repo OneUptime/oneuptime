@@ -14,7 +14,7 @@ import React, {
 } from "react";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { writeReaderMoment } from "Common/UI/Utils/ReaderMoments";
 
 interface ComponentProps {
   scan: NetworkDeviceDiscoveryScan;
@@ -203,9 +203,7 @@ const DiscoveryScanProgress: FunctionComponent<ComponentProps> = (
           title={
             startedAt !== null
               ? translator.translateTemplate("Started {{time}}", {
-                  time: new Date(startedAt).toLocaleString(
-                    getReaderDateLocale(),
-                  ),
+                  time: writeReaderMoment(new Date(startedAt)),
                 })
               : undefined
           }

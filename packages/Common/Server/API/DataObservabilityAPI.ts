@@ -1509,7 +1509,8 @@ export default class DataObservabilityAPI extends BaseAPI<
       },
     );
 
-    const since: Date = OneUptimeDate.addRemoveDays(
+    // A length of time, the same on every server (issue #8236).
+    const since: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -SCHEMA_CHANGE_WINDOW_IN_DAYS,
     );
