@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, and the schema change's title, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title and a dbt test, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Change (schema change)",
@@ -119,6 +119,7 @@ describe("the keys that name their meaning", () => {
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
+        "Test (dbt test)",
         "View (database object)",
       ].sort(),
     );
@@ -127,6 +128,8 @@ describe("the keys that name their meaning", () => {
     expect(getWordOfMeaningKey(CHANGE)).toBe("Change");
     expect(getWordOfMeaningKey("Open (invoice status)")).toBe("Open");
     expect(getWordOfMeaningKey("Created (import result)")).toBe("Created");
+    // #7535: the dbt Tests card's column of tests, the noun.
+    expect(getWordOfMeaningKey("Test (dbt test)")).toBe("Test");
   });
 
   test("are no other text, not even one shaped like them: it reads as it is written", () => {
