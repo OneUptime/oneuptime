@@ -48,6 +48,14 @@ export default class ProjectStateListCache<TState extends BaseModel> {
   // The columns copied onto each state handed out.
   private readonly columns: Array<string>;
 
+  /*
+   * The lists handed out from an entry kept from an earlier ask, rather than
+   * read for the one they answered (isKept).
+   */
+  private readonly keptLists: WeakSet<Array<TState>> = new WeakSet<
+    Array<TState>
+  >();
+
   public constructor(options: {
     // The Redis namespace the generations are kept under.
     namespace: string;
@@ -90,6 +98,9 @@ export default class ProjectStateListCache<TState extends BaseModel> {
 
     let states: Promise<Array<TState>> | undefined = this.entries.get(key);
 
+    // Kept from an earlier ask (or still being read for it), not read for this one.
+    const isKept: boolean = states !== undefined;
+
     if (!states) {
       states = read();
       this.entries.set(key, states, ProjectStateListCache.ENTRY_TTL_MS);
@@ -102,9 +113,26 @@ export default class ProjectStateListCache<TState extends BaseModel> {
       });
     }
 
-    return (await states).map((state: TState) => {
+    const copies: Array<TState> = (await states).map((state: TState) => {
       return this.copy(state);
     });
+
+    if (isKept) {
+      this.keptLists.add(copies);
+    }
+
+    return copies;
+  }
+
+  /*
+   * Whether getStates handed these states out from an entry kept from an
+   * earlier ask: a list that a state created since, in another process, may
+   * not be in yet. Not a list read for the ask it answered - nothing is kept
+   * while Redis is not connected, nor before a project's list is first read -
+   * which is the database as it is now, nor a list from anywhere else.
+   */
+  public isKept(states: Array<TState>): boolean {
+    return this.keptLists.has(states);
   }
 
   /*
