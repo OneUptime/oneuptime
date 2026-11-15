@@ -688,7 +688,9 @@ work out, starts from a default for everything else, and folds what most people 
   symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
   itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
   as `formatMilliseconds` does, and so does code that holds the unit in a variable or a property
-  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457): a holder
+  (`` `${figure}\u00A0${reading.unit}` ``, `ValueFormatter`, `Common/Types`, #8457) or writes them
+  as JSX text (`` {`${figure}\u00A0dBm`} ``, in the Admin Dashboard, the Status Page and the
+  server's forms too, #8720): a holder
   named `unit` or `symbol` holds a unit's symbol, and a word is named for what it holds (`word`,
   `noun`, `unitName`) and keeps its plain space ("2,340 groups"), unless it is a duration's word
   (below). Text that is no page's - a prompt, a Markdown export, a stored name, an API's answer

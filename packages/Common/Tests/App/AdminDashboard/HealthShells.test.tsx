@@ -648,10 +648,10 @@ describe("summarizeClickhouseCapacity", () => {
 
   test("formatBytes", () => {
     expect(formatBytes(null)).toBe("—");
-    expect(formatBytes(0)).toBe("0 B");
-    expect(formatBytes(1536)).toBe("1.5 KB");
-    expect(formatBytes(5 * 1024 * 1024 * 1024)).toBe("5.0 GB");
-    expect(formatBytes(20 * 1024 * 1024 * 1024)).toBe("20 GB");
+    expect(formatBytes(0)).toBe("0\u00A0B");
+    expect(formatBytes(1536)).toBe("1.5\u00A0KB");
+    expect(formatBytes(5 * 1024 * 1024 * 1024)).toBe("5.0\u00A0GB");
+    expect(formatBytes(20 * 1024 * 1024 * 1024)).toBe("20\u00A0GB");
   });
 });
 

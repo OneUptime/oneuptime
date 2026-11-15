@@ -484,7 +484,7 @@ export function formatBytes(value: number | null): string {
   }
 
   if (value === 0) {
-    return "0 B";
+    return "0\u00A0B";
   }
 
   const units: Array<string> = ["B", "KB", "MB", "GB", "TB", "PB"];
@@ -495,7 +495,8 @@ export function formatBytes(value: number | null): string {
   const scaled: number = value / Math.pow(1024, exponent);
   const decimals: number = Math.abs(scaled) >= 10 || exponent === 0 ? 0 : 1;
 
-  return `${scaled.toFixed(decimals)} ${units[exponent]}`;
+  // The figure held to its unit by a no-break space (#8720).
+  return `${scaled.toFixed(decimals)}\u00A0${units[exponent]}`;
 }
 
 /*

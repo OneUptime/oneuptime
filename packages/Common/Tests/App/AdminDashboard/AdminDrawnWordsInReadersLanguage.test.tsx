@@ -583,7 +583,9 @@ describe.each(LANGUAGES)(
       ).toBeVisible();
       expect(pageText()).toContain(label);
       expect(pageText()).toContain(
-        sentenceIn(language, "ClickHouse data: {{size}}", { size: "5.0 GB" }),
+        sentenceIn(language, "ClickHouse data: {{size}}", {
+          size: "5.0\u00A0GB",
+        }),
       );
 
       if (language !== "en") {
