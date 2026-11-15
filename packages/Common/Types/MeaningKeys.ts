@@ -79,6 +79,14 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "From (range start)",
   "To (range end)",
+  /*
+   * The Logs, Traces, Metrics and Exceptions explorers' tab that counts and
+   * charts what came in (their NavTabs, breadcrumbs and search entries).
+   * The bare "Insights" is OneUptime AI's findings - the Products menu's
+   * Insights and each AI section's page - so Spanish named both "Análisis"
+   * beside sentences about "hallazgos", and Italian "Informazioni" (#8629).
+   */
+  "Insights (explorer analytics)",
 ];
 
 // "<word> (<what it means>)": the word, and its meaning in brackets.

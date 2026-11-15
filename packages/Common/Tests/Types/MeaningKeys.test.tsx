@@ -111,7 +111,7 @@ describe("the keys that name their meaning", () => {
     expect(new Set(MEANING_KEYS).size).toBe(MEANING_KEYS.length);
   });
 
-  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array and a range's two ends, beside the invoice's, the issue's and the import's", () => {
+  test("hold a database's view and table, the schema change's title, a dbt test, a store's test environment, a storage array, a range's two ends and an explorer's Insights tab, beside the invoice's, the issue's and the import's", () => {
     expect([...MEANING_KEYS].sort()).toEqual(
       [
         "Array (storage array)",
@@ -119,6 +119,7 @@ describe("the keys that name their meaning", () => {
         "Created (import result)",
         "Deleted (invoice status)",
         "From (range start)",
+        "Insights (explorer analytics)",
         "Open (invoice status)",
         "Open (status)",
         "Table (database object)",
@@ -130,6 +131,11 @@ describe("the keys that name their meaning", () => {
       ].sort(),
     );
     expect(getWordOfMeaningKey(VIEW)).toBe("View");
+    // #8629: the explorers' tab, apart from OneUptime AI's findings.
+    expect(getWordOfMeaningKey("Insights (explorer analytics)")).toBe(
+      "Insights",
+    );
+    expect(getWordOfMeaningKey("Insights")).toBeUndefined();
     // #8181: an invoice's Deleted and Undefined, worded for the invoice.
     expect(getWordOfMeaningKey("Deleted (invoice status)")).toBe("Deleted");
     expect(getWordOfMeaningKey("Undefined (invoice status)")).toBe("Undefined");
