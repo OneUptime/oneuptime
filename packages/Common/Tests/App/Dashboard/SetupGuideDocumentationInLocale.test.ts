@@ -386,10 +386,19 @@ describe.each(
       }
     });
 
+    /*
+     * As its translations, alone or as what a guide in its reader's
+     * language is handed (Databases: the product guide, not a database's
+     * own tab).
+     */
     test("the card hands the guide its words", () => {
       const card: string = fs.readFileSync(product.cardFile, "utf8");
 
-      expect(card).toContain(`translations={${product.translationsConstant}}`);
+      expect(card).toMatch(
+        new RegExp(
+          `translations=\\{[^{}]*\\b${product.translationsConstant}\\b[^{}]*\\}`,
+        ),
+      );
     });
 
     /*

@@ -654,9 +654,9 @@ describe("formatCompactCount", () => {
 
 describe("formatBytes", () => {
   test("picks the unit that fits", () => {
-    expect(formatBytes(0)).toBe("0 B");
-    expect(formatBytes(1024)).toBe("1.0 KB");
-    expect(formatBytes(1024 * 1024 * 1024)).toBe("1.0 GB");
+    expect(formatBytes(0)).toBe("0\u00A0B");
+    expect(formatBytes(1024)).toBe("1.0\u00A0KB");
+    expect(formatBytes(1024 * 1024 * 1024)).toBe("1.0\u00A0GB");
   });
 
   test("shows an unknown size as a dash", () => {

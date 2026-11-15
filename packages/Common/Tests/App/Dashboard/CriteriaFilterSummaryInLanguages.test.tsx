@@ -236,7 +236,7 @@ const CASES: ReadonlyArray<Case> = [
     name: "a metric's aggregate, with its unit",
     filter: METRIC_AVERAGE,
     english:
-      'Check if Average of all values of "Metric Value" in the past 5 minutes is less than 12.5 GB',
+      'Check if Average of all values of "Metric Value" in the past 5 minutes is less than 12.5\u00A0GB',
   },
   {
     name: "an anomaly",
@@ -248,7 +248,7 @@ const CASES: ReadonlyArray<Case> = [
     name: "a forecast",
     filter: FORECAST,
     english:
-      'Check if "Metric Value" is forecast to rise above 90 % within 3 days',
+      'Check if "Metric Value" is forecast to rise above 90\u00A0% within 3 days',
   },
   {
     name: "every row of an SNMP table",
@@ -345,7 +345,7 @@ describe("the threshold, as the reader's language writes it", () => {
     expect(summary.startsWith("Prüfen: ")).toBe(true);
     // How the filters combine is the list's to say, once (#8533).
     expect(summary).not.toMatch(/ (und|oder)$/);
-    expect(summaryIn(CASES[5]!, german)).toContain("12,5 GB");
+    expect(summaryIn(CASES[5]!, german)).toContain("12,5\u00A0GB");
   });
 
   test("Persian: milliseconds in Persian, a percentage with Persian's sign", () => {
