@@ -52322,5 +52322,6 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "最大 6 つのポートを、ダウンしているもの、エラーのあるもの、最も使用率の高いものの順に表示します。各行には、受信 / 送信の Mbps と使用率（トラフィックの多い方向のリンク速度に対する割合）を、2 回の SNMP ウォーク間の平均で表示します。値は、一定以上変化したときと、少なくとも 15 分ごとに更新されます。",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Get Invitation Link": "招待リンクを取得"
 }

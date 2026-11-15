@@ -52322,5 +52322,6 @@
   "Monitor Network Devices": "Monitor Network Devices",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "最多六個連接埠：先列出停機的連接埠，再列出有錯誤的，最後是最忙碌的。每一列顯示入站／出站 Mbps 與使用率（較忙碌方向占連結速度的比例），取兩次 SNMP 遍歷之間的平均值。這些值在明顯變化時更新，且至少每 15 分鐘更新一次。",
-  "Coarse Last Seen At": "Coarse Last Seen At"
+  "Coarse Last Seen At": "Coarse Last Seen At",
+  "Get Invitation Link": "取得邀請連結"
 }

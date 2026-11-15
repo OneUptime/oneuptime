@@ -52322,5 +52322,6 @@
   "Monitor Network Devices": "دستگاه‌های شبکه مانیتور",
   "The network devices each Network Device monitor watches, kept by the database from the monitor's steps.": "دستگاه‌های شبکه‌ای که هر مانیتور دستگاه شبکه زیر نظر دارد، و پایگاه داده آن‌ها را بر اساس مراحل مانیتور نگه می‌دارد.",
   "Up to six ports: down ones first, then ports with errors, then the busiest. Each row shows inbound / outbound Mbps and utilization (busier direction over link speed) between two SNMP walks. Updated when they change noticeably, and at least every 15 minutes.": "حداکثر شش پورت: ابتدا پورت‌های از کار افتاده، سپس پورت‌های دارای خطا، سپس پرترافیک‌ترین‌ها. هر ردیف Mbps ورودی / خروجی و مصرف (جهت پرترافیک‌تر به‌صورت سهمی از سرعت لینک) را نشان می‌دهد، میانگین بین دو پیمایش SNMP. مقادیر وقتی به‌طور محسوسی تغییر کنند، و دست‌کم هر ۱۵ دقیقه یک بار، به‌روز می‌شوند.",
-  "Coarse Last Seen At": "زمان تقریبی آخرین مشاهده"
+  "Coarse Last Seen At": "زمان تقریبی آخرین مشاهده",
+  "Get Invitation Link": "دریافت پیوند دعوت"
 }
