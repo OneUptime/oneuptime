@@ -55522,5 +55522,18 @@
   "Subscriber Scheduled Maintenance State Changed": "Status för underhållshändelse ändrad",
   "Subscriber Subscribed": "Prenumeration startad",
   "Subscriber Subscription Confirmation": "Bekräftelse av prenumeration",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ditt GitHub-konto hanterar ännu ingen installation av appen. Installera den med ”{{connectGitHub}}”."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "Ditt GitHub-konto hanterar ännu ingen installation av appen. Installera den med ”{{connectGitHub}}”.",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "\"{{step}}\" returnerar inget som heter \"{{value}}\".",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "\"{{step}}\" skickar inte vidare detta fält, så det är tomt här. Lägg till det i dess {{setting}}.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "\"{{step}}\" körs efter detta steg, så detta värde är tomt här.",
+  "Global variable": "Global variabel",
+  "Key / value": "Nyckel / värde",
+  "Leads to {{steps}}": "Leder till {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "Inget steg i detta arbetsflöde har ID:t \"{{id}}\".",
+  "There is no global variable called \"{{name}}\".": "Det finns ingen global variabel som heter \"{{name}}\".",
+  "There is no workflow variable called \"{{name}}\".": "Det finns ingen arbetsflödesvariabel som heter \"{{name}}\".",
+  "This is this step's own value, which does not exist yet while its settings are read.": "Detta är stegets eget värde, som inte finns ännu medan dess inställningar läses.",
+  "Yes / No": "Ja / Nej",
+  "which led to {{steps}}": "vilket ledde till {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "{{step}} har inte körts ännu. Dess fält visas här när det har körts."
 }

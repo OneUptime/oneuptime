@@ -55522,5 +55522,18 @@
   "Subscriber Scheduled Maintenance State Changed": "تغيرت حالة حدث الصيانة",
   "Subscriber Subscribed": "اكتمال الاشتراك",
   "Subscriber Subscription Confirmation": "تأكيد الاشتراك",
-  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «{{connectGitHub}}»."
+  "Your GitHub account does not manage an installation of the app yet. Please install it with {{connectGitHub}}.": "لا يدير حساب GitHub الخاص بك تثبيتًا للتطبيق بعد. يُرجى تثبيته عبر «{{connectGitHub}}».",
+  "\"{{step}}\" does not return anything called \"{{value}}\".": "لا تعيد «{{step}}» أي شيء باسم «{{value}}».",
+  "\"{{step}}\" doesn't pass this field on, so it is empty here. Add it to its {{setting}}.": "لا تمرّر «{{step}}» هذا الحقل، لذا هو فارغ هنا. أضفه إلى «{{setting}}» الخاصة بها.",
+  "\"{{step}}\" runs after this step, so this value is empty here.": "تعمل «{{step}}» بعد هذه الخطوة، لذا هذه القيمة فارغة هنا.",
+  "Global variable": "متغير عام",
+  "Key / value": "مفتاح / قيمة",
+  "Leads to {{steps}}": "يؤدي إلى {{steps}}",
+  "No step in this workflow has the ID \"{{id}}\".": "لا توجد خطوة في سير العمل هذا معرّفها «{{id}}».",
+  "There is no global variable called \"{{name}}\".": "لا يوجد متغير عام باسم «{{name}}».",
+  "There is no workflow variable called \"{{name}}\".": "لا يوجد متغير سير عمل باسم «{{name}}».",
+  "This is this step's own value, which does not exist yet while its settings are read.": "هذه قيمة هذه الخطوة نفسها، وهي غير موجودة بعد أثناء قراءة إعداداتها.",
+  "Yes / No": "نعم / لا",
+  "which led to {{steps}}": "ما أدى إلى {{steps}}",
+  "{{step}} hasn't run yet. Its fields show up here after it does.": "لم تعمل {{step}} بعد. تظهر حقولها هنا بعد أن تعمل."
 }

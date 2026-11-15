@@ -26,6 +26,7 @@ import {
   ValueSuggestionSource,
 } from "../../../../../UI/Components/Workflow/ValuePicker/ValueSuggestion";
 import { ModelSchemaColumn } from "../../../../../UI/Components/Workflow/ModelSchema";
+import { translatableTerm } from "../../../../../UI/Utils/TranslateTemplate";
 import ComponentMetadata, {
   ComponentInputType,
   NodeDataProp,
@@ -401,7 +402,11 @@ describe("the fields a database step reads", () => {
     expect(model.drillIn?.emptyHereNote).toEqual({
       template:
         "{{step}} doesn't pass these on, so they are empty here. Add them to its {{setting}} to use them.",
-      values: { step: "On Update Incident", setting: "Fields to pass on" },
+      // Named in the sentence's language, as the canvas names them (#8360).
+      values: {
+        step: translatableTerm("On Update Incident"),
+        setting: translatableTerm("Fields to pass on"),
+      },
     });
 
     const onDelete: NodeDataProp = step("incident-on-delete", "on-delete-1");
@@ -416,7 +421,7 @@ describe("the fields a database step reads", () => {
 
     expect(deleted.drillIn?.emptyHereNote).toEqual({
       template: "{{step}} passes on only the ID: the record is already gone.",
-      values: { step: "On Delete Incident" },
+      values: { step: translatableTerm("On Delete Incident") },
     });
   });
 
@@ -538,8 +543,8 @@ describe("On Create or Update, before the step being set up", () => {
       template:
         "{{step}} doesn't pass these on, so they are empty here. Add them to its {{setting}} to use them.",
       values: {
-        step: "On Create or Update Incident",
-        setting: "Fields to pass on",
+        step: translatableTerm("On Create or Update Incident"),
+        setting: translatableTerm("Fields to pass on"),
       },
     });
   });
