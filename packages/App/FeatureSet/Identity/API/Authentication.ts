@@ -110,7 +110,9 @@ import {
 } from "Common/Types/UserSession/SessionLength";
 import CookieUtil from "Common/Server/Utils/Cookie";
 import { getSessionCookieFields } from "Common/Server/Utils/SessionCookieFields";
-import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import JSONWebToken, {
+  SessionToSignOut,
+} from "Common/Server/Utils/JsonWebToken";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -2520,7 +2522,7 @@ router.post(
         requestOrigin: RequestOriginUtil.fromRequest(req),
       };
 
-      const hasEndedSession: boolean = refreshToken
+      let hasEndedSession: boolean = refreshToken
         ? await UserSessionService.revokeSessionByRefreshToken(
             refreshToken,
             revokeOptions,
@@ -2556,10 +2558,45 @@ router.post(
         }
 
         if (sessionOfAccessToken?.sessionId) {
-          await UserSessionService.revokeLiveSessionOfUser(
+          hasEndedSession = await UserSessionService.revokeLiveSessionOfUser(
             {
               userId: sessionOfAccessToken.userId,
               sessionId: sessionOfAccessToken.sessionId,
+            },
+            revokeOptions,
+          );
+        }
+      }
+
+      /*
+       * Still nothing ended: a browser whose renewal's answer was lost, and
+       * whose access-token cookie has gone since - it lives fifteen
+       * minutes - sends no token that names its session (issue #8638). Its
+       * sign-out cookie still does (CookieUtil.setUserCookie): signed for
+       * that and nothing else, sent only to this route, and read from the
+       * cookie only. As above, only that live session of its own user is
+       * ended.
+       */
+      if (!hasEndedSession) {
+        const sessionSignOutToken: string | undefined =
+          CookieUtil.getSessionSignOutTokenFromExpressRequest(req);
+        let sessionToSignOut: SessionToSignOut | null = null;
+
+        if (sessionSignOutToken) {
+          try {
+            sessionToSignOut =
+              JSONWebToken.decodeSessionToSignOut(sessionSignOutToken);
+          } catch {
+            // Not a sign-out cookie OneUptime signed, or one that ran out.
+            sessionToSignOut = null;
+          }
+        }
+
+        if (sessionToSignOut) {
+          await UserSessionService.revokeLiveSessionOfUser(
+            {
+              userId: sessionToSignOut.userId,
+              sessionId: sessionToSignOut.sessionId,
             },
             revokeOptions,
           );
