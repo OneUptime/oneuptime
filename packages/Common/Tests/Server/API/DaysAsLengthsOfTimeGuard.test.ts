@@ -1,3 +1,8 @@
+import {
+  CallArguments,
+  lineOf,
+  readCallArguments,
+} from "../../Helpers/CallScan";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -35,83 +40,27 @@ const ALSO_READ: ReadonlyArray<string> = [
 
 const LEFT_OUT: ReadonlyArray<string> = ["OnCallCalendarAPI.ts"];
 
-const WHITESPACE: RegExp = /\s/;
 const TYPESCRIPT_FILE: RegExp = /\.ts$/;
 
 const CALENDAR_STEP: RegExp =
   /\b(addRemoveDays|addRemoveWeeks|addRemoveMonths|addRemoveYears)\s*\(/g;
 
-/*
- * How many arguments the call that opens at `openIndex` (its "(") is given:
- * its commas at the top level, outside brackets and strings, plus one. A
- * trailing comma, as prettier writes one, is no argument.
- */
-export function countArguments(text: string, openIndex: number): number {
-  let depth: number = 0;
-  let commas: number = 0;
-  let quote: string | null = null;
-  let lastSignificant: string = "(";
-
-  for (let index: number = openIndex; index < text.length; index++) {
-    const character: string = text[index]!;
-
-    if (quote) {
-      if (character === "\\") {
-        index++;
-      } else if (character === quote) {
-        quote = null;
-      }
-
-      continue;
-    }
-
-    if (character === '"' || character === "'" || character === "`") {
-      quote = character;
-      lastSignificant = character;
-      continue;
-    }
-
-    if (character === "(" || character === "[" || character === "{") {
-      depth++;
-    } else if (character === ")" || character === "]" || character === "}") {
-      depth--;
-
-      if (depth === 0) {
-        const trailingComma: boolean = lastSignificant === ",";
-        const empty: boolean = lastSignificant === "(";
-
-        if (empty) {
-          return 0;
-        }
-
-        return commas + 1 - (trailingComma ? 1 : 0);
-      }
-    } else if (character === "," && depth === 1) {
-      commas++;
-    }
-
-    if (!WHITESPACE.test(character)) {
-      lastSignificant = character;
-    }
-  }
-
-  return -1;
-}
-
-// Every calendar step in `text` given no zone: "file:line addRemoveDays(...)".
-export function findCalendarStepsWithoutAZone(
+// Every calendar step in `text` given no zone: "file:line addRemoveDays".
+function findCalendarStepsWithoutAZone(
   file: string,
   text: string,
 ): Array<string> {
   const found: Array<string> = [];
 
   for (const match of text.matchAll(CALENDAR_STEP)) {
-    const openIndex: number = match.index! + match[0].length - 1;
+    const call: CallArguments | null = readCallArguments(
+      text,
+      match.index! + match[0].length - 1,
+    );
 
-    // The definitions in Date.ts are not calls; nothing here defines them.
-    if (countArguments(text, openIndex) < 3) {
-      const line: number = text.slice(0, match.index!).split("\n").length;
-      found.push(`${file}:${line} ${match[1]}`);
+    // A day, a week, a month or a year, and the zone it is one in.
+    if (!call || call.count < 3) {
+      found.push(`${file}:${lineOf(text, match.index!)} ${match[1]}`);
     }
   }
 
