@@ -33,7 +33,7 @@ Sinken samler logghendelser og sender dem i bakgrunnen. Hver navngitte egenskap 
 
 Gå til **Produkter → Prosjektinnstillinger**, åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 
-![Siden med inntaksnøkler for telemetri i prosjektinnstillingene](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
 
 ### Opprett en nøkkel
 

@@ -421,6 +421,76 @@
         "height": 311
       }
     },
+    "ingestion-keys": {
+      "da": {
+        "width": 952,
+        "height": 512
+      },
+      "de": {
+        "width": 952,
+        "height": 552
+      },
+      "en": {
+        "width": 952,
+        "height": 512
+      },
+      "es": {
+        "width": 952,
+        "height": 512
+      },
+      "fa": {
+        "width": 952,
+        "height": 512
+      },
+      "fr": {
+        "width": 952,
+        "height": 512
+      },
+      "hi": {
+        "width": 952,
+        "height": 512
+      },
+      "it": {
+        "width": 952,
+        "height": 528
+      },
+      "ja": {
+        "width": 952,
+        "height": 512
+      },
+      "ko": {
+        "width": 952,
+        "height": 512
+      },
+      "nl": {
+        "width": 952,
+        "height": 528
+      },
+      "no": {
+        "width": 952,
+        "height": 512
+      },
+      "pt": {
+        "width": 952,
+        "height": 512
+      },
+      "ru": {
+        "width": 952,
+        "height": 576
+      },
+      "sv": {
+        "width": 952,
+        "height": 512
+      },
+      "zh-CN": {
+        "width": 952,
+        "height": 512
+      },
+      "zh-TW": {
+        "width": 952,
+        "height": 512
+      }
+    },
     "paging-no-answer": {
       "da": {
         "width": 780,

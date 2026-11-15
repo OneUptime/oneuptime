@@ -420,6 +420,10 @@ describe("in the reader's language", () => {
       expect(dialog.textContent).toContain(
         `Browser key — intended for client distribution.`,
       );
+      // What the key is accepted for: a Sentry browser SDK's events too (#7872).
+      expect(dialog.textContent).toContain(
+        `Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only.`,
+      );
       expect(dialog.textContent).toContain(
         `Accepted identities: ${ORIGIN}. Native app identities are self-asserted, not platform attestation.`,
       );
@@ -434,6 +438,9 @@ describe("in the reader's language", () => {
         `Browser-Schlüssel — zur Weitergabe an Clients gedacht.`,
       );
       expect(dialog.textContent).toContain(
+        `Sitzungswiedergaben und Sentry-Ereignisse senden;`,
+      );
+      expect(dialog.textContent).toContain(
         `Akzeptierte Identitäten: ${ORIGIN}.`,
       );
       expect(dialog.textContent).not.toContain("client distribution");
@@ -442,6 +449,9 @@ describe("in the reader's language", () => {
       dialog = await openIn("fa", "logs");
       expect(dialog.textContent).toContain(
         `شناسه‌های پذیرفته: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
+      );
+      expect(dialog.textContent).toContain(
+        `بازپخش نشست و رویدادهای Sentry بفرستند؛`,
       );
       expect(dialog.textContent).not.toContain("client distribution");
 

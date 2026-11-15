@@ -52,7 +52,7 @@ flowchart TB
 2. En el menú lateral, abre **Telemetría y APM** y selecciona **Claves de ingesta**.
 3. Haz clic en **Crear clave de ingesta**. El diálogo rellena un nombre y elige el tipo de clave **Servidor**, que es con el que envía una aplicación o un collector. Cámbiale el nombre si quieres y luego haz clic en **Crear clave de ingesta**.
 
-![La página de claves de ingesta de telemetría en los ajustes del proyecto](/docs/static/images/TelemetryIngestionKeys.png)
+![La lista «Claves de ingesta», con «Crear clave de ingesta» resaltado](screen:ingestion-keys)
 
 La nueva clave se abre en su propia página. Copia su **Clave secreta**: es el token que envías como `x-oneuptime-token`.
 

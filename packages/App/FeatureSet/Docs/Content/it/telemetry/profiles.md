@@ -35,7 +35,7 @@ Vi serve una chiave di acquisizione della telemetria di tipo **Server**. Se non 
 
 Andate in **Prodotti → Impostazioni del progetto**, aprite **Telemetria e APM** nel menu laterale e selezionate **Chiavi di acquisizione**.
 
-![La pagina delle chiavi di acquisizione della telemetria nelle impostazioni del progetto](/docs/static/images/TelemetryIngestionKeys.png)
+![L'elenco «Chiavi di acquisizione», con «Crea chiave di ingestione» evidenziato](screen:ingestion-keys)
 
 ### Creare una chiave
 

@@ -28,12 +28,17 @@ const config = createConfig({
    * src/Locales holds every key, most of them English. The bundle gets only
    * what a reader can tell apart: en.json (in the entry chunk) without the
    * keys that map to themselves, and each lazily loaded locale without the
-   * strings the English fallback shows anyway. See src/Locales/README.md.
+   * strings the English fallback shows anyway. The same-as-English lists
+   * mark the "_one" forms a language words as English does on purpose, so
+   * French reads "0 signal", not English's "0 signals". See
+   * src/Locales/README.md.
    */
   additionalPlugins: [
     createRuntimeLocalesPlugin({
       localesDirectory: path.join(__dirname, "src", "Locales"),
       fallbackLanguage: "en",
+      sameAsEnglishFile: path.join(__dirname, "i18n", "SameAsEnglish.json"),
+      progressDirectory: path.join(__dirname, "i18n", "Progress"),
     }),
   ],
 });

@@ -127,7 +127,7 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 :::cards
 - [Statuspagina's – Overzicht](/docs/status-pages/index): Een statuspagina aanmaken en bepalen wat ze toont.
 - [Abonnees en aankondigingen](/docs/status-pages/subscribers): Wie bericht krijgt, en wanneer.
-- [Geplande onderhoud – Overzicht](/docs/scheduled-maintenance/index): Hoe een gebeurtenis verloopt, en wat ze pauzeert.
+- [Gepland onderhoud – Overzicht](/docs/scheduled-maintenance/index): Hoe een gebeurtenis verloopt, en wat ze pauzeert.
 :::
 
 ## Telemetrie

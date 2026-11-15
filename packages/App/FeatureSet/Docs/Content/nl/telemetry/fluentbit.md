@@ -33,7 +33,7 @@ Fluent Bit verpakt elk record in een OpenTelemetry-envelop, zodat het resource-a
 
 Ga naar **Producten → Projectinstellingen**, open **Telemetrie & APM** in het zijmenu en kies **Ingestiesleutels**.
 
-![De pagina met telemetrie-ingestiesleutels in de projectinstellingen](/docs/static/images/TelemetryIngestionKeys.png)
+![De lijst "Ingestiesleutels", met "Inname-sleutel aanmaken" omcirkeld](screen:ingestion-keys)
 
 ### Een sleutel maken
 

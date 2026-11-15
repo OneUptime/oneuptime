@@ -1306,7 +1306,11 @@ export const CLOUD_HEALTH_RULES: ReadonlyArray<CloudHealthTypeRules> = [
  *   - seconds / milliseconds: a time, drawn in ms or s;
  *   - perPeriod: a sum over the cloud's period (five minutes on AWS),
  *     drawn per minute;
- *   - perSecond: a rate the cloud already gives per second.
+ *   - perSecond: a rate the cloud already gives per second;
+ *   - bytesPerPeriod: bytes summed over the period (traffic), drawn as a
+ *     size per minute;
+ *   - bytesPerSecond / bitsPerSecond: a rate of bytes, or of bits, the
+ *     cloud gives per second, drawn as a size per second.
  */
 export type CloudHeadlineFormat =
   | "percent"
@@ -1316,13 +1320,22 @@ export type CloudHeadlineFormat =
   | "seconds"
   | "milliseconds"
   | "perPeriod"
-  | "perSecond";
+  | "perSecond"
+  | "bytesPerPeriod"
+  | "bytesPerSecond"
+  | "bitsPerSecond";
 
 export interface CloudHeadlineReading {
   key: string;
   // The tile's title, in English: looked up in the reader's language.
   label: string;
   format: CloudHeadlineFormat;
+  /*
+   * Only some resources of the type report it: a DTU database's DTUs, a
+   * Network Load Balancer's flows, a function app's executions. Its page
+   * says nothing of it when the last read did not bring it.
+   */
+  onlySome?: boolean | undefined;
 }
 
 interface CloudHeadlineTypeReadings {
@@ -1335,8 +1348,38 @@ function headline(
   key: string,
   label: string,
   format: CloudHeadlineFormat,
+  options: { onlySome?: boolean } = {},
 ): CloudHeadlineReading {
-  return { key, label, format };
+  return options.onlySome
+    ? { key, label, format, onlySome: true }
+    : { key, label, format };
+}
+
+/*
+ * The formats of a level - how much, how many, how long, right now - which
+ * every read of a resource that reports the metric brings. A sum or a rate
+ * over the period may be left out when it is zero (CloudWatch writes no 5xx
+ * count for a period without one), so a missing one says nothing.
+ */
+const CLOUD_LEVEL_FORMATS: ReadonlySet<CloudHeadlineFormat> =
+  new Set<CloudHeadlineFormat>([
+    "percent",
+    "ratio",
+    "bytes",
+    "count",
+    "seconds",
+    "milliseconds",
+  ]);
+
+/*
+ * Whether a fresh read that did not bring this reading says something: a
+ * level every resource of the type reports, so its page says "Not
+ * reported" rather than leaving it out without a word.
+ */
+export function isCloudHeadlineExpected(
+  headline: CloudHeadlineReading,
+): boolean {
+  return !headline.onlySome && CLOUD_LEVEL_FORMATS.has(headline.format);
 }
 
 export const HEADLINE_CPU: string = translationKey("CPU");
@@ -1357,13 +1400,92 @@ export const HEADLINE_UNHEALTHY_HOSTS: string =
   translationKey("Unhealthy hosts");
 export const HEADLINE_AVAILABILITY: string = translationKey("Availability");
 export const HEADLINE_SERVER_LOAD: string = translationKey("Server load");
+export const HEADLINE_NETWORK_IN: string = translationKey("Network in");
+export const HEADLINE_NETWORK_OUT: string = translationKey("Network out");
+export const HEADLINE_DISK_READ: string = translationKey("Disk read");
+export const HEADLINE_DISK_WRITE: string = translationKey("Disk write");
+export const HEADLINE_FREE_MEMORY: string = translationKey("Free memory");
+export const HEADLINE_TRAFFIC: string = translationKey("Traffic");
+export const HEADLINE_THROUGHPUT: string = translationKey("Throughput");
+export const HEADLINE_HEALTHY_BACKENDS: string =
+  translationKey("Healthy backends");
+export const HEADLINE_MESSAGES_IN: string = translationKey("Messages in");
+export const HEADLINE_MESSAGES_OUT: string = translationKey("Messages out");
+export const HEADLINE_DEAD_LETTERED: string = translationKey(
+  "Dead-lettered messages",
+);
+export const HEADLINE_PODS_READY: string = translationKey("Pods ready");
+export const HEADLINE_RESTARTS: string = translationKey("Restarts");
+export const HEADLINE_REQUEST_UNITS: string = translationKey("Request units");
+export const HEADLINE_SESSIONS: string = translationKey("Sessions");
+export const HEADLINE_READ_OPERATIONS: string =
+  translationKey("Read operations");
+export const HEADLINE_WRITE_OPERATIONS: string =
+  translationKey("Write operations");
+export const HEADLINE_READ_LATENCY: string = translationKey("Read latency");
+export const HEADLINE_WRITE_LATENCY: string = translationKey("Write latency");
+export const HEADLINE_INSTANCES: string = translationKey("Instances");
+export const HEADLINE_CAPACITY: string = translationKey("Capacity");
+export const HEADLINE_RUNS: string = translationKey("Runs");
+export const HEADLINE_FAILED_RUNS: string = translationKey("Failed runs");
+export const HEADLINE_HEALTH: string = translationKey("Health");
+export const HEADLINE_THROTTLED: string = translationKey("Throttled");
+export const HEADLINE_QUEUE_LENGTH: string = translationKey("Queue length");
+export const HEADLINE_PORTS_USED: string = translationKey(
+  "Outbound ports used",
+);
 
+/*
+ * What each type's page leads with, in the order its tiles are drawn: what
+ * a person reads first about one of its kind - a machine's CPU, memory,
+ * network and disks; a database's CPU, storage and connections; a load
+ * balancer's traffic and backends; an app's requests, response time and
+ * errors - from the key metrics its connection reads (CloudKeyMetrics).
+ */
 export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
   [
+    // ---- AWS --------------------------------------------------------------
     {
       provider: AWS,
       types: ["AWS::EC2::Instance"],
-      readings: [headline("aws/ec2/cpuutilization", HEADLINE_CPU, "percent")],
+      readings: [
+        headline("aws/ec2/cpuutilization", HEADLINE_CPU, "percent"),
+        headline("aws/ec2/networkin", HEADLINE_NETWORK_IN, "bytesPerPeriod"),
+        headline("aws/ec2/networkout", HEADLINE_NETWORK_OUT, "bytesPerPeriod"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::EC2::Volume"],
+      readings: [
+        headline(
+          "aws/ebs/volumereadops",
+          HEADLINE_READ_OPERATIONS,
+          "perPeriod",
+        ),
+        headline(
+          "aws/ebs/volumewriteops",
+          HEADLINE_WRITE_OPERATIONS,
+          "perPeriod",
+        ),
+        headline("aws/ebs/volumequeuelength", HEADLINE_QUEUE_LENGTH, "count"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::EC2::NatGateway"],
+      readings: [
+        headline(
+          "aws/natgateway/activeconnectioncount",
+          HEADLINE_CONNECTIONS,
+          "count",
+        ),
+        headline(
+          "aws/natgateway/bytesouttodestination",
+          HEADLINE_TRAFFIC,
+          "bytesPerPeriod",
+        ),
+      ],
     },
     {
       provider: AWS,
@@ -1380,17 +1502,54 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     },
     {
       provider: AWS,
+      /*
+       * An Application Load Balancer and a Network Load Balancer are one
+       * type: each reports its own namespace's metrics, never the other's.
+       */
       types: ["AWS::ElasticLoadBalancingV2::LoadBalancer"],
       readings: [
         headline(
           "aws/applicationelb/requestcount",
           HEADLINE_REQUESTS,
           "perPeriod",
+          { onlySome: true },
         ),
         headline(
           "aws/applicationelb/targetresponsetime",
           HEADLINE_RESPONSE_TIME,
           "seconds",
+          { onlySome: true },
+        ),
+        headline(
+          "aws/applicationelb/httpcode_target_5xx_count",
+          HEADLINE_ERRORS,
+          "perPeriod",
+          { onlySome: true },
+        ),
+        headline(
+          "aws/networkelb/activeflowcount",
+          HEADLINE_CONNECTIONS,
+          "count",
+          { onlySome: true },
+        ),
+        headline(
+          "aws/networkelb/processedbytes",
+          HEADLINE_TRAFFIC,
+          "bytesPerPeriod",
+          { onlySome: true },
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::CloudFront::Distribution"],
+      readings: [
+        headline("aws/cloudfront/requests", HEADLINE_REQUESTS, "perPeriod"),
+        headline("aws/cloudfront/5xxerrorrate", HEADLINE_ERRORS, "percent"),
+        headline(
+          "aws/cloudfront/bytesdownloaded",
+          HEADLINE_TRAFFIC,
+          "bytesPerPeriod",
         ),
       ],
     },
@@ -1409,6 +1568,20 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("aws/lambda/invocations", HEADLINE_INVOCATIONS, "perPeriod"),
         headline("aws/lambda/errors", HEADLINE_ERRORS, "perPeriod"),
         headline("aws/lambda/duration", HEADLINE_DURATION, "milliseconds"),
+        headline("aws/lambda/throttles", HEADLINE_THROTTLED, "perPeriod"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::StepFunctions::StateMachine"],
+      readings: [
+        headline("aws/states/executionsstarted", HEADLINE_RUNS, "perPeriod"),
+        headline(
+          "aws/states/executionsfailed",
+          HEADLINE_FAILED_RUNS,
+          "perPeriod",
+        ),
+        headline("aws/states/executiontime", HEADLINE_DURATION, "milliseconds"),
       ],
     },
     {
@@ -1416,8 +1589,14 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       types: ["AWS::RDS::DBInstance"],
       readings: [
         headline("aws/rds/cpuutilization", HEADLINE_CPU, "percent"),
-        headline("aws/rds/freestoragespace", HEADLINE_FREE_STORAGE, "bytes"),
+        // An Aurora instance keeps its data in its cluster's volume.
+        headline("aws/rds/freestoragespace", HEADLINE_FREE_STORAGE, "bytes", {
+          onlySome: true,
+        }),
         headline("aws/rds/databaseconnections", HEADLINE_CONNECTIONS, "count"),
+        headline("aws/rds/freeablememory", HEADLINE_FREE_MEMORY, "bytes"),
+        headline("aws/rds/readlatency", HEADLINE_READ_LATENCY, "seconds"),
+        headline("aws/rds/writelatency", HEADLINE_WRITE_LATENCY, "seconds"),
       ],
     },
     {
@@ -1430,6 +1609,36 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     },
     {
       provider: AWS,
+      types: ["AWS::DocDB::DBInstance", "AWS::DocDB::DBCluster"],
+      readings: [
+        headline("aws/docdb/cpuutilization", HEADLINE_CPU, "percent"),
+        headline(
+          "aws/docdb/databaseconnections",
+          HEADLINE_CONNECTIONS,
+          "count",
+        ),
+        headline("aws/docdb/freeablememory", HEADLINE_FREE_MEMORY, "bytes"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::Redshift::Cluster"],
+      readings: [
+        headline("aws/redshift/cpuutilization", HEADLINE_CPU, "percent"),
+        headline(
+          "aws/redshift/percentagediskspaceused",
+          HEADLINE_STORAGE_USED,
+          "percent",
+        ),
+        headline(
+          "aws/redshift/databaseconnections",
+          HEADLINE_CONNECTIONS,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
       types: [
         "AWS::ElastiCache::CacheCluster",
         "AWS::ElastiCache::ReplicationGroup",
@@ -1437,10 +1646,12 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       ],
       readings: [
         headline("aws/elasticache/cpuutilization", HEADLINE_CPU, "percent"),
+        // Redis and Valkey say how full they are; Memcached does not.
         headline(
           "aws/elasticache/databasememoryusagepercentage",
           HEADLINE_MEMORY,
           "percent",
+          { onlySome: true },
         ),
         headline(
           "aws/elasticache/currconnections",
@@ -1463,6 +1674,27 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           HEADLINE_OLDEST_MESSAGE,
           "seconds",
         ),
+        headline(
+          "aws/sqs/numberofmessagessent",
+          HEADLINE_MESSAGES_IN,
+          "perPeriod",
+        ),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::SNS::Topic"],
+      readings: [
+        headline(
+          "aws/sns/numberofmessagespublished",
+          HEADLINE_MESSAGES_IN,
+          "perPeriod",
+        ),
+        headline(
+          "aws/sns/numberofnotificationsfailed",
+          HEADLINE_ERRORS,
+          "perPeriod",
+        ),
       ],
     },
     {
@@ -1471,15 +1703,66 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       readings: [
         headline("aws/apigateway/count", HEADLINE_REQUESTS, "perPeriod"),
         headline("aws/apigateway/latency", HEADLINE_LATENCY, "milliseconds"),
+        headline("aws/apigateway/5xxerror", HEADLINE_ERRORS, "perPeriod"),
+      ],
+    },
+    {
+      provider: AWS,
+      types: ["AWS::AmazonMQ::Broker"],
+      readings: [
+        headline("aws/amazonmq/cpuutilization", HEADLINE_CPU, "percent"),
+      ],
+    },
+    // ---- Azure ------------------------------------------------------------
+    {
+      provider: AZURE,
+      types: ["Microsoft.Compute/virtualMachines"],
+      readings: [
+        headline("percentage_cpu", HEADLINE_CPU, "percent"),
+        headline("available_memory_bytes", HEADLINE_FREE_MEMORY, "bytes"),
+        headline("network_in_total", HEADLINE_NETWORK_IN, "bytesPerPeriod"),
+        headline("network_out_total", HEADLINE_NETWORK_OUT, "bytesPerPeriod"),
+        headline("disk_read_bytes", HEADLINE_DISK_READ, "bytesPerPeriod"),
+        headline("disk_write_bytes", HEADLINE_DISK_WRITE, "bytesPerPeriod"),
+        // 1 while the machine is up: drawn as a share of the minute.
+        headline("vmavailabilitymetric", HEADLINE_AVAILABILITY, "ratio"),
       ],
     },
     {
       provider: AZURE,
-      types: [
-        "Microsoft.Compute/virtualMachines",
-        "Microsoft.Compute/virtualMachineScaleSets",
+      types: ["Microsoft.Compute/virtualMachineScaleSets"],
+      readings: [
+        headline("percentage_cpu", HEADLINE_CPU, "percent"),
+        headline("available_memory_bytes", HEADLINE_FREE_MEMORY, "bytes"),
+        headline("network_in_total", HEADLINE_NETWORK_IN, "bytesPerPeriod"),
+        headline("network_out_total", HEADLINE_NETWORK_OUT, "bytesPerPeriod"),
       ],
-      readings: [headline("percentage_cpu", HEADLINE_CPU, "percent")],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Compute/disks"],
+      readings: [
+        headline(
+          "composite_disk_read_bytes/sec",
+          HEADLINE_DISK_READ,
+          "bytesPerSecond",
+        ),
+        headline(
+          "composite_disk_write_bytes/sec",
+          HEADLINE_DISK_WRITE,
+          "bytesPerSecond",
+        ),
+        headline(
+          "composite_disk_read_operations/sec",
+          HEADLINE_READ_OPERATIONS,
+          "perSecond",
+        ),
+        headline(
+          "composite_disk_write_operations/sec",
+          HEADLINE_WRITE_OPERATIONS,
+          "perSecond",
+        ),
+      ],
     },
     {
       provider: AZURE,
@@ -1487,6 +1770,12 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       readings: [
         headline("requests", HEADLINE_REQUESTS, "count"),
         headline("httpresponsetime", HEADLINE_RESPONSE_TIME, "seconds"),
+        headline("http5xx", HEADLINE_ERRORS, "perPeriod"),
+        headline("memoryworkingset", HEADLINE_MEMORY, "bytes"),
+        // Only a function app runs functions.
+        headline("functionexecutioncount", HEADLINE_INVOCATIONS, "perPeriod", {
+          onlySome: true,
+        }),
       ],
     },
     {
@@ -1495,6 +1784,29 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
       readings: [
         headline("cpupercentage", HEADLINE_CPU, "percent"),
         headline("memorypercentage", HEADLINE_MEMORY, "percent"),
+        headline("httpqueuelength", HEADLINE_QUEUE_LENGTH, "count"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.App/containerApps"],
+      readings: [
+        headline("requests", HEADLINE_REQUESTS, "perPeriod"),
+        headline("workingsetbytes", HEADLINE_MEMORY, "bytes"),
+        headline("restartcount", HEADLINE_RESTARTS, "perPeriod"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.ContainerService/managedClusters"],
+      readings: [
+        headline("node_cpu_usage_percentage", HEADLINE_CPU, "percent"),
+        headline(
+          "node_memory_working_set_percentage",
+          HEADLINE_MEMORY,
+          "percent",
+        ),
+        headline("kube_pod_status_ready", HEADLINE_PODS_READY, "count"),
       ],
     },
     {
@@ -1507,6 +1819,11 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
         headline("cpu_percent", HEADLINE_CPU, "percent"),
         headline("storage_percent", HEADLINE_STORAGE_USED, "percent"),
       ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Sql/servers/databases"],
+      readings: [headline("sessions_percent", HEADLINE_SESSIONS, "percent")],
     },
     {
       provider: AZURE,
@@ -1523,6 +1840,15 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     },
     {
       provider: AZURE,
+      types: ["Microsoft.DocumentDB/databaseAccounts"],
+      readings: [
+        headline("totalrequests", HEADLINE_REQUESTS, "perPeriod"),
+        headline("normalizedruconsumption", HEADLINE_REQUEST_UNITS, "percent"),
+        headline("serversidelatency", HEADLINE_LATENCY, "milliseconds"),
+      ],
+    },
+    {
+      provider: AZURE,
       types: ["Microsoft.Cache/redis"],
       readings: [
         headline("serverload", HEADLINE_SERVER_LOAD, "percent"),
@@ -1533,8 +1859,132 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
     {
       provider: AZURE,
       types: ["Microsoft.Storage/storageAccounts"],
-      readings: [headline("availability", HEADLINE_AVAILABILITY, "percent")],
+      readings: [
+        headline("availability", HEADLINE_AVAILABILITY, "percent"),
+        headline("transactions", HEADLINE_REQUESTS, "perPeriod"),
+        headline("successe2elatency", HEADLINE_LATENCY, "milliseconds"),
+        // Written once an hour: a read between two writes may not bring it.
+        headline("usedcapacity", HEADLINE_STORAGE_USED, "bytes", {
+          onlySome: true,
+        }),
+      ],
     },
+    {
+      provider: AZURE,
+      types: ["Microsoft.KeyVault/vaults"],
+      readings: [
+        headline("availability", HEADLINE_AVAILABILITY, "percent"),
+        headline("serviceapihit", HEADLINE_REQUESTS, "perPeriod"),
+        headline("serviceapilatency", HEADLINE_LATENCY, "milliseconds"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.ServiceBus/namespaces"],
+      readings: [
+        headline("incomingmessages", HEADLINE_MESSAGES_IN, "perPeriod"),
+        headline("outgoingmessages", HEADLINE_MESSAGES_OUT, "perPeriod"),
+        headline("activemessages", HEADLINE_MESSAGES_WAITING, "count"),
+        headline("deadletteredmessages", HEADLINE_DEAD_LETTERED, "count"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.EventHub/namespaces"],
+      readings: [
+        headline("incomingmessages", HEADLINE_MESSAGES_IN, "perPeriod"),
+        headline("outgoingmessages", HEADLINE_MESSAGES_OUT, "perPeriod"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Network/loadBalancers"],
+      readings: [
+        // Data path availability: the load balancer's own frontends.
+        headline("vipavailability", HEADLINE_AVAILABILITY, "percent"),
+        // Health probe status: the share of its backends answering.
+        headline("dipavailability", HEADLINE_HEALTHY_BACKENDS, "percent"),
+        headline("bytecount", HEADLINE_TRAFFIC, "bytesPerPeriod"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Network/applicationGateways"],
+      readings: [
+        headline("totalrequests", HEADLINE_REQUESTS, "perPeriod"),
+        headline(
+          "applicationgatewaytotaltime",
+          HEADLINE_RESPONSE_TIME,
+          "milliseconds",
+        ),
+        headline("failedrequests", HEADLINE_ERRORS, "perPeriod"),
+        headline("unhealthyhostcount", HEADLINE_UNHEALTHY_HOSTS, "count"),
+        headline("throughput", HEADLINE_THROUGHPUT, "bytesPerSecond"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Network/publicIPAddresses"],
+      readings: [
+        headline("vipavailability", HEADLINE_AVAILABILITY, "percent"),
+        headline("bytecount", HEADLINE_TRAFFIC, "bytesPerPeriod"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Network/azureFirewalls"],
+      readings: [
+        headline("firewallhealth", HEADLINE_HEALTH, "percent"),
+        headline("throughput", HEADLINE_THROUGHPUT, "bitsPerSecond"),
+        headline("snatportutilization", HEADLINE_PORTS_USED, "percent"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Network/natGateways"],
+      readings: [
+        headline("datapathavailability", HEADLINE_AVAILABILITY, "percent"),
+        headline("bytecount", HEADLINE_TRAFFIC, "bytesPerPeriod"),
+        headline("snatconnectioncount", HEADLINE_CONNECTIONS, "perPeriod"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Cdn/profiles"],
+      readings: [
+        headline("requestcount", HEADLINE_REQUESTS, "perPeriod"),
+        headline("percentage5xx", HEADLINE_ERRORS, "percent"),
+        headline("totallatency", HEADLINE_LATENCY, "milliseconds"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.ApiManagement/service"],
+      readings: [
+        headline("requests", HEADLINE_REQUESTS, "perPeriod"),
+        headline("duration", HEADLINE_RESPONSE_TIME, "milliseconds"),
+        headline("capacity", HEADLINE_CAPACITY, "percent"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.CognitiveServices/accounts"],
+      readings: [
+        headline("totalcalls", HEADLINE_REQUESTS, "perPeriod"),
+        headline("totalerrors", HEADLINE_ERRORS, "perPeriod"),
+        headline("latency", HEADLINE_LATENCY, "milliseconds"),
+      ],
+    },
+    {
+      provider: AZURE,
+      types: ["Microsoft.Logic/workflows"],
+      readings: [
+        headline("runsstarted", HEADLINE_RUNS, "perPeriod"),
+        headline("runsfailed", HEADLINE_FAILED_RUNS, "perPeriod"),
+        headline("runlatency", HEADLINE_DURATION, "seconds"),
+      ],
+    },
+    // ---- Google Cloud -----------------------------------------------------
     {
       provider: GCP,
       types: ["gce_instance"],
@@ -1543,6 +1993,16 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           "compute.googleapis.com/instance/cpu/utilization",
           HEADLINE_CPU,
           "ratio",
+        ),
+        headline(
+          "compute.googleapis.com/instance/network/received_bytes_count",
+          HEADLINE_NETWORK_IN,
+          "bytesPerSecond",
+        ),
+        headline(
+          "compute.googleapis.com/instance/network/sent_bytes_count",
+          HEADLINE_NETWORK_OUT,
+          "bytesPerSecond",
         ),
       ],
     },
@@ -1565,6 +2025,45 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           HEADLINE_STORAGE_USED,
           "ratio",
         ),
+        headline(
+          "cloudsql.googleapis.com/database/network/connections",
+          HEADLINE_CONNECTIONS,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["gcs_bucket"],
+      readings: [
+        // Sampled far less often than it is read: a read may not bring it.
+        headline(
+          "storage.googleapis.com/storage/total_bytes",
+          HEADLINE_STORAGE_USED,
+          "bytes",
+          { onlySome: true },
+        ),
+        headline(
+          "storage.googleapis.com/api/request_count",
+          HEADLINE_REQUESTS,
+          "perSecond",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["https_lb_rule"],
+      readings: [
+        headline(
+          "loadbalancing.googleapis.com/https/request_count",
+          HEADLINE_REQUESTS,
+          "perSecond",
+        ),
+        headline(
+          "loadbalancing.googleapis.com/https/total_latencies",
+          HEADLINE_LATENCY,
+          "milliseconds",
+        ),
       ],
     },
     {
@@ -1581,6 +2080,22 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           HEADLINE_LATENCY,
           "milliseconds",
         ),
+        headline(
+          "run.googleapis.com/container/instance_count",
+          HEADLINE_INSTANCES,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["cloud_function"],
+      readings: [
+        headline(
+          "cloudfunctions.googleapis.com/function/execution_count",
+          HEADLINE_INVOCATIONS,
+          "perSecond",
+        ),
       ],
     },
     {
@@ -1596,6 +2111,55 @@ export const CLOUD_HEADLINE_READINGS: ReadonlyArray<CloudHeadlineTypeReadings> =
           "pubsub.googleapis.com/subscription/oldest_unacked_message_age",
           HEADLINE_OLDEST_MESSAGE,
           "seconds",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["pubsub_topic"],
+      readings: [
+        headline(
+          "pubsub.googleapis.com/topic/send_message_operation_count",
+          HEADLINE_MESSAGES_IN,
+          "perSecond",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["redis_instance"],
+      readings: [
+        headline(
+          "redis.googleapis.com/stats/memory/usage_ratio",
+          HEADLINE_MEMORY,
+          "ratio",
+        ),
+        headline(
+          "redis.googleapis.com/clients/connected",
+          HEADLINE_CONNECTIONS,
+          "count",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["spanner_instance"],
+      readings: [
+        headline(
+          "spanner.googleapis.com/instance/cpu/utilization",
+          HEADLINE_CPU,
+          "ratio",
+        ),
+      ],
+    },
+    {
+      provider: GCP,
+      types: ["cloud_tasks_queue"],
+      readings: [
+        headline(
+          "cloudtasks.googleapis.com/queue/depth",
+          HEADLINE_MESSAGES_WAITING,
+          "count",
         ),
       ],
     },

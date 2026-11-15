@@ -237,7 +237,7 @@ Verwante endpoints zijn `/api/incident-state`, `/api/incident-severity` en `/api
 
 De vijfde manier is voor mensen buiten je team. Een formulier is een pagina die je als link deelt: iedereen die de link heeft, kan zonder OneUptime-account een probleem melden, en elke inzending meldt een incident. Jij bepaalt waar het formulier om vraagt — een titel, een beschrijving, een ernst, monitoren, aangepaste velden, eigen vragen — en hoe de antwoorden het incident worden: een standaardernst, een incidentsjabloon om vanuit te melden, en monitoren, labels, bereikbaarheidsbeleid en eigenaren die altijd worden toegevoegd.
 
-Incidenten die zo worden gemeld, worden verborgen voor statuspagina's gemeld, met **Statuspagina-abonnees op de hoogte stellen** uit, zodat een responder ze beoordeelt voordat er iets openbaar is, en een privénotitie legt vast wie ze meldde. Formulieren zijn een eigen product, onder **Formulieren** in het menu **Producten**, en kunnen ook onderhoudsevenementen plannen; zie [Formulieren](/docs/forms/index).
+Incidenten die zo worden gemeld, worden verborgen voor statuspagina's gemeld, met **Statuspagina-abonnees op de hoogte stellen** uit, zodat een responder ze beoordeelt voordat er iets openbaar is, en een privénotitie legt vast wie ze meldde. Formulieren zijn een eigen product, onder **Formulieren** in het menu **Producten**, en kunnen ook onderhoudsgebeurtenissen plannen; zie [Formulieren](/docs/forms/index).
 
 ## Incidentnummers en voorvoegsels
 

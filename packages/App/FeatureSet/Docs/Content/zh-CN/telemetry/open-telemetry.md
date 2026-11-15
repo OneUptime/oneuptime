@@ -52,7 +52,7 @@ flowchart TB
 2. 在侧边菜单中展开 **遥测与 APM**，然后选择 **摄取密钥**。
 3. 点击 **创建摄取密钥**。对话框会填好名称，并选择 **服务器** 密钥类型，这是应用或 Collector 发送数据时使用的类型。可以按需改名，然后点击 **创建摄取密钥**。
 
-![项目设置中的遥测摄取密钥页面](/docs/static/images/TelemetryIngestionKeys.png)
+![“摄取密钥”列表，“创建摄取密钥”已框出](screen:ingestion-keys)
 
 新密钥会在它自己的页面中打开。复制它的 **密钥**，这就是你通过 `x-oneuptime-token` 发送的令牌。
 
