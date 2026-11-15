@@ -163,6 +163,16 @@ The guard `Common/Tests/App/QuotedWordsInRightToLeftSentences.test.ts`
 fails on a quoted Latin phrase that the Dashboard translates, unless its
 allowlist gives the reason the page shows it in English.
 
+### A state on its own
+
+A state the page draws on its own, in a pill or a column, is masculine,
+whatever it describes: نشط / غير نشط, مفعّل / معطّل, متوقف مؤقتًا, مُفرَّغ,
+قابل للوصول / غير قابل للوصول. A page draws several states of one thing
+together (a Docker Swarm node is نشط, متوقف مؤقتًا or مُفرَّغ, row after
+row), and one feminine state among them reads as a word about something
+else (#8588). `Common/Tests/App/StatesDrawnTogetherAgree` holds the sets a
+page draws together.
+
 ## Fonts
 
 Arabic script is drawn with Vazirmatn, self-hosted as woff2 next to Inter (no

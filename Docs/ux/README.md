@@ -883,6 +883,13 @@ then `npm run i18n:validate` from the root.
   (#8581). A pool is التجمّع now, in the locale and every setup guide, and a new row of a
   language's glossary takes a word no other row gives. Enforced by
   [ArabicTermsApart](../../packages/Common/Tests/App/ArabicTermsApart.test.ts).
+- **The states a page draws for one thing agree with each other.** A state is worded once for
+  every place that draws it, so in a language whose adjectives take a gender two states of one
+  thing can disagree: Russian's infrastructure list said "Активно" on one row and "Неактивен" on
+  the next (#8588). Word a state as the locale words the others it is drawn with (Russian words a
+  state on its own in the neuter: "Неактивно", "Выведено из работы"), and list a new set of states
+  a page draws together, with the files that draw it. Enforced by
+  [StatesDrawnTogetherAgree](../../packages/Common/Tests/App/StatesDrawnTogetherAgree.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a

@@ -347,6 +347,13 @@ Translation guidelines:
   English's on purpose, list its English as same-as-English (see Plurals
   above). In ja/ko/zh-CN/zh-TW, `_one` is never shown, so translate it the
   same as the general form or leave it.
+- A state on its own ("Active", "Inactive", "Drained") is worded once for
+  every page that draws it, and a page draws several states of one thing
+  together, row after row. Word it as your locale words the others: Russian
+  in the neuter ("Активно", "Неактивно", "Выведено из работы"), Arabic in the
+  masculine (نشط, مُفرَّغ). A state of another gender beside them reads as a
+  word about something else: Russian's list said "Активно" over "Неактивен"
+  (#8588). `Common/Tests/App/StatesDrawnTogetherAgree` holds the sets.
 - Give each of OneUptime's things a word no other thing has in your language:
   Arabic had called both the collector and a Ceph pool المجمّع (#8581).
 
