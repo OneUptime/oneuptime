@@ -194,10 +194,12 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
             <EmbeddedMetricCard
               key={category.title}
               /*
-               * The card draws its title as given (a chart's own title is a
-               * name someone typed), so a group's title is translated here.
+               * A group's title and the words under it go over in English:
+               * the card looks its title up and Card its description, once
+               * each. Looked up here as well, a translation that is itself
+               * an English key read as another word (#7790).
                */
-              title={translator.translateTemplate(category.title)}
+              title={category.title}
               description={category.description}
               queryConfigs={categoryQueryConfigs[index] || []}
               timeRange={timeRange}
