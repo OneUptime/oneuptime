@@ -95,6 +95,38 @@ describe("markdownUrlTransform", () => {
       `default(${url})`,
     );
   });
+
+  /*
+   * A value set apart in an isolate on an Arabic or Persian page (an
+   * incident's root cause, #8004): a bare address takes every character up
+   * to a space into its link, the isolate's closing mark too.
+   */
+  test.each([
+    ["a closing mark", "https://shop.example.com/health⁩"],
+    ["its percent-encoding", "https://shop.example.com/health%E2%81%A9"],
+    ["its encoding in lower case", "https://shop.example.com/health%e2%81%a9"],
+    ["an opening mark", "⁨https://shop.example.com/health"],
+    [
+      "every kind of isolate",
+      "⁦⁧https://shop.example.com/health%E2%81%A6%E2%81%A7%E2%81%A8",
+    ],
+  ])(
+    "no link goes to an address with an isolate's mark: %s",
+    (_label: string, url: string) => {
+      expect(markdownUrlTransform(url, "href", element("a"))).toBe(
+        "default(https://shop.example.com/health)",
+      );
+    },
+  );
+
+  test("every other character of an address is left to the default", () => {
+    const url: string =
+      "https://shop.example.com/a%E2%81%A5b%E2%80%8Bc?q=%E2%81%AA";
+
+    expect(markdownUrlTransform(url, "href", element("a"))).toBe(
+      `default(${url})`,
+    );
+  });
 });
 
 /*
@@ -189,6 +221,8 @@ describe("the Markdown viewer's URLs, with the real react-markdown", () => {
     "[![Graph](https://cdn.example.com/g.png)](https://example.com/x)",
     // 9: raw HTML
     `<img src="data:image/png;base64,${PNG}">`,
+    // 10: a bare address set apart in an isolate (a root cause on a Persian page)
+    "- مقصد: ⁨https://shop.example.com/health⁩",
   ];
 
   const rendered: Rendered = renderWithReactMarkdown(texts);
@@ -236,5 +270,19 @@ describe("the Markdown viewer's URLs, with the real react-markdown", () => {
   test("raw HTML is still shown as text, never as an image", () => {
     expect(rendered.viewer[9]).not.toContain("<img");
     expect(rendered.viewer[9]).toBe(rendered.defaults[9]);
+  });
+
+  test("a bare address set apart in an isolate links to the address, not to its closing mark", () => {
+    // What remark-gfm makes of it: the closing mark inside the link.
+    expect(rendered.defaults[10]).toContain(
+      'href="https://shop.example.com/health%E2%81%A9"',
+    );
+    expect(rendered.viewer[10]).toContain(
+      'href="https://shop.example.com/health"',
+    );
+    // The link's words keep the mark, so the isolate still closes where it opened.
+    expect(rendered.viewer[10]).toContain(
+      "https://shop.example.com/health⁩</a>",
+    );
   });
 });

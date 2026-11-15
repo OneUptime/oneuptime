@@ -11,11 +11,11 @@ Un monitor del dominio legge a intervalli regolari la registrazione del vostro d
 
 ## Come funziona
 
-A ogni controllo, una sonda cerca la registrazione del dominio tramite RDAP o WHOIS, a seconda del **Lookup Method**, e normalizza ciò che trova: la data di scadenza, il registrar, i nameserver e i codici di stato. Una ricerca che fallisce viene ritentata, fino al numero di tentativi che impostate. Poi OneUptime valuta la registrazione con i criteri del monitor.
+A ogni controllo, una sonda cerca la registrazione del dominio tramite RDAP o WHOIS, a seconda del **Metodo di ricerca**, e normalizza ciò che trova: la data di scadenza, il registrar, i nameserver e i codici di stato. Una ricerca che fallisce viene ritentata, fino al numero di tentativi che impostate. Poi OneUptime valuta la registrazione con i criteri del monitor.
 
 ```mermaid title="Come una ricerca legge la registrazione"
 flowchart TB
-    method{"Lookup Method"} -->|"Auto o RDAP"| rdap["Chiedere al server<br/>RDAP del TLD"]
+    method{"Metodo di ricerca"} -->|"Auto o RDAP"| rdap["Chiedere al server<br/>RDAP del TLD"]
     method -->|"WHOIS"| whois["Chiedere al server<br/>WHOIS del TLD"]
     rdap -->|"Registrazione<br/>trovata"| record["Registrazione<br/>del dominio"]
     rdap -->|"Nessun RDAP o un errore,<br/>con Auto"| whois
@@ -56,7 +56,7 @@ Inserite un **Nome**, come `example.com registration`, poi fate clic su **Avanti
 
 ### Inserire il dominio
 
-Inserite il **Nome di dominio**, come `example.com`. Lasciate **Lookup Method** su **Auto** a meno che non abbiate un motivo per fare altrimenti (vedete [Metodi di ricerca](#metodi-di-ricerca)).
+Inserite il **Nome di dominio**, come `example.com`. Lasciate **Metodo di ricerca** su **Auto** a meno che non abbiate un motivo per fare altrimenti (vedete [Metodi di ricerca](#metodi-di-ricerca)).
 
 ### Testarlo
 
@@ -76,7 +76,7 @@ Mantenete o cambiate le **Sonde** e l'**Intervallo di monitoraggio** (parte da *
 | Campo | Predefinito | Cosa inserire |
 | --- | --- | --- |
 | **Nome di dominio** | Nessuno | Il dominio registrato, come `example.com`. Funziona anche un indirizzo incollato: `https://example.com/pricing` viene letto come `example.com`. |
-| **Lookup Method** | **Auto** | **Auto**, **RDAP** o **WHOIS**. Vedete [Metodi di ricerca](#metodi-di-ricerca). |
+| **Metodo di ricerca** | **Auto** | **Auto**, **RDAP** o **WHOIS**. Vedete [Metodi di ricerca](#metodi-di-ricerca). |
 | **Timeout (ms)** (sotto **Altri campi**) | `10000` | Quanto attendere ogni ricerca della registrazione, in millisecondi. |
 | **Tentativi** (sotto **Altri campi**) | `3` | Nuovi tentativi dopo che il primo fallisce. `0` significa un solo tentativo. |
 
@@ -163,11 +163,11 @@ I monitor creati prima che OneUptime aggiungesse questo avviso non hanno un crit
 ## Risoluzione dei problemi
 
 :::details Il server WHOIS «answered without any registration data»
-L'host WHOIS del TLD è dismesso, limita la sonda o è momentaneamente guasto. Un host dismesso, come quello ancora associato ai TLD di Identity Digital, risponde `TLD is not supported.` ogni volta. Se l'errore persiste con **Lookup Method** su **WHOIS**, passate ad **Auto**, così la sonda legge il servizio RDAP del TLD quando ce n'è uno.
+L'host WHOIS del TLD è dismesso, limita la sonda o è momentaneamente guasto. Un host dismesso, come quello ancora associato ai TLD di Identity Digital, risponde `TLD is not supported.` ogni volta. Se l'errore persiste con **Metodo di ricerca** su **WHOIS**, passate ad **Auto**, così la sonda legge il servizio RDAP del TLD quando ce n'è uno.
 :::
 
 :::details Il controllo fallisce con «No RDAP service is published»
-Il monitor usa **RDAP**, e il TLD non pubblica alcun servizio RDAP, come molti ccTLD. Passate **Lookup Method** su **Auto**, che ripiega su WHOIS.
+Il monitor usa **RDAP**, e il TLD non pubblica alcun servizio RDAP, come molti ccTLD. Passate **Metodo di ricerca** su **Auto**, che ripiega su WHOIS.
 :::
 
 :::details Il dominio risulta non registrato
