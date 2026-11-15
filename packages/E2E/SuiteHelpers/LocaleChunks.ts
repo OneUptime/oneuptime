@@ -39,11 +39,27 @@ export interface LocaleWatch {
   languages: () => Promise<Array<string>>;
   // The bytes of every script the page loaded from /dist/.
   scriptBytes: () => Promise<number>;
+  /*
+   * The bytes of every script but the chunks that hold `language`'s locale
+   * alone: what the fixture itself weighs on a page drawn in it.
+   */
+  scriptBytesBesideLocale: (language: string) => Promise<number>;
+}
+
+interface ScriptRead {
+  languages: Array<string>;
+  bytes: number;
+}
+
+function sumOfBytes(reads: Array<ScriptRead>): number {
+  return reads.reduce((sum: number, read: ScriptRead): number => {
+    return sum + read.bytes;
+  }, 0);
 }
 
 // Starts reading every script the page loads from /dist/, from now on.
 export function watchDashboardLocales(page: Page): LocaleWatch {
-  const reads: Array<Promise<{ languages: Array<string>; bytes: number }>> = [];
+  const reads: Array<Promise<ScriptRead>> = [];
 
   page.on("response", (response: Response): void => {
     const pathname: string = new URL(response.url()).pathname;
@@ -54,7 +70,7 @@ export function watchDashboardLocales(page: Page): LocaleWatch {
 
     reads.push(
       response.text().then(
-        (script: string): { languages: Array<string>; bytes: number } => {
+        (script: string): ScriptRead => {
           return {
             languages: dashboardLocalesIn(script).filter(
               (language: string): boolean => {
@@ -64,7 +80,7 @@ export function watchDashboardLocales(page: Page): LocaleWatch {
             bytes: script.length,
           };
         },
-        (): { languages: Array<string>; bytes: number } => {
+        (): ScriptRead => {
           // A page that navigated away before the body came read nothing.
           return { languages: [], bytes: 0 };
         },
@@ -75,28 +91,38 @@ export function watchDashboardLocales(page: Page): LocaleWatch {
   return {
     languages: async (): Promise<Array<string>> => {
       return (await Promise.all(reads)).flatMap(
-        (read: { languages: Array<string> }): Array<string> => {
+        (read: ScriptRead): Array<string> => {
           return read.languages;
         },
       );
     },
     scriptBytes: async (): Promise<number> => {
-      return (await Promise.all(reads)).reduce(
-        (sum: number, read: { bytes: number }): number => {
-          return sum + read.bytes;
-        },
-        0,
+      return sumOfBytes(await Promise.all(reads));
+    },
+    scriptBytesBesideLocale: async (language: string): Promise<number> => {
+      return sumOfBytes(
+        (await Promise.all(reads)).filter((read: ScriptRead): boolean => {
+          return !(
+            read.languages.length > 0 &&
+            read.languages.every((held: string): boolean => {
+              return held === language;
+            })
+          );
+        }),
       );
     },
   };
 }
 
 /*
- * What every page of a fixture's scripts may weigh, at most, once it loads
- * no locale it is not drawn in: a fixture's entry is 10 to 25 MB of the
- * Dashboard's components, and a locale chunk 4 to 7 MB more.
+ * What a fixture's scripts may weigh on a page, its language's own chunk
+ * aside: its entry is 5 to 15 MB of the Dashboard's components once no
+ * locale but English is in it. With two to four locales imported whole the
+ * entries were 29 to 47 MB (#8366). A locale's chunk is not counted: an
+ * unminified one is 17 to 28 MB, the JSON loader's named exports and
+ * escapes on top of 6 to 8 MB of words (#8650).
  */
-export const LOCALE_FREE_PAGE_BUDGET_BYTES: number = 40 * 1024 * 1024;
+export const LOCALE_FREE_PAGE_BUDGET_BYTES: number = 25 * 1024 * 1024;
 
 const DASHBOARD_LOCALES: string = path.resolve(
   __dirname,
@@ -140,7 +166,8 @@ export interface PageLanguageCheck {
 
 /*
  * The page drawn in `language` loads that language's locale and no other,
- * an English page none, and its scripts stay inside the budget.
+ * an English page none, and its scripts, that locale's chunk aside, stay
+ * inside the budget.
  */
 export async function expectPageLoadsOnlyItsLanguage(
   page: Page,
@@ -157,7 +184,7 @@ export async function expectPageLoadsOnlyItsLanguage(
     `the Dashboard locales a page in "${language}" loaded`,
   ).toEqual(language === "en" ? [] : [language]);
   expect(
-    await watch.scriptBytes(),
-    `the scripts a page in "${language}" loaded, in bytes`,
+    await watch.scriptBytesBesideLocale(language),
+    `the scripts a page in "${language}" loaded, its locale's chunk aside, in bytes`,
   ).toBeLessThan(LOCALE_FREE_PAGE_BUDGET_BYTES);
 }

@@ -1033,6 +1033,13 @@ test.describe("watchDashboardLocales", () => {
     );
 
     expect(await watch.languages()).toEqual(["de"]);
+
+    // The fixture's own weight leaves German's chunk out, and only it.
+    const all: number = await watch.scriptBytes();
+    expect(await watch.scriptBytesBesideLocale("de")).toBe(
+      all - localeModule("de").length,
+    );
+    expect(await watch.scriptBytesBesideLocale("fa")).toBe(all);
   });
 
   test("an entry that holds German and Persian whole reads as both, on an English page", async ({
