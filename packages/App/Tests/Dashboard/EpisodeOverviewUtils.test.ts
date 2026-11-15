@@ -105,8 +105,8 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("42 minutes");
-    expect(timing.timeToResolve).toBe("2 hours, 5 minutes");
+    expect(timing.timeToAcknowledge).toBe("42\u00A0minutes");
+    expect(timing.timeToResolve).toBe("2\u00A0hours, 5\u00A0minutes");
     expect(timing.durationStartsAt).toBe(START);
     expect(timing.durationEndsAt).toEqual(at(125));
     expect(timing.isResolved).toBe(true);
@@ -127,7 +127,7 @@ describe("getEpisodeTiming", () => {
 
     expect(timing.isResolved).toBe(true);
     expect(timing.durationEndsAt).toEqual(at(60));
-    expect(timing.timeToResolve).toBe("1 hour");
+    expect(timing.timeToResolve).toBe("1\u00A0hour");
   });
 
   test("an episode moved straight into a state after Resolved is resolved, from then", () => {
@@ -143,7 +143,7 @@ describe("getEpisodeTiming", () => {
 
     expect(timing.isResolved).toBe(true);
     expect(timing.durationEndsAt).toEqual(at(45));
-    expect(timing.timeToResolve).toBe("45 minutes");
+    expect(timing.timeToResolve).toBe("45\u00A0minutes");
   });
 
   /*
@@ -163,7 +163,7 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("9 minutes");
+    expect(timing.timeToAcknowledge).toBe("9\u00A0minutes");
     expect(timing.timeToResolve).toBe("Not yet resolved");
     expect(timing.isResolved).toBe(false);
   });
@@ -180,7 +180,7 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("4 minutes");
+    expect(timing.timeToAcknowledge).toBe("4\u00A0minutes");
   });
 
   test("a resolution before the first acknowledgement is the first response", () => {
@@ -196,8 +196,8 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("15 minutes");
-    expect(timing.timeToResolve).toBe("15 minutes");
+    expect(timing.timeToAcknowledge).toBe("15\u00A0minutes");
+    expect(timing.timeToResolve).toBe("15\u00A0minutes");
   });
 
   /*
@@ -250,8 +250,8 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("15 minutes");
-    expect(timing.timeToResolve).toBe("15 minutes");
+    expect(timing.timeToAcknowledge).toBe("15\u00A0minutes");
+    expect(timing.timeToResolve).toBe("15\u00A0minutes");
   });
 
   test("uses the FIRST acknowledge and resolve, so reopening does not rewrite them", () => {
@@ -268,8 +268,8 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("5 minutes");
-    expect(timing.timeToResolve).toBe("20 minutes");
+    expect(timing.timeToAcknowledge).toBe("5\u00A0minutes");
+    expect(timing.timeToResolve).toBe("20\u00A0minutes");
     // The duration runs to the resolve that is current now.
     expect(timing.durationEndsAt).toEqual(at(180));
   });
@@ -287,7 +287,7 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToResolve).toBe("20 minutes");
+    expect(timing.timeToResolve).toBe("20\u00A0minutes");
     expect(timing.durationEndsAt).toBeUndefined();
     expect(timing.isResolved).toBe(false);
   });
@@ -304,7 +304,7 @@ describe("getEpisodeTiming", () => {
       ],
     });
 
-    expect(timing.timeToAcknowledge).toBe("10 minutes");
+    expect(timing.timeToAcknowledge).toBe("10\u00A0minutes");
     expect(timing.durationEndsAt).toEqual(at(50));
   });
 
@@ -405,7 +405,7 @@ describe("getEpisodeTiming", () => {
     });
 
     expect(timing.acknowledgedStateName).toBe("Acknowledged");
-    expect(timing.timeToAcknowledge).toBe("7 minutes");
+    expect(timing.timeToAcknowledge).toBe("7\u00A0minutes");
   });
 
   test("does not mutate the timelines it was given", () => {
