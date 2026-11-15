@@ -371,6 +371,8 @@ describe("Fluentd's file", () => {
 services:
   fluentd:
     image: fluent/fluentd:latest
+    # Start again after a reboot or a crash, so the batches on disk are sent
+    restart: unless-stopped
     # Root reads every file in /var/log, the ones only root may read too
     user: root
     # Of root's powers, it keeps only reading and writing any file
@@ -1806,6 +1808,19 @@ describe("the batches still to send outlive Fluentd (issue #8242)", () => {
     ]);
     // A named volume, which a container made again finds as it was left.
     expect(compose).toMatch(/^volumes:\n {2}fluentd-state:$/m);
+  });
+
+  test("in Docker Compose, Fluentd starts again after a reboot or a crash, so the batches on disk are sent", () => {
+    /*
+     * With no restart policy, Docker leaves a container stopped after the
+     * host reboots or its process exits: the chunks wait in the volume
+     * until someone runs docker compose up. unless-stopped starts it again
+     * then, and leaves it stopped when the person stops it; "always" would
+     * start a container the person stopped when the daemon restarts.
+     */
+    expect(composeServiceSetting(getFluentdDockerCompose(), "restart")).toBe(
+      "unless-stopped",
+    );
   });
 
   test("on the host, the buffer is in the package's folder, which its user owns, beside the package's own", () => {

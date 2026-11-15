@@ -344,6 +344,12 @@ export const FLUENTD_COMPOSE_CAPABILITIES: Array<string> = ["DAC_OVERRIDE"];
  * its powers but reading and writing files (FLUENTD_COMPOSE_CAPABILITIES),
  * and the forward port is published on the host's 127.0.0.1 alone (issue
  * #8243), where Docker's fluentd log driver sends.
+ *
+ * It starts again by itself (restart: unless-stopped). With no policy, a
+ * host's reboot or a crash left the container stopped: nothing read the
+ * logs, and the batches the file buffer kept for a restart (issue #8242)
+ * waited for someone to run docker compose up. It stays stopped when the
+ * person stops it.
  */
 export function getFluentdDockerCompose(): string {
   const capabilities: string = FLUENTD_COMPOSE_CAPABILITIES.map(
@@ -356,6 +362,8 @@ export function getFluentdDockerCompose(): string {
 services:
   fluentd:
     image: fluent/fluentd:latest
+    # Start again after a reboot or a crash, so the batches on disk are sent
+    restart: unless-stopped
     # Root reads every file in /var/log, the ones only root may read too
     user: root
     # Of root's powers, it keeps only reading and writing any file

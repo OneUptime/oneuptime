@@ -436,6 +436,7 @@ describe("TelemetryDocumentation", () => {
           "path /fluentd/log/buffer/oneuptime",
         );
         expect(container.textContent).toContain("fluentd-state:/fluentd/log");
+        expect(container.textContent).toContain("restart: unless-stopped");
         expect(container.textContent).not.toContain("bind 127.0.0.1");
         expect(container.textContent).not.toContain(
           "/var/log/fluent/fluentd.pos",
