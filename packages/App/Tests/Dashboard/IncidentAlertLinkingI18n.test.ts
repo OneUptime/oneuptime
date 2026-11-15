@@ -700,9 +700,13 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
 
   test("the components that show these strings look them up by their English text", () => {
     const expectations: Array<[Array<string>, string]> = [
+      /*
+       * A side menu entry draws its title as a crumb's is (#8225): looked
+       * up once, unless it is a record's name or in the reader's words.
+       */
       [
         ["UI", "Components", "SideMenu", "SideMenuItem.tsx"],
-        "translateString(props.link.title)",
+        "getCrumbTitle(props.link, translateString)",
       ],
       /*
        * The trail hands a crumb's title to getCrumbTitle, which looks it up
