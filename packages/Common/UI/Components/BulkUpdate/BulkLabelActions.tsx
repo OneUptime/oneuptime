@@ -392,6 +392,8 @@ function useBulkLabelActions<T extends BaseModel>(
         const option: DropdownOption = {
           label: label.name || "",
           value: label._id?.toString() || "",
+          // A label's name is its owner's, drawn as written.
+          isUserContent: true,
         };
 
         if (label.color) {
@@ -421,6 +423,8 @@ function useBulkLabelActions<T extends BaseModel>(
       const option: DropdownOption = {
         label: label.name || "",
         value: label._id?.toString() || "",
+        // A label's name is its owner's, drawn as written.
+        isUserContent: true,
       };
 
       if (label.color) {

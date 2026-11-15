@@ -653,8 +653,15 @@ describe("Disabled in the reader's language", () => {
       expect(await screen.findByText("checkout")).toBeInTheDocument();
       expect(statusCellOf("checkout")).toHaveTextContent(word);
       expect(statusCellOf("checkout")).not.toHaveTextContent("Disabled");
-      // A checked monitor's status is the project's own name, as stored.
-      expect(statusCellOf("search")).toHaveTextContent("Offline");
+      /*
+       * A checked monitor's status reads by its list (#7894): "Offline" is
+       * the name a new project starts with, so it reads in the reader's
+       * words, as its badge does - and a name the project gave a status of
+       * its own reads as stored.
+       */
+      expect(statusCellOf("search")).toHaveTextContent(
+        (locales[language]!["Offline"] as string) || "Offline",
+      );
     },
   );
 });

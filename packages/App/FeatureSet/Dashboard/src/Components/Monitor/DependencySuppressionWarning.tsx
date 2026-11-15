@@ -15,6 +15,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 
 export interface ComponentProps {
   monitorId: ObjectID;
@@ -181,7 +183,14 @@ const DependencySuppressionWarning: FunctionComponent<ComponentProps> = (
       (parent: SuppressingParent): string => {
         return translator.translateTemplate(
           'Parent monitor "{{name}}" is {{status}}.',
-          { name: parent.monitorName, status: parent.statusName },
+          {
+            name: parent.monitorName,
+            // By its list: the default "Offline" in the reader's words.
+            status: recordNameInSentence(
+              StateListType.MonitorStatus,
+              parent.statusName,
+            ),
+          },
         );
       },
     );

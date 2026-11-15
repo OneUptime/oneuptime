@@ -617,8 +617,9 @@ describe("the AI / LLM monitor's form", () => {
     for (const option of mockFormProps!.fields[0]!.dropdownOptions || []) {
       expect(option.description).toEqual(expect.any(String));
     }
+    // An app's name is its owner's: drawn as written, never looked up.
     expect(mockFormProps!.fields[3]!.dropdownOptions).toEqual([
-      { label: "Support bot", value: SERVICE_ID },
+      { label: "Support bot", value: SERVICE_ID, isUserContent: true },
     ]);
     // The model is the one rarely changed: folded under More fields.
     expect(mockFormProps!.fields[4]!.collapsibleSection).toBeTruthy();

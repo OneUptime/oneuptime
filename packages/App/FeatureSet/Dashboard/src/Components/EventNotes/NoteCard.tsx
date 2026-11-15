@@ -255,9 +255,12 @@ const NoteCard: FunctionComponent<ComponentProps> = (
       <MoreMenuItem
         key="edit"
         icon={IconProp.Pencil}
+        // In the reader's words already: drawn as given (#8067).
         text={tx("Edit note")}
+        isUserContent={true}
         isDisabled={props.editGate.isDisabled}
         tooltip={props.editGate.tooltip}
+        isTooltipUserContent={true}
         onClick={startEdit}
       />,
     );
@@ -275,6 +278,7 @@ const NoteCard: FunctionComponent<ComponentProps> = (
               ? tx("Copy failed")
               : tx("Copy note ID")
         }
+        isUserContent={true}
         onClick={() => {
           copyId();
         }}
@@ -288,10 +292,12 @@ const NoteCard: FunctionComponent<ComponentProps> = (
         key="delete"
         icon={IconProp.Trash}
         text={tx("Delete note")}
+        isUserContent={true}
         className="text-red-600"
         iconClassName="text-red-500"
         isDisabled={props.deleteGate.isDisabled}
         tooltip={props.deleteGate.tooltip}
+        isTooltipUserContent={true}
         onClick={() => {
           setDeleteError("");
           setIsDeleteConfirmOpen(true);

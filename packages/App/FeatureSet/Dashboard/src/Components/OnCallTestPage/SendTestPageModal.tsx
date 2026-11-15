@@ -49,6 +49,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -730,8 +732,18 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           return {
             value: option.value,
             label: translator.translateTemplate("Incident: {{severity}}", {
-              severity: option.severityName,
+              severity: recordNameInSentence(
+                StateListType.IncidentSeverity,
+                option.severityName,
+              ),
             }),
+            /*
+             * The page's own words, with a default severity's name in the
+             * reader's language and any other as written: never looked up
+             * again, and laid out the page's way.
+             */
+            isUserContent: true,
+            isInPageDirection: true,
           };
         }),
     },
@@ -745,8 +757,13 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           return {
             value: option.value,
             label: translator.translateTemplate("Alert: {{severity}}", {
-              severity: option.severityName,
+              severity: recordNameInSentence(
+                StateListType.AlertSeverity,
+                option.severityName,
+              ),
             }),
+            isUserContent: true,
+            isInPageDirection: true,
           };
         }),
     },

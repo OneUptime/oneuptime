@@ -16,6 +16,13 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -138,11 +145,15 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Scheduled maintenance ${
-          event?.scheduledMaintenanceNumber
+        /*
+         * One record is a maintenance event (#6817), by its number: in the
+         * reader's language (issues #7977, #7980).
+         */
+        ...citationSentence(AI_READ_CITATIONS.maintenanceEvent, {
+          number: event?.scheduledMaintenanceNumber
             ? `#${event.scheduledMaintenanceNumber}`
-            : scheduledMaintenanceId.toString()
-        }`,
+            : scheduledMaintenanceId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.ScheduledMaintenanceView,
           params: {
@@ -154,8 +165,16 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
         widget:
           rows.length > 0
             ? WidgetBuilder.table({
-                title:
-                  `Scheduled maintenance #${event?.scheduledMaintenanceNumber ?? ""}`.trim(),
+                words: {
+                  title: aiActionSentence(
+                    AI_READ_RECORD_TABLE_TITLES.maintenanceEvent,
+                    {
+                      number: event?.scheduledMaintenanceNumber
+                        ? `#${event.scheduledMaintenanceNumber}`
+                        : scheduledMaintenanceId.toString(),
+                    },
+                  ),
+                },
                 columns: [
                   {
                     key: "title",
@@ -263,7 +282,12 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Scheduled maintenance, -${pastDays}d/+${upcomingDays}d (${serialized.rowCount} found)`,
+      // In the reader's language (issues #7977, #7980).
+      ...citationSentence(AI_READ_CITATIONS.scheduledMaintenance, {
+        past: countFigure(pastDays),
+        upcoming: countFigure(upcomingDays),
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.ScheduledMaintenanceEvents,
       },
@@ -272,8 +296,19 @@ export const QueryScheduledMaintenanceTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Scheduled maintenance (${rows.length})`,
-              description: `Windows overlapping the last ${pastDays}d and next ${upcomingDays}d`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.scheduledMaintenance,
+                  { count: countFigure(rows.length) },
+                ),
+                description: aiActionSentence(
+                  AI_READ_RECORD_TABLE_LINES.maintenanceWindows,
+                  {
+                    past: countFigure(pastDays),
+                    upcoming: countFigure(upcomingDays),
+                  },
+                ),
+              },
               columns: [
                 {
                   key: "scheduledMaintenanceNumber",

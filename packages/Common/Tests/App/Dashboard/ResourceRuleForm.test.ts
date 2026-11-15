@@ -68,6 +68,7 @@ import {
   toSentenceTerm,
 } from "../../../UI/Utils/TranslateTemplate";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The shared form of every Label Rules and Owner Rules page (Dashboard
@@ -2081,6 +2082,11 @@ describe("in every language the Dashboard ships", () => {
         return toSentenceTerm(locale[term] || term, code);
       };
 
+      // The locale's sentence as the page draws it (NoBreakSpaces).
+      const drawnIn: (key: string) => string = (key: string): string => {
+        return withNoBreakSpaces(locale[key]!, key, code);
+      };
+
       expect(
         getInheritingRuleName({
           kind: "labels",
@@ -2091,7 +2097,7 @@ describe("in every language the Dashboard ships", () => {
           },
         }),
       ).toBe(
-        fillTemplate(locale["Inherit labels from {{sources}}"]!, {
+        fillTemplate(drawnIn("Inherit labels from {{sources}}"), {
           sources: `${sourceIn("Monitors")}, ${sourceIn("Hosts")}`,
         }),
       );
@@ -2103,7 +2109,7 @@ describe("in every language the Dashboard ships", () => {
           values: { inheritOwnersFromMonitors: true },
         }),
       ).toBe(
-        fillTemplate(locale["Inherit owners from {{sources}}"]!, {
+        fillTemplate(drawnIn("Inherit owners from {{sources}}"), {
           sources: sourceIn("Monitor"),
         }),
       );

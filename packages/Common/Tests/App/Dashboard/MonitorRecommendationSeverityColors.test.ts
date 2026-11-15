@@ -1,4 +1,5 @@
 import { toSeverityDropdownOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCreateSideOver";
+import { StateListType } from "../../../Utils/StateOrder";
 import MonitorRecommendationSeverityMapper, {
   MonitorRecommendationSeverityOption,
 } from "../../../Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
@@ -32,8 +33,10 @@ const SEVERITIES: Array<MonitorRecommendationSeverityOption> = [
 
 describe("monitor recommendation severity pickers", () => {
   test("offer each severity by id and name, with its colour", () => {
-    const options: Array<DropdownOption> =
-      toSeverityDropdownOptions(SEVERITIES);
+    const options: Array<DropdownOption> = toSeverityDropdownOptions(
+      SEVERITIES,
+      StateListType.IncidentSeverity,
+    );
 
     expect(
       options.map((option: DropdownOption) => {
@@ -46,8 +49,10 @@ describe("monitor recommendation severity pickers", () => {
   });
 
   test("a severity without a colour has no color key at all", () => {
-    const options: Array<DropdownOption> =
-      toSeverityDropdownOptions(SEVERITIES);
+    const options: Array<DropdownOption> = toSeverityDropdownOptions(
+      SEVERITIES,
+      StateListType.IncidentSeverity,
+    );
 
     expect(Object.keys(options[1]!)).not.toContain("color");
   });
@@ -58,9 +63,11 @@ describe("monitor recommendation severity pickers", () => {
     ].reverse();
 
     expect(
-      toSeverityDropdownOptions(reversed).map((option: DropdownOption) => {
-        return option.label;
-      }),
+      toSeverityDropdownOptions(reversed, StateListType.IncidentSeverity).map(
+        (option: DropdownOption) => {
+          return option.label;
+        },
+      ),
     ).toEqual(["Minor Incident", "Critical Incident"]);
   });
 

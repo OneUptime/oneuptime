@@ -50,6 +50,7 @@ import RangeStartAndEndDateTime, {
 } from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { getApiReferencePagePath } from "../../../Utils/ApiReferencePage";
+import { translateRecordName } from "../../../Utils/DefaultRecordNames";
 import { BILLING_ENABLED } from "../../Config";
 import API from "../../Utils/API/API";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
@@ -257,6 +258,21 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
   const model: TBaseModel = useMemo(() => {
     return new props.modelType();
   }, [props.modelType]);
+
+  /*
+   * The table the states are records of - IncidentState, MonitorStatus -
+   * which says how a state's name reads.
+   */
+  const stateTableName: string | undefined = useMemo(() => {
+    try {
+      const StateType: { new (): BaseModel } | undefined =
+        model.getTableColumnMetadata(props.stateColumn)?.modelType;
+
+      return StateType ? new StateType().tableName || undefined : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [model, props.stateColumn]);
 
   /*
    * On a private incident, alert or episode's page, what the reader holds
@@ -564,11 +580,13 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         id: getRowId(row),
         statusKey: state["_id"] ? String(state["_id"]) : stateName,
         /*
-         * A status's name as the table's pill showed it: a built-in one in
-         * the reader's language, a project's own as it was typed.
+         * A status's name as the table's pill showed it, read by its list
+         * (Utils/DefaultRecordNames): a built-in one in the reader's
+         * language, a project's own as it was typed - a state named "Open"
+         * is "Open", never "Abrir".
          */
         name: stateName
-          ? translator.translateText(stateName) || stateName
+          ? translateRecordName(translator, stateTableName, stateName)
           : translator.translateText("Unknown status") || "Unknown status",
         color: state["color"]
           ? String(state["color"].toString())

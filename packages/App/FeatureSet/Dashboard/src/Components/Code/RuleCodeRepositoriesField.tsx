@@ -188,13 +188,14 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
       // As the rule holds its ids: lower-cased (readCodeRepositoryIds).
       value: choice.id.toLowerCase(),
       /*
-       * A repository's name is drawn as it is called (EntityDropdown never
-       * looks a label up); the words for one the reader may not read are
-       * translated here.
+       * A repository's name is drawn as it is called, and the words for one
+       * the reader may not read are translated here, so the list never
+       * looks either up again.
        */
       label: choice.isHidden
         ? translator.translateText(choice.name) || choice.name
         : choice.name,
+      isUserContent: true,
       ...(choice.fullName ? { description: choice.fullName } : {}),
     };
   };

@@ -39,6 +39,9 @@ const OpenStackMetricPicker: FunctionComponent<ComponentProps> = (
         options: categoryMetrics.map((m: OpenStackMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
+            // In the reader's words already: never looked up again.
+            isUserContent: true,
+            isInPageDirection: true,
             value: m.id,
           };
         }),
@@ -56,6 +59,9 @@ const OpenStackMetricPicker: FunctionComponent<ComponentProps> = (
   const selectedOption: DropdownOption | undefined = selectedMetric
     ? {
         label: `${translator.translateText(selectedMetric.friendlyName)}${selectedMetric.unit ? ` (${selectedMetric.unit})` : ""}`,
+        // In the reader's words already: never looked up again.
+        isUserContent: true,
+        isInPageDirection: true,
         value: selectedMetric.id,
       }
     : undefined;
