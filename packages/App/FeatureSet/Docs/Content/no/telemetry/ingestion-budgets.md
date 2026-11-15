@@ -188,5 +188,5 @@ OneUptime kan ikke nå Valkey, der budsjettene telles. Til det kan det, lagres t
 - [Telemetriforbruk](/docs/telemetry/usage): Se hva hvert prosjekt og hver tjeneste sender.
 - [Drop-filtre og scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules): Slutt å lagre telemetrien du ikke trenger.
 - [Inntaksnøkler](/docs/telemetry/ingestion-keys): En nøkkel for hver avsender, slik at hver kan ha et budsjett.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om budsjettmålingene.
 :::

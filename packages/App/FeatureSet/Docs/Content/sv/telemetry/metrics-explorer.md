@@ -1,4 +1,4 @@
-# Måttutforskare
+# Mätvärdesutforskare
 
 Mätvärden är siffrorna som dina tjänster och din infrastruktur rapporterar över tid: antal förfrågningar, latenser, CPU, ködjup. Mätvärdesutforskaren visar varje mätvärde som ditt projekt tar emot, visar vilket som helst av dem i ett diagram, kombinerar dem med formler och gör om ett diagram till en monitor eller en widget på en instrumentpanel.
 

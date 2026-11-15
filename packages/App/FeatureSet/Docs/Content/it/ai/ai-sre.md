@@ -50,7 +50,7 @@ La scheda mostra in due passaggi che cosa ha fatto OneUptime AI, ciascuno con il
 
 Un'indagine prosegue finché non ha finito, entro il suo limite di tempo (120 minuti, a meno che il tuo progetto non ne imposti uno proprio), e niente limita quante query o comandi esegue. Un output di comando lungo (un `kubectl describe node` di un nodo molto carico, i log di un pod) non viene mai troncato: OneUptime AI lo legge una pagina alla volta. Per fermarla prima, imposta un **limite di tempo per le indagini** per tipo di segnale, o limiti per esecuzione per l'intero progetto (vedi **Controllo dei costi** più sotto).
 
-### Quando i registri non avevano niente da dire
+### Quando i log non avevano niente da dire
 
 Un'indagine che non ha potuto determinare una causa, e non ha trovato alcuna riga di log in nessuna delle sue ricerche, dice perché sulla scheda **OneUptime AI**, sotto il suo rapporto, con la strada da seguire:
 

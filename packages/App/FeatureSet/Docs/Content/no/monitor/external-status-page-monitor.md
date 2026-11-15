@@ -1,4 +1,4 @@
-# Ekstern statusside-overvåking
+# Ekstern statusside-monitor
 
 En monitor for eksterne statussider følger med på den offentlige statussiden til en tjeneste du er avhengig av — AWS, GCP, Azure, GitHub, OpenAI, Anthropic og mange flere — og varsler deg når leverandøren melder om et driftsavbrudd eller redusert ytelse. Bruk den til å få vite om problemer hos leverandørene dine så snart de melder dem, og til å skille dem fra dine egne.
 
@@ -279,6 +279,6 @@ En sonde avviser adresser i private nettverk med mindre den har lov til å nå d
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett statusen til leverandøren inn i titlene på hendelsene dine.
-- [API-overvåking](/docs/monitor/api-monitor): Sjekk dine egne endepunkter ved siden av statusen til leverandøren din.
+- [API-monitor](/docs/monitor/api-monitor): Sjekk dine egne endepunkter ved siden av statusen til leverandøren din.
 - [Opprett en monitor](/docs/monitor/create-monitor): Trinnene alle monitortyper har felles.
 :::

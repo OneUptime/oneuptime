@@ -153,6 +153,6 @@ En enkelt map kan være opptil 50 MB, og hele forespørselen også. Last opp sto
 
 :::cards
 - [Nettleseroppsett](/docs/rum/browser-setup): Send nettleserspor og -unntak med OpenTelemetry-web-SDK-et.
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når nye unntak dukker opp.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Få varsel når nye unntak dukker opp.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Endepunkter, nøkler og grenser for all telemetri.
 :::

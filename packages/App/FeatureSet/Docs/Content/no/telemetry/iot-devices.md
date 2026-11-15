@@ -348,7 +348,7 @@ På WebSocket-endepunktet lukker ingressen en tilkobling som er inaktiv i 300 se
 ## Neste trinn
 
 :::cards
-- [IoT-enhets-overvåking](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
+- [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Hvordan OneUptime tar imot OTLP fra en hvilken som helst SDK eller collector.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk selve en Linux-, macOS- eller Windows-gateway.
 :::

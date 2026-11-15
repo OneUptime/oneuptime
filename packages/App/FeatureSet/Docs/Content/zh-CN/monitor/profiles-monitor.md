@@ -159,6 +159,6 @@ OneUptime 每分钟读取与监视器过滤器匹配、且在其时间窗口内�
 :::cards
 - [性能剖析](/docs/telemetry/profiles): 发送剖析数据，并在剖析器中查看。
 - [监控步骤](/docs/terraform/monitor-steps): 从 Terraform 传入步骤配置。
-- [跟踪监控](/docs/monitor/traces-monitor): 对失败的 Span 告警。
+- [追踪监控](/docs/monitor/traces-monitor): 对失败的 Span 告警。
 - [指标监控](/docs/monitor/metrics-monitor): 对 CPU、内存和其他指标告警。
 :::

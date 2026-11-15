@@ -2714,7 +2714,7 @@
   "Deleting an incoming call policy also releases its phone numbers, so they can no longer be called, and deletes its escalation rules and call logs.": "刪除來電策略也會釋出其電話號碼，這些號碼將無法再被撥打，同時會刪除其上報規則和通話日誌。",
   "Deleting a workflow also deletes its variables and run logs.": "刪除工作流程也會刪除其變數和執行日誌。",
   "Deleting a dashboard also deletes its custom domains.": "刪除儀表板也會刪除其自訂網域。",
-  "Deleting a runbook also deletes its run history.": "刪除操作手冊也會刪除其執行歷史。",
+  "Deleting a runbook also deletes its run history.": "刪除運行手冊也會刪除其執行歷史。",
   "Deleting an SLO also deletes its burn rate rules and its error budget policy.": "刪除 SLO 也會刪除其燃燒率規則和錯誤預算策略。",
   "Deleting a service also deletes its source maps, and the metric pipeline rules and LLM cost budgets set for it.": "刪除服務也會刪除其來源對應，以及為它設定的指標管線規則和 LLM 成本預算。",
   "Deleting a network device also deletes its interfaces, links, endpoints and any monitor OneUptime created for it, with that monitor's history.": "刪除網路裝置也會刪除其介面、連結、端點，以及 OneUptime 為它建立的任何監測器和該監測器的歷史。",

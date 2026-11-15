@@ -1263,8 +1263,8 @@ Se [Redusere mengden data som samles inn](#redusere-mengden-data-som-samles-inn)
 ## Neste trinn
 
 :::cards
-- [Verts-overvåking](/docs/monitor/host-monitor): Varsle på CPU, minne, disk og prosesser.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Varsle på loggmønstre, som mislykkede pålogginger i et 5-minutters vindu.
+- [Verts-monitor](/docs/monitor/host-monitor): Varsle på CPU, minne, disk og prosesser.
+- [Logg-monitor](/docs/monitor/logs-monitor): Varsle på loggmønstre, som mislykkede pålogginger i et 5-minutters vindu.
 - [Eksportere til en CMDB](/docs/inventory/cmdb-sync): Send inventarattributtene videre til CMDB-en din.
-- [Server- / VM-overvåking](/docs/monitor/server-monitor): Overvåk også en servers tilgjengelighet utenfra.
+- [Server- / VM-monitor](/docs/monitor/server-monitor): Overvåk også en servers tilgjengelighet utenfra.
 :::

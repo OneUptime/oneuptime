@@ -1,6 +1,6 @@
 # Indgående anmodning ingress
 
-En tjeneste uden internetadgang kan stadig sende heartbeats til en [overvågning af indgående anmodninger](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [brugerdefineret sonde](/docs/probe/custom-probe) i sit eget netværk, og sonden sender dem videre til OneUptime.
+En tjeneste uden internetadgang kan stadig sende heartbeats til en [monitor af indgående anmodninger](/docs/monitor/incoming-request-monitor). Den sender dem i stedet til en [brugerdefineret sonde](/docs/probe/custom-probe) i sit eget netværk, og sonden sender dem videre til OneUptime.
 
 :::cards
 - [Sådan virker det](#sådan-virker-det): Fra din tjeneste, gennem sonden, til monitoren.

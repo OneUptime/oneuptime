@@ -110,7 +110,7 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 - **Playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Playbook**.
 - **Note private**: cosa ha scritto il team sul caso. Il menu **Modelli** dell'editor inserisce in una nota uno dei modelli di note del progetto.
 - **Campi personalizzati**: i campi propri del progetto, compilati per questo caso, e **Modifica campi** per modificarli. Quando il progetto ha un campo, anche la **Panoramica** li mostra, nella sua ultima scheda. Vedi [Campi personalizzati, modelli di note e numerazione](#campi-personalizzati-modelli-di-note-e-numerazione).
-- **Log di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
+- **Log di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Log di audit](/docs/configuration/audit-logs).
 - **Elimina caso**: elimina per sempre il caso, con i suoi rilevamenti, le note, la cronologia e le esecuzioni dei playbook. Per conservarne la traccia, chiudilo invece con un verdetto.
 
 ### Gestire i casi dalla coda

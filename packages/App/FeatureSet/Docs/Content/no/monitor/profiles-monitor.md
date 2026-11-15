@@ -1,4 +1,4 @@
-# Profil-overvåking
+# Profil-monitor
 
 En profilmonitor leser de kontinuerlige profilene som tjenestene dine sender til OneUptime, og varsler om to ting: en funksjon som tar en større andel av tiden enn den burde, som en parser som ble tyngre etter en utrulling, og profiler som slutter å komme fra en tjeneste. Hvert minutt måler den hvor mye av tidsvinduet som gikk gjennom funksjonen du oppgir, teller profilene som samsvarer med filtrene, og endrer monitorens status, oppretter et varsel eller erklærer en hendelse når kriteriene dine er oppfylt.
 
@@ -159,6 +159,6 @@ Ingen ramme i vinduet inneholder funksjonsteksten. Åpne funksjonen i profilerer
 :::cards
 - [Profiler](/docs/telemetry/profiles): Send profiler, og les dem i profilereren.
 - [Monitortrinn](/docs/terraform/monitor-steps): Send trinnets konfigurasjon fra Terraform.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre målinger.
+- [Trase-monitor](/docs/monitor/traces-monitor): Bli varslet om mislykkede spans.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Bli varslet om CPU, minne og andre målinger.
 :::

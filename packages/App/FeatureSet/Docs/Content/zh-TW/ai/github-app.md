@@ -190,5 +190,5 @@ issue 文字、拉取請求描述、diff 和留言都會成為代理程式提示
 :::cards
 - [程式碼](/docs/ai/ai-agent): 同一個代理程式，在儲存庫中提出請求，或從例外、追蹤或調查啟動。
 - [GitHub 整合](/docs/self-hosted/github-integration): 在自行託管的執行個體上建立並設定 GitHub App。
-- [Runbook 代理程式](/docs/runbooks/agents): 執行每次執行的 worker。
+- [Runner](/docs/runbooks/agents): 執行每次執行的 worker。
 :::
