@@ -25,14 +25,17 @@ const DeletePage: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.users"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
           title: t("breadcrumbs.user"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
           ),

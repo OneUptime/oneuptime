@@ -7,6 +7,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SideMenuComponent from "./SideMenu";
 import Route from "Common/Types/API/Route";
+import Link from "Common/Types/Link";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -394,17 +395,20 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     });
   };
 
-  const breadcrumbLinks: Array<{ title: string; to: Route }> = [
+  const breadcrumbLinks: Array<Link> = [
     {
       title: t("breadcrumbs.adminDashboard"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
     },
     {
       title: t("breadcrumbs.projects"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECTS] as Route),
     },
     {
       title: t("breadcrumbs.project"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_VIEW] as Route,
         { modelId: modelId },
@@ -412,6 +416,7 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     },
     {
       title: t("breadcrumbs.projectSubscription"),
+      isTitleTranslated: true,
       to: RouteUtil.populateRouteParams(
         RouteMap[PageMap.PROJECT_SUBSCRIPTION] as Route,
         { modelId: modelId },

@@ -29,10 +29,12 @@ const EnterpriseLicensesUnavailable: FunctionComponent<ComponentProps> = (
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.enterpriseLicenses"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.ENTERPRISE_LICENSES] as Route,
           ),

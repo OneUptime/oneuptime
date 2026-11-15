@@ -528,6 +528,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -536,6 +537,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("scheduledEvents.title"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
@@ -544,6 +546,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("scheduledEvents.singular"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)

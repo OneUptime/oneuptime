@@ -231,6 +231,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       breadcrumbLinks={[
         {
           title: t("nav.overview"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -239,6 +240,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
         },
         {
           title: t("subscribe.title"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             StatusPageUtil.isPreviewPage()
               ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route)

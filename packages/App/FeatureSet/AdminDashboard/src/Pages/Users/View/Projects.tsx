@@ -113,14 +113,17 @@ const UserProjects: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.users"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
           title: t("breadcrumbs.user"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
             {
@@ -130,6 +133,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.userProjects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_PROJECTS] as Route,
             {
