@@ -632,8 +632,17 @@ then `npm run i18n:validate` from the root.
   called "Flux de travail", Swedish counted "övervakare" under "Monitorer", and Russian named a
   status page three ways (#8029, #8030, #8031). A word that names another product's thing keeps that
   product's name, such as a GitHub Actions workflow or a BI tool's dashboards: list it with its reason
-  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). Enforced by
-  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts).
+  in [`OneNamePerThing`](../../packages/App/Tests/Dashboard/OneNamePerThing.ts). A probe is the
+  Dashboard's word too, in the apps and every docs page: the Danish docs said "probes" over a list
+  of Sonder, the Chinese 探针 beside 探测器, the Persian کاوشگر, its explorer's word (#7976); a cloud's
+  own startup probe keeps its name, in
+  [`ProbeWords`](../../packages/App/Tests/Dashboard/ProbeWords.ts). And Persian names a port پورت:
+  درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
+  Enforced by
+  [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
+  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
+  and
+  [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
