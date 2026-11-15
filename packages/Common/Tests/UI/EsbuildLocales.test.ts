@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import {
   createRuntimeLocalesPlugin,
+  getLocaleModule,
   getMarkedLocale,
   getPluralOneFormKeys,
   getRuntimeLocale,
@@ -884,6 +885,100 @@ describe("getMarkedLocale: a locale shipped whole, with its marks", () => {
   });
 });
 
+/*
+ * What the bundle carries of a locale (#8650): one default export, the
+ * locale's JSON handed to JSON.parse. Through esbuild's json loader a lazily
+ * imported locale kept a named export per key, every key written three
+ * times: German's unminified chunk was 17.5 MB for 6.1 MB of words.
+ */
+const LOCALE_MODULE_HEAD: string = "export default JSON.parse(";
+const LOCALE_MODULE_TAIL: string = ");\n";
+
+// The locale a module's string literal holds, read back as JSON twice.
+function localeInModule(source: string): unknown {
+  expect(source.startsWith(LOCALE_MODULE_HEAD)).toBe(true);
+  expect(source.endsWith(LOCALE_MODULE_TAIL)).toBe(true);
+
+  return JSON.parse(
+    JSON.parse(
+      source.slice(LOCALE_MODULE_HEAD.length, -LOCALE_MODULE_TAIL.length),
+    ) as string,
+  );
+}
+
+// What the module's default export evaluates to, run as JavaScript.
+function evaluateLocaleModule(source: string): unknown {
+  // eslint-disable-next-line no-new-func
+  return new Function(
+    `return ${source.slice("export default ".length)}`,
+  )() as unknown;
+}
+
+describe("getLocaleModule: what the bundle carries of a locale", () => {
+  const TRICKY: RuntimeLocaleTree = {
+    common: { save: "Speichern", nested: { deeper: "tiefer" } },
+    "Delete {{itemName}}": "{{itemName}} löschen",
+    'Say "hello" and \\back\\slash': 'Sag "hallo" und \\Rück\\strich',
+    "Line\nbreak and\ttab": "Zeilen\numbruch",
+    "Persian ذخیره, Japanese 保存, an arrow →, an emoji 🚀": "✓",
+    "A line separator \u2028 and a paragraph one \u2029": "\u2028\u2029",
+    "{{count}} monitors_one": "{{count}} Monitor",
+  };
+
+  test("is one default export: the locale's JSON handed to JSON.parse", () => {
+    const source: string = getLocaleModule(TRICKY);
+
+    expect(source.startsWith(LOCALE_MODULE_HEAD)).toBe(true);
+    expect(source.endsWith(LOCALE_MODULE_TAIL)).toBe(true);
+    // One statement: no named export, no other declaration.
+    expect(source.match(/\bexport\b/g)).toEqual(["export"]);
+    expect(source.split("\n").filter(Boolean)).toHaveLength(1);
+  });
+
+  test("gives back every key and value as they were, run as JavaScript", () => {
+    const source: string = getLocaleModule(TRICKY);
+
+    expect(localeInModule(source)).toEqual(TRICKY);
+    expect(evaluateLocaleModule(source)).toEqual(TRICKY);
+    // In the same order, which is the order the tooling writes.
+    expect(
+      Object.keys(evaluateLocaleModule(source) as Record<string, unknown>),
+    ).toEqual(Object.keys(TRICKY));
+  });
+
+  test("keeps a __proto__ key an entry of its own, as JSON does", () => {
+    const tree: RuntimeLocaleTree = JSON.parse(
+      '{"__proto__": "Prototyp", "Save": "Speichern"}',
+    ) as RuntimeLocaleTree;
+    const evaluated: Record<string, unknown> = evaluateLocaleModule(
+      getLocaleModule(tree),
+    ) as Record<string, unknown>;
+
+    expect(Object.prototype.hasOwnProperty.call(evaluated, "__proto__")).toBe(
+      true,
+    );
+    expect(Object.getPrototypeOf(evaluated)).toBe(Object.prototype);
+    expect(Object.keys(evaluated)).toEqual(["__proto__", "Save"]);
+  });
+
+  test("writes each key once, and adds a few dozen bytes to the JSON", () => {
+    const sentence: string =
+      "Monitors that check a website every minute from three probes";
+    const source: string = getLocaleModule({
+      [sentence]: "Monitore, die eine Website jede Minute prüfen",
+    });
+
+    expect(source.split(sentence)).toHaveLength(2);
+    expect(source.length).toBeLessThan(
+      JSON.stringify({ [sentence]: "x" }).length + 100 + 60,
+    );
+  });
+
+  test("an empty locale is an empty object", () => {
+    expect(evaluateLocaleModule(getLocaleModule({}))).toEqual({});
+  });
+});
+
 describe("createRuntimeLocalesPlugin", () => {
   test("is an esbuild plugin named for what it does", () => {
     const plugin: { name: string; setup: unknown } = createRuntimeLocalesPlugin(
@@ -1059,6 +1154,11 @@ function makeFixture(): Fixture {
       );
       return imported.default;
     };
+
+    // What a lazy locale's module exports, by name.
+    export const exportsOf = async (code: string): Promise<Array<string>> => {
+      return Object.keys(await import(\`../Locales/\${code}.json\`));
+    };
     `,
   );
 
@@ -1068,7 +1168,7 @@ function makeFixture(): Fixture {
     import en from "./Locales/en.json";
     import settings from "./Data/settings.json";
     import otherEnglish from "./Other/Locales/en.json";
-    export { load } from "./Utils/Loader";
+    export { exportsOf, load } from "./Utils/Loader";
     export const english: unknown = en;
     export const data: unknown = settings;
     export const other: unknown = otherEnglish;
@@ -1148,6 +1248,8 @@ interface FixtureBuild {
   error: string;
   english: unknown;
   lazy: Record<string, unknown>;
+  // Each lazy locale's module exports, by name.
+  exported: Record<string, Array<string>>;
   data: unknown;
   other: unknown;
   outputs: Array<OutputSummary>;
@@ -1234,8 +1336,10 @@ function buildFixture(
       fs.writeFileSync(path.join(outdir, "package.json"), '{"type":"module"}');
       const bundle = await import(url.pathToFileURL(path.join(outdir, "Index.js")).href);
       const lazy = {};
+      const exported = {};
       for (const code of ["de", "ja"]) {
         lazy[code] = await bundle.load(code);
+        exported[code] = await bundle.exportsOf(code);
       }
 
       console.log(JSON.stringify({
@@ -1243,6 +1347,7 @@ function buildFixture(
         error: "",
         english: bundle.english,
         lazy: lazy,
+        exported: exported,
         data: bundle.data,
         other: bundle.other,
         outputs: summarize(result.metafile, process.cwd()),
@@ -1380,6 +1485,32 @@ describe("bundling a fixture for real", () => {
       ["de", true],
       ["ja", false],
     ]);
+  });
+
+  test("a lazy locale's module exports its locale alone, as its default (#8650)", () => {
+    expect(production.exported).toEqual({ de: ["default"], ja: ["default"] });
+  });
+
+  test("a lazy chunk names each key once, and weighs about the words it ships", () => {
+    for (const code of ["de", "ja"]) {
+      const chunk: string = outputWithLocale(production.outputs, code).text;
+      const words: number = Buffer.byteLength(
+        JSON.stringify(production.lazy[code]),
+      );
+
+      /*
+       * "Save" ships in both: written once, never as a variable's or an
+       * export's name as well (the minifier picks the string's quotes).
+       */
+      expect([code, (chunk.match(/\bSave\b/g) || []).length]).toEqual([
+        code,
+        1,
+      ]);
+      expect([code, Buffer.byteLength(chunk) <= words * 1.1 + 200]).toEqual([
+        code,
+        true,
+      ]);
+    }
   });
 
   test("other JSON, a Locales directory elsewhere included, is left to esbuild", () => {
@@ -2108,6 +2239,27 @@ describe("the Dashboard's own build", () => {
     expect(englishBytes).toBeLessThan(sourceBytes / 50);
   });
 
+  /*
+   * #8650: a lazy chunk weighs about the words it ships. Through the json
+   * loader each kept a named export for every key that is a name, and each
+   * letter outside ASCII was a six-byte escape: Persian's chunk was 16.3 MB
+   * for 8.1 MB of words, Russian's 15.4 for 7.3, German's 6.3 for 6.2.
+   */
+  test("each lazy chunk weighs about the words it ships, written as they are", () => {
+    const heavy: Array<string> = [];
+
+    for (const code of LAZY_CODES) {
+      const chunk: DashboardOutput = outputWithLocale(built.outputs, code);
+      const words: number = Buffer.byteLength(JSON.stringify(runtime[code]));
+
+      if (chunk.bytes > words * 1.1) {
+        heavy.push(`${code}: ${chunk.bytes} bytes for ${words} of words`);
+      }
+    }
+
+    expect(heavy).toEqual([]);
+  });
+
   test("no other locale is in the entry bundle, and each is a chunk of its own", () => {
     const closure: Array<DashboardOutput> = entryClosure(
       built.outputs,
@@ -2377,7 +2529,11 @@ describe("the Admin Dashboard's own build", () => {
     },
   );
 
-  // The forms #8068 found, and French's minutes and instances, which it reads at 0.
+  /*
+   * The forms #8068 found, French's minutes and instances, which it reads at
+   * 0, and the Enterprise health pages' one node, which Danish, Dutch and
+   * Norwegian write as English does (#8599, #8728).
+   */
   test("the one forms the Admin's languages word as English does ship with their marks", () => {
     const marks: Record<string, Record<string, unknown>> = {};
 
@@ -2396,6 +2552,7 @@ describe("the Admin Dashboard's own build", () => {
     expect(marks).toEqual({
       da: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       es: { [markOf("{{count}} monitors")]: "{{count}} monitor" },
@@ -2404,11 +2561,13 @@ describe("the Admin Dashboard's own build", () => {
         [markOf("{{count}} minutes")]: "{{count}} minute",
       },
       nl: {
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} products")]: "{{count}} product",
         [markOf("{{count}} projects")]: "{{count}} project",
       },
       no: {
         [markOf("{{count}} monitors")]: "{{count}} monitor",
+        [markOf("{{count}} nodes")]: "{{count}} node",
         [markOf("{{count}} people")]: "{{count}} person",
       },
       pt: { [markOf("{{count}} monitors")]: "{{count}} monitor" },

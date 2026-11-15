@@ -82,7 +82,7 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 
 | Sida | Vad den visar |
 | --- | --- |
-| **Översikt** | **Detaljer för övervakningsgrupp**, **Aktuell status**, **Övervakning** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
+| **Översikt** | **Detaljer för monitorgrupp**, **Aktuell status**, **Övervakning** och **Drifttidsgraf** med gruppens tillgänglighet i procent under de senaste 90 dagarna. En grupp utan monitorer erbjuder **Lägg till monitorer** i stället för grafen. |
 | **Monitorer** | **Monitorer i grupp**, med **Lägg till monitorer** och **Ta bort**. |
 | **Incidenter** | Incidenterna på någon monitor i gruppen. |
 | **Larm** | Larmen på någon monitor i gruppen. |

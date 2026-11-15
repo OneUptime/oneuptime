@@ -459,7 +459,7 @@ async function notifyOwnersOfAlertsAdded(data: {
   });
 
   // A person told, as the episode's feed names them.
-  const feedLine: (user: User) => string = (user: User): string => {
+  const feedLineMarkdown: (user: User) => string = (user: User): string => {
     return OwnerNotificationFeedText.notifiedLineMarkdown(
       mdText`${OwnerNotificationFeedText.nameAndEmail({
         name: user.name?.toString(),
@@ -470,7 +470,7 @@ async function notifyOwnersOfAlertsAdded(data: {
 
   // Whom a run that stopped part way told already.
   let moreEpisodeFeedInformationInMarkdown: string = delivery.toldEarlier
-    .map(feedLine)
+    .map(feedLineMarkdown)
     .join("");
 
   for (const user of delivery.owners) {
@@ -621,7 +621,7 @@ async function notifyOwnersOfAlertsAdded(data: {
     );
 
     if (isTold) {
-      moreEpisodeFeedInformationInMarkdown += feedLine(user);
+      moreEpisodeFeedInformationInMarkdown += feedLineMarkdown(user);
     }
   }
 

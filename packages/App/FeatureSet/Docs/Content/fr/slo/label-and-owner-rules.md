@@ -22,7 +22,7 @@ Les deux s'appliquent à tout le projet. Vous les trouvez dans le menu latéral 
 :::steps
 ### Ouvrir la liste des règles
 
-Ouvrez **SLOs**, puis **Paramètres** → **Règles d'étiquettes** ou **Paramètres** → **Règles de propriétaire** dans le menu latéral, et cliquez sur **Créer : Règle d'étiquettes des SLO** ou **Créer : Règle de propriétaire des SLO**.
+Ouvrez **SLO**, puis **Paramètres** → **Règles d'étiquettes** ou **Paramètres** → **Règles de propriétaire** dans le menu latéral, et cliquez sur **Créer : Règle d'étiquettes des SLO** ou **Créer : Règle de propriétaire des SLO**.
 
 ### Choisir ce à quoi la règle correspond
 

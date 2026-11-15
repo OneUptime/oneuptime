@@ -296,7 +296,7 @@ describe("ClickHouse's disk", () => {
 
     expect(finding.level).toBe(InstallationHealthLevel.Warn);
     expect(finding.sentence).toBe(
-      "ClickHouse's disk clickhouse default has 15 GB free of 100 GB. When it fills, ClickHouse stops saving telemetry.",
+      "ClickHouse's disk clickhouse default has 15\u00A0GB free of 100\u00A0GB. When it fills, ClickHouse stops saving telemetry.",
     );
     expect(finding.adminPath).toBe(INSTALLATION_HEALTH_ADMIN_PATHS.clickhouse);
   });
@@ -317,11 +317,11 @@ describe("ClickHouse's disk", () => {
 
   test("bytes as people read a disk", () => {
     expect(InstallationHealthUtil.formatBytes(512 * 1000 * 1000)).toBe(
-      "512 MB",
+      "512\u00A0MB",
     );
-    expect(InstallationHealthUtil.formatBytes(8.44 * GB)).toBe("8.4 GB");
-    expect(InstallationHealthUtil.formatBytes(120.4 * GB)).toBe("120 GB");
-    expect(InstallationHealthUtil.formatBytes(-1)).toBe("0 MB");
+    expect(InstallationHealthUtil.formatBytes(8.44 * GB)).toBe("8.4\u00A0GB");
+    expect(InstallationHealthUtil.formatBytes(120.4 * GB)).toBe("120\u00A0GB");
+    expect(InstallationHealthUtil.formatBytes(-1)).toBe("0\u00A0MB");
   });
 });
 

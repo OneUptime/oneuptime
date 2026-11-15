@@ -1,4 +1,5 @@
 import OpenStackProjectUsage from "Common/Models/DatabaseModels/OpenStackProjectUsage";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -178,9 +179,11 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className={CELL_CLASS_NAME}>
-                          {formatOpenStackUsageNumber(
-                            line.quantity,
-                            translator,
+                          {getValueOrQuietDash(
+                            formatOpenStackUsageNumber(
+                              line.quantity,
+                              translator,
+                            ),
                           )}{" "}
                           {OPENSTACK_COST_LINE_UNITS[line.kind]}
                         </td>
@@ -238,18 +241,24 @@ const OpenStackProjectUsageCard: FunctionComponent<ComponentProps> = (
                   >
                     <td className={CELL_CLASS_NAME}>{row.period}</td>
                     <td className={CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(row.vcpuHours, translator)}
-                    </td>
-                    <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(
-                        row.memoryGbHours,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatOpenStackUsageNumber(row.vcpuHours, translator),
                       )}
                     </td>
                     <td className={WIDE_CELL_CLASS_NAME}>
-                      {formatOpenStackUsageNumber(
-                        row.volumeGbHours,
-                        translator,
+                      {getValueOrQuietDash(
+                        formatOpenStackUsageNumber(
+                          row.memoryGbHours,
+                          translator,
+                        ),
+                      )}
+                    </td>
+                    <td className={WIDE_CELL_CLASS_NAME}>
+                      {getValueOrQuietDash(
+                        formatOpenStackUsageNumber(
+                          row.volumeGbHours,
+                          translator,
+                        ),
                       )}
                     </td>
                     <td className={CELL_CLASS_NAME}>

@@ -204,7 +204,7 @@ describe("DatabaseMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         ),
       );
 
-      expect(result).toContain("1.07 GB");
+      expect(result).toContain("1.07\u00A0GB");
       // The 1024-based rendering this used to produce.
       expect(result).not.toContain("1.00 GB");
       expect(result).not.toContain("1073741824");

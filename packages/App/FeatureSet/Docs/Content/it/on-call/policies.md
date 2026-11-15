@@ -45,15 +45,15 @@ Aprite una policy dall'elenco. Il suo menu laterale contiene tutto ciò che la r
 | Sezione | Pagine |
 | --- | --- |
 | **Base** | **Panoramica**, **Regole di escalation** e **Proprietari** |
-| **Registri** | **Registri di esecuzione** e **Registri di notifica** |
+| **Log** | **Log di esecuzione** e **Log di notifica** |
 | **Sviluppatori** | **Terraform**, **API**, **CLI** e **Assistenti IA** |
-| **Avanzato** | **Sostituzioni utente**, **Campi personalizzati**, **Impostazioni**, **Registri di audit** ed **Elimina policy** |
+| **Avanzato** | **Sostituzioni utente**, **Campi personalizzati**, **Impostazioni**, **Log di audit** ed **Elimina policy** |
 
 **Base** è aperta; le altre sezioni partono chiuse finché non ci fate clic.
 
 - **Panoramica** mostra i **Dettagli della policy di reperibilità**, poi **La policy in breve**: quanti livelli e destinatari ha la policy, quanto manca al suo ultimo livello e quante volte si ripete. **Prontezza dei destinatari** dice se ogni persona che può avvisare è raggiungibile adesso, e **Feed della policy di reperibilità** elenca che cosa è cambiato: persone, team e pianificazioni aggiunti o rimossi, sostituzioni e passaggi di consegne. Le sue regole per Slack, Microsoft Teams e Mattermost li pubblicano nei tuoi canali, un cambio turno in una riga: vedi [Messaggi di reperibilità](/docs/workspace-connections/slack#messaggi-di-reperibilità).
 - I **Proprietari** sono le persone e i team responsabili della policy. Quando un avviso che invia non trova una regola per qualcuno, o non può essere consegnato, ricevono un'e-mail; una policy senza proprietari scrive invece ai Proprietari del progetto.
-- **Registri di notifica** elenca ogni messaggio che la policy ha inviato, con una scheda per canale.
+- **Log di notifica** elenca ogni messaggio che la policy ha inviato, con una scheda per canale.
 - **Sostituzioni utente** sostituisce persone solo in questa policy. Vedi [Sostituzioni utente](/docs/on-call/user-overrides).
 - **Impostazioni** contiene **Esporta: Policy di reperibilità** e la scheda che archivia la policy.
 
@@ -77,7 +77,7 @@ Il riconoscimento interrompe definitivamente gli avvisi di una policy, anche se 
 | **Non avvisare di nuovo** | Il riconoscimento interrompe gli avvisi definitivamente. Una nuova policy parte con questa risposta. |
 | **Avvisa di nuovo** | Avvisa chi l'ha riconosciuto e chi è reperibile ora. **Dopo quanti minuti?** indica quando: da 5 a 1440, 30 all'inizio. |
 
-I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei registri di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
+I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei log di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
 
 Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **La policy in breve** nella **Panoramica** ed **Riepilogo dell'escalation** dicono la stessa cosa a parole.
 
@@ -94,7 +94,7 @@ Una policy avviata a mano è una policy avviata con **Esegui policy di reperibil
 
 ## Registri di esecuzione
 
-Ogni volta che una policy viene eseguita, scrive un registro di esecuzione, e il registro attraversa i suoi stati man mano che l'esecuzione prosegue:
+Ogni volta che una policy viene eseguita, scrive un log di esecuzione, e il log attraversa i suoi stati man mano che l'esecuzione prosegue:
 
 ```mermaid title="Un'esecuzione di una policy, dall'inizio alla fine"
 flowchart TB
@@ -117,13 +117,13 @@ flowchart TB
 | **Esecuzione completata - nessuno è stato notificato** | L'esecuzione ha percorso ogni regola senza avvisare nessuno: di solito una pianificazione in cui nessuno è reperibile, o un livello senza destinatari. |
 | **Errore** | L'esecuzione non è riuscita: un passo è fallito in un modo che un nuovo tentativo non può correggere, come una regola di escalation eliminata, oppure è fallito per 10 tentativi di fila, in circa 37 minuti. **Visualizza messaggio di stato** dice perché. |
 
-Trovate i registri di esecuzione in tre posti:
+Trovate i log di esecuzione in tre posti:
 
-- nei **Registri di esecuzione** della policy stessa, in **Registri**;
-- in **Reperibilità → Avanzato → Registri di esecuzione**, per tutte le policy, dove le chiamate dirette da flussi di lavoro e chat compaiono come **Chiamata diretta**;
+- nei **Log di esecuzione** della policy stessa, in **Log**;
+- in **Reperibilità → Avanzato → Log di esecuzione**, per tutte le policy, dove le chiamate dirette da flussi di lavoro e chat compaiono come **Chiamata diretta**;
 - nella pagina **Esecuzioni di reperibilità** di un incidente o di un avviso.
 
-Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. **Notificato tramite** mostra come ogni avviso ha raggiunto la persona: chiamata telefonica, SMS, e-mail, notifica push e così via. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i registri di esecuzione richiedono il piano **Growth**.
+Ogni riga mostra che cosa ha avviato l'esecuzione, quando, il suo **Stato** e chi l'ha riconosciuta. **Visualizza cronologia** apre la sua **Cronologia di esecuzione**: ogni regola di escalation, chi ha avvisato, tramite quale pianificazione e come è finito ogni avviso. **Notificato tramite** mostra come ogni avviso ha raggiunto la persona: chiamata telefonica, SMS, e-mail, notifica push e così via. Una pianificazione in cui nessuno è reperibile mostra **Nessuno era di turno** al posto di una persona. Un livello che non ha avvisato nessuno dice perché, con **Proseguito senza attendere** sotto: la policy non lo ha atteso. Su OneUptime Cloud, i log di esecuzione richiedono il piano **Growth**.
 
 ## Archiviare o eliminare una policy
 
@@ -172,7 +172,7 @@ Il livello precedente non aveva nessuno da avvisare: nessun destinatario, nessun
 :::
 
 :::details Un incidente mostra una policy che non ha avvisato nessuno
-La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avvisi che la usano, non avvisa nessuno, e il suo registro di esecuzione dice che non è stata eseguita. Ripristinatela in **Reperibilità → Avanzato → Policy archiviate**.
+La policy è archiviata: una policy archiviata resta sugli incidenti e sugli avvisi che la usano, non avvisa nessuno, e il suo log di esecuzione dice che non è stata eseguita. Ripristinatela in **Reperibilità → Avanzato → Policy archiviate**.
 :::
 
 :::details Qualcuno è stato avvisato due volte per lo stesso incidente

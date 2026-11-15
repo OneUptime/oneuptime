@@ -149,7 +149,7 @@ Opsgenie risponde `202` prima di elaborare la richiesta, quindi una richiesta ch
 :::
 
 :::details Il flusso di lavoro non viene mai eseguito
-Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Registri → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **Se / Altrimenti** è un aggiornamento che non era una risoluzione.
+Verifica che sia attivo: **Abilitato**, in cima al suo **Costruttore**. Poi apri **Log → Esecuzioni**: un'esecuzione che ha preso il lato **No** del blocco **Se / Altrimenti** è un aggiornamento che non era una risoluzione.
 :::
 
 ## Prossimi passi

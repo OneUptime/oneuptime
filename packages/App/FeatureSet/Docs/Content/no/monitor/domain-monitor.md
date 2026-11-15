@@ -60,7 +60,7 @@ Angi **Domenenavn**, som `example.com`. La **Oppslagsmetode** stå på **Auto** 
 
 ### Test den
 
-Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av overvåkingstest** viser registreringsposten sonden leste, og om RDAP eller WHOIS svarte.
+Klikk på **Test monitor**, velg en sonde under **Velg sonde**, og klikk på **Kjør test**. **Resultat av monitortest** viser registreringsposten sonden leste, og om RDAP eller WHOIS svarte.
 
 ### Gå gjennom kriteriene
 
@@ -137,7 +137,7 @@ Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke no
 
 1. Åpne **Konfigurasjon → Kriterier** på monitoren, og klikk på **Rediger kriterier**.
 2. Klikk på **Legg til kriterier**. Sett filteret til **Domenet er utløpt** / **Usann**, klikk på **Legg til filter**, og sett det andre til **Dager til domenet utløper** / **Mindre enn eller lik** / `30`. La **Samsvarsbetingelse** stå på **Alle** (den vises under filtrene så snart det er to).
-3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre overvåkerstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
+3. Slå på **Når filtre samsvarer, opprett et varsel.** under **Handlinger**, og la **Når filtre samsvarer, endre monitorstatus.** være slått av, så det oppretter et varsel og ikke endrer monitorens status.
 4. Dra det nye kriteriet over kriteriet som merker monitoren som tilkoblet, og lagre så.
 :::
 

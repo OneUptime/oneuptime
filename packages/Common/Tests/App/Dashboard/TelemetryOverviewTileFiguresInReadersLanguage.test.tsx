@@ -140,9 +140,10 @@ describe("English reads exactly as it always did", () => {
     expect(formatCompact(3_456_789)).toBe("3.5M");
     expect(formatPercent(2.5)).toBe("2.5%");
     expect(formatPercent(0)).toBe("0.0%");
-    expect(formatBytes(5)).toBe("5 B");
-    expect(formatBytes(1536)).toBe("1.5 KiB");
-    expect(formatBytes(10 * 1024 * 1024)).toBe("10 MiB");
+    // A size's figure is held to its unit by a no-break space (#8457).
+    expect(formatBytes(5)).toBe("5\u00A0B");
+    expect(formatBytes(1536)).toBe("1.5\u00A0KiB");
+    expect(formatBytes(10 * 1024 * 1024)).toBe("10\u00A0MiB");
   });
 
   test("a missing figure is a dash in every language", () => {
@@ -259,13 +260,14 @@ describe("a tile's figure in German, Arabic and Persian", () => {
     for (const value of SIZES.filter((size: number): boolean => {
       return size !== 1023;
     })) {
-      expect(spaced(formatBytes(value, german))).toBe(
+      // German keeps the no-break space English holds its unit with (#8457).
+      expect(formatBytes(value, german)).toBe(
         formatBytes(value).replace(".", ","),
       );
     }
     // A whole number of bytes from a thousand up: German's thousands point.
-    expect(formatBytes(1023)).toBe("1023 B");
-    expect(spaced(formatBytes(1023, german))).toBe("1.023 B");
+    expect(formatBytes(1023)).toBe("1023\u00A0B");
+    expect(formatBytes(1023, german)).toBe("1.023\u00A0B");
   });
 });
 

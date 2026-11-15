@@ -74,7 +74,7 @@ Klikk på **Opprett Monitorgruppe**, skriv inn et **Navn** og, om du vil, en **B
 Klikk på **Oversikt**. **Gjeldende status** viser gruppens status nå, og **Oppetidsgraf** viser de siste 90 dagene, én stolpe per dag.
 :::
 
-For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåkinger i gruppe**. Selve monitoren endres ikke. En monitor kan høre til mer enn én gruppe.
+For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Monitorer i gruppe**. Selve monitoren endres ikke. En monitor kan høre til mer enn én gruppe.
 
 ## Sidene til en gruppe
 
@@ -82,8 +82,8 @@ For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåk
 
 | Side | Hva den viser |
 | --- | --- |
-| **Oversikt** | **Detaljer for overvåkingsgruppe**, **Gjeldende status**, **Overvåking** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. En gruppe uten monitorer tilbyr **Legg til monitorer** i stedet for grafen. |
-| **Monitorer** | **Overvåkinger i gruppe**, med **Legg til monitorer** og **Fjern**. |
+| **Oversikt** | **Detaljer for monitorgruppe**, **Gjeldende status**, **Overvåking** og **Oppetidsgraf** med gruppens oppetid i prosent de siste 90 dagene. En gruppe uten monitorer tilbyr **Legg til monitorer** i stedet for grafen. |
+| **Monitorer** | **Monitorer i gruppe**, med **Legg til monitorer** og **Fjern**. |
 | **Hendelser** | Hendelsene på en hvilken som helst monitor i gruppen. |
 | **Varsler** | Varslene på en hvilken som helst monitor i gruppen. |
 | **Eiere** | Personene og teamene som har ansvaret for gruppen. Den ligger under **Avansert**, som starter sammenslått. |

@@ -96,11 +96,12 @@ const formatInEnglish: (parts: RelativeTimeParts) => string = (
     return "now";
   }
 
-  const unit: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
+  // "5 minutes": a word, which a line may break before as before any word.
+  const word: string = magnitude === 1 ? parts.unit : `${parts.unit}s`;
 
   return parts.value < 0
-    ? `${magnitude} ${unit} ago`
-    : `in ${magnitude} ${unit}`;
+    ? `${magnitude} ${word} ago`
+    : `in ${magnitude} ${word}`;
 };
 
 /*

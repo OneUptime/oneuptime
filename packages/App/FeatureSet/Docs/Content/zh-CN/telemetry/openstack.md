@@ -13,7 +13,7 @@ OneUptime OpenStack 代理用于监控 OpenStack 云：它的服务和代理、H
 - [服务日志](#服务日志): 经过解析，并可跨服务跟踪一个请求。
 - [生命周期事件](#生命周期事件): 实例操作显示在动态和图表中，来源于通知或探测器。
 - [谁做了什么](#谁做了什么): 把审计记录导入安全事件。
-- [追踪请求](#通过控制平面追踪请求): 一个已签名的请求，在整个控制平面中被跟踪。
+- [追踪请求](#通过控制平面追踪请求): 一个已签名的请求，在整个控制平面中被追踪。
 - [从外部检查](#从外部检查云): 通过云外部的探测器，检查是否真的有人能启动实例。
 - [无互联网环境](#无互联网环境): 代理的四个镜像，以及如何把它们复制到你自己的镜像仓库。
 - [按部署工具](/docs/telemetry/openstack-deployment-tools): Kolla-Ansible、OpenStack-Ansible、OpenStack-Helm、Atmosphere、Sunbeam、Red Hat 和 Mirantis。
@@ -990,7 +990,7 @@ Barbican 会拒绝普通 reader，这被如实读取：它的 API 作出了回�
 
 ## 服务日志
 
-上文的代理从外部读取云的 API。实例构建失败的原因在别处：在 `nova-api`、`nova-conductor`、`nova-scheduler`、`nova-compute`、Neutron 和 Cinder 中，分布在多台机器上。可选的日志配置档会把这些日志行经过解析后发送到 OneUptime，并把一个堆栈跟踪作为一条记录。与代理不同，它运行在云自己的控制器和计算节点上，并且只读取。
+上文的代理从外部读取云的 API。实例构建失败的原因在别处：在 `nova-api`、`nova-conductor`、`nova-scheduler`、`nova-compute`、Neutron 和 Cinder 中，分布在多台机器上。可选的日志配置档会把这些日志行经过解析后发送到 OneUptime，并把一个堆栈追踪作为一条记录。与代理不同，它运行在云自己的控制器和计算节点上，并且只读取。
 
 :::cards
 - [安装日志配置档](#安装日志配置档): 每台机器一条命令，或一个 chart 值。
@@ -1028,7 +1028,7 @@ sudo bash install-logs.sh
 
 files 配置档按名称读取 OpenStack 的服务，所以同一文件夹中的 RabbitMQ、MariaDB、HAProxy 和 libvirt 不会被读取。之后重启的 collector 会从它已读到的那一行继续。
 
-在集群上，请在 Kubernetes 代理的 values 中指明云，以及其服务所运行的命名空间。这些命名空间中的 Pod 随后会将其堆栈跟踪合并，其日志会同时归入云和集群。这需要代理的 DaemonSet 日志模式：受限预设所用的日志追踪器不会读取它。
+在集群上，请在 Kubernetes 代理的 values 中指明云，以及其服务所运行的命名空间。这些命名空间中的 Pod 随后会将其堆栈追踪合并，其日志会同时归入云和集群。这需要代理的 DaemonSet 日志模式：受限预设所用的日志追踪器不会读取它。
 
 ```yaml title="values.yaml"
 logs:
@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### 来自工作流的修复
 
-工作流可以从 OpenStack 警报开始并提出修复：**Propose an OpenStack fix** 步骤接收警报或事件以及命令。它经过与 OneUptime AI 提出的修复相同的策略、相同的写入范围，以及对更改所触碰内容的相同读取，它不需要 AI 模型，并由人在警报上批准。无论云的修复模式如何，工作流都不能自己进行更改，也不能批准它所提出的内容。**Propose taking a failing OpenStack compute service out of scheduling** 模板是一个起点。
+工作流可以从 OpenStack 警报开始并提出修复：**提出 OpenStack 修复** 步骤接收警报或事件以及命令。它经过与 OneUptime AI 提出的修复相同的策略、相同的写入范围，以及对更改所触碰内容的相同读取，它不需要 AI 模型，并由人在警报上批准。无论云的修复模式如何，工作流都不能自己进行更改，也不能批准它所提出的内容。**Propose taking a failing OpenStack compute service out of scheduling** 模板是一个起点。
 
 ## 作为 systemd 服务运行
 

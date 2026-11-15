@@ -53,6 +53,7 @@ import {
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * A CHART'S VALUE AXIS AND ITS TOOLTIP, IN THE READER'S LANGUAGE (#8349).
@@ -168,7 +169,9 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     );
     expect(microseconds["en"]).toBe("500 µs");
     expectPersian(microseconds["fa"]!);
-    expect(formatTraceDuration(Infinity, translators["fa"]!)).toBe("-");
+    expect(formatTraceDuration(Infinity, translators["fa"]!)).toBe(
+      EMPTY_VALUE_MARK,
+    );
   });
 
   test("a service's, a function's, a site's and a cloud app's p95 chart", () => {
@@ -205,10 +208,10 @@ describe("a duration on a chart's value axis and in its tooltip", () => {
     );
     expectPersian(formatRuntimeValue(12.5, "percent", translators["fa"]!));
     expect(formatRuntimeValue(1536, "bytes", translators["en"]!)).toBe(
-      "1.5 KiB",
+      "1.5\u00A0KiB",
     );
     expect(formatRuntimeValue(1536, "bytes", translators["de"]!)).toBe(
-      "1,5 KiB",
+      "1,5\u00A0KiB",
     );
     expectPersian(formatRuntimeValue(2500, "count", translators["fa"]!));
     expectPersian(formatRuntimeValue(42, "milliseconds", translators["fa"]!));
@@ -366,7 +369,7 @@ describe("a database's and a queue's engine charts (#8283)", () => {
       formatDatabaseMetricUnitAxisValue(1.5e6, "By", {
         translator: translators["de"]!,
       }),
-    ).toBe("1,5 MB");
+    ).toBe("1,5\u00A0MB");
     expect(
       formatDatabaseMetricUnitAxisValue(3, "{connection}", {
         translator: translators["fa"]!,
@@ -483,12 +486,12 @@ describe("a count and a size on a chart", () => {
   });
 
   test("OpenStack's chart sizes, in the page's digits", () => {
-    expect(formatOpenStackChartBytes(6 * 1024 ** 4)).toBe("6.0 TiB");
+    expect(formatOpenStackChartBytes(6 * 1024 ** 4)).toBe("6.0\u00A0TiB");
     expect(formatOpenStackChartBytes(6 * 1024 ** 4, { language: "de" })).toBe(
-      "6,0 TiB",
+      "6,0\u00A0TiB",
     );
     setDateDisplayLanguage("fa");
-    expect(formatOpenStackChartBytes(6 * 1024 ** 4)).toBe("۶٫۰ TiB");
+    expect(formatOpenStackChartBytes(6 * 1024 ** 4)).toBe("۶٫۰\u00A0TiB");
   });
 });
 
@@ -605,10 +608,10 @@ describe("the resource pages' charts", () => {
   test("a network chart's rate in the page's digits", () => {
     expect(
       ValueFormatter.formatValue(1500000, "By/s", { language: "en" }),
-    ).toBe("1.5 MB/s");
+    ).toBe("1.5\u00A0MB/s");
     expect(
       ValueFormatter.formatValue(1500000, "By/s", { language: "de" }),
-    ).toBe("1,5 MB/s");
+    ).toBe("1,5\u00A0MB/s");
     expect(
       ValueFormatter.formatValue(1500000, "By/s", { language: "fa" }),
     ).not.toMatch(LATIN_DIGIT);

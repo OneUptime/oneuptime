@@ -32,7 +32,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Availability Metrics
   {
     id: "iot-device-up",
-    friendlyName: "Device Up",
+    friendlyName: translationKey("Device Up"),
     description: translationKey(
       "Whether an IoT device is up (1) or down/offline (0). Reported per device — filter on the device.id label to scope to one device.",
     ),
@@ -45,7 +45,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Power Metrics
   {
     id: "iot-battery-percent",
-    friendlyName: "Battery Level",
+    friendlyName: translationKey("Battery Level"),
     description: translationKey(
       "Remaining battery charge of a device as a percentage (0 to 100). Falling levels indicate a device that will soon go offline.",
     ),
@@ -59,7 +59,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Connectivity Metrics
   {
     id: "iot-signal-strength",
-    friendlyName: "Signal Strength",
+    friendlyName: translationKey("Signal Strength"),
     description: translationKey(
       "Wireless signal strength of a device in dBm (closer to 0 is stronger; more negative is weaker). Weak signal precedes connectivity loss.",
     ),
@@ -73,7 +73,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // Environment Metrics
   {
     id: "iot-temperature",
-    friendlyName: "Temperature",
+    friendlyName: translationKey("Temperature"),
     description: translationKey(
       "Temperature reported by a device in degrees Celsius. High readings can indicate overheating hardware or an environmental issue.",
     ),
@@ -87,7 +87,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   // System Metrics
   {
     id: "iot-cpu-usage",
-    friendlyName: "CPU Usage Ratio",
+    friendlyName: translationKey("CPU Usage Ratio"),
     description: translationKey(
       "CPU usage of a device as a ratio of available CPU (0 to 1, where 1 = fully used).",
     ),
@@ -99,7 +99,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   },
   {
     id: "iot-memory-usage",
-    friendlyName: "Memory Usage",
+    friendlyName: translationKey("Memory Usage"),
     description: translationKey(
       "Memory currently in use by a device, in bytes. Compare against the device's total memory to gauge memory pressure.",
     ),
@@ -111,7 +111,7 @@ const iotMetricCatalog: Array<IoTMetricDefinition> = [
   },
   {
     id: "iot-uptime",
-    friendlyName: "Uptime",
+    friendlyName: translationKey("Uptime"),
     description: translationKey(
       "How long a device has been running. Drops to zero when the device is restarted or rebooted.",
     ),
@@ -151,4 +151,21 @@ export function getIoTMetricByMetricName(
 
 export function getAllIoTMetricCategories(): Array<IoTMetricCategory> {
   return ["Availability", "Power", "Connectivity", "Environment", "System"];
+}
+
+/*
+ * Each group's heading in the metric picker, a key: a category is an
+ * identifier the catalog's metrics name, so the picker looks its heading up
+ * here, once (#8353).
+ */
+const categoryLabels: Record<IoTMetricCategory, string> = {
+  Availability: translationKey("Availability"),
+  Power: translationKey("Power"),
+  Connectivity: translationKey("Connectivity"),
+  Environment: translationKey("Environment"),
+  System: translationKey("System"),
+};
+
+export function getIoTMetricCategoryLabel(category: IoTMetricCategory): string {
+  return categoryLabels[category] || category;
 }

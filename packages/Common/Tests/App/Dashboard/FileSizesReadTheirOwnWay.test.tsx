@@ -113,9 +113,9 @@ function readsItsOwnWay(element: HTMLElement): boolean {
 
 // The size each language writes for SIZE_IN_BYTES.
 const SIZE_IN: Record<string, string> = {
-  en: "47 KB",
-  ar: "47 KB",
-  fa: "۴۷ KB",
+  en: "47\u00A0KB",
+  ar: "47\u00A0KB",
+  fa: "۴۷\u00A0KB",
 };
 
 describe("the Custom Fields card's list of files", () => {
@@ -167,7 +167,7 @@ describe("the Custom Fields card's list of files", () => {
         return element.textContent || "";
       });
 
-    expect(sizes).toEqual(["۴۷ KB", "۱٫۵ MB"]);
+    expect(sizes).toEqual(["۴۷\u00A0KB", "۱٫۵\u00A0MB"]);
 
     for (const size of sizes) {
       expect(size).not.toMatch(LATIN_DIGIT);
@@ -245,7 +245,7 @@ describe("the file picker's files", () => {
       "file-picker-file-facts",
     )[0]!;
 
-    expect(facts.textContent).toBe("PDF • ۴۷ KB");
+    expect(facts.textContent).toBe("PDF • ۴۷\u00A0KB");
     expect(facts.textContent).not.toMatch(LATIN_DIGIT);
   });
 
@@ -254,7 +254,7 @@ describe("the file picker's files", () => {
 
     expect(
       screen.getAllByTestId("file-picker-file-facts")[0]!.textContent,
-    ).toBe("PDF · 47 KB");
+    ).toBe("PDF · 47\u00A0KB");
   });
 
   test.each(["ar", "fa"])(
@@ -300,7 +300,7 @@ describe("the file picker's files", () => {
     });
 
     expect(hint.textContent).toContain(
-      `${FIRST_STRONG_ISOLATE}۱۰ MB${POP_DIRECTIONAL_ISOLATE}`,
+      `${FIRST_STRONG_ISOLATE}۱۰\u00A0MB${POP_DIRECTIONAL_ISOLATE}`,
     );
     expect(withoutIsolateMarks(hint.textContent || "")).not.toMatch(/10\s?MB/);
   });
@@ -406,7 +406,7 @@ describe("Add transcript's chosen file", () => {
     });
 
     expect(hint.textContent).toContain(
-      `${FIRST_STRONG_ISOLATE}۵ MB${POP_DIRECTIONAL_ISOLATE}`,
+      `${FIRST_STRONG_ISOLATE}۵\u00A0MB${POP_DIRECTIONAL_ISOLATE}`,
     );
     expect(withoutIsolateMarks(hint.textContent || "")).not.toMatch(
       LATIN_DIGIT,
@@ -432,7 +432,7 @@ describe("Add transcript's chosen file", () => {
     );
 
     expect(refusal.textContent).toContain(
-      `${FIRST_STRONG_ISOLATE}۵ MB${POP_DIRECTIONAL_ISOLATE}`,
+      `${FIRST_STRONG_ISOLATE}۵\u00A0MB${POP_DIRECTIONAL_ISOLATE}`,
     );
   });
 });
@@ -483,13 +483,13 @@ describe("a file custom field's hint", () => {
     );
 
     expect(hintOf().textContent).toBe(
-      "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "Up to 10 files of 10\u00A0MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     );
   });
 
   test.each([
-    ["ar", "10 MB", "10"],
-    ["fa", "۱۰ MB", "۱۰"],
+    ["ar", "10\u00A0MB", "10"],
+    ["fa", "۱۰\u00A0MB", "۱۰"],
   ])(
     "%s: the limit and the count are the reader's, set apart from the words",
     (language: string, size: string, count: string) => {
@@ -548,72 +548,72 @@ describe("a file custom field's hint", () => {
     [
       "en",
       3,
-      "Up to 3 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "Up to 3 files of 10\u00A0MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     ],
     [
       "en",
       1,
-      "One file of up to 10 MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+      "One file of up to 10\u00A0MB: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
     ],
     [
       "de",
       3,
-      "Bis zu 3 Dateien mit je 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+      "Bis zu 3 Dateien mit je 10\u00A0MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
     ],
     [
       "de",
       1,
-      "Eine Datei mit bis zu 10 MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
+      "Eine Datei mit bis zu 10\u00A0MB: PDF-, Office- und OpenDocument-Dateien, Bilder, Text, CSV, JSON, ZIP oder PCAP.",
     ],
     [
       "ru",
       3,
-      "Максимум файлов: 3, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+      "Максимум файлов: 3, каждый до 10\u00A0MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
     ],
     [
       "ru",
       5,
-      "Максимум файлов: 5, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+      "Максимум файлов: 5, каждый до 10\u00A0MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
     ],
     [
       "ru",
       21,
-      "Максимум файлов: 21, каждый до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+      "Максимум файлов: 21, каждый до 10\u00A0MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
     ],
     [
       "ru",
       1,
-      "Один файл до 10 MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
+      "Один файл до 10\u00A0MB: файлы PDF, Office и OpenDocument, изображения, текст, CSV, JSON, ZIP или PCAP.",
     ],
     [
       "ar",
       2,
-      "الحد الأقصى للملفات: 2، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+      "الحد الأقصى للملفات: 2، حتى 10\u00A0MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
     ],
     [
       "ar",
       3,
-      "الحد الأقصى للملفات: 3، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+      "الحد الأقصى للملفات: 3، حتى 10\u00A0MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
     ],
     [
       "ar",
       11,
-      "الحد الأقصى للملفات: 11، حتى 10 MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+      "الحد الأقصى للملفات: 11، حتى 10\u00A0MB لكل ملف: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
     ],
     [
       "ar",
       1,
-      "ملف واحد حتى 10 MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
+      "ملف واحد حتى 10\u00A0MB: ملفات PDF وOffice وOpenDocument والصور والنصوص وCSV وJSON وZIP أو PCAP.",
     ],
     [
       "fa",
       3,
-      "حداکثر ۳ فایل، هر کدام تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+      "حداکثر ۳ فایل، هر کدام تا ۱۰\u00A0MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
     ],
     [
       "fa",
       1,
-      "یک فایل تا ۱۰ MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
+      "یک فایل تا ۱۰\u00A0MB: فایل‌های PDF، Office و OpenDocument، تصویر، متن، CSV، JSON، ZIP یا PCAP.",
     ],
   ] as Array<[string, number, string]>)(
     "%s: a picker of at most %p files says it",
@@ -704,7 +704,7 @@ describe("a file custom field's hint", () => {
       />,
     );
     expect(hintOf().textContent).toBe(
-      "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 5 MB.",
+      "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 5\u00A0MB.",
     );
     cleanup();
 
@@ -716,7 +716,7 @@ describe("a file custom field's hint", () => {
       />,
     );
     expect(hintOf().textContent).toBe(
-      sentenceIn("fa", CUSTOM_FIELD_FILE_HINT, isolated("۵ MB")),
+      sentenceIn("fa", CUSTOM_FIELD_FILE_HINT, isolated("۵\u00A0MB")),
     );
   });
 

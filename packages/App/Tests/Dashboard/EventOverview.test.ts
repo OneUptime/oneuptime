@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import { StateListType } from "Common/Utils/StateOrder";
 import Timezone from "Common/Types/Timezone";
@@ -450,7 +451,7 @@ describe("getTimeToStateText", () => {
         reachedAt: START,
         fallbackStateName: "resolved",
       }),
-    ).toBe("-");
+    ).toBe(EMPTY_VALUE_MARK);
   });
 });
 

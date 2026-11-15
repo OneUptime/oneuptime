@@ -56,13 +56,27 @@ const PAGES: Readonly<Record<string, PageReading>> = {
   DataObservability: { way: "a text per language" },
   Docker: { way: "a setup guide's words" },
   Podman: { way: "a setup guide's words" },
+  StorageArray: { way: "a setup guide's words" },
   Kubernetes: { way: "a setup guide's words" },
   IoT: { way: "a setup guide's words" },
   Ceph: { way: "a setup guide's words" },
   DockerSwarm: { way: "a setup guide's words" },
+  OpenStack: { way: "a setup guide's words" },
   DataSecurity: {
     way: "locale keys",
     files: ["Pages/DataSecurity/Documentation.tsx"],
+  },
+  /*
+   * The page, and the catalog it draws: the sources a row comes from, what
+   * deleting one does, the categories and every kind of thing in them.
+   */
+  Inventory: {
+    way: "locale keys",
+    files: [
+      "Pages/Inventory/Documentation.tsx",
+      "Components/Inventory/InventorySource.ts",
+      "Components/Inventory/InventoryTypeCatalog.ts",
+    ],
   },
   Exceptions: { way: "locale keys", files: TELEMETRY_FILES },
   Logs: { way: "locale keys", files: TELEMETRY_FILES },
@@ -80,17 +94,14 @@ const PAGES: Readonly<Record<string, PageReading>> = {
 
 /*
  * The pages that still read English in some language: their setup guide's
- * markdown has no words in any other language yet, or (Inventory) its keys
- * are English in most locale files. #8341. Only ever shorter.
+ * markdown has no words in any other language yet. #8341. Only ever
+ * shorter.
  */
 const STILL_IN_ENGLISH: ReadonlyArray<string> = [
   "Database",
   "Host",
-  "Inventory",
   "MessageQueue",
-  "OpenStack",
   "Proxmox",
-  "StorageArray",
   "VMware",
 ];
 
@@ -293,6 +304,19 @@ describe("the checks above (negative control)", () => {
   test("the scan finds what a page hands the translator", () => {
     expect(sentencesOf("Pages/DataSecurity/Documentation.tsx")).toContain(
       "What is Data Security?",
+    );
+  });
+
+  test("the scan finds what a catalog marks as a key: Inventory's caveats and categories", () => {
+    expect(sentencesOf("Components/Inventory/InventorySource.ts")).toEqual(
+      expect.arrayContaining([
+        "Discovered",
+        "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.",
+        "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.",
+      ]),
+    );
+    expect(sentencesOf("Components/Inventory/InventoryTypeCatalog.ts")).toEqual(
+      expect.arrayContaining(["Network & Devices", "A Ceph storage cluster."]),
     );
   });
 });

@@ -47,8 +47,8 @@ En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å 
 
 | Betingelse                                                      | Matcher                                                                    |
 | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Monitorer**, **Hendelsesetiketter**, **Overvåkingsetiketter** | Hendelser med en av monitorene eller etikettene du velger.                 |
-| **Hendelsestittel**, **Hendelsesbeskrivelse**, **Overvåkingsnavn**, **Overvåkingsbeskrivelse** | Et mønster, som et regulært uttrykk, uten forskjell på store og små bokstaver. |
+| **Monitorer**, **Hendelsesetiketter**, **Monitoretiketter** | Hendelser med en av monitorene eller etikettene du velger.                 |
+| **Hendelsestittel**, **Hendelsesbeskrivelse**, **Monitornavn**, **Monitorbeskrivelse** | Et mønster, som et regulært uttrykk, uten forskjell på store og små bokstaver. |
 
 En regel matcher bare når hver betingelse du fyller ut, holder; en betingelse som står tom, hoppes over.
 

@@ -1643,7 +1643,7 @@ De pagina **AI-agent** van de cloud biedt voor elk hiervan een runbook aan, om t
 
 ### Fixes vanuit een workflow
 
-Een workflow kan beginnen bij een OpenStack-waarschuwing en een fix voorstellen: de stap **Propose an OpenStack fix** neemt de waarschuwing of het incident, en de opdracht. Het gaat door hetzelfde beleid, hetzelfde schrijfbereik en dezelfde lezing van wat een wijziging raakt als een fix die OneUptime AI voorstelt, het heeft geen AI-model nodig, en een mens keurt het goed op de waarschuwing. Een workflow kan de wijziging zelf niet doorvoeren of goedkeuren wat hij voorstelt, welke fixmodus de cloud ook heeft. Het sjabloon **Propose taking a failing OpenStack compute service out of scheduling** is een plek om te beginnen.
+Een workflow kan beginnen bij een OpenStack-waarschuwing en een fix voorstellen: de stap **OpenStack-oplossing voorstellen** neemt de waarschuwing of het incident, en de opdracht. Het gaat door hetzelfde beleid, hetzelfde schrijfbereik en dezelfde lezing van wat een wijziging raakt als een fix die OneUptime AI voorstelt, het heeft geen AI-model nodig, en een mens keurt het goed op de waarschuwing. Een workflow kan de wijziging zelf niet doorvoeren of goedkeuren wat hij voorstelt, welke fixmodus de cloud ook heeft. Het sjabloon **Propose taking a failing OpenStack compute service out of scheduling** is een plek om te beginnen.
 
 ## Draaien als systemd-service
 

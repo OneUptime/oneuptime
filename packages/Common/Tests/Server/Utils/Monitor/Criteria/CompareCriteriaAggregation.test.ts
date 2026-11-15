@@ -522,24 +522,24 @@ describe("CompareCriteria aggregation semantics", () => {
        * value and the threshold can never be quoted in different units.
        */
       expect(unitMessage("By")).toBe(
-        "Metric Value was 0.85 B, above the 0.8 B threshold.",
+        "Metric Value was 0.85\u00A0B, above the 0.8\u00A0B threshold.",
       );
       expect(unitMessage("%")).toBe(
         "Metric Value was 0.85%, above the 0.80% threshold.",
       );
       expect(unitMessage("ms")).toBe(
-        "Metric Value was 850 µs, above the 800 µs threshold.",
+        "Metric Value was 850\u00A0µs, above the 800\u00A0µs threshold.",
       );
       // "1" is suppressed; a unit that merely CONTAINS a 1 is not.
-      expect(unitMessage("m/s2")).toContain("0.85 m/s2");
-      expect(unitMessage("10*3/uL")).toContain("0.85 10*3/uL");
+      expect(unitMessage("m/s2")).toContain("0.85\u00A0m/s2");
+      expect(unitMessage("10*3/uL")).toContain("0.85\u00A010*3/uL");
     });
 
     test("a stored unit with stray whitespace renders once, trimmed", () => {
       const message: string = unitMessage(" ms ");
 
       expect(message).toBe(
-        "Metric Value was 850 µs, above the 800 µs threshold.",
+        "Metric Value was 850\u00A0µs, above the 800\u00A0µs threshold.",
       );
       expect(message).not.toContain("  ");
     });

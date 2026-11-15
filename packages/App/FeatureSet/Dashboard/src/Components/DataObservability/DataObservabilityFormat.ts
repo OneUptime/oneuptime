@@ -1,4 +1,5 @@
 import OneUptimeDate from "Common/Types/Date";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -16,7 +17,7 @@ export function formatRowCount(
   rows: number | null | undefined,
 ): string {
   if (rows === null || rows === undefined || !Number.isFinite(rows)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   return translator.formatNumber(rows);
@@ -24,7 +25,7 @@ export function formatRowCount(
 
 export function formatSize(bytes: number | null | undefined): string {
   if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
 
   let value: number = Math.max(0, bytes);

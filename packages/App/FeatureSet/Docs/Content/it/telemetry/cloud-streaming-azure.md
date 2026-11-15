@@ -41,7 +41,7 @@ Vai su **Cloud → Collega** e, nella riga della sottoscrizione Azure, scegli **
 
 ### Scegliere cosa trasmettere
 
-**Metriche** trasmette le metriche chiave di ogni risorsa, minuto per minuto, le metriche con cui OneUptime traccia i grafici e valuta ogni risorsa, tranne [quelle che un'impostazione di diagnostica non può inviare](#cosa-arriva), che la connessione continua a leggere. **Metriche e log** aggiunge i log propri di ogni risorsa, ogni categoria che Azure conserva per essa, e **Registri** trasmette solo i log delle risorse.
+**Metriche** trasmette le metriche chiave di ogni risorsa, minuto per minuto, le metriche con cui OneUptime traccia i grafici e valuta ogni risorsa, tranne [quelle che un'impostazione di diagnostica non può inviare](#cosa-arriva), che la connessione continua a leggere. **Metriche e log** aggiunge i log propri di ogni risorsa, ogni categoria che Azure conserva per essa, e **Log** trasmette solo i log delle risorse.
 
 ### Attivare la lettura
 
@@ -73,7 +73,7 @@ Quando la prima sottoscrizione non è quella in cui OneUptime legge gli hub even
 | --- | --- |
 | Metriche chiave | Sulle risorse cloud che misurano, nelle stesse serie scritte dalle letture della connessione |
 | Log delle risorse | In Esplora log, sotto il servizio di telemetria della connessione, con la sottoscrizione, l'area e la categoria come attributi |
-| Log di una risorsa che OneUptime conosce | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Registri** |
+| Log di una risorsa che OneUptime conosce | Anche su quella risorsa: la sua pagina in Cloud ottiene una scheda **Log** |
 
 Il flusso porta le metriche chiave che la connessione legge minuto per minuto. Le letture continuano a scrivere il resto secondo la loro pianificazione: una metrica che leggono con una granularità più ampia, come lo spazio di archiviazione usato di un registro contenitori, e ogni metrica chiave che un'impostazione di diagnostica non può inviare, che l'elenco delle metriche supportate di Azure Monitor segna come non esportabile nella colonna DS Export:
 
@@ -90,7 +90,7 @@ Un namespace di Service Bus o Event Hubs non trasmette metriche. Le letture legg
 
 Un log viene archiviato sotto la sua risorsa in base all'ID ARM della risorsa, portato come `cloud.resource_id`, e conserva categoria, operazione, risultato e proprietà come attributi, ad esempio `azure.category`.
 
-Macchine virtuali, set di scalabilità, dischi, interfacce di rete, reti virtuali, endpoint privati, gateway NAT, zone DNS e piani di App Service non inviano log delle risorse propri, quindi le loro pagine non hanno la scheda **Registri**. I log di un account di archiviazione sono quelli dei suoi servizi, e quelli di un'app contenitore quelli del suo ambiente.
+Macchine virtuali, set di scalabilità, dischi, interfacce di rete, reti virtuali, endpoint privati, gateway NAT, zone DNS e piani di App Service non inviano log delle risorse propri, quindi le loro pagine non hanno la scheda **Log**. I log di un account di archiviazione sono quelli dei suoi servizi, e quelli di un'app contenitore quelli del suo ambiente.
 
 ## Cosa crea il comando
 

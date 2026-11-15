@@ -1,6 +1,6 @@
 # Microsoft Defender XDR
 
-把每个 [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/) 工作负载（终结点、身份、电子邮件和云应用）的警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、跟踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的应用注册，经由 Microsoft Graph 安全 API 读取它们：不需要代理、playbook 或 Sentinel 工作区。
+把每个 [Microsoft Defender XDR](https://learn.microsoft.com/en-us/defender-xdr/) 工作负载（终结点、身份、电子邮件和云应用）的警报导入 OneUptime 的安全事件。在那里，你可以把它们与日志、追踪和指标放在一起搜索，与其他所有来源进行关联分析，并为重要的警报呼叫值班人员。OneUptime 通过你创建的应用注册，经由 Microsoft Graph 安全 API 读取它们：不需要代理、playbook 或 Sentinel 工作区。
 
 :::cards
 - [设置连接](#设置连接): 一个应用注册、一项权限，以及连接的表单。

@@ -516,10 +516,10 @@ describe("a node's page", () => {
     // By VMID, the kind in words, the backup as the notifications told it.
     expect(rows[0]).toContain("web-01");
     expect(rows[0]).toContain("VM");
-    expect(rows[0]).toContain("Backed up 7 hours ago");
+    expect(rows[0]).toContain("Backed up 7\u00A0hours ago");
     expect(rows[1]).toContain("ci-runner");
     expect(rows[1]).toContain("Container");
-    expect(rows[1]).toContain("Failed 2 hours ago");
+    expect(rows[1]).toContain("Failed 2\u00A0hours ago");
     expect(rows[2]).toContain("debian-12-template");
     expect(rows[2]).toContain("Template");
   });

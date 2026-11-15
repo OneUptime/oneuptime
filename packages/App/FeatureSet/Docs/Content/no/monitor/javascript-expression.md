@@ -78,7 +78,7 @@ JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende fores
 
 ### Monitorer for databasehelse
 
-`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` og `metrics`. Se [Variabler for JavaScript-uttrykk](/docs/monitor/database-health-monitor#variabler-for-javascript-uttrykk) på siden om databasehelse-overvåking.
+`isOnline`, `engineVersion`, `connectionError`, `collectedGroups`, `unavailableGroups` og `metrics`. Se [Variabler for JavaScript-uttrykk](/docs/monitor/database-health-monitor#variabler-for-javascript-uttrykk) på siden om databasehelse-monitor.
 
 ### Monitorer for innkommende e-post
 

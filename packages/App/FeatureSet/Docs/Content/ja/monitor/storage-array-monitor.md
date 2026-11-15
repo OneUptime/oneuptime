@@ -118,8 +118,8 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | テンプレート | カテゴリ | 重大度 | 監視対象 | 発火する条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 重大 | `purefa_info`、Count、過去 10 分 | ウィンドウ全体でデータがない — Storage Array Agent が停止した、OneUptime への経路を失った、トークンが取り消された、またはアレイがエージェントに応答しなくなった。データが再び届くと回復 |
-| Critical Array Alert | Array Health | 重大 | `purefa_alerts_open` を `severity=critical` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — アレイにオープンな重大アラートがある (故障したコンポーネント、容量の緊急事態、レプリケーションの失敗)。アラートごとに一つのインシデント。アラートが閉じると回復 |
-| Warning Array Alert | Array Health | 警告 | `purefa_alerts_open` を `severity=warning` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — アレイにオープンな警告アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
+| Critical Array Alert | アレイのヘルス | 重大 | `purefa_alerts_open` を `severity=critical` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — アレイにオープンな重大アラートがある (故障したコンポーネント、容量の緊急事態、レプリケーションの失敗)。アラートごとに一つのインシデント。アラートが閉じると回復 |
+| Warning Array Alert | アレイのヘルス | 警告 | `purefa_alerts_open` を `severity=warning` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — アレイにオープンな警告アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
 | Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`、Max、過去 15 分 | > 80 — Pure 自身の最初の容量しきい値。≤ 72 で回復 |
 | Capacity Above 90% | 容量 | 重大 | `purefa_array_space_utilization`、Max、過去 5 分 | > 90 — アレイが書き込みを拒否する寸前。≤ 81 で回復 |
 | High Read Latency | パフォーマンス | 警告 | `purefa_array_performance_latency_usec` を `dimension=usec_per_read_op` に絞り込み、Avg、過去 10 分 | > 5000 µs (5 ms) — FlashArray の読み取りは通常 1 ms を大きく下回る。≤ 4500 で回復 |
@@ -135,8 +135,8 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | テンプレート | カテゴリ | 重大度 | 監視対象 | 発火する条件 |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 重大 | `purefb_info`、Count、過去 10 分 | ウィンドウ全体でデータがない — エージェント、そのエクスポーター、または FlashBlade が応答しなくなった。データが再び届くと回復 |
-| Critical Array Alert | Array Health | 重大 | `purefb_alerts_open` を `severity=critical` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — FlashBlade にオープンな重大アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
-| Warning Array Alert | Array Health | 警告 | `purefb_alerts_open` を `severity=warning` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — FlashBlade にオープンな警告アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
+| Critical Array Alert | アレイのヘルス | 重大 | `purefb_alerts_open` を `severity=critical` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — FlashBlade にオープンな重大アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
+| Warning Array Alert | アレイのヘルス | 警告 | `purefb_alerts_open` を `severity=warning` に絞り込み、`summary` ごとに Max、過去 5 分 | > 0 — FlashBlade にオープンな警告アラートがある。アラートごとに一つのインシデント。アラートが閉じると回復 |
 | Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` を `type=array` に絞り込み、Max、過去 15 分 | > 80。≤ 72 で回復 |
 | Capacity Above 90% | 容量 | 重大 | `purefb_array_space_utilization` を `type=array` に絞り込み、Max、過去 5 分 | > 90 — いっぱいになると、すべてのクライアントで書き込みが失敗する。≤ 81 で回復 |
 | Hardware Component Unhealthy | ハードウェア | 重大 | `purefb_hardware_health`、`name` ごとに Min、過去 5 分 | < 1 — ブレード、ファブリックモジュール、電源、ファンが正常でない (未使用のスロットは 2 を報告する)。コンポーネントごとに一つのインシデント。≥ 1 で回復 |
@@ -157,14 +157,14 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 
 エージェントはアレイがエクスポートするすべてを送信します。以下のシリーズは、モニターのフォームが提示するカタログです。どの値もアレイ自身が計算したゲージで、レイテンシは操作あたりのマイクロ秒、スループットは 1 秒あたりの値なので、レートの計算は不要です。**フィルター** は、その行が示す意味をシリーズに与えるラベルフィルターで、フォームが自動で適用します。
 
-### Array Health
+### アレイのヘルス
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | アレイのオープンなアラートごとに 1 シリーズ (値は 1)。ラベルは `severity` (`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type`、`summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade のオープンなアラートごとに 1 シリーズ (値は 1)。ラベルは `severity` (`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary`、`kburl` (Pure のナレッジベースの記事) |
 
-### Capacity
+### 容量
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade の未使用の容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 全体のデータ削減 |
 
-### Performance
+### パフォーマンス
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 全プロトコルの 1 秒あたりの読み取りバイト数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 全プロトコルの 1 秒あたりの書き込みバイト数 |
 
-### Volumes
+### ボリューム
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -212,7 +212,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | データ削減後に各ボリュームが使う物理容量 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 各ボリュームのデータ削減率 |
 
-### Hosts
+### ホスト
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefa_host_performance_throughput_iops` | `dimension=reads_per_sec` | FlashArray | `ops/s` | 各ホストの 1 秒あたりの読み取り操作数 |
 | `purefa_host_performance_throughput_iops` | `dimension=writes_per_sec` | FlashArray | `ops/s` | 各ホストの 1 秒あたりの書き込み操作数 |
 
-### Replication
+### レプリケーション
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -231,7 +231,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 各 Pod のレプリケーショントラフィック。ラベルは `direction` と `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 各 ActiveCluster Pod のミラー書き込みの平均レイテンシ |
 
-### Hardware
+### ハードウェア
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -241,7 +241,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 各 Ethernet と Fibre Channel のインターフェイスでの 1 秒あたりのエラー数。エラーが続くときは、たいていケーブル、光モジュール、スイッチポートの不良です |
 | `purefb_hardware_health` | — | FlashBlade | — | 各ハードウェアコンポーネント (ブレード、ファブリックモジュール、電源、ファン、...) の状態: 1 = 正常、2 = 未使用、0 = 異常。`name` ごとに最小値を取ります |
 
-### File Systems
+### ファイルシステム
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ OneUptime には 20 個のテンプレートがあり (FlashArray 用が 12 個�
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 各ファイルシステムが使う物理容量 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 各ファイルシステムのプロビジョニング済みサイズのうち、まだ空いている割合 (0 から 1)。0 に近いときは、クォータがいっぱいになりかけています |
 
-### Buckets
+### バケット
 
 | メトリクス | フィルター | プラットフォーム | 単位 | 説明 |
 | --- | --- | --- | --- | --- |

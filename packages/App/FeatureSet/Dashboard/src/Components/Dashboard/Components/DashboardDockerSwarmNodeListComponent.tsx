@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import DashboardDockerSwarmNodeListComponent from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmNodeListComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
@@ -24,7 +25,9 @@ import {
   HoneycombTile,
 } from "./DashboardResourceHoneycomb";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
-import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import TableEmptyValue, {
+  getValueOrQuietDash,
+} from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerSwarmNodeListComponent;
@@ -64,7 +67,7 @@ const BASE_SELECT: Select<DockerSwarmResource> = {
 function formatPercent(value: number | undefined): string {
   const numeric: number = Number(value);
   if (value === undefined || value === null || Number.isNaN(numeric)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${numeric.toFixed(1)}%`;
 }
@@ -142,7 +145,7 @@ function renderNodeRow(r: DockerSwarmResource): ReactElement {
   const name: string = getNodeDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getNodeStatus(r);
-  const clusterName: string = (r.dockerSwarmCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.dockerSwarmCluster?.name as string;
   const route: Route | undefined = getNodeRoute(r);
 
   let detailLink: ReactElement = <span>{name}</span>;
@@ -184,10 +187,16 @@ function renderNodeRow(r: DockerSwarmResource): ReactElement {
         </span>
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestCpuPercent as number | undefined)}
+        {getValueOrQuietDash(
+          formatPercent(r.latestCpuPercent as number | undefined),
+          { isSmall: true },
+        )}
       </td>
       <td className="px-3 py-2 text-xs text-gray-500">
-        {formatPercent(r.latestMemoryPercent as number | undefined)}
+        {getValueOrQuietDash(
+          formatPercent(r.latestMemoryPercent as number | undefined),
+          { isSmall: true },
+        )}
       </td>
       <ResourceListNameCell
         name={clusterName}
@@ -202,7 +211,7 @@ function buildNodeTile(r: DockerSwarmResource): HoneycombTile {
   const name: string = getNodeDisplayName(r);
   const status: { text: string; dot: string; textColor: string } =
     getNodeStatus(r);
-  const clusterName: string = (r.dockerSwarmCluster?.name as string) || "—";
+  const clusterName: string | undefined = r.dockerSwarmCluster?.name as string;
 
   return {
     id: id || name,
@@ -212,7 +221,7 @@ function buildNodeTile(r: DockerSwarmResource): HoneycombTile {
     tooltip: {
       title: name,
       details: [
-        { label: "Role", value: (r.role as string) || "—" },
+        { label: "Role", value: r.role as string },
         { label: "Cluster", value: clusterName },
         {
           label: "CPU",

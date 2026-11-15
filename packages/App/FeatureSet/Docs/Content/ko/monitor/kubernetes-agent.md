@@ -1,6 +1,6 @@
 # Kubernetes 에이전트(Helm 설치)
 
-OneUptime Kubernetes 에이전트는 클러스터의 메트릭, 이벤트, 파드 로그, eBPF로 수집한 애플리케이션 트레이스, 노드별 OS 메트릭을 수집해 OneUptime으로 보내는 Helm 차트입니다. `helm install` 한 번으로 배포되며 앱 코드를 바꿀 필요가 없습니다. [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)는 에이전트가 보내는 데이터로 알림을 보냅니다.
+OneUptime Kubernetes 에이전트는 클러스터의 메트릭, 이벤트, 파드 로그, eBPF로 수집한 애플리케이션 트레이스, 노드별 OS 메트릭을 수집해 OneUptime으로 보내는 Helm 차트입니다. `helm install` 한 번으로 배포되며 앱 코드를 바꿀 필요가 없습니다. [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)는 에이전트가 보내는 데이터로 경고를 보냅니다.
 
 > [!NOTE]
 > 이 페이지는 플랫폼에 맞는 프리셋으로 Helm을 사용해 에이전트를 단계별로 설치합니다. 모든 옵션, Amazon EKS 추가 기능, OpenShift, Kubernetes AI 에이전트는 전체 레퍼런스에 있습니다: [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent).
@@ -34,7 +34,7 @@ flowchart LR
 | 클러스터 컬렉터 | Deployment | Kubernetes API에서 클러스터 메트릭, Kubernetes 이벤트, 파드·노드·워크로드의 전체 사양을 수집합니다. | 예 |
 | 노드 컬렉터 | DaemonSet | `/var/log/pods` 의 파드 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | 예 |
 | eBPF 계측(OBI) | DaemonSet | 모든 파드의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 예 |
-| Kubernetes AI 에이전트 | Deployment | OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 읽기 전용 `kubectl` 을 실행할 수 있게 합니다. | 예 |
+| Kubernetes AI 에이전트 | Deployment | OneUptime AI가 이 클러스터의 인시던트나 경고를 조사하는 동안 읽기 전용 `kubectl` 을 실행할 수 있게 합니다. | 예 |
 | 로그 테일러 | Deployment | 노드 컬렉터가 읽을 수 없는 곳에서 Kubernetes API를 통해 파드 로그를 가져옵니다. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋에서 |
 | eBPF 프로파일러 | DaemonSet | 모든 프로세스의 지속적인 CPU 플레임 그래프. | 아니요 |
 | kube-state-metrics | Deployment | 파드 단계, 컨테이너 대기 사유, 리소스 쿼터. | 아니요 |
@@ -500,8 +500,8 @@ helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
 ## 다음 단계
 
 :::cards
-- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 에이전트가 보내는 데이터로 알림을 보냅니다.
+- [Kubernetes 모니터](/docs/monitor/kubernetes-monitor): 에이전트가 보내는 데이터로 경고를 보냅니다.
 - [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent): 필터링, 샘플링, AI 에이전트, 데이터 양 줄이기.
 - [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost): 각 워크로드의 비용을 확인합니다.
-- [트레이스 모니터](/docs/monitor/traces-monitor): eBPF가 수집한 트레이스로 알림을 보냅니다.
+- [트레이스 모니터](/docs/monitor/traces-monitor): eBPF가 수집한 트레이스로 경고를 보냅니다.
 :::

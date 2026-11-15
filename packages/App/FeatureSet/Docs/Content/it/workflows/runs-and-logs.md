@@ -12,8 +12,8 @@ Ogni volta che un flusso di lavoro viene eseguito, OneUptime salva un resoconto 
 
 | Pagina                                               | Cosa vedi                                                                                          |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Flussi di lavoro → Registri → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
-| **Flusso di lavoro → Registri → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
+| **Flussi di lavoro → Log → Esecuzioni**         | Ogni esecuzione di ogni flusso di lavoro del progetto. Filtra per nome del flusso di lavoro, stato e data.         |
+| **Flusso di lavoro → Log → Esecuzioni**         | Solo le esecuzioni di questo flusso di lavoro. Qui c'è un filtro **ID esecuzione** invece di un filtro per flussi di lavoro. |
 | **Una singola esecuzione**                           | Si apre con il pulsante **Visualizza log** su una riga: le righe in sé non sono cliccabili.         |
 
 Avviare un'esecuzione dal **Costruttore** apre la stessa vista **Esecuzione del flusso di lavoro**, che già segue l'esecuzione, così la vedi accadere invece di doverla cercare dopo.
@@ -89,7 +89,7 @@ I valori mostrati sono quelli che il blocco ha ricevuto, dopo la compilazione de
 
 ### La scheda Full Log
 
-Il registro grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Registro** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
+Il log grezzo, riga per riga, scritto dall'esecutore, compreso ciò che i blocchi hanno registrato da soli, come il valore di un blocco **Log** o il `console.log` di uno script. Usalo quando la scheda Passaggi non spiega l'errore.
 
 ## Copiare e scaricare un'esecuzione
 
@@ -97,8 +97,8 @@ In cima alla vista **Esecuzione del flusso di lavoro**, accanto al pulsante di c
 
 | Download                                | Cosa ottieni                                                                                                                                                                                                                           |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scarica log**                         | Un file `.txt` con il registro completo esattamente come l'ha scritto l'esecutore, per quanto lungo, sotto una breve intestazione: il nome e l'ID del flusso di lavoro, l'ID dell'esecuzione, il suo stato e quando è stata programmata, avviata e completata. |
-| **Scarica l'esecuzione come JSON**      | Un file `.json` con le stesse informazioni come dati, i passaggi mostrati dalla scheda **Passaggi** (ciò che ognuno ha ricevuto e restituito, e quale uscita ha preso) e il registro come elenco di righe. I passaggi hanno la stessa forma in cui l'API restituisce lo `stepTrace` di un'esecuzione e, come nella scheda **Passaggi**, sono gli ultimi 100 dell'esecuzione. Il registro è sempre completo. |
+| **Scarica log**                         | Un file `.txt` con il log completo esattamente come l'ha scritto l'esecutore, per quanto lungo, sotto una breve intestazione: il nome e l'ID del flusso di lavoro, l'ID dell'esecuzione, il suo stato e quando è stata programmata, avviata e completata. |
+| **Scarica l'esecuzione come JSON**      | Un file `.json` con le stesse informazioni come dati, i passaggi mostrati dalla scheda **Passaggi** (ciò che ognuno ha ricevuto e restituito, e quale uscita ha preso) e il log come elenco di righe. I passaggi hanno la stessa forma in cui l'API restituisce lo `stepTrace` di un'esecuzione e, come nella scheda **Passaggi**, sono gli ultimi 100 dell'esecuzione. Il log è sempre completo. |
 
 Gli stessi due download si trovano nel menu **⋯** di ogni esecuzione in entrambi gli elenchi delle esecuzioni, così puoi salvare un'esecuzione senza aprirla. Un'esecuzione avviata dal **Costruttore** si può copiare o scaricare mentre è ancora in corso; ottieni ciò che ha registrato fino a quel momento.
 
@@ -114,7 +114,7 @@ Un download non contiene nulla che tu non possa già leggere nell'esecuzione. I 
 3. Per un trigger webhook, verifica che l'altro sistema invii all'URL giusto. La maggior parte degli strumenti registra quando invia un webhook: controlla lì.
 4. Per un trigger pianificato, verifica che l'espressione cron corrisponda all'ora che ti aspetti. Le pianificazioni girano in UTC.
 
-Se l'esecuzione compare, con lo stato **Esecuzione oltre il piano attuale**, il progetto ha esaurito le esecuzioni dei flussi di lavoro degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il registro dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
+Se l'esecuzione compare, con lo stato **Esecuzione oltre il piano attuale**, il progetto ha esaurito le esecuzioni dei flussi di lavoro degli ultimi 30 giorni, oppure l'abbonamento non è pagato. Il log dell'esecuzione indica il conteggio e il limite del tuo piano. Questo vale solo per OneUptime Cloud.
 :::
 
 :::details Un blocco successivo non è mai stato eseguito
@@ -150,7 +150,7 @@ Le esecuzioni registrate prima dell'introduzione del tracciamento dei passaggi n
 ## Prossimi passi
 
 :::cards
-- [Configurazione e sicurezza](/docs/workflows/configuration): Limiti di tempo, limiti di piano e cosa viene nascosto nei registri.
+- [Configurazione e sicurezza](/docs/workflows/configuration): Limiti di tempo, limiti di piano e cosa viene nascosto nei log.
 - [Variabili](/docs/workflows/variables): La sintassi dei riferimenti usata dai tuoi blocchi.
 - [Componenti](/docs/workflows/components): Cosa restituisce ogni blocco e quando prende ciascuna uscita.
 :::

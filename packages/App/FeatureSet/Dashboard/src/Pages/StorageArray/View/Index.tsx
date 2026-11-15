@@ -1,4 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
@@ -144,7 +146,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };
@@ -1509,7 +1511,7 @@ const StorageArrayOverview: FunctionComponent<
                     </Link>
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
-                    {row.value}
+                    {getValueOrQuietDash(row.value)}
                   </div>
                 </div>
               );

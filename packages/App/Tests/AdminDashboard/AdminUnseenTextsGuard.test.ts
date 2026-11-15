@@ -21,9 +21,11 @@ import path from "path";
  * variable first, or handed to a prop it does not know, has no entry, and
  * the page reads it in English: the bulk actions' "Block" and "Unblock",
  * the Feedback and Push Notifications switches' cards, the Telegram form's
- * messages, the Enterprise health pages' tile lines and job details. Each is
- * a key now - translationKey("...") where it is written, or a lookup where
- * it is drawn - and has an entry in all 18 locales.
+ * messages, the Enterprise health pages' tile lines and job details, the
+ * health tooltips' explanations, and the Telegram and WhatsApp setup
+ * guides' every sentence (#8677). Each is a key now - translationKey("...")
+ * where it is written, or a lookup where it is drawn - and has an entry in
+ * all 18 locales.
  *
  * This reads every string literal of the Admin's src, and of
  * ee/AdminDashboard when the checkout has it (AdminUnseenTexts.ts): one that
@@ -138,27 +140,13 @@ const ENTERPRISE_NOT_A_PERSONS_WORDS: Readonly<
   },
 };
 
-/*
- * Long-form copy still read in English, being translated as documents of
- * their own (#8677): the Telegram and WhatsApp setup guides and the health
- * tooltips' explanations. The list only shrinks.
- */
-const LONG_FORM_COPY_LEFT: ReadonlyArray<string> = [
-  "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/TelegramSetupGuide.ts",
-  "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/WhatsApp/Index.tsx",
-  "ee/AdminDashboard/Health/PostgresCluster.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/ClickhouseCluster.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/RedisHealth.tsx#METRIC_INFO",
-  "ee/AdminDashboard/Health/QueryConsole.tsx#METRIC_INFO",
-];
-
 const describeText: (text: UnseenText) => string = (
   text: UnseenText,
 ): string => {
   return `${text.file}:${text.line} ${JSON.stringify(text.text)}`;
 };
 
-// What is left once the reviewed values and the long-form copy are set aside.
+// What is left once the reviewed values are set aside.
 const unexplained: (
   found: Array<UnseenText>,
   reviewed: Readonly<Record<string, Record<string, string>>>,
@@ -168,39 +156,9 @@ const unexplained: (
 ): Array<string> => {
   return found
     .filter((text: UnseenText): boolean => {
-      if (reviewed[text.file]?.[text.text] !== undefined) {
-        return false;
-      }
-
-      return !LONG_FORM_COPY_LEFT.some((entry: string): boolean => {
-        const [file, part] = entry.split("#");
-
-        if (file !== text.file) {
-          return false;
-        }
-
-        return part === undefined || isMetricExplanation(text);
-      });
+      return reviewed[text.file]?.[text.text] === undefined;
     })
     .map(describeText);
-};
-
-const BODY_LINE: RegExp = /^\s*body:/;
-
-const BODY_KEY_ALONE: RegExp = /^\s*body:\s*$/;
-
-// A health tooltip's explanation: a long sentence in a METRIC_INFO body.
-const isMetricExplanation: (text: UnseenText) => boolean = (
-  text: UnseenText,
-): boolean => {
-  const source: string = fs.readFileSync(
-    path.join(REPOSITORY_ROOT, text.file),
-    "utf8",
-  );
-  const line: string = source.split("\n")[text.line - 1] || "";
-  const before: string = source.split("\n")[text.line - 2] || "";
-
-  return BODY_LINE.test(line) || BODY_KEY_ALONE.test(before);
 };
 
 describe("the Admin Dashboard's own pages", () => {
@@ -238,7 +196,7 @@ describe("the Admin Dashboard's own pages", () => {
 (ENTERPRISE_PRESENT ? describe : describe.skip)(
   "the Enterprise Edition's admin pages",
   () => {
-    test("hold no sentence the locales cannot see, beyond the long-form copy left", () => {
+    test("hold no sentence the locales cannot see: each is a key, or a value with its reason", () => {
       expect(
         unexplained(
           findUnseenTexts(REPOSITORY_ROOT, ENTERPRISE_SOURCE, ENGLISH),
@@ -283,17 +241,5 @@ describe("what the guard names", () => {
         ENGLISH,
       ),
     ).toEqual([]);
-  });
-
-  test("its lists name long-form copy that is still there", () => {
-    for (const entry of LONG_FORM_COPY_LEFT) {
-      const [file] = entry.split("#");
-
-      if (file!.startsWith("ee/") && !ENTERPRISE_PRESENT) {
-        continue;
-      }
-
-      expect(fs.existsSync(path.join(REPOSITORY_ROOT, file!))).toBe(true);
-    }
   });
 });

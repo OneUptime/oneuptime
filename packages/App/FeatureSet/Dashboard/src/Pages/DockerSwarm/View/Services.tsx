@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -110,7 +111,9 @@ const DockerSwarmClusterServices: FunctionComponent<
               resource.additionalAttributes["serviceMode"] || ""
             ).toLowerCase();
             const word: string | undefined = MODE_WORDS[mode];
-            return word ? translator.translateText(word) || word : mode || "—";
+            return word
+              ? translator.translateText(word) || word
+              : mode || EMPTY_VALUE_MARK;
           },
         },
         {
@@ -118,7 +121,9 @@ const DockerSwarmClusterServices: FunctionComponent<
           key: "replicas",
           description: DOCKER_SWARM_METRIC_DESCRIPTIONS.replicas,
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["replicas"] || "—";
+            return (
+              resource.additionalAttributes["replicas"] || EMPTY_VALUE_MARK
+            );
           },
         },
         {
@@ -127,7 +132,7 @@ const DockerSwarmClusterServices: FunctionComponent<
           // Whole, tag included: it breaks after its dots and slashes.
           isName: true,
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["image"] || "—";
+            return resource.additionalAttributes["image"] || EMPTY_VALUE_MARK;
           },
         },
       ]}

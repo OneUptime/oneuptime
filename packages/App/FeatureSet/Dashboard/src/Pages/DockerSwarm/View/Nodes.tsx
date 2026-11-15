@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import DockerSwarmResource from "Common/Models/DatabaseModels/DockerSwarmResource";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -75,7 +76,9 @@ const DockerSwarmClusterNodes: FunctionComponent<
     value: string,
   ): string => {
     const key: string | undefined = words[value.toLowerCase()];
-    return key ? translator.translateText(key) || key : value || "—";
+    return key
+      ? translator.translateText(key) || key
+      : value || EMPTY_VALUE_MARK;
   };
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
@@ -181,7 +184,9 @@ const DockerSwarmClusterNodes: FunctionComponent<
           title: "Engine Version",
           key: "engineVersion",
           getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["engineVersion"] || "—";
+            return (
+              resource.additionalAttributes["engineVersion"] || EMPTY_VALUE_MARK
+            );
           },
         },
       ]}

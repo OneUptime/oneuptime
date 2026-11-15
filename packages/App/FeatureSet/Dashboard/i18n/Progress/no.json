@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 8417
+    "keys": 55650,
+    "untranslated": 8334
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -30,6 +30,7 @@
     "App",
     "Appliance",
     "Appliance {{appliance}}",
+    "Appliances",
     "Atmosphere",
     "Australia (+61)",
     "Auto",
@@ -101,6 +102,8 @@
     "Filter:",
     "Filter: {{expression}}",
     "Finland (+358)",
+    "FlashArray",
+    "FlashBlade",
     "Flat",
     "Flavor",
     "Fluent Bit",
@@ -138,6 +141,7 @@
     "Japan (+81)",
     "Jitter",
     "Kelvin",
+    "Key Manager",
     "Keystone",
     "Kilohertz",
     "Kolla-Ansible",
@@ -265,6 +269,7 @@
     "Status",
     "StatusPage",
     "Stratum",
+    "Stripe Payments API",
     "Sum",
     "System",
     "TLS",

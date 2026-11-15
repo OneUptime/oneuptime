@@ -91,7 +91,7 @@ Une règle de notification dit quels événements sont publiés dans Slack, et o
 | **Maintenance planifiée** | Une liste de règles |
 | **Moniteurs** | Une liste de règles |
 | **Astreinte** | Une liste de règles |
-| **SLOs** | Une liste de règles |
+| **SLO** | Une liste de règles |
 
 Créer une règle passe par cinq étapes au plus :
 

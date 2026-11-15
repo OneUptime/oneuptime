@@ -1,9 +1,10 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { EMPTY_VALUE_MARK } from "../../../Types/EmptyValueMark";
 import ExpandableText from "../ExpandableText/ExpandableText";
 import Table from "../Table/Table";
 import FieldType from "../Types/FieldType";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import TableEmptyValue from "../Table/TableEmptyValue";
+import TableEmptyValue, { getValueOrQuietDash } from "../Table/TableEmptyValue";
 import { getGlobalTranslator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { formatCompactDurationAgo } from "../../../Utils/Milliseconds";
@@ -59,7 +60,7 @@ export function formatRelativeTime(
   now: Date = new Date(),
 ): string {
   if (!timestamp) {
-    return "-";
+    return EMPTY_VALUE_MARK;
   }
   const date: Date = new Date(timestamp);
   const diffMs: number = now.getTime() - date.getTime();
@@ -155,7 +156,11 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
             key: "message",
             disableSort: true,
             getElement: (condition: Condition): ReactElement => {
-              return <ExpandableText text={condition.message || "-"} />;
+              return condition.message ? (
+                <ExpandableText text={condition.message} />
+              ) : (
+                <TableEmptyValue />
+              );
             },
           },
           {
@@ -169,9 +174,11 @@ const ConditionsTable: FunctionComponent<ComponentProps> = (
                   className="text-gray-500"
                   title={condition.lastTransitionTime || ""}
                 >
-                  {formatRelativeTime(
-                    condition.lastTransitionTime || "",
-                    translator,
+                  {getValueOrQuietDash(
+                    formatRelativeTime(
+                      condition.lastTransitionTime || "",
+                      translator,
+                    ),
                   )}
                 </span>
               );

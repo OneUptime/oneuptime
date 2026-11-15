@@ -56,7 +56,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hvad der skal ad
 
 - **Skift** – vælg en anden [skabelon](#færdige-advarselsskabeloner). Den angiver metrikkerne, filtrene, aggregeringen, tidsintervallet og tærsklerne og erstatter kriterierne nedenfor med sine egne. Du kan stadig ændre **Tidsinterval**.
 - **Custom Metric** (under **Flere felter**) – vælg én metrik i **Proxmox Metric**, og angiv derefter **Aggregering** og **Tidsinterval**. [Filtrene](#monitorindstillinger) indsnævrer den til en slags ressource eller til én ressource.
-- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg målinger**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
+- **Avanceret** (under **Flere felter**) – byg selv forespørgsler og formler under **Vælg metrikker**, f.eks. en hukommelsesprocent ud fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Brug **Gruppér efter** `id` for at bedømme hver ressource for sig.
 
 ### Kontrollér kriterierne
 
@@ -80,9 +80,9 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Nodenavn** | Custom Metric, Avanceret | Valgfri. Kun en nodes egne serier (`pve.scope = node` og `pve.id`). Det kan ikke vælge gæsterne eller lageret på den node. |
 | **Guest ID** | Custom Metric, Avanceret | Valgfri. Præcis match på den rå etiket `id`, f.eks. `qemu/100` eller `lxc/101`. Når det er angivet, ignoreres de andre filtre. |
 | **Proxmox Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
-| **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
+| **Aggregering** | Custom Metric | Hvordan metrikker kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner angiver deres eget. |
-| **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
+| **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter** samt **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
 ## Ressourceidentitet
 
@@ -199,7 +199,7 @@ CPU- og hukommelsesserierne rapporteres også for hver gæst, på id'erne `qemu/
 | `pve_onboot_status` | antal | 1, når gæsten starter ved nodens opstart. En stoppet gæst med denne indstilling er som regel uplanlagt nedetid. |
 | `pve_lock_state` | — | Den lås, Proxmox VE holder på en gæst, mens en opgave ændrer den, én serie pr. lås (`backup`, `migrate`, `snapshot`, …), 1 på den, der holdes. Filtrér på etiketten `state`. |
 
-### Lager
+### Lagerplads
 
 | Metrik | Enhed | Beskrivelse |
 | --- | --- | --- |

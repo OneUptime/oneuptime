@@ -142,7 +142,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 - **Claude Code는 앱과 나란히 계산됩니다.** 메트릭은 Claude Code 자체의 서비스 아래로 들어오므로, 그 지출은 앱이 같은 프로젝트로 보내는 AI 호출에 더해집니다. 트레이스(베타)를 켜려면 모두에게 켜세요. 그때부터 Claude Code는 트레이스만으로 한 번 계산됩니다. [각 서비스는 보내는 데이터를 기준으로 셉니다](/docs/telemetry/ai-llm-observability#각-서비스는-보내는-데이터를-기준으로-셉니다)를 참조하세요.
 - **메트릭에서 온 행은 호출을 지목하지 않습니다.** 이름 아래에 **사용량 메트릭 기준** 이라고 표시되고, 호출 셀은 `—`를 표시하며, **공급자** 표는 그 행을 **미지정** 아래에 둡니다. 메트릭은 공급자를 지목하지 않기 때문입니다.
 
-개발자별 수락률, 코드 줄 수, 커밋, 풀 리퀘스트, `query_source`별 지출 같은 그 밖의 모든 것은 아래 메트릭으로 [대시보드](/docs/dashboards/index)에 차트를 그리고, [메트릭 모니터](/docs/monitor/metrics-monitor)로 알림을 설정합니다.
+개발자별 수락률, 코드 줄 수, 커밋, 풀 리퀘스트, `query_source`별 지출 같은 그 밖의 모든 것은 아래 메트릭으로 [대시보드](/docs/dashboards/index)에 차트를 그리고, [메트릭 모니터](/docs/monitor/metrics-monitor)로 경고를 설정합니다.
 
 ## 메트릭
 
@@ -214,7 +214,7 @@ Claude Code는 각각을 켜지 않는 한 프롬프트, 답변, 도구 인수, 
 
 ## 메트릭은 델타로 들어옵니다
 
-Claude Code는 기본적으로 델타 메트릭을 보냅니다. 각 데이터 포인트는 누적 합계가 아니라 마지막 내보내기 이후의 증가분입니다. 차트를 그리거나 알림을 설정할 때는 기간 동안의 데이터 포인트를 합산하고, 누적 카운터처럼 rate나 카운터 리셋 함수를 적용하지 마세요. 숫자가 틀어져도 이상해 보이지 않습니다.
+Claude Code는 기본적으로 델타 메트릭을 보냅니다. 각 데이터 포인트는 누적 합계가 아니라 마지막 내보내기 이후의 증가분입니다. 차트를 그리거나 경고를 설정할 때는 기간 동안의 데이터 포인트를 합산하고, 누적 카운터처럼 rate나 카운터 리셋 함수를 적용하지 마세요. 숫자가 틀어져도 이상해 보이지 않습니다.
 
 ```bash
 export OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative
@@ -266,6 +266,6 @@ OneUptime은 잘못된 `x-oneuptime-token`을 거부합니다. **프로젝트 �
 
 :::cards
 - [AI 코딩 어시스턴트](/docs/telemetry/ai-coding-assistants): 모든 코딩 어시스턴트에서 지출이 귀속되는 방식.
-- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 AI 호출의 대화, 알림, 비용, 예산.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 개발자별 지출이나 토큰에 알림을 설정합니다.
+- [AI / LLM 옵저버빌리티](/docs/telemetry/ai-llm-observability): 자체 AI 호출의 대화, 경고, 비용, 예산.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 개발자별 지출이나 토큰에 경고를 설정합니다.
 :::

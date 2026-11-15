@@ -184,7 +184,7 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
       const isConnected: boolean = status === "connected";
       const running: number = (host.containersRunning as number) || 0;
       const stopped: number = (host.containersStopped as number) || 0;
-      const osType: string = (host.osType as string) || "—";
+      const osType: string | undefined = host.osType as string;
       const osVersion: string = (host.osVersion as string) || "";
 
       const route: Route | undefined = id
@@ -226,7 +226,7 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     const running: number = (host.containersRunning as number) || 0;
     const stopped: number = (host.containersStopped as number) || 0;
     const paused: number = (host.containersPaused as number) || 0;
-    const osType: string = (host.osType as string) || "—";
+    const osType: string | undefined = host.osType as string;
     const osVersion: string = (host.osVersion as string) || "";
 
     const route: Route = RouteUtil.populateRouteParams(

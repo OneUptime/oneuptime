@@ -537,7 +537,7 @@ receivers:
 
 `start_at: end` 只读取新行；首次运行时若要从头读取文件，请使用 `beginning`。Collector 会记住在每个文件中的位置，因此重启后能正确继续。
 
-OneUptime 会扫描 error 和 fatal 级别的日志行中的堆栈跟踪，并将它们分组为主机下的 **异常**。为此，多行堆栈跟踪（Java、Python、.NET、Ruby）必须作为一条记录到达，这正是 `multiline` 的作用；没有它，每一帧都会成为单独的一条日志。如果你的应用程序能够自行写入 OpenTelemetry 的 `exception.type`、`exception.message` 和 `exception.stacktrace` 属性，那就更加可靠。
+OneUptime 会扫描 error 和 fatal 级别的日志行中的堆栈追踪，并将它们分组为主机下的 **异常**。为此，多行堆栈追踪（Java、Python、.NET、Ruby）必须作为一条记录到达，这正是 `multiline` 的作用；没有它，每一帧都会成为单独的一条日志。如果你的应用程序能够自行写入 OpenTelemetry 的 `exception.type`、`exception.message` 和 `exception.stacktrace` 属性，那就更加可靠。
 
 在 systemd 主机上，`/var/log/syslog` 和 `/var/log/messages` 重复了 journal 中已有的内容，所以只读其中之一。
 

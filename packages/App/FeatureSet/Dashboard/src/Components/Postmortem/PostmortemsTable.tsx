@@ -1,4 +1,6 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import Route from "Common/Types/API/Route";
@@ -260,10 +262,12 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             getElement: (item: Incident): ReactElement => {
               const numberLabel: string =
                 item.incidentNumberWithPrefix ||
-                (item.incidentNumber ? `#${item.incidentNumber}` : "-");
+                (item.incidentNumber
+                  ? `#${item.incidentNumber}`
+                  : EMPTY_VALUE_MARK);
 
               if (!item._id) {
-                return <span>{numberLabel}</span>;
+                return <span>{getValueOrQuietDash(numberLabel)}</span>;
               }
 
               return (
@@ -273,7 +277,7 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
                     new ObjectID(item._id as string),
                   )}
                 >
-                  <span>{numberLabel}</span>
+                  <span>{getValueOrQuietDash(numberLabel)}</span>
                 </AppLink>
               );
             },

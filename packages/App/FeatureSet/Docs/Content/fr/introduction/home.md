@@ -50,9 +50,9 @@ Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvr
 | **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** | **Alertes → Alertes actives** |
 | **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés, et ceux dont la surveillance est désactivée, ne comptent pas. | **Tous opérationnels** | **Moniteurs → Non opérationnel** |
 | **Maintenance en cours** | Les événements de maintenance en cours | **Aucune en cours** | **Maintenance planifiée → Événements de maintenance en cours** |
-| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** | **SLOs** |
+| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** | **SLO** |
 
-Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Tant qu'un SLO est à risque, **SLO à risque** ouvre la liste **SLOs** filtrée sur ces SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
+Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Tant qu'un SLO est à risque, **SLO à risque** ouvre la liste **SLO** filtrée sur ces SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLO**, où vous en créez un.
 
 ### La liste de bienvenue
 
@@ -99,7 +99,7 @@ Quand quelque chose dans la configuration du projet empêcherait de prévenir le
 
 ### Votre projet
 
-**Votre projet** compte les **Moniteurs**, les **Pages de statut**, les **Politiques d'astreinte**, les **SLOs**, les **Services**, les **Tableaux de bord** et les **Flux de travail** du projet, sans les éléments archivés. Chaque ligne ouvre sa liste. Un type dont le projet n'a encore aucun élément affiche **Configurer** au lieu d'un nombre.
+**Votre projet** compte les **Moniteurs**, les **Pages de statut**, les **Politiques d'astreinte**, les **SLO**, les **Services**, les **Tableaux de bord** et les **Flux de travail** du projet, sans les éléments archivés. Chaque ligne ouvre sa liste. Un type dont le projet n'a encore aucun élément affiche **Configurer** au lieu d'un nombre.
 
 **Maintenance à venir** liste les trois prochaines fenêtres de maintenance planifiée, la plus proche d'abord. Elle n'apparaît pas quand rien n'est planifié.
 
@@ -109,7 +109,7 @@ Quand quelque chose dans la configuration du projet empêcherait de prévenir le
 
 ## Se repérer
 
-Tout dans OneUptime se trouve sous **Produits** dans la barre du haut. Le menu présente ses groupes comme les lignes d'une seule liste, et s'ouvre toujours avec le premier d'entre eux, les essentiels, déplié : Moniteurs, Incidents, Alertes, Astreinte, Pages de statut, Maintenance planifiée et SLOs. Chaque autre groupe (Observabilité, Sécurité, IA, Code, Ressources, Infrastructure, Cloud, Tableaux de bord et automatisation et Paramètres) est replié en une ligne de la même liste. Chaque ligne nomme les produits du groupe et indique leur nombre. Cliquez sur une ligne pour la déplier ou la replier, ou atteignez-la avec les flèches et appuyez sur **Entrée**.
+Tout dans OneUptime se trouve sous **Produits** dans la barre du haut. Le menu présente ses groupes comme les lignes d'une seule liste, et s'ouvre toujours avec le premier d'entre eux, les essentiels, déplié : Moniteurs, Incidents, Alertes, Astreinte, Pages de statut, Maintenance planifiée et SLO. Chaque autre groupe (Observabilité, Sécurité, IA, Code, Ressources, Infrastructure, Cloud, Tableaux de bord et automatisation et Paramètres) est replié en une ligne de la même liste. Chaque ligne nomme les produits du groupe et indique leur nombre. Cliquez sur une ligne pour la déplier ou la replier, ou atteignez-la avec les flèches et appuyez sur **Entrée**.
 
 - **La recherche trouve tout.** Tapez dans le champ de recherche du menu pour trouver n'importe quel produit par son nom, par ce qu'il fait, ou par un mot familier comme `k8s` ou `RUM`. La recherche regarde aussi dans les groupes repliés.
 - **Vous partez de là où vous êtes.** Le groupe de la page sur laquelle vous êtes se déplie tout seul, et les produits que vous avez ouverts récemment sont listés en haut.

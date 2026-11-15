@@ -171,8 +171,8 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
     (img: PodmanResource): HoneycombTile => {
       const id: string = (img._id as string) || "";
       const name: string = (img.name as string) || getUnnamedText();
-      const imageId: string = (img.containerId as string) || "—";
-      const hostName: string = (img.podmanHost?.name as string) || "—";
+      const imageId: string | undefined = img.containerId as string;
+      const hostName: string | undefined = img.podmanHost?.name as string;
 
       return {
         id: id || name,
@@ -192,8 +192,8 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = images.map((img: PodmanResource) => {
     const id: string = (img._id as string) || "";
     const name: string = (img.name as string) || getUnnamedText();
-    const imageId: string = (img.containerId as string) || "—";
-    const hostName: string = (img.podmanHost?.name as string) || "—";
+    const imageId: string | undefined = img.containerId as string;
+    const hostName: string | undefined = img.podmanHost?.name as string;
 
     return (
       <tr

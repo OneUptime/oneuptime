@@ -35,6 +35,7 @@ import { Translator } from "../../../Types/Translator";
 import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 /*
  * THE DASHBOARD'S COMPACT DURATIONS, IN THE READER'S LANGUAGE (#8455).
@@ -205,7 +206,9 @@ describe("ages: a Kubernetes object, a Ceph daemon, a Kubernetes condition", () 
     const later: string = new Date(now.getTime() + 60_000).toISOString();
 
     expect(formatConditionAge(later, translators["fa"], now)).toBe(later);
-    expect(formatConditionAge("", translators["fa"], now)).toBe("-");
+    expect(formatConditionAge("", translators["fa"], now)).toBe(
+      EMPTY_VALUE_MARK,
+    );
   });
 });
 

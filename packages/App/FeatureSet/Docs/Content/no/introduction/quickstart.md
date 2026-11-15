@@ -44,7 +44,7 @@ Klikk på **Opprett prosjekt**. Prosjektets startside åpnes, med sjekklisten **
 :::steps
 ### Åpne oppsettet for nettstedet
 
-Klikk på **Opprett din første overvåker** i sjekklisten. Det åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, som sjekker nettstedet ditt, velger hvem som får beskjed og sender en test, på én side. Den som ikke har lov til å opprette monitorer, får i stedet listen **Monitorer**.
+Klikk på **Opprett din første monitor** i sjekklisten. Det åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, som sjekker nettstedet ditt, velger hvem som får beskjed og sender en test, på én side. Den som ikke har lov til å opprette monitorer, får i stedet listen **Monitorer**.
 
 ### Skriv inn adressen
 

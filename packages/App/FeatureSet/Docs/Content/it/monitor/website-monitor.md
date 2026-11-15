@@ -215,7 +215,7 @@ Per superare un riavvio, attivate **Valuta questo criterio su un periodo di temp
 ## Risoluzione dei problemi
 
 :::details Il monitor è offline, ma il sito si carica nel mio browser
-La sonda ha ricevuto una risposta diversa da quella del vostro browser. La causa principale dell'incidente, e **Registri di monitoraggio** sul monitor, mostrano cosa ha visto la sonda. Cause comuni:
+La sonda ha ricevuto una risposta diversa da quella del vostro browser. La causa principale dell'incidente, e **Log di monitoraggio** sul monitor, mostrano cosa ha visto la sonda. Cause comuni:
 
 - Un firewall o un filtro anti-bot blocca le sonde. Consentite gli [indirizzi IP delle sonde di OneUptime Cloud](/docs/configuration/ip-addresses).
 - Il sito è raggiungibile solo dalla vostra rete. Usate una [sonda personalizzata](/docs/probe/custom-probe) al suo interno.

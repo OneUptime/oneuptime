@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -221,7 +222,7 @@ const formatPercent: (value: number | null) => string = (
   value: number | null,
 ): string => {
   if (value === null || !isFinite(value)) {
-    return "—";
+    return EMPTY_VALUE_MARK;
   }
   return `${value.toFixed(1)}%`;
 };

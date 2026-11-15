@@ -302,7 +302,7 @@ histogram.record(metric.value, {
 | **Slow First Contentful Paint** | `web_vital.fcp` | 3000밀리초 | **경고** |
 | **Slow Time to First Byte** | `web_vital.ttfb` | 1800밀리초 | **경고** |
 
-이 모니터는 `web_vital.*` 이름만 읽습니다. 앱이 다른 이름으로 지표를 보낸다면 만들어진 모니터의 메트릭을 수정하세요. 경로 하나에 대해 알림을 받으려면 모니터에 `app.route` 필터를 추가하세요. 이 메트릭 중 어느 것으로든 직접 모니터를 만들 수도 있습니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참고하세요.
+이 모니터는 `web_vital.*` 이름만 읽습니다. 앱이 다른 이름으로 지표를 보낸다면 만들어진 모니터의 메트릭을 수정하세요. 경로 하나에 대해 경고를 받으려면 모니터에 `app.route` 필터를 추가하세요. 이 메트릭 중 어느 것으로든 직접 모니터를 만들 수도 있습니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참고하세요.
 
 ## 문제 해결
 
@@ -329,7 +329,7 @@ histogram.record(metric.value, {
 
 :::cards
 - [브라우저 설정](/docs/rum/browser-setup): 이 지표가 실려 가는 트레이스, 로그, 메트릭 파이프라인.
-- [메트릭 모니터](/docs/monitor/metrics-monitor): 앱 전체나 경로 하나에 대해 어떤 지표로든 알림을 받습니다.
+- [메트릭 모니터](/docs/monitor/metrics-monitor): 앱 전체나 경로 하나에 대해 어떤 지표로든 경고를 받습니다.
 - [세션 리플레이](/docs/telemetry/session-replay): 코드 없이 녹화에서 뷰별 INP를 확인합니다.
 - [RUM 문제 해결](/docs/rum/troubleshooting): 문제가 흔히 생기는 순서대로 정리한 모든 확인 사항.
 :::

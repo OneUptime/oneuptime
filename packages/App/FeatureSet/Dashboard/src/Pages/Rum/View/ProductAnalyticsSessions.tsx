@@ -130,7 +130,7 @@ export function buildProductAnalyticsSessionTiles(data: {
       title: "Sessions",
       value: current
         ? formatProductAnalyticsCount(current.sessions, translator)
-        : "-",
+        : undefined,
       icon: IconProp.Window,
       iconColor: "blue",
       loading: loading,
@@ -143,7 +143,7 @@ export function buildProductAnalyticsSessionTiles(data: {
       title: "Signed-in sessions",
       value: current
         ? formatProductAnalyticsCount(current.signedInSessions, translator)
-        : "-",
+        : undefined,
       icon: IconProp.UserCircle,
       iconColor: "sky",
       loading: loading,
@@ -158,7 +158,7 @@ export function buildProductAnalyticsSessionTiles(data: {
             current.medianSessionMs,
             translator.language,
           )
-        : "-",
+        : undefined,
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: loading,
@@ -175,7 +175,7 @@ export function buildProductAnalyticsSessionTiles(data: {
             current.averagePagesPerSession,
             translator.language,
           )
-        : "-",
+        : undefined,
       icon: IconProp.DocumentDuplicate,
       iconColor: "emerald",
       loading: loading,
@@ -188,7 +188,7 @@ export function buildProductAnalyticsSessionTiles(data: {
       title: "Sessions with errors",
       value: current
         ? formatProductAnalyticsCount(current.errorSessions, translator)
-        : "-",
+        : undefined,
       icon: IconProp.Bug,
       iconColor: "rose",
       loading: loading,
@@ -199,7 +199,7 @@ export function buildProductAnalyticsSessionTiles(data: {
       title: "Frustrated sessions",
       value: current
         ? formatProductAnalyticsCount(current.frustratedSessions, translator)
-        : "-",
+        : undefined,
       icon: IconProp.FaceFrown,
       iconColor: "amber",
       loading: loading,

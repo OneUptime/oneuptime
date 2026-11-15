@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 55438,
-    "untranslated": 2
+    "keys": 55650,
+    "untranslated": 0
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -143,6 +143,7 @@
     "Interaction to Next Paint",
     "IoT",
     "Job",
+    "Key Manager",
     "Key=Value Parser",
     "Keystone",
     "Kolla-Ansible",

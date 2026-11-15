@@ -1,4 +1,6 @@
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { getValueOrQuietDash } from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";
 import OneUptimeDate from "Common/Types/Date";
 import Recurring from "Common/Types/Events/Recurring";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -102,7 +104,7 @@ const ScheduleLines: FunctionComponent<ScheduleLinesProps> = (
     recurring: Recurring | undefined,
   ): string => {
     if (!recurring) {
-      return "-";
+      return EMPTY_VALUE_MARK;
     }
 
     const count: number = Math.max(
@@ -168,7 +170,9 @@ const ScheduleLines: FunctionComponent<ScheduleLinesProps> = (
           title: StatusPageReportsCopy.howOftenTitle,
           fieldType: FieldType.Element,
           getElement: (item: ReportScheduleFacts): ReactElement => {
-            return <span>{getHowOften(item.recurring)}</span>;
+            return (
+              <span>{getValueOrQuietDash(getHowOften(item.recurring))}</span>
+            );
           },
         },
         {

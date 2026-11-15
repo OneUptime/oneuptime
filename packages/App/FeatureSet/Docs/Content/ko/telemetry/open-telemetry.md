@@ -472,6 +472,6 @@ SDK가 HTTP 엔드포인트나 `localhost`로 gRPC 내보내기를 하고 있을
 :::cards
 - [검색 구문](/docs/telemetry/search-syntax): 탐색기에서 로그, 트레이스, 메트릭, 예외를 필터링합니다.
 - [로그 파이프라인](/docs/telemetry/log-pipelines): 로그가 들어올 때 파싱하고 보강합니다.
-- [로그 모니터](/docs/monitor/logs-monitor): 일치하는 로그가 나타나면 알림을 보냅니다.
+- [로그 모니터](/docs/monitor/logs-monitor): 일치하는 로그가 나타나면 경고를 보냅니다.
 - [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector): Collector로 호스트 메트릭과 로그 파일을 수집합니다.
 :::

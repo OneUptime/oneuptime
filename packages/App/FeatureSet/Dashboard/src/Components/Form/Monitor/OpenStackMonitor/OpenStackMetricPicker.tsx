@@ -9,6 +9,7 @@ import {
   getAllOpenStackMetricCategories,
   OpenStackMetricDefinition,
   OpenStackMetricCategory,
+  getOpenStackMetricCategoryLabel,
 } from "Common/Types/Monitor/OpenStackMetricCatalog";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -34,8 +35,11 @@ const OpenStackMetricPicker: FunctionComponent<ComponentProps> = (
           return m.category === category;
         });
 
+      // The group's heading, a key of the catalog's (#8653).
+      const heading: string = getOpenStackMetricCategoryLabel(category);
+
       return {
-        label: category,
+        label: translator.translateText(heading) || heading,
         options: categoryMetrics.map((m: OpenStackMetricDefinition) => {
           return {
             label: `${translator.translateText(m.friendlyName)}${m.unit ? ` (${m.unit})` : ""}`,
