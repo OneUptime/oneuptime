@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (लागू फ़िल्टर)",
   "{{filter}}, locked filter": "{{filter}}, लॉक किया गया फ़िल्टर",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, लॉक किया गया फ़िल्टर। इसका खोज सिंटैक्स कॉपी करने के लिए Enter दबाएँ।",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "इस सेटअप ने जो ऑन-कॉल नीति बनाई थी, वह संग्रहीत कर दी गई है, इसलिए वह किसी को पेज नहीं करती। फिर से चुनें कि किसे बताया जाए।",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "यह सेटअप जिस ऑन-कॉल नीति का उपयोग कर रहा था, वह संग्रहीत कर दी गई है, इसलिए वह किसी को पेज नहीं करती। फिर से कोई नीति चुनें या बनाएँ।",
   "{{summary}} - view session details": "{{summary}} - सेशन विवरण देखें",
   "Account blocked by a server admin": "सर्वर एडमिन ने खाता ब्लॉक किया",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "बिना लाइसेंस वाले इंस्टॉलेशन के {{trialDays}}-दिन के ट्रायल के दौरान, या किसी लाइसेंस की समय-सीमा समाप्त होने के बाद {{graceDays}}-दिन की छूट अवधि के दौरान, ऑडिट लॉगिंग सेटिंग्स के अनुसार रिकॉर्ड करती है। इसके समाप्त होने पर, एडमिन डैशबोर्ड में Enterprise लाइसेंस सक्रिय होने तक कुछ भी रिकॉर्ड नहीं होता। अब तक रिकॉर्ड की गई प्रविष्टियाँ बनी रहती हैं।",

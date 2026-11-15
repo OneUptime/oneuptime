@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (فیلتر اعمال‌شده)",
   "{{filter}}, locked filter": "{{filter}}، فیلتر قفل‌شده",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}، فیلتر قفل‌شده. برای کپی نحو جستجوی آن Enter را بزنید.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "سیاست آنکالی که این راه‌اندازی ساخته بود بایگانی شد، پس کسی را فرا نمی‌خواند. دوباره انتخاب کنید چه کسی باید باخبر شود.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "سیاست آنکالی که این راه‌اندازی از آن استفاده می‌کرد بایگانی شد، پس کسی را فرا نمی‌خواند. دوباره یکی را انتخاب کنید یا بسازید.",
   "{{summary}} - view session details": "{{summary}} - دیدن جزئیات نشست",
   "Account blocked by a server admin": "حساب به دست یک مدیر سرور مسدود شد",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "در طول دوره آزمایشی {{trialDays}} روزهٔ نصبی که پروانه ندارد، یا دوره مهلت {{graceDays}} روزه پس از انقضای یک پروانه، گزارش ممیزی طبق تنظیمات ثبت می‌شود. پس از پایان آن، تا وقتی پروانهٔ Enterprise در داشبورد مدیریت فعال نشود، چیزی ثبت نمی‌شود. موردهایی که تا اکنون ثبت شده‌اند نگه داشته می‌شوند.",

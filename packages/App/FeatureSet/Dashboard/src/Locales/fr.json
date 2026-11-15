@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (filtre appliqué)",
   "{{filter}}, locked filter": "{{filter}}, filtre verrouillé",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, filtre verrouillé. Appuyez sur Entrée pour copier sa syntaxe de recherche.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "La politique d'astreinte créée par cette configuration a été archivée : elle n'alerte donc personne. Choisissez de nouveau qui prévenir.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "La politique d'astreinte qu'utilisait cette configuration a été archivée : elle n'alerte donc personne. Choisissez-en une ou créez-en une nouvelle.",
   "{{summary}} - view session details": "{{summary}} - voir les détails de la session",
   "Account blocked by a server admin": "Compte bloqué par un administrateur du serveur",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "La journalisation d'audit enregistre selon ses paramètres pendant l'essai de {{trialDays}} jours d'une installation sans licence, ou pendant le délai de grâce de {{graceDays}} jours qui suit l'expiration d'une licence. Ensuite, plus rien n'est enregistré tant qu'une licence Enterprise n'est pas activée dans le tableau de bord d'administration. Les entrées enregistrées jusqu'ici sont conservées.",

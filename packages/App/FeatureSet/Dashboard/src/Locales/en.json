@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (applied filter)",
   "{{filter}}, locked filter": "{{filter}}, locked filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, locked filter. Press Enter to copy its search syntax.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.",
   "{{summary}} - view session details": "{{summary}} - view session details",
   "Account blocked by a server admin": "Account blocked by a server admin",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.",

@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (применённый фильтр)",
   "{{filter}}, locked filter": "{{filter}}, закреплённый фильтр",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, закреплённый фильтр. Нажмите Enter, чтобы скопировать его синтаксис поиска.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Политика дежурства, которую создала эта настройка, архивирована и поэтому никого не вызывает. Снова выберите, кого нужно уведомить.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Политика дежурства, которую использовала эта настройка, архивирована и поэтому никого не вызывает. Выберите или создайте другую.",
   "{{summary}} - view session details": "{{summary}} — открыть сведения о сеансе",
   "Account blocked by a server admin": "Учётная запись заблокирована администратором сервера",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "Во время {{trialDays}}-дневного пробного периода установки без лицензии или {{graceDays}}-дневного льготного периода после истечения лицензии журнал аудита ведётся по настройкам. После этого ничего не записывается, пока в панели администратора не будет активирована лицензия Enterprise. Сделанные ранее записи сохраняются.",

@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}} (toegepast filter)",
   "{{filter}}, locked filter": "{{filter}}, vergrendeld filter",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}, vergrendeld filter. Druk op Enter om de zoeksyntaxis te kopiëren.",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "Het bereikbaarheidsbeleid dat deze installatie had gemaakt, is gearchiveerd en roept dus niemand op. Kies opnieuw wie er op de hoogte moet worden gesteld.",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "Het bereikbaarheidsbeleid dat deze installatie gebruikte, is gearchiveerd en roept dus niemand op. Kies of maak er opnieuw een.",
   "{{summary}} - view session details": "{{summary}} - sessiedetails bekijken",
   "Account blocked by a server admin": "Account geblokkeerd door een serverbeheerder",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "Auditlogging legt vast zoals ingesteld tijdens de proefperiode van {{trialDays}} dagen van een installatie zonder licentie, of tijdens de respijtperiode van {{graceDays}} dagen nadat een licentie is verlopen. Daarna wordt niets meer vastgelegd totdat er in het Beheerdashboard een Enterprise-licentie wordt geactiveerd. Items die tot nu toe zijn vastgelegd, blijven bewaard.",

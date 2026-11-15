@@ -53747,6 +53747,8 @@
   "{{filter}} (applied filter)": "{{filter}}（已应用的过滤器）",
   "{{filter}}, locked filter": "{{filter}}，锁定的过滤器",
   "{{filter}}, locked filter. Press Enter to copy its search syntax.": "{{filter}}，锁定的过滤器。按 Enter 复制其搜索语法。",
+  "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.": "此设置创建的值班策略已被归档，不会呼叫任何人。请重新选择要通知谁。",
+  "The on-call policy this setup was using was archived, so it pages no one. Pick or make one again.": "此设置所用的值班策略已被归档，不会呼叫任何人。请重新选择或创建一个。",
   "{{summary}} - view session details": "{{summary}} - 查看会话详情",
   "Account blocked by a server admin": "账户已被服务器管理员封禁",
   "Audit logging records as configured during the {{trialDays}}-day trial of an installation with no license, or the {{graceDays}}-day grace period after a license expires. When it ends, nothing more is recorded until an Enterprise license is activated in the Admin Dashboard. Entries recorded so far are kept.": "在未安装许可证的部署的 {{trialDays}} 天试用期内，或许可证过期后的 {{graceDays}} 天宽限期内，审计日志会按设置记录。期限结束后，在管理后台激活 Enterprise 许可证之前，不会再记录任何内容。迄今已记录的条目会保留。",
