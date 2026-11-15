@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Venter** | En vaktregel satt til **Bare i arbeidstiden** lar kjøringen vente til arbeidstiden begynner: den sier når tilkallingen starter, og tilkaller ingen fram til da. Den avsluttes uten å tilkalle hvis hendelsen eller varselet blir bekreftet eller løst først. Den begynner å tilkalle straks hvis hendelsen eller varselet endrer seg og nå samsvarer med en vaktregel som tilkaller med en gang. |
 | **Planlagt**, **Startet** | Kjøringen settes opp. En som fortsatt står her etter 5 minutter, stoppes som **Feil**. |
-| **Executing** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. |
-| **Execution Completed** | Noen bekreftet, hendelsen eller varselet ble løst, alle regler og gjentakelser ble brukt, eller retningslinjen ble arkivert. |
-| **Execution Completed - No One Notified** | Kjøringen gikk gjennom alle regler og tilkalte ingen: som regel en vaktplan der ingen har vakt, eller et nivå uten mottakere. |
+| **Utføres** | Kjøringen tilkaller. OneUptime fører den et steg videre hvert minutt. |
+| **Utførelse fullført** | Noen bekreftet, hendelsen eller varselet ble løst, alle regler og gjentakelser ble brukt, eller retningslinjen ble arkivert. |
+| **Utførelse fullført - ingen varslet** | Kjøringen gikk gjennom alle regler og tilkalte ingen: som regel en vaktplan der ingen har vakt, eller et nivå uten mottakere. |
 | **Feil** | Kjøringen mislyktes. **Vis statusmelding** sier hvorfor. |
 
 Du finner utførelseslogger tre steder:
@@ -160,7 +160,7 @@ Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#op
 ## Feilsøking
 
 :::details En retningslinje kjørte, men ingen ble tilkalt
-Kjøringen viser **Execution Completed - No One Notified**. Åpne **Vis tidslinje**: en rad med **Ingen hadde vakt** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakt → Beredskap** viser hvem som ikke kunne nås.
+Kjøringen viser **Utførelse fullført - ingen varslet**. Åpne **Vis tidslinje**: en rad med **Ingen hadde vakt** peker på en vaktplan med et hull, og statusmeldingen i en rad med **Hoppet over** sier hvorfor, for eksempel noen som var borte uten noen til å dekke. **Vakt → Beredskap** viser hvem som ikke kunne nås.
 :::
 
 :::details Neste nivå ble tilkalt et minutt etter ventetiden

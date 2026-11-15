@@ -2045,6 +2045,191 @@ describe("the Overview", () => {
       }),
     ).toBe(true);
   });
+
+  /*
+   * The issue trend counts the reader's days (issue #7925): the page sends
+   * the reader's zone, and each issue counts on the day it was opened or
+   * resolved there. A zone the list does not name is dropped, and those days
+   * stay UTC's, as an older Dashboard that sends none gets.
+   */
+  describe("the issue trend, in the reader's zone", () => {
+    function issueAt(data: {
+      openedAt: string;
+      resolvedAt?: string | undefined;
+    }): DataSecurityIssue {
+      const issue: DataSecurityIssue = overviewIssue({
+        store: storeOf({}),
+        status: data.resolvedAt
+          ? DataSecurityIssueStatus.Resolved
+          : DataSecurityIssueStatus.Open,
+        severity: SecuritySeverity.High,
+        riskScore: 50,
+        openedDaysAgo: 0,
+      });
+      issue.firstDetectedAt = new Date(data.openedAt);
+
+      if (data.resolvedAt) {
+        issue.resolvedAt = new Date(data.resolvedAt);
+      }
+
+      return issue;
+    }
+
+    async function trendIn(
+      body: JSONObject,
+    ): Promise<DataSecurityOverview["issueTrend"]> {
+      const result: RouteCall = await call(
+        DATA_SECURITY_API_ROUTES.overview,
+        {},
+        body,
+      );
+
+      expect(result.thrown).toBeUndefined();
+      return (result.answer as unknown as DataSecurityOverview).issueTrend;
+    }
+
+    function countedDays(
+      trend: DataSecurityOverview["issueTrend"],
+    ): Record<string, { opened: number; resolved: number }> {
+      const counted: Record<string, { opened: number; resolved: number }> = {};
+
+      for (const entry of trend) {
+        if (entry.opened > 0 || entry.resolved > 0) {
+          counted[entry.day] = {
+            opened: entry.opened,
+            resolved: entry.resolved,
+          };
+        }
+      }
+
+      return counted;
+    }
+
+    // Every calendar date from `from` to `to`, both included.
+    function datesFrom(from: string, to: string): Array<string> {
+      const dates: Array<string> = [from];
+
+      while (dates[dates.length - 1]! < to) {
+        dates.push(
+          new Date(
+            Date.parse(`${dates[dates.length - 1]!}T00:00:00.000Z`) + DAY_IN_MS,
+          )
+            .toISOString()
+            .slice(0, 10),
+        );
+      }
+
+      return dates;
+    }
+
+    test("a New York reader's issue opened at 02:00 UTC on the 27th counts on the 26th", async () => {
+      // 22:00 on the 26th, and 23:30 on the 24th, in New York.
+      issueAt({
+        openedAt: "2026-10-27T02:00:00.000Z",
+        resolvedAt: "2026-10-27T03:00:00.000Z",
+      });
+      issueAt({ openedAt: "2026-10-25T03:30:00.000Z" });
+
+      const trend: DataSecurityOverview["issueTrend"] = await trendIn({
+        timezone: "America/New_York",
+      });
+
+      expect(trend).toHaveLength(30);
+      expect(trend[0]!.day).toBe("2026-09-28");
+      expect(trend[29]!.day).toBe("2026-10-27");
+      expect(countedDays(trend)).toEqual({
+        "2026-10-24": { opened: 1, resolved: 0 },
+        "2026-10-26": { opened: 1, resolved: 1 },
+      });
+
+      // With no zone, the UTC days, as before.
+      expect(countedDays(await trendIn({}))).toEqual({
+        "2026-10-25": { opened: 1, resolved: 0 },
+        "2026-10-27": { opened: 1, resolved: 1 },
+      });
+    });
+
+    test("over New York's 1 November change the bars are 30 days, one a day, and the 25th hour is on the 1st", async () => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+        return new Date("2026-11-10T12:00:00.000Z");
+      });
+      issueAt({ openedAt: "2026-11-02T04:30:00.000Z" });
+      issueAt({ openedAt: "2026-11-02T05:00:00.000Z" });
+
+      const trend: DataSecurityOverview["issueTrend"] = await trendIn({
+        timezone: "America/New_York",
+      });
+
+      expect(
+        trend.map((entry: { day: string }): string => {
+          return entry.day;
+        }),
+      ).toEqual(datesFrom("2026-10-12", "2026-11-10"));
+      expect(countedDays(trend)).toEqual({
+        "2026-11-01": { opened: 1, resolved: 0 },
+        "2026-11-02": { opened: 1, resolved: 0 },
+      });
+    });
+
+    test("over London's 29 March change, its 23-hour day is one bar too", async () => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+        // 00:30 BST on 30 March, the day after the clocks went forward.
+        return new Date("2026-03-29T23:30:00.000Z");
+      });
+      issueAt({ openedAt: "2026-03-29T22:59:59.000Z" });
+      issueAt({ openedAt: "2026-03-29T23:00:00.000Z" });
+
+      const trend: DataSecurityOverview["issueTrend"] = await trendIn({
+        timezone: "Europe/London",
+      });
+
+      expect(
+        trend.map((entry: { day: string }): string => {
+          return entry.day;
+        }),
+      ).toEqual(datesFrom("2026-03-01", "2026-03-30"));
+      expect(countedDays(trend)).toEqual({
+        "2026-03-29": { opened: 1, resolved: 0 },
+        "2026-03-30": { opened: 1, resolved: 0 },
+      });
+    });
+
+    test("a Kathmandu reader's day starts at 18:15 UTC the day before", async () => {
+      issueAt({ openedAt: "2026-10-26T18:14:59.000Z" });
+      issueAt({ openedAt: "2026-10-26T18:15:00.000Z" });
+
+      const trend: DataSecurityOverview["issueTrend"] = await trendIn({
+        timezone: "Asia/Kathmandu",
+      });
+
+      // 17:45 on 27 October there: today is the 27th.
+      expect(trend[29]!.day).toBe("2026-10-27");
+      expect(countedDays(trend)).toEqual({
+        "2026-10-26": { opened: 1, resolved: 0 },
+        "2026-10-27": { opened: 1, resolved: 0 },
+      });
+    });
+
+    test.each([
+      ["a zone the list does not name", "Mars/Olympus_Mons"],
+      ["a number", 330],
+      ["text written to be SQL", "UTC'; DROP TABLE DataStore; --"],
+    ] as Array<[string, unknown]>)(
+      "%s is dropped: the trend is answered on UTC's days",
+      async (_name: string, timezone: unknown) => {
+        issueAt({ openedAt: "2026-10-27T02:00:00.000Z" });
+
+        const trend: DataSecurityOverview["issueTrend"] = await trendIn({
+          timezone: timezone as JSONObject,
+        });
+
+        expect(trend).toHaveLength(30);
+        expect(countedDays(trend)).toEqual({
+          "2026-10-27": { opened: 1, resolved: 0 },
+        });
+      },
+    );
+  });
 });
 
 describe("Compliance", () => {

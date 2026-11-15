@@ -155,6 +155,15 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 @Index(["groupingWaitKey", "createdAt"], {
   where: '"groupingWaitKey" IS NOT NULL AND "deletedAt" IS NULL',
 })
+/*
+ * The alerts whose owners' "Alert Created" notification is held for their
+ * owners (CreatedNotificationHold): the few being created at any moment, so
+ * the index holds only them, and the Created job's read of a hold nobody
+ * let go (createdNotificationHeldAt <= then) implies its predicate.
+ */
+@Index(["createdNotificationHeldAt"], {
+  where: '"createdNotificationHeldAt" IS NOT NULL AND "deletedAt" IS NULL',
+})
 export default class Alert extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -2218,6 +2227,29 @@ export default class Alert extends BaseModel {
     default: false,
   })
   public isOwnerNotifiedOfAlertCreation?: boolean = undefined;
+
+  /*
+   * While the owners' "Alert Created" notification is held for the alert's
+   * owners (CreatedNotificationHold): when the hold began, as the alert was
+   * written. Cleared when the hold is let go - every owner its create adds
+   * is in - and when the Created job takes it. A hold nobody lets go,
+   * because the process that made the alert stopped, ends by itself: the
+   * job takes it once it is old enough. Null for every other alert.
+   * Written by the create's hook - which is why it is computed: no
+   * caller's create is refused for it - and by nobody else.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    required: false,
+    computed: true,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.Date,
+    title: "Created Notification Held At",
+    description:
+      "Internal: while the owners' Alert Created notification waits for every owner the alert's create adds, when it started waiting.",
+  })
+  @Column({ type: ColumnType.Date, nullable: true })
+  public createdNotificationHeldAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

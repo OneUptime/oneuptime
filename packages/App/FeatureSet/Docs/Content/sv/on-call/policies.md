@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Väntar** | En jourregel inställd på **Endast under arbetstid** låter körningen vänta tills arbetstiden börjar: den säger när larmningen börjar och larmar ingen fram till dess. Den avslutas utan larm om incidenten eller larmet bekräftas eller löses först. Den börjar larma genast om incidenten eller larmet ändras och nu matchar en jourregel som larmar direkt. |
 | **Schemalagd**, **Startade** | Körningen förbereds. En som fortfarande står här efter 5 minuter stoppas som **Fel**. |
-| **Executing** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
-| **Execution Completed** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
-| **Execution Completed - No One Notified** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |
+| **Utförs** | Körningen larmar. OneUptime för den ett steg vidare varje minut. |
+| **Exekvering slutförd** | Någon bekräftade, incidenten eller larmet löstes, varje regel och upprepning användes, eller policyn arkiverades. |
+| **Exekvering slutförd - ingen aviserad** | Körningen gick igenom varje regel och larmade ingen: oftast ett schema där ingen har jour, eller en nivå utan mottagare. |
 | **Fel** | Körningen misslyckades. **Visa statusmeddelande** säger varför. |
 
 Du hittar exekveringsloggar på tre ställen:
@@ -160,7 +160,7 @@ Se [Skapa regler med API:et eller Terraform](/docs/on-call/escalation-rules#skap
 ## Felsökning
 
 :::details En policy kördes, men ingen larmades
-Dess körning visar **Execution Completed - No One Notified**. Öppna **Visa tidslinje**: en rad med **Ingen hade jour** pekar på ett schema med en lucka, och statusmeddelandet på en rad med **Hoppade över** säger varför, till exempel någon som var borta utan någon som täckte upp. **Jour → Beredskap** visar vem som inte kunde nås.
+Dess körning visar **Exekvering slutförd - ingen aviserad**. Öppna **Visa tidslinje**: en rad med **Ingen hade jour** pekar på ett schema med en lucka, och statusmeddelandet på en rad med **Hoppade över** säger varför, till exempel någon som var borta utan någon som täckte upp. **Jour → Beredskap** visar vem som inte kunde nås.
 :::
 
 :::details Nästa nivå larmades en minut efter sin väntetid

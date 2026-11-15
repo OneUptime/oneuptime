@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../Types/Date";
+import { readOwnValue, writeOwnValue } from "../LookupTable";
 
 /*
  * Reads one syslog message: the priority, then either an RFC 5424 header
@@ -461,8 +462,23 @@ function parseStructuredData(raw: string): ParsedSyslogStructuredData {
     const params: string = match[2] ?? "";
     const sdId: string = sanitizeKey(sdIdRaw);
 
-    if (!result[sdId]) {
-      result[sdId] = {};
+    /*
+     * The element's own entry only, written as the result's own key. An
+     * SD-ID and a parameter name are whatever the sender wrote, and a
+     * plain read of an SD-ID named __proto__ found the prototype every
+     * object shares: its parameters were then written onto it, into every
+     * object of the process that read the line (a probe's syslog
+     * listener, the syslog ingest). One named constructor wrote onto the
+     * Object function. Each is an element like any other now.
+     */
+    let entry: { [key: string]: string } | undefined = readOwnValue(
+      result,
+      sdId,
+    );
+
+    if (!entry) {
+      entry = {};
+      writeOwnValue(result, sdId, entry);
     }
 
     const paramRegex: RegExp = /([^\s=]+)="([^"]*)"/g;
@@ -472,9 +488,7 @@ function parseStructuredData(raw: string): ParsedSyslogStructuredData {
       const keyRaw: string = paramMatch[1]!;
       const value: string = paramMatch[2] ?? "";
       const key: string = sanitizeKey(keyRaw);
-      const entry: { [key: string]: string } = result[sdId] ?? {};
-      entry[key] = value;
-      result[sdId] = entry;
+      writeOwnValue(entry, key, value);
     }
   }
 

@@ -5,6 +5,7 @@ import {
   formatSize,
   formatUpdateInterval,
 } from "../../../Components/DataObservability/DataObservabilityFormat";
+import { getDataAssetKindText } from "../../../Components/DataObservability/DataAssetKindWords";
 import FreshnessPill from "../../../Components/DataObservability/FreshnessPill";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
@@ -115,9 +116,9 @@ const TableOverviewPage: FunctionComponent<
           {fact("Schema", dataAsset.schemaName || "")}
           {fact(
             "Kind",
-            translator.translateText(dataAsset.assetKind || "") ||
-              dataAsset.assetKind ||
-              "",
+            dataAsset.assetKind
+              ? getDataAssetKindText(translator, dataAsset.assetKind)
+              : "",
           )}
           {fact(
             "Columns",

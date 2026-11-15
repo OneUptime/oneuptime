@@ -214,7 +214,7 @@ In OneUptime Cloud hebben workflows het abonnement Growth of hoger nodig, en elk
 | Scale      | 2.000                               |
 | Enterprise | Geen praktische limiet              |
 
-Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of door een trigger, telt 30 dagen mee. Bij de abonnementen Growth en Scale toont de pagina **Workflows** een kaart **Workflow-uitvoeringen** met hoeveel het project er heeft gebruikt. Is de limiet bereikt, dan worden nieuwe uitvoeringen vastgelegd met de status **Execution Exceeded Current Plan** en niet uitgevoerd, en hetzelfde gebeurt zolang het abonnement niet is betaald. Zelf gehoste installaties zonder facturering hebben geen limiet. Bij een abonnement dat geen workflows uitvoert, zeggen de **Bouwer** en de pagina **Workflows** dat, met een link om te upgraden.
+Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of door een trigger, telt 30 dagen mee. Bij de abonnementen Growth en Scale toont de pagina **Workflows** een kaart **Workflow-uitvoeringen** met hoeveel het project er heeft gebruikt. Is de limiet bereikt, dan worden nieuwe uitvoeringen vastgelegd met de status **Uitvoering overschrijdt huidig abonnement** en niet uitgevoerd, en hetzelfde gebeurt zolang het abonnement niet is betaald. Zelf gehoste installaties zonder facturering hebben geen limiet. Bij een abonnement dat geen workflows uitvoert, zeggen de **Bouwer** en de pagina **Workflows** dat, met een link om te upgraden.
 
 ## Hoe lang een run mag duren
 
@@ -224,7 +224,7 @@ Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of 
 | Een **Run Custom JavaScript**-blok                           | 5 seconden         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
 | Een **Sleep**-blok                                           | Hooguit 30 dagen   | —                               |
 
-De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitvoering die te laat is als **Timeout** zodra hij weer aan zet is. Hij kan een blok niet halverwege onderbreken, dus blokken die op het netwerk wachten, hebben eigen tijdslimieten: een verzoek van Generate Text with AI geeft het na hooguit 60 seconden op, en een OAuth 2.0-tokenverzoek na 20. Wachten op een **Sleep**-blok telt niet mee voor de tijd van een uitvoering: de uitvoering wordt opzijgezet en krijgt bij het ontwaken weer 2 verse minuten.
+De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitvoering die te laat is als **Time-out** zodra hij weer aan zet is. Hij kan een blok niet halverwege onderbreken, dus blokken die op het netwerk wachten, hebben eigen tijdslimieten: een verzoek van Generate Text with AI geeft het na hooguit 60 seconden op, en een OAuth 2.0-tokenverzoek na 20. Wachten op een **Sleep**-blok telt niet mee voor de tijd van een uitvoering: de uitvoering wordt opzijgezet en krijgt bij het ontwaken weer 2 verse minuten.
 
 ## Limiet op het aanroepen van andere workflows
 

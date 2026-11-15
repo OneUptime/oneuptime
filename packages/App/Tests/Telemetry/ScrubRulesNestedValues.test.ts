@@ -904,6 +904,36 @@ describe("TraceScrubRuleService: a span's events and links", () => {
     ]);
   });
 
+  /*
+   * Issue #8025: the exception's attributes were copied with a spread
+   * before the rules ran, which dropped one named __proto__ from the
+   * exception row - and a secret under it was never seen by the rules.
+   */
+  test("an exception's attribute named __proto__ is kept, and scrubbed like any other", () => {
+    const attributes: JSONObject = JSON.parse(
+      '{"__proto__":"mail ada@example.com","exception.type":"TypeError"}',
+    ) as JSONObject;
+
+    const scrubbed: {
+      message: string;
+      stackTrace: string;
+      attributes: JSONObject;
+    } = TraceScrubRuleService.scrubExceptionContent(
+      { message: "boom", stackTrace: "", attributes },
+      traceRules([EMAIL_MASK]) as never,
+    );
+
+    expect(JSON.stringify(scrubbed.attributes)).toBe(
+      '{"__proto__":"mail a***@***.com","exception.type":"TypeError"}',
+    );
+    expect(Object.getPrototypeOf(scrubbed.attributes)).toBe(Object.prototype);
+    // The event's own attributes are a different map, left as they were.
+    expect(scrubbed.attributes).not.toBe(attributes);
+    expect(JSON.stringify(attributes)).toBe(
+      '{"__proto__":"mail ada@example.com","exception.type":"TypeError"}',
+    );
+  });
+
   test("an exception's value too deep for the rules is held as its JSON text, as the span event's is", () => {
     const deep: unknown = nest("ada@example.com", SCRUB_MAX_VALUE_DEPTH + 4);
     const rules: Array<CompiledRule> = traceRules([EMAIL_MASK]);

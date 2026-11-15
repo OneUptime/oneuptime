@@ -29,25 +29,25 @@ La maggior parte dei messaggi può riconoscere la chiamata: e-mail, SMS e messag
 
 ## Una sola sequenza per tutto
 
-**Impostazioni utente → Come contattarmi** si apre sulla tua sequenza: i passaggi che ogni chiamata prova, per incidenti, avvisi ed episodi di qualsiasi gravità. Ogni passaggio è uno dei tuoi metodi verificati e il momento in cui usarlo, ad esempio un SMS subito e una telefonata dopo 5 minuti. I passaggi con la stessa attesa partono insieme, così la sequenza si legge nell'ordine in cui chiama.
+**Impostazioni utente → Come contattarmi** si apre sulla tua sequenza: passaggi numerati che ogni chiamata prova a turno, per incidenti, avvisi ed episodi di qualsiasi gravità. Ogni passaggio è un momento, ad esempio subito o dopo 5 minuti, con i metodi verificati che partono insieme in quel momento. Un passaggio successivo parte solo se nessuno ha ancora confermato la chiamata.
 
 :::steps
 ### Aggiungere un modo per raggiungerti
 
-Scegli uno dei tuoi metodi verificati in **Aggiungi un modo per raggiungerti**. Un numero o un indirizzo che aspetta ancora il suo codice compare in **Non ancora verificato**, con **Verifica**.
+Fai clic su **Aggiungi** in un passaggio per inviare uno dei tuoi metodi verificati al momento di quel passaggio, oppure su **Aggiungi passaggio** per iniziare un nuovo passaggio dopo l'ultimo. Un numero o un indirizzo che aspetta ancora il suo codice compare in **Non ancora verificato**, con **Verifica**.
 
 ### Scegliere quando usarlo
 
-Accanto a ogni passaggio, scegli un'attesa da **Immediatamente** a **1 ora**. Un passaggio push dice anche come suona e se si ripete: vedi [Regole push](#regole-push).
+Fai clic sul momento di un passaggio, ad esempio **Subito**, e scegline un altro, fino a un'ora: l'intero passaggio si sposta. Un passaggio push dice anche come suona e se si ripete: vedi [Regole push](#regole-push).
 
 ### Salvare
 
-Fai clic su **Salva sequenza**. Scrive le stesse regole in ogni scheda di ogni tab: le regole che aggiungeresti a mano a ogni scheda.
+Fai clic su **Salva modifiche**, che compare appena qualcosa cambia. Scrive le stesse regole in ogni scheda di ogni tab: le regole che aggiungeresti a mano a ogni scheda.
 :::
 
 **Testa le tue chiamate**, in fondo alla pagina, ti invia una chiamata di prova attraverso di esse.
 
-Quando una gravità merita altro, **Diverso per alcune gravità** apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**, e la sequenza indica cosa fa ciascuna al suo posto. Se le tue regole sono già diverse, la pagina si apre sulle schede, con **Usa una sola sequenza per tutto**: salvando, prima nomina le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
+Quando una gravità merita altro, **Diverso per alcune gravità**, sotto i passaggi, apre i tab e le schede descritti più sotto. Una scheda diversa dalla tua sequenza è segnata con **Diverso dalla sequenza**, e la sequenza indica cosa fa ciascuna al suo posto. Se le tue regole sono già diverse, la pagina si apre sulle schede, con **Usa una sola sequenza per tutto**: salvando, prima nomina le schede che perdono la loro differenza. Una gravità che il tuo progetto ha archiviato mantiene le sue regole.
 
 Una policy di reperibilità decide chi viene chiamato e quando arriva il suo livello successivo. Come vieni raggiunto è questa sequenza, per ogni policy che ti chiama.
 
@@ -121,7 +121,7 @@ Una regola push, per un telefono o un browser, può anche reinviare il suo push 
 
 ## Quando una gravità non ha una regola
 
-Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito.
+Una gravità che il vostro progetto aggiunge in seguito riceve regole entro pochi minuti, ricavate dalle scelte che avete già fatto in quella scheda: gli stessi metodi, dopo gli stessi ritardi, e un push che suona e si ripete allo stesso modo. Se in quella scheda non avevate regole, riceve la vostra e-mail verificata, subito.
 
 Una chiamata che non trova comunque una regola viene inviata lo stesso ai vostri metodi verificati, e ricevete un'e-mail al riguardo; vedete [Quando nessuna regola corrisponde](/docs/notifications/index#quando-nessuna-regola-corrisponde).
 

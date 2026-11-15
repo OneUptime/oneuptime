@@ -9,6 +9,14 @@ import UserEmail from "../../../Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "../../../Models/DatabaseModels/UserNotificationRule";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import NotificationRuleType from "../../../Types/NotificationRule/NotificationRuleType";
+import {
+  PagingLadderCell,
+  PagingLadderReading,
+  PagingLadderRule,
+  getPagingLadderCells,
+  readPagingLadder,
+} from "../../../Types/NotificationRule/PagingLadder";
+import PushNotificationLevel from "../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "../../../Utils/CronTime";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -66,6 +74,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      vanishes mid-run is a log line, not an aborted backfill for everybody
  *      else in the project.
  *
+ *   5. A LADDER STAYS ONE LADDER (#7452). Rules are read the way How to Reach
+ *      Me reads them - from the responder's live cards, a push with how it
+ *      sounds and repeats - so "push, Standard, every 5 minutes" on every
+ *      card is what the new card gets, not a push at Critical sent once.
+ *
  * No database is touched. UserNotificationRule is backed by an in-memory table
  * so that rows written by one run are genuinely visible to the next - the
  * idempotence assertions are only worth anything if the reader really reads
@@ -120,6 +133,8 @@ const EMAIL_C: ObjectID = new ObjectID("user-email-c");
 const CALL_A: ObjectID = new ObjectID("user-call-a");
 const SMS_A: ObjectID = new ObjectID("user-sms-a");
 const PUSH_A: ObjectID = new ObjectID("user-push-a");
+const PUSH_B: ObjectID = new ObjectID("user-push-b");
+const SMS_C: ObjectID = new ObjectID("user-sms-c");
 
 // The severities that existed when the responder configured their rules...
 const SEV_1: ObjectID = new ObjectID("incident-severity-1");
@@ -127,6 +142,9 @@ const SEV_2: ObjectID = new ObjectID("incident-severity-2");
 const SEV_3: ObjectID = new ObjectID("incident-severity-3");
 // ...and the one added a year later, which nothing covered.
 const SEV_NEW: ObjectID = new ObjectID("incident-severity-4-added-later");
+// A second severity added after it, and one the project archived long ago.
+const SEV_NEW_2: ObjectID = new ObjectID("incident-severity-5-added-later");
+const SEV_ARCHIVED: ObjectID = new ObjectID("incident-severity-archived");
 
 const ALERT_SEV_1: ObjectID = new ObjectID("alert-severity-1");
 const ALERT_SEV_NEW: ObjectID = new ObjectID("alert-severity-4-added-later");
@@ -239,9 +257,28 @@ interface RuleSpec {
   userPushId?: ObjectID | undefined;
   customNotificationChannelId?: ObjectID | undefined;
   isOptOut?: boolean | undefined;
+  pushNotificationLevel?: PushNotificationLevel | undefined;
+  repeatEveryMinutes?: number | undefined;
 }
 
 let seedCounter: number = 0;
+
+/*
+ * The project's severities, as PagingLadderService.getCells reads them for
+ * the job: the three a responder configured and the one added later, and an
+ * alert one beside its own late arrival. A test that archives one, or adds
+ * another, sets these.
+ */
+interface SeverityRow {
+  id: ObjectID;
+  isArchived?: boolean | undefined;
+}
+
+let incidentSeverityRows: Array<SeverityRow> = [];
+let alertSeverityRows: Array<SeverityRow> = [];
+
+let incidentSeverityFindBySpy: jest.SpyInstance;
+let alertSeverityFindBySpy: jest.SpyInstance;
 
 /*
  * A rule row as the responder (or an earlier default-rule pass) left it.
@@ -292,6 +329,14 @@ function makeRule(spec: RuleSpec): UserNotificationRule {
 
   if (spec.isOptOut !== undefined) {
     rule.isOptOut = spec.isOptOut;
+  }
+
+  if (spec.pushNotificationLevel !== undefined) {
+    rule.pushNotificationLevel = spec.pushNotificationLevel;
+  }
+
+  if (spec.repeatEveryMinutes !== undefined) {
+    rule.repeatEveryMinutes = spec.repeatEveryMinutes;
   }
 
   return rule;
@@ -477,6 +522,42 @@ beforeEach(() => {
   frozenSnapshot = null;
   verifiedEmails = [];
   seedCounter = 0;
+  incidentSeverityRows = [
+    { id: SEV_1 },
+    { id: SEV_2 },
+    { id: SEV_3 },
+    { id: SEV_NEW },
+  ];
+  alertSeverityRows = [{ id: ALERT_SEV_1 }, { id: ALERT_SEV_NEW }];
+
+  // The cards the job reads its responders' rules from, in the project's order.
+  incidentSeverityFindBySpy = jest
+    .spyOn(IncidentSeverityService, "findBy")
+    .mockImplementation(((): Promise<Array<IncidentSeverity>> => {
+      return Promise.resolve(
+        incidentSeverityRows.map((row: SeverityRow): IncidentSeverity => {
+          const severity: IncidentSeverity = new IncidentSeverity();
+          severity._id = row.id.toString();
+          severity.projectId = PROJECT_ID;
+          severity.isArchived = Boolean(row.isArchived);
+          return severity;
+        }),
+      );
+    }) as never);
+
+  alertSeverityFindBySpy = jest
+    .spyOn(AlertSeverityService, "findBy")
+    .mockImplementation(((): Promise<Array<AlertSeverity>> => {
+      return Promise.resolve(
+        alertSeverityRows.map((row: SeverityRow): AlertSeverity => {
+          const severity: AlertSeverity = new AlertSeverity();
+          severity._id = row.id.toString();
+          severity.projectId = PROJECT_ID;
+          severity.isArchived = Boolean(row.isArchived);
+          return severity;
+        }),
+      );
+    }) as never);
 
   ruleFindAllBySpy = jest
     .spyOn(UserNotificationRuleService, "findAllBy")
@@ -721,11 +802,21 @@ describe("findRecentlyCreatedSeverities", () => {
  */
 
 describe("buildResponderIntents", () => {
+  /*
+   * Read with no cards: every row is one of no live card, so every row counts,
+   * as it did before the job read the cards (the cases below, with cards, are
+   * under "a push rule on the new severity").
+   */
   function intentsFor(
     rules: Array<UserNotificationRule>,
     severity: NewSeverity,
   ): Map<string, ResponderIntent> {
-    return buildResponderIntents(rules, severity);
+    return buildResponderIntents({
+      existingRules: rules,
+      severity: severity,
+      ruleType:
+        rules[0]?.ruleType || NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    });
   }
 
   function mirroredOf(intent: ResponderIntent): Array<string> {
@@ -1855,5 +1946,824 @@ describe("the fan-out is bounded and does not collapse on one responder", () => 
     expect(createdRules).toHaveLength(0);
     expect(ruleCreateSpy).not.toHaveBeenCalled();
     expect(ruleFindOneBySpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ========================================================================= *
+ * #7452 - a push rule on the new severity sounds and repeats as the
+ * responder's other cards do.
+ *
+ * Since How to Reach Me (#6820), a responder's rules are one ladder for every
+ * card: "push, Standard, every 5 minutes, then a call after 5". The job used
+ * to mirror only (method, delay), so the new severity's push rule was written
+ * at the column's defaults - Critical, sent once: it woke the responder
+ * through silent mode for a severity they asked to hear quietly, and How to
+ * Reach Me listed the new card as differing from the ladder. The job now reads
+ * the responder's rules the way How to Reach Me does
+ * (getPagingLadderStepsForNewCell), from their live cards and with each push
+ * rule's level and repeat. The cases below end where the issue's "done when"
+ * does: reading the grid back, it is still one ladder.
+ * =========================================================================
+ */
+
+describe("a push rule on the new severity sounds and repeats as the responder's other cards do (#7452)", () => {
+  type LadderColumn = "userEmailId" | "userSmsId" | "userCallId" | "userPushId";
+
+  interface LadderStepSpec {
+    column: LadderColumn;
+    methodId: ObjectID;
+    wait: number;
+    level?: PushNotificationLevel | undefined;
+    repeat?: number | undefined;
+  }
+
+  // The issue's ladder: a quiet push that keeps coming, then a call.
+  const ISSUE_LADDER: Array<LadderStepSpec> = [
+    {
+      column: "userPushId",
+      methodId: PUSH_A,
+      wait: 0,
+      level: PushNotificationLevel.Standard,
+      repeat: 5,
+    },
+    { column: "userCallId", methodId: CALL_A, wait: 5 },
+  ];
+
+  function seedStep(data: {
+    userId: ObjectID;
+    ruleType: NotificationRuleType;
+    severityColumn: "incidentSeverityId" | "alertSeverityId";
+    severityId: ObjectID | null;
+    step: LadderStepSpec;
+  }): UserNotificationRule {
+    const spec: RuleSpec = {
+      userId: data.userId,
+      ruleType: data.ruleType,
+      notifyAfterMinutes: data.step.wait,
+    };
+
+    if (data.severityId) {
+      spec[data.severityColumn] = data.severityId;
+    }
+
+    spec[data.step.column] = data.step.methodId;
+
+    // How to Reach Me saves a push step with both, explicitly.
+    if (data.step.column === "userPushId") {
+      spec.pushNotificationLevel =
+        data.step.level || PushNotificationLevel.Critical;
+      spec.repeatEveryMinutes = data.step.repeat || 0;
+    }
+
+    return seedRule(spec);
+  }
+
+  /*
+   * What saving a ladder on How to Reach Me writes: one rule per step in every
+   * live card of every tab. The new severities have no rules yet - that is
+   * what the job is for.
+   */
+  function seedLadder(
+    userId: ObjectID,
+    steps: Array<LadderStepSpec>,
+    options?: {
+      incidentSeverities?: Array<ObjectID>;
+      alertSeverities?: Array<ObjectID>;
+    },
+  ): void {
+    const incidentSeverities: Array<ObjectID> = options?.incidentSeverities || [
+      SEV_1,
+      SEV_2,
+      SEV_3,
+    ];
+    const alertSeverities: Array<ObjectID> = options?.alertSeverities || [
+      ALERT_SEV_1,
+    ];
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      for (const severityId of incidentSeverities) {
+        for (const step of steps) {
+          seedStep({
+            userId: userId,
+            ruleType: ruleType,
+            severityColumn: "incidentSeverityId",
+            severityId: severityId,
+            step: step,
+          });
+        }
+      }
+    }
+
+    for (const ruleType of ALERT_RULE_TYPES) {
+      for (const severityId of alertSeverities) {
+        for (const step of steps) {
+          seedStep({
+            userId: userId,
+            ruleType: ruleType,
+            severityColumn: "alertSeverityId",
+            severityId: severityId,
+            step: step,
+          });
+        }
+      }
+    }
+  }
+
+  // The grid How to Reach Me draws, from the project's severities right now.
+  function gridCells(): Array<PagingLadderCell> {
+    return getPagingLadderCells({
+      incidentSeverities: incidentSeverityRows.map(
+        (row: SeverityRow): { id: string; isArchived: boolean } => {
+          return { id: row.id.toString(), isArchived: Boolean(row.isArchived) };
+        },
+      ),
+      alertSeverities: alertSeverityRows.map(
+        (row: SeverityRow): { id: string; isArchived: boolean } => {
+          return { id: row.id.toString(), isArchived: Boolean(row.isArchived) };
+        },
+      ),
+    });
+  }
+
+  // A responder's How to Reach Me, read from every row the table now holds.
+  function readLadderOf(userId: ObjectID): PagingLadderReading {
+    return readPagingLadder({
+      cells: gridCells(),
+      rules: ruleStore.filter((rule: UserNotificationRule): boolean => {
+        return rule.userId?.toString() === userId.toString();
+      }) as unknown as Array<PagingLadderRule>,
+    });
+  }
+
+  // "userPushId:user-push-a@0 Standard every 5", "userCallId:user-call-a@5".
+  function describeRule(rule: UserNotificationRule): string {
+    const shape: string = shapeOf(rule);
+
+    if (rule.userPushId) {
+      return `${shape} ${String(rule.pushNotificationLevel)} every ${String(rule.repeatEveryMinutes)}`;
+    }
+
+    // Anything else carries neither: the rule service refuses a repeat on it.
+    expect(rule.pushNotificationLevel).toBeUndefined();
+    expect(rule.repeatEveryMinutes).toBeUndefined();
+
+    return shape;
+  }
+
+  // What this run wrote on one card for one responder, sorted.
+  function createdOn(data: {
+    userId: ObjectID;
+    ruleType: NotificationRuleType;
+    severityId: ObjectID;
+  }): Array<string> {
+    return createdRules
+      .filter((rule: UserNotificationRule): boolean => {
+        const severityId: ObjectID | undefined =
+          rule.incidentSeverityId || rule.alertSeverityId;
+
+        return (
+          rule.userId?.toString() === data.userId.toString() &&
+          rule.ruleType === data.ruleType &&
+          severityId?.toString() === data.severityId.toString()
+        );
+      })
+      .map(describeRule)
+      .sort();
+  }
+
+  const ISSUE_LADDER_RULES: Array<string> = [
+    `userCallId:${CALL_A.toString()}@5`,
+    `userPushId:${PUSH_A.toString()}@0 Standard every 5`,
+  ];
+
+  test("the issue's ladder: the new card's push is Standard and repeats every 5 minutes, not Critical and once", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    // Before the job runs, the new severity's four cards lack the ladder.
+    expect(readLadderOf(USER_A).differences).toHaveLength(4);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(
+        createdOn({ userId: USER_A, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual(ISSUE_LADDER_RULES);
+    }
+
+    // What the job wrote before #7452, on the same ladder: Critical, once.
+    expect(
+      createdRules.some((rule: UserNotificationRule): boolean => {
+        return Boolean(
+          rule.userPushId &&
+            (rule.pushNotificationLevel !== PushNotificationLevel.Standard ||
+              rule.repeatEveryMinutes !== 5),
+        );
+      }),
+    ).toBe(false);
+
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    for (const ruleType of ALERT_RULE_TYPES) {
+      expect(
+        createdOn({
+          userId: USER_A,
+          ruleType: ruleType,
+          severityId: ALERT_SEV_NEW,
+        }),
+      ).toEqual(ISSUE_LADDER_RULES);
+    }
+
+    // Done when: a ladder stays one ladder after a severity is added.
+    const reading: PagingLadderReading = readLadderOf(USER_A);
+
+    expect(reading.differences).toEqual([]);
+    expect(reading.isOneLadder).toBe(true);
+    expect(reading.steps).toEqual([
+      {
+        methodColumn: "userPushId",
+        methodId: PUSH_A.toString(),
+        notifyAfterMinutes: 0,
+        pushNotificationLevel: PushNotificationLevel.Standard,
+        repeatEveryMinutes: 5,
+      },
+      {
+        methodColumn: "userCallId",
+        methodId: CALL_A.toString(),
+        notifyAfterMinutes: 5,
+      },
+    ]);
+  });
+
+  test("people with different ladders each get their own, and nobody else's", async () => {
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+      { userId: USER_C, emailId: EMAIL_C },
+    ];
+
+    seedLadder(USER_A, ISSUE_LADDER);
+    // A critical push that rings again every 2 minutes, and nothing else.
+    seedLadder(USER_B, [
+      {
+        column: "userPushId",
+        methodId: PUSH_B,
+        wait: 0,
+        level: PushNotificationLevel.Critical,
+        repeat: 2,
+      },
+    ]);
+    // No push at all: email at once, an SMS after 10 minutes.
+    seedLadder(USER_C, [
+      { column: "userEmailId", methodId: EMAIL_C, wait: 0 },
+      { column: "userSmsId", methodId: SMS_C, wait: 10 },
+    ]);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(
+        createdOn({ userId: USER_A, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual(ISSUE_LADDER_RULES);
+      expect(
+        createdOn({ userId: USER_B, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual([`userPushId:${PUSH_B.toString()}@0 Critical every 2`]);
+      expect(
+        createdOn({ userId: USER_C, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual([
+        `userEmailId:${EMAIL_C.toString()}@0`,
+        `userSmsId:${SMS_C.toString()}@10`,
+      ]);
+    }
+
+    for (const ruleType of ALERT_RULE_TYPES) {
+      expect(
+        createdOn({
+          userId: USER_B,
+          ruleType: ruleType,
+          severityId: ALERT_SEV_NEW,
+        }),
+      ).toEqual([`userPushId:${PUSH_B.toString()}@0 Critical every 2`]);
+    }
+
+    for (const userId of [USER_A, USER_B, USER_C]) {
+      expect(readLadderOf(userId).isOneLadder).toBe(true);
+    }
+  });
+
+  test("a person with no ladder - no rules at all - gets their verified email at once, with no push settings", async () => {
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+    ];
+
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(
+        createdOn({ userId: USER_B, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual([`userEmailId:${EMAIL_B.toString()}@0`]);
+      expect(
+        createdOn({ userId: USER_A, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual(ISSUE_LADDER_RULES);
+    }
+  });
+
+  test("a person who muted every card gets the new card muted, not paged", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      for (const severityId of [SEV_1, SEV_2, SEV_3]) {
+        seedRule({
+          userId: USER_A,
+          ruleType: ruleType,
+          incidentSeverityId: severityId,
+          isOptOut: true,
+          notifyAfterMinutes: 0,
+        });
+      }
+    }
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(
+        createdOn({ userId: USER_A, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual(["none@0"]);
+    }
+  });
+
+  /*
+   * Live cards say what the person wants now. A muted tab stays muted, even
+   * when an archived severity still holds the rules from before the mute.
+   */
+  test("a muted tab stays muted beside an archived severity's old rules", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    incidentSeverityRows = [
+      ...incidentSeverityRows,
+      { id: SEV_ARCHIVED, isArchived: true },
+    ];
+
+    for (const severityId of [SEV_1, SEV_2, SEV_3]) {
+      seedRule({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        incidentSeverityId: severityId,
+        isOptOut: true,
+        notifyAfterMinutes: 0,
+      });
+    }
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_ARCHIVED,
+      userCallId: CALL_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual(["none@0"]);
+  });
+
+  test("a severity added twice: the second gets the ladder too, the first's new rules read as a card like the others", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    // A while later, another severity is added below it.
+    incidentSeverityRows = [...incidentSeverityRows, { id: SEV_NEW_2 }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW_2));
+
+    for (const severityId of [SEV_NEW, SEV_NEW_2]) {
+      for (const ruleType of INCIDENT_RULE_TYPES) {
+        expect(
+          createdOn({
+            userId: USER_A,
+            ruleType: ruleType,
+            severityId: severityId,
+          }),
+        ).toEqual(ISSUE_LADDER_RULES);
+      }
+    }
+
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    expect(readLadderOf(USER_A).isOneLadder).toBe(true);
+  });
+
+  test("two severities added in the same sweep both get the ladder, in either order", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    incidentSeverityRows = [...incidentSeverityRows, { id: SEV_NEW_2 }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    // The later one first: the earlier one's cards are still empty, and count for nothing.
+    await backfillSeverity(incidentSeverity(SEV_NEW_2));
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const severityId of [SEV_NEW, SEV_NEW_2]) {
+      for (const ruleType of INCIDENT_RULE_TYPES) {
+        expect(
+          createdOn({
+            userId: USER_A,
+            ruleType: ruleType,
+            severityId: severityId,
+          }),
+        ).toEqual(ISSUE_LADDER_RULES);
+      }
+    }
+
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    expect(readLadderOf(USER_A).isOneLadder).toBe(true);
+  });
+
+  test("the same severity backfilled again writes nothing more", async () => {
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+    ];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+    const afterFirstRun: Array<string> = createdRules.map(describeRule);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(createdRules.map(describeRule)).toEqual(afterFirstRun);
+    // USER_A's two steps on each of two cards, and USER_B's email on each.
+    expect(afterFirstRun).toHaveLength(6);
+  });
+
+  /*
+   * The existence check keys on method and delay, not on how the push sounds:
+   * a push to this device at this delay already pages it then. An overlapping
+   * run - or the responder, by hand - that wrote it at another level between
+   * this run's snapshot and its write is not joined by a second push.
+   */
+  test("a push already on the new card at another level is not joined by a second one", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    frozenSnapshot = [...ruleStore];
+
+    seedStep({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      severityColumn: "incidentSeverityId",
+      severityId: SEV_NEW,
+      step: {
+        column: "userPushId",
+        methodId: PUSH_A,
+        wait: 0,
+        level: PushNotificationLevel.Critical,
+      },
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userCallId:${CALL_A.toString()}@5`]);
+  });
+
+  /*
+   * Saving a ladder leaves an archived severity's rules as they were, so they
+   * often still say what the person said before. Mixed in, they would add a
+   * step the ladder no longer has, and a second push at the same moment.
+   */
+  test("an archived severity's old rules are not mixed into the new card", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    incidentSeverityRows = [
+      ...incidentSeverityRows,
+      { id: SEV_ARCHIVED, isArchived: true },
+    ];
+
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      seedRule({
+        userId: USER_A,
+        ruleType: ruleType,
+        incidentSeverityId: SEV_ARCHIVED,
+        userEmailId: EMAIL_A,
+        notifyAfterMinutes: 0,
+      });
+      seedRule({
+        userId: USER_A,
+        ruleType: ruleType,
+        incidentSeverityId: SEV_ARCHIVED,
+        userPushId: PUSH_A,
+        notifyAfterMinutes: 0,
+        pushNotificationLevel: PushNotificationLevel.Critical,
+        repeatEveryMinutes: 0,
+      });
+    }
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const ruleType of INCIDENT_RULE_TYPES) {
+      expect(
+        createdOn({ userId: USER_A, ruleType: ruleType, severityId: SEV_NEW }),
+      ).toEqual(ISSUE_LADDER_RULES);
+    }
+
+    await backfillSeverity(alertSeverity(ALERT_SEV_NEW));
+
+    expect(readLadderOf(USER_A).isOneLadder).toBe(true);
+  });
+
+  test("a rule on a severity the project no longer has is not mixed in either", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: new ObjectID("incident-severity-deleted"),
+      userSmsId: SMS_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual(ISSUE_LADDER_RULES);
+  });
+
+  test("an episode rule of no card, beside a ladder, is not mixed into the new card", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    seedLadder(USER_A, ISSUE_LADDER);
+
+    // A default episode rule from before episode rules had a severity (Gap G).
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      userEmailId: EMAIL_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual(ISSUE_LADDER_RULES);
+  });
+
+  test("with nothing on a live card, an archived severity's rules are still all the person has said", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+    incidentSeverityRows = [
+      { id: SEV_ARCHIVED, isArchived: true },
+      { id: SEV_NEW },
+    ];
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_ARCHIVED,
+      userPushId: PUSH_A,
+      notifyAfterMinutes: 15,
+      pushNotificationLevel: PushNotificationLevel.Standard,
+      repeatEveryMinutes: 10,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@15 Standard every 10`]);
+  });
+
+  test("cards that send a push differently: the new card sends it as most of them do, once", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    const settings: Array<{
+      severityId: ObjectID;
+      level: PushNotificationLevel;
+      repeat: number;
+    }> = [
+      { severityId: SEV_1, level: PushNotificationLevel.Critical, repeat: 0 },
+      { severityId: SEV_2, level: PushNotificationLevel.Standard, repeat: 5 },
+      { severityId: SEV_3, level: PushNotificationLevel.Standard, repeat: 5 },
+    ];
+
+    for (const setting of settings) {
+      seedStep({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityColumn: "incidentSeverityId",
+        severityId: setting.severityId,
+        step: {
+          column: "userPushId",
+          methodId: PUSH_A,
+          wait: 0,
+          level: setting.level,
+          repeat: setting.repeat,
+        },
+      });
+    }
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@0 Standard every 5`]);
+  });
+
+  test("a tie goes to the card first in the project's order, not to the row read first", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    // Read first, but on the second card.
+    seedStep({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      severityColumn: "incidentSeverityId",
+      severityId: SEV_2,
+      step: {
+        column: "userPushId",
+        methodId: PUSH_A,
+        wait: 0,
+        level: PushNotificationLevel.Critical,
+        repeat: 1,
+      },
+    });
+    seedStep({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      severityColumn: "incidentSeverityId",
+      severityId: SEV_1,
+      step: {
+        column: "userPushId",
+        methodId: PUSH_A,
+        wait: 0,
+        level: PushNotificationLevel.Standard,
+        repeat: 0,
+      },
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@0 Standard every 0`]);
+
+    // The project ranks Sev 2 first: now its card wins the tie.
+    ruleStore = ruleStore.filter((rule: UserNotificationRule): boolean => {
+      return rule.incidentSeverityId?.toString() !== SEV_NEW.toString();
+    });
+    createdRules = [];
+    incidentSeverityRows = [
+      { id: SEV_2 },
+      { id: SEV_1 },
+      { id: SEV_3 },
+      { id: SEV_NEW },
+    ];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@0 Critical every 1`]);
+  });
+
+  test("a push rule from before push settings existed is written at their defaults, explicitly", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userPushId: PUSH_A,
+      notifyAfterMinutes: 0,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@0 Critical every 0`]);
+  });
+
+  /*
+   * The rule service refuses a level or an interval it does not offer, and a
+   * refused write is a new card without the push. Neither can be stored
+   * through the service, but a row written before a check existed can hold
+   * one: it is written as the service reads it.
+   */
+  test("a level or repeat the rule service does not offer is written as the defaults, not refused", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    const odd: UserNotificationRule = seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      userPushId: PUSH_A,
+      notifyAfterMinutes: 0,
+    });
+    odd.pushNotificationLevel = "standard" as PushNotificationLevel;
+    odd.repeatEveryMinutes = 7;
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(
+      createdOn({
+        userId: USER_A,
+        ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+        severityId: SEV_NEW,
+      }),
+    ).toEqual([`userPushId:${PUSH_A.toString()}@0 Critical every 0`]);
+  });
+
+  test("the rule read selects how each push sounds and repeats", async () => {
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    expect(ruleFindAllBySpy).toHaveBeenCalledTimes(INCIDENT_RULE_TYPES.length);
+
+    for (const call of ruleFindAllBySpy.mock.calls) {
+      const select: Record<string, unknown> = (
+        call[0] as { select: Record<string, unknown> }
+      ).select;
+
+      expect(select["pushNotificationLevel"]).toBe(true);
+      expect(select["repeatEveryMinutes"]).toBe(true);
+      expect(select["userPushId"]).toBe(true);
+      expect(select["isOptOut"]).toBe(true);
+      expect(select["notifyAfterMinutes"]).toBe(true);
+    }
+  });
+
+  test("the cards are read once per severity, root-privileged, in the project's order, however many people there are", async () => {
+    verifiedEmails = [
+      { userId: USER_A, emailId: EMAIL_A },
+      { userId: USER_B, emailId: EMAIL_B },
+      { userId: USER_C, emailId: EMAIL_C },
+    ];
+    seedLadder(USER_A, ISSUE_LADDER);
+    seedLadder(USER_B, ISSUE_LADDER);
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    for (const spy of [incidentSeverityFindBySpy, alertSeverityFindBySpy]) {
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      const call: {
+        query: Record<string, unknown>;
+        sort: Record<string, unknown>;
+        props: { isRoot?: boolean | undefined };
+      } = spy.mock.calls[0]![0] as never;
+
+      expect(idOf(call.query["projectId"])).toBe(PROJECT_ID.toString());
+      expect(call.sort["order"]).toBeDefined();
+      expect(call.props.isRoot).toBe(true);
+    }
   });
 });

@@ -41,13 +41,16 @@ import {
  *   - planPagingLadderSave: the rows to create, change and delete so every
  *     live card holds the ladder, keeping the rows that already do.
  *   - getPagingLadderRules: the rows a ladder is, for a person with none.
+ *   - getPagingLadderStepsForNewCell: what a card added later starts with,
+ *     read from the person's other cards on its tab.
  *
  * Archived severities are left as they are. Nobody picks one again - the
  * server refuses a new rule for one (ArchivedValueCheck) - and the records
  * that keep one still page by its rules, so a ladder neither reads them nor
  * writes them. A severity added later is given the person's rules by the
- * backfill (Workers BackfillNotificationRulesForNewSeverities), which
- * mirrors what the person already has: a ladder, when they have one.
+ * backfill (Workers BackfillNotificationRulesForNewSeverities), which reads
+ * them with getPagingLadderStepsForNewCell: a ladder, push settings and
+ * all, when they have one.
  *
  * The order of a ladder is its waits: steps fire after their wait, and two
  * with the same wait fire together. Steps with the same wait are listed
@@ -85,6 +88,21 @@ export const getSeverityColumnForOnCallRuleKind: (
   kind: OnCallRuleKind,
 ) => PagingSeverityColumn = (kind: OnCallRuleKind): PagingSeverityColumn => {
   return SEVERITY_COLUMN_BY_KIND[kind];
+};
+
+// The severity column of a rule type, or null for a rule type of no card.
+export const getSeverityColumnForRuleType: (
+  ruleType: NotificationRuleType | string,
+) => PagingSeverityColumn | null = (
+  ruleType: NotificationRuleType | string,
+): PagingSeverityColumn | null => {
+  for (const kind of ON_CALL_RULE_KINDS) {
+    if (getRuleTypeForOnCallRuleKind(kind) === ruleType) {
+      return SEVERITY_COLUMN_BY_KIND[kind];
+    }
+  }
+
+  return null;
 };
 
 // The waits the page offers, in minutes; a rule can hold any other.
@@ -500,18 +518,21 @@ export const normalizePagingLadderSteps: (
 };
 
 /*
- * The step a rule is, or null for a rule that pages nothing: an opt-out
- * row ("do not page me here"), or a row that names no method. A row that
- * names two methods (possible through the API) is read by its first.
+ * Every step a rule pages, in the order a rule's columns are read: none
+ * for an opt-out row ("do not page me here") or a row that names no
+ * method, and two for a row that names two methods (possible through the
+ * API), which pages both.
  */
-export const getPagingLadderStepFromRule: (
+export const getPagingLadderStepsFromRule: (
   rule: PagingLadderRule,
-) => PagingLadderStep | null = (
+) => Array<PagingLadderStep> = (
   rule: PagingLadderRule,
-): PagingLadderStep | null => {
+): Array<PagingLadderStep> => {
   if (rule.isOptOut === true) {
-    return null;
+    return [];
   }
+
+  const steps: Array<PagingLadderStep> = [];
 
   for (const column of PAGING_METHOD_COLUMNS) {
     const methodId: string = readPagingId(rule[column]);
@@ -520,16 +541,31 @@ export const getPagingLadderStepFromRule: (
       continue;
     }
 
-    return normalizePagingLadderStep({
-      methodColumn: column,
-      methodId: methodId,
-      notifyAfterMinutes: readWait(rule.notifyAfterMinutes),
-      pushNotificationLevel: readPushLevel(rule.pushNotificationLevel),
-      repeatEveryMinutes: readRepeat(rule.repeatEveryMinutes),
-    });
+    steps.push(
+      normalizePagingLadderStep({
+        methodColumn: column,
+        methodId: methodId,
+        notifyAfterMinutes: readWait(rule.notifyAfterMinutes),
+        pushNotificationLevel: readPushLevel(rule.pushNotificationLevel),
+        repeatEveryMinutes: readRepeat(rule.repeatEveryMinutes),
+      }),
+    );
   }
 
-  return null;
+  return steps;
+};
+
+/*
+ * The step a rule is, or null for a rule that pages nothing: an opt-out
+ * row, or a row that names no method. A row that names two methods is read
+ * by its first.
+ */
+export const getPagingLadderStepFromRule: (
+  rule: PagingLadderRule,
+) => PagingLadderStep | null = (
+  rule: PagingLadderRule,
+): PagingLadderStep | null => {
+  return getPagingLadderStepsFromRule(rule)[0] || null;
 };
 
 // One card, as its rules make it.
@@ -990,6 +1026,200 @@ export const getPagingLadderRules: (data: {
     rules: [],
     steps: data.steps,
   }).create;
+};
+
+// What a card added later starts with, for one person.
+export interface PagingLadderNewCell {
+  // What it pages, in paging order: empty when nothing does.
+  steps: Array<PagingLadderStep>;
+  // Nothing read for it pages, and one of its rules is an opt-out: muted too.
+  isMuted: boolean;
+}
+
+// One way a card sends a step, and how many cards send it so.
+interface PagingLadderStepVote {
+  step: PagingLadderStep;
+  count: number;
+}
+
+/*
+ * THE RULES OF A CARD ADDED LATER (#7452).
+ *
+ * A severity the project adds is a new card on two tabs (Incidents and
+ * Incident Episodes, or Alerts and Alert Episodes), and nobody has a rule
+ * in it yet. The backfill (Workers BackfillNotificationRulesForNewSeverities)
+ * gives each person, in each new card, what their other cards on its tab
+ * page, read the way How to Reach Me reads them:
+ *
+ *   - The tab's live cards are read. An archived severity's rules, a rule
+ *     of no card (an episode rule written before episode rules had a
+ *     severity) and a rule on a severity the project no longer has are not
+ *     on the page, a ladder leaves them as they are, and mixed in they
+ *     would make the new card differ from the ladder. They are read only
+ *     for a person with no rule on any live card of the tab, as all that
+ *     person has said about it.
+ *   - Every method and wait those cards page is a step of the new card,
+ *     once: "Critical: a call at once" and "Minor: email after 15 minutes"
+ *     give both, so nobody loses a way to be reached.
+ *   - A push sounds and repeats as it does on most of the cards that send
+ *     it at that wait; a tie goes to the card first in the grid's order
+ *     (the most severe). Read without them, every new push rule was
+ *     Critical and sent once (#7452): a ladder of "push, Standard, every 5
+ *     minutes" now gives the new card exactly that, so one ladder stays
+ *     one ladder.
+ *   - When nothing read pages anything and one of the rules is an opt-out,
+ *     the new card is muted too: a person who muted the tab is not paged
+ *     for the severity added to it.
+ *
+ * Null when the person has no rule on the tab at all: the backfill gives
+ * them their verified email, at once.
+ */
+export const getPagingLadderStepsForNewCell: (data: {
+  // The project's cards, the new card among them or not.
+  cells: ReadonlyArray<PagingLadderCell>;
+  // The new card: its tab, by rule type, and its severity.
+  ruleType: NotificationRuleType | string;
+  severityId: string;
+  // One person's rules; those of other tabs, and of the new card, are not read.
+  rules: ReadonlyArray<PagingLadderRule>;
+}) => PagingLadderNewCell | null = (data: {
+  cells: ReadonlyArray<PagingLadderCell>;
+  ruleType: NotificationRuleType | string;
+  severityId: string;
+  rules: ReadonlyArray<PagingLadderRule>;
+}): PagingLadderNewCell | null => {
+  const severityColumn: PagingSeverityColumn | null =
+    getSeverityColumnForRuleType(data.ruleType);
+
+  if (!severityColumn) {
+    return null;
+  }
+
+  const newSeverityId: string = readPagingId(data.severityId);
+
+  const tabRules: Array<PagingLadderRule> = data.rules.filter(
+    (rule: PagingLadderRule): boolean => {
+      return (
+        rule.ruleType === data.ruleType &&
+        readPagingId(rule[severityColumn]) !== newSeverityId
+      );
+    },
+  );
+
+  if (tabRules.length === 0) {
+    return null;
+  }
+
+  // The tab's live cards, in the grid's order, each with the person's rules.
+  const liveCards: Map<string, Array<PagingLadderRule>> = new Map<
+    string,
+    Array<PagingLadderRule>
+  >();
+
+  for (const cell of getLivePagingLadderCells(data.cells)) {
+    if (cell.ruleType === data.ruleType && cell.severityId !== newSeverityId) {
+      liveCards.set(getPagingLadderCellKey(cell), []);
+    }
+  }
+
+  // The rest, by the severity they name ("" for none), in the order given.
+  const otherCards: Map<string, Array<PagingLadderRule>> = new Map<
+    string,
+    Array<PagingLadderRule>
+  >();
+
+  for (const rule of tabRules) {
+    const cellKey: string | null = getRuleCellKey(rule);
+    const liveCard: Array<PagingLadderRule> | undefined = cellKey
+      ? liveCards.get(cellKey)
+      : undefined;
+
+    if (liveCard) {
+      liveCard.push(rule);
+      continue;
+    }
+
+    const severityId: string = readPagingId(rule[severityColumn]);
+    const otherCard: Array<PagingLadderRule> = otherCards.get(severityId) || [];
+    otherCard.push(rule);
+    otherCards.set(severityId, otherCard);
+  }
+
+  let cards: Array<Array<PagingLadderRule>> = Array.from(
+    liveCards.values(),
+  ).filter((card: Array<PagingLadderRule>): boolean => {
+    return card.length > 0;
+  });
+
+  if (cards.length === 0) {
+    cards = Array.from(otherCards.values());
+  }
+
+  /*
+   * Each card votes once for how it sends each method at each wait (a step
+   * it says twice is said once), in the order the cards are read.
+   */
+  const votesByMethodAndWait: Map<
+    string,
+    Array<PagingLadderStepVote>
+  > = new Map<string, Array<PagingLadderStepVote>>();
+
+  for (const card of cards) {
+    const cardSteps: Array<PagingLadderStep> = [];
+
+    for (const rule of card) {
+      cardSteps.push(...getPagingLadderStepsFromRule(rule));
+    }
+
+    for (const cardStep of normalizePagingLadderSteps(cardSteps)) {
+      const methodAndWaitKey: string = getMethodAndWaitKey(cardStep);
+      const stepKey: string = getPagingLadderStepKey(cardStep);
+      const votes: Array<PagingLadderStepVote> =
+        votesByMethodAndWait.get(methodAndWaitKey) || [];
+
+      const known: PagingLadderStepVote | undefined = votes.find(
+        (vote: PagingLadderStepVote): boolean => {
+          return getPagingLadderStepKey(vote.step) === stepKey;
+        },
+      );
+
+      if (known) {
+        known.count++;
+      } else {
+        votes.push({ step: cardStep, count: 1 });
+      }
+
+      votesByMethodAndWait.set(methodAndWaitKey, votes);
+    }
+  }
+
+  const steps: Array<PagingLadderStep> = [];
+
+  for (const votes of votesByMethodAndWait.values()) {
+    // Most cards win; the first card read wins a tie.
+    let winner: PagingLadderStepVote = votes[0]!;
+
+    for (const vote of votes) {
+      if (vote.count > winner.count) {
+        winner = vote;
+      }
+    }
+
+    steps.push({ ...winner.step });
+  }
+
+  if (steps.length > 0) {
+    return { steps: steps.sort(comparePagingLadderSteps), isMuted: false };
+  }
+
+  return {
+    steps: [],
+    isMuted: cards.some((card: Array<PagingLadderRule>): boolean => {
+      return card.some((rule: PagingLadderRule): boolean => {
+        return rule.isOptOut === true;
+      });
+    }),
+  };
 };
 
 // Whether a plan writes nothing.

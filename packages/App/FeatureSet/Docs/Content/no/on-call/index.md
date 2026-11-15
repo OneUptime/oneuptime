@@ -102,7 +102,7 @@ Når du har vakt for en retningslinje, viser klokken øverst til høyre det. Kli
 ## Feilsøking
 
 :::details Ingen ble tilkalt for en ny hendelse
-Åpne siden **Vaktutførelser** for hendelsen. Er den tom, hadde hendelsen ingen vaktretningslinje: ingen ble valgt på den, og ingen vaktregel passet. En kjøring med **Execution Completed - No One Notified** gikk gjennom alle eskaleringsregler uten å finne noen: som regel en vaktplan der ingen har vakt. Se [Utførelseslogger](/docs/on-call/policies#utførelseslogger). En kjøring med **Venter** venter på arbeidstiden for en vaktregel satt til **Bare i arbeidstiden** og tilkaller ingen før den begynner.
+Åpne siden **Vaktutførelser** for hendelsen. Er den tom, hadde hendelsen ingen vaktretningslinje: ingen ble valgt på den, og ingen vaktregel passet. En kjøring med **Utførelse fullført - ingen varslet** gikk gjennom alle eskaleringsregler uten å finne noen: som regel en vaktplan der ingen har vakt. Se [Utførelseslogger](/docs/on-call/policies#utførelseslogger). En kjøring med **Venter** venter på arbeidstiden for en vaktregel satt til **Bare i arbeidstiden** og tilkaller ingen før den begynner.
 :::
 
 :::details Noen ble tilkalt på feil kanal, eller ikke i det hele tatt

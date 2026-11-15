@@ -29,25 +29,25 @@ Die meisten Nachrichten können den Alarm bestätigen: E-Mails, SMS und Nachrich
 
 ## Ein Ablauf für alles
 
-**Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: den Schritten, die jeder Alarm versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist eine Ihrer verifizierten Methoden und der Zeitpunkt, sie zu verwenden, etwa sofort eine SMS und nach 5 Minuten ein Anruf. Schritte mit derselben Wartezeit gehen zusammen hinaus, sodass sich der Ablauf in der Reihenfolge liest, in der er alarmiert.
+**Benutzereinstellungen → Wie ich erreichbar bin** öffnet sich mit Ihrem Ablauf: nummerierten Schritten, die jeder Alarm der Reihe nach versucht, für Vorfälle, Warnungen und Episoden jedes Schweregrads. Jeder Schritt ist ein Zeitpunkt, etwa sofort oder nach 5 Minuten, mit den verifizierten Methoden, die dann zusammen hinausgehen. Ein späterer Schritt geht nur hinaus, wenn bis dahin noch niemand den Alarm bestätigt hat.
 
 :::steps
 ### Eine Möglichkeit hinzufügen, Sie zu erreichen
 
-Wählen Sie unter **Eine Möglichkeit hinzufügen, Sie zu erreichen** eine Ihrer verifizierten Methoden. Eine Nummer oder Adresse, die noch auf ihren Code wartet, steht unter **Noch nicht verifiziert**, mit **Verifizieren**.
+Klicken Sie bei einem Schritt auf **Hinzufügen**, um eine Ihrer verifizierten Methoden zum Zeitpunkt dieses Schritts zu senden, oder auf **Schritt hinzufügen**, um nach dem letzten Schritt einen neuen zu beginnen. Eine Nummer oder Adresse, die noch auf ihren Code wartet, steht unter **Noch nicht verifiziert**, mit **Verifizieren**.
 
 ### Festlegen, wann sie verwendet wird
 
-Wählen Sie neben jedem Schritt eine Wartezeit von **Sofort** bis **1 Stunde**. Ein Push-Schritt sagt außerdem, wie er klingt und ob er sich wiederholt: siehe [Push-Regeln](#push-regeln).
+Klicken Sie auf den Zeitpunkt eines Schritts, etwa **Sofort**, und wählen Sie einen anderen, bis zu einer Stunde: Der ganze Schritt zieht mit. Ein Push-Schritt sagt außerdem, wie er klingt und ob er sich wiederholt: siehe [Push-Regeln](#push-regeln).
 
 ### Speichern
 
-Klicken Sie auf **Ablauf speichern**. Das schreibt dieselben Regeln in jede Karte jedes Tabs: die Regeln, die Sie jeder Karte von Hand hinzufügen würden.
+Klicken Sie auf **Änderungen speichern**, das erscheint, sobald sich etwas geändert hat. Das schreibt dieselben Regeln in jede Karte jedes Tabs: die Regeln, die Sie jeder Karte von Hand hinzufügen würden.
 :::
 
 **Ihre Alarmierungen testen**, am Fuß der Seite, sendet Ihnen einen Testalarm durch sie.
 
-Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders** die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert, und der Ablauf nennt, was jede stattdessen tut. Weichen Ihre Regeln schon ab, öffnet sich die Seite mit den Karten und mit **Einen Ablauf für alles verwenden**: Beim Speichern nennt es zuerst die Karten, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
+Verdient ein Schweregrad etwas anderes, öffnet **Für einige Schweregrade anders** unter den Schritten die unten beschriebenen Tabs und Karten. Eine Karte, die von Ihrem Ablauf abweicht, ist mit **Weicht vom Ablauf ab** markiert, und der Ablauf nennt, was jede stattdessen tut. Weichen Ihre Regeln schon ab, öffnet sich die Seite mit den Karten und mit **Einen Ablauf für alles verwenden**: Beim Speichern nennt es zuerst die Karten, die ihre Abweichung verlieren. Ein Schweregrad, den Ihr Projekt archiviert hat, behält seine eigenen Regeln.
 
 Eine Bereitschaftsrichtlinie entscheidet, wer alarmiert wird und wann ihre nächste Stufe kommt. Wie Sie erreicht werden, ist dieser Ablauf, für jede Richtlinie, die Sie alarmiert.
 
@@ -121,7 +121,7 @@ Eine Push-Regel, für ein Telefon oder einen Browser, kann ihren Push auch wiede
 
 ## Wenn ein Schweregrad keine Regel hat
 
-Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort.
+Ein Schweregrad, den Ihr Projekt später hinzufügt, erhält innerhalb weniger Minuten Regeln, gebildet aus dem, was Sie auf diesem Tab bereits gewählt haben: dieselben Methoden, nach denselben Wartezeiten, und ein Push, der genauso klingt und sich genauso wiederholt. Hatten Sie auf diesem Tab keine Regeln, erhält er Ihre verifizierte E-Mail, sofort.
 
 Ein Alarm, der trotzdem keine Regel findet, geht dennoch an Ihre verifizierten Methoden, und Sie erhalten darüber eine E-Mail; siehe [Wenn keine Regel passt](/docs/notifications/index#wenn-keine-regel-passt).
 

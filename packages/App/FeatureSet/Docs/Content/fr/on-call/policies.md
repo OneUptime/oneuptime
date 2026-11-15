@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **En attente** | Une règle d'astreinte réglée sur **Uniquement pendant les heures ouvrées** fait attendre l'exécution jusqu'au début de ces heures : elle indique quand les alertes commencent, et n'alerte personne d'ici là. Elle se termine sans alerter si l'incident ou l'alerte est pris en compte ou résolu avant. Elle commence aussitôt à alerter si l'incident ou l'alerte change et correspond désormais à une règle d'astreinte qui alerte immédiatement. |
 | **Planifié**, **Démarrée** | L'exécution est en préparation. Une exécution encore là après 5 minutes est arrêtée en **Erreur**. |
-| **Executing** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
-| **Execution Completed** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |
-| **Execution Completed - No One Notified** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte, ou un niveau sans intervenant. |
+| **Exécution en cours** | L'exécution alerte. OneUptime la fait avancer chaque minute. |
+| **Exécution terminée** | Quelqu'un a pris en compte, l'incident ou l'alerte a été résolu, chaque règle et chaque répétition ont été utilisées, ou la politique a été archivée. |
+| **Exécution terminée - personne n'a été notifié** | L'exécution a parcouru chaque règle sans alerter personne : en général un planning où personne n'est d'astreinte, ou un niveau sans intervenant. |
 | **Erreur** | L'exécution a échoué. **Voir le message de statut** indique pourquoi. |
 
 Vous trouvez les journaux d'exécution à trois endroits :
@@ -160,7 +160,7 @@ Pour créer une politique avec son premier niveau en une seule requête, voir [C
 ## Dépannage
 
 :::details Une politique s'est exécutée, mais personne n'a été alerté
-Son exécution indique **Execution Completed - No One Notified**. Ouvrez **Voir la chronologie** : une ligne **Personne n'était d'astreinte** désigne un planning avec un trou, et le message de statut d'une ligne **Ignoré** dit pourquoi, par exemple quelqu'un d'absent sans personne pour le remplacer. **Astreinte → Disponibilité** montre qui n'a pas pu être joint.
+Son exécution indique **Exécution terminée - personne n'a été notifié**. Ouvrez **Voir la chronologie** : une ligne **Personne n'était d'astreinte** désigne un planning avec un trou, et le message de statut d'une ligne **Ignoré** dit pourquoi, par exemple quelqu'un d'absent sans personne pour le remplacer. **Astreinte → Disponibilité** montre qui n'a pas pu être joint.
 :::
 
 :::details Le niveau suivant a été alerté une minute après son attente

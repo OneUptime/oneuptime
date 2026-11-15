@@ -2913,9 +2913,13 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain("**Needs attention** ends with **Setup**");
 
     // The page, by the title it shows and the name Search finds it by.
-    expect(pageWords).toContain('title: translationKey("Setup Health"),');
-    expect(dashboard("Pages/Home/SetupHealth.tsx")).toContain(
-      '<Page title="Setup Health"',
+    const setupHealthPage: string = oneLine(
+      dashboard("Pages/Home/SetupHealth.tsx"),
+    );
+
+    expect(setupHealthPage).toContain('<Page title="Setup Health"');
+    expect(setupHealthPage).toContain(
+      "description={SETUP_HEALTH_WORDS_PAGE.description}",
     );
     expect(
       oneLine(dashboard("Components/CommandPalette/PageSearchIndex.ts")),
@@ -2932,6 +2936,16 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain(
       `worst first, under **${levelTitles[0]}**, **${levelTitles[1]}** and **${levelTitles[2]}**`,
     );
+
+    // The verdict it opens with, and what a finding reaches, as the page words them.
+    expect(pageWords).toContain(
+      'nothingToFix: translationKey("Nothing to fix."),',
+    );
+    expect(section).toContain("or **Nothing to fix**");
+    expect(pageWords).toContain(
+      'export const SETUP_HEALTH_AFFECTS: string = translationKey("Affects");',
+    );
+    expect(section).toContain("the monitors or policies it **Affects**");
 
     // A monitor's findings are its own card's breaks; dismissed ones fold away.
     expect(

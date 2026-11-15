@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import AggregatedModel from "../../Types/BaseDatabase/AggregatedModel";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+import { readOwnValue, writeOwnValue } from "../LookupTable";
 
 /*
  * The fingerprints of label sets seen lately, by their canonical text
@@ -111,15 +112,26 @@ export default class MetricSeriesFingerprint {
 
     if (input.attributeKeys && input.attributeKeys.length > 0) {
       for (const key of input.attributeKeys) {
-        const value: JSONValue | undefined = sampleAttributes[key];
+        /*
+         * The sample's own attributes only. A monitor may group by an
+         * attribute named constructor or toString, and a plain read of a
+         * sample without it found the function every object inherits: its
+         * text became the label, and the fingerprint hashed it. The label
+         * is written as the result's own key, so one named __proto__ is a
+         * label too, not dropped.
+         */
+        const value: JSONValue | undefined = readOwnValue(
+          sampleAttributes,
+          key,
+        );
         if (value !== undefined && value !== null) {
-          result[key] = value;
+          writeOwnValue(result, key, value);
         } else {
           /*
            * Preserve the key even when missing so the fingerprint stays
            * stable across evaluations that happen to drop the attribute.
            */
-          result[key] = "";
+          writeOwnValue<JSONValue>(result, key, "");
         }
       }
       return result;
@@ -133,7 +145,7 @@ export default class MetricSeriesFingerprint {
       if (value === undefined || value === null) {
         continue;
       }
-      result[key] = value as JSONValue;
+      writeOwnValue(result, key, value as JSONValue);
     }
     return result;
   }
