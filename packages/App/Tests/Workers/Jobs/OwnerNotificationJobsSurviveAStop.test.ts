@@ -19,6 +19,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "Common/Types/Notification/OwnerNotificationDelivery";
 import ObjectID from "Common/Types/ObjectID";
@@ -379,6 +380,11 @@ function idOf(user: User): string {
   return user.id!.toString();
 }
 
+// Whether a feed item's details name the owner: by their markdown, or name and address.
+function namesOwner(markdown: string, user: User): boolean {
+  return markdown.includes(idOf(user)) || markdown.includes(user.email!.toString());
+}
+
 const NEVER: Promise<never> = new Promise<never>(() => {
   // a stopped worker hears nothing back
 });
@@ -424,6 +430,8 @@ interface JobCase {
   feedItems: () => Array<{ moreInformationInMarkdown: string }>;
   // Whether its feed item names whom it reached.
   namesWhomItReached: boolean;
+  // The feed's create, for the jobs that write a feed item.
+  feedService?: unknown;
 }
 
 function incident(): Incident {
@@ -572,6 +580,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: incidentFeed,
+    feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
       asMock(IncidentService.findCreatedNotificationsDue).mockImplementation(
@@ -591,6 +600,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: alertFeed,
+    feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
       asMock(AlertService.findCreatedNotificationsDue).mockImplementation(
@@ -610,6 +620,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: incidentFeed,
+    feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
 
@@ -653,6 +664,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: alertFeed,
+    feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
 
@@ -693,6 +705,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: incidentFeed,
+    feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
 
@@ -731,6 +744,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: incidentFeed,
+    feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
 
@@ -764,6 +778,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: alertFeed,
+    feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
 
@@ -855,6 +870,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: incidentFeed,
+    feedService: IncidentFeedService.createIncidentFeedItem,
     arrange: (): void => {
       arrangeIncident();
       asMock(IncidentService.findAllBy).mockImplementation(
@@ -882,6 +898,7 @@ const CASES: Array<JobCase> = [
     occurrence: 1,
     namesWhomItReached: true,
     feedItems: alertFeed,
+    feedService: AlertFeedService.createAlertFeedItem,
     arrange: (): void => {
       arrangeAlert();
       asMock(AlertService.findAllBy).mockImplementation(
@@ -1254,11 +1271,125 @@ describe.each(CASES)("$title", (jobCase: JobCase) => {
 
     expect(sendsByOwner()).toEqual(everyOwnerOnce());
     expect(world.takes).toBe(1);
+
+    if (!jobCase.namesWhomItReached) {
+      expect(jobCase.feedItems()).toEqual([]);
+      return;
+    }
+
     /*
-     * The feed item the stopped run had still to write stays unwritten: a
-     * run finds nobody left to tell, and the run that told them says so.
+     * The feed item the stopped run had still to write is written by the
+     * next run, once, naming every owner the stopped run told (#8510).
      */
-    expect(jobCase.feedItems()).toEqual([]);
+    expect(jobCase.feedItems()).toHaveLength(1);
+
+    for (const owner of OWNERS) {
+      expect([
+        idOf(owner),
+        namesOwner(jobCase.feedItems()[0]!.moreInformationInMarkdown, owner),
+      ]).toEqual([idOf(owner), true]);
+    }
+
+    expect(table.feedStatusOf(jobCase.eventId, jobCase.occurrence)).toBe(
+      OwnerNotificationFeedStatus.Written,
+    );
+  });
+
+  test("stopped after the last owner was told, before the feed item: a later run writes it once, naming every owner told", async () => {
+    if (!jobCase.namesWhomItReached) {
+      return;
+    }
+
+    // The worker is killed as it writes the feed item.
+    asMock(jobCase.feedService).mockImplementationOnce(async () => {
+      world.stoppedAt.push("feed");
+      await NEVER;
+    });
+
+    void runJob();
+    await untilStopped();
+
+    expect(sendsByOwner()).toEqual(everyOwnerOnce());
+    expect(table.feedStatusOf(jobCase.eventId, jobCase.occurrence)).toBe(
+      OwnerNotificationFeedStatus.Pending,
+    );
+
+    // A run a moment later leaves it: the stopped run may still be at it.
+    await restartedMinutesLater(1);
+    expect(jobCase.feedItems()).toHaveLength(1);
+
+    await restartedMinutesLater(
+      OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+    );
+    await restartedMinutesLater(30);
+
+    // The call the stopped run never finished, and the later run's.
+    expect(jobCase.feedItems()).toHaveLength(2);
+    for (const owner of OWNERS) {
+      expect([
+        idOf(owner),
+        namesOwner(jobCase.feedItems()[1]!.moreInformationInMarkdown, owner),
+      ]).toEqual([idOf(owner), true]);
+    }
+    expect(sendsByOwner()).toEqual(everyOwnerOnce());
+    expect(world.takes).toBe(1);
+    expect(table.feedStatusOf(jobCase.eventId, jobCase.occurrence)).toBe(
+      OwnerNotificationFeedStatus.Written,
+    );
+  });
+
+  test("a feed item that fails to write is written by a later run, and given up after three runs set out", async () => {
+    if (!jobCase.namesWhomItReached) {
+      return;
+    }
+
+    asMock(jobCase.feedService).mockRejectedValue(
+      new Error("the feed refused it"),
+    );
+
+    await runJob();
+    expect(sendsByOwner()).toEqual(everyOwnerOnce());
+
+    for (let run: number = 0; run < 5; run++) {
+      await restartedMinutesLater(
+        OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+      );
+    }
+
+    // The run that told them, and the two more a notification is given.
+    expect(asMock(jobCase.feedService).mock.calls).toHaveLength(
+      OwnerNotificationDeliveries.ATTEMPTS_AT_MOST,
+    );
+    expect(sendsByOwner()).toEqual(everyOwnerOnce());
+    expect(table.feedStatusOf(jobCase.eventId, jobCase.occurrence)).toBe(
+      OwnerNotificationFeedStatus.NotWritten,
+    );
+  });
+
+  test("two workers taking up the feed item a stopped run left unwritten write it once between them", async () => {
+    if (!jobCase.namesWhomItReached) {
+      return;
+    }
+
+    asMock(jobCase.feedService).mockImplementationOnce(async () => {
+      world.stoppedAt.push("feed");
+      await NEVER;
+    });
+
+    void runJob();
+    await untilStopped();
+
+    now = new Date(
+      now.getTime() +
+        OwnerNotificationDeliveries.RESUME_AFTER_MINUTES * 60 * 1000,
+    );
+    table.interleave(true);
+    await Promise.all([runJob(), runJob()]);
+    table.interleave(false);
+
+    // The stopped run's unfinished call, and one more.
+    expect(jobCase.feedItems()).toHaveLength(2);
+    expect(sendsByOwner()).toEqual(everyOwnerOnce());
   });
 
   test("stopped before the take: the next run tells each owner once, and takes the record once", async () => {

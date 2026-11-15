@@ -1,6 +1,7 @@
 /*
- * WHAT THE OWNERS OF AN INCIDENT OR AN ALERT ARE TOLD, OWNER BY OWNER
- * (issue #8199).
+ * WHAT THE OWNERS OF A RECORD ARE TOLD, OWNER BY OWNER (issues #8199,
+ * #8509, #8510): an incident, an alert, an episode of either, a monitor, a
+ * scheduled maintenance event, a status page, an SLO or a network device.
  *
  * Each owner notification job takes (marks) the record it is about - the
  * incident or alert just created, a state change, a note, an owner row, a
@@ -27,6 +28,30 @@ export enum OwnerNotificationKind {
   AlertInternalNotePosted = "AlertInternalNotePosted",
   AlertOwnerAdded = "AlertOwnerAdded",
   AlertReminder = "AlertReminder",
+  IncidentEpisodeCreated = "IncidentEpisodeCreated",
+  IncidentEpisodeStateChanged = "IncidentEpisodeStateChanged",
+  IncidentEpisodeInternalNotePosted = "IncidentEpisodeInternalNotePosted",
+  IncidentEpisodeIncidentAdded = "IncidentEpisodeIncidentAdded",
+  IncidentEpisodeOwnerAdded = "IncidentEpisodeOwnerAdded",
+  AlertEpisodeCreated = "AlertEpisodeCreated",
+  AlertEpisodeStateChanged = "AlertEpisodeStateChanged",
+  AlertEpisodeInternalNotePosted = "AlertEpisodeInternalNotePosted",
+  AlertEpisodeAlertAdded = "AlertEpisodeAlertAdded",
+  AlertEpisodeOwnerAdded = "AlertEpisodeOwnerAdded",
+  MonitorCreated = "MonitorCreated",
+  MonitorStatusChanged = "MonitorStatusChanged",
+  MonitorOwnerAdded = "MonitorOwnerAdded",
+  ScheduledMaintenanceCreated = "ScheduledMaintenanceCreated",
+  ScheduledMaintenanceStateChanged = "ScheduledMaintenanceStateChanged",
+  ScheduledMaintenancePublicNotePosted = "ScheduledMaintenancePublicNotePosted",
+  ScheduledMaintenanceInternalNotePosted = "ScheduledMaintenanceInternalNotePosted",
+  ScheduledMaintenanceOwnerAdded = "ScheduledMaintenanceOwnerAdded",
+  ScheduledMaintenanceReminder = "ScheduledMaintenanceReminder",
+  StatusPageCreated = "StatusPageCreated",
+  StatusPageAnnouncementCreated = "StatusPageAnnouncementCreated",
+  StatusPageOwnerAdded = "StatusPageOwnerAdded",
+  ServiceLevelObjectiveOwnerAdded = "ServiceLevelObjectiveOwnerAdded",
+  NetworkDeviceOwnerAdded = "NetworkDeviceOwnerAdded",
 }
 
 export enum OwnerNotificationDeliveryStatus {
@@ -50,4 +75,25 @@ export enum OwnerNotificationDeliveryStatus {
    * stopped part way.
    */
   Failed = "Failed",
+}
+
+/*
+ * Whether the feed item a notification writes on its record - naming whom
+ * it reached - is written yet (#8510). Kept on each of the notification's
+ * rows, all alike. None for a notification that writes no feed item, and
+ * for the rows written before this was kept.
+ */
+export enum OwnerNotificationFeedStatus {
+  /*
+   * To write: by the run that tells the owners, once it has. A run that
+   * stopped after its last owner and before the feed item leaves it so, and
+   * a later run writes it (OwnerNotificationDeliveries.resume).
+   */
+  Pending = "Pending",
+  Written = "Written",
+  /*
+   * Not written, and never will be: the record is gone, nobody was told, or
+   * every run that set out to write it stopped part way.
+   */
+  NotWritten = "NotWritten",
 }

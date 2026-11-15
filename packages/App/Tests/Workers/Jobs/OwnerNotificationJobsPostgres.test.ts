@@ -425,14 +425,14 @@ describePostgres("the owner notification jobs, against Postgres", () => {
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
 
     // The real statement, stopped before it is sent for one owner when a test says.
-    const startTelling: (id: ObjectID) => Promise<boolean> =
+    const startTelling: (id: ObjectID, at: Date) => Promise<boolean> =
       OwnerNotificationDeliveryService.startTelling.bind(
         OwnerNotificationDeliveryService,
       );
 
     jest
       .spyOn(OwnerNotificationDeliveryService, "startTelling")
-      .mockImplementation(async (id: ObjectID): Promise<boolean> => {
+      .mockImplementation(async (id: ObjectID, at: Date): Promise<boolean> => {
         if (world.startTellingStopsFor) {
           const rows: Array<{ userId: string }> = await database.query(
             `SELECT "userId" FROM "${schema}"."OwnerNotificationDelivery" WHERE "_id" = $1`,
@@ -446,7 +446,7 @@ describePostgres("the owner notification jobs, against Postgres", () => {
           }
         }
 
-        return await startTelling(id);
+        return await startTelling(id, at);
       });
   });
 
