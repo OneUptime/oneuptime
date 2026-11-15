@@ -48,7 +48,7 @@ Gå til **Prosjektinnstillinger** > **Varsler** > **Varslingskanaler**, og åpne
 
 ### Opprett policyen
 
-Gå til **Vakt** > **Policyer for innkommende anrop**, og klikk på **Opprett Policyer for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
+Gå til **Vakt** > **Policyer for innkommende anrop**, og klikk på **Opprett Policy for innkommende anrop**. Gi den et **Navn**, for eksempel "Supportlinje"; **Beskrivelse** og **Etiketter** er valgfrie, under **Flere felt**. Den nye policyen åpnes på sin **Oversikt**.
 
 ### Velg Twilio-kontoen
 
@@ -153,7 +153,7 @@ For å frigi et nummer klikker du på **Frigi nummer** ved siden av det og bekre
 En regel ringer en person på nummeret personen har verifisert for innkommende anrop i dette prosjektet, og hopper over alle som ikke har et. Hver person legger til sitt eget:
 
 :::steps
-1. Åpne **Brukerinnstillinger** > **Policyer for innkommende anrop** > **Innkommende telefonnumre**. **Policyer for innkommende anrop** er en del av sidemenyen som starter sammenslått.
+1. Åpne **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**. **Policy for innkommende anrop** er en del av sidemenyen som starter sammenslått.
 2. Klikk på **Legg til Telefonnummer for innkommende anropsruting** i kortet **Telefonnumre for innkommende anropsruting**, og skriv inn nummeret med landskode, for eksempel `+15551234567`.
 3. Skriv inn den 6-sifrede koden OneUptime sender til nummeret på SMS under **Verifiseringskode**, og klikk på **Verifiser**. **Send a new code** sender en ny.
 :::
@@ -259,7 +259,7 @@ En regel som opprettes gjennom API-et uten `escalateAfterSeconds`, ringer i 20 s
 :::
 
 :::details Anropet besvares, men ingen ringes
-Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Policyer for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
+Anropsloggen sier **Mislyktes**. Sjekk at **Besvar anrop** er slått på under policyens **Innstillinger**, at vaktplanen i hver regel har noen på vakt akkurat nå, og at personene reglene ringer, har et verifisert nummer under **Brukerinnstillinger** > **Policy for innkommende anrop** > **Innkommende telefonnumre**, i dette prosjektet. Regler ringer bare medlemmer av prosjektet.
 :::
 
 :::details Anrop havner i talepostkassen
