@@ -280,11 +280,35 @@ describe("a failure cause, as a summary draws it", () => {
     );
   });
 
+  /*
+   * The AggregateError sentence round a message is one of the probe's
+   * causes with values now (ProbeFailureCauses, #8267): its own words read
+   * in the reader's language, the message it holds as written.
+   */
+  test("the AggregateError sentence round the timeout sentence: its words in the reader's language, the message as written", () => {
+    const cause: string =
+      "Request failed with AggregateError (all connection attempts failed). Request was tried 3 times and it timed out.";
+    const text: string = getProbeFailureCauseText({
+      translator: dashboardTranslator("de"),
+      failureCause: cause,
+    });
+
+    expect(text).toBe(
+      "Die Anfrage ist mit AggregateError fehlgeschlagen (alle Verbindungsversuche sind fehlgeschlagen). Request was tried 3 times and it timed out.",
+    );
+    expect(
+      getProbeFailureCauseText({
+        translator: dashboardTranslator("en"),
+        failureCause: cause,
+      }),
+    ).toBe(cause);
+  });
+
   test.each([
     "connect ECONNREFUSED 203.0.113.7:443",
     "Request timed out after 10000 ms",
     "Request was tried 3 times and it timed out",
-    "Request failed with AggregateError (all connection attempts failed). Request was tried 3 times and it timed out.",
+    "Request failed with AggregateError, all connection attempts failed. Request was tried 3 times and it timed out.",
   ])(
     "any other cause stays as written, in every language: %s",
     (cause: string) => {
