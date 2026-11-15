@@ -1945,6 +1945,15 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         asMock(service.findAllBy).mockResolvedValue([]);
       }
 
+      const theOwners: () => Promise<Array<User>> = async (): Promise<
+        Array<User>
+      > => {
+        return world.owners;
+      };
+      const isResolved: () => Promise<boolean> = async (): Promise<boolean> => {
+        return world.isResolved;
+      };
+
       for (const service of EVERY_RESOURCE_SERVICES) {
         const each: Record<string, unknown> = service as unknown as Record<
           string,
@@ -1956,13 +1965,9 @@ describe.each([...CASES, ...EVERY_RESOURCE_CASES])(
         asMock(each["findOneBy"]).mockResolvedValue(null);
         asMock(each["findOneById"]).mockResolvedValue(null);
         asMock(each["updateOneById"]).mockResolvedValue(undefined);
-        asMock(each["findOwners"]).mockImplementation(async () => {
-          return world.owners;
-        });
+        asMock(each["findOwners"]).mockImplementation(theOwners);
         asMock(each["isScheduledMaintenanceCompleted"]).mockImplementation(
-          async () => {
-            return world.isResolved;
-          },
+          isResolved,
         );
         asMock(each["isScheduledMaintenanceOngoing"]).mockResolvedValue(false);
         asMock(each["getMonitorDestinationInfo"]).mockReturnValue({

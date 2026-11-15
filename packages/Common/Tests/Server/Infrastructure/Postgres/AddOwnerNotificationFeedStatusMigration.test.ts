@@ -165,9 +165,7 @@ describe("the owner notification feed status migrations", () => {
         new AddOwnerNotificationFeedStatusIndex1809179510000(),
         "down",
       ),
-    ).toEqual([
-      `online: DROP INDEX "public"."IDX_6949512eb6ccac3f68f3d589a4"`,
-    ]);
+    ).toEqual([`online: DROP INDEX "public"."IDX_6949512eb6ccac3f68f3d589a4"`]);
     expect(
       await record(new AddOwnerNotificationFeedStatus1809179500000(), "down"),
     ).toEqual([

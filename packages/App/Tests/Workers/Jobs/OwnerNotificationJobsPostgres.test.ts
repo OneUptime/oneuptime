@@ -12,6 +12,7 @@ import { JSONObject } from "Common/Types/JSON";
 import Name from "Common/Types/Name";
 import {
   OwnerNotificationDeliveryStatus,
+  OwnerNotificationFeedStatus,
   OwnerNotificationKind,
 } from "Common/Types/Notification/OwnerNotificationDelivery";
 import ObjectID from "Common/Types/ObjectID";
@@ -113,6 +114,65 @@ jest.mock("Common/Server/Services/IncidentService", () => {
   };
 });
 
+// A service with every read and write the three jobs of other resources make.
+function mockAnyService(): unknown {
+  return {
+    __esModule: true,
+    default: {
+      findAllBy: jest.fn(),
+      findBy: jest.fn(),
+      findOneById: jest.fn(),
+      findOneBy: jest.fn(),
+      updateOneById: jest.fn(),
+      findOwners: jest.fn(),
+      getMonitorLinkInDashboard: jest.fn(),
+      getMonitorDestinationInfo: jest.fn(),
+      getScheduledMaintenanceLinkInDashboard: jest.fn(),
+      getStatusPageLinkInDashboard: jest.fn(),
+      createScheduledMaintenanceFeedItem: jest.fn(),
+      getUsersInTeams: jest.fn(),
+      filterUsersToProjectMembers: jest.fn(),
+    },
+  };
+}
+
+jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
+  return mockAnyService();
+});
+jest.mock(
+  "Common/Server/Services/ScheduledMaintenanceStateTimelineService",
+  () => {
+    return mockAnyService();
+  },
+);
+jest.mock("Common/Server/Services/ScheduledMaintenanceStateService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/ScheduledMaintenanceFeedService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MonitorService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MonitorStatusTimelineService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/MonitorStatusService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StatusPageService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StatusPageOwnerTeamService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/StatusPageOwnerUserService", () => {
+  return mockAnyService();
+});
+jest.mock("Common/Server/Services/TeamMemberService", () => {
+  return mockAnyService();
+});
+
 jest.mock("Common/Server/Services/IncidentStateTimelineService", () => {
   return {
     __esModule: true,
@@ -200,6 +260,9 @@ jest.mock("Common/Server/Utils/PushNotificationUtil", () => {
       createGenericNotification: jest.fn(() => {
         return {};
       }),
+      createMonitorStatusChangedNotification: jest.fn(() => {
+        return {};
+      }),
     },
   };
 });
@@ -227,6 +290,18 @@ import OwnerNotificationDeliveries from "Common/Server/Utils/Notification/OwnerN
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendStateChangeNotification";
 import "../../../FeatureSet/Workers/Jobs/IncidentOwners/SendUnresolvedReminderNotification";
+import "../../../FeatureSet/Workers/Jobs/ScheduledMaintenanceOwners/SendStateChangeNotification";
+import "../../../FeatureSet/Workers/Jobs/MonitorOwners/SendStatusChangeNotification";
+import "../../../FeatureSet/Workers/Jobs/StatusPageOwners/SendOwnerAddedNotification";
+import ScheduledMaintenanceStateTimelineService from "Common/Server/Services/ScheduledMaintenanceStateTimelineService";
+import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
+import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
+import MonitorStatusTimelineService from "Common/Server/Services/MonitorStatusTimelineService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import StatusPageOwnerTeamService from "Common/Server/Services/StatusPageOwnerTeamService";
+import StatusPageOwnerUserService from "Common/Server/Services/StatusPageOwnerUserService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
 
 type AnyMock = jest.Mock;
 
@@ -258,8 +333,38 @@ interface JobCase {
   title: string;
   jobName: string;
   kind: OwnerNotificationKind;
+  // The record is the notification: a Created, a reminder.
   eventIdIsTheIncident: boolean;
   arrange: () => void;
+  // The feed's create, for the jobs that write a feed item (#8510).
+  feedService?: () => unknown;
+}
+
+// The record the other resources' cases tell of, as the job reads it.
+function plain(fields: Record<string, unknown>): Record<string, unknown> {
+  const id: ObjectID | undefined = fields["id"] as ObjectID | undefined;
+  return { ...(id ? { _id: id.toString() } : {}), ...fields };
+}
+
+function scheduledMaintenance(): Record<string, unknown> {
+  return plain({
+    id: world.incidentId,
+    projectId: PROJECT_ID,
+    project: { name: "Acme" },
+    title: "Database upgrade",
+    description: "Postgres 16",
+    scheduledMaintenanceNumber: 4,
+  });
+}
+
+function monitor(): Record<string, unknown> {
+  return plain({
+    id: world.incidentId,
+    projectId: PROJECT_ID,
+    project: { name: "Acme" },
+    name: "Checkout API",
+    description: "The checkout endpoint",
+  });
 }
 
 function incident(): Incident {
@@ -320,6 +425,9 @@ const CASES: Array<JobCase> = [
     jobName: "IncidentOwner:SendCreatedResourceEmail",
     kind: OwnerNotificationKind.IncidentCreated,
     eventIdIsTheIncident: true,
+    feedService: () => {
+      return IncidentFeedService.createIncidentFeedItem;
+    },
     arrange: (): void => {
       asMock(IncidentService.findCreatedNotificationsDue).mockImplementation(
         async () => {
@@ -350,6 +458,9 @@ const CASES: Array<JobCase> = [
     jobName: "IncidentOwner:SendStateChangeEmail",
     kind: OwnerNotificationKind.IncidentStateChanged,
     eventIdIsTheIncident: false,
+    feedService: () => {
+      return IncidentFeedService.createIncidentFeedItem;
+    },
     arrange: (): void => {
       asMock(IncidentStateTimelineService.findAllBy).mockImplementation(
         async () => {
@@ -386,6 +497,148 @@ const CASES: Array<JobCase> = [
       asMock(IncidentReminderRuleService.findMatchingRule).mockResolvedValue({
         reminderIntervalInMinutes: 30,
       });
+    },
+  },
+  {
+    title: "a scheduled maintenance event's state change",
+    jobName: "ScheduledMaintenanceOwner:SendStateChangeEmail",
+    kind: OwnerNotificationKind.ScheduledMaintenanceStateChanged,
+    eventIdIsTheIncident: false,
+    feedService: () => {
+      return ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem;
+    },
+    arrange: (): void => {
+      const stateChange: () => Record<string, unknown> = () => {
+        return plain({
+          id: world.eventId,
+          projectId: PROJECT_ID,
+          project: { name: "Acme" },
+          scheduledMaintenanceId: world.incidentId,
+          scheduledMaintenance: scheduledMaintenance(),
+          scheduledMaintenanceState: { name: "Completed" },
+          createdAt: START,
+          startsAt: START,
+        });
+      };
+
+      asMock(
+        ScheduledMaintenanceStateTimelineService.findAllBy,
+      ).mockImplementation(async () => {
+        return world.isTaken ? [] : [stateChange()];
+      });
+      asMock(
+        ScheduledMaintenanceStateTimelineService.findOneById,
+      ).mockImplementation(async () => {
+        return stateChange();
+      });
+      asMock(
+        ScheduledMaintenanceStateTimelineService.findOneBy,
+      ).mockResolvedValue(null);
+      asMock(
+        ScheduledMaintenanceStateTimelineService.updateOneById,
+      ).mockImplementation(takeOrStop);
+      asMock(ScheduledMaintenanceService.findOwners).mockImplementation(
+        async () => {
+          return world.owners;
+        },
+      );
+      asMock(
+        ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard,
+      ).mockResolvedValue("https://oneuptime.test/scheduled-maintenance");
+      asMock(
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
+      ).mockResolvedValue(undefined);
+    },
+  },
+  {
+    title: "a monitor's status change",
+    jobName: "MonitorOwner:SendStatusChangeEmail",
+    kind: OwnerNotificationKind.MonitorStatusChanged,
+    eventIdIsTheIncident: false,
+    arrange: (): void => {
+      const statusChange: () => Record<string, unknown> = () => {
+        return plain({
+          id: world.eventId,
+          projectId: PROJECT_ID,
+          project: { name: "Acme" },
+          monitorId: world.incidentId,
+          monitor: monitor(),
+          monitorStatus: { name: "Offline" },
+          createdAt: START,
+          rootCause: "Connection refused",
+        });
+      };
+
+      asMock(MonitorStatusTimelineService.findAllBy).mockImplementation(
+        async () => {
+          return world.isTaken ? [] : [statusChange()];
+        },
+      );
+      asMock(MonitorStatusTimelineService.findOneById).mockImplementation(
+        async () => {
+          return statusChange();
+        },
+      );
+      asMock(MonitorStatusTimelineService.findOneBy).mockResolvedValue(null);
+      asMock(MonitorStatusTimelineService.updateOneById).mockImplementation(
+        takeOrStop,
+      );
+      asMock(MonitorService.findOwners).mockImplementation(async () => {
+        return world.owners;
+      });
+      asMock(MonitorService.getMonitorLinkInDashboard).mockResolvedValue(
+        "https://oneuptime.test/monitor",
+      );
+      asMock(MonitorService.getMonitorDestinationInfo).mockReturnValue({
+        monitorDestination: "",
+        requestType: "",
+        monitorType: "",
+      });
+    },
+  },
+  {
+    title: "a team added as the owner of a status page",
+    jobName: "StatusPageOwner:SendOwnerAddedEmail",
+    kind: OwnerNotificationKind.StatusPageOwnerAdded,
+    eventIdIsTheIncident: false,
+    arrange: (): void => {
+      asMock(StatusPageOwnerTeamService.findAllBy).mockImplementation(
+        async () => {
+          return world.isTaken
+            ? []
+            : [
+                plain({
+                  id: world.eventId,
+                  statusPageId: world.incidentId,
+                  teamId: ObjectID.generate(),
+                }),
+              ];
+        },
+      );
+      asMock(StatusPageOwnerTeamService.updateOneById).mockImplementation(
+        takeOrStop,
+      );
+      asMock(StatusPageOwnerUserService.findAllBy).mockResolvedValue([]);
+      asMock(TeamMemberService.getUsersInTeams).mockImplementation(async () => {
+        return world.owners;
+      });
+      asMock(TeamMemberService.filterUsersToProjectMembers).mockImplementation(
+        async (data: { users: Array<User> }) => {
+          return data.users;
+        },
+      );
+      asMock(StatusPageService.findOneById).mockImplementation(async () => {
+        return plain({
+          id: world.incidentId,
+          projectId: PROJECT_ID,
+          project: { name: "Acme" },
+          name: "Acme Status",
+          description: "How Acme is doing",
+        });
+      });
+      asMock(StatusPageService.getStatusPageLinkInDashboard).mockResolvedValue(
+        "https://oneuptime.test/status-page",
+      );
     },
   },
 ];
@@ -563,6 +816,14 @@ describePostgres("the owner notification jobs, against Postgres", () => {
       asMock(IncidentService.findCreatedNotificationsDue).mockResolvedValue([]);
       asMock(IncidentService.findAllBy).mockResolvedValue([]);
       asMock(IncidentStateTimelineService.findAllBy).mockResolvedValue([]);
+      for (const service of [
+        ScheduledMaintenanceStateTimelineService,
+        MonitorStatusTimelineService,
+        StatusPageOwnerTeamService,
+        StatusPageOwnerUserService,
+      ]) {
+        asMock(service.findAllBy).mockResolvedValue([]);
+      }
       asMock(IncidentService.findOneById).mockImplementation(async () => {
         return incident();
       });
@@ -607,6 +868,80 @@ describePostgres("the owner notification jobs, against Postgres", () => {
       });
 
       jobCase.arrange();
+    });
+
+    async function feedStatus(): Promise<Array<string | null>> {
+      const rows: Array<{ feedStatus: string | null }> = await database.query(
+        `SELECT DISTINCT "feedStatus" FROM "${schema}"."OwnerNotificationDelivery" WHERE "kind" = $1 AND "eventId" = $2`,
+        [jobCase.kind, world.eventId.toString()],
+      );
+
+      return rows.map((row: { feedStatus: string | null }) => {
+        return row.feedStatus;
+      });
+    }
+
+    test("stopped after the last owner was told, before the feed item: a restarted worker writes it, naming every owner", async () => {
+      if (!jobCase.feedService) {
+        return;
+      }
+
+      const create: AnyMock = asMock(jobCase.feedService());
+
+      // The worker is killed as it writes the feed item.
+      create.mockImplementationOnce(async () => {
+        world.stoppedAt.push("feed");
+        await NEVER;
+      });
+
+      void runJob();
+      await untilStopped();
+
+      expect(sends()).toEqual(everyOwnerOnce());
+      expect(await feedStatus()).toEqual([OwnerNotificationFeedStatus.Pending]);
+
+      await restartedMinutesLater(
+        OwnerNotificationDeliveries.RESUME_AFTER_MINUTES,
+      );
+      await restartedMinutesLater(30);
+
+      // The call the stopped run never finished, and the restarted one's.
+      expect(create.mock.calls).toHaveLength(2);
+      const written: string = String(
+        (create.mock.calls[1]![0] as JSONObject)["moreInformationInMarkdown"],
+      );
+      for (const owner of world.owners) {
+        expect(written).toContain(owner.id!.toString());
+      }
+      expect(sends()).toEqual(everyOwnerOnce());
+      expect(world.takes).toBe(1);
+      expect(await feedStatus()).toEqual([OwnerNotificationFeedStatus.Written]);
+    });
+
+    test("two restarted workers, each on its own connections, write the feed item a stopped run left once between them", async () => {
+      if (!jobCase.feedService) {
+        return;
+      }
+
+      const create: AnyMock = asMock(jobCase.feedService());
+
+      create.mockImplementationOnce(async () => {
+        world.stoppedAt.push("feed");
+        await NEVER;
+      });
+
+      void runJob();
+      await untilStopped();
+
+      now = new Date(
+        now.getTime() +
+          OwnerNotificationDeliveries.RESUME_AFTER_MINUTES * 60 * 1000,
+      );
+      await Promise.all([runJob(), runJob(), runJob()]);
+
+      expect(create.mock.calls).toHaveLength(2);
+      expect(sends()).toEqual(everyOwnerOnce());
+      expect(await feedStatus()).toEqual([OwnerNotificationFeedStatus.Written]);
     });
 
     test("with no stop, tells each owner once, and the next run nobody", async () => {

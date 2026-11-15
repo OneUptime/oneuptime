@@ -385,12 +385,12 @@ describePostgres("who each owner notification tells, against Postgres", () => {
       }),
     ).toBe(false);
 
-    expect(await OwnerNotificationDeliveryService.startTelling(row!.id, new Date())).toBe(
-      true,
-    );
-    expect(await OwnerNotificationDeliveryService.startTelling(row!.id, new Date())).toBe(
-      false,
-    );
+    expect(
+      await OwnerNotificationDeliveryService.startTelling(row!.id, new Date()),
+    ).toBe(true);
+    expect(
+      await OwnerNotificationDeliveryService.startTelling(row!.id, new Date()),
+    ).toBe(false);
     expect(await statusesOf(notification())).toEqual({
       [idOf(owner!)]: OwnerNotificationDeliveryStatus.Sending,
     });
@@ -415,7 +415,10 @@ describePostgres("who each owner notification tells, against Postgres", () => {
 
     // A row that is gone is told by nobody.
     expect(
-      await OwnerNotificationDeliveryService.startTelling(ObjectID.generate(), new Date()),
+      await OwnerNotificationDeliveryService.startTelling(
+        ObjectID.generate(),
+        new Date(),
+      ),
     ).toBe(false);
   });
 
@@ -452,13 +455,19 @@ describePostgres("who each owner notification tells, against Postgres", () => {
       })!;
     };
 
-    await OwnerNotificationDeliveryService.startTelling(rowOf(told!).id, new Date());
+    await OwnerNotificationDeliveryService.startTelling(
+      rowOf(told!).id,
+      new Date(),
+    );
     await OwnerNotificationDeliveryService.finishTelling({
       id: rowOf(told!).id,
       status: OwnerNotificationDeliveryStatus.Sent,
       at: new Date(),
     });
-    await OwnerNotificationDeliveryService.startTelling(rowOf(beingTold!).id, new Date());
+    await OwnerNotificationDeliveryService.startTelling(
+      rowOf(beingTold!).id,
+      new Date(),
+    );
 
     const givenUp: Array<OwnerNotificationDeliveryRow> =
       await OwnerNotificationDeliveryService.giveUpTelling(
@@ -478,9 +487,9 @@ describePostgres("who each owner notification tells, against Postgres", () => {
       [idOf(beingTold!)]: OwnerNotificationDeliveryStatus.Sending,
       [idOf(toBeTold!)]: OwnerNotificationDeliveryStatus.Failed,
     });
-    expect(await OwnerNotificationDeliveryService.giveUpTelling([], new Date())).toEqual(
-      [],
-    );
+    expect(
+      await OwnerNotificationDeliveryService.giveUpTelling([], new Date()),
+    ).toEqual([]);
   });
 
   test("reads the notifications a stopped run left: owners still to be told, of its kinds, not set out to be told since the time asked, the longest waiting first", async () => {
@@ -511,7 +520,10 @@ describePostgres("who each owner notification tells, against Postgres", () => {
     await write(tooRecent, owners(1), minutesAgo(1));
     await write(otherKind, owners(1), minutesAgo(30));
     const [toldRow] = await write(everyoneTold, owners(1), minutesAgo(30));
-    await OwnerNotificationDeliveryService.startTelling(toldRow!.id, new Date());
+    await OwnerNotificationDeliveryService.startTelling(
+      toldRow!.id,
+      new Date(),
+    );
 
     const left: Array<OwnerNotificationEvent> =
       await OwnerNotificationDeliveryService.findLeftPartWay({
@@ -572,7 +584,10 @@ describePostgres("who each owner notification tells, against Postgres", () => {
     );
 
     // One of them is being told already: it is not taken up.
-    await OwnerNotificationDeliveryService.startTelling(rows[0]!.id, new Date());
+    await OwnerNotificationDeliveryService.startTelling(
+      rows[0]!.id,
+      new Date(),
+    );
 
     const at: Date = new Date("2026-11-15T10:05:00.000Z");
     const attemptedBefore: Date = new Date("2026-11-15T10:03:00.000Z");
@@ -715,7 +730,6 @@ describePostgres("who each owner notification tells, against Postgres", () => {
     expect(await rowsOf(old)).toEqual([]);
     expect(await rowsOf(recent)).toHaveLength(1);
   });
-
 
   /*
    * THE FEED ITEM (#8510): kept as still to write on every row of a

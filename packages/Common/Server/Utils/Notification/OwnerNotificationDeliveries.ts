@@ -135,7 +135,8 @@ export class OwnerNotificationDelivery {
   }) {
     this.notification = data.notification;
     this.isProjectOwners = data.isProjectOwners;
-    this.isFeedTracked = data.feedStatus === OwnerNotificationFeedStatus.Pending;
+    this.isFeedTracked =
+      data.feedStatus === OwnerNotificationFeedStatus.Pending;
     this.isFeedLeftUnwritten = Boolean(data.isFeedLeftUnwritten);
     this.owners = data.owners.map((owner: OwnerToTellNow): User => {
       return owner.user;

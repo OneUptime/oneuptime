@@ -1247,7 +1247,9 @@ describe("OwnerNotificationDeliveries", () => {
         });
       await tellEveryone(delivery, []);
 
-      now = minutesLater(1 + OwnerNotificationDeliveries.RESUME_AFTER_MINUTES - 1);
+      now = minutesLater(
+        1 + OwnerNotificationDeliveries.RESUME_AFTER_MINUTES - 1,
+      );
       const { notify } = feedWriter([]);
       await OwnerNotificationDeliveries.resume({
         kinds: [OwnerNotificationKind.IncidentCreated],
@@ -1517,5 +1519,4 @@ describe("OwnerNotificationDeliveries", () => {
       ).toBe(true);
     });
   });
-
 });
