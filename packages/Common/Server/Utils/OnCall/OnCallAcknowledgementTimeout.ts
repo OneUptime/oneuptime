@@ -47,6 +47,9 @@ import OnCallPersonPageAnswer from "./OnCallPersonPageAnswer";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
+import OnCallPageAgainClaimsInFlight, {
+  OnCallPageAgainClaim,
+} from "./OnCallPageAgainClaimsInFlight";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
@@ -480,6 +483,24 @@ const PAIR_RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   acknowledgedAt: true,
 };
 
+// Which record a run pages about, for which policy, and which page again it is.
+const RUN_RECORD_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
+  _id: true,
+  createdAt: true,
+  pageAgainNumber: true,
+  onCallDutyPolicyId: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAlertEpisodeId: true,
+  triggeredByIncidentEpisodeId: true,
+};
+
+/*
+ * How long before its claim a page again's run may say it was written: the
+ * claim's moment is the worker's clock, the run's the database's.
+ */
+const PAGE_AGAIN_WRITTEN_SLACK_MS: number = 30 * 1000;
+
 export default class OnCallAcknowledgementTimeout {
   // The kind of record a run pages about, and its id; null for none.
   public static getRunRecord(run: {
@@ -819,6 +840,13 @@ export default class OnCallAcknowledgementTimeout {
     const at: Date = now || OneUptimeDate.getCurrentDate();
     const results: Array<OnCallPageAgainResult> = [];
 
+    /*
+     * Pages again whose process stopped between their clock stop and their
+     * start (issue #8549), first: a clock given back runs out at once, and
+     * is paged again by this very tick.
+     */
+    await this.settlePagesAgainInFlight(at);
+
     let runs: Array<OnCallDutyPolicyExecutionLog> = [];
 
     try {
@@ -976,6 +1004,31 @@ export default class OnCallAcknowledgementTimeout {
       });
     }
 
+    const pageAgainNumber: number = pagesAgainSoFar + 1;
+
+    /*
+     * The page again, kept in flight from just before its clock stop until
+     * its start is kept (OnCallPageAgainClaimsInFlight, issue #8549): a
+     * process that stops in between - before its run is written, or just
+     * after - is settled by a later tick (settlePagesAgainInFlight), rather
+     * than leaving the clock stopped and nobody reminded.
+     */
+    const claim: OnCallPageAgainClaim = {
+      claimedAt: data.now,
+      clockStartedAt: startedAt,
+      pageAgainNumber: pageAgainNumber,
+      startAtRuleId: run.lastExecutedEscalationRuleId?.toString() || null,
+      acknowledgedByUserId: null,
+      minutes: minutes,
+      dueAt: getOnCallAcknowledgementTimeoutDueAt({
+        startedAt: startedAt,
+        minutes: minutes,
+      }),
+      pageAgainRunId: null,
+    };
+
+    await OnCallPageAgainClaimsInFlight.keep(runId, claim);
+
     /*
      * Claimed: the clock is stopped as it was read. Whoever stops it pages
      * again; a tick that lost, or a clock an acknowledgement just started
@@ -990,10 +1043,9 @@ export default class OnCallAcknowledgementTimeout {
       );
 
     if (!claimed) {
+      await OnCallPageAgainClaimsInFlight.forget(runId);
       return { runId: runId, outcome: OnCallPageAgainOutcome.TakenElsewhere };
     }
-
-    const pageAgainNumber: number = pagesAgainSoFar + 1;
 
     const acknowledgedByUserId: ObjectID | null =
       run.acknowledgedByUserId ||
@@ -1002,35 +1054,74 @@ export default class OnCallAcknowledgementTimeout {
         recordId: record.recordId,
       }));
 
+    claim.acknowledgedByUserId = acknowledgedByUserId?.toString() || null;
+    await OnCallPageAgainClaimsInFlight.keep(runId, claim);
+
     logger.debug(
       `The ${record.kind} ${record.recordId.toString()} is still not resolved ${minutes} minutes after it was acknowledged: on-call execution log ${runId.toString()} pages again (${pageAgainNumber}).`,
       { projectId: run.projectId?.toString() } as LogAttributes,
     );
 
-    const pageAgainRunId: ObjectID | null =
-      await OnCallDutyPolicyExecutionLogService.startPageAgain({
-        projectId: run.projectId!,
-        onCallDutyPolicyId: run.onCallDutyPolicyId,
-        triggeredByIncidentId: run.triggeredByIncidentId,
-        triggeredByAlertId: run.triggeredByAlertId,
-        triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
-        triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
-        userNotificationEventType: run.userNotificationEventType!,
-        pageAgainNumber: pageAgainNumber,
-        minutes: minutes,
-        recordKind: record.kind,
-        startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
-        acknowledgedByUserId: acknowledgedByUserId || undefined,
-        /*
-         * Its page is timed from when the clock ran out - the moment this
-         * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
-         * however late the worker got to it (OnCallPageTiming, issue #6708).
-         */
-        dueAt: getOnCallAcknowledgementTimeoutDueAt({
-          startedAt: startedAt,
+    /*
+     * The page again's run, once it is written. One that never was - the
+     * database failed as it was written - has nobody to page and no run to
+     * hand on, and the clock stopped above would never run out again: it
+     * is given back, so the next tick pages again (issue #8514).
+     */
+    const created: { runId: ObjectID | null } = { runId: null };
+    let pageAgainRunId: ObjectID | null;
+
+    try {
+      pageAgainRunId = await OnCallDutyPolicyExecutionLogService.startPageAgain(
+        {
+          projectId: run.projectId!,
+          onCallDutyPolicyId: run.onCallDutyPolicyId,
+          triggeredByIncidentId: run.triggeredByIncidentId,
+          triggeredByAlertId: run.triggeredByAlertId,
+          triggeredByAlertEpisodeId: run.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: run.triggeredByIncidentEpisodeId,
+          userNotificationEventType: run.userNotificationEventType!,
+          pageAgainNumber: pageAgainNumber,
           minutes: minutes,
-        }),
-      });
+          recordKind: record.kind,
+          startAtRuleId: run.lastExecutedEscalationRuleId || undefined,
+          acknowledgedByUserId: acknowledgedByUserId || undefined,
+          /*
+           * Its page is timed from when the clock ran out - the moment this
+           * worker decided it is due by (isOnCallAcknowledgementTimeoutDue),
+           * however late the worker got to it (OnCallPageTiming, issue #6708).
+           */
+          dueAt: getOnCallAcknowledgementTimeoutDueAt({
+            startedAt: startedAt,
+            minutes: minutes,
+          }),
+          onRunCreated: async (
+            pageAgainRunIdCreated: ObjectID,
+          ): Promise<void> => {
+            created.runId = pageAgainRunIdCreated;
+
+            // Its run is written: a later tick keeps its start, if its process stops now.
+            claim.pageAgainRunId = pageAgainRunIdCreated.toString();
+            await OnCallPageAgainClaimsInFlight.keep(runId, claim);
+          },
+        },
+      );
+    } catch (err) {
+      if (!created.runId) {
+        await OnCallDutyPolicyExecutionLogService.restartAcknowledgementTimeoutClock(
+          {
+            executionLogId: runId,
+            startedAt: startedAt,
+          },
+        );
+      }
+
+      await OnCallPageAgainClaimsInFlight.forget(runId);
+
+      throw err;
+    }
+
+    await OnCallPageAgainClaimsInFlight.forget(runId);
 
     return {
       runId: runId,
@@ -1409,6 +1500,220 @@ export default class OnCallAcknowledgementTimeout {
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
     });
+  }
+
+  /*
+   * SETTLES THE PAGES AGAIN A STOPPED PROCESS LEFT IN FLIGHT (issue #8549):
+   * each one still in flight a while after its clock stop
+   * (OnCallPageAgainClaimsInFlight). A page again whose run was never
+   * written has its clock given back - this tick pages again; one whose run
+   * was written has its start kept, for the stuck-run job and the
+   * policy-run worker to start it from where it starts, the person who
+   * acknowledged first. A run written whose id the process never kept is
+   * found by its record and number. One that cannot be settled now is
+   * tried at the next tick. Never throws.
+   */
+  private static async settlePagesAgainInFlight(now: Date): Promise<void> {
+    const claims: Map<string, OnCallPageAgainClaim> =
+      await OnCallPageAgainClaimsInFlight.readAll();
+
+    for (const [id, claim] of claims) {
+      if (!OnCallPageAgainClaimsInFlight.isToSettle(claim, now)) {
+        continue;
+      }
+
+      const runId: ObjectID = new ObjectID(id);
+
+      try {
+        const pageAgainRunId: ObjectID | null = claim.pageAgainRunId
+          ? new ObjectID(claim.pageAgainRunId)
+          : await this.findPageAgainWritten({ runId: runId, claim: claim });
+
+        if (pageAgainRunId) {
+          const isKept: boolean =
+            await OnCallDutyPolicyExecutionLogService.keepPageAgainStartIfMissing(
+              {
+                runId: pageAgainRunId,
+                startAtRuleId: claim.startAtRuleId,
+                acknowledgedByUserId: claim.acknowledgedByUserId,
+                minutes: claim.minutes,
+                dueAt: claim.dueAt,
+              },
+            );
+
+          if (isKept) {
+            logger.warn(
+              `On-call execution log ${pageAgainRunId.toString()}: its page again's process stopped before it kept its start; kept now, for it to be started from where it starts.`,
+            );
+          }
+        } else {
+          // Only a clock still stopped: one an acknowledgement started again, or never stopped, runs on.
+          const isGivenBack: boolean =
+            await OnCallDutyPolicyExecutionLogService.restartAcknowledgementTimeoutClock(
+              {
+                executionLogId: runId,
+                startedAt: claim.clockStartedAt,
+                throwOnError: true,
+              },
+            );
+
+          if (isGivenBack) {
+            logger.warn(
+              `On-call execution log ${runId.toString()}: its page again's process stopped before its run was written; its clock is given back, and it pages again.`,
+            );
+          }
+        }
+
+        await OnCallPageAgainClaimsInFlight.forget(runId);
+      } catch (err) {
+        logger.error(
+          `Could not settle the page again in flight of on-call execution log ${runId.toString()}; tried again next tick.`,
+        );
+        logger.error(err as Error);
+      }
+    }
+  }
+
+  // The page again a stopped process wrote for a run, though it never kept its id: by its record and number.
+  private static async findPageAgainWritten(data: {
+    runId: ObjectID;
+    claim: OnCallPageAgainClaim;
+  }): Promise<ObjectID | null> {
+    const run: OnCallDutyPolicyExecutionLog | null =
+      await OnCallDutyPolicyExecutionLogService.findOneById({
+        id: data.runId,
+        select: RUN_RECORD_SELECT,
+        props: { isRoot: true },
+      });
+
+    const record: {
+      kind: OnCallTimeoutRecordKind;
+      recordId: ObjectID;
+    } | null = run ? this.getRunRecord(run) : null;
+
+    if (!run || !record || !run.onCallDutyPolicyId) {
+      return null;
+    }
+
+    const written: OnCallDutyPolicyExecutionLog | undefined = (
+      await this.readPolicyRunsForRecord({
+        access: RECORD_ACCESS[record.kind],
+        recordId: record.recordId,
+        onCallDutyPolicyId: run.onCallDutyPolicyId,
+      })
+    ).find((candidate: OnCallDutyPolicyExecutionLog): boolean => {
+      return this.isPageAgainOfClaim(candidate, data.claim);
+    });
+
+    return written?.id || null;
+  }
+
+  /*
+   * THE PAGE AGAIN IN FLIGHT OF A STUCK RUN (issues #8549, #8590), for the
+   * stuck-run job to keep its start before it hands it over: after a
+   * worker outage it may run before the page-again tick settles it. Found
+   * by its run's id, or - its process stopped before it kept that id - as
+   * the page again its claim wrote: a run of the same record and policy,
+   * with its number, written once it was claimed. Null for none, and when
+   * it cannot be read: the run is then handed over as any stuck run is.
+   * Never throws.
+   */
+  public static async findPageAgainInFlightOfRun(data: {
+    runId: ObjectID;
+    pagesAgainInFlight: Map<string, OnCallPageAgainClaim>;
+  }): Promise<OnCallPageAgainClaim | null> {
+    const claims: Array<[string, OnCallPageAgainClaim]> = Array.from(
+      data.pagesAgainInFlight.entries(),
+    );
+
+    const byRunId: [string, OnCallPageAgainClaim] | undefined = claims.find(
+      ([, claim]: [string, OnCallPageAgainClaim]): boolean => {
+        return claim.pageAgainRunId === data.runId.toString();
+      },
+    );
+
+    if (byRunId) {
+      return byRunId[1];
+    }
+
+    const withoutRunId: Array<[string, OnCallPageAgainClaim]> = claims.filter(
+      ([, claim]: [string, OnCallPageAgainClaim]): boolean => {
+        return !claim.pageAgainRunId;
+      },
+    );
+
+    if (withoutRunId.length === 0) {
+      return null;
+    }
+
+    try {
+      const run: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: data.runId,
+          select: RUN_RECORD_SELECT,
+          props: { isRoot: true },
+        });
+
+      const record: {
+        kind: OnCallTimeoutRecordKind;
+        recordId: ObjectID;
+      } | null = run ? this.getRunRecord(run) : null;
+
+      if (!run || !record || !run.onCallDutyPolicyId) {
+        return null;
+      }
+
+      for (const [pagedRunId, claim] of withoutRunId) {
+        if (!this.isPageAgainOfClaim(run, claim)) {
+          continue;
+        }
+
+        // The run whose clock the page again stopped: the same record, of the same policy.
+        const paged: OnCallDutyPolicyExecutionLog | null =
+          await OnCallDutyPolicyExecutionLogService.findOneById({
+            id: new ObjectID(pagedRunId),
+            select: RUN_RECORD_SELECT,
+            props: { isRoot: true },
+          });
+
+        const pagedRecord: {
+          kind: OnCallTimeoutRecordKind;
+          recordId: ObjectID;
+        } | null = paged ? this.getRunRecord(paged) : null;
+
+        if (
+          paged &&
+          pagedRecord &&
+          paged.onCallDutyPolicyId?.toString() ===
+            run.onCallDutyPolicyId.toString() &&
+          pagedRecord.kind === record.kind &&
+          pagedRecord.recordId.toString() === record.recordId.toString()
+        ) {
+          return claim;
+        }
+      }
+    } catch (err) {
+      logger.error(
+        `Could not read the page again in flight of on-call execution log ${data.runId.toString()}; it is handed over as any stuck run is.`,
+      );
+      logger.error(err as Error);
+    }
+
+    return null;
+  }
+
+  // Whether a run is the page again a claim wrote: its number, written once it was claimed.
+  private static isPageAgainOfClaim(
+    run: OnCallDutyPolicyExecutionLog,
+    claim: OnCallPageAgainClaim,
+  ): boolean {
+    return (
+      isOnCallPageAgainRun(run) &&
+      Number(run.pageAgainNumber) === claim.pageAgainNumber &&
+      Boolean(run.createdAt) &&
+      new Date(run.createdAt!).getTime() >=
+        claim.claimedAt.getTime() - PAGE_AGAIN_WRITTEN_SLACK_MS
+    );
   }
 
   // How many times a policy has paged again about a record: its latest page again's number.

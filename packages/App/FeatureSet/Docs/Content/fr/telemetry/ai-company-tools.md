@@ -97,7 +97,7 @@ Remplissez **ID de l'annuaire (tenant)**, **ID d'application (client)** et **Sec
 
 | Réglage | Ce qu'il fait |
 | --- | --- |
-| **Qui peut lire les conversations** | **Propriétaires et administrateurs du projet**, la valeur par défaut : personne d'autre dans le projet ne voit ces conversations, ni les appels d'IA qui les composent, nulle part dans OneUptime. **Toutes les personnes autorisées à lire les appels d'IA** : tous ceux qui peuvent lire les traces du projet. |
+| **Qui peut lire les conversations** | **Propriétaires du projet et Administrateurs du projet**, la valeur par défaut : personne d'autre dans le projet ne voit ces conversations, ni les appels d'IA qui les composent, nulle part dans OneUptime. **Toutes les personnes autorisées à lire les appels d'IA** : tous ceux qui peuvent lire les traces du projet. |
 | **Conserver ce qui a été écrit** | Activé, la valeur par défaut : les questions et les réponses sont conservées. Désactivé : OneUptime garde qui a demandé, quand, avec quel modèle et dans quelle application, mais pas les mots. |
 
 Un changement de qui peut lire s'applique en moins d'une minute. Désactiver **Conserver ce qui a été écrit** s'applique aux chats lus ensuite ; ce qui a été conservé avant reste jusqu'à la fin de sa rétention.
@@ -139,7 +139,7 @@ Pour Copilot, accordez le consentement administrateur pour les permissions Graph
 :::
 
 :::details Quelqu'un ne voit pas les conversations
-**Qui peut lire les conversations** est réglé sur **Propriétaires et administrateurs du projet**. Un propriétaire ou un administrateur peut le changer avec **Modifier** dans la ligne de la connexion.
+**Qui peut lire les conversations** est réglé sur **Propriétaires du projet et Administrateurs du projet**. Un propriétaire ou un administrateur peut le changer avec **Modifier** dans la ligne de la connexion.
 :::
 
 :::details Les conversations montrent qui a demandé, mais pas les mots

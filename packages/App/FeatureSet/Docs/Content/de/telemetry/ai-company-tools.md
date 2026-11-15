@@ -97,7 +97,7 @@ Füllen Sie **Verzeichnis-ID (Tenant)**, **Anwendungs-ID (Client)** und **Client
 
 | Einstellung | Was sie bewirkt |
 | --- | --- |
-| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Admins**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
+| **Wer Unterhaltungen lesen kann** | **Projektinhaber und Projektadministratoren**, die Voreinstellung: Niemand sonst im Projekt sieht diese Unterhaltungen oder die KI-Aufrufe, aus denen sie bestehen, irgendwo in OneUptime. **Alle, die KI-Aufrufe lesen dürfen**: alle, die die Traces des Projekts lesen dürfen. |
 | **Geschriebenes behalten** | An, die Voreinstellung: Fragen und Antworten werden behalten. Aus: OneUptime behält, wer gefragt hat, wann, mit welchem Modell und in welcher App, aber nicht die Worte. |
 
 Eine Änderung daran, wer lesen darf, gilt innerhalb einer Minute. **Geschriebenes behalten** auszuschalten gilt für die danach gelesenen Chats; was vorher behalten wurde, bleibt bis zum Ende seiner Aufbewahrung.
@@ -139,7 +139,7 @@ Erteilen Sie bei Copilot die Administratorzustimmung für die Graph-Berechtigung
 :::
 
 :::details Jemand sieht die Unterhaltungen nicht
-**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Admins**. Ein Inhaber oder Admin kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
+**Wer Unterhaltungen lesen kann** steht auf **Projektinhaber und Projektadministratoren**. Ein Inhaber oder Admin kann es mit **Bearbeiten** in der Zeile der Verbindung ändern.
 :::
 
 :::details Die Unterhaltungen zeigen, wer gefragt hat, aber keine Worte

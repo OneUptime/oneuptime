@@ -26,9 +26,21 @@ import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+
+/*
+ * How a criteria's filters combine, said once above them (#8533): one whole
+ * sentence each way, as "All of these can match" misstated All.
+ */
+export const ALL_FILTERS_SENTENCE: string = translationKey(
+  "All of these must match for this criteria to be met:",
+);
+export const ANY_FILTERS_SENTENCE: string = translationKey(
+  "Any of these can match for this criteria to be met:",
+);
 
 export interface ComponentProps {
   monitorStatusOptions: Array<MonitorStatus>;
@@ -96,11 +108,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                     condition: translatableTerm(filterCondition),
                   })}
                 </span>{" "}
-                {translator.translateTemplate(
-                  "{{condition}} of these can match for this criteria to be met:",
-                  {
-                    condition: translatableTerm(filterCondition),
-                  },
+                {/*
+                 * Said once, here, for the whole list: each filter's line
+                 * below ends where its sentence does (#8533). All must
+                 * match; Any is met by one.
+                 */}
+                {translator.translateText(
+                  filterCondition === FilterCondition.Any
+                    ? ANY_FILTERS_SENTENCE
+                    : ALL_FILTERS_SENTENCE,
                 )}
               </>
             ) : (
@@ -123,7 +139,6 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
 
         <CriteriaFilters
           criteriaFilters={filters}
-          filterCondition={filterCondition}
           monitorType={props.monitorType}
         />
       </div>
