@@ -299,11 +299,12 @@ async function resolveAuthContext(
 
   /*
    * And the key as it is now, as every publish asks it. The lookup by
-   * secret above is kept for a minute on servers that did not make a
-   * change, so a key stopped seconds ago could still pass it - and a
-   * gateway thrown off on its publish would reconnect straight into a
-   * session it may not use. Asked here, it is refused with rc=4 instead,
-   * within the same few seconds as the publish.
+   * secret above can be a second behind on servers that did not make a
+   * change, and up to a minute while Redis is down (issue #8370), so a key
+   * stopped moments ago could still pass it - and a gateway thrown off on
+   * its publish would reconnect straight into a session it may not use.
+   * Asked here, it is refused with rc=4 instead, within the same few
+   * seconds as the publish.
    */
   const current: TelemetryIngestionKeyPolicy | null =
     await getCurrentIngestionKeyPolicy({

@@ -25,7 +25,7 @@ flowchart TB
 ```
 
 - **La chiave decide il progetto.** Non inviate mai un ID di progetto: i dati inviati con una chiave finiscono nel progetto a cui la chiave appartiene.
-- **Le modifiche raggiungono ogni server entro un minuto.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto entro un minuto circa.
+- **Le modifiche raggiungono ogni server in pochi secondi.** Disattivare una chiave, reimpostarne il segreto o cambiarne le origini, la scadenza o il limite ha effetto su ogni server in pochi secondi.
 - **Una chiave può avere budget propri.** Un budget giornaliero e un limite di frequenza al secondo per ogni segnale, entro quelli del suo progetto: vedete [Budget di acquisizione](/docs/telemetry/ingestion-budgets).
 - **Una chiave Server è una password.** Chiunque la possieda può inviare telemetria nel vostro progetto. Conservatela tra i segreti dei vostri server, mai nel controllo di versione né in una pagina web.
 
@@ -139,8 +139,8 @@ Anche la pagina della chiave tiene il conto: **Telemetria rifiutata** elenca ci�
 
 Per le altre risposte che un esportatore OTLP può ricevere, vedete [Risposte](/docs/telemetry/open-telemetry#risposte).
 
-:::details I dati arrivano ancora un minuto dopo che ho disattivato la chiave
-Ogni server OneUptime conserva ciò che sa di una chiave per al massimo un minuto, quindi una modifica li raggiunge tutti entro un minuto circa. Le richieste successive vengono rifiutate. Un client MQTT che si è connesso con la chiave viene disconnesso entro pochi secondi.
+:::details I dati arrivano ancora dopo che ho disattivato la chiave
+Ogni server OneUptime controlla almeno una volta al secondo se una chiave è cambiata, quindi una modifica li raggiunge tutti in pochi secondi e le richieste successive vengono rifiutate. Finché un server non riesce a raggiungere la cache di OneUptime, può basarsi su ciò che sapeva della chiave per al massimo un minuto. Un client MQTT che si è connesso con la chiave viene disconnesso entro pochi secondi.
 :::
 
 :::details Una chiave Browser funziona sul mio portatile ma non in produzione
