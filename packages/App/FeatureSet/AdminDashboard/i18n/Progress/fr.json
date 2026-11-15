@@ -1,6 +1,3 @@
 {
-  "sameAsEnglish": [
-    "{{count}} instance",
-    "{{count}} minute"
-  ]
+  "sameAsEnglish": ["{{count}} instance", "{{count}} minute"]
 }

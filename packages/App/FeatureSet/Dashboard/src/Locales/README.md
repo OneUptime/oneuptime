@@ -41,7 +41,10 @@ a language, and the rules the guard test enforces.
   `"{{count}} signal"` beside `"{{count}} signaux"`), put the English text on
   the locale's same-as-English list (`i18n/Progress/<code>.json`). The build
   then ships the form with a mark that tells the lookup it is your
-  language's own, and French says "0 signal".
+  language's own, and French says "0 signal". The Admin Dashboard keeps
+  lists of its own for its locale files, in the same place
+  (`AdminDashboard/i18n/Progress/<code>.json`), and its build marks those
+  forms too: Portuguese says "0 monitor" there.
 - **Model names in sentences.** A model's `singularName`/`pluralName` goes into
   a sentence as `translatableTerm(name, { inSentence: true })`. It is translated
   along with the sentence and cased for mid-sentence use in the reader's
