@@ -1,13 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import type { i18n as I18n } from "i18next";
 import {
   isLazyLoadableLanguageCode,
   loadLocaleResource,
   LocaleResource,
 } from "../../FeatureSet/AdminDashboard/src/Utils/I18nLocaleLoader";
-import { switchAdminDashboardLanguage } from "../../FeatureSet/AdminDashboard/src/Utils/AdminDashboardLanguageSwitch";
+import {
+  SwitchableI18n,
+  switchAdminDashboardLanguage,
+} from "../../FeatureSet/AdminDashboard/src/Utils/AdminDashboardLanguageSwitch";
 import {
   DEFAULT_ADMIN_DASHBOARD_LANGUAGE,
   SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES,
@@ -352,9 +354,11 @@ describe("switchAdminDashboardLanguage", () => {
   }
 
   const fakeI18n: (data: { loadFails?: boolean }) => {
-    i18n: I18n;
+    i18n: SwitchableI18n;
     calls: Array<Call>;
-  } = (data: { loadFails?: boolean }): { i18n: I18n; calls: Array<Call> } => {
+  } = (data: {
+    loadFails?: boolean;
+  }): { i18n: SwitchableI18n; calls: Array<Call> } => {
     const calls: Array<Call> = [];
     const i18n: unknown = {
       loadLanguages: async (language: string): Promise<void> => {
@@ -369,7 +373,7 @@ describe("switchAdminDashboardLanguage", () => {
       },
     };
 
-    return { i18n: i18n as I18n, calls };
+    return { i18n: i18n as SwitchableI18n, calls };
   };
 
   test("loads the language's words, then switches to it", async () => {

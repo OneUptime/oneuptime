@@ -1,9 +1,18 @@
-import type { i18n as I18n } from "i18next";
+/*
+ * What the switch needs of the i18next instance a component reads its words
+ * from (react-i18next's useTranslation): an instance satisfies it as it is.
+ * Written out rather than imported from i18next, so App/Tests can type-check
+ * the switch where the Admin Dashboard's own dependencies are not installed.
+ */
+export interface SwitchableI18n {
+  loadLanguages: (language: string) => Promise<unknown>;
+  changeLanguage: (language: string) => Promise<unknown>;
+}
 
 /*
  * Shows the Admin Dashboard in `language` - one of the codes it is written
- * in - with the i18next instance the component reads its words from
- * (react-i18next's useTranslation), so nothing here starts one of its own.
+ * in - with the i18next instance the component reads its words from, so
+ * nothing here starts one of its own.
  *
  * Every language but English is a lazy chunk (Utils/i18n.ts, #8146), so the
  * language's words are loaded BEFORE the switch: otherwise every string would
@@ -14,9 +23,12 @@ import type { i18n as I18n } from "i18next";
  * (Dashboard/src/Utils/DashboardLanguageSwitch.ts).
  */
 export const switchAdminDashboardLanguage: (
-  i18n: I18n,
+  i18n: SwitchableI18n,
   language: string,
-) => Promise<void> = async (i18n: I18n, language: string): Promise<void> => {
+) => Promise<void> = async (
+  i18n: SwitchableI18n,
+  language: string,
+): Promise<void> => {
   try {
     await i18n.loadLanguages(language);
   } catch {
