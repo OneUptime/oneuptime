@@ -80,6 +80,11 @@ const NOT_THE_ROLES: ReadonlyArray<KeptEnglish> = [
 const STRING_LITERAL: RegExp =
   /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
 
+// A message has a space in it; an identifier or a key does not.
+const HAS_A_SPACE: RegExp = /\s/;
+
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+
 // A line that is a comment's, up to where a literal starts.
 const COMMENT_LINE: RegExp = /^\s*(?:\*|\/\/|\/\*)/;
 
@@ -91,7 +96,7 @@ function messagesIn(source: string): Array<string> {
       const lineStart: number = source.lastIndexOf("\n", start) + 1;
 
       return (
-        /\s/.test(match[0]) &&
+        HAS_A_SPACE.test(match[0]) &&
         !COMMENT_LINE.test(source.slice(lineStart, start))
       );
     })
@@ -127,7 +132,7 @@ function sourceFiles(directory: string): Array<string> {
         return sourceFiles(full);
       }
 
-      return /\.tsx?$/.test(entry.name) ? [full] : [];
+      return SOURCE_FILE.test(entry.name) ? [full] : [];
     });
 }
 
