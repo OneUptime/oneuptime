@@ -20466,7 +20466,7 @@
   "Copied {{count}} attributes as {{format}} JSON": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copied {{count}} attributes as {{format}} JSON_one": "Атрибутов скопировано как JSON ({{format}}): {{count}}",
   "Copy the example: {{title}}": "Copy the example: {{title}}",
-  "Copy the reference to {{name}}": "Copy the reference to {{name}}",
+  "Copy the reference to {{name}}": "Копировать ссылку на {{name}}",
   "Copy {{count}} attributes as {{format}} JSON": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{count}} attributes as {{format}} JSON_one": "Скопировать атрибуты как JSON ({{format}}): {{count}}",
   "Copy {{field}}": "Copy {{field}}",
@@ -52767,11 +52767,11 @@
   "State change": "Смена состояния",
   "State changed to {{state}}": "Состояние изменено на {{state}}",
   "State changed to {{state}}. Root cause: {{rootCause}}": "Состояние изменено на {{state}}. Первопричина: {{rootCause}}",
-  "Status page \"{{name}}\"": "Страница состояния «{{name}}»",
-  "Status page announcements ({{count}})": "Объявления на страницах состояния ({{count}})",
-  "Status page announcements, last {{days}}d ({{count}} total)": "Объявления на страницах состояния, последние {{days}} дн. (всего: {{count}})",
-  "Status pages ({{count}} total)": "Страницы состояния (всего: {{count}})",
-  "Status pages ({{count}})": "Страницы состояния ({{count}})",
+  "Status page \"{{name}}\"": "Страница статуса «{{name}}»",
+  "Status page announcements ({{count}})": "Объявления на страницах статуса ({{count}})",
+  "Status page announcements, last {{days}}d ({{count}} total)": "Объявления на страницах статуса, последние {{days}} дн. (всего: {{count}})",
+  "Status pages ({{count}} total)": "Страницы статуса (всего: {{count}})",
+  "Status pages ({{count}})": "Страницы статуса ({{count}})",
   "Team \"{{name}}\" ({{count}} member)": "Команда «{{name}}» ({{count}} участник)",
   "Team \"{{name}}\" ({{count}} members)": "Команда «{{name}}» (участников: {{count}})",
   "Team \"{{name}}\" ({{count}} members)_one": "Команда «{{name}}» ({{count}} участник)",
@@ -52895,5 +52895,6 @@
   "Test (dbt test)": "Тест",
   "UUID": "UUID",
   "Expected": "Ожидаемо",
-  "Useful": "Полезно"
+  "Useful": "Полезно",
+  "The whole {{name}}": "{{name}} целиком"
 }
