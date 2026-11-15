@@ -40,6 +40,7 @@ const SessionReplayAuditSessionLink: FunctionComponent<
     describeSessionReplayAuditSession({
       sessionId: sessionId,
       summary: props.summary,
+      translator: translator,
     });
   const startedAt: Date | null = presentation.startedAt;
   /*

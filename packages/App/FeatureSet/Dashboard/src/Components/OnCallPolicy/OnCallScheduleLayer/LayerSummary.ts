@@ -7,12 +7,15 @@ import RestrictionTimes, {
   WeeklyResctriction,
 } from "Common/Types/OnCallDutyPolicy/RestrictionTimes";
 import {
+  getGlobalTranslator,
   PluralTemplate,
   translatableTerm,
   translatePlural,
   translateTemplate,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatCompactDuration } from "../../../Utils/Milliseconds";
 
 /*
  * Small, pure helpers that turn the layer's rotation / restriction / start-time
@@ -314,10 +317,16 @@ export function formatHeadlineHandOffInstant(
  * turn runs a week less one second: cut down to the whole hour it read
  * "6d 23h" on every row of a weekly rotation, beside two times a week
  * apart. Under a minute still reads "1m", never "0m".
+ *
+ * In the reader's units and digits ("5 T. 12 Std.", "۸ ساعت ۳۰ دقیقه";
+ * #8455), English exactly as above.
  */
-export function formatDurationFromSeconds(totalSeconds: number): string {
+export function formatDurationFromSeconds(
+  totalSeconds: number,
+  translator: Translator = getGlobalTranslator(),
+): string {
   if (totalSeconds <= 0) {
-    return "0m";
+    return formatCompactDuration(translator, { minutes: 0 });
   }
 
   const roundedSeconds: number = Math.max(
@@ -330,18 +339,29 @@ export function formatDurationFromSeconds(totalSeconds: number): string {
   const minutes: number = Math.floor((roundedSeconds % 3600) / 60);
 
   if (days > 0) {
-    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    return formatCompactDuration(
+      translator,
+      hours > 0 ? { days, hours } : { days },
+    );
   }
   if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return formatCompactDuration(
+      translator,
+      minutes > 0 ? { hours, minutes } : { hours },
+    );
   }
-  return `${minutes || 1}m`;
+  return formatCompactDuration(translator, { minutes: minutes || 1 });
 }
 
 // Compact human duration of a shift's wall-clock span (start -> end).
-export function formatShiftDuration(start: Date, end: Date): string {
+export function formatShiftDuration(
+  start: Date,
+  end: Date,
+  translator: Translator = getGlobalTranslator(),
+): string {
   return formatDurationFromSeconds(
     OneUptimeDate.getDifferenceInSeconds(end, start),
+    translator,
   );
 }
 
