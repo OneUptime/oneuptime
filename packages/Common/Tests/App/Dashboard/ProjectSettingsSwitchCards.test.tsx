@@ -575,7 +575,7 @@ describe("Settings > SSO: Require SSO for Login", () => {
     expect(updateCall().data).toEqual({ requireSsoForLogin: false });
   });
 
-  test("a project admin may require SSO; a member may not", async () => {
+  test("a Project Admin may require SSO; a member may not", async () => {
     permit([Permission.ProjectAdmin]);
 
     const control: HTMLElement = await renderCard();

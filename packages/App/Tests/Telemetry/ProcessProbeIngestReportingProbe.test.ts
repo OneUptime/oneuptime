@@ -73,6 +73,7 @@ import {
 import { ProbeIngestJobData } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import SnmpTrapLogWriter from "../../FeatureSet/Telemetry/Services/SnmpTrapLogWriter";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
+import logger from "Common/Server/Utils/Logger";
 import MonitorTestService, {
   MONITOR_TEST_NOT_HANDED_TO_PROBE_MESSAGE,
 } from "Common/Server/Services/MonitorTestService";
@@ -99,14 +100,17 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const monitorResource: AnyMock =
   MonitorResourceUtil.monitorResource as unknown as AnyMock;
 
 const mergeStepProbeResponse: AnyMock =
   MonitorTestService.mergeStepProbeResponse as unknown as AnyMock;
+
+const warnMock: AnyMock = logger.warn as unknown as AnyMock;
 
 const SENDER: string = "2a4c6e8f-0b1d-4f3a-9c5e-7b9d1f3a5c11";
 const OTHER: string = "6e8a0c2d-4f1b-4d3c-8e5f-9a1c3e5b7d22";
@@ -217,9 +221,10 @@ describe("a queued check result", () => {
     expect(judgedResult().result.probeId.toString()).toBe(SENDER);
   });
 
-  it("that names another probe is refused, and never judged", async () => {
+  it("that names another probe is refused, never judged, and logged once naming both probes", async () => {
     for (const named of [asJson(OTHER), OTHER, OTHER.toUpperCase()]) {
       monitorResource.mockClear();
+      warnMock.mockClear();
 
       await expect(
         processProbeFromQueue(
@@ -234,6 +239,15 @@ describe("a queued check result", () => {
       );
 
       expect(monitorResource).not.toHaveBeenCalled();
+      expect(warnMock).toHaveBeenCalledTimes(1);
+      expect(warnMock.mock.calls[0]![0]).toBe(
+        `Probe ${SENDER} sent a check result for monitor 9d1f3b5d-7a2c-4c6e-8f0a-2b4d6f8a0c55 that names probe ${OTHER}. A probe can only report its own results, so the result was refused.`,
+      );
+      expect(warnMock.mock.calls[0]![1]).toEqual({
+        monitorId: "9d1f3b5d-7a2c-4c6e-8f0a-2b4d6f8a0c55",
+        probeId: SENDER,
+        resultProbeId: OTHER,
+      });
     }
   });
 
@@ -441,16 +455,28 @@ describe("a queued SNMP trap", () => {
     ).toBe(SENDER);
   });
 
-  it("that does not say which probe received it is refused", async () => {
+  /*
+   * One refusal for both - no probe, or none that can be read - which the
+   * worker completes the job on (issue #8424), logged once each.
+   */
+  it("that does not say which probe received it is refused, and the refusal logged once", async () => {
+    warnMock.mockClear();
+
     await expect(
       processSnmpTrapFromQueue(trapJob({ snmpTrap })),
-    ).rejects.toThrow("Probe ID not found on SNMP trap request");
+    ).rejects.toThrow(new BadDataException(REPORTING_PROBE_NOT_KNOWN_MESSAGE));
 
     await expect(
       processSnmpTrapFromQueue(trapJob({ probeId: "some-probe", snmpTrap })),
-    ).rejects.toThrow(REPORTING_PROBE_NOT_KNOWN_MESSAGE);
+    ).rejects.toThrow(new BadDataException(REPORTING_PROBE_NOT_KNOWN_MESSAGE));
 
     expect(findDevices).not.toHaveBeenCalled();
+    expect(warnMock).toHaveBeenCalledTimes(2);
+    for (const call of warnMock.mock.calls) {
+      expect(call[0]).toBe(
+        "An SNMP trap from 10.0.0.7 was queued without the probe that received it. No probe's devices can be matched to it, so the trap was refused.",
+      );
+    }
   });
 });
 

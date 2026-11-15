@@ -318,7 +318,7 @@ interface Caller {
   apiKey?: string | undefined;
 }
 
-const AS_OWNER: Caller = { label: "a project owner", session: OWNER };
+const AS_OWNER: Caller = { label: "a Project Owner", session: OWNER };
 const AS_MEMBER: Caller = { label: "the member", session: MEMBER };
 const AS_OWNER_KEY: Caller = {
   label: "the owner's API key, as Terraform calls",
@@ -635,7 +635,7 @@ beforeEach(() => {
   jest
     .spyOn(
       BillingInvoiceService as unknown as Record<string, () => unknown>,
-      "onBeforeFind" as never,
+      "onBeforeFind",
     )
     .mockImplementation((async (findBy: unknown): Promise<unknown> => {
       return { findBy, carryForward: null };
@@ -806,10 +806,7 @@ beforeEach(() => {
     for (const hook of ["onBeforeCreate", "onBeforeUpdate", "onBeforeDelete"]) {
       pastHooks.push(
         jest
-          .spyOn(
-            service as unknown as Record<string, () => unknown>,
-            hook as never,
-          )
+          .spyOn(service as unknown as Record<string, () => unknown>, hook)
           .mockRejectedValue(new BadDataException(PAST) as never),
       );
     }
@@ -895,7 +892,7 @@ describe("an Edit ... Feed permission edits no feed entry", () => {
       return [feed.edit, feed, index];
     }),
   )(
-    "%s: a project owner is refused the change too - a feed's entries are edited by nobody",
+    "%s: a Project Owner is refused the change too - a feed's entries are edited by nobody",
     async (_name: string, feed: Feed, index: number) => {
       const result: HttpResult = await call({
         method: "PUT",
@@ -1112,7 +1109,7 @@ describe("Create Invoices and Delete Invoices create and delete no invoice; Read
       [Permission.CreateInvoices, Permission.ReadInvoices],
     ],
     ["the member without it", AS_MEMBER, [Permission.ReadInvoices]],
-    ["a project owner", AS_OWNER, []],
+    ["a Project Owner", AS_OWNER, []],
   ] as Array<[string, Caller, Array<Permission>]>)(
     "%s: refused an invoice of its own",
     async (_label: string, caller: Caller, holds: Array<Permission>) => {
@@ -1140,7 +1137,7 @@ describe("Create Invoices and Delete Invoices create and delete no invoice; Read
       [Permission.DeleteInvoices, Permission.ReadInvoices],
     ],
     ["the member without it", AS_MEMBER, [Permission.ReadInvoices]],
-    ["a project owner", AS_OWNER, []],
+    ["a Project Owner", AS_OWNER, []],
   ] as Array<[string, Caller, Array<Permission>]>)(
     "%s: refused the deletion of one",
     async (_label: string, caller: Caller, holds: Array<Permission>) => {

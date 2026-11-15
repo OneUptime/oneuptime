@@ -846,7 +846,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
       expect(createSpy).not.toHaveBeenCalled();
       expect(answerTexts()).toEqual([
-        `You do not have permission to ${move.refusal}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+        `You do not have permission to ${move.refusal}: your access in this project does not include this ${kind.noun}. Ask a Project Admin for access to it.`,
       ]);
     });
 
@@ -1208,7 +1208,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
         expect(createSpy).not.toHaveBeenCalled();
         expect(answerTexts()[0]).toContain(
-          `your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+          `your access in this project does not include this ${kind.noun}. Ask a Project Admin for access to it.`,
         );
       });
     },
@@ -1317,7 +1317,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
         expect(createSpy).not.toHaveBeenCalled();
         expect(answerTexts()[0]).toContain(
-          "your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+          "your access in this project does not include this on-call policy. Ask a Project Admin for access to it.",
         );
       });
 

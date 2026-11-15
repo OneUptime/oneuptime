@@ -64,13 +64,13 @@ Under **Aggregate by** vælger du, hvordan værdierne i hvert punkt i diagrammet
 
 ### Tilpas diagrammet
 
-Åbn **Display Settings** for at vælge **Chart type** (linje, område eller søjler), tegne en **Warning Threshold** og en **Critical Threshold** i diagrammet eller slå **Convert to per-second rate** til.
+Åbn **Visningsindstillinger** for at vælge **Diagramtype** (linje, område eller søjler), tegne en **Advarselstærskel** og en **Kritisk tærskel** i diagrammet eller slå **Omregn til rate pr. sekund** til.
 :::
 
 > [!TIP]
-> En tæller, der kun stiger, såsom `system.disk.io`, læses bedst som en rate. Slå **Convert to per-second rate** til for at vise, hvor hurtigt den ændrer sig, i stedet for dens løbende total; udforskeren foreslår det, når den genkender sådan en tæller.
+> En tæller, der kun stiger, såsom `system.disk.io`, læses bedst som en rate. Slå **Omregn til rate pr. sekund** til for at vise, hvor hurtigt den ændrer sig, i stedet for dens løbende total; udforskeren foreslår det, når den genkender sådan en tæller.
 
-Hver forespørgsel tegner sit eget diagram. For at tegne en forespørgsel i samme diagram som den forrige skal du slå **Overlay with previous query** til i dens **Display Settings**.
+Hver forespørgsel tegner sit eget diagram. For at tegne en forespørgsel i samme diagram som den forrige skal du slå **Læg oven på forrige forespørgsel** til i dens **Visningsindstillinger**.
 
 ## Kombinér forespørgsler med en formel
 
@@ -195,7 +195,7 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 ## Fejlfinding
 
 :::details En tællers diagram stiger kun
-Det er en kumulativ tæller. Slå **Convert to per-second rate** til i forespørgslens **Display Settings**.
+Det er en kumulativ tæller. Slå **Omregn til rate pr. sekund** til i forespørgslens **Visningsindstillinger**.
 :::
 
 :::details Listen siger, at der ikke blev fundet nogen metrikker

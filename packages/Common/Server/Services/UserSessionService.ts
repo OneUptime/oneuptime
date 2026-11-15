@@ -1187,18 +1187,61 @@ export class Service extends DatabaseService<Model> {
     return props;
   }
 
+  // Ends the live session a refresh token belongs to, and answers whether there was one.
   public async revokeSessionByRefreshToken(
     refreshToken: string,
     options?: RevokeSessionOptions,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const session: Model | null =
       await this.findActiveSessionByRefreshToken(refreshToken);
 
     if (!session || !session.id) {
-      return;
+      return false;
     }
 
     await this.revokeSessionById(session.id, options);
+
+    return true;
+  }
+
+  /*
+   * Ends `sessionId` when it is a live session of `userId`, and answers
+   * whether there was one: the session a sign-out's own access token names
+   * (JSONWebToken.readSessionToSignOut), when the refresh token it sent
+   * matches no session (POST /identity/logout, issue #8592). The server
+   * rotates the refresh token at every renewal and keeps only the new one,
+   * so a client whose renewal's answer was lost signs out with the refresh
+   * token the renewal replaced; the session its access token names is
+   * still the same one. A session of anybody else, or one already over, is
+   * left as it is - a sign-out replayed later ends nothing a second time,
+   * and records nothing.
+   */
+  @CaptureSpan()
+  public async revokeLiveSessionOfUser(
+    data: { userId: ObjectID; sessionId: ObjectID },
+    options?: RevokeSessionOptions,
+  ): Promise<boolean> {
+    const session: Model | null = await this.findOneBy({
+      query: {
+        _id: data.sessionId,
+        userId: data.userId,
+        isRevoked: false,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!session || !session.id) {
+      return false;
+    }
+
+    await this.revokeSessionById(session.id, options);
+
+    return true;
   }
 
   public async revokeAllSessionsByUserId(

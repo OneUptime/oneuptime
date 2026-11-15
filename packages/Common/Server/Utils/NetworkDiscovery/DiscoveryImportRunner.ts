@@ -1365,7 +1365,7 @@ export default class DiscoveryImportRunner {
     } catch (error) {
       if (isRefusalOfThePerson(error)) {
         throw new NotAuthorizedException(
-          "You may not create network devices in this project, so you cannot import them. Ask a project owner or admin.",
+          "You may not create network devices in this project, so you cannot import them. Ask a Project Owner or Project Admin.",
         );
       }
 
@@ -1381,7 +1381,7 @@ export default class DiscoveryImportRunner {
     } catch (error) {
       if (isRefusalOfThePerson(error)) {
         throw new NotAuthorizedException(
-          "You may not create monitors in this project, so the import cannot give each device a monitor. Import them without monitors, or ask a project owner or admin.",
+          "You may not create monitors in this project, so the import cannot give each device a monitor. Import them without monitors, or ask a Project Owner or Project Admin.",
         );
       }
 
@@ -1462,7 +1462,7 @@ export default class DiscoveryImportRunner {
     } catch (error) {
       if (isRefusalOfThePerson(error)) {
         throw new NotAuthorizedException(
-          "You may not read this scan's results and SNMP credentials, which the imported devices are created with. Ask a project owner or admin to import them.",
+          "You may not read this scan's results and SNMP credentials, which the imported devices are created with. Ask a Project Owner or Project Admin to import them.",
         );
       }
 

@@ -442,7 +442,7 @@ describe.each(caseTable())(
         }
       });
 
-      it("an AI setting cannot be set when creating the resource, even by a project owner", () => {
+      it("an AI setting cannot be set when creating the resource, even by a Project Owner", () => {
         expect(() => {
           ColumnPermissions.checkDataColumnPermissions(
             resource.model,
@@ -476,7 +476,7 @@ describe.each(caseTable())(
       );
 
       it.each(SERVER_WRITTEN_COLUMNS)(
-        "%s is refused even for a project owner and admin",
+        "%s is refused even for a Project Owner and admin",
         (column: string) => {
           expect(() => {
             ColumnPermissions.checkDataColumnPermissions(

@@ -55,13 +55,13 @@ Gebruik hem als de vorm van de lijn het verhaal vertelt: latentie, fouten, doorv
 
 ### Waarde
 
-Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, elke helft op dezelfde manier berekend, gekleurd volgens **Trend Direction**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. Wijs de pijl aan om de waarde van beide helften te zien, en de sparkline om de waarde en het tijdstip van elk punt af te lezen. **Warning Threshold** maakt de achtergrond geel en **Critical Threshold** rood zodra de waarde ze bereikt.
+Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, elke helft op dezelfde manier berekend, gekleurd volgens **Trend Direction**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. Wijs de pijl aan om de waarde van beide helften te zien, en de sparkline om de waarde en het tijdstip van elk punt af te lezen. **Waarschuwingsdrempel** maakt de achtergrond geel en **Kritieke drempel** rood zodra de waarde ze bereikt.
 
 Gebruik hem als één getal de vraag beantwoordt: het foutpercentage, de P95-latentie, of het aantal verzoeken dat vandaag is afgehandeld.
 
 ### Meter
 
-Een wijzerplaat tussen een minimum en een maximum, 0 en 100 tenzij je ze instelt, met een gele zone vanaf **Warning Threshold** en een rode zone vanaf **Critical Threshold**.
+Een wijzerplaat tussen een minimum en een maximum, 0 en 100 tenzij je ze instelt, met een gele zone vanaf **Waarschuwingsdrempel** en een rode zone vanaf **Kritieke drempel**.
 
 Gebruik hem als de waarde binnen een bekend bereik valt: CPU- of schijfgebruik in procenten, of de capaciteit van een wachtrij.
 

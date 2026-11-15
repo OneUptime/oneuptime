@@ -20,6 +20,10 @@ import GradientButton from "../../components/GradientButton";
 import IconBadge from "../../components/IconBadge";
 import { getFriendlyErrorMessage } from "../../utils/error";
 import { PasskeyProgress } from "../../passkeys/signIn";
+import { SESSION_ENDED_NOTICES } from "../../auth/sessionEnded";
+
+// Why the server signed the person out, above the form (issue #8381).
+export const SESSION_ENDED_NOTICE_TEST_ID: string = "session-ended-notice";
 
 type LoginNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -27,7 +31,8 @@ type LoginNavigationProp = NativeStackNavigationProp<
 >;
 
 export default function LoginScreen(): React.JSX.Element {
-  const { login, loginWithPasskey, setNeedsServerUrl } = useAuth();
+  const { login, loginWithPasskey, setNeedsServerUrl, sessionEndReason } =
+    useAuth();
   const navigation: LoginNavigationProp = useNavigation<LoginNavigationProp>();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -199,6 +204,22 @@ export default function LoginScreen(): React.JSX.Element {
       description="Sign in to your workspace."
     >
       <View style={{ gap: spacing.lg }}>
+        {/*
+         * Why the server signed the person out, when it said why: its idle
+         * timeout or its session length. Without it the app seems to sign
+         * itself out, and nothing tells a server's rule from a bug. Gone
+         * once they sign in again (AuthProvider).
+         */}
+        {sessionEndReason ? (
+          <AuthNotice
+            tone="info"
+            icon="time-outline"
+            live
+            testID={SESSION_ENDED_NOTICE_TEST_ID}
+            message={SESSION_ENDED_NOTICES[sessionEndReason]}
+          />
+        ) : null}
+
         <AuthTextField
           label="Email"
           containerTestID="login-email-field"

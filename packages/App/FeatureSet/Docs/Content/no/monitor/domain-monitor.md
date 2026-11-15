@@ -122,15 +122,15 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny domenemonitor starter med tre kriterier, så den varsler deg før en registrering utløper, helt uten oppsett:
 
-1. **Domenesjekken feilet** — registreringen er utløpt, eller registreringsdataene kunne ikke leses. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "_monitor name_ domain check failed". Hendelsen løser seg selv når registreringen kan leses og er gjeldende igjen.
-2. **Domenet utløper snart** — registreringen er ikke utløpt, men utløper om 30 dager eller mindre. Det opprettes et **varsel** med navnet "_monitor name_ domain expires soon".
+1. **Domenesjekken feilet** — registreringen er utløpt, eller registreringsdataene kunne ikke leses. Monitoren merkes som **Frakoblet**, og det opprettes en hendelse med navnet "Domenesjekken for _monitornavn_ mislyktes". Hendelsen løser seg selv når registreringen kan leses og er gjeldende igjen.
+2. **Domenet utløper snart** — registreringen er ikke utløpt, men utløper om 30 dager eller mindre. Det opprettes et **varsel** med navnet "Domenet _monitornavn_ utløper snart".
 3. **Domenet er ikke utløpt** — monitoren merkes som **I drift**.
 
-Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktretningslinje på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Så snart fornyelsen vises i registreringsposten, løser varselet seg selv. Et register som ikke publiserer noen utløpsdato, gir ikke varselet noe å gå etter, så det holder seg stille.
+Varselet "utløper snart" er et varsel, ikke en hendelse: det vises ikke på statussidene dine, det tilkaller ingen med mindre du legger til en vaktpolicy på det, og det endrer ikke monitorens status. Det bruker prosjektets andre varselalvorlighetsgrad, **Lav** i et nytt prosjekt. Så snart fornyelsen vises i registreringsposten, løser varselet seg selv. Et register som ikke publiserer noen utløpsdato, gir ikke varselet noe å gå etter, så det holder seg stille.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Derfor står "utløper snart" over "er ikke utløpt": et domene som er i ferd med å utløpe, er ennå ikke utløpt, så det ville samsvare med begge.
 
-For å bli varslet tidligere endrer du verdien til filteret **Dager til domenet utløper** i kriteriet "utløper snart", for eksempel til `60`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktretningslinje på det under **Vaktretningslinjer**.
+For å bli varslet tidligere endrer du verdien til filteret **Dager til domenet utløper** i kriteriet "utløper snart", for eksempel til `60`. For å få noen tilkalt i stedet åpner du kriteriets **Handlinger**: slå på **Når filtre samsvarer, erklær en hendelse.**, eller behold varselet og legg til en vaktpolicy på det under **Vaktpolicyer**.
 
 :::details Legg til varselet på en monitor som ble opprettet før det fantes
 Monitorer som ble opprettet før OneUptime innførte dette varselet, har ikke noe kriterium "utløper snart". Slik legger du det til:

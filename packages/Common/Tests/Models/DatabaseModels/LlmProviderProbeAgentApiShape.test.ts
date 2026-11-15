@@ -61,7 +61,7 @@ const READ_BY_PUBLIC: RegExp = /Read: \[[^\]]*\bPublic\b/;
 
 describe("an LLM provider in the API reference", () => {
   test.each(["apiKey", "additionalParams"])(
-    "%s is documented as read by project owners and admins",
+    "%s is documented as read by Project Owners and Project Admins",
     (column: string) => {
       const description: string = String(
         properties("LlmProviderReadSchema")[column]?.["description"] || "",

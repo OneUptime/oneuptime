@@ -104,7 +104,7 @@ async function resolveHosts(
 
 describe("what Ask AI links, as the member who asked", () => {
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
+    ["a Project Owner", [Permission.ProjectOwner]],
     ["a project member", [Permission.ProjectMember]],
     ["a viewer", [Permission.Viewer]],
     ["someone holding Read Host", [Permission.ReadHost]],

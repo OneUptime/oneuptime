@@ -262,7 +262,7 @@ const ESCALATION_SENTENCES: Record<string, string> = {
   ja: "すでに確認済みまたは解決済みの状態で作成されたインシデント、アラート、エピソード（後から記録したもの）は、どのポリシーも実行しません。誰も呼び出されず、そのフィードにポリシー名とともにその旨が記録されます。",
   ko: "이미 인지됨 또는 해결됨 상태로 생성된 인시던트, 알림, 에피소드(사후에 기록한 것)는 어떤 정책도 실행하지 않습니다. 아무도 호출되지 않으며, 피드에 정책 이름과 함께 그 사실이 남습니다.",
   nl: "Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt — achteraf vastgelegd — voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij.",
-  no: "En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av retningslinjene sine: ingen varsles, og feeden sier det og nevner dem ved navn.",
+  no: "En hendelse, et varsel eller en episode som opprettes allerede bekreftet eller løst — registrert i etterkant — kjører ingen av policyene sine: ingen varsles, og feeden sier det og nevner dem ved navn.",
   pt: "Um incidente, alerta ou episódio criado já confirmado ou resolvido — registrado depois do fato — não executa nenhuma de suas políticas: ninguém é acionado, e o feed dele informa isso, citando-as.",
   ru: "Инцидент, оповещение или эпизод, созданные уже подтверждёнными или устранёнными, — то есть записанные задним числом, — не запускают ни одной своей политики: никого не оповещают, а их Feed сообщает об этом и называет эти политики.",
   sv: "En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn.",

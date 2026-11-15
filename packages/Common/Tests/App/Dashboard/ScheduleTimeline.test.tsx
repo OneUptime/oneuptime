@@ -512,15 +512,15 @@ describe("first load", () => {
 
     const summary: HTMLElement = screen.getByTestId("timeline-summary");
 
-    expect(summary).toHaveTextContent("3schedules");
+    expect(summary).toHaveTextContent("3 schedules");
     expect(
       screen.getByTestId("timeline-summary-covered-now"),
-    ).toHaveTextContent("1covered now");
+    ).toHaveTextContent("1 covered now");
     expect(
       screen.getByTestId("timeline-summary-uncovered-now"),
-    ).toHaveTextContent("2with no one on call now");
+    ).toHaveTextContent("2 with no one on call now");
     expect(screen.getByTestId("timeline-summary-gaps")).toHaveTextContent(
-      "2with coverage gaps this week",
+      "2 with coverage gaps this week",
     );
   });
 
@@ -804,7 +804,7 @@ describe("filters", () => {
     // The counts do not move under the reader's feet.
     expect(
       screen.getByTestId("timeline-summary-covered-now"),
-    ).toHaveTextContent("1covered now");
+    ).toHaveTextContent("1 covered now");
 
     fireEvent.click(chip);
 
@@ -1355,13 +1355,13 @@ describe("attention filters", () => {
     // Next week has no gaps at all; the chip must stay, at zero and pressed.
     await waitFor(() => {
       expect(screen.getByTestId("timeline-summary-gaps")).toHaveTextContent(
-        "0with coverage gaps this week",
+        "0 with coverage gaps this week",
       );
     });
 
     const chip: HTMLElement = screen.getByTestId("timeline-summary-gaps");
 
-    expect(chip).toHaveTextContent("0with coverage gaps this week");
+    expect(chip).toHaveTextContent("0 with coverage gaps this week");
     expect(chip).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("timeline-no-matches")).toBeInTheDocument();
 

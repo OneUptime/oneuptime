@@ -55,8 +55,8 @@ const LABEL_ID: string = "6ba7b812-9dad-41d1-80b4-00c04fd45183";
 
 // Who may create a label: the table's create list.
 const CREATORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "someone holding Create Label",
     [Permission.CreateProjectLabel, Permission.ReadProjectLabel],
@@ -65,8 +65,8 @@ const CREATORS: Array<[string, Array<Permission>]> = [
 
 // Who may rename one: the table's update list.
 const EDITORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "someone holding Edit Label",
     [Permission.EditProjectLabel, Permission.ReadProjectLabel],

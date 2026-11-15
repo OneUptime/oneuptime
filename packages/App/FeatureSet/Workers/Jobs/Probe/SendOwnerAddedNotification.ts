@@ -21,11 +21,45 @@ import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import User from "Common/Models/DatabaseModels/User";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import ProbeService from "Common/Server/Services/ProbeService";
+import logger from "Common/Server/Utils/Logger";
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
 
 RunCron(
   "ProbeOwner:SendOwnerAddedEmail",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the probe as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.ProbeOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const probe: Probe | null = await readProbe(
+          delivery.notification.resourceId,
+        );
+
+        if (!probe) {
+          await delivery.giveUp("the probe is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          probe: probe,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const probeOwnerTeams: Array<ProbeOwnerTeam> =
       await ProbeOwnerTeamService.findAllBy({
         query: {
@@ -34,6 +68,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           probeId: true,
@@ -41,7 +76,7 @@ RunCron(
         },
       });
 
-    const probeOwnersMap: Dictionary<Array<User>> = {};
+    const probeOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const probeOwnerTeam of probeOwnerTeams) {
       const probeId: ObjectID = probeOwnerTeam.probeId!;
@@ -55,19 +90,10 @@ RunCron(
         probeOwnersMap[probeId.toString()] = [];
       }
 
-      for (const user of users) {
-        (probeOwnersMap[probeId.toString()] as Array<User>).push(user);
-      }
-
-      // mark this as notified.
-      await ProbeOwnerTeamService.updateOneById({
-        id: probeOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (probeOwnersMap[probeId.toString()] as Array<OwnerRowAdded>).push({
+        ownerRowId: probeOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -79,6 +105,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           probeId: true,
@@ -98,81 +125,135 @@ RunCron(
         probeOwnersMap[probeId.toString()] = [];
       }
 
-      (probeOwnersMap[probeId.toString()] as Array<User>).push(user);
-
-      // mark this as notified.
-      await ProbeOwnerUserService.updateOneById({
-        id: probeOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (probeOwnersMap[probeId.toString()] as Array<OwnerRowAdded>).push({
+        ownerRowId: probeOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
     // send email to all of these users.
 
     for (const probeId in probeOwnersMap) {
-      if (!probeOwnersMap[probeId]) {
+      const ownerRows: Array<OwnerRowAdded> = probeOwnersMap[probeId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if ((probeOwnersMap[probeId] as Array<User>).length === 0) {
-        continue;
+      const probe: Probe | null = await readProbe(new ObjectID(probeId));
+
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = probe
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.ProbeOwnerAdded,
+            projectId: probe.projectId!,
+            resourceId: probe.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
+
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose probe is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await ProbeOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        } else {
+          await ProbeOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+        }
       }
-
-      const ownerUsers: Array<User> = probeOwnersMap[probeId] as Array<User>;
-
-      // get all scheduled events of all the projects.
-      const probe: Probe | null = await ProbeService.findOneById({
-        id: new ObjectID(probeId),
-        props: {
-          isRoot: true,
-        },
-
-        select: {
-          _id: true,
-          name: true,
-          description: true,
-          projectId: true,
-          project: {
-            name: true,
-          },
-        },
-      });
 
       if (!probe) {
         continue;
       }
 
-      /*
-       * A team row expands to every member row, pending invitations included,
-       * and a pending invitee has no notification settings yet (the defaults
-       * are added on accept). Tell only the accepted members of the project -
-       * the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: probe.projectId!,
-          users: ownerUsers,
+      try {
+        await notifyOwnersAdded({
+          probe: probe,
+          deliveries: deliveries,
         });
-
-      if (users.length === 0) {
-        continue;
+      } catch (e) {
+        logger.error("Error in sending probe owner added notification", {
+          projectId: probe.projectId?.toString(),
+          probeId: probe.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: probe.projectId?.toString(),
+          probeId: probe.id?.toString(),
+        });
       }
+    }
+  },
+);
 
-      const vars: Dictionary<string> = {
-        probeName: probe.name!,
-        probeDescription: probe.description || "No description provided",
-        projectName: probe.project!.name!,
-        viewProbeLink: (
-          await ProbeService.getLinkInDashboard(probe.projectId!, probe.id!)
-        ).toString(),
-      };
+async function readProbe(probeId: ObjectID): Promise<Probe | null> {
+  return await ProbeService.findOneById({
+    id: probeId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      name: true,
+      description: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+    },
+  });
+}
 
-      for (const user of users) {
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * probe, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  probe: Probe;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const probe: Probe = data.probe;
+
+  if (ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
+
+  const vars: Dictionary<string> = {
+    probeName: probe.name!,
+    probeDescription: probe.description || "No description provided",
+    projectName: probe.project!.name!,
+    viewProbeLink: (
+      await ProbeService.getLinkInDashboard(probe.projectId!, probe.id!)
+    ).toString(),
+  };
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.ProbeOwnerAdded,
           vars: vars,
@@ -227,7 +308,7 @@ RunCron(
           whatsAppMessage,
           eventType,
         });
-      }
+      });
     }
-  },
-);
+  }
+}

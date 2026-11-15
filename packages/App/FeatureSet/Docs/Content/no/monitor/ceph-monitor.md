@@ -244,8 +244,8 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 
 | Rekkefølge | Kriterium | Treffer når | Deretter |
 | --- | --- | --- | --- |
-| 1 | Check if _monitornavn_ is offline | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ is offline", som løser seg selv når monitoren kommer seg. |
-| 2 | Check if _monitornavn_ is online | Den første spørringen har data | Setter monitoren til **I drift**. |
+| 1 | Sjekk om _monitornavn_ er frakoblet | Den første spørringen har ingen data i hele vinduet | Setter monitoren til **Frakoblet** og erklærer hendelsen "_monitornavn_ er frakoblet", som løser seg selv når monitoren kommer seg. |
+| 2 | Sjekk om _monitornavn_ er tilkoblet | Den første spørringen har data | Setter monitoren til **I drift**. |
 
 > [!IMPORTANT]
 > En verdi på `0` er data, så en måling som ofte er null, som omstarter eller feil, gjør ikke monitoren frakoblet. For å få varsel om en verdi, start fra en mal eller legg til et kriterium med en terskel. Når ingen data kommer i det hele tatt og ingen kriterier passer, beholder monitoren statusen sin, og åpne hendelser forblir åpne: stillhet er ikke bedring. Tid da OneUptime selv ikke mottok data, regnes aldri som manglende data: en sjekk der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
@@ -275,7 +275,7 @@ En helsesjekk som aldri har slått til, har ingen serie, `ceph_daemon_health_met
 :::
 
 :::details Tellere som ceph_pool_wr_bytes bare vokser
-Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Convert to per-second rate** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
+Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner råverdier: Det finnes ingen rate-operator, og **Gjør om til rate per sekund** i spørringsbyggeren endrer bare diagrammet. Vis dem som rate, eller varsle på veksten deres med en formel, for eksempel en **Maksimum**-spørring minus en **Minimum**-spørring av samme teller.
 :::
 
 ## Neste steg

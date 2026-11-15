@@ -1,5 +1,6 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import { readClickhouseDate } from "../../../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 
 /*
  * Reading the rows of "Your OneUptime data"'s queries: ClickHouse's JSON
@@ -67,9 +68,14 @@ export function readRowMap(
     return map;
   }
 
+  // The row's keys, each the map's own: "__proto__" too.
   for (const [key, entry] of Object.entries(value as JSONObject)) {
     if (entry !== null && entry !== undefined) {
-      map[key] = typeof entry === "string" ? entry : String(entry);
+      writeOwnValue(
+        map,
+        key,
+        typeof entry === "string" ? entry : String(entry),
+      );
     }
   }
 

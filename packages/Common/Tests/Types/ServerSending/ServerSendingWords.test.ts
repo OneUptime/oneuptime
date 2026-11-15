@@ -36,7 +36,7 @@ describe("the words", () => {
     },
   );
 
-  test("a project owner's log row says the email was not sent, and why", () => {
+  test("a Project Owner's log row says the email was not sent, and why", () => {
     expect(SERVER_EMAIL_NOT_SET_UP_MESSAGE).toBe(
       "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.",
     );

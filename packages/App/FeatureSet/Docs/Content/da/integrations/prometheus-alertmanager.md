@@ -185,7 +185,7 @@ Brug et [arbejdsgang](/docs/workflows/index), når du har brug for dine egne tri
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald det `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald den `Alertmanager alerts`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj Webhook-triggeren
 
@@ -258,7 +258,7 @@ Når watchdog-advarslen ikke er kommet i ti minutter, går watchdog-monitoren of
 :::details Intet kommer frem til OneUptime
 - Tjek Alertmanagers log for fejl ved levering til modtageren.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om notifikationer kommer frem.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Hændelser oprettes, men løses aldrig

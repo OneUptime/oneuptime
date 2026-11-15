@@ -132,7 +132,7 @@ export const PublicNoteApprovalCopy: {
   stepOfNamed: translationKey("Step {{number}} of {{count}}: {{name}}"),
   waitingFor: translationKey("Waiting for {{approvers}}"),
   nobodyToApprove: translationKey(
-    "Nobody can approve this step yet. A project admin can add approvers in Settings > Public Note Approval.",
+    "Nobody can approve this step yet. A Project Admin can add approvers in Settings > Public Note Approval.",
   ),
   approve: translationKey("Approve"),
   approveAndPublish: translationKey("Approve and publish"),

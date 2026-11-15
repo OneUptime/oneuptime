@@ -300,7 +300,7 @@ export default class MicrosoftTeamsCommands {
       ],
       after: [
         options?.isConnected === false
-          ? mdText`**To get started,** a project admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.`
+          ? mdText`**To get started,** a Project Admin connects your organization in ${productName}, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.`
           : mdText`The first time you use a command, I ask you to connect your Microsoft Teams account to ${productName}, so that I act as you, with your permissions.`,
       ],
     });

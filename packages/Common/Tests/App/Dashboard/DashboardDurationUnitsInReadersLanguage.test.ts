@@ -380,7 +380,7 @@ describe("code, AI and investigations", () => {
   test("an investigation's step: seconds, a minute, minutes and seconds", () => {
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatEvidenceDuration(1200, t);
+        return formatEvidenceDuration(1200, t)!;
       }),
     ).toEqual({
       en: `1.2${NB}s`,
@@ -391,7 +391,7 @@ describe("code, AI and investigations", () => {
     });
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatEvidenceDuration(59_990, t);
+        return formatEvidenceDuration(59_990, t)!;
       }),
     ).toEqual({
       en: `1${NB}min`,
@@ -402,7 +402,7 @@ describe("code, AI and investigations", () => {
     });
     expect(
       inEachLanguage((t: Translator): string => {
-        return formatEvidenceDuration(125_000, t);
+        return formatEvidenceDuration(125_000, t)!;
       }),
     ).toEqual({
       en: `2${NB}min 5${NB}s`,

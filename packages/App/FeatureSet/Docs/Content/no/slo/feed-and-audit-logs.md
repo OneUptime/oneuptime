@@ -84,14 +84,14 @@ Gå til **Prosjektinnstillinger**, åpne **Revisjonslogger** i sidemenyen og kli
 
 ### Rediger innstillingene
 
-Klikk på **Edit Audit Log Settings** og slå på **Aktiver revisjonslogger**.
+Klikk på **Rediger innstillinger for revisjonslogger** og slå på **Aktiver revisjonslogger**.
 
 ### Velg hva som skal tas vare på
 
 Angi **Oppbevaring (dager)**, fra 7 (standard) til 180, og slå på **Lagre systemhendelser** for også å registrere endringene OneUptime gjør selv. Lagre. Endringen gjelder innen omtrent ett minutt.
 :::
 
-Mens revisjonsloggen er slått av, står det **Audit logging is off** på siden **Revisjonslogger** til SLO-et, med en lenke for å slå den på. Oppføringer som ble registrert før den ble slått av, er fortsatt synlige. Prosjektets samlede revisjonslogg, for alle ressurser, finnes under **Prosjektinnstillinger** → **Revisjonslogger** → **Revisjonslogger**.
+Mens revisjonsloggen er slått av, står det **Revisjonslogging slått av** på siden **Revisjonslogger** til SLO-et, med en lenke for å slå den på. Oppføringer som ble registrert før den ble slått av, er fortsatt synlige. Prosjektets samlede revisjonslogg, for alle ressurser, finnes under **Prosjektinnstillinger** → **Revisjonslogger** → **Revisjonslogger**.
 
 ## Neste steg
 

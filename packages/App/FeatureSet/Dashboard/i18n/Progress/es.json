@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 2038
+    "keys": 54285,
+    "untranslated": 1960
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -138,6 +138,7 @@
     "Daemon",
     "Daemons",
     "DeploymentConfigs",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",
@@ -639,6 +640,7 @@
     "{{count}} collector",
     "{{count}} commit",
     "{{count}} commits",
+    "{{count}} cursor",
     "{{count}} deployment",
     "{{count}} deployments",
     "{{count}} error",
@@ -658,6 +660,8 @@
     "{{count}} routers",
     "{{count}} s",
     "{{count}} series",
+    "{{count}} shard",
+    "{{count}} shards",
     "{{count}} share",
     "{{count}} shares",
     "{{count}} span",
@@ -669,6 +673,8 @@
     "{{count}} vCPU",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}} writeset",
+    "{{count}} writesets",
     "{{count}}+ spans",
     "{{gigabytes}} GB",
     "{{in}} in",

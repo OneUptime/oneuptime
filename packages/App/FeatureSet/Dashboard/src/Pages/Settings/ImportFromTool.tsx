@@ -468,7 +468,7 @@ const ImportFromTool: FunctionComponent<
       {runs && (runs.length > 0 || listError) && (
         <Card
           title="Earlier imports"
-          description="Imports in this project, newest first. Project owners and admins see everyone's."
+          description="Imports in this project, newest first. Project Owners and Project Admins see everyone's."
         >
           {listError ? (
             <ErrorMessage

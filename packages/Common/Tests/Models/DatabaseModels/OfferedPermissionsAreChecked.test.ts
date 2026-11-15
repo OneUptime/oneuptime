@@ -385,9 +385,9 @@ describe("every permission a custom role offers is checked", () => {
     ).toEqual(RETIRED_FOR_GRANTING_NOTHING_PERMISSIONS);
   });
 
-  test.each(
+  test.each<[string, number]>(
     RETIRED_FOR_GRANTING_NOTHING.map(
-      (entry: { permission: Permission; issue: number }) => {
+      (entry: { permission: Permission; issue: number }): [string, number] => {
         return [entry.permission.toString(), entry.issue];
       },
     ),
@@ -802,7 +802,7 @@ describe("a stored permission that granted nothing still reads", () => {
     [Permission.EditOpenStackCloudFeed]: "Edit OpenStack Cloud Feed",
     [Permission.EditPodmanHostFeed]: "Edit Podman Host Feed",
     [Permission.EditProxmoxClusterFeed]: "Edit Proxmox Cluster Feed",
-    [Permission.EditScheduledMaintenanceFeed]: "Edit Scheduled Maintenance Log",
+    [Permission.EditScheduledMaintenanceFeed]: "Edit Scheduled Maintenance Feed",
     [Permission.EditServiceFeed]: "Edit Service Feed",
     [Permission.EditServiceLevelObjectiveFeed]: "Edit SLO Feed",
     [Permission.EditStorageArrayFeed]: "Edit Storage Array Feed",

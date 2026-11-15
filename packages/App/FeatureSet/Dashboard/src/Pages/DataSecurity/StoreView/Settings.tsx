@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
 import { getStoreContentScanKindRefusal } from "../../../Components/DataSecurity/StoreNextContentScan";
 import StoreExclusionsInput from "../../../Components/DataSecurity/StoreExclusionsInput";
+import { getDataStoreEnvironmentTitle } from "../../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
   STORE_ENVIRONMENT_OPTIONS,
   STORE_SENSITIVITY_OPTIONS,
@@ -395,9 +396,10 @@ const DataStoreSettings: FunctionComponent<
               getElement: (item: DataStore): ReactElement => {
                 return (
                   <span className="text-sm text-gray-900">
-                    {translator.translateText(item.environment) || (
-                      <EmptyValue />
-                    )}
+                    {getDataStoreEnvironmentTitle(
+                      translator,
+                      item.environment,
+                    ) || <EmptyValue />}
                   </span>
                 );
               },

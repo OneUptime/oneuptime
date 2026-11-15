@@ -275,6 +275,7 @@
       "channelSlack": "مساحة عمل Slack",
       "channelMicrosoftTeams": "مساحة عمل Microsoft Teams",
       "channelWebhook": "خطاف الويب",
+      "channelWithColon": "{{channel}}:",
       "addedByTeamWarning": "أضاف هذا الاشتراكَ الفريقُ الذي يدير صفحة الحالة هذه. إذا كان عنوانًا مشتركًا، مثل قائمة بريدية، فإن إلغاء الاشتراك يوقف هذه الإشعارات لكل من يتلقاها، وسيُبلَّغ الفريق بذلك.",
       "confirmButton": "إلغاء الاشتراك",
       "manageInstead": "اختر الإشعارات التي تتلقاها بدلًا من ذلك",

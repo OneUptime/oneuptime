@@ -322,8 +322,8 @@ afterAll(() => {
 
 describe("Test connection, by whoever may change the server", () => {
   test.each([
-    ["a project owner", [Permission.ProjectOwner]],
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Owner", [Permission.ProjectOwner]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
   ])(
     "%s connects with the saved token, reads the tools and keeps what it found",
     async (_who: string, permissions: Array<Permission>) => {

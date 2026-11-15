@@ -57,7 +57,7 @@ describe("the Project columns", () => {
     INCIDENT_SINGLE_MEMBERSHIP_COLUMN,
     ALERT_SINGLE_MEMBERSHIP_COLUMN,
   ])(
-    "%s is changed by project owners and admins only, and read by every member",
+    "%s is changed by Project Owners and Project Admins only, and read by every member",
     (column: string) => {
       const project: Project = new Project();
       const access: {

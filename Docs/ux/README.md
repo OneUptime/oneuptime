@@ -306,7 +306,8 @@ work out, starts from a default for everything else, and folds what most people 
   (`Common/Server/Utils/UnexplainedServerError`). `API.getFriendlyMessage` turns every unexplained
   failure into one of five sentences (`Common/Types/Exception/UnexplainedError`): the server failed,
   the server did not answer, OneUptime could not be reached, the page failed, or what was sent was
-  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278); never
+  too large (a proxy's 413 page, which read as a failure the server could not explain, #8278, or
+  the App's own 50 MB limit, which it answers with that sentence and a 413, #8419); never
   a TypeError's words, a URL or a proxy's page. A form's alert, a list or table that did not load, a dialog and the
   page that did not load draw them with `ErrorExplanation`: what failed ("The monitor was not
   saved."), why, Try again, the reference with a copy button, and, for a master admin of a
@@ -519,6 +520,11 @@ work out, starts from a default for everything else, and folds what most people 
   server and the front ends write, the English docs with their diagrams, and the website, and
   [RetiredNamesFindable](../../packages/App/Tests/Dashboard/RetiredNamesFindable.test.ts), which checks
   that each old name still finds the page.
+- **A permission is named after the record it guards.** A feed's permissions read "Create Incident
+  Feed" and "Read Scheduled Maintenance Feed", as the feed calls itself, so a search of the permission
+  picker for "feed" finds every one, and a refusal names the same thing the permission does. They
+  read "Scheduled Maintenance Log" until #8451. Enforced by
+  [FeedPermissionTitles](../../packages/Common/Tests/Types/FeedPermissionTitles.test.ts).
 - **At most three words on a page are marked as defined terms, each the first time it is met.** A
   `DefinedTerm` draws the word with a dotted line and shows its definition on hover, focus or tap.
   Enforced by
@@ -563,11 +569,19 @@ work out, starts from a default for everything else, and folds what most people 
   ("2.5k", "3.5 TiB") is put in the reader's language with `writeFigureInLanguage`, its scale letter
   and unit kept. Checked on the Host and Kubernetes pages, on a database's Runtime charts, on the
   Storage Arrays pages (a volume read "۳٫۵ TiB" on a dashboard and "3.5 TiB" on its page, #8272) and
-  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). Enforced by
+  on a status page's uptime ("99.95٪ زمان کارکرد", #8292). The telemetry helpers (`formatCompact`,
+  `formatPercent`, `formatBytes`) take the reader's translator, and every Overview tile passes it: a
+  service's, a function's, a site's and a cloud app's Requests, Error rate and Memory read "1.2k" in
+  Latin digits beside a p95 tile in Persian (#8481). A figure's unit word is the reader's too: a
+  database's and a queue's engine metric tile counts in a plural sentence of the locale, its noun
+  agreeing with the number by the language's rules ("1 Verbindung", "24 Verbindungen",
+  "۲۴ اتصال"), never "۲۴ connections" (#8482). Enforced by
   [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx),
   [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx),
   [DatabaseRuntimeChartsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DatabaseRuntimeChartsInReadersLanguage.test.tsx),
-  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts)
+  [StorageArrayPageFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/StorageArrayPageFiguresInReadersLanguage.test.ts),
+  [TelemetryOverviewTileFiguresInReadersLanguage](../../packages/Common/Tests/App/Dashboard/TelemetryOverviewTileFiguresInReadersLanguage.test.tsx),
+  [EngineMetricTileUnitsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/EngineMetricTileUnitsInReadersLanguage.test.ts)
   and
   [StatusPageUptimeFiguresInLanguage](../../packages/Common/Tests/App/StatusPage/StatusPageUptimeFiguresInLanguage.test.ts).
 - **A chart's value axis, its legend and its tooltip write a figure as the tiles beside it do:** in
@@ -680,10 +694,21 @@ work out, starts from a default for everything else, and folds what most people 
   pieces. The same goes for JSX: `{t("Showing")} {n} {t("of")} {total}` read "Page 2 of 5" in
   English's order in Japanese, and a status page's "posted on" sat before its date in every
   language (#8290). A label whose colon the code wrote (`{t("Capabilities")}:`) takes it from a key
-  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). Enforced by
+  instead, `LABEL_WITH_COLON` ("{{label}}:", "Statut :" in French, "状态：" in Chinese). A sentence
+  around an element is one too: a pill, a name, a date, a bold count, or a link around a phrase
+  (`{t("Read the")} <Link>{t("docs")}</Link>`) goes in a `TranslatedSentence` slot, and so do words
+  only a screen reader reads ("Connect" before a product's name, "AWS Security Hub verbinden" in
+  German). The status page's "Incident state changed to" and its state's pill kept English's
+  order until #8290, and the schedule timeline's bold counts sat before "covered now" (#8483). An
+  icon, a badge after its word, a block, a link to act on after a sentence ("Read the guide") and
+  what is drawn for the eye only are no word of a sentence. Enforced by
   [SentencesFromTranslatedPiecesGuard](../../packages/Common/Tests/UI/SentencesFromTranslatedPiecesGuard.test.ts),
-  which reads template literals, `+`, `join()` and an element's children, and follows a name that
-  holds a translation (`const label = t("Key")`).
+  which reads template literals, `+`, `join()` and an element's children, each child element as
+  what it draws, and follows a name that holds a translation (`const label = t("Key")`), a page's
+  own translation helper (`text(COPY.openSettings)`), a lookup in a constant table and a nested
+  key's English. A colon written after an element that holds a label
+  (`<span>{t("Logo Alt Text")}</span>{": "}`) is English's too, and comes from `LABEL_WITH_COLON`
+  (#8571); an element's key or id is never read, and is no sentence.
 
 ### In every language
 
@@ -709,9 +734,12 @@ then `npm run i18n:validate` from the root.
   for the metric query form (the metric picker, its attribute filter, the series and group
   colour pickers, a formula's row), which was English in twelve languages (#8310),
   [MetricQueryFormInEveryLanguage](../../packages/App/Tests/Dashboard/MetricQueryFormInEveryLanguage.test.ts),
-  and, for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
+  for a tab's name however a page builds its tabs (`const tabs: Array<Tab> = [...]`), which
   the extraction missed, so "Env Vars" on a pod read English in every language (#8367),
-  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts).
+  [TabNamesAreKeys](../../packages/App/Tests/Dashboard/TabNamesAreKeys.test.ts),
+  and, for the Admin Dashboard's own pages (Feedback, Health, the SMS and call provider, global SSO),
+  whose 186 texts had no entry in its locales and read English in every language (#8227),
+  [AdminOwnPagesStringsLocales](../../packages/App/Tests/AdminDashboard/AdminOwnPagesStringsLocales.test.ts).
 - **A filter or a rule is summed up one sentence per condition, in the reader's language.** The
   filter bar's chip, a metric query's chips and a chart's details drew an attribute filter's
   operator as its English symbol between the key and the value ("http.route matches /api/*" under a
@@ -724,14 +752,20 @@ then `npm run i18n:validate` from the root.
   `formatDictionaryValueForDisplay`, which glues the operator's English label before the value
   (#8309): a locked chip whose filter holds an operator carries its stored value (`filterValue`) and
   says the sentence, and the detail page is handed the filters as stored. That formatter's text is
-  a key, never a line a person reads. And an empty dropdown says so in the reader's words ("No
-  matches found", "No options available"), never react-select's English "No options" (#7805).
-  Enforced by
+  a key, never a line a person reads. A monitor's criteria list words each filter the same way,
+  every part of it a sentence of the locale around the part it holds: it read `Check if "Response
+  Time (in ms)" is greater than 500ms and,` under a Persian form (#8350). Whether all of the filters
+  must match or any one is said once, above them, never as an "and," left at the end of each line
+  (#8533). And an empty dropdown
+  says so in the reader's words ("No matches found", "No options available"), never react-select's
+  English "No options" (#7805). Enforced by
   [AttributeFilterSymbolGuard](../../packages/Common/Tests/UI/Components/AttributeFilterSymbolGuard.test.ts),
   [AttributeFilterSentencesInEveryLanguage](../../packages/Common/Tests/UI/Components/AttributeFilterSentencesInEveryLanguage.test.tsx),
   [LockedFilterChipSentencesInReadersLanguage](../../packages/Common/Tests/UI/Components/LockedFilterChipSentencesInReadersLanguage.test.tsx),
   [MetricAttributeFiltersInReadersLanguage](../../packages/Common/Tests/App/Dashboard/MetricAttributeFiltersInReadersLanguage.test.tsx),
-  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx)
+  [RuleCriteriaSummary](../../packages/Common/Tests/UI/Components/RuleCriteria/RuleCriteriaSummary.test.tsx),
+  [CriteriaFilterSummaryInLanguages](../../packages/Common/Tests/App/Dashboard/CriteriaFilterSummaryInLanguages.test.tsx),
+  [CriteriaListSaysHowFiltersCombine](../../packages/Common/Tests/App/Dashboard/CriteriaListSaysHowFiltersCombine.test.tsx)
   and
   [DropdownEmptyMenuInReadersLanguage](../../packages/Common/Tests/UI/Components/Dropdown/DropdownEmptyMenuInReadersLanguage.test.tsx).
 - **A chart's words reach it in the reader's language.** A page hands each metric chart its title,
@@ -756,13 +790,16 @@ then `npm run i18n:validate` from the root.
   [ScopedChartsLineFollowsTheLanguage](../../packages/Common/Tests/App/Dashboard/ScopedChartsLineFollowsTheLanguage.test.tsx).
 - **A metric's description reads in the reader's language, its code and names as written.** Every
   monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
-  glued together at run time is no key, and read English in every language (#8014). Each place that
-  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
-  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
-  between backticks exactly and as often, since the picker draws it as code, and the metric,
-  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
-  by
-  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
+  glued together at run time is no key, and read English in every language (#8014). So are the
+  descriptions the server stores with a monitor's series, the SLO Burn Rate's among them, written
+  out whole for the window they name (#8356). Each place that draws one looks it up once: a metric
+  picker's line, a Database Health criteria's line, a Database monitor's charts and summary, a
+  metric a monitor stored. A translation keeps each piece of code between backticks exactly and as
+  often, since the picker draws it as code, and the metric, attribute and product names, unit
+  symbols, printed values and numbers the English gives. Enforced by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts)
+  and
+  [MonitorStoredMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorStoredMetricDescriptionsInLocales.test.ts).
 - **A product's Help > Documentation page reads in the reader's language, its code as written.** A
   page that is one Markdown text holds a text per language (`DocumentationInReadersLanguage`, as Data
   Observability's does, #7531). A page that is a setup guide holds each language's words for every

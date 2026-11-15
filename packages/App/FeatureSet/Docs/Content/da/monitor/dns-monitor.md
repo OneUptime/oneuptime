@@ -111,7 +111,7 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny DNS-monitor starter med to kriterier:
 
-- **Offline** — navnet kan ikke slås op, eller har ingen post af typen, efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ is offline". Hændelsen løser sig selv, når navnet kan slås op igen.
+- **Offline** — navnet kan ikke slås op, eller har ingen post af typen, efter alle genforsøg. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitornavn_ er offline". Hændelsen løser sig selv, når navnet kan slås op igen.
 - **Oppe** — navnet kan slås op. Monitoren markeres som **I drift**.
 
 Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hvad der sker. Når ingen matcher, viser monitoren sin standardstatus: **I drift**, medmindre du vælger en anden under **Flere felter** under kriterierne.

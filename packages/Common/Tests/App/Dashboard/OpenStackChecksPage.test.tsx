@@ -616,6 +616,73 @@ describe("with the checks on", () => {
   });
 });
 
+/*
+ * OneUptime issue #8449: archiving a cloud hides it from the lists, and its checks keep running,
+ * as its collection does. So the page reads for an archived cloud exactly as for any other: no
+ * pause to explain, and the switches that do stop a check are where they always are.
+ */
+describe("an archived cloud", () => {
+  async function pageText(isArchived: boolean): Promise<string> {
+    stand.cloud = Object.assign(probeCollectedCloud(), {
+      isArchived: isArchived,
+    });
+    stand.check = checkOn({
+      lifecycleRecords: recordsOf(failedRun()),
+      // A fixed time, so both renders say the same "ago".
+      lastApiCheckAt: NOW,
+      apiCheckResult: apiResult(),
+    });
+
+    renderPage();
+    await screen.findByTestId("openstack-lifecycle-failed-step");
+
+    const text: string = document.body.textContent || "";
+
+    cleanup();
+
+    return text;
+  }
+
+  test("reads as any other cloud's checks: what they found, and nothing about a pause", async () => {
+    const archived: string = await pageText(true);
+    const shown: string = await pageText(false);
+
+    expect(archived).toBe(shown);
+    expect(archived).not.toMatch(/paused|archived/i);
+  });
+
+  test("keeps Run Now, which asks for a run as it does on any cloud", async () => {
+    stand.cloud = Object.assign(probeCollectedCloud(), { isArchived: true });
+    stand.check = checkOn({});
+    renderPage();
+
+    fireEvent.click(await screen.findByText("Run Now"));
+
+    await waitFor(() => {
+      expect(updateById).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      Object.keys(
+        (updateById.mock.calls[0]![0] as { data: Record<string, unknown> })
+          .data,
+      ),
+    ).toEqual(["lifecycleRunRequestedAt"]);
+  });
+
+  test("turned off, its lifecycle check still says a probe is clearing up after it", async () => {
+    stand.cloud = Object.assign(probeCollectedCloud(), { isArchived: true });
+    stand.check = checkOn({
+      isLifecycleCheckEnabled: false,
+      isSweepPending: true,
+    });
+    renderPage();
+
+    expect(
+      await screen.findByTestId("openstack-lifecycle-sweeping"),
+    ).toHaveTextContent("clearing up");
+  });
+});
+
 describe("what the page works out", () => {
   test("durations read as a person would say them", () => {
     expect(getOpenStackCheckDurationText(850)).toBe("850\u00A0ms");

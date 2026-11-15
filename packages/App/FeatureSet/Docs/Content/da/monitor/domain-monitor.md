@@ -122,8 +122,8 @@ Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, e
 
 En ny domæne-monitor starter med tre kriterier, så den advarer dig, før en registrering udløber, uden nogen opsætning:
 
-1. **Domænekontrollen mislykkedes** — registreringen er udløbet, eller dens registreringsdata kunne ikke læses. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "_monitor name_ domain check failed". Hændelsen løser sig selv, så snart registreringen kan læses og er gældende igen.
-2. **Domænet udløber snart** — registreringen er ikke udløbet, men udløber om 30 dage eller mindre. Der oprettes en **advarsel** med navnet "_monitor name_ domain expires soon".
+1. **Domænekontrollen mislykkedes** — registreringen er udløbet, eller dens registreringsdata kunne ikke læses. Monitoren markeres som **Offline**, og der oprettes en hændelse med navnet "Domænekontrol for _monitornavn_ mislykkedes". Hændelsen løser sig selv, så snart registreringen kan læses og er gældende igen.
+2. **Domænet udløber snart** — registreringen er ikke udløbet, men udløber om 30 dage eller mindre. Der oprettes en **advarsel** med navnet "Domænet _monitornavn_ udløber snart".
 3. **Domænet er ikke udløbet** — monitoren markeres som **I drift**.
 
 Advarslen "udløber snart" er en advarsel, ikke en hændelse: den vises ikke på dine statussider, den tilkalder ingen, medmindre du føjer en vagtpolitik til den, og den ændrer ikke monitorens status. Den bruger dit projekts anden advarselsalvorlighed, **Lav** i et nyt projekt. Så snart fornyelsen vises i registreringsposten, løser advarslen sig selv. Et register, der ikke offentliggør nogen udløbsdato, giver ikke advarslen noget at gå efter, så den forbliver tavs.

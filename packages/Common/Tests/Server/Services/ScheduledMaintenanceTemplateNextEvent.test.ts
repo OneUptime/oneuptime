@@ -143,13 +143,13 @@ function member(
  */
 const WRITERS: Array<[string, () => DatabaseCommonInteractionProps]> = [
   [
-    "a project owner",
+    "a Project Owner",
     (): DatabaseCommonInteractionProps => {
       return member([Permission.ProjectOwner]);
     },
   ],
   [
-    "a project admin",
+    "a Project Admin",
     (): DatabaseCommonInteractionProps => {
       return member([Permission.ProjectAdmin]);
     },

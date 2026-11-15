@@ -49,7 +49,7 @@ const NOT_FOUND: (name: string) => string = (name: string): string => {
 };
 
 const NOT_CONNECTED: string =
-  "This project is not connected to Slack. Please ask a project admin to connect Slack in Project Settings > Workspace > Slack.";
+  "This project is not connected to Slack. Please ask a Project Admin to connect Slack in Project Settings > Workspace > Slack.";
 
 function posted(channelName: string): WorkspaceSummaryTestChannel {
   return { channelName: channelName, isPosted: true };

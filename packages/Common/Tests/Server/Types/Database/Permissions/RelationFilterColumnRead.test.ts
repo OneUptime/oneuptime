@@ -120,8 +120,8 @@ const PAGE_READERS_WITHOUT_TOKEN: Array<[string, Array<Permission>]> = [
 
 // Who may read a status page and the Twilio token of its config.
 const PAGE_READERS_WITH_TOKEN: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "a status page viewer granted Read Call and SMS",
     [Permission.StatusPageViewer, Permission.ReadProjectCallSMSConfig],

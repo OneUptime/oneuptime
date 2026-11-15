@@ -56,9 +56,27 @@ const READERS: Record<string, Array<string>> = {
   ],
   // Who extended a trial or adjusted a balance, behind the master-admin gate.
   "packages/Common/Server/API/ProjectAPI.ts": ["UserSession"],
+  /*
+   * POST /logout: the session a sign-out's own access token names, expired
+   * or not, to end it when its refresh token matches none (issue #8592).
+   */
+  "packages/App/FeatureSet/Identity/API/Authentication.ts": ["UserSession"],
   // findSignedInSession: the page's own sign-in, held to its live session.
   "packages/Common/Server/Services/StatusPageService.ts": ["StatusPageSession"],
 };
+
+/*
+ * The only reads that take a token after it has expired
+ * (JSONWebToken.decode's `{ acceptExpired: true }`), with why. An expired
+ * token gets nothing anywhere else.
+ */
+const EXPIRED_TOKEN_READERS: Record<string, string> = {
+  "packages/App/FeatureSet/Identity/API/Authentication.ts":
+    "POST /logout ends the session its own access token names when the refresh token it sent matches none: a renewal whose answer was lost rotated it (issue #8592)",
+};
+
+// The options a decode may pass: only the expired-token read above.
+const ACCEPT_EXPIRED_OPTIONS: string = "{ acceptExpired: true }";
 
 // Where each kind of token is signed: the `purpose` handed to JSONWebToken.sign.
 const SIGNERS: Record<string, Array<string>> = {
@@ -237,6 +255,8 @@ interface DecodeCall {
   line: number;
   argumentCount: number;
   purpose: string | null;
+  // The options it passes, as written: "{ acceptExpired: true }", or null for none.
+  options: string | null;
 }
 
 interface RawClaimSigning {
@@ -498,6 +518,9 @@ function scanProductCode(): Scan {
           line: lineOf(sourceFile, node),
           argumentCount: call.arguments.length,
           purpose: purposeMemberOf(call.arguments[1]),
+          options: call.arguments[2]
+            ? call.arguments[2].getText(sourceFile).replace(/\s+/g, " ")
+            : null,
         });
       }
 
@@ -573,7 +596,8 @@ describe("every reader of a person's token says which kind it reads", () => {
     const unnamed: Array<DecodeCall> = SCAN.decodeCalls.filter(
       (call: DecodeCall): boolean => {
         return (
-          call.argumentCount !== 2 ||
+          (call.argumentCount !== 2 &&
+            !(call.argumentCount === 3 && call.options !== null)) ||
           !call.purpose ||
           !PURPOSE_NAMES.includes(call.purpose)
         );
@@ -586,6 +610,43 @@ describe("every reader of a person's token says which kind it reads", () => {
      * reader's kind is plain where it is read and listed below.
      */
     expect(unnamed).toEqual([]);
+  });
+
+  /*
+   * A token that has expired is taken only where a sign-out ends its own
+   * session (issue #8592): `{ acceptExpired: true }` written out, a session
+   * read, in a listed file. Anywhere else a decode passes no options.
+   */
+  test("only the listed reads take an expired token, and each still does", () => {
+    const withOptions: Array<DecodeCall> = SCAN.decodeCalls.filter(
+      (call: DecodeCall): boolean => {
+        return call.options !== null;
+      },
+    );
+
+    expect(
+      withOptions
+        .filter((call: DecodeCall): boolean => {
+          return (
+            call.options !== ACCEPT_EXPIRED_OPTIONS ||
+            call.purpose !== "UserSession" ||
+            !EXPIRED_TOKEN_READERS[call.file]
+          );
+        })
+        .map((call: DecodeCall): string => {
+          return `${call.file}:${call.line} ${call.options}`;
+        }),
+    ).toEqual([]);
+
+    for (const file of Object.keys(EXPIRED_TOKEN_READERS)) {
+      expect({
+        file,
+        readsExpired: withOptions.some((call: DecodeCall): boolean => {
+          return call.file === file;
+        }),
+      }).toEqual({ file, readsExpired: true });
+      expect(EXPIRED_TOKEN_READERS[file]!.length).toBeGreaterThan(20);
+    }
   });
 
   test("each file reads only the kinds listed for it, and every listed file still reads them", () => {

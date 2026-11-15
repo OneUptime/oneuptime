@@ -68,7 +68,7 @@ En advarsel eller en gjenoppretting for et varsel uten hendelse endrer ingenting
 
 ### Prioriteter og varsling
 
-En ny hendelse varsler vaktretningslinjene du valgte når monitoren er P1 eller P2, eller ikke har noen prioritet. P3, P4 og P5 åpner en hendelse og varsler ingen. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
+En ny hendelse varsler vaktpolicyene du valgte når monitoren er P1 eller P2, eller ikke har noen prioritet. P3, P4 og P5 åpner en hendelse og varsler ingen. I et nytt prosjekt knytter prioritetene seg til disse alvorlighetsgradene for hendelser og varsler:
 
 | Datadog-prioritet | Hendelse | Varsel | Vakt |
 | --- | --- | --- | --- |
@@ -100,7 +100,7 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 - **Hendelsestittel**: `{{requestBody.title}}`.
 - **Hendelsesbeskrivelse**, under **Beskrivelse**: `{{requestBody.body}}`, deretter `Datadog: {{requestBody.link}}` på en egen linje.
 - **Alvorlighetsgrad**: hendelsesalvorlighetsgraden disse varslene skal ha.
-- **Vaktretningslinjer**, under **Vakt**: retningslinjene som skal varsles.
+- **Vaktpolicyer**, under **Vakt**: policyene som skal varsles.
 - **Løs hendelse automatisk**, under **Flere felt**: la den være slått på, slik den starter. Uten den ignoreres gjenopprettinger, og hendelser blir stående åpne.
 
 ### Åpne én hendelse per varsel
@@ -251,6 +251,6 @@ Med monitoren trenger hver gruppe sin egen `alert_key`. Kontroller at nyttelaste
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
 - [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [New Relic](/docs/integrations/new-relic): Den samme malen, for New Relic-saker.
-- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktretningslinje varsler, og når.
+- [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

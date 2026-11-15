@@ -183,19 +183,24 @@ export const ATTENTION_LIST_LABEL: string = translationKey(
   "What needs someone now",
 );
 
+/*
+ * Each attention link is one sentence with its count in it, where the
+ * reader's language puts it. The count was drawn before a translated noun,
+ * in English's order (#8483).
+ */
 export const MY_OPEN_CASES_LABEL: PluralTemplate = {
-  one: "open case assigned to you",
-  other: "open cases assigned to you",
+  one: "{{count}} open case assigned to you",
+  other: "{{count}} open cases assigned to you",
 };
 
 export const UNASSIGNED_OPEN_CASES_LABEL: PluralTemplate = {
-  one: "open case nobody has picked up",
-  other: "open cases nobody has picked up",
+  one: "{{count}} open case nobody has picked up",
+  other: "{{count}} open cases nobody has picked up",
 };
 
 export const STEPS_WAITING_LABEL: PluralTemplate = {
-  one: "playbook step waiting for approval",
-  other: "playbook steps waiting for approval",
+  one: "{{count}} playbook step waiting for approval",
+  other: "{{count}} playbook steps waiting for approval",
 };
 
 /*

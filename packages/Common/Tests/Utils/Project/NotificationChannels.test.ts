@@ -80,7 +80,7 @@ describe("the four channels", () => {
 });
 
 describe("who may turn them on", () => {
-  test("is exactly what every column's update permissions say: a project owner, a Billing Admin, or Manage Billing", () => {
+  test("is exactly what every column's update permissions say: a Project Owner, a Billing Admin, or Manage Billing", () => {
     const project: Project = new Project();
 
     expect([...PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS]).toEqual([
@@ -103,7 +103,7 @@ describe("who may turn them on", () => {
     }
   });
 
-  test("never a project admin: Project Admin leaves out billing", () => {
+  test("never a Project Admin: Project Admin leaves out billing", () => {
     const project: Project = new Project();
 
     for (const channel of ALL_CHANNELS) {
@@ -144,7 +144,7 @@ describe("who may turn them on", () => {
     ]);
 
     for (const sentence of ALL_SENTENCES) {
-      expect([sentence, sentence.includes("project owner")]).toEqual([
+      expect([sentence, sentence.includes("Project Owner")]).toEqual([
         sentence,
         true,
       ]);
@@ -188,7 +188,7 @@ describe("who may turn them on", () => {
 
   test("the words are the one shared phrase, so no sentence can name a different set", () => {
     expect(WHO_MAY_TURN_THEM_ON).toBe(
-      "a project owner, a Billing Admin or someone with Manage Billing",
+      "a Project Owner, a Billing Admin or someone with Manage Billing",
     );
 
     for (const sentence of ALL_SENTENCES) {
@@ -225,10 +225,10 @@ describe("who can turn it on, as words", () => {
     "the clause and the sentence for %s",
     (pronoun: ChannelPronoun) => {
       expect(getWhoCanTurnOnClause(pronoun)).toBe(
-        `a project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Channels`,
+        `a Project Owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Channels`,
       );
       expect(getWhoCanTurnOnSentence(pronoun)).toBe(
-        `A project owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Channels.`,
+        `A Project Owner, a Billing Admin or someone with Manage Billing can turn ${pronoun} on in Project Settings > Notifications > Notification Channels.`,
       );
     },
   );
@@ -238,19 +238,19 @@ describe("what the server says when a channel is off", () => {
   test.each([
     [
       ProjectNotificationChannel.SMS,
-      "SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Call,
-      "Phone calls are off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
+      "Phone calls are off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn them on in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.WhatsApp,
-      "WhatsApp is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "WhatsApp is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     ],
     [
       ProjectNotificationChannel.Telegram,
-      "Telegram is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "Telegram is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     ],
   ] as Array<[ProjectNotificationChannel, string]>)(
     "%s",
@@ -261,19 +261,19 @@ describe("what the server says when a channel is off", () => {
 
   test("incoming call numbers need SMS, because they are verified by text", () => {
     expect(INCOMING_CALL_NUMBER_SMS_OFF_MESSAGE).toBe(
-      "Numbers for incoming calls are verified by SMS, which is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "Numbers for incoming calls are verified by SMS, which is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
   });
 
   test("a status page's SMS subscriptions need SMS on for the project", () => {
     expect(STATUS_PAGE_SMS_SUBSCRIPTIONS_SMS_OFF_MESSAGE).toBe(
-      "Visitors can't subscribe by SMS while SMS is off in this project. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
+      "Visitors can't subscribe by SMS while SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings > Notifications > Notification Channels.",
     );
   });
 
   /*
    * "Billing Admin" is a role a reader can be given, named as the team
-   * permission picker names it; "an admin" or "a project admin" would send
+   * permission picker names it; "an admin" or "a Project Admin" would send
    * the reader to somebody who may not.
    */
   test("no sentence tells its reader to do it themselves, or to ask an admin", () => {

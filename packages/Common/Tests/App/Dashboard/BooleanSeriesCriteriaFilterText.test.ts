@@ -5,7 +5,6 @@ import {
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
-import FilterCondition from "../../../Types/Filter/FilterCondition";
 import { describe, expect, test } from "@jest/globals";
 
 function overTimeFilter(input: {
@@ -46,10 +45,9 @@ describe("Dashboard criteria text for true/false filters over time", () => {
           filterType: FilterType.False,
           evaluateOverTimeType: EvaluateOverTimeType.Average,
         }),
-        FilterCondition.All,
       ),
     ).toBe(
-      `Check if all values of "${checkOn}" in the past 5 minutes is false and,`,
+      `Check if all values of "${checkOn}" in the past 5 minutes is false`,
     );
   });
 
@@ -63,7 +61,7 @@ describe("Dashboard criteria text for true/false filters over time", () => {
         }),
       ),
     ).toBe(
-      `Check if any value of "DNS Is Online" in the past 5 minutes is false `,
+      `Check if any value of "DNS Is Online" in the past 5 minutes is false`,
     );
   });
 

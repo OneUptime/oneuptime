@@ -1,7 +1,9 @@
 import IncomingRequestSecret from "../../../Models/DatabaseModels/IncomingRequestSecret";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Project from "../../../Models/DatabaseModels/Project";
-import ColumnAccessControl from "../../../Types/BaseDatabase/ColumnAccessControl";
+import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import { IncomingRequestSecretProblem } from "../../../Types/Monitor/IncomingMonitor/IncomingRequestSecret";
 import Permission from "../../../Types/Permission";
 import { ModelSchema } from "../../../Utils/Schema/ModelSchema";
 import { describe, expect, test } from "@jest/globals";
@@ -21,7 +23,10 @@ import { describe, expect, test } from "@jest/globals";
  *   - lastUsedAt is written only by the ingest path;
  *   - everyone in the project reads the switch, so a monitor's page can tell
  *     whoever wires up a sender that it needs a secret; only owners and admins
- *     turn it.
+ *     turn it;
+ *   - a monitor's record of requests with and without a secret (issue #8498)
+ *     is read by whoever reads the monitor's latest request, and written by
+ *     the ingest path alone: nobody can make a monitor look fixed.
  */
 
 const OWNERS_AND_ADMINS: Array<Permission> = [
@@ -125,5 +130,57 @@ describe("Project.requireIncomingRequestSecret", () => {
   test("only owners and admins turn it, and nobody sets it on create", () => {
     expect(control?.update).toEqual(OWNERS_AND_ADMINS);
     expect(control?.create).toEqual([]);
+  });
+});
+
+describe("Monitor's record of requests with and without a secret", () => {
+  const monitor: Monitor = new Monitor();
+
+  const COLUMNS: Array<string> = [
+    "incomingRequestWithSecretAt",
+    "incomingRequestWithoutSecretAt",
+    "incomingRequestWithoutSecretReason",
+  ];
+
+  // Whoever reads the monitor's latest request.
+  const latestRequestReaders: Array<Permission> =
+    monitor.getColumnAccessControlFor("incomingMonitorRequest")?.read || [];
+
+  test.each(COLUMNS)(
+    "%s is read by whoever reads the monitor's latest request",
+    (column: string) => {
+      expect(latestRequestReaders.length).toBeGreaterThan(0);
+      expect(
+        [...(monitor.getColumnAccessControlFor(column)?.read || [])].sort(),
+      ).toEqual([...latestRequestReaders].sort());
+    },
+  );
+
+  test.each(COLUMNS)(
+    "%s is written by the ingest path alone, never through the API",
+    (column: string) => {
+      const control: ColumnAccessControl | null =
+        monitor.getColumnAccessControlFor(column);
+
+      expect(control?.create).toEqual([]);
+      expect(control?.update).toEqual([]);
+    },
+  );
+
+  test.each(COLUMNS)("%s is empty until a request comes", (column: string) => {
+    expect(monitor.getTableColumnMetadata(column)).toMatchObject({
+      required: false,
+    });
+  });
+
+  test("the reason is one the code stores", () => {
+    expect(
+      monitor.getTableColumnMetadata("incomingRequestWithoutSecretReason")
+        .allowedValues,
+    ).toEqual(Object.values(IncomingRequestSecretProblem));
+    expect(Object.values(IncomingRequestSecretProblem)).toEqual([
+      "No Secret",
+      "Wrong Secret",
+    ]);
   });
 });

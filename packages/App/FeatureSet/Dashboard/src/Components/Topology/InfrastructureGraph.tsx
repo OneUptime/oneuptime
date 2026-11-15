@@ -24,8 +24,13 @@ import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
 import {
+  composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
   fillTemplate,
   formatInline,
+  formatList,
+  PluralTemplate,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -48,7 +53,7 @@ import {
   isContainerNode,
   summarizeCounts,
 } from "./InfrastructureTopologyModel";
-import { formatLastSeen } from "./TopologyActivity";
+import { formatLastSeenInLanguage, isLastSeenKnown } from "./TopologyActivity";
 import {
   HEALTH_COLORS,
   edgeWidthForCalls,
@@ -124,6 +129,7 @@ interface CardData {
   icon: IconProp;
   color: string;
   statusColor: string;
+  // In the reader's words already: the card draws it as given (#8418).
   statusLabel: string;
   stats: Array<TopologyNodeStat>;
   footer?: string | undefined;
@@ -135,6 +141,29 @@ interface CardData {
 
 // The overflow card's title, one sentence with its count.
 const OVERFLOW_TITLE: string = "{{count}} more";
+
+/*
+ * A machine's status line: whether it is running and when it last
+ * reported, one sentence of the locale each (#8418). It was built in
+ * English by hand - "Active · seen 12 min ago" for every reader.
+ */
+export const ACTIVE_SEEN_LINE: string = translationKey(
+  "Active · seen {{time}}",
+);
+export const INACTIVE_SEEN_LINE: string = translationKey(
+  "Inactive · seen {{time}}",
+);
+// Its state alone, where it has no time to tell (a manual resource).
+const ACTIVE: string = translationKey("Active");
+const INACTIVE: string = translationKey("Inactive");
+
+// A service card's status line: on how many of the cards it runs.
+const RUNS_ON_THESE: PluralTemplate = {
+  one: "Runs on {{count}} of these",
+  other: "Runs on {{count}} of these",
+};
+
+const OPEN_THE_LIST: string = translationKey("Open the list to see everything");
 
 const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
   props: NodeProps<CardData>,
@@ -155,9 +184,8 @@ const InfrastructureCard: FunctionComponent<NodeProps<CardData>> = (
       icon={props.data.icon}
       color={props.data.color}
       statusColor={props.data.statusColor}
-      statusLabel={
-        translateString(props.data.statusLabel) || props.data.statusLabel
-      }
+      // Worded by the layout, in the reader's language: drawn as given.
+      statusLabel={props.data.statusLabel}
       stats={props.data.stats}
       footer={props.data.footer}
       stacked={props.data.stacked}
@@ -189,10 +217,57 @@ const NODE_TYPES: Record<string, FunctionComponent<NodeProps>> = {
   infrastructureRouteSlot: RouteSlot,
 };
 
+/*
+ * A card's status line, in the reader's words: whether it is running, then
+ * - for a machine - when it last reported, as one sentence ("Aktiv ·
+ * zuletzt gesehen vor 12 Min."), its time in the sentence's language and
+ * digits and shortened as the language shortens it; for anything else,
+ * what it is made of, the counts set off as the language sets off facts
+ * on a line ("Activo · 2 pods", "فعال • ۲ پاد"). A machine with no time to
+ * tell is its state alone, never "seen —".
+ */
+export function statusLineForNode(
+  node: InfrastructureNode,
+  now: Date,
+  translator: Translator = ENGLISH,
+): string {
+  const state: string =
+    translator.translateText(node.isActive ? ACTIVE : INACTIVE) ||
+    (node.isActive ? ACTIVE : INACTIVE);
+
+  if (node.kind === "resource" && !isContainerNode(node)) {
+    const lastSeenAt: Date | undefined = node.lastSeenAt || undefined;
+
+    if (!isLastSeenKnown(lastSeenAt, now)) {
+      return state;
+    }
+
+    return translator.translateTemplate(
+      node.isActive ? ACTIVE_SEEN_LINE : INACTIVE_SEEN_LINE,
+      {
+        // In the language the sentence is drawn in.
+        time: composedValue((sentence: Translator): string => {
+          return formatLastSeenInLanguage(lastSeenAt, now, sentence.language, {
+            style: "short",
+          });
+        }),
+      },
+    );
+  }
+
+  const madeOf: string =
+    node.kind === "resource"
+      ? summarizeCounts(node.countsByType, 2, translator)
+      : describeInfrastructureNode(node, translator);
+
+  return madeOf ? formatInline([state, madeOf], translator) : state;
+}
+
 export function cardForNode(
   model: InfrastructureTopologyModel,
   node: InfrastructureNode,
   now: Date,
+  translator: Translator = ENGLISH,
 ): CardData {
   const typeMeta: { label: string; color: string } = metaForEntityType(
     node.entityType || undefined,
@@ -234,13 +309,7 @@ export function cardForNode(
      * says when it last reported instead. A collection is one card however
      * many items it holds, so its line carries the count.
      */
-    statusLabel: `${node.isActive ? "Active" : "Inactive"} · ${
-      node.kind === "resource" && !isContainerNode(node)
-        ? `seen ${formatLastSeen(node.lastSeenAt || undefined, now)}`
-        : node.kind === "resource"
-          ? summarizeCounts(node.countsByType, 2)
-          : describeInfrastructureNode(node)
-    }`,
+    statusLabel: statusLineForNode(node, now, translator),
     stats: [],
     footer,
     stacked: node.kind === "group" || node.kind === "collection",
@@ -408,8 +477,11 @@ export function layoutInfrastructureMap(data: {
   model: InfrastructureTopologyModel;
   nodeIds: Array<string>;
   now: Date;
+  // The reader's: every card's status line is worded with it. English if left out.
+  translator?: Translator | undefined;
 }): InfrastructureMapLayout {
   const { model } = data;
+  const translator: Translator = data.translator || ENGLISH;
   const cards: Array<InfrastructureNode> = data.nodeIds
     .map((id: string): InfrastructureNode | undefined => {
       return model.nodes.get(id);
@@ -579,7 +651,7 @@ export function layoutInfrastructureMap(data: {
         icon: IconProp.SquareStack,
         color: metaForEntityType("service").color,
         statusColor: "#6366f1",
-        statusLabel: `Runs on ${placements} of these`,
+        statusLabel: translator.translatePlural(RUNS_ON_THESE, placements),
         stats: [],
         stacked: false,
         dimmed: false,
@@ -600,7 +672,7 @@ export function layoutInfrastructureMap(data: {
       id: node.id,
       type: "infrastructureCard",
       position: positionOf(node.id),
-      data: cardForNode(model, node, data.now),
+      data: cardForNode(model, node, data.now, translator),
     });
   });
 
@@ -617,8 +689,7 @@ export function layoutInfrastructureMap(data: {
         icon: IconProp.TableCells,
         color: "#64748b",
         statusColor: "#94a3b8",
-        // The node looks its status line up in the reader's language.
-        statusLabel: translationKey("Open the list to see everything"),
+        statusLabel: translator.translateText(OPEN_THE_LIST) || OPEN_THE_LIST,
         stats: [],
         stacked: true,
         dimmed: false,
@@ -689,49 +760,116 @@ export function layoutInfrastructureMap(data: {
   return { nodes, edges, traffic, routes, lanes };
 }
 
-/** "12/min", "0.4% errors" or "45ms" for a line: one metric of its traffic. */
+// English, as a caller with no translator reads a line (#8350).
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * The words of a traffic line, each a whole sentence with its figure as a
+ * {{placeholder}}, worded in every Dashboard language (#8350): never English
+ * words glued around a figure the reader's language wrote.
+ */
+export const TRAFFIC_ERROR_RATE: string = translationKey("{{rate}} errors");
+export const TRAFFIC_AVERAGE_DURATION: string =
+  translationKey("{{duration}} avg");
+export const TRAFFIC_NO_CALLS_COUNTED: string =
+  translationKey("no calls counted");
+export const TRAFFIC_MORE_CALLS: string = translationKey(
+  "{{calls}} +{{count}}",
+);
+export const TRAFFIC_LINK_DESCRIPTION: string = translationKey(
+  "{{calls}}: {{traffic}}",
+);
+
+/*
+ * "12/min", "0.4% errors" or "45 ms" for a line: one metric of its traffic,
+ * in the translator's language and digits - "12/Min.", "0,4 % Fehler",
+ * "۴۵ میلی‌ثانیه" (#8350). Without one, English exactly as before.
+ */
 export function trafficMetricLabel(
   link: InfrastructureTrafficLink,
   metric: Exclude<TrafficLabel, "hover">,
   metricsWindowSeconds: number,
+  translator: Translator = ENGLISH,
 ): string {
   if (metric === "calls") {
-    return formatCallRate(link.calls, metricsWindowSeconds);
+    return formatCallRate(link.calls, metricsWindowSeconds, translator);
   }
   if (metric === "errors") {
-    return `${formatErrorRate(link.calls, link.errors)} errors`;
+    return translator.translateTemplate(TRAFFIC_ERROR_RATE, {
+      rate: composedValue((sentence: Translator): string => {
+        return formatErrorRate(link.calls, link.errors, sentence);
+      }),
+    });
   }
-  return formatDurationMs(link.avgDurationMs ?? undefined);
+  return formatDurationMs(link.avgDurationMs ?? undefined, translator);
 }
 
 /*
  * What a line stands for, in words: its busiest service calls and their
  * traffic. "checkout → payments, checkout → cart: 12/min · 0.4% errors ·
- * 45ms avg". Each call's arrow points the way a line read in `language`
- * reads (joinWithArrowsOn).
+ * 45 ms avg". Each call's arrow points the way a line read in the
+ * sentence's language reads (joinWithArrowsOn); the calls, the traffic and
+ * each of its facts are sentences of the translator's language, their
+ * figures in its digits (#8350). Without a translator, English exactly as
+ * before.
  */
 export function describeTrafficLink(
   model: InfrastructureTopologyModel,
   link: InfrastructureTrafficLink,
   metricsWindowSeconds: number,
-  language?: string | undefined,
+  translator: Translator = ENGLISH,
 ): string {
   const name: (key: string) => string = (key: string): string => {
     return model.serviceByKey.get(key)?.displayName || key;
   };
-  const calls: string = link.serviceCalls
-    .slice(0, 3)
-    .map((call: { from: string; to: string }): string => {
-      return joinWithArrowsOn([name(call.from), name(call.to)], language);
-    })
-    .join(", ");
-  const more: string =
-    link.serviceCalls.length > 3 ? ` +${link.serviceCalls.length - 3}` : "";
-  const traffic: string =
-    link.calls > 0
-      ? `${formatCallRate(link.calls, metricsWindowSeconds)} · ${formatErrorRate(link.calls, link.errors)} errors · ${formatDurationMs(link.avgDurationMs ?? undefined)} avg`
-      : "no calls counted";
-  return `${calls}${more}: ${traffic}`;
+  const listCalls: (sentence: Translator) => string = (
+    sentence: Translator,
+  ): string => {
+    return formatList(
+      link.serviceCalls
+        .slice(0, 3)
+        .map((call: { from: string; to: string }): string => {
+          return joinWithArrowsOn(
+            [name(call.from), name(call.to)],
+            sentence.language,
+          );
+        }),
+      sentence,
+    );
+  };
+  const hiddenCalls: number = link.serviceCalls.length - 3;
+
+  return translator.translateTemplate(TRAFFIC_LINK_DESCRIPTION, {
+    calls: composedValue((sentence: Translator): string => {
+      if (hiddenCalls <= 0) {
+        return listCalls(sentence);
+      }
+      return sentence.translateTemplate(TRAFFIC_MORE_CALLS, {
+        calls: composedValue(listCalls),
+        count: sentence.formatNumber(hiddenCalls),
+      });
+    }),
+    traffic: composedValue((sentence: Translator): string => {
+      if (link.calls <= 0) {
+        return (
+          sentence.translateText(TRAFFIC_NO_CALLS_COUNTED) ||
+          TRAFFIC_NO_CALLS_COUNTED
+        );
+      }
+      return formatInline(
+        [
+          formatCallRate(link.calls, metricsWindowSeconds, sentence),
+          trafficMetricLabel(link, "errors", metricsWindowSeconds, sentence),
+          sentence.translateTemplate(TRAFFIC_AVERAGE_DURATION, {
+            duration: composedValue((average: Translator): string => {
+              return formatDurationMs(link.avgDurationMs ?? undefined, average);
+            }),
+          }),
+        ],
+        sentence,
+      );
+    }),
+  });
 }
 
 export interface TrafficEdgeData {
@@ -878,8 +1016,12 @@ export function trafficEdges(data: {
   label: TrafficLabel;
   hoveredId?: string | null | undefined;
   metricsWindowSeconds: number;
-  // The reader's language, which way each line's description reads.
-  language?: string | undefined;
+  /*
+   * The reader's translator: each line's label and description in their
+   * language and digits, its arrows the way it reads (#8350). English
+   * without one.
+   */
+  translator?: Translator | undefined;
   /* Lines that skip a layer, and where their cards are (see the layout). */
   routes?: Map<string, Array<LayoutPoint>> | undefined;
   cardTops?: Map<string, number> | undefined;
@@ -911,7 +1053,12 @@ export function trafficEdges(data: {
             : "default",
         label:
           metric && link.calls > 0
-            ? trafficMetricLabel(link, metric, data.metricsWindowSeconds)
+            ? trafficMetricLabel(
+                link,
+                metric,
+                data.metricsWindowSeconds,
+                data.translator,
+              )
             : undefined,
         /* Readable in both themes, over any line that crosses behind it. */
         labelShowBg: true,
@@ -932,7 +1079,7 @@ export function trafficEdges(data: {
           data.model,
           link,
           data.metricsWindowSeconds,
-          data.language,
+          data.translator,
         ),
         markerEnd: { type: MarkerType.ArrowClosed, color },
         style: {
@@ -957,7 +1104,7 @@ const DEFAULT_METRICS_WINDOW_SECONDS: number = 15 * 60;
 const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString, language } = useTranslateValue();
+  const { translateString } = useTranslateValue();
   const t: (value: string) => string = (value: string): string => {
     return translateString(value) || value;
   };
@@ -972,13 +1119,18 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
   const metricsWindowSeconds: number =
     props.metricsWindowSeconds || DEFAULT_METRICS_WINDOW_SECONDS;
 
+  /*
+   * Worded with the reader's translator, so it is laid out again when the
+   * language changes (the translator itself is made anew every render).
+   */
   const layout: InfrastructureMapLayout = useMemo(() => {
     return layoutInfrastructureMap({
       model: props.model,
       nodeIds: props.nodeIds,
       now: props.now || new Date(),
+      translator: graphTranslator,
     });
-  }, [props.model, props.nodeIds, props.now]);
+  }, [props.model, props.nodeIds, props.now, graphTranslator.language]);
 
   /*
    * A few lines read best labeled; past that, labels crowd each other where
@@ -999,7 +1151,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
         label: trafficLabel,
         hoveredId: hoveredEdgeId,
         metricsWindowSeconds,
-        language,
+        translator: graphTranslator,
         routes: layout.routes,
         lanes: layout.lanes,
         cardTops: new Map<string, number>(
@@ -1015,7 +1167,8 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
     trafficLabel,
     hoveredEdgeId,
     metricsWindowSeconds,
-    language,
+    // The translator is built anew every render; its language is what counts.
+    graphTranslator.language,
   ]);
 
   const flowNodes: Array<Node> = useMemo(() => {
@@ -1277,7 +1430,7 @@ const InfrastructureGraph: FunctionComponent<ComponentProps> = (
               props.model,
               hoveredLink,
               metricsWindowSeconds,
-              language,
+              graphTranslator,
             )}
           </div>
         )}

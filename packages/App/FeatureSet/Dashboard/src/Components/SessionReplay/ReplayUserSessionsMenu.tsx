@@ -145,13 +145,18 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
    */
   const nowUnixMs: number = props.nowUnixMs ?? Date.now();
 
+  /*
+   * Each row's age, timestamp and length in the reader's language and
+   * digits (#8298). Keyed on the language rather than the translator,
+   * which useTranslator builds anew every render.
+   */
   const descriptions: Array<ReplayUserSessionDescription> = useMemo(() => {
     return sessions.map(
       (item: ReplayUserSessionItem): ReplayUserSessionDescription => {
-        return describeReplayUserSession(item, nowUnixMs);
+        return describeReplayUserSession(item, nowUnixMs, translator);
       },
     );
-  }, [sessions, nowUnixMs]);
+  }, [sessions, nowUnixMs, translator.language]);
 
   const currentIndex: number = useMemo((): number => {
     return sessions.findIndex((item: ReplayUserSessionItem): boolean => {
@@ -275,6 +280,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
           { one: "{{count}} session", other: "{{count}} sessions" },
           count,
         )}
+        isLabelTranslated={true}
         variant="ghost"
         tone="accent"
         trailingIcon={IconProp.ChevronDown}
@@ -310,7 +316,7 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
               (item: ReplayUserSessionItem, index: number): ReactElement => {
                 const description: ReplayUserSessionDescription =
                   descriptions[index] ??
-                  describeReplayUserSession(item, nowUnixMs);
+                  describeReplayUserSession(item, nowUnixMs, translator);
                 const isCurrent: boolean = index === currentIndex;
 
                 return (
@@ -344,10 +350,16 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                     }}
                   >
                     <span className="w-28 shrink-0">
-                      <span className="block text-sm font-medium text-gray-900">
+                      <span
+                        data-testid="replay-user-session-when"
+                        className="block text-sm font-medium text-gray-900"
+                      >
                         {description.when}
                       </span>
-                      <span className="block text-[11px] text-gray-500">
+                      <span
+                        data-testid="replay-user-session-absolute"
+                        className="block text-[11px] text-gray-500"
+                      >
                         {description.absolute}
                       </span>
                     </span>
@@ -414,10 +426,13 @@ const ReplayUserSessionsMenu: FunctionComponent<ReplayUserSessionsMenuProps> = (
                           )}
                           className="rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
                         >
-                          {item.errorCount}
+                          {translator.formatNumber(item.errorCount)}
                         </span>
                       )}
-                      <span className="font-mono text-xs tabular-nums text-gray-600">
+                      <span
+                        data-testid="replay-user-session-duration"
+                        className="font-mono text-xs tabular-nums text-gray-600"
+                      >
                         {description.duration}
                       </span>
                     </span>

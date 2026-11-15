@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 53571,
-    "untranslated": 2523
+    "keys": 54285,
+    "untranslated": 2435
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -63,6 +63,7 @@
     "Amazon EKS",
     "Amphora",
     "Amphorae",
+    "Analog",
     "Andorra",
     "Angola",
     "Anguilla",
@@ -198,6 +199,7 @@
     "Desktop",
     "Detail (in Markdown)",
     "Details",
+    "Digital",
     "Docker CLI",
     "Docker Compose",
     "Dominica",
@@ -226,6 +228,7 @@
     "Fatal",
     "Favicon",
     "Feed",
+    "Feedback",
     "Filter",
     "Filter:",
     "Filter: {{expression}}",
@@ -334,6 +337,7 @@
     "Lesotho",
     "Liberia",
     "Liechtenstein",
+    "Limit",
     "Limits",
     "Link",
     "Links",
@@ -569,6 +573,7 @@
     "Stack",
     "Stacks",
     "Stacktrace",
+    "Staging",
     "Status",
     "Status: ",
     "Stratum",

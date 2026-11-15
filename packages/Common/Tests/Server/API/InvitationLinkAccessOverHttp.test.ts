@@ -216,7 +216,7 @@ describe("POST /team-member/invitation-link is refused to anybody but a master a
       401,
     ],
     [
-      "a signed-in project owner who is not a master admin",
+      "a signed-in Project Owner who is not a master admin",
       { kind: "user", session: session(false) } as RequestSession,
       422,
     ],
@@ -290,7 +290,7 @@ describe("POST /team-member/not-signed-up is refused to anybody but a master adm
       401,
     ],
     [
-      "a signed-in project owner who is not a master admin",
+      "a signed-in Project Owner who is not a master admin",
       { kind: "user", session: session(false) } as RequestSession,
       422,
     ],

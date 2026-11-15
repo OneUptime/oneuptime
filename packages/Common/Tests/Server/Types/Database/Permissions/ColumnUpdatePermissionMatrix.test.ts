@@ -319,7 +319,7 @@ describe("Workflow", () => {
     ["labels", []],
   ];
 
-  test("the record's update list is Edit Workflow, the Workflow Admin role and the project owners and admins", () => {
+  test("the record's update list is Edit Workflow, the Workflow Admin role and the Project Owners and Project Admins", () => {
     expect([...new Workflow().getUpdatePermissions()].sort()).toEqual(
       [...EDITORS].sort(),
     );

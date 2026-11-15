@@ -805,7 +805,7 @@ const PRIVACY_CASES: Array<PrivacyCase> = [
     allLabel: "All incidents",
     ruleName: "Make incidents private",
     saysWhatItDoes:
-      "Incidents this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Incidents this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
   },
   {
     name: "Incidents > Rules > Privacy Rules > Episode Rules",
@@ -814,7 +814,7 @@ const PRIVACY_CASES: Array<PrivacyCase> = [
     allLabel: "All incident episodes",
     ruleName: "Make incident episodes private",
     saysWhatItDoes:
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
   },
   {
     name: "Alerts > Rules > Privacy Rules",
@@ -823,7 +823,7 @@ const PRIVACY_CASES: Array<PrivacyCase> = [
     allLabel: "All alerts",
     ruleName: "Make alerts private",
     saysWhatItDoes:
-      "Alerts this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Alerts this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
   },
   {
     name: "Alerts > Rules > Privacy Rules > Episode Rules",
@@ -832,7 +832,7 @@ const PRIVACY_CASES: Array<PrivacyCase> = [
     allLabel: "All alert episodes",
     ruleName: "Make alert episodes private",
     saysWhatItDoes:
-      "Episodes this rule matches become private: only their owners, project admins and project owners can see them.",
+      "Episodes this rule matches become private: only their owners, Project Admins and Project Owners can see them.",
   },
 ];
 

@@ -245,8 +245,8 @@ describe("AuditLogExportService, through the whole write", () => {
 
   describe("creating", () => {
     test.each([
-      ["a project owner", [Permission.ProjectOwner]],
-      ["a project admin", [Permission.ProjectAdmin]],
+      ["a Project Owner", [Permission.ProjectOwner]],
+      ["a Project Admin", [Permission.ProjectAdmin]],
     ])(
       "%s saves an S3 export: on, from now, nothing exported yet, the secret never in clear",
       async (_who: string, permissions: Array<Permission>) => {

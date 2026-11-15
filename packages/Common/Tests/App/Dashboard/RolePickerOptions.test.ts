@@ -122,7 +122,7 @@ describe("the roles the picker offers", () => {
     expect(search("owner", ENGLISH, roles)).not.toContain(
       Permission.ProjectOwner,
     );
-    expect(search("project owner")).toContain(Permission.ProjectOwner);
+    expect(search("Project Owner")).toContain(Permission.ProjectOwner);
   });
 });
 

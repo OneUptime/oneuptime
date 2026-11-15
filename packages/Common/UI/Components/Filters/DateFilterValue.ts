@@ -267,7 +267,7 @@ export const toDateFilterQueryValue: (
   if (
     builtBounds &&
     valueBounds &&
-    (built as object).constructor === value.constructor &&
+    Object.getPrototypeOf(built) === Object.getPrototypeOf(value) &&
     builtBounds.join(",") === valueBounds.join(",")
   ) {
     return value;

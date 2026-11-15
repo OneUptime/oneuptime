@@ -132,7 +132,7 @@ describe("an LLM provider's page", () => {
   test("shows everyone else whether any are saved, and who can see them", () => {
     expect(source).toContain(squash("field: { hasAdditionalParams: true, },"));
     expect(source).toContain(
-      '"Only project owners and admins can read them, like the API key."',
+      '"Only Project Owners and Project Admins can read them, like the API key."',
     );
     expect(source).toContain(
       squash(

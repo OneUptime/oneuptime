@@ -60,7 +60,7 @@ Ambos son números enteros y se comparan con **Mayor que**, **Menor que**, **Igu
 
 | Criterio | Filtro | Qué hace |
 | --- | --- | --- |
-| Comprobar si una sonda está desconectada | **Sondas desconectadas** mayor que `0` | Pone el monitor fuera de línea y declara un incidente titulado `Probe disconnected: {{disconnectedProbeNames}}`, que se resuelve solo. |
+| Comprobar si una sonda está desconectada | **Sondas desconectadas** mayor que `0` | Pone el monitor fuera de línea y declara un incidente titulado «Sonda desconectada: {{disconnectedProbeNames}}», que se resuelve solo. |
 | Comprobar si todas las sondas están conectadas | **Sondas desconectadas** igual a `0` | Pone el monitor en estado operativo. |
 
 El filtro **Sondas conectadas** sirve para un monitor que vigila varias sondas y puede perder una: **Sondas conectadas** menor que `2` declara un incidente solo cuando quedan menos de dos.

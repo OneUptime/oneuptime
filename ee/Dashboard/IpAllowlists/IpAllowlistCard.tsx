@@ -108,9 +108,15 @@ const IpAllowlistCard: FunctionComponent<IpAllowlistCardProps> = (
               fieldType: FieldType.LongText,
               title: props.title,
               placeholder: props.emptyText,
+              isPlaceholderTranslated: props.isEmptyTextTranslated,
               getElement: (item: IpAllowlistModel): ReactElement => {
                 if (!isIpAllowlistInForce(item.ipWhitelist)) {
-                  return <PlaceholderText text={props.emptyText} />;
+                  return (
+                    <PlaceholderText
+                      text={props.emptyText}
+                      isTextTranslated={props.isEmptyTextTranslated}
+                    />
+                  );
                 }
 
                 const entries: Array<string> = getIpAllowlistEntries(

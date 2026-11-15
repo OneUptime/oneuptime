@@ -1,3 +1,4 @@
+import { getProviderDeliveryStatusMessage } from "Common/Types/OnCallDutyPolicy/OnCallSentLine";
 import SmsService from "../Services/SmsService";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
@@ -200,13 +201,11 @@ router.post(
         ? String(req.body["MessageSid"])
         : undefined;
 
-      let statusMessage: string = `Delivery status: ${mappedStatus}.`;
-      if (messageSid) {
-        statusMessage += ` Message ID: ${messageSid}.`;
-      }
-      if (errorCode) {
-        statusMessage += ` Provider error code: ${errorCode}.`;
-      }
+      const statusMessage: string = getProviderDeliveryStatusMessage({
+        status: mappedStatus,
+        messageId: messageSid,
+        errorCode: errorCode,
+      });
 
       /*
        * Per-delivery-callback bookkeeping stamp. SmsLog has update workflows

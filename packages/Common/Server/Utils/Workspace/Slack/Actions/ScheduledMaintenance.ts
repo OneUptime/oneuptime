@@ -67,7 +67,7 @@ export default class SlackScheduledMaintenanceActions {
 
   // What a change-state form says instead of opening with nothing to pick.
   public static readonly NO_STATES_MESSAGE: string =
-    "No scheduled maintenance states are available to you in this project. Ask a project admin for access to them.";
+    "No scheduled maintenance states are available to you in this project. Ask a Project Admin for access to them.";
 
   @CaptureSpan()
   public static isScheduledMaintenanceAction(data: {

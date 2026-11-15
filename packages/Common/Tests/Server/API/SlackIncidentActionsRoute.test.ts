@@ -1750,7 +1750,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       const said: SlackCall = await onlyAnswer();
 
       expect(textOf(said.data["blocks"])).toBe(
-        "You do not have permission to change the severity of this incident: your access in this project does not include this incident. Ask a project admin for access to it.\n",
+        "You do not have permission to change the severity of this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.\n",
       );
     });
 
