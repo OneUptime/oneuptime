@@ -8,6 +8,7 @@ Ein Postmortem ist die Aufarbeitung nach einem Vorfall: was passiert ist, warum,
 - [Es auf Ihrer Statusseite veröffentlichen](#es-auf-ihrer-statusseite-veröffentlichen): Es Kunden zeigen und Abonnenten einmal informieren.
 - [Verfolgen, wo jedes Postmortem steht](#verfolgen-wo-jedes-postmortem-steht): Nicht gestartet, Entwurf, Abgeschlossen oder ein eigener Status.
 - [Alle Postmortems sehen](#alle-postmortems-sehen): Nach Eigentümer, Schweregrad und Status filtern, um die noch ausstehenden zu finden.
+- [Maßnahmen verfolgen](#maßnahmen-verfolgen): Was das Team tun wird, wer jeweils zuständig ist und was daraus geworden ist.
 - [Postmortems von Episoden](#postmortems-von-episoden): Eine Aufarbeitung für eine Gruppe von Vorfällen.
 :::
 
@@ -169,6 +170,47 @@ Filtern Sie die Liste mit den Chips darüber: **Eigentümer**, eine Person oder 
 
 Um viele auf einmal zu ändern, wählen Sie sie aus und öffnen Sie **Massenaktionen**: **Postmortem-Status ändern** verschiebt sie alle in einen Status, etwa **Nicht erforderlich** für Vorfälle, die keines brauchen, und **Eigentümer hinzufügen** und **Eigentümer entfernen** ändern, wem sie gehören.
 
+## Maßnahmen verfolgen
+
+Die Maßnahmen eines Postmortems sind das, was Ihr Team tun wird, damit der Vorfall nicht wieder passiert. Jede ist ein eigener Eintrag am Vorfall, mit einem Eigentümer, einem Fälligkeitsdatum und einem Status, sodass keine davon eine Zeile in der Notiz bleibt, der niemand nachgeht. Die Karte **Maßnahmen** steht unter der Karte **Postmortem** auf der Seite **Postmortem** des Vorfalls.
+
+- Um eine Maßnahme hinzuzufügen, geben Sie sie in die Zeile unter der Liste ein und klicken Sie auf **Maßnahme hinzufügen**.
+- Um einer Maßnahme einen Eigentümer zu geben, wählen Sie in ihrem Menü **⋯** die Option **Mir zuweisen** oder **Jemand anderem zuweisen**.
+- Um einer Maßnahme ein Fälligkeitsdatum zu geben, wählen Sie in ihrem Menü **⋯** die Option **Maßnahme bearbeiten** und legen Sie ihr **Fälligkeitsdatum** fest. Eine offene Maßnahme, deren Fälligkeitsdatum verstrichen ist, zeigt in Rot an, dass sie überfällig ist.
+- Um eine Maßnahme zu schließen, haken Sie sie ab, sobald sie erledigt ist. **Als „Wird nicht erledigt“ markieren** in ihrem Menü **⋯** schließt sie, wenn das Team beschließt, sie nicht umzusetzen, und **Wieder öffnen** öffnet sie erneut. Jede zeigt, wer sie wann geschlossen hat.
+
+Die Karte zeigt, wie viele erledigt sind, ohne die als **Wird nicht erledigt** markierten mitzuzählen. Das Hinzufügen, Schließen und Übergeben einer Maßnahme wird im Feed des Vorfalls festgehalten.
+
+### Die Maßnahmen aus Ihrer Notiz verfolgen
+
+Der Entwurf von OneUptime AI und jede Postmortem-Vorlage enden mit einem Abschnitt für Maßnahmen: einer Checkliste oder einer Tabelle mit den Spalten `Owner` und `Due Date`. Hat die Notiz einen solchen Abschnitt, nennt die Karte die Punkte, die am Vorfall noch nicht verfolgt werden, mit einer Schaltfläche, die sie alle übernimmt. Jeder Punkt wird zu einer Maßnahme:
+
+- ein abgehaktes Kästchen wird als erledigt übernommen;
+- ein Fälligkeitsdatum, das die Notiz als Datum schreibt, etwa 2026-11-20, wird zu ihrem Fälligkeitsdatum, in Ihrer Zeitzone;
+- ein Punkt, der seinem Titel nach schon verfolgt wird, bleibt außen vor, sodass erneutes Übernehmen nichts hinzufügt.
+
+Die Überschrift des Abschnitts kann `Action Items`, `Follow-ups`, `Next Steps` oder `How We Prevent It` lauten, oder dieselben Wörter in einer anderen Sprache des Dashboards.
+
+### Eine Maßnahme in einen Pull Request, einen Test oder einen Monitor verwandeln
+
+Jede offene Maßnahme kann über ihr Menü **⋯** zu dem werden, was sie verlangt:
+
+| Aktion | Was passiert |
+| --- | --- |
+| **Pull Request mit KI öffnen** | OneUptime AI nimmt die Änderung in einem Repository Ihrer Wahl vor und öffnet einen Pull Request zur Prüfung. Der Vorfall und sein Postmortem gehen mit der Anfrage mit. |
+| **Test mit KI schreiben** | OneUptime AI schreibt einen Test, der den Vorfall erkannt hätte, im eigenen Test-Framework des Repositorys, und öffnet damit einen Pull Request. |
+| **Monitor erstellen** | **Monitor erstellen** öffnet sich mit dem Namen der Maßnahme. Sobald der Monitor erstellt ist, verweist die Maßnahme auf ihn und ist erledigt. |
+
+Die Maßnahme zeigt dann, was aus ihr geworden ist: den Stand ihrer Aufgabe, etwa **Aufgabe läuft** oder **Pull Request offen**, verlinkt mit der Aufgabe in [Code](/docs/ai/ai-agent), und ihren Pull Request; oder den Monitor. Wird der Pull Request gemergt, ist die Maßnahme von selbst erledigt, und der Feed des Vorfalls vermerkt das.
+
+Die beiden KI-Aktionen erfordern, dass KI für das Projekt eingeschaltet ist, und ein Repository, in dem OneUptime AI arbeiten kann. Ist keines verbunden, bietet das Menü stattdessen **Repository verbinden** an. Eine Anfrage erfordert dasselbe wie eine Anfrage in Code, dazu die Berechtigung, die Maßnahme zu bearbeiten.
+
+### Alle Maßnahmen sehen
+
+**Vorfälle → Maßnahmen** listet die Maßnahmen aller Postmortems im ganzen Projekt auf, die am frühesten fälligen zuerst, jeweils mit Vorfall, Eigentümer, Fälligkeitsdatum und Status. Filtern Sie die Liste nach **Status**, **Eigentümer** und **Fälligkeitsdatum**; **Anzeigen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
+
+Maßnahmen zu lesen erfordert dasselbe, wie den Vorfall zu lesen. Sie hinzuzufügen, zu ändern und zu löschen erfordert die Rolle Project Owner, Project Admin, Project Member, Incident Admin oder Incident Member oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Maßnahmen. Die Maßnahmen eines privaten Vorfalls sind wie der Vorfall selbst nur für seine Eigentümer-Benutzer, die Mitglieder seiner Eigentümer-Teams, Projektadmins und Projekteigentümer sichtbar.
+
 ## Postmortems von Episoden
 
 Eine Vorfallepisode hat ebenfalls eine Seite **Postmortem**, unter **Untersuchung**: eine Aufarbeitung für jeden Vorfall der Episode. Klicken Sie auf **Postmortem bearbeiten**, um sie zu schreiben. **Vorlage anwenden** und **Mit KI generieren** funktionieren wie bei einem Vorfall, und die KI liest die Episode und ihre zugehörigen Vorfälle.
@@ -190,6 +232,8 @@ Ein Postmortem ist eine Gruppe von Feldern am Vorfall, gelesen und geschrieben �
 | `postmortemStatusId` | Der Status des Postmortems: einer der Status des Projekts, unter `/api/incident-postmortem-status`. |
 
 `showPostmortemOnStatusPage` als `true` über eine geschriebene `postmortemNote` zu schreiben, veröffentlicht das Postmortem, wie es der Dialog tut. Das verschiebt das Postmortem außerdem nach **Abgeschlossen**, sofern derselbe Schreibvorgang nicht `postmortemStatusId` setzt.
+
+Die Maßnahmen eines Postmortems sind eigene Datensätze, unter `/api/incident-postmortem-action-item`: jede mit `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` und `status` (`Open`, `Done` oder `WontDo`). Workflows können starten, wenn eine erstellt, geändert oder gelöscht wird.
 
 ## Fehlerbehebung
 

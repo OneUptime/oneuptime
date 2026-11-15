@@ -243,6 +243,7 @@ import {
   TableCardContext,
   TableCellContext,
 } from "../../../UI/Components/Table/TableCellContext";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
@@ -895,7 +896,7 @@ describe("Security Events > Entity Risk", () => {
     expect(chip.tagName).toBe("BDI");
     expect(chip).toHaveAttribute("dir", "ltr");
     expect(cell("Found By", riskRow({ contributions: [] }))).toHaveTextContent(
-      "-",
+      QUIET_DASH_TEXT,
     );
     // Said as every "last seen" in the product says it.
     expect(cell("Last Finding", riskRow({}))).toHaveTextContent(

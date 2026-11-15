@@ -118,7 +118,11 @@ const DataStoreScans: FunctionComponent<
                   className="h-4 w-4 text-gray-400"
                 />
                 <span>
-                  {kind ? translator.translateText(kind) || kind : "-"}
+                  {kind ? (
+                    translator.translateText(kind) || kind
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               </span>
             );

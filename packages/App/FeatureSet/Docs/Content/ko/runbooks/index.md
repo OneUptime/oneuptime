@@ -169,6 +169,7 @@ Runbooks:    [DB primary failover]
 - **[온콜 정책](/docs/on-call/schedules)** 은 누구를 호출할지 정합니다. Runbook은 그 사람이 깨어난 뒤 무엇을 할지 정합니다.
 - Slack과 Microsoft Teams 같은 **[워크스페이스 연결](/docs/workspace-connections/slack)** 은 업데이트를 게시하는 HTTP 요청 단계의 자연스러운 대상입니다.
 - **[상태 페이지](/docs/status-pages/index)** 는 고객 대상 Runbook의 Manual 단계로 업데이트되는 경우가 많습니다.
+- **[OneUptime AI](/docs/ai/ai-sre#효과가-있었던-수정을-런북으로-저장)** 는 효과가 있었던 자신의 수정으로 Runbook을 작성합니다. 검증된 수정에서 **런북으로 저장**을 누르면 실행된 단계가 저장되며, 검토하기 전까지는 꺼진 상태로 남습니다.
 
 ## 다음 단계
 

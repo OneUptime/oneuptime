@@ -124,6 +124,7 @@ describe("which lists keep themselves current", () => {
         "AlertEpisode",
         "Incident",
         "IncidentEpisode",
+        "IncidentPostmortemActionItem",
         "SecurityCase",
         "SecurityCaseTask",
         "SecurityPlaybookRun",

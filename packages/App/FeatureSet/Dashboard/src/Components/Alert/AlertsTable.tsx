@@ -85,6 +85,7 @@ import {
   CreatedRecordKind,
   getCreateFromRecordQuery,
 } from "../CreateFromRecord/CreateFromRecord";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
@@ -814,7 +815,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: Alert): ReactElement => {
               if (!item.alertNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               const numberLabel: string =
@@ -1080,7 +1081,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 !item.createdAt ||
                 (isResolved && (isLoadingAlertDurations || !resolvedAt))
               ) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (

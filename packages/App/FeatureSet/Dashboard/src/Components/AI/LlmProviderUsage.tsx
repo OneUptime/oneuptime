@@ -65,6 +65,7 @@ import {
   getProviderLabel,
   getProviderUsageDimension,
 } from "./LlmProviderUsageQuery";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Usage > Provider accounts: what the connected OpenAI, Anthropic, Azure,
@@ -550,7 +551,11 @@ const LlmProviderUsage: FunctionComponent = (): ReactElement => {
                         {renderGroup(row)}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-xs text-gray-700">
-                        {row.requests > 0 ? formatWhole(row.requests) : "—"}
+                        {row.requests > 0 ? (
+                          formatWhole(row.requests)
+                        ) : (
+                          <TableEmptyValue isSmall={true} />
+                        )}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-xs text-gray-700">
                         {formatWhole(row.inputTokens)}

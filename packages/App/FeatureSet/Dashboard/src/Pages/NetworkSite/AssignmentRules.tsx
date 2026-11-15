@@ -17,6 +17,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const NetworkSiteAssignmentRules: FunctionComponent<
   PageComponentProps
@@ -163,7 +164,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             getElement: (item: NetworkSiteAssignmentRule): ReactElement => {
               return (
                 <span className="text-sm text-gray-900">
-                  {item.site?.name || "—"}
+                  {item.site?.name || <TableEmptyValue />}
                 </span>
               );
             },
@@ -177,7 +178,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             getElement: (item: NetworkSiteAssignmentRule): ReactElement => {
               return (
                 <span className="text-sm text-gray-600">
-                  {item.subnetCidr || "—"}
+                  {item.subnetCidr || <TableEmptyValue />}
                 </span>
               );
             },
@@ -192,7 +193,7 @@ const NetworkSiteAssignmentRules: FunctionComponent<
             getElement: (item: NetworkSiteAssignmentRule): ReactElement => {
               return (
                 <span className="text-sm text-gray-600">
-                  {item.hostnamePattern || "—"}
+                  {item.hostnamePattern || <TableEmptyValue />}
                 </span>
               );
             },

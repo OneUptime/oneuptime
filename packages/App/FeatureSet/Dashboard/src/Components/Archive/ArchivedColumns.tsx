@@ -5,6 +5,7 @@ import Columns from "Common/UI/Components/ModelTable/Columns";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * "When was this archived, and by whom" - the two columns every Archived page
@@ -44,7 +45,7 @@ export const getArchivedColumns: <T extends BaseModel>() => Columns<T> = <
          * or whose archiving user has since been deleted (SET NULL).
          */
         if (!archivedByUser) {
-          return <span className="text-sm text-gray-400">—</span>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={archivedByUser} />;

@@ -52,6 +52,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * HOW DOES EACH FRAMEWORK STAND?
@@ -210,7 +211,7 @@ const RequirementsTable: FunctionComponent<{
           disableSort: true,
           getElement: (row: ComplianceRequirementResult): ReactElement => {
             if (row.failingIssueCount <= 0 || row.checkIds.length === 0) {
-              return <span className="text-sm text-gray-400">-</span>;
+              return <TableEmptyValue />;
             }
 
             return (

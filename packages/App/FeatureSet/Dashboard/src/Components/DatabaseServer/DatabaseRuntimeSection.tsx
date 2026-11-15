@@ -17,6 +17,7 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Section 2 of a database's Overview, for a database that runs on
@@ -97,7 +98,11 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
               {translator.translateText("Instances")}
             </dt>
             <dd className="mt-1 text-gray-900">
-              {props.instanceCount === null ? "—" : props.instanceCount}
+              {props.instanceCount === null ? (
+                <EmptyValue />
+              ) : (
+                props.instanceCount
+              )}
             </dd>
           </div>
           <div>
@@ -132,7 +137,11 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeAxisValue(value, metrics.cpu.unit);
+            return formatDatabaseRuntimeAxisValue(
+              value,
+              metrics.cpu.unit,
+              translator.language,
+            );
           }}
           loading={props.isLoading && props.cpuSeries.length === 0}
         />
@@ -150,7 +159,11 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
           windowEnd={props.windowEnd}
           syncId={`database-${props.modelId.toString()}`}
           yFormatter={(value: number): string => {
-            return formatDatabaseRuntimeAxisValue(value, metrics.memory.unit);
+            return formatDatabaseRuntimeAxisValue(
+              value,
+              metrics.memory.unit,
+              translator.language,
+            );
           }}
           loading={props.isLoading && props.memorySeries.length === 0}
         />

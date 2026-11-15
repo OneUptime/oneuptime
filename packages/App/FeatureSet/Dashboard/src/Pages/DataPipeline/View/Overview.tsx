@@ -34,6 +34,7 @@ import React, {
   useState,
 } from "react";
 import { useParams } from "react-router-dom";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * One pipeline at a glance - its latest run, how long a run usually takes,
@@ -267,11 +268,13 @@ const PipelineOverviewPage: FunctionComponent<
               return (
                 <div className="min-w-0">
                   <span className="block whitespace-nowrap text-sm text-gray-700">
-                    {run.startedAt
-                      ? OneUptimeDate.fromNow(
-                          OneUptimeDate.fromString(run.startedAt),
-                        )
-                      : "-"}
+                    {run.startedAt ? (
+                      OneUptimeDate.fromNow(
+                        OneUptimeDate.fromString(run.startedAt),
+                      )
+                    ) : (
+                      <TableEmptyValue />
+                    )}
                   </span>
                   {run.scheduledAt ? (
                     <span className="block whitespace-nowrap text-xs text-gray-500">
@@ -316,7 +319,11 @@ const PipelineOverviewPage: FunctionComponent<
 
               return (
                 <span className="block max-w-md truncate font-mono text-xs text-gray-700">
-                  {outputs.length > 0 ? outputs.join(", ") : "-"}
+                  {outputs.length > 0 ? (
+                    outputs.join(", ")
+                  ) : (
+                    <TableEmptyValue isSmall={true} />
+                  )}
                 </span>
               );
             },

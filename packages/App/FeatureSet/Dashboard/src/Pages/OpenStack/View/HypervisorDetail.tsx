@@ -80,6 +80,7 @@ import {
   parseOpenStackAggregates,
 } from "../Utils/OpenStackPartFacts";
 import { fetchOpenStackHypervisorReports } from "../Utils/OpenStackUsageReads";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * A compute host: whether Nova can reach it, what is promised on it out of what Placement
@@ -553,6 +554,7 @@ const HypervisorMetrics: FunctionComponent<{
   part: OpenStackPart;
   hypervisorName: string;
 }> = (props: { part: OpenStackPart; hypervisorName: string }): ReactElement => {
+  const translator: Translator = useTranslator();
   const { part, hypervisorName } = props;
   const reports: OpenStackRead<boolean> = useOpenStackRead<boolean>(() => {
     return fetchOpenStackHypervisorReports({
@@ -571,92 +573,95 @@ const HypervisorMetrics: FunctionComponent<{
 
   return (
     <ResourceMetricsTab
-      queryConfigs={[
-        ...(reports.data
-          ? [
-              getOpenStackMetricQuery({
-                part,
-                variable: "hypervisor_cpu_used",
-                title: "CPU used by instances",
-                description:
-                  "What its instances really use, against the CPU threads it has before any allocation ratio. The host's own processes aren't in this.",
-                metricName: OpenStackHypervisorMetric.InstancesCpuUtilization,
-                legend: "CPU used",
-                attributes: hostnameOnly,
-                format: formatPercentage,
-              }),
-              getOpenStackMetricQuery({
-                part,
-                variable: "hypervisor_memory_held",
-                title: "Memory held by instances",
-                description:
-                  "What its instances really hold of its memory, whatever they have been promised, against what it has before any allocation ratio.",
-                metricName:
-                  OpenStackHypervisorMetric.InstancesMemoryUtilization,
-                legend: "Memory held",
-                attributes: hostnameOnly,
-                format: formatPercentage,
-              }),
-            ]
-          : []),
-        getOpenStackMetricQuery({
-          part,
-          variable: "hypervisor_vcpus_allocated",
-          title: "vCPUs allocated",
-          description:
-            "vCPUs Placement has promised on this hypervisor. This is what is promised, not how busy it is.",
-          metricName: "openstack_placement_resource_usage",
-          legend: "vCPUs allocated",
-          attributes: {
-            hostname: hypervisorName,
-            resourcetype: "VCPU",
-          },
-        }),
-        getOpenStackMetricQuery({
-          part,
-          variable: "hypervisor_memory_allocated",
-          title: "Memory allocated",
-          description:
-            "Memory Placement has promised on this hypervisor. This is what is promised, not what is in use.",
-          metricName: "openstack_placement_resource_usage",
-          legend: "Memory allocated",
-          attributes: {
-            hostname: hypervisorName,
-            resourcetype: "MEMORY_MB",
-          },
-          transformValue: (value: number): number => {
-            return value * 1024 * 1024;
-          },
-          // A chart's axis and tooltip keep Latin digits, as every chart does.
-          format: formatOpenStackChartBytes,
-        }),
-        getOpenStackMetricQuery({
-          part,
-          variable: "hypervisor_disk_allocated",
-          title: "Local disk allocated",
-          description:
-            "Local disk Placement has promised on this hypervisor. This is what is promised, not what is in use.",
-          metricName: "openstack_placement_resource_usage",
-          legend: "Local disk allocated",
-          attributes: {
-            hostname: hypervisorName,
-            resourcetype: "DISK_GB",
-          },
-          transformValue: (value: number): number => {
-            return value * 1024 * 1024 * 1024;
-          },
-          format: formatOpenStackChartBytes,
-        }),
-        getOpenStackMetricQuery({
-          part,
-          variable: "hypervisor_running_instances",
-          title: "Running instances",
-          description: "How many instances Nova says this host runs.",
-          metricName: "openstack_nova_running_vms",
-          legend: "Instances",
-          attributes: { hostname: hypervisorName },
-        }),
-      ]}
+      queryConfigs={chartWordsInReadersLanguage(
+        [
+          ...(reports.data
+            ? [
+                getOpenStackMetricQuery({
+                  part,
+                  variable: "hypervisor_cpu_used",
+                  title: "CPU used by instances",
+                  description:
+                    "What its instances really use, against the CPU threads it has before any allocation ratio. The host's own processes aren't in this.",
+                  metricName: OpenStackHypervisorMetric.InstancesCpuUtilization,
+                  legend: "CPU used",
+                  attributes: hostnameOnly,
+                  format: formatPercentage,
+                }),
+                getOpenStackMetricQuery({
+                  part,
+                  variable: "hypervisor_memory_held",
+                  title: "Memory held by instances",
+                  description:
+                    "What its instances really hold of its memory, whatever they have been promised, against what it has before any allocation ratio.",
+                  metricName:
+                    OpenStackHypervisorMetric.InstancesMemoryUtilization,
+                  legend: "Memory held",
+                  attributes: hostnameOnly,
+                  format: formatPercentage,
+                }),
+              ]
+            : []),
+          getOpenStackMetricQuery({
+            part,
+            variable: "hypervisor_vcpus_allocated",
+            title: "vCPUs allocated",
+            description:
+              "vCPUs Placement has promised on this hypervisor. This is what is promised, not how busy it is.",
+            metricName: "openstack_placement_resource_usage",
+            legend: "vCPUs allocated",
+            attributes: {
+              hostname: hypervisorName,
+              resourcetype: "VCPU",
+            },
+          }),
+          getOpenStackMetricQuery({
+            part,
+            variable: "hypervisor_memory_allocated",
+            title: "Memory allocated",
+            description:
+              "Memory Placement has promised on this hypervisor. This is what is promised, not what is in use.",
+            metricName: "openstack_placement_resource_usage",
+            legend: "Memory allocated",
+            attributes: {
+              hostname: hypervisorName,
+              resourcetype: "MEMORY_MB",
+            },
+            transformValue: (value: number): number => {
+              return value * 1024 * 1024;
+            },
+            // A chart's axis and tooltip keep Latin digits, as every chart does.
+            format: formatOpenStackChartBytes,
+          }),
+          getOpenStackMetricQuery({
+            part,
+            variable: "hypervisor_disk_allocated",
+            title: "Local disk allocated",
+            description:
+              "Local disk Placement has promised on this hypervisor. This is what is promised, not what is in use.",
+            metricName: "openstack_placement_resource_usage",
+            legend: "Local disk allocated",
+            attributes: {
+              hostname: hypervisorName,
+              resourcetype: "DISK_GB",
+            },
+            transformValue: (value: number): number => {
+              return value * 1024 * 1024 * 1024;
+            },
+            format: formatOpenStackChartBytes,
+          }),
+          getOpenStackMetricQuery({
+            part,
+            variable: "hypervisor_running_instances",
+            title: "Running instances",
+            description: "How many instances Nova says this host runs.",
+            metricName: "openstack_nova_running_vms",
+            legend: "Instances",
+            attributes: { hostname: hypervisorName },
+          }),
+        ],
+        translator,
+      )}
     />
   );
 };

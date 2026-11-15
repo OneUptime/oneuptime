@@ -15,6 +15,7 @@ import StatusBadge, {
 import Permission from "Common/Types/Permission";
 import User from "Common/UI/Utils/User";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Device Registry for a fleet — registered devices and their
@@ -59,7 +60,7 @@ const IoTFleetDeviceRegistry: FunctionComponent<
     hideOnMobile: true,
     getElement: (item: IoTDeviceCredential): ReactElement => {
       if (!item.secretKey) {
-        return <span className="text-sm text-gray-400">—</span>;
+        return <TableEmptyValue />;
       }
       return <HiddenText text={item.secretKey.toString()} isCopyable={true} />;
     },
@@ -192,7 +193,7 @@ const IoTFleetDeviceRegistry: FunctionComponent<
             getElement: (item: IoTDeviceCredential): ReactElement => {
               return (
                 <span className="text-xs font-mono text-gray-700">
-                  {item._id?.toString() || "—"}
+                  {item._id?.toString() || <TableEmptyValue isSmall={true} />}
                 </span>
               );
             },

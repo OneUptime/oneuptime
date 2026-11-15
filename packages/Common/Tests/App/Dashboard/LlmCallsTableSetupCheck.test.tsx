@@ -120,6 +120,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 import LlmConnectionProvider from "../../../Types/LlmObservability/LlmConnectionProvider";
 import { LlmSetupCheckResponse } from "../../../Types/Telemetry/LlmSetupCheckApi";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -253,7 +254,9 @@ describe("a call's provider", () => {
   test("no provider is a dash", async () => {
     await renderTable();
 
-    expect(cellText("Provider", spanWith({ llmSystem: "" }))).toBe("—");
+    expect(cellText("Provider", spanWith({ llmSystem: "" }))).toBe(
+      QUIET_DASH_TEXT,
+    );
   });
 
   test("an export keeps the stored value, so a filter on it still matches", async () => {
@@ -323,7 +326,7 @@ describe("a call's model", () => {
   test("no model: a dash", async () => {
     await renderTable();
 
-    expect(cellText("Model", spanWith({}))).toBe("—");
+    expect(cellText("Model", spanWith({}))).toBe(QUIET_DASH_TEXT);
   });
 
   test("an export keeps the model asked for", async () => {
@@ -365,7 +368,7 @@ describe("how long a call took", () => {
       await renderTable();
 
       expect(cellText("Duration", spanWith({ durationUnixNano: nanos }))).toBe(
-        "—",
+        QUIET_DASH_TEXT,
       );
       expect(
         columnByTitle("Duration").getExportValue!(

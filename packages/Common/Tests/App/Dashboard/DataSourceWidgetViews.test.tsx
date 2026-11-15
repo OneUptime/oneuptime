@@ -733,11 +733,18 @@ describe("GaugeWidgetView's number and its unit", () => {
     });
   });
 
-  test("a unit of several words is drawn whole, never put in the big number", () => {
+  test("a rate is drawn whole in the unit's span, never put in the big number", () => {
+    // A rate keeps its slash, as a chart writes it (#8049).
     expect(centreOf(renderGauge({ value: 5, rawUnit: "requests/s" }))).toEqual({
       value: "5",
-      unit: "requests per Second",
+      unit: "requests/s",
       gap: "0.15em",
+    });
+    // A count per second is the number and "/s", with no gap.
+    expect(centreOf(renderGauge({ value: 5, rawUnit: "1/s" }))).toEqual({
+      value: "5",
+      unit: "/s",
+      gap: "0",
     });
   });
 

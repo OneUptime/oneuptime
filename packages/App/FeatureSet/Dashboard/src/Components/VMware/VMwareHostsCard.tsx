@@ -29,6 +29,7 @@ import {
   formatMhz,
 } from "../../Pages/VMware/Utils/VMwareResourceUtils";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * A vCenter's ESXi hosts at a glance - what vCenter's own Hosts tab opens
@@ -136,7 +137,11 @@ const VMwareHostsCard: FunctionComponent<ComponentProps> = (
         <div className="mb-1 flex items-center justify-between gap-2 text-xs">
           <span className="text-gray-500">{tx(data.label)}</span>
           <span className="font-medium tabular-nums text-gray-700">
-            {percent === null ? "—" : `${Math.round(percent)}%`}
+            {percent === null ? (
+              <EmptyValue isSmall={true} />
+            ) : (
+              `${Math.round(percent)}%`
+            )}
           </span>
         </div>
         <div className="h-1.5 w-full rounded-full bg-gray-100">

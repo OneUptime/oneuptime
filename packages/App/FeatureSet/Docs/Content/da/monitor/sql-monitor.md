@@ -33,8 +33,8 @@ Sonden rapporterer kun:
 |---|---|
 | **Antal rækker** | Antallet af rækker, forespørgslen returnerede (begrænset af grænsen Max Rows). |
 | **Skalarværdi** | Den første kolonne i den første række. Det er den naturlige værdi for en forespørgsel i stil med `SELECT COUNT(*)`. |
-| **First Row** | Den første række som par af kolonne og værdi, vist i kontrollens resumé som kontekst. |
-| **Execution Time** | Hvor længe kontrollen tog, i millisekunder — inklusive forbindelsen, ikke kun forespørgslen. |
+| **Første række** | Den første række som par af kolonne og værdi, vist i kontrollens resumé som kontekst. |
+| **Udførelsestid** | Hvor længe kontrollen tog, i millisekunder — inklusive forbindelsen, ikke kun forespørgslen. |
 | **Forespørgselsfejl** | En renset fejlmeddelelse, hvis forespørgslen mislykkedes. |
 
 Det fulde resultatsæt sendes aldrig til OneUptime, så kundedata kopieres ikke over i OneUptimes lager.
@@ -250,7 +250,7 @@ Knyt en vagtpolitik til kriteriet, så de rette personer bliver tilkaldt. En SQL
 
 - Forespørgslen kører ved hver kontrol, så hold den billig. Brug indekser og smalle tidsvinduer, og stol på Statement Timeout som sikkerhedsnet.
 - Kun antallet af rækker, den første celle (skalar) og den første række rapporteres — design din forespørgsel, så den værdi, du vil advare på, er den første kolonne.
-- Hvis resultatet afkortes, fordi det oversteg Max Rows, viser kontrollens resumé **Rows Truncated**: "Yes (result capped)". Hæv kun Max Rows, hvis du har brug for det; større resultatsæt koster mere hukommelse på sonden.
+- Hvis resultatet afkortes, fordi det oversteg Max Rows, viser kontrollens resumé **Rækker afkortet**: "Ja (resultatet er begrænset)". Hæv kun Max Rows, hvis du har brug for det; større resultatsæt koster mere hukommelse på sonden.
 - Skrivninger og DDL afvises altid. Hvis du skal teste en skrivesti, er det ikke det, denne monitor er til.
 - Foretræk en monitorhemmelighed frem for en adgangskode i ren tekst, så legitimationsoplysningerne forbliver krypteret, når de er gemt.
 - En kontrol, hvis forespørgsel mislykkes, forsøges igen et sekund senere, op til tre gange mere, før den rapporterer fejlen, så et kort forbindelsestab ikke sætter monitoren offline. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT`, hvor mange gange.

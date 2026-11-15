@@ -202,12 +202,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "container_cpu",
-      title: "Container CPU Utilization",
+      title: translator.translateText("Container CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for containers in pod {{podName}}",
         { podName: podName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -232,12 +232,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "container_memory",
-      title: "Container Memory Usage",
+      title: translator.translateText("Container Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for containers in pod {{podName}}",
         { podName: podName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -262,12 +262,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const podCpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "pod_cpu",
-      title: "Pod CPU Utilization",
+      title: translator.translateText("Pod CPU Utilization"),
       description: translator.translateTemplate(
         "CPU utilization for pod {{podName}}",
         { podName: podName },
       ),
-      legend: "CPU",
+      legend: translator.translateText("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -291,12 +291,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const podMemoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "pod_memory",
-      title: "Pod Memory Usage",
+      title: translator.translateText("Pod Memory Usage"),
       description: translator.translateTemplate(
         "Memory usage for pod {{podName}}",
         { podName: podName },
       ),
-      legend: "Memory",
+      legend: translator.translateText("Memory"),
       legendUnit: "",
     },
     metricQueryData: {

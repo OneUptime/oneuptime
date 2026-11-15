@@ -30,6 +30,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * How a run stands, at a glance.
@@ -355,11 +356,13 @@ const DataObservabilityPipelinesPage: FunctionComponent<
             getElement: (pipeline: DataPipeline): ReactElement => {
               return (
                 <span className="whitespace-nowrap text-sm text-gray-700">
-                  {pipeline.lastSuccessAt
-                    ? OneUptimeDate.fromNow(
-                        OneUptimeDate.fromString(pipeline.lastSuccessAt),
-                      )
-                    : "-"}
+                  {pipeline.lastSuccessAt ? (
+                    OneUptimeDate.fromNow(
+                      OneUptimeDate.fromString(pipeline.lastSuccessAt),
+                    )
+                  ) : (
+                    <TableEmptyValue />
+                  )}
                 </span>
               );
             },

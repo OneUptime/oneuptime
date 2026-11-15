@@ -33,6 +33,9 @@ import EmbeddedMetricCardGroup, {
 } from "../../../Components/Metrics/EmbeddedMetricCardGroup";
 import KubernetesMetricsSetupEmptyState from "../../../Components/Kubernetes/KubernetesMetricsSetupEmptyState";
 import { KubernetesMetricsSource } from "../Utils/KubernetesMetricsSetup";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * ──────────────────────────────────────────────────────────────────────────────
@@ -900,6 +903,7 @@ const SERVICE_MESH_TABS: Array<ServiceMeshTab> = [
 const KubernetesClusterServiceMesh: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
@@ -1038,7 +1042,10 @@ const KubernetesClusterServiceMesh: FunctionComponent<
                 key={card.title}
                 title={getSectionTitle(card.icon, card.title)}
                 description={card.description}
-                queryConfigs={card.getQueries(clusterIdentifier)}
+                queryConfigs={chartWordsInReadersLanguage(
+                  card.getQueries(clusterIdentifier),
+                  translator,
+                )}
                 timeRange={timeRange}
                 onTimeRangeChange={handleTimeRangeChange}
                 startAndEndDate={startAndEndDate}

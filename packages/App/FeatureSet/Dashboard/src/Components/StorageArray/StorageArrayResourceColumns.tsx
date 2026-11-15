@@ -13,6 +13,7 @@ import {
   StorageArrayPartReadings,
   assessStorageArrayPart,
 } from "../../Pages/StorageArray/Utils/StorageArrayHealth";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The columns the Storage Array inventory tables share. Every value is the
@@ -27,7 +28,7 @@ type ValueRenderer = (item: StorageArrayResource) => string;
 
 function valueCell(text: string): ReactElement {
   if (!text || text === "—") {
-    return <span className="text-gray-400">—</span>;
+    return <TableEmptyValue />;
   }
   return <span className="text-sm text-gray-700">{text}</span>;
 }

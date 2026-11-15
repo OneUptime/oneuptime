@@ -752,7 +752,8 @@ describe("resources added with a form", () => {
     );
     expect(page).toContain("<ServiceAddedModal serviceId={addedService.id}");
     expect(modal).toContain(
-      '<TelemetryDocumentation telemetryType="traces" serviceName={props.name} isBare={true} />',
+      // Every signal: a new service's guide is for all its telemetry (#7927).
+      '<TelemetryDocumentation telemetryType="traces" everySignal={true} serviceName={props.name} isBare={true} />',
     );
     // The guide cannot take a last step of its own: the dialog draws it.
     expect(modal).toContain("drawsLastStep={false}");
