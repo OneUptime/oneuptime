@@ -52328,6 +52328,7 @@
   "Expand all branches": "모든 분기 펼치기",
   "Expand {{name}}: {{count}} devices below it": "{{name}} 펼치기: 아래 장치 {{count}}개",
   "Expand {{name}}: {{count}} devices below it_one": "{{name}} 펼치기: 아래 장치 {{count}}개",
+  "Get Invitation Link": "초대 링크 가져오기",
   "Narrows the map to this device and the {{count}} devices below it.": "지도를 이 장치와 아래 장치 {{count}}개로 좁힙니다.",
   "Narrows the map to this device and the {{count}} devices below it._one": "지도를 이 장치와 아래 장치 {{count}}개로 좁힙니다.",
   "Opens the branches they are in.": "해당 항목이 있는 분기를 엽니다.",

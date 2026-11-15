@@ -70,6 +70,7 @@ const TEMPLATES_THAT_NAME_THE_PRODUCT: ReadonlyArray<string> = [
   "ProbeOffline",
   "RedisHealthWarning",
   "SecurityAdvisoryAffectsInstallation",
+  "SignupAccountReadyEmail",
   "SignupWelcomeEmail",
   "TwoFactorBackupCodeUsed",
   "TwoFactorBackupCodesCreated",

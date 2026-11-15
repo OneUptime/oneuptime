@@ -52328,6 +52328,7 @@
   "Expand all branches": "सभी शाखाएँ फैलाएँ",
   "Expand {{name}}: {{count}} devices below it": "{{name}} फैलाएँ: इसके नीचे {{count}} डिवाइस",
   "Expand {{name}}: {{count}} devices below it_one": "{{name}} फैलाएँ: इसके नीचे {{count}} डिवाइस",
+  "Get Invitation Link": "निमंत्रण लिंक प्राप्त करें",
   "Narrows the map to this device and the {{count}} devices below it.": "मैप को इस डिवाइस और इसके नीचे के {{count}} डिवाइस तक सीमित करता है।",
   "Narrows the map to this device and the {{count}} devices below it._one": "मैप को इस डिवाइस और इसके नीचे के {{count}} डिवाइस तक सीमित करता है।",
   "Opens the branches they are in.": "उन शाखाओं को खोलता है जिनमें वे हैं।",

@@ -52328,6 +52328,7 @@
   "Expand all branches": "すべてのブランチを展開",
   "Expand {{name}}: {{count}} devices below it": "{{name}} を展開: 配下のデバイス {{count}} 台",
   "Expand {{name}}: {{count}} devices below it_one": "{{name}} を展開: 配下のデバイス {{count}} 台",
+  "Get Invitation Link": "招待リンクを取得",
   "Narrows the map to this device and the {{count}} devices below it.": "マップをこのデバイスと配下の {{count}} 台のデバイスに絞り込みます。",
   "Narrows the map to this device and the {{count}} devices below it._one": "マップをこのデバイスと配下の {{count}} 台のデバイスに絞り込みます。",
   "Opens the branches they are in.": "それらが含まれるブランチを開きます。",

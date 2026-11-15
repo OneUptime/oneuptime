@@ -1,7 +1,9 @@
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
 import ProductKey from "Common/Types/Product/ProductKey";
+import { getProductOfTable } from "Common/Types/Product/ProductOfTable";
 import { withProductPinned } from "Common/Types/Product/ProductPins";
+import { ProductUsage } from "Common/Types/Product/ProductUsage";
 import {
   getHiddenProducts,
   parseProjectProductSettings,
@@ -12,6 +14,9 @@ import {
   parseProjectProductsAnswer,
   toProjectProductsAnswerJSON,
 } from "Common/Types/Product/ProjectProductsAnswer";
+import CreatedRecords, {
+  CreatedRecord,
+} from "Common/UI/Utils/ModelAPI/CreatedRecords";
 import ProjectUtil from "Common/UI/Utils/Project";
 import {
   fetchProjectProducts,
@@ -28,9 +33,26 @@ import {
  * Every place that draws products asks this one store - the products menu
  * and the phone menu, Home's Explore and Your project card, Search, the
  * keyboard shortcuts, Project Settings > Products and the pin beside a
- * product page's title. A page load asks the server once however many of
- * them are on screen: the answer is kept until the page is reloaded, and
- * askers that arrive while the request is out share it.
+ * product page's title. However many of them are on screen, the server is
+ * asked once: askers that arrive while the request is out share it, and an
+ * answer is kept for REFRESH_AFTER_MS.
+ *
+ * What is in use changes while the page is open (#7465): the first monitor,
+ * the first logs. So the answer follows it:
+ *
+ *   - a product's first record this page creates (CreatedRecords, from
+ *     ModelAPI) marks it in use at once - Create Monitor, a guided setup,
+ *     an import - and the next ask brings the server's word. An answer that
+ *     may have been worked out before that create (asked before it, or
+ *     within CREATE_SETTLE_MS after it, while other servers may still go by
+ *     what they kept) keeps the mark;
+ *   - an answer older than REFRESH_AFTER_MS is asked again when the person
+ *     opens the products menu or the phone menu, moves to another page or
+ *     comes back to the tab (load): a product set up elsewhere - its first
+ *     logs, an agent's first host, a teammate's monitor - shows within
+ *     moments of being looked for, at one light request at most every
+ *     REFRESH_AFTER_MS. The server reads what is in use again as soon as it
+ *     changes (ProjectUsageCache), so the answer it gives is current.
  *
  * Until this page load's answer arrives, the last one is remembered in the
  * browser per project and stands in, so the bar's pins and the menu's
@@ -57,6 +79,19 @@ export type ProjectProductsFetcher = (
 
 export const REMEMBERED_PROJECT_PRODUCTS_KEY_PREFIX: string =
   "project-products-";
+
+/*
+ * How long an answer is kept before the next look at the products - the
+ * menu opened, another page, the tab shown again - asks again.
+ */
+export const REFRESH_AFTER_MS: number = 15_000;
+
+/*
+ * How long after this page creates a product's first record an answer may
+ * still have been worked out without it: other servers see the change
+ * within a second (CacheGenerations.SHARED_READ_TTL_MS).
+ */
+export const CREATE_SETTLE_MS: number = 5_000;
 
 const rememberedKey: (projectId: string) => string = (
   projectId: string,
@@ -136,7 +171,53 @@ interface ProjectEntry {
    * of overwriting it.
    */
   generation: number;
+  /*
+   * When the answer drawn was asked for (or recorded), or null when the next
+   * look at the products is to ask again whatever its age.
+   */
+  answeredAt: number | null;
+  /*
+   * The products whose record this page created, and when: an answer worked
+   * out before then, or within CREATE_SETTLE_MS after, keeps them in use.
+   */
+  created: Map<ProductKey, number>;
 }
+
+/*
+ * The answer, with the products this page created a record of marked in use
+ * where an answer worked out at `askedAt` may not know of it yet. Products
+ * created long enough before `askedAt` are the server's to answer from now
+ * on, and forgotten here.
+ */
+const keepCreatedInUse: (
+  entry: ProjectEntry,
+  answer: ProjectProductsAnswer,
+  askedAt: number,
+) => ProjectProductsAnswer = (
+  entry: ProjectEntry,
+  answer: ProjectProductsAnswer,
+  askedAt: number,
+): ProjectProductsAnswer => {
+  let usage: ProjectProductsAnswer["usage"] | null = null;
+
+  for (const [product, createdAt] of Array.from(entry.created.entries())) {
+    if (askedAt >= createdAt + CREATE_SETTLE_MS) {
+      entry.created.delete(product);
+      continue;
+    }
+
+    const said: ProductUsage | undefined = answer.usage[product];
+
+    // A product this person may not read has no mark, created or not.
+    if (said === undefined || said === ProductUsage.InUse) {
+      continue;
+    }
+
+    usage = { ...(usage || answer.usage), [product]: ProductUsage.InUse };
+  }
+
+  return usage ? { ...answer, usage: usage } : answer;
+};
 
 // Outside a project there is nothing to hide or pin.
 const OUTSIDE_A_PROJECT: ProjectProductsState = Object.freeze({
@@ -181,9 +262,11 @@ export default class ProjectProducts {
   }
 
   /*
-   * Asks the server once per page load. A second call while the first is
-   * out shares it; a call after a fresh answer does nothing. After a failed
-   * request it asks again, so the next page can recover.
+   * Asks the server unless a fresh answer is younger than REFRESH_AFTER_MS:
+   * what every look at the products calls - the navbar drawn, the menu
+   * opened, another page, the tab shown again. A second call while the first
+   * is out shares it. After a failed request it asks again, so the next
+   * page can recover.
    */
   public static load(projectId: ProjectIdInput): Promise<void> {
     const key: string = toProjectKey(projectId);
@@ -198,11 +281,65 @@ export default class ProjectProducts {
       return entry.request;
     }
 
-    if (entry.state.isFresh) {
+    if (
+      entry.state.isFresh &&
+      entry.answeredAt !== null &&
+      Date.now() - entry.answeredAt < REFRESH_AFTER_MS
+    ) {
       return Promise.resolve();
     }
 
     return ProjectProducts.ask(key, entry);
+  }
+
+  /*
+   * This page created a record (CreatedRecords, from ModelAPI): a product's
+   * main record (ProductOfTable) marks the product in use at once, rather
+   * than "Not set up" until the server is asked again - and the next look
+   * at the products asks it. An answer already on its way, or worked out
+   * within CREATE_SETTLE_MS, keeps the mark (keepCreatedInUse). A project
+   * nothing has drawn yet is left alone: its first ask reads the record.
+   */
+  public static noteRecordCreated(record: CreatedRecord): void {
+    const product: ProductKey | null = getProductOfTable(record.tableName);
+
+    if (!product) {
+      return;
+    }
+
+    const key: string = toProjectKey(
+      record.projectId || ProjectUtil.getCurrentProjectId(),
+    );
+    const entry: ProjectEntry | undefined = key
+      ? ProjectProducts.entries.get(key)
+      : undefined;
+
+    if (!entry) {
+      return;
+    }
+
+    entry.created.set(product, Date.now());
+
+    const said: ProductUsage | undefined = entry.state.answer.usage[product];
+
+    if (said === undefined || said === ProductUsage.InUse) {
+      return;
+    }
+
+    entry.answeredAt = null;
+    entry.state = {
+      ...entry.state,
+      answer: {
+        ...entry.state.answer,
+        usage: { ...entry.state.answer.usage, [product]: ProductUsage.InUse },
+      },
+    };
+
+    if (entry.state.isFresh) {
+      remember(key, entry.state.answer);
+    }
+
+    ProjectProducts.emit();
   }
 
   // Asks again even after a fresh answer.
@@ -228,11 +365,14 @@ export default class ProjectProducts {
     }
 
     const entry: ProjectEntry = ProjectProducts.entryFor(key);
+    const now: number = Date.now();
+    const kept: ProjectProductsAnswer = keepCreatedInUse(entry, answer, now);
 
     entry.generation++;
     entry.request = null;
-    entry.state = { answer: answer, isFresh: true, error: null };
-    remember(key, answer);
+    entry.answeredAt = now;
+    entry.state = { answer: kept, isFresh: true, error: null };
+    remember(key, kept);
     ProjectProducts.emit();
   }
 
@@ -335,6 +475,8 @@ export default class ProjectProducts {
       },
       request: null,
       generation: 0,
+      answeredAt: null,
+      created: new Map<ProductKey, number>(),
     };
 
     ProjectProducts.entries.set(key, entry);
@@ -346,6 +488,7 @@ export default class ProjectProducts {
     entry.generation++;
 
     const generation: number = entry.generation;
+    const askedAt: number = Date.now();
     const fetcher: ProjectProductsFetcher = ProjectProducts.fetcher;
 
     const request: Promise<void> = (async (): Promise<void> => {
@@ -370,8 +513,15 @@ export default class ProjectProducts {
       entry.request = null;
 
       if (answer) {
-        entry.state = { answer: answer, isFresh: true, error: null };
-        remember(key, answer);
+        const kept: ProjectProductsAnswer = keepCreatedInUse(
+          entry,
+          answer,
+          askedAt,
+        );
+
+        entry.answeredAt = askedAt;
+        entry.state = { answer: kept, isFresh: true, error: null };
+        remember(key, kept);
       } else {
         entry.state = { ...entry.state, error: error };
       }
@@ -390,3 +540,8 @@ export default class ProjectProducts {
     }
   }
 }
+
+// Every record this page creates, for as long as the page lives.
+CreatedRecords.subscribe((record: CreatedRecord): void => {
+  ProjectProducts.noteRecordCreated(record);
+});

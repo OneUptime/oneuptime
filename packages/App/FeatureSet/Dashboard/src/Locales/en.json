@@ -52328,6 +52328,7 @@
   "Expand all branches": "Expand all branches",
   "Expand {{name}}: {{count}} devices below it": "Expand {{name}}: {{count}} devices below it",
   "Expand {{name}}: {{count}} devices below it_one": "Expand {{name}}: {{count}} device below it",
+  "Get Invitation Link": "Get Invitation Link",
   "Narrows the map to this device and the {{count}} devices below it.": "Narrows the map to this device and the {{count}} devices below it.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Narrows the map to this device and the {{count}} device below it.",
   "Opens the branches they are in.": "Opens the branches they are in.",

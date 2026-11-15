@@ -52328,6 +52328,7 @@
   "Expand all branches": "Espandi tutti i rami",
   "Expand {{name}}: {{count}} devices below it": "Espandi {{name}}: {{count}} dispositivi sotto",
   "Expand {{name}}: {{count}} devices below it_one": "Espandi {{name}}: {{count}} dispositivo sotto",
+  "Get Invitation Link": "Ottieni link di invito",
   "Narrows the map to this device and the {{count}} devices below it.": "Limita la mappa a questo dispositivo e ai {{count}} dispositivi sottostanti.",
   "Narrows the map to this device and the {{count}} devices below it._one": "Limita la mappa a questo dispositivo e a {{count}} dispositivo sottostante.",
   "Opens the branches they are in.": "Apre i rami in cui si trovano.",
