@@ -56,6 +56,14 @@ Fluent Bit は、`/etc/fluent-bit/fluent-bit.yaml` などのファイルから Y
 OneUptime に送る `opentelemetry` 出力を追加します。レコードを手元で確認したい場合は、テストの間 `stdout` 出力を残しておきます。
 
 ```yaml title="fluent-bit.yaml"
+service:
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
+
 pipeline:
   outputs:
     - name: stdout
@@ -70,7 +78,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
+
+`retry_limit: 8640` は、OneUptime が混み合っているとき (`429`) や再起動中のとき (`502`、`503`、`504`) にチャンクを約 30 秒ごと (`scheduler.base` と `scheduler.cap`) に、約 72 時間送り直します。Fluent Bit の既定では、もう 1 回だけ試して破棄します。`storage.path` は、まだ送っていないチャンクをディスクに保持するので、Fluent Bit を再起動してもどれも失われません。これは次の手順のように `storage.type: filesystem` を設定した入力に効きます。Fluent Bit はそのフォルダーに書き込める必要があります。パッケージのサービスは root で動くので、手動で動かすときは `sudo` を付けてください。`storage.total_limit_size: 512M` は出力ごとに最大 512 MB まで保持し、いっぱいになると古いチャンクから破棄します。
 
 ### ログを OpenTelemetry のエンベロープで包み、サービスに名前を付ける
 
@@ -81,6 +95,10 @@ pipeline:
   inputs:
     - name: tail # or any other input
       path: /var/log/my-app/*.log
+      # Keep its place in each file, so a restart reads on from there
+      db: /var/lib/fluent-bit/tail.db
+      # Keep its chunks on disk until OneUptime takes them
+      storage.type: filesystem
 
       processors:
         logs:
@@ -93,6 +111,8 @@ pipeline:
             value: YOUR_SERVICE_NAME
 ```
 
+`db` は各ファイルでの tail の位置を保持するので、再起動してもそこから読み続けます。これがないと、Fluent Bit は各ファイルの末尾から読み直し、停止中に書かれた行は送られません。`storage.type: filesystem` は入力のチャンクを `storage.path` に保持します。
+
 ### Fluent Bit を再起動する
 
 Fluent Bit サービスを再起動するか、`fluent-bit -c /etc/fluent-bit/fluent-bit.yaml` で起動します。数秒後にはログが **製品 → ログ** に表示され、サービスが **製品 → サービス** に並びます。
@@ -100,18 +120,26 @@ Fluent Bit サービスを再起動するか、`fluent-bit -c /etc/fluent-bit/fl
 
 ## 完全な例
 
-この構成は、ポート `8888` で HTTP 経由のログを受け取り、OneUptime に転送します。
+この構成は、ポート `8888` で HTTP 経由のログをこのホストからだけ受け取り、OneUptime に転送します。
 
 ```yaml title="fluent-bit.yaml"
 service:
   flush: 1
   log_level: info
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
 
 pipeline:
   inputs:
     - name: http
-      listen: 0.0.0.0
+      # This host alone may send here
+      listen: 127.0.0.1
       port: 8888
+      storage.type: filesystem
 
       processors:
         logs:
@@ -136,9 +164,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
-`http` 入力は必要な入力に置き換えてください (たとえばログファイルなら `tail`、ジャーナルなら `systemd`)。どの入力にも 2 つのプロセッサーを残します。
+`listen: 127.0.0.1` はこのホストからだけログを受け取ります。`http` 入力はキーを求めないので、`listen: 0.0.0.0` にするとポートに届く人は誰でも、あなたの取り込みキーで OneUptime にログを送れます。`http` 入力は必要な入力に置き換えてください (たとえばログファイルなら `tail`、ジャーナルなら `systemd`)。どの入力にも 2 つのプロセッサーと `storage.type: filesystem` を残します。
 
 ## セルフホストの OneUptime
 
@@ -158,6 +190,10 @@ pipeline:
       traces_uri: "/otlp/v1/traces"
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
 ## トラブルシューティング
@@ -176,6 +212,10 @@ pipeline:
 
 :::details 何も届かず、Fluent Bit が接続エラーを記録する
 HTTPS エンドポイントに対して `tls: On` と `port: 443` が設定されていること、そして Fluent Bit を実行しているホストからそのポートで OneUptime のホストに到達できることを確認してください。
+:::
+
+:::details Fluent Bit が `cannot be retried` を記録する
+Fluent Bit が送れなかったチャンクを破棄しました。上の設定のように `retry_limit: 8640` があれば、OneUptime が `429`、`502`、`503`、`504` を返したチャンクを約 30 秒ごとに約 72 時間送り直します。Fluent Bit の既定では、もう 1 回だけ試します。`400`、`401`、`402`、`413`、`422`、`500` は毎回同じ応答になるので、すぐに破棄されます。キー、プラン、リクエストのサイズを確認してください。
 :::
 
 構成についてご質問やサポートが必要な場合は、support@oneuptime.com までご連絡ください。

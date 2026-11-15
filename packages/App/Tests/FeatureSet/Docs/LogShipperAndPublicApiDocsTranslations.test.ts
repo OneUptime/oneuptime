@@ -170,6 +170,7 @@ const PROSE: Record<string, Array<string>> = {};
 
 /*
  * The limits and defaults the pages give in their text rather than in code:
+ * Fluent Bit's 30 seconds between tries, its 72 hours and 512 MB;
  * Fluentd's 10-second flush, its 30 seconds at most between tries, the 72
  * hours it tries for, the 512 MB its buffer keeps at most and the year
  * 2000 a record's time is read from, and
@@ -181,6 +182,7 @@ const PROSE: Record<string, Array<string>> = {};
  * count says nothing; the facts suite holds it to the ingress instead.
  */
 const PROSE_NUMBERS: Record<string, Array<string>> = {
+  [FLUENT_BIT]: ["30", "72", "512"],
   [FLUENTD]: ["10", "30", "72", "512", "2000"],
   [PUBLIC_API]: ["14", "15", "90"],
 };

@@ -56,6 +56,14 @@ Fluent Bit leest zijn YAML-configuratie uit een bestand zoals `/etc/fluent-bit/f
 Voeg een `opentelemetry`-output toe die naar OneUptime stuurt. Houd tijdens het testen de `stdout`-output aan als je de records lokaal wilt zien:
 
 ```yaml title="fluent-bit.yaml"
+service:
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
+
 pipeline:
   outputs:
     - name: stdout
@@ -70,7 +78,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
+
+`retry_limit: 8640` stuurt een chunk opnieuw als OneUptime het druk heeft (`429`) of herstart (`502`, `503`, `504`), ongeveer elke 30 seconden (`scheduler.base` en `scheduler.cap`), ongeveer 72 uur lang; standaard probeert Fluent Bit het één keer opnieuw en gooit hem dan weg. `storage.path` bewaart de chunks die nog verstuurd moeten worden op schijf, zodat een herstart van Fluent Bit er geen verliest, voor elke input met `storage.type: filesystem`, zoals in de volgende stap. Fluent Bit moet in die map kunnen schrijven: de service van het pakket draait als root, en met de hand start je het met `sudo`. `storage.total_limit_size: 512M` bewaart hooguit 512 MB voor de output; is dat vol, dan worden de oudste chunks weggegooid.
 
 ### Logs in een OpenTelemetry-envelop verpakken en de service een naam geven
 
@@ -81,6 +95,10 @@ pipeline:
   inputs:
     - name: tail # or any other input
       path: /var/log/my-app/*.log
+      # Keep its place in each file, so a restart reads on from there
+      db: /var/lib/fluent-bit/tail.db
+      # Keep its chunks on disk until OneUptime takes them
+      storage.type: filesystem
 
       processors:
         logs:
@@ -93,6 +111,8 @@ pipeline:
             value: YOUR_SERVICE_NAME
 ```
 
+`db` onthoudt de plek van de tail in elk bestand, zodat een herstart daar verder leest; zonder begint Fluent Bit opnieuw aan het eind van elk bestand, en de regels die geschreven werden terwijl het niet draaide, worden nooit verstuurd. `storage.type: filesystem` bewaart de chunks van de input in `storage.path`.
+
 ### Fluent Bit herstarten
 
 Herstart de Fluent Bit-service, of start hem met `fluent-bit -c /etc/fluent-bit/fluent-bit.yaml`. Binnen enkele seconden verschijnen de logs onder **Producten → Logboeken**, en staat de service onder **Producten → Services**.
@@ -100,18 +120,26 @@ Herstart de Fluent Bit-service, of start hem met `fluent-bit -c /etc/fluent-bit/
 
 ## Volledig voorbeeld
 
-Deze configuratie ontvangt logs via HTTP op poort `8888` en stuurt ze door naar OneUptime:
+Deze configuratie ontvangt logs via HTTP op poort `8888`, alleen van deze host, en stuurt ze door naar OneUptime:
 
 ```yaml title="fluent-bit.yaml"
 service:
   flush: 1
   log_level: info
+  # Keep the chunks still to send on disk: a restart of Fluent Bit loses none
+  storage.path: /var/lib/fluent-bit/buffer
+  storage.sync: normal
+  # Try a chunk again about every 30 seconds
+  scheduler.base: 30
+  scheduler.cap: 30
 
 pipeline:
   inputs:
     - name: http
-      listen: 0.0.0.0
+      # This host alone may send here
+      listen: 127.0.0.1
       port: 8888
+      storage.type: filesystem
 
       processors:
         logs:
@@ -136,9 +164,13 @@ pipeline:
       tls: On
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
-Vervang de `http`-input door de inputs die je nodig hebt (bijvoorbeeld `tail` voor logbestanden of `systemd` voor het journal) en houd op elk ervan de twee processors.
+`listen: 127.0.0.1` neemt alleen logs van deze host aan: de `http`-input vraagt om geen sleutel, dus met `listen: 0.0.0.0` kan iedereen die de poort bereikt logs naar OneUptime sturen onder je ingestiesleutel. Vervang de `http`-input door de inputs die je nodig hebt (bijvoorbeeld `tail` voor logbestanden of `systemd` voor het journal) en houd op elk ervan de twee processors en `storage.type: filesystem`.
 
 ## Zelf gehoste OneUptime
 
@@ -158,6 +190,10 @@ pipeline:
       traces_uri: "/otlp/v1/traces"
       header:
         - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
 ```
 
 ## Problemen oplossen
@@ -176,6 +212,10 @@ De service komt uit `service.name`. Controleer of elke input de processor `opent
 
 :::details Er komt niets binnen en Fluent Bit logt verbindingsfouten
 Controleer of `tls: On` en `port: 443` zijn ingesteld voor een HTTPS-endpoint, en of de host waarop Fluent Bit draait je OneUptime-host op die poort kan bereiken.
+:::
+
+:::details Fluent Bit logt `cannot be retried`
+Fluent Bit heeft een chunk weggegooid die het niet kon versturen. Met `retry_limit: 8640`, zoals in de configuratie hierboven, stuurt het een chunk waarop OneUptime `429`, `502`, `503` of `504` antwoordt ongeveer elke 30 seconden opnieuw, ongeveer 72 uur lang; standaard probeert Fluent Bit het nog maar één keer. Een `400`, `401`, `402`, `413`, `422` of `500` wordt meteen weggegooid, omdat het antwoord elke keer hetzelfde is: controleer de sleutel, het abonnement en de grootte van het verzoek.
 :::
 
 Heb je vragen of hulp nodig bij de configuratie, mail ons dan op support@oneuptime.com.

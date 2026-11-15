@@ -73,6 +73,14 @@ import StatusPageDisplaySettingsCopy, {
   DISPLAY_SECTIONS,
   DisplaySectionDefinition,
 } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
+import {
+  FLUENT_BIT_RETRY_INTERVAL_SECONDS,
+  FLUENT_BIT_RETRY_LIMIT,
+  FLUENT_BIT_STORAGE_PATH,
+  FLUENT_BIT_STORAGE_TOTAL_LIMIT,
+  FLUENT_BIT_TAIL_DB,
+  FLUENTD_RETRYABLE_RESPONSE_CODES,
+} from "../../../FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets";
 import FluentAPI from "../../../FeatureSet/Telemetry/API/Fluent";
 import OTelIngestAPI from "../../../FeatureSet/Telemetry/API/OTelIngest";
 import SyslogAPI from "../../../FeatureSet/Telemetry/API/Syslog";
@@ -1190,6 +1198,101 @@ describe("the Fluent Bit page", () => {
         "- name: opentelemetry_envelope - name: content_modifier context: otel_resource_attributes action: upsert key: service.name value: YOUR_SERVICE_NAME",
       );
     }
+  });
+
+  /*
+   * Fluent Bit's Retry_Limit is 1 by default, its tail keeps no place and
+   * its chunks live in memory (issue #8580): a 503 while OneUptime
+   * restarted lost the chunk, and a restart of Fluent Bit lost what it held
+   * and the lines written while it was down. The guide's file and these
+   * settle both the same way.
+   */
+  it("gives every output the guide's retries and disk limit", () => {
+    const outputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return OPENTELEMETRY_OUTPUT.test(fence.code);
+      },
+    );
+
+    expect(outputs.length).toBe(3);
+
+    for (const output of outputs) {
+      expect(output.code).toContain(
+        `      retry_limit: ${FLUENT_BIT_RETRY_LIMIT}\n`,
+      );
+      expect(output.code).toContain(
+        `      storage.total_limit_size: ${FLUENT_BIT_STORAGE_TOTAL_LIMIT}`,
+      );
+    }
+
+    expect(FLUENT_BIT_RETRY_LIMIT * FLUENT_BIT_RETRY_INTERVAL_SECONDS).toBe(
+      72 * 60 * 60,
+    );
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`retry_limit: 8640` sends a chunk again when OneUptime is busy (`429`) or restarting (`502`, `503`, `504`), about every 30 seconds (`scheduler.base` and `scheduler.cap`), for about 72 hours; Fluent Bit's default is to try once more and drop it.",
+    );
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`storage.total_limit_size: 512M` keeps at most 512 MB for the output; when it is full, the oldest chunks are dropped.",
+    );
+  });
+
+  it("keeps the chunks on disk and tries one again every 30 seconds, wherever a file sets the service", () => {
+    const services: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return fence.code.startsWith("service:\n");
+      },
+    );
+
+    // The step's output and the complete example.
+    expect(services.length).toBe(2);
+
+    for (const fence of services) {
+      expect(fence.code).toContain(
+        `  storage.path: ${FLUENT_BIT_STORAGE_PATH}\n  storage.sync: normal\n`,
+      );
+      expect(fence.code).toContain(
+        `  scheduler.base: ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}\n  scheduler.cap: ${FLUENT_BIT_RETRY_INTERVAL_SECONDS}\n`,
+      );
+    }
+  });
+
+  it("keeps every input's chunks on disk, and the tail's place in each file", () => {
+    const inputs: Array<DocsFence> = codeBlocks(FLUENT_BIT).filter(
+      (fence: DocsFence): boolean => {
+        return fence.code.includes("  inputs:\n");
+      },
+    );
+
+    expect(inputs.length).toBe(2);
+
+    for (const fence of inputs) {
+      expect(fence.code).toContain("      storage.type: filesystem\n");
+    }
+
+    expect(inputs[0]!.code).toContain(`      db: ${FLUENT_BIT_TAIL_DB}\n`);
+    // The complete example's http input takes logs from this host alone: it asks for no key.
+    expect(inputs[1]!.code).toContain("      listen: 127.0.0.1\n");
+    expect(inputs[1]!.code).not.toContain("0.0.0.0");
+    expect(englishPage(FLUENT_BIT)).toContain(
+      "`listen: 127.0.0.1` takes logs from this host alone: the `http` input asks for no key",
+    );
+  });
+
+  it("says which answers Fluent Bit sends again, as it did in a run", () => {
+    const answer: string = detailsAnswer(
+      FLUENT_BIT,
+      "Fluent Bit logs `cannot be retried`",
+    );
+    const retried: Array<number> = codeSpans(
+      answer.match(/OneUptime answers (.*) for again/)?.[1] || "",
+    ).map(Number);
+    const dropped: Array<number> = codeSpans(
+      answer.match(/A (.*) is dropped at once/)?.[1] || "",
+    ).map(Number);
+
+    // Fluent Bit 5.2.0's OpenTelemetry output, against a stub answering each code.
+    expect(retried).toEqual(FLUENTD_RETRYABLE_RESPONSE_CODES);
+    expect(dropped).toEqual([400, 401, 402, 413, 422, 500]);
   });
 });
 
