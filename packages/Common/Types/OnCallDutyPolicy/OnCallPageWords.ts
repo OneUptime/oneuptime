@@ -591,6 +591,12 @@ export interface OnCallPageSmsWords {
     projectName: string;
     isPageAgain: boolean;
     lead: string;
+    /*
+     * The lead says a person started an on-call policy
+     * (OnCallPolicyStartedByHand): the policy is for the record, not
+     * about it - "Alice Kim started Database escalation for ...".
+     */
+    isPolicyLead?: boolean | undefined;
   }) => string;
   // The words before the link: "Ack or escalate:".
   action: string;
@@ -646,7 +652,24 @@ export const getOnCallPageSmsWords: (
       projectName: string;
       isPageAgain: boolean;
       lead: string;
+      isPolicyLead?: boolean | undefined;
     }): string => {
+      if (data.lead && data.isPolicyLead) {
+        return data.projectName
+          ? translator.translateTemplate(
+              "{{lead}} for {{record}} in {{project}}",
+              {
+                lead: data.lead,
+                record: data.record,
+                project: data.projectName,
+              },
+            )
+          : translator.translateTemplate("{{lead}} for {{record}}", {
+              lead: data.lead,
+              record: data.record,
+            });
+      }
+
       if (data.lead) {
         return data.projectName
           ? translator.translateTemplate(
