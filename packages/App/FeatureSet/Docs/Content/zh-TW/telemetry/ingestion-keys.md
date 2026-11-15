@@ -140,7 +140,7 @@ x-oneuptime-token: YOUR_ONEUPTIME_INGESTION_KEY
 關於 OTLP 匯出工具可能收到的其他回應，請參閱 [回應](/docs/telemetry/open-telemetry#回應)。
 
 :::details 停用金鑰一分鐘後仍有資料到達
-每台 OneUptime 伺服器最多會把它所知道的金鑰資訊保留一分鐘，因此變更大約一分鐘內會傳到所有伺服器。之後的請求會遭到拒絕。
+每台 OneUptime 伺服器最多會把它所知道的金鑰資訊保留一分鐘，因此變更大約一分鐘內會傳到所有伺服器。之後的請求會遭到拒絕。以該金鑰連線的 MQTT 用戶端會在幾秒內被中斷。
 :::
 
 :::details 瀏覽器金鑰在我的筆電上可用，但在正式環境中不可用

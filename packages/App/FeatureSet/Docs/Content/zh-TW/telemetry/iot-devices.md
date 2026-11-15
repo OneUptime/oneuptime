@@ -179,7 +179,7 @@ OneUptime 有自己的 MQTT 端點，因此使用 MQTT 的裝置可以直接向�
 
 裝置認證只能在它自己的 `oneuptime/<fleet>/<device>/` 主題下發布。你可以撤銷單一裝置，而不影響機群中的其他裝置：關閉它的 **已啟用** 開關或刪除它，已連線的裝置會在大約一分鐘內被中斷。已註冊的裝置沉默後會以離線狀態留在清單中，即使它在沒有 Last Will 的情況下停止運作，Device Offline 警示範本也會為它觸發。
 
-OneUptime 會在 CONNECT 階段以傳回碼 4（bad username or password）拒絕錯誤的認證，因此設定錯誤的裝置會明確地失敗。瀏覽器金鑰在 MQTT 上會被拒絕。
+OneUptime 會在 CONNECT 階段以傳回碼 4（bad username or password）拒絕錯誤的認證，因此設定錯誤的裝置會明確地失敗。瀏覽器金鑰在 MQTT 上會被拒絕。使用擷取金鑰連線的用戶端會在金鑰被停用、過期、重設密鑰值或被刪除後的幾秒內中斷，再次連線時會遭到拒絕。
 
 ### 主題和酬載
 

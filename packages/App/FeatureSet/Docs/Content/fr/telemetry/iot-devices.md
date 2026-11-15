@@ -179,7 +179,7 @@ OneUptime dispose de son propre endpoint MQTT : les appareils qui parlent MQTT y
 
 Les identifiants d'un appareil ne peuvent publier que sous ses propres topics `oneuptime/<fleet>/<device>/`. Vous pouvez révoquer un appareil sans toucher au reste de la flotte : désactivez son interrupteur **Activé**, ou supprimez-le, et un appareil connecté est déconnecté en une minute environ. Un appareil enregistré qui se tait reste dans l'inventaire comme hors ligne, et le modèle d'alerte Device Offline se déclenche pour lui, même s'il meurt sans Last Will.
 
-OneUptime refuse les identifiants erronés au CONNECT avec le code de retour 4 (nom d'utilisateur ou mot de passe incorrect) : un appareil mal configuré échoue donc de façon visible. Les clés de navigateur sont refusées via MQTT.
+OneUptime refuse les identifiants erronés au CONNECT avec le code de retour 4 (nom d'utilisateur ou mot de passe incorrect) : un appareil mal configuré échoue donc de façon visible. Les clés de navigateur sont refusées via MQTT. Un client connecté avec la clé d'ingestion est déconnecté en quelques secondes dès que la clé est désactivée, expire, voit son secret réinitialisé ou est supprimée, et il est refusé quand il se reconnecte.
 
 ### Topics et payloads
 
