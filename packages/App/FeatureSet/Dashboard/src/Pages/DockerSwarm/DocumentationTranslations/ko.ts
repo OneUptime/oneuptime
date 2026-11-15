@@ -94,7 +94,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's name comes from `DOCKER_SWARM_CLUSTER_NAME`. Change it in `/opt/oneuptime-docker-swarm-agent/.env` and run `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` — note that a new name registers a new cluster.":
     "클러스터 이름은 `DOCKER_SWARM_CLUSTER_NAME`에서 옵니다. `/opt/oneuptime-docker-swarm-agent/.env`에서 바꾸고 `/opt/oneuptime-docker-swarm-agent`에서 `docker compose up -d`를 실행합니다. 새 이름은 새 클러스터로 등록된다는 점에 유의하세요.",
   "When it asks, enter the OneUptime URL and the ingestion key shown in step 1, and **`swarm-1`** as the cluster name — exactly, or the data registers as a new cluster.":
-    "물어보면 1단계에 표시된 OneUptime URL과 수집 키를 입력하고, 클러스터 이름에는 **`swarm-1`**을 정확히 그대로 입력합니다. 다르면 데이터가 새 클러스터로 등록됩니다.",
+    "물어보면 1단계에 표시된 OneUptime URL과 수집 키를 입력하고, 클러스터 이름에는 **`swarm-1`** 값을 정확히 그대로 입력합니다. 다르면 데이터가 새 클러스터로 등록됩니다.",
   "Replace `my-swarm` with a name for this cluster, such as `prod-swarm`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "`my-swarm`을 이 클러스터의 이름(예: `prod-swarm`)으로 바꿉니다. OneUptime에서 클러스터가 이 이름으로 표시되므로 바꾸지 마세요. 새 이름은 새 클러스터로 등록됩니다.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
@@ -124,7 +124,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's name comes from `DOCKER_SWARM_CLUSTER_NAME`. Change it in the `.env` next to docker-compose.yml and run `docker compose up -d` in the agent's folder — note that a new name registers a new cluster.":
     "클러스터 이름은 `DOCKER_SWARM_CLUSTER_NAME`에서 옵니다. docker-compose.yml 옆의 `.env`에서 바꾸고 에이전트 폴더에서 `docker compose up -d`를 실행합니다. 새 이름은 새 클러스터로 등록된다는 점에 유의하세요.",
   "This installs the agent for **`swarm-1`** — keep `DOCKER_SWARM_CLUSTER_NAME` exactly as it is, or the data registers as a new cluster.":
-    "이 명령은 **`swarm-1`**용으로 에이전트를 설치합니다. `DOCKER_SWARM_CLUSTER_NAME`을 그대로 두세요. 바꾸면 데이터가 새 클러스터로 등록됩니다.",
+    "이 명령은 **`swarm-1`** 클러스터용으로 에이전트를 설치합니다. `DOCKER_SWARM_CLUSTER_NAME`을 그대로 두세요. 바꾸면 데이터가 새 클러스터로 등록됩니다.",
 };
 
 export default TRANSLATION;

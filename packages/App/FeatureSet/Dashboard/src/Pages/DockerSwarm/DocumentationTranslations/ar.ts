@@ -94,7 +94,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "The cluster's name comes from `DOCKER_SWARM_CLUSTER_NAME`. Change it in `/opt/oneuptime-docker-swarm-agent/.env` and run `docker compose up -d` in `/opt/oneuptime-docker-swarm-agent` — note that a new name registers a new cluster.":
     "يأتي اسم العنقود من `DOCKER_SWARM_CLUSTER_NAME`. غيّره في `/opt/oneuptime-docker-swarm-agent/.env` وشغّل `docker compose up -d` في `/opt/oneuptime-docker-swarm-agent` — لاحظ أن الاسم الجديد يسجّل عنقودًا جديدًا.",
   "When it asks, enter the OneUptime URL and the ingestion key shown in step 1, and **`swarm-1`** as the cluster name — exactly, or the data registers as a new cluster.":
-    "عندما يسأل، أدخل عنوان URL الخاص بـ OneUptime ومفتاح الاستيعاب الظاهرين في الخطوة 1، و**`swarm-1`** اسمًا للعنقود — كما هو تمامًا، وإلا فستُسجَّل البيانات كعنقود جديد.",
+    "عندما يسأل، أدخل عنوان URL الخاص بـ OneUptime ومفتاح الاستيعاب الظاهرين في الخطوة 1، وأدخل **`swarm-1`** اسمًا للعنقود — كما هو تمامًا، وإلا فستُسجَّل البيانات كعنقود جديد.",
   "Replace `my-swarm` with a name for this cluster, such as `prod-swarm`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new cluster.":
     "استبدل `my-swarm` باسم لهذا العنقود، مثل `prod-swarm`. بهذا الاسم يظهر العنقود في OneUptime، فأبقه ثابتًا: الاسم الجديد يسجّل عنقودًا جديدًا.",
   "Pick an ingestion key in step 1 to fill in `<YOUR_API_KEY>`.":
