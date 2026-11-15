@@ -34,6 +34,7 @@ import Dropdown, {
   DropdownValue,
 } from "../../Dropdown/Dropdown";
 import Icon from "../../Icon/Icon";
+import TranslatedSentence from "../../TranslatedSentence/TranslatedSentence";
 import DragHandle from "../../Table/DragHandle";
 import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import WorkflowViewOnlyFieldset from "../WorkflowViewOnlyFieldset";
@@ -182,6 +183,13 @@ export const SWITCH_TEST_IDS: {
 
 export const NOT_CONNECTED_LABEL: string = translationKey("Not connected");
 
+/*
+ * What a screen reader hears beside a case's arrow: the steps it leads to,
+ * in a sentence of the reader's language (#8570). Only {{steps}} is drawn;
+ * the words are read.
+ */
+export const LEADS_TO_SENTENCE: string = translationKey("Leads to {{steps}}");
+
 // The control in a case's row the focus goes to.
 enum FocusedControl {
   Remove = "Remove",
@@ -239,22 +247,48 @@ const ConnectionLine: FunctionComponent<ConnectionLineProps> = (
         />
       </div>
       <p className="min-w-0 break-words">
-        <span className="sr-only">{translator.translateText("Leads to")} </span>
-        {steps.map((step: ConnectedStep, index: number) => {
-          return (
-            <React.Fragment key={step.componentId}>
-              <span className="font-medium text-gray-800">{step.title}</span>{" "}
-              <code className="break-all font-mono text-[11px] text-gray-500">
-                {step.componentId}
-              </code>
-              {index < steps.length - 1 ? (
-                <span className="text-gray-500">, </span>
-              ) : (
-                <></>
-              )}
-            </React.Fragment>
-          );
-        })}
+        {/*
+         * "Leads to" and the steps, one sentence for a screen reader, the
+         * steps a slot in it, so a language that puts the verb after them
+         * reads them in its own order (#8570). Its words are read only; the
+         * eye sees the arrow beside the steps.
+         */}
+        <TranslatedSentence
+          template={LEADS_TO_SENTENCE}
+          slots={{
+            steps: (
+              <>
+                {steps.map((step: ConnectedStep, index: number) => {
+                  return (
+                    <React.Fragment key={step.componentId}>
+                      <span className="font-medium text-gray-800">
+                        {step.title}
+                      </span>{" "}
+                      <code className="break-all font-mono text-[11px] text-gray-500">
+                        {step.componentId}
+                      </code>
+                      {index < steps.length - 1 ? (
+                        <span className="text-gray-500">, </span>
+                      ) : (
+                        <></>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            ),
+          }}
+          renderText={(text: string): ReactElement => {
+            return (
+              <span
+                className="sr-only"
+                data-testid="workflow-switch-leads-to-words"
+              >
+                {text}
+              </span>
+            );
+          }}
+        />
       </p>
     </div>
   );
