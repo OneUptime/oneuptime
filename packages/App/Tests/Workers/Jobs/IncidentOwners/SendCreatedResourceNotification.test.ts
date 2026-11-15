@@ -94,7 +94,8 @@ jest.mock("Common/Server/Services/IncidentService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
-      updateOneById: jest.fn(),
+      findCreatedNotificationsDue: jest.fn(),
+      takeCreatedNotification: jest.fn(),
       findOwners: jest.fn(),
       getIncidentLinkInDashboard: jest.fn(),
       getIncidentIdentifiedDate: jest.fn(),
@@ -161,7 +162,8 @@ import "../../../../FeatureSet/Workers/Jobs/IncidentOwners/SendCreatedResourceNo
 
 interface IncidentServiceMock {
   findAllBy: jest.Mock;
-  updateOneById: jest.Mock;
+  findCreatedNotificationsDue: jest.Mock;
+  takeCreatedNotification: jest.Mock;
   findOwners: jest.Mock;
   getIncidentLinkInDashboard: jest.Mock;
   getIncidentIdentifiedDate: jest.Mock;
@@ -293,7 +295,17 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
     markdownSpy = jest.spyOn(Markdown, "convertToHTML");
 
     incidentService.findAllBy.mockResolvedValue([]);
-    incidentService.updateOneById.mockResolvedValue(undefined);
+    /*
+     * The job's own read answers what findAllBy is set to answer, as when
+     * the job read through findAllBy itself: the rows a test sets are the
+     * records due, and the relation reads after it.
+     */
+    incidentService.findCreatedNotificationsDue.mockImplementation(
+      (args: unknown): Promise<unknown> => {
+        return incidentService.findAllBy(args);
+      },
+    );
+    incidentService.takeCreatedNotification.mockResolvedValue(true);
     incidentService.findOwners.mockResolvedValue([]);
     incidentService.getIncidentLinkInDashboard.mockResolvedValue({
       toString: (): string => {
@@ -542,7 +554,7 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
 
     await runWorkerTick();
 
-    expect(incidentService.updateOneById).toHaveBeenCalledTimes(1);
+    expect(incidentService.takeCreatedNotification).toHaveBeenCalledTimes(1);
     expect(markdownSpy).not.toHaveBeenCalled();
     expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
     expect(feedService.createIncidentFeedItem).not.toHaveBeenCalled();
@@ -698,6 +710,165 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       expect(colours[0]).toBe(
         EmailColorUtil.getColorPair(Yellow500)!.textColor,
       );
+    });
+  });
+
+  /*
+   * WHICH INCIDENTS IT TELLS THEIR OWNERS ABOUT (#7571, #7573): the ones
+   * IncidentService.findCreatedNotificationsDue reads as of the moment it
+   * runs - let go a minute after their create, or held so long that nobody
+   * will let them go - each taken first, in one write that matches only
+   * while the incident is as it was read (takeCreatedNotification). One
+   * another run took, or that was let go meanwhile, is not this run's.
+   */
+  describe("which incidents it tells their owners about", () => {
+    const NOW: Date = new Date("2026-11-15T10:02:00.000Z");
+    const OTHER_INCIDENT_ID: ObjectID = new ObjectID("incident-2");
+
+    function secondIncident(): Incident {
+      const incident: Incident = makeIncident({});
+      incident._id = OTHER_INCIDENT_ID.toString();
+      incident.title = "Payments are down";
+      return incident;
+    }
+
+    // Who was sent what, by incident.
+    function sentFor(incidentId: ObjectID): Array<string> {
+      return notificationService.sendUserNotification.mock.calls
+        .filter((args: Array<unknown>): boolean => {
+          return (
+            (args[0] as { incidentId: ObjectID }).incidentId.toString() ===
+            incidentId.toString()
+          );
+        })
+        .map((args: Array<unknown>): string => {
+          return (args[0] as { userId: ObjectID }).userId.toString();
+        });
+    }
+
+    test("reads the incidents due as of the moment it runs, with every column its email needs", async () => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+
+      await runWorkerTick();
+
+      expect(incidentService.findCreatedNotificationsDue).toHaveBeenCalledTimes(
+        1,
+      );
+
+      const read: { now: Date; select: Record<string, unknown> } =
+        incidentService.findCreatedNotificationsDue.mock.calls[0]![0] as {
+          now: Date;
+          select: Record<string, unknown>;
+        };
+
+      expect(read.now).toBe(NOW);
+      expect(read.select).toEqual(
+        expect.objectContaining({
+          _id: true,
+          title: true,
+          description: true,
+          projectId: true,
+          remediationNotes: true,
+          rootCause: true,
+          incidentNumber: true,
+          incidentNumberWithPrefix: true,
+        }),
+      );
+    });
+
+    test("takes each incident it read, as it read it, before reading its owners or telling anyone", async () => {
+      const first: Incident = makeIncident({});
+      const second: Incident = secondIncident();
+      incidentService.findAllBy.mockResolvedValue([first, second]);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+      await runWorkerTick();
+
+      expect(
+        incidentService.takeCreatedNotification.mock.calls.map(
+          (args: Array<unknown>): unknown => {
+            return args[0];
+          },
+        ),
+      ).toEqual([first, second]);
+      expect(incidentService.takeCreatedNotification.mock.calls[0]![0]).toBe(
+        first,
+      );
+
+      const takenFirst: number =
+        incidentService.takeCreatedNotification.mock.invocationCallOrder[0]!;
+
+      expect(takenFirst).toBeLessThan(
+        incidentService.findOwners.mock.invocationCallOrder[0]!,
+      );
+      expect(takenFirst).toBeLessThan(
+        notificationService.sendUserNotification.mock.invocationCallOrder[0]!,
+      );
+      expect(sentFor(INCIDENT_ID)).toEqual(["user-1"]);
+      expect(sentFor(OTHER_INCIDENT_ID)).toEqual(["user-1"]);
+    });
+
+    test("tells nobody of an incident it could not take - another run took it, or it was let go meanwhile - and goes on to the next", async () => {
+      incidentService.findAllBy.mockResolvedValue([
+        makeIncident({}),
+        secondIncident(),
+      ]);
+      incidentService.takeCreatedNotification
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+      projectService.getOwners.mockResolvedValue([makeOwner("owner-1")]);
+
+      await runWorkerTick();
+
+      expect(sentFor(INCIDENT_ID)).toEqual([]);
+      expect(sentFor(OTHER_INCIDENT_ID)).toEqual(["user-1"]);
+
+      // Nothing read or written for the one it did not take.
+      expect(incidentService.findOwners).toHaveBeenCalledTimes(1);
+      expect(incidentService.findOwners.mock.calls[0]![0].toString()).toBe(
+        OTHER_INCIDENT_ID.toString(),
+      );
+      expect(feedService.createIncidentFeedItem).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          feedService.createIncidentFeedItem.mock.calls[0]![0] as {
+            incidentId: ObjectID;
+          }
+        ).incidentId.toString(),
+      ).toBe(OTHER_INCIDENT_ID.toString());
+    });
+
+    test("an incident let go after the run read it is told once, by the run that takes it", async () => {
+      incidentService.findAllBy.mockResolvedValue([makeIncident({})]);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+      incidentService.takeCreatedNotification
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValue(false);
+
+      await runWorkerTick();
+      expect(sentFor(INCIDENT_ID)).toEqual([]);
+
+      await runWorkerTick();
+      expect(sentFor(INCIDENT_ID)).toEqual(["user-1"]);
+
+      // Taken: a later run that reads it again can take it no more.
+      await runWorkerTick();
+      expect(sentFor(INCIDENT_ID)).toEqual(["user-1"]);
+    });
+
+    test("an incident whose take fails is left for the next run, and nothing is sent for it", async () => {
+      incidentService.findAllBy.mockResolvedValue([makeIncident({})]);
+      incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+      incidentService.takeCreatedNotification.mockRejectedValue(
+        new Error("The database is away"),
+      );
+
+      await expect(runWorkerTick()).rejects.toThrow("The database is away");
+
+      expect(notificationService.sendUserNotification).not.toHaveBeenCalled();
+      expect(feedService.createIncidentFeedItem).not.toHaveBeenCalled();
     });
   });
 });

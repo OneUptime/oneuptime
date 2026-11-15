@@ -8,6 +8,7 @@ import SerializableObject from "./SerializableObject";
 import SerializableObjectDictionary from "./SerializableObjectDictionary";
 import Typeof from "./Typeof";
 import JSON5 from "json5";
+import { writeOwnValue } from "../Utils/LookupTable";
 
 export default class JSONFunctions {
   private static readonly unsafeObjectPathSegments: ReadonlySet<string> =
@@ -393,13 +394,19 @@ export default class JSONFunctions {
   public static serialize(val: JSONObject): JSONObject {
     const newVal: JSONObject = {};
 
+    /*
+     * Each key is written as the copy's own (writeOwnValue). A value read
+     * from a store can hold a key named __proto__ - a log's attribute, a
+     * series' label - and assigning it dropped it from the JSON, or made an
+     * object under it the copy's prototype, which hid it the same way.
+     */
     for (const key in val) {
       if (val[key] === undefined) {
         continue;
       }
 
       if (val[key] === null) {
-        newVal[key] = val[key];
+        writeOwnValue(newVal, key, val[key]);
       }
 
       if (Array.isArray(val[key])) {
@@ -408,9 +415,9 @@ export default class JSONFunctions {
           arraySerialize.push(this.serializeValue(arrVal));
         }
 
-        newVal[key] = arraySerialize;
+        writeOwnValue<JSONValue>(newVal, key, arraySerialize);
       } else {
-        newVal[key] = this.serializeValue(val[key] as JSONValue);
+        writeOwnValue(newVal, key, this.serializeValue(val[key] as JSONValue));
       }
     }
 

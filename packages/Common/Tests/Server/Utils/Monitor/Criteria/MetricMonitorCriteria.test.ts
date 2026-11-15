@@ -19,6 +19,9 @@ import MetricFormulaEvaluator from "../../../../../Utils/Metrics/MetricFormulaEv
 import MonitorStep from "../../../../../Types/Monitor/MonitorStep";
 import RollingTime from "../../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../../Types/ObjectID";
+import { JSONObject } from "../../../../../Types/JSON";
+import { readOwnValue } from "../../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../../Helpers/InheritedNames";
 
 /*
  * Light helper that assembles a MonitorStep + MetricMonitorResponse pair
@@ -777,6 +780,113 @@ describe("MetricMonitorCriteria.evaluateAllSeries — per-host alerting", () => 
       "host.name": "prod-01",
     });
   });
+
+  /*
+   * Issue #8026: a series grouped by an attribute named like what every
+   * object inherits. extractLabelAttributes skipped a label already lifted
+   * with `key in labels`, true for every such name, so the label was never
+   * lifted out of the nested map, and the breaching sample had no group-by
+   * value. A key named __proto__ (#8025) was not written either.
+   */
+  describe.each(INHERITED_PROPERTY_NAMES)(
+    "a series grouped by an attribute named %s",
+    (name: string) => {
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.MetricValue,
+        filterType: FilterType.GreaterThan,
+        value: "80",
+        metricMonitorOptions: {
+          metricAlias: "a",
+          metricAggregationType: EvaluateOverTimeType.AnyValue,
+        },
+      };
+
+      // As ClickHouse's JSON answer carries a map: own keys, __proto__ too.
+      const own: (record: Record<string, string>) => Record<string, string> = (
+        record: Record<string, string>,
+      ): Record<string, string> => {
+        return JSON.parse(JSON.stringify(record)) as Record<string, string>;
+      };
+
+      const breachingAttributes: (
+        rowAttributes: Record<string, string> | undefined,
+      ) => Promise<JSONObject | undefined> = async (
+        rowAttributes: Record<string, string> | undefined,
+      ): Promise<JSONObject | undefined> => {
+        const inputs: ReturnType<typeof buildInputsWithSeriesBreakdown> =
+          buildInputsWithSeriesBreakdown({
+            criteriaFilter,
+            seriesSamples: [
+              { labels: own({ [name]: "prod-01" }), values: [95] },
+            ],
+          });
+
+        for (const row of inputs.dataToProcess.seriesBreakdown![0]!
+          .aggregatedResults[0]!.data) {
+          (row as unknown as { attributes: unknown }).attributes =
+            rowAttributes;
+        }
+
+        const results: Awaited<
+          ReturnType<typeof MetricMonitorCriteria.evaluateAllSeries>
+        > = await MetricMonitorCriteria.evaluateAllSeries(inputs);
+
+        return results[0]!.context.breachingSamples?.[0]?.attributes;
+      };
+
+      test("its breaching sample carries the series' value, lifted out of the nested attributes", async () => {
+        const attributes: JSONObject | undefined = await breachingAttributes(
+          own({ [name]: "prod-01", "host.arch": "amd64" }),
+        );
+
+        expect(Object.keys(attributes || {})).toEqual([name]);
+        expect(readOwnValue(attributes, name)).toBe("prod-01");
+        expect(Object.getPrototypeOf(attributes)).toBe(Object.prototype);
+      });
+
+      test("a nested attribute of that name with no value takes no label from series labels that lack it", () => {
+        const extract: (
+          sample: AggregateModel,
+          seriesLabels?: JSONObject | undefined,
+        ) => JSONObject = (
+          MetricMonitorCriteria as unknown as {
+            extractLabelAttributes: (
+              sample: AggregateModel,
+              seriesLabels?: JSONObject | undefined,
+            ) => JSONObject;
+          }
+        ).extractLabelAttributes.bind(MetricMonitorCriteria);
+
+        const sample: AggregateModel = {
+          timestamp: new Date(),
+          value: 95,
+          attributes: JSON.parse(
+            JSON.stringify({ [name]: null, zone: "z1" }),
+          ) as JSONObject,
+        } as unknown as AggregateModel;
+
+        for (const seriesLabels of [{}, undefined]) {
+          const labels: JSONObject = extract(sample, seriesLabels);
+
+          expect(Object.keys(labels)).toEqual(["zone"]);
+          expect(readOwnValue(labels, name)).toBeUndefined();
+        }
+      });
+
+      test("a row without it, or without attributes, takes the series' own label, never the inherited member", async () => {
+        for (const rowAttributes of [
+          own({ "host.arch": "amd64" }),
+          undefined,
+        ]) {
+          const attributes: JSONObject | undefined =
+            await breachingAttributes(rowAttributes);
+
+          expect(Object.keys(attributes || {})).toEqual([name]);
+          expect(readOwnValue(attributes, name)).toBe("prod-01");
+        }
+      });
+    },
+  );
 });
 
 describe("MetricSeriesFingerprint", () => {

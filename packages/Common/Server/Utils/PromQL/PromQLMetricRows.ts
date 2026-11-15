@@ -15,6 +15,7 @@ import {
   PromQLSeriesKind,
   attributesToPromQLLabels,
 } from "../../../Utils/PromQL/PromQLMetricNames";
+import { assignOwnValues } from "../../../Utils/LookupTable";
 
 /*
  * Turns OneUptime's metric rows into PromQL series (issue #6796).
@@ -171,11 +172,13 @@ export const promQLSeriesFromRows: (data: {
     value: number,
     accumulate: boolean,
   ): void => {
-    const labels: PromQLLabels = {
-      ...baseLabels,
-      ...extraLabels,
-      [PROMQL_METRIC_NAME_LABEL]: seriesName,
-    };
+    // Own keys: a row's attribute may be a label named __proto__.
+    const labels: PromQLLabels = assignOwnValues<string>(
+      {},
+      baseLabels,
+      extraLabels,
+    );
+    labels[PROMQL_METRIC_NAME_LABEL] = seriesName;
     const key: string = promQLLabelsKey(labels);
     let isAccepted: boolean | undefined = accepted.get(key);
 

@@ -569,6 +569,12 @@ export class Service extends DatabaseService<Model> {
           email: true,
           // "Your password was changed" says when in the owner's own zone.
           timezone: true,
+          /*
+           * Whether there was a password to change: an invited account has
+           * none until the person signs up, and its first one is no change
+           * (onUpdateSuccess, #7472). Read only for a password write.
+           */
+          ...(updateBy.data.password ? { password: true } : {}),
         },
       );
 
@@ -1000,6 +1006,22 @@ export class Service extends DatabaseService<Model> {
          * the reset link, the profile page and a master admin's Set Password.
          */
         await TwoFactorWrongCodes.forget(user.id!);
+
+        /*
+         * An account that had no password has just been given its first
+         * one: nothing was changed, and "If this was not you, someone else
+         * can get into your account" would alarm a person who has just
+         * signed up. That is an invited person claiming their account at
+         * sign-up above all, seconds after following the invitation (#7472);
+         * the sign-up page takes them in, and no email follows. Whoever sets
+         * a first password held a link from the mailbox (the invitation's
+         * registration link, a reset link) or is a master admin, so no
+         * warning is owed. Their sessions and links still end as for any
+         * new password (above, and onUpdatePermitted).
+         */
+        if (!user.password) {
+          continue;
+        }
 
         /*
          * Password changed: tell the owner, with when, and from where when a

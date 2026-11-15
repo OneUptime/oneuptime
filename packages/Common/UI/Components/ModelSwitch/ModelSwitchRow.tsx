@@ -682,6 +682,7 @@ const ModelSwitchRow: <TBaseModel extends BaseModel>(
               text={translator.translateTemplate("{{planName}} Plan", {
                 planName: planNeeded,
               })}
+              isUserContent={true}
               color={Yellow}
             />
           </span>

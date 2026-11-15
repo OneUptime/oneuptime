@@ -28,6 +28,10 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { UserProjectRow } from "Common/UI/Utils/ModelAPI/UserProjectsModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
+import InvitationLinkModal, {
+  getInvitationLinkRowAction,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
   FunctionComponent,
@@ -57,6 +61,16 @@ const UserProjects: FunctionComponent = (): ReactElement => {
 
   const [showAddToProjectModal, setShowAddToProjectModal] =
     useState<boolean>(false);
+
+  /*
+   * A server that cannot send email sent no invitation (#6825): a pending
+   * team membership's row offers its invitation link, to send by hand
+   * (#7168).
+   */
+  const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+  const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
+    null,
+  );
 
   /*
    * Both tables read the same memberships, so any write to one has to refresh
@@ -113,14 +127,17 @@ const UserProjects: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.users"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
         },
         {
           title: t("breadcrumbs.user"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_VIEW] as Route,
             {
@@ -130,6 +147,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.userProjects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.USER_PROJECTS] as Route,
             {
@@ -293,6 +311,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusInvited")}
+                      isUserContent={true}
                       color={Yellow}
                     />
                   );
@@ -311,6 +330,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   <div className="flex space-x-2">
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                     {pendingTeamCount > 0 && (
@@ -318,6 +338,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                         text={t("pages.userProjects.pendingInvitations", {
                           pending: pendingTeamCount,
                         })}
+                        isUserContent={true}
                         color={Yellow}
                       />
                     )}
@@ -350,6 +371,14 @@ const UserProjects: FunctionComponent = (): ReactElement => {
           isEditable={false}
           isCreateable={false}
           isViewable={false}
+          actionButtons={[
+            getInvitationLinkRowAction<TeamMember>({
+              isAvailable: cannotSendEmail,
+              onOpen: (teamMemberId: ObjectID) => {
+                setInvitationLinkFor(teamMemberId);
+              },
+            }),
+          ]}
           refreshToggle={refreshToggle}
           onItemDeleted={() => {
             refreshTables();
@@ -422,6 +451,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                   return (
                     <Pill
                       text={t("pages.userProjects.statusMember")}
+                      isUserContent={true}
                       color={Green}
                     />
                   );
@@ -430,6 +460,7 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                 return (
                   <Pill
                     text={t("pages.userProjects.statusInvited")}
+                    isUserContent={true}
                     color={Yellow}
                   />
                 );
@@ -445,6 +476,15 @@ const UserProjects: FunctionComponent = (): ReactElement => {
             },
           ]}
         />
+
+        {invitationLinkFor && (
+          <InvitationLinkModal
+            teamMemberId={invitationLinkFor}
+            onClose={() => {
+              setInvitationLinkFor(null);
+            }}
+          />
+        )}
 
         {showAddToProjectModal && (
           <ModelFormModal<TeamMember>

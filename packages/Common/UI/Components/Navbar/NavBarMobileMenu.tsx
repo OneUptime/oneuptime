@@ -4,10 +4,13 @@ import type { MoreMenuItem, NavItem } from "./NavBar";
 import {
   CategoryFolds,
   DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  getCategoryHeading,
+  getItemTitle,
   getMenuItemsWithHidden,
   groupItemsByCategory,
   isMoreMenuItemActive,
   MenuCategory,
+  MenuWordLookup,
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
 import {
@@ -114,6 +117,9 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
   );
   const idPrefix: string = `navbar-mobile-${useId()}`;
   const { translateString } = useTranslateValue();
+  const lookUp: MenuWordLookup = (text: string): string => {
+    return translateString(text) || text;
+  };
   const translator: Translator = useTranslator();
   const pinnedItems: Array<MoreMenuItem> = props.pinnedItems || [];
   const pinnedRoutes: Array<string> = pinnedItems.map(
@@ -295,10 +301,11 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                 }`}
               >
                 <NavBarCategoryToggle
-                  title={category.title}
+                  // Its words looked up once, as the desktop menu's (#8075).
+                  title={getCategoryHeading(category, lookUp)}
                   itemTitles={category.items.map(
                     (item: MoreMenuItem): string => {
-                      return item.title;
+                      return getItemTitle(item, lookUp);
                     },
                   )}
                   isOpen={isOpen}

@@ -20,11 +20,14 @@ import NavBarCategoryToggle, {
 import {
   CategoryFolds,
   DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  doesItemMatchSearch,
+  getCategoryHeading,
+  getItemDescription,
+  getItemTitle,
   getMenuItemsWithHidden,
   groupItemsByCategory,
   isMoreMenuItemActive,
   MenuCategory,
-  UNCATEGORIZED_TITLE,
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
 import {
@@ -309,7 +312,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
    * the rest of the nav uses, so a caller that has not been wired up to i18n
    * still renders localised text instead of English.
    */
-  const { translateString } = useTranslateValue();
+  const { translateString, language } = useTranslateValue();
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
@@ -329,20 +332,19 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   };
   const isSearching: boolean = query.trim().length > 0;
 
-  // Keep familiar acronyms searchable even when the displayed title is translated.
+  /*
+   * A product is found by its words as drawn, in the reader's language, and
+   * by its English and its keywords, so familiar acronyms still find it
+   * (NavBarMenuCatalog's doesItemMatchSearch).
+   */
   const filteredItems: MoreMenuItem[] = useMemo(() => {
-    const normalizedQuery: string = query.trim().toLowerCase();
-    if (!normalizedQuery) {
+    if (!query.trim()) {
       return menuItems;
     }
     return menuItems.filter((item: MoreMenuItem) => {
-      return [item.title, item.description, ...(item.keywords || [])].some(
-        (value: string) => {
-          return value.toLowerCase().includes(normalizedQuery);
-        },
-      );
+      return doesItemMatchSearch(item, query, tx);
     });
-  }, [menuItems, query]);
+  }, [menuItems, query, language]);
 
   /*
    * The "Recent" row: the remembered products of this menu, without the
@@ -710,6 +712,9 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     entry: ItemEntry,
   ): ReactElement => {
     const item: MoreMenuItem = entry.item;
+    // Its words in the reader's language, looked up once (#8075).
+    const title: string = getItemTitle(item, tx);
+    const description: string = getItemDescription(item, tx);
     const flatIndex: number = entry.flatIndex;
     const isActive: boolean = flatIndex === activeIndex;
     const isCurrent: boolean = flatIndex === currentFlatIndex;
@@ -765,7 +770,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-              <span className="truncate">{highlightMatch(item.title)}</span>
+              <span className="truncate">{highlightMatch(title)}</span>
               {isCurrent && (
                 <span
                   aria-hidden="true"
@@ -795,7 +800,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               ) : null}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
-              {highlightMatch(item.description)}
+              {highlightMatch(description)}
             </p>
           </div>
         </Link>
@@ -825,7 +830,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               aria-pressed={isPinned}
               aria-label={translator.translateTemplate(
                 isPinned ? "Unpin {{product}}" : "Pin {{product}}",
-                { product: item.title },
+                { product: title },
               )}
               title={
                 isPinLocked
@@ -839,7 +844,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     )
                   : translator.translateTemplate(
                       isPinned ? "Unpin {{product}}" : "Pin {{product}}",
-                      { product: item.title },
+                      { product: title },
                     )
               }
               disabled={isPinLocked}
@@ -877,10 +882,13 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     const headingId: string = `navbar-menu-heading-${group.index}`;
     const bodyId: string = `navbar-menu-group-${group.index}`;
-    const title: string =
-      group.title === UNCATEGORIZED_TITLE && !group.isRecent
-        ? tx(UNCATEGORIZED_TITLE)
-        : group.title;
+    /*
+     * The Recent row's heading is the menu's own, worded above; a
+     * category's is its items' words, looked up once (#8075).
+     */
+    const title: string = group.isRecent
+      ? group.title
+      : getCategoryHeading(group, tx);
     const toggle: CategoryEntry | undefined = group.toggle;
 
     return (
@@ -904,7 +912,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             layout={NavBarCategoryToggleLayout.Columns}
             title={title}
             itemTitles={group.items.map((item: MoreMenuItem): string => {
-              return item.title;
+              return getItemTitle(item, tx);
             })}
             isOpen={group.isOpen}
             onToggle={() => {

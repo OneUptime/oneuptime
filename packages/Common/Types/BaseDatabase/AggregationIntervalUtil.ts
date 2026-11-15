@@ -1,5 +1,5 @@
 import AggregationInterval from "./AggregationInterval";
-import OneUptimeDate from "../Date";
+import OneUptimeDate, { CalendarUnit } from "../Date";
 import Timezone from "../Timezone";
 import TimezoneAlias from "../TimezoneAlias";
 
@@ -16,6 +16,19 @@ const CALENDAR_INTERVALS: ReadonlyArray<AggregationInterval> = [
   AggregationInterval.Month,
   AggregationInterval.Year,
 ];
+
+/*
+ * The calendar unit each of those buckets is (OneUptimeDate's): a week is
+ * an ISO week, from Monday, as the server's toStartOfInterval starts it.
+ */
+const CALENDAR_UNIT_OF_INTERVAL: Readonly<
+  Partial<Record<AggregationInterval, CalendarUnit>>
+> = {
+  [AggregationInterval.Day]: "day",
+  [AggregationInterval.Week]: "week",
+  [AggregationInterval.Month]: "month",
+  [AggregationInterval.Year]: "year",
+};
 
 // What withReaderTimezone reads of a request, and sets on it.
 export interface AggregateWindow {
@@ -103,6 +116,130 @@ export class AggregationIntervalUtil {
   }
 
   /*
+   * The calendar unit a day, week, month or year bucket is: "day", "week"
+   * (from Monday), "month" or "year". Undefined for an hour and shorter,
+   * which are fixed lengths of time, and for Total.
+   */
+  public static getCalendarUnit(
+    interval: AggregationInterval,
+  ): CalendarUnit | undefined {
+    return CALENDAR_UNIT_OF_INTERVAL[interval];
+  }
+
+  /*
+   * The instant a bucket of `interval` starting at `bucketStart` ends: the
+   * one the next bucket starts at, which is where a bucket closes (issue
+   * #7924). An hour and shorter are their fixed length. A day, a week, a
+   * month and a year end where the next one starts on the calendar of
+   * `timezone`, the zone the bucket was cut in - its request's
+   * AggregateBy.timezone, UTC when it named none: a day is 23 or 25 hours
+   * where the clocks change (23.5 or 24.5 on Lord Howe Island), a month 28
+   * to 31 days, a year 365 or 366, none of them the nominal width
+   * getAggregationIntervalMs gives.
+   *
+   * The next unit is the one holding the instant one and a half nominal
+   * units on from the start of the unit holding `bucketStart`: no real unit
+   * is half a nominal one shorter or longer than it, so that instant is in
+   * the next unit, never in the one after it. HeartbeatAvailabilityUtil has
+   * walked the server's calendar buckets this way since issue #7277.
+   */
+  public static getBucketEnd(data: {
+    bucketStart: Date;
+    interval: AggregationInterval;
+    timezone?: Timezone | undefined;
+  }): Date {
+    const startMs: number = OneUptimeDate.fromString(
+      data.bucketStart,
+    ).getTime();
+    const nominalMs: number = this.getAggregationIntervalMs(data.interval);
+    const unit: CalendarUnit | undefined = this.getCalendarUnit(data.interval);
+
+    if (!unit || !Number.isFinite(startMs)) {
+      return new Date(startMs + nominalMs);
+    }
+
+    /*
+     * In its current name, as the server cuts it (AggregateUtil
+     * .getBucketTimezone): moment no longer knows US/Pacific-New, and
+     * would read its days as UTC's.
+     */
+    const timezone: Timezone = data.timezone
+      ? TimezoneAlias.getCanonicalTimezone(data.timezone)
+      : Timezone.UTC;
+    const unitStart: Date = OneUptimeDate.getStartOfCalendarUnit(
+      new Date(startMs),
+      unit,
+      timezone,
+    );
+
+    return OneUptimeDate.getStartOfCalendarUnit(
+      new Date(unitStart.getTime() + nominalMs * 1.5),
+      unit,
+      timezone,
+    );
+  }
+
+  /*
+   * The reader's zone - OneUptimeDate.getCurrentTimezone(): the zone User
+   * Settings picked, else the browser's - when the Timezone list names it,
+   * else undefined. It is the zone a request from the dashboard asks the
+   * server to cut its days in. The server takes no zone the list does not
+   * name, and a browser can report one newer than the list, so such a
+   * request names none and its days stay UTC's, as before, rather than
+   * failing.
+   */
+  public static getListedReaderTimezone(): Timezone | undefined {
+    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
+    return TimezoneAlias.isListedName(timezone) ? timezone : undefined;
+  }
+
+  /*
+   * The zone a request names for the days a route cuts on the server - an
+   * Ask AI question's charts (issue #7922), the Security and Data Security
+   * overviews' day bars (issue #7925) - read as the hint it is: its current
+   * name (TimezoneAlias) when the Timezone list names it, the rule an
+   * aggregate's AggregateBy.timezone is held to (AggregateUtil
+   * .readTimezone), and undefined for anything else: nothing, a typo, a
+   * zone newer than the list, a number, text written to be SQL. Such a
+   * request is answered on UTC's days, as one that names no zone is; the
+   * question or the page it asks for is never refused over it.
+   */
+  public static readRequestedTimezone(value: unknown): Timezone | undefined {
+    if (!TimezoneAlias.isListedName(value)) {
+      return undefined;
+    }
+
+    return TimezoneAlias.getCanonicalTimezone(value);
+  }
+
+  /*
+   * The zone an aggregate over this window asks its buckets to follow, of
+   * the one its buckets should follow (`timezone`): that zone when the
+   * buckets are days, weeks, months or years and the Timezone list names
+   * it, else undefined. An hour and shorter and Total are moved by no zone,
+   * so their requests stay exactly as they were, and the server refuses a
+   * zone the list does not name, so those buckets follow UTC instead.
+   */
+  public static getTimezoneForWindow(data: {
+    startDate: Date;
+    endDate: Date;
+    aggregationInterval?: AggregationInterval | undefined;
+    timezone: Timezone | undefined;
+  }): Timezone | undefined {
+    const interval: AggregationInterval =
+      this.getAggregationIntervalForWindow(data);
+
+    if (!this.isCalendarInterval(interval)) {
+      return undefined;
+    }
+
+    return TimezoneAlias.isListedName(data.timezone)
+      ? data.timezone
+      : undefined;
+  }
+
+  /*
    * The zone an aggregate over this window asks its buckets to follow: the
    * reader's (OneUptimeDate.getCurrentTimezone(), the zone User Settings
    * picked, or the browser's), when its buckets are days, weeks, months or
@@ -120,27 +257,25 @@ export class AggregationIntervalUtil {
     endDate: Date;
     aggregationInterval?: AggregationInterval | undefined;
   }): Timezone | undefined {
-    const interval: AggregationInterval =
-      this.getAggregationIntervalForWindow(data);
-
-    if (!this.isCalendarInterval(interval)) {
-      return undefined;
-    }
-
-    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
-
-    return TimezoneAlias.isListedName(timezone) ? timezone : undefined;
+    return this.getTimezoneForWindow({
+      ...data,
+      timezone: OneUptimeDate.getCurrentTimezone(),
+    });
   }
 
   /*
-   * The request with the reader's zone on it (getReaderTimezone), as the
-   * dashboard sends every aggregate: a new object, the one given left as it
-   * is. A request that names its zone keeps it - a cloud's cost is for a
-   * UTC day, and its readers ask for Timezone.UTC - and one with no window
-   * to read an interval from, or no zone to add, comes back unchanged.
+   * The request with `timezone` on it when its buckets are days, weeks,
+   * months or years (getTimezoneForWindow): a new object, the one given
+   * left as it is. A request that names its zone keeps it - a cloud's cost
+   * is for a UTC day, and its readers ask for Timezone.UTC - and one with
+   * no window to read an interval from, or no zone to add, comes back
+   * unchanged. The dashboard sends every aggregate with the reader's zone
+   * (withReaderTimezone), and Ask AI's tools read theirs with the asker's
+   * (ToolContext.readerTimezone, issue #7922).
    */
-  public static withReaderTimezone<TRequest extends AggregateWindow>(
+  public static withTimezone<TRequest extends AggregateWindow>(
     aggregateBy: TRequest,
+    timezone: Timezone | undefined,
   ): TRequest {
     if (
       !aggregateBy ||
@@ -149,13 +284,14 @@ export class AggregationIntervalUtil {
       return aggregateBy;
     }
 
-    let timezone: Timezone | undefined = undefined;
+    let bucketTimezone: Timezone | undefined = undefined;
 
     try {
-      timezone = this.getReaderTimezone({
+      bucketTimezone = this.getTimezoneForWindow({
         startDate: aggregateBy.startTimestamp as Date,
         endDate: aggregateBy.endTimestamp as Date,
         aggregationInterval: aggregateBy.aggregationInterval,
+        timezone: timezone,
       });
     } catch {
       /*
@@ -166,11 +302,21 @@ export class AggregationIntervalUtil {
       return aggregateBy;
     }
 
-    if (!timezone) {
+    if (!bucketTimezone) {
       return aggregateBy;
     }
 
-    return { ...aggregateBy, timezone: timezone };
+    return { ...aggregateBy, timezone: bucketTimezone };
+  }
+
+  /*
+   * The request with the reader's zone on it (getReaderTimezone), as the
+   * dashboard sends every aggregate (withTimezone).
+   */
+  public static withReaderTimezone<TRequest extends AggregateWindow>(
+    aggregateBy: TRequest,
+  ): TRequest {
+    return this.withTimezone(aggregateBy, OneUptimeDate.getCurrentTimezone());
   }
 
   /*

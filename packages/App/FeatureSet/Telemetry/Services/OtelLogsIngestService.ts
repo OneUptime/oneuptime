@@ -36,6 +36,7 @@ import {
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
+import { assignOwnValues } from "Common/Utils/LookupTable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import logger, {
   getLogAttributesFromRequest,
@@ -815,11 +816,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * exactly — same key-collision winners (resource < record
                    * attributes < scope.*) and same key insertion order —
                    * while the scope prefixing now happens once per scopeLog
-                   * (see above) instead of per record.
+                   * (see above) instead of per record. assignOwnValues is
+                   * that Object.assign, but it keeps a record attribute
+                   * named __proto__ as a key, where Object.assign dropped it.
                    */
                   const attributesObject: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = Object.assign(
+                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
                     {},
                     resourceAttributes,
                     TelemetryUtil.getAttributes({

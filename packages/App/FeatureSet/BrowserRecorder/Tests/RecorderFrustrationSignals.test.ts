@@ -539,6 +539,141 @@ describe("Recorder frustration signals", (): void => {
     third.stop();
   });
 
+  /*
+   * A hash router keeps the page in the fragment ("/#!/orders/42"), and
+   * every page of such an app has the path "/". End to end through the
+   * recorder: a page signal is matched on a hashbang route (#8016), and
+   * refresh rage counts the loads of one route, not of "/" (#8015).
+   */
+  describe("on a hash-routed app", (): void => {
+    const ORDER_PAGE: SessionReplayCustomSignalConfig = {
+      name: "Order page",
+      trigger: "page",
+      match: "/orders/*",
+      isFrustration: true,
+    };
+
+    const showPage: () => void = (): void => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: (): string => {
+          return "visible";
+        },
+      });
+    };
+
+    /*
+     * The recorder a test started, stopped after the test whatever it
+     * found, so a failed expectation leaves nothing recording into the next.
+     */
+    let running: typeof import("../src/Index") | null = null;
+
+    const startRecorder: () => Promise<
+      typeof import("../src/Index")
+    > = async (): Promise<typeof import("../src/Index")> => {
+      running = await importIndex();
+      return running;
+    };
+
+    const stopRecorder: () => void = (): void => {
+      if (running) {
+        running.stop();
+        running = null;
+      }
+    };
+
+    afterEach((): void => {
+      stopRecorder();
+      window.history.replaceState({}, "", "/checkout");
+    });
+
+    it("a page signal fires on the hashbang route the page loads on", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/#!/orders/42?tab=items");
+
+      const index: typeof import("../src/Index") = await startRecorder();
+
+      index.bootstrap(INIT_OPTIONS, baseConfig(signalsConfig([ORDER_PAGE])));
+
+      await tick();
+      await hidePage();
+
+      expect(posts().length).toBeGreaterThan(0);
+      expect(posts()[0]?.envelope.triggerReason).toBe(
+        SessionReplayTriggerReason.Frustration,
+      );
+      expect(customCounts()).toEqual({
+        "Order page": { count: 1, frustrationCount: 1 },
+      });
+    });
+
+    it("a page signal fires when the app routes to it after #!/, and not on an anchor", async (): Promise<void> => {
+      window.history.replaceState({}, "", "/#!/cart");
+
+      const index: typeof import("../src/Index") = await startRecorder();
+
+      index.bootstrap(INIT_OPTIONS, {
+        ...baseConfig(signalsConfig([{ ...ORDER_PAGE, isFrustration: false }])),
+        samplePercentage: 100,
+      });
+
+      await tick();
+
+      // An in-page anchor named like the route is not the route.
+      window.history.pushState({}, "", "/#orders/42");
+      await tick();
+      window.history.pushState({}, "", "/#!/orders/42");
+      await tick();
+
+      await hidePage();
+
+      expect(customCounts()).toEqual({
+        "Order page": { count: 1, frustrationCount: 0 },
+      });
+    });
+
+    it("full loads of different routes are no refresh rage; loads of one route are", async (): Promise<void> => {
+      const twoLoads: SessionReplayFrustrationSignalsConfig = signalsConfig(
+        [],
+        (settings: SessionReplayFrustrationSettings): void => {
+          settings.refreshRage.reloadCount = 2;
+        },
+      );
+
+      const load: (url: string) => Promise<number> = async (
+        url: string,
+      ): Promise<number> => {
+        window.history.replaceState({}, "", url);
+        showPage();
+        fetchMock.mockClear();
+        delete globalRecord["__ONEUPTIME_SESSION_REPLAY_STARTED__"];
+
+        const index: typeof import("../src/Index") = await startRecorder();
+
+        index.bootstrap(INIT_OPTIONS, {
+          ...baseConfig(twoLoads),
+          samplePercentage: 100,
+        });
+
+        await tick();
+        await hidePage();
+
+        const rage: number = counter("refreshRageCount");
+
+        // This page is left before the next one loads, as a full load leaves it.
+        stopRecorder();
+
+        return rage;
+      };
+
+      expect(await load("/#/a")).toBe(0);
+      expect(await load("/#/b")).toBe(0);
+      expect(await load("/#!/a")).toBe(0);
+      expect(await load("/#/c?step=2")).toBe(0);
+      // The second load of #/a within the window: rage at a count of two.
+      expect(await load("/#/a?step=3")).toBe(1);
+    });
+  });
+
   it("a recorder sent no frustrationSignals (an older server) keeps the built-in rules", async (): Promise<void> => {
     const index: typeof import("../src/Index") = await importIndex();
     const config: SessionReplayConfigResponse = {

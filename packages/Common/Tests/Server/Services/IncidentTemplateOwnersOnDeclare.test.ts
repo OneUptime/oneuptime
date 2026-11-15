@@ -116,7 +116,19 @@ let ownerRulesApplied: boolean = false;
 
 // Every update the chain makes to the incident itself.
 let incidentUpdates: Array<UpdateByID<Incident>> = [];
-let incidentUpdateMock: ReturnType<typeof jest.fn>;
+
+// Every compare-and-set it writes to the incident: the release of its Created notification's hold.
+interface CompareAndSet {
+  id: ObjectID;
+  data: JSONObject;
+  expectedData: JSONObject;
+}
+
+let incidentCompareAndSets: Array<CompareAndSet> = [];
+let incidentCompareAndSetMock: ReturnType<typeof jest.fn>;
+
+// When onBeforeCreate began the hold, as it writes it with the flag.
+const HELD_AT: Date = new Date("2026-11-15T09:30:00.250Z");
 
 function createdIncident(): Incident {
   const incident: Incident = new Incident();
@@ -131,10 +143,13 @@ function createdIncident(): Incident {
 // How a test runs the chain, past the misc data and the caller.
 interface ChainRun {
   /*
-   * The create was held - written as notified already - as onBeforeCreate
-   * holds every create not written so (CreatedNotificationHold.hold).
+   * The create was held - written as notified already, with when the hold
+   * began - as onBeforeCreate holds every create not written so
+   * (CreatedNotificationHold.hold).
    */
   held?: boolean;
+  // Held, but the incident it hands the chain names no time the hold began.
+  heldWithoutItsTime?: boolean;
   // Done with the create before its chain starts.
   before?: (createBy: CreateBy<Incident>) => void;
   // What to wait for: by default, the owner rules having run.
@@ -159,6 +174,12 @@ async function onCreateSuccess(
   }
 
   if (run.held) {
+    incident.isOwnerNotifiedOfResourceCreation = true;
+
+    if (!run.heldWithoutItsTime) {
+      incident.createdNotificationHeldAt = new Date(HELD_AT.getTime());
+    }
+
     CreatedNotificationHold.hold(createBy);
   }
 
@@ -192,17 +213,23 @@ beforeEach(() => {
   createdOwnerTeams = [];
   ownerRulesApplied = false;
   incidentUpdates = [];
+  incidentCompareAndSets = [];
 
   jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
     // no analytics in tests
   }) as never);
 
-  incidentUpdateMock = jest
-    .spyOn(IncidentService, "updateOneById")
-    .mockImplementation((async (
-      updateBy: UpdateByID<Incident>,
-    ): Promise<void> => {
-      incidentUpdates.push(updateBy);
+  jest.spyOn(IncidentService, "updateOneById").mockImplementation((async (
+    updateBy: UpdateByID<Incident>,
+  ): Promise<void> => {
+    incidentUpdates.push(updateBy);
+  }) as never);
+
+  incidentCompareAndSetMock = jest
+    .spyOn(IncidentService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockImplementation((async (input: CompareAndSet): Promise<boolean> => {
+      incidentCompareAndSets.push(input);
+      return true;
     }) as never) as unknown as ReturnType<typeof jest.fn>;
 
   const reRead: Incident = createdIncident();
@@ -460,30 +487,39 @@ describe("the template's owners an incident form hands over", () => {
  * run, or as soon as it stops short of them; the incident is let go - marked
  * not notified - once everybody adding owners has said so
  * (CreatedNotificationHold), and only an incident that was held: one the
- * job may already have notified would be notified twice.
+ * job may already have notified would be notified twice. Let go in one
+ * compare-and-set on the hold that began as it was written (#7571): one the
+ * job took once its hold ran out is never let go after it.
  */
 describe("the Incident Created notification a create holds for its owners", () => {
   const FORM_PROPS: DatabaseCommonInteractionProps = { isRoot: true };
 
   const RELEASE: JSONObject = {
-    data: { isOwnerNotifiedOfResourceCreation: false },
-    props: { isRoot: true, ignoreHooks: true },
+    data: {
+      isOwnerNotifiedOfResourceCreation: false,
+      createdNotificationHeldAt: null,
+    },
+    expectedData: {
+      isOwnerNotifiedOfResourceCreation: true,
+      createdNotificationHeldAt: HELD_AT,
+    },
   };
 
-  // The updates that let the notification go, with the incident's id as text.
+  const isRelease: (write: CompareAndSet) => boolean = (
+    write: CompareAndSet,
+  ): boolean => {
+    return write.data["isOwnerNotifiedOfResourceCreation"] === false;
+  };
+
+  // The writes that let the notification go, with the incident's id as text.
   const releases: () => Array<JSONObject> = (): Array<JSONObject> => {
-    return incidentUpdates
-      .filter((updateBy: UpdateByID<Incident>): boolean => {
-        return (
-          (updateBy.data as JSONObject)["isOwnerNotifiedOfResourceCreation"] ===
-          false
-        );
-      })
-      .map((updateBy: UpdateByID<Incident>): JSONObject => {
+    return incidentCompareAndSets
+      .filter(isRelease)
+      .map((write: CompareAndSet): JSONObject => {
         return {
-          id: updateBy.id.toString(),
-          data: updateBy.data as JSONObject,
-          props: updateBy.props as JSONObject,
+          id: write.id.toString(),
+          data: write.data,
+          expectedData: write.expectedData,
         };
       });
   };
@@ -499,13 +535,8 @@ describe("the Incident Created notification a create holds for its owners", () =
 
   // When the release was written, in the order of every mock's calls.
   const releasedAt: () => number = (): number => {
-    return incidentUpdateMock.mock.invocationCallOrder[
-      incidentUpdates.findIndex((updateBy: UpdateByID<Incident>): boolean => {
-        return (
-          (updateBy.data as JSONObject)["isOwnerNotifiedOfResourceCreation"] ===
-          false
-        );
-      })
+    return incidentCompareAndSetMock.mock.invocationCallOrder[
+      incidentCompareAndSets.findIndex(isRelease)
     ]!;
   };
 
@@ -662,7 +693,7 @@ describe("the Incident Created notification a create holds for its owners", () =
   );
 
   test("a release that fails is logged, and the rest of the chain still runs", async () => {
-    incidentUpdateMock.mockImplementation((async (): Promise<never> => {
+    incidentCompareAndSetMock.mockImplementation((async (): Promise<never> => {
       throw new Error("the incident row is locked");
     }) as never);
     const loggedError: ReturnType<typeof jest.fn> = jest
@@ -742,5 +773,38 @@ describe("the Incident Created notification a create holds for its owners", () =
     await onCreateSuccess(undefined, FORM_PROPS);
 
     expect(releases()).toEqual([]);
+  });
+
+  /*
+   * Without the time the hold began, the release would match an incident
+   * whose hold is over - one the job took and told its owners of - and
+   * mark it not notified again: they would be told twice.
+   */
+  test("is never let go without the time its hold began", async () => {
+    await onCreateSuccess({ ownerUsers: [USER_A] }, USER_PROPS, {
+      held: true,
+      heldWithoutItsTime: true,
+    });
+
+    expect(createdOwnerUsers).toHaveLength(1);
+    expect(incidentCompareAndSets).toEqual([]);
+  });
+
+  // Nor by a plain update, which would match it whatever became of the hold.
+  test("is let go only by the compare-and-set, never by an update", async () => {
+    await onCreateSuccess({ ownerUsers: [USER_A] }, USER_PROPS, {
+      held: true,
+    });
+
+    expect(releases()).toHaveLength(1);
+    expect(
+      incidentUpdates.filter((updateBy: UpdateByID<Incident>): boolean => {
+        const data: JSONObject = updateBy.data as JSONObject;
+        return (
+          "isOwnerNotifiedOfResourceCreation" in data ||
+          "createdNotificationHeldAt" in data
+        );
+      }),
+    ).toEqual([]);
   });
 });

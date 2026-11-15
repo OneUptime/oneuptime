@@ -137,7 +137,7 @@ Naar één adres kunnen 10 uitnodigingen per uur worden gestuurd, voor projecten
 :::details De uitnodigingsmail is niet aangekomen, of de link is verlopen
 De uitnodiging hangt niet af van de e-mail. Vraag de persoon zich te registreren met het uitgenodigde adres: OneUptime stuurt dat adres een nieuwe link om het account af te maken. Wie al een account heeft, logt in en vindt de uitnodiging klaarstaan.
 
-Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon uit het project verwijderen, opnieuw uitnodigen en de nieuwe uitnodigingslink sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang.
+Op een zelfgehoste server die nog geen e-mail kan versturen, kan registreren ook geen nieuwe link e-mailen: in plaats daarvan krijgt die persoon de melding om de uitnodigingslink te vragen. Zodra de beheerder van de server [e-mail heeft ingesteld](/docs/emails/smtp#het-formulier-openen), werkt registreren zoals hierboven. Tot dan kan een hoofdbeheerder die persoon een nieuwe link sturen, die één keer werkt, alleen voor dat adres, 7 dagen lang: open bij **Gebruikers** het rijmenu van de persoon, **⋯**, en klik op **Uitnodigingslink ophalen**.
 :::
 
 :::details Gebruiker uitnodigen meldt dat gebruikers via SCIM Push Groups worden beheerd

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONArray } from "../../../../../Types/JSON";
+import { readOwnValue } from "../../../../../Utils/LookupTable";
+import { INHERITED_PROPERTY_NAMES } from "../../../../Helpers/InheritedNames";
 import ObjectID from "../../../../../Types/ObjectID";
 import type { ParsedChangeEventEntry } from "../../../../../Server/Utils/Telemetry/ChangeEventRow";
 import {
@@ -125,6 +127,53 @@ describe("flattenResourceAttributes", () => {
 
   test("is empty for no attributes", () => {
     expect(flattenResourceAttributes(undefined)).toEqual({});
+  });
+
+  /*
+   * Issue #8136: the dictionary kept each key's first value with a plain
+   * read of itself, so a resource attribute named like what every object
+   * inherits (constructor, toString) was left out, and one named __proto__
+   * was not written. Each is now a key like any other.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "keeps a resource attribute named %s, with its first value",
+    (name: string) => {
+      const flat: Record<string, string> = flattenResourceAttributes([
+        { key: "service.name", value: { stringValue: "checkout" } },
+        { key: name, value: { stringValue: "first" } },
+        { key: name, value: { stringValue: "second" } },
+      ]);
+
+      expect(Object.keys(flat)).toEqual(["service.name", name]);
+      expect(readOwnValue(flat, name)).toBe("first");
+      expect(Object.getPrototypeOf(flat)).toBe(Object.prototype);
+      expect(JSON.stringify(flat)).toBe(
+        `{"service.name":"checkout","${name}":"first"}`,
+      );
+    },
+  );
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "leaves out a resource attribute named %s that holds no scalar, and reads a later scalar of it",
+    (name: string) => {
+      const flat: Record<string, string> = flattenResourceAttributes([
+        { key: name, value: { arrayValue: { values: [] } } },
+        { key: name, value: { intValue: 7 } },
+      ]);
+
+      expect(Object.keys(flat)).toEqual([name]);
+      expect(readOwnValue(flat, name)).toBe("7");
+    },
+  );
+
+  test("a resource without such attributes holds none of their names", () => {
+    const flat: Record<string, string> = flattenResourceAttributes(
+      attributes({ "service.name": "checkout" }),
+    );
+
+    for (const name of INHERITED_PROPERTY_NAMES) {
+      expect(readOwnValue(flat, name)).toBeUndefined();
+    }
   });
 });
 

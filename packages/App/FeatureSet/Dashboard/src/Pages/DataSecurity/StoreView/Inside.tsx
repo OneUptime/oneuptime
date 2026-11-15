@@ -425,6 +425,7 @@ const DataStoreInside: FunctionComponent<
                               item.confidence,
                           },
                         )}
+                        isUserContent={true}
                         color={Gray500}
                       />
                     ) : (

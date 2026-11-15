@@ -152,7 +152,8 @@ describe("times", () => {
         backupAt,
         clock({ timezone: "Europe/Berlin", language: "de" }),
       ),
-    ).toBe("24. Okt. 2026, 4:00");
+      // A 24-hour time keeps its zero, as every other date does (#7649).
+    ).toBe("24. Okt. 2026, 04:00");
     expect(formatBackupDateTime(new Date("not a date"), clock())).toBe("");
   });
 

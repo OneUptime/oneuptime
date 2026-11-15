@@ -181,6 +181,10 @@ describe("a held create", () => {
     expect(String(errors.mock.calls[0]?.[0])).toContain(
       "Releasing a Created notification held for its owners failed: Error: The database is away",
     );
+    // Not lost: the job takes a hold nobody let go once it has lasted long enough (#7571).
+    expect(String(errors.mock.calls[0]?.[0])).toContain(
+      "The owners are told once the hold has lasted 5 minutes.",
+    );
   });
 
   test("is told apart from every other create: releasing one leaves the other held", async () => {
@@ -236,5 +240,85 @@ describe("a create nobody held", () => {
     ).resolves.toBeUndefined();
 
     expect(errors).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHEN THE JOB TAKES A RECORD (#7571, #7573): one let go once it was
+ * created a minute ago or earlier - so owners a separate request adds right
+ * after the create are in by then - and one still held once its hold has
+ * lasted five minutes: nobody will let it go.
+ */
+describe("the records the Created job takes", () => {
+  const NOW: Date = new Date("2026-11-15T10:00:30.250Z");
+
+  test("are those let go a minute after their create, and those held for five minutes", () => {
+    expect(CreatedNotificationHold.SENT_AFTER_CREATED_IN_MINUTES).toBe(1);
+    expect(CreatedNotificationHold.HELD_FOR_AT_MOST_MINUTES).toBe(5);
+
+    expect(CreatedNotificationHold.getDue(NOW)).toEqual({
+      createdBefore: new Date("2026-11-15T09:59:30.250Z"),
+      heldBefore: new Date("2026-11-15T09:55:30.250Z"),
+    });
+  });
+
+  test("a hold outlasts the wait after a create: a record let go in time is never taken as held", () => {
+    expect(CreatedNotificationHold.HELD_FOR_AT_MOST_MINUTES).toBeGreaterThan(
+      CreatedNotificationHold.SENT_AFTER_CREATED_IN_MINUTES,
+    );
+  });
+
+  test("are worked out from the moment the job runs, which is left as it was", () => {
+    const now: Date = new Date(NOW.getTime());
+
+    CreatedNotificationHold.getDue(now);
+
+    expect(now).toEqual(NOW);
+  });
+});
+
+describe("the records the Created job read", () => {
+  const FIRST: string = "75710000-0000-4000-8000-0000000000a1";
+  const SECOND: string = "75710000-0000-4000-8000-0000000000a2";
+
+  function recordWith(id: string | null): Incident {
+    const incident: Incident = new Incident();
+
+    if (id) {
+      incident._id = id;
+    }
+
+    return incident;
+  }
+
+  test("are taken each once, in the order first read: one let go between its two reads is in both", () => {
+    const first: Incident = recordWith(FIRST);
+    const second: Incident = recordWith(SECOND);
+    const firstAgain: Incident = recordWith(FIRST);
+
+    const once: Array<Incident> = CreatedNotificationHold.oncePerRecord([
+      first,
+      second,
+      firstAgain,
+    ]);
+
+    expect(once).toHaveLength(2);
+    expect(once[0]).toBe(first);
+    expect(once[1]).toBe(second);
+  });
+
+  test("leave out a record read without its id: there is nothing to take it by", () => {
+    expect(
+      CreatedNotificationHold.oncePerRecord([
+        recordWith(null),
+        recordWith(SECOND),
+      ]).map((record: Incident): string => {
+        return record.id!.toString();
+      }),
+    ).toEqual([SECOND]);
+  });
+
+  test("are none when the job read none", () => {
+    expect(CreatedNotificationHold.oncePerRecord([])).toEqual([]);
   });
 });
