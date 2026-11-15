@@ -31,6 +31,7 @@ import {
   PromQLLabels,
   matchesPromQLMatchers,
 } from "../../../../Utils/PromQL/PromQLLabels";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -458,6 +459,45 @@ describe("series, label names and label values", () => {
     expect(labelNamesOf(series)).toEqual(["__name__", "instance", "job"]);
     expect(labelValuesOf(series, "job")).toEqual(["api", "web"]);
   });
+
+  test("a label named like an Object member has values only where a series has it", () => {
+    const series: Array<PromQLLabels> = [
+      { __name__: "up", job: "api" },
+      { __name__: "up", job: "web", constructor: "c1" },
+    ];
+
+    expect(labelValuesOf(series, "constructor")).toEqual(["c1"]);
+    expect(labelValuesOf(series, "toString")).toEqual([]);
+    expect(labelValuesOf(series, "__proto__")).toEqual([]);
+  });
+
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "/label/%s/values lists only the values series have, and names it only where one does",
+    (name: string) => {
+      const without: Array<PromQLLabels> = [
+        { __name__: "up", job: "api" },
+        { __name__: "up", job: "web" },
+      ];
+
+      expect(labelValuesOf(without, name)).toEqual([]);
+      expect(labelNamesOf(without)).toEqual(["__name__", "job"]);
+
+      // __proto__ is the one name a label set cannot hold yet (issue #8025).
+      if (name === "__proto__") {
+        return;
+      }
+
+      const withIt: Array<PromQLLabels> = [
+        ...without,
+        { __name__: "up", job: "db", [name]: "second" },
+        { __name__: "up", job: "cache", [name]: "first" },
+        { __name__: "up", job: "queue", [name]: "first" },
+      ];
+
+      expect(labelValuesOf(withIt, name)).toEqual(["first", "second"]);
+      expect(labelNamesOf(withIt)).toEqual(["__name__", "job", name].sort());
+    },
+  );
 
   test("the series list stops at the limit", async () => {
     expect(
