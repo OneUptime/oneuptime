@@ -53646,6 +53646,8 @@
   "Validate the Azure Event Grid subscription": "Azure Event Grid のサブスクリプションを検証",
   "A request served in this many milliseconds or less counts as fast enough.": "このミリ秒数以内に処理されたリクエストは、十分に速いとみなされます。",
   "A request served within this counts as fast enough.": "この時間内に処理されたリクエストは、十分に速いとみなされます。",
+  "Collect logs from every container (json-file log driver)": "すべてのコンテナからログを収集 (json-file ログドライバー)",
+  "Collect logs from every container (k8s-file log driver)": "すべてのコンテナからログを収集 (k8s-file ログドライバー)",
   "Edit What It Measures": "測定対象を編集",
   "Error Budget Remaining (Requests)": "エラーバジェットの残り (リクエスト)",
   "Error Budget Total (Requests)": "エラーバジェットの合計 (リクエスト)",

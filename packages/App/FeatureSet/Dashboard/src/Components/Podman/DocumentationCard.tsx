@@ -10,6 +10,7 @@ import {
   getPodmanSetupGuide,
   resolvePodmanInstallMethod,
 } from "../../Pages/Podman/Utils/DocumentationMarkdown";
+import { PODMAN_DOCUMENTATION_TRANSLATIONS } from "../../Pages/Podman/Utils/DocumentationTranslations";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps extends SetupGuideFrameProps {
@@ -45,6 +46,7 @@ const PodmanDocumentationCard: FunctionComponent<ComponentProps> = (
           hostName: props.hostName,
         });
       }}
+      translations={PODMAN_DOCUMENTATION_TRANSLATIONS}
       isBare={props.isBare}
       inputs={props.inputs}
       lastStep={props.lastStep}

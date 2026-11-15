@@ -53646,6 +53646,8 @@
   "Validate the Azure Event Grid subscription": "اشتراک Azure Event Grid را اعتبارسنجی کنید",
   "A request served in this many milliseconds or less counts as fast enough.": "درخواستی که در این تعداد میلی‌ثانیه یا کمتر پاسخ داده شود، به‌اندازه کافی سریع حساب می‌شود.",
   "A request served within this counts as fast enough.": "درخواستی که در این زمان پاسخ داده شود، به‌اندازه کافی سریع حساب می‌شود.",
+  "Collect logs from every container (json-file log driver)": "گردآوری لاگ‌های همه کانتینرها (درایور لاگ json-file)",
+  "Collect logs from every container (k8s-file log driver)": "گردآوری لاگ‌های همه کانتینرها (درایور لاگ k8s-file)",
   "Edit What It Measures": "ویرایش آنچه می‌سنجد",
   "Error Budget Remaining (Requests)": "بودجه خطای مانده (درخواست‌ها)",
   "Error Budget Total (Requests)": "کل بودجه خطا (درخواست‌ها)",
