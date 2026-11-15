@@ -377,6 +377,14 @@ work out, starts from a default for everything else, and folds what most people 
 - **An empty state says each thing once.** An embedded logs list's empty state has one line from the
   page that embeds it. Enforced by
   [LogsEmptyHintsGuard](../../packages/App/Tests/Dashboard/LogsEmptyHintsGuard.test.ts).
+- **A dashboard widget that read and found nothing says so under its icon, as its setup and error
+  lines are drawn.** A time range or filters with nothing in them was bare gray-400 words (2.5:1 on
+  white) with no icon, so a Log Chart that found nothing looked like no other state on its board
+  (#8038). Draw it with `DashboardWidgetEmpty`: the widget's own icon (the one its error shows) over
+  one gray-500 line, centred and balanced, in the reader's words. A list or table that keeps its
+  column headers draws a no-data row in the same gray (`DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME`).
+  Enforced by
+  [WidgetEmptyLineGuard](../../packages/Common/Tests/App/Dashboard/WidgetEmptyLineGuard.test.ts).
 - **A suggestion shows only when it applies,** decided by one helper per kind in
   `Common/Utils/Suggestions`, never in a page. Enforced by
   [SuggestionRulesGuard](../../packages/Common/Tests/App/Dashboard/SuggestionRulesGuard.test.ts).
