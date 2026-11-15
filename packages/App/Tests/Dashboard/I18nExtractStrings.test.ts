@@ -984,6 +984,47 @@ describe("a root that marks its keys", () => {
     ).toBe("keys");
   });
 
+  test("the first on-call policy's records give the locales its name and its two rules' words, and nothing else (#7995)", () => {
+    const root: string = path.join(__dirname, "..", "..", "..", "..");
+    const policyFile: string =
+      "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts";
+    const rulesFile: string =
+      "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts";
+
+    const policy: SourceScanResult = scanSourceRoots(
+      [{ directory: policyFile, kind: "keys" }],
+      root,
+    );
+    const rules: SourceScanResult = scanSourceRoots(
+      [{ directory: rulesFile, kind: "keys" }],
+      root,
+    );
+
+    // The policy's name, and nothing of its misc data's keys or modes.
+    expect(textsOf(policy)).toEqual(["Default on-call policy"]);
+    expect(textsOf(rules).sort()).toEqual(
+      [
+        "Page {{policy}} for every alert",
+        "Page {{policy}} for every incident",
+        "Pages this on-call policy for every new alert. Added when the policy was created.",
+        "Pages this on-call policy for every new incident. Added when the policy was created.",
+        "the new on-call policy",
+      ].sort(),
+    );
+
+    for (const [file, result] of [
+      [policyFile, policy],
+      [rulesFile, rules],
+    ] as Array<[string, SourceScanResult]>) {
+      expect(result.hardcoded).toEqual([]);
+      expect(
+        SOURCE_ROOTS.find((candidate: { directory: string }): boolean => {
+          return candidate.directory === file;
+        })?.kind,
+      ).toBe("keys");
+    }
+  });
+
   test("HostHealth gives the locales its words, each count as a plural, and nothing else", () => {
     const file: string = "packages/Common/Types/Host/HostHealth.ts";
     const result: SourceScanResult = scanSourceRoots(
@@ -1624,6 +1665,9 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/MonitorCriteriaInstance.ts",
       // The name a guided setup's status page starts with (#7247).
       "keys packages/Common/Utils/GuidedSetup/StatusPageRecords.ts",
+      // The first on-call policy's name, and its two rules' words (#7995).
+      "keys packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+      "keys packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
       // A template's sync fields: each one's name, and what it keeps together.
       "keys packages/Common/Types/Monitor/MonitorTemplateSyncField.ts",
       // A cron schedule in words.

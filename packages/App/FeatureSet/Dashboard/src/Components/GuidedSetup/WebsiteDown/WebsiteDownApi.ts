@@ -384,16 +384,20 @@ export default class WebsiteDownApi {
   /*
    * The project's first on-call policy, paging the people and teams picked
    * first, with an incident and an alert on-call rule that run it for every
-   * new incident and alert (OnCallDutyPolicyService.create).
+   * new incident and alert (OnCallDutyPolicyService.create) - named, and
+   * its rules too, in the language of the person setting it up (#7995).
    */
   public static async createPolicy(data: {
     userIds: Array<string>;
     teamIds: Array<string>;
+    translator: Translator;
   }): Promise<string> {
     // Built as Ask AI's set_up_paging builds it (Common).
     const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
       userIds: data.userIds,
       teamIds: data.teamIds,
+      translator: data.translator,
+      language: data.translator.language,
     });
 
     const response: HTTPResponse<OnCallDutyPolicy> =

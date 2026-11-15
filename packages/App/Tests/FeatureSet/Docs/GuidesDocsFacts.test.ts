@@ -202,10 +202,14 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     ).toContain(
       "export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;",
     );
+    /*
+     * Its English name, which the docs quote; a reader of another language
+     * gets it in theirs (getFirstOnCallPolicyName, #7995).
+     */
     expect(
       repoFile("packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts"),
     ).toContain(
-      'export const GUIDED_SETUP_POLICY_NAME: string = "Default on-call policy";',
+      'export const GUIDED_SETUP_POLICY_NAME: string = translationKey(\n  "Default on-call policy",\n);',
     );
     expect(PAGING).toContain("`Default on-call policy`");
     expect(copyValue(ON_CALL_SETUP, "whoPeopleLabel")).toBe("Paged first");

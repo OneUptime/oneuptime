@@ -7,6 +7,11 @@ import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInter
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import {
+  formatMilliseconds,
+  formatMillisecondsInEnglish,
+  MillisecondsOptions,
+} from "../../../Utils/Milliseconds";
 
 /*
  * Pure, React-free data helpers for the trace chart widget. Kept out of the
@@ -160,7 +165,18 @@ export function isDurationMetric(metric: string): boolean {
   return metric !== "count" && metric !== "errorCount";
 }
 
-export function formatDurationMs(ms: number): string {
+/*
+ * A span's duration in the unit that reads best. Its milliseconds are
+ * written by `writeMilliseconds`: the reader's words in a table, English on
+ * a chart's value axis (formatDurationMs).
+ */
+function writeDurationMs(
+  ms: number,
+  writeMilliseconds: (
+    milliseconds: number,
+    options: MillisecondsOptions,
+  ) => string,
+): string {
   if (!isFinite(ms)) {
     return "-";
   }
@@ -168,12 +184,40 @@ export function formatDurationMs(ms: number): string {
     return `${Math.round(ms * 1000)} µs`;
   }
   if (ms < 1000) {
-    return `${ms < 10 ? ms.toFixed(1) : Math.round(ms)} ms`;
+    // "5.0 ms" under ten, "42 ms" from ten up.
+    return ms < 10
+      ? writeMilliseconds(ms, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      : writeMilliseconds(ms, { maximumFractionDigits: 0 });
   }
   if (ms < 60000) {
     return `${(ms / 1000).toFixed(2)} s`;
   }
   return `${(ms / 60000).toFixed(1)} min`;
+}
+
+/*
+ * A duration on a chart's value axis and in its tooltip, which share one
+ * formatter: Latin digits and the short "ms", as every chart's value axis
+ * writes its figures (formatMillisecondsInEnglish).
+ */
+export function formatDurationMs(ms: number): string {
+  return writeDurationMs(ms, formatMillisecondsInEnglish);
+}
+
+// A duration in a table's cell, its milliseconds in the reader's language.
+export function formatDurationMsInLanguage(
+  ms: number,
+  translator: Translator,
+): string {
+  return writeDurationMs(
+    ms,
+    (milliseconds: number, options: MillisecondsOptions): string => {
+      return formatMilliseconds(translator, milliseconds, options);
+    },
+  );
 }
 
 export function formatCount(value: number): string {

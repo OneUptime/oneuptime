@@ -20,7 +20,7 @@ For at tilføje triggeren klikker du på den stiplede blok **Vælg, hvad der sta
 | Klikke på en knap for at køre workflowet       | **Manuel**                  |
 | Køre efter en tilbagevendende tidsplan         | **Tidsplan**                |
 | Lade et andet system sende data ind            | **Webhook**                 |
-| Starte ud fra en e-mail                        | **Incoming Email**          |
+| Starte ud fra en e-mail                        | **Indgående e-mail**          |
 | Handle på hændelsesrapporter fra Huntress      | **Huntress Incident Report** |
 | Reagere på noget i OneUptime                   | **OneUptime-begivenhed**    |
 

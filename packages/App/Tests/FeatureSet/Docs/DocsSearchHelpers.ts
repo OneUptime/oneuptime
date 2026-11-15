@@ -29,18 +29,22 @@ export interface MadePage {
   sections?: Array<MadeSection> | undefined;
 }
 
-const counts: (text: string) => Map<string, number> = (
+const counts: (text: string, language: string) => Map<string, number> = (
   text: string,
+  language: string,
 ): Map<string, number> => {
   const found: Map<string, number> = new Map();
-  for (const term of tokenizeForDocs(text)) {
+  for (const term of tokenizeForDocs(text, language)) {
     found.set(term, (found.get(term) || 0) + 1);
   }
   return found;
 };
 
-const terms: (text: string) => Set<string> = (text: string): Set<string> => {
-  return new Set<string>(tokenizeForDocs(text));
+const terms: (text: string, language: string) => Set<string> = (
+  text: string,
+  language: string,
+): Set<string> => {
+  return new Set<string>(tokenizeForDocs(text, language));
 };
 
 const anchorOf: (title: string) => string = (title: string): string => {
@@ -55,6 +59,7 @@ export const makeDocsIndex: (
   language?: string | undefined,
 ): AIDocsLanguageIndex => {
   const documentFrequency: Map<string, number> = new Map();
+  const resolved: string = language || "en";
 
   const pages: Array<AIDocsIndexedPage> = madePages.map(
     (made: MadePage): AIDocsIndexedPage => {
@@ -76,8 +81,11 @@ export const makeDocsIndex: (
           return {
             title: section.title,
             anchor: section.anchor || anchorOf(section.title),
-            terms: counts(section.isOtherName ? section.title : section.text),
-            titleTerms: terms(section.title),
+            terms: counts(
+              section.isOtherName ? section.title : section.text,
+              resolved,
+            ),
+            titleTerms: terms(section.title, resolved),
             text: section.text,
             isOtherName: section.isOtherName,
           };
@@ -89,10 +97,10 @@ export const makeDocsIndex: (
         title: made.title,
         group: made.group || "Docs",
         summary,
-        language: language || "en",
-        titleTerms: terms(made.title),
-        groupTerms: terms(made.group || "Docs"),
-        summaryTerms: terms(summary),
+        language: resolved,
+        titleTerms: terms(made.title, resolved),
+        groupTerms: terms(made.group || "Docs", resolved),
+        summaryTerms: terms(summary, resolved),
         headingTerms: terms(
           madeSections
             .filter((section: MadeSection): boolean => {
@@ -102,9 +110,10 @@ export const makeDocsIndex: (
               return section.title;
             })
             .join(" "),
+          resolved,
         ),
-        bodyTerms: counts(body),
-        bodyLength: tokenizeForDocs(body).length,
+        bodyTerms: counts(body, resolved),
+        bodyLength: tokenizeForDocs(body, resolved).length,
         sections,
         isGuide: made.isGuide === true,
       };
@@ -126,7 +135,7 @@ export const makeDocsIndex: (
   );
 
   return {
-    language: language || "en",
+    language: resolved,
     pages,
     documentFrequency,
     averageBodyLength:

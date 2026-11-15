@@ -189,6 +189,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * The name a project's first on-call policy starts with, and the names
+   * and descriptions of the two on-call rules made with it, in the
+   * language of the person they are made for - the guided setups', Create
+   * On-Call Policy's and Ask AI's alike (#7995). Only the sentences the
+   * files mark are read.
+   */
+  {
+    directory: "packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/OnCallDutyPolicy/EveryNewEventRules.ts",
+    kind: "keys",
+  },
+  /*
    * A monitor template's Template sync settings (#7546): the name of each
    * field a linked monitor can keep its own value for, and what it keeps
    * together, as the card and its summary line say them. Only the words the

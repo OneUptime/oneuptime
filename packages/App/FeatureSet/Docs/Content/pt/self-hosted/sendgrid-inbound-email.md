@@ -2,7 +2,7 @@
 
 O **Incoming Email Monitor** do OneUptime permite criar e resolver alertas com base em e-mails enviados para endereços únicos, específicos de cada monitor. Isso é útil para integrar sistemas legados, ferramentas de alerta ou qualquer serviço capaz de enviar e-mails.
 
-A mesma configuração permite que workflows recebam e-mail: um workflow com o gatilho **Incoming Email** recebe um endereço próprio no mesmo domínio, e cada e-mail enviado a ele inicia o workflow. Veja [Gatilhos](/docs/workflows/triggers#incoming-email).
+A mesma configuração permite que workflows recebam e-mail: um workflow com o gatilho **E-mail recebido** recebe um endereço próprio no mesmo domínio, e cada e-mail enviado a ele inicia o workflow. Veja [Gatilhos](/docs/workflows/triggers#incoming-email).
 
 Este guia explica como configurar o SendGrid Inbound Parse para encaminhar e-mails recebidos para a sua instância auto-hospedada do OneUptime. O OneUptime Cloud não precisa de nada disso: os endereços funcionam de imediato.
 
@@ -122,7 +122,7 @@ Depois aplique-as: execute `npm run start` no Docker Compose, o que recria os co
 
 [Crie um monitor Incoming Email](/docs/monitor/incoming-email-monitor#criar-um-monitor-de-e-mails-recebidos). A página **Visão geral** dele mostra o endereço, como `monitor-abc123def456@inbound.yourdomain.com`, e os critérios dele decidem quais e-mails criam um alerta e quais o resolvem.
 
-Os workflows usam o mesmo domínio. Adicione o gatilho **Incoming Email** a um workflow e clique nele: o endereço (`workflow-…@inbound.yourdomain.com`) aparece no topo das configurações dele. Enquanto as variáveis de e-mail recebido acima não estiverem definidas, o gatilho informa que o servidor não está preparado para receber e-mail.
+Os workflows usam o mesmo domínio. Adicione o gatilho **E-mail recebido** a um workflow e clique nele: o endereço (`workflow-…@inbound.yourdomain.com`) aparece no topo das configurações dele. Enquanto as variáveis de e-mail recebido acima não estiverem definidas, o gatilho informa que o servidor não está preparado para receber e-mail.
 
 ### Envie um e-mail de teste
 

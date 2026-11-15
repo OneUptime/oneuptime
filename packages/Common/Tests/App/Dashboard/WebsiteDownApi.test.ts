@@ -46,6 +46,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator } from "../../../Types/Translator";
+import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   PermissionGateResult,
@@ -788,6 +789,7 @@ describe("who is told", () => {
       await WebsiteDownApi.createPolicy({
         userIds: [id(1).toString()],
         teamIds: [id(2).toString()],
+        translator: createTranslator(undefined),
       }),
     ).toBe(id(50).toString());
 
@@ -802,7 +804,36 @@ describe("who is told", () => {
       users: [id(1).toString()],
       teams: [id(2).toString()],
       pageForEveryNewIncidentAndAlert: true,
+      // The server words the two rules in the reader's language (#7995).
+      everyNewEventRulesLanguage: "en",
     });
+  });
+
+  test("read in German, the policy is named in German, and its rules are asked for in German (#7995)", async () => {
+    createSpy.mockResolvedValue({
+      data: model(OnCallDutyPolicy, { _id: id(50).toString() }),
+    });
+
+    await WebsiteDownApi.createPolicy({
+      userIds: [id(1).toString()],
+      teamIds: [],
+      translator: dashboardTranslator("de"),
+    });
+
+    const call: Parameters<typeof ModelAPI.create>[0] = createSpy.mock
+      .calls[0]![0] as unknown as Parameters<typeof ModelAPI.create>[0];
+
+    expect((call.model as OnCallDutyPolicy).name).toBe(
+      dashboardTranslator("de").translateText("Default on-call policy"),
+    );
+    expect((call.model as OnCallDutyPolicy).name).not.toBe(
+      "Default on-call policy",
+    );
+    expect(
+      (call.miscDataProps as Record<string, unknown>)[
+        "everyNewEventRulesLanguage"
+      ],
+    ).toBe("de");
   });
 
   test("the policy is read back with who it pages, people and teams, each once", async () => {
