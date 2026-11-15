@@ -41,6 +41,7 @@ import IsolatedLine from "../IsolatedText/IsolatedLine";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import type { AxiosProgressEvent } from "axios";
+import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
  * Why the picker refused a file it was given - too large, of a kind it does
@@ -867,7 +868,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                   )}
                   {upload.status === "error" && upload.errorMessage && (
                     <p className="mt-2 text-xs text-red-600 text-left">
-                      {upload.errorMessage}
+                      <ErrorInSentence
+                        message={upload.errorMessage}
+                        showWhereToLook={true}
+                      />
                     </p>
                   )}
                   {upload.status === "error" && (

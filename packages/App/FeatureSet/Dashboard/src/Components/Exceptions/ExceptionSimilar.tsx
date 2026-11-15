@@ -35,6 +35,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import AppLink from "../AppLink/AppLink";
 import { mergeExceptionInto } from "../../Utils/ExceptionMerge";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * OTHER EXCEPTIONS THAT LOOK LIKE THIS ONE, ON ITS OVERVIEW.
@@ -262,7 +263,7 @@ const ExceptionSimilar: FunctionComponent<ComponentProps> = (
             role="alert"
             data-testid="exception-similar-error"
           >
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

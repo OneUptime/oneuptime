@@ -67,6 +67,7 @@ import {
   formatErrorRate,
   healthForErrorRate,
 } from "./TopologyMeta";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Drill-down for one Service Map edge. The edge row itself only stores the
@@ -662,7 +663,7 @@ const EdgeDetailPanel: FunctionComponent<ComponentProps> = (
                       {translateString(
                         "Couldn't refresh — showing previously loaded data.",
                       ) || ""}{" "}
-                      {error}
+                      <ErrorInSentence message={error} />
                     </span>
                   </div>
                 ) : (

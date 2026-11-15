@@ -62,6 +62,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
@@ -187,7 +188,7 @@ const TransceiverHealthCard: FunctionComponent<ComponentProps> = (
         description="SFP, SFP+ and QSFP optics in this device's ports."
       >
         <p className="text-sm text-red-700" data-testid="transceiver-error">
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       </Card>
     );

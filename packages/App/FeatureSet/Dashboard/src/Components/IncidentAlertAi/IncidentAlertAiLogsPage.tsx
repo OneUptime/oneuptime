@@ -71,6 +71,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The AI Logs page of the Incidents and Alerts menus (AI → Logs): the
@@ -506,7 +507,7 @@ const IncidentAlertAiLogsPage: FunctionComponent<ComponentProps> = (
               className="text-sm text-rose-600"
               data-testid="ai-logs-load-more-error"
             >
-              {loadMoreError}
+              <ErrorInSentence message={loadMoreError} showWhereToLook={true} />
             </p>
           ) : (
             <></>
