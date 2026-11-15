@@ -37,6 +37,11 @@ const ROOT_READS: Record<string, { count: number; reason: string }> = {
     reason:
       "initTrigger finds the project's enabled workflows with this trigger: a Workflow read, made before any step runs.",
   },
+  "OwnersOnCreateArgument.ts": {
+    count: 2,
+    reason:
+      "findMembers reads the users a create step names as owners, by id and by address, selecting only their id and email, to ask ProjectMembership which are members of the project: only those become owners, and nothing is written as root (f64838646d6).",
+  },
 };
 
 /*

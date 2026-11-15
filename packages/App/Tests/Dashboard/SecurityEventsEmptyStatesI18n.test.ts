@@ -70,8 +70,10 @@ const COMPONENT_STRINGS: Array<string> = [
   "A service principal, API client or API token with permission to list the product's alerts, findings or log events.",
   "A running OneUptime worker",
   "Polls every connection on its schedule. Test connection checks access and worker health before you save.",
-  // SecurityEventProviderTile
-  "Connect",
+  /*
+   * SecurityEventProviderTile. Its button reads CONNECT_PROVIDER, one
+   * sentence with the product in it ("Connect {{provider}}", 81ec8bd1666).
+   */
   "Setup guide",
   "(opens in a new tab)",
 ];
@@ -398,7 +400,7 @@ describe("Security Events empty states translations", () => {
         "No security events yet",
         "Pick a product to connect",
         "Supported products",
-        "Connect",
+        "Setup guide",
         "(opens in a new tab)",
       ]),
     );
