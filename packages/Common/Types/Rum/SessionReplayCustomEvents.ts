@@ -402,6 +402,12 @@ export interface SessionReplayTagsPayload {
 /* ---- Payloads introduced with the idle pause. ---- */
 
 /*
+ * Why capture paused, when it was not because nobody touched the page:
+ * "page", the page asked (OneUptimeReplay.pause(), issue #6834).
+ */
+export type SessionReplayPauseReason = "page";
+
+/*
  * The last thing in the stream before an idle pause. Nothing is recorded
  * between this and the next IdleResumed of the same tab - no DOM, no
  * requests, no console, no errors - so the player treats that stretch as
@@ -418,7 +424,7 @@ export interface SessionReplayIdlePausedPayload {
    * a pause because nobody touched the page, which is every pause an older
    * recorder made.
    */
-  reason?: "page";
+  reason?: SessionReplayPauseReason;
 }
 
 /*
@@ -430,6 +436,15 @@ export interface SessionReplayIdlePausedPayload {
 export interface SessionReplayIdleResumedPayload {
   pausedAtUnixMs: number;
   resumedAtUnixMs: number;
+  /*
+   * The reason the pause this ends gave on its IdlePaused marker, so the
+   * player can say whose pause it was from this marker alone (issue
+   * #7498): "page" when the page had paused recording. Absent after an
+   * idle pause, and on every resume a recorder from before the field
+   * wrote; the player then takes the reason from the paused marker with
+   * the same pausedAtUnixMs, once it has read it.
+   */
+  reason?: SessionReplayPauseReason;
 }
 
 /* ---- Type guards. Minimum required fields only; the rest is optional. ---- */
@@ -721,4 +736,18 @@ export function isSessionReplayIdleResumedPayload(
     isFiniteNumber(value["resumedAtUnixMs"]) &&
     value["resumedAtUnixMs"] >= value["pausedAtUnixMs"]
   );
+}
+
+/*
+ * The reason an idle-pause marker's payload gives, either edge: "page", or
+ * undefined for an idle pause, for a recorder from before the field, and
+ * for any value this player does not know (a newer recorder's), which it
+ * reads as the pause it has always drawn. Read apart from the guards
+ * above, so a marker whose stamps are malformed still says whose pause it
+ * was.
+ */
+export function readSessionReplayPauseReason(
+  value: unknown,
+): SessionReplayPauseReason | undefined {
+  return isRecord(value) && value["reason"] === "page" ? "page" : undefined;
 }

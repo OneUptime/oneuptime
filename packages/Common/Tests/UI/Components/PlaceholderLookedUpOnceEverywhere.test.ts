@@ -3,6 +3,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  BREADCRUMB_TITLE,
   ENGLISH_SAID_TRANSLATED_MESSAGE,
   FLAG_NOT_READ_MESSAGE,
   LOOKED_UP_TWICE_MESSAGE,
@@ -14,7 +15,7 @@ import {
 } from "../../Helpers/PlaceholderLookupScan";
 
 /*
- * A PLACEHOLDER IS LOOKED UP ONCE, WHEREVER IT IS DRAWN (#7682).
+ * A TEXT IS LOOKED UP ONCE, WHEREVER IT IS DRAWN (#7682, #7790, #7791).
  *
  * #7663 made a form field's placeholder looked up once: FormField hands it
  * over in English, and the control that draws it looks it up. Outside
@@ -27,19 +28,32 @@ import {
  * reader saw the translation of the translation: Spanish says "Red" for
  * "Network", and "Rojo" for "Red".
  *
- * Every placeholder now goes over in English, or - a sentence around a
+ * So did the Dashboard's nav (#7790): its products' names are its own keyed
+ * texts (t("navbar.items.networkTitle")), and the bar, a pinned product and
+ * the phone's menu looked each up again - Network read "Rojo" in Spanish,
+ * Home "Starten" in Dutch, Logs and Queues "Registro" and "Codice" in
+ * Italian, Profiles "Profil" in German. So did the products menu's words, a
+ * link's title and over a hundred aria labels; and the Admin Dashboard's
+ * detail cards, whose words for an empty value (t("common.none"))
+ * PlaceholderText looked up again (#7791).
+ *
+ * Every such text now goes over in English, or - a sentence around a
  * value, a front end's own keyed text - is said to be in the reader's
- * words already (isPlaceholderTranslated, is<Prop>Translated), and the
- * control draws it as given. This guard reads every page and shared
- * component (Helpers/PlaceholderLookupScan says how) and fails, naming the
- * place, on a placeholder looked up for a control that looks it up again,
- * on English said to be in the reader's words, on a looked-up one said to
- * be so only some of the time, and on the flag given to a component that
- * never reads it. Run over main before this change, it named the places
- * this change fixed.
+ * words already (is<Prop>Translated: isPlaceholderTranslated,
+ * isAriaLabelTranslated, isTitleTranslated), and the control draws it as
+ * given. This guard reads every page and shared component
+ * (Helpers/PlaceholderLookupScan says how) and fails, naming the place, on
+ * a text looked up for a control that looks it up again, on English said
+ * to be in the reader's words, on a looked-up one said to be so only some
+ * of the time, and on the flag given to a component that never reads it.
+ * Run over main before each change, it named the places that change fixed.
  */
 
 const PACKAGES: string = path.resolve(__dirname, "../../../..");
+// <Button ariaLabel>, <Dropdown ariaLabel>, <NavBar moreMenuAriaLabel>.
+const HANDED_TO_ARIA_LABEL: RegExp = /[aA]riaLabel>$/;
+// A detail card's field, or a field of a fields array.
+const FIELD_PLACEHOLDER: RegExp = /^a (detail )?field's placeholder$/;
 
 let checkout: PlaceholderScanResult;
 
@@ -51,6 +65,42 @@ function sitesIn(file: string): Array<PlaceholderSite> {
   return checkout.sites.filter((site: PlaceholderSite): boolean => {
     return site.where.startsWith(`${file}:`);
   });
+}
+
+// The place of a file's one line with a piece of code on it.
+function placeOf(file: string, lines: Array<string>, code: string): string {
+  const found: Array<number> = [];
+
+  lines.forEach((line: string, index: number) => {
+    if (line.includes(code)) {
+      found.push(index + 1);
+    }
+  });
+
+  expect(found).toHaveLength(1);
+
+  return `${file}:${found[0]}`;
+}
+
+// The place of a line of the checkout's own code.
+function placeInCheckout(file: string, code: string): string {
+  return placeOf(
+    file,
+    fs.readFileSync(path.join(PACKAGES, file), "utf8").split("\n"),
+    code,
+  );
+}
+
+// Writes a file of a fixture's packages folder.
+function writeFixture(
+  packages: string,
+  file: string,
+  lines: Array<string>,
+): void {
+  const full: string = path.join(packages, file);
+
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, lines.join("\n"));
 }
 
 describe("the controls that look up a placeholder they are given", () => {
@@ -194,6 +244,9 @@ describe("every placeholder written for such a control", () => {
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
       ["a form field's placeholder", true, true],
+      // Its trail's two crumbs, its own keyed words too (#8075).
+      [BREADCRUMB_TITLE, true, true],
+      [BREADCRUMB_TITLE, true, true],
     ]);
 
     // Of every page and component: none is missed for want of reading it.
@@ -207,6 +260,208 @@ describe("every placeholder written for such a control", () => {
 
   test("is English, or said to be in the reader's words: never looked up twice", () => {
     expect(checkout.problems).toEqual([]);
+  });
+});
+
+describe("the controls that look up a nav title, a menu's words, an aria label or an empty value's words (#7790, #7791)", () => {
+  test.each([
+    ["Common/UI/Components/Navbar/NavBarItem.tsx", "NavBarItem", "title"],
+    // Through the Link it draws.
+    ["Common/UI/Components/Navbar/NavBarItem.tsx", "NavBarItem", "tooltip"],
+    // Through the products menu it opens.
+    ["Common/UI/Components/Navbar/NavBar.tsx", "Navbar", "moreMenuFooter"],
+    [
+      "Common/UI/Components/Navbar/NavBar.tsx",
+      "Navbar",
+      "moreMenuNoResultsText",
+    ],
+    [
+      "Common/UI/Components/Navbar/NavBar.tsx",
+      "Navbar",
+      "moreMenuKeyboardHint",
+    ],
+    // Through the menu, and the phone's.
+    ["Common/UI/Components/Navbar/NavBar.tsx", "Navbar", "moreMenuRecentLabel"],
+    [
+      "Common/UI/Components/Navbar/NavBarMenuModal.tsx",
+      "NavBarMenuModal",
+      "footer",
+    ],
+    [
+      "Common/UI/Components/Navbar/NavBarMenuModal.tsx",
+      "NavBarMenuModal",
+      "noResultsText",
+    ],
+    [
+      "Common/UI/Components/Navbar/NavBarMenuModal.tsx",
+      "NavBarMenuModal",
+      "keyboardHint",
+    ],
+    [
+      "Common/UI/Components/Navbar/NavBarMenuModal.tsx",
+      "NavBarMenuModal",
+      "recentLabel",
+    ],
+    [
+      "Common/UI/Components/Navbar/NavBarMobileMenu.tsx",
+      "NavBarMobileMenu",
+      "recentLabel",
+    ],
+    ["Common/UI/Components/Link/Link.tsx", "Link", "title"],
+    ["Common/UI/Components/Button/Button.tsx", "Button", "ariaLabel"],
+    ["Common/UI/Components/Dropdown/Dropdown.tsx", "Dropdown", "ariaLabel"],
+    ["Common/UI/Components/MoreMenu/MoreMenu.tsx", "MoreMenu", "ariaLabel"],
+    // Through the MoreMenu it draws.
+    ["Common/UI/Components/Card/CardMoreMenu.tsx", "CardMoreMenu", "ariaLabel"],
+    [
+      "Common/UI/Components/Checkbox/Checkbox.tsx",
+      "CheckboxElement",
+      "ariaLabel",
+    ],
+    ["Common/UI/Components/Toggle/Toggle.tsx", "Toggle", "ariaLabel"],
+    [
+      "Common/UI/Components/Workflow/ValuePicker/ValueTextField.tsx",
+      "ValueTextField",
+      "ariaLabel",
+    ],
+    [
+      "Common/UI/Components/PeoplePicker/PeopleSearchPopup.tsx",
+      "PeopleSearchPopup",
+      "ariaLabel",
+    ],
+    // A page's own.
+    [
+      "App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi.tsx",
+      "ReplayToolButton",
+      "ariaLabel",
+    ],
+    [
+      "App/FeatureSet/Dashboard/src/Components/EventView/EventStatBar.tsx",
+      "EventStatBar",
+      "ariaLabel",
+    ],
+    // Through the Dropdown it draws.
+    [
+      "App/FeatureSet/Dashboard/src/Components/ProductAnalytics/ProductAnalyticsEventPicker.tsx",
+      "ProductAnalyticsEventPicker",
+      "ariaLabel",
+    ],
+    [
+      "Common/UI/Components/Detail/PlaceholderText.tsx",
+      "PlaceholderText",
+      "text",
+    ],
+    // Through the PlaceholderText it draws.
+    ["Common/UI/Components/Detail/EmptyValue.tsx", "EmptyValue", "placeholder"],
+  ])(
+    "%s's %s looks up its %s",
+    (file: string, component: string, prop: string) => {
+      expect(checkout.isLookedUpBy(file, component, prop)).toBe(true);
+    },
+  );
+});
+
+describe("every nav title, menu word, aria label and empty value's words written for such a control", () => {
+  const NAVIGATION_ITEMS: string =
+    "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx";
+
+  test("is found: the Dashboard's products and Home, and its products menu's words", () => {
+    // Network ("Red" in Spanish) and Home ("Start" in Dutch), keyed here.
+    expect(checkout.sites).toContainEqual({
+      where: placeInCheckout(
+        NAVIGATION_ITEMS,
+        'title: t("navbar.items.networkTitle"',
+      ),
+      handedTo: "a MoreMenuItem's title",
+      isLookedUp: true,
+      isSaidTranslated: true,
+    });
+    expect(checkout.sites).toContainEqual({
+      where: placeInCheckout(NAVIGATION_ITEMS, 'title: t("navbar.home")'),
+      handedTo: "a NavItem's title",
+      isLookedUp: true,
+      isSaidTranslated: true,
+    });
+    // Every product the menu lists, Home and the account menu.
+    expect(sitesIn(NAVIGATION_ITEMS).length).toBeGreaterThanOrEqual(49);
+
+    // The products menu's words, the Dashboard's own.
+    expect(
+      sitesIn("App/FeatureSet/Dashboard/src/Components/NavBar/NavBar.tsx").map(
+        (site: PlaceholderSite) => {
+          return [site.handedTo, site.isLookedUp, site.isSaidTranslated];
+        },
+      ),
+    ).toEqual([
+      ["<NavBar moreMenuFooter>", true, true],
+      ["<NavBar moreMenuSearchPlaceholder>", true, true],
+      ["<NavBar moreMenuNoResultsText>", true, true],
+      ["<NavBar moreMenuKeyboardHint>", true, true],
+      ["<NavBar moreMenuRecentLabel>", true, true],
+    ]);
+
+    // The Admin Dashboard's sections and menu words: English, read too.
+    expect(
+      sitesIn("App/FeatureSet/AdminDashboard/src/Components/NavBar/NavBar.tsx")
+        .length,
+    ).toBeGreaterThanOrEqual(10);
+
+    // A status page's own words for its pages.
+    expect(
+      sitesIn("App/FeatureSet/StatusPage/src/Components/NavBar/NavBar.tsx")
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === "<NavBarItem title>";
+        })
+        .map((site: PlaceholderSite): boolean => {
+          return site.isSaidTranslated;
+        }),
+    ).toEqual([true, true, true]);
+  });
+
+  test("is found: the aria labels, the links' titles and the detail cards' words for an empty value", () => {
+    const ariaLabels: Array<PlaceholderSite> = checkout.sites.filter(
+      (site: PlaceholderSite): boolean => {
+        return HANDED_TO_ARIA_LABEL.test(site.handedTo);
+      },
+    );
+
+    // Of every page and component: none is missed for want of reading it.
+    expect(ariaLabels.length).toBeGreaterThanOrEqual(250);
+    expect(
+      ariaLabels.filter((site: PlaceholderSite): boolean => {
+        return site.isLookedUp && site.isSaidTranslated;
+      }).length,
+    ).toBeGreaterThanOrEqual(60);
+    expect(
+      checkout.sites.filter((site: PlaceholderSite): boolean => {
+        return (
+          site.handedTo === "<Link title>" &&
+          site.isLookedUp &&
+          site.isSaidTranslated
+        );
+      }).length,
+    ).toBeGreaterThanOrEqual(14);
+
+    // The Admin Dashboard's detail cards: t("common.none") and its kind.
+    expect(
+      checkout.sites.filter((site: PlaceholderSite): boolean => {
+        return (
+          site.where.startsWith("App/FeatureSet/AdminDashboard/") &&
+          FIELD_PLACEHOLDER.test(site.handedTo) &&
+          site.isLookedUp &&
+          site.isSaidTranslated
+        );
+      }).length,
+    ).toBeGreaterThanOrEqual(26);
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Subscription.tsx",
+      ).filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === "<PlaceholderText text>";
+      }),
+    ).toEqual([
+      expect.objectContaining({ isLookedUp: true, isSaidTranslated: true }),
+    ]);
   });
 });
 
@@ -272,27 +527,14 @@ describe("the guard's rules", () => {
 
   // The place of the page's one line with a piece of code on it.
   const at: (code: string) => string = (code: string): string => {
-    const lines: Array<number> = [];
-
-    PAGE_LINES.forEach((line: string, index: number) => {
-      if (line.includes(code)) {
-        lines.push(index + 1);
-      }
-    });
-
-    expect(lines).toHaveLength(1);
-
-    return `${PAGE}:${lines[0]}`;
+    return placeOf(PAGE, PAGE_LINES, code);
   };
 
   const write: (file: string, lines: Array<string>) => void = (
     file: string,
     lines: Array<string>,
   ): void => {
-    const full: string = path.join(packages, file);
-
-    fs.mkdirSync(path.dirname(full), { recursive: true });
-    fs.writeFileSync(full, lines.join("\n"));
+    writeFixture(packages, file, lines);
   };
 
   beforeAll(() => {
@@ -465,6 +707,532 @@ describe("the guard's rules", () => {
         "<Box placeholder>",
         '{translator.translateTemplate("Near {{x}}", { x: 1 })}',
         `${FLAG_NOT_READ_MESSAGE}isPlaceholderTranslated`,
+      ],
+    ]);
+  });
+});
+
+/*
+ * The rules for the other texts (#7790, #7791), on a page written for them:
+ * a shared Select that looks its aria label up, a Tab that looks its title
+ * up and offers isTitleTranslated for it, a Heading that looks its title up
+ * and offers no such flag, a Menu whose items' type offers one, and a
+ * detail card's fields.
+ */
+describe("the guard's rules, for an aria label, a title, a menu's items and a detail card's fields", () => {
+  let packages: string;
+  let fixture: PlaceholderScanResult;
+
+  const COMPONENTS: string = path.join("Common", "UI", "Components");
+
+  const PAGE: string = path.join(
+    "App",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Pages",
+    "Nav.tsx",
+  );
+
+  // Each text on a line of its own.
+  const PAGE_LINES: Array<string> = [
+    'import React from "react";',
+    'import Select from "Common/UI/Components/Select/Select";',
+    'import Tab from "Common/UI/Components/Tab/Tab";',
+    'import Heading from "Common/UI/Components/Heading/Heading";',
+    'import Menu, { MenuItem, PinnedItem } from "Common/UI/Components/Menu/Menu";',
+    'import FieldType from "Common/UI/Components/Types/FieldType";',
+    'const KIND = translationKey("Kind");',
+    "const Nav = () => {",
+    "  const { t } = useTranslation();",
+    "  const items: Array<MenuItem> = [",
+    '    { title: t("navbar.items.networkTitle") },',
+    '    { title: "Logs" },',
+    '    { title: t("navbar.items.queuesTitle"), isTitleTranslated: true },',
+    '    { title: "Traces", isTitleTranslated: true },',
+    "  ];",
+    '  const pinned = { title: t("navbar.items.logsTitle"), pinnedAt: 1 } as PinnedItem;',
+    '  const home: PinnedItem = { title: t("navbar.home"), isTitleTranslated: true, pinnedAt: 2 };',
+    "  const card = {",
+    "    fields: [",
+    '      { fieldType: FieldType.Text, placeholder: t("common.none") },',
+    '      { title: "Owner", placeholder: t("common.unknown"), isPlaceholderTranslated: true },',
+    '      { title: "Region", placeholder: "No region" },',
+    '      { title: "Rack", placeholder: t("common.notSet") },',
+    "    ],",
+    "  };",
+    "  return (",
+    "    <>",
+    '      <Select ariaLabel={t("pages.kind")} />',
+    "      <Select ariaLabel={KIND} />",
+    '      <Select ariaLabel={t("pages.device")} isAriaLabelTranslated={true} />',
+    '      <Select ariaLabel="Device" isAriaLabelTranslated={true} />',
+    '      <Tab title={t("navbar.userSettings")} />',
+    '      <Tab title="Settings" />',
+    '      <Tab title={t("navbar.items.performanceProfilesTitle")} isTitleTranslated={true} />',
+    '      <Heading title={t("pages.heading")} />',
+    '      <select aria-label={t("pages.native")} />',
+    "      <Menu items={[...items, pinned, home]} />",
+    "    </>",
+    "  );",
+    "};",
+    "export default Nav;",
+  ];
+
+  const at: (code: string) => string = (code: string): string => {
+    return placeOf(PAGE, PAGE_LINES, code);
+  };
+
+  beforeAll(() => {
+    packages = fs.mkdtempSync(path.join(os.tmpdir(), "text-lookup-scan-"));
+
+    writeFixture(packages, path.join(COMPONENTS, "Select", "Select.tsx"), [
+      'import React from "react";',
+      "const Select = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return (",
+      "    <select",
+      "      aria-label={",
+      "        props.isAriaLabelTranslated",
+      "          ? props.ariaLabel",
+      "          : translateString(props.ariaLabel)",
+      "      }",
+      "    />",
+      "  );",
+      "};",
+      "export default Select;",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Tab", "Tab.tsx"), [
+      'import React from "react";',
+      "const Tab = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  const title = props.isTitleTranslated",
+      "    ? props.title",
+      "    : translateString(props.title);",
+      "  return <button>{title}</button>;",
+      "};",
+      "export default Tab;",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Heading", "Heading.tsx"), [
+      'import React from "react";',
+      "// Looks its title up, and cannot be told it is translated.",
+      "const Heading = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return <h1>{translateString(props.title)}</h1>;",
+      "};",
+      "export default Heading;",
+    ]);
+
+    writeFixture(packages, path.join(COMPONENTS, "Menu", "Menu.tsx"), [
+      'import React from "react";',
+      "export interface MenuItem {",
+      "  title: string;",
+      "  isTitleTranslated?: boolean;",
+      "}",
+      "export interface PinnedItem extends MenuItem {",
+      "  pinnedAt: number;",
+      "}",
+      "const Menu = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return (",
+      "    <ul>",
+      "      {props.items.map((item) => {",
+      "        return (",
+      "          <li>",
+      "            {item.isTitleTranslated",
+      "              ? item.title",
+      "              : translateString(item.title)}",
+      "          </li>",
+      "        );",
+      "      })}",
+      "    </ul>",
+      "  );",
+      "};",
+      "export default Menu;",
+    ]);
+
+    writeFixture(packages, PAGE, PAGE_LINES);
+
+    fixture = scanPlaceholders(packages);
+  });
+
+  afterAll(() => {
+    fs.rmSync(packages, { recursive: true, force: true });
+  });
+
+  test("holds a title only where its control offers is<Prop>Translated for it", () => {
+    for (const [file, component] of [
+      [path.join(COMPONENTS, "Tab", "Tab.tsx"), "Tab"],
+      [path.join(COMPONENTS, "Heading", "Heading.tsx"), "Heading"],
+    ] as Array<[string, string]>) {
+      expect(fixture.isLookedUpBy(file, component, "title")).toBe(true);
+    }
+
+    const handedTo: Array<string> = fixture.sites.map(
+      (site: PlaceholderSite): string => {
+        return site.handedTo;
+      },
+    );
+
+    expect(
+      handedTo.filter((to: string): boolean => {
+        return to === "<Tab title>";
+      }),
+    ).toHaveLength(3);
+    expect(handedTo).not.toContain("<Heading title>");
+  });
+
+  test("fails on each place such a text is looked up twice or drawn in English, and on nothing else", () => {
+    expect(
+      fixture.problems.map((problem: PlaceholderProblem) => {
+        return [problem.where, problem.handedTo, problem.code, problem.message];
+      }),
+    ).toEqual([
+      [
+        at('"navbar.items.networkTitle"'),
+        "a MenuItem's title",
+        't("navbar.items.networkTitle")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"Traces"'),
+        "a MenuItem's title",
+        '"Traces"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
+      ],
+      // Cast to a type that takes the flag from the one it extends.
+      [
+        at('"navbar.items.logsTitle"'),
+        "a PinnedItem's title",
+        't("navbar.items.logsTitle")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"common.none"'),
+        "a detail field's placeholder",
+        't("common.none")',
+        `${LOOKED_UP_TWICE_MESSAGE}isPlaceholderTranslated`,
+      ],
+      // A card's field that leaves its type out.
+      [
+        at('"common.notSet"'),
+        "a field's placeholder",
+        't("common.notSet")',
+        `${LOOKED_UP_TWICE_MESSAGE}isPlaceholderTranslated`,
+      ],
+      [
+        at('"pages.kind"'),
+        "<Select ariaLabel>",
+        '{t("pages.kind")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isAriaLabelTranslated`,
+      ],
+      [
+        at('"Device"'),
+        "<Select ariaLabel>",
+        '"Device"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isAriaLabelTranslated`,
+      ],
+      [
+        at('"navbar.userSettings"'),
+        "<Tab title>",
+        '{t("navbar.userSettings")}',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+    ]);
+  });
+});
+
+/*
+ * #8075: THE ADMIN DASHBOARD'S BREADCRUMBS, AND THE PRODUCTS MENU'S ITEMS.
+ *
+ * The Admin Dashboard words its crumbs itself (t("breadcrumbs.settings")),
+ * and so do the status pages (t("nav.overview")): Breadcrumbs, the browser
+ * tab and the phone's menu looked each one up again. Each now says
+ * isTitleTranslated (Link). And the products menu looks up an item's
+ * description and category unless the item says they are translated
+ * (MoreMenuItem.isDescriptionTranslated, isCategoryTranslated), as the
+ * Dashboard's 47 products now do; the Admin Dashboard hands its in English.
+ */
+describe("every breadcrumb and every products menu item's words written for a page (#8075)", () => {
+  const ADMIN: string = "App/FeatureSet/AdminDashboard/";
+  const STATUS_PAGE: string = "App/FeatureSet/StatusPage/";
+  const DASHBOARD_NAV: string =
+    "App/FeatureSet/Dashboard/src/Utils/NavigationItems.tsx";
+  const ADMIN_NAV: string =
+    "App/FeatureSet/AdminDashboard/src/Components/NavBar/NavBar.tsx";
+
+  const crumbsIn: (prefix: string) => Array<PlaceholderSite> = (
+    prefix: string,
+  ): Array<PlaceholderSite> => {
+    return checkout.sites.filter((site: PlaceholderSite): boolean => {
+      return (
+        site.where.startsWith(prefix) && site.handedTo === BREADCRUMB_TITLE
+      );
+    });
+  };
+
+  test("finds the Admin Dashboard's 123 keyed crumbs, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = crumbsIn(ADMIN).filter(
+      (site: PlaceholderSite): boolean => {
+        return site.isLookedUp;
+      },
+    );
+
+    expect(keyed.length).toBeGreaterThanOrEqual(123);
+    expect(
+      keyed.every((site: PlaceholderSite): boolean => {
+        return site.isSaidTranslated;
+      }),
+    ).toBe(true);
+    // Settings > Telegram's trail, crumb by crumb.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/Index.tsx",
+      )
+        .filter((site: PlaceholderSite): boolean => {
+          return site.handedTo === BREADCRUMB_TITLE;
+        })
+        .map((site: PlaceholderSite) => {
+          return [site.isLookedUp, site.isSaidTranslated];
+        }),
+    ).toEqual([
+      [true, true],
+      [true, true],
+      [true, true],
+    ]);
+    // A trail written as a constant, typed Array<Link>, is read too.
+    expect(
+      sitesIn(
+        "App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Support.tsx",
+      ).filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === BREADCRUMB_TITLE && site.isSaidTranslated;
+      }).length,
+    ).toBeGreaterThanOrEqual(4);
+  });
+
+  test("finds the status pages' keyed crumbs, every one said to be translated", () => {
+    const keyed: Array<PlaceholderSite> = crumbsIn(STATUS_PAGE);
+
+    expect(keyed.length).toBeGreaterThanOrEqual(27);
+    expect(
+      keyed.every((site: PlaceholderSite): boolean => {
+        return site.isLookedUp && site.isSaidTranslated;
+      }),
+    ).toBe(true);
+  });
+
+  test("finds the products menu's descriptions and categories: the Dashboard's said translated, the Admin Dashboard's English", () => {
+    for (const prop of ["description", "category"]) {
+      const dashboard: Array<PlaceholderSite> = sitesIn(DASHBOARD_NAV).filter(
+        (site: PlaceholderSite): boolean => {
+          return site.handedTo === `a MoreMenuItem's ${prop}`;
+        },
+      );
+      const admin: Array<PlaceholderSite> = sitesIn(ADMIN_NAV).filter(
+        (site: PlaceholderSite): boolean => {
+          return site.handedTo === `a MoreMenuItem's ${prop}`;
+        },
+      );
+
+      expect(dashboard.length).toBeGreaterThanOrEqual(47);
+      expect(
+        dashboard.every((site: PlaceholderSite): boolean => {
+          return site.isLookedUp && site.isSaidTranslated;
+        }),
+      ).toBe(true);
+      // Users, Projects, Feedback ... under Management, Monitoring ...
+      expect(admin.length).toBeGreaterThanOrEqual(7);
+      expect(
+        admin.every((site: PlaceholderSite): boolean => {
+          return !site.isLookedUp && !site.isSaidTranslated;
+        }),
+      ).toBe(true);
+    }
+  });
+});
+
+/*
+ * The crumb rules, on a page written for them: a trail written in the
+ * element, one through a constant, one a page inside hands up, a record's
+ * name, and an array that is no trail. And a menu whose items' type offers
+ * isDescriptionTranslated and isCategoryTranslated.
+ */
+describe("the guard's rules, for a page's crumbs and a menu item's description and category (#8075)", () => {
+  let packages: string;
+  let fixture: PlaceholderScanResult;
+
+  const COMPONENTS: string = path.join("Common", "UI", "Components");
+
+  const PAGE: string = path.join(
+    "App",
+    "FeatureSet",
+    "AdminDashboard",
+    "src",
+    "Pages",
+    "Crumbs.tsx",
+  );
+
+  // Each text on a line of its own.
+  const PAGE_LINES: Array<string> = [
+    'import React from "react";',
+    'import Page, { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";',
+    'import Menu, { MenuItem } from "Common/UI/Components/Menu/Menu";',
+    'import Link from "Common/Types/Link";',
+    "const Crumbs = (props) => {",
+    "  const { t } = useTranslation();",
+    '  const toolsCategory: string = t("navbar.categories.tools");',
+    "  const breadcrumbLinks: Array<Link> = [",
+    '    { title: t("breadcrumbs.projects"), to: home },',
+    '    { title: t("breadcrumbs.project"), isTitleTranslated: true, to: home },',
+    "  ];",
+    "  const trail: Array<Link> = [",
+    '    { title: translator.translateText("Hunts"), to: home },',
+    "  ];",
+    "  const notATrail = [",
+    '    { title: t("pages.notACrumb") },',
+    "  ];",
+    "  usePageBreadcrumbLinks(props.isReady ? trail : null);",
+    "  const items: Array<MenuItem> = [",
+    '    { title: "Users", description: t("navbar.usersDescription"),',
+    "      category: toolsCategory },",
+    '    { title: "Teams", description: "Every team.", category: "Management" },',
+    '    { title: "Logs", description: t("navbar.logsDescription"), isDescriptionTranslated: true,',
+    "      category: toolsCategory, isCategoryTranslated: true },",
+    '    { title: "Traces", description: "Every trace.", isDescriptionTranslated: true, category: "Tools" },',
+    "  ];",
+    "  return (",
+    "    <Page",
+    '      title="Crumbs"',
+    "      breadcrumbLinks={[",
+    '        { title: t("breadcrumbs.adminDashboard"), to: home },',
+    '        { title: t("breadcrumbs.settings"), isTitleTranslated: true, to: home },',
+    '        { title: "Settings", to: home },',
+    '        { title: "Global Probes", isTitleTranslated: true, to: home },',
+    "        { title: props.projectName, isRecordName: true, to: home },",
+    "      ]}",
+    "    >",
+    '      <Page title="Inner" breadcrumbLinks={breadcrumbLinks}>',
+    "        <Menu items={items} />",
+    "      </Page>",
+    "    </Page>",
+    "  );",
+    "};",
+    "export default Crumbs;",
+  ];
+
+  const at: (code: string) => string = (code: string): string => {
+    return placeOf(PAGE, PAGE_LINES, code);
+  };
+
+  beforeAll(() => {
+    packages = fs.mkdtempSync(path.join(os.tmpdir(), "crumb-lookup-scan-"));
+
+    writeFixture(packages, path.join(COMPONENTS, "Menu", "Menu.tsx"), [
+      'import React from "react";',
+      "export interface MenuItem {",
+      "  title: string;",
+      "  description: string;",
+      "  isDescriptionTranslated?: boolean;",
+      "  category?: string;",
+      "  isCategoryTranslated?: boolean;",
+      "}",
+      "const Menu = (props) => {",
+      "  const { translateString } = useTranslateValue();",
+      "  return (",
+      "    <ul>",
+      "      {props.items.map((item) => {",
+      "        return <li>{translateString(item.description)}</li>;",
+      "      })}",
+      "    </ul>",
+      "  );",
+      "};",
+      "export default Menu;",
+    ]);
+
+    writeFixture(packages, PAGE, PAGE_LINES);
+
+    fixture = scanPlaceholders(packages);
+  });
+
+  afterAll(() => {
+    fs.rmSync(packages, { recursive: true, force: true });
+  });
+
+  test("reads every crumb of a trail, and nothing that is no trail or a record's name", () => {
+    const crumbs: Array<string> = fixture.sites
+      .filter((site: PlaceholderSite): boolean => {
+        return site.handedTo === BREADCRUMB_TITLE;
+      })
+      .map((site: PlaceholderSite): string => {
+        return site.where;
+      });
+
+    expect(crumbs).toEqual([
+      at('"breadcrumbs.projects"'),
+      at('"breadcrumbs.project"'),
+      at('translateText("Hunts")'),
+      at('"breadcrumbs.adminDashboard"'),
+      at('"breadcrumbs.settings"'),
+      at('{ title: "Settings", to: home }'),
+      at('"Global Probes"'),
+    ]);
+    expect(crumbs).not.toContain(at('"pages.notACrumb"'));
+    expect(crumbs).not.toContain(at("props.projectName"));
+  });
+
+  test("fails on each crumb looked up twice or English said to be translated, and on each such menu word", () => {
+    expect(
+      fixture.problems.map((problem: PlaceholderProblem) => {
+        return [problem.where, problem.handedTo, problem.code, problem.message];
+      }),
+    ).toEqual([
+      // Through a constant handed to the page.
+      [
+        at('"breadcrumbs.projects"'),
+        BREADCRUMB_TITLE,
+        't("breadcrumbs.projects")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      // Through a constant a page inside hands up.
+      [
+        at('translateText("Hunts")'),
+        BREADCRUMB_TITLE,
+        'translator.translateText("Hunts")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"navbar.usersDescription"'),
+        "a MenuItem's description",
+        't("navbar.usersDescription")',
+        `${LOOKED_UP_TWICE_MESSAGE}isDescriptionTranslated`,
+      ],
+      // A constant the page built with a lookup.
+      [
+        at("      category: toolsCategory },"),
+        "a MenuItem's category",
+        "toolsCategory",
+        `${LOOKED_UP_TWICE_MESSAGE}isCategoryTranslated`,
+      ],
+      [
+        at('"Every trace."'),
+        "a MenuItem's description",
+        '"Every trace."',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isDescriptionTranslated`,
+      ],
+      // In the element.
+      [
+        at('"breadcrumbs.adminDashboard"'),
+        BREADCRUMB_TITLE,
+        't("breadcrumbs.adminDashboard")',
+        `${LOOKED_UP_TWICE_MESSAGE}isTitleTranslated`,
+      ],
+      [
+        at('"Global Probes"'),
+        BREADCRUMB_TITLE,
+        '"Global Probes"',
+        `${ENGLISH_SAID_TRANSLATED_MESSAGE}isTitleTranslated`,
       ],
     ]);
   });

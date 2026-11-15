@@ -44,6 +44,8 @@ import React, {
   useState,
 } from "react";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Bulk CSV import for Network Sites, reached from the ⋯ menu on the Sites
@@ -489,7 +491,11 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {importError && <p className="text-sm text-red-700">{importError}</p>}
+        {importError && (
+          <p className="text-sm text-red-700">
+            <ErrorInSentence message={importError} showWhereToLook={true} />
+          </p>
+        )}
 
         {parseErrors.length > 0 && (
           <div className="rounded-md border border-red-200 bg-red-50 p-3">
@@ -584,14 +590,14 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           {row.parentName ? (
                             <IsolatedText text={row.parentName} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.address ? (
                             <IsolatedText text={row.address} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
@@ -603,7 +609,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                               dataTestId="site-csv-coordinates"
                             />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>
@@ -676,7 +682,7 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           {result.message ? (
                             <IsolatedText text={result.message} />
                           ) : (
-                            "—"
+                            <TableEmptyValue />
                           )}
                         </td>
                       </tr>

@@ -177,10 +177,12 @@ export const getAnnouncementEventItem: GetAnnouncementEventItemFunction = (
       : undefined,
     eventTypeColor: Blue500,
     eventSecondDescription: announcement.showAnnouncementAt!
-      ? i18n.t("announcements.announcedAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          announcement.showAnnouncementAt!,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("announcements.announcedAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            announcement.showAnnouncementAt!,
+          ),
+        })
       : "",
     ...(attachments.length > 0
       ? {
@@ -326,6 +328,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -334,6 +337,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("announcements.title"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
@@ -342,6 +346,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("announcements.singular"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)

@@ -51,6 +51,7 @@ import {
   LogEntityDisplay,
   LogsResourceEntityMaps,
 } from "../LogsEntityNames";
+import EmptyValue from "../../Detail/EmptyValue";
 
 type LogDetailTab = "details" | "context";
 
@@ -633,11 +634,13 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
         className={`flex items-start gap-3 px-3 py-2 ${rowClass}`}
       >
         <span className="flex-none whitespace-nowrap font-mono text-[11px] text-gray-400">
-          {ctxLog.time
-            ? OneUptimeDate.getDateAsUserFriendlyFormattedString(
-                OneUptimeDate.fromString(ctxLog.time),
-              )
-            : "-"}
+          {ctxLog.time ? (
+            OneUptimeDate.getDateAsUserFriendlyFormattedString(
+              OneUptimeDate.fromString(ctxLog.time),
+            )
+          ) : (
+            <EmptyValue />
+          )}
         </span>
         <SeverityBadge severity={ctxLog.severity} />
         {/*
@@ -651,7 +654,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             undefined
           }
         >
-          {ctxLog.body.slice(0, 200) || "-"}
+          {ctxLog.body.slice(0, 200) || <EmptyValue isSmall={true} />}
         </span>
       </div>
     );
@@ -777,7 +780,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                     undefined
                   }
                 >
-                  {bodyDetails.pretty || "-"}
+                  {bodyDetails.pretty || <EmptyValue />}
                 </p>
               )}
             </div>
@@ -806,6 +809,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View trace {{id}}",
                           { id: traceId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {traceId}
                       </Link>
@@ -848,6 +852,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View span {{id}}",
                           { id: spanId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {spanId}
                       </Link>
@@ -890,6 +895,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                           "View session replay {{id}}",
                           { id: sessionId },
                         )}
+                        isTitleTranslated={true}
                       >
                         {sessionId}
                       </Link>

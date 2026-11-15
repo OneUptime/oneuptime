@@ -69,6 +69,7 @@ import {
   toggleSelectionForShownHosts,
 } from "../DiscoveredHostFilter";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * THE HOSTS OF A SCAN, TO CHOOSE FROM (Network > Discovery > Review Results,
@@ -364,6 +365,7 @@ const DiscoveredHostTable: FunctionComponent<DiscoveredHostTableProps> = (
                     { count: translator.formatNumber(selectableShownCount) },
                   )
             }
+            isAriaLabelTranslated={true}
             initialValue={areAllShownSelected}
             value={areAllShownSelected}
             isIndeterminate={!areAllShownSelected && shownSelectedCount > 0}
@@ -765,6 +767,7 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
                 address: entry.ipAddress || translatableTerm("no address"),
               },
             )}
+            isAriaLabelTranslated={true}
             hoverText={
               entry.isAlreadyRegistered
                 ? "Already added as a Network Device."
@@ -867,8 +870,8 @@ export const DiscoveredHostRow: FunctionComponent<DiscoveredHostRowProps> = (
               {entry.sysDescr}
             </div>
           ) : !vendor ? (
-            <div className="text-sm text-gray-300 max-md:hidden md:block">
-              —
+            <div className="max-md:hidden md:block">
+              <TableEmptyValue />
             </div>
           ) : (
             <></>

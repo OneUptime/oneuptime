@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 import {
   FirstCheckAnswer,
+  FirstCheckSentence,
+  FirstCheckVerdict,
   MONITOR_NAME_MAX_LENGTH,
   WEBSITE_DOWN_COPY,
   WEBSITE_DOWN_POLICY_NAME,
@@ -22,9 +24,14 @@ import {
   getMonitorAddress,
   getWebsiteAddressIdentity,
   getWebsiteDownProgress,
+  getFirstCheckVerdict,
+  getPaymentNeededText,
   getWebsiteDownSummaryRows,
+  getWhoIsToldDoneLine,
+  getWhoIsToldHelp,
   getWhoIsToldMode,
   isDownAnswer,
+  isFirstCheckSettled,
   isMonitorCheckingAddress,
   isSameWebsiteAddress,
   isTestDone,
@@ -39,12 +46,18 @@ import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInsta
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
+  formatPriceInUSD,
+} from "../../../Types/Billing/PayAsYouGoPricing";
+import {
   OnCallTestPageKind,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
   OnCallTestPageStatus,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
+import { translateRecordName } from "../../../Utils/DefaultRecordNames";
+import { StateListType } from "../../../Utils/StateOrder";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -60,6 +73,9 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  */
 
 const english: Translator = createTranslator(undefined, "en");
+
+// A value that is a count or a code, written in digits.
+const ONLY_DIGITS: RegExp = /^\d+$/;
 
 const LOCALES: string = path.join(
   __dirname,
@@ -502,6 +518,44 @@ describe("what the first check found", () => {
     },
   );
 
+  test("until the first read returns: checking, never no location (#7410)", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      isRead: false,
+      // What the page passes while it has read nothing yet.
+      locationCount: 0,
+      answers: [],
+    });
+
+    expect(sentence).toEqual({
+      text: "Checking example.com...",
+      verdict: null,
+      verdictKind: FirstCheckVerdict.None,
+      isDown: false,
+      isWaiting: true,
+    });
+    expect(sentence.text).not.toContain("No location");
+  });
+
+  test("the not-read sentence is worded in every language, the host kept", () => {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
+      const text: string = describeFirstCheck({
+        translator: dashboardTranslator(language),
+        host: "example.com",
+        isRead: false,
+        locationCount: 0,
+        answers: [],
+      }).text;
+
+      expect({ language, worded: text !== "Checking example.com..." }).toEqual({
+        language,
+        worded: true,
+      });
+      expect(withoutIsolateMarks(text)).toContain("example.com");
+    }
+  });
+
   test("while no probe has answered: what is being waited for", () => {
     expect(
       describeFirstCheck({
@@ -512,6 +566,8 @@ describe("what the first check found", () => {
       }),
     ).toEqual({
       text: "Checking example.com from 2 locations...",
+      verdict: null,
+      verdictKind: FirstCheckVerdict.None,
       isDown: false,
       isWaiting: true,
     });
@@ -525,10 +581,11 @@ describe("what the first check found", () => {
     ).toBe("Checking example.com from 1 location...");
   });
 
-  test("with no probe at all: says so, and where probes are added", () => {
-    const sentence: ReturnType<typeof describeFirstCheck> = describeFirstCheck({
+  test("with no probe at all, once read: says so, and where probes are added", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
       translator: english,
       host: "example.com",
+      isRead: true,
       locationCount: 0,
       answers: [],
     });
@@ -552,6 +609,8 @@ describe("what the first check found", () => {
       }),
     ).toEqual({
       text: "example.com answered 200 in 313 ms from 2 locations.",
+      verdict: null,
+      verdictKind: FirstCheckVerdict.None,
       isDown: false,
       isWaiting: false,
     });
@@ -570,7 +629,44 @@ describe("what the first check found", () => {
     ).toBe("example.com answered 204 in 1,234 ms from 1 location.");
   });
 
-  test("an error answer counts as down, and says an incident opens", () => {
+  test("an error from its one location counts as down, and says an incident opens", () => {
+    expect(
+      describeFirstCheck({
+        translator: english,
+        host: "example.com",
+        locationCount: 1,
+        answers: [{ isOnline: true, responseCode: 503, responseTimeInMs: 30 }],
+      }),
+    ).toEqual({
+      text: "example.com answered 503 from 1 location.",
+      verdict: "That counts as down, so an incident opens.",
+      verdictKind: FirstCheckVerdict.Down,
+      isDown: true,
+      isWaiting: false,
+    });
+  });
+
+  test("an error from every location: an incident opens", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      locationCount: 2,
+      answers: [
+        { isOnline: true, responseCode: 503, responseTimeInMs: 30 },
+        { isOnline: false, failureCause: "Connection refused" },
+      ],
+    });
+
+    expect(sentence.text).toBe("example.com answered 503 from 2 locations.");
+    expect(sentence.verdict).toBe("That counts as down, so an incident opens.");
+  });
+
+  /*
+   * The bug (#7410): one probe of several got an error, and the step said
+   * an incident opens. The server changes nothing until all of a new
+   * monitor's probes agree.
+   */
+  test("an error from one location of two, the other up: no incident opens", () => {
     expect(
       describeFirstCheck({
         translator: english,
@@ -582,10 +678,109 @@ describe("what the first check found", () => {
         ],
       }),
     ).toEqual({
-      text: "example.com answered 503 from 1 location. That counts as down, so an incident opens.",
+      text: "example.com answered 503 from 1 location.",
+      verdict: "example.com was up from 1 location, so no incident opens.",
+      verdictKind: FirstCheckVerdict.StaysUp,
       isDown: true,
       isWaiting: false,
     });
+  });
+
+  test("one location of three with no answer, the others up: says which failed, that the others answered, and no incident", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      locationCount: 3,
+      answers: [
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+
+    expect(sentence.text).toBe(
+      "example.com did not answer from 1 location: Connection refused",
+    );
+    expect(sentence.verdict).toBe(
+      "example.com was up from 2 locations, so no incident opens.",
+    );
+    expect(sentence.verdict).not.toContain("an incident opens");
+  });
+
+  test("two of three down, the third yet to answer: waits for it, claiming nothing", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      locationCount: 3,
+      answers: [
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: false, failureCause: "Connection refused" },
+      ],
+    });
+
+    expect(sentence.verdict).toBe("Waiting for 1 more location...");
+    expect(sentence.verdictKind).toBe(FirstCheckVerdict.Waiting);
+    expect(sentence.isWaiting).toBe(true);
+  });
+
+  test("a minimum the monitor sets is the one counted: two of three agreeing opens one", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      locationCount: 3,
+      minimumProbeAgreement: 2,
+      answers: [
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: false, failureCause: "Connection refused" },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+
+    expect(sentence.verdict).toBe("That counts as down, so an incident opens.");
+  });
+
+  test("a disconnected location is left out, as the server leaves it out", () => {
+    // Three enabled probes, one disconnected: both connected ones down is all.
+    expect(
+      describeFirstCheck({
+        translator: english,
+        host: "example.com",
+        locationCount: 3,
+        activeLocationCount: 2,
+        answers: [
+          { isOnline: false, failureCause: "Connection refused" },
+          { isOnline: false, failureCause: "Connection refused" },
+        ],
+      }).verdictKind,
+    ).toBe(FirstCheckVerdict.Down);
+  });
+
+  test("as many up as down, both enough: says what each found, never which wins", () => {
+    const sentence: FirstCheckSentence = describeFirstCheck({
+      translator: english,
+      host: "example.com",
+      locationCount: 2,
+      minimumProbeAgreement: 1,
+      answers: [
+        { isOnline: true, responseCode: 500, responseTimeInMs: 30 },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+      ],
+    });
+
+    expect(sentence.verdictKind).toBe(FirstCheckVerdict.Split);
+    expect(sentence.verdict).toBe("example.com was up from 1 location.");
+  });
+
+  test("criteria that open no incident: its status changes, and no incident is claimed", () => {
+    expect(
+      describeFirstCheck({
+        translator: english,
+        host: "example.com",
+        locationCount: 1,
+        opensIncident: false,
+        answers: [{ isOnline: false }],
+      }).verdict,
+    ).toBe("That counts as down, so its status changes to Offline.");
   });
 
   test("no answer: why, when the probe said", () => {
@@ -601,6 +796,8 @@ describe("what the first check found", () => {
       }),
     ).toEqual({
       text: "example.com did not answer from 2 locations: Connection refused",
+      verdict: "That counts as down, so an incident opens.",
+      verdictKind: FirstCheckVerdict.Down,
       isDown: true,
       isWaiting: false,
     });
@@ -631,6 +828,285 @@ describe("what the first check found", () => {
     expect(text).toContain("example.com");
     expect(text).toContain("200");
     expect(text).toContain("312");
+  });
+
+  test("each verdict is worded in every language, its values kept", () => {
+    const cases: Array<{
+      english: string;
+      data: Parameters<typeof describeFirstCheck>[0];
+    }> = [
+      {
+        english: "That counts as down, so an incident opens.",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 1,
+          answers: [{ isOnline: false }],
+        },
+      },
+      {
+        english: "That counts as down, so its status changes to Offline.",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 1,
+          opensIncident: false,
+          answers: [{ isOnline: false }],
+        },
+      },
+      {
+        english: "example.com was up from 2 locations, so no incident opens.",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 3,
+          answers: [
+            { isOnline: false },
+            { isOnline: true, responseCode: 200 },
+            { isOnline: true, responseCode: 200 },
+          ],
+        },
+      },
+      {
+        english: "Waiting for 2 more locations...",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 3,
+          answers: [{ isOnline: false }],
+        },
+      },
+      {
+        english: "example.com was up from 1 location.",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 2,
+          minimumProbeAgreement: 1,
+          answers: [{ isOnline: false }, { isOnline: true, responseCode: 200 }],
+        },
+      },
+      {
+        english: "example.com answered 503 from 1 location.",
+        data: {
+          translator: english,
+          host: "example.com",
+          locationCount: 1,
+          answers: [{ isOnline: true, responseCode: 503 }],
+        },
+      },
+    ];
+
+    for (const testCase of cases) {
+      const inEnglish: FirstCheckSentence = describeFirstCheck(testCase.data);
+
+      expect([inEnglish.text, inEnglish.verdict]).toContain(testCase.english);
+
+      for (const language of [...DASHBOARD_LANGUAGES]) {
+        const worded: FirstCheckSentence = describeFirstCheck({
+          ...testCase.data,
+          translator: dashboardTranslator(language),
+        });
+        const line: string = withoutIsolateMarks(
+          (inEnglish.text === testCase.english
+            ? worded.text
+            : worded.verdict) || "",
+        );
+
+        expect({ language, line: line !== testCase.english }).toEqual({
+          language,
+          line: true,
+        });
+
+        for (const value of testCase.english.match(/example\.com|\d+/g) || []) {
+          // A count in the reader's digits ("۲" in Persian), a code as written.
+          const readerValue: string = ONLY_DIGITS.test(value)
+            ? dashboardTranslator(language).formatNumber(Number(value))
+            : value;
+
+          expect({
+            language,
+            value,
+            kept: line.includes(value) || line.includes(readerValue),
+          }).toEqual({
+            language,
+            value,
+            kept: true,
+          });
+        }
+      }
+    }
+  });
+});
+
+describe("what the answers mean under the probe agreement rule (#7410)", () => {
+  const up: FirstCheckAnswer = { isOnline: true, responseCode: 200 };
+  const down: FirstCheckAnswer = { isOnline: false };
+
+  const verdictOf: (data: {
+    active: number;
+    answers: Array<FirstCheckAnswer>;
+    minimum?: number | null;
+  }) => FirstCheckVerdict = (data: {
+    active: number;
+    answers: Array<FirstCheckAnswer>;
+    minimum?: number | null;
+  }): FirstCheckVerdict => {
+    return getFirstCheckVerdict({
+      activeLocationCount: data.active,
+      answers: data.answers,
+      minimumProbeAgreement: data.minimum,
+    });
+  };
+
+  test.each([
+    // [active, answers, minimum, verdict]
+    [1, [up], null, FirstCheckVerdict.None],
+    [1, [down], null, FirstCheckVerdict.Down],
+    [2, [down, down], null, FirstCheckVerdict.Down],
+    [2, [down, up], null, FirstCheckVerdict.StaysUp],
+    [2, [down], null, FirstCheckVerdict.Waiting],
+    [3, [down, up, up], null, FirstCheckVerdict.StaysUp],
+    [3, [down, down, up], null, FirstCheckVerdict.StaysUp],
+    [3, [down, down], null, FirstCheckVerdict.Waiting],
+    [3, [down, up], null, FirstCheckVerdict.StaysUp],
+    [3, [down, down, down], null, FirstCheckVerdict.Down],
+    [3, [down, down, up], 2, FirstCheckVerdict.Down],
+    [3, [down, up, up], 2, FirstCheckVerdict.StaysUp],
+    [3, [down], 2, FirstCheckVerdict.Waiting],
+    // One required: the first down answer carries it, as the server judges it then.
+    [3, [down], 1, FirstCheckVerdict.Down],
+    [2, [down, up], 1, FirstCheckVerdict.Split],
+    [4, [down, down, up, up], 2, FirstCheckVerdict.Split],
+    // A minimum above the locations that take part is all of them.
+    [2, [down, down], 5, FirstCheckVerdict.Down],
+    [0, [], null, FirstCheckVerdict.None],
+  ] as Array<
+    [number, Array<FirstCheckAnswer>, number | null, FirstCheckVerdict]
+  >)(
+    "%i locations, answers %j, minimum %s: %s",
+    (
+      active: number,
+      answers: Array<FirstCheckAnswer>,
+      minimum: number | null,
+      verdict: FirstCheckVerdict,
+    ) => {
+      expect(verdictOf({ active, answers, minimum })).toBe(verdict);
+    },
+  );
+
+  /*
+   * The server's own decision, written out as MonitorResourceUtil.
+   * checkProbeAgreement makes it, for every way three locations can answer:
+   * the verdict most of them reached wins when it is enough, ties going to
+   * the one counted first. Down is said only where the server changes the
+   * status whichever order it reads the probes in.
+   */
+  const serverOpens: (data: {
+    active: number;
+    answers: Array<FirstCheckAnswer>;
+    minimum: number | null;
+    downFirst: boolean;
+  }) => boolean = (data: {
+    active: number;
+    answers: Array<FirstCheckAnswer>;
+    minimum: number | null;
+    downFirst: boolean;
+  }): boolean => {
+    const required: number = Math.min(data.minimum ?? data.active, data.active);
+    const downCount: number = data.answers.filter(isDownAnswer).length;
+    const upCount: number = data.answers.length - downCount;
+    const counts: Array<[string, number]> = data.downFirst
+      ? [
+          ["down", downCount],
+          ["up", upCount],
+        ]
+      : [
+          ["up", upCount],
+          ["down", downCount],
+        ];
+    let winner: string = "";
+    let max: number = 0;
+
+    for (const [key, count] of counts) {
+      if (count > max) {
+        max = count;
+        winner = key;
+      }
+    }
+
+    return max >= required && winner === "down";
+  };
+
+  test("says down exactly when the server opens one, whichever probe it reads first", () => {
+    const shapes: Array<Array<FirstCheckAnswer>> = [];
+
+    for (let answered: number = 0; answered <= 3; answered++) {
+      for (let downs: number = 0; downs <= answered; downs++) {
+        shapes.push([
+          ...Array(downs).fill(down),
+          ...Array(answered - downs).fill(up),
+        ]);
+      }
+    }
+
+    for (const minimum of [null, 1, 2, 3]) {
+      for (const answers of shapes) {
+        const verdict: FirstCheckVerdict = verdictOf({
+          active: 3,
+          answers,
+          minimum,
+        });
+        const opensEitherWay: boolean =
+          serverOpens({ active: 3, answers, minimum, downFirst: true }) &&
+          serverOpens({ active: 3, answers, minimum, downFirst: false });
+        const opensOneWay: boolean =
+          serverOpens({ active: 3, answers, minimum, downFirst: true }) !==
+          serverOpens({ active: 3, answers, minimum, downFirst: false });
+
+        expect({
+          minimum,
+          answers: answers.map(isDownAnswer),
+          saysDown: verdict === FirstCheckVerdict.Down,
+        }).toEqual({
+          minimum,
+          answers: answers.map(isDownAnswer),
+          saysDown: opensEitherWay,
+        });
+
+        // A tie the server breaks by its order: never "opens", never "no incident".
+        if (opensOneWay) {
+          expect([
+            FirstCheckVerdict.Split,
+            FirstCheckVerdict.Waiting,
+          ]).toContain(verdict);
+        }
+
+        // "No incident opens" is said only where the server opens none.
+        if (verdict === FirstCheckVerdict.StaysUp) {
+          expect([
+            serverOpens({ active: 3, answers, minimum, downFirst: true }),
+            serverOpens({ active: 3, answers, minimum, downFirst: false }),
+          ]).toEqual([false, false]);
+        }
+      }
+    }
+  });
+
+  test("settled once every connected location has answered", () => {
+    expect(isFirstCheckSettled({ activeLocationCount: 2, answers: [] })).toBe(
+      false,
+    );
+    expect(
+      isFirstCheckSettled({ activeLocationCount: 2, answers: [down] }),
+    ).toBe(false);
+    expect(
+      isFirstCheckSettled({ activeLocationCount: 2, answers: [down, up] }),
+    ).toBe(true);
+    // No connected location: nothing settles it but an answer.
+    expect(isFirstCheckSettled({ activeLocationCount: 0, answers: [] })).toBe(
+      false,
+    );
   });
 });
 
@@ -728,6 +1204,170 @@ describe("who is told", () => {
         }),
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * "You own this monitor, so you are emailed when it goes down" was said to
+ * a self-hosted master admin, whom the server never makes the owner of what
+ * they create (#7409). The setup now makes them one; and the step says it
+ * only of someone who is.
+ */
+describe("who is told, said only when it is true (#7409)", () => {
+  test("a policy this run makes says it itself: no help line", () => {
+    for (const isMonitorOwner of [true, false, null]) {
+      expect(
+        getWhoIsToldHelp({ mode: WhoIsToldMode.CreatePolicy, isMonitorOwner }),
+      ).toBeNull();
+    }
+  });
+
+  test("a project whose policies decide: the email is promised only to the owner", () => {
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.ExistingPolicy,
+        isMonitorOwner: true,
+      }),
+    ).toBe(WEBSITE_DOWN_COPY.whoExistingHelp);
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.ExistingPolicy,
+        isMonitorOwner: false,
+      }),
+    ).toBe(WEBSITE_DOWN_COPY.whoExistingHelpNotOwner);
+    // Not read yet: what is true either way.
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.ExistingPolicy,
+        isMonitorOwner: null,
+      }),
+    ).toBe(WEBSITE_DOWN_COPY.whoExistingHelpNotOwner);
+    expect(WEBSITE_DOWN_COPY.whoExistingHelpNotOwner).not.toContain("emailed");
+    // The same sentence, without the promise.
+    expect(WEBSITE_DOWN_COPY.whoExistingHelp).toBe(
+      `${WEBSITE_DOWN_COPY.whoExistingHelpNotOwner} You own this monitor, so you are also emailed when it goes down.`,
+    );
+  });
+
+  test("someone who may not set paging up: told the email is theirs, or how to make it so", () => {
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.OwnerEmailOnly,
+        isMonitorOwner: true,
+      }),
+    ).toBe(WEBSITE_DOWN_COPY.whoOwnerOnlyHelp);
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.OwnerEmailOnly,
+        isMonitorOwner: false,
+      }),
+    ).toBe(WEBSITE_DOWN_COPY.whoOwnerOnlyHelpNotOwner);
+    expect(WEBSITE_DOWN_COPY.whoOwnerOnlyHelpNotOwner).toContain(
+      "You do not own this monitor, so you are not emailed when it goes down",
+    );
+    // Nothing said until it is known.
+    expect(
+      getWhoIsToldHelp({
+        mode: WhoIsToldMode.OwnerEmailOnly,
+        isMonitorOwner: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("the done line: the owner's email only for the owner", () => {
+    const line: (
+      mode: WhoIsToldMode,
+      isMonitorOwner: boolean | null,
+    ) => string = (
+      mode: WhoIsToldMode,
+      isMonitorOwner: boolean | null,
+    ): string => {
+      return getWhoIsToldDoneLine({
+        translator: english,
+        mode,
+        isMonitorOwner,
+      });
+    };
+
+    expect(line(WhoIsToldMode.OwnerEmailOnly, true)).toBe(
+      "You are emailed as the monitor's owner.",
+    );
+    expect(line(WhoIsToldMode.OwnerEmailOnly, false)).toBe(
+      "The project's owners are emailed about incidents nobody owns.",
+    );
+    expect(line(WhoIsToldMode.OwnerEmailOnly, null)).toBe(
+      "The project's owners are emailed about incidents nobody owns.",
+    );
+    for (const isMonitorOwner of [true, false, null]) {
+      expect(line(WhoIsToldMode.ExistingPolicy, isMonitorOwner)).toBe(
+        "This project's on-call policies and rules decide who is paged.",
+      );
+    }
+  });
+});
+
+/*
+ * On Cloud's Free plan with no payment method, Start checking was refused
+ * in red, with no warning before it and no link (#7367).
+ */
+describe("a payment method, said before Start checking (#7367)", () => {
+  test("with the price the server bills, and what to do", () => {
+    expect(
+      getPaymentNeededText({ translator: english, mayAddPaymentMethod: true }),
+    ).toBe(
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Add a payment method before you start checking.",
+    );
+  });
+
+  test("someone who may not add one is told who can", () => {
+    expect(
+      getPaymentNeededText({ translator: english, mayAddPaymentMethod: false }),
+    ).toBe(
+      "This project is on the Free plan, where a monitor that checks your site is billed as you use it, at $1 per monitor per month. Ask a project owner to add a payment method before you start checking.",
+    );
+  });
+
+  test("the price is the one the billing quotes everywhere", () => {
+    const text: string = getPaymentNeededText({
+      translator: english,
+      mayAddPaymentMethod: true,
+    });
+
+    expect(text).toContain(
+      formatPriceInUSD(ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH),
+    );
+  });
+
+  test("in every language, the price kept", () => {
+    for (const language of [...DASHBOARD_LANGUAGES]) {
+      for (const mayAddPaymentMethod of [true, false]) {
+        const text: string = getPaymentNeededText({
+          translator: dashboardTranslator(language),
+          mayAddPaymentMethod,
+        });
+
+        expect({
+          language,
+          worded:
+            text !==
+            getPaymentNeededText({ translator: english, mayAddPaymentMethod }),
+          price: withoutIsolateMarks(text).includes("$1"),
+        }).toEqual({ language, worded: true, price: true });
+      }
+    }
+  });
+
+  test("its button is the billing page's own, worded as the billing page words it", () => {
+    const billing: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Billing.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(WEBSITE_DOWN_COPY.addPaymentMethod).toBe("Add Payment Method");
+    expect(billing).toContain('submitButtonText={"Add Payment Method"}');
   });
 });
 
@@ -918,7 +1558,7 @@ describe("the summary, read from the records", () => {
       {
         key: "when_down",
         label: "When it goes down",
-        text: "If it does not answer, or answers with an error, OneUptime opens an incident (Critical).",
+        text: "If it does not answer, or answers with an error, OneUptime opens an incident (Critical). A status change needs both connected probes to agree.",
       },
       {
         key: "who_is_told",
@@ -947,13 +1587,88 @@ describe("the summary, read from the records", () => {
       rowText(
         getWebsiteDownSummaryRows(
           english,
-          summaryFacts({ incidentSeverityName: null }),
+          summaryFacts({ incidentSeverityName: null, locationCount: 1 }),
         ),
         "when_down",
       ),
     ).toBe(
       "If it does not answer, or answers with an error, its status changes to Offline.",
     );
+  });
+
+  /*
+   * "If it does not answer ... OneUptime opens an incident" was said of a
+   * monitor checked from three locations, where one location failing opens
+   * none (#7410): the row says how many must agree, as the monitor's probes
+   * card says it.
+   */
+  describe("how many locations must agree (#7410)", () => {
+    const whenDown: (extra: Partial<WebsiteDownSummaryFacts>) => string = (
+      extra: Partial<WebsiteDownSummaryFacts>,
+    ): string => {
+      return (
+        rowText(
+          getWebsiteDownSummaryRows(english, summaryFacts(extra)),
+          "when_down",
+        ) || ""
+      );
+    };
+
+    test("one location: nothing to agree on", () => {
+      expect(whenDown({ locationCount: 1 })).toBe(
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical).",
+      );
+    });
+
+    test("three locations, all must agree", () => {
+      expect(whenDown({ locationCount: 3 })).toBe(
+        "If it does not answer, or answers with an error, OneUptime opens an incident (Critical). A status change needs all 3 connected probes to agree.",
+      );
+    });
+
+    test("a minimum the monitor sets", () => {
+      expect(
+        whenDown({ locationCount: 3, minimumProbeAgreement: 2 }),
+      ).toContain("A status change needs 2 of 3 connected probes to agree.");
+      // A minimum of one needs no agreement.
+      expect(
+        whenDown({ locationCount: 3, minimumProbeAgreement: 1 }),
+      ).not.toContain("agree");
+    });
+
+    test("only the connected locations count", () => {
+      expect(
+        whenDown({ locationCount: 3, activeLocationCount: 1 }),
+      ).not.toContain("agree");
+      expect(whenDown({ locationCount: 3, activeLocationCount: 2 })).toContain(
+        "A status change needs both connected probes to agree.",
+      );
+    });
+
+    test("criteria that open no incident: the status change needs it too", () => {
+      expect(whenDown({ locationCount: 2, incidentSeverityName: null })).toBe(
+        "If it does not answer, or answers with an error, its status changes to Offline. A status change needs both connected probes to agree.",
+      );
+    });
+
+    test("the agreement is said in the reader's language", () => {
+      const inGerman: string =
+        rowText(
+          getWebsiteDownSummaryRows(
+            dashboardTranslator("de"),
+            summaryFacts({ locationCount: 3 }),
+          ),
+          "when_down",
+        ) || "";
+      const sentence: string =
+        readDashboardLocale("de")[
+          "A status change needs all {{count}} connected probes to agree."
+        ] || "";
+
+      expect(sentence).not.toBe("");
+      expect(inGerman).not.toContain("A status change needs");
+      expect(inGerman).toContain(sentence.replace("{{count}}", "3"));
+    });
   });
 
   test("a policy whose responders could not be read is named alone", () => {
@@ -1233,7 +1948,14 @@ describe("the summary's severity, in brackets after the word for incident, in ev
     },
   );
 
-  // A project's own names, the defaults among them, kept as they were given.
+  /*
+   * A project's own name kept as it was given ("SEV1"), and the names a new
+   * project starts with in the reader's words, as their badges read them
+   * (Common/Utils/DefaultRecordNames, #7894): German "Kritischer Vorfall",
+   * in brackets, so "einen Vorfall (Kritischer Vorfall)" names the
+   * severity once and never reads it as a word before the word for
+   * incident.
+   */
   const severities: Array<string> = [
     "Critical Incident",
     "Major Incident",
@@ -1265,15 +1987,25 @@ describe("the summary's severity, in brackets after the word for incident, in ev
         )!,
       );
 
-      expect(text).toContain(bracketed.replace(SEVERITY_PLACEHOLDER, severity));
+      const shown: string = translateRecordName(
+        dashboardTranslator(language),
+        StateListType.IncidentSeverity,
+        severity,
+      );
+
+      if (severity === "SEV1") {
+        expect(shown).toBe(severity);
+      }
+
+      expect(text).toContain(bracketed.replace(SEVERITY_PLACEHOLDER, shown));
       // "Critical Incident incident", "Kritischer Vorfall Vorfall": never.
       expect(text.toLowerCase()).not.toContain(
-        `${severity} ${incidentWord}`.toLowerCase(),
+        `${shown} ${incidentWord}`.toLowerCase(),
       );
       expect(text.toLowerCase()).not.toContain(
-        `${severity}${incidentWord}`.toLowerCase(),
+        `${shown}${incidentWord}`.toLowerCase(),
       );
-      expect(text.split(severity)).toHaveLength(2);
+      expect(text.split(shown)).toHaveLength(2);
     },
   );
 

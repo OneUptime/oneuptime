@@ -91,6 +91,7 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const MODEL_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
@@ -452,10 +453,11 @@ describe("the linked alerts and incidents pages", () => {
 
       const bare: IncidentAlert = new IncidentAlert();
 
-      expect(renderCell(table, "Alert #", bare)).toBe("-");
-      expect(renderCell(table, "Title", bare)).toBe("-");
-      expect(renderCell(table, "Current State", bare)).toBe("-");
-      expect(renderCell(table, "Linked By", bare)).toBe("-");
+      // The quiet dash every empty cell is (#7603).
+      expect(renderCell(table, "Alert #", bare)).toBe(QUIET_DASH_TEXT);
+      expect(renderCell(table, "Title", bare)).toBe(QUIET_DASH_TEXT);
+      expect(renderCell(table, "Current State", bare)).toBe(QUIET_DASH_TEXT);
+      expect(renderCell(table, "Linked By", bare)).toBe(QUIET_DASH_TEXT);
     });
 
     /*

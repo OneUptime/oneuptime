@@ -12,7 +12,7 @@ Le calendrier de maintenance montre votre maintenance planifiée par date : sur 
 
 ```mermaid title="Une liste d'événements, trois calendriers"
 flowchart TB
-    events["Événements de<br/>maintenance planifiée"] --> view["La vue calendrier<br/>du tableau de bord"]
+    events["Événements de<br/>maintenance"] --> view["La vue calendrier<br/>du tableau de bord"]
     events --> team["Le lien de l'équipe<br/>chaque événement"]
     events --> page["Le lien d'une<br/>page de statut<br/>ce que la page montre"]
     team --> apps["Applications<br/>de calendrier"]
@@ -59,11 +59,11 @@ Copiez le lien depuis les paramètres de partage du calendrier lui-même : dans 
 
 Chaque calendrier conserve ses événements de 90 jours en arrière à un an en avant, jusqu'à 2 000, les plus proches d'aujourd'hui d'abord. Un calendrier de plus de 5 Mo n'est pas lu. Les événements récurrents, leurs exceptions et leurs fuseaux horaires sont lus tels que l'application de calendrier les a écrits, et un événement d'une journée entière reste à sa date dans chaque fuseau horaire. Un projet peut avoir jusqu'à 20 calendriers externes, et une vue du calendrier dessine jusqu'à 500 de leurs événements.
 
-Les rôles qui créent, modifient et suppriment les événements de maintenance planifiée ajoutent, modifient et retirent les calendriers externes, et toute personne qui peut lire les événements les voit sur le calendrier. OneUptime ne lit jamais une adresse de son propre serveur ni une adresse de métadonnées cloud, et OneUptime Cloud refuse les adresses d'un réseau privé. Un serveur auto-hébergé peut lire un calendrier de votre propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`.
+Les rôles qui créent, modifient et suppriment les événements de maintenance ajoutent, modifient et retirent les calendriers externes, et toute personne qui peut lire les événements les voit sur le calendrier. OneUptime ne lit jamais une adresse de son propre serveur ni une adresse de métadonnées cloud, et OneUptime Cloud refuse les adresses d'un réseau privé. Un serveur auto-hébergé peut lire un calendrier de votre propre réseau, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`.
 
 ## Le lien de calendrier de l'équipe
 
-**S'abonner au calendrier**, sous le calendrier, ouvre le lien de calendrier du projet : un lien iCalendar (`.ics`) secret qui place chaque événement de maintenance planifiée du projet dans Google Agenda, Outlook, Apple Calendrier ou toute application qui s'abonne à un calendrier par URL.
+**S'abonner au calendrier**, sous le calendrier, ouvre le lien de calendrier du projet : un lien iCalendar (`.ics`) secret qui place chaque événement de maintenance du projet dans Google Agenda, Outlook, Apple Calendrier ou toute application qui s'abonne à un calendrier par URL.
 
 :::steps
 ### Publier le lien
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Toute personne qui a le lien voit chaque événement de maintenance planifiée du projet, sans se connecter. Traitez-le comme un mot de passe, et régénérez-le s'il est partagé par erreur.
+> Toute personne qui a le lien voit chaque événement de maintenance du projet, sans se connecter. Traitez-le comme un mot de passe, et régénérez-le s'il est partagé par erreur.
 
 ### Qui peut voir le lien
 
@@ -94,9 +94,9 @@ Le lien montre chaque événement du projet, la boîte de dialogue ne le montre 
 
 | Action | Qui peut le faire |
 | --- | --- |
-| Copier le lien | Toute personne qui peut lire chaque événement de maintenance planifiée du projet |
-| **Publier le lien** | Toute personne qui peut aussi créer des événements de maintenance planifiée |
-| **Régénérer le lien**, **Désactiver le lien** | Toute personne qui peut aussi modifier des événements de maintenance planifiée |
+| Copier le lien | Toute personne qui peut lire chaque événement de maintenance du projet |
+| **Publier le lien** | Toute personne qui peut aussi créer des événements de maintenance |
+| **Régénérer le lien**, **Désactiver le lien** | Toute personne qui peut aussi modifier des événements de maintenance |
 
 ### Gérer le lien
 
@@ -158,6 +158,6 @@ La raison figure sous **Ne fonctionne pas** dans son **Statut** : aucun calendri
 
 :::cards
 - [Créer des événements de maintenance](/docs/scheduled-maintenance/creating-events): Le formulaire, champ par champ, et ce qui se passe ensuite.
-- [Abonnés et annonces](/docs/status-pages/subscribers#événements-de-maintenance-planifiée): Ce que les abonnés d'une page de statut apprennent de la maintenance.
+- [Abonnés et annonces](/docs/status-pages/subscribers#événements-de-maintenance): Ce que les abonnés d'une page de statut apprennent de la maintenance.
 - [Flux de calendrier](/docs/on-call/calendar-feeds): Le même genre de lien, pour les gardes d'astreinte.
 :::

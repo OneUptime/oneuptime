@@ -26,6 +26,8 @@ import StatusTimelineViewSwitch, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import {
   getStateTimelineDurationColumn,
   getStateTimelineEndsAtColumn,
@@ -43,6 +45,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const UPTIME_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30, 90];
 
@@ -346,11 +349,15 @@ const NetworkSiteStatusTimelinePage: FunctionComponent<
               type: FieldType.Entity,
               getElement: (item: NetworkSiteStatusTimeline): ReactElement => {
                 if (!item.monitorStatus?.name) {
-                  return <span className="text-sm text-gray-400">—</span>;
+                  return <TableEmptyValue />;
                 }
                 return (
                   <Pill
                     text={item.monitorStatus.name}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.MonitorStatus,
+                      item.monitorStatus.name,
+                    )}
                     color={item.monitorStatus.color || Gray500}
                     size={PillSize.Small}
                   />

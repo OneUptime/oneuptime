@@ -11,6 +11,8 @@ import DashboardResourceHoneycomb, {
 } from "./DashboardResourceHoneycomb";
 import DashboardSortableColumnHeader from "./DashboardSortableColumnHeader";
 import WidgetPlaceholder from "./WidgetPlaceholder";
+import DashboardWidgetEmpty from "./DashboardWidgetEmpty";
+import { DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME } from "./DashboardWidgetSetupCopy";
 import useDashboardWidgetColumns, {
   DashboardWidgetColumn,
   DashboardWidgetColumns,
@@ -299,10 +301,15 @@ const DashboardResourceListBase: FunctionComponent<
       {props.summary && <div className="mb-2 px-1">{props.summary}</div>}
       {viewMode === "honeycomb" ? (
         <div className="flex-1 overflow-hidden rounded-md border border-gray-100">
+          {/*
+           * No tiles: the list's icon over the shared no-data line
+           * (#8038), as a widget with nothing in its time range draws it.
+           */}
           {props.isEmpty ? (
-            <div className="h-full flex items-center justify-center px-4 py-8 text-center text-gray-400 text-sm">
-              {emptyMessage}
-            </div>
+            <DashboardWidgetEmpty
+              icon={props.emptyIcon}
+              message={props.emptyMessage}
+            />
           ) : (
             <DashboardResourceHoneycomb
               tiles={props.honeycombTiles || []}
@@ -354,7 +361,7 @@ const DashboardResourceListBase: FunctionComponent<
                 <tr>
                   <td
                     colSpan={props.columns.length}
-                    className="px-4 py-8 text-center text-gray-400 text-sm"
+                    className={DASHBOARD_WIDGET_EMPTY_ROW_CLASS_NAME}
                   >
                     {emptyMessage}
                   </td>

@@ -29,7 +29,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import OneUptimeDate from "Common/Types/Date";
 
 interface ComponentProps {
   subjectType: "incident" | "alert";
@@ -178,6 +178,29 @@ export function parseInvestigationNotStartedReason(
   delete parsed.facts;
 
   return facts ? { ...parsed, facts } : parsed;
+}
+
+/*
+ * When the decision was taken, as every other date and time on the
+ * Dashboard writes it (OneUptimeDate): in the reader's zone, on their 12- or
+ * 24-hour clock and in their language - "Sep 17, 2026, 12:24 PM", "17.
+ * Sept. 2026, 05:14". Written with the language's own clock and the
+ * browser's zone, it read "5:14" in German, French or British English
+ * beside a table's "05:14" (issue #7649). Null for a time the server did
+ * not send as one.
+ */
+export function formatInvestigationCheckedAt(
+  evaluatedAt: string,
+): string | null {
+  const time: number = Date.parse(evaluatedAt);
+
+  if (!Number.isFinite(time)) {
+    return null;
+  }
+
+  return OneUptimeDate.getDateAsLocalShortDateTimeString(new Date(time), {
+    showYear: true,
+  });
 }
 
 /*
@@ -391,13 +414,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
         : "No recorded decision",
   ) as string;
   const checkedAt: string | null = reason
-    ? new Date(reason.evaluatedAt).toLocaleString(getReaderDateLocale(), {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })
+    ? formatInvestigationCheckedAt(reason.evaluatedAt)
     : null;
 
   return (
@@ -489,7 +506,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
           </div>
           <Button
             title="Retry"
-            ariaLabel={translator.translateText("Retry investigation status")}
+            ariaLabel="Retry investigation status"
             icon={IconProp.Refresh}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.OUTLINE}

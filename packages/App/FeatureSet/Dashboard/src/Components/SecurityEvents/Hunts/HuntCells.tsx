@@ -36,6 +36,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface HuntCellProps {
   hunt: SecurityHunt;
@@ -447,7 +448,7 @@ export const HuntLastFoundCell: FunctionComponent<HuntCellProps> = (
       </span>
     );
   } else {
-    content = <span className="text-sm text-gray-400">-</span>;
+    content = <TableEmptyValue />;
   }
 
   return (

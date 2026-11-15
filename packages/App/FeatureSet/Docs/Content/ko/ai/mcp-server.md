@@ -41,7 +41,7 @@ flowchart TB
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
 - **텔레메트리**: 로그, 메트릭, 트레이스, 예외, 모니터 로그, 보안 이벤트 등을 조회합니다(읽기 전용).
 
-53가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
+54가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
 
 ## 시작하기 전에
 
@@ -253,7 +253,7 @@ API 키나 로그인 없이도 클라이언트는 공개 도구를 사용할 수
 - **`oneuptime_describe_resource`**: 리소스의 필드와 필드로 필터링, 정렬, 선택하는 방법
 - **`get_public_status_page_overview`**: 공개 상태 페이지의 개요
 - **`get_public_status_page_incidents`**: 공개 상태 페이지의 인시던트
-- **`get_public_status_page_scheduled_maintenance`**: 그 페이지의 예정된 유지 관리 이벤트
+- **`get_public_status_page_scheduled_maintenance`**: 그 페이지의 유지 관리 이벤트
 - **`get_public_status_page_announcements`**: 그 페이지의 공지
 
 공개 상태 페이지 도구는 상태 페이지의 ID(UUID)나 도메인 이름을 받습니다. 이 도구만 사용하려면 자격 증명 없이 주소만으로 연결합니다:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 분야 | 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있는 레코드 |
 | --- | --- |
 | 모니터링 | Monitor, Monitor Status, Monitor Status Event |
-| 인시던트 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| 인시던트 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | 알림 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 상태 페이지 | Status Page, Status Page Announcement |
 | 예정된 유지 관리 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

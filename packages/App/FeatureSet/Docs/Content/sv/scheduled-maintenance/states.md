@@ -1,6 +1,6 @@
 # Underhållsstatusar
 
-Varje schemalagd underhållshändelse är i ett **tillstånd**: hur långt arbetet har kommit, från planerat till godkänt. Tillstånd avgör vad OneUptime gör med händelsen: när dess monitorer slutar kontrolleras, vad dina statussidor visar, när dess påminnelser upphör. Den här sidan går igenom de fyra tillstånd som varje projekt börjar med, vad som flyttar en händelse mellan dem och hur du lägger till egna steg.
+Varje underhållshändelse är i ett **tillstånd**: hur långt arbetet har kommit, från planerat till godkänt. Tillstånd avgör vad OneUptime gör med händelsen: när dess monitorer slutar kontrolleras, vad dina statussidor visar, när dess påminnelser upphör. Den här sidan går igenom de fyra tillstånd som varje projekt börjar med, vad som flyttar en händelse mellan dem och hur du lägger till egna steg.
 
 :::cards
 - [Standardtillstånden](#standardtillstånden): Schemalagd, Pågående, Avslutad och Slutförd.

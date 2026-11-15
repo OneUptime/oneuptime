@@ -33,8 +33,8 @@ Sonden rapporterer bare:
 |---|---|
 | **Antall rader** | Antall rader spørringen returnerte (begrenset av grensen Max Rows). |
 | **Skalarverdi** | Den første kolonnen i den første raden. Dette er den naturlige verdien for en spørring av typen `SELECT COUNT(*)`. |
-| **First Row** | Den første raden som par av kolonne og verdi, vist i kontrollsammendraget som kontekst. |
-| **Execution Time** | Hvor lang tid kontrollen tok, i millisekunder — tilkoblingen inkludert, ikke bare spørringen. |
+| **Første rad** | Den første raden som par av kolonne og verdi, vist i kontrollsammendraget som kontekst. |
+| **Kjøretid** | Hvor lang tid kontrollen tok, i millisekunder — tilkoblingen inkludert, ikke bare spørringen. |
 | **Spørringsfeil** | En renset feilmelding hvis spørringen mislyktes. |
 
 Hele resultatsettet sendes aldri til OneUptime, så kundedata kopieres ikke over i lagringen til OneUptime.
@@ -250,7 +250,7 @@ Knytt en vaktpolicy til kriteriet slik at de riktige personene blir tilkalt. En 
 
 - Spørringen kjører ved hver kontroll, så hold den billig. Bruk indekser og smale tidsvinduer, og stol på Statement Timeout som sikkerhetsnett.
 - Bare antall rader, den første cellen (skalar) og den første raden rapporteres — utform spørringen slik at verdien du vil varsle på, er den første kolonnen.
-- Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rows Truncated**: "Yes (result capped)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
+- Hvis resultatet avkortes fordi det overskred Max Rows, viser kontrollsammendraget **Rader avkortet**: "Ja (resultatet er begrenset)". Øk Max Rows bare hvis du trenger det; større resultatsett koster mer minne på sonden.
 - Skriving og DDL avvises alltid. Hvis du må teste en skrivevei, er det ikke det denne monitoren er til.
 - Foretrekk en overvåkingshemmelighet fremfor et passord i ren tekst, slik at påloggingsinformasjonen forblir kryptert når den er lagret.
 - En kontroll der spørringen mislykkes, prøves igjen et sekund senere, opptil tre ganger til, før den rapporterer feilen, slik at et kort tilkoblingsbrudd ikke gjør monitoren frakoblet. På en selvhostet sonde bestemmer `PROBE_MONITOR_RETRY_LIMIT` hvor mange ganger.

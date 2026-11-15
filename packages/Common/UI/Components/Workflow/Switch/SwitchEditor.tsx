@@ -677,6 +677,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                 "Comparison for case {{number}}",
                 { number: number },
               )}
+              isAriaLabelTranslated={true}
               isClearable={false}
               // One line, as the value beside it: cut short, never wrapped.
               className="relative w-full [&_.ou-select__placeholder]:max-w-full [&_.ou-select__placeholder]:truncate"
@@ -709,6 +710,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                     "Value for case {{number}}",
                     { number: number },
                   )}
+                  isAriaLabelTranslated={true}
                   autoFocus={addedCaseId === switchCase.id}
                   dataTestId={`switch-case-value-${index}`}
                   error={
@@ -737,6 +739,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                     number: number,
                   },
                 )}
+                isAriaLabelTranslated={true}
                 buttonStyle={ButtonStyleType.ICON}
                 icon={IconProp.Trash}
                 dataTestId={`switch-case-remove-${index}`}
@@ -929,6 +932,7 @@ const SwitchEditor: FunctionComponent<SwitchEditorProps> = (
                             "Put case “{{case}}” back",
                             { case: removed.label },
                           )}
+                          isAriaLabelTranslated={true}
                           onClick={() => {
                             putBack(removed);
                           }}

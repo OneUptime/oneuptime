@@ -8,6 +8,7 @@ A postmortem is the write-up after an incident: what happened, why, what it cost
 - [Publish it on your status page](#publish-it-on-your-status-page): Show it to customers, and tell subscribers once.
 - [Track where each postmortem stands](#track-where-each-postmortem-stands): Not Started, Draft, Completed, or a status of your own.
 - [See every postmortem](#see-every-postmortem): Filter by owner, severity and status to find the ones still owed.
+- [Track action items](#track-action-items): What the team will do, who owns each, and what it became.
 - [Postmortems of episodes](#postmortems-of-episodes): One write-up for a group of incidents.
 :::
 
@@ -169,13 +170,54 @@ Filter the list with the chips above it: **Owner**, a person or a team; **Severi
 
 To change many at once, select them and open **Bulk Actions**: **Change Postmortem Status** moves them all to one status, such as **Not Needed** for incidents that need none, and **Add Owner** and **Remove Owner** change who owns them.
 
+## Track action items
+
+A postmortem's action items are what your team will do so the incident does not happen again. Each one is a record on the incident, with an owner, a due date and a status, so none of them stays a line in the note that nobody follows up. The **Action Items** card is under the **Postmortem** card on the incident's **Postmortem** page.
+
+- To add one, type it into the line under the list and click **Add Action Item**.
+- To give one an owner, pick **Assign to Me** or **Assign to Someone Else** in its **⋯** menu.
+- To give one a due date, pick **Edit Action Item** in its **⋯** menu and set its **Due Date**. An open action item past its due date says it is overdue, in red.
+- To close one, tick its box when it is done. **Mark as Won't Do** in its **⋯** menu closes it when the team decides not to do it, and **Reopen** opens it again. Each says who closed it and when.
+
+The card says how many are done, leaving out the ones marked **Won't Do**. Adding, closing and handing over an action item is recorded in the incident's feed.
+
+### Track the action items your note lists
+
+OneUptime AI's draft and every postmortem template end with an action items section: a checklist, or a table with `Owner` and `Due Date` columns. When the note has one, the card names the items the incident does not track yet, with a button that tracks them all. Each becomes an action item:
+
+- a ticked box is tracked as done;
+- a due date the note writes as a date, such as 2026-11-20, becomes its due date, in your time zone;
+- an item already tracked, by its title, is left out, so tracking again adds nothing.
+
+The section's heading can be `Action Items`, `Follow-ups`, `Next Steps` or `How We Prevent It`, or the same words in another of the Dashboard's languages.
+
+### Turn an action item into a pull request, a test or a monitor
+
+Each open action item can become what it asks for, from its **⋯** menu:
+
+| Action | What happens |
+| --- | --- |
+| **Open Pull Request with AI** | OneUptime AI makes the change in a repository you pick and opens a pull request for review. The incident and its postmortem go with the request. |
+| **Write a Test with AI** | OneUptime AI writes a test that would have caught the incident, in the repository's own test framework, and opens a pull request with it. |
+| **Create Monitor** | **Create Monitor** opens named after the action item. Once the monitor is created, the action item names it and is done. |
+
+The action item then shows what it became: its task's stage, such as **Task in progress** or **Pull request open**, linked to the task in [Code](/docs/ai/ai-agent), and its pull request; or the monitor. When the pull request merges, the action item is done by itself, and the incident's feed says so.
+
+The two AI actions need AI turned on for the project and a repository OneUptime AI can work in. With none connected, the menu offers **Connect a Repository** instead. Asking takes what asking in Code takes, and the permission to edit the action item.
+
+### See every action item
+
+**Incidents → Action Items** lists every postmortem's action items across the project, soonest due first, with each one's incident, owner, due date and status. Filter it by **Status**, **Owner** and **Due Date**, and **View** on a row opens the incident's **Postmortem** page.
+
+Reading action items takes what reading the incident takes. Adding, changing and deleting them takes the Project Owner, Project Admin, Project Member, Incident Admin or Incident Member role, or a custom role with the matching Postmortem Action Item permission. A private incident's action items, like the incident, are visible only to its owner users, the members of its owner teams, project admins and project owners.
+
 ## Postmortems of episodes
 
 An incident episode has a **Postmortem** page too, under **Investigation**: one write-up for every incident in the episode. Click **Edit Postmortem** to write it. **Apply Template** and **Generate with AI** work as on an incident, and the AI reads the episode and its member incidents.
 
 An episode's postmortem is the note alone: it has no attachments, and no status page shows it. OneUptime AI does not draft one on its own when an episode resolves. Generating one takes the Project Owner or Project Admin role, or a custom role with the Edit Incident Episode permission. It has no status either, and the postmortems list leaves it out.
 
-Alerts and scheduled maintenance events have no postmortem.
+Alerts and maintenance events have no postmortem.
 
 ## Through the API
 
@@ -190,6 +232,8 @@ A postmortem is a set of fields on the incident, read and written through `/api/
 | `postmortemStatusId` | The postmortem's status: one of the project's statuses, at `/api/incident-postmortem-status`. |
 
 Writing `showPostmortemOnStatusPage` as `true` over a written `postmortemNote` publishes the postmortem, as the dialog does. It moves the postmortem to **Completed** as well, unless the same write sets `postmortemStatusId`.
+
+A postmortem's action items are records of their own, at `/api/incident-postmortem-action-item`: each with its `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` and `status` (`Open`, `Done` or `WontDo`). Workflows can start when one is created, changed or deleted.
 
 ## Troubleshooting
 

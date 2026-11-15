@@ -41,7 +41,7 @@ flowchart TB
 - **排定維護**：建立和管理維護事件。
 - **遙測**：查詢日誌、指標、追蹤、例外、監測器日誌、安全性事件等，唯讀。
 
-有針對 53 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，只有公開狀態頁工具帶有 `openWorldHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
+有針對 54 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，只有公開狀態頁工具帶有 `openWorldHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
 
 ## 開始之前
 
@@ -253,7 +253,7 @@ MCP 伺服器有三種運作方式。
 - **`oneuptime_describe_resource`**：資源的欄位，以及如何依欄位篩選、排序和選取
 - **`get_public_status_page_overview`**：公開狀態頁的概覽
 - **`get_public_status_page_incidents`**：公開狀態頁的事件
-- **`get_public_status_page_scheduled_maintenance`**：它的排定維護事件
+- **`get_public_status_page_scheduled_maintenance`**：它的維護事件
 - **`get_public_status_page_announcements`**：它的公告
 
 公開狀態頁工具接受狀態頁的 ID（UUID）或其網域名稱。如果只使用這些工具，請只用位址連接，不帶任何認證：
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ MCP 伺服器是無狀態的：它既不核發也不追蹤工作階段 ID，因�
 | 領域 | 具有建立、取得、列出、更新、刪除和計數工具的記錄 |
 | --- | --- |
 | 監控 | Monitor, Monitor Status, Monitor Status Event |
-| 事件 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| 事件 | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | 警示 | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | 狀態頁 | Status Page, Status Page Announcement |
 | 排定維護 | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

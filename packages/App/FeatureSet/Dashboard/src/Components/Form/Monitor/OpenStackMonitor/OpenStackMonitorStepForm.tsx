@@ -198,6 +198,8 @@ const OpenStackMonitorStepForm: FunctionComponent<ComponentProps> = (
       toOption: (cloud: OpenStackCloud): DropdownOption => {
         return {
           label: cloud.name || "Unknown",
+          // Its own name as written; "Unknown" in the reader's words.
+          isUserContent: Boolean(cloud.name),
           value: cloud.name || "",
         };
       },

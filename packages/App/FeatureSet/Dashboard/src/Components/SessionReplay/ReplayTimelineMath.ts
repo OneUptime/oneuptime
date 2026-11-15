@@ -14,13 +14,17 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import { SessionReplayPauseReason } from "Common/Types/Rum/SessionReplayCustomEvents";
 import { ReplayIdleBand } from "./Engine/ReplayEngineTypes";
 import {
   ReplaySignal,
   ReplaySignalKind,
   ReplaySignalSeverity,
 } from "./Rail/ReplaySignalTypes";
-import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
+import {
+  formatReplayDuration,
+  formatReplayOffsetInLanguage,
+} from "./ReplayTimeFormat";
 
 /*
  * Pure geometry and bookkeeping for the timeline: track bands, activity
@@ -86,7 +90,7 @@ export function formatReplayDurationInLanguage(
 }
 
 /* The same length, as a value of a sentence: in the sentence's language. */
-function durationValue(durationMs: number): ComposedValue {
+export function replayDurationValue(durationMs: number): ComposedValue {
   return composedValue((sentence: Translator): string => {
     return formatReplayDurationInLanguage(durationMs, sentence);
   });
@@ -195,6 +199,11 @@ export interface ReplayTrackBand {
    * exact (from decoded events). Paused bands are always exact.
    */
   fidelity?: "coarse" | "exact" | undefined;
+  /*
+   * Paused bands only: "page" when the page paused recording itself, so
+   * the band's name says so rather than that the page was idle (#7498).
+   */
+  pauseReason?: SessionReplayPauseReason | undefined;
 }
 
 /* The bands drawn full height over the track, each with a label. */
@@ -322,14 +331,20 @@ export function buildTrackBands(
       continue;
     }
 
-    bands.push({
+    const trackBand: ReplayTrackBand = {
       kind: band.kind,
       startMs: startMs,
       endMs: endMs,
       label: describeTrackBandLabel(band.kind, endMs - startMs),
       lengthMs: endMs - startMs,
       fidelity: band.fidelity,
-    });
+    };
+
+    if (band.kind === "paused" && band.pauseReason) {
+      trackBand.pauseReason = band.pauseReason;
+    }
+
+    bands.push(trackBand);
   }
 
   return bands;
@@ -347,7 +362,7 @@ export function describeTrackBandLabel(
   lengthMs: number,
   translator: Translator = ENGLISH,
 ): string {
-  const values: TemplateValues = { duration: durationValue(lengthMs) };
+  const values: TemplateValues = { duration: replayDurationValue(lengthMs) };
 
   switch (kind) {
     case "gap":
@@ -533,9 +548,14 @@ function readBoolean(detail: Record<string, unknown>, key: string): boolean {
 /*
  * "0:37 TypeError: x is undefined": the time, then the signal's own title
  * as the rail wrote it. An unanchored row says it is placed by server time.
+ * The time is in the translator's digits ("۰:۳۷" in Persian, #7318); the
+ * title as it was recorded.
  */
 function markerTitle(signal: ReplaySignal, translator: Translator): string {
-  const time: string = formatReplayOffset(signal.offsetMs);
+  const time: string = formatReplayOffsetInLanguage(
+    signal.offsetMs,
+    translator.language,
+  );
 
   if (signal.alignment === "unanchored") {
     return translator.translateTemplate(
@@ -710,15 +730,17 @@ export function describeFrustrationCounters(
 
 /*
  * What every coarse title puts around its count: "~1:07" (where the
- * marker sits) and the chunk's length ("15s"), in the sentence's language.
+ * marker sits), in the translator's digits as a count is, and the chunk's
+ * length ("15s"), in the sentence's language.
  */
 function coarseValues(
   chunk: ReplayTimelineChunkInput,
   midpointMs: number,
+  translator: Translator,
 ): TemplateValues {
   return {
-    time: formatReplayOffset(midpointMs),
-    window: durationValue(
+    time: formatReplayOffsetInLanguage(midpointMs, translator.language),
+    window: replayDurationValue(
       Math.max(0, chunk.chunkEndOffsetMs - chunk.chunkStartOffsetMs),
     ),
   };
@@ -751,7 +773,7 @@ export function buildCoarseMarkers(
       (chunk.chunkStartOffsetMs + chunk.chunkEndOffsetMs) / 2,
       durationMs,
     );
-    const values: TemplateValues = coarseValues(chunk, midpointMs);
+    const values: TemplateValues = coarseValues(chunk, midpointMs, translator);
 
     if (chunk.errorCount > 0) {
       markers.push({
@@ -860,9 +882,11 @@ export function buildCoarseMarkers(
   return markers;
 }
 
+// A notice's time in the translator's digits; its title as the caller wrote it.
 export function buildNoticeMarkers(
   notices: Array<ReplayTimelineNoticeInput>,
   durationMs: number,
+  translator: Translator = ENGLISH,
 ): Array<ReplayTimelineMarker> {
   return notices
     .filter((notice: ReplayTimelineNoticeInput): boolean => {
@@ -877,7 +901,10 @@ export function buildNoticeMarkers(
         offsetMs: offsetMs,
         kind: "notice",
         severity: "warn",
-        title: `${formatReplayOffset(offsetMs)} ${notice.title}`,
+        title: `${formatReplayOffsetInLanguage(
+          offsetMs,
+          translator.language,
+        )} ${notice.title}`,
         tone: "gray",
         fidelity: "exact",
         isHollow: false,
@@ -909,7 +936,7 @@ export function buildTimelineMarkers(
       input.durationMs,
       translator,
     ),
-    ...buildNoticeMarkers(input.notices || [], input.durationMs),
+    ...buildNoticeMarkers(input.notices || [], input.durationMs, translator),
   ];
 
   return sortMarkers(markers);

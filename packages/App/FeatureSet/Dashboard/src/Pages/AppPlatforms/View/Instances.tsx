@@ -26,6 +26,7 @@ import { CLOUD_INSTANCE_IDENTITY_ATTRIBUTES } from "Common/Utils/Telemetry/Cloud
 import { CLOUD_INSTANCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The copy names the identity chain from the same constant ingest walks, so
@@ -141,7 +142,7 @@ export const CloudInstancesTable: FunctionComponent<
           getElement: (item: CloudResourceInstance): ReactElement => {
             return (
               <span className="font-mono text-sm text-gray-900">
-                {(item.instanceName as string) || "—"}
+                {(item.instanceName as string) || <TableEmptyValue />}
               </span>
             );
           },
@@ -158,7 +159,7 @@ export const CloudInstancesTable: FunctionComponent<
                   const name: string = item.cloudApp?.name || "";
 
                   if (!item.cloudAppId || !name) {
-                    return <span className="text-sm text-gray-400">—</span>;
+                    return <TableEmptyValue />;
                   }
 
                   return (
@@ -188,7 +189,7 @@ export const CloudInstancesTable: FunctionComponent<
                 <bdi>{revision}</bdi>
               </span>
             ) : (
-              <span className="text-sm text-gray-400">—</span>
+              <TableEmptyValue />
             );
           },
         },
@@ -218,6 +219,7 @@ export const CloudInstancesTable: FunctionComponent<
                         { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
                       )
                 }
+                isTooltipUserContent={true}
               />
             );
           },

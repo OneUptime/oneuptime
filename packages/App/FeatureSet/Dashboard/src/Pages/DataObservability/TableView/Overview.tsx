@@ -5,6 +5,7 @@ import {
   formatSize,
   formatUpdateInterval,
 } from "../../../Components/DataObservability/DataObservabilityFormat";
+import { getDataAssetKindText } from "../../../Components/DataObservability/DataAssetKindWords";
 import FreshnessPill from "../../../Components/DataObservability/FreshnessPill";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
@@ -17,6 +18,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ReportDataProblem from "../../../Components/DataObservability/ReportDataProblem";
 import React, { FunctionComponent, ReactElement } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * A table at a glance: how many rows it holds, how big it is, when it last
@@ -47,7 +49,7 @@ const TableOverviewPage: FunctionComponent<
           {translator.translateText(label)}
         </dt>
         <dd className="mt-1 break-words text-sm text-gray-900">
-          {value || "-"}
+          {value || <EmptyValue />}
         </dd>
       </div>
     );
@@ -115,9 +117,9 @@ const TableOverviewPage: FunctionComponent<
           {fact("Schema", dataAsset.schemaName || "")}
           {fact(
             "Kind",
-            translator.translateText(dataAsset.assetKind || "") ||
-              dataAsset.assetKind ||
-              "",
+            dataAsset.assetKind
+              ? getDataAssetKindText(translator, dataAsset.assetKind)
+              : "",
           )}
           {fact(
             "Columns",

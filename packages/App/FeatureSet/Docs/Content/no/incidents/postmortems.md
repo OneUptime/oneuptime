@@ -8,6 +8,7 @@ En etteranalyse er gjennomgangen etter en hendelse: hva som skjedde, hvorfor, hv
 - [Publiser den på statussiden din](#publiser-den-på-statussiden-din): Vis den til kundene og varsle abonnenter én gang.
 - [Følg hvor langt hver etteranalyse har kommet](#følg-hvor-langt-hver-etteranalyse-har-kommet): Ikke startet, Utkast, Fullført eller en status du lager selv.
 - [Se alle etteranalyser](#se-alle-etteranalyser): Filtrer etter eier, alvorlighetsgrad og status for å finne dem som fortsatt mangler.
+- [Følg opp handlingspunkter](#følg-opp-handlingspunkter): Hva teamet skal gjøre, hvem som eier hvert punkt, og hva det ble til.
 - [Etteranalyser for episoder](#etteranalyser-for-episoder): Én gjennomgang for en gruppe hendelser.
 :::
 
@@ -169,13 +170,54 @@ Filtrer listen med brikkene over den: **Eier**, en person eller et team; **Alvor
 
 For å endre mange samtidig velger du dem og åpner **Massehandlinger**: **Endre status for etteranalyse** flytter alle til én status, for eksempel **Ikke nødvendig** for hendelser som ikke trenger en, og **Legg til eier** og **Fjern eier** endrer hvem som eier dem.
 
+## Følg opp handlingspunkter
+
+Handlingspunktene i en etteranalyse er det teamet ditt skal gjøre for at hendelsen ikke skal skje igjen. Hvert av dem er en post på hendelsen, med en eier, en frist og en status, så ingen av dem blir stående som en linje i notatet som ingen følger opp. Kortet **Handlingspunkter** ligger under kortet **Etteranalyse** på hendelsens side **Etteranalyse**.
+
+- For å legge til et skriver du det på linjen under listen og klikker på **Legg til handlingspunkt**.
+- For å gi et en eier velger du **Tildel til meg** eller **Tildel til en annen** i menyen **⋯** for punktet.
+- For å gi et en frist velger du **Rediger handlingspunkt** i menyen **⋯** for punktet og setter **Frist**. Et åpent handlingspunkt som har passert fristen, viser med rødt at det er forsinket.
+- For å lukke et huker du av for det når det er gjort. **Merk som «Utføres ikke»** i menyen **⋯** for punktet lukker det når teamet bestemmer seg for ikke å gjøre det, og **Gjenåpne** åpner det igjen. Hvert punkt viser hvem som lukket det og når.
+
+Kortet viser hvor mange som er gjort, uten å regne med dem som er merket **Utføres ikke**. Når et handlingspunkt legges til, lukkes eller overlates til noen andre, registreres det i hendelsens feed.
+
+### Følg opp handlingspunktene i notatet ditt
+
+Utkastet fra OneUptime AI og alle maler for etteranalyse slutter med en del for handlingspunkter: en sjekkliste, eller en tabell med kolonnene `Owner` og `Due Date`. Når notatet har en slik del, viser kortet punktene som hendelsen ikke følger opp ennå, med en knapp som legger dem alle til. Hvert av dem blir et handlingspunkt:
+
+- et avkrysset punkt blir et handlingspunkt som er gjort;
+- en frist som notatet skriver som en dato, for eksempel 2026-11-20, blir fristen, i tidssonen din;
+- et punkt med samme tittel som et handlingspunkt som allerede følges opp, utelates, så det legger ikke til noe å gjøre det på nytt.
+
+Overskriften på delen kan være `Action Items`, `Follow-ups`, `Next Steps` eller `How We Prevent It`, eller de samme ordene på et annet av dashbordets språk.
+
+### Gjør et handlingspunkt om til en pull-forespørsel, en test eller en monitor
+
+Fra menyen **⋯** kan hvert åpent handlingspunkt bli til det det ber om:
+
+| Handling | Hva som skjer |
+| --- | --- |
+| **Åpne pull-forespørsel med AI** | OneUptime AI gjør endringen i et kodelager du velger, og åpner en pull-forespørsel til gjennomgang. Hendelsen og etteranalysen følger med forespørselen. |
+| **Skriv en test med AI** | OneUptime AI skriver en test som ville ha fanget hendelsen, i kodelagerets eget testrammeverk, og åpner en pull-forespørsel med den. |
+| **Opprett monitor** | **Opprett monitor** åpnes med navnet på handlingspunktet. Når monitoren er opprettet, nevner handlingspunktet den og er ferdig. |
+
+Handlingspunktet viser deretter hva det ble til: hvor langt oppgaven har kommet, for eksempel **Oppgave pågår** eller **Pull-forespørsel åpen**, med lenke til oppgaven i [Kode](/docs/ai/ai-agent), og pull-forespørselen; eller monitoren. Når pull-forespørselen slås sammen, er handlingspunktet ferdig av seg selv, og hendelsens feed sier det.
+
+De to KI-handlingene krever at KI er slått på for prosjektet, og et kodelager OneUptime AI kan jobbe i. Er ingen koblet til, tilbyr menyen **Koble til et kodelager** i stedet. En forespørsel krever det samme som en forespørsel i Kode, pluss tillatelse til å redigere handlingspunktet.
+
+### Se alle handlingspunkter
+
+**Hendelser → Handlingspunkter** viser handlingspunktene fra alle etteranalyser i prosjektet, med den nærmeste fristen først, hver med hendelse, eier, frist og status. Filtrer listen etter **Status**, **Eier** og **Frist**, og **Vis** i en rad åpner hendelsens side **Etteranalyse**.
+
+Å lese handlingspunkter krever det samme som å lese hendelsen. Å legge dem til, endre dem og slette dem krever rollen Project Owner, Project Admin, Project Member, Incident Admin eller Incident Member, eller en egendefinert rolle med den tilsvarende tillatelsen for handlingspunkter i etteranalyser. Handlingspunktene til en privat hendelse er, som hendelsen selv, bare synlige for brukerne som eier den, medlemmene av teamene som eier den, prosjektadministratorer og prosjekteiere.
+
 ## Etteranalyser for episoder
 
 En hendelsesepisode har også en side **Etteranalyse**, under **Undersøkelse**: én gjennomgang for alle hendelsene i episoden. Klikk på **Rediger evaluering** for å skrive den. **Bruk mal** og **Generate with AI** fungerer som på en hendelse, og KI leser episoden og medlemshendelsene.
 
 En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident Episode. Den har heller ingen status, og listen over etteranalyser utelater den.
 
-Varsler og planlagte vedlikeholdshendelser har ingen etteranalyse.
+Varsler og vedlikeholdshendelser har ingen etteranalyse.
 
 ## Via API-et
 
@@ -190,6 +232,8 @@ En etteranalyse er et sett felt på hendelsen, som leses og skrives via `/api/in
 | `postmortemStatusId` | Etteranalysens status: en av prosjektets statuser, under `/api/incident-postmortem-status`. |
 
 Å skrive `showPostmortemOnStatusPage` som `true` over en skrevet `postmortemNote` publiserer etteranalysen, slik dialogen gjør. Det flytter også etteranalysen til **Fullført**, med mindre samme skriving setter `postmortemStatusId`.
+
+Handlingspunktene i en etteranalyse er egne poster, under `/api/incident-postmortem-action-item`: hver med `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` og `status` (`Open`, `Done` eller `WontDo`). Arbeidsflyter kan starte når et opprettes, endres eller slettes.
 
 ## Feilsøking
 

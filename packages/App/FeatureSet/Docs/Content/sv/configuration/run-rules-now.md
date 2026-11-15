@@ -14,7 +14,7 @@ flowchart TB
 
 ## Vilka regler kan köras
 
-- **Etikettregler** och **Ägarregler**, för varje resurs som har dem: monitorer, incidenter, incidentepisoder, larm, larmepisoder, planerade underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
+- **Etikettregler** och **Ägarregler**, för varje resurs som har dem: monitorer, incidenter, incidentepisoder, larm, larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 - **Sekretessregler**, för incidenter, larm, incidentepisoder och larmepisoder.
 - **Monitorregler** på en statussida. De synkroniserar redan om sidan varje gång en regel sparas; att köra en synkroniserar den direkt.
 - **Monitorregler** på en SLO. De synkroniserar redan om SLO:n varje gång en regel sparas; att köra en synkroniserar SLO:ns monitorer direkt. Se [Monitorer och monitorregler](/docs/slo/monitor-rules).
@@ -28,7 +28,7 @@ För att köra en regel behöver du behörighet att redigera regeln **och** att 
 > [!IMPORTANT]
 > En behörighet som är begränsad till vissa etiketter, eller till resurser som du äger, räcker inte: en körning kan ändra alla resurser i projektet. Teamens blocklistor gäller som överallt annars, och en blockering som är begränsad till vissa etiketter räknas också: en körning skulle ändra resurserna med de etiketterna, så en blockering med etiketter på redigering av de resurser som en regel ändrar avvisar körningen.
 
-Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Kör nu** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Dry Run** och **Kör regel** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
+Ett nätverks regler kräver detsamma när du kör dem på de enheter du redan har. **Kör nu** för en regel för platstilldelning eller enhetsetiketter kräver behörighet att redigera regeln och **Edit Network Device**. **Provkörning** och **Kör regel** för en regel för automatisk import kräver behörighet att redigera regeln, **Create Network Device** och, när regeln har en monitormall, **Create Monitor**. Var och en måste nå hela projektet. Se [Automatisk import med regler för automatisk import](/docs/monitor/network-device-monitor#importera-automatiskt-med-regler-för-automatisk-import).
 
 ## Köra en regel
 

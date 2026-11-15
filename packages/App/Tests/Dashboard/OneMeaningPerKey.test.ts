@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -9,6 +10,7 @@ import {
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
 import { getDefaultContext } from "../../FeatureSet/Dashboard/scripts/i18n/I18n";
 import { REPLAY_TAB_COUNT } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTabs";
+import { MEANING_KEYS } from "Common/Types/MeaningKeys";
 
 /*
  * A KEY THE DASHBOARD LOOKS UP HAS ONE MEANING (#6689, #6768, #6635).
@@ -147,6 +149,16 @@ describe("one meaning per key", () => {
     );
   });
 
+  /*
+   * #7781: an open invoice's status read the button's verb, "Abrir" ("open
+   * it"), in its pill and the Invoice Status filter. It has a key of its own.
+   */
+  test("an open invoice's status is its own key, looked up only by the invoices' list", () => {
+    expect(filesLookingUp("Open (invoice status)")).toEqual([
+      "Pages/Settings/Invoices.tsx",
+    ]);
+  });
+
   test("a session's tabs are counted with keys of their own, never the Home page's", () => {
     expect(filesLookingUp("{{count}} open")).toEqual([
       "Components/Home/NeedsAttention.tsx",
@@ -227,6 +239,112 @@ describe("one meaning per key", () => {
       "Components/SessionReplay/ReplayTabSwitcher.tsx",
     );
   });
+
+  /*
+   * #8078: a data asset of kind View read "Ver" (the View buttons' verb) in
+   * Spanish, and French named a database's table "Tableau", a table on the
+   * page. A database's view and table have keys of their own, and every
+   * place that names a data asset's kind reads them through
+   * DataAssetKindWords: the Tables lists, a table's Overview and the
+   * lineage cards.
+   */
+  test("a database's view and table are their own keys, looked up only by the kinds' words", () => {
+    expect(filesLookingUp("View (database object)")).toEqual([
+      "Components/DataObservability/DataAssetKindWords.ts",
+    ]);
+    expect(filesLookingUp("Table (database object)")).toEqual([
+      "Components/DataObservability/DataAssetKindWords.ts",
+    ]);
+
+    for (const file of [
+      "Components/DataObservability/DataAssetKindWords.ts",
+      "Components/DataObservability/DataAssetTable.tsx",
+      "Components/DataObservability/LineageGraph.tsx",
+      "Pages/DataObservability/TableView/Overview.tsx",
+    ]) {
+      expect({
+        file,
+        looksUpTheVerb: filesLookingUp("View").includes(file),
+      }).toEqual({ file, looksUpTheVerb: false });
+    }
+
+    expect(filesLookingUp("Table")).not.toContain(
+      "Components/DataObservability/DataAssetKindWords.ts",
+    );
+  });
+
+  test("no page names a data asset's kind by looking up its stored value", () => {
+    const LOOKED_UP_KIND: RegExp = /translateText\(\s*[\w.?]*assetKind\b/;
+
+    for (const file of [
+      "Components/DataObservability/DataAssetTable.tsx",
+      "Components/DataObservability/LineageGraph.tsx",
+      "Pages/DataObservability/TableView/Overview.tsx",
+    ]) {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, SOURCE, file),
+        "utf8",
+      );
+
+      expect({ file, looksUpTheKind: LOOKED_UP_KIND.test(source) }).toEqual({
+        file,
+        looksUpTheKind: false,
+      });
+      expect({
+        file,
+        drawsItsWords: source.includes("getDataAssetKindText("),
+      }).toEqual({ file, drawsItsWords: true });
+    }
+  });
+
+  // #8078: "Change" alone headed the schema changes' column as "Cambiar".
+  test("a schema change's title is its own key, looked up only by the Schema Changes list, which never looks up the bare Change", () => {
+    expect(filesLookingUp("Change (schema change)")).toEqual([
+      "Pages/DataObservability/SchemaChanges.tsx",
+    ]);
+    expect(filesLookingUp("Change")).not.toContain(
+      "Pages/DataObservability/SchemaChanges.tsx",
+    );
+  });
+
+  /*
+   * #7522: the storage widgets headed their array column, and a tile's
+   * first row, with the bare "Array", which six languages word as a
+   * programming array. The storage array has a key of its own, looked up
+   * only by the two storage widgets; nothing in the Dashboard looks up the
+   * bare word now, so a data array that needs it gets a meaning of its own.
+   */
+  test("a storage array is its own key, looked up only by the storage widgets, and nothing looks up the bare Array", () => {
+    expect(filesLookingUp("Array (storage array)")).toEqual([
+      "Components/Dashboard/Components/DashboardStorageArrayHardwareListComponent.tsx",
+      "Components/Dashboard/Components/DashboardStorageArrayVolumeListComponent.tsx",
+    ]);
+    expect(filesLookingUp("Array")).toEqual([]);
+  });
+
+  /*
+   * #8078: Paid, Void and Uncollectible are worded for an invoice - Spanish
+   * "Pagada", "Anulada", as a factura is - so a new place that looks one up
+   * is checked to mean an invoice too.
+   */
+  test("an invoice's Paid, Void and Uncollectible are looked up only by the invoices' list", () => {
+    for (const key of ["Paid", "Void", "Uncollectible"]) {
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: ["Pages/Settings/Invoices.tsx"],
+      });
+    }
+  });
+
+  // Every key that names its meaning is one a place looks up.
+  test("every key that names its meaning is looked up somewhere", () => {
+    for (const key of MEANING_KEYS) {
+      expect({ key, lookedUp: filesLookingUp(key).length > 0 }).toEqual({
+        key,
+        lookedUp: true,
+      });
+    }
+  });
 });
 
 describe("the locales word each meaning as its own", () => {
@@ -299,6 +417,10 @@ describe("the locales word each meaning as its own", () => {
         language,
         same: false,
       });
+      expect({
+        language,
+        same: verb === locale["Open (invoice status)"],
+      }).toEqual({ language, same: false });
 
       /*
        * The tooltip's "Tab 2 · Öffnen", put back as a sentence: the state is
@@ -323,5 +445,151 @@ describe("the locales word each meaning as its own", () => {
     // Arabic's Open buttons read "فتح" (open it), as Persian's "باز کردن".
     expect(readLocale("ar")["Open"]).toBe("فتح");
     expect(readLocale("fa")["Open"]).toBe("باز کردن");
+  });
+
+  // #8078: a data asset of kind View read "Ver", "Anzeigen", "Voir".
+  test("a database's view is never worded as the View buttons' verb", () => {
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        worded: Boolean(locale["View (database object)"]),
+        same: locale["View (database object)"] === locale["View"],
+      }).toEqual({ language, worded: true, same: false });
+    }
+
+    expect(readLocale("es")["View (database object)"]).toBe("Vista");
+    expect(readLocale("de")["View (database object)"]).toBe("Sicht");
+    expect(readLocale("fr")["View (database object)"]).toBe("Vue");
+  });
+
+  /*
+   * #7522: the storage widgets' "Array" read 配列 (a list in code), Matriz,
+   * Tableau (a table), 배열, 数组 and Matrise. Each language words the
+   * storage array's key as its Storage Arrays pages name an array - the
+   * word its "Array Controller" and its "Storage Array" are made of.
+   */
+  test("a storage array is worded as the language's storage array, never a programming array", () => {
+    const PROGRAMMING_ARRAY: Record<string, string> = {
+      ja: "配列",
+      es: "Matriz",
+      fr: "Tableau",
+      ko: "배열",
+      "zh-CN": "数组",
+      no: "Matrise",
+    };
+    const STORAGE_ARRAY: Record<string, string> = {
+      ja: "アレイ",
+      es: "Cabina",
+      fr: "Baie",
+      ko: "어레이",
+      "zh-CN": "阵列",
+      no: "Array",
+    };
+
+    // Whether `word` is the one a language's storage array names are made of.
+    const namesItsStorageArrays: (
+      locale: Record<string, string>,
+      word: string,
+    ) => boolean = (locale: Record<string, string>, word: string): boolean => {
+      return [
+        locale["Storage Array"] as string,
+        locale["Array Controller"] as string,
+      ].some((name: string): boolean => {
+        return name.toLowerCase().includes(word.toLowerCase());
+      });
+    };
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+      const storageArray: string = locale["Array (storage array)"] as string;
+
+      expect({
+        language,
+        worded:
+          Boolean(storageArray) && storageArray !== "Array (storage array)",
+        namesItsStorageArrays: namesItsStorageArrays(locale, storageArray),
+      }).toEqual({ language, worded: true, namesItsStorageArrays: true });
+    }
+
+    for (const language of Object.keys(PROGRAMMING_ARRAY)) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({ language, word: locale["Array (storage array)"] }).toEqual({
+        language,
+        word: STORAGE_ARRAY[language],
+      });
+
+      // The negative control: the check refuses each programming array.
+      expect({
+        language,
+        programming: namesItsStorageArrays(
+          locale,
+          PROGRAMMING_ARRAY[language] as string,
+        ),
+      }).toEqual({ language, programming: false });
+    }
+  });
+
+  // French named a database's table "Tableau", and Chinese 表格: a table on the page.
+  test("a database's table is a table of rows, never a table on the page, where a language words them apart", () => {
+    const words: Record<string, { page: string; database: string }> = {
+      fr: { page: "Tableau", database: "Table" },
+      "zh-CN": { page: "表格", database: "表" },
+      "zh-TW": { page: "表格", database: "資料表" },
+    };
+
+    for (const language of Object.keys(words)) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        page: locale["Table"],
+        database: locale["Table (database object)"],
+      }).toEqual({ language, ...words[language] });
+    }
+
+    // Where one word is both, the database's is that word.
+    expect(readLocale("es")["Table (database object)"]).toBe(
+      readLocale("es")["Table"],
+    );
+    expect(readLocale("de")["Table (database object)"]).toBe("Tabelle");
+  });
+
+  /*
+   * #8078: the schema changes' column and filter read "Cambiar", "Ändern",
+   * "Modifier". Only Persian writes the noun as it writes the Change
+   * buttons, تغییر: its buttons are named with the noun.
+   */
+  test("a schema change is worded as the noun, never the Change buttons' verb, where a language words them apart", () => {
+    const WORDED_ALIKE: ReadonlyArray<string> = ["fa"];
+
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        worded: Boolean(locale["Change (schema change)"]),
+        same: locale["Change (schema change)"] === locale["Change"],
+      }).toEqual({
+        language,
+        worded: true,
+        same: WORDED_ALIKE.includes(language),
+      });
+    }
+
+    expect(readLocale("es")["Change (schema change)"]).toBe("Cambio");
+    expect(readLocale("de")["Change (schema change)"]).toBe("Änderung");
+    expect(readLocale("fr")["Change (schema change)"]).toBe("Modification");
+    // Italian's "Modifica" is the Edit buttons' word: a change is a Cambiamento.
+    expect(readLocale("it")["Change (schema change)"]).toBe("Cambiamento");
+    expect(readLocale("it")["Edit"]).toBe("Modifica");
   });
 });

@@ -46,16 +46,16 @@ Varje hemlighet har ett av tre åtkomstalternativ:
 
 | Alternativ | Vilka monitorer som får använda hemligheten | Använd det för |
 | --- | --- | --- |
-| **Alla övervakare** | Varje monitor i projektet, även monitorer som du skapar senare. | En inloggningsuppgift som många monitorer delar. |
-| **Specifika övervakare** | Bara de monitorer du väljer. Det är standard, och hemligheter som skapades innan de här alternativen fanns fungerar så. | En inloggningsuppgift för en eller några få monitorer. |
-| **Övervakare med etiketter** | Monitorer som har minst en av de etiketter du väljer. När en av de etiketterna läggs till på en monitor får den åtkomst, och när etiketten tas bort förlorar den åtkomsten nästa gång monitorn körs. | En inloggningsuppgift för en grupp monitorer som ändras över tid. |
+| **Alla monitorer** | Varje monitor i projektet, även monitorer som du skapar senare. | En inloggningsuppgift som många monitorer delar. |
+| **Specifika monitorer** | Bara de monitorer du väljer. Det är standard, och hemligheter som skapades innan de här alternativen fanns fungerar så. | En inloggningsuppgift för en eller några få monitorer. |
+| **Monitorer med etiketter** | Monitorer som har minst en av de etiketter du väljer. När en av de etiketterna läggs till på en monitor får den åtkomst, och när etiketten tas bort förlorar den åtkomsten nästa gång monitorn körs. | En inloggningsuppgift för en grupp monitorer som ändras över tid. |
 
-Du kan när som helst ändra alternativet med **Redigera** på hemlighetens rad. Bara listan för det valda alternativet behålls: att byta till **Alla övervakare** tömmer hemlighetens listor över monitorer och etiketter, och att byta mellan **Specifika övervakare** och **Övervakare med etiketter** tömmer listan du byter bort från.
+Du kan när som helst ändra alternativet med **Redigera** på hemlighetens rad. Bara listan för det valda alternativet behålls: att byta till **Alla monitorer** tömmer hemlighetens listor över monitorer och etiketter, och att byta mellan **Specifika monitorer** och **Monitorer med etiketter** tömmer listan du byter bort från.
 
 En hemlighet är aldrig tillgänglig för monitorer i ett annat projekt.
 
 > [!WARNING]
-> Alla som kan redigera en monitor som får använda en hemlighet kan skicka den hemligheten dit monitorn ansluter. Med **Alla övervakare** är det alla som kan skapa eller redigera monitorer i projektet. Med **Övervakare med etiketter** omfattar det även alla som kan lägga till en av de etiketterna på en monitor.
+> Alla som kan redigera en monitor som får använda en hemlighet kan skicka den hemligheten dit monitorn ansluter. Med **Alla monitorer** är det alla som kan skapa eller redigera monitorer i projektet. Med **Monitorer med etiketter** omfattar det även alla som kan lägga till en av de etiketterna på en monitor.
 
 Via API:et är åtkomstalternativet fältet `monitorAccess`: `All Monitors`, `Specific Monitors` eller `Monitors With Labels`. Fälten `monitors` och `labels` innehåller listorna. En hemlighet som skapas utan `monitorAccess` får `Specific Monitors`.
 
@@ -82,7 +82,7 @@ Hemligheter fylls i innan skriptet i en monitor av typen Synthetic Monitor eller
 
 Om en monitor hänvisar till en hemlighet som den inte får använda står hänvisningen kvar som den är och ersätts inte med värdet.
 
-När du testar en monitor innan du sparar den fylls bara hemligheter i som är tillgängliga för **Alla övervakare**, eftersom en ny monitor inte finns på någon lista och inte har några etiketter ännu. När du har sparat monitorn använder testerna varje hemlighet som monitorn får använda.
+När du testar en monitor innan du sparar den fylls bara hemligheter i som är tillgängliga för **Alla monitorer**, eftersom en ny monitor inte finns på någon lista och inte har några etiketter ännu. När du har sparat monitorn använder testerna varje hemlighet som monitorn får använda.
 
 ## Felsökning
 
@@ -91,7 +91,7 @@ Monitorn får inte använda hemligheten, eller så stämmer inte namnet. Kontrol
 :::
 
 :::details När en ny monitor testas fylls hemligheten inte i
-Innan en monitor är sparad fylls bara hemligheter i som är tillgängliga för **Alla övervakare**. Spara monitorn och testa den igen.
+Innan en monitor är sparad fylls bara hemligheter i som är tillgängliga för **Alla monitorer**. Spara monitorn och testa den igen.
 :::
 
 :::details Ett fält ignorerar hemligheten

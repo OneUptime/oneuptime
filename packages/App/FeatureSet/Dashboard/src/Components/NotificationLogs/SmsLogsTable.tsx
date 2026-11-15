@@ -21,6 +21,7 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface SmsLogsTableProps {
   query?: Query<BaseModel>;
@@ -79,7 +80,7 @@ const SmsLogsTable: FunctionComponent<SmsLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: SmsLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;

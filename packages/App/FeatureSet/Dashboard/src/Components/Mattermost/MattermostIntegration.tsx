@@ -720,6 +720,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
                   MANAGE_WORKSPACE_CONNECTION,
                   { workspace: "Mattermost" },
                 )}
+                isAriaLabelTranslated={true}
                 dataTestId="mattermost-project-actions"
               >
                 {[
@@ -855,6 +856,7 @@ const MattermostIntegration: FunctionComponent<ComponentProps> = (
                 dropdownOptions: teams.map((team: MattermostTeamOption) => {
                   return {
                     label: team.displayName || team.name,
+                    isUserContent: true,
                     value: team.id,
                   };
                 }),

@@ -1,6 +1,6 @@
 # Importera resurser
 
-Du behöver inte börja om för att hantera OneUptime med Terraform. Importera de övervakare, statussidor, team och andra poster som du redan har, så hanterar Terraform dem därifrån, som de är. En import läser bara: ingenting ändras i OneUptime förrän du tillämpar en ändring som du har planerat.
+Du behöver inte börja om för att hantera OneUptime med Terraform. Importera de monitorer, statussidor, team och andra poster som du redan har, så hanterar Terraform dem därifrån, som de är. En import läser bara: ingenting ändras i OneUptime förrän du tillämpar en ändring som du har planerat.
 
 :::cards
 - [Så fungerar en import](#så-fungerar-en-import): Vad en import läser, och vad du skriver.
@@ -43,7 +43,7 @@ Instrumentpanelen skriver konfigurationen för resursen du tittar på, med dess 
 :::steps
 ### Öppna resursens Terraform-sida
 
-Öppna övervakaren, statussidan eller en annan resurs i instrumentpanelen. Öppna **Utvecklare** i dess sidomeny, och sedan **Terraform**.
+Öppna monitorn, statussidan eller en annan resurs i instrumentpanelen. Öppna **Utvecklare** i dess sidomeny, och sedan **Terraform**.
 
 ### Kopiera dess konfiguration
 
@@ -99,12 +99,12 @@ Kopiera postens värde till din konfiguration (här `color = "#FF5733"`), och pl
 
 ## Importera många resurser
 
-För att importera alla övervakare, statussidor eller andra resurser av ett slag börjar du från deras lista.
+För att importera alla monitorer, statussidor eller andra resurser av ett slag börjar du från deras lista.
 
 :::steps
 ### Öppna listans Terraform-sida
 
-Öppna listan, och sedan **Utvecklare** och **Terraform** i dess sidomeny, till exempel **Övervakare → Utvecklare → Terraform**.
+Öppna listan, och sedan **Utvecklare** och **Terraform** i dess sidomeny, till exempel **Monitorer → Utvecklare → Terraform**.
 
 ### Kopiera importblocken
 
@@ -143,7 +143,7 @@ Importera ett projekt lista för lista, och börja med de poster som andra refer
 
 ```mermaid title="Importera först de poster som andra refererar till"
 flowchart TB
-    S["Etiketter, team,<br/>monitorstatusar och<br/>allvarlighetsgrader"] --> M["Övervakare, statussidor<br/>och jourpolicyer"]
+    S["Etiketter, team,<br/>monitorstatusar och<br/>allvarlighetsgrader"] --> M["Monitorer, statussidor<br/>och jourpolicyer"]
     M --> L["Det som binder ihop dem:<br/>statussidornas resurser,<br/>eskaleringsregler<br/>och teammedlemmar"]
 ```
 
@@ -184,7 +184,7 @@ Planen säger att teamet inte längre hanteras av Terraform, och förstör ingen
 
 - **En import ändrar ingenting, men nästa apply gör det.** När du tillämpar en plan som visar en ändring bredvid en import ändras posten i OneUptime. Se först till att planen bara visar importen.
 - **Samma värde skrivet på ett annat sätt är ingen ändring.** OneUptime sparar en tidsstämpel i UTC med millisekunder, ett tal som ett 64-bitars flyttal, och JSON och en monitors steg med de nycklar den fyller i själv. Direkt efter en import visar planen för en konfiguration som säger samma sak på sitt eget sätt ingen ändring.
-- **Hemligheter läses inte tillbaka.** En hemlighet som OneUptime aldrig skickar tillbaka, som `secret_value` för en övervakarhemlighet, finns inte i state efter en import. Om din konfiguration anger den visar den första planen den som en ändring, och när du tillämpar den skrivs hemligheten igen.
+- **Hemligheter läses inte tillbaka.** En hemlighet som OneUptime aldrig skickar tillbaka, som `secret_value` för en monitorhemlighet, finns inte i state efter en import. Om din konfiguration anger den visar den första planen den som en ändring, och när du tillämpar den skrivs hemligheten igen.
 - **En konfiguration för varje post.** En post som har importerats i två konfigurationer ändras vid varje apply tillbaka till det som var och en av dem säger.
 - **Importerade poster är hanterade poster.** `terraform destroy` tar bort dem från OneUptime, precis som posterna som Terraform har skapat.
 
@@ -214,7 +214,7 @@ ID:t är inte en posts ID, till exempel ett namn. En import tar ID:t, ett UUID s
 
 :::cards
 - [Komplett guide](/docs/terraform/complete-guide): Datakällor, referenser mellan resurser, och state.
-- [Monitorsteg](/docs/terraform/monitor-steps): Läs och ändra vad en importerad övervakare kontrollerar.
+- [Monitorsteg](/docs/terraform/monitor-steps): Läs och ändra vad en importerad monitor kontrollerar.
 - [Exempel](/docs/terraform/examples): Färdiga konfigurationer för de vanliga resurserna.
 - [Felsökning](/docs/terraform/troubleshooting): Vanliga fel och hur du åtgärdar dem.
 :::

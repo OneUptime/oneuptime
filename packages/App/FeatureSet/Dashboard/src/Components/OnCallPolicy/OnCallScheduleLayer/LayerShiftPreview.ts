@@ -62,6 +62,22 @@ const addRotationPeriods: (
   }
 };
 
+// A layer's stored moment as a Date, or null when it has none it can read.
+const toDate: (value: Date | string | undefined | null) => Date | null = (
+  value: Date | string | undefined | null,
+): Date | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const date: Date = OneUptimeDate.fromString(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+};
+
 const toLayerUsers: (
   users: Array<OnCallDutyPolicyScheduleLayerUser>,
 ) => Array<User> = (
@@ -103,8 +119,9 @@ export interface LayerPreviewParams {
 /*
  * Compute the rotation events for a single layer over a window sized to show the
  * current turn plus roughly `numberOfShifts` upcoming turns. The window starts a
- * couple of rotation periods in the past so the CURRENT turn is captured with
- * its true (un-clamped) start rather than starting at "now".
+ * couple of rotation periods in the past - or at the layer's start, during a
+ * first turn longer than that - so the CURRENT turn is captured with its true
+ * (un-clamped) start rather than starting at "now" or at the window's edge.
  */
 export const getLayerPreviewEvents: (
   params: LayerPreviewParams,
@@ -151,9 +168,33 @@ export const getLayerPreviewEvents: (
   const minStart: Date = OneUptimeDate.addRemoveDays(now, -2);
   const minEnd: Date = OneUptimeDate.addRemoveDays(now, 14);
 
-  const windowStart: Date = OneUptimeDate.isBefore(cadenceStart, minStart)
+  let windowStart: Date = OneUptimeDate.isBefore(cadenceStart, minStart)
     ? cadenceStart
     : minStart;
+
+  /*
+   * The turn in progress, whole (#7720). After the first hand-off a turn
+   * lasts one rotation, so the two rotations back always hold its start.
+   * The first turn runs from the layer's start to its first hand-off,
+   * however long that is - a daily layer whose first hand-off is a week
+   * after its start has a week-long first turn - and the engine starts the
+   * first event at the later of the window's start and the layer's. So
+   * while that turn is still on, the window starts with the layer: cut at
+   * the window's edge, the card showed the turn starting at a moment that
+   * was never a hand-off, the minute and second the page was opened at,
+   * two days back.
+   */
+  const firstTurnStart: Date | null = toDate(params.layer.startsAt);
+  const firstHandOff: Date | null = toDate(params.layer.handOffTime);
+
+  if (
+    firstTurnStart &&
+    firstHandOff &&
+    OneUptimeDate.isBefore(now, firstHandOff) &&
+    OneUptimeDate.isBefore(firstTurnStart, windowStart)
+  ) {
+    windowStart = firstTurnStart;
+  }
   const windowEnd: Date = OneUptimeDate.isAfter(cadenceEnd, minEnd)
     ? cadenceEnd
     : minEnd;

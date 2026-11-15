@@ -289,7 +289,7 @@ Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud
 :::
 
 :::details Tællere som pve_network_receive_bytes vokser kun
-Serier for netværks- og disk-I/O er tællere over hele levetiden, og kriterier sammenligner rå værdier: der er ingen rateoperator, og **Convert to per-second rate** i forespørgselsbyggeren ændrer kun diagrammet. Vis dem som en rate i et diagram, eller advar på deres vækst med en formel, f.eks. en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel på den samme tæller.
+Serier for netværks- og disk-I/O er tællere over hele levetiden, og kriterier sammenligner rå værdier: der er ingen rateoperator, og **Omregn til rate pr. sekund** i forespørgselsbyggeren ændrer kun diagrammet. Vis dem som en rate i et diagram, eller advar på deres vækst med en formel, f.eks. en **Maksimum**-forespørgsel minus en **Minimum**-forespørgsel på den samme tæller.
 :::
 
 ## Næste trin

@@ -28,6 +28,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import AppLink from "../AppLink/AppLink";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * WHAT IS NEW, ON EXCEPTIONS' INSIGHTS.
@@ -227,7 +228,7 @@ const ExceptionAIDigest: FunctionComponent = (): ReactElement => {
             role="alert"
             data-testid="exception-ai-digest-error"
           >
-            {error}
+            <ErrorInSentence message={error} showWhereToLook={true} />
           </p>
         ) : (
           <></>

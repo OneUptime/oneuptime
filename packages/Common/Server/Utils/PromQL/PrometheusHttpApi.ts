@@ -20,10 +20,12 @@ import PromQLError, {
 import {
   PromQLLabels,
   formatPromQLValue,
+  promQLLabelValue,
   promQLLabelsKey,
 } from "../../../Utils/PromQL/PromQLLabels";
 import { parsePromQL } from "../../../Utils/PromQL/PromQLParser";
 import { JSONObject } from "../../../Types/JSON";
+import { copyOwnValues } from "../../../Utils/LookupTable";
 
 /*
  * The Prometheus HTTP API's reading and writing (issue #6796), apart from
@@ -190,7 +192,8 @@ export const formatPrometheusQueryResult: (
         result: result.samples.map(
           (sample: PromQLVectorResultSample): PrometheusVectorEntry => {
             return {
-              metric: { ...sample.labels },
+              // Every label, one named __proto__ too (PromQLLabels).
+              metric: copyOwnValues(sample.labels),
               value: [
                 toSeconds(sample.timestampMs),
                 formatPromQLValue(sample.value),
@@ -205,7 +208,7 @@ export const formatPrometheusQueryResult: (
         result: result.series.map(
           (series: PromQLMatrixResultSeries): PrometheusMatrixEntry => {
             return {
-              metric: { ...series.labels },
+              metric: copyOwnValues(series.labels),
               values: series.points.map(
                 (point: PromQLResultPoint): PrometheusSamplePair => {
                   return [
@@ -338,7 +341,7 @@ export const labelValuesOf: (
   const values: Set<string> = new Set<string>();
 
   for (const labels of series) {
-    const value: string | undefined = labels[label];
+    const value: string = promQLLabelValue(labels, label);
 
     if (value) {
       values.add(value);

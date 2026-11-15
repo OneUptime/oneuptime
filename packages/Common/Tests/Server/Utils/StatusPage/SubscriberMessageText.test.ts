@@ -1,3 +1,4 @@
+import { StateListType } from "../../../../Utils/StateOrder";
 import { describe, expect, test } from "@jest/globals";
 import { getServerTranslator } from "../../../../Server/Utils/ServerTranslation";
 import SubscriberMessageText, {
@@ -44,7 +45,10 @@ const incidentCreatedSms: (translator: Translator) => string = (
     sentences: [
       translator.translateTemplate(SubscriberSmsText.incidentCreated, {
         title: "Checkout is down",
-        severity: SubscriberMessageText.stateName("Major Incident"),
+        severity: SubscriberMessageText.stateName(
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
         statusPageName: "Acme Status",
         resources: "Checkout API",
       }),
@@ -71,7 +75,10 @@ describe("the text messages", () => {
     expect(
       GERMAN.translateTemplate(SubscriberSmsText.incidentCreated, {
         title: "Checkout",
-        severity: SubscriberMessageText.stateName("Sev 1 - Customer facing"),
+        severity: SubscriberMessageText.stateName(
+          StateListType.IncidentSeverity,
+          "Sev 1 - Customer facing",
+        ),
         statusPageName: "Acme",
         resources: "API",
       }),
@@ -186,7 +193,7 @@ describe("the Slack and Microsoft Teams messages", () => {
         SubscriberChatText.severity,
         "Majeur",
       ).toString(),
-    ).toBe("**Gravité :** Majeur");
+    ).toBe("**Gravité\u00A0:** Majeur");
     expect(
       SubscriberMessageText.chatLine(
         getServerTranslator("zh-CN"),
@@ -392,10 +399,14 @@ describe("a chat line's value, for a reader of a language read from the right", 
       SubscriberMessageText.chatLine(
         PERSIAN,
         SubscriberChatText.severity,
-        SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident"),
+        SubscriberMessageText.nameInLanguage(
+          PERSIAN,
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
       ).toString(),
     ).toBe(
-      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident")}${PDI}`,
+      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, StateListType.IncidentSeverity, "Major Incident")}${PDI}`,
     );
   });
 
@@ -412,7 +423,11 @@ describe("a chat line's value, for a reader of a language read from the right", 
       SubscriberMessageText.chatLine(
         ARABIC,
         SubscriberChatText.severity,
-        SubscriberMessageText.nameInLanguage(ARABIC, "Major Incident"),
+        SubscriberMessageText.nameInLanguage(
+          ARABIC,
+          StateListType.IncidentSeverity,
+          "Major Incident",
+        ),
       ).toString(),
     ).toBe(`**الخطورة:** ${FSI}حادثة كبرى${PDI}`);
     expect(
@@ -517,10 +532,10 @@ describe("a chat line's value, for a reader of a language read from the right", 
       `**منابع تحت تأثیر:** ${FSI}Checkout API (EU)${PDI}`,
     );
     expect(message).toContain(
-      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Major Incident")}${PDI}`,
+      `**شدت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, StateListType.IncidentSeverity, "Major Incident")}${PDI}`,
     );
     expect(message).toContain(
-      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Resolved")}${PDI}`,
+      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, StateListType.IncidentState, "Resolved")}${PDI}`,
     );
   });
 
@@ -545,7 +560,7 @@ describe("a chat line's value, for a reader of a language read from the right", 
     // No severity: its dash, set apart as any value is.
     expect(message).toContain(`**شدت:** ${FSI} - ${PDI}`);
     expect(message).toContain(
-      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, "Resolved")}${PDI}`,
+      `**وضعیت:** ${FSI}${SubscriberMessageText.nameInLanguage(PERSIAN, StateListType.IncidentState, "Resolved")}${PDI}`,
     );
     // The note under its label is its own paragraph: as written.
     expect(message).toContain("\nWe rolled back (v4.2).\n");
@@ -615,5 +630,128 @@ describe("the email's words the senders put in", () => {
         statusPageName: "Acme",
       }),
     ).toBe("Sie haben Acme abonniert");
+  });
+});
+
+/*
+ * A NAME IS A DEFAULT BY ITS OWN LIST (#8066).
+ *
+ * The messages once read any name of any list's defaults in the reader's
+ * language: an incident state a project named "Degraded" (a default
+ * monitor status) read "Beeinträchtigt" in a German message, while the
+ * Dashboard and the incident's own page drew it as written. Each name is
+ * now read against its own list's defaults alone.
+ */
+describe("a state's or a severity's name, by its own list", () => {
+  test("an incident state named after a monitor status reads as written; the monitor status in German", () => {
+    expect(
+      SubscriberMessageText.nameInLanguage(
+        GERMAN,
+        StateListType.IncidentState,
+        "Degraded",
+      ),
+    ).toBe("Degraded");
+    expect(
+      SubscriberMessageText.nameInLanguage(
+        GERMAN,
+        StateListType.MonitorStatus,
+        "Degraded",
+      ),
+    ).toBe("Beeinträchtigt");
+  });
+
+  test("a severity named after a maintenance state, and a maintenance state named after an incident state, read as written", () => {
+    expect(
+      SubscriberMessageText.nameInLanguage(
+        GERMAN,
+        StateListType.IncidentSeverity,
+        "Ongoing",
+      ),
+    ).toBe("Ongoing");
+    expect(
+      SubscriberMessageText.nameInLanguage(
+        GERMAN,
+        StateListType.ScheduledMaintenanceState,
+        "Ongoing",
+      ),
+    ).toBe("Laufend");
+    expect(
+      SubscriberMessageText.nameInLanguage(
+        GERMAN,
+        StateListType.ScheduledMaintenanceState,
+        "Resolved",
+      ),
+    ).toBe("Resolved");
+  });
+
+  test("in a sentence, as on its own", () => {
+    const text: string = GERMAN.translateTemplate(
+      SubscriberSmsText.incidentCreated,
+      {
+        title: "Checkout",
+        severity: SubscriberMessageText.stateName(
+          StateListType.IncidentSeverity,
+          "Operational",
+        ),
+        statusPageName: "Acme",
+        resources: "API",
+      },
+    );
+
+    expect(text).toContain("Operational");
+    expect(text).not.toContain("Betriebsbereit");
+  });
+
+  test("a state change's chat message reads an incident state and severity against their own lists", () => {
+    const message: string =
+      SubscriberMessageText.incidentStateChangeChatMessage(GERMAN, {
+        title: "Checkout is down",
+        resourcesAffected: "",
+        severityName: "Scheduled",
+        stateName: "Degraded",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      });
+
+    expect(message).toContain("**Status:** Degraded");
+    expect(message).not.toContain("Beeinträchtigt");
+    expect(message).toContain("**Schweregrad:** Scheduled");
+    expect(message).not.toContain("Geplant");
+  });
+
+  test("a note's chat message reads the state it moved to against the incident states", () => {
+    const message: string = SubscriberMessageText.incidentNoteChatMessage(
+      GERMAN,
+      {
+        title: "Checkout is down",
+        sentence: SubscriberChatText.newIncidentNote,
+        resourcesAffected: "Checkout API",
+        severityName: "Major Incident",
+        stateChangeName: "Ongoing",
+        note: "Fixed.",
+        statusPageUrl: STATUS_PAGE_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(message).toContain("**Status:** Ongoing");
+    expect(message).not.toContain("Laufend");
+    // The severity is still a default one, in German.
+    expect(message).toContain("**Schweregrad:** Schwerwiegender Vorfall");
+  });
+
+  test("a state change email's heading reads the state against the incident states", () => {
+    expect(
+      SubscriberMessageText.incidentStateChangeEmailTitle(GERMAN, {
+        resources: "Checkout API",
+        state: "Completed",
+      }),
+    ).toBe("Vorfall bei Checkout API: Completed");
+    expect(
+      SubscriberMessageText.incidentStateChangeEmailTitle(GERMAN, {
+        resources: "Checkout API",
+        state: "Acknowledged",
+      }),
+    ).toBe("Vorfall bei Checkout API: Bestätigt");
   });
 });

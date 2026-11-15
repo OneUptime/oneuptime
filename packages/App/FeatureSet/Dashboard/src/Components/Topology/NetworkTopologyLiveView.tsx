@@ -57,7 +57,18 @@ import {
   prunePositionOverrides,
 } from "./TopologyPositionOverrides";
 import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
-import { TopologyLayoutModel } from "../NetworkDevice/TopologyLayout";
+import {
+  TopologyHierarchy,
+  TopologyLayoutModel,
+} from "../NetworkDevice/TopologyLayout";
+import {
+  collapsedBranchesStorageKey,
+  countDescendants,
+  hasBranch,
+  pruneCollapsedBranches,
+  readCollapsedBranches,
+  writeCollapsedBranches,
+} from "./TopologyBranches";
 import { exportNetworkTopologyAsPdf } from "./Export/NetworkTopologyPdfExport";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -98,7 +109,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Self-contained live network topology view: fetch + auto-refresh + search
@@ -312,6 +325,32 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   const [positionOverrides, setPositionOverrides] = useState<PositionOverrides>(
     new Map(),
   );
+  /*
+   * Issue #6606: the device whose branch the map is narrowed to, from the
+   * drawer's "Show only this branch". Never remembered: the next visit
+   * opens on the whole map.
+   */
+  const [focusedBranchNodeId, setFocusedBranchNodeId] = useState<string | null>(
+    null,
+  );
+  /*
+   * Issue #6606: the map drawn as computed, with the dragged positions kept
+   * aside. Never remembered either: a custom layout is the one a reader
+   * comes back to.
+   */
+  const [isShowingOriginalLayout, setIsShowingOriginalLayout] =
+    useState<boolean>(false);
+  // Goes up by one for every Enter in the search box (issue #6606).
+  const [locateNextMatchRequest, setLocateNextMatchRequest] =
+    useState<number>(0);
+  /*
+   * The hierarchy the parent-child layout drew, as the graph reported it:
+   * the drawer offers "Show only this branch" for a device with something
+   * below it.
+   */
+  const [layoutHierarchy, setLayoutHierarchy] = useState<
+    TopologyHierarchy | undefined
+  >(undefined);
   // Issue #4616: the PDF export, which runs in the browser and can take a moment.
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportError, setExportError] = useState<string>("");
@@ -705,7 +744,12 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       topology: visibleTopology,
       layoutModel: layoutModelRef.current || undefined,
       layoutMode: layoutMode,
-      positionOverrides: positionOverrides,
+      // The positions on screen: none while the original layout is shown.
+      positionOverrides: isShowingOriginalLayout
+        ? new Map()
+        : positionOverrides,
+      collapsedNodeIds: collapsedNodeIds,
+      focusedBranchNodeId: focusedBranchNodeId,
       searchText: searchText,
       visibleKinds: effectiveVisibleKinds,
       availableKinds: availableKinds,
@@ -762,6 +806,103 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       return null;
     }
   }, []);
+
+  /*
+   * ------------------------------------------------------------------
+   * Folded branches (issue #6606)
+   * ------------------------------------------------------------------
+   *
+   * Remembered per browser and per site, like a custom layout, and written
+   * as they change: a fold is one click, not a stream of drag frames, so
+   * there is nothing to debounce.
+   */
+  const collapsedStorageKey: string = useMemo(() => {
+    return collapsedBranchesStorageKey(
+      ProjectUtil.getCurrentProjectId()?.toString() || "",
+      props.siteId,
+    );
+  }, [props.siteId]);
+
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<ReadonlySet<string>>(
+    (): ReadonlySet<string> => {
+      return readCollapsedBranches(overrideStorage, collapsedStorageKey);
+    },
+  );
+  // The key the folds on screen were read from and are written back to.
+  const collapsedKeyInUse: React.MutableRefObject<string> =
+    useRef<string>(collapsedStorageKey);
+
+  useEffect(() => {
+    if (collapsedKeyInUse.current === collapsedStorageKey) {
+      return;
+    }
+    collapsedKeyInUse.current = collapsedStorageKey;
+    setCollapsedNodeIds(
+      readCollapsedBranches(overrideStorage, collapsedStorageKey),
+    );
+  }, [collapsedStorageKey, overrideStorage]);
+
+  const changeCollapsedNodeIds: (next: ReadonlySet<string>) => void =
+    useCallback(
+      (next: ReadonlySet<string>): void => {
+        setCollapsedNodeIds(next);
+        writeCollapsedBranches(
+          overrideStorage,
+          collapsedKeyInUse.current,
+          next,
+        );
+      },
+      [overrideStorage],
+    );
+
+  /*
+   * Forget folds for devices that left the network - against the
+   * unfiltered node set, and never before the first read, which would see
+   * every fold as stale (see the same guard on dragged positions below).
+   */
+  useEffect(() => {
+    if (topology.nodes.length === 0) {
+      return;
+    }
+    const liveNodeIds: Set<string> = new Set<string>(
+      topology.nodes.map((node: NetworkTopologyNode): string => {
+        return node.id;
+      }),
+    );
+    const pruned: ReadonlySet<string> = pruneCollapsedBranches(
+      collapsedNodeIds,
+      liveNodeIds,
+    );
+    if (pruned !== collapsedNodeIds) {
+      changeCollapsedNodeIds(pruned);
+    }
+    /*
+     * A branch in focus that left the network narrows nothing any more:
+     * let go of it rather than keep a path chip for a device that is gone.
+     */
+    if (focusedBranchNodeId && !liveNodeIds.has(focusedBranchNodeId)) {
+      setFocusedBranchNodeId(null);
+    }
+  }, [topology]);
+
+  // Only the parent-child layout draws branches, so only it can be narrowed.
+  useEffect(() => {
+    if (layoutMode !== "parentChild") {
+      setFocusedBranchNodeId(null);
+    }
+    // Each layout keeps its own custom layout: show it in the new one.
+    setIsShowingOriginalLayout(false);
+  }, [layoutMode]);
+
+  /*
+   * With nothing dragged there is no custom layout to set aside, and the
+   * next drag must show where it went rather than be drawn as computed.
+   */
+  useEffect(() => {
+    if (positionOverrides.size === 0) {
+      setIsShowingOriginalLayout(false);
+    }
+  }, [positionOverrides]);
 
   const overridesStorageKey: string = useMemo(() => {
     return positionOverridesStorageKey(
@@ -1069,6 +1210,11 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
       <NetworkTopologyToolbar
         searchText={searchText}
         onSearchChange={setSearchText}
+        onSearchEnter={() => {
+          setLocateNextMatchRequest((count: number): number => {
+            return count + 1;
+          });
+        }}
         layoutMode={layoutMode}
         onLayoutChange={(mode: TopologyLayoutMode) => {
           setChosenLayoutMode(mode);
@@ -1203,7 +1349,7 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
 
       {suppressionError ? (
         <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">
-          {suppressionError}
+          <ErrorInSentence message={suppressionError} showWhereToLook={true} />
         </div>
       ) : (
         <></>
@@ -1346,8 +1492,23 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         }}
         onLayoutModelChange={(model: TopologyLayoutModel) => {
           layoutModelRef.current = model;
+          setLayoutHierarchy(model.hierarchy);
         }}
         emptyStateFooter={addDeviceLink}
+        collapsedNodeIds={collapsedNodeIds}
+        onCollapsedNodeIdsChange={changeCollapsedNodeIds}
+        focusedBranchNodeId={focusedBranchNodeId}
+        onFocusedBranchChange={setFocusedBranchNodeId}
+        isShowingOriginalLayout={isShowingOriginalLayout}
+        onShowOriginalLayoutChange={(isShowing: boolean) => {
+          /*
+           * Only with a custom layout to set aside: shown over nothing, the
+           * next drag would be drawn where the layout puts it, not where it
+           * was dropped.
+           */
+          setIsShowingOriginalLayout(isShowing && positionOverrides.size > 0);
+        }}
+        locateNextMatchRequest={locateNextMatchRequest}
       />
 
       {selectedNode ? (
@@ -1363,6 +1524,25 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
             setSelectedEdgeKey(edgeKeyForEdge(edge));
           }}
           onHideNode={hideNode}
+          onShowOnlyBranch={
+            layoutMode === "parentChild" &&
+            hasBranch(layoutHierarchy, selectedNode.id) &&
+            focusedBranchNodeId !== selectedNode.id
+              ? () => {
+                  /*
+                   * Close the drawer first: the map re-frames to the
+                   * branch, and the drawer would cover half of it.
+                   */
+                  setSelectedNodeId(null);
+                  setFocusedBranchNodeId(selectedNode.id);
+                }
+              : undefined
+          }
+          branchDeviceCount={
+            layoutHierarchy
+              ? countDescendants(layoutHierarchy, selectedNode.id)
+              : 0
+          }
           canRunDiagnostics={canRunDiagnostics}
           readMapAgain={(): Promise<void> => {
             /*

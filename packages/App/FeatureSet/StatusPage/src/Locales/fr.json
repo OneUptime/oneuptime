@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% de disponibilité",
+    "uptimePercent": "{{percent}}% de disponibilité",
     "operational": "Opérationnel",
     "notMonitored": "Non surveillé",
     "noResourcesInGroup": "Aucune ressource ajoutée à ce groupe.",
@@ -114,6 +115,7 @@
     "noneDescription": "Aucun incident publié sur cette page de statut.",
     "postmortem": "Post-mortem de l'incident",
     "declaredAt": "Déclaré le ",
+    "declaredAtTime": "Déclaré le {{time}}",
     "report": "Rapport d'incident",
     "notFound": "Incident introuvable sur cette page de statut."
   },
@@ -130,6 +132,7 @@
     "none": "Aucune annonce",
     "noneDescription": "Aucune annonce publiée pour l'instant sur cette page.",
     "announcedAt": "Annoncé le ",
+    "announcedAtTime": "Annoncé le {{time}}",
     "notFound": "Annonce introuvable sur cette page de statut."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Aucune maintenance planifiée",
     "noneDescription": "Aucune maintenance planifiée publiée pour cette page de statut.",
     "scheduledAt": "Planifié pour ",
+    "scheduledAtTime": "Planifié pour {{time}}",
     "report": "Rapport de l'événement de maintenance",
     "notFound": "Aucun événement de maintenance trouvé pour cette page de statut.",
     "calendar": {
@@ -149,7 +153,7 @@
       "subscribeTitle": "S'abonner aux maintenances planifiées",
       "subscribeDescription": "Recevez les maintenances planifiées de cette page dans votre application de calendrier. Elles se mettent à jour d'elles-mêmes.",
       "eventTitle": "Ajouter au calendrier",
-      "eventDescription": "Ajoutez cette maintenance à votre application de calendrier.",
+      "eventDescription": "Ajoutez cet événement de maintenance à votre application de calendrier.",
       "addToCalendar": "Ajouter au calendrier",
       "addHeading": "Ajouter à votre calendrier",
       "google": "Google Agenda",
@@ -467,5 +471,7 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "No options available": "Aucune option disponible",
+  "No matches found": "Aucune correspondance trouvée"
 }

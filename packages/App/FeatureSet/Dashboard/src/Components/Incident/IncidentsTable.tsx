@@ -36,6 +36,7 @@ import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
 import { INCIDENT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -87,6 +88,7 @@ import {
   getCreateFromRecordQuery,
 } from "../CreateFromRecord/CreateFromRecord";
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -742,7 +744,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: Incident): ReactElement => {
               if (!item.incidentNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               const numberLabel: string =
@@ -811,6 +813,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -847,6 +853,10 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }
@@ -1009,7 +1019,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 !item.declaredAt ||
                 (isResolved && (isLoadingIncidentDurations || !resolvedAt))
               ) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (

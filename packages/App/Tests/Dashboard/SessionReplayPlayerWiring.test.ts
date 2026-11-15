@@ -1732,3 +1732,50 @@ describe("recorded assets", () => {
     expect(notes).not.toContain("aria-label=");
   });
 });
+
+/*
+ * What the player writes itself, in the reader's digits (#7318): the
+ * timeline's marker titles (their times, and a chunk's estimate worded
+ * whole), the header's viewport fact and the screen reader's playhead.
+ * Their siblings are rendered in Common/Tests/UI/Rum/
+ * ReplayPlayerFiguresInReadersDigits.test.tsx; this file owns the wiring.
+ */
+describe("the player's own figures, in the reader's digits", () => {
+  test("the timeline's markers are titled by the player's translator, and rebuilt when its language changes", () => {
+    const markers: string = slice(
+      SOURCE,
+      "const markers: Array<ReplayTimelineMarker> = useMemo(",
+      "]);",
+    );
+
+    expect(markers).toMatch(
+      /buildTimelineMarkers\(\s*\{[\s\S]*\},\s*translator,\s*\)/,
+    );
+    // The memo's dependencies, up to the "]);" that closes them.
+    expect(markers).toMatch(/\}, \[[\s\S]*translator\.language,\s*$/);
+  });
+
+  test("the viewport fact is a size in the reader's digits", () => {
+    const viewport: string = slice(SOURCE, 'label: "Viewport",', "].filter(");
+
+    expect(viewport).toContain("writeReplayFigureInLanguage(");
+    expect(viewport).toContain("translator.language");
+    expect(viewport).not.toMatch(/\?\s*`\$\{details\.viewportWidth\}x/);
+  });
+
+  test("the screen reader's playhead is in the reader's digits", () => {
+    const offsetText: string = slice(
+      SOURCE,
+      'data-testid="replay-offset-text"',
+      "</span>",
+    );
+
+    expect(offsetText).toContain(
+      "formatReplayOffsetInLanguage(currentTimeMs, translator.language)",
+    );
+  });
+
+  test("no bare English offset is drawn by the player any more", () => {
+    expect(SOURCE).not.toMatch(/\bformatReplayOffset\(/);
+  });
+});

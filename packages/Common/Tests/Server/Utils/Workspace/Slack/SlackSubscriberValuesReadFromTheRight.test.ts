@@ -1,3 +1,4 @@
+import { StateListType } from "../../../../../Utils/StateOrder";
 import { describe, expect, test } from "@jest/globals";
 import SlackUtil from "../../../../../Server/Utils/Workspace/Slack/Slack";
 import { getServerTranslator } from "../../../../../Server/Utils/ServerTranslation";
@@ -40,7 +41,13 @@ describe("a Persian subscriber's Slack message", () => {
 
     expect(slackText).toContain(isolated("Checkout API (EU)"));
     expect(slackText).toContain(
-      isolated(SubscriberMessageText.nameInLanguage(persian, "Resolved")),
+      isolated(
+        SubscriberMessageText.nameInLanguage(
+          persian,
+          StateListType.IncidentState,
+          "Resolved",
+        ),
+      ),
     );
     // Slack's bold, and the label, as they were.
     expect(slackText).toContain("*منابع تحت تأثیر:*");

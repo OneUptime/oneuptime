@@ -24,6 +24,7 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { formatMilliseconds } from "../../../Utils/Milliseconds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -96,7 +97,7 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
   return (
     <SummaryView dataTestId="snmp-monitor-summary">
       <SummaryFacts>
-        <SummaryFact title="Probe" value={props.probeName || "-"} />
+        <SummaryFact title="Probe" value={props.probeName} />
         <SummaryFact
           title="Status"
           value={translator.translateTemplate(
@@ -108,7 +109,7 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
           value={
             responseTimeInMs
               ? formatMilliseconds(translator, responseTimeInMs)
-              : "-"
+              : undefined
           }
         />
         <SummaryFact
@@ -118,7 +119,7 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
                   props.probeMonitorResponse.monitoredAt,
                 )
-              : "-"
+              : undefined
           }
         />
         {props.probeMonitorResponse.failureCause ? (
@@ -210,14 +211,16 @@ const SnmpMonitorView: FunctionComponent<ComponentProps> = (
                           <OidBreakingAtDots oid={oidResponse.oid} />
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
-                          {oidResponse.name || "-"}
+                          {oidResponse.name || <TableEmptyValue />}
                         </td>
                         <td
                           className={`px-4 py-2 text-sm text-gray-900 ${SUMMARY_TABLE_VALUE_CLASS_NAME}`}
                         >
-                          {oidResponse.value !== null
-                            ? String(oidResponse.value)
-                            : "-"}
+                          {oidResponse.value !== null ? (
+                            String(oidResponse.value)
+                          ) : (
+                            <TableEmptyValue />
+                          )}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-500">
                           {oidResponse.type}

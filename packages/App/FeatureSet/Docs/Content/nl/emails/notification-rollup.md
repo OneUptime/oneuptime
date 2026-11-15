@@ -13,7 +13,7 @@ OneUptime bundelt zulke golven automatisch in één e-mail. Het staat voor ieder
 
 ## Hoe het werkt
 
-Elke eigenaarsmelding per e-mail die je ontvangt, telt mee voor een klein budget, bijgehouden per project, per ontvanger, per e-mailadres en per **categorie** van resource — incidenten, waarschuwingen, monitors, gepland onderhoud, statuspagina's, probes, SLO's, enzovoort.
+Elke eigenaarsmelding per e-mail die je ontvangt, telt mee voor een klein budget, bijgehouden per project, per ontvanger, per e-mailadres en per **categorie** van resource — incidenten, waarschuwingen, monitors, gepland onderhoud, statuspagina's, sondes, SLO's, enzovoort.
 
 ```mermaid title="Hoe een eigenaarsmelding per e-mail wordt bezorgd"
 flowchart TB
@@ -41,7 +41,7 @@ De onderwerpregel vertelt je de omvang _en het soort_ storm al voordat je de e-m
 [Acme Production] 112 notifications: 63 Monitors, 41 Incidents, 6 Alerts +2 more
 ```
 
-Daarin geeft een overzichtskaart het totaal, de periode die het overzicht beslaat en de verdeling per categorie. Daaronder zijn de meldingen gegroepeerd in één sectie per categorie, de dringendste eerst — incidenten, dan waarschuwingen, dan de monitors en probes die ze opmerkten — zodat het eerste onder het overzicht ook het eerste is dat een klik waard is.
+Daarin geeft een overzichtskaart het totaal, de periode die het overzicht beslaat en de verdeling per categorie. Daaronder zijn de meldingen gegroepeerd in één sectie per categorie, de dringendste eerst — incidenten, dan waarschuwingen, dan de monitors en sondes die ze opmerkten — zodat het eerste onder het overzicht ook het eerste is dat een klik waard is.
 
 Elke sectie bevat één rij per resource in plaats van één rij per gebeurtenis:
 

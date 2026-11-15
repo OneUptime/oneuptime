@@ -1,6 +1,6 @@
 # IoT-enheds-monitor
 
-En IoT-enhedsmonitor holder øje med én flåde af enheder og fortæller dig, når en enhed går offline, dens batteri løber tør, dens signal svækkes, den bliver overophedet, eller dens CPU bliver ved med at være optaget. Den læser de `iot_*`-metrikker, dine enheder sender til OneUptime over OpenTelemetry eller MQTT, så intet tjekkes udefra, og ingen probe er involveret.
+En IoT-enhedsmonitor holder øje med én flåde af enheder og fortæller dig, når en enhed går offline, dens batteri løber tør, dens signal svækkes, den bliver overophedet, eller dens CPU bliver ved med at være optaget. Den læser de `iot_*`-metrikker, dine enheder sender til OneUptime over OpenTelemetry eller MQTT, så intet tjekkes udefra, og ingen sonde er involveret.
 
 :::cards
 - [Opret monitoren](#opret-en-iot-enhedsmonitor): Seks trin i dashboardet.

@@ -196,6 +196,11 @@ import {
   word,
 } from "./TracesLanguageHarness";
 
+// A text query folds the page's spaces, a no-break one too: so does its matcher.
+const asQuery: (text: string) => string = (text: string): string => {
+  return text.replace(/\s+/g, " ").trim();
+};
+
 jest.setTimeout(180000);
 
 const GATEWAY: string = "60000000-0000-4000-8000-000000000001";
@@ -617,7 +622,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     expect(
       screen.getByRole("button", { name: word(language, "Analytics") }),
     ).toBeInTheDocument();
-    expect(screen.getByText(word(language, "Spans over time"))).toBeVisible();
+    expect(
+      screen.getByText(asQuery(word(language, "Spans over time"))),
+    ).toBeVisible();
     expect(
       screen.getByPlaceholderText(
         word(
@@ -632,7 +639,7 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     await renderList(language);
 
     const measure: HTMLSelectElement = screen.getByTitle(
-      word(language, "Chart metric"),
+      asQuery(word(language, "Chart metric")),
     ) as HTMLSelectElement;
 
     expect(
@@ -649,14 +656,16 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
 
     for (const status of SPAN_STATUS_PRESENTATIONS) {
       expect(
-        screen.getByTitle(word(language, status.description)),
+        screen.getByTitle(asQuery(word(language, status.description))),
       ).toHaveTextContent(word(language, status.displayLabel));
     }
 
     fireEvent.change(measure, { target: { value: "avgDuration" } });
     await settle();
 
-    expect(screen.getByText(word(language, "Response time"))).toBeVisible();
+    expect(
+      screen.getByText(asQuery(word(language, "Response time"))),
+    ).toBeVisible();
   });
 
   test("the sidebar names each status and kind in the language's words, and a person's service as written", async () => {
@@ -674,7 +683,7 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
       "Internal",
     ]) {
       expect(
-        screen.getAllByText(word(language, english)).length,
+        screen.getAllByText(asQuery(word(language, english))).length,
       ).toBeGreaterThan(0);
     }
 
@@ -687,11 +696,11 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     await renderList(language, { url: STATUS_AND_KIND_URL });
 
     expect(
-      screen.getAllByText(word(language, "Client")).length,
+      screen.getAllByText(asQuery(word(language, "Client"))).length,
     ).toBeGreaterThan(1);
-    expect(screen.getAllByText(word(language, "Error")).length).toBeGreaterThan(
-      1,
-    );
+    expect(
+      screen.getAllByText(asQuery(word(language, "Error"))).length,
+    ).toBeGreaterThan(1);
 
     const logs: HTMLElement = screen.getByRole("button", {
       name: word(language, "View logs for this scope"),
@@ -735,25 +744,32 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
         status: translatableTerm(statusOf("Error")),
       }),
     );
+    // The status, then what it means, joined by the language's own colon.
     expect(within(failed).getByRole("img")).toHaveAttribute(
       "title",
-      `${word(language, "Error")}: ${word(
-        language,
-        getSpanStatusPresentation(SpanStatus.Error).description,
-      )}`,
+      sentence(language, "{{label}}: {{identifier}}", {
+        label: translatableTerm("Error"),
+        identifier: translatableTerm(
+          getSpanStatusPresentation(SpanStatus.Error).description,
+        ),
+      }),
     );
-    expect(within(failed).getByText(word(language, "Server"))).toBeVisible();
-    expect(within(failed).getByText(word(language, "Error"))).toBeVisible();
+    expect(
+      within(failed).getByText(asQuery(word(language, "Server"))),
+    ).toBeVisible();
+    expect(
+      within(failed).getByText(asQuery(word(language, "Error"))),
+    ).toBeVisible();
     expect(within(failed).getByText("card declined")).toBeVisible();
     expect(within(failed).getByText("api-gateway")).toBeVisible();
     expect(
       within(failed).getByText(
-        sentence(language, "{{count}}m ago", { count: 5 }),
+        asQuery(sentence(language, "{{count}}m ago", { count: 5 })),
       ),
     ).toBeVisible();
     expect(
       within(failed).getByTitle(
-        sentence(language, "trace {{traceId}}", { traceId: TRACE_ID }),
+        asQuery(sentence(language, "trace {{traceId}}", { traceId: TRACE_ID })),
       ),
     ).toBeInTheDocument();
 
@@ -762,17 +778,21 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
       .closest("button") as HTMLElement;
 
     expect(
-      within(old).getByText(sentence(language, "{{count}}y ago", { count: 1 })),
+      within(old).getByText(
+        asQuery(sentence(language, "{{count}}y ago", { count: 1 })),
+      ),
     ).toBeVisible();
-    expect(within(old).getByText(word(language, "Client"))).toBeVisible();
+    expect(
+      within(old).getByText(asQuery(word(language, "Client"))),
+    ).toBeVisible();
 
     // The span nothing names: its name and its service stand in.
     const nameless: HTMLElement = screen
-      .getByText(word(language, "(unnamed)"))
+      .getByText(asQuery(word(language, "(unnamed)")))
       .closest("button") as HTMLElement;
 
     expect(
-      within(nameless).getByText(word(language, "unknown service")),
+      within(nameless).getByText(asQuery(word(language, "unknown service"))),
     ).toBeVisible();
     expect(within(nameless).getByRole("img")).toHaveAttribute(
       "aria-label",
@@ -803,13 +823,15 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     );
 
     expect(
-      within(empty).getByText(word(language, "No entry spans found")),
+      within(empty).getByText(asQuery(word(language, "No entry spans found"))),
     ).toBeVisible();
     expect(
       within(empty).getByText(
-        word(
-          language,
-          "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
+        asQuery(
+          word(
+            language,
+            "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
+          ),
         ),
       ),
     ).toBeVisible();
@@ -825,7 +847,7 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     expect(
       within(
         await screen.findByTestId("traces-span-type-empty-state"),
-      ).getByText(word(language, "No root spans found")),
+      ).getByText(asQuery(word(language, "No root spans found"))),
     ).toBeVisible();
   });
 
@@ -844,23 +866,27 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        sentence(
-          language,
-          "The chart and facet counts above are not narrowed by: {{filters}}. The list is.",
-          {
-            filters: [
-              translator.translateTemplate("attribute filter on {{key}}", {
-                key: "http.route",
-              }),
-              translator.translateTerm("session filter", { inSentence: true }),
-            ].join(
-              ["ja", "zh-CN", "zh-TW"].includes(language)
-                ? "、"
-                : ["ar", "fa"].includes(language)
-                  ? "، "
-                  : ", ",
-            ),
-          },
+        asQuery(
+          sentence(
+            language,
+            "The chart and facet counts above are not narrowed by: {{filters}}. The list is.",
+            {
+              filters: [
+                translator.translateTemplate("attribute filter on {{key}}", {
+                  key: "http.route",
+                }),
+                translator.translateTerm("session filter", {
+                  inSentence: true,
+                }),
+              ].join(
+                ["ja", "zh-CN", "zh-TW"].includes(language)
+                  ? "、"
+                  : ["ar", "fa"].includes(language)
+                    ? "، "
+                    : ", ",
+              ),
+            },
+          ),
         ),
       ),
     ).toBeInTheDocument();

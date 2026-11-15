@@ -187,6 +187,7 @@ function useBulkOidTemplateActions(): BulkOidTemplateActionsResult {
     (template: NetworkDeviceOidTemplate): DropdownOption => {
       return {
         label: template.name || "",
+        isUserContent: true,
         value: template._id?.toString() || "",
       };
     },

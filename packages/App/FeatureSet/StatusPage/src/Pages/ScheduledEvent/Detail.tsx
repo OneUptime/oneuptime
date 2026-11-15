@@ -53,6 +53,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../Utils/i18n";
 import { AddEventToCalendarButton } from "../../Components/MaintenanceCalendar/MaintenanceCalendarButtons";
 import { translateStatusName } from "../../Utils/StatusTranslation";
+import { StateListType } from "Common/Utils/StateOrder";
 import useAsyncEffect from "use-async-effect";
 
 export type GetScheduledEventEventItemFunctionProps = {
@@ -237,6 +238,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
       timeline.push({
         state: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
         stateDisplayName: translateStatusName(
+          StateListType.ScheduledMaintenanceState,
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.name,
         ),
         date:
@@ -255,6 +257,7 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
 
       if (!currentStateStatus) {
         currentStateStatus = translateStatusName(
+          StateListType.ScheduledMaintenanceState,
           scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
             ?.name,
         );
@@ -322,10 +325,12 @@ export const getScheduledEventEventItem: GetScheduledEventEventItemFunction = (
     currentStatusColor: currentStatusColor,
     eventTypeColor: Yellow,
     eventSecondDescription: scheduledMaintenance.startsAt
-      ? i18n.t("scheduledEvents.scheduledAt") +
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-          scheduledMaintenance.startsAt!,
-        )
+      ? // One sentence, the date where the reader's language puts it (#8076).
+        i18n.t("scheduledEvents.scheduledAtTime", {
+          time: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            scheduledMaintenance.startsAt!,
+          ),
+        })
       : "",
     labels:
       scheduledMaintenance.labels?.map((label: Label) => {
@@ -528,6 +533,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         breadcrumbLinks={[
           {
             title: t("nav.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -536,6 +542,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("scheduledEvents.title"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route)
@@ -544,6 +551,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
           },
           {
             title: t("scheduledEvents.singular"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               StatusPageUtil.isPreviewPage()
                 ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)

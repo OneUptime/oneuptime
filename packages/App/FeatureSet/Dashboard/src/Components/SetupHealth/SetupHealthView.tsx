@@ -1,18 +1,31 @@
-import RelativeTime from "../EpisodeView/RelativeTime";
 import { getAdminServerSetupUrl } from "../../Utils/ServerEmail";
 import SetupHealthApi from "./SetupHealthApi";
 import {
+  DISMISSED_ICON_BOX,
+  LEVEL_LOOK,
+  RECORD_ICONS,
+  SetupHealthLevelLook,
+  getSetupHealthFindingIcon,
+} from "./SetupHealthLook";
+import SetupHealthSummary from "./SetupHealthSummary";
+import {
   FINDINGS_SHOWN_PER_CHECK,
   LEVEL_WORDS,
+  RELATED_RECORDS_MORE,
+  RELATED_RECORDS_SHOWN,
   SERVER_FIX_WORDS,
+  SETUP_HEALTH_AFFECTS,
   SETUP_HEALTH_WORDS_PAGE,
   SetupHealthFixLink,
+  SetupHealthSentenceValues,
   getSetupHealthFixLink,
+  getSetupHealthRecordRoute,
   getSetupHealthSentence,
+  getSetupHealthSentenceValues,
   groupSetupHealthFindings,
 } from "./SetupHealthWords";
+import Route from "Common/Types/API/Route";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   DismissedSetupHealthFinding,
@@ -21,20 +34,22 @@ import {
   SetupHealthFinding,
   SetupHealthFix,
   SetupHealthLevel,
+  SetupHealthRecord,
 } from "Common/Types/SetupHealth/SetupHealth";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { IconColorClasses } from "Common/UI/Components/Navbar/NavBarMenuModal";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import TableEmptyState, {
-  TableEmptyStateKind,
-} from "Common/UI/Components/Table/TableEmptyState";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
@@ -44,6 +59,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useRef,
@@ -51,10 +67,14 @@ import React, {
 } from "react";
 
 /*
- * SETUP HEALTH (#6812): one list of what is misconfigured in the project,
- * worst first, each finding in one sentence with the button that opens its
- * fix. A finding the team leaves as it is on purpose is dismissed, with a
- * reason, for everyone; Dismissed, folded at the end, brings it back.
+ * SETUP HEALTH (#6812, #8135): what is misconfigured in the project, worst
+ * first. The page opens with the verdict (SetupHealthSummary): how badly,
+ * in one line. Each level is a card; each finding a row with the icon of
+ * what it is about, one sentence with the project's names in bold, the
+ * records it reaches, and right under the sentence the button that opens
+ * its fix - never at the far end of a wide row. A finding the team leaves
+ * as it is on purpose is dismissed, with a reason, for everyone; Dismissed,
+ * folded at the end, brings it back.
  *
  * One request (SetupHealthApi), answered from a minute-old answer on the
  * server; Recheck works it out again.
@@ -65,30 +85,18 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "loaded"; answer: SetupHealthAnswer };
 
-// Each level's look: its icon and colours.
-const LEVEL_STYLE: Readonly<
-  Record<SetupHealthLevel, { icon: IconProp; iconClassName: string }>
-> = {
-  [SetupHealthLevel.PagesWillNotArrive]: {
-    icon: IconProp.Alert,
-    iconClassName: "text-red-600",
-  },
-  [SetupHealthLevel.WorthFixing]: {
-    icon: IconProp.Alert,
-    iconClassName: "text-amber-600",
-  },
-  [SetupHealthLevel.Suggestion]: {
-    icon: IconProp.Info,
-    iconClassName: "text-gray-500",
-  },
-};
-
 /*
  * A card's list runs to the card's edges and down to its bottom edge, as
  * Home's lists do (HOME_ROW_CARD_BODY_CLASS_NAME), under the card's usual
  * gap below its header.
  */
 const LIST_BODY_CLASS_NAME: string = "mt-4 -mx-5 -mb-6 md:-mx-6";
+
+// A row: its icon, then what it says, with the card's padding at each end.
+const ROW_CLASS_NAME: string = "flex items-start gap-3 px-5 py-4 md:px-6";
+
+// The words of a row start after its icon: the card's padding, 2rem, 0.75rem.
+const UNDER_THE_WORDS_CLASS_NAME: string = "ps-16 pe-5 md:ps-[4.25rem] md:pe-6";
 
 const LINK_BASE_CLASS_NAME: string =
   "text-sm font-medium text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded";
@@ -98,8 +106,28 @@ const LINK_HOVER_CLASS_NAME: string = "hover:underline";
 const LINK_CLASS_NAME: string = `${LINK_BASE_CLASS_NAME} ${LINK_HOVER_CLASS_NAME}`;
 
 /*
- * A link drawn as a button that works for a while (Recheck, Restore): busy
- * then, it keeps its look without its hover, as a busy Button does
+ * A finding's fix: the one obvious next step, so it looks like a button,
+ * tinted as the product's links are.
+ */
+const FIX_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-sm font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200 transition hover:bg-indigo-100 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+const DISMISS_CLASS_NAME: string =
+  "rounded text-sm text-gray-500 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+// A record a finding reaches: a chip with its kind's icon and its name.
+const RELATED_CHIP_CLASS_NAME: string =
+  "inline-flex min-w-0 max-w-full items-center gap-1 rounded-md bg-gray-50 px-1.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
+
+const RELATED_LINK_CLASS_NAME: string = `${RELATED_CHIP_CLASS_NAME} transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`;
+
+// The box a row's icon sits in, tinted by its level.
+const ICON_BOX_CLASS_NAME: string =
+  "flex h-8 w-8 flex-none items-center justify-center rounded-lg ring-1 ring-inset";
+
+/*
+ * A link drawn as a button that works for a while (Restore): busy then, it
+ * keeps its look without its hover, as a busy Button does
  * (getHandDrawnButtonStateClassName); its hover otherwise.
  */
 function getBusyLinkClassName(isBusy: boolean): string {
@@ -113,6 +141,135 @@ function getBusyLinkClassName(isBusy: boolean): string {
 function getSource(): string {
   return Navigation.getQueryStringByName("from") || "direct";
 }
+
+// The icon of a row, in a box of its level's colours.
+const FindingIcon: FunctionComponent<{
+  icon: IconProp;
+  colors: IconColorClasses;
+}> = (props: { icon: IconProp; colors: IconColorClasses }): ReactElement => {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${ICON_BOX_CLASS_NAME} ${props.colors.bg} ${props.colors.ring}`}
+    >
+      <Icon icon={props.icon} className={`h-4 w-4 ${props.colors.text}`} />
+    </span>
+  );
+};
+
+/*
+ * A finding's sentence in the reader's language, the project's names in
+ * bold. Only the names the sentence holds are drawn apart: a name it does
+ * not hold would leave the sentence unable to draw whole.
+ */
+const FindingSentence: FunctionComponent<{
+  finding: SetupHealthFinding;
+}> = (props: { finding: SetupHealthFinding }): ReactElement => {
+  const sentence: SetupHealthSentenceValues = getSetupHealthSentenceValues(
+    props.finding,
+  );
+  const slots: Record<string, ReactNode> = {};
+  const values: SetupHealthSentenceValues["values"] = { ...sentence.values };
+
+  for (const [key, name] of Object.entries(sentence.names)) {
+    if (props.finding.words.includes(`{{${key}}}`)) {
+      slots[key] = (
+        <span
+          className="font-semibold text-gray-900"
+          data-testid="setup-health-name"
+        >
+          {name}
+        </span>
+      );
+    } else {
+      values[key] = name;
+    }
+  }
+
+  return (
+    <TranslatedSentence
+      template={props.finding.words}
+      slots={slots}
+      values={values}
+    />
+  );
+};
+
+// The records a finding reaches, each a chip that opens it.
+const RelatedRecords: FunctionComponent<{
+  records: Array<SetupHealthRecord>;
+}> = (props: { records: Array<SetupHealthRecord> }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const named: Array<SetupHealthRecord> = props.records.filter(
+    (record: SetupHealthRecord): boolean => {
+      return Boolean(record.name);
+    },
+  );
+
+  if (named.length === 0) {
+    return <></>;
+  }
+
+  const shown: Array<SetupHealthRecord> = named.slice(0, RELATED_RECORDS_SHOWN);
+  const hidden: number = named.length - shown.length;
+
+  return (
+    <div
+      className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5"
+      data-testid="setup-health-related"
+    >
+      <span className="me-0.5 text-xs text-gray-500">
+        {translator.translateText(SETUP_HEALTH_AFFECTS)}
+      </span>
+      {shown.map((record: SetupHealthRecord): ReactElement => {
+        const route: Route | null = getSetupHealthRecordRoute(record);
+        const content: ReactElement = (
+          <>
+            <Icon
+              icon={RECORD_ICONS[record.kind]}
+              className="h-3 w-3 flex-none text-gray-400"
+            />
+            <span
+              className="truncate"
+              dir={getLineDirection(record.name, translator.language)}
+            >
+              {record.name}
+            </span>
+          </>
+        );
+
+        return route ? (
+          <Link
+            key={`${record.kind}-${record.id}`}
+            to={route}
+            className={RELATED_LINK_CLASS_NAME}
+            dataTestId="setup-health-related-record"
+          >
+            {content}
+          </Link>
+        ) : (
+          <span
+            key={`${record.kind}-${record.id}`}
+            className={RELATED_CHIP_CLASS_NAME}
+            data-testid="setup-health-related-record"
+          >
+            {content}
+          </span>
+        );
+      })}
+      {hidden > 0 ? (
+        <span
+          className="text-xs text-gray-500"
+          data-testid="setup-health-related-more"
+        >
+          {translator.translatePlural(RELATED_RECORDS_MORE, hidden)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
 
 // The fix of one finding: its page, or for the server, its admin.
 const FindingFix: FunctionComponent<{
@@ -145,10 +302,11 @@ const FindingFix: FunctionComponent<{
         to={getAdminServerSetupUrl()}
         openInNewTab={true}
         onClick={onOpen}
-        className={LINK_CLASS_NAME}
+        className={FIX_CLASS_NAME}
         dataTestId="setup-health-fix"
       >
         {translator.translateText(SERVER_FIX_WORDS)}
+        <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5 flex-none" />
       </Link>
     );
   }
@@ -166,15 +324,16 @@ const FindingFix: FunctionComponent<{
     <Link
       to={fix.route}
       onClick={onOpen}
-      className={LINK_CLASS_NAME}
+      className={FIX_CLASS_NAME}
       dataTestId="setup-health-fix"
     >
       {fix.text}
+      <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5 flex-none" />
     </Link>
   );
 };
 
-// One finding: what is wrong, and what to do.
+// One finding: what it is about, what is wrong, what it reaches, and the fix.
 const FindingRow: FunctionComponent<{
   finding: SetupHealthFinding;
   canDismiss: boolean;
@@ -185,45 +344,46 @@ const FindingRow: FunctionComponent<{
   onDismiss: (finding: SetupHealthFinding) => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
-  const style: { icon: IconProp; iconClassName: string } =
-    LEVEL_STYLE[props.finding.level];
+  const look: SetupHealthLevelLook = LEVEL_LOOK[props.finding.level];
 
   return (
     <li
-      className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-start md:justify-between md:gap-6 md:px-6"
+      className={ROW_CLASS_NAME}
       data-testid="setup-health-finding"
       data-check={props.finding.check}
       data-level={props.finding.level}
       data-key={props.finding.key}
     >
-      <div className="flex min-w-0 items-start gap-3">
-        <Icon
-          icon={style.icon}
-          className={`mt-0.5 h-4 w-4 shrink-0 ${style.iconClassName}`}
-        />
+      <FindingIcon
+        icon={getSetupHealthFindingIcon(props.finding)}
+        colors={look.iconBox}
+      />
+      {/* The first line of words level with the middle of the icon. */}
+      <div className="min-w-0 flex-1 pt-1">
         <p
-          className="min-w-0 text-sm text-gray-900"
+          className="text-sm leading-6 text-gray-800"
           data-testid="setup-health-sentence"
         >
-          {getSetupHealthSentence(props.finding, translator)}
+          <FindingSentence finding={props.finding} />
         </p>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 ps-7 md:ps-0">
-        <FindingFix finding={props.finding} />
-        {props.canDismiss ? (
-          <button
-            type="button"
-            className="text-sm text-gray-600 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
-            data-testid="setup-health-dismiss"
-            onClick={() => {
-              props.onDismiss(props.finding);
-            }}
-          >
-            {translator.translateText(SETUP_HEALTH_WORDS_PAGE.dismiss)}
-          </button>
-        ) : (
-          <></>
-        )}
+        <RelatedRecords records={props.finding.related} />
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <FindingFix finding={props.finding} />
+          {props.canDismiss ? (
+            <button
+              type="button"
+              className={DISMISS_CLASS_NAME}
+              data-testid="setup-health-dismiss"
+              onClick={() => {
+                props.onDismiss(props.finding);
+              }}
+            >
+              {translator.translateText(SETUP_HEALTH_WORDS_PAGE.dismiss)}
+            </button>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     </li>
   );
@@ -266,7 +426,7 @@ const FindingGroup: FunctionComponent<{
         })}
       </ul>
       {hidden > 0 ? (
-        <div className="pb-3 pe-5 ps-12 md:pe-6 md:ps-[3.25rem]">
+        <div className={`pb-4 ${UNDER_THE_WORDS_CLASS_NAME}`}>
           <button
             type="button"
             className={LINK_CLASS_NAME}
@@ -311,12 +471,16 @@ const DismissedRow: FunctionComponent<{
 
   return (
     <li
-      className="flex flex-col gap-2 px-5 py-3 md:flex-row md:items-start md:justify-between md:gap-6 md:px-6"
+      className={ROW_CLASS_NAME}
       data-testid="setup-health-dismissed-finding"
       data-check={props.item.finding.check}
     >
-      <div className="min-w-0">
-        <p className="text-sm text-gray-700">
+      <FindingIcon
+        icon={getSetupHealthFindingIcon(props.item.finding)}
+        colors={DISMISSED_ICON_BOX}
+      />
+      <div className="min-w-0 flex-1 pt-1">
+        <p className="text-sm leading-6 text-gray-600">
           {getSetupHealthSentence(props.item.finding, translator)}
         </p>
         <p
@@ -335,24 +499,24 @@ const DismissedRow: FunctionComponent<{
                 { setsValuesApart: true },
               )}
         </p>
+        {props.canRestore ? (
+          <div className="mt-2">
+            <button
+              type="button"
+              className={getBusyLinkClassName(Boolean(props.isRestoring))}
+              disabled={props.isRestoring}
+              data-testid="setup-health-restore"
+              onClick={() => {
+                props.onRestore(props.item);
+              }}
+            >
+              {translator.translateText(SETUP_HEALTH_WORDS_PAGE.restore)}
+            </button>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
-      {props.canRestore ? (
-        <div className="shrink-0">
-          <button
-            type="button"
-            className={getBusyLinkClassName(Boolean(props.isRestoring))}
-            disabled={props.isRestoring}
-            data-testid="setup-health-restore"
-            onClick={() => {
-              props.onRestore(props.item);
-            }}
-          >
-            {translator.translateText(SETUP_HEALTH_WORDS_PAGE.restore)}
-          </button>
-        </div>
-      ) : (
-        <></>
-      )}
     </li>
   );
 };
@@ -434,6 +598,12 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
     setIsRechecking(false);
   };
 
+  // After a failed read: read again, saying so while it does.
+  const tryAgain: () => Promise<void> = async (): Promise<void> => {
+    setState({ status: "loading" });
+    await load(false);
+  };
+
   const confirmDismiss: () => Promise<void> = async (): Promise<void> => {
     if (!dismissTarget) {
       return;
@@ -481,47 +651,110 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
     setRestoringKey("");
   };
 
-  const getHeader: () => ReactElement = (): ReactElement => {
+  const getLevelCard: (
+    level: SetupHealthLevel,
+    findings: Array<SetupHealthFinding>,
+  ) => ReactElement = (
+    level: SetupHealthLevel,
+    findings: Array<SetupHealthFinding>,
+  ): ReactElement => {
     return (
-      <Card
-        title={SETUP_HEALTH_WORDS_PAGE.title}
-        description={SETUP_HEALTH_WORDS_PAGE.description}
-        rightElement={
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-            {state.status === "loaded" ? (
-              <span data-testid="setup-health-checked">
-                <TranslatedSentence
-                  template="Checked {{time}}"
-                  slots={{
-                    time: (
-                      <RelativeTime
-                        date={OneUptimeDate.fromString(state.answer.checkedAt)}
-                      />
-                    ),
-                  }}
-                />
-              </span>
-            ) : (
-              <></>
+      <div key={level} data-testid={`setup-health-level-${level}`}>
+        <Card
+          title={LEVEL_WORDS[level].title}
+          description={LEVEL_WORDS[level].description}
+          rightElement={
+            <span
+              data-testid={`setup-health-level-${level}-count`}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums ring-1 ring-inset ${LEVEL_LOOK[level].countClassName}`}
+            >
+              {translator.formatNumber(findings.length)}
+            </span>
+          }
+          bodyClassName={LIST_BODY_CLASS_NAME}
+        >
+          <ul className="divide-y divide-gray-100 border-t border-gray-100">
+            {groupSetupHealthFindings(findings).map(
+              (group: {
+                key: string;
+                findings: Array<SetupHealthFinding>;
+              }): ReactElement => {
+                return (
+                  <FindingGroup
+                    key={group.key}
+                    groupKey={group.key}
+                    findings={group.findings}
+                    canDismiss={canDismiss}
+                    onDismiss={(finding: SetupHealthFinding) => {
+                      setDismissError("");
+                      setReason("");
+                      setDismissTarget(finding);
+                    }}
+                  />
+                );
+              },
             )}
+          </ul>
+        </Card>
+      </div>
+    );
+  };
+
+  const getDismissedCard: (answer: SetupHealthAnswer) => ReactElement = (
+    answer: SetupHealthAnswer,
+  ): ReactElement => {
+    if (answer.dismissed.length === 0) {
+      return <></>;
+    }
+
+    return (
+      <div data-testid="setup-health-dismissed">
+        <Card
+          title={SETUP_HEALTH_WORDS_PAGE.dismissed}
+          description={SETUP_HEALTH_WORDS_PAGE.dismissedDescription}
+          rightElement={
             <button
               type="button"
-              className={getBusyLinkClassName(
-                isRechecking || state.status === "loading",
-              )}
-              disabled={isRechecking || state.status === "loading"}
-              data-testid="setup-health-recheck"
+              className={LINK_CLASS_NAME}
+              aria-expanded={isDismissedOpen}
+              data-testid="setup-health-dismissed-toggle"
               onClick={() => {
-                void recheck();
+                setIsDismissedOpen(!isDismissedOpen);
               }}
             >
-              {isRechecking
-                ? translator.translateText("Checking...")
-                : translator.translateText("Recheck")}
+              {isDismissedOpen
+                ? translator.translateText("Hide")
+                : translator.translatePlural(
+                    { one: "Show {{count}}", other: "Show {{count}}" },
+                    answer.dismissed.length,
+                  )}
             </button>
-          </div>
-        }
-      />
+          }
+          bodyClassName={LIST_BODY_CLASS_NAME}
+        >
+          {isDismissedOpen ? (
+            <ul className="divide-y divide-gray-100 border-t border-gray-100">
+              {answer.dismissed.map(
+                (item: DismissedSetupHealthFinding): ReactElement => {
+                  return (
+                    <DismissedRow
+                      key={item.finding.key}
+                      item={item}
+                      canRestore={canRestore}
+                      isRestoring={restoringKey === item.finding.key}
+                      onRestore={(
+                        target: DismissedSetupHealthFinding,
+                      ): void => {
+                        void restore(target);
+                      }}
+                    />
+                  );
+                },
+              )}
+            </ul>
+          ) : undefined}
+        </Card>
+      </div>
     );
   };
 
@@ -531,11 +764,17 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
         <div
           role="status"
           aria-label={translator.translateText("Checking...")}
-          className="space-y-3 animate-pulse"
+          className="space-y-5 animate-pulse"
           data-testid="setup-health-loading"
         >
-          <div className="h-24 rounded-lg bg-gray-100"></div>
-          <div className="h-24 rounded-lg bg-gray-100"></div>
+          <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm md:px-6">
+            <div className="h-11 w-11 flex-none rounded-full bg-gray-100"></div>
+            <div className="min-w-0 flex-1 space-y-2 pt-1">
+              <div className="h-5 w-72 max-w-full rounded bg-gray-100"></div>
+              <div className="h-4 w-96 max-w-full rounded bg-gray-100"></div>
+            </div>
+          </div>
+          <div className="h-48 rounded-xl border border-gray-200 bg-white shadow-sm"></div>
         </div>
       );
     }
@@ -543,16 +782,29 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
     if (state.status === "error") {
       return (
         <Card>
-          <p
-            className="text-sm text-gray-600"
-            role="alert"
-            data-testid="setup-health-error"
-          >
-            <ErrorSentence
-              template={SETUP_HEALTH_WORDS_PAGE.couldNotLoad}
-              error={state.message}
-            />
-          </p>
+          <div className="flex flex-col items-start gap-3">
+            <p
+              className="text-sm text-gray-600"
+              role="alert"
+              data-testid="setup-health-error"
+            >
+              <ErrorSentence
+                template={SETUP_HEALTH_WORDS_PAGE.couldNotLoad}
+                error={state.message}
+              />
+            </p>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              data-testid="setup-health-try-again"
+              onClick={() => {
+                void tryAgain();
+              }}
+            >
+              <Icon icon={IconProp.Refresh} className="h-4 w-4 flex-none" />
+              {translator.translateText("Try again")}
+            </button>
+          </div>
         </Card>
       );
     }
@@ -561,25 +813,18 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
 
     return (
       <div className="space-y-5">
+        <SetupHealthSummary
+          answer={answer}
+          isRechecking={isRechecking}
+          onRecheck={() => {
+            void recheck();
+          }}
+        />
+
         {actionError ? (
           <p className="text-sm text-red-700" role="alert">
-            {actionError}
+            <ErrorInSentence message={actionError} showWhereToLook={true} />
           </p>
-        ) : (
-          <></>
-        )}
-
-        {answer.findings.length === 0 ? (
-          <Card>
-            <div data-testid="setup-health-nothing-to-fix">
-              <TableEmptyState
-                kind={TableEmptyStateKind.AllClear}
-                title={SETUP_HEALTH_WORDS_PAGE.nothingToFix}
-                description={SETUP_HEALTH_WORDS_PAGE.nothingToFixDescription}
-                isCompact={true}
-              />
-            </div>
-          </Card>
         ) : (
           <></>
         )}
@@ -596,107 +841,17 @@ const SetupHealthView: FunctionComponent = (): ReactElement => {
               return <React.Fragment key={level}></React.Fragment>;
             }
 
-            return (
-              <div key={level} data-testid={`setup-health-level-${level}`}>
-                <Card
-                  title={LEVEL_WORDS[level].title}
-                  description={LEVEL_WORDS[level].description}
-                  rightElement={
-                    <span
-                      data-testid={`setup-health-level-${level}-count`}
-                      className="rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-gray-700 ring-1 ring-inset ring-gray-200"
-                    >
-                      {translator.formatNumber(findings.length)}
-                    </span>
-                  }
-                  bodyClassName={LIST_BODY_CLASS_NAME}
-                >
-                  <ul className="divide-y divide-gray-100 border-t border-gray-100">
-                    {groupSetupHealthFindings(findings).map(
-                      (group: {
-                        key: string;
-                        findings: Array<SetupHealthFinding>;
-                      }): ReactElement => {
-                        return (
-                          <FindingGroup
-                            key={group.key}
-                            groupKey={group.key}
-                            findings={group.findings}
-                            canDismiss={canDismiss}
-                            onDismiss={(finding: SetupHealthFinding) => {
-                              setDismissError("");
-                              setReason("");
-                              setDismissTarget(finding);
-                            }}
-                          />
-                        );
-                      },
-                    )}
-                  </ul>
-                </Card>
-              </div>
-            );
+            return getLevelCard(level, findings);
           },
         )}
 
-        {answer.dismissed.length > 0 ? (
-          <div data-testid="setup-health-dismissed">
-            <Card
-              title={SETUP_HEALTH_WORDS_PAGE.dismissed}
-              description={SETUP_HEALTH_WORDS_PAGE.dismissedDescription}
-              rightElement={
-                <button
-                  type="button"
-                  className={LINK_CLASS_NAME}
-                  aria-expanded={isDismissedOpen}
-                  data-testid="setup-health-dismissed-toggle"
-                  onClick={() => {
-                    setIsDismissedOpen(!isDismissedOpen);
-                  }}
-                >
-                  {isDismissedOpen
-                    ? translator.translateText("Hide")
-                    : translator.translatePlural(
-                        { one: "Show {{count}}", other: "Show {{count}}" },
-                        answer.dismissed.length,
-                      )}
-                </button>
-              }
-              bodyClassName={LIST_BODY_CLASS_NAME}
-            >
-              {isDismissedOpen ? (
-                <ul className="divide-y divide-gray-100 border-t border-gray-100">
-                  {answer.dismissed.map(
-                    (item: DismissedSetupHealthFinding): ReactElement => {
-                      return (
-                        <DismissedRow
-                          key={item.finding.key}
-                          item={item}
-                          canRestore={canRestore}
-                          isRestoring={restoringKey === item.finding.key}
-                          onRestore={(
-                            target: DismissedSetupHealthFinding,
-                          ): void => {
-                            void restore(target);
-                          }}
-                        />
-                      );
-                    },
-                  )}
-                </ul>
-              ) : undefined}
-            </Card>
-          </div>
-        ) : (
-          <></>
-        )}
+        {getDismissedCard(answer)}
       </div>
     );
   };
 
   return (
-    <div className="space-y-5" data-testid="setup-health">
-      {getHeader()}
+    <div data-testid="setup-health">
       {getBody()}
 
       {dismissTarget ? (

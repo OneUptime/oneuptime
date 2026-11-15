@@ -55,13 +55,13 @@ Brug den, når linjens form fortæller historien: latenstid, fejl, gennemløb el
 
 ### Værdi
 
-Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trend Direction**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Warning Threshold** gør baggrunden gul og **Critical Threshold** rød, når værdien når dem.
+Ét stort tal med en sparkline: forespørgslens værdi over hele tidsintervallet, lagt sammen for en sum eller en optælling, den højeste for et maksimum, den laveste for et minimum og ellers gennemsnittet. En pil sammenligner anden halvdel af intervallet med første, hver halvdel beregnet på samme måde, farvet efter **Trend Direction**: om en højere værdi er bedre eller dårligere, eller udledt af metrikkens navn. Peg på pilen for at se begge halvdeles værdier, og på sparklinen for at aflæse et punkts værdi og tidspunkt. **Advarselstærskel** gør baggrunden gul og **Kritisk tærskel** rød, når værdien når dem.
 
 Brug den, når ét tal besvarer spørgsmålet: fejlraten, P95-latenstiden eller antal anmodninger håndteret i dag.
 
 ### Måler
 
-En skive mellem et minimum og et maksimum, 0 og 100 medmindre du angiver dem, med en gul zone fra **Warning Threshold** og en rød zone fra **Critical Threshold**.
+En skive mellem et minimum og et maksimum, 0 og 100 medmindre du angiver dem, med en gul zone fra **Advarselstærskel** og en rød zone fra **Kritisk tærskel**.
 
 Brug den, når værdien lever i et kendt interval: CPU- eller diskforbrug i procent, eller en køs kapacitet.
 
@@ -148,7 +148,7 @@ Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du me
 | --- | --- | --- |
 | **Hændelsesliste** | Hændelser med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
 | **Advarselsliste** | Advarsler med deres tilstand og alvorlighed. | Uløste, kvitterede eller løste; alvorlighed, tilstand, overvågninger og etiketter. |
-| **Overvågningsliste** | Overvågninger med deres aktuelle status. | Driftsklar eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
+| **Overvågningsliste** | Overvågninger med deres aktuelle status. | I drift eller ej, status, overvågningstype og etiketter, eller en **Etiketvariabel**, som seerne vælger i værktøjslinjen. |
 
 Som de fleste listewidgets kan disse tre tegne en honeycomb af celler farvet efter status i stedet for en tabel: vælg det under **Visningstilstand**. De viser den aktuelle tilstand, uanset dashboardets tidsinterval.
 

@@ -3617,9 +3617,8 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
 
     const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
 
-    expect(field).toContain(
-      'ariaLabel={translator.translateText("Add a dashboard")}',
-    );
+    // Handed to the picker as written: it looks its aria label up once (943f9ebf4b0).
+    expect(field).toContain('ariaLabel="Add a dashboard"');
     expect(createSection).toContain(
       `pick each one from ${bold("Add a dashboard")}`,
     );

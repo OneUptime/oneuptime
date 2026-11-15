@@ -158,7 +158,7 @@ Er wordt niets verwijderd of uitgeschakeld. De sleutels en verbindingen blijven 
 
 Onder **Growth** toont **Projectinstellingen** > **Geavanceerd** > **API-sleutels** de sleutels die het project nog heeft en zegt dat ze zijn gestopt, zodat elk ervan in elk abonnement kan worden verwijderd (ingetrokken). Sleutels aanmaken of wijzigen vereist **Growth**. **Projectinstellingen** > **Facturering en facturen** > **Facturering** noemt hoeveel API-sleutels een lager abonnement stopt en hoeveel SCIM-verbindingen het beperkt, voor elk abonnement dat je kunt kiezen, en wat het abonnement van het project heeft gestopt; de eigenaren van het project krijgen een e-mail wanneer een abonnementswijziging ze stopt. De eigenaren van projecten die al onder deze abonnementen zaten toen dit begon, krijgen één e-mail die zegt wat is gestopt en hoe je het weer aanzet.
 
-Alleen de API-sleutels en SCIM-verbindingen van een project zijn getroffen. Mensen niet: inloggen op het dashboard, en MCP-clients die via inloggen zijn verbonden, werken zoals voorheen. Ingestiesleutels voor telemetrie, probesleutels en agentsleutels zijn geen API-sleutels en blijven werken. Zelf gehoste installaties hebben geen abonnementen, dus voor hen verandert er niets.
+Alleen de API-sleutels en SCIM-verbindingen van een project zijn getroffen. Mensen niet: inloggen op het dashboard, en MCP-clients die via inloggen zijn verbonden, werken zoals voorheen. Ingestiesleutels voor telemetrie, sondesleutels en agentsleutels zijn geen API-sleutels en blijven werken. Zelf gehoste installaties hebben geen abonnementen, dus voor hen verandert er niets.
 
 ## Records benoemen en schrijven
 
@@ -168,7 +168,7 @@ Verzoeken die één resource lezen, wijzigen of verwijderen, noemen die met haar
 
 ### Records die een verzoek noemt
 
-Veel resources noemen andere records: een monitor zijn labels en probes, een abonnee van een statuspagina zijn statuspagina, een netwerkapparaat zijn site, een lid van een incident het incident en de rol. Elke regel hieronder geldt net zo voor de API, Terraform en workflows:
+Veel resources noemen andere records: een monitor zijn labels en sondes, een abonnee van een statuspagina zijn statuspagina, een netwerkapparaat zijn site, een lid van een incident het incident en de rol. Elke regel hieronder geldt net zo voor de API, Terraform en workflows:
 
 | Als een verzoek | moet het | Anders |
 | --- | --- | --- |
@@ -188,7 +188,7 @@ Elke ID die je stuurt voor een record dat een resource noemt, moet een record va
 This network device references records that are not in this project: Network Site "…". Please pick values from this project and try again.
 ```
 
-Mensen worden op lidmaatschap gecontroleerd: iemand die geen lid van het project is, wordt op dezelfde manier geweigerd. Een globale probe, die elk project kan gebruiken, telt als die van je project. Een resource wijzigen controleert alleen de ID's die de wijziging toevoegt, dus een resource die iets noemt dat inmiddels is verdwenen, kan nog steeds worden opgeslagen.
+Mensen worden op lidmaatschap gecontroleerd: iemand die geen lid van het project is, wordt op dezelfde manier geweigerd. Een globale sonde, die elk project kan gebruiken, telt als die van je project. Een resource wijzigen controleert alleen de ID's die de wijziging toevoegt, dus een resource die iets noemt dat inmiddels is verdwenen, kan nog steeds worden opgeslagen.
 
 #### Records die via een ander worden gelezen
 
@@ -206,9 +206,9 @@ De eigenaren van een resource - de eigenaarsrecords van gebruikers en teams van 
 
 #### Records die een schrijfactie opsomt of noemt
 
-De records die een aanmaak of wijziging opsomt - de monitors en piketbeleiden van een incident, de services van een waarschuwing, de statuspagina's van een geplande onderhoudsgebeurtenis, de runbooks van een regel - houden zich aan je machtiging om dat soort record te lezen als je er een hebt, en in elk geval aan een blokkade met labels op het lezen ervan: een record daarbuiten wordt geweigerd met dezelfde `400`. Een wijziging controleert alleen de records die ze aan een lijst toevoegt, dus de records die de lijst al bevat, blijven.
+De records die een aanmaak of wijziging opsomt - de monitors en piketbeleiden van een incident, de services van een waarschuwing, de statuspagina's van een onderhoudsgebeurtenis, de runbooks van een regel - houden zich aan je machtiging om dat soort record te lezen als je er een hebt, en in elk geval aan een blokkade met labels op het lezen ervan: een record daarbuiten wordt geweigerd met dezelfde `400`. Een wijziging controleert alleen de records die ze aan een lijst toevoegt, dus de records die de lijst al bevat, blijven.
 
-Het ene record dat een aanmaak of wijziging in een eigen veld noemt - de monitor van een waarschuwing, de monitor die een statuspaginaresource toont, de service van een kostenbudget, het incident waaraan een runbookuitvoering is gekoppeld - volgt dezelfde regel, onder elk van zijn twee namen: een record buiten je machtiging om dat soort record te lezen, of met een label dat een blokkade op het lezen ervan wegneemt, wordt geweigerd met dezelfde `400`. Een wijziging controleert het alleen als ze een ander record noemt dan het record dat het veld al bevat. De globale probes en AI-agents van OneUptime, die elk project kan gebruiken, blijven voor elk project open. De records die een sjabloon voor je invult, worden op dezelfde manier gecontroleerd zodra ze zijn ingevuld, voordat er iets wordt opgeslagen: de monitors, statuspagina's en piketbeleiden die een incidentsjabloon toevoegt aan een incident dat ermee wordt gemeld, moeten records zijn die je mag lezen, alsof je ze zelf had gekozen.
+Het ene record dat een aanmaak of wijziging in een eigen veld noemt - de monitor van een waarschuwing, de monitor die een statuspaginaresource toont, de service van een kostenbudget, het incident waaraan een runbookuitvoering is gekoppeld - volgt dezelfde regel, onder elk van zijn twee namen: een record buiten je machtiging om dat soort record te lezen, of met een label dat een blokkade op het lezen ervan wegneemt, wordt geweigerd met dezelfde `400`. Een wijziging controleert het alleen als ze een ander record noemt dan het record dat het veld al bevat. De globale sondes en AI-agents van OneUptime, die elk project kan gebruiken, blijven voor elk project open. De records die een sjabloon voor je invult, worden op dezelfde manier gecontroleerd zodra ze zijn ingevuld, voordat er iets wordt opgeslagen: de monitors, statuspagina's en piketbeleiden die een incidentsjabloon toevoegt aan een incident dat ermee wordt gemeld, moeten records zijn die je mag lezen, alsof je ze zelf had gekozen.
 
 #### Instellingen die referenties bevatten
 
@@ -246,7 +246,7 @@ Beide namen worden op dezelfde manier gecontroleerd. De regels voor het record d
 
 ### Schakelaars
 
-Een veld dat aan of uit staat - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` en elk ander `true`- of `false`-veld - neemt `true` of `false`. Tekst en getallen die de database als een van beide leest, worden als die waarde opgevat, op dezelfde manier voor de API, Terraform en workflows: `"true"`, `"yes"`, `"on"`, `"1"` en `1` zijn `true`, en `"false"`, `"no"`, `"off"`, `"0"` en `0` zijn `false`, ongeacht hoofdletters. Alles wat OneUptime met het record doet, behandelt het ook als die waarde: een geplande onderhoudsgebeurtenis die met `"isVisibleOnStatusPage": "true"` wordt gestuurd, toont haar afbeeldingen op de statuspagina, en `"isEnabled": "false"` schakelt een resource onder haar abonnement uit zoals `false` dat doet. Elke andere waarde, zoals `"maybe"`, `""` of `2`, wordt geweigerd met een `400` die het veld noemt:
+Een veld dat aan of uit staat - `isEnabled`, `isVisibleOnStatusPage`, `isArchived` en elk ander `true`- of `false`-veld - neemt `true` of `false`. Tekst en getallen die de database als een van beide leest, worden als die waarde opgevat, op dezelfde manier voor de API, Terraform en workflows: `"true"`, `"yes"`, `"on"`, `"1"` en `1` zijn `true`, en `"false"`, `"no"`, `"off"`, `"0"` en `0` zijn `false`, ongeacht hoofdletters. Alles wat OneUptime met het record doet, behandelt het ook als die waarde: een onderhoudsgebeurtenis die met `"isVisibleOnStatusPage": "true"` wordt gestuurd, toont haar afbeeldingen op de statuspagina, en `"isEnabled": "false"` schakelt een resource onder haar abonnement uit zoals `false` dat doet. Elke andere waarde, zoals `"maybe"`, `""` of `2`, wordt geweigerd met een `400` die het veld noemt:
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ Een incident, een waarschuwing, een incidentepisode en een waarschuwingsepisode 
 
 ### De status van een record wijzigen
 
-De status van een record verandert via een rij van zijn statustijdlijn - `POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline` of `/api/scheduled-maintenance-state-timeline` - of via een update die zijn huidige status schrijft (`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, of de relatie), wat dezelfde rij vastlegt. Hoe dan ook geldt één regel voor de overgang, voor een episode net als voor een incident, een waarschuwing of een geplande onderhoudsgebeurtenis: een status die in de volgorde van je project vóór de huidige status van het record ligt, wordt geweigerd voordat er iets wordt opgeslagen, net als de status waarin het al staat:
+De status van een record verandert via een rij van zijn statustijdlijn - `POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline` of `/api/scheduled-maintenance-state-timeline` - of via een update die zijn huidige status schrijft (`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, of de relatie), wat dezelfde rij vastlegt. Hoe dan ook geldt één regel voor de overgang, voor een episode net als voor een incident, een waarschuwing of een onderhoudsgebeurtenis: een status die in de volgorde van je project vóór de huidige status van het record ligt, wordt geweigerd voordat er iets wordt opgeslagen, net als de status waarin het al staat:
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.

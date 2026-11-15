@@ -314,6 +314,7 @@ import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
 } from "./MetricDescriptionRules";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -1583,7 +1584,7 @@ describe("Storage Arrays list", () => {
         cellHtml(capacity, { capacityUsedPercent: percent }),
       ]).toEqual([percent, expect.stringContaining(colour)]);
     }
-    expect(cellText(capacity, {})).toBe("—");
+    expect(cellText(capacity, {})).toBe(QUIET_DASH_TEXT);
   });
 
   test("Open Alerts counts the open alerts and how many are critical", async () => {
@@ -1751,8 +1752,8 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
 
     expect(cellText(latency, fresh)).toBe("250 µs");
     expect(cellText(physical, fresh)).toBe("2.0 TiB");
-    expect(cellText(latency, stale)).toBe("—");
-    expect(cellText(physical, stale)).toBe("—");
+    expect(cellText(latency, stale)).toBe(QUIET_DASH_TEXT);
+    expect(cellText(physical, stale)).toBe(QUIET_DASH_TEXT);
     expect(STORAGE_ARRAY_METRIC_DESCRIPTIONS.readLatencyColumn).toMatch(
       /Shows a dash if it has not reported recently/,
     );
@@ -1777,7 +1778,7 @@ describe("Inventory tables: the cells keep the promises the texts make", () => {
     ).toBe("10.0 GiB");
     expect(
       cellText(space, { ...directory, metricsUpdatedAt: minutesAgo(91) }),
-    ).toBe("—");
+    ).toBe(QUIET_DASH_TEXT);
   });
 
   test("Link Status says a link more than a minute behind, in amber, with how far; the lag turns amber past the line", async () => {

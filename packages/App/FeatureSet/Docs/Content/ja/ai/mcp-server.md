@@ -41,7 +41,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-53 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+54 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -253,7 +253,7 @@ API キーもサインインもなしで、クライアントは公開ツール�
 - **`oneuptime_describe_resource`**: リソースのフィールドと、それらで絞り込み、並べ替え、選択する方法
 - **`get_public_status_page_overview`**: 公開ステータスページの概要
 - **`get_public_status_page_incidents`**: 公開ステータスページのインシデント
-- **`get_public_status_page_scheduled_maintenance`**: その定期メンテナンスイベント
+- **`get_public_status_page_scheduled_maintenance`**: そのメンテナンスイベント
 - **`get_public_status_page_announcements`**: そのお知らせ
 
 公開ステータスページのツールは、ステータスページの ID(UUID)かドメイン名を受け取ります。これらだけを使うには、アドレスだけで、認証情報なしで接続します:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | 分野 | 作成・取得・一覧・更新・削除・件数のツールがあるレコード |
 | --- | --- |
 | 監視 | Monitor, Monitor Status, Monitor Status Event |
-| インシデント | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| インシデント | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | アラート | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | ステータスページ | Status Page, Status Page Announcement |
 | 定期メンテナンス | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

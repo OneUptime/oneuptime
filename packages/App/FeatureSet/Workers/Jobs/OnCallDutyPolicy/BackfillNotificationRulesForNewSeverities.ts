@@ -1,6 +1,18 @@
 import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
+import { getRepeatEveryMinutes } from "Common/Types/NotificationRule/NotificationRepeat";
+import {
+  PagingLadderCell,
+  PagingLadderNewCell,
+  PagingLadderRule,
+  PagingLadderStep,
+  PagingMethodColumn,
+  getPagingLadderStepsForNewCell,
+} from "Common/Types/NotificationRule/PagingLadder";
+import PushNotificationLevel, {
+  DEFAULT_PUSH_NOTIFICATION_LEVEL,
+} from "Common/Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "Common/Types/ObjectID";
 import Query from "Common/Types/BaseDatabase/Query";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -11,6 +23,7 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import logger from "Common/Server/Utils/Logger";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import PagingLadderService from "Common/Server/Services/PagingLadderService";
 import UserEmailService from "Common/Server/Services/UserEmailService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -139,38 +152,21 @@ const RULE_TYPES_BY_SEVERITY_KIND: Record<
   ],
 };
 
-type NotificationMethodColumn =
-  | "userEmailId"
-  | "userSmsId"
-  | "userCallId"
-  | "userPushId"
-  | "userWhatsAppId"
-  | "userTelegramId"
-  | "userSlackId"
-  | "userMicrosoftTeamsId"
-  | "userMattermostId"
-  | "userWebhookId"
-  | "customNotificationChannelId";
+// A rule's method column: userEmailId, userPushId and the rest (PagingLadder).
+type NotificationMethodColumn = PagingMethodColumn;
 
-const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
-  "userEmailId",
-  "userSmsId",
-  "userCallId",
-  "userPushId",
-  "userWhatsAppId",
-  "userTelegramId",
-  "userSlackId",
-  "userMicrosoftTeamsId",
-  "userMattermostId",
-  "userWebhookId",
-  "customNotificationChannelId",
-];
-
-/* One (channel, delay) the responder already asked for, ready to be re-stated. */
+/*
+ * One (channel, delay) the responder already asked for, ready to be re-stated.
+ * A push one also says how it sounds and how often it repeats until somebody
+ * acknowledges, as it does on the responder's other cards (#7452); left out
+ * on any other.
+ */
 interface MirroredRule {
   methodColumn: NotificationMethodColumn;
   methodId: ObjectID;
   notifyAfterMinutes: number;
+  pushNotificationLevel?: PushNotificationLevel | undefined;
+  repeatEveryMinutes?: number | undefined;
 }
 
 /*
@@ -179,8 +175,17 @@ interface MirroredRule {
  */
 interface ResponderIntent {
   hasRuleForNewSeverity: boolean;
-  // Keyed on channel + method + delay, which is what "distinct pair" means here.
+  /*
+   * Keyed on channel + method + delay, which is what "distinct pair" means
+   * here. Not on how a push sounds or repeats: one push at one moment is one
+   * page, so a pair is mirrored once, with the settings most of the
+   * responder's cards give it.
+   */
   mirroredRules: Map<string, MirroredRule>;
+  /*
+   * What they have of this type pages nothing and holds an opt-out: they
+   * muted it (getPagingLadderStepsForNewCell's isMuted).
+   */
   hasOptOut: boolean;
 }
 
@@ -329,7 +334,17 @@ const backfillSeverity: BackfillSeverityFunction = async (
   severity: NewSeverity,
 ): Promise<void> => {
   /*
-   * The rules of each rule type first, then the project's verified emails -
+   * The project's cards, as How to Reach Me reads them: which severities are
+   * live, and in what order. A responder's rules for the new severity are read
+   * from their live cards (getPagingLadderStepsForNewCell), so a ladder saved
+   * there is what the new card gets, push sound and repeat included (#7452).
+   */
+  const cells: Array<PagingLadderCell> = await PagingLadderService.getCells(
+    severity.projectId,
+  );
+
+  /*
+   * The rules of each rule type next, then the project's verified emails -
    * in that order, and both before anything is written.
    *
    * A new project's severities are created a moment before its creator's
@@ -371,6 +386,7 @@ const backfillSeverity: BackfillSeverityFunction = async (
       severity: severity,
       ruleType: ruleType,
       existingRules: existingRules,
+      cells: cells,
       verifiedEmailByUserId: verifiedEmailByUserId,
     });
   }
@@ -488,11 +504,17 @@ const findRulesOfType: FindRulesOfTypeFunction = async (
       projectId: severity.projectId,
       ruleType: ruleType,
     },
+    /*
+     * Every column getPagingLadderStepsForNewCell reads, a push rule's level
+     * and repeat among them: they are mirrored with it (#7452).
+     */
     select: {
       _id: true,
       userId: true,
       notifyAfterMinutes: true,
       isOptOut: true,
+      pushNotificationLevel: true,
+      repeatEveryMinutes: true,
       incidentSeverityId: true,
       alertSeverityId: true,
       userEmailId: true,
@@ -517,6 +539,7 @@ type BackfillSeverityForRuleTypeFunction = (data: {
   severity: NewSeverity;
   ruleType: NotificationRuleType;
   existingRules: Array<UserNotificationRule>;
+  cells: ReadonlyArray<PagingLadderCell>;
   verifiedEmailByUserId: Map<string, VerifiedEmail>;
 }) => Promise<void>;
 
@@ -525,15 +548,18 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
     severity: NewSeverity;
     ruleType: NotificationRuleType;
     existingRules: Array<UserNotificationRule>;
+    cells: ReadonlyArray<PagingLadderCell>;
     verifiedEmailByUserId: Map<string, VerifiedEmail>;
   }): Promise<void> => {
     const severity: NewSeverity = data.severity;
     const ruleType: NotificationRuleType = data.ruleType;
 
-    const intentByUserId: Map<string, ResponderIntent> = buildResponderIntents(
-      data.existingRules,
-      severity,
-    );
+    const intentByUserId: Map<string, ResponderIntent> = buildResponderIntents({
+      existingRules: data.existingRules,
+      severity: severity,
+      ruleType: ruleType,
+      cells: data.cells,
+    });
 
     type JoinedSinceFunction = (userId: string) => boolean;
 
@@ -614,10 +640,13 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction =
     }
   };
 
-type BuildResponderIntentsFunction = (
-  existingRules: Array<UserNotificationRule>,
-  severity: NewSeverity,
-) => Map<string, ResponderIntent>;
+type BuildResponderIntentsFunction = (data: {
+  existingRules: Array<UserNotificationRule>;
+  severity: NewSeverity;
+  ruleType: NotificationRuleType;
+  // The project's cards (PagingLadderService.getCells); none, and every rule is read.
+  cells?: ReadonlyArray<PagingLadderCell> | undefined;
+}) => Map<string, ResponderIntent>;
 
 /**
  * Distils each responder's existing rows for one rule type into "what would this
@@ -632,79 +661,160 @@ type BuildResponderIntentsFunction = (
  * built a delay into every rule they own. Mirroring can only ever hand a
  * responder a channel they already opted into.
  *
+ * The rows are read the way How to Reach Me reads them, by
+ * getPagingLadderStepsForNewCell (Common/Types/NotificationRule/PagingLadder):
+ * from the responder's live cards of this rule type, and a push rule with how
+ * it sounds and how often it repeats. Read without those two, every push rule
+ * this job wrote was Critical and sent once - waking through silent mode a
+ * responder whose ladder said "Standard, every 5 minutes", and leaving the new
+ * card differing from their ladder (#7452).
+ *
  * Rows for the new severity itself are the idempotency guard, not input: seeing
  * one means an earlier run (or the responder) already covered this cell.
  *
- * Rows with no severity at all still count as intent. Episode default rules were
- * written without a severity id for a long time (Gap G), and those rows are just
- * as much a statement of "this is how I want to be told" as a severity-scoped
- * one.
+ * Rows of no live card - with no severity at all, or on an archived or deleted
+ * one - still count as intent for a responder with nothing on a live card.
+ * Episode default rules were written without a severity id for a long time
+ * (Gap G), and those rows are just as much a statement of "this is how I want
+ * to be told" as a severity-scoped one. Beside a live card they are not read:
+ * a ladder leaves them as they are, and a ladder must stay one ladder.
  */
-const buildResponderIntents: BuildResponderIntentsFunction = (
-  existingRules: Array<UserNotificationRule>,
-  severity: NewSeverity,
-): Map<string, ResponderIntent> => {
-  const intentByUserId: Map<string, ResponderIntent> = new Map<
-    string,
-    ResponderIntent
-  >();
-
+const buildResponderIntents: BuildResponderIntentsFunction = (data: {
+  existingRules: Array<UserNotificationRule>;
+  severity: NewSeverity;
+  ruleType: NotificationRuleType;
+  cells?: ReadonlyArray<PagingLadderCell> | undefined;
+}): Map<string, ResponderIntent> => {
+  const severity: NewSeverity = data.severity;
   const newSeverityId: string = severity.id.toString();
 
-  for (const rule of existingRules) {
+  const rulesByUserId: Map<string, Array<UserNotificationRule>> = new Map<
+    string,
+    Array<UserNotificationRule>
+  >();
+
+  for (const rule of data.existingRules) {
     if (!rule.userId) {
       continue;
     }
 
     const userId: string = rule.userId.toString();
+    const rules: Array<UserNotificationRule> = rulesByUserId.get(userId) || [];
+    rules.push(rule);
+    rulesByUserId.set(userId, rules);
+  }
 
-    let intent: ResponderIntent | undefined = intentByUserId.get(userId);
+  const intentByUserId: Map<string, ResponderIntent> = new Map<
+    string,
+    ResponderIntent
+  >();
 
-    if (!intent) {
-      intent = {
-        hasRuleForNewSeverity: false,
-        mirroredRules: new Map<string, MirroredRule>(),
-        hasOptOut: false,
-      };
-      intentByUserId.set(userId, intent);
-    }
+  for (const [userId, rules] of rulesByUserId) {
+    const intent: ResponderIntent = {
+      hasRuleForNewSeverity: rules.some(
+        (rule: UserNotificationRule): boolean => {
+          const severityIdOnRule: ObjectID | undefined =
+            severity.kind === "incident"
+              ? rule.incidentSeverityId
+              : rule.alertSeverityId;
 
-    const severityIdOnRule: ObjectID | undefined =
-      severity.kind === "incident"
-        ? rule.incidentSeverityId
-        : rule.alertSeverityId;
+          return Boolean(
+            severityIdOnRule && severityIdOnRule.toString() === newSeverityId,
+          );
+        },
+      ),
+      mirroredRules: new Map<string, MirroredRule>(),
+      hasOptOut: false,
+    };
 
-    if (severityIdOnRule && severityIdOnRule.toString() === newSeverityId) {
-      intent.hasRuleForNewSeverity = true;
+    intentByUserId.set(userId, intent);
+
+    if (intent.hasRuleForNewSeverity) {
       continue;
     }
 
-    if (rule.isOptOut) {
-      intent.hasOptOut = true;
+    const newCell: PagingLadderNewCell | null = getPagingLadderStepsForNewCell({
+      cells: data.cells || [],
+      ruleType: data.ruleType,
+      severityId: newSeverityId,
+      rules: rules.map((rule: UserNotificationRule): PagingLadderRule => {
+        return toPagingLadderRule(rule, data.ruleType);
+      }),
+    });
+
+    if (!newCell) {
       continue;
     }
 
-    const notifyAfterMinutes: number = rule.notifyAfterMinutes || 0;
+    intent.hasOptOut = newCell.isMuted;
 
-    for (const methodColumn of NOTIFICATION_METHOD_COLUMNS) {
-      const methodId: ObjectID | undefined = rule[methodColumn];
-
-      if (!methodId) {
-        continue;
-      }
+    for (const step of newCell.steps) {
+      const mirroredRule: MirroredRule = toMirroredRule(step);
 
       intent.mirroredRules.set(
-        `${methodColumn}:${methodId.toString()}:${notifyAfterMinutes}`,
-        {
-          methodColumn: methodColumn,
-          methodId: methodId,
-          notifyAfterMinutes: notifyAfterMinutes,
-        },
+        `${mirroredRule.methodColumn}:${mirroredRule.methodId.toString()}:${mirroredRule.notifyAfterMinutes}`,
+        mirroredRule,
       );
     }
   }
 
   return intentByUserId;
+};
+
+type ToPagingLadderRuleFunction = (
+  rule: UserNotificationRule,
+  ruleType: NotificationRuleType,
+) => PagingLadderRule;
+
+/*
+ * A rule row as PagingLadder reads it, by its columns. Its rule type is the
+ * one it was read for: every row here was found by that rule type.
+ */
+const toPagingLadderRule: ToPagingLadderRuleFunction = (
+  rule: UserNotificationRule,
+  ruleType: NotificationRuleType,
+): PagingLadderRule => {
+  return {
+    id: rule.id,
+    ruleType: ruleType,
+    incidentSeverityId: rule.incidentSeverityId,
+    alertSeverityId: rule.alertSeverityId,
+    notifyAfterMinutes: rule.notifyAfterMinutes,
+    isOptOut: rule.isOptOut,
+    pushNotificationLevel: rule.pushNotificationLevel,
+    repeatEveryMinutes: rule.repeatEveryMinutes,
+    userEmailId: rule.userEmailId,
+    userSmsId: rule.userSmsId,
+    userCallId: rule.userCallId,
+    userPushId: rule.userPushId,
+    userWhatsAppId: rule.userWhatsAppId,
+    userTelegramId: rule.userTelegramId,
+    userSlackId: rule.userSlackId,
+    userMicrosoftTeamsId: rule.userMicrosoftTeamsId,
+    userMattermostId: rule.userMattermostId,
+    userWebhookId: rule.userWebhookId,
+    customNotificationChannelId: rule.customNotificationChannelId,
+  };
+};
+
+type ToMirroredRuleFunction = (step: PagingLadderStep) => MirroredRule;
+
+// A step, as the rule this job writes: a push one with its level and repeat.
+const toMirroredRule: ToMirroredRuleFunction = (
+  step: PagingLadderStep,
+): MirroredRule => {
+  const mirroredRule: MirroredRule = {
+    methodColumn: step.methodColumn,
+    methodId: new ObjectID(step.methodId),
+    notifyAfterMinutes: step.notifyAfterMinutes,
+  };
+
+  if (step.methodColumn === "userPushId") {
+    mirroredRule.pushNotificationLevel = step.pushNotificationLevel;
+    mirroredRule.repeatEveryMinutes = step.repeatEveryMinutes;
+  }
+
+  return mirroredRule;
 };
 
 type CreateRuleFunction = (data: {
@@ -746,6 +856,10 @@ const createRule: CreateRuleFunction = async (data: {
    * for "email me now" AND "email me in fifteen minutes" must get both rows on
    * the new severity, and a key that ignored the delay would drop the second
    * one during the same pass that wrote the first.
+   *
+   * How a push sounds and repeats is not part of the key. A push rule for this
+   * device at this delay already pages it then, whatever its settings: a second
+   * one beside it would page the responder twice at the same moment.
    *
    * This narrows the race from a whole sweep to the microseconds between the
    * read and the write; the single-flight SWEEP_LOCK_KEY closes what is left,
@@ -803,6 +917,23 @@ const createRule: CreateRuleFunction = async (data: {
       data.mirroredRule.methodColumn,
       data.mirroredRule.methodId,
     );
+
+    /*
+     * Only on a push rule: the rule service refuses a repeat on any other, and
+     * a level means nothing there. Left out, a push rule pages at the column's
+     * defaults (Critical, once) - which is what every push rule this job wrote
+     * did, whatever the responder's other cards said (#7452). An interval the
+     * rule service does not offer is written as no repeat, which it does offer,
+     * rather than refused, leaving the new card without the push at all.
+     */
+    if (data.mirroredRule.methodColumn === "userPushId") {
+      rule.pushNotificationLevel =
+        data.mirroredRule.pushNotificationLevel ||
+        DEFAULT_PUSH_NOTIFICATION_LEVEL;
+      rule.repeatEveryMinutes = getRepeatEveryMinutes(
+        data.mirroredRule.repeatEveryMinutes,
+      );
+    }
   } else {
     rule.notifyAfterMinutes = 0;
     rule.isOptOut = true;

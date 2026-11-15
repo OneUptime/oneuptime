@@ -59,6 +59,7 @@ import UninstallWorkspaceConfirm, {
 import AskToConnectCard from "../Workspace/AskToConnectCard";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * What each card of the Slack settings says. The project's card (Project
@@ -264,7 +265,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         setManifest(response.data);
       }
     } catch (error) {
-      setError(<div>{API.getFriendlyErrorMessage(error as Error)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error as Error)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -277,7 +285,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
      * there to try again.
      */
     loadItems().catch((error: Exception) => {
-      setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     });
   }, []);
 
@@ -456,7 +471,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             }
           } catch (error) {
             setError(
-              <div>{API.getFriendlyErrorMessage(error as Exception)}</div>,
+              <div>
+                <ErrorInSentence
+                  message={API.getFriendlyErrorMessage(error as Exception)}
+                  showWhereToLook={true}
+                />
+              </div>,
             );
           }
           setIsButtonLoading(false);
@@ -509,7 +529,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       Navigation.navigate(URL.fromString(authorizationUrl));
     } catch (error) {
-      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+      setError(
+        <div>
+          <ErrorInSentence
+            message={API.getFriendlyErrorMessage(error as Exception)}
+            showWhereToLook={true}
+          />
+        </div>,
+      );
     }
   };
 
@@ -544,7 +571,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       navigateToAuthorizationUrl(
         isProjectAccountConnected ? "/slack/sign-in-url" : "/slack/install-url",
       ).catch((error: Exception) => {
-        setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+        setError(
+          <div>
+            <ErrorInSentence
+              message={API.getFriendlyErrorMessage(error)}
+              showWhereToLook={true}
+            />
+          </div>,
+        );
       });
     } else {
       setError(
@@ -665,6 +699,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
       ariaLabel={translator.translateTemplate(MANAGE_WORKSPACE_CONNECTION, {
         workspace: "Slack",
       })}
+      isAriaLabelTranslated={true}
       dataTestId="slack-project-actions"
     >
       {[
@@ -777,7 +812,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           onInstallForOrganization={() => {
             navigateToAuthorizationUrl("/slack/install-url").catch(
               (error: Exception) => {
-                setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+                setError(
+                  <div>
+                    <ErrorInSentence
+                      message={API.getFriendlyErrorMessage(error)}
+                      showWhereToLook={true}
+                    />
+                  </div>,
+                );
               },
             );
           }}

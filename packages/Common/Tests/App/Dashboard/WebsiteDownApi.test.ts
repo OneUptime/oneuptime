@@ -8,9 +8,23 @@ import {
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import WebsiteDownApi, {
+  FirstCheckState,
   OWN_MONITORS_READ_LIMIT,
   WebsiteDownMonitorRecord,
+  isPaymentRequired,
+  mayAddMonitorOwner,
+  mayAddPaymentMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
+import { isProjectOnFreePlan } from "../../../../App/FeatureSet/Dashboard/src/Utils/PayAsYouGo";
+import BillingPaymentMethod from "../../../Models/DatabaseModels/BillingPaymentMethod";
+import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
+import Probe, {
+  ProbeConnectionStatus,
+} from "../../../Models/DatabaseModels/Probe";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import ExceptionCode from "../../../Types/Exception/ExceptionCode";
+import API from "../../../UI/Utils/API/API";
+import ProjectUtil from "../../../UI/Utils/Project";
 import {
   buildWebsiteMonitor,
   parseWebsiteAddress,
@@ -308,6 +322,8 @@ describe("this person's own monitor for an address", () => {
       name: true,
       monitorSteps: true,
       monitoringInterval: true,
+      // How many probes must agree: what the first check's words follow (#7410).
+      minimumProbeAgreement: true,
       isArchived: true,
       disableActiveMonitoring: true,
     });
@@ -337,6 +353,8 @@ describe("this person's own monitor for an address", () => {
       name: "Acme website",
       monitorSteps: theirs.monitorSteps,
       monitoringInterval: "*/5 * * * *",
+      // Not set: all of its probes must agree.
+      minimumProbeAgreement: null,
     });
     // Its steps as read: the setup's first check and summary read them.
     expect(found!.monitorSteps).toBe(theirs.monitorSteps);
@@ -435,6 +453,8 @@ describe("the first check", () => {
 
     expect(await WebsiteDownApi.loadFirstCheck(id(99).toString())).toEqual({
       locationCount: 2,
+      // A probe whose connection was not read counts as connected.
+      activeLocationCount: 2,
       answers: [
         {
           isOnline: true,
@@ -456,6 +476,259 @@ describe("the first check", () => {
     });
     expect(String(query["monitorId"])).toBe(id(99).toString());
     expect(query["isEnabled"]).toBe(true);
+    // Each probe's connection: a disconnected one checks nothing (#7410).
+    expect(
+      (
+        getListSpy.mock.calls[0]![0] as unknown as {
+          select: Record<string, unknown>;
+        }
+      ).select,
+    ).toEqual({
+      _id: true,
+      lastMonitoringLog: true,
+      probe: { connectionStatus: true },
+    });
+  });
+
+  test("a disconnected probe is left out, its old answer with it, as the probe agreement leaves it out", async () => {
+    const probe: (
+      connectionStatus: ProbeConnectionStatus | undefined,
+      isOnline: boolean,
+    ) => MonitorProbe = (
+      connectionStatus: ProbeConnectionStatus | undefined,
+      isOnline: boolean,
+    ): MonitorProbe => {
+      return model(MonitorProbe, {
+        probe: model(Probe, { connectionStatus: connectionStatus }),
+        lastMonitoringLog: {
+          step: { isOnline: isOnline, responseCode: isOnline ? 200 : 503 },
+        },
+      });
+    };
+
+    getListSpy.mockResolvedValue(
+      list([
+        probe(ProbeConnectionStatus.Connected, true),
+        probe(ProbeConnectionStatus.Disconnected, false),
+        probe(undefined, true),
+      ]),
+    );
+
+    const state: FirstCheckState = await WebsiteDownApi.loadFirstCheck(
+      id(99).toString(),
+    );
+
+    expect(state.locationCount).toBe(3);
+    expect(state.activeLocationCount).toBe(2);
+    expect(
+      state.answers.map((answer: { responseCode?: number | undefined }) => {
+        return answer.responseCode;
+      }),
+    ).toEqual([200, 200]);
+  });
+
+  test("the monitor is read with its probe agreement", async () => {
+    const getItemSpy: LooseSpy = jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValue(
+        model(Monitor, {
+          _id: id(99).toString(),
+          name: "acme.example",
+          minimumProbeAgreement: 2,
+        }),
+      ) as unknown as LooseSpy;
+
+    const record: WebsiteDownMonitorRecord | null =
+      await WebsiteDownApi.loadMonitor(id(99).toString());
+
+    expect(record?.minimumProbeAgreement).toBe(2);
+    expect(
+      (
+        getItemSpy.mock.calls[0]![0] as unknown as {
+          select: Record<string, unknown>;
+        }
+      ).select,
+    ).toMatchObject({ minimumProbeAgreement: true });
+
+    // Not set: null, which is all of them.
+    getItemSpy.mockResolvedValue(
+      model(Monitor, { _id: id(99).toString(), name: "acme.example" }),
+    );
+    expect(
+      (await WebsiteDownApi.loadMonitor(id(99).toString()))
+        ?.minimumProbeAgreement,
+    ).toBeNull();
+  });
+});
+
+/*
+ * THE PERSON SETTING IT UP OWNS THE MONITOR (#7409): the creator of an
+ * operational resource is made its owner - but never a master admin, and
+ * the first person to sign up to a self-hosted server is one.
+ */
+describe("making the person its owner", () => {
+  const ME: string = id(7).toString();
+  const MONITOR: string = id(99).toString();
+
+  const allowOwners: (allowed: boolean) => void = (allowed: boolean): void => {
+    jest
+      .spyOn(PermissionGate, "check")
+      .mockImplementation((): PermissionGateResult => {
+        return { isAllowed: allowed };
+      });
+  };
+
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(id(500));
+  });
+
+  test("an owner already - the creator, as the server makes them - is left as they are", async () => {
+    allowOwners(true);
+    countSpy.mockResolvedValue(1);
+
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: ME,
+      }),
+    ).toBe(true);
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("not one - a master admin - is made one, quietly, and read back", async () => {
+    allowOwners(true);
+    countSpy.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    createSpy.mockResolvedValue({ data: model(MonitorOwnerUser, {}) });
+
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: ME,
+      }),
+    ).toBe(true);
+    expect(createSpy).toHaveBeenCalledTimes(1);
+
+    const call: { model: MonitorOwnerUser; modelType: unknown } = createSpy.mock
+      .calls[0]![0] as unknown as {
+      model: MonitorOwnerUser;
+      modelType: unknown;
+    };
+
+    expect(call.modelType).toBe(MonitorOwnerUser);
+    expect(call.model.monitorId?.toString()).toBe(MONITOR);
+    expect(call.model.userId?.toString()).toBe(ME);
+    expect(call.model.projectId?.toString()).toBe(id(500).toString());
+    // Their own row: nobody is told they were made an owner.
+    expect(call.model.isOwnerNotified).toBe(true);
+
+    // Asked of the records, both times, for this monitor and this person.
+    for (const countCall of countSpy.mock.calls) {
+      const query: Record<string, unknown> = (
+        countCall[0] as unknown as { query: Record<string, unknown> }
+      ).query;
+
+      expect(
+        (countCall[0] as unknown as { modelType: unknown }).modelType,
+      ).toBe(MonitorOwnerUser);
+      expect(String(query["monitorId"])).toBe(MONITOR);
+      expect(String(query["userId"])).toBe(ME);
+    }
+  });
+
+  test("a create that fails: what the records say decides", async () => {
+    allowOwners(true);
+    createSpy.mockRejectedValue(new Error("already an owner"));
+
+    // Another tab made them one meanwhile.
+    countSpy.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: ME,
+      }),
+    ).toBe(true);
+
+    // Refused, and not one.
+    countSpy.mockResolvedValue(0);
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: ME,
+      }),
+    ).toBe(false);
+  });
+
+  test("someone who may not add an owner is not, and nothing is sent", async () => {
+    allowOwners(false);
+    countSpy.mockResolvedValue(0);
+
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: ME,
+      }),
+    ).toBe(false);
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("with no one signed in there is nobody to make an owner", async () => {
+    allowOwners(true);
+
+    expect(
+      await WebsiteDownApi.ensureMonitorOwner({
+        monitorId: MONITOR,
+        userId: "",
+      }),
+    ).toBe(false);
+    expect(countSpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("asks the permission to add a monitor owner", () => {
+    const checkSpy: LooseSpy = jest
+      .spyOn(PermissionGate, "check")
+      .mockReturnValue({ isAllowed: true }) as unknown as LooseSpy;
+
+    expect(mayAddMonitorOwner()).toBe(true);
+    expect(checkSpy.mock.calls[0]![0]).toBeInstanceOf(MonitorOwnerUser);
+  });
+});
+
+/*
+ * A PAYMENT METHOD BEFORE START CHECKING (#7367): asked on Cloud's Free plan
+ * only, as the server asks it.
+ */
+describe("whether a payment method is needed first", () => {
+  test("off Cloud's Free plan nothing is asked: self-hosted is never billed", async () => {
+    const getSpy: LooseSpy = jest.spyOn(API, "get") as unknown as LooseSpy;
+
+    expect(isProjectOnFreePlan()).toBe(false);
+    expect(await WebsiteDownApi.needsPaymentMethod()).toBe(false);
+    expect(getSpy).not.toHaveBeenCalled();
+  });
+
+  test("a refusal for want of one is the server's 402, and nothing else", () => {
+    expect(
+      isPaymentRequired(new HTTPErrorResponse(402, { message: "Pay" }, {})),
+    ).toBe(true);
+    expect(
+      isPaymentRequired(new HTTPErrorResponse(400, { message: "Bad" }, {})),
+    ).toBe(false);
+    expect(
+      isPaymentRequired(new HTTPErrorResponse(403, { message: "No" }, {})),
+    ).toBe(false);
+    expect(isPaymentRequired(new Error("402"))).toBe(false);
+    expect(isPaymentRequired(null)).toBe(false);
+    expect(ExceptionCode.PaymentRequiredException).toBe(402);
+  });
+
+  test("asks the permission to add a payment method, as the billing page's button does", () => {
+    const checkSpy: LooseSpy = jest
+      .spyOn(PermissionGate, "check")
+      .mockReturnValue({ isAllowed: false }) as unknown as LooseSpy;
+
+    expect(mayAddPaymentMethod()).toBe(false);
+    expect(checkSpy.mock.calls[0]![0]).toBeInstanceOf(BillingPaymentMethod);
   });
 });
 

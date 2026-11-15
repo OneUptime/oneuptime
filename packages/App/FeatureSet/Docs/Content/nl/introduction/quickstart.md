@@ -52,7 +52,7 @@ Klik in de checklist op **Maak je eerste monitor**. Dat opent de begeleide insta
 
 Voer onder **Wat moeten we controleren?** het volledige adres van uw site in bij **Adres van de website of API**, bijvoorbeeld `https://example.com`, en klik op **Beginnen met controleren**. De sondes controleren het meteen, en daarna elke 5 minuten: als de site niet antwoordt, of met een fout antwoordt, gaat de monitor naar **Offline** en meldt hij een incident. Klik op **Doorgaan**.
 
-Met het Free-abonnement van OneUptime Cloud worden monitoren naar gebruik gefactureerd, dus heeft het project een betaalmethode nodig voordat het uw site kan controleren: zonder betaalmethode vraagt de stap u om [een betaalmethode toe te voegen](/docs/configuration/billing#betaalmethoden).
+Met het Free-abonnement van OneUptime Cloud worden monitoren naar gebruik gefactureerd, dus heeft het project een betaalmethode nodig voordat het uw site kan controleren: zonder betaalmethode zegt de stap dat al vóór **Beginnen met controleren**, met **Betaalmethode toevoegen** om [er een toe te voegen](/docs/configuration/billing#betaalmethoden).
 
 ### Kiezen wie er wordt ingelicht
 

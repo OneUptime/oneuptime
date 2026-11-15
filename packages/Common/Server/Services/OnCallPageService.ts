@@ -54,6 +54,7 @@ import OnCallDutyPolicyExecutionLogService, {
   OnCallDirectPageRun,
 } from "./OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyScheduleService from "./OnCallDutyPolicyScheduleService";
+import OnCallRunPageMessage from "../Utils/OnCall/OnCallRunPageMessage";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
@@ -1298,19 +1299,33 @@ export class Service {
         UserNotificationEventType.AlertCreated;
     }
 
+    /*
+     * Created as the caller, with the message OneUptime writes on it as it
+     * is created (OnCallRunPageMessage): no caller may write the column,
+     * and the run pages its first level as it is created - so those
+     * notifications carry the message too.
+     */
     const created: OnCallDutyPolicyExecutionLog =
-      await OnCallDutyPolicyExecutionLogService.create({
-        data: executionLog,
-        props: data.props,
-      });
+      await OnCallRunPageMessage.startWith(
+        data.pageMessage,
+        (): Promise<OnCallDutyPolicyExecutionLog> => {
+          return OnCallDutyPolicyExecutionLogService.create({
+            data: executionLog,
+            props: data.props,
+          });
+        },
+      );
 
     /*
-     * The message is OneUptime's to write (no caller may), once the run is
-     * created as the caller: its chat message quotes it from the next time
-     * it is brought up to date - a moment after its first post at most.
-     * Never a reason the policy is not started.
+     * A run the message did not reach as it was created gets it now, as
+     * OneUptime: its chat message quotes it from the next time it is
+     * brought up to date. Never a reason the policy is not started.
      */
-    if (data.pageMessage && created.id) {
+    if (
+      data.pageMessage &&
+      created.id &&
+      created.pageMessage !== toOnCallPersonPageMessage(data.pageMessage)
+    ) {
       try {
         await OnCallDutyPolicyExecutionLogService.updateOneById({
           id: created.id,

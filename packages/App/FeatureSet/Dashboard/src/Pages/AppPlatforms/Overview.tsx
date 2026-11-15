@@ -54,6 +54,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * App Platforms' Overview, the page the product opens on: how the apps on
@@ -237,7 +238,12 @@ const PlatformGroupRows: FunctionComponent<{
           className={PLATFORM_STATE_CLASS_NAME}
           data-testid="app-platforms-platform-status"
         >
-          <Pill text={toneText} color={TONE_COLORS[tone]} />
+          <Pill
+            text={toneText}
+            // Worded above, in the reader's language: drawn as given (#8067).
+            isUserContent={true}
+            color={TONE_COLORS[tone]}
+          />
         </div>
       </div>
       <ul className="mt-3 space-y-2 ps-9">
@@ -264,7 +270,7 @@ const PlatformGroupRows: FunctionComponent<{
                 )}
                 className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
               >
-                {row.name || "—"}
+                {row.name || <TableEmptyValue />}
               </AppLink>
               <span
                 className={

@@ -52,7 +52,9 @@ import { MonitorOverviewTarget } from "Common/Utils/Monitor/MonitorOverviewTarge
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import {
   translatableTerm,
   Translator,
@@ -252,7 +254,10 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
             data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
             className="mt-2 text-sm text-red-700"
           >
-            {turnMonitoringOn.error}
+            <ErrorInSentence
+              message={turnMonitoringOn.error}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

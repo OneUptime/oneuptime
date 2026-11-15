@@ -99,6 +99,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The project's Meraki connections, at the foot of the whole network's
@@ -1044,7 +1045,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
               role="alert"
               className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200"
             >
-              {error}
+              <ErrorInSentence message={error} showWhereToLook={true} />
             </div>
           ) : (
             <></>
@@ -1455,6 +1456,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                             "More actions for {{name}}",
                             { name: facts.connection.name },
                           )}
+                          isAriaLabelTranslated={true}
                           elementToBeShownInsteadOfButton={
                             <button
                               type="button"

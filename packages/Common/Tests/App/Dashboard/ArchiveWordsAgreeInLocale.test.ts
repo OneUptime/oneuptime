@@ -41,6 +41,7 @@ import {
   isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { namesItsList } from "../../Helpers/ListNames";
 
 /*
  * ARCHIVE'S WORDS AGREE WITH EACH OTHER, IN EVERY LANGUAGE (#7387).
@@ -764,10 +765,10 @@ describe("the French bulk title for inventory items", () => {
     const items: ListNames = namesOf("InventoryItem");
 
     expect(bulkTitle("fr", BULK_ARCHIVE_TITLE, items, 3)).toBe(
-      "Archiver 3 éléments d'inventaire ?",
+      "Archiver 3 éléments d'inventaire\u202F?",
     );
     expect(bulkTitle("fr", BULK_UNARCHIVE_TITLE, items, 1)).toBe(
-      "Désarchiver 1 élément d'inventaire ?",
+      "Désarchiver 1 élément d'inventaire\u202F?",
     );
   });
 
@@ -818,50 +819,17 @@ const OWN_KINDS: ReadonlyArray<OwnKind> = [
   },
 ];
 
-// Arabic's article before a word of three letters or more: المراقبات.
-const ARABIC_ARTICLE: RegExp = /^ال(?=.{3})/u;
-
-// A name's words, in lower case, Arabic's article taken off.
-function nameWords(name: string): Array<string> {
-  return name
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word: string): string => {
-      return word.replace(ARABIC_ARTICLE, "");
-    });
-}
-
 /*
  * A term names what its list does when the first three letters of its
  * first word begin a word of the list's name: "arbejdsgang" and
  * "Arbejdsgange", "سير عمل" and "مهام سير العمل"; never "workflow" and
- * "Flux de travail".
+ * "Flux de travail" (namesItsList, Common/Tests/Helpers/ListNames).
+ *
+ * Russian counted статус-страницы under a "Страницы состояния" list and
+ * дашборды under "Панели", Hindi स्टेटस पेज under "स्थिति पृष्ठ", until
+ * #8029 gave each one name across the Dashboard; OneNamePerThingGuard
+ * holds every Products-menu title and its term to that.
  */
-function namesItsList(term: string, list: string): boolean {
-  const lead: string = nameWords(term)[0]!.slice(0, 3);
-
-  return nameWords(list).some((word: string): boolean => {
-    return word.startsWith(lead);
-  });
-}
-
-/*
- * Names whose term and list still differ: Russian counts статус-страницы
- * under a "Страницы состояния" list and дашборды under "Панели", Hindi
- * स्टेटस पेज under "स्थिति पृष्ठ". Which word a reader sees for these
- * across the Dashboard - its menu, its pages and the docs that quote them -
- * is a choice for the whole product, made in a follow-up of #7386. Each
- * entry comes off when its pair agrees.
- */
-const NAMES_STILL_APART: ReadonlyArray<{ language: string; term: string }> = [
-  { language: "ru", term: "status page" },
-  { language: "ru", term: "status pages" },
-  { language: "ru", term: "dashboard" },
-  { language: "ru", term: "dashboards" },
-  { language: "hi", term: "status page" },
-  { language: "hi", term: "status pages" },
-];
 
 describe.each(DASHBOARD_LANGUAGES)(
   "the five kinds' archive words in %s",
@@ -884,13 +852,7 @@ describe.each(DASHBOARD_LANGUAGES)(
         }
       }
 
-      expect(apart).toEqual(
-        NAMES_STILL_APART.filter(
-          (entry: { language: string; term: string }): boolean => {
-            return entry.language === language;
-          },
-        ),
-      );
+      expect(apart).toEqual([]);
     });
 
     test("never say the English noun where the list's name does not", () => {
@@ -938,10 +900,14 @@ describe("the check of a term against its list, against the words it replaced", 
 
 describe("the bulk titles count workflows and monitors as their lists do", () => {
   test.each([
-    ["fr", "workflow", "Archiver 3 flux de travail ?"],
+    ["fr", "workflow", "Archiver 3 flux de travail\u202F?"],
     ["it", "workflow", "Archiviare 3 flussi di lavoro?"],
     ["da", "workflow", "Arkiver 3 arbejdsgange?"],
     ["sv", "monitor", "Arkivera 3 monitorer?"],
+    // #8029: Russian and Hindi count status pages and dashboards as their lists name them.
+    ["ru", "status page", "Архивировать объекты (страницы статуса): 3?"],
+    ["ru", "dashboard", "Архивировать объекты (панели): 3?"],
+    ["hi", "status page", "3 स्थिति पृष्ठ संग्रहीत करें?"],
   ])("%s: %s", (language: string, kind: string, title: string) => {
     expect(bulkTitle(language, BULK_ARCHIVE_TITLE, namesOf(kind), 3)).toBe(
       title,

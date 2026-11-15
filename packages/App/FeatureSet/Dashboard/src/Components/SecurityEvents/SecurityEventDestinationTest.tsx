@@ -20,6 +20,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Send a test event": one event, marked as a test, sent to the SIEM with
@@ -82,10 +83,15 @@ export const SecurityEventDestinationTestResultBox: FunctionComponent<{
         />
       </div>
       <div className="min-w-0 break-words">
-        {props.result.message ||
-          (props.result.isSuccessful
-            ? translator.translateText("The test event was sent.")
-            : translator.translateText("The test event was not sent."))}
+        <ErrorInSentence
+          message={
+            props.result.message ||
+            (props.result.isSuccessful
+              ? translator.translateText("The test event was sent.")
+              : translator.translateText("The test event was not sent."))
+          }
+          showWhereToLook={true}
+        />
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentElement from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Black } from "Common/Types/BrandColors";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -43,6 +45,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { lockUnlessAllowed } from "../../../Components/IncidentAlert/IncidentAlertLink";
 import AddEpisodeMembersModal from "../../../Components/EpisodeMembers/AddEpisodeMembersModal";
 import { INCIDENT_EPISODE_MEMBER_KIND } from "../../../Components/EpisodeMembers/EpisodeMemberKinds";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The incidents in an episode (IncidentEpisodeMember rows). "Add Incidents"
@@ -240,7 +243,7 @@ const EpisodeIncidents: FunctionComponent<
             title: "Incident #",
             type: FieldType.Text,
             getElement: (item: IncidentEpisodeMember): ReactElement => {
-              return <>{getIncidentNumber(item) || "-"}</>;
+              return <>{getIncidentNumber(item) || <TableEmptyValue />}</>;
             },
             getExportValue: (item: IncidentEpisodeMember): string => {
               return getIncidentNumber(item);
@@ -258,7 +261,7 @@ const EpisodeIncidents: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IncidentEpisodeMember): ReactElement => {
               if (!item.incident) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <IncidentElement incident={item.incident} />;
             },
@@ -279,13 +282,17 @@ const EpisodeIncidents: FunctionComponent<
                 item.incident?.currentIncidentStateId,
               );
               if (!state) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <Pill
                   isMinimal={true}
                   color={state.color || Black}
                   text={state.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.IncidentState,
+                    state.name,
+                  )}
                 />
               );
             },
@@ -317,7 +324,7 @@ const EpisodeIncidents: FunctionComponent<
               if (item.addedBy === IncidentEpisodeMemberAddedBy.API) {
                 return <Pill isMinimal={true} color={Black} text="API" />;
               }
-              return <>-</>;
+              return <TableEmptyValue />;
             },
             getExportValue: (item: IncidentEpisodeMember): string => {
               return (

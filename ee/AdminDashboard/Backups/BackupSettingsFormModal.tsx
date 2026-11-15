@@ -351,6 +351,9 @@ export function getBackupScheduleFields(data: {
           return {
             value: String(day),
             label: getWeekdayName(day, data.translator.language),
+            // The day's name in the reader's language already.
+            isUserContent: true,
+            isInPageDirection: true,
           };
         },
       ),

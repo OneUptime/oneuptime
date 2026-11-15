@@ -45,4 +45,78 @@ export function readOwnValue<T>(
   return record[key];
 }
 
+/*
+ * Sets a key somebody typed on a record built at run time, as the record's
+ * own key. `record[key] = value` does that for every key but "__proto__":
+ * every object inherits that one as a setter, so assigning a string to it
+ * does nothing, and assigning an object or array replaces the record's
+ * prototype. Written here, "__proto__" is a key like any other: Object.keys
+ * lists it and JSON.stringify writes it. (Copying the record with
+ * `{ ...record }`, which this code's ES2017 target compiles to
+ * Object.assign, assigns it again and so drops it: copy it with
+ * copyOwnValues, and merge it with assignOwnValues.)
+ */
+export function writeOwnValue<T>(
+  record: Record<string, T>,
+  key: string,
+  value: T,
+): void {
+  if (key === "__proto__") {
+    Object.defineProperty(record, key, {
+      value: value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+    return;
+  }
+
+  record[key] = value;
+}
+
+/*
+ * Copies every own key of each source onto `target`, in order, as
+ * Object.assign does - "__proto__" included, as the target's own key.
+ * Object.assign assigns each key, so it drops a "__proto__" key, and makes
+ * an object or array written under it the target's prototype. So does
+ * `{ ...record }`: this code's ES2017 target compiles a spread to
+ * Object.assign. A record keyed by what a sender wrote - an attribute map, a
+ * series' labels - is copied and merged here instead.
+ *
+ * A source without an own "__proto__" key, nearly every one, is still
+ * copied by Object.assign itself: this adds one own-key test per source, so
+ * the ingest path's merges cost what they did.
+ */
+export function assignOwnValues<T>(
+  target: Record<string, T>,
+  ...sources: Array<Readonly<Record<string, T>> | null | undefined>
+): Record<string, T> {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(source, "__proto__")) {
+      Object.assign(target, source);
+      continue;
+    }
+
+    for (const key of Object.keys(source)) {
+      writeOwnValue(target, key, source[key] as T);
+    }
+  }
+
+  return target;
+}
+
+/*
+ * A new plain object with every own key of `record`, "__proto__" included:
+ * what `{ ...record }` gives on an ES2018 or later target.
+ */
+export function copyOwnValues<T>(
+  record: Readonly<Record<string, T>> | null | undefined,
+): Record<string, T> {
+  return assignOwnValues<T>({}, record);
+}
+
 export default lookupTable;

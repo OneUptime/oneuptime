@@ -2,7 +2,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { OpenStackBareMetalClass } from "Common/Types/OpenStack/OpenStackBareMetal";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { fetchOpenStackBareMetalClasses } from "../../Pages/OpenStack/Utils/OpenStackPartData";
@@ -27,7 +30,11 @@ function countText(
   label: string,
   count: number,
 ): string {
-  return `${translator.translateText(label) || label}: ${translator.formatNumber(count)}`;
+  // "Déployés : 3": the language's own colon, the count in its digits.
+  return translator.translateTemplate("{{label}}: {{count}}", {
+    label: translatableTerm(label),
+    count: translator.formatNumber(count),
+  });
 }
 
 const OpenStackBareMetalClassesCard: FunctionComponent<ComponentProps> = (

@@ -279,6 +279,8 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             ? translator.translateText("Copy failed")!
             : translator.translateText("Copy OID")!
       }
+      // Translated here: drawn as given, never looked up again (#8067).
+      isUserContent={true}
       onClick={() => {
         clipboard.copy(row.oid).catch(() => {
           // useClipboardCopy says itself when the browser refused.
@@ -297,6 +299,8 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
             "Collect on every device using {{template}}",
             { template: target.templateName },
           )}
+          // In the reader's words already, the template's name as written.
+          isUserContent={true}
           isDisabled={Boolean(props.collectingOid)}
           onClick={() => {
             props.onCollectOnTemplate(row, target);
@@ -460,6 +464,7 @@ const ComparisonResultRow: FunctionComponent<RowProps> = (
           ariaLabel={translator.translateTemplate("More actions for {{oid}}", {
             oid: row.oid,
           })}
+          isAriaLabelTranslated={true}
           menuIcon={IconProp.EllipsisHorizontal}
           isMenuPortaled={true}
           dataTestId="multi-snmp-walk-row-more"

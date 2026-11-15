@@ -24,11 +24,33 @@ export enum PillSize {
 
 export interface ComponentProps {
   text: string;
+  /*
+   * HOW ITS TEXT READS, BY THE RULE A DROPDOWN'S OPTION READS BY
+   * (DropdownOption.isUserContent). Left out, the text is the product's own
+   * words in English, looked up in the reader's language: "Active",
+   * "Paid". Set, it is drawn as given, never looked up: a name - a label's,
+   * a monitor's, a state a project named itself - or words the caller
+   * already put in the reader's language. A label named "Network" read
+   * "Red" on a Spanish page, and a state named "Open" the verb "Abrir".
+   * A state's, a severity's or a status's name reads by
+   * Common/Utils/DefaultRecordNames: OneUptime's default names looked up,
+   * the project's own as written (isRecordNameAsWritten).
+   */
+  isUserContent?: boolean | undefined;
   color: Color;
   size?: PillSize | undefined;
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
+  // Its hover tip, in English: looked up where it is drawn.
   tooltip?: string | undefined;
+  /*
+   * The hover tip reads by the same rule as the text (isUserContent): set,
+   * it is drawn as given, never looked up (Tooltip's isTextUserContent) -
+   * words someone wrote, as a label's description is its owner's, or words
+   * the caller already put in the reader's language. A label described
+   * "Status" read "Estado" on a Spanish page (#8067).
+   */
+  isTooltipUserContent?: boolean | undefined;
   icon?: IconProp | undefined;
   /*
    * A ring ripples out of the dot, over and over: "this is happening right
@@ -105,7 +127,9 @@ const Pill: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const colors: PillColors = getPillColors(props.color || Gray500);
   const { translateString, language } = useTranslateValue();
-  const text: string = translateString(props.text) ?? props.text;
+  const text: string = props.isUserContent
+    ? props.text
+    : translateString(props.text) ?? props.text;
   /*
    * Its words read their own way where that is not the page's: a label a
    * team named in English, on an Arabic page, is cut short at its own end
@@ -219,7 +243,14 @@ const Pill: FunctionComponent<ComponentProps> = (
   };
 
   if (props.tooltip) {
-    return <Tooltip text={props.tooltip}>{getPillElement()}</Tooltip>;
+    return (
+      <Tooltip
+        text={props.tooltip}
+        isTextUserContent={props.isTooltipUserContent}
+      >
+        {getPillElement()}
+      </Tooltip>
+    );
   }
 
   return getPillElement();

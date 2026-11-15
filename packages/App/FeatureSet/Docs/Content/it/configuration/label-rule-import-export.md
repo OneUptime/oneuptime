@@ -34,20 +34,20 @@ Carica un file di esportazione JSON oppure incollane il contenuto.
 
 ### Convalidare e vedere l'anteprima
 
-Seleziona **Validate and preview**. Ogni regola viene controllata prima che ne venga creata una qualsiasi, e le risorse a cui fa riferimento devono esistere nel progetto di destinazione con nomi univoci e corrispondenti.
+Seleziona **Convalida e anteprima**. Ogni regola viene controllata prima che ne venga creata una qualsiasi, e le risorse a cui fa riferimento devono esistere nel progetto di destinazione con nomi univoci e corrispondenti.
 
 ### Controllare l'anteprima
 
-Controlla i nomi delle regole, lo stato, le etichette e le condizioni. Un lotto grande viene mostrato una pagina alla volta. Per correggere qualcosa, seleziona **Edit JSON** e convalida di nuovo.
+Controlla i nomi delle regole, lo stato, le etichette e le condizioni. Un lotto grande viene mostrato una pagina alla volta. Per correggere qualcosa, seleziona **Modifica JSON** e convalida di nuovo.
 
 ### Importare
 
-Seleziona il pulsante di importazione, che conta le regole (per esempio **Import 2 rules**), e tieni aperta la finestra finché non compaiono i risultati.
+Seleziona il pulsante di importazione, che conta le regole (per esempio **Importa 2 regole**), e tieni aperta la finestra finché non compaiono i risultati.
 :::
 
 Le importazioni aggiungono nuove regole e mantengono quelle esistenti, quindi importare di nuovo lo stesso file crea un'altra copia. A ogni regola si applicano le normali autorizzazioni di creazione e la convalida lato server.
 
-Se alcune regole non riescono, seleziona **Download failed rules** per salvare solo quelle righe, correggile e importa di nuovo quel file. Se una richiesta va in timeout, controlla l'elenco delle regole prima di riprovare: il server potrebbe aver salvato la regola prima che la sua risposta andasse persa.
+Se alcune regole non riescono, seleziona **Scarica le regole non riuscite** per salvare solo quelle righe, correggile e importa di nuovo quel file. Se una richiesta va in timeout, controlla l'elenco delle regole prima di riprovare: il server potrebbe aver salvato la regola prima che la sua risposta andasse persa.
 
 ## Creare un lotto in JSON
 

@@ -45,7 +45,10 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { buildSecurityPlaybookFromTemplate } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -321,7 +324,11 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
                       </div>
                       <Button
                         title="View"
-                        ariaLabel={`${translator.translateText("View") || "View"}: ${name}`}
+                        ariaLabel={translator.translateTemplate(
+                          "View: {{name}}",
+                          { name: translatableTerm(template.name) },
+                        )}
+                        isAriaLabelTranslated={true}
                         icon={IconProp.ArrowRight}
                         buttonStyle={ButtonStyleType.NORMAL}
                         buttonSize={ButtonSize.Small}
@@ -338,7 +345,16 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
                   ) : (
                     <Button
                       title="Add Playbook"
-                      ariaLabel={`${translator.translateText("Add Playbook") || "Add Playbook"}: ${name}`}
+                      /*
+                       * One sentence with the template's name, in the
+                       * reader's order and punctuation: "Ajouter le playbook :
+                       * {{name}}" in French (#8076).
+                       */
+                      ariaLabel={translator.translateTemplate(
+                        "Add Playbook: {{name}}",
+                        { name: translatableTerm(template.name) },
+                      )}
+                      isAriaLabelTranslated={true}
                       icon={IconProp.Add}
                       buttonStyle={ButtonStyleType.NORMAL}
                       buttonSize={ButtonSize.Small}

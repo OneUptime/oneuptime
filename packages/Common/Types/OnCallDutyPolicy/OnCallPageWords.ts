@@ -2,7 +2,9 @@ import {
   describeOnCallAcknowledgementTimeout,
   OnCallPageAgainNotice,
 } from "./OnCallAcknowledgementTimeout";
-import { isDefaultStatusName } from "../StatusPage/DefaultStatusNames";
+import { DEFAULT_ALERT_SEVERITY_NAMES } from "../StatusPage/DefaultStatusNames";
+import { translateRecordName } from "../../Utils/DefaultRecordNames";
+import { StateListType } from "../../Utils/StateOrder";
 import {
   composedValue,
   createTranslator,
@@ -226,41 +228,38 @@ export const ON_CALL_PAGE_KINDS: ReadonlyArray<OnCallPageKind> = [
 ];
 
 /*
- * The default names a new project's alert severities start with. A status
- * page never shows an alert, so they are not among the status page's
- * names (StatusPage/DefaultStatusNames); a page shows them to its person.
+ * The default names a new project's alert severities start with, kept
+ * beside the other default names (StatusPage/DefaultStatusNames); a page
+ * shows them to its person.
  */
-export const DEFAULT_ALERT_SEVERITY_NAMES: ReadonlyArray<string> = [
-  translationKey("High"),
-  translationKey("Low"),
-];
+export { DEFAULT_ALERT_SEVERITY_NAMES };
+
+// The lists whose records a page names: its record's state and severity.
+export type OnCallPageNameList =
+  | StateListType.IncidentState
+  | StateListType.IncidentSeverity
+  | StateListType.AlertState
+  | StateListType.AlertSeverity;
 
 /*
  * A state's or a severity's name as a page shows it: OneUptime's own
  * default names in the person's language ("Identifiziert", "Kritischer
- * Vorfall", "Hoch"), a name the project gave it as written.
+ * Vorfall", "Hoch"), a name the project gave it as written. Which names
+ * are defaults goes by the record's own list, as on the Dashboard
+ * (Utils/DefaultRecordNames): an incident severity a project named "High"
+ * is its own and reads as written, while the default alert severity High
+ * reads "Hoch" (#8066).
  */
 export const getOnCallPageStateName: (
   translator: Translator,
+  list: OnCallPageNameList,
   name: string | null | undefined,
 ) => string = (
   translator: Translator,
+  list: OnCallPageNameList,
   name: string | null | undefined,
 ): string => {
-  if (!name) {
-    return "";
-  }
-
-  const trimmed: string = name.trim();
-
-  if (
-    !isDefaultStatusName(trimmed) &&
-    !DEFAULT_ALERT_SEVERITY_NAMES.includes(trimmed)
-  ) {
-    return name;
-  }
-
-  return translator.translateText(trimmed) || name;
+  return translateRecordName(translator, list, name);
 };
 
 // "Incident", "Alert episode": a record's kind as a label.
@@ -591,6 +590,12 @@ export interface OnCallPageSmsWords {
     projectName: string;
     isPageAgain: boolean;
     lead: string;
+    /*
+     * The lead says a person started an on-call policy
+     * (OnCallPolicyStartedByHand): the policy is for the record, not
+     * about it - "Alice Kim started Database escalation for ...".
+     */
+    isPolicyLead?: boolean | undefined;
   }) => string;
   // The words before the link: "Ack or escalate:".
   action: string;
@@ -646,7 +651,24 @@ export const getOnCallPageSmsWords: (
       projectName: string;
       isPageAgain: boolean;
       lead: string;
+      isPolicyLead?: boolean | undefined;
     }): string => {
+      if (data.lead && data.isPolicyLead) {
+        return data.projectName
+          ? translator.translateTemplate(
+              "{{lead}} for {{record}} in {{project}}",
+              {
+                lead: data.lead,
+                record: data.record,
+                project: data.projectName,
+              },
+            )
+          : translator.translateTemplate("{{lead}} for {{record}}", {
+              lead: data.lead,
+              record: data.record,
+            });
+      }
+
       if (data.lead) {
         return data.projectName
           ? translator.translateTemplate(

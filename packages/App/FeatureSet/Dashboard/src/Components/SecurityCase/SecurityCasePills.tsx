@@ -9,16 +9,23 @@ import {
   getSecurityPlaybookStepStatusColor,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The pills a case, a detection and a playbook run are read by. A case's
  * priority and status are the project's own (Security Events > Settings):
  * each pill shows the name and colour the project gave it, so the queue,
  * the case page and the overview never disagree. The other values take
- * their color from the type they show (Common/Types/SecurityCase). The text
- * is the record's own value; Pill translates it (SecurityCaseTerms.ts
- * registers every built-in one).
+ * their color from the type they show (Common/Types/SecurityCase). A
+ * priority's or a status's name reads by the one rule for them
+ * (Common/Utils/DefaultRecordNames): the names a project starts with are
+ * OneUptime's words, looked up (SecurityCaseTerms.ts registers every one),
+ * and a name the project gave one is drawn as written - a priority named
+ * "Network" never reads "Red". The other values are the type's own words,
+ * looked up.
  */
 
 interface ValuePillProps {
@@ -34,7 +41,7 @@ interface TooltipPillProps extends ValuePillProps {
 }
 
 const NoValue: FunctionComponent = (): ReactElement => {
-  return <span className="text-gray-400">-</span>;
+  return <TableEmptyValue />;
 };
 
 // A priority or a status of the project's: its name and its colour.
@@ -50,8 +57,15 @@ interface CaseValuePillProps {
   tooltip?: string | undefined;
 }
 
-const CaseValuePill: FunctionComponent<CaseValuePillProps> = (
-  props: CaseValuePillProps,
+const CaseValuePill: FunctionComponent<
+  CaseValuePillProps & {
+    // The list the value is one of, for the names it starts with.
+    list: StateListType.SecurityCasePriority | StateListType.SecurityCaseStatus;
+  }
+> = (
+  props: CaseValuePillProps & {
+    list: StateListType.SecurityCasePriority | StateListType.SecurityCaseStatus;
+  },
 ): ReactElement => {
   if (!props.value?.name) {
     return <NoValue />;
@@ -60,6 +74,7 @@ const CaseValuePill: FunctionComponent<CaseValuePillProps> = (
   return (
     <Pill
       text={props.value.name}
+      isUserContent={isRecordNameAsWritten(props.list, props.value.name)}
       color={props.value.color || Gray500}
       size={props.size}
       isMinimal={props.isMinimal}
@@ -71,13 +86,13 @@ const CaseValuePill: FunctionComponent<CaseValuePillProps> = (
 export const SecurityCasePriorityPill: FunctionComponent<CaseValuePillProps> = (
   props: CaseValuePillProps,
 ): ReactElement => {
-  return <CaseValuePill {...props} />;
+  return <CaseValuePill {...props} list={StateListType.SecurityCasePriority} />;
 };
 
 export const SecurityCaseStatusPill: FunctionComponent<CaseValuePillProps> = (
   props: CaseValuePillProps,
 ): ReactElement => {
-  return <CaseValuePill {...props} />;
+  return <CaseValuePill {...props} list={StateListType.SecurityCaseStatus} />;
 };
 
 /*

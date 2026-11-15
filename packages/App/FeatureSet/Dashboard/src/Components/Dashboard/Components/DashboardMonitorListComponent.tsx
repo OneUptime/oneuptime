@@ -43,6 +43,8 @@ import {
 } from "Common/Utils/Dashboard/MonitorListWidgetFormat";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import useDashboardListWidgetSort, {
   DashboardListWidgetSort,
 } from "../Utils/UseDashboardListWidgetSort";
@@ -51,6 +53,33 @@ import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardMonitorListComponent;
 }
+
+/*
+ * A row's status in the reader's words, in the table and in its tile. A
+ * monitor whose monitoring is off is not checked, so the status it holds is
+ * only what its last check saw: the row says Disabled, in gray and in the
+ * reader's language, as the Monitors table does. Any other row says its
+ * status's name by its list (Common/Utils/DefaultRecordNames): the default
+ * "Operational" in the reader's words, a status the project named itself as
+ * written - never looked up, so "Open" is never "Abrir".
+ */
+export const getMonitorListStatusName: (
+  status: MonitorListRowStatus,
+  translator: Translator,
+) => string = (
+  status: MonitorListRowStatus,
+  translator: Translator,
+): string => {
+  if (status.isMonitoringOff) {
+    return translator.translateText(status.text) || status.text;
+  }
+
+  return translateRecordName(
+    translator,
+    StateListType.MonitorStatus,
+    status.text,
+  );
+};
 
 const COLUMNS: Array<ResourceListColumn> = [
   { label: "Name", widthPct: "55%", sortKey: "name" },
@@ -106,10 +135,12 @@ const DashboardMonitorListComponentElement: FunctionComponent<
        * the monitors that are checked: one whose monitoring is off keeps the
        * status its last check saw, and its row says Disabled instead
        * (MonitorListWidgetFormat - the public policy builds the same query).
+       * Given the project, "non-operational" is asked of the project's own
+       * statuses, so the read and its count start from those (issue #8096).
        */
       const query: Query<Monitor> = {
         projectId: projectId,
-        ...getMonitorListQuery({ statusFilter, monitorStatusIds }),
+        ...getMonitorListQuery({ statusFilter, monitorStatusIds }, projectId),
       } as Query<Monitor>;
 
       if (monitorTypes && monitorTypes.length > 0) {
@@ -188,6 +219,7 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         (monitor.name as string) || getUnnamedText(translator);
       // Disabled, in gray, when the monitor's monitoring is off.
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
+      const statusName: string = getMonitorListStatusName(status, translator);
       const monitorType: string = (monitor.monitorType as string) || "—";
 
       const detailRoute: Route | undefined = monitorId
@@ -199,8 +231,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
 
       return {
         id: monitorId || name,
-        // The honeycomb looks the status up in the reader's language.
-        status: status.text,
+        // In the reader's words already, as the table's row reads it.
+        status: statusName,
+        isStatusUserContent: true,
         color: status.color ? status.color.toString() : "#9ca3af",
         route: detailRoute,
         tooltip: {
@@ -214,16 +247,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
   const rows: Array<ReactElement> = monitors.map(
     (monitor: Monitor): ReactElement => {
       const monitorId: string = (monitor._id as string) || "";
-      /*
-       * A monitor whose monitoring is off is not checked, so the status it
-       * holds is only what its last check saw: the row says Disabled, in
-       * gray and in the reader's language, as the Monitors table does. Any
-       * other row says its status's own name, as stored.
-       */
       const status: MonitorListRowStatus = getMonitorListRowStatus(monitor);
-      const statusName: string = status.isMonitoringOff
-        ? (translator.translateText(status.text) as string)
-        : status.text;
+      const statusName: string = getMonitorListStatusName(status, translator);
       const statusColor: Color | null = status.color;
       const monitorType: string = (monitor.monitorType as string) || "—";
       const name: string =

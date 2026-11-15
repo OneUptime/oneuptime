@@ -20,6 +20,7 @@ import PermissionGate, {
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId, useMemo } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export const SECURITY_LOGS_CASE_SEVERITY_TEST_ID: string =
   "security-logs-case-severity";
@@ -203,7 +204,7 @@ const SecurityLogsCaseSeverity: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={`${SECURITY_LOGS_CASE_SEVERITY_TEST_ID}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

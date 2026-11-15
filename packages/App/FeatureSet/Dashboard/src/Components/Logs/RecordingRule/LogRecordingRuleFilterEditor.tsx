@@ -61,6 +61,7 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
       .map((service: Service): DropdownOption => {
         return {
           label: service.name || service.id!.toString(),
+          isUserContent: true,
           value: service.id!.toString().toLowerCase(),
         };
       });
@@ -219,6 +220,7 @@ const LogRecordingRuleFilterEditor: FunctionComponent<ComponentProps> = (
                       "Remove attribute filter {{number}}",
                       { number: index + 1 },
                     )}
+                    isAriaLabelTranslated={true}
                     icon={IconProp.Trash}
                     buttonStyle={ButtonStyleType.OUTLINE}
                     buttonSize={ButtonSize.Small}

@@ -255,7 +255,7 @@ Algumas mudanças sempre resolvem o que uma regra abriu, não importa o que diga
 
 ## Manutenção programada
 
-Enquanto um monitor do SLO está em um evento de manutenção programada em andamento, as regras de taxa de consumo dele não geram alertas nem declaram incidentes: trabalho planejado não deve acionar ninguém. O que as regras já abriram ainda se resolve como sempre. O tempo continua contando no orçamento de erros, conforme os status de indisponibilidade do SLO.
+Enquanto um monitor do SLO está em um evento de manutenção em andamento, as regras de taxa de consumo dele não geram alertas nem declaram incidentes: trabalho planejado não deve acionar ninguém. O que as regras já abriram ainda se resolve como sempre. O tempo continua contando no orçamento de erros, conforme os status de indisponibilidade do SLO.
 
 ## O feed do SLO
 
@@ -271,8 +271,8 @@ Uma regra só dispara quando o SLO tem uma janela longa completa de histórico d
 A resolução automática segue a janela longa: assim que a taxa de consumo da janela longa cai abaixo do limite, o alerta é resolvido. Dê à regra uma janela longa maior, ou desligue **Resolver alerta automaticamente** e resolva o alerta à mão.
 :::
 
-:::details Nada disparou durante um evento de manutenção programada
-As regras de taxa de consumo ficam em silêncio enquanto algum dos monitores do SLO está em um evento de manutenção programada em andamento. A indisponibilidade continua contando no orçamento.
+:::details Nada disparou durante um evento de manutenção
+As regras de taxa de consumo ficam em silêncio enquanto algum dos monitores do SLO está em um evento de manutenção em andamento. A indisponibilidade continua contando no orçamento.
 :::
 
 :::details Existe um número mínimo de amostras?

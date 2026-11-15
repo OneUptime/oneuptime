@@ -199,6 +199,8 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
                 return {
                   label: eventClass.name,
                   value: eventClass.name,
+                  // OCSF's own name for the class, as the standard writes it.
+                  isUserContent: true,
                 };
               },
             ),
@@ -218,6 +220,8 @@ const SecurityEventsMonitorStepForm: FunctionComponent<ComponentProps> = (
                 return {
                   label: telemetryService.name!,
                   value: telemetryService.id?.toString() || "",
+                  // A service's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               },
             ),

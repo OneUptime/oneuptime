@@ -29,6 +29,8 @@ import {
 } from "../../../Components/IncidentAlert/IncidentAlertLink";
 import LinkIncidentAlertModal from "../../../Components/IncidentAlert/LinkIncidentAlertModal";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Black } from "Common/Types/BrandColors";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -44,6 +46,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The alerts linked to an incident (IncidentAlert rows). Linking creates a
@@ -226,7 +229,7 @@ const IncidentViewAlerts: FunctionComponent<
             title: "Alert #",
             type: FieldType.Text,
             getElement: (item: IncidentAlert): ReactElement => {
-              return <>{getAlertNumber(item) || "-"}</>;
+              return <>{getAlertNumber(item) || <TableEmptyValue />}</>;
             },
             getExportValue: (item: IncidentAlert): string => {
               return getAlertNumber(item);
@@ -244,7 +247,7 @@ const IncidentViewAlerts: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IncidentAlert): ReactElement => {
               if (!item.alert) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <AlertElement alert={item.alert} />;
             },
@@ -265,13 +268,17 @@ const IncidentViewAlerts: FunctionComponent<
                 item.alert?.currentAlertStateId,
               );
               if (!state) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <Pill
                   isMinimal={true}
                   color={state.color || Black}
                   text={state.name || "Unknown"}
+                  isUserContent={isRecordNameAsWritten(
+                    StateListType.AlertState,
+                    state.name,
+                  )}
                 />
               );
             },
@@ -298,7 +305,7 @@ const IncidentViewAlerts: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: IncidentAlert): ReactElement => {
               if (!item.createdByUser) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return <UserElement user={item.createdByUser} />;
             },

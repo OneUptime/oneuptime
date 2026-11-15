@@ -5,6 +5,7 @@ import {
   toSupportedLanguage,
 } from "../../Types/ReaderLanguage";
 import { setCodeApartInSentence } from "../../Types/CodeInSentence";
+import { withNoBreakSpacesInLocale } from "../../Types/NoBreakSpaces";
 import {
   CODE_READS_AS_WRITTEN_POST_PROCESSOR,
   codeReadsAsWrittenPostProcessor,
@@ -66,8 +67,18 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
 
   const resources: Record<string, { translation: Record<string, string> }> = {};
 
+  /*
+   * Each language's words set as it sets a line: each number with its
+   * unit, and French's marks with their words (Types/NoBreakSpaces).
+   */
   for (const code of supportedLanguages) {
-    resources[code] = { translation: locales[code] || {} };
+    resources[code] = {
+      translation: withNoBreakSpacesInLocale({
+        locale: locales[code] || {},
+        language: code,
+        english: locales["en"],
+      }) as Record<string, string>,
+    };
   }
 
   /*

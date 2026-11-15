@@ -30,6 +30,7 @@ import useBulkIncidentLinkActions from "./BulkIncidentLinkActions";
 import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
 import { ALERT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -84,6 +85,7 @@ import {
   CreatedRecordKind,
   getCreateFromRecordQuery,
 } from "../CreateFromRecord/CreateFromRecord";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
@@ -813,7 +815,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: Alert): ReactElement => {
               if (!item.alertNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               const numberLabel: string =
@@ -881,6 +883,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentAlertState.color || Black}
                     text={item.currentAlertState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertState,
+                      item.currentAlertState.name,
+                    )}
                   />
                 );
               }
@@ -917,6 +923,10 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                     isMinimal={false}
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
                   />
                 );
               }
@@ -1071,7 +1081,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 !item.createdAt ||
                 (isResolved && (isLoadingAlertDurations || !resolvedAt))
               ) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (

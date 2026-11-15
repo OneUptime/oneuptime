@@ -174,7 +174,7 @@ oneuptime incident-state list --query '{"isResolvedState":true}' --sort '{"order
 
 ## Bekräfta, lös och lägg till anteckningar
 
-Incidenter, larm, deras episoder och schemalagda underhållshändelser har kommandon för det som instrumentpanelens knappar gör på dem:
+Incidenter, larm, deras episoder och underhållshändelser har kommandon för det som instrumentpanelens knappar gör på dem:
 
 | Kommando | Vad det gör | Resurser |
 | --- | --- | --- |

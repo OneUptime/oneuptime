@@ -64,13 +64,13 @@ Ouvrez **Filtres et regroupement**. **Filtrer par attributs** garde les points d
 
 ### Ajuster le graphique
 
-Ouvrez **Paramètres d'affichage** pour choisir le **Type de graphique** (ligne, aire ou barres), tracer un **Warning Threshold** et un **Seuil critique** sur le graphique, ou activer **Convertir en taux par seconde**.
+Ouvrez **Paramètres d'affichage** pour choisir le **Type de graphique** (ligne, aire ou barres), tracer un **Seuil d'avertissement** et un **Seuil critique** sur le graphique, ou activer **Convertir en taux par seconde**.
 :::
 
 > [!TIP]
 > Un compteur qui ne fait que croître, comme `system.disk.io`, se lit mieux comme un taux. Activez **Convertir en taux par seconde** pour tracer la vitesse à laquelle il change plutôt que son cumul ; l'explorateur le suggère quand il repère un tel compteur.
 
-Chaque requête trace son propre graphique. Pour tracer une requête sur le même graphique que la précédente, activez **Overlay with previous query** dans ses **Paramètres d'affichage**.
+Chaque requête trace son propre graphique. Pour tracer une requête sur le même graphique que la précédente, activez **Superposer à la requête précédente** dans ses **Paramètres d'affichage**.
 
 ## Combiner des requêtes avec une formule
 

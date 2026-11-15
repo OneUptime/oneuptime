@@ -1,6 +1,6 @@
 # 公共 API
 
-每个状态页都会响应一小组只读的 JSON 端点：它的概览、摘要、可用率、事件、片段、计划维护事件和公告。这些正是状态页自己加载的端点，所以返回的内容与访客看到的完全一致，公开页面也不需要 API 密钥。可以用它们在你自己的应用、聊天机器人或墙上的显示屏中展示状态。
+每个状态页都会响应一小组只读的 JSON 端点：它的概览、摘要、可用率、事件、片段、维护事件和公告。这些正是状态页自己加载的端点，所以返回的内容与访客看到的完全一致，公开页面也不需要 API 密钥。可以用它们在你自己的应用、聊天机器人或墙上的显示屏中展示状态。
 
 :::cards
 - [端点](#端点): 页面显示的每类内容都有一个端点。
@@ -57,8 +57,8 @@ flowchart TB
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 一个事件。 |
 | `/episodes/{statusPageIdOrDomain}` | `POST` | 页面列出的事件片段。 |
 | `/episodes/{statusPageIdOrDomain}/{episodeId}` | `POST` | 一个片段。 |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`、`POST` | 页面列出的计划维护事件，以及它们的公开备注和状态变化。 |
-| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 一个计划维护事件。 |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}` | `GET`、`POST` | 页面列出的维护事件，以及它们的公开备注和状态变化。 |
+| `/scheduled-maintenance-events/{statusPageIdOrDomain}/{scheduledMaintenanceId}` | `POST` | 一个维护事件。 |
 | `/announcements/{statusPageIdOrDomain}` | `GET`、`POST` | 页面列出的公告。 |
 | `/announcements/{statusPageIdOrDomain}/{announcementId}` | `POST` | 一条公告。 |
 
@@ -66,9 +66,9 @@ flowchart TB
 
 - 关闭的列表会拒绝对应的端点，例如返回 `Incidents are not enabled on this status page.`
 - 每个列表回溯的天数由它的 **显示最近 … 天** 设置决定（默认 14）。事件列表还包括所有尚未解决的事件，计划维护列表还包括所有即将开始或正在进行的事件。
-- 按 ID 请求时，事件、片段、维护事件或公告无论多旧都会返回，因此指向旧条目的链接仍然有效。页面根本不显示的条目（例如不在页面上的监控器的事件）会返回空列表，片段则返回 `404`。
+- 按 ID 请求时，事件、片段、维护事件或公告无论多旧都会返回，因此指向旧条目的链接仍然有效。页面根本不显示的条目（例如不在页面上的监视器的事件）会返回空列表，片段则返回 `404`。
 
-**页面返回哪些事件。** 事件端点返回页面上监控器的事件，去掉限定到其他状态页的事件；如果页面只显示限定到它自己的事件，还会去掉所有没有限定到此页面的事件（参见[每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些页面，永远不会出现在响应中。
+**页面返回哪些事件。** 事件端点返回页面上监视器的事件，去掉限定到其他状态页的事件；如果页面只显示限定到它自己的事件，还会去掉所有没有限定到此页面的事件（参见[每个受众一个状态页](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些页面，永远不会出现在响应中。
 
 ## 读取概览
 
@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-总体状态是页面上监控器和监控器分组当前状态中最差的那个，也就是优先级最高的那个。页面显示为 **未监控** 的资源（列在 `notMonitoredResourceIds` 中）不计入其中。一个监控器状态如下所示：
+总体状态是页面上监视器和监视器分组当前状态中最差的那个，也就是优先级最高的那个。页面显示为 **未监控** 的资源（列在 `notMonitoredResourceIds` 中）不计入其中。一个监视器状态如下所示：
 
 ```json
 {
@@ -129,24 +129,24 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 键 | 内容 |
 | --- | ------------- |
-| `overallStatus` | 页面的总体状态，即上面那样的监控器状态；页面上什么都没有时，是项目中优先级最低的状态；页面上所有资源都是 **未监控** 时，为 `null`。 |
+| `overallStatus` | 页面的总体状态，即上面那样的监视器状态；页面上什么都没有时，是项目中优先级最低的状态；页面上所有资源都是 **未监控** 时，为 `null`。 |
 | `statusPage` | 页面的公开设置：标题、描述、品牌，以及显示的内容。 |
-| `statusPageResources` | 每个资源：显示名称、描述、分组、监控器或监控器分组，以及显示选项。 |
+| `statusPageResources` | 每个资源：显示名称、描述、分组、监视器或监视器分组，以及显示选项。 |
 | `resourceGroups` | 分组；嵌套分组带有 `parentStatusPageGroupId`。 |
-| `monitorStatuses` | 项目的所有监控器状态，按优先级从低到高排列。 |
-| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监控器分组的当前状态，以及其中的监控器。 |
-| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监控器，或所有监控器的监控都已关闭的监控器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
+| `monitorStatuses` | 项目的所有监视器状态，按优先级从低到高排列。 |
+| `monitorGroupCurrentStatuses`、`monitorsInGroup` | 页面上每个监视器分组的当前状态，以及其中的监视器。 |
+| `notMonitoredResourceIds` | 页面显示为 **未监控** 的资源的 ID：监控已关闭的监视器，或所有监视器的监控都已关闭的监视器分组。它们不决定任何状态，这样的分组在 `monitorGroupCurrentStatuses` 中没有条目。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 绘制可用率条所用的数据，以及页面的条形颜色规则。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 页面显示的未解决事件、它们的公开备注和状态变化，以及项目的事件状态。 |
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |
-| `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即将开始或正在进行的计划维护事件，以及它们的公开备注和状态变化。 |
-| `timelineScheduledMaintenanceEvents` | 可用率条时间窗口内已经开始的计划维护事件（进行中或已结束），用于条形的提示信息和每天的对话框：仅限页面显示、且包含页面某个监控器的事件，每个事件只列出页面的监控器。 |
+| `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即将开始或正在进行的维护事件，以及它们的公开备注和状态变化。 |
+| `timelineScheduledMaintenanceEvents` | 可用率条时间窗口内已经开始的维护事件（进行中或已结束），用于条形的提示信息和每天的对话框：仅限页面显示、且包含页面某个监视器的事件，每个事件只列出页面的监视器。 |
 | `activeAnnouncements` | 正在显示的公告：已经开始且尚未结束。 |
 
 ## 读取摘要
 
-摘要是概览的精简版，只保留监控工具向页面询问的内容：每个资源的状态，以及进行中的计划维护事件是否影响它。无论页面显示多少历史记录，它都保持很小，另一个 OneUptime 的 [外部状态页监视器](/docs/monitor/external-status-page-monitor#oneuptime-状态页) 读取的正是它。它与概览来自同一个缓存，并经过同样的访问规则。
+摘要是概览的精简版，只保留监控工具向页面询问的内容：每个资源的状态，以及进行中的维护事件是否影响它。无论页面显示多少历史记录，它都保持很小，另一个 OneUptime 的 [外部状态页监视器](/docs/monitor/external-status-page-monitor#oneuptime-状态页) 读取的正是它。它与概览来自同一个缓存，并经过同样的访问规则。
 
 ```bash
 curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
@@ -195,7 +195,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | `overallStatus` | 页面的整体状态，与其横幅显示的一致：`name`、`color` 和 `isOperational`。页面上所有资源都是 **未监控** 时为 `null`。 |
 | `resources` | 页面显示的每个资源，按页面顺序：它在页面上的 `name`、包含上级分组的 `groupName`、它的 `currentStatus`、`isMonitored`，以及 `isUnderMaintenance`。 |
 | `activeIncidents` | 页面显示的未解决事件，每个都带有它所影响资源的 `affectedResourceIds`。 |
-| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 进行中和即将到来的计划维护事件，每个都带有它的 `affectedResourceIds`。 |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 进行中和即将到来的维护事件，每个都带有它的 `affectedResourceIds`。 |
 
 页面不显示资源的状态时，以及 `isMonitored` 为 `false` 时，该资源的 `currentStatus` 为 `null`：后者表示没有任何东西检查该资源，因为其监视器的监控已关闭，或其监视器组中每个监视器的监控都已关闭，所以页面将其显示为 **未监控**。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
 
@@ -334,7 +334,7 @@ for group in uptime["groupUptimes"]:
 | `currentStatus` | 资源或分组不显示当前状态时为 `null`。 |
 | `isMonitored` | 页面将资源显示为 **未监控** 时为 `false`；对分组而言，其下每个资源都如此时也是。此时其 `currentStatus` 为 `null`。 |
 
-当一段时间的监控器状态属于页面的 **计为停机时间** 状态之一时，这段时间计为停机。
+当一段时间的监视器状态属于页面的 **计为停机时间** 状态之一时，这段时间计为停机。
 
 ## 事件、片段、维护和公告
 
@@ -346,7 +346,7 @@ for group in uptime["groupUptimes"]:
 # The incidents the page lists
 curl https://oneuptime.com/status-page-api/incidents/YOUR_STATUS_PAGE_ID
 
-# One scheduled maintenance event
+# One maintenance event
 curl -X POST https://oneuptime.com/status-page-api/scheduled-maintenance-events/YOUR_STATUS_PAGE_ID/EVENT_ID
 ```
 @tab Node.js
@@ -384,7 +384,7 @@ for incident in incidents:
 | -------- | -------------------- |
 | 事件 | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
 | 片段 | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
-| 计划维护事件 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
+| 维护事件 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
 | 公告 | `announcements`、`statusPageResources`、`monitorsInGroup` |
 
 单个条目的请求会用相同的键响应，其中只包含那一条记录。
@@ -406,7 +406,7 @@ for incident in incidents:
 
 ## 读取状态页的其他方式
 
-- **RSS。** 每个状态页都提供 `/rss`，这是其事件、公告和计划维护事件的订阅源，每个条目的日期都与页面上的一致。参见[可嵌入徽章与 RSS 订阅源](/docs/status-pages/index#可嵌入徽章与-rss-订阅源)。
+- **RSS。** 每个状态页都提供 `/rss`，这是其事件、公告和维护事件的订阅源，每个条目的日期都与页面上的一致。参见[可嵌入徽章与 RSS 订阅源](/docs/status-pages/index#可嵌入徽章与-rss-订阅源)。
 - **llms.txt。** 每个状态页都在 `/rss` 旁边提供 `/llms.txt`，它为 AI 代理指出 RSS 订阅源和概览 JSON 的位置。
 - **MCP。** AI 代理可以通过 OneUptime 的 MCP 服务器 `https://oneuptime.com/mcp` 读取页面，无需 API 密钥，只要把页面 ID 或域名作为 `statusPageIdOrDomain` 传入。此功能默认开启；可在页面侧边菜单的 **人工智能 → MCP** 中用 **启用 MCP 服务器** 关闭。参见 [MCP 服务器](/docs/ai/mcp-server)。
 - **REST API。** 要创建或修改状态页、资源、订阅者和公告，请使用 API 密钥调用 [OneUptime API](/docs/api-reference/api-reference)。

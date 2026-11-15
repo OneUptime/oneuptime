@@ -65,6 +65,7 @@ import SubscriberRestrictionsCopy, {
   SubscriberRestrictionsState,
   toAllowedEmailDomainsText,
 } from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * The Who Can Subscribe card on Subscribers -> Subscriber Settings (see
@@ -250,6 +251,7 @@ const AllowedEmailDomainsSetting: FunctionComponent<
               text={translator.translateTemplate("{{planName}} Plan", {
                 planName: planNeeded,
               })}
+              isUserContent={true}
               color={Yellow}
             />
           </div>
@@ -276,7 +278,7 @@ const AllowedEmailDomainsSetting: FunctionComponent<
           role="alert"
           data-testid={`${ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

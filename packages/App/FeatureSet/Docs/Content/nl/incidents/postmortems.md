@@ -8,6 +8,7 @@ Een postmortem is het verslag na een incident: wat er gebeurde, waarom, wat het 
 - [Het op uw statuspagina publiceren](#het-op-uw-statuspagina-publiceren): Het aan klanten tonen en abonnees één keer informeren.
 - [Bijhouden hoe ver elk postmortem is](#bijhouden-hoe-ver-elk-postmortem-is): Niet gestart, Concept, Voltooid of een eigen status.
 - [Alle postmortems zien](#alle-postmortems-zien): Filteren op eigenaar, ernst en status om de openstaande te vinden.
+- [Actiepunten bijhouden](#actiepunten-bijhouden): Wat het team gaat doen, wie de eigenaar van elk punt is en wat het is geworden.
 - [Postmortems van episodes](#postmortems-van-episodes): Eén verslag voor een groep incidenten.
 :::
 
@@ -169,13 +170,54 @@ Filter de lijst met de chips erboven: **Eigenaar**, een persoon of een team; **E
 
 Om er veel tegelijk te wijzigen, selecteert u ze en opent u **Bulkacties**: **Postmortem-status wijzigen** verplaatst ze allemaal naar één status, zoals **Niet nodig** voor incidenten die er geen nodig hebben, en **Eigenaar toevoegen** en **Eigenaar verwijderen** wijzigen wie de eigenaar is.
 
+## Actiepunten bijhouden
+
+De actiepunten van een postmortem zijn wat uw team gaat doen zodat het incident niet opnieuw gebeurt. Elk actiepunt wordt op het incident vastgelegd, met een eigenaar, een vervaldatum en een status, zodat geen ervan een regel in de notitie blijft die niemand opvolgt. De kaart **Actiepunten** staat onder de kaart **Postmortem** op de pagina **Postmortem** van het incident.
+
+- Om een actiepunt toe te voegen, typt u het in de regel onder de lijst en klikt u op **Actiepunt toevoegen**.
+- Om een actiepunt een eigenaar te geven, kiest u **Aan mij toewijzen** of **Aan iemand anders toewijzen** in het menu **⋯** ervan.
+- Om een actiepunt een vervaldatum te geven, kiest u **Actiepunt bewerken** in het menu **⋯** ervan en stelt u de **Vervaldatum** in. Een open actiepunt waarvan de vervaldatum is verstreken, meldt in rood dat het te laat is.
+- Om een actiepunt te sluiten, vinkt u het aan zodra het klaar is. **Markeren als ‘Wordt niet gedaan’** in het menu **⋯** ervan sluit het wanneer het team besluit het niet te doen, en **Heropenen** opent het weer. Elk actiepunt vermeldt wie het sloot en wanneer.
+
+De kaart toont hoeveel er klaar zijn, zonder de actiepunten die als **Wordt niet gedaan** zijn gemarkeerd. Het toevoegen, sluiten en overdragen van een actiepunt wordt vastgelegd in de feed van het incident.
+
+### De actiepunten uit uw notitie bijhouden
+
+Het concept van OneUptime AI en elk postmortem-sjabloon eindigen met een sectie met actiepunten: een checklist, of een tabel met de kolommen `Owner` en `Due Date`. Heeft de notitie zo'n sectie, dan noemt de kaart de punten die het incident nog niet bijhoudt, met een knop om ze allemaal bij te houden. Elk punt wordt een actiepunt:
+
+- een aangevinkt vakje wordt een actiepunt dat klaar is;
+- een vervaldatum die de notitie als datum schrijft, zoals 2026-11-20, wordt de vervaldatum, in uw tijdzone;
+- een punt met de titel van een actiepunt dat al wordt bijgehouden, wordt overgeslagen, zodat opnieuw bijhouden niets toevoegt.
+
+De kop van de sectie kan `Action Items`, `Follow-ups`, `Next Steps` of `How We Prevent It` zijn, of dezelfde woorden in een andere taal van het dashboard.
+
+### Een actiepunt omzetten in een pull request, een test of een monitor
+
+Elk open actiepunt kan via het menu **⋯** ervan worden wat het vraagt:
+
+| Actie | Wat er gebeurt |
+| --- | --- |
+| **Pull request openen met AI** | OneUptime AI brengt de wijziging aan in een repository die u kiest en opent een pull request ter beoordeling. Het incident en het postmortem ervan gaan mee met het verzoek. |
+| **Test schrijven met AI** | OneUptime AI schrijft een test die het incident had ontdekt, in het eigen testframework van de repository, en opent daarmee een pull request. |
+| **Monitor maken** | **Monitor maken** opent met de naam van het actiepunt. Zodra de monitor is aangemaakt, verwijst het actiepunt ernaar en is het klaar. |
+
+Het actiepunt toont daarna wat het is geworden: de fase van de taak, zoals **Taak bezig** of **Pull request staat open**, met een link naar de taak in [Code](/docs/ai/ai-agent), en de pull request; of de monitor. Wordt de pull request gemerged, dan is het actiepunt vanzelf klaar, en de feed van het incident meldt dat.
+
+De twee AI-acties vereisen dat AI voor het project is ingeschakeld, en een repository waarin OneUptime AI kan werken. Is er geen verbonden, dan biedt het menu in plaats daarvan **Een repository verbinden** aan. Een verzoek vereist hetzelfde als een verzoek in Code, plus de machtiging om het actiepunt te bewerken.
+
+### Alle actiepunten zien
+
+**Incidenten → Actiepunten** toont de actiepunten van alle postmortems in het hele project, met de eerstvolgende vervaldatum bovenaan, elk met het incident, de eigenaar, de vervaldatum en de status. Filter de lijst op **Status**, **Eigenaar** en **Vervaldatum**, en **Bekijken** op een rij opent de pagina **Postmortem** van het incident.
+
+Actiepunten lezen vereist hetzelfde als het incident lezen. Ze toevoegen, wijzigen en verwijderen vereist de rol Project Owner, Project Admin, Project Member, Incident Admin of Incident Member, of een aangepaste rol met de bijbehorende machtiging voor postmortem-actiepunten. De actiepunten van een privé-incident zijn, net als het incident zelf, alleen zichtbaar voor de gebruikers die eigenaar zijn, de leden van de teams die eigenaar zijn, projectbeheerders en projecteigenaren.
+
 ## Postmortems van episodes
 
 Een incidentepisode heeft ook een pagina **Postmortem**, onder **Onderzoek**: één verslag voor elk incident in de episode. Klik op **Postmortem bewerken** om het te schrijven. **Sjabloon toepassen** en **Generate with AI** werken zoals bij een incident, en de AI leest de episode en de incidenten die erin zitten.
 
 Het postmortem van een episode is alleen de notitie: het heeft geen bijlagen, en geen statuspagina toont het. OneUptime AI stelt er geen uit zichzelf op wanneer een episode wordt opgelost. Genereren vereist de rol Project Owner of Project Admin, of een aangepaste rol met de machtiging Edit Incident Episode. Het heeft ook geen status, en de lijst met postmortems laat het weg.
 
-Waarschuwingen en geplande onderhoudsgebeurtenissen hebben geen postmortem.
+Waarschuwingen en onderhoudsgebeurtenissen hebben geen postmortem.
 
 ## Via de API
 
@@ -190,6 +232,8 @@ Een postmortem is een set velden van het incident, gelezen en geschreven via `/a
 | `postmortemStatusId` | De status van het postmortem: een van de statussen van het project, onder `/api/incident-postmortem-status`. |
 
 `showPostmortemOnStatusPage` als `true` schrijven over een geschreven `postmortemNote` publiceert het postmortem, zoals het dialoogvenster doet. Dat verplaatst het postmortem ook naar **Voltooid**, tenzij dezelfde schrijfactie `postmortemStatusId` instelt.
+
+De actiepunten van een postmortem zijn eigen records, onder `/api/incident-postmortem-action-item`: elk met `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` en `status` (`Open`, `Done` of `WontDo`). Workflows kunnen starten wanneer er een wordt aangemaakt, gewijzigd of verwijderd.
 
 ## Problemen oplossen
 

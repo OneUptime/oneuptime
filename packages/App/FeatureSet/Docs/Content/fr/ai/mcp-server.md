@@ -41,7 +41,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 53 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 54 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -253,7 +253,7 @@ Sans clé API ni connexion, un client peut utiliser les outils publics :
 - **`oneuptime_describe_resource`** : les champs d'une ressource, et comment filtrer, trier et sélectionner sur ces champs
 - **`get_public_status_page_overview`** : la vue d'ensemble d'une page de statut publique
 - **`get_public_status_page_incidents`** : les incidents d'une page de statut publique
-- **`get_public_status_page_scheduled_maintenance`** : ses événements de maintenance planifiée
+- **`get_public_status_page_scheduled_maintenance`** : ses événements de maintenance
 - **`get_public_status_page_announcements`** : ses annonces
 
 Les outils des pages de statut publiques prennent l'ID d'une page de statut (un UUID) ou son nom de domaine. Pour n'utiliser qu'eux, connectez-vous avec l'adresse et sans identifiants :
@@ -414,7 +414,7 @@ Ces requêtes fonctionnent sans identifiants, avec les seuls outils des pages de
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Domaine | Enregistrements avec des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage |
 | --- | --- |
 | Supervision | Monitor, Monitor Status, Monitor Status Event |
-| Gestion des incidents | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| Gestion des incidents | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Alertes | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Pages de statut | Status Page, Status Page Announcement |
 | Maintenance planifiée | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

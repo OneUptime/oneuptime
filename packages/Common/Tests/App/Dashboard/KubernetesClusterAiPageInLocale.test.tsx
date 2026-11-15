@@ -80,6 +80,7 @@ import {
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The cluster's AI agent page in the reader's language, read from the
@@ -244,6 +245,16 @@ function wordingIn(code: string, key: string): string {
 }
 
 /*
+ * The locale's own wording for `key` as the page draws it: set as the
+ * language sets a line, French's marks kept with their words
+ * (NoBreakSpaces). For a text read whole; a text query reads a no-break
+ * space as a space, and takes wordingIn.
+ */
+function drawnIn(code: string, key: string): string {
+  return withNoBreakSpaces(wordingIn(code, key), key, code);
+}
+
+/*
  * The locale's value for `key`, which may read the same as the English
  * (French says "Investigation", French and Italian say "cluster").
  */
@@ -313,7 +324,7 @@ function translatedIn(
  */
 function patternIn(code: string, template: string): RegExp {
   return new RegExp(
-    wordingIn(code, template)
+    drawnIn(code, template)
       .split(/\{\{\w+\}\}/)
       .map((part: string): string => {
         return escapeRegExp(part);
@@ -1195,7 +1206,7 @@ describe("What AI may do, in the reader's language", () => {
         }),
       ).toEqual(
         formatAiAccessProtections([
-          wordingIn(
+          drawnIn(
             code,
             "destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run",
           ),

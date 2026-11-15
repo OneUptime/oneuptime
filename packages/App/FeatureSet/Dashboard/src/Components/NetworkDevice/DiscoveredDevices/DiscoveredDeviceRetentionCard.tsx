@@ -40,6 +40,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Unseen Devices, under the Discovered Devices page's More settings (issue
@@ -180,7 +181,7 @@ const RetentionSetting: FunctionComponent<SettingProps> = (
           role="alert"
           data-testid={`${DISCOVERED_DEVICE_RETENTION_SETTING_TEST_ID}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

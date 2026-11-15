@@ -8,6 +8,7 @@ Un post-mortem è il resoconto dopo un incidente: cosa è successo, perché, qua
 - [Pubblicarlo sulla vostra pagina di stato](#pubblicarlo-sulla-vostra-pagina-di-stato): Mostrarlo ai clienti e avvisare gli iscritti una sola volta.
 - [Seguire a che punto è ogni post-mortem](#seguire-a-che-punto-è-ogni-post-mortem): Non iniziato, Bozza, Completato o uno stato vostro.
 - [Vedere tutti i post-mortem](#vedere-tutti-i-post-mortem): Filtrare per proprietario, gravità e stato per trovare quelli ancora da fare.
+- [Seguire le azioni da intraprendere](#seguire-le-azioni-da-intraprendere): Cosa farà il team, chi è il proprietario di ciascuna e cosa è diventata.
 - [Post-mortem degli episodi](#post-mortem-degli-episodi): Un unico resoconto per un gruppo di incidenti.
 :::
 
@@ -169,13 +170,54 @@ Filtrate l'elenco con i chip sopra di esso: **Proprietario**, una persona o un t
 
 Per cambiarne molti in una volta, selezionateli e aprite **Azioni di massa**: **Cambia stato del post-mortem** li sposta tutti in uno stesso stato, come **Non necessario** per gli incidenti che non ne hanno bisogno, e **Aggiungi proprietario** e **Rimuovi proprietario** cambiano chi ne è proprietario.
 
+## Seguire le azioni da intraprendere
+
+Le azioni da intraprendere di un post-mortem sono ciò che il vostro team farà perché l'incidente non si ripeta. Ognuna è un record sull'incidente, con un proprietario, una data di scadenza e uno stato, così nessuna resta una riga della nota a cui nessuno dà seguito. La scheda **Azioni da intraprendere** si trova sotto la scheda **Post-mortem**, nella pagina **Post-mortem** dell'incidente.
+
+- Per aggiungerne una, scrivetela nella riga sotto l'elenco e fate clic su **Aggiungi azione**.
+- Per darle un proprietario, scegliete **Assegna a me** o **Assegna a qualcun altro** nel suo menu **⋯**.
+- Per darle una data di scadenza, scegliete **Modifica azione** nel suo menu **⋯** e impostate la sua **Data di scadenza**. Un'azione aperta che ha superato la data di scadenza indica in rosso che è in ritardo.
+- Per chiuderne una, spuntate la sua casella quando è fatta. **Segna come «Non verrà fatta»** nel suo menu **⋯** la chiude quando il team decide di non farla, e **Riapri** la riapre. Ogni azione chiusa indica chi l'ha chiusa e quando.
+
+La scheda indica quante sono fatte, senza contare quelle segnate come **Non verrà fatta**. L'aggiunta, la chiusura e la riassegnazione di un'azione vengono registrate nel feed dell'incidente.
+
+### Seguire le azioni elencate nella nota
+
+La bozza di OneUptime AI e ogni modello di post-mortem terminano con una sezione di azioni da intraprendere: una checklist, oppure una tabella con le colonne `Owner` e `Due Date`. Quando la nota ne ha una, la scheda nomina le voci che l'incidente non segue ancora, con un pulsante per seguirle tutte. Ognuna diventa un'azione da intraprendere:
+
+- una casella spuntata viene registrata come fatta;
+- una scadenza che la nota scrive come data, per esempio 2026-11-20, diventa la sua data di scadenza, nel vostro fuso orario;
+- una voce già seguita, in base al titolo, viene tralasciata, quindi seguirle di nuovo non aggiunge nulla.
+
+L'intestazione della sezione può essere `Action Items`, `Follow-ups`, `Next Steps` o `How We Prevent It`, oppure le stesse parole in un'altra delle lingue della dashboard.
+
+### Trasformare un'azione in una pull request, un test o un monitor
+
+Ogni azione aperta può diventare ciò che chiede, dal suo menu **⋯**:
+
+| Azione | Cosa succede |
+| --- | --- |
+| **Apri una pull request con l'IA** | OneUptime AI apporta la modifica in un repository che scegliete voi e apre una pull request da rivedere. L'incidente e il suo post-mortem accompagnano la richiesta. |
+| **Scrivi un test con l'IA** | OneUptime AI scrive un test che avrebbe intercettato l'incidente, nel framework di test del repository stesso, e apre una pull request che lo contiene. |
+| **Crea monitor** | **Crea monitor** si apre con il nome dell'azione. Una volta creato il monitor, l'azione lo nomina ed è fatta. |
+
+L'azione mostra poi cosa è diventata: la fase della sua attività, come **Attività in corso** o **Pull request aperta**, con un link all'attività in [Codice](/docs/ai/ai-agent), e la sua pull request; oppure il monitor. Quando la pull request viene unita, l'azione è fatta da sé, e il feed dell'incidente lo indica.
+
+Le due azioni con l'IA richiedono che l'IA sia attiva per il progetto e un repository in cui OneUptime AI possa lavorare. Se non ce n'è nessuno collegato, il menu offre invece **Collega un repository**. Per chiederle serve ciò che serve per chiedere qualcosa in Codice, più il permesso di modificare l'azione.
+
+### Vedere tutte le azioni da intraprendere
+
+**Incidenti → Azioni da intraprendere** elenca le azioni da intraprendere di tutti i post-mortem del progetto, dalla scadenza più vicina, con l'incidente, il proprietario, la data di scadenza e lo stato di ciascuna. Filtrate l'elenco per **Stato**, **Proprietario** e **Data di scadenza**, e **Visualizza** su una riga apre la pagina **Post-mortem** dell'incidente.
+
+Per leggere le azioni da intraprendere serve ciò che serve per leggere l'incidente. Aggiungerle, modificarle ed eliminarle richiede il ruolo Project Owner, Project Admin, Project Member, Incident Admin o Incident Member, oppure un ruolo personalizzato con il permesso corrispondente sulle azioni da intraprendere. Come l'incidente, le azioni da intraprendere di un incidente privato sono visibili solo ai suoi utenti proprietari, ai membri dei suoi team proprietari, agli amministratori e ai proprietari del progetto.
+
 ## Post-mortem degli episodi
 
 Anche un episodio di incidenti ha una pagina **Post-mortem**, sotto **Indagine**: un unico resoconto per tutti gli incidenti dell'episodio. Fate clic su **Modifica post mortem** per scriverlo. **Applica modello** e **Generate with AI** funzionano come su un incidente, e l'IA legge l'episodio e i suoi incidenti membri.
 
 Il post-mortem di un episodio è solo la nota: non ha allegati, e nessuna pagina di stato lo mostra. OneUptime AI non ne scrive uno da solo quando un episodio viene risolto. Generarlo richiede il ruolo Project Owner o Project Admin, oppure un ruolo personalizzato con il permesso Edit Incident Episode. Non ha nemmeno uno stato, e l'elenco dei post-mortem non lo include.
 
-Gli avvisi e gli eventi di manutenzione programmata non hanno un post-mortem.
+Gli avvisi e gli eventi di manutenzione non hanno un post-mortem.
 
 ## Tramite l'API
 
@@ -190,6 +232,8 @@ Un post-mortem è un insieme di campi dell'incidente, letti e scritti tramite `/
 | `postmortemStatusId` | Lo stato del post-mortem: uno degli stati del progetto, in `/api/incident-postmortem-status`. |
 
 Scrivere `showPostmortemOnStatusPage` come `true` su una `postmortemNote` già scritta pubblica il post-mortem, come fa il dialogo. Sposta anche il post-mortem in **Completato**, a meno che la stessa scrittura non imposti `postmortemStatusId`.
+
+Le azioni da intraprendere di un post-mortem sono record a sé, in `/api/incident-postmortem-action-item`: ciascuna con i suoi `incidentId`, `title`, `description`, `ownerUserId`, `dueDate` e `status` (`Open`, `Done` o `WontDo`). I workflow possono partire quando una di esse viene creata, modificata o eliminata.
 
 ## Risoluzione dei problemi
 

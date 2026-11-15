@@ -1,7 +1,12 @@
+import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Navigation from "Common/UI/Utils/Navigation";
 import {
   flattenCloudProperties,
   readCloudEndpoints,
@@ -32,13 +37,17 @@ import React, {
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { getCloudAccountResourcesQuery } from "./CloudAccountScope";
+import {
+  getCloudAccountIdSpellings,
+  getCloudAccountResourcesQuery,
+} from "./CloudAccountScope";
 import {
   CLOUD_NEIGHBOUR_READ_LIMIT,
   CloudConnectionGroup,
   groupCloudConnections,
 } from "./CloudConnectionGroups";
 import { getCloudRelationshipLabel } from "./CloudRelationshipWords";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * What a cloud account's inventory says about one of its resources, beyond
@@ -57,10 +66,29 @@ import { getCloudRelationshipLabel } from "./CloudRelationshipWords";
  * named only type's in the reader's language ("Subnet", "Security Group":
  * NAMED_ONLY_RESOURCE_TYPES), or any other type in words ("Transit Gateway
  * (EC2)") - never "AWS::EC2::Subnet" as the cloud writes it.
+ *
+ * Open in Topology opens its account's Topology on Connections, with this
+ * resource in the middle and what it is connected to around it: one click
+ * from a resource to the drawing of its neighbourhood, and from there to
+ * each neighbour's.
  */
 
 export interface ComponentProps {
   resource: CloudResource;
+}
+
+/*
+ * The account's Topology on Connections, with this resource in the middle:
+ * where Open in Topology leads.
+ */
+export function getCloudResourceConnectionsRoute(data: {
+  accountRowId: ObjectID;
+  resourceId: string;
+}): Route {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY] as Route,
+    { modelId: data.accountRowId },
+  ).addQueryParams({ view: "connections", node: data.resourceId });
 }
 
 const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
@@ -154,6 +182,60 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
       ignore = true;
     };
   }, [provider, accountId, resourceId]);
+
+  /*
+   * Its account's own record, for Open in Topology: read only for a
+   * resource whose Connected Resources card is drawn. Without it (an
+   * account not connected yet, or one that cannot be read) the card offers
+   * nothing more.
+   */
+  const hasConnectionsCard: boolean =
+    Boolean(resource.inventoriedAt) || relationships.length > 0;
+  const [accountRowId, setAccountRowId] = useState<ObjectID | null>(null);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    let ignore: boolean = false;
+
+    setAccountRowId(null);
+
+    if (
+      !projectId ||
+      !provider ||
+      !accountId ||
+      !resourceId ||
+      !hasConnectionsCard
+    ) {
+      return;
+    }
+
+    ModelAPI.getList<CloudAccount>({
+      modelType: CloudAccount,
+      query: {
+        projectId,
+        provider,
+        accountId: new Includes(getCloudAccountIdSpellings(accountId)),
+      } as never,
+      select: { _id: true },
+      sort: { _id: SortOrder.Ascending },
+      skip: 0,
+      limit: 1,
+    })
+      .then((result: ListResult<CloudAccount>): void => {
+        const id: string | undefined = result.data[0]?._id?.toString();
+
+        if (!ignore && id) {
+          setAccountRowId(new ObjectID(id));
+        }
+      })
+      .catch((): void => {
+        // No way to the account's Topology: the card offers nothing more.
+      });
+
+    return (): void => {
+      ignore = true;
+    };
+  }, [provider, accountId, resourceId, hasConnectionsCard]);
 
   const groups: Array<CloudConnectionGroup> = useMemo(() => {
     if (!resourceId) {
@@ -261,7 +343,7 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
                     mono ? "font-mono" : ""
                   }`}
                 >
-                  {pairs[key] || "—"}
+                  {pairs[key] || <EmptyValue />}
                 </dd>
               </div>
             );
@@ -281,6 +363,25 @@ const CloudResourceInventoryCards: FunctionComponent<ComponentProps> = (
           <Card
             title="Connected Resources"
             description="What it runs in, is part of and sends traffic to, and what connects to it, as its cloud's inventory lists them."
+            buttons={
+              accountRowId
+                ? [
+                    {
+                      title: "Open in Topology",
+                      icon: IconProp.Share,
+                      buttonStyle: ButtonStyleType.NORMAL,
+                      onClick: () => {
+                        Navigation.navigate(
+                          getCloudResourceConnectionsRoute({
+                            accountRowId,
+                            resourceId,
+                          }),
+                        );
+                      },
+                    },
+                  ]
+                : undefined
+            }
           >
             {neighbours === null ? (
               <ComponentLoader />

@@ -18,6 +18,11 @@ import {
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
 import logger from "Common/Server/Utils/Logger";
+import {
+  copyOwnValues,
+  readOwnValue,
+  writeOwnValue,
+} from "Common/Utils/LookupTable";
 import PatternWorkScope from "Common/Server/Utils/PatternWorkScope";
 import PipelineCache from "../Utils/PipelineCache";
 import getPipelineProcessorConfig from "../Utils/PipelineProcessorConfig";
@@ -194,21 +199,28 @@ export class TracePipelineService {
     spanRow: JSONObject,
     config: AttributeRemapperConfig,
   ): JSONObject {
-    const attrs: Record<string, unknown> = {
-      ...((spanRow["attributes"] as Record<string, unknown>) || {}),
-    };
+    const attrs: Record<string, unknown> = copyOwnValues(
+      (spanRow["attributes"] as Record<string, unknown>) || {},
+    );
 
-    const sourceVal: unknown = attrs[config.sourceKey];
+    /*
+     * The span's own keys only: a key named constructor is one the span may
+     * or may not carry, never what every object inherits.
+     */
+    const sourceVal: unknown = readOwnValue(attrs, config.sourceKey);
     if (sourceVal === undefined) {
       return spanRow;
     }
 
     const overrideOnConflict: boolean = config.overrideOnConflict !== false;
-    if (!overrideOnConflict && attrs[config.targetKey] !== undefined) {
+    if (
+      !overrideOnConflict &&
+      readOwnValue(attrs, config.targetKey) !== undefined
+    ) {
       return spanRow;
     }
 
-    attrs[config.targetKey] = sourceVal;
+    writeOwnValue(attrs, config.targetKey, sourceVal);
 
     if (!config.preserveSource) {
       delete attrs[config.sourceKey];
@@ -230,7 +242,7 @@ export class TracePipelineService {
     if (config.sourceKey === "name") {
       sourceVal = spanRow["name"];
     } else {
-      sourceVal = attrs[config.sourceKey];
+      sourceVal = readOwnValue(attrs, config.sourceKey);
     }
     if (sourceVal === undefined || sourceVal === null) {
       return spanRow;
@@ -253,7 +265,7 @@ export class TracePipelineService {
   ): JSONObject {
     const attrs: Record<string, unknown> =
       (spanRow["attributes"] as Record<string, unknown>) || {};
-    const sourceVal: unknown = attrs[config.sourceKey];
+    const sourceVal: unknown = readOwnValue(attrs, config.sourceKey);
     if (sourceVal === undefined || sourceVal === null) {
       return spanRow;
     }
@@ -284,7 +296,7 @@ export class TracePipelineService {
     if (config.sourceKey === "kind") {
       sourceVal = spanRow["kind"];
     } else {
-      sourceVal = attrs[config.sourceKey];
+      sourceVal = readOwnValue(attrs, config.sourceKey);
     }
     if (sourceVal === undefined || sourceVal === null) {
       return spanRow;
@@ -336,10 +348,10 @@ export class TracePipelineService {
         continue;
       }
       if (evaluateCompiledFilter(spanRow, compiled)) {
-        const attrs: Record<string, unknown> = {
-          ...((spanRow["attributes"] as Record<string, unknown>) || {}),
-        };
-        attrs[config.targetKey] = category.name;
+        const attrs: Record<string, unknown> = copyOwnValues(
+          (spanRow["attributes"] as Record<string, unknown>) || {},
+        );
+        writeOwnValue(attrs, config.targetKey, category.name);
         const attributeKeys: Array<string> = Object.keys(attrs);
         return { ...spanRow, attributes: attrs as JSONObject, attributeKeys };
       }

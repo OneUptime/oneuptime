@@ -52,7 +52,7 @@ Dans la liste de vérification, cliquez sur **Créez votre premier moniteur**. C
 
 Sous **Que devons-nous vérifier ?**, saisissez l'adresse complète de votre site dans **Adresse du site web ou de l'API**, par exemple `https://example.com`, et cliquez sur **Lancer la vérification**. Les sondes la vérifient aussitôt, puis toutes les 5 minutes : quand le site ne répond pas, ou répond par une erreur, le moniteur passe **Hors ligne** et déclare un incident. Cliquez sur **Continuer**.
 
-Avec le forfait Free de OneUptime Cloud, les moniteurs sont facturés à l'usage, donc le projet a besoin d'un moyen de paiement avant de pouvoir vérifier votre site : sans moyen de paiement, l'étape vous demande d'[ajouter un moyen de paiement](/docs/configuration/billing#moyens-de-paiement).
+Avec le forfait Free de OneUptime Cloud, les moniteurs sont facturés à l'usage, donc le projet a besoin d'un moyen de paiement avant de pouvoir vérifier votre site : sans moyen de paiement, l'étape le signale avant **Lancer la vérification**, avec **Ajouter un mode de paiement** pour [en ajouter un](/docs/configuration/billing#moyens-de-paiement).
 
 ### Choisir qui est prévenu
 

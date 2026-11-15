@@ -9,6 +9,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import { TOPOLOGY_SHAPE_OPTIONS } from "../../../Components/NetworkDevice/TopologyShapeOptions";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const networkDeviceRoleDocumentation: string = `
 ### How Device Roles Work
@@ -114,7 +115,7 @@ const NetworkDeviceRolesPage: FunctionComponent<
             getElement: (item: NetworkDeviceRole): ReactElement => {
               return (
                 <span className="text-sm font-mono text-gray-500">
-                  {item.key || "-"}
+                  {item.key || <TableEmptyValue />}
                 </span>
               );
             },

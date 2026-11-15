@@ -152,6 +152,6 @@ De sonde die de controle uitvoerde kan geen pings versturen, dus ze controleerde
 :::cards
 - [IP-monitor](/docs/monitor/ip-monitor): Een vast IPv4- of IPv6-adres bewaken.
 - [Poort-monitor](/docs/monitor/port-monitor): Een dienst op de host controleren, niet alleen de host.
-- [Aangepaste probes](/docs/probe/custom-probe): Hosts in uw eigen netwerk pingen.
+- [Aangepaste sondes](/docs/probe/custom-probe): Hosts in uw eigen netwerk pingen.
 - [Incidenten](/docs/incidents/index): Wat er gebeurt nadat de monitor er een meldt.
 :::

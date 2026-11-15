@@ -52,7 +52,7 @@ flowchart TB
 2. En el menú lateral, abre **Telemetría y APM** y selecciona **Claves de ingesta**.
 3. Haz clic en **Crear clave de ingesta**. El diálogo rellena un nombre y elige el tipo de clave **Servidor**, que es con el que envía una aplicación o un collector. Cámbiale el nombre si quieres y luego haz clic en **Crear clave de ingesta**.
 
-![La página de claves de ingesta de telemetría en los ajustes del proyecto](/docs/static/images/TelemetryIngestionKeys.png)
+![La lista «Claves de ingesta», con «Crear clave de ingesta» resaltado](screen:ingestion-keys)
 
 La nueva clave se abre en su propia página. Copia su **Clave secreta**: es el token que envías como `x-oneuptime-token`.
 
@@ -89,9 +89,9 @@ Elige tu lenguaje. Cada configuración lee las variables de entorno anteriores, 
 Instala el SDK, las instrumentaciones automáticas y los exportadores OTLP/HTTP:
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 Crea el SDK en un archivo propio:
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

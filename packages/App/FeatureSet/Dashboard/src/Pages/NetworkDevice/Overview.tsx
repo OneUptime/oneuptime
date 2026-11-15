@@ -46,6 +46,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -63,6 +65,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 const RECENT_SCAN_LIMIT: number = 5;
 
@@ -487,7 +490,7 @@ const NetworkOverview: FunctionComponent<
                         to={getDeviceRoute(device.id)}
                         className="truncate text-sm font-medium text-gray-900 hover:underline"
                       >
-                        {device.name || "—"}
+                        {device.name || <EmptyValue />}
                       </AppLink>
                       <div className="flex flex-shrink-0 items-center gap-2 text-sm">
                         {device.isDown ? (
@@ -569,7 +572,7 @@ const NetworkOverview: FunctionComponent<
                         to={getSiteRoute(site.id)}
                         className="truncate text-sm font-medium text-gray-900 hover:underline"
                       >
-                        {site.name || "—"}
+                        {site.name || <EmptyValue />}
                       </AppLink>
                       <div className="flex flex-shrink-0 items-center gap-2">
                         {site.siteType && (
@@ -580,6 +583,10 @@ const NetworkOverview: FunctionComponent<
                         {site.statusName && (
                           <Pill
                             text={site.statusName}
+                            isUserContent={isRecordNameAsWritten(
+                              StateListType.MonitorStatus,
+                              site.statusName,
+                            )}
                             color={
                               site.statusColor
                                 ? Color.fromString(site.statusColor)
@@ -731,7 +738,7 @@ const NetworkOverview: FunctionComponent<
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-gray-900">
-                          {scanName || scan.cidr || "—"}
+                          {scanName || scan.cidr || <EmptyValue />}
                         </div>
                         {secondaryLine && (
                           <div className="truncate text-xs text-gray-500">

@@ -209,6 +209,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/AlertOnCallRuleEngineService.ts": {
     "AlertOnCallRuleEngineServiceClass.applyRulesToAlert Alert": Why.Automation,
   },
+  "packages/Common/Server/Services/AlertService.ts": {
+    "Service.releaseCreatedNotificationHeldForOwners Alert": Why.Bookkeeping,
+    "Service.takeCreatedNotification Alert": Why.Bookkeeping,
+  },
   "packages/Common/Server/Services/CephClusterService.ts": {
     "Service.attachLabels CephCluster": Why.Reported,
   },
@@ -264,7 +268,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/IncidentService.ts": {
     "Service.movePostmortemStatusAfterUpdate Incident": Why.Derived,
+    "Service.releaseCreatedNotificationHeldForOwners Incident": Why.Bookkeeping,
     "Service.setPostmortemNotificationPending Incident": Why.Bookkeeping,
+    "Service.takeCreatedNotification Incident": Why.Bookkeeping,
   },
   "packages/Common/Server/Services/IoTFleetService.ts": {
     "Service.attachLabels IoTFleet": Why.Reported,
@@ -483,6 +489,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Huntress/HuntressConnectionsToWorkflows.ts": {
     "(module) Incident": Why.Migration,
+  },
+  "packages/Common/Server/Utils/Incident/PostmortemActionItemCodeTasks.ts": {
+    // A postmortem's action item is done as its pull request merges; the incident's feed says so (#6801).
+    "PostmortemActionItemCodeTasks.onPullRequestMerged IncidentPostmortemActionItem":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/Monitor/MonitorResource.ts": {
     "MonitorResourceUtil.monitorResource Monitor": Why.Reported,

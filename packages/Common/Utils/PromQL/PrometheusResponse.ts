@@ -1,4 +1,5 @@
 import { PromQLLabels } from "./PromQLLabels";
+import { writeOwnValue } from "../LookupTable";
 
 /*
  * Reads a Prometheus HTTP API answer (issue #6796): the Metrics page's
@@ -74,7 +75,8 @@ const toLabels: (metric: unknown) => PromQLLabels = (
   for (const [name, value] of Object.entries(
     metric as Record<string, unknown>,
   )) {
-    labels[name] = String(value);
+    // As an own key: a series may carry a label named __proto__.
+    writeOwnValue(labels, name, String(value));
   }
 
   return labels;

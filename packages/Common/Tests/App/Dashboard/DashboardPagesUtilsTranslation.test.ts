@@ -486,7 +486,7 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
       "2 melden nicht",
       "1 Umgebung getrennt",
       "in den letzten 24 Stunden",
-      "in den letzten 15 Min. gesehen",
+      "in den letzten 15\u00A0Min. gesehen",
     ]);
   });
 

@@ -2287,7 +2287,7 @@ router.post(
       );
       const startTime: Date = readBodyDate(
         body["startTime"],
-        OneUptimeDate.addRemoveDays(endTime, -7),
+        OneUptimeDate.addRemoveDurationInDays(endTime, -7),
       );
 
       if (startTime.getTime() > endTime.getTime()) {
@@ -2551,7 +2551,7 @@ router.post(
       );
       const startTime: Date = readBodyDate(
         body["startTime"],
-        OneUptimeDate.addRemoveDays(endTime, -7),
+        OneUptimeDate.addRemoveDurationInDays(endTime, -7),
       );
 
       if (startTime.getTime() > endTime.getTime()) {
@@ -2624,7 +2624,7 @@ router.post(
       );
       const startTime: Date = readBodyDate(
         body["startTime"],
-        OneUptimeDate.addRemoveDays(endTime, -7),
+        OneUptimeDate.addRemoveDurationInDays(endTime, -7),
       );
 
       if (startTime.getTime() > endTime.getTime()) {
@@ -6732,7 +6732,10 @@ router.post(
 
       const startTime: Date =
         readOptionalDateFromBody(body, "startTime") ||
-        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          -7,
+        );
 
       const endTime: Date =
         readOptionalDateFromBody(body, "endTime") ||
@@ -7350,7 +7353,10 @@ router.post(
 
       const startTime: Date =
         readOptionalDateFromBody(body, "startTime") ||
-        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          -7,
+        );
 
       const endTime: Date =
         readOptionalDateFromBody(body, "endTime") ||
@@ -7490,7 +7496,10 @@ const readProductAnalyticsRequest: ReadProductAnalyticsRequestFunction = async (
 /*
  * The range: the last 7 days by default, never inverted, and no longer than
  * PRODUCT_ANALYTICS_MAX_RANGE_DAYS - what the tables keep, and a bound on
- * what one read scans.
+ * what one read scans. The 7 days are 7 x 24 hours before the end, whatever
+ * zone the server runs in: in the server's calendar they would be an hour
+ * short or long across a clock change (issue #7623). Every other read here
+ * that defaults to the last 7 days counts them the same way.
  */
 type ReadProductAnalyticsRangeFunction = (body: JSONObject) => {
   startTime: Date;
@@ -7504,7 +7513,7 @@ const readProductAnalyticsRange: ReadProductAnalyticsRangeFunction = (
     readOptionalDateFromBody(body, "endTime") || OneUptimeDate.getCurrentDate();
   const startTime: Date =
     readOptionalDateFromBody(body, "startTime") ||
-    OneUptimeDate.addRemoveDays(endTime, -7);
+    OneUptimeDate.addRemoveDurationInDays(endTime, -7);
 
   if (startTime.getTime() > endTime.getTime()) {
     throw new BadDataException("startTime must not be after endTime");
@@ -8447,7 +8456,10 @@ router.post(
 
       const startTime: Date =
         readOptionalDateFromBody(body, "startTime") ||
-        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+        OneUptimeDate.addRemoveDurationInDays(
+          OneUptimeDate.getCurrentDate(),
+          -7,
+        );
 
       const endTime: Date =
         readOptionalDateFromBody(body, "endTime") ||

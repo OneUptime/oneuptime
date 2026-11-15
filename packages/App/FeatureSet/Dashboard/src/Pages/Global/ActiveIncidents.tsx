@@ -9,6 +9,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -20,6 +22,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveIncidents: FunctionComponent<
   PageComponentProps
@@ -134,6 +137,8 @@ const ActiveIncidents: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -185,7 +190,7 @@ const ActiveIncidents: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: Incident): ReactElement => {
               if (!item.incidentNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>
@@ -216,6 +221,10 @@ const ActiveIncidents: FunctionComponent<
                   <Pill
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -239,6 +248,10 @@ const ActiveIncidents: FunctionComponent<
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

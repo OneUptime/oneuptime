@@ -38,10 +38,10 @@ flowchart TB
 - **هشدارها**: هشدارها را تأیید و حل کنید، یادداشت بیفزایید و وضعیت‌ها و شدت‌های هشدار را مدیریت کنید.
 - **تیم‌ها و آنکال**: تیم‌ها و سیاست‌های آنکال را مدیریت کنید.
 - **صفحه‌های وضعیت**: صفحه‌های وضعیت را مدیریت کنید و اطلاعیه منتشر کنید.
-- **نگهداری زمان‌بندی‌شده**: رویدادهای نگهداری را بسازید و مدیریت کنید.
+- **تعمیر و نگهداری زمان‌بندی‌شده**: رویدادهای تعمیر و نگهداری را بسازید و مدیریت کنید.
 - **تله‌متری**: لاگ‌ها، متریک‌ها، ردیابی‌ها، استثناها، لاگ‌های مانیتور، رویدادهای امنیتی و موارد دیگر را، فقط به‌صورت خواندنی، جست‌وجو کنید.
 
-برای 53 نوع رکورد ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش وجود دارد، برای 9 نوع تله‌متری ابزارهای فهرست و شمارش، و ابزارهایی هم برای پاسخ به حادثه ساخته شده‌اند. ابزارهای فقط‌خواندنی `readOnlyHint` دارند، هر ابزاری که چیزی را تغییر می‌دهد `destructiveHint` دارد و فقط ابزارهای صفحهٔ وضعیت عمومی `openWorldHint` دارند، بنابراین کلاینت می‌تواند فراخوانی‌های فقط‌خواندنی را خودش اجرا کند و پیش از هر تغییری از شما بپرسد. یک فراخوانی ناموفق ابزار، نه به‌صورت خطای پروتکل MCP، بلکه به‌صورت نتیجهٔ ابزار (`isError: true`) همراه با `statusCode`، جزئیات و یک پیشنهاد برمی‌گردد، تا عامل بتواند خطا را بخواند و خودش را اصلاح کند.
+برای 54 نوع رکورد ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش وجود دارد، برای 9 نوع تله‌متری ابزارهای فهرست و شمارش، و ابزارهایی هم برای پاسخ به حادثه ساخته شده‌اند. ابزارهای فقط‌خواندنی `readOnlyHint` دارند، هر ابزاری که چیزی را تغییر می‌دهد `destructiveHint` دارد و فقط ابزارهای صفحهٔ وضعیت عمومی `openWorldHint` دارند، بنابراین کلاینت می‌تواند فراخوانی‌های فقط‌خواندنی را خودش اجرا کند و پیش از هر تغییری از شما بپرسد. یک فراخوانی ناموفق ابزار، نه به‌صورت خطای پروتکل MCP، بلکه به‌صورت نتیجهٔ ابزار (`isError: true`) همراه با `statusCode`، جزئیات و یک پیشنهاد برمی‌گردد، تا عامل بتواند خطا را بخواند و خودش را اصلاح کند.
 
 ## پیش از شروع
 
@@ -253,7 +253,7 @@ GitHub Copilot Chat را در حالت عامل باز کنید و برای نم
 - **`oneuptime_describe_resource`**: فیلدهای یک منبع و روش فیلتر، مرتب‌سازی و انتخاب بر اساس آن‌ها
 - **`get_public_status_page_overview`**: نمای کلی یک صفحهٔ وضعیت عمومی
 - **`get_public_status_page_incidents`**: حادثه‌های یک صفحهٔ وضعیت عمومی
-- **`get_public_status_page_scheduled_maintenance`**: رویدادهای نگهداری زمان‌بندی‌شدهٔ آن
+- **`get_public_status_page_scheduled_maintenance`**: رویدادهای تعمیر و نگهداری آن
 - **`get_public_status_page_announcements`**: اطلاعیه‌های آن
 
 ابزارهای صفحهٔ وضعیت عمومی شناسهٔ صفحهٔ وضعیت (یک UUID) یا نام دامنهٔ آن را می‌گیرند. برای استفادهٔ تنها از این‌ها، فقط با نشانی و بدون هیچ اعتبارنامه‌ای وصل شوید:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,10 +480,10 @@ curl https://oneuptime.com/mcp/tools
 | حوزه | رکوردهایی با ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش |
 | --- | --- |
 | مانیتورینگ | Monitor, Monitor Status, Monitor Status Event |
-| حادثه‌ها | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| حادثه‌ها | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | هشدارها | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | صفحه‌های وضعیت | Status Page, Status Page Announcement |
-| نگهداری زمان‌بندی‌شده | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
+| تعمیر و نگهداری زمان‌بندی‌شده | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | تیم‌ها و آنکال | Team, On-Call Policy |
 | برچسب‌ها | Label |
 | امنیت | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |

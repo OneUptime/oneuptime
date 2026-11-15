@@ -223,10 +223,7 @@ const AttackCoveragePage: FunctionComponent<
 
   return (
     <div className="space-y-6">
-      <EventStatBar
-        columns={3}
-        ariaLabel={translator.translateText("ATT&CK coverage figures")}
-      >
+      <EventStatBar columns={3} ariaLabel={"ATT&CK coverage figures"}>
         <EventStatTile
           variant="segment"
           icon={IconProp.TableCells}

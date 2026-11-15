@@ -235,16 +235,19 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.whatsapp"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_WHATSAPP] as Route,
           ),
@@ -350,6 +353,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Access Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -358,6 +362,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Phone Number ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -366,6 +371,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Business Account ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -374,6 +380,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "Webhook Verify Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -382,6 +389,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "App ID",
               fieldType: FieldType.ObjectID,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -390,6 +398,7 @@ const SettingsWhatsApp: FunctionComponent = (): ReactElement => {
               title: "App Secret",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              isPlaceholderTranslated: true,
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

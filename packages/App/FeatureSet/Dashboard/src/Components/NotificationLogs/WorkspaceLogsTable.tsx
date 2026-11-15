@@ -23,7 +23,11 @@ import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNot
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
-import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "Common/Types/Workspace/WorkspaceType";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -32,11 +36,36 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface WorkspaceLogsTableProps {
   query?: Query<BaseModel>;
   singularName?: string;
 }
+
+/*
+ * A workspace by its product's name - "Microsoft Teams", never the stored
+ * "MicrosoftTeams" - in the Workspace filter's menu, its chip and the
+ * Workspace column alike. A product's name reads as it is written in every
+ * language, so it is no key of the locales.
+ */
+const getWorkspaceName: (
+  workspaceType: WorkspaceType | undefined,
+) => string | undefined = (
+  workspaceType: WorkspaceType | undefined,
+): string | undefined => {
+  return workspaceType ? getWorkspaceTypeDisplayName(workspaceType) : undefined;
+};
+
+const WORKSPACE_FILTER_OPTIONS: Array<DropdownOption> = Object.values(
+  WorkspaceType,
+).map((workspaceType: WorkspaceType): DropdownOption => {
+  return {
+    value: workspaceType,
+    label: getWorkspaceTypeDisplayName(workspaceType),
+    isUserContent: true,
+  };
+});
 
 const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
   props: WorkspaceLogsTableProps,
@@ -50,6 +79,14 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Text,
+      getLineText: (item: WorkspaceNotificationLog): string | undefined => {
+        return getWorkspaceName(item.workspaceType);
+      },
+      getElement: (item: WorkspaceNotificationLog): ReactElement => {
+        const name: string | undefined = getWorkspaceName(item.workspaceType);
+
+        return name ? <IsolatedText text={name} /> : <TableEmptyValue />;
+      },
     },
     {
       field: { actionType: true },
@@ -118,7 +155,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       hideOnMobile: true,
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
         if (!item["user"]) {
-          return <p>-</p>;
+          return <TableEmptyValue />;
         }
 
         return <UserElement user={item["user"] as User} />;
@@ -162,8 +199,7 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { workspaceType: true },
       title: "Workspace",
       type: FieldType.Dropdown,
-      filterDropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(WorkspaceType),
+      filterDropdownOptions: WORKSPACE_FILTER_OPTIONS,
     },
   ];
 

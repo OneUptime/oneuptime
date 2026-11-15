@@ -12,6 +12,8 @@ import {
 } from "Common/Utils/NetworkDevice/DeviceHealthStateUtil";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 /*
@@ -117,6 +119,15 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
   const translator: Translator = useTranslator();
   const site: SiteChildView = props.site;
   const status: SiteStatusInfo | undefined = site.currentMonitorStatus;
+  /*
+   * The status by its list (Common/Utils/DefaultRecordNames): the default
+   * "Offline" in the reader's words, one the project named itself as written.
+   */
+  const statusText: string = translateRecordName(
+    translator,
+    StateListType.MonitorStatus,
+    status?.name,
+  );
 
   const totalUnits: number = Math.max(site.unitStats.totalUnits, 0);
   const operationalUnits: number = Math.min(
@@ -182,7 +193,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
             className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600"
             title={
               status
-                ? status.name
+                ? statusText
                 : translator.translateText("Nothing reporting yet")
             }
           >
@@ -199,7 +210,7 @@ export const SiteCardBody: FunctionComponent<SiteCardBodyProps> = (
               <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full border border-gray-400" />
             )}
             <span className="truncate">
-              {status ? status.name : translator.translateText("Not reporting")}
+              {status ? statusText : translator.translateText("Not reporting")}
             </span>
           </span>
           {/*

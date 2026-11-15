@@ -1,8 +1,10 @@
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import Route from "../../../Types/API/Route";
@@ -25,7 +27,14 @@ import Icon, { ThickProp } from "../Icon/Icon";
 
 export interface NavItem {
   id: string;
+  // In English, looked up where it is drawn.
   title: string;
+  /*
+   * The title is in the reader's words already: a front end's own keyed
+   * text, as the Dashboard's are (t("navbar.home")). Drawn as given, never
+   * looked up again (#7790).
+   */
+  isTitleTranslated?: boolean | undefined;
   icon: IconProp;
   route: Route;
   activeRoute?: Route | undefined;
@@ -34,14 +43,41 @@ export interface NavItem {
 }
 
 export interface MoreMenuItem {
+  /*
+   * In English, looked up where it is drawn: the bar, its breadcrumb, a
+   * pin, the products menu's card and the phone's menu.
+   */
   title: string;
+  /*
+   * The title is in the reader's words already, as the Dashboard's
+   * products are (t("navbar.items.networkTitle")): drawn as given, never
+   * looked up again. In Spanish the Dashboard says "Red" for Network, and
+   * "Red" looked up again is "Rojo" (#7790).
+   */
+  isTitleTranslated?: boolean | undefined;
+  // In English, looked up where the products menu draws it.
   description: string;
+  /*
+   * The description is in the reader's words already, as the Dashboard's
+   * are (t("navbar.items.networkDescription")): drawn as given (#8075).
+   */
+  isDescriptionTranslated?: boolean | undefined;
   /** Acronyms and alternate names users can search for in navigation. */
   keywords?: Array<string> | undefined;
   route: Route;
   icon: IconProp;
   iconColor?: string; // Tailwind color name like "blue", "purple", "amber"
-  category?: string; // Category for grouping items (e.g., "Essentials", "Observability")
+  /*
+   * The heading it is grouped under ("Essentials", "Management"): in
+   * English, looked up where it is drawn.
+   */
+  category?: string;
+  /*
+   * The category is in the reader's words already, as the Dashboard's are
+   * (t("navbar.categories.essentials")): drawn as given (#8075). The items
+   * of one category say alike.
+   */
+  isCategoryTranslated?: boolean | undefined;
   activeRoute?: Route | undefined; // Route to check for active state
   additionalActiveRoutes?: Array<Route> | undefined; // Extra routes that also mark this item active
   /*
@@ -99,6 +135,16 @@ export interface ComponentProps {
     link: URL;
   };
   /*
+   * These texts are in the reader's words already, as the Dashboard's keyed
+   * ones are: drawn as given, never looked up again (#7790). Left unset,
+   * each is English, looked up where it is drawn.
+   */
+  isMoreMenuNoResultsTextTranslated?: boolean | undefined;
+  isMoreMenuKeyboardHintTranslated?: boolean | undefined;
+  isMoreMenuRecentLabelTranslated?: boolean | undefined;
+  // The footer's title and its description.
+  isMoreMenuFooterTranslated?: boolean | undefined;
+  /*
    * When true, Cmd/Ctrl+K never opens or toggles the products menu — for apps
    * where another surface (e.g. a command palette) owns that shortcut. The
    * menu itself stays usable via its trigger button; if it is already open,
@@ -121,7 +167,8 @@ export interface ComponentProps {
    * categories and its Recently visited row, and listed under one more row
    * at the foot of the menu, moreMenuHiddenTitle ("More products"). Search
    * finds them as it finds every other product, and the row opens by itself
-   * on one of their pages.
+   * on one of their pages. The title is English, looked up where it is
+   * drawn, as the categories it sits under are.
    */
   moreMenuHiddenItems?: Array<MoreMenuItem> | undefined;
   moreMenuHiddenTitle?: string | undefined;
@@ -144,6 +191,12 @@ export interface ComponentProps {
   onTogglePin?: ((item: MoreMenuItem) => void) | undefined;
   // Whether another product can be pinned (fewer than the most).
   canPinMore?: boolean | undefined;
+  /*
+   * Called each time the products menu (by its button or Cmd/Ctrl+K) or the
+   * phone's menu opens: for what the menu shows to be brought up to date as
+   * it is read (the Dashboard's "Not set up" marks, #7465).
+   */
+  onMenuOpen?: (() => void) | undefined;
   className?: string;
   // Legacy support for children-based usage
   children?: ReactElement | Array<ReactElement>;
@@ -252,6 +305,27 @@ const Navbar: FunctionComponent<ComponentProps> = (
   // Sync local state with hook state
   useEffect(() => {
     setIsMobileMenuVisible(isMobileMenuOpen);
+  }, [isMobileMenuOpen]);
+
+  /*
+   * Whoever draws the bar hears a menu open (onMenuOpen), once per opening:
+   * the latest callback, so a new function each render calls nothing more.
+   */
+  const onMenuOpenRef: MutableRefObject<(() => void) | undefined> = useRef<
+    (() => void) | undefined
+  >(props.onMenuOpen);
+  onMenuOpenRef.current = props.onMenuOpen;
+
+  useEffect(() => {
+    if (isMoreMenuVisible) {
+      onMenuOpenRef.current?.();
+    }
+  }, [isMoreMenuVisible]);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      onMenuOpenRef.current?.();
+    }
   }, [isMobileMenuOpen]);
 
   // Check if we're on mobile
@@ -392,6 +466,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
           <div className={className}>
             <NavBarItem
               title={props.rightElement.title}
+              isTitleTranslated={props.rightElement.isTitleTranslated}
               icon={props.rightElement.icon}
               route={props.rightElement.route}
               activeRoute={props.rightElement.activeRoute}
@@ -416,6 +491,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         return {
           id: `more-${item.title.toLowerCase().replace(/\s+/g, "-")}`,
           title: item.title,
+          isTitleTranslated: item.isTitleTranslated,
           icon: item.icon,
           route: item.route,
           activeRoute: item.activeRoute,
@@ -431,6 +507,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
     allNavItems.push({
       id: `right-${props.rightElement.title.toLowerCase().replace(/\s+/g, "-")}`,
       title: props.rightElement.title,
+      isTitleTranslated: props.rightElement.isTitleTranslated,
       icon: props.rightElement.icon,
       route: props.rightElement.route,
       activeRoute: props.rightElement.activeRoute,
@@ -457,6 +534,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
               id={activeItem.id}
               title={activeItem.title}
+              isTitleTranslated={activeItem.isTitleTranslated}
               icon={activeItem.icon}
               exact={true}
               route={undefined}
@@ -505,6 +583,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
                 rightElement={props.rightElement}
                 recentLabel={props.moreMenuRecentLabel}
+                isRecentLabelTranslated={props.isMoreMenuRecentLabelTranslated}
                 topElement={props.mobileMenuTop?.(closeMobileMenu)}
                 bottomElement={props.mobileMenuBottom?.(closeMobileMenu)}
                 hiddenItems={props.moreMenuHiddenItems}
@@ -563,6 +642,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               key={homeItem.id}
               id={homeItem.id}
               title={homeItem.title}
+              isTitleTranslated={homeItem.isTitleTranslated}
               icon={homeItem.icon}
               activeRoute={homeItem.activeRoute}
               route={homeItem.route}
@@ -588,10 +668,14 @@ const Navbar: FunctionComponent<ComponentProps> = (
                  * opens already are: the Admin Dashboard hands its sections
                  * over in English, and its page's own section ("Projects")
                  * was the one English word in its header in every language.
+                 * The Dashboard's are in them already, and drawn as given:
+                 * looked up again, its Network ("Red") read "Rojo" (#7790).
                  */}
                 <span>
-                  {translateString(activeMoreItem.title) ??
-                    activeMoreItem.title}
+                  {activeMoreItem.isTitleTranslated
+                    ? activeMoreItem.title
+                    : translateString(activeMoreItem.title) ??
+                      activeMoreItem.title}
                 </span>
                 <Icon
                   icon={IconProp.ChevronDown}
@@ -656,12 +740,14 @@ const Navbar: FunctionComponent<ComponentProps> = (
                   key={item.key || item.route.toString()}
                   id={getPinnedItemId(item)}
                   title={item.title}
+                  isTitleTranslated={item.isTitleTranslated}
                   icon={item.icon}
                   route={item.route}
                   isActive={isMoreMenuItemActive(item)}
                   labelClassName="max-xl:sr-only max-w-[10rem] truncate"
                   iconClassName="h-4 w-4 flex-shrink-0 xl:mr-1.5"
                   tooltip={item.title}
+                  isTooltipTranslated={item.isTitleTranslated}
                   dataTestId={NAVBAR_PINNED_ITEM_TEST_ID}
                 />
               );
@@ -676,6 +762,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
               key={item.id}
               id={item.id}
               title={item.title}
+              isTitleTranslated={item.isTitleTranslated}
               icon={item.icon}
               activeRoute={item.activeRoute}
               route={item.route}
@@ -689,6 +776,7 @@ const Navbar: FunctionComponent<ComponentProps> = (
         <div className={className}>
           <NavBarItem
             title={props.rightElement.title}
+            isTitleTranslated={props.rightElement.isTitleTranslated}
             icon={props.rightElement.icon}
             route={props.rightElement.route}
             activeRoute={props.rightElement.activeRoute}
@@ -719,15 +807,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
             canPinMore={props.canPinMore}
             categoriesOpenByDefault={props.moreMenuCategoriesOpenByDefault}
             footer={props.moreMenuFooter}
+            isFooterTranslated={props.isMoreMenuFooterTranslated}
             searchPlaceholder={props.moreMenuSearchPlaceholder}
             searchLabel={props.moreMenuSearchLabel}
             isSearchPlaceholderTranslated={
               props.isMoreMenuSearchPlaceholderTranslated
             }
             noResultsText={props.moreMenuNoResultsText}
+            isNoResultsTextTranslated={props.isMoreMenuNoResultsTextTranslated}
             showCommandKShortcutHint={!props.disableCommandKShortcut}
             keyboardHint={props.moreMenuKeyboardHint}
+            isKeyboardHintTranslated={props.isMoreMenuKeyboardHintTranslated}
             recentLabel={props.moreMenuRecentLabel}
+            isRecentLabelTranslated={props.isMoreMenuRecentLabelTranslated}
             onClose={closeMoreMenu}
           />,
           document.body,

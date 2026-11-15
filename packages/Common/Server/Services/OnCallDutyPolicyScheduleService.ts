@@ -35,8 +35,6 @@ import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEsc
 import Dictionary from "../../Types/Dictionary";
 import { EmailEnvelope } from "../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
-import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
-import OnCallDutyPolicyEscalationRule from "../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import UserService from "./UserService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import { SMSMessage } from "../../Types/SMS/SMS";
@@ -65,6 +63,10 @@ import OnCallShiftChangeListeners, {
 import OnCallHandoffPosts, {
   OnCallHandoff,
 } from "../Utils/OnCall/OnCallHandoffPosts";
+import OnCallHandoffPolicies, {
+  OnCallHandoffPolicy,
+  OnCallHandoffRuleVars,
+} from "../Utils/OnCall/OnCallHandoffPolicies";
 import CreateBy from "../Types/Database/CreateBy";
 import CreatePermission from "../Types/Database/Permissions/CreatePermission";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -820,8 +822,15 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
      * many of its escalation rules page it (issue #7549): one entry in its
      * feed and one line in each of its channels (OnCallHandoffPosts), posted
      * once every person has been told. It was up to three long messages for
-     * every rule. The people on call are still told for each rule, and each
-     * rule keeps its on-call time logs.
+     * every rule.
+     *
+     * So does each person (issue #7969): whoever is no longer on call, on
+     * call now or next is told once for each policy that pages the schedule
+     * (OnCallHandoffPolicies) - one email, which names every rule of the
+     * policy that pages it, one text, one call, one push - however many of
+     * its rules page it. They were told once for each rule: twice over when
+     * Level 1 and Level 3 both page the schedule. Each rule still keeps its
+     * own on-call time logs.
      *
      * Somebody on call, then nobody, has no person to tell: the policy's
      * feed and channels hear of it (Nobody on call), where whoever owns the
@@ -834,63 +843,47 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       OnCallHandoff
     >();
 
-    for (const escalationRule of escalationRulesAttachedToSchedule) {
+    const { previousInformation, newInformation } = data;
+
+    /*
+     * A rule that pages the next person in this schedule's rotation does
+     * not page whoever is on call in it: a hand-off does not put them on
+     * call, or take them off call, for that rule - no message, no on-call
+     * time log, no feed entry. OnCallHandoffPolicies leaves it out.
+     */
+    for (const policy of OnCallHandoffPolicies.group(
+      escalationRulesAttachedToSchedule,
+    )) {
+      const projectId: ObjectID = policy.projectId;
+      const onCallPolicyId: ObjectID = policy.policyId;
+      const onCallPolicyName: string = policy.policyName;
+      const onCallScheduleName: string = policy.scheduleName;
+
       /*
-       * A rule that pages the next person in this schedule's rotation does
-       * not page whoever is on call in it: a hand-off does not put them on
-       * call, or take them off call, for that rule - no message, no on-call
-       * time log, no feed entry.
+       * The rule a person's messages are logged against: the policy's first
+       * that pages the schedule. The emails name every one of them.
        */
-      if (escalationRule.pageNextInRotation) {
-        continue;
-      }
+      const firstRuleId: ObjectID =
+        OnCallHandoffPolicies.getFirstRule(policy).id;
+      const ruleVars: OnCallHandoffRuleVars = OnCallHandoffPolicies.getRuleVars(
+        policy.rules,
+      );
 
-      const projectId: ObjectID = escalationRule.projectId!;
-
-      const onCallSchedule: OnCallDutyPolicySchedule | undefined =
-        escalationRule.onCallDutyPolicySchedule;
-
-      if (!onCallSchedule) {
-        continue;
-      }
-
-      const onCallPolicy: OnCallDutyPolicy | undefined =
-        escalationRule.onCallDutyPolicy;
-
-      if (!onCallPolicy) {
-        continue;
-      }
-
-      const onCallDutyPolicyEscalationRule:
-        | OnCallDutyPolicyEscalationRule
-        | undefined = escalationRule.onCallDutyPolicyEscalationRule;
-
-      if (!onCallDutyPolicyEscalationRule) {
-        continue;
-      }
-
-      const { previousInformation, newInformation } = data;
-
-      if (
-        onCallPolicy.id &&
-        !handoffsByPolicy.has(onCallPolicy.id.toString())
-      ) {
-        handoffsByPolicy.set(onCallPolicy.id.toString(), {
-          projectId: projectId,
-          onCallDutyPolicyId: onCallPolicy.id,
-          onCallDutyPolicyName: onCallPolicy.name || "",
-          scheduleId: data.scheduleId,
-          scheduleName: onCallSchedule.name || "",
-          scheduleTimezone: onCallSchedule.timezone || null,
-          previousUserId: previousInformation.currentUserIdOnRoster,
-          previousNextUserId: previousInformation.nextUserIdOnRoster,
-          currentUserId: newInformation.currentUserIdOnRoster,
-          handoffAt: newInformation.rosterHandoffAt,
-          nextUserId: newInformation.nextUserIdOnRoster,
-          nextStartsAt:
-            newInformation.nextRosterStartAt || newInformation.rosterHandoffAt,
-        });
-      }
+      handoffsByPolicy.set(onCallPolicyId.toString(), {
+        projectId: projectId,
+        onCallDutyPolicyId: onCallPolicyId,
+        onCallDutyPolicyName: onCallPolicyName,
+        scheduleId: data.scheduleId,
+        scheduleName: onCallScheduleName,
+        scheduleTimezone: policy.scheduleTimezone,
+        previousUserId: previousInformation.currentUserIdOnRoster,
+        previousNextUserId: previousInformation.nextUserIdOnRoster,
+        currentUserId: newInformation.currentUserIdOnRoster,
+        handoffAt: newInformation.rosterHandoffAt,
+        nextUserId: newInformation.nextUserIdOnRoster,
+        nextStartsAt:
+          newInformation.nextRosterStartAt || newInformation.rosterHandoffAt,
+      });
 
       /*
        * if there's a change, witht he current user, send notification to the new current user.
@@ -918,14 +911,11 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             await UserService.getTimezoneForUser(sendEmailToUserId);
 
           const vars: Dictionary<string> = {
-            onCallPolicyName: onCallPolicy.name || "No name provided",
-            escalationRuleName:
-              onCallDutyPolicyEscalationRule.name || "No name provided",
-            escalationRuleOrder:
-              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            onCallPolicyName: onCallPolicyName || "No name provided",
+            ...ruleVars,
             reason:
               "Your on-call roster on schedule " +
-              onCallSchedule.name +
+              onCallScheduleName +
               " just ended.",
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -944,7 +934,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!,
+                onCallPolicyId,
               )
             ).toString(),
           };
@@ -953,20 +943,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.UserNoLongerActiveOnOnCallRoster,
             vars: vars,
-            subject: "You are no longer on-call for " + onCallPolicy.name!,
+            subject: "You are no longer on-call for " + onCallPolicyName,
             isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {
             message: buildNotificationSms(
-              `You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended.`,
+              `You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended.`,
             ),
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+                sayMessage: `This is a message from OneUptime. You are no longer on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} just ended. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
               },
             ],
           };
@@ -974,7 +964,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
               title: "On-Call Shift Ended",
-              body: `You are no longer on-call for ${onCallPolicy.name!} as your roster on schedule ${onCallSchedule.name} has ended.`,
+              body: `You are no longer on-call for ${onCallPolicyName} as your roster on schedule ${onCallScheduleName} has ended.`,
               tag: "on-call-duty-ended",
               requireInteraction: false,
             });
@@ -986,8 +976,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             createWhatsAppMessageFromTemplate({
               eventType,
               templateVariables: {
-                on_call_policy_name: onCallPolicy.name!,
-                schedule_name: onCallSchedule.name!,
+                on_call_policy_name: onCallPolicyName,
+                schedule_name: onCallScheduleName,
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });
@@ -1001,36 +991,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             pushNotificationMessage: pushMessage,
             whatsAppMessage,
             eventType,
-            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyId: onCallPolicyId,
+            onCallPolicyEscalationRuleId: firstRuleId,
             onCallScheduleId: data.scheduleId,
           });
 
-          // add end log for user.
-          OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+          // add end log for user, for each rule.
+          this.endTimeLogsForUserOnHandoff({
             userId: sendEmailToUserId,
-            onCallDutyPolicyScheduleId: data.scheduleId,
-            onCallDutyPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule!.id!,
-            onCallDutyPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            projectId: projectId,
-            endsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((err: Error) => {
-            logger.error(
-              "Error ending time log for user: " +
-                sendEmailToUserId.toString() +
-                " for schedule: " +
-                data.scheduleId.toString(),
-              {
-                projectId: projectId?.toString(),
-                userId: sendEmailToUserId?.toString(),
-              } as LogAttributes,
-            );
-            logger.error(err, {
-              projectId: projectId?.toString(),
-              userId: sendEmailToUserId?.toString(),
-            } as LogAttributes);
+            scheduleId: data.scheduleId,
+            policy: policy,
           });
         }
 
@@ -1054,16 +1024,13 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             await UserService.getTimezoneForUser(sendEmailToUserId);
 
           const vars: Dictionary<string> = {
-            onCallPolicyName: onCallPolicy.name || "No name provided",
-            escalationRuleName:
-              onCallDutyPolicyEscalationRule.name || "No name provided",
-            escalationRuleOrder:
-              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            onCallPolicyName: onCallPolicyName || "No name provided",
+            ...ruleVars,
             reason:
               "You are now on-call for the policy " +
-              onCallPolicy.name +
+              onCallPolicyName +
               " because your on-call roster on schedule " +
-              onCallSchedule.name,
+              onCallScheduleName,
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
                 date: newInformation.rosterStartAt!,
@@ -1077,7 +1044,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!,
+                onCallPolicyId,
               )
             ).toString(),
           };
@@ -1085,20 +1052,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.UserCurrentlyOnOnCallRoster,
             vars: vars,
-            subject: "You are now on-call for " + onCallPolicy.name!,
+            subject: "You are now on-call for " + onCallPolicyName,
             isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {
             message: buildNotificationSms(
-              `You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}.`,
+              `You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}.`,
             ),
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. You are now on-call for ${onCallPolicy.name!} because you are now on the roster for schedule ${onCallSchedule.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+                sayMessage: `This is a message from OneUptime. You are now on-call for ${onCallPolicyName} because you are now on the roster for schedule ${onCallScheduleName}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
               },
             ],
           };
@@ -1106,7 +1073,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
               title: "On-Call Shift Started",
-              body: `You are now on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+              body: `You are now on-call for ${onCallPolicyName} on schedule ${onCallScheduleName}.`,
               tag: "on-call-duty-started",
               requireInteraction: true,
             });
@@ -1118,8 +1085,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             createWhatsAppMessageFromTemplate({
               eventType,
               templateVariables: {
-                on_call_policy_name: onCallPolicy.name!,
-                schedule_name: onCallSchedule.name!,
+                on_call_policy_name: onCallPolicyName,
+                schedule_name: onCallScheduleName,
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });
@@ -1133,36 +1100,16 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             pushNotificationMessage: pushMessage,
             whatsAppMessage,
             eventType,
-            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyId: onCallPolicyId,
+            onCallPolicyEscalationRuleId: firstRuleId,
             onCallScheduleId: data.scheduleId,
           });
 
-          // add start log for user.
-          OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+          // add start log for user, for each rule.
+          this.startTimeLogsForUserOnHandoff({
             userId: sendEmailToUserId,
-            onCallDutyPolicyScheduleId: data.scheduleId,
-            onCallDutyPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule!.id!,
-            onCallDutyPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            projectId: projectId,
-            startsAt: OneUptimeDate.getCurrentDate(),
-          }).catch((err: Error) => {
-            logger.error(
-              "Error starting time log for user: " +
-                sendEmailToUserId.toString() +
-                " for schedule: " +
-                data.scheduleId.toString(),
-              {
-                projectId: projectId?.toString(),
-                userId: sendEmailToUserId?.toString(),
-              } as LogAttributes,
-            );
-            logger.error(err, {
-              projectId: projectId?.toString(),
-              userId: sendEmailToUserId?.toString(),
-            } as LogAttributes);
+            scheduleId: data.scheduleId,
+            policy: policy,
           });
         }
       }
@@ -1196,16 +1143,13 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             await UserService.getTimezoneForUser(sendEmailToUserId);
 
           const vars: Dictionary<string> = {
-            onCallPolicyName: onCallPolicy.name || "No name provided",
-            escalationRuleName:
-              onCallDutyPolicyEscalationRule.name || "No name provided",
-            escalationRuleOrder:
-              onCallDutyPolicyEscalationRule.order?.toString() || "-",
+            onCallPolicyName: onCallPolicyName || "No name provided",
+            ...ruleVars,
             reason:
               "You are next on-call for the policy " +
-              onCallPolicy.name +
+              onCallPolicyName +
               " because your on-call roster on schedule " +
-              onCallSchedule.name +
+              onCallScheduleName +
               " will start when the next handoff happens.",
             rosterStartsAt:
               OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
@@ -1220,7 +1164,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             onCallPolicyViewLink: (
               await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
                 projectId,
-                onCallPolicy.id!,
+                onCallPolicyId,
               )
             ).toString(),
           };
@@ -1228,20 +1172,20 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const emailMessage: EmailEnvelope = {
             templateType: EmailTemplateType.UserNextOnOnCallRoster,
             vars: vars,
-            subject: "You are next on-call for " + onCallPolicy.name!,
+            subject: "You are next on-call for " + onCallPolicyName,
             isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {
             message: buildNotificationSms(
-              `You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens.`,
+              `You are next on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} will start when the next handoff happens.`,
             ),
           };
 
           const callMessage: CallRequestMessage = {
             data: [
               {
-                sayMessage: `This is a message from OneUptime. You are next on-call for ${onCallPolicy.name!} because your on-call roster on schedule ${onCallSchedule.name} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
+                sayMessage: `This is a message from OneUptime. You are next on-call for ${onCallPolicyName} because your on-call roster on schedule ${onCallScheduleName} will start when the next handoff happens. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.  Good bye.`,
               },
             ],
           };
@@ -1249,7 +1193,7 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
           const pushMessage: PushNotificationMessage =
             PushNotificationUtil.createGenericNotification({
               title: "Next On-Call Shift",
-              body: `You are next on-call for ${onCallPolicy.name!} on schedule ${onCallSchedule.name}.`,
+              body: `You are next on-call for ${onCallPolicyName} on schedule ${onCallScheduleName}.`,
               tag: "next-on-call-duty",
               requireInteraction: false,
             });
@@ -1261,8 +1205,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             createWhatsAppMessageFromTemplate({
               eventType,
               templateVariables: {
-                on_call_policy_name: onCallPolicy.name!,
-                schedule_name: onCallSchedule.name!,
+                on_call_policy_name: onCallPolicyName,
+                schedule_name: onCallScheduleName,
                 schedule_link: vars["onCallPolicyViewLink"] || "",
               },
             });
@@ -1276,9 +1220,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
             pushNotificationMessage: pushMessage,
             whatsAppMessage,
             eventType,
-            onCallPolicyId: escalationRule.onCallDutyPolicy!.id!,
-            onCallPolicyEscalationRuleId:
-              escalationRule.onCallDutyPolicyEscalationRule!.id!,
+            onCallPolicyId: onCallPolicyId,
+            onCallPolicyEscalationRuleId: firstRuleId,
             onCallScheduleId: data.scheduleId,
           });
         }
@@ -1288,6 +1231,77 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
     // Each policy's feed and channels, once (OnCallHandoffPosts never throws).
     for (const handoff of handoffsByPolicy.values()) {
       await OnCallHandoffPosts.post(handoff);
+    }
+  }
+
+  /*
+   * A person who is no longer on call in the schedule is off call for each
+   * rule of the policy that pages it: each rule's on-call time log for them
+   * ends (the timesheets read them by rule). Not awaited, as it never was:
+   * a time log that cannot be written is logged, and tells nobody anything.
+   */
+  private endTimeLogsForUserOnHandoff(data: {
+    userId: ObjectID;
+    scheduleId: ObjectID;
+    policy: OnCallHandoffPolicy;
+  }): void {
+    for (const rule of data.policy.rules) {
+      OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+        userId: data.userId,
+        onCallDutyPolicyScheduleId: data.scheduleId,
+        onCallDutyPolicyEscalationRuleId: rule.id,
+        onCallDutyPolicyId: data.policy.policyId,
+        projectId: data.policy.projectId,
+        endsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(
+          "Error ending time log for user: " +
+            data.userId.toString() +
+            " for schedule: " +
+            data.scheduleId.toString(),
+          {
+            projectId: data.policy.projectId?.toString(),
+            userId: data.userId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(err, {
+          projectId: data.policy.projectId?.toString(),
+          userId: data.userId?.toString(),
+        } as LogAttributes);
+      });
+    }
+  }
+
+  // The person now on call starts an on-call time log for each rule, as above.
+  private startTimeLogsForUserOnHandoff(data: {
+    userId: ObjectID;
+    scheduleId: ObjectID;
+    policy: OnCallHandoffPolicy;
+  }): void {
+    for (const rule of data.policy.rules) {
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        userId: data.userId,
+        onCallDutyPolicyScheduleId: data.scheduleId,
+        onCallDutyPolicyEscalationRuleId: rule.id,
+        onCallDutyPolicyId: data.policy.policyId,
+        projectId: data.policy.projectId,
+        startsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((err: Error) => {
+        logger.error(
+          "Error starting time log for user: " +
+            data.userId.toString() +
+            " for schedule: " +
+            data.scheduleId.toString(),
+          {
+            projectId: data.policy.projectId?.toString(),
+            userId: data.userId?.toString(),
+          } as LogAttributes,
+        );
+        logger.error(err, {
+          projectId: data.policy.projectId?.toString(),
+          userId: data.userId?.toString(),
+        } as LogAttributes);
+      });
     }
   }
 

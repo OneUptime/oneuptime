@@ -206,7 +206,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 쓰기가 나열하거나 지정하는 레코드
 
-만들기나 변경이 나열하는 레코드(인시던트의 모니터와 온콜 정책, 알림의 서비스, 예정된 유지 관리 이벤트의 상태 페이지, 규칙의 Runbook)는 그 종류의 레코드를 읽는 권한이 있으면 그 권한을, 어떤 경우든 그 읽기에 대한 레이블이 있는 차단을 따릅니다. 그 밖의 레코드는 같은 `400`으로 거부됩니다. 변경은 목록에 추가하는 레코드만 확인하므로, 목록에 이미 있는 레코드는 그대로 남습니다.
+만들기나 변경이 나열하는 레코드(인시던트의 모니터와 온콜 정책, 알림의 서비스, 유지 관리 이벤트의 상태 페이지, 규칙의 Runbook)는 그 종류의 레코드를 읽는 권한이 있으면 그 권한을, 어떤 경우든 그 읽기에 대한 레이블이 있는 차단을 따릅니다. 그 밖의 레코드는 같은 `400`으로 거부됩니다. 변경은 목록에 추가하는 레코드만 확인하므로, 목록에 이미 있는 레코드는 그대로 남습니다.
 
 만들기나 변경이 전용 필드에서 지정하는 레코드 하나(알림의 모니터, 상태 페이지 리소스가 보여 주는 모니터, 비용 예산의 서비스, Runbook 실행이 연결되는 인시던트)도 어느 이름으로 보내든 같은 규칙을 따릅니다. 그 종류의 레코드를 읽는 권한 밖의 레코드나, 그 읽기 차단이 빼는 레이블이 있는 레코드는 같은 `400`으로 거부됩니다. 변경은 필드가 이미 가진 것과 다른 레코드를 지정할 때만 확인합니다. 모든 프로젝트가 쓸 수 있는 OneUptime의 전역 프로브와 AI 에이전트는 계속 모든 프로젝트에 열려 있습니다. 템플릿이 대신 채우는 레코드도 채워지는 즉시, 무엇이든 저장되기 전에 같은 방식으로 확인합니다. 인시던트 템플릿이 그 템플릿으로 선언한 인시던트에 추가하는 모니터, 상태 페이지, 온콜 정책은 직접 고른 것처럼 읽을 수 있는 것이어야 합니다.
 
@@ -246,7 +246,7 @@ Conflicting Monitor references were provided. monitorId and monitor are names fo
 
 ### 스위치
 
-켜짐 또는 꺼짐인 필드(`isEnabled`, `isVisibleOnStatusPage`, `isArchived`, 그 밖의 모든 `true` 또는 `false` 필드)는 `true`나 `false`를 받습니다. 데이터베이스가 둘 중 하나로 읽는 텍스트와 숫자는 API, Terraform, 워크플로 모두에서 똑같이 그 값으로 받아들입니다. `"true"`, `"yes"`, `"on"`, `"1"`, `1`은 `true`이고, `"false"`, `"no"`, `"off"`, `"0"`, `0`은 `false`이며, 대소문자는 구분하지 않습니다. OneUptime이 그 레코드로 하는 모든 일도 그 값으로 취급합니다. `"isVisibleOnStatusPage": "true"`로 보낸 예정된 유지 관리 이벤트는 상태 페이지에 이미지를 보여 주고, `"isEnabled": "false"`는 `false`와 마찬가지로 플랜 미만의 리소스를 끕니다. `"maybe"`, `""`, `2` 같은 다른 값은 필드를 알려 주는 `400`으로 거부됩니다.
+켜짐 또는 꺼짐인 필드(`isEnabled`, `isVisibleOnStatusPage`, `isArchived`, 그 밖의 모든 `true` 또는 `false` 필드)는 `true`나 `false`를 받습니다. 데이터베이스가 둘 중 하나로 읽는 텍스트와 숫자는 API, Terraform, 워크플로 모두에서 똑같이 그 값으로 받아들입니다. `"true"`, `"yes"`, `"on"`, `"1"`, `1`은 `true`이고, `"false"`, `"no"`, `"off"`, `"0"`, `0`은 `false`이며, 대소문자는 구분하지 않습니다. OneUptime이 그 레코드로 하는 모든 일도 그 값으로 취급합니다. `"isVisibleOnStatusPage": "true"`로 보낸 유지 관리 이벤트는 상태 페이지에 이미지를 보여 주고, `"isEnabled": "false"`는 `false`와 마찬가지로 플랜 미만의 리소스를 끕니다. `"maybe"`, `""`, `2` 같은 다른 값은 필드를 알려 주는 `400`으로 거부됩니다.
 
 ```text
 isVisibleOnStatusPage must be true or false.
@@ -276,7 +276,7 @@ API 참조는 이 필드들을 읽기 전용으로 표시합니다. 다른 변�
 
 ### 레코드의 상태 바꾸기
 
-레코드의 상태는 상태 타임라인의 행(`POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline`, `/api/scheduled-maintenance-state-timeline`)으로, 또는 현재 상태(`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, 또는 관계)를 쓰는 업데이트로 바뀌며, 업데이트도 같은 행을 기록합니다. 어느 쪽이든 하나의 규칙이 전환을 지배하며, 에피소드에도 인시던트, 알림, 예정된 유지 관리 이벤트와 똑같이 적용됩니다. 프로젝트의 순서에서 레코드의 현재 상태보다 앞에 있는 상태는 무엇이든 저장되기 전에 거부되며, 레코드가 이미 있는 상태도 마찬가지입니다.
+레코드의 상태는 상태 타임라인의 행(`POST /api/incident-state-timeline`, `/api/alert-state-timeline`, `/api/incident-episode-state-timeline`, `/api/alert-episode-state-timeline`, `/api/scheduled-maintenance-state-timeline`)으로, 또는 현재 상태(`currentIncidentStateId`, `currentAlertStateId`, `currentScheduledMaintenanceStateId`, 또는 관계)를 쓰는 업데이트로 바뀌며, 업데이트도 같은 행을 기록합니다. 어느 쪽이든 하나의 규칙이 전환을 지배하며, 에피소드에도 인시던트, 알림, 유지 관리 이벤트와 똑같이 적용됩니다. 프로젝트의 순서에서 레코드의 현재 상태보다 앞에 있는 상태는 무엇이든 저장되기 전에 거부되며, 레코드가 이미 있는 상태도 마찬가지입니다.
 
 ```text
 Episode cannot transition to Acknowledged state from Resolved state because Acknowledged is before Resolved in the order of incident states.

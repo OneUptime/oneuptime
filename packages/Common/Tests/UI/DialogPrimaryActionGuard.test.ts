@@ -161,7 +161,8 @@ const EXPECTED_DIALOGS: Array<{ file: string; title: string }> = [
 const EXPECTED_ENTERPRISE_DIALOGS: Array<{ file: string; title: string }> = [
   {
     file: "ee/Dashboard/AuditLogs/AuditLogChangesModal.tsx",
-    title: "… · … — … / … · …",
+    // One line in the reader's language, built by getAuditLogChangesTitle (#8076).
+    title: "title",
   },
   {
     file: "ee/AdminDashboard/Health/BackgroundQueues.tsx",

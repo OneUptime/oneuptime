@@ -504,14 +504,20 @@ describePostgres(
         claim: (limit: number): Promise<Array<string>> => {
           return claimChecks(kind, limit);
         },
-        // Turned back on, as OpenStackCheckSettings writes it: due at once.
+        /*
+         * Turned back on, as OpenStackCheckSettings writes it: due at once,
+         * at the server's clock to the millisecond (OpenStackCloudCheckService
+         * hands it `new Date()`). Postgres' now() would be finer than the
+         * claim's own millisecond `due <= now`, and a claim in the same
+         * millisecond would pass the row by.
+         */
         makeClaimable: async (id: ObjectID): Promise<void> => {
           await database.query(
             `UPDATE "${schema}"."OpenStackCloudCheck"
              SET "${kind === "api" ? "isApiCheckEnabled" : "isLifecycleCheckEnabled"}" = true,
-                 "${dueColumn}" = now()
+                 "${dueColumn}" = $2
              WHERE "_id" = $1`,
-            [id.toString()],
+            [id.toString(), new Date()],
           );
         },
         service: OpenStackCloudCheckService,

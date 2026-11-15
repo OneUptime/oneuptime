@@ -1,5 +1,6 @@
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { copyOwnValues, writeOwnValue } from "Common/Utils/LookupTable";
 
 /*
  * ------------------------------------------------------------------
@@ -259,7 +260,8 @@ function sanitizeAttributes(raw: unknown): Record<string, string> {
       continue;
     }
 
-    attributes[trimmedKey] = stringValue;
+    // As the map's own key: a device may send an attribute named __proto__.
+    writeOwnValue(attributes, trimmedKey, stringValue);
     count++;
   }
 
@@ -313,7 +315,8 @@ function parseTelemetryPayload(data: {
     metricsSource = {};
     for (const [key, value] of Object.entries(body)) {
       if (!RESERVED_TELEMETRY_KEYS.has(key)) {
-        metricsSource[key] = value;
+        // A field named __proto__ is a metric like any other.
+        writeOwnValue(metricsSource, key, value);
       }
     }
   }
@@ -556,7 +559,7 @@ function withImpliedDeviceUp(
         {
           name: MQTT_DEVICE_UP_METRIC_NAME,
           value: 1,
-          attributes: { ...(result.payload.points[0]?.attributes || {}) },
+          attributes: copyOwnValues(result.payload.points[0]?.attributes),
         },
       ],
     },

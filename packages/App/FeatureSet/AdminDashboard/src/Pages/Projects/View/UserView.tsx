@@ -28,7 +28,10 @@ import API from "Common/UI/Utils/API/API";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
-import { INVITATION_LINK_COPY } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import InvitationLinkModal, {
+  INVITATION_LINK_COPY,
+  getInvitationLinkRowAction,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
   FunctionComponent,
@@ -37,12 +40,19 @@ import React, {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ProjectUserView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
-  // A server that cannot send email sent no invitation (#6825).
+  /*
+   * A server that cannot send email sent no invitation (#6825): a pending
+   * team's row offers its invitation link (#7168).
+   */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+  const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
+    null,
+  );
   const userId: ObjectID = Navigation.getLastParamAsObjectID(0);
   const projectId: ObjectID = Navigation.getLastParamAsObjectID(2);
 
@@ -103,16 +113,19 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.projects"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECTS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.project"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_VIEW] as Route,
             { modelId: projectId },
@@ -120,6 +133,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectUsers"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_USERS] as Route,
             { modelId: projectId },
@@ -127,6 +141,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
         },
         {
           title: t("breadcrumbs.projectUser"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.PROJECT_USER_VIEW] as Route,
             { modelId: projectId, subModelId: userId },
@@ -181,6 +196,14 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
               isCreateable={true}
               isEditable={false}
               isViewable={false}
+              actionButtons={[
+                getInvitationLinkRowAction<TeamMember>({
+                  isAvailable: cannotSendEmail,
+                  onOpen: (teamMemberId: ObjectID) => {
+                    setInvitationLinkFor(teamMemberId);
+                  },
+                }),
+              ]}
               query={{
                 userId: userId,
                 projectId: projectId,
@@ -227,6 +250,8 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                       return {
                         label: team.name?.toString() || "",
                         value: team._id?.toString() || "",
+                        // A team's name is its project's, drawn as written.
+                        isUserContent: true,
                       };
                     });
                   },
@@ -276,9 +301,11 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                   type: FieldType.Element,
                   getElement: (item: TeamMember): ReactElement => {
                     if (!item.team) {
-                      return <p>-</p>;
+                      return <TableEmptyValue />;
                     }
-                    return <p>{item.team.name?.toString() || "-"}</p>;
+                    return (
+                      <p>{item.team.name?.toString() || <TableEmptyValue />}</p>
+                    );
                   },
                 },
                 {
@@ -305,6 +332,15 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                 },
               ]}
             />
+
+            {invitationLinkFor && (
+              <InvitationLinkModal
+                teamMemberId={invitationLinkFor}
+                onClose={() => {
+                  setInvitationLinkFor(null);
+                }}
+              />
+            )}
           </Fragment>
         )}
       </Fragment>

@@ -41,7 +41,7 @@ De server is stateless: hij geeft geen sessie-id's uit en elk verzoek staat op z
 - **Gepland onderhoud**: onderhoudsgebeurtenissen aanmaken en beheren.
 - **Telemetrie**: logs, metrieken, traces, uitzonderingen, monitorlogs, beveiligingsgebeurtenissen en meer opvragen, alleen lezen.
 
-Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 53 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Alleen-lezen-tools hebben `readOnlyHint`, elke tool die iets wijzigt heeft `destructiveHint`, en alleen de tools voor openbare statuspagina's hebben `openWorldHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
+Er zijn tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor 54 soorten records, tools om op te sommen en te tellen voor 9 soorten telemetrie, en tools speciaal voor incidentrespons. Alleen-lezen-tools hebben `readOnlyHint`, elke tool die iets wijzigt heeft `destructiveHint`, en alleen de tools voor openbare statuspagina's hebben `openWorldHint`, zodat een client alleen-lezen-aanroepen zelf kan uitvoeren en je vóór elke wijziging iets kan vragen. Een mislukte toolaanroep komt terug als toolresultaat (`isError: true`) met een `statusCode`, de details en een suggestie, niet als MCP-protocolfout, zodat de agent de fout kan lezen en zichzelf kan corrigeren.
 
 ## Voordat je begint
 
@@ -253,7 +253,7 @@ Zonder API-sleutel of aanmelding kan een client de openbare tools gebruiken:
 - **`oneuptime_describe_resource`**: de velden van een resource en hoe je erop filtert, sorteert en selecteert
 - **`get_public_status_page_overview`**: het overzicht van een openbare statuspagina
 - **`get_public_status_page_incidents`**: de incidenten van een openbare statuspagina
-- **`get_public_status_page_scheduled_maintenance`**: de geplande onderhoudsgebeurtenissen ervan
+- **`get_public_status_page_scheduled_maintenance`**: de onderhoudsgebeurtenissen ervan
 - **`get_public_status_page_announcements`**: de aankondigingen ervan
 
 De tools voor openbare statuspagina's nemen de ID van een statuspagina (een UUID) of de domeinnaam ervan. Om alleen deze te gebruiken, koppel je met het adres en zonder inloggegevens:
@@ -414,7 +414,7 @@ Deze werken zonder inloggegevens, met alleen de tools voor openbare statuspagina
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ De MCP-server is stateless: hij geeft geen sessie-id's uit en houdt ze niet bij,
 | Gebied | Records met tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen |
 | --- | --- |
 | Bewaking | Monitor, Monitor Status, Monitor Status Event |
-| Incidenten | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| Incidenten | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Waarschuwingen | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statuspagina's | Status Page, Status Page Announcement |
 | Gepland onderhoud | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

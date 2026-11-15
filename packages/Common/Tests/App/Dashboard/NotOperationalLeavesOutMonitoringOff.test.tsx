@@ -311,9 +311,10 @@ describe("one rule for every Not Operational list and count", () => {
 
   /*
    * Each one that knows the project it reads passes it, so its status is
-   * asked in that project (issue #8096). The Monitor List widget's query is
-   * built from a board's stored settings, the same on a board and on its
-   * public page, with no project in sight: it asks the status alone.
+   * asked in that project (issue #8096). The Monitor List widget passes the
+   * project it is given (getMonitorListQuery): the board's, whose read comes
+   * with a count; the public page's policy gives none, since its read has
+   * no count (Tests/App/Dashboard/MonitorListWidgetMonitoringOff).
    */
   test.each([
     [
@@ -331,6 +332,10 @@ describe("one rule for every Not Operational list and count", () => {
     [
       "Common/Server/Utils/AI/Toolbox/MonitorTools.ts",
       /NotOperationalMonitorQuery\.getQuery\(ctx\.projectId\)/,
+    ],
+    [
+      "Common/Utils/Dashboard/MonitorListWidgetFormat.ts",
+      /NotOperationalMonitorQuery\.getQuery\(projectId\)/,
     ],
   ])("%s asks in its project", (relativePath: string, call: RegExp) => {
     const source: string = fs.readFileSync(

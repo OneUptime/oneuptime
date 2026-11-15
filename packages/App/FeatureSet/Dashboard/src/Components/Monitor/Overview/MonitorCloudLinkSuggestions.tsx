@@ -33,6 +33,7 @@ import React, {
   useId,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * At the foot of a monitor's Linked Resources card: the cloud resources it
@@ -124,7 +125,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
       </p>
       {error ? (
         <p className="mt-2 text-sm text-red-600" role="alert">
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       ) : (
         <></>
@@ -196,6 +197,7 @@ const MonitorCloudLinkSuggestions: FunctionComponent<ComponentProps> = (
                       template: "Link {{itemName}}",
                       itemName: name,
                     })}
+                    isAriaLabelTranslated={true}
                     isLoading={linkingId === suggestion.cloudResourceId}
                     disabled={!gate.isAllowed || Boolean(linkingId)}
                     tooltip={gate.isAllowed ? undefined : gate.disabledReason}

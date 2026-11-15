@@ -36,6 +36,12 @@ export interface ComponentProps {
    * thing the menu belongs to.
    */
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   dataTestId?: string | undefined;
   isDisabled?: boolean | undefined;
   /*
@@ -160,7 +166,9 @@ const MoreMenu: React.ForwardRefExoticComponent<
   (props: ComponentProps, componentRef: React.ForwardedRef<unknown>) => {
     const { translateString } = useTranslateValue();
     const text: string | undefined = translateString(props.text);
-    const ariaLabel: string | undefined = translateString(props.ariaLabel);
+    const ariaLabel: string | undefined = props.isAriaLabelTranslated
+      ? props.ariaLabel
+      : translateString(props.ariaLabel);
     const moreOptionsLabel: string =
       translateString("More options") || "More options";
     const uniqueId: string = useId();

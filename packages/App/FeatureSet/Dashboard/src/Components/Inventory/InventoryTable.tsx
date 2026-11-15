@@ -62,6 +62,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * The inventory list — the one place the whole estate is listed, whatever
@@ -135,7 +136,7 @@ export function getInventoryAssetColumns(): Columns<InventoryItem> {
           const value: string | undefined = getInventoryAssetValue(item, field);
 
           if (!value) {
-            return <span className="text-sm text-gray-400">-</span>;
+            return <TableEmptyValue />;
           }
 
           return <span className="text-sm text-gray-900">{value}</span>;
@@ -488,7 +489,7 @@ const InventoryTable: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: InventoryItem): ReactElement => {
               if (!item.lastSeenAt) {
-                return <span className="text-sm text-gray-400">-</span>;
+                return <TableEmptyValue />;
               }
 
               const minutes: number = Math.max(

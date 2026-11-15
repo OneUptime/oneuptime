@@ -136,6 +136,11 @@ import {
   word,
 } from "./TracesLanguageHarness";
 
+// A text query folds the page's spaces, a no-break one too: so does its matcher.
+const asQuery: (text: string) => string = (text: string): string => {
+  return text.replace(/\s+/g, " ").trim();
+};
+
 jest.setTimeout(180000);
 
 const PROJECT: string = "10000000-0000-4000-8000-000000000001";
@@ -372,10 +377,12 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        sentence(
-          language,
-          "Request health, error rates, and latency in the {{range}}.",
-          PAST_ONE_DAY,
+        asQuery(
+          sentence(
+            language,
+            "Request health, error rates, and latency in the {{range}}.",
+            PAST_ONE_DAY,
+          ),
         ),
       ),
     ).toBeInTheDocument();
@@ -394,29 +401,34 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
       "99th percentile",
     ]) {
       expect(
-        screen.getAllByText(word(language, english)).length,
+        screen.getAllByText(asQuery(word(language, english))).length,
       ).toBeGreaterThan(0);
     }
 
     // Under Requests: in most languages, the very words the picker shows.
     expect(
-      screen.getAllByText(sentence(language, "the {{range}}", PAST_ONE_DAY))
-        .length,
+      screen.getAllByText(
+        asQuery(sentence(language, "the {{range}}", PAST_ONE_DAY)),
+      ).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByText(counted(language, ERROR_COUNT, 4))).toBeVisible();
+    expect(
+      screen.getByText(asQuery(counted(language, ERROR_COUNT, 4))),
+    ).toBeVisible();
   });
 
   test("the service health table heads its columns, names each service's health and draws people's names as written", async () => {
     await renderDashboard(language);
 
     expect(
-      screen.getByText(word(language, "Service Health")),
+      screen.getByText(asQuery(word(language, "Service Health"))),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        word(
-          language,
-          "Sorted by error rate — services needing attention first",
+        asQuery(
+          word(
+            language,
+            "Sorted by error rate — services needing attention first",
+          ),
         ),
       ),
     ).toBeInTheDocument();
@@ -445,16 +457,22 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     };
 
     expect(
-      within(rowOf("api-gateway")).getByText(word(language, "Critical")),
+      within(rowOf("api-gateway")).getByText(
+        asQuery(word(language, "Critical")),
+      ),
     ).toBeInTheDocument();
     expect(
-      within(rowOf("inventory-service")).getByText(word(language, "Degraded")),
+      within(rowOf("inventory-service")).getByText(
+        asQuery(word(language, "Degraded")),
+      ),
     ).toBeInTheDocument();
     expect(
-      within(rowOf("checkout-service")).getByText(word(language, "Warning")),
+      within(rowOf("checkout-service")).getByText(
+        asQuery(word(language, "Warning")),
+      ),
     ).toBeInTheDocument();
     expect(
-      within(rowOf("payments")).getByText(word(language, "Healthy")),
+      within(rowOf("payments")).getByText(asQuery(word(language, "Healthy"))),
     ).toBeInTheDocument();
     expect(
       within(rowOf("payments")).getByRole("link", {
@@ -470,19 +488,19 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
 
     // The row of the telemetry that named no service.
     expect(
-      within(table).getByText(word(language, "Unknown Service")),
+      within(table).getByText(asQuery(word(language, "Unknown Service"))),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(word(language, "Recent Errors")),
+      screen.getByText(asQuery(word(language, "Recent Errors"))),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(word(language, "Slowest Requests")),
+      screen.getByText(asQuery(word(language, "Slowest Requests"))),
     ).toBeInTheDocument();
 
     // The failed trace with no name, in Recent Errors.
     expect(
-      screen.getAllByText(word(language, "Unknown")).length,
+      screen.getAllByText(asQuery(word(language, "Unknown"))).length,
     ).toBeGreaterThan(0);
   });
 
@@ -497,9 +515,11 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        word(
-          language,
-          "Once your services start sending distributed tracing data, you'll see request rates, error rates, latency percentiles, and more. Try widening the time range or check your collectors.",
+        asQuery(
+          word(
+            language,
+            "Once your services start sending distributed tracing data, you'll see request rates, error rates, latency percentiles, and more. Try widening the time range or check your collectors.",
+          ),
         ),
       ),
     ).toBeInTheDocument();
@@ -522,9 +542,11 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        word(
-          language,
-          "Request health, error rates, and latency in the selected time range.",
+        asQuery(
+          word(
+            language,
+            "Request health, error rates, and latency in the selected time range.",
+          ),
         ),
       ),
     ).toBeInTheDocument();
@@ -535,12 +557,16 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     await renderDashboard(language, CUSTOM_RANGE);
 
     expect(
-      screen.getByText(word(language, "the selected time range")),
+      screen.getByText(asQuery(word(language, "the selected time range"))),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(word(language, "No errors in the selected time range")),
+      screen.getByText(
+        asQuery(word(language, "No errors in the selected time range")),
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText(word(language, "Looking good!"))).toBeVisible();
+    expect(
+      screen.getByText(asQuery(word(language, "Looking good!"))),
+    ).toBeVisible();
   });
 
   test("with no errors over a preset, it says that over the range too", async () => {
@@ -549,7 +575,7 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
 
     expect(
       screen.getByText(
-        sentence(language, "No errors in the {{range}}", PAST_ONE_DAY),
+        asQuery(sentence(language, "No errors in the {{range}}", PAST_ONE_DAY)),
       ),
     ).toBeInTheDocument();
   });

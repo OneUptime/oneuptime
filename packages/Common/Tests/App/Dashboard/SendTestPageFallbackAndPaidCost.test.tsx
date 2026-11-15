@@ -114,6 +114,7 @@ import {
   isWordedInDashboardLocale,
   placeholdersOf,
   readDashboardLocale,
+  readDashboardLocaleAsDrawn,
 } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
@@ -186,13 +187,13 @@ const PERSIAN_ONLY_LETTER: RegExp = new RegExp(
     .join("")}]`,
 );
 
-// A sentence of `language`'s locale, with its values in.
+// A sentence of `language`'s locale as the page draws it, with its values in.
 function worded(
   language: string,
   key: string,
   values: Record<string, string> = {},
 ): string {
-  let sentence: string | undefined = readDashboardLocale(language)[key];
+  let sentence: string | undefined = readDashboardLocaleAsDrawn(language)[key];
 
   expect(sentence).toBeTruthy();
 

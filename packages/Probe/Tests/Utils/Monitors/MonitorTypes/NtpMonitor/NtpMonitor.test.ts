@@ -36,6 +36,11 @@ import Port from "Common/Types/Port";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
 import { RequestFailedPhase } from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
+import {
+  readRequestFailureDescription,
+  REQUEST_FAILURE_DESCRIPTIONS,
+  RequestFailureDescription,
+} from "Common/Utils/Monitor/RequestFailureDescriptions";
 import dgram from "dgram";
 import dns from "dns";
 
@@ -827,4 +832,118 @@ describe("NtpMonitor.toAttemptError", () => {
       }),
     ).toBe(original);
   });
+});
+
+/*
+ * WHAT A FAILED NTP QUERY MEANS, IN THE READER'S LANGUAGE (#8001).
+ *
+ * Error Details is OneUptime's own fixed English, drawn in the reader's
+ * language only when it is exactly one of RequestFailureDescriptions'.
+ * Every explanation the NTP check writes is read back from there.
+ */
+describe("the NTP check's Error Details", () => {
+  function errorWithCode(message: string, code: string): Error {
+    const error: NodeJS.ErrnoException = new Error(message);
+    error.code = code;
+    return error;
+  }
+
+  const toAttemptError: (message: string, code: string) => NtpAttemptError = (
+    message: string,
+    code: string,
+  ): NtpAttemptError => {
+    return NtpMonitor.toAttemptError({
+      error: errorWithCode(message, code),
+      host: code === "ENOTFOUND" ? "time.example.com" : "192.0.2.10",
+      port: 123,
+      timeoutInMs: 5000,
+    });
+  };
+
+  // The timeout is written where the check runs out of time.
+  const timeoutError: (duringLookup: boolean) => NtpAttemptError = (
+    duringLookup: boolean,
+  ): NtpAttemptError => {
+    return (
+      NtpMonitor as unknown as {
+        timeoutError: (data: {
+          host: string;
+          port: number;
+          timeoutInMs: number;
+          ignoredReplies: Array<string>;
+          duringLookup: boolean;
+        }) => NtpAttemptError;
+      }
+    ).timeoutError({
+      host: "time.example.com",
+      port: 123,
+      timeoutInMs: 5000,
+      ignoredReplies: [],
+      duringLookup: duringLookup,
+    });
+  };
+
+  test.each([
+    [
+      "a name that did not resolve",
+      (): NtpAttemptError => {
+        return toAttemptError(
+          "getaddrinfo ENOTFOUND time.example.com",
+          "ENOTFOUND",
+        );
+      },
+      RequestFailureDescription.NtpNameDidNotResolve,
+    ],
+    [
+      "a closed port",
+      (): NtpAttemptError => {
+        return toAttemptError("recv ECONNREFUSED", "ECONNREFUSED");
+      },
+      RequestFailureDescription.NtpPortUnreachable,
+    ],
+    [
+      "a probe with no route",
+      (): NtpAttemptError => {
+        return toAttemptError("connect ENETUNREACH 192.0.2.10", "ENETUNREACH");
+      },
+      RequestFailureDescription.NtpProbeCouldNotSend,
+    ],
+    [
+      "any other network error",
+      (): NtpAttemptError => {
+        return toAttemptError("send EMSGSIZE 192.0.2.10:123", "EMSGSIZE");
+      },
+      RequestFailureDescription.NtpNetworkError,
+    ],
+    [
+      "a lookup that timed out",
+      (): NtpAttemptError => {
+        return timeoutError(true);
+      },
+      RequestFailureDescription.NtpLookupTimedOut,
+    ],
+    [
+      "a server that did not answer",
+      (): NtpAttemptError => {
+        return timeoutError(false);
+      },
+      RequestFailureDescription.NtpNoReply,
+    ],
+  ] as Array<[string, () => NtpAttemptError, RequestFailureDescription]>)(
+    "%s: the table's explanation, read back as it",
+    (
+      _name: string,
+      fail: () => NtpAttemptError,
+      description: RequestFailureDescription,
+    ) => {
+      const errorDescription: string =
+        fail().requestFailedDetails.errorDescription;
+
+      expect(errorDescription).toBe(REQUEST_FAILURE_DESCRIPTIONS[description]);
+      expect(readRequestFailureDescription(errorDescription)).toEqual({
+        description: description,
+        values: {},
+      });
+    },
+  );
 });

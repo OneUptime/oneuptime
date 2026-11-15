@@ -466,8 +466,8 @@ describe("the Add to Monitoring dialog", () => {
         },
       )?.dropdownOptions,
     ).toEqual([
-      { label: "Branch probe", value: "probe-a" },
-      { label: "Datacenter probe", value: "probe-b" },
+      { label: "Branch probe", isUserContent: true, value: "probe-a" },
+      { label: "Datacenter probe", isUserContent: true, value: "probe-b" },
     ]);
   });
 

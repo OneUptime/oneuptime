@@ -41,7 +41,7 @@ Kies op **Databases** de optie **Aanbevolen waarschuwingen** voor een database. 
 
 Kies ernst, on-call-beleid, eigenaren en labels wanneer je ze aanmaakt. Daarna zijn het gewone monitoren: bewerk ze, demp ze, of zet ze op een statuspagina zoals elke andere.
 
-Een backfill of een migratie hoort niemand op te roepen. Noem de database onder **Databases van Data Observability** op een [gepland onderhoud](/docs/scheduled-maintenance/index), of zet haar databaseserver erin, en haar gegevenswaarschuwingen blijven stil zolang het onderhoud loopt.
+Een backfill of een migratie hoort niemand op te roepen. Noem de database onder **Databases van Data Observability** op een [onderhoudsgebeurtenis](/docs/scheduled-maintenance/index), of zet haar databaseserver erin, en haar gegevenswaarschuwingen blijven stil zolang het onderhoud loopt.
 
 ## Metrieken die elke tabel schrijft
 

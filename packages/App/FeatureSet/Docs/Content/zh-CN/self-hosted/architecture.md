@@ -1,6 +1,6 @@
 # 架构
 
-自托管的 OneUptime 由少数几个容器组成：每个请求都从它进入的一个 ingress、负责处理工作的一个应用镜像、运行监视器检查的探针，以及三个数据存储。本页说明它们如何组合在一起、各自做什么，以及哪些连接会跨越你的网络边界。
+自托管的 OneUptime 由少数几个容器组成：每个请求都从它进入的一个 ingress、负责处理工作的一个应用镜像、运行监视器检查的探测器，以及三个数据存储。本页说明它们如何组合在一起、各自做什么，以及哪些连接会跨越你的网络边界。
 
 ```mermaid title="自托管的 OneUptime"
 flowchart TB
@@ -12,7 +12,7 @@ flowchart TB
         Ingress["Ingress<br/>（Nginx、TLS）"]
         App["应用<br/>仪表板、状态页、<br/>API、采集、后台任务"]
         Runner["全局 Runner"]
-        Probe["探针"]
+        Probe["探测器"]
         subgraph Data["数据存储"]
             direction LR
             Postgres[("PostgreSQL<br/>配置<br/>和状态")]
@@ -36,10 +36,10 @@ flowchart TB
 
 - 用户通过 **ingress** 访问 OneUptime。ingress 终止 TLS，并把每个请求路由到应用：Dashboard、状态页、API，以及接收遥测数据的每个采集端点。
 - **应用** 在 PostgreSQL 中读写自己的状态，把遥测数据保存在 ClickHouse 中，并使用 Valkey（Redis 7.2 的 BSD 许可分支）作为缓存，以及承载其后台任务所处理的队列。
-- **探针** 可以运行在你的集群内（推荐），也可以运行在你网络中的其他位置。它们可以监控：
+- **探测器** 可以运行在你的集群内（推荐），也可以运行在你网络中的其他位置。它们可以监控：
   - 防火墙后面的内部/私有服务。
   - 互联网上的外部/公开资源。
-- 探针的结果发送到应用，在 Valkey 中排队，再由后台任务处理并写入你的数据存储。位于你网络中其他位置的探针，通过 ingress 以你的 OneUptime URL 访问应用。
+- 探测器的结果发送到应用，在 Valkey 中排队，再由后台任务处理并写入你的数据存储。位于你网络中其他位置的探测器，通过 ingress 以你的 OneUptime URL 访问应用。
 - 遥测数据（指标、链路追踪、日志等）由同一个应用采集，并存储在 ClickHouse 中。
 
 > [!NOTE]
@@ -53,7 +53,7 @@ flowchart TB
 | 应用 | `app` | `app` | Dashboard、状态页、API 和采集端点，以及（除非你把它们拆分出去）后台任务。 |
 | Worker | `app` 的一部分 | `worker`（默认关闭） | 在独立的 Pod 中运行后台任务，让繁重的队列处理永远不与 API 请求争抢资源。 |
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（默认关闭） | 一个固定规模的层，执行每一次 ClickHouse 插入，使插入量无论 worker 扩展到多大都保持在限度内。 |
-| 探针 | `probe-1` | `probes` | 运行监视器检查并把结果发回。每个内置探针都是所有项目都能使用的全局探针。 |
+| 探测器 | `probe-1` | `probes` | 运行监视器检查并把结果发回。每个内置探测器都是所有项目都能使用的全局探测器。 |
 | 全局 Runner | `global-runner` | `globalRunner` | 一个[全局 Runner](/docs/runbooks/agents#全局-runner)：它运行所有未选择自己 Runner 的项目的 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行，并在每个未选择 Runner 的代码存储库中运行 OneUptime AI 的代码修复。它持有自己的密钥，不持有服务器的任何其他东西。Bash、SSH 和 kubectl 步骤运行在你安装到相应位置的 [Runner](/docs/runbooks/agents) 上。 |
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 项目、监视器、事件、用户以及其他所有设置和状态。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 日志、指标、链路追踪、异常、性能剖析和监视器日志。 |
@@ -68,7 +68,7 @@ flowchart TB
 - 应用每天一次向 GitHub 的 API（`api.github.com`）询问是否有更新的版本。它还会读取 OneUptime 发布的安全公告，以便在某条公告影响你运行的版本时通知你的主管理员（[更新与安全检查](/docs/self-hosted/update-checks)）。要关闭它，请在 Helm Chart 中设置 `updateCheck.disabled: true`，或在 Docker Compose 的 `config.env` 中设置 `DISABLE_UPDATE_CHECK=true`。
 - 应用每天一次把你的安装地址和它运行的版本告诉 `oneuptime.com`，以便 OneUptime 知道哪些安装仍在运行存在安全问题的版本。不会发送任何关于你的用户、项目或监控数据的内容。要关闭它，请在 Helm Chart 中设置 `instanceCheckIn.disabled: true`，或在 Docker Compose 的 `config.env` 中设置 `DISABLE_INSTANCE_CHECK_IN=true`。
 - 勾选“通知我有关安全补丁和新版本”注册时（该选项默认已勾选），会把此人的姓名和邮箱、其填写的公司和电话号码，以及你的安装地址和版本发送到 `oneuptime.com`。在无法访问互联网的网络中，请取消勾选。关闭上面的每日调用后，表单不再提供此选项，也不会发送任何内容。
-- 在 Kubernetes 上，探针在你集群自身的 DNS 之后会回退到公共解析器 `8.8.8.8` 和 `1.1.1.1`。将 `dnsConfig.nameservers` 设为 `[]`，即可让所有查询都留在你自己的 DNS 上。
+- 在 Kubernetes 上，探测器在你集群自身的 DNS 之后会回退到公共解析器 `8.8.8.8` 和 `1.1.1.1`。将 `dnsConfig.nameservers` 设为 `[]`，即可让所有查询都留在你自己的 DNS 上。
 
 其他一切只有在你开启时才会向外连接，并且每一项都有一个页面列出需要放行的确切地址：
 
@@ -81,7 +81,7 @@ flowchart TB
 | LLM 提供商，例如 OpenAI、Anthropic、Microsoft Foundry，或你自己运行的模型 | OneUptime AI | [LLM 提供商](/docs/ai/llm-provider) |
 | `oneuptime.com` | 在线激活 Enterprise 许可证 | [企业版](/docs/self-hosted/enterprise) |
 
-反方向的连接——SendGrid 投递入站邮件、Slack 和 Microsoft Teams 回调——需要 ingress 能从互联网访问。应用和探针可以访问哪些私有地址由你决定：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
+反方向的连接——SendGrid 投递入站邮件、Slack 和 Microsoft Teams 回调——需要 ingress 能从互联网访问。应用和探测器可以访问哪些私有地址由你决定：请参阅[私有网络访问](/docs/self-hosted/private-network-access)。
 
 OneUptime 的徽标就在它发送的每封邮件之中，因此即使在无法访问互联网的网络中也能显示，打开邮件时也不会向其他任何主机请求内容。你自己上传的徽标也会放在邮件之中：你自己的徽标须是 PNG、JPEG 或 GIF，状态页的徽标可以是 PNG、JPEG、GIF、WebP 或 SVG，OneUptime 会把它做成与邮件页眉大小相称的图片。你上传的其他图片会从你的 OneUptime URL 显示，因此阅读这些邮件的人需要能够访问它；字样是文本而不是图形的状态页 SVG 徽标也是如此。
 
@@ -90,6 +90,6 @@ OneUptime 的徽标就在它发送的每封邮件之中，因此即使在无法�
 :::cards
 - [Docker Compose](/docs/installation/docker-compose): 在一台机器上安装所有组件。
 - [规模估算与容量规划](/docs/installation/sizing): 每一层需要多少 CPU、内存和磁盘。
-- [自定义探针](/docs/probe/custom-probe): 在另一个网络中运行探针。
+- [自定义探测器](/docs/probe/custom-probe): 在另一个网络中运行探测器。
 - [企业版](/docs/self-hosted/enterprise): Enterprise 镜像增加了什么，以及许可证如何运作。
 :::

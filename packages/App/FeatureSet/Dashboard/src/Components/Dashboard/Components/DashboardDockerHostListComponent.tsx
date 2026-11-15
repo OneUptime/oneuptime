@@ -43,6 +43,7 @@ import DashboardModelQueryInterpolation, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
+import { formatHostContainerCounts } from "./HostListFigures";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardDockerHostListComponent;
@@ -203,7 +204,8 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
           details: [
             {
               label: "Containers",
-              value: `${running} running / ${stopped} stopped`,
+              // In the reader's words and digits (#7519).
+              value: formatHostContainerCounts(running, stopped, translator),
             },
             {
               label: "OS",

@@ -25,7 +25,7 @@ Etiketter och ägare är det du filtrerar och grupperar resurser efter, de avgö
 
 ## Var du hittar reglerna
 
-Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för incidenter, larm, planerat underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, planerade underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
+Varje produkt med etiketter och ägare har båda sorterna under sina **Inställningar** (för incidenter, larm, planerat underhåll och Datasäkerhet under **Regler**): monitorer, incidenter och incidentepisoder, larm och larmepisoder, underhållshändelser, statussidor, tjänster, värdar, Kubernetes-kluster, Docker-värdar, Docker Swarm-kluster, Podman-värdar, Proxmox-kluster, OpenStack-moln, VMware vCenter, Ceph-kluster, lagringsmatriser, databaser, datalager, tabeller, köer, IoT-flottor, serverlösa funktioner, molnresurser, RUM-applikationer, instrumentpaneler, jourpolicyer, jourscheman, policyer för inkommande samtal, arbetsflöden, runbooks, nätverksenheter och SLO:er.
 
 Etikettregler för monitorer finns till exempel under **Monitorer → Inställningar → Etikettregler**, och etikettregler för incidenter under **Incidenter → Regler → Etikettregler**. **Inställningar** och **Regler** är hopfällda i sidomenyn från början: klicka på avsnittets rubrik för att öppna det. Sidorna för incidenter och larm har en flik **Incidentregler** (eller **Larmregler**) och en flik **Episodregler**.
 
@@ -80,17 +80,17 @@ Regler som du redan har påverkas inte: se [Redigera en regel](#redigera-en-rege
 
 Regler för incidenter, larm och planerat underhåll kan också föra vidare det som resurserna som en händelse berör bär. Under **Etiketter att lägga till** (eller **Ägare**) innehåller det hopfällda avsnittet **Ärv etiketter** (eller **Ärv ägare**) sex brytare:
 
-- **Ärv etiketter från övervakare**: varje etikett på incidentens monitorer sätts också på incidenten. Ett larm har en monitor, så i en larmregel heter brytaren **Ärv etiketter från övervakning** (och i en ägarregel för larm **Ärv ägare från övervakning**).
+- **Ärv etiketter från monitorer**: varje etikett på incidentens monitorer sätts också på incidenten. Ett larm har en monitor, så i en larmregel heter brytaren **Ärv etiketter från övervakning** (och i en ägarregel för larm **Ärv ägare från övervakning**).
 - **Ärv etiketter från värdar**, **Ärv etiketter från Kubernetes-kluster**, **Ärv etiketter från Docker-värdar**, **Inherit Labels From Podman Hosts** och **Ärv etiketter från tjänster** gör samma sak för de resurserna.
 
-Ägarregler har samma sex brytare för ägare (**Ärv ägare från övervakare** och så vidare). Så länge ingen brytare är på berättar det hopfällda avsnittet vad det är till för; i en regel som ärver öppnas det av sig självt. Episodregler har inga arvsbrytare.
+Ägarregler har samma sex brytare för ägare (**Ärv ägare från monitorer** och så vidare). Så länge ingen brytare är på berättar det hopfällda avsnittet vad det är till för; i en regel som ärver öppnas det av sig självt. Episodregler har inga arvsbrytare.
 
 En regel som ärver kan lämna **Etiketter att lägga till** (eller **Ägare**) tomt: den lägger till det den ärver. En sådan regel får namn efter det den ärver från:
 
 | Påslagna brytare | Namn |
 | --- | --- |
-| **Ärv etiketter från övervakare** | _Ärv etiketter från: monitorer_ |
-| **Ärv etiketter från övervakare** och **Ärv etiketter från värdar** | _Ärv etiketter från: monitorer, värdar_ |
+| **Ärv etiketter från monitorer** | _Ärv etiketter från: monitorer_ |
+| **Ärv etiketter från monitorer** och **Ärv etiketter från värdar** | _Ärv etiketter från: monitorer, värdar_ |
 | **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: övervakning_ |
 
 Namnet följer brytarna tills du väljer en etikett (då får regeln namn efter sina etiketter) eller skriver ett eget namn.

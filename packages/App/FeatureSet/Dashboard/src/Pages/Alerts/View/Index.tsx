@@ -146,16 +146,15 @@ import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 import PermissionGate, {
   ModelAction,
   PermissionGateOptions,
 } from "Common/UI/Utils/PermissionGate";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 // What the alert's state gate asks about: a row of its state timeline.
 const PRIVATE_RECORD_STATE_TIMELINE: AlertStateTimeline =
@@ -1066,13 +1065,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
               acknowledgeState?.name || "Acknowledged",
             ),
           })}
           icon={IconProp.Check}
           value={getTimeToStateText(
             {
+              stateList: StateListType.AlertState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.acknowledgedAt,
               stateName: acknowledgeState?.name,
@@ -1092,11 +1093,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: translatableTerm(resolvedState?.name || "Resolved"),
+            stateName: recordNameInSentence(
+              StateListType.AlertState,
+              resolvedState?.name || "Resolved",
+            ),
           })}
           icon={IconProp.CheckCircle}
           value={getTimeToStateText(
             {
+              stateList: StateListType.AlertState,
               startedAt: responseTimes.startedAt,
               reachedAt: responseTimes.resolvedAt,
               stateName: resolvedState?.name,
@@ -1842,7 +1847,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   fieldType: FieldType.Element,
                   getElement: (item: Alert): ReactElement => {
                     if (!item.alertNumber) {
-                      return <>-</>;
+                      return <EmptyValue />;
                     }
 
                     return (

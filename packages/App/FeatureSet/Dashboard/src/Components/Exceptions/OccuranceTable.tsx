@@ -38,6 +38,7 @@ import { buildExceptionOccurrenceQuery } from "../../Utils/ExceptionDetailData";
 import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 function toOccurrenceDate(value: unknown): Date | undefined {
   if (!value) {
@@ -367,7 +368,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                   exceptionInstance.traceId?.toString().trim() || "";
 
                 if (!traceId) {
-                  return <span className="text-gray-400">-</span>;
+                  return <TableEmptyValue />;
                 }
 
                 return (
@@ -425,7 +426,7 @@ const OccouranceTable: FunctionComponent<ComponentProps> = (
                   exceptionInstance.id?.toString() || "";
 
                 if (!logsLink && !(sessionId && anchor)) {
-                  return <span className="text-gray-400">-</span>;
+                  return <TableEmptyValue />;
                 }
 
                 return (

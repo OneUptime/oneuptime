@@ -7,7 +7,9 @@ import {
   translationKey,
   Translator,
 } from "../Translator";
-import { translateStateName } from "./DefaultStatusNames";
+import { StatusPageNameList } from "./DefaultStatusNames";
+import { translateRecordName } from "../../Utils/DefaultRecordNames";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * WHAT A PUBLIC NOTE POSTED WITH A STATE CHANGE ADDS TO ITS MESSAGES.
@@ -36,7 +38,9 @@ import { translateStateName } from "./DefaultStatusNames";
  * Each message is written in the language of the translator it is handed -
  * a subscriber's (Server/Utils/StatusPage/SubscriberLanguage), with
  * OneUptime's default state names in that language and a project's own as
- * written. Without one it is the English it always was.
+ * written - an incident's state read against the incident states' defaults,
+ * a scheduled maintenance event's against the maintenance states' (#8066).
+ * Without one it is the English it always was.
  */
 
 const ENGLISH: Translator = createTranslator(undefined, "en");
@@ -80,12 +84,15 @@ export default class StateChangeNoteMessage {
 
   /*
    * A state as a sentence names it: as formatStateName writes it, with
-   * OneUptime's default names in the sentence's language.
+   * OneUptime's default names of its `list` in the sentence's language.
    */
-  public static stateInSentence(stateName: string): ComposedValue {
+  public static stateInSentence(
+    list: StatusPageNameList,
+    stateName: string,
+  ): ComposedValue {
     return composedValue((translator: Translator): string => {
       return StateChangeNoteMessage.formatStateName(
-        translateStateName(translator, stateName.trim()),
+        translateRecordName(translator, list, stateName.trim()),
       );
     });
   }
@@ -99,7 +106,10 @@ export default class StateChangeNoteMessage {
     return (data.translator || ENGLISH).translateTemplate(
       StateChangeNoteText.incidentEmailSubject,
       {
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.IncidentState,
+          data.stateName,
+        ),
         title: data.incidentTitle,
       },
     );
@@ -117,7 +127,10 @@ export default class StateChangeNoteMessage {
     return (data.translator || ENGLISH).translateTemplate(
       StateChangeNoteText.incidentCustomTemplateEmailSubject,
       {
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.IncidentState,
+          data.stateName,
+        ),
         title: data.incidentTitle,
       },
     );
@@ -135,7 +148,10 @@ export default class StateChangeNoteMessage {
     return (data.translator || ENGLISH).translateTemplate(
       StateChangeNoteText.scheduledMaintenanceEmailSubject,
       {
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.ScheduledMaintenanceState,
+          data.stateName,
+        ),
         title: data.eventTitle,
       },
     );
@@ -153,7 +169,10 @@ export default class StateChangeNoteMessage {
     return (data.translator || ENGLISH).translateTemplate(
       StateChangeNoteText.scheduledMaintenanceCustomTemplateEmailSubject,
       {
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.ScheduledMaintenanceState,
+          data.stateName,
+        ),
         title: data.eventTitle,
       },
     );
@@ -171,7 +190,10 @@ export default class StateChangeNoteMessage {
       {
         title: data.incidentTitle,
         statusPageName: data.statusPageName,
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.IncidentState,
+          data.stateName,
+        ),
       },
     );
   }
@@ -191,7 +213,10 @@ export default class StateChangeNoteMessage {
       {
         title: data.eventTitle,
         statusPageName: data.statusPageName,
-        state: this.stateInSentence(data.stateName),
+        state: this.stateInSentence(
+          StateListType.ScheduledMaintenanceState,
+          data.stateName,
+        ),
       },
     );
   }
@@ -203,6 +228,7 @@ export default class StateChangeNoteMessage {
    * reader's language, a project's own as written.
    */
   public static getChatStatusLine(
+    list: StatusPageNameList,
     stateName: string,
     translator?: Translator | undefined,
   ): MarkdownText {
@@ -211,6 +237,6 @@ export default class StateChangeNoteMessage {
       reader.translateText(StateChangeNoteText.chatStatusLabel) ||
       StateChangeNoteText.chatStatusLabel;
 
-    return mdText`**${label}** ${translateStateName(reader, stateName.trim())}`;
+    return mdText`**${label}** ${translateRecordName(reader, list, stateName.trim())}`;
   }
 }

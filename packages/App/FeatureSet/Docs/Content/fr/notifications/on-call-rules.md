@@ -29,25 +29,25 @@ La plupart des messages peuvent prendre en compte l'alerte : les e-mails, les SM
 
 ## Une seule séquence pour tout
 
-**Paramètres utilisateur → Comment me joindre** s'ouvre sur votre séquence : les étapes que chaque appel essaie, pour les incidents, les alertes et les épisodes de toute gravité. Chaque étape est l'une de vos méthodes vérifiées et le moment de l'utiliser, par exemple un SMS tout de suite et un appel après 5 minutes. Les étapes qui ont le même délai partent ensemble, si bien que la séquence se lit dans l'ordre où elle appelle.
+**Paramètres utilisateur → Comment me joindre** s'ouvre sur votre séquence : des étapes numérotées que chaque appel essaie tour à tour, pour les incidents, les alertes et les épisodes de toute gravité. Chaque étape est un moment, par exemple tout de suite ou après 5 minutes, avec les méthodes vérifiées qui partent ensemble à ce moment-là. Une étape suivante ne part que si personne n'a encore pris l'appel en compte.
 
 :::steps
 ### Ajouter un moyen de vous joindre
 
-Choisissez l'une de vos méthodes vérifiées dans **Ajouter un moyen de vous joindre**. Un numéro ou une adresse qui attend encore son code apparaît sous **Pas encore vérifié**, avec **Vérifier**.
+Cliquez sur **Ajouter** dans une étape pour envoyer l'une de vos méthodes vérifiées au moment de cette étape, ou sur **Ajouter une étape** pour commencer une nouvelle étape après la dernière. Un numéro ou une adresse qui attend encore son code apparaît sous **Pas encore vérifié**, avec **Vérifier**.
 
 ### Choisir quand l'utiliser
 
-À côté de chaque étape, choisissez un délai, de **Immédiatement** à **1 heure**. Une étape push indique aussi comment elle sonne et si elle se répète : voir [Règles push](#règles-push).
+Cliquez sur le moment d'une étape, par exemple **Tout de suite**, et choisissez-en un autre, jusqu'à une heure : toute l'étape se déplace. Une étape push indique aussi comment elle sonne et si elle se répète : voir [Règles push](#règles-push).
 
 ### Enregistrer
 
-Cliquez sur **Enregistrer la séquence**. Les mêmes règles sont écrites dans chaque carte de chaque onglet : celles que vous ajouteriez à la main à chaque carte.
+Cliquez sur **Enregistrer les modifications**, qui apparaît dès que quelque chose a changé. Les mêmes règles sont écrites dans chaque carte de chaque onglet : celles que vous ajouteriez à la main à chaque carte.
 :::
 
 **Tester vos appels**, au pied de la page, vous envoie un appel de test à travers elles.
 
-Quand une gravité mérite autre chose, **Différent pour certaines gravités** ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**, et la séquence indique ce que fait chacune à la place. Si vos règles diffèrent déjà, la page s'ouvre sur les cartes, avec **Utiliser une seule séquence pour tout** : l'enregistrement nomme d'abord les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
+Quand une gravité mérite autre chose, **Différent pour certaines gravités**, sous les étapes, ouvre les onglets et les cartes décrits plus bas. Une carte qui diffère de votre séquence est marquée **Diffère de la séquence**, et la séquence indique ce que fait chacune à la place. Si vos règles diffèrent déjà, la page s'ouvre sur les cartes, avec **Utiliser une seule séquence pour tout** : l'enregistrement nomme d'abord les cartes qui perdent leur différence. Une gravité que votre projet a archivée garde ses propres règles.
 
 Une politique d'astreinte décide qui est appelé et quand vient son niveau suivant. La façon dont vous êtes joint est cette séquence, pour chaque politique qui vous appelle.
 
@@ -117,11 +117,11 @@ Une règle qui alerte un téléphone indique comment son push sonne :
 | **Alerte critique** | Sonne même quand le téléphone est en silencieux ou en Ne pas déranger, une fois Critical On-Call Alerts activé dans l'application OneUptime On-Call. Une nouvelle règle de téléphone commence ici. |
 | **Standard** | Suit les réglages de son, de silencieux et de Ne pas déranger du téléphone. |
 
-Une règle push, pour un téléphone ou un navigateur, peut aussi renvoyer son push jusqu'à ce que quelqu'un prenne en compte : **Ne pas répéter**, par défaut, ou **Chaque minute**, **Toutes les 2 minutes**, **Toutes les 3 minutes**, **Toutes les 5 minutes**, **Toutes les 10 minutes**, **Toutes les 15 minutes** ou **Toutes les 30 minutes**. Elle se répète jusqu'à 10 fois de plus, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Voir [Alertes d'astreinte critiques](/docs/self-hosted/push-notifications#alertes-dastreinte-critiques-outrepasser-le-mode-silencieux).
+Une règle push, pour un téléphone ou un navigateur, peut aussi renvoyer son push jusqu'à ce que quelqu'un prenne en compte : **Ne pas répéter**, par défaut, ou **Chaque minute**, **Toutes les 2 minutes**, **Toutes les 3 minutes**, **Toutes les 5 minutes**, **Toutes les 10 minutes**, **Toutes les 15 minutes** ou **Toutes les 30 minutes**. Elle se répète jusqu'à 10 fois de plus, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Une alerte qui continue après une prise en compte, comme une nouvelle alerte, se répète jusqu'à ce qu'une personne qu'elle a alertée réponde ou que l'incident, l'alerte ou l'épisode soit résolu : [Quand plusieurs politiques alertent](/docs/on-call/policies#quand-plusieurs-politiques-alertent) les liste. Voir [Alertes d'astreinte critiques](/docs/self-hosted/push-notifications#alertes-dastreinte-critiques-outrepasser-le-mode-silencieux).
 
 ## Quand une gravité n'a pas de règle
 
-Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite.
+Une gravité que votre projet ajoute plus tard reçoit des règles en quelques minutes, faites à partir des choix que vous avez déjà faits sur cet onglet : les mêmes méthodes, après les mêmes délais, et un push qui sonne et se répète de la même façon. Si vous n'aviez aucune règle sur cet onglet, elle reçoit votre e-mail vérifié, tout de suite.
 
 Une alerte qui ne trouve toujours pas de règle est quand même envoyée à vos méthodes vérifiées, et vous recevez un e-mail à ce sujet ; voir [Quand aucune règle ne correspond](/docs/notifications/index#quand-aucune-règle-ne-correspond).
 

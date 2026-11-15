@@ -41,7 +41,7 @@ O servidor não guarda estado: ele não emite ids de sessão e cada requisição
 - **Manutenção programada**: criar e gerenciar eventos de manutenção.
 - **Telemetria**: consultar logs, métricas, traces, exceções, logs de monitores, eventos de segurança e mais, somente leitura.
 
-Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 53 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. As ferramentas somente leitura levam `readOnlyHint`, toda ferramenta que altera algo leva `destructiveHint` e só as ferramentas de páginas de status públicas levam `openWorldHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
+Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 54 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. As ferramentas somente leitura levam `readOnlyHint`, toda ferramenta que altera algo leva `destructiveHint` e só as ferramentas de páginas de status públicas levam `openWorldHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
 
 ## Antes de começar
 
@@ -253,7 +253,7 @@ Sem uma chave de API nem um login, um cliente pode usar as ferramentas públicas
 - **`oneuptime_describe_resource`**: os campos de um recurso e como filtrar, ordenar e selecionar por eles
 - **`get_public_status_page_overview`**: a visão geral de uma página de status pública
 - **`get_public_status_page_incidents`**: os incidentes de uma página de status pública
-- **`get_public_status_page_scheduled_maintenance`**: os eventos de manutenção programada dela
+- **`get_public_status_page_scheduled_maintenance`**: os eventos de manutenção dela
 - **`get_public_status_page_announcements`**: os anúncios dela
 
 As ferramentas de páginas de status públicas recebem o ID de uma página de status (um UUID) ou o nome de domínio dela. Para usar só essas, conecte com o endereço e sem credenciais:
@@ -414,7 +414,7 @@ Estas funcionam sem credenciais, só com as ferramentas de páginas de status p�
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Área | Registros com ferramentas de criar, obter, listar, atualizar, excluir e contar |
 | --- | --- |
 | Monitoramento | Monitor, Monitor Status, Monitor Status Event |
-| Incidentes | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| Incidentes | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Alertas | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Páginas de status | Status Page, Status Page Announcement |
 | Manutenção programada | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

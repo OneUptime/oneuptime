@@ -64,20 +64,20 @@ Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kom
 
 ### Juster diagrammet
 
-Åpne **Display Settings** for å velge **Chart type** (linje, område eller søyler), tegne en **Warning Threshold** og en **Critical Threshold** i diagrammet, eller slå på **Convert to per-second rate**.
+Åpne **Visningsinnstillinger** for å velge **Diagramtype** (linje, område eller søyler), tegne en **Varselsterskel** og en **Kritisk terskel** i diagrammet, eller slå på **Gjør om til rate per sekund**.
 :::
 
 > [!TIP]
-> En teller som bare øker, som `system.disk.io`, leses best som en rate. Slå på **Convert to per-second rate** for å vise hvor fort den endrer seg i stedet for den løpende summen; utforskeren foreslår det når den kjenner igjen en slik teller.
+> En teller som bare øker, som `system.disk.io`, leses best som en rate. Slå på **Gjør om til rate per sekund** for å vise hvor fort den endrer seg i stedet for den løpende summen; utforskeren foreslår det når den kjenner igjen en slik teller.
 
-Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagram som den forrige slår du på **Overlay with previous query** i dens **Display Settings**.
+Hver spørring tegner sitt eget diagram. For å tegne en spørring i samme diagram som den forrige slår du på **Legg over forrige spørring** i dens **Visningsinnstillinger**.
 
 ## Kombiner spørringer med en formel
 
 :::steps
 ### Legg til spørringene
 
-Klikk på **Legg til metrikk** for hver metrikk du trenger. De nye spørringene heter `b`, `c` og så videre.
+Klikk på **Legg til måling** for hver metrikk du trenger. De nye spørringene heter `b`, `c` og så videre.
 
 ### Legg til en formel
 
@@ -195,7 +195,7 @@ Start collectoren på nytt. Hver tjeneste med spor som går gjennom den, sender 
 ## Feilsøking
 
 :::details Diagrammet til en teller bare stiger
-Det er en kumulativ teller. Slå på **Convert to per-second rate** i spørringens **Display Settings**.
+Det er en kumulativ teller. Slå på **Gjør om til rate per sekund** i spørringens **Visningsinnstillinger**.
 :::
 
 :::details Listen sier at ingen metrikker ble funnet

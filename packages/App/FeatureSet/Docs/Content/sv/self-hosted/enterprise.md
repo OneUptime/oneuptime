@@ -201,7 +201,7 @@ Vad som stoppas när en licens löper ut:
 Vad som **inte** stoppas:
 
 - **Enkel inloggning.** Inloggning med SAML och OIDC för projekt, privata statussidor, hela instansen (global SSO) och mobilapparna, liksom "Require SSO for login", ingår i alla utgåvor. En utgången licens ändrar inget av detta, och konfigurationen för enkel inloggning går fortfarande att redigera.
-- **Grundövervakningen påverkas aldrig**: övervakare, larm, incidenter, jour, statussidor och telemetri fortsätter alla att fungera.
+- **Grundövervakningen påverkas aldrig**: monitorer, larm, incidenter, jour, statussidor och telemetri fortsätter alla att fungera.
 - **Huvudadministratörer kan alltid logga in med sitt lösenord.**
 - **Anpassade roller, IP-tillåtelselistor och åtkomstkontroller för statussidor fortsätter att gälla.** Du kan ta bort dem, men inte skapa eller ändra dem.
 - **Sessionslängder fortsätter att gälla.** Du kan ta bort dem, men inte ange eller ändra dem.

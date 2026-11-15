@@ -52,7 +52,7 @@ flowchart TB
 2. Åpne **Telemetri og APM** i sidemenyen, og velg **Inntaksnøkler**.
 3. Klikk på **Opprett ingestion-nøkkel**. Dialogen fyller inn et navn og velger nøkkeltypen **Server**, som en applikasjon eller en collector sender med. Gi den nytt navn om du vil, og klikk deretter på **Opprett ingestion-nøkkel**.
 
-![Siden med inntaksnøkler for telemetri i prosjektinnstillingene](/docs/static/images/TelemetryIngestionKeys.png)
+![Listen «Inntaksnøkler», med «Opprett ingestion-nøkkel» uthevet](screen:ingestion-keys)
 
 Den nye nøkkelen åpnes på sin egen side. Kopier **Hemmelig nøkkel** — det er tokenet du sender som `x-oneuptime-token`.
 
@@ -89,9 +89,9 @@ Bruker du et rammeverk? [Integrasjonsveiledningene](https://oneuptime.com/integr
 Installer SDK-et, de automatiske instrumenteringene og OTLP/HTTP-eksportørene:
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 Opprett SDK-et i en egen fil:
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

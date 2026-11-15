@@ -180,6 +180,12 @@ export interface ReplayToolButtonProps {
   title?: string | undefined;
   tooltip?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   dataTestId?: string | undefined;
   className?: string | undefined;
   onClick: () => void;
@@ -243,8 +249,9 @@ export const ReplayToolButton: React.ForwardRefExoticComponent<
       translateString(props.title) ?? props.title;
     const translatedTooltip: string | undefined =
       translateString(props.tooltip) ?? props.tooltip;
-    const translatedAriaLabel: string | undefined =
-      translateString(props.ariaLabel) ?? props.ariaLabel;
+    const translatedAriaLabel: string | undefined = props.isAriaLabelTranslated
+      ? props.ariaLabel
+      : translateString(props.ariaLabel) ?? props.ariaLabel;
 
     /*
      * A single icon with no label gets a square button; anything wider -
@@ -560,6 +567,10 @@ export interface ReplayClockProps {
  * The playhead readout. The elapsed half carries the weight because it
  * is the number that moves; the total is a reference and recedes. Both
  * halves are tabular so the row does not twitch every tick.
+ *
+ * Left to right in every language, as a player's clock reads: on a page
+ * read from the right the two halves would swap places, and "۰:۰۱ / ۰:۳۰"
+ * would be drawn as "۰:۳۰ / ۰:۰۱" (#7318).
  */
 export const ReplayClock: FunctionComponent<ReplayClockProps> = (
   props: ReplayClockProps,
@@ -567,6 +578,7 @@ export const ReplayClock: FunctionComponent<ReplayClockProps> = (
   return (
     <div
       data-testid={props.dataTestId}
+      dir="ltr"
       aria-live="off"
       className="flex shrink-0 items-baseline gap-1 px-1 font-mono tabular-nums"
     >

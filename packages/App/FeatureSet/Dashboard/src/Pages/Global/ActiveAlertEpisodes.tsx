@@ -9,6 +9,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -21,6 +23,7 @@ import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveAlertEpisodes: FunctionComponent<
   PageComponentProps
@@ -138,6 +141,8 @@ const ActiveAlertEpisodes: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -189,7 +194,7 @@ const ActiveAlertEpisodes: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: AlertEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
@@ -218,6 +223,10 @@ const ActiveAlertEpisodes: FunctionComponent<
                   <Pill
                     color={item.currentAlertState.color || Black}
                     text={item.currentAlertState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertState,
+                      item.currentAlertState.name,
+                    )}
                   />
                 );
               }
@@ -241,6 +250,10 @@ const ActiveAlertEpisodes: FunctionComponent<
                   <Pill
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
                   />
                 );
               }

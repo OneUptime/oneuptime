@@ -31,7 +31,7 @@ Fluentd отправляет записи пакетами в формате JSO
 
 Перейдите в **Продукты → Настройки проекта**, откройте в боковом меню **Телеметрия и APM** и выберите **Ключи приема**.
 
-![Страница ключей приёма телеметрии в настройках проекта](/docs/static/images/TelemetryIngestionKeys.png)
+![Список «Ключи приема», кнопка «Создать ключ приёма» обведена](screen:ingestion-keys)
 
 ### Создайте ключ
 
@@ -54,6 +54,15 @@ Fluentd отправляет записи пакетами в формате JSO
 Добавьте секцию `<match>`, которая отправляет записи в OneUptime. Замените `YOUR_SERVICE_TOKEN` вашим ключом приёма, а `YOUR_SERVICE_NAME` — именем, под которым должны появляться логи (любым на ваш выбор):
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Fluentd отправляет записи пакетами в формате JSO
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Fluentd отправляет записи пакетами в формате JSO
 ```
 
 `json_array true` отправляет каждый блок буфера одним массивом JSON, а `flush_interval 10s` отправляет буфер каждые 10 секунд. `chunk_limit_size 900k` держит каждый запрос меньше 1 МБ: больше OneUptime на этом адресе не принимает.
+
+`retryable_response_codes 429,502,503,504` отправляет пакет заново, когда OneUptime перегружен (`429`) или перезапускается (`502`, `503`, `504`); без этой настройки Fluentd отбрасывает пакет при любом ответе, кроме `503`. `retry_max_interval 30s` ждёт между попытками не больше 30 секунд, а `retry_timeout 72h` отбрасывает пакет, который не удалось отправить за 72 часа. Фильтр `record_transformer` добавляет в каждую запись время, которое ей дал Fluentd, как `fluentd_time`: HTTP-вывод отправляет только запись, а OneUptime читает время лога из неё.
 
 ### Перезапустите Fluentd
 
@@ -111,6 +128,15 @@ Fluentd отправляет записи пакетами в формате JSO
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Fluentd отправляет записи пакетами в формате JSO
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime читает из каждой записи такие поля:
 | ID трассировки | `trace_id`, `traceId`, `traceid` | Связывает лог с его трассировкой. |
 | ID спана | `span_id`, `spanId`, `spanid` | Связывает лог с его спаном. |
 | Служба | заголовок `x-oneuptime-service-name` | `Fluentd`, если заголовок не задан. |
-| Время | — | Момент, когда OneUptime получает запись. |
+| Время | `time`, `timestamp`, `@timestamp`, `ts`, `fluentd_time` | Время в формате ISO 8601, например `2026-11-14T08:00:00.123Z`, или секунды, миллисекунды, микросекунды либо наносекунды от начала эпохи Unix; время без часового пояса считается временем UTC. Время раньше 2000 года или больше чем на сутки вперёд не читается. Поле, из которого прочитано время, не сохраняется как атрибут. Запись без времени сохраняется с моментом, когда OneUptime её получает. |
 
 Все остальные поля становятся атрибутами с именем `fluentd.` и названием поля, по которым можно искать и фильтровать: поле `container_name` — это `@fluentd.container_name` в обозревателе журналов. Вложенный объект разворачивается через точки, например в `fluentd.kubernetes.pod_name`, а список сохраняется в виде JSON.
 
@@ -174,6 +206,14 @@ OneUptime читает из каждой записи такие поля:
 
 :::details Fluentd пишет `413`
 Запрос больше 1 МБ, а больше OneUptime на этом адресе не принимает. Задайте `chunk_limit_size 900k` в секции `<buffer>`, как в конфигурации выше.
+:::
+
+:::details Fluentd пишет `429`, `502`, `503` или `504`
+OneUptime перегружен или перезапускается. С `retryable_response_codes 429,502,503,504` в секции `<match>`, как в конфигурации выше, Fluentd сохраняет пакет и отправляет его заново; без этой настройки Fluentd отбрасывает пакет.
+:::
+
+:::details Логи показывают момент, когда OneUptime их получил, а не своё время
+OneUptime читает время лога из его записи, а HTTP-вывод Fluentd отправляет только запись. Секция `<parse>` убирает поле `time` из записи: добавьте в неё `keep_time_key true`. Добавьте и фильтр `record_transformer` из конфигурации выше: он добавляет в каждую запись время, которое ей дал Fluentd, как `fluentd_time`.
 :::
 
 :::details Логи приходят под службой `Fluentd`

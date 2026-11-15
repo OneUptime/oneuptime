@@ -362,7 +362,7 @@ describe("one change as a change event", () => {
         readCloudChangeTitleFacts({ title: entry.title, attributes: older })!,
         dashboardTranslator("fr"),
       ),
-    ).toBe("Échec : lambda:UpdateFunctionCode20150331v2 sur resize");
+    ).toBe("Échec\u00A0: lambda:UpdateFunctionCode20150331v2 sur resize");
   });
 
   test("a health event keeps no resource name and no facts: its title is its provider's", () => {

@@ -41,7 +41,7 @@ flowchart TB
 - **Плановые работы**: создание и управление событиями обслуживания.
 - **Телеметрия**: запросы к логам, метрикам, трассировкам, исключениям, логам мониторов, событиям безопасности и не только, только чтение.
 
-Есть инструменты создания, получения, перечисления, обновления, удаления и подсчёта для 53 видов записей, инструменты перечисления и подсчёта для 9 видов телеметрии и инструменты, созданные для реагирования на инциденты. Инструменты только для чтения помечены `readOnlyHint`, каждый инструмент, который что-то меняет, — `destructiveHint`, а `openWorldHint` есть только у инструментов публичных страниц статуса, поэтому клиент может сам выполнять вызовы только для чтения и спрашивать вас перед любым изменением. Неудачный вызов инструмента возвращается как результат инструмента (`isError: true`) с `statusCode`, подробностями и подсказкой, а не как ошибка протокола MCP, поэтому агент может прочитать сбой и исправиться.
+Есть инструменты создания, получения, перечисления, обновления, удаления и подсчёта для 54 видов записей, инструменты перечисления и подсчёта для 9 видов телеметрии и инструменты, созданные для реагирования на инциденты. Инструменты только для чтения помечены `readOnlyHint`, каждый инструмент, который что-то меняет, — `destructiveHint`, а `openWorldHint` есть только у инструментов публичных страниц статуса, поэтому клиент может сам выполнять вызовы только для чтения и спрашивать вас перед любым изменением. Неудачный вызов инструмента возвращается как результат инструмента (`isError: true`) с `statusCode`, подробностями и подсказкой, а не как ошибка протокола MCP, поэтому агент может прочитать сбой и исправиться.
 
 ## Прежде чем начать
 
@@ -253,7 +253,7 @@ MCP-сервер работает тремя способами.
 - **`oneuptime_describe_resource`**: поля ресурса и то, как по ним фильтровать, сортировать и выбирать
 - **`get_public_status_page_overview`**: обзор публичной страницы статуса
 - **`get_public_status_page_incidents`**: инциденты публичной страницы статуса
-- **`get_public_status_page_scheduled_maintenance`**: её события плановых работ
+- **`get_public_status_page_scheduled_maintenance`**: её события обслуживания
 - **`get_public_status_page_announcements`**: её объявления
 
 Инструменты публичных страниц статуса принимают ID страницы статуса (UUID) или её доменное имя. Чтобы использовать только их, подключитесь с адресом и без учётных данных:
@@ -414,7 +414,7 @@ curl https://oneuptime.com/mcp/tools
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ MCP-сервер не хранит состояние: он не выдаёт и
 | Область | Записи с инструментами создания, получения, перечисления, обновления, удаления и подсчёта |
 | --- | --- |
 | Мониторинг | Monitor, Monitor Status, Monitor Status Event |
-| Инциденты | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| Инциденты | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Оповещения | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Страницы статуса | Status Page, Status Page Announcement |
 | Плановые работы | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

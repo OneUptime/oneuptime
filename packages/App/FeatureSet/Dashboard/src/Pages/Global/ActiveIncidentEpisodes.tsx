@@ -9,6 +9,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -21,6 +23,7 @@ import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveIncidentEpisodes: FunctionComponent<
   PageComponentProps
@@ -138,6 +141,8 @@ const ActiveIncidentEpisodes: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -189,7 +194,7 @@ const ActiveIncidentEpisodes: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: IncidentEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.episodeNumberWithPrefix || `#${item.episodeNumber}`}</>
@@ -218,6 +223,10 @@ const ActiveIncidentEpisodes: FunctionComponent<
                   <Pill
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -241,6 +250,10 @@ const ActiveIncidentEpisodes: FunctionComponent<
                   <Pill
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

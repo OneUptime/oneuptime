@@ -49,7 +49,7 @@ Elk getal telt iets, zegt of dat uw aandacht nodig heeft, en opent de lijst erac
 | **Actieve incidenten** | Incidenten die niet zijn opgelost | **Alles in orde** | **Incidenten → Actieve incidenten** |
 | **Actieve waarschuwingen** | Waarschuwingen die niet zijn opgelost | **Alles in orde** | **Waarschuwingen → Actieve waarschuwingen** |
 | **Niet-operationele monitoren** | Monitoren waarvan de status geen operationele status is. Gearchiveerde monitoren, en monitoren waarvan de bewaking uit staat, tellen niet mee. | **Alle operationeel** | **Monitoren → Niet operationeel** |
-| **Lopend onderhoud** | Geplande onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Geplande onderhoud → Lopende onderhoudsgebeurtenissen** |
+| **Lopend onderhoud** | Onderhoudsgebeurtenissen die nu lopen | **Geen lopend** | **Gepland onderhoud → Lopende onderhoudsgebeurtenissen** |
 | **SLO's in gevaar** | Ingeschakelde SLO's die in gevaar zijn of hun foutbudget hebben opgebruikt | **Budgetten gezond** | **SLOs** |
 
 Een getal boven nul toont **Vraagt aandacht**, of **Bezig** en **Budget raakt op** voor onderhoud en SLO's. Zolang er een SLO in gevaar is, opent **SLO's in gevaar** de lijst **SLOs**, gefilterd op die SLO's. Een project zonder monitoren ziet **Nog geen monitoren**, en een project zonder SLO's ziet **Nog geen SLO's**: een leeg project is niet hetzelfde als een gezond project. Die twee openen dan de lijsten **Monitoren** en **SLOs**, waar u er een aanmaakt.
@@ -95,7 +95,7 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 ### Inrichtingsstatus
 
-Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, met wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont. Elke bevinding zegt in één zin wat er mis is, met de knop die de oplossing opent, en de bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
+Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, dat begint met één regel in de kleur van de ernstigste bevinding: hoeveel problemen zouden voorkomen dat mensen worden gewaarschuwd, hoeveel punten het oplossen waard zijn, of **Niets op te lossen**. Daaronder toont de pagina wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont. Elke bevinding zegt in één zin wat er mis is, met de namen van je monitors, beleidsregels en mensen vetgedrukt, de monitors of beleidsregels die ze raakt na **Betreft**, en er direct onder de knop die de oplossing opent. De bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
 
 ### Je project
 
@@ -109,7 +109,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ## Uw weg vinden
 
-Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Geplande onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
+Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont zijn groepen als de rijen van één lijst, en opent altijd met de eerste ervan, de essenties, uitgeklapt: Monitoren, Incidenten, Waarschuwingen, Bereikbaarheid, Statuspagina's, Gepland onderhoud en SLOs. Elke andere groep (Observability, Beveiliging, AI, Code, Bronnen, Infrastructuur, Cloud, Dashboards & automatisering en Instellingen) is ingeklapt tot een rij van dezelfde lijst. Elke rij noemt de producten van de groep en zegt hoeveel het er zijn. Klik op een rij om hem uit of in te klappen, of ga er met de pijltjestoetsen naartoe en druk op **Enter**.
 
 - **Zoeken vindt alles.** Typ in het zoekvak van het menu om elk product te vinden op naam, op wat het doet, of op een bekend woord zoals `k8s` of `RUM`. Zoeken kijkt ook in de ingeklapte groepen.
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
@@ -142,7 +142,7 @@ Boven de titel van elke pagina toont een pad zoals *Project › Docker › Inste
 - Het item **Kolommen** in het menu **⋯** van een lijst kiest welke kolommen de lijst toont en in welke volgorde, en bewaart ze voor u in deze browser. Een projecteigenaar of projectbeheerder kan daar ook **Deze kolommen aan iedereen in dit project tonen** aanvinken: wie voor die lijst geen eigen kolommen heeft gekozen, ziet dan deze, en **Terugzetten naar projectstandaard** zet uw eigen kolommen weer op deze terug.
 - Het item **Compacte rijen** in hetzelfde menu tekent de rijen van elke lijst lager, zodat een lange lijst er ongeveer een vijfde meer toont. De keuze blijft bewaard in deze browser.
 - **Op een telefoon, of in een kaart die te smal is voor haar rijen, wordt een lijst als kaarten getoond, één per rij.** De band erboven zegt in welke volgorde ze staan, zoals **Gesorteerd op Naam**: druk erop om de kolom te kiezen waarop gesorteerd wordt, en **Oplopend** of **Aflopend**.
-- **De pagina's van een incident beginnen met zijn nummer.** De kop, zijn stap in het pad en het browsertabblad tonen `INC-42 Checkout is down`, net als de dialoogvensters die het noemen, zodat incidenten met dezelfde titel uit elkaar te houden zijn. Waarschuwingen, geplande onderhoudsgebeurtenissen en episodes doen hetzelfde.
+- **De pagina's van een incident beginnen met zijn nummer.** De kop, zijn stap in het pad en het browsertabblad tonen `INC-42 Checkout is down`, net als de dialoogvensters die het noemen, zodat incidenten met dezelfde titel uit elkaar te houden zijn. Waarschuwingen, onderhoudsgebeurtenissen en episodes doen hetzelfde.
 
 ## Zoeken naar een pagina, een instelling of een actie
 
@@ -187,7 +187,7 @@ Druk op `g` en dan op een letter om direct naar een product te gaan. Druk de let
 | `g` dan `a` | Waarschuwingen |
 | `g` dan `o` | Bereikbaarheid |
 | `g` dan `s` | Statuspagina's |
-| `g` dan `e` | Geplande onderhoud |
+| `g` dan `e` | Gepland onderhoud |
 | `g` dan `d` | Dashboards |
 | `g` dan `l` | Logboeken |
 | `g` dan `t` | Traces |

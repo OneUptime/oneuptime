@@ -52,7 +52,7 @@ flowchart TB
 2. در منوی کناری، **تله‌متری و APM** را باز کنید و **کلیدهای دریافت داده** را برگزینید.
 3. روی **ساخت کلید دریافت داده** کلیک کنید. پنجره یک نام را پر می‌کند و نوع کلید **سرور** را برمی‌گزیند که برنامه‌ها و Collectorها با آن داده می‌فرستند. اگر خواستید نامش را عوض کنید و سپس روی **ساخت کلید دریافت داده** کلیک کنید.
 
-![صفحهٔ کلیدهای دریافت تله‌متری در تنظیمات پروژه](/docs/static/images/TelemetryIngestionKeys.png)
+![فهرست «کلیدهای دریافت داده»، با «ساخت کلید دریافت داده» که دورش خط کشیده شده](screen:ingestion-keys)
 
 کلید تازه در صفحهٔ خودش باز می‌شود. **کلید محرمانه** آن را کپی کنید — این همان توکنی است که به‌عنوان `x-oneuptime-token` می‌فرستید.
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 SDK، ابزارگذاری‌های خودکار و صادرکننده‌های OTLP/HTTP را نصب کنید:
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 SDK را در یک فایل جداگانه بسازید:
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

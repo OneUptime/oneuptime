@@ -49,6 +49,19 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionSentence,
+  AIActionTableWords,
+  aiActionMoment,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_PROFILE_KINDS,
+  AI_READ_TELEMETRY_TABLE_LINES,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { windowValues } from "./ReadTableWords";
 
 /*
  * CONTINUOUS PROFILING, FOR THE AI.
@@ -101,6 +114,42 @@ function originLabel(
 
 function windowText(window: ProfileWindow): string {
   return `${window.startTime.toISOString()} to ${window.endTime.toISOString()}`;
+}
+
+/*
+ * The hotspots table's title and line, in the reader's language and time
+ * (issue #7979): what the profile measures, by the word the profile tools
+ * name it with, and its window. A raw profile type of no kind ("the
+ * "alloc_space" profile") keeps its line as the tool wrote it.
+ */
+export function getHotspotsHeading(
+  kind: ProfileKind,
+  window: ProfileWindow,
+): { words: AIActionTableWords; description?: string | undefined } {
+  const title: AIActionSentence = aiActionSentence(
+    AI_READ_TELEMETRY_TABLE_TITLES.whereTheTimeGoes,
+  );
+  const kindNoun: string = ProfileEvidence.describeKind(kind);
+
+  if (!kind.category || !AI_READ_PROFILE_KINDS.includes(kindNoun)) {
+    return {
+      words: { title },
+      description: `${kindNoun} · ${windowText(window)}`,
+    };
+  }
+
+  return {
+    words: {
+      title,
+      description: aiActionSentence(
+        AI_READ_TELEMETRY_TABLE_LINES.profileKindWindow,
+        {
+          kind: aiActionTerm(kindNoun),
+          ...windowValues(window.startTime, window.endTime),
+        },
+      ),
+    },
+  };
 }
 
 /*
@@ -320,8 +369,8 @@ export const GetProfileHotspotsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: "Where the time goes",
-              description: `${ProfileEvidence.describeKind(kind)} · ${windowText(window)}`,
+              // In the reader's language and time (issue #7979).
+              ...getHotspotsHeading(kind, window),
               columns: [
                 {
                   key: "function",
@@ -603,8 +652,20 @@ export const CompareProfilesTool: ObservabilityTool = {
       widget:
         slower.length > 0
           ? WidgetBuilder.table({
-              title: "What got slower",
-              description: `${windowText(before)} → ${windowText(after)}`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.whatGotSlower,
+                ),
+                description: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_LINES.profileWindows,
+                  {
+                    beforeStart: aiActionMoment(before.startTime),
+                    beforeEnd: aiActionMoment(before.endTime),
+                    afterStart: aiActionMoment(after.startTime),
+                    afterEnd: aiActionMoment(after.endTime),
+                  },
+                ),
+              },
               columns: [
                 {
                   key: "function",

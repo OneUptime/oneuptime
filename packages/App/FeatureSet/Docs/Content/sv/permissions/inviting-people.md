@@ -137,7 +137,7 @@ En adress kan få 10 inbjudningar i timmen, till projekt och privata statussidor
 :::details Inbjudningsmeddelandet kom aldrig fram, eller länken har gått ut
 Inbjudan beror inte på e-postmeddelandet. Be personen registrera sig med den inbjudna adressen: OneUptime skickar en ny länk till den adressen för att slutföra kontot. Den som redan har ett konto loggar in och hittar inbjudan.
 
-På en egenvärdad server som inte kan skicka e-post ännu kan inte heller registreringen mejla en ny länk: i stället ber den personen att be om sin inbjudningslänk. När serverns administratör har [konfigurerat e-post](/docs/emails/smtp#öppna-formuläret) fungerar registreringen som ovan. Till dess kan en huvudadministratör ta bort personen från projektet, bjuda in personen igen och skicka den nya inbjudningslänken, som fungerar en gång, bara för den adressen, i 7 dagar.
+På en egenvärdad server som inte kan skicka e-post ännu kan inte heller registreringen mejla en ny länk: i stället ber den personen att be om sin inbjudningslänk. När serverns administratör har [konfigurerat e-post](/docs/emails/smtp#öppna-formuläret) fungerar registreringen som ovan. Till dess kan en huvudadministratör skicka personen en ny länk, som fungerar en gång, bara för den adressen, i 7 dagar: under **Användare** öppnar du personens radmeny, **⋯**, och klickar på **Hämta inbjudningslänk**.
 :::
 
 :::details Bjud in användare säger att användarna hanteras av SCIM Push Groups

@@ -21,6 +21,8 @@ import GenericObject from "../../../Types/GenericObject";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -108,6 +110,7 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [error, setError] = useState<string>("");
 
@@ -274,11 +277,14 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     menuItems.push(
       <MoreMenuItem
         key={`action-${entry.index}`}
+        // Both translated above: drawn as given, never looked up again.
         text={title}
+        isUserContent={true}
         icon={entry.button.icon}
         isDestructive={isDestructive}
         isDisabled={lock.isDisabled}
         tooltip={translateString(lock.tooltip)}
+        isTooltipUserContent={true}
         onClick={() => {
           runAction(entry);
         }}
@@ -375,11 +381,20 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       {menuItems.length > 0 && (
         <MoreMenu
           isMenuPortaled={true}
+          /*
+           * One sentence around the row's name, in the reader's words and
+           * their order here - Japanese puts the name first - never English's
+           * order with the name tacked on (#8076); without a name, English,
+           * for the menu to look up (#7790).
+           */
           ariaLabel={
             props.itemLabel
-              ? `${translateString("More actions for") || "More actions for"} ${props.itemLabel}`
-              : translateString("More actions") || "More actions"
+              ? translator.translateTemplate("More actions for {{name}}", {
+                  name: props.itemLabel,
+                })
+              : "More actions"
           }
+          isAriaLabelTranslated={Boolean(props.itemLabel)}
           elementToBeShownInsteadOfButton={
             <button
               type="button"

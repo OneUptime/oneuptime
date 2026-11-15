@@ -32,6 +32,7 @@ import MoreMenuItem from "../../../UI/Components/MoreMenu/MoreMenuItem";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import IconProp from "../../../Types/Icon/IconProp";
+import { withNoBreakSpacesInLocale } from "../../../Types/NoBreakSpaces";
 import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 
@@ -253,7 +254,12 @@ const searchFor: (text: string) => void = (text: string): void => {
 
 beforeAll(async () => {
   for (const language of LANGUAGES) {
-    LOCALES[language] = readLocale(language);
+    // As the Dashboard hands it to i18next (Utils/i18n.ts, NoBreakSpaces).
+    LOCALES[language] = withNoBreakSpacesInLocale({
+      locale: readLocale(language),
+      language,
+      english: ENGLISH,
+    });
 
     const instance: i18n = createInstance();
 

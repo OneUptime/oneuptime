@@ -80,6 +80,8 @@ import React, {
 } from "react";
 import { Location, useLocation } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -973,7 +975,11 @@ const NetworkSiteMap: FunctionComponent<
                   <span className="truncate font-medium">{link.name}</span>
                   {link.monitorStatus ? (
                     <span className="flex-shrink-0 text-gray-400">
-                      {link.monitorStatus.name}
+                      {translateRecordName(
+                        translator,
+                        StateListType.MonitorStatus,
+                        link.monitorStatus.name,
+                      )}
                     </span>
                   ) : (
                     <></>

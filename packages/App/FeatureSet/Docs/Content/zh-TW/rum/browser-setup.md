@@ -38,7 +38,7 @@ flowchart TB
 3. 按一下 **建立擷取金鑰** ，並在 **金鑰類型** 中選擇 **瀏覽器** 。
 4. 在 **瀏覽器設定** 步驟中，以 JSON 陣列的形式在 **允許的來源** 中列出你的來源，例如 `["https://app.example.com"]` ，然後建立金鑰。在 OneUptime Cloud 的 Free 方案中，最後一個 **帳單** 步驟會先顯示遙測價格。
 
-![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
+![「擷取金鑰」清單，「建立擷取金鑰」已框出](screen:ingestion-keys)
 
 新金鑰會在自己的頁面中開啟。複製它的 **密鑰金鑰** ：這就是 SDK 以 `x-oneuptime-token` 傳送的權杖。
 

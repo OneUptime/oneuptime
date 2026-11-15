@@ -177,7 +177,7 @@ Da ora in poi, ogni nuovo incidente del progetto avvia un'esecuzione. Le trovi t
 ## Come si inseriscono i workflow nel resto di OneUptime
 
 - I **monitor** individuano il problema. Gli **incidenti** e gli **avvisi** lo registrano. I **workflow** reagiscono.
-- I **runbook** sono procedure di risposta che il tuo team segue durante un incidente, un avviso o una manutenzione: passaggi manuali, approvazioni e script, con persone coinvolte. I workflow girano senza supervisione. Usa un [runbook](/docs/runbooks/index) quando una persona deve prendere decisioni lungo il percorso, e un workflow quando ogni passaggio è automatico.
+- I **runbook** sono procedure di risposta che il tuo team segue durante un incidente, un avviso o un evento di manutenzione: passaggi manuali, approvazioni e script, con persone coinvolte. I workflow girano senza supervisione. Usa un [runbook](/docs/runbooks/index) quando una persona deve prendere decisioni lungo il percorso, e un workflow quando ogni passaggio è automatico.
 - Le **connessioni dell'area di lavoro** collegano un progetto a Slack e Microsoft Teams per i canali degli incidenti e le notifiche. I blocchi Slack e Microsoft Teams dei workflow non le usano: ogni blocco pubblica tramite un proprio URL di webhook in entrata.
 
 ## Prossimi passi

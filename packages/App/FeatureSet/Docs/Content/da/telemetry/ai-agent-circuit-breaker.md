@@ -116,7 +116,7 @@ Anmodningen sendes fra OneUptime. På OneUptime Cloud skal dit endpoint kunne n�
 
 ## Byg workflowet
 
-Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise det: åbn **Arbejdsgange → Globale variabler**, klik på **Opret Workflow Variabel**, kald den `AGENT_KILL_TOKEN`, læg tokenet i **Indhold**, og slå **Hemmelighed** til. En hemmelig værdi fjernes fra kørslernes logge og trinnenes spor.
+Gem først endpointets token et sted, hvor workflowet kan bruge det uden at vise det: åbn **Arbejdsgange → Globale variabler**, klik på **Opret Arbejdsgangsvariabel**, kald den `AGENT_KILL_TOKEN`, læg tokenet i **Indhold**, og slå **Hemmelighed** til. En hemmelig værdi fjernes fra kørslernes logge og trinnenes spor.
 
 :::steps
 ### Opret workflowet

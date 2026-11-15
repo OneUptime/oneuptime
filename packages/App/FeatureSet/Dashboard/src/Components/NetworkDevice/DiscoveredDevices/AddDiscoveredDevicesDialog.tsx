@@ -90,7 +90,9 @@ import useNamingPreview, {
 import NamingPreviewSummary, {
   NamingPreviewList,
 } from "../Naming/NamingPreviewSummary";
-import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import ErrorSentence, {
+  ErrorInSentence,
+} from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * ADDING DISCOVERED DEVICES TO MONITORING (Network > Discovered Devices and
@@ -782,7 +784,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             <Dropdown
               id="discovered-device-import-role"
               dataTestId="discovered-device-import-role-dropdown"
-              ariaLabel={translator.translateText(DEVICE_ROLE_FIELD_TITLE)}
+              ariaLabel={DEVICE_ROLE_FIELD_TITLE}
               options={roleOptions}
               value={roleOptions.find((option: DropdownOption): boolean => {
                 return option.value === settings.networkDeviceRoleId;
@@ -804,7 +806,9 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
               }}
             />
             {rolesError && (
-              <p className="mt-1 text-xs text-amber-700">{rolesError}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                <ErrorInSentence message={rolesError} showWhereToLook={true} />
+              </p>
             )}
           </div>
           <div data-testid="discovered-device-import-snmp">
@@ -825,7 +829,7 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
             <Dropdown
               id="discovered-device-import-snmp"
               dataTestId="discovered-device-import-snmp-dropdown"
-              ariaLabel={translator.translateText(SNMP_PROFILE_FIELD_TITLE)}
+              ariaLabel={SNMP_PROFILE_FIELD_TITLE}
               options={profileOptions}
               value={profileOptions.find((option: DropdownOption): boolean => {
                 return option.value === settings.snmpCredentialProfileId;
@@ -847,7 +851,12 @@ const AddDiscoveredDevicesDialog: FunctionComponent<
               }}
             />
             {profilesError && (
-              <p className="mt-1 text-xs text-amber-700">{profilesError}</p>
+              <p className="mt-1 text-xs text-amber-700">
+                <ErrorInSentence
+                  message={profilesError}
+                  showWhereToLook={true}
+                />
+              </p>
             )}
           </div>
         </div>

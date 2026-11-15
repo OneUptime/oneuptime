@@ -5,7 +5,7 @@ Een OpenStack-monitor bewaakt één cloud: de API's, de workers erachter, hyperv
 :::cards
 - [De monitor maken](#een-openstack-monitor-maken): Zes stappen in het dashboard.
 - [Sjablonen](#kant-en-klare-waarschuwingssjablonen): Kant-en-klare waarschuwingen, één incident per worker, instance, netwerk of regio.
-- [Controles van buitenaf](#controles-van-buitenaf): Kan iemand daadwerkelijk een instance starten, gemeten vanaf een probe buiten de cloud.
+- [Controles van buitenaf](#controles-van-buitenaf): Kan iemand daadwerkelijk een instance starten, gemeten vanaf een sonde buiten de cloud.
 - [Identiteitsattributen](#identiteitsattributen): Zo richt u zich op één regio, host of project.
 - [Metrieken](#verzamelde-metrieken): Alle reeksen waarop de monitor kan waarschuwen.
 :::
@@ -106,7 +106,7 @@ In monitorfilters en group-by-sleutels begint een resource-attribuut met `resour
 
 ## Kant-en-klare waarschuwingssjablonen
 
-OneUptime levert 120 sjablonen voor veelvoorkomende OpenStack-problemen, en de lijst **Waarover te waarschuwen** biedt ze aan. De pagina Aanbevelingen van een cloud biedt een sjabloon voor Heat, Magnum, Ironic, Manila, Octavia, Trove, Designate, Gnocchi of Swift alleen aan een cloud die die service draait, een sjabloon over een reeks die alleen een probe verstuurt alleen aan een cloud die een probe verzamelt, en een sjabloon over een [controle van buitenaf](#controles-van-buitenaf) alleen aan een cloud waarop die controle aan staat: op elke andere cloud bestaan de reeksen niet, dus het sjabloon zou nooit afgaan. Elk sjabloon bouwt een complete monitor: de metriekquery, de attribuutfilters, een groepering op waar één incident over gaat, een criterium dat afgaat en een dat herstelt. De drempels zijn dezelfde lijnen die de eigen pagina's van de cloud tekenen, en zijn beginwaarden die u kunt aanpassen.
+OneUptime levert 120 sjablonen voor veelvoorkomende OpenStack-problemen, en de lijst **Waarover te waarschuwen** biedt ze aan. De pagina Aanbevelingen van een cloud biedt een sjabloon voor Heat, Magnum, Ironic, Manila, Octavia, Trove, Designate, Gnocchi of Swift alleen aan een cloud die die service draait, een sjabloon over een reeks die alleen een sonde verstuurt alleen aan een cloud die een sonde verzamelt, en een sjabloon over een [controle van buitenaf](#controles-van-buitenaf) alleen aan een cloud waarop die controle aan staat: op elke andere cloud bestaan de reeksen niet, dus het sjabloon zou nooit afgaan. Elk sjabloon bouwt een complete monitor: de metriekquery, de attribuutfilters, een groepering op waar één incident over gaat, een criterium dat afgaat en een dat herstelt. De drempels zijn dezelfde lijnen die de eigen pagina's van de cloud tekenen, en zijn beginwaarden die u kunt aanpassen.
 
 Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat alleen af als de voorwaarde het hele venster geldt. Een drempel op een aandeel herstelt 10% voorbij zijn lijn, zodat een waarde die daar rond blijft hangen niet heen en weer klapt.
 
@@ -120,7 +120,7 @@ Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat allee
 | Image API Down | Beschikbaarheid | Kritiek | `openstack_glance_up` en `up` voor `image`, Min per regio, **afgelopen 15 minuten** | Elke aanroep mislukte, of de exporter antwoordde niet | Beide staan op 1 |
 | Placement API Down | Beschikbaarheid | Kritiek | `openstack_placement_up` en `up` voor `placement`, Min per regio, **afgelopen 10 minuten** | Elke aanroep mislukte, of de exporter antwoordde niet | Beide staan op 1 |
 | Compute Service Down | Control plane | Kritiek | `openstack_nova_agent_state` gefilterd op `service = nova-compute` en `adminState = enabled`, Min per host, **afgelopen 10 minuten** | Onder 1: een ingeschakelde nova-compute is uitgevallen. Eén die iemand heeft uitgeschakeld gaat nooit af | Actief, of uitgeschakeld |
-| Compute Service Disabled | Control plane | Waarschuwing | `openstack_nova_agent_state` gefilterd op `service = nova-compute` en `adminState = disabled`, een Aantal per host, **afgelopen 10 minuten** | Boven 0: een `nova-compute` is uitgeschakeld, en geen lopend onderhoudsevenement dekt zijn host, zijn beschikbaarheidszone of de cloud. Eén die zichzelf uitschakelde omdat libvirt wegviel (de reden begint met `AUTO:`) blijft stil zolang libvirt Service Down open staat. Projecten krijgen hier geen melding van | Hij is weer ingeschakeld, of een evenement dekt hem |
+| Compute Service Disabled | Control plane | Waarschuwing | `openstack_nova_agent_state` gefilterd op `service = nova-compute` en `adminState = disabled`, een Aantal per host, **afgelopen 10 minuten** | Boven 0: een `nova-compute` is uitgeschakeld, en geen lopende onderhoudsgebeurtenis dekt zijn host, zijn beschikbaarheidszone of de cloud. Eén die zichzelf uitschakelde omdat libvirt wegviel (de reden begint met `AUTO:`) blijft stil zolang libvirt Service Down open staat. Projecten krijgen hier geen melding van | Hij is weer ingeschakeld, of een evenement dekt hem |
 | Scheduler or Conductor Down | Control plane | Waarschuwing | `openstack_nova_agent_state` gefilterd op `nova-scheduler` of `nova-conductor` en `adminState = enabled`, Min per host en binary, **afgelopen 10 minuten** | Onder 1. De andere draaien door zolang er nog een over is | Actief, of uitgeschakeld |
 | Every Scheduler or Conductor Down | Control plane | Kritiek | Hetzelfde, Max per regio en binary, **afgelopen 10 minuten** | Onder 1: geen enkele is actief, dus er kan niets nieuws starten | Er is er één actief |
 | Network Agent Down | Control plane | Kritiek | `openstack_neutron_agent_state` gefilterd op `adminState = up`, Min per host en binary, **afgelopen 10 minuten** | Onder 1: een agent die aan staat is niet actief. Eén die iemand uit heeft gezet gaat nooit af | Actief, of uitgezet |
@@ -149,15 +149,15 @@ Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat allee
 | Image Stuck | Opslag | Waarschuwing | `openstack_glance_image_created_at` voor elk doorlopend statuswoord, Max per image, **afgelopen 1 uur** | Bij elke verzameling een uur lang in die status | Hij is eruit, of is verwijderd |
 | Orchestration API Down | Beschikbaarheid | Kritiek | `openstack_heat_up` en `up` voor `orchestration`, Min per regio, **afgelopen 15 minuten** | Elke aanroep mislukte, wat ook is hoe een gestopte `heat-engine` zich voordoet, of de exporter antwoordde niet | Beide staan op 1 |
 | Kubernetes Clusters API Down | Beschikbaarheid | Kritiek | `openstack_container_infra_up` en `up` voor `container-infra`, Min per regio, **afgelopen 15 minuten** | Elke aanroep mislukte, of de exporter antwoordde niet | Beide staan op 1 |
-| Rating API Down | Beschikbaarheid | Kritiek | `openstack_cloudkitty_up` en `up` voor `rating`, Min per regio, **afgelopen 15 minuten**. Alleen een probe verstuurt dit | De API van CloudKitty antwoordt niet, dus wat per project is gewaardeerd beweegt niet meer | Beide staan op 1 |
-| Heat Engine Down | Control plane | Waarschuwing | `openstack_heat_agent_state`, Min per host, **afgelopen 15 minuten**. Alleen een probe verstuurt dit | Heat meldt een `heat-engine` als uitgevallen. Als alle engines gestopt zijn kan Heat ze niet meer opsommen, en gaat in plaats daarvan Orchestration API Down af | Hij staat op 1, of Heat laat zijn record vallen |
-| Magnum Conductor Down | Control plane | Kritiek | `openstack_container_infra_agent_state` met `adminState=enabled`, Min per host, **afgelopen 15 minuten**. Alleen een probe verstuurt dit | Magnum meldt een ingeschakelde `magnum-conductor` als uitgevallen. De API van Magnum blijft antwoorden, dus niets anders meldt dit | Hij staat op 1, of iemand schakelt hem uit |
+| Rating API Down | Beschikbaarheid | Kritiek | `openstack_cloudkitty_up` en `up` voor `rating`, Min per regio, **afgelopen 15 minuten**. Alleen een sonde verstuurt dit | De API van CloudKitty antwoordt niet, dus wat per project is gewaardeerd beweegt niet meer | Beide staan op 1 |
+| Heat Engine Down | Control plane | Waarschuwing | `openstack_heat_agent_state`, Min per host, **afgelopen 15 minuten**. Alleen een sonde verstuurt dit | Heat meldt een `heat-engine` als uitgevallen. Als alle engines gestopt zijn kan Heat ze niet meer opsommen, en gaat in plaats daarvan Orchestration API Down af | Hij staat op 1, of Heat laat zijn record vallen |
+| Magnum Conductor Down | Control plane | Kritiek | `openstack_container_infra_agent_state` met `adminState=enabled`, Min per host, **afgelopen 15 minuten**. Alleen een sonde verstuurt dit | Magnum meldt een ingeschakelde `magnum-conductor` als uitgevallen. De API van Magnum blijft antwoorden, dus niets anders meldt dit | Hij staat op 1, of iemand schakelt hem uit |
 | Stack Failed | Orkestratie | Waarschuwing | `openstack_heat_stack_status` met elke `*_FAILED`-status, per stack, **afgelopen 15 minuten** | Een stack heeft het hele venster een mislukte status | Hij wordt bijgewerkt of verwijderd |
 | Stack Stuck In Progress | Orkestratie | Waarschuwing | `openstack_heat_stack_status` met elke `*_IN_PROGRESS`-status, per stack, **afgelopen 2 uur** | Een stack heeft het hele venster een status die bezig is, langer dan het uur dat Heat toestaat tenzij iemand een langere tijd koos | Hij bereikt zijn volgende status, of wordt verwijderd |
 | Kubernetes Cluster Failed | Orkestratie | Waarschuwing | `openstack_container_infra_cluster_status` met elke `*_FAILED`-status, per cluster, **afgelopen 15 minuten** | Een cluster heeft het hele venster een mislukte status | Het wordt bijgewerkt of verwijderd |
 | Kubernetes Cluster Stuck | Orkestratie | Waarschuwing | `openstack_container_infra_cluster_status` met elke `*_IN_PROGRESS`-status, per cluster, **afgelopen 2 uur** | Een cluster heeft het hele venster een status die bezig is. Alleen de conductor van Magnum zet er een verder | Het bereikt zijn volgende status, of wordt verwijderd |
 | Shared File Systems API Down | Beschikbaarheid | Kritiek | `openstack_sharev2_up` en `up` voor `sharev2`, Min per regio, **afgelopen 15 minuten** | Elke aanroep mislukte, of de exporter antwoordde niet. Elke inloggegevens waarmee inloggen lukt staan op 1, dus dit kan geen geweigerde inloggegevens zijn | Beide staan op 1 |
-| Manila Service Down | Control plane | Waarschuwing | `openstack_sharev2_agent_state` met `adminState=enabled`, Min per host en service, **afgelopen 15 minuten**. Alleen een probe verstuurt dit | Manila meldt een ingeschakelde service als gestopt of uitgevallen. De API blijft antwoorden, dus niets anders meldt dit | Hij staat op 1, of iemand schakelt hem uit |
+| Manila Service Down | Control plane | Waarschuwing | `openstack_sharev2_agent_state` met `adminState=enabled`, Min per host en service, **afgelopen 15 minuten**. Alleen een sonde verstuurt dit | Manila meldt een ingeschakelde service als gestopt of uitgevallen. De API blijft antwoorden, dus niets anders meldt dit | Hij staat op 1, of iemand schakelt hem uit |
 | Share in Error | Opslag | Waarschuwing | `openstack_sharev2_share_gb` met elke foutstatus, per share, **afgelopen 15 minuten** | Een share heeft het hele venster een foutstatus | Hij is hersteld of verwijderd |
 | Share Stuck | Opslag | Waarschuwing | `openstack_sharev2_share_gb` met elke doorlopende status, per share, **afgelopen 1 uur** | Een share heeft het hele venster een doorlopende status. Manila heeft geen eigen time-out voor een trage backend. Eén die migreert of wordt geback-upt wordt niet bewaakt | Hij bereikt zijn volgende status, of wordt verwijderd |
 | Load Balancers API Down | Load balancers | Kritiek | `openstack_loadbalancer_up`, Min per regio, **afgelopen 15 minuten** | Onder 1. Een gestopte Octavia-API geeft de exporter van de agent een leeg antwoord in plaats van een 0, net als een cloud zonder Octavia. Op de cloud van een agent blijft dit dus stil, en de pagina's van de cloud melden wanneer Octavia het laatst van zich liet horen | Staat op 1, of is verdwenen |
@@ -166,7 +166,7 @@ Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat allee
 | Load Balancer With Two Masters | Load balancers | Kritiek | `openstack_loadbalancer_amphora_status` met `role=MASTER` en `status=ALLOCATED`, Aantal per load balancer, **afgelopen 15 minuten**. Vereist inloggegevens die amphorae mogen opsommen | Meer dan één toegewezen amphora meldt MASTER voor één load balancer | Nog maar één doet dat |
 | Amphora in Error | Load balancers | Kritiek | `openstack_loadbalancer_amphora_status` met `status=ERROR`, Aantal per amphora, **afgelopen 15 minuten**. Vereist inloggegevens die amphorae mogen opsommen | Een amphora heeft het hele venster ERROR: de health manager kon hem niet vervangen | Hij is vervangen |
 | Pool Has No Healthy Members | Load balancers | Kritiek | `openstack_loadbalancer_pool_status` met `operating_status=ERROR`, Aantal per pool, **afgelopen 15 minuten** | Elk lid van een pool faalt voor zijn health check, terwijl de pool en zijn load balancer nog steeds ACTIVE provisionen | Een lid is weer gezond |
-| DNS API Down | Beschikbaarheid | Kritiek | `openstack_designate_up`, Min per regio, **afgelopen 15 minuten**. Alleen een probe biedt dit aan | Onder 1. Een gestopte Designate geeft de exporter van de agent een leeg antwoord, net als een cloud zonder Designate, dus een cloud die de agent verzamelt kan alleen melden dat hij stil werd | Staat op 1 |
+| DNS API Down | Beschikbaarheid | Kritiek | `openstack_designate_up`, Min per regio, **afgelopen 15 minuten**. Alleen een sonde biedt dit aan | Onder 1. Een gestopte Designate geeft de exporter van de agent een leeg antwoord, net als een cloud zonder Designate, dus een cloud die de agent verzamelt kan alleen melden dat hij stil werd | Staat op 1 |
 | DNS Zone in Error | Netwerk | Waarschuwing | Een aantal van `openstack_designate_zone_status` met `status=ERROR`, per zone, **afgelopen 15 minuten** | Een zone meldt het hele venster `ERROR`: zijn worker gaf het schrijven naar een DNS-server op | Hij meldt iets anders |
 | DNS Zone Stuck Pending | Netwerk | Waarschuwing | Een aantal van `openstack_designate_zone_status` met `status=PENDING`, per zone, **afgelopen 30 minuten** | Een zone meldt het hele venster `PENDING`. Zijn worker geeft na enkele minuten op, dus niemand werkt eraan | Hij meldt iets anders |
 | DNS Recordset in Error | Netwerk | Waarschuwing | Een aantal van `openstack_designate_recordsets_status` met `status=ERROR` en elk type waar iemand om vraagt, per zone, **afgelopen 15 minuten** | Een recordset anders dan de eigen SOA en NS van een zone meldt `ERROR`. Die twee melden `ERROR` samen met hun zone, dus DNS Zone in Error meldt dat | Hij meldt iets anders |
@@ -175,22 +175,22 @@ Elk sjabloon leest minstens drie verzamelingen van wat het bewaakt en gaat allee
 | Gnocchi Backlog Growing | Metrieken | Waarschuwing | `openstack_gnocchi_status_measures_to_process`, een lijn door de **afgelopen 2 uur** | De lijn passeert binnen het komende uur 10.000 metingen. Een achterstand daarboven die afneemt gaat niet af | De lijn komt niet meer op 9.000 |
 | Object Storage API Down | Beschikbaarheid | Kritiek | `openstack_object_store_up` en `up` voor `object-store`, Min per regio, **afgelopen 15 minuten** | Het lezen van Swift door de exporter mislukte, of de exporter antwoordde niet. Inloggegevens die Swift weigert geven hetzelfde beeld, dus een cloud waarvan de inloggegevens Swift nooit hebben gelezen krijgt dit niet aangeboden | Beide staan op 1 |
 | Object Container Growth Forecast | Opslag | Waarschuwing | `openstack_object_store_bytes`, een lijn door de **afgelopen 7 dagen**, per container | De lijn passeert binnen de komende week 1 TiB. Pas het aan naar wat uw cloud moet melden | De lijn komt niet meer op 90% daarvan |
-| Key Manager API Down | Beschikbaarheid | Kritiek | `openstack_barbican_up`, Min per regio, **afgelopen 15 minuten**. Alleen een probe biedt dit aan | Onder 1. De exporter heeft helemaal geen reader voor Barbican | Staat op 1 |
-| Swift Storage Server Not Answering | Opslag | Waarschuwing | `openstack_object_store_recon_up`, Min per server, **afgelopen 15 minuten**. Alleen een probe biedt dit aan, waar de instellingen van de cloud zijn opslagservers noemen | De server antwoordt niet op `/recon`. De proxy van Swift blijft zonder hem antwoorden | Hij antwoordt |
-| Swift Rings Differ | Opslag | Waarschuwing | `openstack_object_store_recon_rings_differ`, Min per ring, **afgelopen 15 minuten**. Alleen een probe biedt dit aan | De genoemde servers melden verschillende checksums voor een ring | Ze komen overeen |
-| Swift Replication Stale | Opslag | Waarschuwing | `openstack_object_store_recon_replication_age_seconds`, Min per server en ring, **afgelopen 15 minuten**. Alleen een probe biedt dit aan | Een server voltooide een ronde het laatst meer dan 6 uur geleden | Eén voltooit er een |
+| Key Manager API Down | Beschikbaarheid | Kritiek | `openstack_barbican_up`, Min per regio, **afgelopen 15 minuten**. Alleen een sonde biedt dit aan | Onder 1. De exporter heeft helemaal geen reader voor Barbican | Staat op 1 |
+| Swift Storage Server Not Answering | Opslag | Waarschuwing | `openstack_object_store_recon_up`, Min per server, **afgelopen 15 minuten**. Alleen een sonde biedt dit aan, waar de instellingen van de cloud zijn opslagservers noemen | De server antwoordt niet op `/recon`. De proxy van Swift blijft zonder hem antwoorden | Hij antwoordt |
+| Swift Rings Differ | Opslag | Waarschuwing | `openstack_object_store_recon_rings_differ`, Min per ring, **afgelopen 15 minuten**. Alleen een sonde biedt dit aan | De genoemde servers melden verschillende checksums voor een ring | Ze komen overeen |
+| Swift Replication Stale | Opslag | Waarschuwing | `openstack_object_store_recon_replication_age_seconds`, Min per server en ring, **afgelopen 15 minuten**. Alleen een sonde biedt dit aan | Een server voltooide een ronde het laatst meer dan 6 uur geleden | Eén voltooit er een |
 | Databases API Down | Beschikbaarheid | Kritiek | `openstack_trove_up` en `up` voor `database`, Min per regio, **afgelopen 15 minuten** | Het lezen van Trove door de exporter mislukte, of de exporter antwoordde niet. Hij leest de mgmt-API van Trove, dus geweigerde inloggegevens geven hetzelfde beeld als een gestopte API, en een cloud waarvan de inloggegevens Trove nooit hebben gelezen krijgt dit niet aangeboden | Beide staan op 1 |
 | Database Instance in Error | Databases | Waarschuwing | Een aantal van `openstack_trove_instance_status` met elke foutstatus, per instance, **afgelopen 15 minuten** | Een instance heeft het hele venster een foutstatus | Hij is hersteld of verwijderd |
 | Database Instance Stuck | Databases | Waarschuwing | Een aantal van `openstack_trove_instance_status` met elke doorlopende status, per instance, **afgelopen 1 uur** | Een instance heeft het hele venster een doorlopende status. Trove heeft geen lijst van zijn workers, dus dit is wat meldt dat `trove-taskmanager` is gestopt | Hij bereikt zijn volgende status, of wordt verwijderd |
 | Database Volume Nearly Full | Databases | Waarschuwing | `openstack_trove_instance_volume_used_gb` gedeeld door `openstack_trove_instance_volume_size_gb`, per instance, **afgelopen 15 minuten** | Op of boven 85%. Een instance die niet draait meldt 0 in gebruik. Geen opname bevat een draaiende | Hij is vergroot, of krimpt |
-| Bare Metal API Down | Bare metal | Kritiek | `openstack_ironic_up`, Min per regio, **afgelopen 15 minuten** | Onder 1. Spreekt alleen waar een lezing van Ironic dat kan zeggen: een probe, of exporter 1.7.0. Een gestopte Ironic geeft de exporter van de agent niets om te lezen, net als een cloud zonder Ironic, dus daar blijft dit stil en de pagina's van de cloud melden wanneer Ironic het laatst van zich liet horen | Staat op 1, of is verdwenen |
-| Bare Metal Conductor Down | Bare metal | Waarschuwing | `openstack_ironic_agent_state`, Min per host, **afgelopen 15 minuten**. Alleen een probe verstuurt dit, en alleen waar het beleid van de cloud zijn inloggegevens de conductors van Ironic laat lezen: standaard weigert het die van een project | Ironic meldt een conductor als niet actief. De API blijft antwoorden en elk node meldt zich als eerder, dus niets anders meldt dit | Hij staat op 1, of Ironic laat zijn record vallen |
+| Bare Metal API Down | Bare metal | Kritiek | `openstack_ironic_up`, Min per regio, **afgelopen 15 minuten** | Onder 1. Spreekt alleen waar een lezing van Ironic dat kan zeggen: een sonde, of exporter 1.7.0. Een gestopte Ironic geeft de exporter van de agent niets om te lezen, net als een cloud zonder Ironic, dus daar blijft dit stil en de pagina's van de cloud melden wanneer Ironic het laatst van zich liet horen | Staat op 1, of is verdwenen |
+| Bare Metal Conductor Down | Bare metal | Waarschuwing | `openstack_ironic_agent_state`, Min per host, **afgelopen 15 minuten**. Alleen een sonde verstuurt dit, en alleen waar het beleid van de cloud zijn inloggegevens de conductors van Ironic laat lezen: standaard weigert het die van een project | Ironic meldt een conductor als niet actief. De API blijft antwoorden en elk node meldt zich als eerder, dus niets anders meldt dit | Hij staat op 1, of Ironic laat zijn record vallen |
 | Bare Metal Node in Error | Bare metal | Waarschuwing | `openstack_ironic_node` voor elke mislukte `provision_state`, Max per node, **afgelopen 15 minuten** | Bij elke verzameling 15 minuten lang in die staat, in onderhoud of niet | Hij is eruit, of is verwijderd |
 | Bare Metal Node Stuck Transitioning | Bare metal | Waarschuwing | `openstack_ironic_node` voor elke doorlopende `provision_state` met `maintenance = false`, Max per node, **afgelopen 2 uur** | Bij elke verzameling 2 uur lang in die staat. Een lange schijfwisbewerking kan werkelijk zo lang duren, wat de pagina van een node kan vertellen en dit niet | Hij is eruit, of is verwijderd |
 | Bare Metal Node in Maintenance Too Long | Bare metal | Waarschuwing | `openstack_ironic_node` met `maintenance = true`, Max per node, **afgelopen 7 dagen** | Bij elke verzameling 7 dagen lang in onderhoud. Vereist dat uw metrieken zo lang bewaard blijven | Uit onderhoud, of is verwijderd |
 | Bare Metal Power State Unexpected | Bare metal | Waarschuwing | `openstack_ironic_node` met `provision_state = active`, `power_state = power off` en `maintenance = false`, Max per node, **afgelopen 15 minuten** | Bij elke verzameling 15 minuten lang. Een instance die zijn eigenaar stopte meldt hetzelfde, wat de pagina van een node kan vertellen en dit niet | Ingeschakeld, of niet langer uitgerold |
 | Project Quota Nearly Reached | Projecten | Waarschuwing | `openstack_nova_limits_*` en `openstack_cinder_limits_volume_*`, gebruikt / max per project, **afgelopen 3 uur** | Boven 90% van zijn quotum voor vCPU's, geheugen, instances of volumes. Vereist dat de [limits-reeksen aan staan](#de-limits-reeksen-aanzetten) | Op of onder 81% |
-| Token Issue Failing | Beschikbaarheid | Kritiek | `openstack_check_token_success`, Min per regio, **afgelopen 5 minuten**. Vereist dat API-controles aan staan | Onder 1: Keystone gaf de probe geen token | Er wordt een token uitgegeven |
+| Token Issue Failing | Beschikbaarheid | Kritiek | `openstack_check_token_success`, Min per regio, **afgelopen 5 minuten**. Vereist dat API-controles aan staan | Onder 1: Keystone gaf de sonde geen token | Er wordt een token uitgegeven |
 | Service API Check Failing | Beschikbaarheid | Kritiek | `openstack_check_api_success`, Min per regio en `service_type`, **afgelopen 5 minuten**. Vereist dat API-controles aan staan | Onder 1: die service antwoordde niet, voor elke service in de catalogus | Hij antwoordt, of verlaat de catalogus |
 | Public Certificate Expiring in 30 Days | Beschikbaarheid | Waarschuwing | `openstack_check_certificate_expiry_days`, Min per regio, host en poort, **afgelopen 5 minuten**. Vereist dat API-controles aan staan | Minder dan 30 dagen over | 33 dagen of meer over, of het endpoint verlaat de catalogus |
 | Public Certificate Expiring in 7 Days | Beschikbaarheid | Kritiek | Hetzelfde | Minder dan 7 dagen over | 7,7 dagen of meer over, of het endpoint verlaat de catalogus |
@@ -233,7 +233,7 @@ Zeven andere sjablonen lezen de logs van een cloud in plaats van de metrieken, d
 | Database Connection Lost | Servicelogs | Kritiek | `DBConnectionError`, `SQL connection failed`, of `Lost connection` en `Can't connect` van MySQL, **afgelopen 5 minuten** | 5 of meer | Minder dan 5 |
 | Too Many Errors from a Service | Servicelogs | Waarschuwing | Regels met `ERROR` en `CRITICAL`, per service en machine, **afgelopen 5 minuten** | 50 of meer | Minder dan 50 |
 | Token Validation Failing | Servicelogs | Kritiek | `Authorization failed for token` van een service, **afgelopen 5 minuten** | 10 of meer. Eén is iemands verlopen sessie. Een controller waarvan de Fernet-sleutels verschillen van de andere geeft dit beeld en geen regel zegt meer, dus vergelijk `/etc/keystone/fernet-keys` op elke controller | Minder dan 10 |
-| Instance Action Failed | Evenementen | Waarschuwing | `compute.exception` en elke `instance.*.error`, per instance, evenement en reden, **afgelopen 15 minuten**. Vereist [notificaties](/docs/telemetry/openstack#notificaties-aanzetten) of een probe | Een of meer | Er zijn er geen meer in het venster |
+| Instance Action Failed | Evenementen | Waarschuwing | `compute.exception` en elke `instance.*.error`, per instance, evenement en reden, **afgelopen 15 minuten**. Vereist [notificaties](/docs/telemetry/openstack#notificaties-aanzetten) of een sonde | Een of meer | Er zijn er geen meer in het venster |
 | Scheduling Failed | Evenementen | Waarschuwing | Een fout van een compute-taak met `NoValidHost`, zoals `compute_task.build_instances.error`, wat Nova verstuurt. Ook `scheduler.create_volume` van Cinder, en `scheduler.select_destinations.error`, dat de documentatie van Nova noemt en onze testclouds nooit verstuurden. Per instance, evenement en reden, **afgelopen 15 minuten**. Vereist hetzelfde | Een of meer | Er zijn er geen meer in het venster |
 
 ### Waar de cloud op rust
@@ -292,7 +292,7 @@ Het incident meldt wat het meeneemt, en een waarschuwing over een worker terwijl
 
 De drie **Capaciteit**-sjablonen lezen reeksen die OneUptime zelf schrijft op basis van de inventaris van de cloud, elke twee minuten zolang de cloud rapporteert. Geen enkele exporterreeks bevat een zone of het aantal van een flavor. Zie [Capaciteit](/docs/telemetry/openstack#capaciteit) voor wat ze betekenen. Alle drie gaan over toewijzing, wat is beloofd, en geen enkele over belasting.
 
-**Project Quota Nearly Reached** leest `openstack_nova_limits_*` en `openstack_cinder_limits_*`, die standaard uit staan omdat ze per project API-aanroepen kosten. Het sjabloon blijft stil totdat u ze aanzet: voer `install.sh` van de agent opnieuw uit met `OPENSTACK_COLLECT_QUOTAS=true`. Een tweede exporter leest ze dan één keer per uur, en het sjabloon wacht op drie van die metingen. Zet bij een cloud die een probe leest **Projectlimieten** aan onder **Gegevensverzameling** op de pagina **Instellingen** van de cloud.
+**Project Quota Nearly Reached** leest `openstack_nova_limits_*` en `openstack_cinder_limits_*`, die standaard uit staan omdat ze per project API-aanroepen kosten. Het sjabloon blijft stil totdat u ze aanzet: voer `install.sh` van de agent opnieuw uit met `OPENSTACK_COLLECT_QUOTAS=true`. Een tweede exporter leest ze dan één keer per uur, en het sjabloon wacht op drie van die metingen. Zet bij een cloud die een sonde leest **Projectlimieten** aan onder **Gegevensverzameling** op de pagina **Instellingen** van de cloud.
 
 ### Opdrachten om daarna uit te voeren
 
@@ -331,8 +331,8 @@ De onderstaande metrieken vormen de catalogus die het monitorformulier aanbiedt.
 
 | Metriek | Eenheid | Leesacties | Beschrijving |
 | --- | --- | --- | --- |
-| `openstack_nova_agent_state` | - | Min | Of een Nova-worker (nova-compute, nova-scheduler, nova-conductor) actief is (1) of uitgevallen (0), één reeks per worker. adminState geeft enabled of disabled aan, en een uitgeschakelde is gepland werk, met de reden in disabledReason. hostname is de korte hostnaam van Nova, waar de reeksen van hypervisor en Placement de volledige naam geven. forced_down geeft aan dat een operator Nova heeft verteld dat hij is uitgevallen: alleen een probe verstuurt dit. |
-| `openstack_neutron_agent_state` | - | Min | Of een Neutron-agent alive is (1) of niet (0), één reeks per host en binary. adminState geeft up of down aan, en een die is uitgezet is gepland werk. dhcp_network_count geeft aan hoeveel netwerken een DHCP-agent bedient: alleen een probe verstuurt dit. |
+| `openstack_nova_agent_state` | - | Min | Of een Nova-worker (nova-compute, nova-scheduler, nova-conductor) actief is (1) of uitgevallen (0), één reeks per worker. adminState geeft enabled of disabled aan, en een uitgeschakelde is gepland werk, met de reden in disabledReason. hostname is de korte hostnaam van Nova, waar de reeksen van hypervisor en Placement de volledige naam geven. forced_down geeft aan dat een operator Nova heeft verteld dat hij is uitgevallen: alleen een sonde verstuurt dit. |
+| `openstack_neutron_agent_state` | - | Min | Of een Neutron-agent alive is (1) of niet (0), één reeks per host en binary. adminState geeft up of down aan, en een die is uitgezet is gepland werk. dhcp_network_count geeft aan hoeveel netwerken een DHCP-agent bedient: alleen een sonde verstuurt dit. |
 | `openstack_cinder_agent_state` | - | Min | Of een Cinder-service (cinder-volume, cinder-scheduler, cinder-backup) actief is (1) of uitgevallen (0), één reeks per host en binary. adminState geeft enabled of disabled aan, en een uitgeschakelde is gepland werk. Het label uuid wordt bij elke verzameling opnieuw verzonnen, dus groepeer er nooit op. |
 
 ### RabbitMQ
@@ -411,7 +411,7 @@ De onderstaande metrieken vormen de catalogus die het monitorformulier aanbiedt.
 | `openstack_placement_resource_usage` | - | Max | Hoeveel van een resource Placement aan instances op een hypervisor heeft beloofd. Dit is toewijzing, geen belasting: een inactieve instance houdt er alles van vast. |
 | `openstack_placement_resource_generation` | `count` | Max | Hoe vaak de inventaris van een hypervisor is gewijzigd, zoals Placement telt. Het stijgt bij elke wijziging, dus het zegt dát er iets veranderde, niet wat. |
 | `openstack_placement_resource_provider_allocations` | - | Max | Hoeveel van een resource één consumer, zijn uuid, op een hypervisor vasthoudt. |
-| `openstack_placement_flavor_fits` | `count` | Max | Hoeveel er nog van een flavor zouden passen volgens Placement, host voor host geteld, via `GET /allocation_candidates`: één reeks voor de regio en één voor elke zone en aggregate. Wordt om de beurt gelezen, een paar flavors per verzameling, en tussendoor verstuurd zoals het laatst gelezen was. Alleen een probe vraagt dit. |
+| `openstack_placement_flavor_fits` | `count` | Max | Hoeveel er nog van een flavor zouden passen volgens Placement, host voor host geteld, via `GET /allocation_candidates`: één reeks voor de regio en één voor elke zone en aggregate. Wordt om de beurt gelezen, een paar flavors per verzameling, en tussendoor verstuurd zoals het laatst gelezen was. Alleen een sonde vraagt dit. |
 | `openstack_nova_vcpus_available` | `count` | Max | De vCPU's die een hypervisor heeft, wat de naam ook zegt, vóór enige allocatieratio. Nova stopte met het rapporteren hiervan bij microversie 2.88, dus de reeksen van Placement zijn degene om op te vertrouwen. |
 | `openstack_nova_vcpus_used` | `count` | Max | De vCPU's die Nova aan instances op een hypervisor heeft beloofd. Toewijzing, geen belasting. |
 | `openstack_nova_memory_available_bytes` | `bytes` | Max | Het geheugen dat een hypervisor heeft, wat de naam ook zegt, vóór enige allocatieratio. |
@@ -421,7 +421,7 @@ De onderstaande metrieken vormen de catalogus die het monitorformulier aanbiedt.
 | `openstack_nova_free_disk_bytes` | `bytes` | Min | De lokale schijf die Nova op een hypervisor als vrij telt. Het kan negatief worden als een hypervisor meer heeft beloofd dan hij heeft. |
 | `openstack_nova_current_workload` | `count` | Max | Hoeveel build-, resize-, snapshot-, migrate- en rescue-bewerkingen er op een hypervisor draaien. Het is geen CPU-belasting. |
 | `openstack_nova_running_vms` | `count` | Max | Hoeveel ACTIVE-instances een hypervisor heeft. hostname is de volledige naam van de hypervisor. |
-| `openstack_nova_server_status` | - | Max | Eén reeks per instance, waarvan de waarde een numerieke code voor zijn status is: ACTIVE is 0, BUILD is 1, ERROR is 4. Lees het woord uit het label status en filter daarop: de code is geen aantal en geen ernst. De exporter van de agent laat address_ipv4 en address_ipv6 leeg op een echte cloud, en een probe vult ze in met de adressen die Nova opsomt. hypervisor_hostname, host_id en availability_zone zijn leeg totdat de instance is ingepland. image_id noemt de image waarvan hij startte: alleen een probe verstuurt dit, en niet voor een instance die vanaf een volume startte. network_names somt de netwerken op waarop hij een adres heeft, als JSON-array van hun namen: alleen een probe verstuurt dit. |
+| `openstack_nova_server_status` | - | Max | Eén reeks per instance, waarvan de waarde een numerieke code voor zijn status is: ACTIVE is 0, BUILD is 1, ERROR is 4. Lees het woord uit het label status en filter daarop: de code is geen aantal en geen ernst. De exporter van de agent laat address_ipv4 en address_ipv6 leeg op een echte cloud, en een sonde vult ze in met de adressen die Nova opsomt. hypervisor_hostname, host_id en availability_zone zijn leeg totdat de instance is ingepland. image_id noemt de image waarvan hij startte: alleen een sonde verstuurt dit, en niet voor een instance die vanaf een volume startte. network_names somt de netwerken op waarop hij een adres heeft, als JSON-array van hun namen: alleen een sonde verstuurt dit. |
 | `openstack_nova_server_local_gb` | `GiB` | Max | De lokale schijf die één instance vasthoudt. _Standaard uit:_ verwijder `--disable-metric=nova-server_local_gb` uit de exporter. |
 | `openstack_nova_total_vms` | `count` | Max | Hoeveel instances de regio heeft, in elke status. |
 | `openstack_nova_instances_by_status` | `count` | Max | Hoeveel instances er in elke status zijn, één reeks per status in elke regio. Een cloud boven de samenvattingsgrootte houdt dit aan in plaats van een reeks per instance. Andere clouds sturen het niet. |
@@ -489,12 +489,12 @@ De onderstaande metrieken vormen de catalogus die het monitorformulier aanbiedt.
 | `openstack_cinder_pool_capacity_total_gb` | `GiB` | Max | Hoeveel een Cinder-opslagpool bevat, volgens zijn backend. |
 | `openstack_cinder_pool_capacity_free_gb` | `GiB` | Min | Hoeveel van een Cinder-opslagpool vrij is, volgens zijn backend. |
 | `openstack_cinder_volume_status_counter` | `count` | Max | Hoeveel volumes er in elke status zijn, één reeks per statuswoord in het label status. Een bekende status zonder volumes geeft 0. |
-| `openstack_cinder_volume_gb` | `GiB` | Max | Eén reeks per volume, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status. Op een cloud die een probe verzamelt, geeft het label pool aan welke pool het bevat, voor een credential die Cinder als admin behandelt. |
+| `openstack_cinder_volume_gb` | `GiB` | Max | Eén reeks per volume, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status. Op een cloud die een sonde verzamelt, geeft het label pool aan welke pool het bevat, voor een credential die Cinder als admin behandelt. |
 | `openstack_cinder_volume_status` | - | Max | Eén reeks per volume, waarvan de waarde een numerieke code voor zijn status is. De exporter heeft hem verouderd verklaard: lees het label status van Volume Size, of Volumes by Status. |
 | `openstack_cinder_volumes` | `count` | Max | Hoeveel volumes de regio heeft. |
 | `openstack_cinder_snapshots` | `count` | Max | Hoeveel volumesnapshots de regio heeft. |
-| `openstack_cinder_snapshot_gb` | `GiB` | Max | Eén reeks per volumesnapshot, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status. Alleen een probe verstuurt dit: de exporter van de agent telt alleen snapshots. |
-| `openstack_cinder_backup_gb` | `GiB` | Max | Eén reeks per volumeback-up, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status, zodat een back-up die blijft mislukken zichtbaar is. Alleen een probe verstuurt dit: de exporter van de agent kent geen back-ups. |
+| `openstack_cinder_snapshot_gb` | `GiB` | Max | Eén reeks per volumesnapshot, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status. Alleen een sonde verstuurt dit: de exporter van de agent telt alleen snapshots. |
+| `openstack_cinder_backup_gb` | `GiB` | Max | Eén reeks per volumeback-up, waarvan de waarde zijn grootte is, met zijn statuswoord in het label status, zodat een back-up die blijft mislukken zichtbaar is. Alleen een sonde verstuurt dit: de exporter van de agent kent geen back-ups. |
 
 ### Capaciteit
 
@@ -537,15 +537,15 @@ Een cloud die Heat of Magnum draait, heeft deze. Een cloud die dat niet doet, he
 | `openstack_heat_up` | | Min | Of de API van Heat antwoordde. Een gestopte `heat-engine` geeft ook 0, omdat de API van Heat een engine om zijn lijsten vraagt. |
 | `openstack_heat_stack_status` | | Max | Eén reeks per stack, met `id`, `name`, `project_id` en `status`. De waarde is een code, dus lees het label `status`. `project_id` is leeg voor alles onder een admin. |
 | `openstack_heat_stack_status_counter` | `count` | Max | Hoeveel stacks elke status hebben, per regio. |
-| `openstack_heat_agent_state` | | Min | Of Heat elke `heat-engine` als up opsomt. Alleen een probe verstuurt dit. |
+| `openstack_heat_agent_state` | | Min | Of Heat elke `heat-engine` als up opsomt. Alleen een sonde verstuurt dit. |
 | `openstack_container_infra_up` | | Min | Of de API van Magnum antwoordde. Een gestopte `magnum-conductor` laat dit op 1 staan. |
-| `openstack_cloudkitty_up` | | Min | Of de API van CloudKitty antwoordde, op een cloud die hem draait. Alleen een probe verstuurt dit. |
-| `openstack_cloudkitty_rated` | | Max | Wat CloudKitty een project voor een maand waardeerde, eens per uur, per project en maand. Een getal, in de eenheid van de tarieven. Alleen een probe verstuurt dit. |
+| `openstack_cloudkitty_up` | | Min | Of de API van CloudKitty antwoordde, op een cloud die hem draait. Alleen een sonde verstuurt dit. |
+| `openstack_cloudkitty_rated` | | Max | Wat CloudKitty een project voor een maand waardeerde, eens per uur, per project en maand. Een getal, in de eenheid van de tarieven. Alleen een sonde verstuurt dit. |
 | `openstack_container_infra_total_clusters` | `count` | Max | Hoeveel clusters Magnum voor deze credential opsomde. |
 | `openstack_container_infra_cluster_status` | | Max | Eén reeks per cluster, met `uuid`, `name`, `stack_id`, `status`, `node_count`, `master_count` en `project_id`. De waarde is een code, dus lees het label `status`. `project_id` is leeg vanuit de exporter. |
 | `openstack_container_infra_cluster_masters` | `count` | Max | Voor hoeveel control-plane-nodes elk cluster is aangevraagd. |
 | `openstack_container_infra_cluster_nodes` | `count` | Max | Voor hoeveel worker-nodes elk cluster is aangevraagd. |
-| `openstack_container_infra_agent_state` | | Min | Of Magnum elke `magnum-conductor` als up opsomt. Alleen een probe verstuurt dit. |
+| `openstack_container_infra_agent_state` | | Min | Of Magnum elke `magnum-conductor` als up opsomt. Alleen een sonde verstuurt dit. |
 
 ### Shared File Systems
 
@@ -558,7 +558,7 @@ Alleen een cloud die Manila draait, verstuurt deze, en een cloud zonder Manila t
 | `openstack_sharev2_share_status` | | Max | Eén reeks per share. De waarde is een code, en die van `creating` is 0, dus lees het label `status`. |
 | `openstack_sharev2_share_status_counter` | `count` | Max | Hoeveel shares elke status hebben, per regio. |
 | `openstack_sharev2_shares_counter` | `count` | Max | Hoeveel shares Manila voor deze credential opsomde, per regio. |
-| `openstack_sharev2_agent_state` | | Min | Of Manila elke service als up opsomt, waarbij `state` `stopped` zegt voor een service die netjes afsloot en `down` voor een die crashte. Alleen een probe verstuurt dit. |
+| `openstack_sharev2_agent_state` | | Min | Of Manila elke service als up opsomt, waarbij `state` `stopped` zegt voor een service die netjes afsloot en `down` voor een die crashte. Alleen een sonde verstuurt dit. |
 
 ### Load balancers
 
@@ -570,18 +570,18 @@ Alleen een cloud die Octavia draait, verstuurt deze, en een cloud zonder Octavia
 | `openstack_loadbalancer_loadbalancer_status` | | Max | Eén reeks per load balancer, met `provisioning_status`, `operating_status`, `provider`, `vip_address` en `project_id`. De waarde is een code voor de operating status: lees de woorden. |
 | `openstack_loadbalancer_pool_status` | | Max | Eén reeks per pool, met `provisioning_status`, `operating_status`, `protocol` en `lb_algorithm`. Een pool waarvan alle leden down zijn, geeft nog steeds 0: lees `operating_status`. |
 | `openstack_loadbalancer_amphora_status` | | Max | Eén reeks per amphora, met `status`, `role`, `compute_id`, `loadbalancer_id` en `cert_expiration`, een tekst en geen getal. Alleen een admin mag amphorae opsommen. |
-| `openstack_loadbalancer_listener_status` | | Max | Eén reeks per listener, altijd 1, met `provisioning_status`, `operating_status`, `protocol`, `protocol_port` en `loadbalancer_id`. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_member_status` | | Max | Eén reeks per poolmember, altijd 1, met bovenal `operating_status`, `pool_id`, `address`, `protocol_port` en `weight`. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | Verbindingen die open zijn op het moment van de lezing, per load balancer. Alleen een probe verstuurt dit: hij leest de API van Octavia. |
-| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | Verbindingen die elke seconde worden geopend, per load balancer, tussen twee lezingen. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | Bytes die elke seconde binnenkwamen, per load balancer. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | Bytes die elke seconde werden verstuurd, per load balancer. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | Verzoeken die elke seconde mislukten, per load balancer. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | Hetzelfde, per listener. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | Hetzelfde, per listener. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | Hetzelfde, per listener. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | Hetzelfde, per listener. Alleen een probe verstuurt dit. |
-| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | Hetzelfde, per listener. Alleen een probe verstuurt dit. |
+| `openstack_loadbalancer_listener_status` | | Max | Eén reeks per listener, altijd 1, met `provisioning_status`, `operating_status`, `protocol`, `protocol_port` en `loadbalancer_id`. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_member_status` | | Max | Eén reeks per poolmember, altijd 1, met bovenal `operating_status`, `pool_id`, `address`, `protocol_port` en `weight`. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_stats_active_connections` | `{connection}` | Max | Verbindingen die open zijn op het moment van de lezing, per load balancer. Alleen een sonde verstuurt dit: hij leest de API van Octavia. |
+| `openstack_loadbalancer_stats_connections_per_second` | `{connection}/s` | Max | Verbindingen die elke seconde worden geopend, per load balancer, tussen twee lezingen. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_stats_bytes_in_per_second` | `By/s` | Max | Bytes die elke seconde binnenkwamen, per load balancer. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_stats_bytes_out_per_second` | `By/s` | Max | Bytes die elke seconde werden verstuurd, per load balancer. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_stats_request_errors_per_second` | `{request}/s` | Max | Verzoeken die elke seconde mislukten, per load balancer. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_listener_stats_active_connections` | `{connection}` | Max | Hetzelfde, per listener. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_listener_stats_connections_per_second` | `{connection}/s` | Max | Hetzelfde, per listener. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_listener_stats_bytes_in_per_second` | `By/s` | Max | Hetzelfde, per listener. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_listener_stats_bytes_out_per_second` | `By/s` | Max | Hetzelfde, per listener. Alleen een sonde verstuurt dit. |
+| `openstack_loadbalancer_listener_stats_request_errors_per_second` | `{request}/s` | Max | Hetzelfde, per listener. Alleen een sonde verstuurt dit. |
 | `openstack_loadbalancer_total_loadbalancers` | `count` | Max | Hoeveel load balancers Octavia voor deze credential opsomde, per regio. |
 | `openstack_loadbalancer_total_pools` | `count` | Max | Hoeveel pools Octavia voor deze credential opsomde, per regio. |
 | `openstack_loadbalancer_total_amphorae` | `count` | Max | Hoeveel amphorae Octavia voor deze credential opsomde, per regio. |
@@ -597,7 +597,7 @@ Alleen een cloud die Designate draait, verstuurt deze, en een cloud zonder Desig
 | `openstack_designate_zone_status` | | Max | Eén reeks per zone, met `id`, `name`, `tenant_id`, `type` en `status`. De waarde is een code, en die van `PENDING` is 0, dus lees het label `status`. |
 | `openstack_designate_recordsets` | `count` | Max | Hoeveel recordsets elke zone bevat. De exporter doet hiervoor bij elke scrape één aanroep per zone. |
 | `openstack_designate_recordsets_status` | | Max | Eén reeks per recordset, met `id`, `name`, `type`, `zone_id`, `zone_name` en `status`. De waarde is een code, en die van `PENDING` is 0, dus lees het label `status`. |
-| `openstack_designate_agent_state` | | Min | Of Designate elk van zijn services als up opsomt. Alleen een probe verstuurt dit. |
+| `openstack_designate_agent_state` | | Min | Of Designate elk van zijn services als up opsomt. Alleen een sonde verstuurt dit. |
 
 ### Metrieken
 
@@ -618,27 +618,27 @@ Alleen een cloud die Swift draait, verstuurt deze, en een cloud zonder Swift too
 | --- | --- | --- | --- |
 | `openstack_object_store_up` | | Min | Of de lezing van Swift door de exporter antwoordde. Een credential die Swift weigert geeft 0, net als een gestopte proxy. |
 | `openstack_object_store_bytes` | `bytes` | Max | Hoeveel een container bevat, met `container_name`. Alleen die van het eigen project van de credential, zonder projectlabel. |
-| `openstack_object_store_recon_servers` | `count` | Max | Hoeveel van de opslagservers van Swift de instellingen van de cloud noemen voor `/recon`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_up` | | Min | Of een genoemde server `/recon` beantwoordde, met `address`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_servers_not_answering` | `count` | Max | Hoeveel van de genoemde servers niet antwoorden. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_replication_age_seconds` | `s` | Min | Hoe lang geleden een server voor het laatst een replicatieronde voltooide, met `address` en `ring`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_replication_failures` | `count` | Max | Hoeveel pogingen van die ronde mislukten, met `address` en `ring`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_oldest_replication_seconds` | `s` | Max | De langste wachttijd van die allemaal. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_unmounted_drives` | `count` | Max | Hoeveel drives een server zegt dat niet zijn gemount, met `address`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_rings_differ` | | Min | Of de genoemde servers verschillende checksums voor een ring melden, met `ring`. Alleen een probe verstuurt dit. |
-| `openstack_object_store_recon_rings_differing` | `count` | Max | Voor hoeveel rings ze dat doen. Alleen een probe verstuurt dit. |
+| `openstack_object_store_recon_servers` | `count` | Max | Hoeveel van de opslagservers van Swift de instellingen van de cloud noemen voor `/recon`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_up` | | Min | Of een genoemde server `/recon` beantwoordde, met `address`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_servers_not_answering` | `count` | Max | Hoeveel van de genoemde servers niet antwoorden. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_replication_age_seconds` | `s` | Min | Hoe lang geleden een server voor het laatst een replicatieronde voltooide, met `address` en `ring`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_replication_failures` | `count` | Max | Hoeveel pogingen van die ronde mislukten, met `address` en `ring`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_oldest_replication_seconds` | `s` | Max | De langste wachttijd van die allemaal. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_unmounted_drives` | `count` | Max | Hoeveel drives een server zegt dat niet zijn gemount, met `address`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_rings_differ` | | Min | Of de genoemde servers verschillende checksums voor een ring melden, met `ring`. Alleen een sonde verstuurt dit. |
+| `openstack_object_store_recon_rings_differing` | `count` | Max | Voor hoeveel rings ze dat doen. Alleen een sonde verstuurt dit. |
 | `openstack_object_store_objects` | `count` | Max | Hoeveel objecten een container bevat, met `container_name`. Alleen die van het eigen project van de credential, zonder projectlabel. |
 
 ### Key manager
 
-Alleen een probe verstuurt deze, op een cloud waarvan de catalogus Barbican noemt: de exporter heeft er geen reader voor. Een cloud zonder Barbican toont er geen spoor van, en een cloud die de agent verzamelt evenmin.
+Alleen een sonde verstuurt deze, op een cloud waarvan de catalogus Barbican noemt: de exporter heeft er geen reader voor. Een cloud zonder Barbican toont er geen spoor van, en een cloud die de agent verzamelt evenmin.
 
 | Metriek | Eenheid | Leesacties | Beschrijving |
 | --- | --- | --- | --- |
-| `openstack_barbican_up` | | Min | Of de API van Barbican antwoordde. Een credential die hij weigert geeft 1, omdat hij antwoordde. Alleen een probe verstuurt dit. |
-| `openstack_barbican_secrets` | `count` | Max | Hoeveel secrets het eigen project van deze credential bevat. Alleen een probe verstuurt dit. |
-| `openstack_barbican_orders` | `count` | Max | Hoeveel orders het eigen project van deze credential bevat. Alleen een probe verstuurt dit. |
-| `openstack_barbican_containers` | `count` | Max | Hoeveel secretcontainers het eigen project van deze credential bevat. Alleen een probe verstuurt dit. |
+| `openstack_barbican_up` | | Min | Of de API van Barbican antwoordde. Een credential die hij weigert geeft 1, omdat hij antwoordde. Alleen een sonde verstuurt dit. |
+| `openstack_barbican_secrets` | `count` | Max | Hoeveel secrets het eigen project van deze credential bevat. Alleen een sonde verstuurt dit. |
+| `openstack_barbican_orders` | `count` | Max | Hoeveel orders het eigen project van deze credential bevat. Alleen een sonde verstuurt dit. |
+| `openstack_barbican_containers` | `count` | Max | Hoeveel secretcontainers het eigen project van deze credential bevat. Alleen een sonde verstuurt dit. |
 
 ### Databases
 
@@ -658,11 +658,11 @@ Alleen een cloud die Ironic draait, verstuurt deze, en een cloud zonder Ironic t
 
 | Metriek | Eenheid | Leesacties | Beschrijving |
 | --- | --- | --- | --- |
-| `openstack_ironic_up` | | Min | 1 als een lezing van Ironic ver genoeg kwam om het te kunnen zeggen. Als Ironic is gestopt, antwoordt de exporter die de OpenStack Agent draait met een lege 200, zoals bij een cloud zonder Ironic, dus deze reeks wordt stil in plaats van 0 te geven: een probe en exporter 1.7.0 kunnen 0 melden. |
+| `openstack_ironic_up` | | Min | 1 als een lezing van Ironic ver genoeg kwam om het te kunnen zeggen. Als Ironic is gestopt, antwoordt de exporter die de OpenStack Agent draait met een lege 200, zoals bij een cloud zonder Ironic, dus deze reeks wordt stil in plaats van 0 te geven: een sonde en exporter 1.7.0 kunnen 0 melden. |
 | `openstack_ironic_node` | | Max | Eén reeks per node die Ironic aan deze credential toont, altijd 1: wat hij zegt staat in zijn labels, zijn provisioning-status, power-status en of hij in onderhoud is. Ironic toont een project alleen de nodes die het bezit. |
 | `openstack_ironic_node_provision_updated_at` | `seconds` | Max | Wanneer Ironic de provisioning-status van deze node het laatst zag veranderen, als Unix-tijd. De heartbeats van een deploy-agent verzetten hem ook, dus een lange wisbewerking is geen vastgelopen node. Een node die nooit is verzet, heeft zo'n reeks niet. |
 | `openstack_ironic_node_updated_at` | `seconds` | Max | Wanneer het record van deze node het laatst veranderde, als Unix-tijd. Een node die nooit is gewijzigd, heeft zo'n reeks niet. |
-| `openstack_ironic_agent_state` | | Min | 1 zolang Ironic een conductor alive noemt, 0 zodra zijn heartbeat is verouderd. Alleen een probe verstuurt dit: de exporter heeft zo'n reeks niet, en een credential die tot een project is beperkt, krijgt de lijst geweigerd. |
+| `openstack_ironic_agent_state` | | Min | 1 zolang Ironic een conductor alive noemt, 0 zodra zijn heartbeat is verouderd. Alleen een sonde verstuurt dit: de exporter heeft zo'n reeks niet, en een credential die tot een project is beperkt, krijgt de lijst geweigerd. |
 
 ### Projecten
 
@@ -705,11 +705,11 @@ Alleen een cloud die Ironic draait, verstuurt deze, en een cloud zonder Ironic t
 
 ### Controles
 
-Wat een probe van buiten de cloud vindt: zie [Controles van buitenaf](#controles-van-buitenaf). Niets verzamelt deze, dus ze zijn leeg totdat iemand de controles aanzet. Elke reeks draagt `openstack.region.name`.
+Wat een sonde van buiten de cloud vindt: zie [Controles van buitenaf](#controles-van-buitenaf). Niets verzamelt deze, dus ze zijn leeg totdat iemand de controles aanzet. Elke reeks draagt `openstack.region.name`.
 
 | Metriek | Eenheid | Leesacties | Beschrijving |
 | --- | --- | --- | --- |
-| `openstack_check_token_success` | - | Min | Of Keystone een token uitgaf aan de probe die deze cloud van buitenaf controleert: 1 als dat zo was, 0 als niet. |
+| `openstack_check_token_success` | - | Min | Of Keystone een token uitgaf aan de sonde die deze cloud van buitenaf controleert: 1 als dat zo was, 0 als niet. |
 | `openstack_check_token_duration_seconds` | `s` | Max | Hoe lang Keystone erover deed om dat token uit te geven. |
 | `openstack_check_api_success` | - | Min | Of een service in de catalogus een leesactie van één rij beantwoordde: 1 als hij antwoordde, of deze credential weigerde, want dan werkt zijn API, en 0 als hij mislukte, een time-out kreeg of niet bereikt kon worden. Labels `service_type`, `service_name`, `outcome`. |
 | `openstack_check_api_duration_seconds` | `s` | Max | Hoe lang die service erover deed om te antwoorden. Labels `service_type`, `service_name`. |
@@ -726,7 +726,7 @@ Wat een probe van buiten de cloud vindt: zie [Controles van buitenaf](#controles
 
 ## Controles van buitenaf
 
-Elke service kan gezond melden terwijl niemand een instance kan starten. De `/healthcheck` van `oslo.middleware` laat alleen zien dat een service bereikbaar is, dus de betrouwbaarste test is doen wat gebruikers doen. Een probe doet dat van buiten de cloud, want een controle binnen een uitgevallen cloud zegt niets. Zet ze aan via de pagina **Controles** van de cloud. [De handleiding](/docs/telemetry/openstack#de-cloud-van-buitenaf-controleren) legt uit hoe, en wat de lifecycle-controle precies aanmaakt en mag aanraken.
+Elke service kan gezond melden terwijl niemand een instance kan starten. De `/healthcheck` van `oslo.middleware` laat alleen zien dat een service bereikbaar is, dus de betrouwbaarste test is doen wat gebruikers doen. Een sonde doet dat van buiten de cloud, want een controle binnen een uitgevallen cloud zegt niets. Zet ze aan via de pagina **Controles** van de cloud. [De handleiding](/docs/telemetry/openstack#de-cloud-van-buitenaf-controleren) legt uit hoe, en wat de lifecycle-controle precies aanmaakt en mag aanraken.
 
 - **API-controles** draaien standaard elke minuut en lezen alleen. Keystone geeft een token uit, elke service in de catalogus beantwoordt een geauthenticeerde leesactie van één rij, en het certificaat van elk endpoint wordt gelezen om te zien wanneer het verloopt. Er is geen lijst bij te houden: een service die iemand aan de catalogus toevoegt, wordt vanaf dat moment gecontroleerd.
 - **De lifecycle-controle** draait standaard elke 30 minuten, en alleen als u zich aanmeldt. In een project dat hij voor zichzelf heeft: een server maken, wachten op `ACTIVE`, optioneel een floating IP koppelen en pingen, optioneel een volume maken en koppelen, en daarna alles verwijderen. De duur van elke stap is een reeks.
@@ -735,7 +735,7 @@ Elke service kan gezond melden terwijl niemand een instance kan starten. De `/he
 
 Een lifecycle-run rapporteert eens per 30 minuten, en een sjabloon leest meerdere verzamelingen. Wat de laatste run vond, wordt dus bij elke API-controle van elke minuut herhaald, zolang het de laatste is. Een incident opent binnen enkele minuten na een mislukte run, en sluit binnen enkele minuten na de volgende run die slaagt, wat het interval ook is. Het incident van een mislukte run noemt de stap en de fout die Nova of Cinder gaf, gelezen uit wat de run rapporteerde. Een fout is vrije tekst, dus geen label: een start die de volgende keer op een andere manier mislukt, is nog steeds hetzelfde incident.
 
-Stilte is geen herstel. Een oordeel ouder dan twee en een half interval wordt niet meer herhaald, en ook niets meer zodra de probe stopt, zodat een open incident open blijft in plaats van als opgelost te gelden.
+Stilte is geen herstel. Een oordeel ouder dan twee en een half interval wordt niet meer herhaald, en ook niets meer zodra de sonde stopt, zodat een open incident open blijft in plaats van als opgelost te gelden.
 
 ### Voortbouwen op deze reeksen
 

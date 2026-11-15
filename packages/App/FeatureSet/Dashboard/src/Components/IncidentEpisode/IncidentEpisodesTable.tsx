@@ -18,6 +18,8 @@ import useEventStateActions from "../EventView/useEventStateActions";
 import { EventStateKind } from "../EventView/EventStateKinds";
 import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
@@ -45,6 +47,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<IncidentEpisode> | undefined;
@@ -347,7 +350,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: IncidentEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (
@@ -382,6 +385,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentIncidentState.color || Black}
                     text={item.currentIncidentState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentState,
+                      item.currentIncidentState.name,
+                    )}
                   />
                 );
               }
@@ -406,6 +413,10 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={false}
                     color={item.incidentSeverity.color || Black}
                     text={item.incidentSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.IncidentSeverity,
+                      item.incidentSeverity.name,
+                    )}
                   />
                 );
               }

@@ -558,7 +558,12 @@ describe("InfrastructureInvestigationToolkit run_infrastructure_command", () => 
     );
 
     expect(result.success).toBe(false);
-    expect(result.textForLlm).toContain("Refused by the Host command policy");
+    expect(result.textForLlm).toContain("Refused by the host command policy");
+    expect(result.textForLlm).toContain('What host "db-host" accepts:');
+    // What people read: the kind as a sentence names it (#8133).
+    expect(result.errorMessage).toBe(
+      'Refused by the host command policy on host "db-host". Nothing was run.',
+    );
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -984,7 +989,7 @@ describe("InfrastructureInvestigationToolkit end to end through the chokepoint",
     expect(result.success).toBe(true);
     expect(result.result?.rowCount).toBe(0);
     expect(result.result?.citationLabel).toBe(
-      '`systemctl status nginx --no-pager` on Host "db-host"',
+      '`systemctl status nginx --no-pager` on host "db-host"',
     );
     expect(result.textForLlm).toContain("inactive (dead)");
     expect(result.textForLlm).toContain(

@@ -14,7 +14,7 @@ flowchart TB
 
 ## Hvilke regler kan kjøres
 
-- **Etikettregler** og **Eierregler**, for hver ressurs som har dem: monitorer, hendelser, hendelsesepisoder, varsler, varselepisoder, planlagte vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, datalagre, tabeller, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
+- **Etikettregler** og **Eierregler**, for hver ressurs som har dem: monitorer, hendelser, hendelsesepisoder, varsler, varselepisoder, vedlikeholdshendelser, statussider, tjenester, verter, Kubernetes-klynger, Docker-verter, Docker Swarm-klynger, Podman-verter, Proxmox-klynger, OpenStack-skyer, VMware vCentre, Ceph-klynger, lagringsmatriser, databaser, datalagre, tabeller, køer, IoT-flåter, serverløse funksjoner, skyressurser, RUM-applikasjoner, dashbord, vaktpolicyer, vaktplaner, policyer for innkommende anrop, arbeidsflyter, runbooks, nettverksenheter og SLO-er.
 - **Personvernregler**, for hendelser, varsler, hendelsesepisoder og varselepisoder.
 - **Monitorregler** på en statusside. De synkroniserer allerede siden på nytt hver gang en regel lagres; å kjøre en synkroniserer den med en gang.
 - **Monitorregler** på en SLO. De synkroniserer allerede SLO-en på nytt hver gang en regel lagres; å kjøre en synkroniserer SLO-ens monitorer med en gang. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
@@ -28,7 +28,7 @@ For å kjøre en regel trenger du tillatelse til å redigere regelen **og** til 
 > [!IMPORTANT]
 > En tillatelse som er begrenset til bestemte etiketter, eller til ressurser du eier, er ikke nok: en kjøring kan endre alle ressursene i prosjektet. Teamenes blokkeringslister gjelder som overalt ellers, og en blokkering begrenset til noen etiketter teller også: en kjøring ville endre ressursene som har de etikettene, så en blokkering med etiketter på redigering av ressursene en regel endrer, avviser kjøringen.
 
-Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Kjør nå** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Kjør regel** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
+Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Kjør nå** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Prøvekjøring** og **Kjør regel** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
 
 ## Kjøre én regel
 

@@ -18,6 +18,8 @@ import useEventStateActions from "../EventView/useEventStateActions";
 import { EventStateKind } from "../EventView/EventStateKinds";
 import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
@@ -48,6 +50,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 export interface ComponentProps {
   query?: Query<AlertEpisode> | undefined;
@@ -364,7 +367,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             getElement: (item: AlertEpisode): ReactElement => {
               if (!item.episodeNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
 
               return (
@@ -399,6 +402,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={true}
                     color={item.currentAlertState.color || Black}
                     text={item.currentAlertState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertState,
+                      item.currentAlertState.name,
+                    )}
                   />
                 );
               }
@@ -423,6 +430,10 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
                     isMinimal={false}
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
                   />
                 );
               }
@@ -450,7 +461,11 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Entity,
             getElement: (item: AlertEpisode): ReactElement => {
               if (item["alertGroupingRule"]) {
-                return <span>{item.alertGroupingRule.name || "-"}</span>;
+                return (
+                  <span>
+                    {item.alertGroupingRule.name || <TableEmptyValue />}
+                  </span>
+                );
               }
               return <span>{translator.translateText("Manual")}</span>;
             },

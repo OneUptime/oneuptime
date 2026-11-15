@@ -111,6 +111,8 @@ const ExceptionMoreActions: FunctionComponent<ComponentProps> = (
               )
             : updateGate.disabledReason
         }
+        // Either way in the reader's words already.
+        isTooltipUserContent={true}
         isDisabled={isLocked}
         dataTestId={EXCEPTION_MORE_ACTIONS_TEST_IDS.resolveInNextRelease}
         onClick={() => {
@@ -143,7 +145,7 @@ const ExceptionMoreActions: FunctionComponent<ComponentProps> = (
 
   return (
     <MoreMenu
-      ariaLabel={translator.translateText("More actions")}
+      ariaLabel="More actions"
       dataTestId={EXCEPTION_MORE_ACTIONS_TEST_IDS.trigger}
       elementToBeShownInsteadOfButton={
         <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />

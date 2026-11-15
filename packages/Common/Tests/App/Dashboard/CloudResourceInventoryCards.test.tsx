@@ -10,15 +10,19 @@ import {
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { CloudRelationshipKind } from "../../../Types/Cloud/CloudInventory";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { getJestSpyOn } from "../../Spy";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
-import CloudResourceInventoryCards from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudResourceInventoryCards";
+import CloudResourceInventoryCards, {
+  getCloudResourceConnectionsRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudResourceInventoryCards";
 
 /*
  * What a resource's inventory says on its Overview: what it is connected
@@ -381,6 +385,108 @@ describe("what each connection is", () => {
         "//compute.googleapis.com/projects/p/regions/us-central1/subnetworks/default",
       ),
     ).toBe("Subnet");
+  });
+});
+
+describe("the way to its connections drawn", () => {
+  const ACCOUNT_ROW_ID: string = "0193c0de-9999-4aaa-8bbb-000000000009";
+
+  function answerAccount(rows: Array<{ _id: string }>): void {
+    listSpy.mockImplementation((request: { modelType: unknown }) => {
+      if (request.modelType === CloudAccount) {
+        return Promise.resolve({
+          data: rows.map((data: { _id: string }): CloudAccount => {
+            const account: CloudAccount = new CloudAccount();
+            Object.assign(account, data);
+            return account;
+          }),
+          count: rows.length,
+          skip: 0,
+          limit: 1,
+        });
+      }
+
+      return Promise.resolve({
+        data: NEIGHBOURS,
+        count: NEIGHBOURS.length,
+        skip: 0,
+        limit: 2000,
+      });
+    });
+  }
+
+  test("Open in Topology opens its account's Connections with it in the middle", async () => {
+    answerAccount([{ _id: ACCOUNT_ROW_ID }]);
+    const navigate: jest.SpyInstance<any, any> = getJestSpyOn(
+      Navigation,
+      "navigate",
+    ).mockImplementation(() => {
+      // Followed by the router in the app.
+    });
+
+    await renderCards(instance());
+
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: "Open in Topology",
+    });
+
+    await act(async () => {
+      button.click();
+    });
+
+    const route: string = String(navigate.mock.calls[0]![0]);
+
+    expect(route).toContain(`/cloud/accounts/${ACCOUNT_ROW_ID}/topology`);
+    expect(route).toContain("view=connections");
+    expect(route).toContain(`node=${INSTANCE_ID}`);
+  });
+
+  test("finds its account by its cloud and account id, whatever the case", async () => {
+    answerAccount([{ _id: ACCOUNT_ROW_ID }]);
+
+    await renderCards(instance({ cloudAccountId: "abcdef01-AAAA-4bbb" }));
+    await screen.findByRole("button", { name: "Open in Topology" });
+
+    const request: { query: Record<string, unknown>; limit: number } =
+      listSpy.mock.calls
+        .map((call: Array<any>) => {
+          return call[0];
+        })
+        .find((call: { modelType: unknown }) => {
+          return call.modelType === CloudAccount;
+        });
+
+    expect(request.query["provider"]).toBe("aws");
+    expect((request.query["accountId"] as Includes).values).toEqual(
+      expect.arrayContaining([
+        "abcdef01-AAAA-4bbb",
+        "abcdef01-aaaa-4bbb",
+        "ABCDEF01-AAAA-4BBB",
+      ]),
+    );
+    expect(request.limit).toBe(1);
+  });
+
+  test("an account OneUptime does not hold offers nothing more", async () => {
+    answerAccount([]);
+
+    await renderCards(instance());
+    await screen.findByText("Connected Resources");
+
+    expect(
+      screen.queryByRole("button", { name: "Open in Topology" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the route is the account's Topology on Connections, with the resource picked", () => {
+    const route: string = getCloudResourceConnectionsRoute({
+      accountRowId: new ObjectID(ACCOUNT_ROW_ID),
+      resourceId: INSTANCE_ID,
+    }).toString();
+
+    expect(route).toContain(`/cloud/accounts/${ACCOUNT_ROW_ID}/topology?`);
+    expect(route).toContain("view=connections");
+    expect(route).toContain(`node=${INSTANCE_ID}`);
   });
 });
 

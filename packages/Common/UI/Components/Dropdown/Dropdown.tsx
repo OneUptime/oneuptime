@@ -6,7 +6,10 @@ import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
-import { createTranslator } from "../../Utils/TranslateTemplate";
+import {
+  createTranslator,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -142,6 +145,30 @@ export function getDropdownOptionText(
 
 export { DROPDOWN_MENU_Z_INDEX };
 
+/*
+ * What the open menu says when it has nothing to list, in the reader's
+ * language, when the caller words nothing of its own (noOptionsMessage):
+ * react-select's own "No options" was English on every page (#7805). A
+ * search that finds nothing says so; a list with nothing in it says that.
+ */
+export const DROPDOWN_NO_OPTIONS_MESSAGE: string = translationKey(
+  "No options available",
+);
+export const DROPDOWN_NO_MATCHES_MESSAGE: string =
+  translationKey("No matches found");
+
+// And while the options are on their way, unless the caller words it.
+export const DROPDOWN_LOADING_MESSAGE: string = translationKey("Loading...");
+
+// The empty menu's words, in English, by whether its search holds anything.
+export const getDropdownNoOptionsMessage: (inputValue: string) => string = (
+  inputValue: string,
+): string => {
+  return inputValue.trim()
+    ? DROPDOWN_NO_MATCHES_MESSAGE
+    : DROPDOWN_NO_OPTIONS_MESSAGE;
+};
+
 // What react-select hands a filter for each option it considers.
 export interface SearchableOption {
   readonly label: string;
@@ -206,6 +233,12 @@ export interface ComponentProps {
   id?: string | undefined;
   dataTestId?: string | undefined;
   ariaLabel?: string | undefined;
+  /*
+   * The aria label is in the reader's words already: a sentence the page
+   * builds around a value, or a front end's own keyed text. Said as given,
+   * never looked up again (#7790). Left unset, it is English, looked up here.
+   */
+  isAriaLabelTranslated?: boolean | undefined;
   ariaLabelledby?: string | undefined;
   // What describes the list besides its error, read first: its field's help.
   ariaDescribedby?: string | undefined;
@@ -240,13 +273,16 @@ export interface ComponentProps {
   autoFocus?: boolean | undefined;
   /*
    * The options are on their way: the control shows a spinner and the open
-   * menu says loadingMessage (in the reader's language).
+   * menu says loadingMessage (in the reader's language). Left out, it says
+   * "Loading...", looked up here.
    */
   isLoading?: boolean | undefined;
   loadingMessage?: string | undefined;
   /*
    * What the open menu says when no option matches what was typed, in the
-   * reader's language. Left out: react-select's own "No options".
+   * reader's language. Left out, the product's own words, looked up here:
+   * "No matches found" after a search, "No options available" before one
+   * (getDropdownNoOptionsMessage).
    */
   noOptionsMessage?: ((inputValue: string) => string) | undefined;
   // The menu opened: a list that is read only once it is needed.
@@ -1096,27 +1132,28 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       }
     : {};
 
-  // What the open menu says while loading, or when nothing matches.
-  const menuMessageProps: Record<string, unknown> = {};
+  /*
+   * What the open menu says while loading, or when nothing matches: the
+   * caller's words, already in the reader's language, or the product's
+   * own, looked up here. react-select's own "Loading..." and "No options"
+   * were English on every page.
+   */
+  const loadingMessage: string =
+    props.loadingMessage || tx(DROPDOWN_LOADING_MESSAGE) || "";
+  const noOptionsMessage: (inputValue: string) => string =
+    props.noOptionsMessage ||
+    ((inputValue: string): string => {
+      return tx(getDropdownNoOptionsMessage(inputValue)) || "";
+    });
 
-  if (props.loadingMessage) {
-    const loadingMessage: string = props.loadingMessage;
-
-    menuMessageProps["loadingMessage"] = (): string => {
+  const menuMessageProps: Record<string, unknown> = {
+    loadingMessage: (): string => {
       return loadingMessage;
-    };
-  }
-
-  if (props.noOptionsMessage) {
-    const noOptionsMessage: (inputValue: string) => string =
-      props.noOptionsMessage;
-
-    menuMessageProps["noOptionsMessage"] = (input: {
-      inputValue: string;
-    }): string => {
+    },
+    noOptionsMessage: (input: { inputValue: string }): string => {
       return noOptionsMessage(input.inputValue);
-    };
-  }
+    },
+  };
 
   return (
     <div
@@ -1150,7 +1187,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         onFocus={() => {
           props.onFocus?.();
         }}
-        aria-label={tx(props.ariaLabel)}
+        aria-label={
+          props.isAriaLabelTranslated ? props.ariaLabel : tx(props.ariaLabel)
+        }
         aria-labelledby={props.ariaLabelledby}
         aria-invalid={props.error ? true : undefined}
         classNames={{
@@ -1346,8 +1385,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
            * A message of the caller's own is a sentence or two ("Could not
            * load the components of status.example.com. Type a component's
            * name..."): it starts where the options start, as text reads,
-           * not centred line by line. react-select's own "No options"
-           * stays centred.
+           * not centred line by line. The product's own short line ("No
+           * matches found") stays centred, as react-select drew its own.
            */
           noOptionsMessage: (
             provided: CSSObjectWithLabel,

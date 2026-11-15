@@ -31,6 +31,7 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * Turning a server off asks first: OneUptime AI stops using it at once,
@@ -149,7 +150,7 @@ const ExternalMcpServerView: FunctionComponent<PageComponentProps> = (
               getElement: (item: ExternalMcpServer): ReactElement => {
                 return (
                   <span className="break-all font-mono text-sm">
-                    {item.headerNames || "-"}
+                    {item.headerNames || <EmptyValue />}
                   </span>
                 );
               },
@@ -169,7 +170,7 @@ const ExternalMcpServerView: FunctionComponent<PageComponentProps> = (
               getElement: (item: ExternalMcpServer): ReactElement => {
                 return (
                   <span className="break-all font-mono text-sm">
-                    {item.oauthTokenUrl || "-"}
+                    {item.oauthTokenUrl || <EmptyValue />}
                   </span>
                 );
               },

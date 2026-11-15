@@ -80,9 +80,16 @@ const ROW: MonitorOpenWorkRow = {
   id: "aaaaaaaa-0000-4000-8000-000000000001",
   title: "Checkout API p95 latency above 2s",
   startedAt: new Date(NOW.getTime() - 10 * 60 * 1000),
-  severityName: "Critical Incident",
+  // A severity and a state the project named itself: drawn as written.
+  severityName: "Sev 1 - Critical",
   severityColor: "#DC2626",
   stateName: "Investigating",
+};
+
+// The same incident, at the severity a new project starts with.
+const DEFAULT_SEVERITY_ROW: MonitorOpenWorkRow = {
+  ...ROW,
+  severityName: "Critical Incident",
 };
 
 const side: (
@@ -182,12 +189,14 @@ describe("the header's Ask AI button", () => {
 });
 
 describe("a monitor's open incidents and alerts", () => {
-  const renderCard: () => void = (): void => {
+  const renderCard: (row?: MonitorOpenWorkRow) => void = (
+    row: MonitorOpenWorkRow = ROW,
+  ): void => {
     render(
       <MemoryRouter>
         <MonitorOpenWorkCard
           monitorId={MONITOR_ID}
-          openWork={{ incidents: side(1, [ROW]), alerts: side(0, []) }}
+          openWork={{ incidents: side(1, [row]), alerts: side(0, []) }}
         />
       </MemoryRouter>,
     );
@@ -213,7 +222,7 @@ describe("a monitor's open incidents and alerts", () => {
   });
 
   /*
-   * One string, "Critical Incident · Investigating" was a single English
+   * One string, "Sev 1 - Critical · Investigating" was a single English
    * run in a line read right to left: the state stood before the severity.
    */
   test("each fact is read on its own, the project's English names as written", async () => {
@@ -221,7 +230,7 @@ describe("a monitor's open incidents and alerts", () => {
     renderCard();
 
     const row: HTMLElement = screen.getByTestId("monitor-open-work-row");
-    const severity: HTMLElement = within(row).getByText("Critical Incident");
+    const severity: HTMLElement = within(row).getByText("Sev 1 - Critical");
     const state: HTMLElement = within(row).getByText("Investigating");
 
     expect(severity.tagName).toBe("BDI");
@@ -235,8 +244,29 @@ describe("a monitor's open incidents and alerts", () => {
     renderCard();
 
     expect(screen.getByTestId("monitor-open-work-row")).toHaveTextContent(
-      "Incident · Critical Incident · Investigating · 10 minutes ago",
+      "Incident · Sev 1 - Critical · Investigating · 10 minutes ago",
     );
+  });
+
+  /*
+   * A new project's "Critical Incident" is OneUptime's own name, read in
+   * the reader's language as its badge reads it (#7894): in Arabic, never
+   * the English beside an Arabic "حادثة".
+   */
+  test("the severity a new project starts with reads in Arabic", async () => {
+    await inLanguage("ar");
+    renderCard(DEFAULT_SEVERITY_ROW);
+
+    const row: HTMLElement = screen.getByTestId("monitor-open-work-row");
+
+    expect(ARABIC["Critical Incident"]).toBeTruthy();
+    expect(ARABIC["Critical Incident"]).not.toBe("Critical Incident");
+    expect(
+      within(row).getByText(ARABIC["Critical Incident"]!),
+    ).toBeInTheDocument();
+    expect(within(row).queryByText("Critical Incident")).toBeNull();
+    // Investigating is the project's own state: as written.
+    expect(within(row).getByText("Investigating")).toBeInTheDocument();
   });
 
   // As the tiles beside it on the Overview write theirs.

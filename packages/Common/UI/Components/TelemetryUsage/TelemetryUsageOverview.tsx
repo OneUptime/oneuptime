@@ -51,6 +51,8 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import EmptyValue from "../Detail/EmptyValue";
+import TableEmptyValue from "../Table/TableEmptyValue";
 
 /*
  * A project's telemetry usage: how much of each signal it sent each UTC day
@@ -301,7 +303,7 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
           return option.value === rangeInDays;
         })}
         isClearable={false}
-        ariaLabel={translator.translateText("Range") || "Range"}
+        ariaLabel="Range"
         dataTestId="telemetry-usage-range"
         onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
           const days: number = Number(value);
@@ -457,9 +459,11 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
           getElement: (row: TelemetryUsageResourceRow): ReactElement => {
             return (
               <span className="tabular-nums text-gray-700">
-                {row[key] > 0
-                  ? formatTelemetryUsageSize(row[key], translator)
-                  : "—"}
+                {row[key] > 0 ? (
+                  formatTelemetryUsageSize(row[key], translator)
+                ) : (
+                  <EmptyValue />
+                )}
               </span>
             );
           },
@@ -533,7 +537,11 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
       disableSort: true,
       headerTooltip: translator.translateText(RETENTION_TOOLTIP),
       getElement: (row: TelemetryUsageResourceRow): ReactElement => {
-        return <span className="text-gray-700">{row.retention || "—"}</span>;
+        return (
+          <span className="text-gray-700">
+            {row.retention || <TableEmptyValue />}
+          </span>
+        );
       },
     },
   ];

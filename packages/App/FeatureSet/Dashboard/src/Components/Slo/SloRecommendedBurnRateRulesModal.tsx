@@ -5,12 +5,12 @@ import { SloRecommendedBurnRateRuleToAdd } from "Common/Utils/Slo/SloRecommended
 import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
-  BURN_RATE_RULE_NOTHING_PICKED,
   BurnRateRuleWindowsText,
   formatBurnRateRuleFiresWhen,
   formatBurnRateRuleWindows,
-  getNamesOrNothingPicked,
+  getSeverityOrNothingPicked,
 } from "../../Pages/Slo/Utils/BurnRateRuleLines";
+import { StateListType } from "Common/Utils/StateOrder";
 
 export interface ComponentProps {
   // What will be added, as the server worked it out for this SLO.
@@ -80,9 +80,9 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
               <div className="text-xs text-gray-500">{windows.suppression}</div>
               <div className="text-xs text-gray-500">
                 {translator.translateTemplate("Alert: {{severity}}", {
-                  severity: getNamesOrNothingPicked(
-                    [rule.alertSeverityName || undefined],
-                    BURN_RATE_RULE_NOTHING_PICKED.severity,
+                  severity: getSeverityOrNothingPicked(
+                    StateListType.AlertSeverity,
+                    rule.alertSeverityName,
                     translator,
                   ),
                 })}

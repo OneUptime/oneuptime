@@ -7,11 +7,19 @@ import PromQLError, { PromQLErrorType } from "./PromQLError";
 import { compilePromQLRegex } from "./PromQLRegex";
 import LinearRegExp from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
+import { copyOwnValues, writeOwnValue } from "../LookupTable";
 
 /*
  * A series' labels: its metric name under `__name__`, and every other label.
  * A label that is absent and a label whose value is empty mean the same
  * thing, as in Prometheus, so an empty value is never stored.
+ *
+ * Labels are named by whoever wrote them - an exporter, an OTLP attribute,
+ * a query's label_replace - and one named __proto__ is a label like any
+ * other. A spread or an assignment drops it (this code's ES2017 target
+ * compiles a spread to Object.assign), so a label set is copied with
+ * copyOwnValues and a label is written with writeOwnValue, and read with
+ * promQLLabelValue.
  */
 export type PromQLLabels = Record<string, string>;
 
@@ -51,7 +59,7 @@ export const dropMetricName: (labels: PromQLLabels) => PromQLLabels = (
     return labels;
   }
 
-  const copy: PromQLLabels = { ...labels };
+  const copy: PromQLLabels = copyOwnValues(labels);
   delete copy[PROMQL_METRIC_NAME_LABEL];
   return copy;
 };
@@ -73,7 +81,7 @@ export const promQLMatchSignature: (
     let key: string = "";
 
     for (const name of [...names].sort()) {
-      key += `${name}${SEPARATOR}${labels[name] || ""}${SEPARATOR}`;
+      key += `${name}${SEPARATOR}${promQLLabelValue(labels, name)}${SEPARATOR}`;
     }
 
     return key;
@@ -85,7 +93,7 @@ export const promQLMatchSignature: (
 
   for (const name of Object.keys(labels)) {
     if (!ignored.has(name)) {
-      kept[name] = labels[name]!;
+      writeOwnValue(kept, name, labels[name]!);
     }
   }
 

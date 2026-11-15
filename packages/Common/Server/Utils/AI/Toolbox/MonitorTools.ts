@@ -33,6 +33,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import NotOperationalMonitorQuery from "../../../../Utils/Monitor/NotOperationalMonitorQuery";
+import { AI_READ_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 import MonitoringOff, {
   MONITORING_OFF_SELECT,
 } from "../../../../Utils/Monitor/MonitoringOff";
@@ -285,7 +287,10 @@ export const QueryMonitorsTool: ObservabilityTool = {
       return {
         dataForLlm: [...notes, serialized.text].join("\n"),
         rowCount: serialized.rowCount,
-        citationLabel: `Monitor ${monitor?.name || monitorId.toString()} + status timeline`,
+        // In the reader's language (issue #7980).
+        ...citationSentence(AI_READ_CITATIONS.monitor, {
+          name: monitor?.name || monitorId.toString(),
+        }),
         citationTarget: {
           type: AIChatCitationTargetType.MonitorView,
           params: { monitorId: monitorId.toString() },
@@ -426,7 +431,10 @@ export const QueryMonitorsTool: ObservabilityTool = {
         return {
           dataForLlm: `No monitor status matches "${monitorStatusName}". Statuses in this project: ${availableNames || "(none)"}. Retry with one of these names, or use problemsOnly=true for all non-operational monitors.`,
           rowCount: 0,
-          citationLabel: `Monitors in status "${monitorStatusName}" (0 found)`,
+          ...citationSentence(AI_READ_CITATIONS.monitorsInStatus, {
+            status: monitorStatusName,
+            count: countFigure(0),
+          }),
           citationTarget: {
             type: AIChatCitationTargetType.Monitors,
           },
@@ -552,24 +560,34 @@ export const QueryMonitorsTool: ObservabilityTool = {
     lines.push(serialized.text);
     const dataForLlm: string = lines.join("\n");
 
-    let scopeLabel: string;
+    /*
+     * What the chip under the answer names, in the reader's language (issue
+     * #7980): which monitors were read, and how many of how many.
+     */
+    const isPaged: boolean = totalCount > serialized.rowCount;
+    let citationTemplate: string;
     if (monitorStatusName) {
-      scopeLabel = `Monitors in status "${monitorStatusName}"`;
+      citationTemplate = isPaged
+        ? AI_READ_CITATIONS.monitorsInStatusPaged
+        : AI_READ_CITATIONS.monitorsInStatus;
     } else if (problemsOnly) {
-      scopeLabel = "Monitors with problems";
+      citationTemplate = isPaged
+        ? AI_READ_CITATIONS.monitorsWithProblemsPaged
+        : AI_READ_CITATIONS.monitorsWithProblems;
     } else {
-      scopeLabel = "Monitors";
+      citationTemplate = isPaged
+        ? AI_READ_CITATIONS.monitorsPaged
+        : AI_READ_CITATIONS.monitors;
     }
-
-    const citationLabel: string =
-      totalCount > serialized.rowCount
-        ? `${scopeLabel} (${serialized.rowCount} of ${totalCount})`
-        : `${scopeLabel} (${serialized.rowCount} found)`;
 
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: citationLabel,
+      ...citationSentence(citationTemplate, {
+        ...(monitorStatusName ? { status: monitorStatusName } : {}),
+        count: countFigure(serialized.rowCount),
+        ...(isPaged ? { total: countFigure(totalCount) } : {}),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.Monitors,
       },

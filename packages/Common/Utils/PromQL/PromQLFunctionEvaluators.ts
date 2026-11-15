@@ -29,10 +29,17 @@ import {
   linearRegression,
   promQLQuantile,
 } from "./PromQLMath";
-import { compilePromQLRegex } from "./PromQLRegex";
-import LinearRegExp, { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
-import { describePatternProblem } from "../LinearRegExp/PatternCache";
+import { sortPromQLByLabels } from "./PromQLLabelOrder";
+import { matchesEmptyValue } from "./PromQLParser";
+import {
+  CompiledPromQLRegex,
+  compilePromQLRegex,
+  describePromQLPatternProblem,
+  readNamedCapture,
+} from "./PromQLRegex";
+import { LinearRegExpMatch } from "../LinearRegExp/LinearRegExp";
 import { PatternWorkLimitError } from "../LinearRegExp/PatternProblem";
+import lookupTable, { copyOwnValues, writeOwnValue } from "../LookupTable";
 
 /*
  * What each PromQL function does (promql/functions.go), given its arguments
@@ -135,7 +142,14 @@ const mapValues: (
   });
 };
 
-const SIMPLE_FUNCTIONS: Record<string, (value: number) => number> = {
+type MathFunction = (value: number) => number;
+
+/*
+ * This table, OVER_TIME and DATE_FUNCTIONS are read by the name a query
+ * calls, so they are Maps: each answers only for the functions it lists,
+ * never with what every object inherits.
+ */
+const SIMPLE_FUNCTIONS: ReadonlyMap<string, MathFunction> = lookupTable({
   abs: Math.abs,
   acos: Math.acos,
   acosh: Math.acosh,
@@ -169,7 +183,7 @@ const SIMPLE_FUNCTIONS: Record<string, (value: number) => number> = {
   sqrt: Math.sqrt,
   tan: Math.tan,
   tanh: Math.tanh,
-};
+});
 
 /*
  * rate(), increase() and delta(): the change across the range, extrapolated
@@ -310,14 +324,16 @@ const average: (values: ArrayLike<number>) => number = (
   return kahanResult(sum) / values.length;
 };
 
+type OverTimeFunction = (
+  series: PromQLRangeSeries,
+  range: RangeVectorValue,
+) => number | undefined;
+
 /*
  * The functions that read a range vector and answer with one value per
  * series. Undefined means "no value for this series at this step".
  */
-const OVER_TIME: Record<
-  string,
-  (series: PromQLRangeSeries, range: RangeVectorValue) => number | undefined
-> = {
+const OVER_TIME: ReadonlyMap<string, OverTimeFunction> = lookupTable({
   avg_over_time: (series: PromQLRangeSeries): number => {
     return average(series.values);
   },
@@ -444,14 +460,16 @@ const OVER_TIME: Record<
   irate: (series: PromQLRangeSeries): number | undefined => {
     return instantValue(series, true);
   },
-};
+});
 
 // The functions whose answer keeps the input's metric name.
 const KEEPS_METRIC_NAME: ReadonlySet<string> = new Set<string>([
   "last_over_time",
 ]);
 
-const DATE_FUNCTIONS: Record<string, (date: Date) => number> = {
+type DateFunction = (date: Date) => number;
+
+const DATE_FUNCTIONS: ReadonlyMap<string, DateFunction> = lookupTable({
   day_of_month: (date: Date): number => {
     return date.getUTCDate();
   },
@@ -479,51 +497,118 @@ const DATE_FUNCTIONS: Record<string, (date: Date) => number> = {
   year: (date: Date): number => {
     return date.getUTCFullYear();
   },
+});
+
+/*
+ * Labels Prometheus never writes into absent()'s answer (schema.IsMetadataLabel):
+ * the metric name, and the type and unit of its type-and-unit labels.
+ */
+const ABSENT_METADATA_LABELS: ReadonlySet<string> = new Set<string>([
+  PROMQL_METRIC_NAME_LABEL,
+  "__type__",
+  "__unit__",
+]);
+
+/*
+ * A selector's matchers in the order Prometheus' storage leaves them in.
+ * Reading a selector, the TSDB sorts its matchers in place, the syntax
+ * tree's own (tsdb.PostingsForMatchers): those that pick series out first,
+ * those that take series away after, each kind in the order it was written.
+ * A matcher takes away when it is != or !~ and an empty value passes it, or
+ * when no matcher on its label needs the label set. absent() reads the
+ * matchers after that, so `x{job!="b", job="a"}` is read as
+ * `x{job="a", job!="b"}`.
+ *
+ * (A Prometheus that stores no data in the query's time range reads no
+ * index, so nothing sorts the matchers, and it answers in the written order:
+ * there, x{job!="b", job="a"} answers {job="a"}. A server that scrapes
+ * anything stores its latest data, so the sorted order is the one absent()
+ * alerts see.)
+ */
+const matchersInStorageOrder: (
+  matchers: Array<PromQLLabelMatcher>,
+) => Array<PromQLLabelMatcher> = (
+  matchers: Array<PromQLLabelMatcher>,
+): Array<PromQLLabelMatcher> => {
+  const labelMustBeSet: Set<string> = new Set<string>();
+
+  for (const matcher of matchers) {
+    if (!matchesEmptyValue(matcher)) {
+      labelMustBeSet.add(matcher.name);
+    }
+  }
+
+  const takesAway: (matcher: PromQLLabelMatcher) => boolean = (
+    matcher: PromQLLabelMatcher,
+  ): boolean => {
+    if (!labelMustBeSet.has(matcher.name)) {
+      return true;
+    }
+
+    return (
+      (matcher.type === PromQLMatchType.NotEqual ||
+        matcher.type === PromQLMatchType.RegexNoMatch) &&
+      matchesEmptyValue(matcher)
+    );
+  };
+
+  return [
+    ...matchers.filter((matcher: PromQLLabelMatcher): boolean => {
+      return !takesAway(matcher);
+    }),
+    ...matchers.filter(takesAway),
+  ];
 };
 
 /*
- * The labels absent() and absent_over_time() give their 1: the selector's
- * equality matchers, as Prometheus derives them. A label matched for
- * equality twice is left out, since no one value is right.
+ * The labels absent() and absent_over_time() give their 1, as Prometheus
+ * derives them (createLabelsForAbsentFunction, promql/functions.go): the
+ * selector's matchers in the order its storage leaves them in
+ * (matchersInStorageOrder), the first = on a label setting it, and any other
+ * matcher on it, a second = among them, deleting it. A label deleted before
+ * it is set is set. So x{job="a", job!="b"} answers {}, x{job=~"a",
+ * job="a"} answers {job="a"}, and x{job="a", job="b"} answers {}, since no
+ * one value is right. An empty value is no label. Anything but a selector,
+ * once its parentheses are read through as Prometheus reads them, names no
+ * labels.
  */
 const absentLabels: (expression: PromQLExpression) => PromQLLabels = (
   expression: PromQLExpression,
 ): PromQLLabels => {
+  let argument: PromQLExpression = expression;
+
+  while (argument.kind === PromQLNodeKind.Paren) {
+    argument = argument.expression;
+  }
+
   let selectorMatchers: Array<PromQLLabelMatcher> = [];
 
-  if (expression.kind === PromQLNodeKind.VectorSelector) {
-    selectorMatchers = expression.matchers;
-  } else if (expression.kind === PromQLNodeKind.MatrixSelector) {
-    selectorMatchers = (expression as PromQLMatrixSelector).vectorSelector
+  if (argument.kind === PromQLNodeKind.VectorSelector) {
+    selectorMatchers = argument.matchers;
+  } else if (argument.kind === PromQLNodeKind.MatrixSelector) {
+    selectorMatchers = (argument as PromQLMatrixSelector).vectorSelector
       .matchers;
   }
 
   const labels: PromQLLabels = {};
-  const repeated: Set<string> = new Set<string>();
+  const set: Set<string> = new Set<string>();
 
-  for (const matcher of selectorMatchers) {
-    if (
-      matcher.type !== PromQLMatchType.Equal ||
-      matcher.name === PROMQL_METRIC_NAME_LABEL
-    ) {
+  for (const matcher of matchersInStorageOrder(selectorMatchers)) {
+    if (ABSENT_METADATA_LABELS.has(matcher.name)) {
       continue;
     }
 
-    if (labels[matcher.name] !== undefined) {
-      repeated.add(matcher.name);
+    if (matcher.type === PromQLMatchType.Equal && !set.has(matcher.name)) {
+      set.add(matcher.name);
+
+      if (matcher.value !== "") {
+        // As an own key: a selector may pin a label named __proto__.
+        writeOwnValue(labels, matcher.name, matcher.value);
+        continue;
+      }
     }
 
-    labels[matcher.name] = matcher.value;
-  }
-
-  for (const name of repeated) {
-    delete labels[name];
-  }
-
-  for (const name of Object.keys(labels)) {
-    if (labels[name] === "") {
-      delete labels[name];
-    }
+    delete labels[matcher.name];
   }
 
   return labels;
@@ -538,9 +623,14 @@ const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
  * text, `$$` a dollar sign. As in Go, `$1x` names the group "1x", which does
  * not exist, so write `${1}x`.
  */
-const expandTemplate: (template: string, match: LinearRegExpMatch) => string = (
+const expandTemplate: (
   template: string,
   match: LinearRegExpMatch,
+  groupNames: ReadonlyArray<string | null>,
+) => string = (
+  template: string,
+  match: LinearRegExpMatch,
+  groupNames: ReadonlyArray<string | null>,
 ): string => {
   let result: string = "";
   let index: number = 0;
@@ -598,7 +688,12 @@ const expandTemplate: (template: string, match: LinearRegExpMatch) => string = (
       const group: number = Number(name);
       result += (group === 0 ? match.value : match.captures[group - 1]) || "";
     } else {
-      result += match.groups[name] || "";
+      result +=
+        readNamedCapture({
+          captures: match.captures,
+          groupNames: groupNames,
+          name: name,
+        }) || "";
     }
 
     index = end;
@@ -628,13 +723,6 @@ const sortSamples: (
   });
 };
 
-const naturalCompare: (a: string, b: string) => number = (
-  a: string,
-  b: string,
-): number => {
-  return a.localeCompare(b, "en", { numeric: true });
-};
-
 export const evaluatePromQLFunction: (
   call: PromQLCall,
   context: PromQLFunctionContext,
@@ -650,19 +738,13 @@ export const evaluatePromQLFunction: (
     return context.evaluate(call.args[index]!);
   };
 
-  const simple: ((value: number) => number) | undefined =
-    SIMPLE_FUNCTIONS[name];
+  const simple: MathFunction | undefined = SIMPLE_FUNCTIONS.get(name);
 
   if (simple) {
     return vectorValue(mapValues(readSamples(arg(0)), now, simple));
   }
 
-  const overTime:
-    | ((
-        series: PromQLRangeSeries,
-        range: RangeVectorValue,
-      ) => number | undefined)
-    | undefined = OVER_TIME[name];
+  const overTime: OverTimeFunction | undefined = OVER_TIME.get(name);
 
   if (overTime) {
     const range: RangeVectorValue = readRange(arg(0));
@@ -689,8 +771,7 @@ export const evaluatePromQLFunction: (
     return vectorValue(samples);
   }
 
-  const dateFunction: ((date: Date) => number) | undefined =
-    DATE_FUNCTIONS[name];
+  const dateFunction: DateFunction | undefined = DATE_FUNCTIONS.get(name);
 
   if (dateFunction) {
     const samples: Array<PromQLSample> =
@@ -922,7 +1003,7 @@ export const evaluatePromQLFunction: (
           continue;
         }
 
-        const groupLabels: PromQLLabels = { ...sample.labels };
+        const groupLabels: PromQLLabels = copyOwnValues(sample.labels);
         delete groupLabels["le"];
         delete groupLabels[PROMQL_METRIC_NAME_LABEL];
         const key: string = promQLLabelsKey(groupLabels);
@@ -956,14 +1037,14 @@ export const evaluatePromQLFunction: (
       const replacement: string = readString(arg(2));
       const source: string = readString(arg(3));
       const pattern: string = readString(arg(4));
-      let regex: LinearRegExp;
+      let compiled: CompiledPromQLRegex;
 
       try {
         // Compiled once for every series below, with what its groups capture.
-        regex = compilePromQLRegex(pattern, { captures: true }).regex;
+        compiled = compilePromQLRegex(pattern, { captures: true });
       } catch (error: unknown) {
-        // Why a regular expression cannot run here, or null.
-        const problem: string | null = describePatternProblem(error);
+        // Why the pattern cannot be matched, or null.
+        const problem: string | null = describePromQLPatternProblem(error);
 
         throw new PromQLError(
           problem === null
@@ -987,7 +1068,9 @@ export const evaluatePromQLFunction: (
           let match: LinearRegExpMatch | null;
 
           try {
-            match = regex.exec(promQLLabelValue(sample.labels, source));
+            match = compiled.regex.exec(
+              promQLLabelValue(sample.labels, source),
+            );
           } catch (error: unknown) {
             if (error instanceof PatternWorkLimitError) {
               throw new PromQLError(
@@ -1004,13 +1087,18 @@ export const evaluatePromQLFunction: (
             return sample;
           }
 
-          const labels: PromQLLabels = { ...sample.labels };
-          const value: string = expandTemplate(replacement, match);
+          // Own keys, a destination named __proto__ included (PromQLLabels).
+          const labels: PromQLLabels = copyOwnValues(sample.labels);
+          const value: string = expandTemplate(
+            replacement,
+            match,
+            compiled.groupNames,
+          );
 
           if (value.length === 0) {
             delete labels[destination];
           } else {
-            labels[destination] = value;
+            writeOwnValue(labels, destination, value);
           }
 
           return { ...sample, labels };
@@ -1039,15 +1127,16 @@ export const evaluatePromQLFunction: (
         samples.map((sample: PromQLSample): PromQLSample => {
           const value: string = sources
             .map((source: string): string => {
-              return sample.labels[source] || "";
+              return promQLLabelValue(sample.labels, source);
             })
             .join(separator);
-          const labels: PromQLLabels = { ...sample.labels };
+          // Own keys, a destination named __proto__ included (PromQLLabels).
+          const labels: PromQLLabels = copyOwnValues(sample.labels);
 
           if (value.length === 0) {
             delete labels[destination];
           } else {
-            labels[destination] = value;
+            writeOwnValue(labels, destination, value);
           }
 
           return { ...sample, labels };
@@ -1066,23 +1155,8 @@ export const evaluatePromQLFunction: (
         .map((_expression: PromQLExpression, index: number): string => {
           return readString(arg(index + 1));
         });
-      const direction: number = name === "sort_by_label_desc" ? -1 : 1;
-
       return vectorValue(
-        [...samples].sort((a: PromQLSample, b: PromQLSample): number => {
-          for (const label of labels) {
-            const order: number = naturalCompare(
-              a.labels[label] || "",
-              b.labels[label] || "",
-            );
-
-            if (order !== 0) {
-              return order * direction;
-            }
-          }
-
-          return 0;
-        }),
+        sortPromQLByLabels(samples, labels, name === "sort_by_label_desc"),
       );
     }
     default:

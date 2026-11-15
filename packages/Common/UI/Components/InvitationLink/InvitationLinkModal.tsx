@@ -1,3 +1,4 @@
+import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Modal from "../Modal/Modal";
@@ -10,8 +11,11 @@ import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
+import { VoidFunction } from "../../../Types/FunctionTypes";
+import IconProp from "../../../Types/Icon/IconProp";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -42,6 +46,7 @@ export const INVITATION_LINK_COPY: {
   registeredDescription: string;
   failed: string;
   done: string;
+  getLink: string;
 } = {
   // What a master admin's invite dialog says before Invite is pressed.
   inviteDescriptionForAdmin: translationKey(
@@ -60,6 +65,49 @@ export const INVITATION_LINK_COPY: {
     "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",
   ),
   done: translationKey("Done"),
+  // A pending person's row action, which opens this dialog for them (#7168).
+  getLink: translationKey("Get Invitation Link"),
+};
+
+/*
+ * GET INVITATION LINK, ON A PENDING PERSON'S ROW (#7168).
+ *
+ * The dialog shows the link once, right after its master admin's own
+ * Invite. But a person can be invited by somebody else - a project owner,
+ * who is told to ask the server's admin for the link - or have a link that
+ * ran out (7 days). So every list that shows a pending person as Invited
+ * offers this action on their row, for a master admin on a server known not
+ * to send email: it opens the dialog, which reads a fresh link.
+ *
+ * `isAvailable` says whether this viewer may have the link at all; the
+ * server refuses anybody but a master admin whatever the page shows
+ * (POST /team-member/invitation-link). The row of somebody who has joined
+ * shows nothing: they have no invitation to send.
+ */
+export const getInvitationLinkRowAction: <T extends TeamMember>(data: {
+  isAvailable: boolean;
+  onOpen: (teamMemberId: ObjectID) => void;
+}) => ActionButtonSchema<T> = <T extends TeamMember>(data: {
+  isAvailable: boolean;
+  onOpen: (teamMemberId: ObjectID) => void;
+}): ActionButtonSchema<T> => {
+  return {
+    title: INVITATION_LINK_COPY.getLink,
+    buttonStyleType: ButtonStyleType.OUTLINE,
+    icon: IconProp.Link,
+    isVisible: (item: T): boolean => {
+      return (
+        data.isAvailable && !item.hasAcceptedInvitation && Boolean(item.id)
+      );
+    },
+    onClick: (item: T, onCompleteAction: VoidFunction): void => {
+      if (item.id) {
+        data.onOpen(item.id);
+      }
+
+      onCompleteAction();
+    },
+  };
 };
 
 export interface InvitationLink {

@@ -37,6 +37,7 @@ import {
   dropMetricName,
   formatPromQLLabels,
   formatPromQLValue,
+  promQLLabelValue,
   promQLLabelsKey,
   promQLMatchSignature,
 } from "./PromQLLabels";
@@ -49,6 +50,7 @@ import {
   upperBound,
 } from "./PromQLMath";
 import { getPromQLValueType, parsePromQL } from "./PromQLParser";
+import { copyOwnValues, writeOwnValue } from "../LookupTable";
 
 /*
  * Evaluates PromQL the way Prometheus 3 does (promql/engine.go).
@@ -694,7 +696,8 @@ const resultLabels: (
   matching: PromQLVectorMatching,
   returnBool: boolean,
 ): PromQLLabels => {
-  let labels: PromQLLabels = { ...manySide };
+  // Every label kept as its own, one named __proto__ too (PromQLLabels).
+  let labels: PromQLLabels = copyOwnValues(manySide);
 
   if (dropsMetricName(operator) || returnBool) {
     delete labels[PROMQL_METRIC_NAME_LABEL];
@@ -705,8 +708,10 @@ const resultLabels: (
       const kept: PromQLLabels = {};
 
       for (const name of matching.matchingLabels) {
-        if (labels[name] !== undefined) {
-          kept[name] = labels[name]!;
+        const value: string = promQLLabelValue(labels, name);
+
+        if (value) {
+          writeOwnValue(kept, name, value);
         }
       }
 
@@ -719,10 +724,10 @@ const resultLabels: (
   }
 
   for (const name of matching.include) {
-    const value: string | undefined = oneSide[name];
+    const value: string = promQLLabelValue(oneSide, name);
 
     if (value) {
-      labels[name] = value;
+      writeOwnValue(labels, name, value);
     } else {
       delete labels[name];
     }
@@ -936,7 +941,7 @@ const groupingLabels: (
   without: boolean,
 ): PromQLLabels => {
   if (without) {
-    const kept: PromQLLabels = { ...labels };
+    const kept: PromQLLabels = copyOwnValues(labels);
     delete kept[PROMQL_METRIC_NAME_LABEL];
 
     for (const name of grouping) {
@@ -949,8 +954,10 @@ const groupingLabels: (
   const kept: PromQLLabels = {};
 
   for (const name of grouping) {
-    if (labels[name] !== undefined) {
-      kept[name] = labels[name]!;
+    const value: string = promQLLabelValue(labels, name);
+
+    if (value) {
+      writeOwnValue(kept, name, value);
     }
   }
 
@@ -989,10 +996,12 @@ const aggregate: (
       new Map();
 
     for (const sample of samples) {
-      const withValue: PromQLLabels = {
-        ...sample.labels,
-        [valueLabel]: formatPromQLValue(sample.value),
-      };
+      /*
+       * As own keys: `{ ...labels, [valueLabel]: value }` compiles to an
+       * Object.assign that dropped a value label named __proto__.
+       */
+      const withValue: PromQLLabels = copyOwnValues(sample.labels);
+      writeOwnValue(withValue, valueLabel, formatPromQLValue(sample.value));
       const labels: PromQLLabels = groupingLabels(
         withValue,
         grouping,

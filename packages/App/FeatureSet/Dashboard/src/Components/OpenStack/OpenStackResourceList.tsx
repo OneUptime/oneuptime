@@ -92,6 +92,7 @@ import {
   getOpenStackPartRoutes,
 } from "./Part/OpenStackPartRoutes";
 import useIsOpenStackProbeCollected from "./Part/UseIsOpenStackProbeCollected";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 /*
  * Every inventory list of an OpenStack cloud. A cloud can hold hundreds of
@@ -224,7 +225,7 @@ function toWordOptions(words: ReadonlyArray<string>): Array<DropdownOption> {
 }
 
 function getFactCellText(value: string): ReactElement {
-  return value ? <bdi>{value}</bdi> : <span className="text-gray-400">-</span>;
+  return value ? <bdi>{value}</bdi> : <TableEmptyValue />;
 }
 
 /*

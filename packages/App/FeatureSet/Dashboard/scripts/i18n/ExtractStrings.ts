@@ -299,6 +299,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * An audit log entry's action in words - Sign In, Session Timeout - as
+   * the audit log's Action column and its Action filter draw it, and a
+   * workflow run's status - Timeout, Execution Exceeded Current Plan - as
+   * the runs' Status pill and their Status filter draw it (#7781). Only the
+   * words the files mark are read: the stored values they label are not.
+   */
+  {
+    directory: "packages/Common/Types/AuditLog/AuditLogActionLabel.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Workflow/WorkflowStatus.ts",
+    kind: "keys",
+  },
+  /*
    * A naming rule's name pattern and lookup table (issue #6619): what each
    * placeholder is, and what is wrong with a pattern or a table, as the
    * rule form says it. Only the sentences the files mark are read: the
@@ -423,6 +438,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Exception/UnexplainedError.ts",
+    kind: "keys",
+  },
+  /*
+   * Why a data check or a reconciliation was not written, added or set up
+   * (#7530): the server's refusals, which Write a Check from a Sentence,
+   * Suggested Checks and the Reconciliations page say in the reader's
+   * language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataObservability/DataCheckRefusals.ts",
     kind: "keys",
   },
   /*
@@ -586,6 +611,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  /*
+   * What Ask AI's tables and its Sources chips say beside their data - a
+   * table's title and line, the cells that are OneUptime's words, a
+   * chip's label (issues #7977, #7979, #7980) - which the chat says in the
+   * reader's language. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIReadTableWords.ts",
     kind: "keys",
   },
   {

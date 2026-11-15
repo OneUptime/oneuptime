@@ -41,6 +41,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -54,6 +56,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -213,7 +216,10 @@ export const DeviceMonitorNotCheckedActions: FunctionComponent<
           data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
           className="mt-1 text-xs text-red-700"
         >
-          {turnMonitoringOn.error}
+          <ErrorInSentence
+            message={turnMonitoringOn.error}
+            showWhereToLook={true}
+          />
         </p>
       ) : (
         <></>
@@ -705,6 +711,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             {device.currentMonitorStatus?.name ? (
               <Pill
                 text={device.currentMonitorStatus.name}
+                isUserContent={isRecordNameAsWritten(
+                  StateListType.MonitorStatus,
+                  device.currentMonitorStatus.name,
+                )}
                 color={device.currentMonitorStatus.color || Gray500}
                 size={PillSize.Normal}
               />

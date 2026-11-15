@@ -4,10 +4,13 @@ import type { MoreMenuItem, NavItem } from "./NavBar";
 import {
   CategoryFolds,
   DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  getCategoryHeading,
+  getItemTitle,
   getMenuItemsWithHidden,
   groupItemsByCategory,
   isMoreMenuItemActive,
   MenuCategory,
+  MenuWordLookup,
   useCategoryFolds,
 } from "./NavBarMenuCatalog";
 import {
@@ -49,6 +52,8 @@ export interface ComponentProps {
   rightElement?: NavItem | undefined;
   // Heading of the recently visited products (NavBar's moreMenuRecentLabel).
   recentLabel?: string | undefined;
+  // In the reader's words already: drawn as given, never looked up again (#7790).
+  isRecentLabelTranslated?: boolean | undefined;
   /*
    * Drawn first, above Home, and last, below User Settings: the
    * Dashboard's Search and Help, which the header leaves out on a phone
@@ -112,6 +117,9 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
   );
   const idPrefix: string = `navbar-mobile-${useId()}`;
   const { translateString } = useTranslateValue();
+  const lookUp: MenuWordLookup = (text: string): string => {
+    return translateString(text) || text;
+  };
   const translator: Translator = useTranslator();
   const pinnedItems: Array<MoreMenuItem> = props.pinnedItems || [];
   const pinnedRoutes: Array<string> = pinnedItems.map(
@@ -165,6 +173,7 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
         <NavBarItem
           id={id}
           title={item.title}
+          isTitleTranslated={item.isTitleTranslated}
           icon={item.icon}
           exact={exact}
           route={item.route}
@@ -262,7 +271,9 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
             id={recentHeadingId}
             className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-gray-400"
           >
-            {translateString(recentLabel) || recentLabel}
+            {props.recentLabel && props.isRecentLabelTranslated
+              ? props.recentLabel
+              : translateString(recentLabel) || recentLabel}
           </p>
           {recentProducts.map((item: MoreMenuItem): ReactElement => {
             return row(item, `recent-${slug(item.title)}`, false);
@@ -290,10 +301,11 @@ const NavBarMobileMenu: FunctionComponent<ComponentProps> = (
                 }`}
               >
                 <NavBarCategoryToggle
-                  title={category.title}
+                  // Its words looked up once, as the desktop menu's (#8075).
+                  title={getCategoryHeading(category, lookUp)}
                   itemTitles={category.items.map(
                     (item: MoreMenuItem): string => {
-                      return item.title;
+                      return getItemTitle(item, lookUp);
                     },
                   )}
                   isOpen={isOpen}

@@ -31,7 +31,7 @@ Fluentd रिकॉर्ड को JSON के बैच में भेज�
 
 **उत्पाद → प्रोजेक्ट सेटिंग्स** पर जाएं, साइड मेन्यू में **टेलीमेट्री और APM** खोलें और **इंजेशन कुंजियाँ** चुनें।
 
-![प्रोजेक्ट सेटिंग्स में टेलीमेट्री इंजेशन कुंजियों का पेज](/docs/static/images/TelemetryIngestionKeys.png)
+!["इंजेशन कुंजियाँ" सूची, "इन्जेशन कुंजी बनाएँ" घेरा हुआ](screen:ingestion-keys)
 
 ### एक कुंजी बनाएं
 
@@ -54,6 +54,15 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
 एक `<match>` सेक्शन जोड़ें जो रिकॉर्ड OneUptime को भेजे। `YOUR_SERVICE_TOKEN` की जगह अपनी इंजेशन कुंजी लिखें, और `YOUR_SERVICE_NAME` की जगह वह नाम जिसके तहत लॉग दिखने चाहिए — कोई भी नाम जो आप चाहें:
 
 ```text title="fluentd.conf"
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 # Match all patterns
 <match **>
   @type http
@@ -66,12 +75,18 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -84,6 +99,8 @@ Fluentd की कॉन्फ़िगरेशन फ़ाइल आमतौ
 ```
 
 `json_array true` बफ़र के हर चंक को एक JSON ऐरे के रूप में भेजता है, और `flush_interval 10s` हर 10 सेकंड में बफ़र भेजता है। `chunk_limit_size 900k` हर रिक्वेस्ट को 1 MB से कम रखता है, जो इस एंडपॉइंट पर OneUptime की अधिकतम सीमा है।
+
+`retryable_response_codes 429,502,503,504` बैच को फिर से भेजता है जब OneUptime व्यस्त हो (`429`) या रीस्टार्ट हो रहा हो (`502`, `503`, `504`); इसके बिना Fluentd `503` को छोड़कर किसी भी जवाब पर बैच को छोड़ देता है। `retry_max_interval 30s` दो कोशिशों के बीच ज़्यादा से ज़्यादा 30 सेकंड रुकता है, और `retry_timeout 72h` उस बैच को छोड़ देता है जो 72 घंटे बाद भी नहीं भेजा जा सका। `record_transformer` फ़िल्टर हर रिकॉर्ड में वह समय जोड़ता है जो Fluentd ने उसे दिया, `fluentd_time` के रूप में: HTTP आउटपुट सिर्फ़ रिकॉर्ड भेजता है, और OneUptime लॉग का समय उसी से पढ़ता है।
 
 ### Fluentd रीस्टार्ट करें
 
@@ -111,6 +128,15 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
   bind 0.0.0.0
 </source>
 
+# Send the time Fluentd gave each event: the HTTP output sends only the record
+<filter **>
+  @type record_transformer
+  enable_ruby true
+  <record>
+    fluentd_time ${time.utc.strftime("%Y-%m-%dT%H:%M:%S.%NZ")}
+  </record>
+</filter>
+
 <match **>
   @type http
 
@@ -122,12 +148,18 @@ Fluentd सर्विस को रीस्टार्ट करें, त�
   content_type application/json
   json_array true
 
+  # Send a batch again when OneUptime is busy (429) or restarting (502, 503, 504)
+  retryable_response_codes 429,502,503,504
+
   <format>
     @type json
   </format>
   <buffer>
     flush_interval 10s
     chunk_limit_size 900k
+    # Try again at least every 30 seconds, for up to 72 hours
+    retry_max_interval 30s
+    retry_timeout 72h
   </buffer>
 </match>
 
@@ -152,7 +184,7 @@ OneUptime हर रिकॉर्ड से ये फ़ील्ड पढ�
 | ट्रेस ID | `trace_id`, `traceId`, `traceid` | लॉग को उसके ट्रेस से जोड़ता है। |
 | स्पैन ID | `span_id`, `spanId`, `spanid` | लॉग को उसके स्पैन से जोड़ता है। |
 | सेवा | `x-oneuptime-service-name` हेडर | हेडर सेट न हो तो `Fluentd`। |
-| समय | — | वह समय जब OneUptime रिकॉर्ड प्राप्त करता है। |
+| समय | `time`, `timestamp`, `@timestamp`, `ts`, `fluentd_time` | ISO 8601 समय, जैसे `2026-11-14T08:00:00.123Z`, या epoch से सेकंड, मिलीसेकंड, माइक्रोसेकंड या नैनोसेकंड; बिना टाइम ज़ोन वाला समय UTC माना जाता है। 2000 से पहले का, या एक दिन से ज़्यादा आगे का समय नहीं पढ़ा जाता। जिस फ़ील्ड से समय पढ़ा जाता है, वह एट्रिब्यूट के रूप में नहीं रखी जाती। बिना समय वाला रिकॉर्ड उस समय पर सेव होता है जब OneUptime उसे प्राप्त करता है। |
 
 बाकी हर फ़ील्ड `fluentd.` के बाद फ़ील्ड के नाम वाला एट्रिब्यूट बन जाता है, जिस पर आप खोज और फ़िल्टर कर सकते हैं: लॉग एक्सप्लोरर में `container_name` फ़ील्ड `@fluentd.container_name` होता है। नेस्टेड ऑब्जेक्ट डॉट्स से फ़्लैट किया जाता है, जैसे `fluentd.kubernetes.pod_name`, और सूची JSON के रूप में रखी जाती है।
 
@@ -174,6 +206,14 @@ Fluentd लॉग भी किसी दूसरे लॉग की तरह
 
 :::details Fluentd `413` लॉग करता है
 रिक्वेस्ट 1 MB से बड़ी है, जो इस एंडपॉइंट पर OneUptime की अधिकतम सीमा है। ऊपर के कॉन्फ़िगरेशन की तरह `<buffer>` सेक्शन में `chunk_limit_size 900k` सेट करें।
+:::
+
+:::details Fluentd `429`, `502`, `503` या `504` लॉग करता है
+OneUptime व्यस्त है या रीस्टार्ट हो रहा है। ऊपर के कॉन्फ़िगरेशन की तरह `<match>` सेक्शन में `retryable_response_codes 429,502,503,504` होने पर Fluentd बैच को रखता है और फिर से भेजता है; इसके बिना Fluentd बैच को छोड़ देता है।
+:::
+
+:::details लॉग अपना समय नहीं, बल्कि वह समय दिखाते हैं जब OneUptime ने उन्हें प्राप्त किया
+OneUptime लॉग का समय उसके रिकॉर्ड से पढ़ता है, और Fluentd का HTTP आउटपुट सिर्फ़ रिकॉर्ड भेजता है। `<parse>` सेक्शन रिकॉर्ड से `time` फ़ील्ड निकाल देता है: उसमें `keep_time_key true` जोड़ें। ऊपर के कॉन्फ़िगरेशन का `record_transformer` फ़िल्टर भी जोड़ें: यह हर रिकॉर्ड में वह समय जोड़ता है जो Fluentd ने उसे दिया, `fluentd_time` के रूप में।
 :::
 
 :::details लॉग `Fluentd` सेवा के तहत पहुंचते हैं

@@ -223,7 +223,7 @@ return {
 };
 ```
 
-Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte metrikker**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
+Når de er samlet inn, vises disse metrikkene i Metric Explorer under navn som `custom.monitor.dashboard.load.time`, og på monitorens side **Målinger** under **Egendefinerte målinger**. OneUptime legger til monitoren og sonden på hvert datapunkt; for å filtrere etter nettleser eller skjermstørrelse gir du dem med som attributter, slik eksempelet gjør.
 
 En kjøring kan samle inn høyst 100 metrikker, bare med numeriske verdier, og OneUptime beholder høyst 100 per kontroll på tvers av alle kjøringene. Som for en monitor med egendefinert kode er noen attributtnavn [reservert](/docs/monitor/custom-code-monitor#reserverte-attributtnøkler) og forkastes hvis et skript setter dem.
 

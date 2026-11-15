@@ -263,6 +263,7 @@ const StatusPageDaysSetting: FunctionComponent<ComponentProps> = (
             text={translator.translateTemplate("{{planName}} Plan", {
               planName: planNeeded,
             })}
+            isUserContent={true}
             color={Yellow}
           />
         </div>

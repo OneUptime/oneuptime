@@ -31,6 +31,7 @@ import {
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import { getCaseEventReferences } from "./Hunts/AddToCaseModel";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -136,7 +137,13 @@ const OpenCaseFromEventButton: FunctionComponent<ComponentProps> = (
           setIsOpening(false);
         }}
       />
-      {error ? <p className="text-xs text-red-600">{error}</p> : <></>}
+      {error ? (
+        <p className="text-xs text-red-600">
+          <ErrorInSentence message={error} showWhereToLook={true} />
+        </p>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

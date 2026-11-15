@@ -4,6 +4,8 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
 import useTranslateValue from "Common/UI/Utils/Translation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityEventSeverityPill, {
   getSeverityColor,
 } from "./SecurityEventSeverityPill";
@@ -112,6 +114,7 @@ export const CorrelateResultStats: FunctionComponent<
   CorrelateResultStatsProps
 > = (props: CorrelateResultStatsProps): ReactElement => {
   const t: TranslateFunction = useTranslate();
+  const translator: Translator = useTranslator();
   const summary: CorrelationGraphSummary = props.summary;
   const worstClass: CorrelationGraphNode | undefined = summary.worstClass;
   const dropped: number = summary.droppedObservableCount;
@@ -144,7 +147,13 @@ export const CorrelateResultStats: FunctionComponent<
         value={summary.classCount}
         hint={
           <span className="min-w-0 break-words">
-            {`${summary.highRiskClassCount} ${t("critical or high")}`}
+            {translator.translatePlural(
+              {
+                one: "{{count}} critical or high",
+                other: "{{count}} critical or high",
+              },
+              summary.highRiskClassCount,
+            )}
           </span>
         }
       />
@@ -157,7 +166,13 @@ export const CorrelateResultStats: FunctionComponent<
         hint={
           <span className="min-w-0 break-words">
             {dropped > 0
-              ? `${dropped} ${t("less frequent not shown")}`
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} less frequent not shown",
+                    other: "{{count}} less frequent not shown",
+                  },
+                  dropped,
+                )
               : t("All shown")}
           </span>
         }
@@ -241,6 +256,7 @@ export const CorrelateGraphLegend: FunctionComponent<
   CorrelateGraphLegendProps
 > = (props: CorrelateGraphLegendProps): ReactElement => {
   const t: TranslateFunction = useTranslate();
+  const translator: Translator = useTranslator();
 
   return (
     <div
@@ -324,9 +340,13 @@ export const CorrelateGraphLegend: FunctionComponent<
           data-testid="correlate-dropped-observables"
           className="text-amber-700"
         >
-          {`${props.droppedObservableCount} ${t(
-            "less frequent observables not drawn",
-          )}`}
+          {translator.translatePlural(
+            {
+              one: "{{count}} less frequent observable not drawn",
+              other: "{{count}} less frequent observables not drawn",
+            },
+            props.droppedObservableCount,
+          )}
         </p>
       )}
     </div>

@@ -5600,6 +5600,12 @@ test.describe("one AI card: the investigation and the conversation", () => {
         permissionMode: "AutoRun",
         // The language the Dashboard is read in (#7247).
         language: "en",
+        /*
+         * The asker's zone, so a chart over days cuts them at the asker's
+         * midnight (#7922, ffec1f96e59): the browser runs in UTC here (the
+         * config's timezoneId), the listed zone the Dashboard names it by.
+         */
+        timezone: "Africa/Abidjan",
       });
 
       // While it is written: a status line, Stop instead of Send.
@@ -10622,7 +10628,7 @@ test.describe("the header, by its own width", () => {
 
     // The dialog stays, saying why, and nothing is read as published.
     await expect(confirm).toContainText(
-      "This scheduled maintenance event could not be updated. Please try again.",
+      "This maintenance event could not be updated. Please try again.",
     );
     expect((await fixture(page)).updates).toEqual([
       {
@@ -16271,9 +16277,9 @@ const LINKED_LINE: string =
 const FOLLOW_UP_ACTIVITY_LINE: string =
   "Checking again: alert #318 opened on host checkout-api-7f9c after the first analysis";
 const FOLLOW_UP_LEAD_TEXT: string =
-  "Checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+  "Checked again after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FOLLOW_UP_FEED_LEAD: string =
-  "OneUptime AI checked again after alert #318 opened on Host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
+  "OneUptime AI checked again after alert #318 opened on host checkout-api-7f9c, 3 minutes after this incident was declared: High CPU on checkout-api-7f9c.";
 const FIRST_ANALYSIS_FEED_LEAD: string =
   "OneUptime AI posted a root cause analysis";
 const FOLLOW_UP_TLDR_START: string = "Alert #318 does not change the analysis";

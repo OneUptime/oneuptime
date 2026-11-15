@@ -9,6 +9,8 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, {
   ListResult,
@@ -20,6 +22,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, { FunctionComponent, ReactElement } from "react";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
 const ActiveAlerts: FunctionComponent<
   PageComponentProps
@@ -134,6 +137,8 @@ const ActiveAlerts: FunctionComponent<
                 return {
                   label: project.name || "",
                   value: project._id || "",
+                  // A project's name is its owner's, drawn as written.
+                  isUserContent: true,
                 };
               });
             },
@@ -185,7 +190,7 @@ const ActiveAlerts: FunctionComponent<
             type: FieldType.Text,
             getElement: (item: Alert): ReactElement => {
               if (!item.alertNumber) {
-                return <>-</>;
+                return <TableEmptyValue />;
               }
               return (
                 <>{item.alertNumberWithPrefix || `#${item.alertNumber}`}</>
@@ -214,6 +219,10 @@ const ActiveAlerts: FunctionComponent<
                   <Pill
                     color={item.currentAlertState.color || Black}
                     text={item.currentAlertState.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertState,
+                      item.currentAlertState.name,
+                    )}
                   />
                 );
               }
@@ -237,6 +246,10 @@ const ActiveAlerts: FunctionComponent<
                   <Pill
                     color={item.alertSeverity.color || Black}
                     text={item.alertSeverity.name || "Unknown"}
+                    isUserContent={isRecordNameAsWritten(
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
                   />
                 );
               }
@@ -259,7 +272,7 @@ const ActiveAlerts: FunctionComponent<
               if (item["monitor"]) {
                 return <MonitorElement monitor={item["monitor"]!} />;
               }
-              return <span>-</span>;
+              return <TableEmptyValue />;
             },
           },
           {

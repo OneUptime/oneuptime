@@ -12,7 +12,7 @@ O calendário de manutenção mostra a sua manutenção programada por data: num
 
 ```mermaid title="Uma lista de eventos, três calendários"
 flowchart TB
-    events["Eventos de<br/>manutenção<br/>programada"] --> view["A visualização<br/>de calendário<br/>no painel"]
+    events["Eventos de<br/>manutenção"] --> view["A visualização<br/>de calendário<br/>no painel"]
     events --> team["O link da equipe<br/>cada evento"]
     events --> page["O link de uma<br/>página de status<br/>o que a página mostra"]
     team --> apps["Apps de calendário"]
@@ -59,11 +59,11 @@ Copie o link das configurações de compartilhamento do próprio calendário: no
 
 Cada calendário guarda os seus eventos de 90 dias atrás até um ano à frente, até 2.000 deles, os mais próximos de hoje primeiro. Um calendário maior que 5 MB não é lido. Eventos recorrentes, as suas exceções e os seus fusos horários são lidos como o app de calendário os escreveu, e um evento de dia inteiro fica na sua data em qualquer fuso horário. Um projeto pode ter até 20 calendários externos, e uma visualização do calendário desenha até 500 dos seus eventos.
 
-Os papéis que criam, editam e excluem eventos de manutenção programada adicionam, alteram e removem calendários externos, e qualquer pessoa que possa ler os eventos os vê no calendário. O OneUptime nunca lê um endereço do seu próprio servidor nem um endereço de metadados da nuvem, e o OneUptime Cloud recusa endereços de uma rede privada. Um servidor auto-hospedado pode ler um calendário da sua própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`.
+Os papéis que criam, editam e excluem eventos de manutenção adicionam, alteram e removem calendários externos, e qualquer pessoa que possa ler os eventos os vê no calendário. O OneUptime nunca lê um endereço do seu próprio servidor nem um endereço de metadados da nuvem, e o OneUptime Cloud recusa endereços de uma rede privada. Um servidor auto-hospedado pode ler um calendário da sua própria rede, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`.
 
 ## O link de calendário da equipe
 
-**Subscrever o calendário**, abaixo do calendário, abre o link de calendário do projeto: um único link iCalendar (`.ics`) secreto que coloca cada evento de manutenção programada do projeto no Google Agenda, no Outlook, no Calendário da Apple ou em qualquer app que assine um calendário por URL.
+**Subscrever o calendário**, abaixo do calendário, abre o link de calendário do projeto: um único link iCalendar (`.ics`) secreto que coloca cada evento de manutenção do projeto no Google Agenda, no Outlook, no Calendário da Apple ou em qualquer app que assine um calendário por URL.
 
 :::steps
 ### Publique o link
@@ -86,7 +86,7 @@ https://<your host>/api/scheduled-maintenance-calendar/project/<token>/maintenan
 ```
 
 > [!WARNING]
-> Qualquer pessoa com o link vê cada evento de manutenção programada do projeto, sem entrar. Trate-o como uma senha e gere-o de novo se ele for compartilhado por engano.
+> Qualquer pessoa com o link vê cada evento de manutenção do projeto, sem entrar. Trate-o como uma senha e gere-o de novo se ele for compartilhado por engano.
 
 ### Quem pode ver o link
 
@@ -94,9 +94,9 @@ O link mostra cada evento do projeto, então a caixa de diálogo só o mostra a 
 
 | Ação | Quem pode fazer |
 | --- | --- |
-| Copiar o link | Quem pode ler cada evento de manutenção programada do projeto |
-| **Publicar link** | Quem também pode criar eventos de manutenção programada |
-| **Regenerar link**, **Desativar link** | Quem também pode editar eventos de manutenção programada |
+| Copiar o link | Quem pode ler cada evento de manutenção do projeto |
+| **Publicar link** | Quem também pode criar eventos de manutenção |
+| **Regenerar link**, **Desativar link** | Quem também pode editar eventos de manutenção |
 
 ### Gerenciar o link
 
@@ -158,6 +158,6 @@ O motivo aparece sob **Não funciona** no seu **Status**: nenhum calendário no 
 
 :::cards
 - [Criar eventos de manutenção](/docs/scheduled-maintenance/creating-events): O formulário, campo por campo, e o que acontece em seguida.
-- [Assinantes e comunicados](/docs/status-pages/subscribers#eventos-de-manutenção-programada): O que os assinantes de uma página de status ficam sabendo sobre manutenção.
+- [Assinantes e comunicados](/docs/status-pages/subscribers#eventos-de-manutenção): O que os assinantes de uma página de status ficam sabendo sobre manutenção.
 - [Feeds de calendário](/docs/on-call/calendar-feeds): O mesmo tipo de link, para os turnos de plantão.
 :::

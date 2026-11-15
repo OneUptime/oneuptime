@@ -21,7 +21,7 @@ Der er fem måder, en hændelse kommer ind i OneUptime på, og de ender alle sam
 | Åbne en fra din egen kode, et script eller et andet værktøj   | `POST /api/incident`                                                        |
 | Lade folk uden for dit team melde et problem via et link     | En [formular](/docs/forms/index)                                            |
 
-Alle fem skriver den samme model, så en hændelse, som en probe åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Workflows skriver den også: [Huntress](/docs/integrations/huntress)-workflowet åbner én hændelse for hver hændelsesrapport, dens SOC sender.
+Alle fem skriver den samme model, så en hændelse, som en sonde åbnede, ser præcis ud som en, en vagthavende åbnede i hånden — bortset fra nogle få administrative kolonner, serveren sætter på de automatiske. Workflows skriver den også: [Huntress](/docs/integrations/huntress)-workflowet åbner én hændelse for hver hændelsesrapport, dens SOC sender.
 
 > [!TIP]
 > Du kan også erklære en hændelse fra advarsler: **Erklær hændelse** på en advarselsliste, i en advarsels hoved eller på en advarsels side **Tilknyttede hændelser** åbner den samme guide, udfyldt på forhånd fra advarslerne, og knytter dem til den nye hændelse. Et afkrydsningsfelt på formularen, markeret som standard, bekræfter også advarslerne, så de holder op med at eskalere. Se [Tilknyttede advarsler](/docs/incidents/linked-alerts).
@@ -195,7 +195,7 @@ Hver hændelsespost har:
 
 For den fulde liste over `{{variable}}`-pladsholdere, du kan bruge i titlen, beskrivelsen og afhjælpningsnoterne, se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
 
-Hændelser, der oprettes på denne måde, mærkes af serveren: `isCreatedAutomatically` sættes, `createdCriteriaId` registrerer, hvilket kriteriefilter der udløste, og `createdByProbe` registrerer, hvilken probe der så det. Alt andet ved dem opfører sig præcis som en hændelse, der er erklæret i hånden.
+Hændelser, der oprettes på denne måde, mærkes af serveren: `isCreatedAutomatically` sættes, `createdCriteriaId` registrerer, hvilket kriteriefilter der udløste, og `createdByProbe` registrerer, hvilken sonde der så det. Alt andet ved dem opfører sig præcis som en hændelse, der er erklæret i hånden.
 
 En hændelse, som en monitor erklærer, knyttes til det, monitoren overvåger: alt, hvad dens konfiguration nævner (værten for en værtsmonitor, klyngen for en Kubernetes-monitor, tjenesterne for en logmonitor) og alt under dens **Tilknyttede ressourcer**. En website- eller API-monitors konfiguration nævner ingen infrastruktur, så knyt den til klyngen, værterne eller databasen bag sitet: dens hændelser står så på de ressourcers sider, OneUptime AI kan undersøge dem dér, og klyngens eller ressourcens AI-rettelse kan handle på dem (se [AI SRE](/docs/ai/ai-sre#hvilke-hændelser-et-clusters-rettelser-virker-på)). Advarsler, en monitor opretter, knyttes på samme måde.
 

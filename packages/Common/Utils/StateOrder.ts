@@ -7,6 +7,7 @@ import {
   sortListOrderItems,
   toListOrderNumber,
 } from "./ListOrder";
+import { StateListType } from "./StateListType";
 
 /*
  * What the order of a project's states, severities, monitor statuses,
@@ -62,17 +63,8 @@ import {
  *     moves things into, so a list keeps at least one of each kind.
  */
 
-export enum StateListType {
-  IncidentState = "IncidentState",
-  AlertState = "AlertState",
-  ScheduledMaintenanceState = "ScheduledMaintenanceState",
-  MonitorStatus = "MonitorStatus",
-  IncidentSeverity = "IncidentSeverity",
-  AlertSeverity = "AlertSeverity",
-  IncidentPostmortemStatus = "IncidentPostmortemStatus",
-  SecurityCaseStatus = "SecurityCaseStatus",
-  SecurityCasePriority = "SecurityCasePriority",
-}
+// Each list by its records' table, in a module of its own (Utils/StateListType).
+export { StateListType };
 
 export interface StateListBuiltIn {
   // The boolean column that marks a row as this built-in.
@@ -112,6 +104,22 @@ export interface StateListDefinition {
    * ever move down the list - true of every state, not of a postmortem.
    */
   orderReason?: string | undefined;
+  /*
+   * The end of the list that needs someone first: the top for a severity
+   * and a case priority (the most severe), a state (where an incident
+   * starts, before anyone has acknowledged it) and a postmortem or case
+   * status (not started, new); the bottom for a monitor status (offline).
+   * A list sorted by one of these runs worst first descending, the end
+   * that needs someone on top (ModelTable's ColumnSort), as the
+   * dashboard's list widgets run (Utils/Dashboard/DashboardWidgetSorts).
+   */
+  worstAt: StateListEnd;
+}
+
+// An end of a project's list: the top (1) or the bottom.
+export enum StateListEnd {
+  Top = "Top",
+  Bottom = "Bottom",
 }
 
 const INCIDENT_AND_ALERT_STATE_BUILT_INS: Array<StateListBuiltIn> = [
@@ -128,6 +136,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     builtIns: INCIDENT_AND_ALERT_STATE_BUILT_INS,
     keepsBuiltInOrder: true,
     insertAboveFlag: "isResolvedState",
+    worstAt: StateListEnd.Top,
   },
   [StateListType.AlertState]: {
     type: StateListType.AlertState,
@@ -136,6 +145,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     builtIns: INCIDENT_AND_ALERT_STATE_BUILT_INS,
     keepsBuiltInOrder: true,
     insertAboveFlag: "isResolvedState",
+    worstAt: StateListEnd.Top,
   },
   [StateListType.ScheduledMaintenanceState]: {
     type: StateListType.ScheduledMaintenanceState,
@@ -149,6 +159,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     ],
     keepsBuiltInOrder: true,
     insertAboveFlag: "isResolvedState",
+    worstAt: StateListEnd.Top,
   },
   [StateListType.MonitorStatus]: {
     type: StateListType.MonitorStatus,
@@ -160,6 +171,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     ],
     keepsBuiltInOrder: false,
     insertAboveFlag: "isOfflineState",
+    worstAt: StateListEnd.Bottom,
   },
   [StateListType.IncidentSeverity]: {
     type: StateListType.IncidentSeverity,
@@ -167,6 +179,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     subject: { singular: "incident", plural: "incidents" },
     builtIns: [],
     keepsBuiltInOrder: false,
+    worstAt: StateListEnd.Top,
   },
   [StateListType.AlertSeverity]: {
     type: StateListType.AlertSeverity,
@@ -174,6 +187,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     subject: { singular: "alert", plural: "alerts" },
     builtIns: [],
     keepsBuiltInOrder: false,
+    worstAt: StateListEnd.Top,
   },
   [StateListType.IncidentPostmortemStatus]: {
     type: StateListType.IncidentPostmortemStatus,
@@ -187,6 +201,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     keepsBuiltInOrder: true,
     insertAboveFlag: "isCompletedStatus",
     orderReason: "A postmortem is started, drafted and then completed",
+    worstAt: StateListEnd.Top,
   },
   [StateListType.SecurityCaseStatus]: {
     type: StateListType.SecurityCaseStatus,
@@ -201,6 +216,7 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     keepsBuiltInOrder: true,
     insertAboveFlag: "isClosedStatus",
     orderReason: "A case is opened, taken on, contained and then closed",
+    worstAt: StateListEnd.Top,
   },
   [StateListType.SecurityCasePriority]: {
     type: StateListType.SecurityCasePriority,
@@ -216,7 +232,28 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     keepsBuiltInOrder: true,
     orderReason:
       "Priorities are ranked most urgent first, and detections open their cases at the built-in priority of their severity",
+    worstAt: StateListEnd.Top,
   },
+};
+
+/*
+ * The list a model's records make up, when they are one of these: its
+ * tableName is the list's type (IncidentSeverity, MonitorStatus). Null for
+ * any other model.
+ */
+export const getStateListOfTable: (
+  tableName: string | null | undefined,
+) => StateListDefinition | null = (
+  tableName: string | null | undefined,
+): StateListDefinition | null => {
+  if (
+    !tableName ||
+    !Object.prototype.hasOwnProperty.call(STATE_LISTS, tableName)
+  ) {
+    return null;
+  }
+
+  return STATE_LISTS[tableName as StateListType];
 };
 
 // One row of such a list, as the rules read it.

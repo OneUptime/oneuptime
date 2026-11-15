@@ -7,6 +7,8 @@ import {
   toPromQLLabelName,
   toPromQLMetricName,
 } from "../../../Utils/PromQL/PromQLMetricNames";
+import { PromQLLabels } from "../../../Utils/PromQL/PromQLLabels";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -102,6 +104,72 @@ describe("PromQL labels of a series' attributes", () => {
         __name__: "spoofed",
       }),
     ).toEqual({ scope_name: "io.opentelemetry.http" });
+  });
+
+  test("an attribute named like an Object member is a label like any other", () => {
+    expect(
+      Object.entries(
+        attributesToPromQLLabels({
+          constructor: "c",
+          toString: "t",
+          valueOf: "v",
+        }),
+      ),
+    ).toEqual([
+      ["constructor", "c"],
+      ["toString", "t"],
+      ["valueOf", "v"],
+    ]);
+  });
+
+  /*
+   * Every name an object inherits, as an attribute - __proto__ too, which
+   * an assignment did not write (issue #8025). The label holds the
+   * attribute's own value, never the inherited member joined in front of
+   * it with ";".
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "an attribute named %s is a label holding its own value",
+    (name: string) => {
+      const labels: PromQLLabels = attributesToPromQLLabels({
+        [name]: "own",
+        "resource.service.name": "checkout",
+      });
+
+      expect(Object.entries(labels)).toEqual(
+        expect.arrayContaining([[name, "own"]]),
+      );
+      expect(labels).toEqual({
+        [name]: "own",
+        resource_service_name: "checkout",
+        job: "checkout",
+      });
+      expect(JSON.stringify(labels)).not.toContain("native code");
+      // An attribute without it names no such label.
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          attributesToPromQLLabels({ other: "x" }),
+          name,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  /*
+   * Two keys that name a label such as __defineGetter__ (a dot or dash for
+   * each underscore) join their values, the first key's first, as any two
+   * keys that name one label do.
+   */
+  test.each(
+    INHERITED_PROPERTY_NAMES.filter((name: string): boolean => {
+      return name.includes("_");
+    }),
+  )("two keys that name the label %s join their own values", (name: string) => {
+    const dotted: string = name.replace(/_/g, ".");
+
+    expect(
+      attributesToPromQLLabels({ [name]: "second", [dotted]: "first" }),
+    ).toEqual({ [name]: "first;second" });
   });
 });
 

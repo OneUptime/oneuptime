@@ -37,6 +37,8 @@ import {
 } from "../../../Types/OpenStack/OpenStackCapacity";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { INHERITED_PROPERTY_NAMES } from "../../Helpers/InheritedNames";
+import { readOwnValue } from "../../../Utils/LookupTable";
 
 /*
  * THE ARITHMETIC, BY HAND.
@@ -954,6 +956,46 @@ describe("what a row holds of Placement", () => {
     ).toEqual({});
     expect(readOpenStackInventories(null)).toEqual({});
   });
+
+  /*
+   * Issue #8025: a resource class is named by the exporter (Placement's
+   * resourcetype label), and the snapshot fold now keeps one named
+   * __proto__ as a reading of its own, so its facts reach this reader. It
+   * read each class's reading with a plain read, which for __proto__ found
+   * the prototype every object shares, and wrote the fields onto it.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a resource class named %s is read back as its own, and writes nothing onto what every object shares",
+    (name: string) => {
+      const prototypeKeys: Array<string> = Object.getOwnPropertyNames(
+        Object.prototype,
+      ).sort();
+      const objectKeys: Array<string> =
+        Object.getOwnPropertyNames(Object).sort();
+
+      const inventories: Record<string, unknown> = readOpenStackInventories(
+        factsFor({
+          [name]: { total: 8, reserved: 1, ratio: 2, used: 3, seen: 5 },
+          VCPU: { total: 4, seen: 5 },
+        }),
+      ) as unknown as Record<string, unknown>;
+
+      expect(Object.getOwnPropertyNames(Object.prototype).sort()).toEqual(
+        prototypeKeys,
+      );
+      expect(Object.getOwnPropertyNames(Object).sort()).toEqual(objectKeys);
+      expect(({} as Record<string, unknown>)["total"]).toBeUndefined();
+
+      expect(Object.keys(inventories).sort()).toEqual([name, "VCPU"].sort());
+      expect(readOwnValue(inventories, name)).toEqual({
+        total: 8,
+        reserved: 1,
+        allocationRatio: 2,
+        used: 3,
+      });
+      expect(Object.getPrototypeOf(inventories)).toBe(Object.prototype);
+    },
+  );
 });
 
 describe("what a zone, an aggregate, a region and a cloud add up to", () => {

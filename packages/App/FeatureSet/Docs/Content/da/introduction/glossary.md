@@ -54,7 +54,7 @@ Se [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 
 En maskine, der kører monitorernes tjek efter en tidsplan: den henter en side, kalder et API eller pinger en vært. OneUptime Cloud kører sonder i flere regioner, og en brugerdefineret sonde, du kører i dit eget netværk, tjekker det, som kun det netværk kan nå.
 
-Også kaldet: **Brugerdefinerede probes**. Se [Brugerdefinerede probes](/docs/probe/custom-probe).
+Også kaldet: **Brugerdefinerede sonder**. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
 
 ### Hændelse
 
@@ -126,7 +126,7 @@ Se [Abonnenter og meddelelser](/docs/status-pages/subscribers).
 
 Planlagt arbejde, annonceret på forhånd. Hver vedligeholdelseshændelse går gennem vedligeholdelsestilstandene **Planlagt**, **Igangværende**, **Afsluttet** og **Fuldført**, og de statussider, den vises på, fortæller besøgende og abonnenter om den.
 
-Også kaldet: **Planlagt vedligeholdelsesbegivenhed**, **Planlagt hændelse**, **Begivenhed**. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
+Også kaldet: **Planlagt vedligeholdelseshændelse**, **Planlagt hændelse**, **Begivenhed**. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
 
 ### Telemetri
 
@@ -348,7 +348,7 @@ Se [Workflows – Oversigt](/docs/workflows/index).
 
 ### Runbook
 
-En genbrugelig responsprocedure: manuelle og automatiserede trin, som dit team kører på en hændelse, en advarsel eller en vedligeholdelsesbegivenhed, manuelt eller når en runbook-regel passer.
+En genbrugelig responsprocedure: manuelle og automatiserede trin, som dit team kører på en hændelse, en advarsel eller en vedligeholdelseshændelse, manuelt eller når en runbook-regel passer.
 
 Se [Runbooks – Oversigt](/docs/runbooks/index).
 
@@ -384,7 +384,7 @@ Også kaldet: **Opgaver**. Se [Kode](/docs/ai/ai-agent).
 
 ### Formular
 
-En side, som alle med linket kan udfylde, uden en konto. Hver indsendelse opretter en hændelse, for en problemrapport, eller en planlagt vedligeholdelsesbegivenhed, for en ændringsanmodning.
+En side, som alle med linket kan udfylde, uden en konto. Hver indsendelse opretter en hændelse, for en problemrapport, eller en vedligeholdelseshændelse, for en ændringsanmodning.
 
 Se [Formularer – overblik](/docs/forms/index).
 

@@ -21,6 +21,8 @@ import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -34,6 +36,7 @@ import React, {
   useState,
 } from "react";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -346,6 +349,10 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
             {data.site?.currentMonitorStatus?.name ? (
               <Pill
                 text={data.site.currentMonitorStatus.name}
+                isUserContent={isRecordNameAsWritten(
+                  StateListType.MonitorStatus,
+                  data.site.currentMonitorStatus.name,
+                )}
                 color={data.site.currentMonitorStatus.color || Gray500}
                 size={PillSize.Normal}
               />
@@ -473,11 +480,7 @@ const SiteStatusHero: FunctionComponent<ComponentProps> = (
         <div>
           <SiteHeroTileTitle title="Site Type" />
           <div className="mt-1.5 text-sm text-gray-900">
-            {data.site ? (
-              getNetworkSiteTypeName(data.site)
-            ) : (
-              <span className="text-gray-400">—</span>
-            )}
+            {data.site ? getNetworkSiteTypeName(data.site) : <EmptyValue />}
           </div>
         </div>
       </div>

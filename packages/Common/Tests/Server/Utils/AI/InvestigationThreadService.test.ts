@@ -38,6 +38,7 @@ import {
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import Timezone from "../../../../Types/Timezone";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
@@ -256,6 +257,29 @@ describe("InvestigationThreadService.sendMessage", () => {
 
     expect(
       (runTurn.mock.calls[0]![0] as ChatTurnRequest).language,
+    ).toBeUndefined();
+  });
+
+  /*
+   * A chart the thread draws over more than a week cuts its days at the
+   * asker's midnight (#7922): the turn carries their zone, and with none
+   * its days are UTC's.
+   */
+  test("hands the turn the asker's time zone", async () => {
+    await send({ timezone: Timezone.AmericaNew_York });
+    await flush();
+
+    expect((runTurn.mock.calls[0]![0] as ChatTurnRequest).timezone).toBe(
+      Timezone.AmericaNew_York,
+    );
+  });
+
+  test("with no time zone, the turn carries none", async () => {
+    await send();
+    await flush();
+
+    expect(
+      (runTurn.mock.calls[0]![0] as ChatTurnRequest).timezone,
     ).toBeUndefined();
   });
 
@@ -539,6 +563,22 @@ describe("InvestigationThreadService.respondToApproval", () => {
 
     const [turn] = resumeTurn.mock.calls[0]! as [ChatTurnRequest];
     expect(turn.language).toBe("ar");
+  });
+
+  test("the resumed turn carries the decider's time zone, for the charts it goes on to draw (#7922)", async () => {
+    await InvestigationThreadService.respondToApproval({
+      projectId: PROJECT_ID,
+      subject: SUBJECT,
+      userId: VIEWER_ID,
+      props: deciderProps,
+      assistantMessageId: ASSISTANT_MESSAGE_ID,
+      approved: true,
+      timezone: Timezone.AsiaKathmandu,
+    });
+    await flush();
+
+    const [turn] = resumeTurn.mock.calls[0]! as [ChatTurnRequest];
+    expect(turn.timezone).toBe(Timezone.AsiaKathmandu);
   });
 
   test("a resumed turn with no language carries none", async () => {

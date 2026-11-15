@@ -149,6 +149,62 @@ describe("sortable column headers", () => {
     expect(sortCalls).toEqual([["name", SortOrder.Ascending]]);
   });
 
+  /*
+   * A severity, a state or a status sorts worst first on its first click
+   * (Column's firstSortOrder, ModelTable's ColumnSort, #8134), whichever
+   * way the list ran before; clicked again, it turns round as any column.
+   */
+  test("a column with a first direction goes that way on its first click, whichever way the list ran", () => {
+    const sortCalls: Array<[keyof Row | null, SortOrder]> = [];
+    const withFirstOrder: Columns<Row> = [
+      { title: "Name", type: FieldType.Text, key: "name" },
+      {
+        title: "Status",
+        type: FieldType.Text,
+        key: "status",
+        firstSortOrder: SortOrder.Descending,
+      },
+    ];
+
+    renderTable({
+      columns: withFirstOrder,
+      sortBy: "name",
+      sortOrder: SortOrder.Descending,
+      onSortChanged: (sortBy: keyof Row | null, sortOrder: SortOrder) => {
+        sortCalls.push([sortBy, sortOrder]);
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Status" }));
+
+    // Not turned round from the list's Descending: the column's own first.
+    expect(sortCalls).toEqual([["status", SortOrder.Descending]]);
+  });
+
+  test("the sorted column with a first direction still turns round when clicked again", () => {
+    const sortCalls: Array<[keyof Row | null, SortOrder]> = [];
+
+    renderTable({
+      columns: [
+        {
+          title: "Status",
+          type: FieldType.Text,
+          key: "status",
+          firstSortOrder: SortOrder.Descending,
+        },
+      ],
+      sortBy: "status",
+      sortOrder: SortOrder.Descending,
+      onSortChanged: (sortBy: keyof Row | null, sortOrder: SortOrder) => {
+        sortCalls.push([sortBy, sortOrder]);
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Status/ }));
+
+    expect(sortCalls).toEqual([["status", SortOrder.Ascending]]);
+  });
+
   test("a column that cannot be sorted gets no button", () => {
     renderTable();
 

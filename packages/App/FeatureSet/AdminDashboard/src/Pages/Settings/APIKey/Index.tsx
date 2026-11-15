@@ -19,16 +19,19 @@ const Settings: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {
           title: t("breadcrumbs.settings"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS] as Route,
           ),
         },
         {
           title: t("breadcrumbs.apiKey"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(
             RouteMap[PageMap.SETTINGS_HOST] as Route,
           ),
@@ -85,6 +88,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 isCopyable: true,
               },
               placeholder: t("pages.settings.apiKey.apiKeyNotGenerated"),
+              isPlaceholderTranslated: true,
             },
             {
               field: {
@@ -93,6 +97,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Enabled",
               fieldType: FieldType.Boolean,
               placeholder: t("common.notEnabled"),
+              isPlaceholderTranslated: true,
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

@@ -34,6 +34,7 @@ import {
   movePlaylistDashboard,
   removePlaylistDashboard,
 } from "./PlaylistDashboards";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * A playlist's dashboards, in the order they are shown (issue #5235): the
@@ -418,7 +419,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
         placeholder={getPickerPlaceholder()}
         // Worded here, a count among them: drawn as given.
         isPlaceholderTranslated={true}
-        ariaLabel={translator.translateText("Add a dashboard")}
+        ariaLabel="Add a dashboard"
         dataTestId="playlist-dashboards-picker"
         disabled={isLoading || isFull || pickable.length === 0}
         error={props.error || undefined}
@@ -437,7 +438,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
 
       {loadError ? (
         <p className="text-sm text-red-600" role="alert">
-          {loadError}
+          <ErrorInSentence message={loadError} showWhereToLook={true} />
         </p>
       ) : (
         <></>

@@ -57,7 +57,7 @@ Varje åtgärd är en brytare under **Åtgärder**:
 
 | Brytare | Vad den gör |
 | --- | --- |
-| **När filter matchar, ändra övervakarstatus.** | Flyttar monitorn till den status som valts i **Ändra övervakningsstatus till**. |
+| **När filter matchar, ändra monitorstatus.** | Flyttar monitorn till den status som valts i **Ändra övervakningsstatus till**. |
 | **När filter matchar, skapa ett larm.** | Skapar de larm som är inställda under **Skapa larm**. Ett larm meddelar ditt team och visas aldrig på en statussida. |
 | **När filter matchar, deklarera en incident.** | Deklarerar de incidenter som är inställda under **Skapa incident**. Dina statussidor kan visa dem. |
 
@@ -161,7 +161,7 @@ En status som du lägger till senare läggs inte till i listan **Räknas som dri
 :::steps
 ### Öppna Monitorstatus
 
-Gå till **Övervakare → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitorstatusar** listar statusarna från den friskaste till den värsta.
+Gå till **Monitorer → Inställningar → Monitorstatus**. **Inställningar** är hopfällt i sidomenyn: fäll ut det först. Kortet **Monitorstatusar** listar statusarna från den friskaste till den värsta.
 
 ### Skapa statusen
 
@@ -196,7 +196,7 @@ Arkivera en status som ditt team inte längre ska använda, i stället för att 
 ## Felsökning
 
 :::details Webbplatsen är nere, men monitorn förblir Fungerar
-Ett kriterium högre upp i listan matchade först. Öppna **Konfiguration → Kriterier** och kontrollera ordningen: det friska kriteriet kommer sist. Kontrollera också att offline-kriteriet har **Aktivera det här kriteriet** påslaget, och att dess åtgärd **När filter matchar, ändra övervakarstatus.** är påslagen med en vald status.
+Ett kriterium högre upp i listan matchade först. Öppna **Konfiguration → Kriterier** och kontrollera ordningen: det friska kriteriet kommer sist. Kontrollera också att offline-kriteriet har **Aktivera det här kriteriet** påslaget, och att dess åtgärd **När filter matchar, ändra monitorstatus.** är påslagen med en vald status.
 :::
 
 :::details Ingen incident öppnades när monitorn gick ned

@@ -10,6 +10,12 @@ import useTranslateValue from "../../Utils/Translation";
 export interface ComponentProps {
   icon?: IconProp | undefined;
   text: string;
+  /*
+   * The text is a name - a state a project named itself - drawn as
+   * written, never looked up (Pill.isUserContent). Left out, it is the
+   * product's words, looked up in the reader's language.
+   */
+  isUserContent?: boolean | undefined;
   onClick: () => void;
   rightElement?: Array<ReactElement> | ReactElement | undefined;
   className?: string | undefined;
@@ -19,6 +25,14 @@ export interface ComponentProps {
    * Shown on hover - the place a locked menu item says why it is locked.
    */
   tooltip?: string | undefined;
+  /*
+   * The tooltip reads by the same rule as the text (isUserContent): set,
+   * it is drawn as given, never looked up (Tooltip's isTextUserContent) -
+   * words the caller already put in the reader's language, as a
+   * permission gate's reason is. Looked up again, a translation that is
+   * itself a key reads as another word (#8067).
+   */
+  isTooltipUserContent?: boolean | undefined;
   /*
    * Red text and a red hover, for the items that delete or remove something.
    * The menu is where a table puts those, so they need to read as dangerous
@@ -192,7 +206,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           second: the menu's width is fixed (MoreMenu's PORTALED_MENU_WIDTH).
         */}
         <div className="font-medium text-balance">
-          {translateString(props.text) ?? props.text}
+          {props.isUserContent
+            ? props.text
+            : translateString(props.text) ?? props.text}
         </div>
         <div>{props.rightElement}</div>
       </div>
@@ -223,6 +239,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       <>
         <Tooltip
           text={props.tooltip}
+          isTextUserContent={props.isTooltipUserContent}
           isTriggerAlreadyDescribed={true}
           isShownOnKeyboardFocusOnly={true}
           isShownOnPress={true}
@@ -232,7 +249,9 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
           {menuItem}
         </Tooltip>
         <span id={reasonId} className="sr-only">
-          {translateString(props.tooltip) ?? props.tooltip}
+          {props.isTooltipUserContent
+            ? props.tooltip
+            : translateString(props.tooltip) ?? props.tooltip}
         </span>
       </>
     );
@@ -241,6 +260,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   return (
     <Tooltip
       text={props.tooltip}
+      isTextUserContent={props.isTooltipUserContent}
       isShownOnKeyboardFocusOnly={true}
       placement={MENU_ITEM_TOOLTIP_PLACEMENT}
       fallbackPlacements={MENU_ITEM_TOOLTIP_FALLBACK_PLACEMENTS}

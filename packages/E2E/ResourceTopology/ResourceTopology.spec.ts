@@ -1006,6 +1006,223 @@ test.describe("every resource that holds parts", () => {
   }
 });
 
+// Every card the Connections view draws, where the browser drew it.
+async function connectionParts(page: Page): Promise<Array<Box>> {
+  return await page.evaluate((): Array<Box> => {
+    return Array.from(
+      document.querySelectorAll(
+        '[data-testid^="resource-topology-connections-node-"]',
+      ),
+    ).map((element: Element, index: number): Box => {
+      const box: DOMRect = element.getBoundingClientRect();
+
+      return {
+        id: `${element.getAttribute("title") || ""} #${index}`,
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      };
+    });
+  });
+}
+
+// A card on the Connections view, by the name it starts its title with.
+function connectionCard(page: Page, name: string): Locator {
+  return page.locator(
+    `[data-testid^="resource-topology-connections-node-"][title^="${name}"]`,
+  );
+}
+
+function connectionsCanvas(page: Page): Locator {
+  return byTestId(page, "resource-topology-connections");
+}
+
+test.describe("a cloud account's Connections", () => {
+  test("draws the account's most connected parts around it, and a click moves a part to the middle", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(topologyUrl("cloud", "view=connections"));
+    await expect(connectionsCanvas(page)).toBeVisible();
+    await expect(
+      byTestId(page, "resource-topology-display-connections"),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "overview",
+    );
+    // The account in the middle, its networks and machines around it.
+    await expect(
+      byTestId(page, "resource-topology-connections-node-center"),
+    ).toContainText("production");
+    await expect(connectionCard(page, "main")).toBeVisible();
+    await expect(connectionCard(page, "web-alb")).toBeVisible();
+    // A bucket connected to nothing is on the map, never here.
+    await expect(connectionCard(page, "acme-assets")).toHaveCount(0);
+    expect(stacked(await connectionParts(page))).toEqual([]);
+    expect(await mapScale(page)).toBeGreaterThanOrEqual(0.6);
+    await screenshot(page, "cloud-connections-1280-light");
+
+    // The VPC to the middle: its subnets around it, their machines further out.
+    await connectionCard(page, "main").click();
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "part",
+    );
+    await expect(page).toHaveURL(/node=/);
+    await expect(
+      byTestId(page, "resource-topology-connections-center"),
+    ).toContainText("Showing what main is connected to.");
+    await expect(
+      page.locator(
+        '[data-testid="resource-topology-connections-node-ring"][title^="subnet-a"]',
+      ),
+    ).toBeVisible();
+    await expect(
+      page.locator(
+        '[data-testid="resource-topology-connections-node-outer"][title^="web-1"]',
+      ),
+    ).toBeVisible();
+    // A line's words, once nothing is hovered: a subnet "Runs in" the VPC.
+    await page.mouse.move(1, 1);
+    await expect(
+      page.locator(".react-flow__edge-text").filter({ hasText: "Runs in" }),
+    ).not.toHaveCount(0);
+    expect(stacked(await connectionParts(page))).toEqual([]);
+    await screenshot(page, "cloud-connections-vpc-1280-light");
+
+    // Back to the account's own view.
+    await byTestId(page, "resource-topology-connections-clear").click();
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "overview",
+    );
+  });
+
+  test("a search gathers what it finds, and Needs attention what needs it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(topologyUrl("cloud", "view=connections"));
+    await expect(connectionsCanvas(page)).toBeVisible();
+
+    await byTestId(page, "resource-topology-search").fill("web");
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "search",
+    );
+    await expect(
+      byTestId(page, "resource-topology-connections-node-center"),
+    ).toContainText("web");
+    await expect(
+      page.locator('[data-testid="resource-topology-connections-node-ring"]'),
+    ).toHaveCount(4);
+    await screenshot(page, "cloud-connections-search-1280-light");
+
+    await byTestId(page, "resource-topology-search").fill("");
+    await byTestId(page, "resource-topology-filter-attention").click();
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "attention",
+    );
+    // The database with an open incident, and the subnet it runs in.
+    await expect(
+      page.locator(
+        '[data-testid="resource-topology-connections-node-ring"][title^="orders-db"]',
+      ),
+    ).toContainText("1 open incident");
+    await expect(
+      page.locator(
+        '[data-testid="resource-topology-connections-node-outer"][title^="subnet-b"]',
+      ),
+    ).toBeVisible();
+  });
+
+  test("the keyboard reaches every part, Enter moves it to the middle, and the middle opens its panel", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(topologyUrl("cloud", "view=connections"));
+    await expect(connectionsCanvas(page)).toBeVisible();
+
+    await connectionCard(page, "web-alb").focus();
+    await page.keyboard.press("Enter");
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "part",
+    );
+    // The load balancer sends traffic to both web machines.
+    await expect(connectionCard(page, "web-1")).toBeVisible();
+    await expect(connectionCard(page, "web-2")).toBeVisible();
+    await expect(byTestId(page, "resource-topology-panel")).toHaveCount(0);
+
+    // The middle opens its panel, with the way to its own page.
+    await byTestId(page, "resource-topology-connections-node-center").click();
+    await expect(byTestId(page, "resource-topology-panel")).toBeVisible();
+    await expect(panel(page)).toContainText("web-alb");
+    await expect(byTestId(page, "resource-topology-panel-open")).toBeVisible();
+  });
+
+  test("the part picked on the map is the one in the middle", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "cloud");
+    await byTestId(page, "resource-topology-search").fill("orders-db");
+    await partNamed(page, "orders-db").first().click();
+    await expect(byTestId(page, "resource-topology-panel")).toBeVisible();
+    await expect(page).toHaveURL(/node=/);
+
+    // The address keeps the part picked: Connections opens on it.
+    const picked: string =
+      new URL(page.url()).searchParams.get("node") || "missing";
+
+    await page.goto(topologyUrl("cloud", `node=${picked}&view=connections`));
+    await expect(connectionsCanvas(page)).toHaveAttribute(
+      "data-center",
+      "part",
+    );
+    await expect(
+      byTestId(page, "resource-topology-connections-node-center"),
+    ).toContainText("orders-db");
+    // Its panel stays closed until the middle is clicked.
+    await expect(byTestId(page, "resource-topology-panel")).toHaveCount(0);
+  });
+
+  test("reads in dark mode and from right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(topologyUrl("cloud", "view=connections&theme=dark"));
+    await expect(connectionsCanvas(page)).toBeVisible();
+    expect(stacked(await connectionParts(page))).toEqual([]);
+    await screenshot(page, "cloud-connections-1280-dark");
+
+    await page.goto(topologyUrl("cloud", "view=connections&lang=fa"));
+    await expect(connectionsCanvas(page)).toBeVisible();
+    expect(stacked(await connectionParts(page))).toEqual([]);
+    await screenshot(page, "cloud-connections-1280-fa");
+  });
+
+  test("every other product, which says nothing of connections, is not offered them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTopology(page, "vmware", "view=connections");
+    await expect(
+      byTestId(page, "resource-topology-display-connections"),
+    ).toHaveCount(0);
+    await expect(byTestId(page, "resource-topology-canvas")).toBeVisible();
+  });
+});
+
 test.describe("an OpenStack cloud with a compute service stopped", () => {
   const HOST: string = "hypervisor:RegionOne/compute-3.example.internal";
 

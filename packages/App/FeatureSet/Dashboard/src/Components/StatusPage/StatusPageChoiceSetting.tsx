@@ -27,6 +27,7 @@ import {
   getDisplayChoiceWrite,
 } from "./StatusPageDisplaySettingsCopy";
 import { getPlanNeededToChange } from "./StatusPageSwitchRow";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * One pick from a short list for one of a status page's columns - how
@@ -158,6 +159,7 @@ const StatusPageChoiceSetting: FunctionComponent<ComponentProps> = (
               text={translator.translateTemplate("{{planName}} Plan", {
                 planName: planNeeded,
               })}
+              isUserContent={true}
               color={Yellow}
             />
           </div>
@@ -171,7 +173,7 @@ const StatusPageChoiceSetting: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid={`${props.dataTestId}-error`}
         >
-          {setting.error}
+          <ErrorInSentence message={setting.error} showWhereToLook={true} />
         </p>
       ) : (
         <></>

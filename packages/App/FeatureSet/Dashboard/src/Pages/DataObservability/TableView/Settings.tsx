@@ -25,7 +25,8 @@ const TableSettingsPage: FunctionComponent<
   const columnOptions: Array<DropdownOption> = readDataAssetColumns(
     dataAsset?.columns,
   ).map((column: DataAssetColumn): DropdownOption => {
-    return { value: column.name, label: column.name };
+    // A column's name, as its table names it.
+    return { value: column.name, label: column.name, isUserContent: true };
   });
 
   return (

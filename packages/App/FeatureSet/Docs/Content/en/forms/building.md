@@ -92,7 +92,7 @@ A **File** or **Multiple Files** question takes files from the submitter's compu
 
 ### Fields of what the form creates
 
-The fields of an incident, or of a scheduled maintenance event, that a submitter can answer. The answer becomes the field's value.
+The fields of an incident, or of a maintenance event, that a submitter can answer. The answer becomes the field's value.
 
 | Incident field | Answered with |
 | --- | --- |

@@ -16,6 +16,7 @@ import SecurityEventSeverityPill, {
 } from "./SecurityEventSeverityPill";
 import { CorrelationGraphNode } from "../../Utils/CorrelationGraph";
 import { CorrelationConnector } from "../../Utils/SecurityEventCorrelation";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
 /*
  * The panel docked beside the correlation graph. With nothing selected it
@@ -299,7 +300,7 @@ export const CorrelateClassEventsPanel: FunctionComponent<
             dataTestId="correlate-drilldown-close"
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.Close}
-            ariaLabel={t("Close")}
+            ariaLabel="Close"
             onClick={props.onClose}
           />
         </div>
@@ -379,11 +380,11 @@ export const CorrelateClassEventsPanel: FunctionComponent<
                         {OneUptimeDate.fromNow(new Date(event.time))}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-500">-</span>
+                      <EmptyValue isSmall={true} />
                     )}
                   </span>
                   <span className="mt-1 line-clamp-2 text-sm text-gray-900">
-                    {event.message || "-"}
+                    {event.message || <EmptyValue />}
                   </span>
                   {principal.length > 0 && (
                     <span className="mt-0.5 block truncate font-mono text-xs text-gray-500">
@@ -491,7 +492,7 @@ export const CorrelateObservablePivotPanel: FunctionComponent<
             dataTestId="correlate-action-dismiss"
             buttonStyle={ButtonStyleType.ICON}
             icon={IconProp.Close}
-            ariaLabel={t("Clear selection")}
+            ariaLabel="Clear selection"
             onClick={props.onDismiss}
           />
         </div>

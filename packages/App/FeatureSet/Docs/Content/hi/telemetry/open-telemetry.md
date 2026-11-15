@@ -52,7 +52,7 @@ flowchart TB
 2. साइड मेन्यू में **टेलीमेट्री और APM** खोलें और **इंजेशन कुंजियाँ** चुनें।
 3. **इन्जेशन कुंजी बनाएँ** पर क्लिक करें। डायलॉग एक नाम भर देता है और **सर्वर** कुंजी प्रकार चुनता है, जिससे कोई एप्लिकेशन या collector डेटा भेजता है। चाहें तो नाम बदलें, फिर **इन्जेशन कुंजी बनाएँ** पर क्लिक करें।
 
-![प्रोजेक्ट सेटिंग्स में टेलीमेट्री इंजेशन कुंजियों का पेज](/docs/static/images/TelemetryIngestionKeys.png)
+!["इंजेशन कुंजियाँ" सूची, "इन्जेशन कुंजी बनाएँ" घेरा हुआ](screen:ingestion-keys)
 
 नई कुंजी अपने पेज पर खुलती है। उसकी **सीक्रेट कुंजी** कॉपी करें — यही वह टोकन है जिसे आप `x-oneuptime-token` के रूप में भेजते हैं।
 
@@ -89,9 +89,9 @@ export OTEL_SERVICE_NAME="my-service"
 SDK, ऑटोमैटिक इंस्ट्रुमेंटेशन और OTLP/HTTP एक्सपोर्टर इंस्टॉल करें:
 
 ```bash
-npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node \
-  @opentelemetry/exporter-trace-otlp-proto @opentelemetry/exporter-metrics-otlp-proto \
-  @opentelemetry/exporter-logs-otlp-proto @opentelemetry/sdk-metrics @opentelemetry/sdk-logs
+npm install @opentelemetry/sdk-node@0.301.2 @opentelemetry/auto-instrumentations-node@0.83.1 \
+  @opentelemetry/exporter-trace-otlp-proto@0.301.2 @opentelemetry/exporter-metrics-otlp-proto@0.301.2 \
+  @opentelemetry/exporter-logs-otlp-proto@0.301.2 @opentelemetry/sdk-metrics@3.1.1 @opentelemetry/sdk-logs@3.1.1
 ```
 
 SDK को उसकी अपनी फ़ाइल में बनाएं:
@@ -108,10 +108,12 @@ const { BatchLogRecordProcessor } = require("@opentelemetry/sdk-logs");
 // The exporters read OTEL_EXPORTER_OTLP_ENDPOINT and OTEL_EXPORTER_OTLP_HEADERS.
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
-  logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  metricReaders: [
+    new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  ],
+  logRecordProcessors: [
+    new BatchLogRecordProcessor({ exporter: new OTLPLogExporter() }),
+  ],
   instrumentations: [getNodeAutoInstrumentations()],
 });
 

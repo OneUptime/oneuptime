@@ -36,6 +36,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import URL from "Common/Types/API/URL";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * Status Pages -> a page -> Advanced -> Embedded Status: a small image of
@@ -264,7 +265,7 @@ const StatusPageEmbeddedStatus: FunctionComponent<
           </p>
           {tokenError ? (
             <p className="text-center text-sm text-red-600" role="alert">
-              {tokenError}
+              <ErrorInSentence message={tokenError} showWhereToLook={true} />
             </p>
           ) : (
             <></>

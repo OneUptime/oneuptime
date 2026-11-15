@@ -27,6 +27,7 @@ import {
 } from "../TestSend/TestSendLock";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getErrorInSentenceText } from "Common/UI/Utils/ErrorInSentence";
 
 export interface ComponentProps {
   // API route under APP_API_URL, e.g. "/slack/channels/test".
@@ -183,7 +184,10 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
 
         {status === "failed" && (
           <span
-            title={error}
+            title={getErrorInSentenceText({
+              message: error,
+              translator: translator,
+            })}
             className="inline-flex items-center gap-1 text-xs font-medium text-red-700"
             data-testid="send-test-notification-failed"
           >
@@ -217,6 +221,7 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
           "Send test notification to {{destination}}",
           { destination: props.destinationName },
         )}
+        isAriaLabelTranslated={true}
         dataTestId="send-test-notification-button"
         className="!w-auto whitespace-nowrap !text-sm md:!ml-0"
         onClick={() => {

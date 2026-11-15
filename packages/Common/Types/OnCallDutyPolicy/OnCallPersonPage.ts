@@ -40,6 +40,20 @@ import {
  * who paged wrote, where the notification has room for it (OnCallPersonPageNotice).
  * WhatsApp's words are a template Meta approved, and stay as they are.
  *
+ * AN ON-CALL POLICY A PERSON STARTED BY HAND (OnCallPolicyStartedByHand) IS
+ * ASKED FOR TOO, AND SAYS SO THE SAME WAY. Execute On-Call Policy in the
+ * Dashboard, Slack, Microsoft Teams or Mattermost, or a page that names a
+ * policy, is mostly started on a record somebody is on already, and its
+ * notifications told the people its levels page that "a new incident has
+ * been created", at every level and every repeat, from nobody
+ * (https://github.com/OneUptime/oneuptime/issues/7838). Its notice names the
+ * policy (policyName) and the level that pages this person (policyLevel),
+ * and every sentence below words it for a policy: "Alice Kim started
+ * Database escalation", "You're getting this because you're on level 2 of
+ * Database escalation." - never "paged you by name", which the policy's
+ * level did, not the person. The message a page that names a policy carries
+ * (pageMessage) is said in every channel, as a person's page's is.
+ *
  * This file holds the rule and its words, for the server (the workers that
  * end runs, the notifications, the runs' chat messages) and for the docs
  * tests. It imports nothing that needs a server or React.
@@ -132,11 +146,44 @@ export interface OnCallPersonPageNotice {
   scheduleName?: string | undefined;
   // What the person who paged wrote. Empty for none.
   message?: string | undefined;
+  /*
+   * For an on-call policy a person started by hand (OnCallPolicyStartedByHand):
+   * the policy's name. Every sentence then says they started the policy,
+   * not that they paged somebody. None for a person's page.
+   */
+  policyName?: string | undefined;
+  /*
+   * The level of that policy that pages this person: 1 for its first. None
+   * when it is not known: the sentences then name the policy only.
+   */
+  policyLevel?: number | undefined;
 }
 
 // The name of who paged, never empty.
 function pager(notice: OnCallPersonPageNotice): string {
   return notice.pagedByName.trim() || "Someone";
+}
+
+/*
+ * Whether a notice is of an on-call policy a person started by hand
+ * (OnCallPolicyStartedByHand): it names the policy.
+ */
+export function isOnCallPolicyStartedByHandNotice(
+  notice: OnCallPersonPageNotice | null | undefined,
+): boolean {
+  return Boolean(notice && (notice.policyName || "").trim());
+}
+
+// The policy a notice names, as written. Empty for a person's page.
+function startedPolicy(notice: OnCallPersonPageNotice): string {
+  return (notice.policyName || "").trim();
+}
+
+// The level a notice names, as a whole number from 1. Null for none.
+function startedLevel(notice: OnCallPersonPageNotice): number | null {
+  const level: number = Number(notice.policyLevel);
+
+  return Number.isInteger(level) && level >= 1 ? level : null;
 }
 
 /*
@@ -163,6 +210,19 @@ export function getOnCallPersonPageLead(
   notice: OnCallPersonPageNotice,
   translator: Translator = getEnglishTranslator(),
 ): string {
+  const policyName: string = startedPolicy(notice);
+
+  /*
+   * A policy started by hand: "Alice Kim started Database escalation" -
+   * whom it pages is the policy's, said by the why line.
+   */
+  if (policyName) {
+    return translator.translateTemplate("{{pager}} started {{policy}}", {
+      pager: getOnCallPersonPagePager(notice),
+      policy: policyName,
+    });
+  }
+
   const teamName: string = (notice.teamName || "").trim();
 
   if (teamName) {
@@ -199,6 +259,10 @@ export function getOnCallPersonPageWhyLine(
   notice: OnCallPersonPageNotice,
   translator: Translator = getEnglishTranslator(),
 ): string {
+  if (startedPolicy(notice)) {
+    return getPolicyStartedByHandWhyLine(notice, translator);
+  }
+
   const teamName: string = (notice.teamName || "").trim();
 
   if (teamName) {
@@ -220,6 +284,65 @@ export function getOnCallPersonPageWhyLine(
   return translator.translateTemplate(
     "You're getting this because {{pager}} paged you by name.",
     { pager: getOnCallPersonPagePager(notice) },
+  );
+}
+
+/*
+ * Why the person reading it was paged by a policy a person started by hand:
+ * the policy's level - through a team, a schedule, or naming them - where a
+ * person's page says "... because Alice Kim paged you by name.":
+ * "You're getting this because you're a member of Platform, on level 2 of
+ * Database escalation.", "... because you're on call in Primary, on level 1
+ * of Database escalation.", "... because you're on level 1 of Database
+ * escalation." Without a level, the policy, the team or the schedule alone.
+ */
+function getPolicyStartedByHandWhyLine(
+  notice: OnCallPersonPageNotice,
+  translator: Translator,
+): string {
+  const policyName: string = startedPolicy(notice);
+  const level: number | null = startedLevel(notice);
+  const teamName: string = (notice.teamName || "").trim();
+  const scheduleName: string = (notice.scheduleName || "").trim();
+
+  if (level === null) {
+    if (teamName) {
+      return translator.translateTemplate(
+        "You're getting this because you're a member of {{team}}.",
+        { team: teamName },
+      );
+    }
+
+    if (scheduleName) {
+      return translator.translateTemplate(
+        "You're getting this because you're on call in {{schedule}}.",
+        { schedule: scheduleName },
+      );
+    }
+
+    return translator.translateTemplate(
+      "You're getting this because {{policy}} pages you.",
+      { policy: policyName },
+    );
+  }
+
+  if (teamName) {
+    return translator.translateTemplate(
+      "You're getting this because you're a member of {{team}}, on level {{level}} of {{policy}}.",
+      { team: teamName, level: String(level), policy: policyName },
+    );
+  }
+
+  if (scheduleName) {
+    return translator.translateTemplate(
+      "You're getting this because you're on call in {{schedule}}, on level {{level}} of {{policy}}.",
+      { schedule: scheduleName, level: String(level), policy: policyName },
+    );
+  }
+
+  return translator.translateTemplate(
+    "You're getting this because you're on level {{level}} of {{policy}}.",
+    { level: String(level), policy: policyName },
   );
 }
 
@@ -307,6 +430,17 @@ export function getOnCallPersonPageCallSentence(data: {
   recordNoun: string;
   notice: OnCallPersonPageNotice;
 }): string {
+  const policyName: string = startedPolicy(data.notice);
+
+  /*
+   * A policy started by hand: "Alice Kim started the on-call policy
+   * Database escalation for an incident" - said, a policy's name alone
+   * would not say what it is.
+   */
+  if (policyName) {
+    return `${pager(data.notice)} started the on-call policy ${policyName} for an ${data.recordNoun}`;
+  }
+
   return `${getOnCallPersonPageLead(data.notice)} about an ${data.recordNoun}`;
 }
 
@@ -359,8 +493,23 @@ export function getOnCallPersonPageEmailLine(data: {
   recordNoun: string;
   projectName: string;
   notice: OnCallPersonPageNotice;
+  /*
+   * The record by its kind and number - "Incident INC-42" - which a policy
+   * started by hand names: "Alice Kim started Database escalation for
+   * Incident INC-42 in the project Acme." The record's kind without it.
+   */
+  recordLabel?: string | undefined;
   translator?: Translator | undefined;
 }): string {
+  if (startedPolicy(data.notice)) {
+    return getPolicyStartedByHandEmailLine({
+      record: (data.recordLabel || "").trim() || data.recordNoun.trim(),
+      projectName: data.projectName,
+      notice: data.notice,
+      translator: data.translator || getEnglishTranslator(),
+    });
+  }
+
   const project: string = data.projectName.trim();
   const teamName: string = (data.notice.teamName || "").trim();
   const scheduleName: string = (data.notice.scheduleName || "").trim();
@@ -417,6 +566,42 @@ export function getOnCallPersonPageEmailLine(data: {
 }
 
 /*
+ * What a policy started by hand's email says first: who started which
+ * policy for the record, then why this person - "Alice Kim started
+ * Database escalation for Incident INC-42 in the project Acme. You're
+ * getting this because you're a member of Platform, on level 2 of Database
+ * escalation."
+ */
+function getPolicyStartedByHandEmailLine(data: {
+  record: string;
+  projectName: string;
+  notice: OnCallPersonPageNotice;
+  translator: Translator;
+}): string {
+  const translator: Translator = data.translator;
+  const project: string = data.projectName.trim();
+
+  const first: string = translator.translateTemplate(
+    project
+      ? translationKey("{{lead}} for {{record}} in the project {{project}}.")
+      : translationKey("{{lead}} for {{record}}."),
+    {
+      lead: composedValue((sentence: Translator): string => {
+        return getOnCallPersonPageLead(data.notice, sentence);
+      }),
+      record: data.record,
+      project: project,
+    },
+  );
+
+  // Two sentences, as the language puts one after another.
+  return translator.translateTemplate("{{first}} {{second}}", {
+    first: first,
+    second: getOnCallPersonPageWhyLine(data.notice, translator),
+  });
+}
+
+/*
  * The line an email shows the message on, when the page has one: "Alice
  * Kim wrote: “Can you check the database?”". Empty for none.
  */
@@ -447,8 +632,16 @@ export function getOnCallPersonPageEmailSubject(data: {
 }): string {
   const translator: Translator = data.translator || getEnglishTranslator();
 
+  /*
+   * A policy started by hand: "ACTION REQUIRED: Alice Kim started Database
+   * escalation for Incident INC-42 - <title>".
+   */
   return translator.translateTemplate(
-    "ACTION REQUIRED: {{lead}} about {{record}} - {{title}}",
+    startedPolicy(data.notice)
+      ? translationKey("ACTION REQUIRED: {{lead}} for {{record}} - {{title}}")
+      : translationKey(
+          "ACTION REQUIRED: {{lead}} about {{record}} - {{title}}",
+        ),
     {
       lead: composedValue((sentence: Translator): string => {
         return getOnCallPersonPageLead(data.notice, sentence);

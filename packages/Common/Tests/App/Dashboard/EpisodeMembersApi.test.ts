@@ -47,6 +47,7 @@ import {
   EPISODE_MEMBER_IDS_LIMIT,
   EPISODE_MEMBER_PICKER_LIMIT,
   EpisodeRecordRow,
+  EpisodeRow,
   EpisodeRows,
   OPEN_EPISODE_PICKER_LIMIT,
   RESOLVED_EPISODE_PICKER_LIMIT,
@@ -94,6 +95,7 @@ import {
   MAX_EPISODE_MEMBERS_PER_ADD,
 } from "../../../Types/Episode/EpisodeMembersAdd";
 import ObjectID from "../../../Types/ObjectID";
+import { StateListType } from "../../../Utils/StateOrder";
 
 /*
  * What the dialogs that add incidents or alerts to an episode read and
@@ -161,6 +163,57 @@ describe("how a row is read", () => {
     expect(getPill("Critical")).toBeUndefined();
   });
 
+  /*
+   * The list says how a pill's name reads: the default "Resolved" in
+   * the reader's words, a project's own as written (#7894).
+   */
+  test("a pill knows the list its name is of", () => {
+    expect(
+      getPill({ name: "Resolved", color: RED }, StateListType.IncidentState),
+    ).toEqual({
+      name: "Resolved",
+      color: RED,
+      list: StateListType.IncidentState,
+    });
+    expect(
+      getPill({ name: "Resolved", color: RED }, StateListType.IncidentState),
+    ).toEqual(expect.objectContaining({ list: StateListType.IncidentState }));
+    expect(getPill({ name: "Resolved", color: RED })).not.toHaveProperty(
+      "list",
+    );
+  });
+
+  test("an incident row's state and severity, and an alert episode's, are of their own kind's lists", () => {
+    const incident: Incident = new Incident();
+    incident._id = id(6);
+    incident.currentIncidentState = { name: "Resolved", color: RED } as never;
+    incident.incidentSeverity = {
+      name: "Critical Incident",
+      color: RED,
+    } as never;
+
+    const incidentRow: EpisodeRecordRow = getRecordRow(
+      INCIDENT_EPISODE_MEMBER_KIND,
+      incident,
+    );
+
+    expect(incidentRow.state?.list).toBe(StateListType.IncidentState);
+    expect(incidentRow.severity?.list).toBe(StateListType.IncidentSeverity);
+
+    const episode: AlertEpisode = new AlertEpisode();
+    episode._id = id(7);
+    episode.currentAlertState = { name: "Firing", color: RED } as never;
+    episode.alertSeverity = { name: "High", color: RED } as never;
+
+    const episodeRow: EpisodeRow = getEpisodeRow(
+      ALERT_EPISODE_MEMBER_KIND,
+      episode,
+    );
+
+    expect(episodeRow.state?.list).toBe(StateListType.AlertState);
+    expect(episodeRow.severity?.list).toBe(StateListType.AlertSeverity);
+  });
+
   test("a search by number may start with #", () => {
     expect(getSearchText("  #12 ")).toBe("12");
     expect(getSearchText("ALT-12")).toBe("ALT-12");
@@ -193,7 +246,7 @@ describe("how a row is read", () => {
       number: "ALT-63",
       title: "Checkout API is offline",
       isPrivate: true,
-      state: { name: "Firing", color: RED },
+      state: { name: "Firing", color: RED, list: StateListType.AlertState },
       severity: undefined,
       date: createdAt,
       otherEpisodeId: id(9),

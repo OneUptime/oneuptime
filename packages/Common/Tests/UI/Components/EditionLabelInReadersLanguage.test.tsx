@@ -14,6 +14,7 @@ import {
   DASHBOARD_LANGUAGES,
 } from "../../Helpers/TranslatedLanguages";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { followLanguageForDates } from "../../../UI/Utils/DateDisplayLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
@@ -502,6 +503,13 @@ beforeAll(async () => {
     keySeparator: false,
     nsSeparator: false,
   });
+  /*
+   * As every frontend does at start-up (the Admin Dashboard's and the
+   * Accounts' Utils/i18n): a date follows the page's language. Without it a
+   * Persian notice wrote its dates in English - "10/21/2026, 7:30:20 PM" -
+   * and held a "30" whenever the clock did.
+   */
+  followLanguageForDates(i18next);
 });
 
 beforeEach(() => {

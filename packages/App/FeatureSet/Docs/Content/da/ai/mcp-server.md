@@ -41,7 +41,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 53 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 54 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -253,7 +253,7 @@ Uden en API-nøgle eller et login kan en klient bruge de offentlige værktøjer:
 - **`oneuptime_describe_resource`**: en ressources felter, og hvordan du filtrerer, sorterer og vælger på dem
 - **`get_public_status_page_overview`**: oversigten over en offentlig statusside
 - **`get_public_status_page_incidents`**: hændelserne på en offentlig statusside
-- **`get_public_status_page_scheduled_maintenance`**: dens planlagte vedligeholdelseshændelser
+- **`get_public_status_page_scheduled_maintenance`**: dens vedligeholdelseshændelser
 - **`get_public_status_page_announcements`**: dens meddelelser
 
 Værktøjerne til offentlige statussider tager en statussides id (et UUID) eller dens domænenavn. For kun at bruge dem forbinder du med adressen og uden legitimationsoplysninger:
@@ -414,7 +414,7 @@ Disse virker uden legitimationsoplysninger, alene med værktøjerne til offentli
 ```text
 "What's the current status of status.example.com?"
 "Show me recent incidents from the OneUptime status page"
-"Are there any scheduled maintenance events on status.acme.com?"
+"Are there any maintenance events on status.acme.com?"
 "Get the latest announcements from my public status page with ID abc123-..."
 ```
 
@@ -480,7 +480,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Område | Poster med værktøjer til at oprette, hente, liste, opdatere, slette og tælle |
 | --- | --- |
 | Overvågning | Monitor, Monitor Status, Monitor Status Event |
-| Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
+| Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Action Item, Postmortem Status |
 | Advarsler | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussider | Status Page, Status Page Announcement |
 | Planlagt vedligeholdelse | Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
