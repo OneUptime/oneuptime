@@ -501,6 +501,13 @@ describe("the two-factor, topology, status page, SLO and workspace texts in ever
         "{{count}} slow requests over budget_one",
         "{{count}} slow requests remaining",
         "{{count}} slow requests remaining_one",
+        // A Metric SLO's, in its metric's events (#8445).
+        "{{count}} bad event over budget",
+        "{{count}} bad event remaining",
+        "{{count}} bad events over budget",
+        "{{count}} bad events over budget_one",
+        "{{count}} bad events remaining",
+        "{{count}} bad events remaining_one",
       ].sort(),
     );
 

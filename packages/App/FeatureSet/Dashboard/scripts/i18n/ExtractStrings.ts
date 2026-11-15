@@ -567,6 +567,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Utils/Slo/SloRequestFilter.ts",
     kind: "keys",
   },
+  // What the SLO forms say of a Metric SLO's metric they cannot count (#8445).
+  {
+    directory: "packages/Common/Utils/Slo/SloMetricSli.ts",
+    kind: "keys",
+  },
   /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No

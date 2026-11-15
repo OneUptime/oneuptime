@@ -92,7 +92,7 @@ export const SLO_METRIC_QUERY_ERRORS: {
     "A metric name can be at most {{max}} characters long.",
   ),
   reservedMetricName: translationKey(
-    "Metrics whose names start with oneuptime. are OneUptime's own, not your services' events. Choose a metric your services send.",
+    "This is one of OneUptime's own metrics, not your services' events. Choose a metric your services send.",
   ),
   noKind: translationKey(
     "Choose how good events are told apart: by a condition on a counter, or by a value a histogram's observations stay at or under.",

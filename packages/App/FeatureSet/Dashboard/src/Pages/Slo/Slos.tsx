@@ -22,7 +22,7 @@ import {
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import ServicesElement from "../../Components/Service/ServiceElements";
 import Service from "Common/Models/DatabaseModels/Service";
-import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { isEventSliType } from "Common/Utils/Slo/SloRequestSli";
 import Route from "Common/Types/API/Route";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
@@ -433,7 +433,7 @@ export const getSloWhatItMeasuresColumns: GetSloTableColumnsFunction =
         type: FieldType.Element,
         hideOnMobile: true,
         getElement: (item: ServiceLevelObjective): ReactElement => {
-          if (isRequestSliType(item.sliType)) {
+          if (isEventSliType(item.sliType)) {
             return (
               <ServicesElement
                 services={(item.services as Array<Service>) || []}

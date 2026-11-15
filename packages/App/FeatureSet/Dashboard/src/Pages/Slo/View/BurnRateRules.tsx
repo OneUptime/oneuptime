@@ -9,6 +9,7 @@ import {
   willDeclareIncident,
 } from "../Utils/BurnRateRuleForm";
 import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import SloRecommendedBurnRateRulesBanner from "../../../Components/Slo/SloRecommendedBurnRateRulesBanner";
 import SloRecommendedBurnRateRulesModal from "../../../Components/Slo/SloRecommendedBurnRateRulesModal";
@@ -277,6 +278,8 @@ const SloBurnRateRules: FunctionComponent<
    * for Minimum Requests, and the table says a rule's minimum.
    */
   const [isRequestSlo, setIsRequestSlo] = useState<boolean>(false);
+  // A Metric SLO's rule counts its metric's events (#8445).
+  const [isMetricSlo, setIsMetricSlo] = useState<boolean>(false);
 
   /*
    * "Add recommended rules": offered in a note above the table while the SLO
@@ -337,6 +340,7 @@ const SloBurnRateRules: FunctionComponent<
           setCanFire(canSloFireBurnRateRules(slo));
           setIsArchived(slo.isArchived === true);
           setIsRequestSlo(isRequestSliType(slo.sliType));
+          setIsMetricSlo(slo.sliType === SliType.Metric);
         }
       } catch {
         // Keep the optimistic default; the notice banner owns real errors.
@@ -425,7 +429,10 @@ const SloBurnRateRules: FunctionComponent<
         ]}
         createEditModalWidth={ModalWidth.Large}
         formSteps={BURN_RATE_RULE_FORM_STEPS}
-        formFields={getBurnRateRuleFormFields({ isRequestSlo: isRequestSlo })}
+        formFields={getBurnRateRuleFormFields({
+          isRequestSlo: isRequestSlo,
+          isMetricSlo: isMetricSlo,
+        })}
         columns={[
           {
             field: {
@@ -468,13 +475,15 @@ const SloBurnRateRules: FunctionComponent<
               const windows: BurnRateRuleWindowsText =
                 formatBurnRateRuleWindows(item, translator);
 
-              // "At least 100 requests", for a request SLO's rule that has one.
-              const minimumRequests: string | null = isRequestSlo
-                ? formatBurnRateRuleMinimumRequests(
-                    item.minimumSampleCount,
-                    translator,
-                  )
-                : null;
+              // "At least 100 requests" ("events" for a Metric SLO), for a rule that has one.
+              const minimumRequests: string | null =
+                isRequestSlo || isMetricSlo
+                  ? formatBurnRateRuleMinimumRequests(
+                      item.minimumSampleCount,
+                      translator,
+                      isMetricSlo,
+                    )
+                  : null;
 
               return (
                 <div>

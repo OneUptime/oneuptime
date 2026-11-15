@@ -73,6 +73,15 @@ import {
 } from "Common/Utils/Slo/SloHealth";
 import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
+  parseSloMetricSearch,
+  SloMetricQueryPart,
+} from "Common/Utils/Slo/SloMetricSli";
+import {
+  SLO_METRIC_FIELD_TITLES,
+  SLO_METRIC_KIND_CHOICES,
+} from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloMetricQueryFields";
+import { SLO_SLI_TYPE_NAMES } from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
+import {
   SLO_REQUEST_FILTER_EXPLORER_FIELDS,
   SLO_REQUEST_FILTER_MAX_LENGTH,
   SLO_REQUEST_FILTER_MAX_TERMS,
@@ -185,6 +194,7 @@ const SOURCES: Record<string, string> = {
     "Common/Server/Utils/Slo/SloWorkspaceNotifications.ts",
   sloHistory: "Common/Models/AnalyticsModels/SloHistory.ts",
   requestCounting: "Common/Server/Utils/Slo/SloRequestCounting.ts",
+  metricCounting: "Common/Server/Utils/Slo/SloMetricCounting.ts",
   releaseCheckApi: "Common/Server/API/ServiceLevelObjectiveAPI.ts",
   releaseCheckMeasurement:
     "Common/Server/Utils/Slo/SloReleaseCheckMeasurement.ts",
@@ -943,7 +953,7 @@ describe("SLOs Overview, against the product", () => {
     ]);
     // What It Measures edits the create form's own four fields.
     expect(settings).toContain(
-      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",\n  // Which of the services\' requests count (#8444).\n  "requestFilter",\n];',
+      '"sliType",\n  "services",\n  "latencyThresholdInMilliseconds",\n  // Which of the services\' requests count (#8444).\n  "requestFilter",\n  // A Metric SLO\'s metric, and which of its events are good (#8445).\n  "metricQueryConfig",\n];',
     );
     expect(settings).toContain(
       "return pickSloFormFields(SLO_MEASURES_COLUMNS);",
@@ -981,7 +991,7 @@ describe("SLOs Overview, against the product", () => {
       "**Archive SLO**",
     ]);
     expect(table).toContain(
-      "**What It Measures**, **Services**, **Latency Threshold (ms)** and **Request Filter**, with **Edit What It Measures**",
+      "**What It Measures**, **Services**, **Latency Threshold (ms)**, **Request Filter** and **Metric**, with **Edit What It Measures**",
     );
     expect(table).toContain(
       "**Target (%)** and **At-Risk Threshold (%)**, with **Edit Objective**",
@@ -1050,6 +1060,26 @@ describe("SLOs Overview, against the product", () => {
         serviceCount: 1,
         sloStatus: SloStatus.Misconfigured,
       }),
+      // A Metric SLO's own banners (#8445).
+      getSloNotice({
+        ...base,
+        sliType: SliType.Metric,
+        monitorCount: 0,
+        serviceCount: 1,
+        sloStatus: SloStatus.Misconfigured,
+      }),
+      getSloNotice({
+        ...base,
+        sliType: SliType.Metric,
+        monitorCount: 0,
+        serviceCount: 1,
+        metricQueryConfig: {
+          metricName: "http_requests_total",
+          kind: "Counter",
+          goodFilter: "@http.response.status_code:<500",
+        },
+        sloStatus: SloStatus.Misconfigured,
+      }),
     ];
 
     const titles: Array<string> = notices.map(
@@ -1065,13 +1095,13 @@ describe("SLOs Overview, against the product", () => {
     );
 
     /*
-     * The one notice the table leaves out: an SLI type other than monitor
-     * uptime, which nothing in the product can set.
+     * The one notice the table leaves out: an SLI type OneUptime does not
+     * measure, which nothing in the product can set.
      */
     expect(
       getSloNotice({
         ...base,
-        sliType: SliType.Metric,
+        sliType: "Availability" as SliType,
         sloStatus: SloStatus.Misconfigured,
       })?.title,
     ).toBe("This SLO cannot be evaluated");
@@ -2149,6 +2179,11 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         "**Minimum Requests**",
         "A whole number, 0 or more. Empty means no minimum.",
       ],
+      // A Metric SLO's rule's, in its metric's events (#8445).
+      [
+        "**Minimum Events**",
+        "A whole number, 0 or more. Empty means no minimum.",
+      ],
     ]);
 
     // Minimum Requests is checked whole by the form and the API alike (#8442).
@@ -2157,6 +2192,9 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
     );
     expect(readSource("burnRuleForm")).toContain(
       '"Minimum Requests must be a whole number of requests, 0 or more."',
+    );
+    expect(readSource("burnRuleForm")).toContain(
+      '"Minimum Events must be a whole number of events, 0 or more."',
     );
   });
 
@@ -2173,8 +2211,8 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
         "};",
       ),
     ).toContain('stepId: "burn-window",');
-    expect(rulesPage).toContain(
-      "formFields={getBurnRateRuleFormFields({ isRequestSlo: isRequestSlo })}",
+    expect(rulesPage).toMatch(
+      /formFields=\{getBurnRateRuleFormFields\(\{\s*isRequestSlo: isRequestSlo,\s*isMetricSlo: isMetricSlo,\s*\}\)\}/,
     );
     // The worker skips a long window with fewer requests than the minimum.
     expect(worker).toContain("return data.sampleCount >= minimumSampleCount;");
@@ -2183,6 +2221,11 @@ describe("Burn Rate Alerts and Incidents, against the worker and the form", () =
 
     expect(create).toContain(
       "A request SLO's rule also takes **Minimum Requests**, for example `100`: the rule skips a long window that holds fewer requests than that.",
+    );
+    // A Metric SLO's rule's, as its form names it (#8445).
+    expect(form).toContain('title: "Minimum Events",');
+    expect(create).toContain(
+      "A Metric SLO's rule takes **Minimum Events** the same way, in its metric's events.",
     );
     expect(form).toContain('placeholder: "100",');
     expect(page).toContain(
@@ -3984,6 +4027,66 @@ describe("Request and Latency SLOs, against the product", () => {
       `A filter holds up to ${SLO_REQUEST_FILTER_MAX_TERMS} terms in ${SLO_REQUEST_FILTER_MAX_LENGTH} characters.`,
     );
     expect(ColumnLength.LongText).toBe(SLO_REQUEST_FILTER_MAX_LENGTH);
+  });
+
+  /*
+   * A Metric SLO (#8445): the section names each field as the form asks
+   * it, offers the kinds as the form does, and gives a good condition the
+   * form takes.
+   */
+  it("walks the Metric step's fields as the form asks them", () => {
+    const metric: string = section(page, "SLOs from a metric");
+
+    expect(firstCells(metric)).toEqual(
+      [
+        SloMetricQueryPart.MetricName,
+        SloMetricQueryPart.Kind,
+        SloMetricQueryPart.GoodFilter,
+        SloMetricQueryPart.GoodAtOrUnder,
+        SloMetricQueryPart.Filter,
+      ].map((part: SloMetricQueryPart): string => {
+        return `**${SLO_METRIC_FIELD_TITLES[part]}**`;
+      }),
+    );
+
+    for (const choice of SLO_METRIC_KIND_CHOICES) {
+      expect(metric).toContain(`**${choice.title}**`);
+    }
+
+    expect(SLO_SLI_TYPE_NAMES[SliType.Metric]).toBe("Metric");
+    expect(metric).toContain("pick **Metric** and the **Services**");
+    expect(metric).toContain("on the **Metric** step");
+
+    for (const search of [
+      "@http.response.status_code:<500",
+      "-@http.route:/health",
+    ]) {
+      expect(metric).toContain(`\`${search}\``);
+      expect(parseSloMetricSearch(search).problem).toBeNull();
+    }
+  });
+
+  it("says how a Metric SLO counts, as the counting does", () => {
+    const metric: string = section(page, "SLOs from a metric");
+    const counting: string = readSource("metricCounting");
+
+    expect(SLO_REQUEST_STEP_MINUTES).toBe(5);
+    expect(metric).toContain("what it grew by in each 5-minute step");
+    // A step down is a restart from zero; a delta point is its own growth.
+    expect(counting).toContain(
+      "(current.1, greatest(current.2, 0), greatest(current.3, 0))",
+    );
+    expect(metric).toContain("cumulative and delta counters both count");
+    // Only the metric's own type, of the SLO's services.
+    expect(counting).toContain("AND metricPointType = ");
+    expect(metric).toContain("a gauge of the same name counts nothing");
+    // The fingerprint holds the metric, so a new one counts anew.
+    expect(readSource("requestCounting")).toContain(
+      "{ metric: getSloMetricQueryFingerprintParts(metric) }",
+    );
+    expect(metric).toContain(
+      "Changing the metric counts its events again from the start.",
+    );
   });
 
   it("says where a filter shows, and that changing it counts again (#8444)", () => {

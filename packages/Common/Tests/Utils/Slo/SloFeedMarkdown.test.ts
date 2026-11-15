@@ -25,7 +25,9 @@ import {
   formatSloFeedNumber,
   formatSloFeedPercent,
   formatSloFeedText,
+  formatSloFeedMetric,
   formatSloFeedValue,
+  getSloFeedMetricKey,
   getBurnRateRuleAddedFeedMarkdown,
   getBurnRateRuleChangedFeedMarkdown,
   getBurnRateRuleRemovedFeedMarkdown,
@@ -1304,5 +1306,80 @@ describe("SloFeedMarkdown - burn rate rules", () => {
         rule: {},
       }).feedInfoInMarkdown,
     ).toBe(`🔥 Burn rate rule **Unnamed rule** was added to ${LINK}.`);
+  });
+});
+
+/*
+ * A Metric SLO's metric (#8445) is recorded as a change when what it
+ * counts changes - never for a form that re-submits the same metric with
+ * other spacing - and written as its name and what makes an event good.
+ */
+describe("SloFeedMarkdown - a Metric SLO's metric", () => {
+  const COUNTER: Record<string, unknown> = {
+    metricName: "http_requests_total",
+    kind: "Counter",
+    goodFilter: "@http.response.status_code:<500",
+  };
+
+  const METRIC_COLUMN: SloFeedColumn = SLO_FEED_UPDATE_COLUMNS.find(
+    (column: SloFeedColumn): boolean => {
+      return column.column === "metricQueryConfig";
+    },
+  ) as SloFeedColumn;
+
+  test("is watched, as its own kind", () => {
+    expect(METRIC_COLUMN).toMatchObject({
+      title: "Metric",
+      kind: SloFeedValueKind.Metric,
+    });
+  });
+
+  test("the same metric written differently is no change; another one is", () => {
+    expect(getSloFeedMetricKey(COUNTER)).toBe(
+      getSloFeedMetricKey({
+        metricName: " http_requests_total ",
+        kind: "Counter",
+        goodFilter: "@http.response.status_code:<500 ",
+        goodAtOrUnder: 0.3,
+      }),
+    );
+    expect(getSloFeedMetricKey(COUNTER)).not.toBe(
+      getSloFeedMetricKey({
+        ...COUNTER,
+        goodFilter: "@http.response.status_code:<400",
+      }),
+    );
+    expect(getSloFeedMetricKey(null)).toBe("");
+    expect(getSloFeedMetricKey("not a metric")).toBe("");
+  });
+
+  test("a counter reads its name and its good condition, in code", () => {
+    const line: string = formatSloFeedMetric(COUNTER)?.toString() || "";
+
+    // FeedMarkdown.code keeps a "<" from opening a tag with a word joiner.
+    expect(line).toContain("\u2060");
+    expect(line.split("\u2060").join("")).toBe(
+      "`http_requests_total`, good when `@http.response.status_code:<500`",
+    );
+  });
+
+  test("a histogram reads its value, and a filter what it narrows to", () => {
+    expect(
+      formatSloFeedMetric({
+        metricName: "http.server.request.duration",
+        kind: "Histogram",
+        goodAtOrUnder: 0.3,
+        filter: "@http.route:/checkout*",
+      })?.toString(),
+    ).toBe(
+      "`http.server.request.duration`, good at or under 0.3, only `@http.route:/checkout*`",
+    );
+  });
+
+  test("no metric is not set", () => {
+    expect(formatSloFeedMetric(null)).toBeNull();
+    expect(
+      formatSloFeedValue(METRIC_COLUMN, { metricQueryConfig: null }).toString(),
+    ).toBe(SLO_FEED_NOT_SET_TEXT.toString());
   });
 });
