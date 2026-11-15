@@ -398,7 +398,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         resources: [{ service: IncidentService, id: incidentId }],
       }),
     ).rejects.toThrow(
-      "You do not have permission to add a private note to this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      "You do not have permission to add a private note to this incident: your access in this project does not include this incident. Ask a Project Admin for access to it.",
     );
 
     // The member's read, then OneUptime's: is it there, is it private to them.
@@ -445,7 +445,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
     );
   });
 
-  test("a project admin, who sees every private incident, is not told it is private", async (): Promise<void> => {
+  test("a Project Admin, who sees every private incident, is not told it is private", async (): Promise<void> => {
     const lookupSpy: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
       .mockImplementation((async (findOneBy: {
@@ -546,7 +546,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         ],
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute an on-call policy for this incident: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+      "You do not have permission to execute an on-call policy for this incident: your access in this project does not include this on-call policy. Ask a Project Admin for access to it.",
     );
     // A policy has no private ones: the member's read, then OneUptime's.
     expect(policyLookupSpy).toHaveBeenCalledTimes(2);

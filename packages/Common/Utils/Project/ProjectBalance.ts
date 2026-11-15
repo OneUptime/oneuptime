@@ -61,7 +61,7 @@ export const PROJECT_BALANCE_RECHARGE_PERMISSIONS: ReadonlyArray<Permission> = [
  * may switch a paid channel on, and not add to the balance it spends.
  */
 export const WHO_CAN_ADD_PROJECT_BALANCE: string =
-  "a project owner or someone with Manage Billing";
+  "a Project Owner or someone with Manage Billing";
 
 export type ProjectBalanceAutoRechargeColumn =
   | "enableAutoRechargeSmsOrCallBalance"
@@ -349,4 +349,4 @@ export const PROJECT_AI_AUTO_RECHARGE_COULD_NOT_ADD_OWNER_SENTENCE: string = `Au
 
 // Why they get it, and how often - last.
 export const PROJECT_AI_CREDITS_USED_UP_OWNER_FREQUENCY_SENTENCE: string =
-  "Project owners get this email once each time the AI credits run out.";
+  "Project Owners get this email once each time the AI credits run out.";

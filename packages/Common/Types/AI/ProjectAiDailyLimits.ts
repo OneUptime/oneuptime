@@ -105,7 +105,7 @@ export const PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS: ReadonlyArray<Permission
 
 // The people PROJECT_AI_DAILY_LIMIT_UPDATE_PERMISSIONS let in, in words.
 export const WHO_CAN_CHANGE_PROJECT_AI_DAILY_LIMITS: string =
-  "a project owner or someone with Manage Billing";
+  "a Project Owner or someone with Manage Billing";
 
 // What the project has used since midnight UTC.
 export interface ProjectAiDailyUsage {

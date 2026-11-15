@@ -294,8 +294,8 @@ describe("what Page now is sent", () => {
 
 describe("who may page now", () => {
   it.each([
-    ["a project owner", Permission.ProjectOwner],
-    ["a project admin", Permission.ProjectAdmin],
+    ["a Project Owner", Permission.ProjectOwner],
+    ["a Project Admin", Permission.ProjectAdmin],
     ["an on-call admin", Permission.OnCallAdmin],
     ["an on-call member", Permission.OnCallMember],
     [

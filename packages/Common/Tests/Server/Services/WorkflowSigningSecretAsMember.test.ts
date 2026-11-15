@@ -51,8 +51,8 @@ const random: SeededRandom = seededRandom(4938);
 
 // Who may create a workflow: the table's create list.
 const CREATORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   ["a project member", [Permission.ProjectMember]],
   [
     "someone holding Create Workflow",
@@ -63,8 +63,8 @@ const CREATORS: Array<[string, Array<Permission>]> = [
 
 // Who may edit one: the table's update list.
 const EDITORS: Array<[string, Array<Permission>]> = [
-  ["a project owner", [Permission.ProjectOwner]],
-  ["a project admin", [Permission.ProjectAdmin]],
+  ["a Project Owner", [Permission.ProjectOwner]],
+  ["a Project Admin", [Permission.ProjectAdmin]],
   [
     "someone holding Edit Workflow",
     [Permission.EditWorkflow, Permission.ReadWorkflow],

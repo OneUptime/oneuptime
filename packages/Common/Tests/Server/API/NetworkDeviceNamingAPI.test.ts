@@ -70,7 +70,7 @@ function userWith(
 }
 
 describe("who may apply the naming rules", () => {
-  test("a project admin may", () => {
+  test("a Project Admin may", () => {
     expect(() => {
       assertCanApplyNamingRules(userWith([Permission.ProjectAdmin]));
     }).not.toThrow();

@@ -25,7 +25,7 @@ import {
 const incidentPrivacyDocumentation: string = `
 ### How Incident Privacy Rules Work
 
-A privacy rule makes every new incident it matches private: only the incident's owners (the people and teams named as its owners), project admins and project owners can see it.
+A privacy rule makes every new incident it matches private: only the incident's owners (the people and teams named as its owners), Project Admins and Project Owners can see it.
 
 ### Match Criteria
 
@@ -39,7 +39,7 @@ A matching incident is private from the moment it is created. One matching rule 
 const incidentEpisodePrivacyDocumentation: string = `
 ### How Incident Episode Privacy Rules Work
 
-An episode privacy rule makes every new incident episode it matches private: only its owners, project admins and project owners can see it.
+An episode privacy rule makes every new incident episode it matches private: only its owners, Project Admins and Project Owners can see it.
 
 ### Match Criteria
 

@@ -999,7 +999,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
      * A real, fully-privileged member of project A pointing the path at
      * project B's runbook id while sending their own tenant header.
      */
-    test("rejects a project owner of one project starting another project's runbook", async () => {
+    test("rejects a Project Owner of one project starting another project's runbook", async () => {
       memberProps([Permission.ProjectOwner]);
       mockRunbookInProject(otherProjectId);
 

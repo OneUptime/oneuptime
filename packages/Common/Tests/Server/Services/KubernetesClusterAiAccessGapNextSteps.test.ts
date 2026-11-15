@@ -453,7 +453,7 @@ describe("KubernetesClusterAiAccessService gap next steps", () => {
      * buy them, named for everyone else who reads the gap.
      */
     expect(stepOf("ai_balance_insufficient")).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 

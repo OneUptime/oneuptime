@@ -257,7 +257,7 @@ describe("whoever creates a team with Create Team scoped to Owned becomes its fi
   const teamService: CreatorOwnership =
     TeamService as unknown as CreatorOwnership;
 
-  test("scoped to Owned, the create relies on ownership; over the whole project, or as a project admin, it does not", () => {
+  test("scoped to Owned, the create relies on ownership; over the whole project, or as a Project Admin, it does not", () => {
     expect(
       teamService.createReliesOnOwnership(
         propsHolding([
@@ -646,7 +646,7 @@ describe("a custom role is changed only with Edit Team Permissions over the whol
     ["the role", CustomRole],
     ["what it holds", CustomRolePermission],
   ])(
-    "%s: left to the usual checks with a grant over the whole project, a project admin's, or no grant at all",
+    "%s: left to the usual checks with a grant over the whole project, a Project Admin's, or no grant at all",
     (
       _what: string,
       modelType: { new (): CustomRole | CustomRolePermission },

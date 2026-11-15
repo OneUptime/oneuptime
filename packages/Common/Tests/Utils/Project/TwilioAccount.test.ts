@@ -53,7 +53,7 @@ describe("what is said when there is no Twilio account", () => {
         "The OneUptime server's administrator can add one in Admin Dashboard > Settings > Call and SMS",
       );
       expect(message).toContain(
-        "a project owner, a project admin or someone with Create Call and SMS can add this project's own in Project Settings > Notifications > Notification Channels",
+        "a Project Owner, a Project Admin or someone with Create Call and SMS can add this project's own in Project Settings > Notifications > Notification Channels",
       );
     }
   });
@@ -96,7 +96,7 @@ describe("who may add a project's Twilio account", () => {
 
     expect(createPermissionTitle).toBe("Create Call and SMS");
     expect(WHO_MAY_ADD_A_PROJECT_TWILIO_ACCOUNT).toBe(
-      `a project owner, a project admin or someone with ${createPermissionTitle}`,
+      `a Project Owner, a Project Admin or someone with ${createPermissionTitle}`,
     );
   });
 });

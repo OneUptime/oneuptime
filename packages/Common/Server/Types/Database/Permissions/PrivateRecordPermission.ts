@@ -180,11 +180,11 @@ export default class PrivateRecordPermission {
    * the API's words, which Slack and Microsoft Teams repeat.
    */
   public static readonly PRIVATE_WRITE_REASON: string =
-    "It is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.";
+    "It is private, so it is changed only with the permissions of the teams that own it and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.";
 
   // The same, for a part of a private record: an incident's note, say.
   public static getPrivateParentWriteReason(parentNoun: string): string {
-    return `The ${parentNoun} it belongs to is private, so it is changed only with the permissions of the teams that own that ${parentNoun} and of the people named as its owners, and none of them lets you do this. Ask a project admin to give one of the teams that own it this permission, or to add you as an owner.`;
+    return `The ${parentNoun} it belongs to is private, so it is changed only with the permissions of the teams that own that ${parentNoun} and of the people named as its owners, and none of them lets you do this. Ask a Project Admin to give one of the teams that own it this permission, or to add you as an owner.`;
   }
 
   // The kind of private record a table holds, if any: "Incident".

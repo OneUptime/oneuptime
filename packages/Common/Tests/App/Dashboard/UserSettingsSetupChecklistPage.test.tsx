@@ -770,7 +770,7 @@ describe("setup checklist page - acting on a step", () => {
     expect(
       screen.getByTestId("setup-checklist-detail-channels-enabled"),
     ).toHaveTextContent(
-      "A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
+      "A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels",
     );
   });
 
@@ -1491,7 +1491,7 @@ describe("setup checklist page - blocked steps are reconciled with the bar", () 
     await settle();
 
     expect(screen.getByTestId("setup-checklist-blocked-note").textContent).toBe(
-      "1 more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
+      "1 more step needs a Project Owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
     );
   });
 
@@ -1509,7 +1509,7 @@ describe("setup checklist page - who can turn a channel on", () => {
   /*
    * Only a project owner, a Billing Admin or someone with Manage Billing
    * may switch a project's SMS, call, WhatsApp or Telegram channel on - the step used to
-   * say "Ask a project admin", who may not. So someone who may is sent
+   * say "Ask a Project Admin", who may not. So someone who may is sent
    * straight to the switches, and everyone else is told exactly who can.
    */
   const ONLY_SMS_VERIFIED: JSONObject = readinessJson({
@@ -1545,7 +1545,7 @@ describe("setup checklist page - who can turn a channel on", () => {
   };
 
   test.each([
-    ["a project owner", [Permission.ProjectOwner], false],
+    ["a Project Owner", [Permission.ProjectOwner], false],
     ["someone with Manage Billing", [Permission.ManageProjectBilling], false],
     ["a Billing Admin", [Permission.BillingAdmin], false],
     ["a master admin", [], true],
@@ -1597,7 +1597,7 @@ describe("setup checklist page - who can turn a channel on", () => {
   );
 
   test.each([
-    ["a project admin", [Permission.ProjectAdmin]],
+    ["a Project Admin", [Permission.ProjectAdmin]],
     ["someone who may edit the project", [Permission.EditProject]],
     ["a project member", [Permission.ProjectMember]],
   ] as Array<[string, Array<Permission>]>)(
@@ -1621,14 +1621,14 @@ describe("setup checklist page - who can turn a channel on", () => {
           .textContent || "";
 
       expect(detail).toBe(
-        "Every method you have verified is on a channel this project has switched off. A project owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels, or you can add an email or push device instead.",
+        "Every method you have verified is on a channel this project has switched off. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels, or you can add an email or push device instead.",
       );
-      expect(detail.toLowerCase()).not.toContain("project admin");
+      expect(detail.toLowerCase()).not.toContain("Project Admin");
       expect(within(step).getByText("Needs someone else")).toBeInTheDocument();
       expect(
         screen.getByTestId("setup-checklist-blocked-note").textContent,
       ).toBe(
-        "1 more step needs a project owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
+        "1 more step needs a Project Owner, a Billing Admin or someone with Manage Billing, so it is not counted here.",
       );
 
       fireEvent.click(step);

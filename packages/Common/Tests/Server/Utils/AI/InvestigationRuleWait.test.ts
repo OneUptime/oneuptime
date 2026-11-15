@@ -1008,7 +1008,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     [
       "ai_disabled",
       AiRunRefusalCode.AiOff,
-      "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
+      "OneUptime AI is switched off for this project. A Project Owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
     ],
     [
       "provider_missing",
@@ -1018,12 +1018,12 @@ describe("startNow: someone starts a waiting investigation at once", () => {
     [
       "insufficient_ai_balance",
       AiRunRefusalCode.AiCreditsUsedUp,
-      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     ],
     [
       "project_daily_limit_reached",
       AiRunRefusalCode.ProjectDailyLimitReached,
-      "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A project owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
+      "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. A Project Owner or someone with Manage Billing can raise or remove the limit in Project Settings → AI → AI Features → More settings.",
     ],
   ])(
     "does not start while %s, saying so, and the wait stays",

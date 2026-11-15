@@ -38,7 +38,7 @@ import {
  *   switch, which saves the moment it is flipped (ModelSwitchRow): the Add
  *   button appears with it, through ModelSwitchEvents.
  * - Everyone else is told what is off, and exactly who can turn it on, and
- *   where. Not "a project admin": a project admin may not.
+ *   where. Not "a Project Admin": a project admin may not.
  *
  * Nothing is drawn while the channel is on, while the answer is on its way,
  * or when it could not be read (the list then offers Add, as it always did,

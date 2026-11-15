@@ -40,7 +40,7 @@ export const CODE_TASK_NOT_FOUND_MESSAGE: string =
   "Task not found, or you do not have access to it.";
 
 export const CODE_TASK_ASK_REFUSED_MESSAGE: string =
-  "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a project admin for it.";
+  "You can read this repository's tasks. Asking AI to work in it takes permission to edit the repository - ask a Project Admin for it.";
 
 /*
  * What the Code pages show of a repository: only columns every reader of a

@@ -222,7 +222,7 @@ export default class GitHubCommandAuthorizer {
          * straight to the repository's switch.
          */
         reason:
-          "GitHub commands are switched off for this repository. A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
+          "GitHub commands are switched off for this repository. A Project Admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
       };
     }
 

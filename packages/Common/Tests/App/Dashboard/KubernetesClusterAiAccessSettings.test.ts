@@ -1915,7 +1915,7 @@ describe("who may loosen a cluster's AI access", () => {
  * is told who to ask.
  */
 describe("who may change the project's AI settings from the cluster page", () => {
-  test("project owners, admins and a master admin", () => {
+  test("Project Owners, admins and a master admin", () => {
     expect(PROJECT_AI_SETTINGS_PERMISSIONS).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1993,7 +1993,7 @@ describe("command history permission", () => {
       kind: TableEmptyStateKind.NoAccess,
       title: "You don't have access to this list",
       description:
-        "You need this permission: Read Runbook Execution. Ask a project admin for access.",
+        "You need this permission: Read Runbook Execution. Ask a Project Admin for access.",
     });
 
     const words: string = `${String(state.title)} ${String(state.description)}`;
@@ -2014,7 +2014,7 @@ describe("command history permission", () => {
       kind: TableEmptyStateKind.NoAccess,
       title: "You don't have access to this list",
       description:
-        "A team you are on blocks Read Runbook Execution. Ask a project admin for access.",
+        "A team you are on blocks Read Runbook Execution. Ask a Project Admin for access.",
     });
   });
 });

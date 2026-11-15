@@ -452,7 +452,7 @@ export function getSloAlertOutputFormFields<TModel extends BaseModel>(
         field: column<TModel>("isAlertPrivate"),
         title: "Private Alert",
         description:
-          "Only the alert's owners, project admins and project owners can see it.",
+          "Only the alert's owners, Project Admins and Project Owners can see it.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },
@@ -612,7 +612,7 @@ export function getSloIncidentOutputFormFields<TModel extends BaseModel>(
         field: column<TModel>("isIncidentPrivate"),
         title: "Private Incident",
         description:
-          "Only the incident's owners, project admins and project owners can see it.",
+          "Only the incident's owners, Project Admins and Project Owners can see it.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
       },

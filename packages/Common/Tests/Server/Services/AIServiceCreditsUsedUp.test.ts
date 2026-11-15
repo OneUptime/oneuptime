@@ -174,7 +174,7 @@ describe("an AI call billed to used-up AI credits", () => {
 
     expect(message).toBe(PROJECT_AI_CREDITS_USED_UP_MESSAGE);
     expect(message).toBe(
-      "This project's AI credits are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "This project's AI credits are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
     expect(message).not.toMatch(/please/i);
     expect(message).not.toMatch(/\brecharge\b/i);
@@ -234,7 +234,7 @@ describe("the other sentences about used-up AI credits", () => {
       getProjectBalanceWhoCanAddSentence(ProjectBalanceType.AI),
     );
     expect(AI_BALANCE_INSUFFICIENT_NEXT_STEP).toBe(
-      "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      "A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
     );
   });
 
@@ -246,7 +246,7 @@ describe("the other sentences about used-up AI credits", () => {
 
   test("the AI Tasks page's provider check names who can add credits, and that the project's own provider needs none", () => {
     expect(CODE_FIX_AI_CREDITS_USED_UP_DETAIL).toBe(
-      "AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up. A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits. A provider of the project's own (Project Settings > AI > LLM Providers) needs no AI credits.",
+      "AI fix tasks would use the OneUptime-hosted LLM provider, which is paid from this project's AI credits, and they are used up. A Project Owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits. A provider of the project's own (Project Settings > AI > LLM Providers) needs no AI credits.",
     );
   });
 
@@ -261,7 +261,7 @@ describe("the other sentences about used-up AI credits", () => {
       expect(sentence).not.toMatch(/auto-?recharge/i);
       expect(sentence).not.toMatch(/please/i);
       expect(sentence).toContain(
-        "A project owner or someone with Manage Billing can add AI credits",
+        "A Project Owner or someone with Manage Billing can add AI credits",
       );
     },
   );
