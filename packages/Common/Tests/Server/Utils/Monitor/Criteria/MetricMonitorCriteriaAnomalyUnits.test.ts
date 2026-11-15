@@ -215,9 +215,9 @@ describe("MetricMonitorCriteria - anomaly root cause units", () => {
       sampleValue: BREACHING_VALUE,
     });
 
-    expect(rootCause).toContain("value 1.07 GB");
-    expect(rootCause).toContain("mean 268 MB");
-    expect(rootCause).toContain("σ 134 MB");
+    expect(rootCause).toContain("value 1.07\u00A0GB");
+    expect(rootCause).toContain("mean 268\u00A0MB");
+    expect(rootCause).toContain("σ 134\u00A0MB");
 
     // The old rendering, in full.
     expect(rootCause).not.toContain("1073741824.000");
@@ -317,9 +317,9 @@ describe("MetricMonitorCriteria - anomaly baseline is converted into the sample 
     const rootCause: string = message as string;
 
     // Same scale on both sides of the comparison.
-    expect(rootCause).toContain("value 1.07 GB");
-    expect(rootCause).toContain("mean 268 MB");
-    expect(rootCause).toContain("σ 134 MB");
+    expect(rootCause).toContain("value 1.07\u00A0GB");
+    expect(rootCause).toContain("mean 268\u00A0MB");
+    expect(rootCause).toContain("σ 134\u00A0MB");
     expect(rootCause).toContain("is 6.00σ above the same-hour baseline");
 
     // The unconverted baseline read as megabytes.
@@ -471,7 +471,7 @@ describe("MetricMonitorCriteria - anomaly baseline is converted into the sample 
     });
 
     expect(message).toBeTruthy();
-    expect(message).toContain("mean 268 MB");
+    expect(message).toContain("mean 268\u00A0MB");
     expect(anomalyBaseline?.mean).toBeCloseTo(BASELINE_MEAN_MB, 6);
   });
 
@@ -508,9 +508,9 @@ describe("MetricMonitorCriteria - anomaly baseline is converted into the sample 
       sampleValue: BREACHING_VALUE,
     });
 
-    expect(rootCause).toContain("value 1.07 GB");
-    expect(rootCause).toContain("mean 268 MB");
-    expect(rootCause).toContain("σ 134 MB");
+    expect(rootCause).toContain("value 1.07\u00A0GB");
+    expect(rootCause).toContain("mean 268\u00A0MB");
+    expect(rootCause).toContain("σ 134\u00A0MB");
     expect(rootCause).toContain("is 6.00σ above");
   });
 });

@@ -30,7 +30,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
    * (" <unit>") directly after the raw threshold value.
    */
   describe("numeric-comparison filter types append the unit", () => {
-    test("GreaterThan => 'to be greater than 5 sec'", () => {
+    test("GreaterThan => 'to be greater than 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.GreaterThan,
         value: "5",
@@ -41,10 +41,10 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be greater than 5 sec");
+      expect(result).toBe("to be greater than 5\u00A0sec");
     });
 
-    test("GreaterThanOrEqualTo => 'to be greater than or equal to 5 sec'", () => {
+    test("GreaterThanOrEqualTo => 'to be greater than or equal to 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.GreaterThanOrEqualTo,
         value: "5",
@@ -55,10 +55,10 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be greater than or equal to 5 sec");
+      expect(result).toBe("to be greater than or equal to 5\u00A0sec");
     });
 
-    test("LessThan => 'to be less than 5 sec'", () => {
+    test("LessThan => 'to be less than 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.LessThan,
         value: "5",
@@ -69,10 +69,10 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be less than 5 sec");
+      expect(result).toBe("to be less than 5\u00A0sec");
     });
 
-    test("LessThanOrEqualTo => 'to be less than or equal to 5 sec'", () => {
+    test("LessThanOrEqualTo => 'to be less than or equal to 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.LessThanOrEqualTo,
         value: "5",
@@ -83,10 +83,10 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be less than or equal to 5 sec");
+      expect(result).toBe("to be less than or equal to 5\u00A0sec");
     });
 
-    test("EqualTo => 'to equal 5 sec'", () => {
+    test("EqualTo => 'to equal 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.EqualTo,
         value: "5",
@@ -97,10 +97,10 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to equal 5 sec");
+      expect(result).toBe("to equal 5\u00A0sec");
     });
 
-    test("NotEqualTo => 'to not equal 5 sec'", () => {
+    test("NotEqualTo => 'to not equal 5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.NotEqualTo,
         value: "5",
@@ -111,7 +111,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to not equal 5 sec");
+      expect(result).toBe("to not equal 5\u00A0sec");
     });
   });
 
@@ -392,7 +392,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
    * metricMonitorOptions.metricAggregationType.
    */
   describe("evaluation window ordering and aggregation", () => {
-    test("unit precedes the window clause: 'to be greater than 5 sec over the last 5 minutes using average'", () => {
+    test("unit precedes the window clause: 'to be greater than 5\u00A0sec over the last 5 minutes using average'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.GreaterThan,
         value: "5",
@@ -409,7 +409,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
         });
 
       expect(result).toBe(
-        "to be greater than 5 sec over the last 5 minutes using average",
+        "to be greater than 5\u00A0sec over the last 5 minutes using average",
       );
     });
 
@@ -443,7 +443,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
         });
 
       // "Maximum Value" lowercased.
-      expect(result).toBe("to be greater than 5 sec using maximum value");
+      expect(result).toBe("to be greater than 5\u00A0sec using maximum value");
     });
   });
 
@@ -529,7 +529,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
    * interpolation was protecting against and what these still assert.
    */
   describe("negative thresholds with a unit are formatted, never padded", () => {
-    test("GreaterThan '-5' with { unit: 'sec' } => 'to be greater than -5 sec'", () => {
+    test("GreaterThan '-5' with { unit: 'sec' } => 'to be greater than -5\u00A0sec'", () => {
       const filter: CriteriaFilter = makeFilter({
         filterType: FilterType.GreaterThan,
         value: "-5",
@@ -540,7 +540,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be greater than -5 sec");
+      expect(result).toBe("to be greater than -5\u00A0sec");
       // Integers keep their digits — never padded to "-5.00".
       expect(result).not.toContain("-5.00");
     });
@@ -556,7 +556,7 @@ describe("MonitorCriteriaExpectationBuilder.describeCriteriaExpectation", () => 
           unit: "sec",
         });
 
-      expect(result).toBe("to be less than -500 ms");
+      expect(result).toBe("to be less than -500\u00A0ms");
       expect(result).not.toContain("-0.50");
     });
 

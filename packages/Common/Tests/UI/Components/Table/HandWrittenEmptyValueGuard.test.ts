@@ -901,6 +901,164 @@ describe("the scan follows a formatter's mark into the element that draws it (#8
   });
 });
 
+describe("the scan follows the mark through an object's prop into the element that draws it (#8679)", () => {
+  test.each([
+    [
+      '{ label: "Cluster", value: clusterName || EMPTY_VALUE_MARK }',
+      "{row.value}",
+    ],
+    ['{ label: "Size", value: formatBytes(n) }', "{row.value}"],
+    ['{ label: "Size", value: n === null ? "—" : `${n} B` }', "{row.value}"],
+    ["{ value: EMPTY_VALUE_MARK, description: words }", "{runway.value}"],
+    ['{ "text": formatBytes(n) }', "{cell.text}"],
+    ["{ value }", "{tile.value}"],
+    ['{ label: "Size", value: formatBytes(n) }', "{props.rows[0].value}"],
+    ['{ label: "Size", value: formatBytes(n) }', "{isOpen ? row.value : null}"],
+  ])(
+    "an object the module builds as %s, drawn as %s",
+    (built: string, drawn: string) => {
+      expect(
+        kindsOf(
+          [
+            "const formatBytes = (n: number | null): string => n === null ? EMPTY_VALUE_MARK : `${n} B`;",
+            "const value: string = r.value || EMPTY_VALUE_MARK;",
+            `const rows = [${built}];`,
+            `const cell = <td className="px-3">${drawn}</td>;`,
+          ].join("\n"),
+        ).filter((kind: HandWrittenDashKind): boolean => {
+          return kind === "dash-flow";
+        }),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  const BUILDERS: string = [
+    'import { EMPTY_VALUE_MARK } from "Common/Types/EmptyValueMark";',
+    "export function getRunwayText(seconds: number | null): { value: string; description: string } {",
+    '  return seconds === null ? { value: EMPTY_VALUE_MARK, description: "Not worked out" } : { value: `${seconds}s`, description: "" };',
+    "}",
+    "export const getNameRow = (name: string): { label: string; name: string } => {",
+    '  return { label: "Name", name: name };',
+    "};",
+    "export default class RowUtil {",
+    "  public static getRows(n: number | null): Array<{ figure: string }> {",
+    "    return [{ figure: n === null ? EMPTY_VALUE_MARK : String(n) }];",
+    "  }",
+    "}",
+  ].join("\n");
+
+  const index: DashFormatterIndex = indexDashFormatters([
+    {
+      file: "packages/App/FeatureSet/Dashboard/src/Utils/RunwayText.ts",
+      sourceText: BUILDERS,
+    },
+  ]);
+
+  test("indexes what an exported function builds, by its props that can hold the mark", () => {
+    expect(
+      Array.from(
+        index.get(
+          "packages/App/FeatureSet/Dashboard/src/Utils/RunwayText.ts",
+        ) || [],
+      ).sort(),
+    ).toEqual([
+      "returns:default.getRows:figure",
+      "returns:getRunwayText:value",
+    ]);
+  });
+
+  test.each([
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{runway.value}",
+    ],
+    [
+      'import { getRunwayText as runwayOf } from "../Utils/RunwayText";',
+      "const runway = runwayOf(seconds);",
+      "{runway.value}",
+    ],
+    [
+      'import RowUtil from "../Utils/RunwayText";',
+      "const rows = RowUtil.getRows(n);",
+      "{rows[0].figure}",
+    ],
+    [
+      'import * as Runway from "../Utils/RunwayText";',
+      "const runway = Runway.getRunwayText(seconds);",
+      "{runway.value}",
+    ],
+  ])(
+    "an object an imported function builds, drawn bare: %s",
+    (imported: string, built: string, drawn: string) => {
+      expect(
+        findHandWrittenDashes(
+          [imported, built, `const cell = <td>${drawn}</td>;`].join("\n"),
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ).map((dash: HandWrittenDash): string => {
+          return dash.kind;
+        }),
+      ).toEqual(["dash-flow"]);
+    },
+  );
+
+  test.each([
+    // The function's other prop never holds the mark.
+    [
+      'import { getNameRow } from "../Utils/RunwayText";',
+      "const row = getNameRow(name);",
+      "{row.name}",
+    ],
+    // A module that never calls the builder is not held to its props.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const tile = { value: count };",
+      "{tile.value}",
+    ],
+    // Drawn through the quiet dash.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{getValueOrQuietDash(runway.value)}",
+    ],
+    // Its words, drawn only once the check says it has some.
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{isNoValue(runway.value) ? <TableEmptyValue /> : runway.value}",
+    ],
+    [
+      'import { getRunwayText } from "../Utils/RunwayText";',
+      "const runway = getRunwayText(seconds);",
+      "{!isNoValue(runway.value) ? <b>{runway.value}</b> : <TableEmptyValue />}",
+    ],
+  ])(
+    "an object's prop that never holds the mark, or one drawn through the quiet dash: %s %s",
+    (imported: string, built: string, drawn: string) => {
+      expect(
+        findHandWrittenDashes(
+          [imported, built, `const cell = <td>${drawn}</td>;`].join("\n"),
+          "packages/App/FeatureSet/Dashboard/src/Pages/Example.tsx",
+          index,
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  test("an object's props that never hold the mark are not read", () => {
+    expect(
+      scan(
+        [
+          'const rows = [{ label: "Size", value: `${n} B` }, { label: "Name", value: name }];',
+          "const cell = <td>{rows[0].value}</td>;",
+          "const other = <td>{row.label}</td>;",
+        ].join("\n"),
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("no page draws a dash of its own for an empty value", () => {
   test("the scan reads the front ends, Common's UI among them", () => {
     const roots: Array<string> = listScanRoots(REPOSITORY_ROOT).map(relative);

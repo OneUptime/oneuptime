@@ -754,8 +754,12 @@ describe("joinTableValueAndUnit, formatTableValue and formatTableThreshold", () 
     expect(joinTableValueAndUnit("4", "‰")).toBe("4‰");
   });
 
-  test("any other unit after a space, and no unit as the number alone", () => {
-    expect(joinTableValueAndUnit("12.5", "ms")).toBe("12.5 ms");
+  test("any other unit after a no-break space, and no unit as the number alone", () => {
+    expect(joinTableValueAndUnit("12.5", "ms")).toBe("12.5\u00A0ms");
+    expect(joinTableValueAndUnit("1,250", "req/s")).toBe("1,250\u00A0req/s");
+    expect(joinTableValueAndUnit("3", "connections")).toBe(
+      "3\u00A0connections",
+    );
     expect(joinTableValueAndUnit("12.5", undefined)).toBe("12.5");
     expect(joinTableValueAndUnit("12.5", "")).toBe("12.5");
   });
@@ -768,7 +772,7 @@ describe("joinTableValueAndUnit, formatTableValue and formatTableThreshold", () 
       "93.00%",
     );
     expect(formatTableValue({ value: 12.5, decimals: 0, unit: "ms" })).toBe(
-      (13).toLocaleString(undefined) + " ms",
+      (13).toLocaleString(undefined) + "\u00A0ms",
     );
     expect(formatTableValue({ value: 7, decimals: 1, unit: undefined })).toBe(
       "7.0",
@@ -780,7 +784,9 @@ describe("joinTableValueAndUnit, formatTableValue and formatTableThreshold", () 
     expect(formatTableThreshold({ threshold: 99.95, unit: "%" })).toBe(
       "99.95%",
     );
-    expect(formatTableThreshold({ threshold: 0.5, unit: "s" })).toBe("0.5 s");
+    expect(formatTableThreshold({ threshold: 0.5, unit: "s" })).toBe(
+      "0.5\u00A0s",
+    );
     expect(formatTableThreshold({ threshold: -20, unit: "°" })).toBe("-20°");
     expect(formatTableThreshold({ threshold: 1 / 3, unit: undefined })).toBe(
       "0.333333",
