@@ -409,6 +409,7 @@ describe("POST /team-member/invitation-link", () => {
       .mockResolvedValue({
         link: "https://oneuptime.example.com/accounts/register?email=a%40example.com&token=t",
         isRegistered: false,
+        isAccepted: false,
         email: "a@example.com",
       });
 
@@ -424,6 +425,7 @@ describe("POST /team-member/invitation-link", () => {
     expect(result.body).toEqual({
       link: "https://oneuptime.example.com/accounts/register?email=a%40example.com&token=t",
       isRegistered: false,
+      isAccepted: false,
       email: "a@example.com",
     });
     expect((getLink.mock.calls[0]![0] as ObjectID).toString()).toBe(
