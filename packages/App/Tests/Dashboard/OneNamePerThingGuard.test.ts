@@ -671,6 +671,24 @@ describe("the sentences that named a thing another way", () => {
     ["zh-CN", "profiles", "性能剖析"],
     ["zh-TW", "profiles", "效能剖析"],
     ["hi", "profiles", "प्रोफ़ाइल"],
+    /*
+     * Strings added after #8230 in the words the language had dropped: the
+     * Ask AI tool's sentences (Danish "Workflow-komponenter", Persian سیاست
+     * کشیک, Norwegian "Metrikknavn") and the infrastructure lists' "Docker
+     * monitors" (Swedish övervakare, Chinese 监控器 / 監控器).
+     */
+    ["da", "Workflow components", "Arbejdsgangskomponenter"],
+    ["da", 'Created workflow "{{name}}"', 'Arbejdsgang "{{name}}" oprettet'],
+    ["sv", "Docker monitors", "Docker-monitorer"],
+    ["sv", "Podman monitors", "Podman-monitorer"],
+    ["zh-CN", "Docker monitors", "Docker 监视器"],
+    ["zh-TW", "Podman monitors", "Podman 監測器"],
+    [
+      "fa",
+      'Created on-call policy "{{name}}"',
+      "سیاست آنکال «{{name}}» ایجاد شد",
+    ],
+    ["no", "Metric names ({{count}} found)", "Målingsnavn ({{count}} funnet)"],
   ])("%s: %p reads %p", (language: string, key: string, worded: string) => {
     expect(readDashboardLocale(language)[key]).toBe(worded);
   });
