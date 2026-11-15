@@ -15,7 +15,7 @@ AI 代理程式很少因為當機而失敗。它失敗的方式是停不下來�
 flowchart TB
     agent["代理程式傳送<br/>gen_ai.* span"] --> ingest["OneUptime"]
     ingest --> wire{"觸發條件：<br/>預算警示或迴圈警示"}
-    wire -->|"已建立警示"| workflow["工作流程：<br/>On Create Alert"]
+    wire -->|"已建立警示"| workflow["工作流程：<br/>建立警示時"]
     workflow -->|"API Post (JSON)"| endpoint["你的停止端點"]
     endpoint --> runner["執行器暫停<br/>或停止代理程式"]
 ```
@@ -125,7 +125,7 @@ app.post("/circuit-breaker", (req, res) => {
 
 ### 新增觸發器
 
-按一下虛線框 **選擇啟動此工作流程的方式** ，在 **新增觸發器** 面板中選擇 **On Create Alert** 。按一下觸發器： **要傳遞的欄位** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
+按一下虛線框 **選擇啟動此工作流程的方式** ，在 **新增觸發器** 面板中選擇 **建立警示時** 。按一下觸發器： **要傳遞的欄位** 一開始就帶有標題，所以按一下 **新增欄位** ，勾選描述，然後按一下 **儲存** 。區塊上的 ID `alert-on-create-1` 是後續區塊參照它的方式。
 
 ### 檢查標題
 

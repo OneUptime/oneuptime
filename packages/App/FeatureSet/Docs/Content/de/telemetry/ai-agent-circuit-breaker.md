@@ -15,7 +15,7 @@ Ein KI-Agent fällt selten aus, indem er abstürzt. Er fällt aus, indem er weit
 flowchart TB
     agent["Ihr Agent sendet<br/>gen_ai.*-Spans"] --> ingest["OneUptime"]
     ingest --> wire{"Auslöser: Budget-<br/>oder Schleifenwarnung"}
-    wire -->|"Warnung erstellt"| workflow["Workflow:<br/>On Create Alert"]
+    wire -->|"Warnung erstellt"| workflow["Workflow:<br/>Bei Erstellung: Warnung"]
     workflow -->|"API Post (JSON)"| endpoint["Ihr Stopp-Endpunkt"]
     endpoint --> runner["Der Runner hält<br/>den Agenten an"]
 ```
@@ -125,7 +125,7 @@ Speichern Sie zuerst das Token des Endpunkts dort, wo der Workflow es nutzen kan
 
 ### Den Trigger hinzufügen
 
-Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **On Create Alert** im Bereich **Auslöser hinzufügen**. Klicken Sie auf den Trigger: **Weiterzugebende Felder** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
+Klicken Sie auf den gestrichelten Baustein **Wählen Sie, was diesen Arbeitsablauf startet** und wählen Sie **Bei Erstellung: Warnung** im Bereich **Auslöser hinzufügen**. Klicken Sie auf den Trigger: **Weiterzugebende Felder** beginnt mit dem Titel, klicken Sie also auf **Feld hinzufügen**, haken Sie die Beschreibung an und klicken Sie auf **Speichern**. Die ID auf dem Baustein, `alert-on-create-1`, ist der Name, unter dem spätere Bausteine auf ihn verweisen.
 
 ### Den Titel prüfen
 

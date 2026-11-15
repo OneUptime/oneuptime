@@ -172,7 +172,7 @@ resource "oneuptime_monitor" "website" {
 | `tls_client_key_passphrase` | string (чувствительный) | Веб-сайт, API | Парольная фраза закрытого ключа. |
 | `request_timeout_in_ms` | number | Проверки, которые выполняет зонд | Сколько может длиться одна попытка, в миллисекундах. Зонд снижает всё, что выше 60000, до 60000. |
 | `retry_count` | number | Проверки, которые выполняет зонд | Повторные попытки после неудачной первой: `0` проверяет один раз, `3` — до четырёх раз. Зонд снижает всё, что выше 3, до 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Скрипт, который выполняет шаг. |
+| `custom_code` | string | Пользовательский код JavaScript, Synthetic | Скрипт, который выполняет шаг. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` и `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` и `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Повторные попытки, когда скрипт завершается ошибкой: `0` запускает его один раз. |

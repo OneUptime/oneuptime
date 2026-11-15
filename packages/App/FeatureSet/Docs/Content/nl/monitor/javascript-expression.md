@@ -46,7 +46,7 @@ Sla de monitor op. Het filter wordt bij de volgende controle van de monitor geë
 
 ## Variabelen per monitortype
 
-JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Inkomende aanvraag, Incoming Email, SQL Query en Database Health.
+JavaScript-expressies worden aangeboden voor monitoren van het type Website, API, Inkomende aanvraag, Inkomende e-mail, SQL-query en Databasegezondheid.
 
 ### Website- en API-monitoren
 

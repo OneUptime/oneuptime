@@ -39,7 +39,7 @@ Ett block körs när blocket före det tar den utgång som är kopplad till det.
 
 ```mermaid title="Ett block tar en av sina utgångar"
 flowchart TB
-    trigger["On Create Incident"] -->|"Framgång"| post["API-anrop POST (JSON)"]
+    trigger["Vid skapande: Incident"] -->|"Framgång"| post["API-anrop POST (JSON)"]
     post -->|"Framgång: ett 2xx-svar"| slack["Skicka meddelande till Slack"]
     post -->|"Fel: inget svar, eller inte 2xx"| log["Logg"]
 ```
@@ -223,7 +223,7 @@ Vill du bara larma när något är sant sätter du [If / Else](#conditions) fram
 
 ```mermaid title="Larma den som har jour, men bara vid kritiska incidenter"
 flowchart TB
-    trigger["On Create Incident"] -->|"Framgång"| check["Om / Annars"]
+    trigger["Vid skapande: Incident"] -->|"Framgång"| check["Om / Annars"]
     check -->|"Ja"| page["Larma den som har jour"]
 ```
 
@@ -411,7 +411,7 @@ En post rör sig bara framåt, och en löst post inte alls, så när båda verkt
 
 **Allvarlighetsgrad** nämner en av dina allvarlighetsgrader vid namn eller ID, oavsett skiftläge, eller efter dess plats bland dem: `most severe`, `middle` eller `least severe`. Så fördelas ett verktygs egna nivåer över de allvarlighetsgrader som du själv har namngett. Lämnas den tom, eller nämner den ingen av dem, är det din allvarligaste, och körningens logg säger det. En ny incident hålls borta från dina statussidor, och deras prenumeranter får inget besked, eftersom ett annat verktygs text är skriven för det verktygets användare: slå på **Visa på statussidor** för att visa den.
 
-Under **Fler fält** är **Orsak** orsaken i postens historik när den flyttas, och **Anteckning** läggs då till bredvid som en privat anteckning, för ett verktyg som säger något när det bekräftar eller löser. **Anpassade fält** ger en ny post fler anpassade fält, som ett JSON-objekt, **Etiketter** ID:na för dess etiketter, åtskilda med kommatecken, och **Berörda resurser** de resurser den handlar om, som på **Create One Incident**. **Anteckning i stället för att lösa** lägger till anteckningen och låter ditt team lösa posten. Blocket returnerar **Sammanfattning**, det det gjorde, i en mening, och posten, så att ett senare block läser dess ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Under **Fler fält** är **Orsak** orsaken i postens historik när den flyttas, och **Anteckning** läggs då till bredvid som en privat anteckning, för ett verktyg som säger något när det bekräftar eller löser. **Anpassade fält** ger en ny post fler anpassade fält, som ett JSON-objekt, **Etiketter** ID:na för dess etiketter, åtskilda med kommatecken, och **Berörda resurser** de resurser den handlar om, som på **Skapa Incident (en post)**. **Anteckning i stället för att lösa** lägger till anteckningen och låter ditt team lösa posten. Blocket returnerar **Sammanfattning**, det det gjorde, i en mening, och posten, så att ett senare block läser dess ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ För varje typ av post i OneUptime (monitorer, incidenter, larm, statussidor, jo
 
 | Komponent                | Vad den gör                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Läser en post som matchar frågan.                                              |
-| **Find Many Monitors**   | Läser en lista med poster som matchar frågan.                                  |
-| **Create One Monitor**   | Lägger till en post utifrån ett JSON-objekt.                                   |
-| **Create Many Monitors** | Lägger till flera poster utifrån en JSON-array.                                |
-| **Update One Monitor**   | Tillämpar data som ska skrivas på en matchande post.                           |
-| **Update Many Monitors** | Tillämpar data som ska skrivas på matchande poster, upp till **Gräns**.        |
-| **Delete One Monitor**   | Tar bort en matchande post.                                                    |
-| **Delete Many Monitors** | Tar bort matchande poster, upp till **Gräns**.                                 |
+| **Hitta Monitor (en post)**     | Läser en post som matchar frågan.                                              |
+| **Hitta Monitorer (flera poster)**   | Läser en lista med poster som matchar frågan.                                  |
+| **Skapa Monitor (en post)**   | Lägger till en post utifrån ett JSON-objekt.                                   |
+| **Skapa Monitorer (flera poster)** | Lägger till flera poster utifrån en JSON-array.                                |
+| **Uppdatera Monitor (en post)**   | Tillämpar data som ska skrivas på en matchande post.                           |
+| **Uppdatera Monitorer (flera poster)** | Tillämpar data som ska skrivas på matchande poster, upp till **Gräns**.        |
+| **Ta bort Monitor (en post)**   | Tar bort en matchande post.                                                    |
+| **Ta bort Monitorer (flera poster)** | Tar bort matchande poster, upp till **Gräns**.                                 |
 
-Samma uppsättning ger dig fyra utlösare — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** och **On Delete Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
+Samma uppsättning ger dig fyra utlösare — **Vid skapande: Monitor**, **Vid uppdatering: Monitor**, **Vid skapande eller uppdatering: Monitor** och **Vid borttagning: Monitor**. Se [Utlösare](/docs/workflows/triggers#utlösare-för-oneuptime-händelser).
 
-En typ erbjuder bara de komponenter som dess modell tillåter. En skrivskyddad typ har de två Find-komponenterna och inget annat, så om du inte hittar **Delete One Monitor** i panelen tillåter den typen det inte.
+En typ erbjuder bara de komponenter som dess modell tillåter. En skrivskyddad typ har de två Find-komponenterna och inget annat, så om du inte hittar **Ta bort Monitor (en post)** i panelen tillåter den typen det inte.
 
-Så läser och ändrar ett arbetsflöde OneUptime-data. Till exempel kan en webhook från ditt CI-verktyg använda **Create One Incident** för att öppna en incident med detaljerna om felet.
+Så läser och ändrar ett arbetsflöde OneUptime-data. Till exempel kan en webhook från ditt CI-verktyg använda **Skapa Incident (en post)** för att öppna en incident med detaljerna om felet.
 
 De här komponenterna agerar som Projektadministratör för arbetsflödets projekt: det en Projektadministratör inte får göra, eller som din plan inte omfattar, avvisas, och körningens logg säger varför. Se [Vad arbetsflödessteg får göra](/docs/workflows/configuration#vad-arbetsflödessteg-får-göra).
 
 ### Deklarera en incident från en mall
 
-**Create One Incident** kan deklarera incidenten från en av dina [incidentmallar](/docs/incidents/settings#incidentmallar): välj den under **Incidentmall**, stegets första inställning. Mallen fyller i alla fält som **JSON-objekt** utelämnar — titeln, beskrivningen, allvarlighetsgraden, starttillståndet, monitorerna och andra resurser, jourpolicyerna, etiketterna, statussidorna och de anpassade fälten — och dess ägare blir incidentens ägare. Allt du anger i **JSON-objekt** går före mallens, även tillståndet, så med en vald mall behöver **JSON-objekt** bara det som ska skilja sig, och kan lämnas tomt.
+**Skapa Incident (en post)** kan deklarera incidenten från en av dina [incidentmallar](/docs/incidents/settings#incidentmallar): välj den under **Incidentmall**, stegets första inställning. Mallen fyller i alla fält som **JSON-objekt** utelämnar — titeln, beskrivningen, allvarlighetsgraden, starttillståndet, monitorerna och andra resurser, jourpolicyerna, etiketterna, statussidorna och de anpassade fälten — och dess ägare blir incidentens ägare. Allt du anger i **JSON-objekt** går före mallens, även tillståndet, så med en vald mall behöver **JSON-objekt** bara det som ska skilja sig, och kan lämnas tomt.
 
 Incidenten registrerar mallen den deklarerades från i `createdIncidentTemplateId`. Den kolumnen sätter OneUptime själv: ett steg som skickar den i **JSON-objekt** avvisas, och dess körningslogg hänvisar dig till **Incidentmall**. En mall från ett annat projekt, eller en som har tagits bort, får steget att ta sin utgång **Fel**, och på en plan som inte omfattar incidentmallar avvisas steget med den plan som krävs. Se [Hur en mall tillämpas](/docs/incidents/settings#så-tillämpas-en-mall).
 
 ### Länka resurserna det gäller
 
-**Create One Incident** och **Create One Alert** har inställningen **Berörda resurser**: de värdar, nätverksenheter, kluster, databaser eller tjänster som posten gäller, med namn, adress eller ID, åtskilda med kommatecken — inskrivna eller hämtade från ett tidigare steg, som värden som ett larm från ett annat verktyg nämner. Varje post söks i alla sorters resurser som posten kan hålla, som helt värde och utan hänsyn till versaler: på namn, en nätverksenhet också på adressen den avsöks på eller sitt DNS-namn, en värd på namnet dess agent rapporterar eller en av dess IP-adresser, och en molnresurs på leverantörens ID. Varje resurs som en post matchar länkas, bredvid det som **JSON-objekt** och mallen redan länkar, upp till 50 från de första 25 posterna.
+**Skapa Incident (en post)** och **Skapa Larm (en post)** har inställningen **Berörda resurser**: de värdar, nätverksenheter, kluster, databaser eller tjänster som posten gäller, med namn, adress eller ID, åtskilda med kommatecken — inskrivna eller hämtade från ett tidigare steg, som värden som ett larm från ett annat verktyg nämner. Varje post söks i alla sorters resurser som posten kan hålla, som helt värde och utan hänsyn till versaler: på namn, en nätverksenhet också på adressen den avsöks på eller sitt DNS-namn, en värd på namnet dess agent rapporterar eller en av dess IP-adresser, och en molnresurs på leverantörens ID. Varje resurs som en post matchar länkas, bredvid det som **JSON-objekt** och mallen redan länkar, upp till 50 från de första 25 posterna.
 
 En post som inte matchar något stoppar inte steget: posten skapas ändå, och körningsloggen säger vad varje post länkade och vilka som inte matchade något. Arkiverade resurser länkas inte. Monitorer slås inte upp: ange dem i **JSON-objekt** (`monitors` på en incident, `monitorId` på ett larm), eftersom att länka en monitor till en incident pausar dess övervakning.
 
 ### Vem som äger den från början
 
-**Create One Incident** och **Create One Alert** har inställningarna **Ägaranvändare** och **Ägarteam**: de personer och team som äger posten från det att den skapas. Välj dem, eller ta dem från ett tidigare steg: en användares id eller e-postadress, ett teams id, flera åtskilda med kommatecken, eller en lista. Postens ägare får veta att den skapats ungefär en minut efter att den skapats, alla ägare den har då: de som väljs här är alltid bland dem, medan ägare som ett senare steg lägger till missar det när det steget körs mer än en minut senare, och Projektägare meddelas i deras ställe.
+**Skapa Incident (en post)** och **Skapa Larm (en post)** har inställningarna **Ägaranvändare** och **Ägarteam**: de personer och team som äger posten från det att den skapas. Välj dem, eller ta dem från ett tidigare steg: en användares id eller e-postadress, ett teams id, flera åtskilda med kommatecken, eller en lista. Postens ägare får veta att den skapats ungefär en minut efter att den skapats, alla ägare den har då: de som väljs här är alltid bland dem, medan ägare som ett senare steg lägger till missar det när det steget körs mer än en minut senare, och Projektägare meddelas i deras ställe.
 
 Steget frågar, som Projektadministratör för arbetsflödets projekt, om det får lägga till dem innan posten sparas: ägare som det inte får lägga till gör att skapandet avvisas. Den som inte är medlem i projektet, eller ett team som inte är ett av projektets, utelämnas, och körningsloggen säger det: posten skapas ändå. Ägare som läggs till på det här sättet får inte veta att de lagts till: aviseringen om att posten skapats är den de får.
 

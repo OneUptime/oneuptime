@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-每个网络设备的 `descriptiveAttributes` 包含其主机名、IP 地址、序列号、MAC 地址、制造商、型号、固件、操作系统、角色、站点和位置：请参阅下文的 [网络设备资产属性](#网络设备资产属性)。轮询器知道的其他信息（例如接口和邻居）位于 Network Device 记录本身：沿着 `resourceId` 访问 `/api/network-device/:id/get-item`，或直接拉取 `/api/network-device/get-list`。
+每个网络设备的 `descriptiveAttributes` 包含其主机名、IP 地址、序列号、MAC 地址、制造商、型号、固件、操作系统、角色、站点和位置：请参阅下文的 [网络设备资产属性](#网络设备资产属性)。轮询器知道的其他信息（例如接口和邻居）位于 网络设备 记录本身：沿着 `resourceId` 访问 `/api/network-device/:id/get-item`，或直接拉取 `/api/network-device/get-list`。
 
 ### 以 CSV 格式
 
@@ -184,7 +184,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 
 ## 网络设备资产属性
 
-网络设备（`entityType: network.device`）从其 Network Device 记录镜像而来，其 `descriptiveAttributes` 对相同的信息使用与主机相同的键，因此无论该行是服务器还是交换机，CMDB 的同一列都保存序列号：
+网络设备（`entityType: network.device`）从其 网络设备 记录镜像而来，其 `descriptiveAttributes` 对相同的信息使用与主机相同的键，因此无论该行是服务器还是交换机，CMDB 的同一列都保存序列号：
 
 | 字段 | 键 | 来源 |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设
 
 主机名永远不会是 IP 地址。只有地址能命名的设备有 `host.ip`，没有 `host.name`。一旦它的 SNMP 遍历报告了系统名称，`host.name` 会在下一轮处理时出现。
 
-这些值每十五分钟从 Network Device 记录复制一次，并且会 **替换** 之前的值，而不是追加到之前的值上，因此在设备上清除的值（例如移除的 MAC 地址）也会从资产清单条目中消失。
+这些值每十五分钟从 网络设备 记录复制一次，并且会 **替换** 之前的值，而不是追加到之前的值上，因此在设备上清除的值（例如移除的 MAC 地址）也会从资产清单条目中消失。
 
 没有*可用升级*版本：SNMP 没有用于此的标准对象，因此 OneUptime 记录的是设备正在运行的版本。
 

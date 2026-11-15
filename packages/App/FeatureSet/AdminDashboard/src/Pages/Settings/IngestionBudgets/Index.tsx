@@ -161,6 +161,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Warning Threshold (%)",
               fieldType: FieldType.Number,
+              // A sentence built around the default: in the reader's words already.
+              isPlaceholderTranslated: true,
               placeholder: translator.translateTemplate("{{value}} (default)", {
                 value: translator.formatNumber(
                   TELEMETRY_INGESTION_BUDGET_DEFAULT_WARNING_PERCENT,
@@ -173,6 +175,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Reset Time",
               fieldType: FieldType.Text,
+              // A sentence built around the default: in the reader's words already.
+              isPlaceholderTranslated: true,
               placeholder: translator.translateTemplate("{{value}} (default)", {
                 value: TELEMETRY_INGESTION_BUDGET_DEFAULT_RESET_TIME,
               }),
@@ -183,6 +187,8 @@ const Settings: FunctionComponent = (): ReactElement => {
               },
               title: "Reset Time Zone",
               fieldType: FieldType.Text,
+              // A sentence built around the default: in the reader's words already.
+              isPlaceholderTranslated: true,
               placeholder: translator.translateTemplate("{{value}} (default)", {
                 value: TELEMETRY_INGESTION_BUDGET_DEFAULT_TIMEZONE,
               }),

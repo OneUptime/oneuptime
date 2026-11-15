@@ -1091,7 +1091,7 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
       "ok=1",
       "failed=1",
       "not-in-job=1",
-      "newest=30 minutes ago",
+      "newest=30\u00A0minutes ago",
     ]);
     expect(within(card).queryByTestId("proxmox-backups-card-setup")).toBeNull();
     // db's failed backup needs a look too.

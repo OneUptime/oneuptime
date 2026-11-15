@@ -107,7 +107,7 @@ Deze workflow stuurt een JSON-samenvatting van elk nieuw incident naar een URL v
 
 ```mermaid title="Het voltooide voorbeeld"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
+    trigger["Bij aanmaken: Incident"] -->|"Succes"| post["API-aanroep POST (JSON)"]
     post -->|"Fout"| log["Logboek"]
     post -->|"Succes"| done["De uitvoering eindigt"]
 ```
@@ -124,7 +124,7 @@ De nieuwe workflow opent in de **Bouwer**, uitgeschakeld.
 
 ### De trigger toevoegen
 
-Klik op het gestippelde blok **Kies wat deze workflow start** en klik daarna op **On Create Incident** onder **Populair** in het paneel **Trigger toevoegen**.
+Klik op het gestippelde blok **Kies wat deze workflow start** en klik daarna op **Bij aanmaken: Incident** onder **Populair** in het paneel **Trigger toevoegen**.
 
 De trigger neemt de plaats van het gestippelde blok in. De ID erop, `incident-on-create-1`, is hoe latere blokken ernaar verwijzen.
 

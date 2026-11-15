@@ -87,7 +87,7 @@ Le regole per etichette si possono anche copiare tra progetti: vedi [Importare e
 
 ## Cronologia
 
-Ogni volta che una regola cambia uno SLO, il **Feed** dello SLO registra quali regole l'hanno fatto. Ogni proprietario aggiunto da una regola riceve anche un suo elemento del feed «aggiunto come proprietario», così il feed dice chi è stato aggiunto e perché. Vedi [Feed e registri di audit degli SLO](/docs/slo/feed-and-audit-logs).
+Ogni volta che una regola cambia uno SLO, il **Feed** dello SLO registra quali regole l'hanno fatto. Ogni proprietario aggiunto da una regola riceve anche un suo elemento del feed «aggiunto come proprietario», così il feed dice chi è stato aggiunto e perché. Vedi [Feed e log di audit degli SLO](/docs/slo/feed-and-audit-logs).
 
 ## Permessi
 

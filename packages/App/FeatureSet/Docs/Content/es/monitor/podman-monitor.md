@@ -42,7 +42,7 @@ flowchart TB
 
 Vaya a **Monitores** y haga clic en **Crear monitor**.
 
-### Elegir Podman Container
+### Elegir Contenedor de Podman
 
 En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Contenedor de Podman** en **Infraestructura**, o escriba `podman` en el cuadro de búsqueda. Introduzca un **Nombre** – se usa en los títulos de los incidentes y las alertas – y haga clic en **Siguiente**.
 

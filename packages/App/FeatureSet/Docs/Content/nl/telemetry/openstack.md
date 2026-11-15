@@ -1170,7 +1170,7 @@ In elke pipeline komt `audit` direct na `authtoken` en het contextfilter dat daa
 
 Het filter schrijft twee regels per aanroep, en de meeste aanroepen zijn lezingen. Een lezing zegt niets tenzij hij werd geweigerd, dus OneUptime bewaart wat iets veranderde, en wat werd geweigerd, wat eruitziet als iemand die een cloud aftast. `ignore_req_list = GET, HEAD` in de sectie van het filter laat lezingen ook uit de logboeken weg, en geweigerde lezingen met hen.
 
-### Wat Security Events bereikt
+### Wat Beveiligingsgebeurtenissen bereikt
 
 | Wat | Wie, wat en waarop |
 | --- | --- |
@@ -1185,7 +1185,7 @@ Keystone stuurt niets voor een rol die op het systeem is gegeven, dus niets hier
 
 Een project en een onderdeel worden uit de inventaris van de cloud benoemd waar OneUptime ze kent, dus een geval leest `project payments` en `instance web-1` en niet hun ID's. Het project van een onderdeel is het project dat zijn rij zegt, voor welk project het token dat het aanraakte ook was. Keystones gebruikers staan niet in de inventaris, omdat de toegang die de agent vraagt ze met opzet weglaat. Een gebruiker wordt benoemd zodra een van de gebeurtenissen van de cloud hun naam heeft genoemd, en tot dan op ID. Een rol wordt op ID benoemd, omdat geen gebeurtenis zijn naam noemt.
 
-De pagina van de cloud zegt wat Security Events erover vond, een geval noemt de cloud, en de pagina van elk onderdeel heeft **Wie dit heeft gewijzigd**: wie wat deed rond het moment dat zijn status voor het laatst veranderde. Het leest de audittrail, en de eigen actor van een notificatie zonder die, en het ontbreekt wanneer geen van beide iets zegt.
+De pagina van de cloud zegt wat Beveiligingsgebeurtenissen erover vond, een geval noemt de cloud, en de pagina van elk onderdeel heeft **Wie dit heeft gewijzigd**: wie wat deed rond het moment dat zijn status voor het laatst veranderde. Het leest de audittrail, en de eigen actor van een notificatie zonder die, en het ontbreekt wanneer geen van beide iets zegt.
 
 Deze zes [detecties](/docs/telemetry/security-events) komen uit de regelbibliotheek:
 

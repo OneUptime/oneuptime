@@ -84,10 +84,10 @@ Start fra malen, som bygger hele arbeidsflyten for deg, eller fra bunnen.
 3. Behold navnet **Notify IRC on new incident** eller endre det, og klikk på **Neste**.
 4. Skriv inn **IRC-server** og **IRC Channel**, og klikk på **Opprett arbeidsflyt**.
 
-Arbeidsflyten åpnes i **Bygger** med to trinn: **On Create Incident** og **Send melding til IRC**, som poster hendelsens nummer, tittel, alvorlighetsgrad og tilstand på to linjer. En melding som ikke blir levert, får kjøringen til å mislykkes, og kjøringens logg sier hvorfor. Serveren og kanalen lagres som arbeidsflytens variabler `ircServer` og `ircChannel`. Har du lagret passord i forrige trinn, klikker du på **Send melding til IRC**, åpner **Flere felt** og velger hver variabel med **{ }**-knappen i innstillingen.
+Arbeidsflyten åpnes i **Bygger** med to trinn: **Ved oppretting: Hendelse** og **Send melding til IRC**, som poster hendelsens nummer, tittel, alvorlighetsgrad og tilstand på to linjer. En melding som ikke blir levert, får kjøringen til å mislykkes, og kjøringens logg sier hvorfor. Serveren og kanalen lagres som arbeidsflytens variabler `ircServer` og `ircChannel`. Har du lagret passord i forrige trinn, klikker du på **Send melding til IRC**, åpner **Flere felt** og velger hver variabel med **{ }**-knappen i innstillingen.
 @tab Fra bunnen
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn og klikk på **Opprett arbeidsflyt**.
-2. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Incident** under **Populære**. Klikk på triggeren, og velg i **Felt som sendes videre** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.
+2. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **Ved oppretting: Hendelse** under **Populære**. Klikk på triggeren, og velg i **Felt som sendes videre** feltene fra hendelsen som meldingen din viser, for eksempel tittelen.
 3. Klikk på **Legg til komponent**, søk etter `irc` og klikk på **Send melding til IRC**. Koble triggerens utgang **Suksess** til trinnet.
 4. Klikk på det nye trinnet og fyll ut **IRC-server**, **Kanal** og **Meldingstekst**. **{ }**-knappen i **Meldingstekst** setter inn felter fra hendelsen, for eksempel tittelen.
 5. Har du lagret passord i forrige trinn, åpner du **Flere felt**. Klikk på **{ }** i **Serverpassord**, **SASL-passord** eller **Kanalnøkkel**, og velg variabelen under **Global variables**. Skriv navnet på kontoen din i **SASL-brukernavn**.

@@ -129,7 +129,7 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 
 ### 声明事件
 
-添加一个 **Create One Incident** 块，并把 **如果 / 否则** 块的 **是** 一侧连接到它。在 **事件模板** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON 对象** 中设置来自 Grafana 的内容：
+添加一个 **创建单个事件** 块，并把 **如果 / 否则** 块的 **是** 一侧连接到它。在 **事件模板** 中选择一个设置了严重程度和要呼叫的值班策略的模板（参见 [事件模板](/docs/incidents/settings#事件模板)）。在 **JSON 对象** 中设置来自 Grafana 的内容：
 
 ```json
 {

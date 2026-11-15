@@ -625,6 +625,8 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                   },
                   title: "Expiry Reminder (Days)",
                   fieldType: FieldType.Number,
+                  // A sentence built around the default: in the reader's words already.
+                  isPlaceholderTranslated: true,
                   placeholder: translator.translateTemplate(
                     "{{value}} (default)",
                     {

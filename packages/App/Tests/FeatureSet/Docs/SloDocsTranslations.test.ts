@@ -246,6 +246,15 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "SLI History",
     "Burn Rate History",
   ],
+  /*
+   * The SLOs workflow templates and their wizard's settings: catalog content,
+   * which Create Workflow draws as written in every language (#8447).
+   */
+  [RELEASE_CHECKS]: [
+    "Turn a LaunchDarkly flag off when an SLO burns too fast",
+    "Turn an Unleash flag off when an SLO burns too fast",
+    "Burn Rate Rule ID",
+  ],
 };
 
 /*

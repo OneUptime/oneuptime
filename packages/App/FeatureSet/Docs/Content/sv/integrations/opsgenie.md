@@ -16,9 +16,9 @@ Skicka OneUptime-incidenter till [Opsgenie](https://www.atlassian.com/software/o
 
 ```mermaid title="Två arbetsflöden, ett Opsgenie-larm"
 flowchart TB
-    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>On Create Incident"]
+    declared["Incident deklarerad"] --> create["Arbetsflöde 1:<br/>Vid skapande:<br/>Incident"]
     create -->|"POST /v2/alerts"| og["Opsgenie-larm"]
-    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>On Update Incident"]
+    resolved["Incident löst"] --> update["Arbetsflöde 2:<br/>Vid uppdatering:<br/>Incident"]
     update -->|"stäng via alias"| og
 ```
 
@@ -49,7 +49,7 @@ Gå till **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **B�
 
 ### Lägg till utlösaren
 
-Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **On Create Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
+Klicka på det streckade blocket **Välj vad som startar det här arbetsflödet** och välj **Vid skapande: Incident**. Klicka på utlösaren: dess **Fält att skicka vidare** börjar med **Titel**, så klicka på **Lägg till fält** och välj **Beskrivning**.
 
 ### Skapa larmet
 
@@ -83,9 +83,9 @@ Opsgenies schema är ordet `GenieKey`, ett blanksteg och sedan nyckeln. Opsgenie
 Ett arbetsflöde har en utlösare, så det krävs ett andra arbetsflöde för att stänga det, som startar när en incidents status ändras.
 
 :::steps
-### Lägg till utlösaren On Update Incident
+### Lägg till utlösaren ”Vid uppdatering: Incident”
 
-Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **On Update Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
+Skapa ett arbetsflöde som heter `Close Opsgenie alerts` och välj **Vid uppdatering: Incident** som utlösare. Klicka på **Lägg till fält** i **Fält att bevaka** och välj **Current Incident State**, så att det bara körs när statusen ändras. Fråga i **Fält att skicka vidare** om den nya statusen är en löst status: klicka på **Lägg till fält**, öppna **Current Incident State** och välj **Is Resolved State**. Eller klicka på **Redigera som JSON** och ersätt JSON:en med:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

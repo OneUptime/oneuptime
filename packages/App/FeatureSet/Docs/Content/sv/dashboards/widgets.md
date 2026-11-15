@@ -194,7 +194,7 @@ Var och en av de här widgetarna listar resurserna som en agent eller en collect
 | **Proxmox** | **Noder**, **Gäster** | Proxmox-agenten |
 | **VMware** | **Värdar**, **Virtuella maskiner** | VMware-agenten, eller ett vCenter som du ansluter |
 | **Ceph** | **OSD:er**, som en vägg färgad efter tillstånd, och **Pools** | Ceph-agenten |
-| **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Storage Array-agenten |
+| **Lagringsarrayer** | **Volymer**, och **Hårdvara** som en vägg färgad efter status | Lagringsarray-agenten |
 
 Använd dem för en sida som blandar tillståndet i din infrastruktur med telemetrin från arbetslasterna som körs på den.
 

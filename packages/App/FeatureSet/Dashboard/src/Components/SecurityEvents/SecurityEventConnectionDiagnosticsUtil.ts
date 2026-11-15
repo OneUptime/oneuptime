@@ -43,6 +43,7 @@ import {
   translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * Shared by every provider on the Security Event Connections page. The
@@ -1275,7 +1276,7 @@ export function formatWindowMinutes(
       );
     }
 
-    return `${hours} hour${hours === 1 ? "" : "s"}`;
+    return `${hours}${NO_BREAK_SPACE}hour${hours === 1 ? "" : "s"}`;
   }
 
   if (translator) {
@@ -1285,7 +1286,7 @@ export function formatWindowMinutes(
     );
   }
 
-  return `${minutes.toLocaleString("en-US")} minute${minutes === 1 ? "" : "s"}`;
+  return `${minutes.toLocaleString("en-US")}${NO_BREAK_SPACE}minute${minutes === 1 ? "" : "s"}`;
 }
 
 /*

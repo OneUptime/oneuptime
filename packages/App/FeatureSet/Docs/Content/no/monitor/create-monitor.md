@@ -48,7 +48,7 @@ Nedenfor avgjør **Kriterier** når monitoren endrer status, erklærer en hendel
 
 Klikk på et kriterium for å åpne og endre det. **Legg til kriterier** legger til ett, åpent og klart til å fylles ut. For å endre rekkefølgen drar du et kriterium i håndtaket til venstre for det.
 
-En logg-, trase-, unntaks- eller målingsmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-overvåking](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
+En logg-, trase-, unntaks- eller målingsmonitor spør i stedet hva den skal fortelle deg om, og setter opp én regel med vanlige ord: hva du skal følge med på, **Når det skal varsles** og **Hva som skjer**, med et diagram over hva regelen ville ha fanget. Se [Logg-monitor](/docs/monitor/logs-monitor#opprett-en-loggmonitor).
 
 ### Gå til neste trinn
 
@@ -101,8 +101,8 @@ En monitormal, og lenkene som oppretter en monitor andre steder i OneUptime (på
 Hver monitortype har sin egen side med innstillingene sine, standardkriteriene og eksempler. Gode steder å gå videre:
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
-- [API-overvåking](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk at en side lastes, og hva den svarer.
+- [API-monitor](/docs/monitor/api-monitor): Kall et endepunkt med en metode, hoder og en brødtekst.
 - [Kriterier og statuser](/docs/monitor/criteria-and-statuses): Hva som setter statusen til hver monitor.
 - [Monitormaler](/docs/monitor/monitor-templates): Opprett mange monitorer fra én konfigurasjon, og hold dem like.
 - [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.

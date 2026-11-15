@@ -16,9 +16,9 @@ Invia gli incidenti di OneUptime a [PagerDuty](https://www.pagerduty.com). Un fl
 
 ```mermaid title="Due flussi di lavoro, un incidente PagerDuty"
 flowchart TB
-    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>On Create Incident"]
+    declared["Incidente dichiarato"] --> create["Flusso di lavoro 1:<br/>Alla creazione:<br/>Incidente"]
     create -->|"trigger"| pd["Incidente PagerDuty"]
-    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>On Update Incident"]
+    resolved["Incidente risolto"] --> update["Flusso di lavoro 2:<br/>All'aggiornamento:<br/>Incidente"]
     update -->|"resolve"| pd
 ```
 
@@ -48,7 +48,7 @@ Vai su **Flussi di lavoro**, fai clic su **Crea flusso di lavoro**, poi su **Par
 
 ### Aggiungere il trigger
 
-Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **On Create Incident**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
+Fai clic sul blocco tratteggiato **Scegli cosa avvia questo flusso di lavoro** e scegli **Alla creazione: Incidente**. Fai clic sul trigger: i suoi **Campi da passare** iniziano con **Titolo**, quindi fai clic su **Aggiungi campo** e scegli **Descrizione**.
 
 ### Inviare l'evento di attivazione
 
@@ -82,9 +82,9 @@ Il blocco invia JSON, quindi non serve un'intestazione `Content-Type`. La `sever
 Un flusso di lavoro ha un solo trigger, quindi per risolvere serve un secondo flusso di lavoro, avviato quando cambia lo stato di un incidente.
 
 :::steps
-### Aggiungere il trigger On Update Incident
+### Aggiungere il trigger «All'aggiornamento: Incidente»
 
-Crea un flusso di lavoro chiamato `Resolve PagerDuty incidents` e scegli **On Update Incident** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
+Crea un flusso di lavoro chiamato `Resolve PagerDuty incidents` e scegli **All'aggiornamento: Incidente** come trigger. In **Campi da osservare**, fai clic su **Aggiungi campo** e scegli **Current Incident State**, così viene eseguito solo quando cambia lo stato. In **Campi da passare**, chiedi se il nuovo stato è uno stato risolto: fai clic su **Aggiungi campo**, apri **Current Incident State** e scegli **Is Resolved State**. Oppure fai clic su **Modifica come JSON** e sostituisci il JSON con:
 
 ```json
 { "_id": true, "currentIncidentState": { "isResolvedState": true } }

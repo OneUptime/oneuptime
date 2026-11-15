@@ -92,7 +92,7 @@ litellm --config config.yaml
 
 ### Fai passare una richiesta
 
-Chiama il proxy una volta, poi controlla AI / LLM come descritto in [Verifica che le chiamate arrivino](#verifica-che-le-chiamate-arrivino).
+Chiama il proxy una volta, poi controlla IA / LLM come descritto in [Verifica che le chiamate arrivino](#verifica-che-le-chiamate-arrivino).
 :::
 
 | Variabile | Valore | Note |

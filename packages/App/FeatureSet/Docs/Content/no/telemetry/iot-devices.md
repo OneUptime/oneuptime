@@ -276,7 +276,7 @@ OneUptime gjenkjenner disse `iot_*`-målingsnavnene. Send bare dem som gir menin
 
 | Målingsnavn | Betydning |
 | --- | --- |
-| `iot_device_up` | Tilgjengelighet: `1` er oppe og nåbar, `0` er nede. IoT Device-monitoren leser den. |
+| `iot_device_up` | Tilgjengelighet: `1` er oppe og nåbar, `0` er nede. IoT-enhet-monitoren leser den. |
 | `iot_device_info` | Bare identitet. Den har `device.id`, klassen, typen og fastvaren, slik at en enhet vises i inventaret før den rapporterer målinger. |
 | `iot_battery_percent` | Batterilading, `0` til `100` (%). |
 | `iot_signal_strength_dbm` | Trådløs signalstyrke i dBm, for eksempel RSSI for Wi-Fi, LoRa eller mobilnett. |
@@ -348,7 +348,7 @@ På WebSocket-endepunktet lukker ingressen en tilkobling som er inaktiv i 300 se
 ## Neste trinn
 
 :::cards
-- [IoT-enhets-overvåking](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
+- [IoT-enhetsmonitor](/docs/monitor/iot-device-monitor): Varsle når en enhet går frakoblet, får lavt batteri eller blir overopphetet.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Hvordan OneUptime tar imot OTLP fra en hvilken som helst SDK eller collector.
 - [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector): Overvåk selve en Linux-, macOS- eller Windows-gateway.
 :::

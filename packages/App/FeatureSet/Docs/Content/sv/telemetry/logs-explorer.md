@@ -118,7 +118,7 @@ Klicka på **Lista** för att gå tillbaka till själva raderna.
 
 ## Öppna tillhörande spår och mätvärden
 
-Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Måttutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
+Knapparna **Spår** och **Mätvärden** bredvid **Sparade vyer** öppnar [Spårutforskare](/docs/telemetry/traces-explorer) eller [Mätvärdesutforskare](/docs/telemetry/metrics-explorer) för samma tidsfönster, med så mycket av din filtrering som den utforskaren kan använda. Peka på en knapp för att se vad den inte kan ta med sig.
 
 ## Insikter i loggar
 

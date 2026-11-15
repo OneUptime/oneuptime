@@ -306,7 +306,7 @@ Jira Cloud는 [템플릿이 묻는 내용](#템플릿이-묻는-내용)에서처
 ### 인시던트마다 Jira 이슈 열기
 
 :::steps
-1. `Incidents to Jira`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **On Create Incident** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다. **Identifier**는 `incident-on-create-1` 그대로 둡니다.
+1. `Incidents to Jira`라는 워크플로를 처음부터 만듭니다. 점선 블록을 클릭하고 **인시던트 생성 시** 트리거를 추가합니다. 그 **넘겨줄 필드**에는 **제목**이 이미 들어 있습니다. **필드 추가**를 클릭하고 **설명**과 **인시던트 번호**를 고릅니다. ID는 항상 전달됩니다. **Identifier**는 `incident-on-create-1` 그대로 둡니다.
 2. **구성 요소 추가**를 클릭하고 **API 호출 POST (JSON)** 블록을 추가한 다음, 트리거의 **성공** 점을 이 블록에 연결합니다. **Identifier**를 `create-issue`로, **URL**을 `{{global.variables.JIRA_URL}}/rest/api/3/issue`로 설정하고, **추가 필드**에서 **요청 헤더**를 `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`로 설정합니다.
 3. **요청 본문**을 이슈로 설정하고, `OPS`와 `Bug`를 자신의 프로젝트 키와 그 프로젝트의 이슈 유형으로 바꿉니다:
 
@@ -390,7 +390,7 @@ Jira의 모든 사람에게 돌아갈 길을 주려면, `create-issue` 뒤에 `{
 이것은 두 번째 워크플로로 만들어, 여기서의 실패가 이슈 열기를 막지 않게 하세요.
 
 :::steps
-1. **On Update Incident** 트리거가 있는 `Incident updates to Jira`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **이름**을 고릅니다.
+1. **인시던트 업데이트 시** 트리거가 있는 `Incident updates to Jira`라는 워크플로를 만듭니다. **지켜볼 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 고릅니다. **넘겨줄 필드**에서 **필드 추가**를 클릭하고 **Current Incident State**를 연 다음 **이름**을 고릅니다.
 2. **조건 분기** 블록을 추가합니다: **확인할 값**은 `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **비교**는 **같음**, **비교 대상**은 `Resolved` 또는 자신의 해결 상태 이름입니다.
 3. 그 **예** 쪽 뒤에서, **Identifier**가 `find-issue`이고 `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`로 게시하는 **API 호출 POST (JSON)** 블록으로 이슈를 찾습니다:
 
@@ -425,7 +425,7 @@ JQL은 URL에 넣지 말고 본문으로 게시하세요. URL은 인코딩되지
 
    자체 호스팅 설치는 자체 호스트를 사용합니다. URL을 비밀번호처럼 다루세요. URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 유출되면 같은 곳에서 **URL 재설정**을 클릭하세요. 이전 URL은 즉시 작동을 멈춥니다.
 
-3. 트리거에서 **Update One Incident** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **Find One Incident State** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
+3. 트리거에서 **인시던트 1개 업데이트** 블록을 추가합니다. **쿼리**를 `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}`로, **데이터(JSON 객체)** 필드를 새 `currentIncidentStateId` 같은 변경 내용으로 설정합니다. 쿼리 `{"name": "Resolved"}`가 있는 **인시던트 상태 1개 찾기** 블록이 그 ID를 `{{local.components.incident-state-find-one-1.returnValues.model._id}}`로 제공합니다.
 
 워크플로를 켠 다음, 자동화 규칙이나 웹훅으로 Jira가 이를 호출하게 하세요:
 
@@ -466,13 +466,13 @@ Send web request는 포트 80, 8080, 443, 6017, 8443, 8444, 7990, 8090, 8085, 80
 
 | 인시던트 | 경고 |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | 없음: 경고에는 공개 노트가 없습니다 |
+| **인시던트 생성 시** (`incident-on-create-1`) | **경고 생성 시** (`alert-on-create-1`) |
+| **인시던트 업데이트 시** (`incident-on-update-1`) | **경고 업데이트 시** (`alert-on-update-1`) |
+| **인시던트 내부 노트 생성 시** | **경고 내부 노트 생성 시** |
+| **인시던트 공개 노트 생성 시** | 없음: 경고에는 공개 노트가 없습니다 |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **인시던트 상태 1개 찾기** | **경고 상태 1개 찾기** |
+| **인시던트 1개 업데이트** | **경고 1개 업데이트** |
 | 레이블 `oneuptime-incident-<incident id>` | 레이블 `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Jira가 호출 속도를 제한하고 있습니다. 응답에는 초 단위의 `
 :::
 
 :::details 워크플로는 실행되는데 인시던트가 바뀌지 않음
-**Update One Incident** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
+**인시던트 1개 업데이트** 블록은 쿼리에 일치하는 것이 없으면 `Items Updated: 0`을 보고하며, 이는 오류가 아니라 성공입니다. 요청의 ID가 정말 OneUptime 인시던트의 ID인지, `_id`로 쿼리하는지 확인하세요.
 :::
 
 :::details Jira 이슈에 참조가 쓰인 그대로 표시됨

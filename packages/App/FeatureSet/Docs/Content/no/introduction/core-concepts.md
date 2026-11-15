@@ -136,7 +136,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, målinger og spor fra appene dine.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
+- [Logg-monitor](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
 :::
 
 ## Sikkerhet

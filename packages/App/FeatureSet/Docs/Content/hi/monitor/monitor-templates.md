@@ -111,7 +111,7 @@ flowchart TB
 - बहिष्करण बल्क और एक-एक मॉनिटर वाले, दोनों सिंक पर लागू होते हैं। वे टेम्पलेट पर सहेजे जाते हैं, हर सिंक के लिए अलग से नहीं चुने जाते।
 - नए मॉनिटर अब भी टेम्पलेट के फ़ील्ड मानों से शुरू होते हैं। बहिष्करण केवल मौजूदा मॉनिटरों में सिंक को प्रभावित करते हैं।
 - मानदंड हमेशा सिंक होते हैं। केवल मानदंड का सिंक निगरानी अंतराल, लेबल और मॉनिटर स्तर की दूसरी सेटिंग्स को नहीं छूता।
-- मौजूदा टेम्पलेट में तब तक कोई फ़ील्ड बहिष्करण नहीं होता जब तक आप उसे कॉन्फ़िगर न करें। Network Device मॉनिटर अपने डिवाइस बाइंडिंग को अपने आप रखते रहते हैं, और नेटवर्क डिस्कवरी आयात ने डिवाइसों के लिए जो Ping, IP, Port और NTP मॉनिटर बनाए, वे हर डिवाइस का अपना पता जाँचते रहते हैं।
+- मौजूदा टेम्पलेट में तब तक कोई फ़ील्ड बहिष्करण नहीं होता जब तक आप उसे कॉन्फ़िगर न करें। नेटवर्क डिवाइस मॉनिटर अपने डिवाइस बाइंडिंग को अपने आप रखते रहते हैं, और नेटवर्क डिस्कवरी आयात ने डिवाइसों के लिए जो Ping, IP, Port और NTP मॉनिटर बनाए, वे हर डिवाइस का अपना पता जाँचते रहते हैं।
 
 कई चरणों वाले टेम्पलेट में, सुरक्षित मान चरण ID से मिलाए जाते हैं। अलग से बनाए गए एक-चरण वाले मॉनिटर भी एक-चरण वाला टेम्पलेट ले सकते हैं। अगर किसी सुरक्षित चरण का मिलान नहीं हो पाता, तो किसी भी मॉनिटर के अपडेट होने से पहले सिंक अस्वीकार हो जाता है, ताकि कोई नया या क्रम बदला हुआ चरण गलती से किसी दूसरे चरण का डेस्टिनेशन या क्रेडेंशियल कॉपी न कर दे।
 
@@ -144,22 +144,22 @@ flowchart TB
 :::details मॉनिटर प्रकार के अनुसार doNotSyncFields के फ़ील्ड नाम
 | मॉनिटर प्रकार | फ़ील्ड नाम |
 | --- | --- |
-| वेबसाइट, API, Ping, IP, पोर्ट, SSL Certificate, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
+| वेबसाइट, API, Ping, IP, पोर्ट, SSL प्रमाणपत्र, NTP | `monitorDestination`, `requestTimeoutInMs`, `retryCount` |
 | केवल API | `requestHeaders`, `requestType`, `requestBody` |
 | वेबसाइट और API | `doNotFollowRedirects`, `allowSelfSignedCertificates`, `tlsClientAuthentication` (क्लाइंट प्रमाणपत्र, कुंजी और पासफ़्रेज़ एक साथ) |
 | पोर्ट, NTP | `monitorDestinationPort` |
-| Synthetic Monitor, Custom JavaScript Code | `customCode` |
-| Synthetic Monitor | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
+| सिंथेटिक मॉनिटर, कस्टम JavaScript कोड | `customCode` |
+| सिंथेटिक मॉनिटर | `browserTypes`, `screenSizeTypes`, `retryCountOnError` |
 | DNS | `dnsMonitor.queryName`, `dnsMonitor.recordType`, `dnsMonitor.resolver` (DNS सर्वर और पोर्ट एक साथ), `dnsMonitor.timeout`, `dnsMonitor.retries` |
 | डोमेन | `domainMonitor.domainName`, `domainMonitor.lookupMethod`, `domainMonitor.timeout`, `domainMonitor.retries` |
 | DNSSEC | `dnssecMonitor.domainName`, `dnssecMonitor.resolvers`, `dnssecMonitor.checkNameserverConsistency`, `dnssecMonitor.signatureExpiryWarningDays`, `dnssecMonitor.timeout`, `dnssecMonitor.retries` |
-| SQL Query | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
-| Database Health | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
-| External Status Page | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
-| लॉग, Security Events, ट्रेस, AI / LLM, मेट्रिक्स, अपवाद, प्रोफ़ाइल | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (मॉनिटर का पूरा कॉन्फ़िगरेशन) |
+| SQL क्वेरी | `sqlMonitor.connection`, `sqlMonitor.connectionTimeoutInMs`, `sqlMonitor.statementTimeoutInMs`, `sqlMonitor.query`, `sqlMonitor.maxRows` |
+| डेटाबेस स्वास्थ्य | `databaseMonitor.connection`, `databaseMonitor.connectionTimeoutInMs`, `databaseMonitor.statementTimeoutInMs`, `databaseMonitor.enabledMetricGroups` |
+| बाहरी स्थिति पृष्ठ | `externalStatusPageMonitor.statusPageUrl`, `externalStatusPageMonitor.provider`, `externalStatusPageMonitor.components`, `externalStatusPageMonitor.timeout`, `externalStatusPageMonitor.retries` |
+| लॉग, सुरक्षा इवेंट, ट्रेस, AI / LLM, मेट्रिक्स, अपवाद, प्रोफ़ाइल | `logMonitor`, `securityEventsMonitor`, `traceMonitor`, `llmMonitor`, `metricMonitor`, `exceptionMonitor`, `profileMonitor` (मॉनिटर का पूरा कॉन्फ़िगरेशन) |
 | प्रोब स्थिति | `probeStatusMonitor.probeIds` |
 
-इन्फ्रास्ट्रक्चर मॉनिटर (Kubernetes, Docker Container, होस्ट, Podman Container, Proxmox, Docker Swarm, Ceph, स्टोरेज ऐरे, IoT Device) अपना संसाधन सेलेक्टर, फ़िल्टर (होस्ट को छोड़कर), मेट्रिक क्वेरी और क्वेरी टाइम विंडो सुरक्षित करने देते हैं। उनके नाम उस प्रकार के टेम्पलेट पर **टेम्पलेट सिंक सेटिंग्स** में दिखते हैं।
+इन्फ्रास्ट्रक्चर मॉनिटर (Kubernetes, Docker कंटेनर, होस्ट, Podman कंटेनर, Proxmox, Docker Swarm, Ceph, स्टोरेज ऐरे, IoT डिवाइस) अपना संसाधन सेलेक्टर, फ़िल्टर (होस्ट को छोड़कर), मेट्रिक क्वेरी और क्वेरी टाइम विंडो सुरक्षित करने देते हैं। उनके नाम उस प्रकार के टेम्पलेट पर **टेम्पलेट सिंक सेटिंग्स** में दिखते हैं।
 :::
 
 ## समस्या निवारण

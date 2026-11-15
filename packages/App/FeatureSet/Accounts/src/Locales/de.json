@@ -556,6 +556,12 @@
   "Try again in a moment.": "Versuchen Sie es gleich noch einmal.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, wenden Sie sich an den OneUptime-Support und geben Sie diese Referenz an:",
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, geben Sie diese Referenz an die Person weiter, die Ihren OneUptime-Server betreibt:",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
+  "What was sent was too large for the server to accept.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt.",
+  "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M).",
   "This form is not available. It may have been turned off, or the link may be out of date.": "Dieses Formular ist nicht verfügbar. Möglicherweise wurde es deaktiviert, oder der Link ist nicht mehr aktuell.",
   "This form can only be opened from an allowed network.": "Dieses Formular kann nur aus einem zugelassenen Netzwerk geöffnet werden.",
   "Too many submissions from your network. Please wait a few minutes and try again.": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte warten Sie einige Minuten und versuchen Sie es dann erneut.",
@@ -631,11 +637,5 @@
     "note": "Hinweis",
     "tip": "Tipp",
     "warning": "Warnung"
-  },
-  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
-  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt, daher wurde der Vorgang nicht abgeschlossen. Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
-  "What was sent was too large for the server to accept.": "Was gesendet wurde, war zu groß, um vom Server angenommen zu werden.",
-  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Was gesendet wurde, ist größer als die 50 MB, die OneUptime in einer Anfrage annimmt.",
-  "Try again with less at once, such as a smaller file.": "Versuchen Sie es mit weniger auf einmal erneut, etwa mit einer kleineren Datei.",
-  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "Wenn ein Proxy vor OneUptime es abgelehnt hat, erhöhen Sie dessen Größenlimit für Anfragen auf 50 MB, so viel, wie OneUptime selbst annimmt (in nginx client_max_body_size 50M)."
+  }
 }

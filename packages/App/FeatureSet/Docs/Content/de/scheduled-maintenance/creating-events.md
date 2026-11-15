@@ -90,7 +90,7 @@ In dem Moment, in dem Sie auf **Wartungsereignis erstellen** klicken, arbeitet O
 5. **Runbook-Regeln starten** die Runbooks, die zum Ereignis passen.
 6. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel passt, für seine Eigentümer.
 
-Innerhalb einer Minute nach seiner Veröffentlichung – sofort, wenn Sie kein **Veröffentlichen am** gewählt haben – erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **On Create Maintenance Event** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
+Innerhalb einer Minute nach seiner Veröffentlichung – sofort, wenn Sie kein **Veröffentlichen am** gewählt haben – erfahren die Abonnenten seiner Statusseiten, dass es geplant ist, außer Sie haben **Wenn das Ereignis geplant wird** ausgeschaltet. Der Workflow-Trigger **Bei Erstellung: Wartungsereignis** startet jeden darauf aufgebauten Workflow, und seine Eigentümer erfahren davon, wenn sie diese Benachrichtigung eingeschaltet haben: siehe [Benachrichtigungseinstellungen](/docs/notifications/notification-settings).
 
 ## Später veröffentlichen
 
@@ -155,7 +155,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Der Schalter **Wenn das Ereignis geplant wird**. Die anderen beiden Momente haben eigene Felder. |
 | `publishOnStatusPageAt`                               | Wann das Ereignis auf seinen Statusseiten veröffentlicht wird und seine Abonnenten erfahren, dass es geplant ist. Weggelassen: sofort. |
 
-Dasselbe Ereignis als Code ist die Terraform-Ressource `oneuptime_scheduled_maintenance_event`: siehe [Beispiele](/docs/terraform/examples#geplante-wartung). Ein Workflow erstellt eines mit seinem Schritt **Create One Maintenance Event**, und `/oneuptime maintenance` öffnet das Formular in Slack: siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
+Dasselbe Ereignis als Code ist die Terraform-Ressource `oneuptime_scheduled_maintenance_event`: siehe [Beispiele](/docs/terraform/examples#geplante-wartung). Ein Workflow erstellt eines mit seinem Schritt **Wartungsereignis erstellen (einzeln)**, und `/oneuptime maintenance` öffnet das Formular in Slack: siehe [Slack](/docs/workspace-connections/slack#vorfälle-und-wartungen-aus-slack-erstellen).
 
 ## Fehlerbehebung
 

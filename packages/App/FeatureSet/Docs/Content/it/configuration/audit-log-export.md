@@ -1,4 +1,4 @@
-# Esportazione del registro di audit
+# Esportazione del log di audit
 
 Invia il log di audit, man mano che viene registrato, allo storage o al servizio che scegli: Amazon S3 o uno storage compatibile con S3, Google Cloud Storage, Azure Blob Storage, un webhook o syslog. Conserva lì le voci per tutto il tempo richiesto dalle tue verifiche di conformità, e cercale nel tuo SIEM. I Proprietari del progetto e gli Amministratori del progetto esportano il log di audit di un progetto dalle sue impostazioni, e gli amministratori principali esportano quello di tutti i progetti dall'Admin Dashboard. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
 
@@ -26,7 +26,7 @@ flowchart TB
 
 - **Su OneUptime Cloud, il piano Enterprise.** Con gli altri piani, la pagina mostra che cosa fa la funzionalità e come ottenerla.
 - **Quando ospiti OneUptime in proprio, l'Enterprise Edition**, con una licenza che includa i log di audit. Vedi [Edizione Enterprise](/docs/self-hosted/enterprise).
-- **La registrazione di audit attiva** in ogni progetto che esporti. Vedi [Registri di audit](/docs/configuration/audit-logs).
+- **La registrazione di audit attiva** in ogni progetto che esporti. Vedi [Log di audit](/docs/configuration/audit-logs).
 - **Un Project Owner o un Project Admin** per esportare il log di audit di un progetto, oppure un amministratore principale per esportare quello dell'istanza.
 
 ## Configurare un'esportazione
@@ -198,7 +198,7 @@ Controlla che la registrazione di audit sia attiva nel progetto, e che qualcuno 
 ## Passi successivi
 
 :::cards
-- [Registri di audit](/docs/configuration/audit-logs): Che cosa viene registrato e per quanto tempo viene conservato.
+- [Log di audit](/docs/configuration/audit-logs): Che cosa viene registrato e per quanto tempo viene conservato.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può configurare un'esportazione.
 - [Edizione Enterprise](/docs/self-hosted/enterprise): I log di audit su un'installazione in proprio.
 :::

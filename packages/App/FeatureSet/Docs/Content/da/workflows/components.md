@@ -39,7 +39,7 @@ En blok kører, når blokken før den tager den udgang, der er forbundet til den
 
 ```mermaid title="En blok tager en af sine udgange"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| post["API-kald POST (JSON)"]
+    trigger["Ved oprettelse: Hændelse"] -->|"Succes"| post["API-kald POST (JSON)"]
     post -->|"Succes: et 2xx-svar"| slack["Send besked til Slack"]
     post -->|"Fejl: intet svar, eller ikke 2xx"| log["Log"]
 ```
@@ -223,7 +223,7 @@ Vil du kun tilkalde, når noget er sandt, så sæt [If / Else](#conditions) fora
 
 ```mermaid title="Tilkald den, der har vagt, men kun ved kritiske hændelser"
 flowchart TB
-    trigger["On Create Incident"] -->|"Succes"| check["Hvis / Ellers"]
+    trigger["Ved oprettelse: Hændelse"] -->|"Succes"| check["Hvis / Ellers"]
     check -->|"Ja"| page["Tilkald den, der har vagt"]
 ```
 
@@ -411,7 +411,7 @@ En post bevæger sig kun fremad, og en løst post slet ikke, så når begge vær
 
 **Alvorlighed** nævner en af dine alvorligheder ved dens navn eller ID, uanset store og små bogstaver, eller ved dens plads blandt dem: `most severe`, `middle` eller `least severe`. Sådan fordeles et værktøjs egne niveauer over de alvorligheder, du selv har navngivet. Står den tom, eller nævner den ingen af dem, er det din mest alvorlige, og kørslens log siger det. En ny hændelse holdes væk fra dine statussider, og deres abonnenter får ikke besked, fordi et andet værktøjs tekst er skrevet til det værktøjs brugere: slå **Vis på statussider** til for at vise den.
 
-Under **Flere felter** er **Årsag** årsagen i postens historik, når den flytter sig, og **Note** tilføjes så ved siden af som en privat note, til et værktøj, der siger noget, når det kvitterer eller løser. **Brugerdefinerede felter** giver en ny post flere brugerdefinerede felter, som et JSON-objekt, **Etiketter** ID'erne på dens etiketter, adskilt af kommaer, og **Berørte ressourcer** de ressourcer, den handler om, som på **Create One Incident**. **Note i stedet for at løse** tilføjer noten og lader dit team løse posten. Blokken returnerer **Oversigt**, det den gjorde, i én sætning, og posten, så en senere blok læser dens ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
+Under **Flere felter** er **Årsag** årsagen i postens historik, når den flytter sig, og **Note** tilføjes så ved siden af som en privat note, til et værktøj, der siger noget, når det kvitterer eller løser. **Brugerdefinerede felter** giver en ny post flere brugerdefinerede felter, som et JSON-objekt, **Etiketter** ID'erne på dens etiketter, adskilt af kommaer, og **Berørte ressourcer** de ressourcer, den handler om, som på **Opret Hændelse (én post)**. **Note i stedet for at løse** tilføjer noten og lader dit team løse posten. Blokken returnerer **Oversigt**, det den gjorde, i én sætning, og posten, så en senere blok læser dens ID som `{{local.components.incident-from-another-tool-1.returnValues.record._id}}`.
 
 ## Zabbix
 
@@ -458,38 +458,38 @@ For hver slags post i OneUptime (monitorer, hændelser, advarsler, statussider, 
 
 | Komponent                | Hvad den gør                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------ |
-| **Find One Monitor**     | Læser én post, der matcher forespørgslen.                                      |
-| **Find Many Monitors**   | Læser en liste af poster, der matcher forespørgslen.                           |
-| **Create One Monitor**   | Tilføjer én post ud fra et JSON-objekt.                                        |
-| **Create Many Monitors** | Tilføjer flere poster ud fra et JSON-array.                                    |
-| **Update One Monitor**   | Anvender de data, der skal skrives, på én matchende post.                      |
-| **Update Many Monitors** | Anvender de data, der skal skrives, på matchende poster, op til **Grænse**.     |
-| **Delete One Monitor**   | Sletter én matchende post.                                                     |
-| **Delete Many Monitors** | Sletter matchende poster, op til **Grænse**.                                    |
+| **Find Monitor (én post)**     | Læser én post, der matcher forespørgslen.                                      |
+| **Find Monitorer (flere poster)**   | Læser en liste af poster, der matcher forespørgslen.                           |
+| **Opret Monitor (én post)**   | Tilføjer én post ud fra et JSON-objekt.                                        |
+| **Opret Monitorer (flere poster)** | Tilføjer flere poster ud fra et JSON-array.                                    |
+| **Opdater Monitor (én post)**   | Anvender de data, der skal skrives, på én matchende post.                      |
+| **Opdater Monitorer (flere poster)** | Anvender de data, der skal skrives, på matchende poster, op til **Grænse**.     |
+| **Slet Monitor (én post)**   | Sletter én matchende post.                                                     |
+| **Slet Monitorer (flere poster)** | Sletter matchende poster, op til **Grænse**.                                    |
 
-Det samme sæt giver dig fire triggere — **On Create Monitor**, **On Update Monitor**, **On Create or Update Monitor** og **On Delete Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhedstriggere).
+Det samme sæt giver dig fire triggere — **Ved oprettelse: Monitor**, **Ved opdatering: Monitor**, **Ved oprettelse eller opdatering: Monitor** og **Ved sletning: Monitor**. Se [Triggere](/docs/workflows/triggers#oneuptime-begivenhedstriggere).
 
-En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har de to Find-komponenter og intet andet, så finder du ikke **Delete One Monitor** i panelet, tillader den type det ikke.
+En type tilbyder kun de komponenter, dens model tillader. En skrivebeskyttet type har de to Find-komponenter og intet andet, så finder du ikke **Slet Monitor (én post)** i panelet, tillader den type det ikke.
 
-Sådan læser og ændrer en arbejdsgang OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Create One Incident** til at åbne en hændelse med detaljerne om fejlen.
+Sådan læser og ændrer en arbejdsgang OneUptime-data. For eksempel kan en webhook fra dit CI-værktøj bruge **Opret Hændelse (én post)** til at åbne en hændelse med detaljerne om fejlen.
 
 Disse komponenter handler som Projektadministrator for arbejdsgangens projekt: det, en Projektadministrator ikke må, eller som dit abonnement ikke omfatter, afvises, og kørslens log siger hvorfor. Se [Hvad arbejdsgangstrin må gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 
 ### Erklær en hændelse ud fra en skabelon
 
-**Create One Incident** kan erklære hændelsen ud fra en af dine [hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner): vælg den under **Hændelsesskabelon**, trinnets første indstilling. Skabelonen udfylder alle de felter, som **JSON-objekt** udelader — titlen, beskrivelsen, alvorligheden, starttilstanden, monitorerne og andre ressourcer, vagtpolitikkerne, etiketterne, statussiderne og de brugerdefinerede felter — og dens ejere bliver hændelsens ejere. Alt, hvad du angiver i **JSON-objekt**, går forud for skabelonens, også tilstanden, så med en valgt skabelon behøver **JSON-objekt** kun det, der skal være anderledes, og kan stå tomt.
+**Opret Hændelse (én post)** kan erklære hændelsen ud fra en af dine [hændelsesskabeloner](/docs/incidents/settings#hændelsesskabeloner): vælg den under **Hændelsesskabelon**, trinnets første indstilling. Skabelonen udfylder alle de felter, som **JSON-objekt** udelader — titlen, beskrivelsen, alvorligheden, starttilstanden, monitorerne og andre ressourcer, vagtpolitikkerne, etiketterne, statussiderne og de brugerdefinerede felter — og dens ejere bliver hændelsens ejere. Alt, hvad du angiver i **JSON-objekt**, går forud for skabelonens, også tilstanden, så med en valgt skabelon behøver **JSON-objekt** kun det, der skal være anderledes, og kan stå tomt.
 
 Hændelsen registrerer den skabelon, den blev erklæret ud fra, i `createdIncidentTemplateId`. Den kolonne sætter OneUptime selv: et trin, der sender den i **JSON-objekt**, afvises, og dets kørselslog henviser dig til **Hændelsesskabelon**. En skabelon fra et andet projekt, eller en, der er slettet, får trinnet til at tage sin udgang **Fejl**, og på et abonnement, der ikke omfatter hændelsesskabeloner, afvises trinnet med det abonnement, der kræves. Se [Sådan anvendes en skabelon](/docs/incidents/settings#sådan-anvendes-en-skabelon).
 
 ### Knyt de ressourcer til, det handler om
 
-**Create One Incident** og **Create One Alert** har en indstilling **Berørte ressourcer**: de værter, netværksenheder, klynger, databaser eller tjenester, posten handler om, efter navn, adresse eller ID, adskilt af kommaer — skrevet ind eller hentet fra et tidligere trin, som den vært, en advarsel fra et andet værktøj nævner. Hver post søges i alle de slags ressourcer, posten kan rumme, som hel værdi og uden hensyn til store og små bogstaver: efter navn, en netværksenhed også efter den adresse, den polles på, eller sit DNS-navn, en vært efter det navn, dens agent rapporterer, eller en af dens IP-adresser, og en cloudressource efter udbyderens ID. Hver ressource, en post passer på, knyttes til, ved siden af det, **JSON-objekt** og skabelonen allerede knytter til, op til 50 ud fra de første 25 poster.
+**Opret Hændelse (én post)** og **Opret Advarsel (én post)** har en indstilling **Berørte ressourcer**: de værter, netværksenheder, klynger, databaser eller tjenester, posten handler om, efter navn, adresse eller ID, adskilt af kommaer — skrevet ind eller hentet fra et tidligere trin, som den vært, en advarsel fra et andet værktøj nævner. Hver post søges i alle de slags ressourcer, posten kan rumme, som hel værdi og uden hensyn til store og små bogstaver: efter navn, en netværksenhed også efter den adresse, den polles på, eller sit DNS-navn, en vært efter det navn, dens agent rapporterer, eller en af dens IP-adresser, og en cloudressource efter udbyderens ID. Hver ressource, en post passer på, knyttes til, ved siden af det, **JSON-objekt** og skabelonen allerede knytter til, op til 50 ud fra de første 25 poster.
 
 En post, der ikke passer på noget, stopper ikke trinnet: posten oprettes alligevel, og kørselsloggen siger, hvad hver post knyttede til, og hvilke der ikke passede på noget. Arkiverede ressourcer knyttes ikke til. Monitorer slås ikke op: nævn dem i **JSON-objekt** (`monitors` på en hændelse, `monitorId` på en advarsel), fordi det at knytte en monitor til en hændelse sætter dens overvågning på pause.
 
 ### Hvem der ejer den fra starten
 
-**Create One Incident** og **Create One Alert** har indstillingerne **Ejer-brugere** og **Ejer-teams**: de personer og teams, der ejer posten, fra den bliver oprettet. Vælg dem, eller tag dem fra et tidligere trin: en brugers id eller e-mailadresse, et teams id, flere adskilt af kommaer eller en liste. Postens ejere hører, at den er oprettet, omkring et minut efter oprettelsen, alle de ejere, den har til den tid: dem, der vælges her, er altid blandt dem, mens ejere, som et senere trin tilføjer, går glip af det, når det trin kører mere end et minut senere, og Projektejere får besked i stedet.
+**Opret Hændelse (én post)** og **Opret Advarsel (én post)** har indstillingerne **Ejer-brugere** og **Ejer-teams**: de personer og teams, der ejer posten, fra den bliver oprettet. Vælg dem, eller tag dem fra et tidligere trin: en brugers id eller e-mailadresse, et teams id, flere adskilt af kommaer eller en liste. Postens ejere hører, at den er oprettet, omkring et minut efter oprettelsen, alle de ejere, den har til den tid: dem, der vælges her, er altid blandt dem, mens ejere, som et senere trin tilføjer, går glip af det, når det trin kører mere end et minut senere, og Projektejere får besked i stedet.
 
 Trinnet spørger, om det må tilføje dem, som Projektadministrator for arbejdsgangens projekt, før posten gemmes: ejere, det ikke må tilføje, får oprettelsen afvist. En person, der ikke er medlem af projektet, eller et team, der ikke er et af projektets, udelades, og kørselsloggen siger det: posten oprettes alligevel. Ejere, der tilføjes på denne måde, får ikke besked om, at de er tilføjet: beskeden om, at posten er oprettet, er den, de får.
 

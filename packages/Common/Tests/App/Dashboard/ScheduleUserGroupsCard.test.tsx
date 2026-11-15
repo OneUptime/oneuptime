@@ -564,7 +564,7 @@ describe("a group's row", () => {
           return link.textContent;
         }),
     ).toEqual(["Payments Secondary"]);
-    expect(textOf(id, "time")).toBe("Checked 3 minutes ago");
+    expect(textOf(id, "time")).toBe("Checked 3\u00A0minutes ago");
   });
 
   test("following only this schedule: no Also follows", async () => {
@@ -658,7 +658,7 @@ describe("a group's row", () => {
       within(row(id)).getByTestId(`user-group-${id}-status-text`),
     ).toHaveClass("bg-red-50");
     expect(textOf(id, "status-text")).toContain("Try again");
-    expect(textOf(id, "time")).toBe("Last up to date 2 hours ago");
+    expect(textOf(id, "time")).toBe("Last up to date 2\u00A0hours ago");
 
     await act(async () => {
       fireEvent.click(tryAgainOf(id)!);
@@ -773,7 +773,7 @@ describe("a group's row", () => {
     expect(noteOf(id)).toBe(
       "OneUptime's Slack app isn't allowed to change user groups yet. Reconnect Slack in Project Settings > Workspace > Slack to allow it.",
     );
-    expect(textOf(id, "time")).toBe("Checked 1 minute ago");
+    expect(textOf(id, "time")).toBe("Checked 1\u00A0minute ago");
   });
 
   test("in step once, refused since, with nobody in it: None", async () => {

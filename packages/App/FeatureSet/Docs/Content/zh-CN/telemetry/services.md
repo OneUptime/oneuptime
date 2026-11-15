@@ -122,7 +122,7 @@ flowchart TB
 
 :::cards
 - [日志浏览器](/docs/telemetry/logs-explorer): 搜索服务的日志。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 跟随它的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 跟随它的请求。
 - [异常](/docs/telemetry/exceptions): 分诊它抛出的错误。
 - [标签与所有者规则](/docs/configuration/label-and-owner-rules): 为新服务添加标签和所有者。
 :::

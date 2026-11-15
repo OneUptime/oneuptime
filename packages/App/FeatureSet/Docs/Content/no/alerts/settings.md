@@ -178,7 +178,7 @@ Kortet **Neste nummer** under setter nummeret det neste varselet og den neste ep
 
 ## Arbeidsflyter
 
-Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **On Create Alert**, **On Update Alert**, **On Create or Update Alert** og **On Delete Alert**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Create One Alert** og **Update One Alert**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
+Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **Ved oppretting: Varsel**, **Ved oppdatering: Varsel**, **Ved oppretting eller oppdatering: Varsel** og **Ved sletting: Varsel**, det samme for **Varselsepisode**, **Tilstandstidslinje for varsel** og de andre, og handlinger som **Opprett Varsel (én post)** og **Oppdater Varsel (én post)**. Definisjonene av egendefinerte felt for varsler er det eneste unntaket: De har ingen arbeidsflytutløsere. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
 ## Hvem som kan endre dem
 

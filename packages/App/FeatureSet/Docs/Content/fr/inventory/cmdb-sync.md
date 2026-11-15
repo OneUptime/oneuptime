@@ -116,7 +116,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list' \
   }'
 ```
 
-Les `descriptiveAttributes` de chaque équipement réseau portent son nom d'hôte, son adresse IP, son numéro de série, son adresse MAC, sa marque, son modèle, son firmware, son système d'exploitation, son rôle, son site et son emplacement : voir [Attributs d'actif des équipements réseau](#attributs-dactif-des-équipements-réseau) plus bas. Ce que la sonde sait d'autre, comme les interfaces et les voisins, se trouve sur l'enregistrement Network Device lui-même : suivez `resourceId` vers `/api/network-device/:id/get-item`, ou récupérez directement `/api/network-device/get-list`.
+Les `descriptiveAttributes` de chaque équipement réseau portent son nom d'hôte, son adresse IP, son numéro de série, son adresse MAC, sa marque, son modèle, son firmware, son système d'exploitation, son rôle, son site et son emplacement : voir [Attributs d'actif des équipements réseau](#attributs-dactif-des-équipements-réseau) plus bas. Ce que la sonde sait d'autre, comme les interfaces et les voisins, se trouve sur l'enregistrement Équipement réseau lui-même : suivez `resourceId` vers `/api/network-device/:id/get-item`, ou récupérez directement `/api/network-device/get-list`.
 
 ### En CSV
 
@@ -184,7 +184,7 @@ Les attributs s'ajoutent sans jamais être vidés : un attribut qui n'est plus d
 
 ## Attributs d'actif des équipements réseau
 
-Un équipement réseau (`entityType: network.device`) est répliqué depuis son enregistrement Network Device, et ses `descriptiveAttributes` utilisent les mêmes clés qu'un hôte pour les mêmes faits, si bien qu'une colonne de la CMDB contient le numéro de série que la ligne soit un serveur ou un commutateur :
+Un équipement réseau (`entityType: network.device`) est répliqué depuis son enregistrement Équipement réseau, et ses `descriptiveAttributes` utilisent les mêmes clés qu'un hôte pour les mêmes faits, si bien qu'une colonne de la CMDB contient le numéro de série que la ligne soit un serveur ou un commutateur :
 
 | Champ | Clé | D'où il vient |
 | --- | --- | --- |
@@ -212,7 +212,7 @@ Une valeur enregistrée sur l'équipement, saisie ou définie par l'API, n'est j
 
 Le nom d'hôte n'est jamais l'adresse IP. Un équipement que seule son adresse nomme a `host.ip` et pas de `host.name`. Dès que son parcours SNMP déclare un nom de système, `host.name` suit au passage suivant.
 
-Ces valeurs sont copiées depuis l'enregistrement Network Device toutes les quinze minutes, et elles **remplacent** les valeurs précédentes au lieu de s'y ajouter, si bien qu'une valeur effacée sur l'équipement (une adresse MAC retirée, par exemple) quitte aussi l'élément d'inventaire.
+Ces valeurs sont copiées depuis l'enregistrement Équipement réseau toutes les quinze minutes, et elles **remplacent** les valeurs précédentes au lieu de s'y ajouter, si bien qu'une valeur effacée sur l'équipement (une adresse MAC retirée, par exemple) quitte aussi l'élément d'inventaire.
 
 Il n'y a pas de version de *mise à niveau disponible* : SNMP n'a pas d'objet standard pour cela, donc OneUptime enregistre la version que l'équipement exécute.
 

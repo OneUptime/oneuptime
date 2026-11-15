@@ -142,7 +142,7 @@ Den, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle,
 
 Trace-widgets tæller kun rod-spans, som trace-udforskeren gør, medmindre du medtager underordnede spans i deres indstillinger. Et almindeligt mønster er et latenstidsdiagram øverst med en liste over langsomme traces nedenunder.
 
-## Hændelser, advarsler og overvågninger
+## Hændelser, advarsler og monitorer
 
 | Widget | Hvad den viser | Filtre |
 | --- | --- | --- |
@@ -194,7 +194,7 @@ Hver af disse widgets viser de ressourcer, en agent eller en collector rapporter
 | **Proxmox** | **Noder**, **Gæster** | Proxmox-agenten |
 | **VMware** | **Værter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter, du forbinder |
 | **Ceph** | **OSD'er**, som en væg farvet efter tilstand, og **Pools** | Ceph-agenten |
-| **Lagerarrays** | **Diskenheder**, og **Hardware** som en væg farvet efter status | Storage Array-agenten |
+| **Lagerarrays** | **Diskenheder**, og **Hardware** som en væg farvet efter status | Lagerarray-agenten |
 
 Brug dem til én side, der blander tilstanden af din infrastruktur med telemetrien fra de arbejdsbelastninger, der kører på den.
 

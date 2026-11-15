@@ -46,7 +46,7 @@ flowchart TB
 - **计划。** 周期性模板会按计划创建新事件，例如每周或每月一次，无需任何人打开表单。
 - **表单功能。** 提交后会创建维护事件的表单，会把变更请求变成事件。请参阅 [提交会创建什么](/docs/forms/on-submit#提交如何成为维护事件)。
 - **聊天。** 在 Slack 中输入 `/oneuptime maintenance` ，或在 Microsoft Teams 中向 OneUptime 机器人输入 `maintenance` ，即可在聊天工具中打开表单。请参阅 [Slack](/docs/workspace-connections/slack#从-slack-创建事件和维护)。
-- **代码。** 位于 `/api/scheduled-maintenance` 的 API、Terraform 资源 `oneuptime_scheduled_maintenance_event` ，以及工作流的 **Create One Maintenance Event** 步骤。
+- **代码。** 位于 `/api/scheduled-maintenance` 的 API、Terraform 资源 `oneuptime_scheduled_maintenance_event` ，以及工作流的 **创建单个维护事件** 步骤。
 
 ## 维护在仪表板中的位置
 

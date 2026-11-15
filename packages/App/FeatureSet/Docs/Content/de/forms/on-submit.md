@@ -76,7 +76,7 @@ Ein über ein Formular gemeldeter Vorfall ist ein gewöhnlicher Vorfall, mit ein
 - **Seine Eigentümer erfahren davon.** Die Eigentümer, die die Einstellungen und die Vorlage nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle des Vorfalls existieren, und benachrichtigt — die Benachrichtigung **Vorfall erstellt** des Vorfalls wartet, bis sie seine Eigentümer sind, und geht so an sie statt an die Projektinhaber.
 - **Eine private Notiz hält die Einreichung fest** — siehe [Die private Notiz](#die-private-notiz).
 
-Alles, was für einen neuen Vorfall läuft, läuft auch für diese: Datenschutz-, Eigentümer-, Beschriftungs-, Bereitschafts- und Runbook-Regeln, Bereitschaftsrichtlinien und Workflows **On Create Incident**. Bereitschaftsregeln treffen auf die Vorfälle eines Formulars wie auf alle anderen zu — auch über ihren Titel und ihre Beschreibung, die die einreichende Person geschrieben hat.
+Alles, was für einen neuen Vorfall läuft, läuft auch für diese: Datenschutz-, Eigentümer-, Beschriftungs-, Bereitschafts- und Runbook-Regeln, Bereitschaftsrichtlinien und Workflows **Bei Erstellung: Vorfall**. Bereitschaftsregeln treffen auf die Vorfälle eines Formulars wie auf alle anderen zu — auch über ihren Titel und ihre Beschreibung, die die einreichende Person geschrieben hat.
 
 :::steps
 #### Lesen, was die einreichende Person geschrieben hat

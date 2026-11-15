@@ -208,13 +208,13 @@ Les propriétaires reçoivent un e-mail par défaut. Chacun peut choisir d'autre
 
 Les journaux d'appels entrants sont disponibles comme déclencheurs de flux de travail :
 
-- **On Create Incoming Call Log** s'exécute quand un appel arrive.
-- **On Update Incoming Call Log** s'exécute à mesure que l'appel progresse. La mise à jour qui définit **Ended At** marque la fin de l'appel.
+- **À la création : Journal des appels entrants** s'exécute quand un appel arrive.
+- **À la mise à jour : Journal des appels entrants** s'exécute à mesure que l'appel progresse. La mise à jour qui définit **Ended At** marque la fin de l'appel.
 
 Pour ne réagir qu'aux appels manqués, par exemple pour les publier dans Slack ou Microsoft Teams ou ouvrir un ticket :
 
 :::steps
-1. Ajoutez le déclencheur **On Update Incoming Call Log**. Réglez **Champs à surveiller** sur **Ended At**, et sélectionnez les champs à utiliser, comme **Status**, **Caller Phone Number** et **Routing Phone Number**.
+1. Ajoutez le déclencheur **À la mise à jour : Journal des appels entrants**. Réglez **Champs à surveiller** sur **Ended At**, et sélectionnez les champs à utiliser, comme **Status**, **Caller Phone Number** et **Routing Phone Number**.
 2. Ajoutez une étape **Si / Sinon**. Testez le **Status** du déclencheur avec la comparaison **n'est pas égal à** et `Completed`.
 3. Reliez vos étapes au port **Oui**.
 :::

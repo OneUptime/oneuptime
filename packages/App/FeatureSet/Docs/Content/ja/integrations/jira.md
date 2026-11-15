@@ -306,7 +306,7 @@ Jira Cloud は、[テンプレートが尋ねる内容](#テンプレートが�
 ### インシデントごとに Jira の課題を作成する
 
 :::steps
-1. `Incidents to Jira` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**On Create Incident** トリガーを追加します。その **引き渡すフィールド** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。**識別子** は `incident-on-create-1` のままにします。
+1. `Incidents to Jira` という名前のワークフローをゼロから作成します。点線のブロックをクリックし、**インシデントの作成時** トリガーを追加します。その **引き渡すフィールド** は **タイトル** から始まります。**フィールドを追加** をクリックし、**説明** と **インシデント番号** を選びます。ID は常に引き渡されます。**識別子** は `incident-on-create-1` のままにします。
 2. **コンポーネントを追加** をクリックし、**API 呼び出し POST (JSON)** ブロックを追加して、トリガーの **成功** の点をそのブロックに接続します。**識別子** を `create-issue`、**URL** を `{{global.variables.JIRA_URL}}/rest/api/3/issue` にし、**その他の項目** で **リクエストヘッダー** を `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` に設定します。
 3. **リクエストボディ** に課題を設定し、`OPS` と `Bug` を自分のプロジェクトキーとそのプロジェクトの課題タイプに置き換えます:
 
@@ -390,7 +390,7 @@ Jira の全員が戻れる道を用意するには、`create-issue` の後に、
 これは 2 つ目のワークフローとして構築し、ここでの失敗が課題の作成を妨げないようにします。
 
 :::steps
-1. **On Update Incident** トリガーを持つ `Incident updates to Jira` という名前のワークフローを作成します。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**引き渡すフィールド** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **名前** を選びます。
+1. **インシデントの更新時** トリガーを持つ `Incident updates to Jira` という名前のワークフローを作成します。**監視するフィールド** で **フィールドを追加** をクリックして **現在のインシデントの状態** を選びます。**引き渡すフィールド** で **フィールドを追加** をクリックし、**現在のインシデントの状態** を開いて **名前** を選びます。
 2. **条件分岐** ブロックを追加します: **確認する値** を `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`、**比較** を **と等しい**、**比較対象** を `Resolved` (または自分の解決済み状態の名前) にします。
 3. その **はい** 側の後に、**識別子** が `find-issue` で `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` に投稿する **API 呼び出し POST (JSON)** ブロックで課題を見つけます:
 
@@ -425,7 +425,7 @@ JQL は URL に入れず、本文で投稿してください。URL は書かれ�
 
    セルフホストのインストールでは独自のホストを使います。URL はパスワードと同じように扱ってください。URL を持つ人は誰でもワークフローを開始できます。漏れた場合は、同じ場所で **URL をリセット** をクリックすると、古い URL はすぐに使えなくなります。
 
-3. トリガーから **Update One Incident** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**データ (JSON オブジェクト)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **Find One Incident State** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
+3. トリガーから **インシデントを更新（1 件）** ブロックを追加します。**クエリ** を `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` に、**データ (JSON オブジェクト)** を新しい `currentIncidentStateId` などの変更内容に設定します。クエリ `{"name": "Resolved"}` を持つ **インシデントの状態を検索（1 件）** ブロックで、その ID を `{{local.components.incident-state-find-one-1.returnValues.model._id}}` として得られます。
 
 オンにしてから、自動化ルールまたは Webhook で Jira から呼び出されるようにします:
 
@@ -466,13 +466,13 @@ Webhook にはシークレットを設定でき、その場合 Jira は `X-Hub-S
 
 | インシデント | アラート |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | なし: アラートには公開メモがありません |
+| **インシデントの作成時** (`incident-on-create-1`) | **アラートの作成時** (`alert-on-create-1`) |
+| **インシデントの更新時** (`incident-on-update-1`) | **アラートの更新時** (`alert-on-update-1`) |
+| **インシデントの内部メモの作成時** | **アラートの内部メモの作成時** |
+| **インシデントの公開メモの作成時** | なし: アラートには公開メモがありません |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **インシデントの状態を検索（1 件）** | **アラートの状態を検索（1 件）** |
+| **インシデントを更新（1 件）** | **アラートを更新（1 件）** |
 | ラベル `oneuptime-incident-<incident id>` | ラベル `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Jira が呼び出しの速度を制限しています。応答には秒単位の
 :::
 
 :::details ワークフローは実行されるのに、インシデントが変わらない
-**Update One Incident** ブロックは、クエリに一致するものがないと `Items Updated: 0` を報告します。これはエラーではなく成功です。リクエストの ID が本当に OneUptime のインシデントのものか、`_id` でクエリしているかを確認してください。
+**インシデントを更新（1 件）** ブロックは、クエリに一致するものがないと `Items Updated: 0` を報告します。これはエラーではなく成功です。リクエストの ID が本当に OneUptime のインシデントのものか、`_id` でクエリしているかを確認してください。
 :::
 
 :::details Jira の課題に参照が書かれたまま表示される

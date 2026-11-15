@@ -1,4 +1,4 @@
-# Ceph-overvåking
+# Ceph-monitor
 
 En Ceph-monitor følger med på én Ceph-klynge — helsen, health checks, monitorenes quorum, OSD-er, pooler og placement groups — og gir deg beskjed i det øyeblikket helsen blir dårligere, en OSD går ned eller kapasiteten blir knapp. Den leser `ceph_*`-målingene som Ceph-mgr-ens `prometheus`-modul eksporterer, og som OneUptime Ceph Agent samler inn, så ingenting blir sjekket utenfra.
 
@@ -282,7 +282,7 @@ Poolenes I/O-serier er tellere over hele levetiden, og kriterier sammenligner r�
 
 :::cards
 - [Ceph Agent](/docs/telemetry/ceph): Installer og oppgrader agenten denne monitoren leser.
-- [Proxmox-overvåking](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
-- [Lagringsmatrise-overvåking](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
+- [Proxmox-monitor](/docs/monitor/proxmox-monitor): Overvåk Proxmox VE-klyngen som bruker lagringen.
+- [Lagringsmatrise-monitor](/docs/monitor/storage-array-monitor): Samme type monitor for Pure Storage-matriser.
 - [Hendelser](/docs/incidents/index): Hva som skjer etter at et kriterium har erklært en hendelse.
 :::

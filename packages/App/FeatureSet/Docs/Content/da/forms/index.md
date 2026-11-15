@@ -257,7 +257,7 @@ Et filspørgsmåls svar er filerne, som de blev gemt, hver med sin `fileId`, `na
 
 ### Arbejdsgange
 
-Formularer har de genererede arbejdsgangskomponenter: **On Create Form**, **On Update Form** og så videre. Brug **On Create Incident** eller **On Create Maintenance Event** for at reagere på det, en formular har oprettet.
+Formularer har de genererede arbejdsgangskomponenter: **Ved oprettelse: Formular**, **Ved opdatering: Formular** og så videre. Brug **Ved oprettelse: Hændelse** eller **Ved oprettelse: Vedligeholdelseshændelse** for at reagere på det, en formular har oprettet.
 
 ### Den offentlige sides egne endepunkter
 

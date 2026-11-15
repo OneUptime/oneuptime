@@ -1,4 +1,4 @@
-# SSL-sertifikat-overvåking
+# SSL-sertifikat-monitor
 
 En SSL-sertifikatmonitor sjekker TLS-sertifikatene som nettstedene og tjenestene dine presenterer, slik en nettleser gjør, og varsler deg før de utløper. Den tar også monitoren frakoblet når et sertifikat ikke lenger er gyldig: utløpt, tilbakekalt av utstederen, selvsignert, utstedt for et annet vertsnavn eller fra en utsteder som nettlesere ikke stoler på.
 
@@ -160,8 +160,8 @@ En [egendefinert sonde](/docs/probe/custom-probe) uten internettilgang kan ikke 
 ## Neste steg
 
 :::cards
-- [Nettsted-overvåking](/docs/monitor/website-monitor): Sjekk at selve nettstedet svarer.
-- [Domene-overvåking](/docs/monitor/domain-monitor): Bli varslet før domenets registrering utløper.
+- [Nettsted-monitor](/docs/monitor/website-monitor): Sjekk at selve nettstedet svarer.
+- [Domene-monitor](/docs/monitor/domain-monitor): Bli varslet før domenets registrering utløper.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som blir tilkalt av varslene og hendelsene.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at monitoren har erklært en.
 :::

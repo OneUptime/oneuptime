@@ -306,7 +306,7 @@ Os tokens expiram depois de um ano por padrão e não se renovam. Para não ter 
 ### Abrir um item do Jira para cada incidente
 
 :::steps
-1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **On Create Incident**. Os seus **Campos a repassar** começam com **Título**: clique em **Adicionar campo** e escolha **Descrição** e **Número do incidente**. O ID é sempre repassado. Deixe o **Identifier** dele como `incident-on-create-1`.
+1. Crie do zero um workflow chamado `Incidents to Jira`. Clique no bloco tracejado e adicione o gatilho **Ao criar: Incidente**. Os seus **Campos a repassar** começam com **Título**: clique em **Adicionar campo** e escolha **Descrição** e **Número do incidente**. O ID é sempre repassado. Deixe o **Identifier** dele como `incident-on-create-1`.
 2. Clique em **Adicionar componente**, adicione um bloco **Chamada de API POST (JSON)** e ligue a ele o ponto **Sucesso** do gatilho. Defina o **Identifier** dele como `create-issue`, a **URL** como `{{global.variables.JIRA_URL}}/rest/api/3/issue` e, em **Mais campos**, os **Cabeçalhos da Requisição** como `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Defina o **Corpo da Requisição** dele como o item, e troque `OPS` e `Bug` pela chave do seu projeto e por um tipo de item desse projeto:
 
@@ -390,7 +390,7 @@ Para isso, em **Campos a repassar** do gatilho, clique em **Adicionar campo** e 
 Monte isso como um segundo workflow, para que uma falha aqui nunca impeça a abertura dos itens.
 
 :::steps
-1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **On Update Incident**. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**. Em **Campos a repassar**, clique em **Adicionar campo**, abra **Current Incident State** e escolha **Nome**.
+1. Crie um workflow chamado `Incident updates to Jira`, com o gatilho **Ao atualizar: Incidente**. Em **Campos a observar**, clique em **Adicionar campo** e escolha **Current Incident State**. Em **Campos a repassar**, clique em **Adicionar campo**, abra **Current Incident State** e escolha **Nome**.
 2. Adicione um bloco **Se / Senão**: **Valor a verificar** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Comparação** **é igual a**, **Comparar com** `Resolved`, ou o nome do seu estado resolvido.
 3. Depois do lado **Sim** dele, encontre o item com um bloco **Chamada de API POST (JSON)** cujo **Identifier** seja `find-issue`, publicando em `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Primeiro monte o workflow que recebe:
 
    Uma instalação auto-hospedada usa o próprio host. Trate a URL como uma senha: quem a tiver pode iniciar o workflow. Se ela vazar, clique em **Redefinir URL** no mesmo lugar, e a URL antiga deixa de funcionar na hora.
 
-3. A partir do gatilho, adicione um bloco **Update One Incident**. Defina a **Consulta** dele como `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` e o **Dados (objeto JSON)** como a mudança, por exemplo um novo `currentIncidentStateId`. Um bloco **Find One Incident State** com a consulta `{"name": "Resolved"}` dá a você esse ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. A partir do gatilho, adicione um bloco **Atualizar: Incidente (um registro)**. Defina a **Consulta** dele como `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` e o **Dados (objeto JSON)** como a mudança, por exemplo um novo `currentIncidentStateId`. Um bloco **Encontrar: Estado do incidente (um registro)** com a consulta `{"name": "Resolved"}` dá a você esse ID como `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Ative-o e depois faça o Jira chamá-lo, a partir de uma regra de automação ou de um webhook:
 
@@ -466,13 +466,13 @@ Comece pelos modelos para alertas de [Começar a partir de um modelo](#começar-
 
 | Incidente | Alerta |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Nenhum: os alertas não têm notas públicas |
+| **Ao criar: Incidente** (`incident-on-create-1`) | **Ao criar: Alerta** (`alert-on-create-1`) |
+| **Ao atualizar: Incidente** (`incident-on-update-1`) | **Ao atualizar: Alerta** (`alert-on-update-1`) |
+| **Ao criar: Nota interna do incidente** | **Ao criar: Nota interna do alerta** |
+| **Ao criar: Nota pública do incidente** | Nenhum: os alertas não têm notas públicas |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Encontrar: Estado do incidente (um registro)** | **Encontrar: Estado do alerta (um registro)** |
+| **Atualizar: Incidente (um registro)** | **Atualizar: Alerta (um registro)** |
 | Etiqueta `oneuptime-incident-<incident id>` | Etiqueta `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Verifique a porta primeiro: o Jira só chama as portas permitidas dele. Depois e
 :::
 
 :::details O workflow roda, mas o incidente não muda
-Um bloco **Update One Incident** informa `Items Updated: 0` quando a consulta dele não encontrou nada, e isso é um sucesso, não um erro. Verifique se o ID na requisição é mesmo o do incidente do OneUptime e se a consulta é por `_id`.
+Um bloco **Atualizar: Incidente (um registro)** informa `Items Updated: 0` quando a consulta dele não encontrou nada, e isso é um sucesso, não um erro. Verifique se o ID na requisição é mesmo o do incidente do OneUptime e se a consulta é por `_id`.
 :::
 
 :::details Uma referência aparece como foi escrita em um item do Jira

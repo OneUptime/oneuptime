@@ -15,6 +15,7 @@ import {
   KEPT_AS_WRITTEN,
   PRODUCT_NAMES,
   PROSE,
+  RECORD_STEPS,
   SEEDED_TEXT,
 } from "./AlertDocsPages";
 import {
@@ -37,6 +38,7 @@ import {
   unbalancedLines,
 } from "./DocsPageShape";
 import { drawnPath, drawnPathSegment } from "./DocsProductsMenu";
+import { drawnStepName } from "./DocsWorkflowStepNames";
 import {
   CARD_LINE,
   anchorProblems,
@@ -79,9 +81,9 @@ import { describe, expect, it } from "@jest/globals";
  * Persian included: a bold label by drawnActionLabel, a menu path segment by
  * segment (drawnPath: one bold span joined by " → "; in Persian a bold span
  * per segment joined by " > ", with no "→" left in the prose). The words a
- * page keeps as written - the workflow components' and roles' names, which
- * the Dashboard writes in English, and "⋯" - stay in English
- * (KEPT_AS_WRITTEN). A bold word that is a list item's lead or a table row's
+ * page keeps as written - "⋯" - stays so (KEPT_AS_WRITTEN); the workflow's
+ * record steps are named as the builder draws them (RECORD_STEPS,
+ * drawnStepName). A bold word that is a list item's lead or a table row's
  * own name is translated freely (PROSE). A new bold word on these English
  * pages fails "know every bold word" until it is a label or listed.
  */
@@ -163,8 +165,16 @@ function accountedFor(page: string, span: string): boolean {
   return (
     isCodeSpan(span) ||
     listed(KEPT_AS_WRITTEN, page).includes(span) ||
+    listed(RECORD_STEPS, page).includes(span) ||
     listed(PROSE, page).includes(span)
   );
+}
+
+// A page's record steps, in bold, as this language's builder draws them.
+function recordStepWords(language: string, page: string): Array<string> {
+  return listed(RECORD_STEPS, page).map((step: string): string => {
+    return `**${drawnStepName(language, step)}**`;
+  });
 }
 
 /*
@@ -385,7 +395,11 @@ function untranslatedLines(language: string, page: string): Array<string> {
       .replace(INLINE_CODE_SPAN, " ")
       .replace(LINK_TARGET, "]");
 
-    for (const kept of [...keptWords(page), ...listed(SEEDED_TEXT, page)]) {
+    for (const kept of [
+      ...keptWords(page),
+      ...recordStepWords(language, page),
+      ...listed(SEEDED_TEXT, page),
+    ]) {
       text = text.split(kept).join(" ");
     }
 
@@ -411,6 +425,7 @@ describe("the lists this test keeps", () => {
   it("name only pages of the Alerts group", () => {
     for (const lists of [
       KEPT_AS_WRITTEN,
+      RECORD_STEPS,
       SEEDED_TEXT,
       PROSE,
       DIAGRAM_KINDS,
@@ -462,6 +477,7 @@ describe("the lists this test keeps", () => {
       const english: Array<string> = boldLabels(englishPage(page));
       const stale: Array<string> = [
         ...listed(KEPT_AS_WRITTEN, page),
+        ...listed(RECORD_STEPS, page),
         ...listed(PROSE, page),
       ].filter((span: string): boolean => {
         return !english.includes(span);
@@ -488,6 +504,7 @@ describe("the lists this test keeps", () => {
     for (const page of PAGE_NAMES) {
       const all: Array<string> = [
         ...listed(KEPT_AS_WRITTEN, page),
+        ...listed(RECORD_STEPS, page),
         ...listed(PROSE, page),
       ];
 
@@ -813,6 +830,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
           return drawing[1];
         }),
         ...keptWords(entry.page),
+        ...recordStepWords(language, entry.page),
         ...(language === "fa"
           ? dashboardPaths(entry.page).flatMap(
               (segments: Array<string>): Array<string> => {
@@ -842,7 +860,28 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(leftover).toEqual([]);
     });
 
-    it("keeps the workflow components' and roles' names, and the menu's '⋯', as written", () => {
+    it("names the workflow's record steps as this language's builder draws them (#8708)", () => {
+      const translated: string = readPage(language, entry.page);
+
+      expect(
+        recordStepWords(language, entry.page).filter(
+          (drawn: string): boolean => {
+            return !translated.includes(drawn);
+          },
+        ),
+      ).toEqual([]);
+
+      for (const step of listed(RECORD_STEPS, entry.page)) {
+        if (drawnStepName(language, step) !== step) {
+          expect({ step, english: false }).toEqual({
+            step,
+            english: translated.includes(`**${step}**`),
+          });
+        }
+      }
+    });
+
+    it("keeps the menu's '⋯' as written", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = keptWords(entry.page).filter(
         (kept: string): boolean => {
@@ -904,7 +943,7 @@ describe("the helpers, on these pages' shapes", () => {
     expect(dashboardLabels(ALERT_STATES)).toContain("Mark Alert as {{state}}");
     // A list item's lead is prose.
     expect(dashboardLabels(ALERT_EPISODES)).not.toContain("The grouping key");
-    // The workflow components keep their English names.
+    // A record step is no Dashboard label: it is held to the builder's drawing.
     expect(dashboardLabels(ALERT_SETTINGS)).not.toContain("On Create Alert");
     expect(
       dashboardPaths(ALERT_SETTINGS).map((segments: Array<string>): string => {

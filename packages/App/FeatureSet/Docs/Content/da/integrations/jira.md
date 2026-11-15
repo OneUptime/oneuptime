@@ -306,7 +306,7 @@ Tokens udløber som standard efter et år og fornyes ikke. For at slippe for at 
 ### Opret en Jira-sag for hver hændelse
 
 :::steps
-1. Opret en arbejdsgang fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **On Create Incident**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre. Lad dens **Identifier** være `incident-on-create-1`.
+1. Opret en arbejdsgang fra bunden med navnet `Incidents to Jira`. Klik på den stiplede blok, og tilføj triggeren **Ved oprettelse: Hændelse**. Dens **Felter, der sendes videre** starter med **Titel**: klik på **Tilføj felt**, og vælg **Beskrivelse** og **Hændelsesnummer**. ID'et sendes altid videre. Lad dens **Identifier** være `incident-on-create-1`.
 2. Klik på **Tilføj komponent**, tilføj en **API-kald POST (JSON)**-blok, og forbind triggerens **Succes**-punkt med den. Sæt dens **Identifier** til `create-issue`, dens **URL** til `{{global.variables.JIRA_URL}}/rest/api/3/issue` og, under **Flere felter**, dens **Anmodningsheadere** til `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}`.
 3. Sæt dens **Anmodningsbrødtekst** til sagen, og erstat `OPS` og `Bug` med din projektnøgle og en sagstype i det projekt:
 
@@ -390,7 +390,7 @@ Klik til dette på **Tilføj felt** i triggerens **Felter, der sendes videre**, 
 Byg dette som en anden arbejdsgang, så en fejl her aldrig forhindrer, at der oprettes sager.
 
 :::steps
-1. Opret en arbejdsgang med navnet `Incident updates to Jira`, med triggeren **On Update Incident**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Navn**.
+1. Opret en arbejdsgang med navnet `Incident updates to Jira`, med triggeren **Ved opdatering: Hændelse**. Klik på **Tilføj felt** i **Felter, der holdes øje med**, og vælg **Current Incident State**. Klik på **Tilføj felt** i **Felter, der sendes videre**, åbn **Current Incident State**, og vælg **Navn**.
 2. Tilføj en **Hvis / Ellers**-blok: **Værdi, der skal tjekkes** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`, **Sammenligning** **er lig med**, **Sammenlign med** `Resolved` eller navnet på din løste tilstand.
 3. Find sagen efter dens **Ja**-side med en **API-kald POST (JSON)**-blok, hvis **Identifier** er `find-issue`, og som sender til `{{global.variables.JIRA_URL}}/rest/api/3/search/jql`:
 
@@ -425,7 +425,7 @@ Byg først den modtagende arbejdsgang:
 
    En selvhostet installation bruger sin egen vært. Behandl URL'en som en adgangskode: alle, der har den, kan starte arbejdsgangen. Hvis den slipper ud, så klik på **Nulstil URL** samme sted, og den gamle URL holder op med at virke med det samme.
 
-3. Tilføj fra triggeren en **Update One Incident**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find One Incident State**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+3. Tilføj fra triggeren en **Opdater Hændelse (én post)**-blok. Sæt dens **Forespørgsel** til `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` og dens **Data (JSON-objekt)** til ændringen, f.eks. et nyt `currentIncidentStateId`. En **Find Hændelsesstatus (én post)**-blok med forespørgslen `{"name": "Resolved"}` giver dig det ID som `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Slå det til, og få derefter Jira til at kalde det, fra en automatiseringsregel eller fra en webhook:
 
@@ -466,13 +466,13 @@ Start med skabelonerne til advarsler i [Start fra en skabelon](#start-fra-en-ska
 
 | Hændelse | Advarsel |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
-| **On Create Incident Internal Note** | **On Create Alert Internal Note** |
-| **On Create Incident Public Note** | Ingen: advarsler har ingen offentlige noter |
+| **Ved oprettelse: Hændelse** (`incident-on-create-1`) | **Ved oprettelse: Advarsel** (`alert-on-create-1`) |
+| **Ved opdatering: Hændelse** (`incident-on-update-1`) | **Ved opdatering: Advarsel** (`alert-on-update-1`) |
+| **Ved oprettelse: Intern hændelsesnote** | **Ved oprettelse: Intern note for advarsel** |
+| **Ved oprettelse: Offentlig hændelsesnote** | Ingen: advarsler har ingen offentlige noter |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Find Hændelsesstatus (én post)** | **Find Advarselsstatus (én post)** |
+| **Opdater Hændelse (én post)** | **Opdater Advarsel (én post)** |
 | Etiket `oneuptime-incident-<incident id>` | Etiket `oneuptime-alert-<alert id>` |
 | `/dashboard/<project id>/incidents/<incident id>` | `/dashboard/<project id>/alerts/<alert id>` |
 
@@ -544,7 +544,7 @@ Tjek porten først: Jira kalder kun sine tilladte porte. Send derefter selv en a
 :::
 
 :::details Arbejdsgangen kører, men hændelsen ændrer sig ikke
-En **Update One Incident**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
+En **Opdater Hændelse (én post)**-blok rapporterer `Items Updated: 0`, når dens forespørgsel ikke matchede noget, og det er en succes, ikke en fejl. Kontrollér, at ID'et i anmodningen virkelig er OneUptime-hændelsens, og at du forespørger på `_id`.
 :::
 
 :::details En reference vises, som den er skrevet, i en Jira-sag

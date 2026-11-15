@@ -276,7 +276,7 @@ OneUptime herkent deze `iot_*`-metricnamen. Stuur alleen de namen die voor je ap
 
 | Metricnaam | Betekenis |
 | --- | --- |
-| `iot_device_up` | Beschikbaarheid: `1` is up en bereikbaar, `0` is down. De IoT Device-monitor leest deze. |
+| `iot_device_up` | Beschikbaarheid: `1` is up en bereikbaar, `0` is down. De IoT-apparaat-monitor leest deze. |
 | `iot_device_info` | Alleen identiteit. Deze draagt `device.id`, de klasse, het type en de firmware, zodat een apparaat in de inventaris verschijnt voordat het metingen meldt. |
 | `iot_battery_percent` | Batterijlading, `0` tot `100` (%). |
 | `iot_signal_strength_dbm` | Draadloze signaalsterkte in dBm, zoals wifi-, LoRa- of mobiele RSSI. |

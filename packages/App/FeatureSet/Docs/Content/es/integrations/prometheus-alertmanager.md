@@ -197,7 +197,7 @@ Haz clic en **Añadir componente**, añade un bloque **Si / Si no** y conecta a 
 
 ### Declarar el incidente
 
-Añade un bloque **Create One Incident** y conecta a él el lado **Sí** del bloque **Si / Si no**. En **Plantilla de incidente**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **Objeto JSON**, indica lo que viene de Alertmanager:
+Añade un bloque **Crear Incidente (individual)** y conecta a él el lado **Sí** del bloque **Si / Si no**. En **Plantilla de incidente**, elige una plantilla que fije la gravedad y las políticas de guardia a las que avisar (consulta [Plantillas de incidente](/docs/incidents/settings#plantillas-de-incidente)). En **Objeto JSON**, indica lo que viene de Alertmanager:
 
 ```json
 {

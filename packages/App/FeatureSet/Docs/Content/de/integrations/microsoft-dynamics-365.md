@@ -269,7 +269,7 @@ Der Geltungsbereich muss Ihre Umgebungs-URL gefolgt von `/.default` sein. Eine f
 ### Für jeden Vorfall einen Fall anlegen
 
 :::steps
-1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Dynamics 365` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **On Create Incident** hinzu. Seine **Weiterzugebende Felder** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben.
+1. Legen Sie ohne Vorlage einen Workflow namens `Incidents to Dynamics 365` an. Klicken Sie auf den gestrichelten Baustein und fügen Sie den Trigger **Bei Erstellung: Vorfall** hinzu. Seine **Weiterzugebende Felder** beginnen mit **Titel**: Klicken Sie auf **Feld hinzufügen** und wählen Sie **Beschreibung** und **Vorfallnummer**. Die ID wird immer weitergegeben.
 2. Klicken Sie auf **Komponente hinzufügen**, fügen Sie einen **API-Aufruf POST (JSON)**-Baustein hinzu und verbinden Sie den Punkt **Erfolg** des Triggers damit. Setzen Sie seine **Kennung** auf `create-case` und seine **URL** auf `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber`.
 3. Setzen Sie unter **Weitere Felder** seine **Anfrage-Header** auf:
 
@@ -323,7 +323,7 @@ Dynamics 365 liefert `severitycode` mit einer einzigen Option aus, setzen Sie al
 Bauen Sie dies als zweiten Workflow, damit ein Fehler hier nie das Anlegen von Fällen stoppt.
 
 :::steps
-1. Legen Sie einen Workflow namens `Close Dynamics 365 cases` an, mit dem Trigger **On Update Incident**. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Weiterzugebende Felder** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**.
+1. Legen Sie einen Workflow namens `Close Dynamics 365 cases` an, mit dem Trigger **Bei Aktualisierung: Vorfall**. Klicken Sie in **Beobachtete Felder** auf **Feld hinzufügen** und wählen Sie **Aktueller Vorfallsstatus**. Klicken Sie in **Weiterzugebende Felder** auf **Feld hinzufügen**, öffnen Sie **Aktueller Vorfallsstatus** und wählen Sie **Ist Behoben-Status**.
 2. Fügen Sie einen **Wenn / Sonst**-Baustein hinzu: **Zu prüfender Wert** `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`, **Vergleich** **ist wahr**.
 3. Fügen Sie nach seiner Seite **Ja** einen **API-Aufruf GET (JSON)**-Baustein mit der **Kennung** `find-case` hinzu, mit denselben Headern ohne `Prefer` und dieser **URL**:
 
@@ -363,7 +363,7 @@ Bauen Sie zuerst den empfangenden Workflow:
    Bei einer selbst gehosteten Installation enthält die URL Ihren eigenen Host. Behandeln Sie die URL wie ein Passwort: Wer sie hat, kann den Workflow starten. Wird sie bekannt, klicken Sie an derselben Stelle auf **URL zurücksetzen**, und die alte URL funktioniert sofort nicht mehr.
 
 3. Fügen Sie einen **Wenn / Sonst**-Baustein hinzu, der vor allem anderen ein gemeinsames Geheimnis prüft: **Zu prüfender Wert** `{{local.components.webhook-1.returnValues.request-headers.x-oneuptime-secret}}`, **Vergleich** **ist gleich**, **Vergleichen mit** ein Wert, den Sie sich ausdenken, in einer geheimen globalen Variable aufbewahrt.
-4. Fügen Sie nach seiner Seite **Ja** einen **Update One Incident**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Daten (JSON-Objekt)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Find One Incident State**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
+4. Fügen Sie nach seiner Seite **Ja** einen **Vorfall aktualisieren (einzeln)**-Baustein hinzu. Setzen Sie seine **Abfrage** auf `{"_id": "{{local.components.webhook-1.returnValues.request-body.oneuptimeIncidentId}}"}` und seine **Daten (JSON-Objekt)** auf die Änderung, etwa eine neue `currentIncidentStateId`. Ein **Vorfallsstatus finden (einzeln)**-Baustein mit der Abfrage `{"name": "Resolved"}` gibt Ihnen diese ID als `{{local.components.incident-state-find-one-1.returnValues.model._id}}`.
 
 Schalten Sie ihn ein und lassen Sie Dynamics 365 ihn dann aufrufen:
 
@@ -389,11 +389,11 @@ Warnungen funktionieren genauso. Tauschen Sie die Art des Datensatzes, sonst än
 
 | Vorfall | Warnung |
 | --- | --- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`) |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`) |
+| **Bei Erstellung: Vorfall** (`incident-on-create-1`) | **Bei Erstellung: Warnung** (`alert-on-create-1`) |
+| **Bei Aktualisierung: Vorfall** (`incident-on-update-1`) | **Bei Aktualisierung: Warnung** (`alert-on-update-1`) |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State** | **Find One Alert State** |
-| **Update One Incident** | **Update One Alert** |
+| **Vorfallsstatus finden (einzeln)** | **Warnungsstatus finden (einzeln)** |
+| **Vorfall aktualisieren (einzeln)** | **Warnung aktualisieren (einzeln)** |
 
 Ein Workflow hat genau einen Trigger, Vorfälle und Warnungen brauchen also je einen Workflow. Um dieselbe Dynamics-365-Arbeit für beide zu erledigen, bauen Sie sie einmal in einem Workflow mit einem **Manuell**-Trigger und starten ihn aus beiden mit einem **Anderen Arbeitsablauf ausführen**-Baustein.
 
@@ -438,7 +438,7 @@ Senden Sie selbst mit `curl` eine Anfrage an die Webhook-URL und suchen Sie sie 
 :::
 
 :::details Der Workflow läuft, aber der Vorfall ändert sich nicht
-Ein **Update One Incident**-Baustein meldet `Items Updated: 0`, wenn seine Abfrage nichts getroffen hat, und das ist ein Erfolg, kein Fehler. Prüfen Sie, dass die ID in der Anfrage wirklich die des OneUptime-Vorfalls ist und dass Sie `_id` abfragen.
+Ein **Vorfall aktualisieren (einzeln)**-Baustein meldet `Items Updated: 0`, wenn seine Abfrage nichts getroffen hat, und das ist ein Erfolg, kein Fehler. Prüfen Sie, dass die ID in der Anfrage wirklich die des OneUptime-Vorfalls ist und dass Sie `_id` abfragen.
 :::
 
 ## Nächste Schritte

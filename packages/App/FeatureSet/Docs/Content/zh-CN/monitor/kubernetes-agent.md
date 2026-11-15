@@ -210,7 +210,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - **跟随器镜像的版本。** 仅针对 Windows 的划分内置在 `kubernetes-log-tailer` 镜像中。旧镜像会忽略它并跟随 *每个* Pod，把每个 Linux Pod 的日志发送两次。不要把 `logs.api.image.tag` 固定到比 Chart 发布版本更旧的版本；如果某个节点可能缓存了旧的 `release` 镜像，请在升级时添加 `--set logs.api.image.pullPolicy=Always`。
 - **按严重性过滤。** 设置了 `filters.logs.minSeverity` 时，没有可识别严重性的行在节点采集器的路径上会被丢弃，但在日志跟随器的路径上会被保留——请参阅 [按日志严重性过滤](/docs/telemetry/kubernetes-agent#按日志严重性过滤)。因此，Windows Pod 发送的无级别行可能比 Linux Pod 多。
 
-## 使用 eBPF 的应用跟踪
+## 使用 eBPF 的应用追踪
 
 Chart 会在每个节点上运行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 把 eBPF 程序加载到 Linux 内核中并观察每个 Pod 的网络流量，因此无需对应用做任何改动(没有 SDK，也没有 sidecar)就能重建 HTTP 和 HTTPS、gRPC 以及 SQL 和 Redis 调用。它把这些作为追踪和请求指标发送到 OneUptime。
 
@@ -237,7 +237,7 @@ OBI 会发送几种信号。每一种都可以用 `--set ebpf.features.<key>=fal
 | `ebpf.features.networkInterZoneMetrics` | 关闭 | 同样的数据，但统计可用区之间。会使序列数量翻倍：只有在按可用区调度时才开启。 |
 | `ebpf.features.tcpStats` | 开启 | 每个节点的 TCP 统计：往返时间、失败的连接和重传。 |
 
-### 跨服务关联跟踪
+### 跨服务关联追踪
 
 OBI 还会让追踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gRPC 调用 Pod B 时，B 端的 Span 会加入 A 的追踪，两个应用中都不需要 SDK。**此功能默认开启。** 没有它时，对另一节点上 Pod 的调用会开始一条独立的追踪；在同一节点上，OBI 会自行把两端关联起来。如果遇到下面警告中所述的问题，请用 `--set ebpf.contextPropagation=false` 关闭它。
 
@@ -250,7 +250,7 @@ OBI 还会让追踪跨越一次调用延续下去：当 Pod A 通过 HTTP 或 gR
 > [!WARNING]
 > 每种传播模式都会修改已经在传输中的流量。对于普通 HTTP，OBI 会在内核中扩大出站请求以容纳标头；对于 TLS 和原始 TCP，它会从 Traffic Control 钩子添加一个 TCP 选项，重写数据包及其校验和。如果随后连接的字节计数没有被精确修正，数据流就会 **失去同步**：经过 nginx 这类代理的传输一旦响应超过约 64 KB 就会中途卡住，直到连接超时。小请求仍能正常工作，因此看起来像是应用或代理的缺陷。没有哪个内核版本能让这种重写消失。如果在安装 Kubernetes 代理之后，经过代理服务器的大文件传输卡住，或者服务网格或 eBPF 网络插件开始导致 Pod 失败，请关闭上下文传播：追踪、请求指标和服务地图在没有它的情况下都能工作，而服务中的 OpenTelemetry SDK 完全不需要内核重写就能关联追踪。使用 `--reuse-values` 升级的代理会保留原来的值，而早期的 Chart 默认关闭此功能：请使用 `--reset-then-reuse-values` 升级，以采用新的默认值。
 
-### 将日志关联到跟踪
+### 将日志关联到追踪
 
 **默认关闭。** 开启后，OBI 会在它插桩的每个进程的 `write()` 系统调用上挂载一个探针，并且：
 
@@ -383,7 +383,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `logs.mode` | (来自 `preset`) | `daemonset`、`api` 或 `disabled`。覆盖预设。 |
 | `logs.windowsPods.enabled` | `false` | 同时跟随 Windows 节点上的 Pod。请参阅 [混合操作系统集群](#混合操作系统集群windows-节点池)。 |
 | `logs.api.replicas` | `1` | 在 `api` 模式下日志跟随器的副本数。 |
-| `ebpf.enabled` | `true` | eBPF 追踪和请求指标。请参阅 [使用 eBPF 的应用跟踪](#使用-ebpf-的应用跟踪)。 |
+| `ebpf.enabled` | `true` | eBPF 追踪和请求指标。请参阅 [使用 eBPF 的应用追踪](#使用-ebpf-的应用追踪)。 |
 | `profiling.enabled` | `false` | CPU 火焰图。请参阅 [持续 CPU 性能分析](#持续-cpu-性能分析)。 |
 | `kubeStateMetrics.enabled` | `false` | 来自 kube-state-metrics 的集群状态。 |
 | `aiAgent.enabled` | `true` | Kubernetes AI 代理。它可以做什么，请参阅 [Kubernetes AI 代理](/docs/telemetry/kubernetes-agent#kubernetes-ai-代理)。 |
@@ -477,7 +477,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 :::
 
 :::details 安装代理后，大文件传输卡住
-这是默认开启的 `ebpf.contextPropagation` 在重写流量：请参阅 [跨服务关联跟踪](#跨服务关联跟踪) 中的警告。用 `--set ebpf.contextPropagation=false` 关闭它。
+这是默认开启的 `ebpf.contextPropagation` 在重写流量：请参阅 [跨服务关联追踪](#跨服务关联追踪) 中的警告。用 `--set ebpf.contextPropagation=false` 关闭它。
 :::
 
 :::details 开启日志关联后，应用以退出码 139 崩溃
@@ -503,5 +503,5 @@ helm install kubernetes-agent-ns-a oneuptime/kubernetes-agent \
 - [Kubernetes 监控](/docs/monitor/kubernetes-monitor): 根据代理发送的数据发出告警。
 - [Kubernetes 代理](/docs/telemetry/kubernetes-agent): 过滤、采样、AI 代理，以及如何控制数据量。
 - [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost): 查看每个工作负载的成本。
-- [跟踪监控](/docs/monitor/traces-monitor): 根据 eBPF 捕获的追踪发出告警。
+- [追踪监控](/docs/monitor/traces-monitor): 根据 eBPF 捕获的追踪发出告警。
 :::

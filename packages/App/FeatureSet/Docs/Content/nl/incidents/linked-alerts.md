@@ -248,7 +248,7 @@ curl -X DELETE https://oneuptime.com/api/incident-alert/<link-id> \
 
 Beide id's zijn verplicht. Een koppelverzoek wordt ook geweigerd als de waarschuwing of het incident bij een ander project hoort of een is die je niet kunt zien. De fout luidt hetzelfde, of de waarschuwing of het incident nu niet bestaat of alleen voor je verborgen is, zodat ze nooit verraadt dat er een privéwaarschuwing of privé-incident bestaat.
 
-Dezelfde resource stuurt de gegenereerde workflowcomponenten aan — **On Create Incident Alert** gaat af als een waarschuwing wordt gekoppeld en **On Delete Incident Alert** als ze wordt ontkoppeld — en de Incident Alert-tools van de MCP-server. De [API-referentie](/reference) heeft de volledige vorm van verzoek en antwoord.
+Dezelfde resource stuurt de gegenereerde workflowcomponenten aan — **Bij aanmaken: Incident Alert** gaat af als een waarschuwing wordt gekoppeld en **Bij verwijderen: Incident Alert** als ze wordt ontkoppeld — en de Incident Alert-tools van de MCP-server. De [API-referentie](/reference) heeft de volledige vorm van verzoek en antwoord.
 
 ## Ontkoppelen
 

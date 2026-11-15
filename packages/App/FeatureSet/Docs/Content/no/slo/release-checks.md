@@ -7,6 +7,7 @@ En utgivelseskontroll spør et SLO «er det trygt å fortsette å rulle ut denne
 - [Argo Rollouts](#argo-rollouts): En analyse som avbryter utrullingen.
 - [Flagger](#flagger): En webhook som stanser canaryen.
 - [GitHub Actions](#github-actions): Et trinn som ruller tilbake etter en distribusjon.
+- [Slå av et funksjonsflagg](#slå-av-et-funksjonsflagg): En arbeidsflyt som slår av et flagg når SLO-et bruker feilbudsjettet sitt for fort.
 :::
 
 ## Slik fungerer det
@@ -257,6 +258,37 @@ jobs:
 ```
 
 Trinnet feiler ved et nei, og ved ethvert svar uten `isSafeToContinue: true` – en feil ID, en nøkkel som ikke kan lese SLO-et, ikke noe svar i det hele tatt – så pipelinen fortsetter aldri på et svar den ikke fikk. Sett `service.version` til commiten (`${{ github.sha }}`) når tjenesten starter, så kontrollen bedømmer bare den nye versjonen.
+
+## Slå av et funksjonsflagg
+
+En utgivelse bak et funksjonsflagg rulles tilbake ved at flagget slås av. Det kan en arbeidsflyt gjøre for deg: når en [forbruksrateregel](/docs/slo/burn-rate-alerts) for SLO-et utløser varselet sitt eller erklærer hendelsen sin, slår arbeidsflyten av flagget i LaunchDarkly eller Unleash. En dårlig utrulling er dermed rullet tilbake i løpet av minutter, uten at noen trenger å gripe inn.
+
+:::steps
+### Kopier ID-en til forbruksrateregelen
+
+Åpne SLO-et og gå til **Forbruksrateregler**. Åpne menyen til regelen som skal slå av flagget, og velg **Vis ID**. En regel for raskt forbruk passer best, fordi den utløses i løpet av minutter etter en dårlig utrulling.
+
+### Opprett arbeidsflyten fra en mal
+
+Åpne **Arbeidsflyter** og klikk på **Opprett arbeidsflyt**. Under **Eller start fra en mal** velger du kategorien **SLOs** og deretter malen for flaggtjenesten din:
+
+| Mal | Hva den ber om |
+| --- | --- |
+| **Turn a LaunchDarkly flag off when an SLO burns too fast** | Et API-tilgangstoken som kan oppdatere flagget, og nøklene til LaunchDarkly-prosjektet, flagget og miljøet. |
+| **Turn an Unleash flag off when an SLO burns too fast** | Unleash-adressen din, et token for en tjenestekonto eller et personlig tilgangstoken, og prosjektet, navnet og miljøet til flagget. |
+
+Lim inn ID-en til regelen i **Burn Rate Rule ID**, fyll ut resten og opprett arbeidsflyten.
+
+### Slå på arbeidsflyten
+
+Arbeidsflyter opprettes avslått. Når du er klar, slår du på **Aktivert** øverst i arbeidsflytens **Bygger**.
+:::
+
+Arbeidsflyten starter hver gang en forbruksrateregel i prosjektet utløser et varsel eller erklærer en hendelse. Blokken **Hvis / Ellers** lar den bare fortsette for regelen du limte inn ID-en til, og det neste trinnet kaller flaggtjenesten: hos LaunchDarkly instruksjonen `turnFlagOff`, med en kommentar som nevner regelen og SLO-et, eller hos Unleash `off` for miljøet. Begge slår av flagget for alle i det miljøet, uansett hvilken targeting flagget har. Avviser flaggtjenesten kallet, feiler kjøringen, og kjøringens logg forteller hvorfor. Varselet til regelen tilkaller fortsatt folk, slik det alltid gjør.
+
+**Kjør arbeidsflyt** i **Bygger** kjører arbeidsflyten som om regelen du velger, nettopp hadde blitt utløst, så den slår av flagget på ekte. Prøv det først med et flagg i et testmiljø.
+
+For en annen flaggtjeneste, eller en LaunchDarkly-instans med egen adresse, starter du fra en av de to malene og endrer kallet i API-trinnet til et kall som slår av flagget for alle i miljøet. Velg et kall som i likhet med disse to også overstyrer segmenter og targetingregler, ellers forblir flagget slått på gjennom en gradvis utrulling.
 
 ## Neste steg
 

@@ -172,7 +172,7 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 | `tls_client_key_passphrase` | string (känslig) | Webbplats, API | Den privata nyckelns lösenfras. |
 | `request_timeout_in_ms` | number | Kontroller som en sond gör | Hur länge ett försök får ta, i millisekunder. Sonden sänker allt över 60000 till 60000. |
 | `retry_count` | number | Kontroller som en sond gör | Nya försök efter ett misslyckat första försök: `0` kontrollerar en gång, `3` upp till fyra gånger. Sonden sänker allt över 3 till 3. |
-| `custom_code` | string | Custom JavaScript Code, Synthetic | Skriptet som steget kör. |
+| `custom_code` | string | Anpassad JavaScript-kod, Synthetic | Skriptet som steget kör. |
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` och `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` och `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nya försök när skriptet misslyckas: `0` kör det en gång. |

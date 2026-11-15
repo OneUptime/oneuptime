@@ -13,8 +13,8 @@ Publique uma mensagem em um canal do [Discord](https://discord.com) quando um in
 
 ```mermaid title="De um incidente a uma mensagem do Discord"
 flowchart TB
-    declared["Incidente declarado"] --> trigger["On Create Incident"]
-    trigger --> step["Send Message<br/>to Discord"]
+    declared["Incidente declarado"] --> trigger["Ao criar: Incidente"]
+    trigger --> step["Enviar mensagem<br/>ao Discord"]
     step -->|"Sucesso"| channel["Mensagem no<br/>seu canal"]
     step -->|"Erro"| failed["A execução falha<br/>e diz por quê"]
 ```
@@ -48,11 +48,11 @@ Comece pelo modelo, que monta o workflow inteiro para você, ou do zero.
 3. Mantenha o nome **Notify Discord on new incident** ou mude-o, e clique em **Próximo**.
 4. Cole a URL em **Discord Webhook URL** e clique em **Criar fluxo de trabalho**.
 
-O workflow abre no **Construtor** com duas etapas: **On Create Incident** e **Enviar mensagem ao Discord**, que publica o número, o título, a gravidade e o estado do incidente. A URL é salva como a variável secreta `discordWebhookUrl` do workflow.
+O workflow abre no **Construtor** com duas etapas: **Ao criar: Incidente** e **Enviar mensagem ao Discord**, que publica o número, o título, a gravidade e o estado do incidente. A URL é salva como a variável secreta `discordWebhookUrl` do workflow.
 @tab Do zero
 1. Salve a URL como uma variável global secreta: vá em **Fluxos de trabalho → Variáveis globais**, clique em **Criar: Variável do fluxo de trabalho**, dê o nome `DISCORD_WEBHOOK_URL` e clique em **Próximo**. Cole a URL em **Conteúdo**, ative **Segredo** e clique em **Criar: Variável do fluxo de trabalho**.
 2. Vá em **Fluxos de trabalho**, clique em **Criar fluxo de trabalho**, escolha **Começar do zero**, dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **On Create Incident** em **Populares**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Incident Number With Prefix**.
+3. No **Construtor**, clique em **Escolha o que inicia este fluxo de trabalho** e escolha **Ao criar: Incidente** em **Populares**. Clique no gatilho: os seus **Campos a repassar** começam com **Título**, então clique em **Adicionar campo** e escolha os outros campos que a sua mensagem mostra, por exemplo **Incident Number With Prefix**.
 4. Clique em **Adicionar componente**, pesquise `discord` e clique em **Enviar mensagem ao Discord**. Conecte a saída **Sucesso** do gatilho a ela.
 5. Clique na nova etapa. Em **URL do webhook de entrada do Discord**, clique em **{ }** e escolha `DISCORD_WEBHOOK_URL` em **Global variables**. Em **Texto da mensagem**, escreva a mensagem e insira os campos do incidente com **{ }**.
 :::
@@ -75,7 +75,7 @@ Para testar sem abrir um incidente, clique em **Executar fluxo de trabalho** e e
 
 - **Formatar com o Markdown do Discord.** O texto é enviado como foi digitado, então o Markdown do Discord funciona nele: asteriscos em volta de uma palavra a deixam em negrito, e uma URL aparece como link.
 - **Respeitar o limite de 2.000 caracteres.** O Discord aceita mensagens de até 2.000 caracteres. Uma mais longa é cortada, e termina com "… (truncated — see OneUptime for the full text)", em vez de ser recusada.
-- **Publicar mais do que novos incidentes.** Monte outro workflow sobre **On Update Incident** para mudanças de estado, ou sobre **On Create Alert** para alertas, com a mesma etapa. Para publicar só alguns incidentes, coloque um bloco **Se / Senão** antes da etapa.
+- **Publicar mais do que novos incidentes.** Monte outro workflow sobre **Ao atualizar: Incidente** para mudanças de estado, ou sobre **Ao criar: Alerta** para alertas, com a mesma etapa. Para publicar só alguns incidentes, coloque um bloco **Se / Senão** antes da etapa.
 - **Só os endereços do Discord.** A etapa publica em uma URL `https` em `discord.com` ou `discordapp.com`, e não segue redirecionamentos, então uma URL que aponta para qualquer outro lugar interrompe a execução.
 
 ## Solução de problemas

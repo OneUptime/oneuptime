@@ -1,4 +1,4 @@
-# Målingsovervåking
+# Målingsmonitor
 
 En målingsmonitor spør etter målingene applikasjonene og infrastrukturen din sender til OneUptime, kombinerer dem med formler når du trenger et forhold eller en sum, og sammenligner resultatet med kriteriene dine over et glidende tidsintervall. Bruk den for forespørselsrater, feilforhold, kødybder, CPU, minne og disk (enhver numerisk serie), med ett varsel per vert eller per container når du grupperer den.
 
@@ -234,7 +234,7 @@ Det lærer fortsatt: timen i uken det sammenligner med, har ikke to ukers histor
 
 :::cards
 - [Hendelse- og varslingsmaler](/docs/monitor/incident-alert-templating): Sett verten og verdien inn i varslenes titler.
-- [Logg-overvåking](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold, per gruppe.
-- [Verts-overvåking](/docs/monitor/host-monitor): Ferdige sjekker av CPU, minne og disk for vertene dine.
+- [Logg-monitor](/docs/monitor/logs-monitor): Bli varslet om loggmengde og -innhold, per gruppe.
+- [Verts-monitor](/docs/monitor/host-monitor): Ferdige sjekker av CPU, minne og disk for vertene dine.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send målinger til OneUptime.
 :::
