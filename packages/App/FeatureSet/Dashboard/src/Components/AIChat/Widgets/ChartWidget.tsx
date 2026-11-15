@@ -22,10 +22,16 @@ import {
   AIChatWidgetSeries,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  getChartBucketTimezone,
+  isDrawnOnAnotherCalendar,
+  toReaderCalendarDate,
+} from "Common/Types/AI/AIChatChartCalendar";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import Timezone from "Common/Types/Timezone";
 import TimeRange from "Common/Types/Time/TimeRange";
 import React, {
   FunctionComponent,
@@ -79,6 +85,25 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
    */
   const [zoomWindow, setZoomWindow] = useState<ChartZoomWindow | null>(null);
 
+  /*
+   * Only a time axis can be zoomed: a window dragged across categories
+   * ("top services") is not a time range. A widget that does not say is a
+   * time series, the same reading the chat export gives it.
+   */
+  const isTimeAxis: boolean = widget.data.xIsTime !== false;
+
+  /*
+   * The zone the chart's day buckets were cut in - the asker's, or UTC for
+   * a run with no reader - when they are days (issue #8206). Each bucket is
+   * drawn on the day it counted there, whoever reads the chart and
+   * wherever: drawn at its instant, a New York day sat under the day before
+   * in Los Angeles. The chart's own zoom works on the days as drawn.
+   */
+  const bucketTimezone: Timezone | undefined = isTimeAxis
+    ? getChartBucketTimezone(widget.data)
+    : undefined;
+  const readerTimezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
   const series: Array<SeriesPoint> = useMemo((): Array<SeriesPoint> => {
     return (rawSeries || []).map((item: AIChatWidgetSeries) => {
       return {
@@ -89,13 +114,29 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
           })
           .map((point: AIChatWidgetPoint) => {
             return {
-              x: OneUptimeDate.fromString(point.x),
+              x: toReaderCalendarDate(
+                OneUptimeDate.fromString(point.x),
+                bucketTimezone,
+              ),
               y: point.y as number,
             };
           }),
       };
     });
-  }, [rawSeries]);
+    // The reader's zone moves where a day is drawn.
+  }, [rawSeries, bucketTimezone, readerTimezone]);
+
+  // Whether those days are not the reader's own: the chart says whose they are.
+  const isOnAnotherCalendar: boolean = useMemo((): boolean => {
+    return isDrawnOnAnotherCalendar(
+      (rawSeries || []).flatMap((item: AIChatWidgetSeries): Array<Date> => {
+        return item.points.map((point: AIChatWidgetPoint): Date => {
+          return OneUptimeDate.fromString(point.x);
+        });
+      }),
+      bucketTimezone,
+    );
+  }, [rawSeries, bucketTimezone, readerTimezone]);
 
   // X range spans every point across every series.
   const allDates: Array<Date> = series.flatMap((s: SeriesPoint) => {
@@ -118,13 +159,6 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
     : OneUptimeDate.getCurrentDate();
 
   const isBar: boolean = widget.type === AIChatWidgetType.BarChart;
-
-  /*
-   * Only a time axis can be zoomed: a window dragged across categories
-   * ("top services") is not a time range. A widget that does not say is a
-   * time series, the same reading the chat export gives it.
-   */
-  const isTimeAxis: boolean = widget.data.xIsTime !== false;
 
   const zoomToTimeRange: (startTime: Date, endTime: Date) => void = useCallback(
     (startTime: Date, endTime: Date): void => {
@@ -288,7 +322,17 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
     <TimeRangeZoomProvider zoom={ownZoom}>
       <div className="group/zoomhint w-full">
         {isTimeAxis ? (
-          <div className="flex h-6 items-center justify-end gap-2">
+          <div className="flex min-h-6 items-center justify-end gap-2">
+            {isOnAnotherCalendar && bucketTimezone ? (
+              <p
+                className="me-auto min-w-0 text-xs text-gray-500 [overflow-wrap:anywhere]"
+                data-testid="ai-chart-bucket-timezone"
+              >
+                {translator.translateTemplate("Days are in {{timezone}}.", {
+                  timezone: bucketTimezone,
+                })}
+              </p>
+            ) : null}
             <TimeRangeZoomHint revealOnHover={true} />
             <ResetTimeRangeZoomButton />
           </div>

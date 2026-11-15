@@ -42,6 +42,7 @@ import TelemetryFanInWriter, {
 import FluentRecordTimeUtil, {
   FluentRecordTime,
 } from "../Utils/FluentRecordTime";
+import lookupTable from "Common/Utils/LookupTable";
 
 class FluentLogStorageFlushError extends Error {
   public constructor(error: unknown) {
@@ -93,11 +94,20 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     "spanid",
   ];
 
-  // Severity text to OTel severity mapping
-  private static readonly SEVERITY_TEXT_MAP: Dictionary<{
-    number: number;
-    text: LogSeverity;
-  }> = {
+  /*
+   * Severity text to OTel severity mapping. Read by the level a record
+   * names, so a Map (lookupTable): a plain object answered a level named
+   * "constructor", "toString" or "__proto__" with what every object
+   * inherits, which is truthy, so such a log was stored with neither a
+   * severity number nor a severity text.
+   */
+  private static readonly SEVERITY_TEXT_MAP: ReadonlyMap<
+    string,
+    {
+      number: number;
+      text: LogSeverity;
+    }
+  > = lookupTable<{ number: number; text: LogSeverity }>({
     trace: { number: 1, text: LogSeverity.Trace },
     debug: { number: 5, text: LogSeverity.Debug },
     info: { number: 9, text: LogSeverity.Information },
@@ -112,7 +122,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
     fatal: { number: 23, text: LogSeverity.Fatal },
     emergency: { number: 23, text: LogSeverity.Fatal },
     emerg: { number: 23, text: LogSeverity.Fatal },
-  };
+  });
 
   // Fields that are extracted separately and should not be duplicated as attributes
   private static readonly EXCLUDED_ATTRIBUTE_FIELDS: Set<string> = new Set([
@@ -555,7 +565,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
 
     const normalized: string = severityValue.toLowerCase().trim();
     const mapped: { number: number; text: LogSeverity } | undefined =
-      this.SEVERITY_TEXT_MAP[normalized];
+      this.SEVERITY_TEXT_MAP.get(normalized);
 
     if (mapped) {
       return mapped;

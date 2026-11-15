@@ -276,6 +276,7 @@ import MonitorOwnerUser from "./MonitorOwnerUser";
 import MonitorProbe from "./MonitorProbe";
 import MonitorNetworkDevice from "./MonitorNetworkDevice";
 import MonitorSecret from "./MonitorSecret";
+import IncomingRequestSecret from "./IncomingRequestSecret";
 import MonitorStatus from "./MonitorStatus";
 import MonitorStatusTimeline from "./MonitorStatusTimeline";
 // On-Call Duty
@@ -793,6 +794,7 @@ const AllModelTypes: Array<{
 
   Monitor,
   MonitorSecret,
+  IncomingRequestSecret,
   MonitorStatus,
   MonitorCustomField,
   MonitorTemplate,

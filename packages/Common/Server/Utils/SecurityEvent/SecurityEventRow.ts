@@ -5,6 +5,7 @@ import ObjectID from "../../../Types/ObjectID";
 import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecurityEvent";
 import { TelemetryServiceMetadata } from "../../Services/OpenTelemetryIngestService";
 import TelemetryUtil, { AttributeType } from "../Telemetry/Telemetry";
+import { copyOwnValues } from "../../../Utils/LookupTable";
 
 /*
  * Events whose source timestamp is outside this window are stamped with
@@ -49,11 +50,15 @@ export function buildSecurityEventDbRow(data: {
   const ingestionDate: Date = OneUptimeDate.getCurrentDate();
 
   let eventTime: Date = normalized.time;
-  let attributes: Dictionary<AttributeType | Array<AttributeType>> = {
-    ...(normalized.attributes as Dictionary<
-      AttributeType | Array<AttributeType>
-    >),
-  };
+  /*
+   * A copy with every key the source wrote as its own (copyOwnValues): the
+   * spread this was, compiled to Object.assign, dropped an attribute named
+   * "__proto__".
+   */
+  const attributes: Dictionary<AttributeType | Array<AttributeType>> =
+    copyOwnValues<AttributeType | Array<AttributeType>>(
+      normalized.attributes as Dictionary<AttributeType | Array<AttributeType>>,
+    );
 
   const ageInDays: number = OneUptimeDate.getNumberOfDaysBetweenDates(
     eventTime,
@@ -67,10 +72,8 @@ export function buildSecurityEventDbRow(data: {
     ageInDays > MAX_SECURITY_EVENT_AGE_IN_DAYS ||
     futureSkewInMinutes > MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES
   ) {
-    attributes = {
-      ...attributes,
-      "oneuptime.original_time": String(normalized.time),
-    };
+    // The copy is this row's own, so the key is added to it.
+    attributes["oneuptime.original_time"] = String(normalized.time);
     eventTime = ingestionDate;
   }
 

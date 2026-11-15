@@ -541,7 +541,8 @@ export default class DataSecurityFindingWriter {
     now: Date,
   ): Promise<void> {
     try {
-      const cutoff: Date = OneUptimeDate.addRemoveDays(
+      // A length of time, the same on every server (issue #8236).
+      const cutoff: Date = OneUptimeDate.addRemoveDurationInDays(
         now,
         -FINDING_RETENTION_IN_DAYS,
       );

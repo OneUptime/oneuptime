@@ -123,6 +123,12 @@ export default class WidgetBuilder {
     unit?: string | undefined;
     valueLabel?: string | undefined;
     link?: AIChatCitationTarget | undefined;
+    /*
+     * The zone the buckets are days of, when they are days (or weeks,
+     * months, years): AggregationIntervalUtil.getCalendarBucketTimezone of
+     * the read. The chart draws them on those days (issue #8206).
+     */
+    bucketTimezone?: string | undefined;
   }): AIChatWidget {
     return {
       id: "",
@@ -135,6 +141,9 @@ export default class WidgetBuilder {
         unit: params.unit,
         valueLabel: params.valueLabel,
         link: params.link,
+        ...(params.bucketTimezone
+          ? { bucketTimezone: params.bucketTimezone }
+          : {}),
       },
     };
   }
