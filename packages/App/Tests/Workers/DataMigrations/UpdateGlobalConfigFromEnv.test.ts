@@ -1,5 +1,6 @@
-import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
-import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
+import GlobalConfig, {
+  EmailServerType,
+} from "Common/Models/DatabaseModels/GlobalConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import logger from "Common/Server/Utils/Logger";
 import ServerChannelSetup, {
@@ -383,8 +384,8 @@ describe("a fresh server, end to end", () => {
 
     await new UpdateGlobalConfigFromEnv().migrate();
 
-    expect(
-      ServerChannelSetup.getEmailSetUpProblem(await readSettings()),
-    ).toBe("SMTP: the Port is not set under Settings > Emails.");
+    expect(ServerChannelSetup.getEmailSetUpProblem(await readSettings())).toBe(
+      "SMTP: the Port is not set under Settings > Emails.",
+    );
   });
 });

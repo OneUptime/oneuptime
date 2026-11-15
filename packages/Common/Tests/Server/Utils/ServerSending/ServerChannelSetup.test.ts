@@ -181,9 +181,7 @@ describe("email", () => {
 
     test("a mail server with everything but its port names the Port", () => {
       expect(
-        ServerChannelSetup.getEmailSetUpProblem(
-          leftBlank(smtp(), "smtpPort"),
-        ),
+        ServerChannelSetup.getEmailSetUpProblem(leftBlank(smtp(), "smtpPort")),
       ).toBe("SMTP: the Port is not set under Settings > Emails.");
     });
 

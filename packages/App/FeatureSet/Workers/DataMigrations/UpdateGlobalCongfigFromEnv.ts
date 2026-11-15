@@ -5,6 +5,8 @@ import Port from "Common/Types/Port";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 
+const WHOLE_NUMBER: RegExp = /^\d+$/;
+
 /*
  * The SMTP port a new installation's settings start with: SMTP_PORT, when
  * it is a port a mail server can listen on (a whole number from 1 to
@@ -23,7 +25,7 @@ export const getSeededSmtpPort: (value: string | undefined) => Port | null = (
 ): Port | null => {
   const text: string = (value || "").trim();
 
-  if (!/^\d+$/.test(text)) {
+  if (!WHOLE_NUMBER.test(text)) {
     return null;
   }
 
