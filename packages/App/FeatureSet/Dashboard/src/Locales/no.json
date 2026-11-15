@@ -52345,6 +52345,7 @@
   "Failed runs": "Mislykkede kjøringer",
   "Free memory": "Ledig minne",
   "Healthy backends": "Feilfrie backender",
+  "If nobody has acknowledged yet": "Hvis ingen har bekreftet ennå",
   "Its cloud sent no value for this in the last read.": "Skyen sendte ingen verdi for dette ved forrige lesing.",
   "Network in": "Nettverk inn",
   "Network out": "Nettverk ut",
@@ -52357,8 +52358,12 @@
   "Read operations": "Leseoperasjoner",
   "Request units": "Forespørselsenheter",
   "Showing what {{name}} is connected to.": "Viser hva {{name}} er koblet til.",
+  "Used for every incident, alert and episode, of every severity.": "Brukes for hver hendelse, hvert varsel og hver episode, uansett alvorlighetsgrad.",
   "What it is connected to": "Hva den er koblet til",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Når du kalles opp, prøver OneUptime hvert trinn etter tur, til noen bekrefter.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Når {{name}} kalles opp, prøver OneUptime hvert trinn etter tur, til noen bekrefter.",
   "Write operations": "Skriveoperasjoner",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "Du har ulagrede endringer i disse trinnene. Hvis du forlater siden nå, går de tapt.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} deler til er ikke tegnet. Søk for å finne en.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} del til er ikke tegnet. Søk for å finne den.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Nettlesernøkkel – ment for distribusjon til klienter. Nettopprinnelser kan sende spor, logger, målinger, øktavspillinger og Sentry-hendelser; app://-identiteter tillater bare øktavspilling fra React Native. Godtatte identiteter: {{identities}}. Identiteter for native apper oppgis av appen selv og er ikke en attestering fra plattformen.",
@@ -52391,5 +52396,6 @@
   "Void": "Annullert",
   "Change (schema change)": "Endring",
   "Table (database object)": "Tabell",
-  "View (database object)": "Visning"
+  "View (database object)": "Visning",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Endre når dette trinnet sendes."
 }

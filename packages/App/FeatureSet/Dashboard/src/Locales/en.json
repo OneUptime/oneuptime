@@ -52345,6 +52345,7 @@
   "Failed runs": "Failed runs",
   "Free memory": "Free memory",
   "Healthy backends": "Healthy backends",
+  "If nobody has acknowledged yet": "If nobody has acknowledged yet",
   "Its cloud sent no value for this in the last read.": "Its cloud sent no value for this in the last read.",
   "Network in": "Network in",
   "Network out": "Network out",
@@ -52357,8 +52358,12 @@
   "Read operations": "Read operations",
   "Request units": "Request units",
   "Showing what {{name}} is connected to.": "Showing what {{name}} is connected to.",
+  "Used for every incident, alert and episode, of every severity.": "Used for every incident, alert and episode, of every severity.",
   "What it is connected to": "What it is connected to",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "When you are paged, OneUptime tries each step in turn until somebody acknowledges.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.",
   "Write operations": "Write operations",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "You have unsaved changes to these steps. If you leave now, they will be lost.",
   "{{count}} more parts are not drawn. Search to find one.": "{{count}} more parts are not drawn. Search to find one.",
   "{{count}} more parts are not drawn. Search to find one._one": "{{count}} more part is not drawn. Search to find it.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.",
@@ -52391,5 +52396,6 @@
   "Void": "Void",
   "Change (schema change)": "Change (schema change)",
   "Table (database object)": "Table (database object)",
-  "View (database object)": "View (database object)"
+  "View (database object)": "View (database object)",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Change when this step is sent."
 }

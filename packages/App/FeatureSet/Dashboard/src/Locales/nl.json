@@ -52345,6 +52345,7 @@
   "Failed runs": "Mislukte uitvoeringen",
   "Free memory": "Vrij geheugen",
   "Healthy backends": "Gezonde backends",
+  "If nobody has acknowledged yet": "Als nog niemand heeft bevestigd",
   "Its cloud sent no value for this in the last read.": "De cloud stuurde hiervoor geen waarde bij de laatste uitlezing.",
   "Network in": "Netwerk in",
   "Network out": "Netwerk uit",
@@ -52357,8 +52358,12 @@
   "Read operations": "Leesbewerkingen",
   "Request units": "Aanvraageenheden",
   "Showing what {{name}} is connected to.": "Getoond wordt waarmee {{name}} verbonden is.",
+  "Used for every incident, alert and episode, of every severity.": "Geldt voor elk incident, elke waarschuwing en elke episode, van elk ernstniveau.",
   "What it is connected to": "Waarmee het verbonden is",
+  "When you are paged, OneUptime tries each step in turn until somebody acknowledges.": "Wanneer u wordt opgeroepen, probeert OneUptime elke stap op volgorde, tot iemand bevestigt.",
+  "When {{name}} is paged, OneUptime tries each step in turn until somebody acknowledges.": "Wanneer {{name}} wordt opgeroepen, probeert OneUptime elke stap op volgorde, tot iemand bevestigt.",
   "Write operations": "Schrijfbewerkingen",
+  "You have unsaved changes to these steps. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in deze stappen. Als u nu weggaat, gaan ze verloren.",
   "{{count}} more parts are not drawn. Search to find one.": "Nog {{count}} onderdelen zijn niet getekend. Zoek om er een te vinden.",
   "{{count}} more parts are not drawn. Search to find one._one": "Nog {{count}} onderdeel is niet getekend. Zoek om het te vinden.",
   "Browser key — intended for client distribution. Web origins may send traces, logs, metrics, session replays and Sentry events; app:// identities authorize React Native replay only. Accepted identities: {{identities}}. Native app identities are self-asserted, not platform attestation.": "Browsersleutel — bedoeld om aan clients te verspreiden. Web-origins mogen traces, logboeken, metrieken, sessieherhalingen en Sentry-gebeurtenissen sturen; app://-identiteiten staan alleen sessieherhaling vanuit React Native toe. Geaccepteerde identiteiten: {{identities}}. Identiteiten van native apps geeft de app zelf op; ze zijn geen attestatie door het platform.",
@@ -52391,5 +52396,6 @@
   "Void": "Geannuleerd",
   "Change (schema change)": "Wijziging",
   "Table (database object)": "Tabel",
-  "View (database object)": "Weergave"
+  "View (database object)": "Weergave",
+  "{{wait}}. Change when this step is sent.": "{{wait}}. Wijzig wanneer deze stap wordt verzonden."
 }
