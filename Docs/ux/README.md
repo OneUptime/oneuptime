@@ -250,6 +250,13 @@ work out, starts from a default for everything else, and folds what most people 
   [DisclosureTogglesGuard](../../packages/Common/Tests/UI/DisclosureTogglesGuard.test.ts).
 - **A fold never cuts off what it holds.** No fixed height cap on an open fold. Enforced by
   [FoldHeightCapGuard](../../packages/Common/Tests/UI/Components/FoldHeightCapGuard.test.ts).
+- **A folded line never cuts off the choice it names.** Folded on a type it holds, More monitor types
+  names it after its words: "More monitor types · Selected: Kubernetes". The choice goes on the
+  words' line when it fits, under them, whole, when it does not, and wraps between its words when it
+  is wider than a line by itself. It is never cut off with an ellipsis and a tooltip, which a phone
+  cannot show. German's "Ausgewählt: Benutzerdefinierter JavaScript-Code" takes two lines on a 390px
+  phone, and that is right (#8380). Enforced by
+  [FoldedChoiceNamedWholeGuard](../../packages/Common/Tests/UI/Components/FoldedChoiceNamedWholeGuard.test.tsx).
 
 ### Help text
 
