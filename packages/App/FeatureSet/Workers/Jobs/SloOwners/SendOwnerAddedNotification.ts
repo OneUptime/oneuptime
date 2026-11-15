@@ -17,7 +17,7 @@ import ServiceLevelObjectiveService from "Common/Server/Services/ServiceLevelObj
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import PushNotificationUtil from "Common/Server/Utils/PushNotificationUtil";
-import logger, { LogAttributes } from "Common/Server/Utils/Logger";
+import logger from "Common/Server/Utils/Logger";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
@@ -35,10 +35,43 @@ import User from "Common/Models/DatabaseModels/User";
  * any persistent failure, e.g. a user with an unroutable channel, into an
  * infinite re-notification loop that re-sends every minute.
  */
+import OwnerNotificationDeliveries, {
+  OwnerNotificationDelivery,
+} from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
+import { OwnerNotificationKind } from "Common/Types/Notification/OwnerNotificationDelivery";
+import {
+  OwnerRowAdded,
+  ownersToTell,
+  planOwnersAdded,
+} from "../../Utils/OwnersAdded";
+
 RunCron(
   "SloOwners:SendOwnerAddedNotification",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    /*
+     * The owners a run that stopped part way left untold - a worker killed
+     * between the take and the last owner (#8509) - told first, exactly
+     * them, from the SLO as it is now (OwnerNotificationDeliveries).
+     */
+    await OwnerNotificationDeliveries.resume({
+      kinds: [OwnerNotificationKind.ServiceLevelObjectiveOwnerAdded],
+      notify: async (delivery: OwnerNotificationDelivery): Promise<void> => {
+        const slo: ServiceLevelObjective | null =
+          await readServiceLevelObjective(delivery.notification.resourceId);
+
+        if (!slo) {
+          await delivery.giveUp("the SLO is gone");
+          return;
+        }
+
+        await notifyOwnersAdded({
+          slo: slo,
+          deliveries: [delivery],
+        });
+      },
+    });
+
     const sloOwnerTeams: Array<ServiceLevelObjectiveOwnerTeam> =
       await ServiceLevelObjectiveOwnerTeamService.findAllBy({
         query: {
@@ -47,6 +80,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           serviceLevelObjectiveId: true,
@@ -54,33 +88,27 @@ RunCron(
         },
       });
 
-    const sloOwnersMap: Dictionary<Array<User>> = {};
+    const sloOwnersMap: Dictionary<Array<OwnerRowAdded>> = {};
 
     for (const sloOwnerTeam of sloOwnerTeams) {
-      const sloId: ObjectID = sloOwnerTeam.serviceLevelObjectiveId!;
+      const serviceLevelObjectiveId: ObjectID =
+        sloOwnerTeam.serviceLevelObjectiveId!;
       const teamId: ObjectID = sloOwnerTeam.teamId!;
 
       const users: Array<User> = await TeamMemberService.getUsersInTeams([
         teamId,
       ]);
 
-      if (sloOwnersMap[sloId.toString()] === undefined) {
-        sloOwnersMap[sloId.toString()] = [];
+      if (sloOwnersMap[serviceLevelObjectiveId.toString()] === undefined) {
+        sloOwnersMap[serviceLevelObjectiveId.toString()] = [];
       }
 
-      for (const user of users) {
-        (sloOwnersMap[sloId.toString()] as Array<User>).push(user);
-      }
-
-      // mark this as notified.
-      await ServiceLevelObjectiveOwnerTeamService.updateOneById({
-        id: sloOwnerTeam.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        sloOwnersMap[serviceLevelObjectiveId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: sloOwnerTeam.id!,
+        isTeam: true,
+        users: users,
       });
     }
 
@@ -92,6 +120,7 @@ RunCron(
         props: {
           isRoot: true,
         },
+        skip: 0,
         select: {
           _id: true,
           serviceLevelObjectiveId: true,
@@ -104,127 +133,183 @@ RunCron(
       });
 
     for (const sloOwnerUser of sloOwnerUsers) {
-      const sloId: ObjectID = sloOwnerUser.serviceLevelObjectiveId!;
+      const serviceLevelObjectiveId: ObjectID =
+        sloOwnerUser.serviceLevelObjectiveId!;
       const user: User = sloOwnerUser.user!;
 
-      if (sloOwnersMap[sloId.toString()] === undefined) {
-        sloOwnersMap[sloId.toString()] = [];
+      if (sloOwnersMap[serviceLevelObjectiveId.toString()] === undefined) {
+        sloOwnersMap[serviceLevelObjectiveId.toString()] = [];
       }
 
-      (sloOwnersMap[sloId.toString()] as Array<User>).push(user);
-
-      // mark this as notified.
-      await ServiceLevelObjectiveOwnerUserService.updateOneById({
-        id: sloOwnerUser.id!,
-        data: {
-          isOwnerNotified: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      (
+        sloOwnersMap[serviceLevelObjectiveId.toString()] as Array<OwnerRowAdded>
+      ).push({
+        ownerRowId: sloOwnerUser.id!,
+        isTeam: false,
+        users: [user],
       });
     }
 
-    // send notifications to all of these users.
+    // send email to all of these users.
 
-    for (const sloId in sloOwnersMap) {
-      if (!sloOwnersMap[sloId]) {
+    for (const serviceLevelObjectiveId in sloOwnersMap) {
+      const ownerRows: Array<OwnerRowAdded> =
+        sloOwnersMap[serviceLevelObjectiveId] || [];
+
+      if (ownerRows.length === 0) {
         continue;
       }
 
-      if ((sloOwnersMap[sloId] as Array<User>).length === 0) {
-        continue;
-      }
+      const slo: ServiceLevelObjective | null = await readServiceLevelObjective(
+        new ObjectID(serviceLevelObjectiveId),
+      );
 
-      const ownerUsers: Array<User> = sloOwnersMap[sloId] as Array<User>;
+      /*
+       * Whom each owner row is to tell, written before the rows are taken:
+       * a worker stopped from here on leaves them to be told by a later
+       * run, and one stopped before the take leaves the rows to be read
+       * again.
+       */
+      const deliveries: Array<OwnerNotificationDelivery> = slo
+        ? await planOwnersAdded({
+            kind: OwnerNotificationKind.ServiceLevelObjectiveOwnerAdded,
+            projectId: slo.projectId!,
+            resourceId: slo.id!,
+            ownerRows: ownerRows,
+          })
+        : [];
 
-      const slo: ServiceLevelObjective | null =
-        await ServiceLevelObjectiveService.findOneById({
-          id: new ObjectID(sloId),
-          props: {
-            isRoot: true,
-          },
-
-          select: {
-            _id: true,
-            name: true,
-            projectId: true,
-            project: {
-              name: true,
+      /*
+       * Marked as notified before the owners are told, so an owner row
+       * whose notification keeps failing is never read again on every run -
+       * one whose SLO is gone too.
+       */
+      for (const ownerRow of ownerRows) {
+        if (ownerRow.isTeam) {
+          await ServiceLevelObjectiveOwnerTeamService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
             },
-            targetPercentage: true,
-            windowType: true,
-            windowDays: true,
-          },
-        });
-
-      if (!slo || !slo.projectId) {
-        continue;
-      }
-
-      /*
-       * A team row expands to every member row, pending invitations included.
-       * ensureSettingExistsForUser below would seed a setting for a pending
-       * invitee and reach someone who never joined, so tell only the accepted
-       * members of the project - the same people findOwners reports as owners.
-       */
-      const users: Array<User> =
-        await TeamMemberService.filterUsersToProjectMembers({
-          projectId: slo.projectId,
-          users: ownerUsers,
-        });
-
-      if (users.length === 0) {
-        continue;
-      }
-
-      const sloName: string = slo.name || "SLO";
-      const projectName: string = slo.project?.name || "OneUptime";
-
-      const sloViewLink: string = (
-        await ServiceLevelObjectiveService.getSloLinkInDashboard(
-          slo.projectId,
-          slo.id!,
-        )
-      ).toString();
-
-      /*
-       * "99.9% over a rolling 30 days" / "99.9% over the calendar month" —
-       * windowDays is meaningless for a CalendarMonth window (the model
-       * documents it as ignored), so it is only rendered for Rolling.
-       */
-      const windowDescription: string =
-        slo.windowType === SloWindowType.CalendarMonth
-          ? "the calendar month"
-          : `a rolling ${slo.windowDays || 30} days`;
-
-      const objectiveDescription: string = slo.targetPercentage
-        ? `${slo.targetPercentage}% over ${windowDescription}`
-        : `measured over ${windowDescription}`;
-
-      const emailSubject: string =
-        "You have been added as the owner of the service level objective.";
-
-      /*
-       * SimpleMessage is the generic owner-added email path (the same one the
-       * NetworkDeviceOwners job uses): every dedicated *OwnerAdded.hbs template
-       * hardcodes its resource's labels and detail fields, so reusing one would
-       * mean an email that calls this SLO a monitor. A near-duplicate
-       * SloOwnerAdded.hbs would add a template for one sentence of copy.
-       */
-      const vars: Dictionary<string> = {
-        subject: emailSubject,
-        message: `You have been added as the owner of the service level objective ${sloName} in the project ${projectName}. Its objective is ${objectiveDescription}. You can view the SLO here: ${sloViewLink}`,
-      };
-
-      const eventType: NotificationSettingEventType =
-        NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION;
-
-      for (const user of users) {
-        if (!user.id) {
-          continue;
+            props: {
+              isRoot: true,
+            },
+          });
+        } else {
+          await ServiceLevelObjectiveOwnerUserService.updateOneById({
+            id: ownerRow.ownerRowId,
+            data: {
+              isOwnerNotified: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
         }
+      }
 
+      if (!slo) {
+        continue;
+      }
+
+      try {
+        await notifyOwnersAdded({
+          slo: slo,
+          deliveries: deliveries,
+        });
+      } catch (e) {
+        logger.error("Error in sending SLO owner added notification", {
+          projectId: slo.projectId?.toString(),
+          serviceLevelObjectiveId: slo.id?.toString(),
+        });
+        logger.error(e, {
+          projectId: slo.projectId?.toString(),
+          serviceLevelObjectiveId: slo.id?.toString(),
+        });
+      }
+    }
+  },
+);
+
+async function readServiceLevelObjective(
+  serviceLevelObjectiveId: ObjectID,
+): Promise<ServiceLevelObjective | null> {
+  return await ServiceLevelObjectiveService.findOneById({
+    id: serviceLevelObjectiveId,
+    props: {
+      isRoot: true,
+    },
+    select: {
+      _id: true,
+      name: true,
+      projectId: true,
+      project: {
+        name: true,
+      },
+      targetPercentage: true,
+      windowType: true,
+      windowDays: true,
+    },
+  });
+}
+
+/*
+ * Tells each delivery's owners that they were added as owners of the
+ * SLO, each once (OwnerNotificationDelivery.tell).
+ */
+async function notifyOwnersAdded(data: {
+  slo: ServiceLevelObjective;
+  deliveries: Array<OwnerNotificationDelivery>;
+}): Promise<void> {
+  const slo: ServiceLevelObjective = data.slo;
+  const projectId: ObjectID | undefined = slo.projectId;
+
+  if (!projectId || ownersToTell(data.deliveries).length === 0) {
+    return;
+  }
+
+  const sloName: string = slo.name || "SLO";
+  const projectName: string = slo.project?.name || "OneUptime";
+
+  const sloViewLink: string = (
+    await ServiceLevelObjectiveService.getSloLinkInDashboard(projectId, slo.id!)
+  ).toString();
+
+  /*
+   * "99.9% over a rolling 30 days" / "99.9% over the calendar month" —
+   * windowDays is meaningless for a CalendarMonth window (the model
+   * documents it as ignored), so it is only rendered for Rolling.
+   */
+  const windowDescription: string =
+    slo.windowType === SloWindowType.CalendarMonth
+      ? "the calendar month"
+      : `a rolling ${slo.windowDays || 30} days`;
+
+  const objectiveDescription: string = slo.targetPercentage
+    ? `${slo.targetPercentage}% over ${windowDescription}`
+    : `measured over ${windowDescription}`;
+
+  const emailSubject: string =
+    "You have been added as the owner of the service level objective.";
+
+  /*
+   * SimpleMessage is the generic owner-added email path (the same one the
+   * NetworkDeviceOwners job uses): every dedicated *OwnerAdded.hbs template
+   * hardcodes its resource's labels and detail fields, so reusing one would
+   * mean an email that calls this SLO a monitor. A near-duplicate
+   * SloOwnerAdded.hbs would add a template for one sentence of copy.
+   */
+  const vars: Dictionary<string> = {
+    subject: emailSubject,
+    message: `You have been added as the owner of the service level objective ${sloName} in the project ${projectName}. Its objective is ${objectiveDescription}. You can view the SLO here: ${sloViewLink}`,
+  };
+
+  const eventType: NotificationSettingEventType =
+    NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION;
+
+  for (const delivery of data.deliveries) {
+    for (const user of delivery.owners) {
+      await delivery.tell(user, async (): Promise<void> => {
         const emailMessage: EmailEnvelope = {
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
@@ -265,43 +350,33 @@ RunCron(
         };
 
         /*
-         * Per-owner isolation: one owner with a broken notification setting must
-         * not cost the remaining owners of this SLO their notification. The
-         * markers are already flipped, so there is nothing to roll back.
+         * A send that fails is the owner's alone: tell() says so and goes
+         * on to the next owner, who is told all the same.
          */
-        try {
-          /*
-           * SEND_SLO_OWNER_ADDED_NOTIFICATION is newer than most existing
-           * users, and sendUserNotification silently no-ops when no setting row
-           * exists — seed the default row first so owners added today are
-           * actually reached.
-           */
-          await UserNotificationSettingService.ensureSettingExistsForUser({
-            userId: user.id,
-            projectId: slo.projectId,
-            eventType: eventType,
-          });
 
-          await UserNotificationSettingService.sendUserNotification({
-            userId: user.id,
-            projectId: slo.projectId,
-            emailEnvelope: emailMessage,
-            smsMessage: sms,
-            callRequestMessage: callMessage,
-            pushNotificationMessage: pushMessage,
-            whatsAppMessage: whatsAppMessage,
-            eventType: eventType,
-          });
-        } catch (err) {
-          logger.error(
-            `SloOwners:SendOwnerAddedNotification - Error notifying user ${user.id.toString()} that they were added as an owner of SLO ${slo.id?.toString()}: ${err}`,
-            {
-              projectId: slo.projectId.toString(),
-              sloId: slo.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-      }
+        /*
+         * SEND_SLO_OWNER_ADDED_NOTIFICATION is newer than most existing
+         * users, and sendUserNotification silently no-ops when no setting row
+         * exists — seed the default row first so owners added today are
+         * actually reached.
+         */
+        await UserNotificationSettingService.ensureSettingExistsForUser({
+          userId: user.id!,
+          projectId: projectId,
+          eventType: eventType,
+        });
+
+        await UserNotificationSettingService.sendUserNotification({
+          userId: user.id!,
+          projectId: projectId,
+          emailEnvelope: emailMessage,
+          smsMessage: sms,
+          callRequestMessage: callMessage,
+          pushNotificationMessage: pushMessage,
+          whatsAppMessage: whatsAppMessage,
+          eventType: eventType,
+        });
+      });
     }
-  },
-);
+  }
+}

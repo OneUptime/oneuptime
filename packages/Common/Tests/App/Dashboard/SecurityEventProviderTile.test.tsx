@@ -81,7 +81,9 @@ beforeAll(async (): Promise<void> => {
     resources: {
       de: {
         translation: {
-          Connect: "Verbinden",
+          // Each one sentence, the product where German puts it (#8483).
+          "Connect {{provider}}": "{{provider}} verbinden",
+          "{{provider}} Setup guide": "Einrichtungsanleitung für {{provider}}",
           "Setup guide": "Einrichtungsanleitung",
           "(opens in a new tab)": "(öffnet in einem neuen Tab)",
           "Cloud security": "Cloud-Sicherheit",
@@ -253,13 +255,20 @@ describe("SecurityEventProviderTile", () => {
         "data-provider-tile",
         SecurityEventConnectorProvider.MicrosoftSentinel,
       );
-      // The visible label is the product alone; "Connect" is for AT only.
-      expect(button).toHaveTextContent(/^Connect Microsoft Sentinel$/);
+      /*
+       * The visible label is the product alone; a screen reader reads one
+       * sentence with the product in it (#8483).
+       */
       const srOnly: HTMLElement = button.querySelector(
         ".sr-only",
       ) as HTMLElement;
       expect(srOnly).not.toBeNull();
-      expect(srOnly.textContent).toBe("Connect ");
+      expect(srOnly.textContent).toBe("Connect Microsoft Sentinel");
+      const shown: HTMLElement = button.querySelector(
+        '[aria-hidden="true"]',
+      ) as HTMLElement;
+      expect(shown).not.toBeNull();
+      expect(shown.textContent).toBe("Microsoft Sentinel");
     });
 
     test("aria-describedby points at the category element inside the same tile", () => {
@@ -611,7 +620,10 @@ describe("SecurityEventProviderTile", () => {
       ).map((element: Element): string => {
         return element.textContent || "";
       });
-      expect(srOnly).toEqual(["Microsoft Sentinel ", " (opens in a new tab)"]);
+      expect(srOnly).toEqual([
+        "Microsoft Sentinel Setup guide",
+        " (opens in a new tab)",
+      ]);
       expect(link).toHaveTextContent("Setup guide");
       expect(svgMarkup(link)).toBe(iconMarkup(IconProp.ExternalLink));
       expect(link.querySelectorAll("svg")).toHaveLength(1);
@@ -787,10 +799,10 @@ describe("SecurityEventProviderTile", () => {
       const { tile } = renderTile({ definition: AWS, translations: german });
 
       const button: HTMLElement = within(tile).getByRole("button");
-      expect(button).toHaveAccessibleName("Verbinden AWS Security Hub");
+      expect(button).toHaveAccessibleName("AWS Security Hub verbinden");
       expect(button).toHaveAccessibleDescription("Cloud-Sicherheit");
       expect(guideLink(tile)).toHaveAccessibleName(
-        "AWS Security Hub Einrichtungsanleitung (öffnet in einem neuen Tab)",
+        "Einrichtungsanleitung für AWS Security Hub (öffnet in einem neuen Tab)",
       );
       expect(tile).not.toHaveTextContent("AWS-Sicherheitszentrale");
     });

@@ -152,8 +152,8 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 프로브는 Azure SQL Database를 버전이 아니라 `SERVERPROPERTY('EngineEdition')`로 인식합니다. Azure SQL Database는 실제로 무엇을 실행하든 `12.0.2000.8`을 보고하는데, 이는 SQL Server 2014로 읽히기 때문입니다. 그래서 모니터의 **엔진**에는 `Azure SQL Database 12.0.2000.8`이 표시되고, 권한 누락은 `VIEW SERVER STATE`가 아니라 항상 위의 Azure 문으로 표시됩니다.
 
 - **Azure SQL Database에서는 복제를 수집하지 않습니다.** Azure SQL Database에는 `sys.dm_hadr_database_replica_states`가 없으므로, Replication 그룹은 확인할 때마다 실패로 보고되는 대신 건너뜁니다. Azure 자체의 복제본 뷰(`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`)는 아직 읽지 않습니다.
-- **연결은 데이터베이스 단위입니다.** `VIEW DATABASE STATE`로는 Azure SQL Database가 모니터링하는 데이터베이스의 세션만 보여 주므로, Connections는 논리 서버가 아니라 그 데이터베이스를 셉니다. 중요한 데이터베이스는 각각 모니터링하세요.
-- **탄력적 풀에서 TempDB Free Space는 풀의 값입니다.** 풀의 데이터베이스들은 하나의 tempdb를 공유합니다.
+- **연결은 데이터베이스 단위입니다.** `VIEW DATABASE STATE`로는 Azure SQL Database가 모니터링하는 데이터베이스의 세션만 보여 주므로, **연결**은 논리 서버가 아니라 그 데이터베이스를 셉니다. 중요한 데이터베이스는 각각 모니터링하세요.
+- **탄력적 풀에서 "TempDB 여유 공간"은 풀의 값입니다.** 풀의 데이터베이스들은 하나의 tempdb를 공유합니다.
 
 ## Database Health 모니터 만들기
 
@@ -198,7 +198,7 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 ### 추가 필드
 
-**Metric Groups**도 여기에 있습니다: Connections, 활동, Throughput, Locks and Blocking, 스토리지, Replication, 유지 관리 중 실행할 그룹. 기본적으로 모두 켜져 있습니다. [메트릭 그룹](#메트릭-그룹)을 참조하세요. 모니터 세부 정보에는 **Collected Metric Groups**로 표시됩니다.
+**Metric Groups**도 여기에 있습니다: 연결, 활동, 처리량, 잠금 및 차단, 스토리지, 복제, 유지 관리 중 실행할 그룹. 기본적으로 모두 켜져 있습니다. [메트릭 그룹](#메트릭-그룹)을 참조하세요. 모니터 세부 정보에는 **Collected Metric Groups**로 표시됩니다.
 
 | 필드 | 기본값 | 최댓값 | 제한하는 것 |
 |---|---|---|---|
@@ -249,13 +249,13 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 | 실패한 것 | 모니터 상태 | 보이는 것 |
 |---|---|---|
 | **연결** 또는 프로브 쿼리 — 잘못된 자격 증명, 연결 거부, TLS 실패, 연결 시간 초과 | **오프라인** | `Database Is Online`이 false가 되고, 여기에 연결한 인시던트와 온콜 정책이 발동합니다. |
-| **그룹** — 권한 누락, 꺼진 `performance_schema`, 문 시간 초과 | **온라인 유지** | 그 그룹이 읽지 못한 메트릭은 0이 아니라 **존재하지 않습니다**. 차트 선이 그려지지 않고, 그 시리즈에 대한 임계값은 일치할 수 없으며, 거기서 인시던트가 생길 수도 없습니다. 확인 결과로 그룹, 이유, 그리고 (있다면) 실행할 정확한 `GRANT`를 담은 수집 문제가 하나 기록되며, 이는 모니터 요약에 표시되고 **Metric Groups Failed**에 집계됩니다. |
-| **엔진이 메트릭을 아예 만들 수 없음** — 기본 MySQL에는 교착 상태 카운터가 없고, SQL Server는 기본적으로 연결 상한을 무제한으로 두므로 "사용 비율"이 의미가 없음 | **온라인 유지** | 메트릭은 그냥 존재하지 않습니다. 이것은 수집 문제가 **아니며**, Metric Groups Failed에 집계되지 않고, 고칠 대상도 아닙니다. [수집되는 메트릭](#수집되는-메트릭)의 Engines 열을 참조하세요. |
+| **그룹** — 권한 누락, 꺼진 `performance_schema`, 문 시간 초과 | **온라인 유지** | 그 그룹이 읽지 못한 메트릭은 0이 아니라 **존재하지 않습니다**. 차트 선이 그려지지 않고, 그 시리즈에 대한 임계값은 일치할 수 없으며, 거기서 인시던트가 생길 수도 없습니다. 확인 결과로 그룹, 이유, 그리고 (있다면) 실행할 정확한 `GRANT`를 담은 수집 문제가 하나 기록되며, 이는 모니터 요약에 표시되고 **실패한 메트릭 그룹**에 집계됩니다. |
+| **엔진이 메트릭을 아예 만들 수 없음** — 기본 MySQL에는 교착 상태 카운터가 없고, SQL Server는 기본적으로 연결 상한을 무제한으로 두므로 "사용 비율"이 의미가 없음 | **온라인 유지** | 메트릭은 그냥 존재하지 않습니다. 이것은 수집 문제가 **아니며**, **실패한 메트릭 그룹**에 집계되지 않고, 고칠 대상도 아닙니다. [수집되는 메트릭](#수집되는-메트릭)의 Engines 열을 참조하세요. |
 
 없는 값은 언제나 없는 값입니다. 측정하지 않은 값은 절대 `0`으로 보고되지 않습니다. 지어낸 0으로 채운 차트는 빈틈보다 나쁘기 때문입니다. 빈틈은 눈으로 볼 수 있습니다.
 
 > [!TIP]
-> 가시성을 잃었을 때 알림을 받으려면 `Database Collection Error`나 **Metric Groups Failed**에 대한 임계값을 사용하세요. 둘 다 인시던트가 아니라 알림으로 만드세요. 회수된 권한은 티켓으로 처리할 일이지 호출할 일이 아닙니다.
+> 가시성을 잃었을 때 알림을 받으려면 `Database Collection Error`나 **실패한 메트릭 그룹**에 대한 임계값을 사용하세요. 둘 다 인시던트가 아니라 알림으로 만드세요. 회수된 권한은 티켓으로 처리할 일이지 호출할 일이 아닙니다.
 
 ### "The user does not have permission to perform this action"
 
@@ -274,54 +274,54 @@ Azure SQL Database에서는 이 표에서 `VIEW SERVER STATE`라고 한 곳을 �
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | 연결 | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **가동 시간** (s) | `oneuptime.monitor.database.uptime.seconds` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **실패한 메트릭 그룹** | `oneuptime.monitor.database.metric.groups.failed` | 연결 | PostgreSQL, MySQL, SQL Server |
 
 ### 연결
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | 연결 | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | 연결 | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | 연결 | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | 연결 | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | 연결 | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | 연결 | MySQL |
+| **연결** | `oneuptime.monitor.database.connections.total` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **활성 연결** | `oneuptime.monitor.database.connections.active` | 연결 | PostgreSQL, MySQL, SQL Server |
+| **최대 연결** | `oneuptime.monitor.database.connections.max` | 연결 | PostgreSQL, MySQL |
+| **사용 중인 연결** (%) | `oneuptime.monitor.database.connections.used.percent` | 연결 | PostgreSQL, MySQL |
+| **트랜잭션 중 유휴** | `oneuptime.monitor.database.connections.idle.in.transaction` | 연결 | PostgreSQL |
+| **중단된 연결** | `oneuptime.monitor.database.connections.aborted.total` | 연결 | MySQL |
 
 ### 처리량
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | 처리량 | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | 처리량 | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | 처리량 | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | 처리량 | PostgreSQL |
-| **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
-| **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
+| **트랜잭션** | `oneuptime.monitor.database.transactions.total` | 처리량 | PostgreSQL, SQL Server |
+| **쿼리** | `oneuptime.monitor.database.queries.total` | 처리량 | MySQL, SQL Server |
+| **느린 쿼리** | `oneuptime.monitor.database.queries.slow.total` | 처리량 | MySQL |
+| **롤백 비율** (%) | `oneuptime.monitor.database.rollback.percent` | 처리량 | PostgreSQL |
+| **가장 오래 실행 중인 쿼리** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **가장 오래 열린 트랜잭션** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
+| **열린 트랜잭션** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
 
 ### 잠금과 차단
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Blocked Sessions** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Lock Waits** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
-| **Deadlocks** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
-| **Table Lock Waits** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
+| **차단된 세션** | `oneuptime.monitor.database.sessions.blocked` | Locks | PostgreSQL, MySQL, SQL Server |
+| **잠금 대기** | `oneuptime.monitor.database.locks.waiting` | Locks | PostgreSQL, MySQL, SQL Server |
+| **교착 상태** | `oneuptime.monitor.database.deadlocks.total` | Locks | PostgreSQL, SQL Server |
+| **테이블 잠금 대기** | `oneuptime.monitor.database.table.locks.waited.total` | Locks | MySQL |
 
-기본 MySQL에는 어떤 종류의 교착 상태 카운터도 없기 때문에 Deadlocks는 PostgreSQL과 SQL Server에만 있습니다.
+기본 MySQL에는 어떤 종류의 교착 상태 카운터도 없기 때문에 **교착 상태**는 PostgreSQL과 SQL Server에만 있습니다.
 
 ### 캐시와 I/O
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | 처리량 | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | 처리량 | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | 처리량 | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 처리량 | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 처리량 | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 처리량 | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | 처리량 | SQL Server |
+| **캐시 적중률** (%) | `oneuptime.monitor.database.cache.hit.percent` | 처리량 | PostgreSQL, MySQL, SQL Server |
+| **디스크 읽기** | `oneuptime.monitor.database.disk.reads.total` | 처리량 | PostgreSQL, MySQL, SQL Server |
+| **디스크 쓰기** | `oneuptime.monitor.database.disk.writes.total` | 처리량 | MySQL, SQL Server |
+| **I/O 읽기 시간** (ms) | `oneuptime.monitor.database.io.read.time.ms` | 처리량 | PostgreSQL, SQL Server |
+| **I/O 쓰기 시간** (ms) | `oneuptime.monitor.database.io.write.time.ms` | 처리량 | PostgreSQL, SQL Server |
+| **페이지 예상 수명** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | 처리량 | SQL Server |
+| **대기 중인 메모리 허가** | `oneuptime.monitor.database.memory.grants.pending` | 처리량 | SQL Server |
 
 PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰기 시간을 측정합니다. 기본값은 꺼짐이며, 이때 PostgreSQL은 둘 다 `0`으로 보고합니다. 그래서 PostgreSQL에서 이 두 시리즈가 평평한 0이면 대개 "빠르다"가 아니라 "측정하지 않았다"는 뜻입니다. 이는 권한 문제가 아니라 서버 설정입니다.
 
@@ -329,42 +329,42 @@ PostgreSQL은 `track_io_timing`이 켜져 있을 때만 I/O 읽기 시간과 쓰
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Database Size** (바이트) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
-| **Temp Bytes Written** (바이트) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
-| **Temp Disk Tables** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
-| **Log Space Used** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
-| **TempDB Free Space** (바이트) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
+| **데이터베이스 크기** (바이트) | `oneuptime.monitor.database.size.bytes` | Storage | PostgreSQL, MySQL, SQL Server |
+| **쓴 임시 바이트** (바이트) | `oneuptime.monitor.database.temp.bytes.total` | Storage | PostgreSQL |
+| **디스크의 임시 테이블** | `oneuptime.monitor.database.temp.disk.tables.total` | Storage | MySQL |
+| **사용 중인 로그 공간** (%) | `oneuptime.monitor.database.log.space.used.percent` | Storage | SQL Server |
+| **TempDB 여유 공간** (바이트) | `oneuptime.monitor.database.tempdb.free.bytes` | Storage | SQL Server |
 
 ### 복제
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Connected Replicas** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
-| **Replication Lag** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
-| **Replication Lag (Bytes)** (바이트) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
-| **Is In Recovery** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
-| **Inactive Replication Slots** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
+| **연결된 복제본** | `oneuptime.monitor.database.replica.count` | Replication | PostgreSQL, SQL Server |
+| **복제 지연** (s) | `oneuptime.monitor.database.replication.lag.seconds` | Replication | PostgreSQL, MySQL |
+| **복제 지연(바이트)** (바이트) | `oneuptime.monitor.database.replication.lag.bytes` | Replication | PostgreSQL, SQL Server |
+| **복구 중** | `oneuptime.monitor.database.is.in.recovery` | Replication | PostgreSQL |
+| **비활성 복제 슬롯** | `oneuptime.monitor.database.replication.slots.inactive` | Replication | PostgreSQL |
 
 복제 메트릭은 복제 링크 중 모니터가 연결된 쪽에서 보고됩니다. 연결된 복제본과 전송 대기열을 보려면 모니터를 기본 서버로 향하게 하고, 각 대기 서버가 실제로 얼마나 뒤처졌는지 보려면 대기 서버마다 모니터를 하나씩 향하게 하세요.
 
-초 단위 지연은 복제본이 한참 뒤처져 있어도 유휴 상태의 기본 서버에서는 새로 쓰인 것이 없으므로 0으로 표시됩니다. **Replication Lag (Bytes)** 메트릭에는 이 사각지대가 없으므로 둘 다 알림을 설정하세요.
+초 단위 지연은 복제본이 한참 뒤처져 있어도 유휴 상태의 기본 서버에서는 새로 쓰인 것이 없으므로 0으로 표시됩니다. **복제 지연(바이트)** 메트릭에는 이 사각지대가 없으므로 둘 다 알림을 설정하세요.
 
 ### 유지 관리
 
 | 메트릭 | 시리즈 | Group | Engines |
 |---|---|---|---|
-| **Transaction ID Used** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
-| **Dead Tuples** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
-| **Tables Never Autovacuumed** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
-| **Requested Checkpoints** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
-| **Timed Checkpoints** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
+| **사용된 트랜잭션 ID** (%) | `oneuptime.monitor.database.transaction.id.used.percent` | Maintenance | PostgreSQL |
+| **죽은 튜플** | `oneuptime.monitor.database.dead.tuples` | Maintenance | PostgreSQL |
+| **autovacuum이 한 번도 실행되지 않은 테이블** | `oneuptime.monitor.database.tables.never.autovacuumed` | Maintenance | PostgreSQL |
+| **요청된 체크포인트** | `oneuptime.monitor.database.checkpoints.requested.total` | Maintenance | PostgreSQL |
+| **예약된 체크포인트** | `oneuptime.monitor.database.checkpoints.timed.total` | Maintenance | PostgreSQL |
 
 > [!IMPORTANT]
-> **Transaction ID Used**는 만드는 모든 PostgreSQL 모니터에 기준을 둘 가치가 있습니다. 이 값이 100%에 이르면 PostgreSQL은 모든 쓰기를 거부하고, 복구하려면 데이터베이스를 내린 채 단일 사용자 모드에서 vacuum을 실행해야 하는데, 이를 지켜보는 사람은 거의 없습니다. 절벽에 닿기 훨씬 전에 알림을 받으세요. 80%면 대부분의 워크로드에서 며칠의 여유가 있습니다.
+> **사용된 트랜잭션 ID**는 만드는 모든 PostgreSQL 모니터에 기준을 둘 가치가 있습니다. 이 값이 100%에 이르면 PostgreSQL은 모든 쓰기를 거부하고, 복구하려면 데이터베이스를 내린 채 단일 사용자 모드에서 vacuum을 실행해야 하는데, 이를 지켜보는 사람은 거의 없습니다. 절벽에 닿기 훨씬 전에 알림을 받으세요. 80%면 대부분의 워크로드에서 며칠의 여유가 있습니다.
 
-`total`로 끝나는 카운터는 서버가 시작된 뒤로 누적된 값입니다. 비율을 구하려면 두 시점을 비교하세요. 값 하나만으로는 그 값 자체의 이력과 비교할 때만 의미가 있으며, 서버가 재시작하면 0으로 돌아갑니다(**Uptime**에서 확인할 수 있습니다).
+`total`로 끝나는 카운터는 서버가 시작된 뒤로 누적된 값입니다. 비율을 구하려면 두 시점을 비교하세요. 값 하나만으로는 그 값 자체의 이력과 비교할 때만 의미가 있으며, 서버가 재시작하면 0으로 돌아갑니다(**가동 시간**에서 확인할 수 있습니다).
 
-**Cache Hit Ratio**와 **Rollback Ratio**는 서버가 시작된 뒤가 아니라 모니터의 이전 확인 이후 카운터가 움직인 만큼으로 매 확인마다 계산되므로, 캐시가 놓치기 시작하면 바로 드러납니다. 프로브가 시작된 뒤의 첫 확인과 서버가 재시작된 뒤의 첫 확인에는 둘 다 없습니다.
+**캐시 적중률**과 **롤백 비율**은 서버가 시작된 뒤가 아니라 모니터의 이전 확인 이후 카운터가 움직인 만큼으로 매 확인마다 계산되므로, 캐시가 놓치기 시작하면 바로 드러납니다. 프로브가 시작된 뒤의 첫 확인과 서버가 재시작된 뒤의 첫 확인에는 둘 다 없습니다.
 
 ## 기준 설정하기
 
@@ -409,14 +409,14 @@ Database Health 모니터에서 표현식은 다음 변수에 접근할 수 있�
 | 순서 | 기준 | 필터 |
 |---|---|---|
 | 1 | **오프라인** | `Database Is Online`이 `false`. |
-| 2 | **저하됨** | `Database Metric` → Connections Used가 `90`보다 큼. 순간적인 급증으로 호출되지 않도록 All Values로 5분 동안 평가합니다. |
-| 3 | **저하됨** | `Database Metric` → Transaction ID Used가 `80`보다 큼. |
-| 4 | **저하됨** | `Database Metric` → Blocked Sessions가 5분 동안 `0`보다 큼. |
+| 2 | **저하됨** | `Database Metric` → **사용 중인 연결**이 `90`보다 큼. 순간적인 급증으로 호출되지 않도록 All Values로 5분 동안 평가합니다. |
+| 3 | **저하됨** | `Database Metric` → **사용된 트랜잭션 ID**가 `80`보다 큼. |
+| 4 | **저하됨** | `Database Metric` → **차단된 세션**이 5분 동안 `0`보다 큼. |
 | 5 | **온라인** | `Database Is Online`이 `true`. |
 
 기준은 위에서 아래로 평가되고 처음 일치한 기준이 적용되므로, 알림 기준을 먼저 두고 정상 기준을 마지막에 두세요.
 
-오프라인 기준에는 온콜 정책을 연결하고, **Metric Groups Failed**나 `Database Collection Error`에서 파생된 것은 온콜 정책 없이 알림으로만 두세요.
+오프라인 기준에는 온콜 정책을 연결하고, **실패한 메트릭 그룹**이나 `Database Collection Error`에서 파생된 것은 온콜 정책 없이 알림으로만 두세요.
 
 ## 고려할 점
 
@@ -441,11 +441,11 @@ Database Health 모니터에서 표현식은 다음 변수에 접근할 수 있�
 로그인에 `performance_schema`에 대한 `SELECT`가 없거나, 서버에서 `performance_schema`가 꺼져 있습니다. 모니터 요약에 MySQL의 메시지가 표시됩니다. 권한이 없다면 [MySQL](#mysql)의 문을 실행하세요. `performance_schema`가 꺼져 있다면 서버 구성에서 `performance_schema = ON`으로 설정하고 재시작해야 합니다.
 :::
 
-:::details PostgreSQL에서 I/O Read Time과 I/O Write Time이 항상 0임
+:::details PostgreSQL에서 **I/O 읽기 시간**과 **I/O 쓰기 시간**이 항상 0임
 PostgreSQL은 `track_io_timing`이 켜져 있을 때만 이 값들을 측정하며, 기본값은 꺼짐입니다. 실제 값을 보려면 서버 구성이나 관리형 서비스의 파라미터 그룹에서 켜세요. 권한 누락이 아닙니다.
 :::
 
-:::details 확인할 때마다 Metric Groups Failed가 0보다 큼
+:::details 확인할 때마다 **실패한 메트릭 그룹**이 0보다 큼
 어떤 확인에서도 수집할 수 없는 그룹이 있어서 같은 수집 문제가 반복됩니다. 모니터 요약에 그룹, 이유, 해결하는 `GRANT`가 표시됩니다. 그 권한을 부여하거나, 받을 수 없다면 **추가 필드 → Metric Groups**에서 그 그룹을 꺼서 문제가 반복되지 않게 하세요.
 :::
 
