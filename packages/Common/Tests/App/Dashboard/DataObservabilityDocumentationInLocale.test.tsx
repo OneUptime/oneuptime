@@ -64,6 +64,7 @@ import {
   DocumentationTranslations,
   getDocumentationLanguage,
   loadDocumentationText,
+  setDocumentationText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Documentation/DocumentationInReadersLanguage";
 import { DATA_CHECK_TYPE_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTypeWords";
 import { DataCheckType } from "../../../Types/DataObservability/DataCheckType";
@@ -101,6 +102,43 @@ const LIST_ITEM_LINE: RegExp = /^\s*- /;
 
 // Three words in a row: a sentence, not a line of names and code.
 const THREE_WORDS: RegExp = /[a-z]{3,} [a-z]{3,} [a-z]{3,}/;
+
+// A space a line may break at: the space and the fixed-width ones.
+const BREAKING: string = "[\\u0020\\u2000-\\u2006\\u2008-\\u200A\\u205F]";
+
+/*
+ * A French mark a line could start with: a mark that ends a clause after a
+ * word, after a space a line breaks at; and a guillemet beside one.
+ * Written here, apart from Common/Types/NoBreakSpaces, so the check cannot
+ * agree with a mistake there.
+ */
+const FRENCH_MARK_AFTER_A_BREAK: RegExp = new RegExp(
+  `[\\p{L}\\p{N}»)\\]}*_\`]${BREAKING}+[?!:;](?=$|\\s|[»”"')\\]*_<.…?!])`,
+  "gmu",
+);
+
+const GUILLEMET_BESIDE_A_BREAK: RegExp = new RegExp(
+  `\\S${BREAKING}+[»›]|[«‹]${BREAKING}+\\S`,
+  "gu",
+);
+
+// Where `text`'s prose lets a line break beside a French mark: each spot.
+function frenchBreaksIn(text: string): Array<string> {
+  const prose: string = withoutCodeBlocks(text).replace(/`[^`\n]*`/g, "`");
+
+  return [
+    ...(prose.match(FRENCH_MARK_AFTER_A_BREAK) || []),
+    ...(prose.match(GUILLEMET_BESIDE_A_BREAK) || []),
+  ];
+}
+
+// A no-break space: the full one and the narrow one.
+const NO_BREAK_SPACE: RegExp = new RegExp("[\\u00A0\\u202F]", "g");
+
+// `text` with every no-break space a plain one again.
+function withPlainSpaces(text: string): string {
+  return text.replace(NO_BREAK_SPACE, " ");
+}
 
 function codeBlocks(text: string): Array<string> {
   return text.match(FENCE) || [];
@@ -220,6 +258,7 @@ beforeAll(async () => {
       ar: { translation: readDashboardLocale("ar") },
       fa: { translation: readDashboardLocale("fa") },
       ja: { translation: readDashboardLocale("ja") },
+      fr: { translation: readDashboardLocale("fr") },
     },
     interpolation: { escapeValue: false },
     keySeparator: false,
@@ -564,6 +603,19 @@ describe("the page draws the reader's text", () => {
     );
   });
 
+  test("in French, its text with French's marks held to their words (#8032)", async () => {
+    await drawIn("fr");
+
+    const drawn: CapturedViewer = lastViewer();
+
+    expect(drawn.text).toBe(
+      setDocumentationText({ language: "fr", text: TEXTS["fr"]! }),
+    );
+    expect(drawn.text).not.toBe(TEXTS["fr"]);
+    expect(frenchBreaksIn(drawn.text)).toEqual([]);
+    expect(drawn.readingDirection).toBe(LEFT_TO_RIGHT);
+  });
+
   test("while the reader's text is on its way, a loader, never a flash of English", async () => {
     let release: (() => void) | undefined;
     const slow: DocumentationTranslations = {
@@ -683,5 +735,153 @@ describe("which text a reader reads", () => {
     expect(
       await loadDocumentationText({ language: "xx", english, translations }),
     ).toEqual({ language: "en", text: english });
+  });
+});
+
+/*
+ * French sets » ? ! : and ; apart from its words with a space, and the
+ * French text writes a plain one there, as translators type it. A line may
+ * break at a plain space, so a narrow page started a line with ":" or "»"
+ * (#8032). The page draws those spaces as French's no-break ones, as the
+ * Translator draws every French wording; the module keeps its plain ones.
+ */
+describe("the French page keeps its marks with its words (#8032)", () => {
+  test("the module writes French's marks apart with a plain space, as translators type them", () => {
+    expect(frenchBreaksIn(TEXTS["fr"]!).length).toBeGreaterThan(50);
+  });
+
+  test("drawn, no French mark is left where a line could start with it", async () => {
+    const loaded: { language: string; text: string } =
+      await loadDocumentationText({
+        language: "fr",
+        english: DOCUMENTATION,
+        translations: DOCUMENTATION_TRANSLATIONS,
+      });
+
+    expect(loaded.language).toBe("fr");
+    expect(frenchBreaksIn(loaded.text)).toEqual([]);
+  });
+
+  test("only those spaces change: the text is otherwise the module's, its code byte for byte", async () => {
+    const drawn: string = (
+      await loadDocumentationText({
+        language: "fr",
+        english: DOCUMENTATION,
+        translations: DOCUMENTATION_TRANSLATIONS,
+      })
+    ).text;
+
+    expect(withPlainSpaces(drawn)).toBe(withPlainSpaces(TEXTS["fr"]!));
+    expect(drawn.length).toBe(TEXTS["fr"]!.length);
+    expect(codeBlocks(drawn)).toEqual(codeBlocks(TEXTS["fr"]!));
+    expect(inlineCode(drawn)).toEqual(inlineCode(TEXTS["fr"]!));
+  });
+
+  test("the narrow space before ; ! and ?, the full one before : and », and after «", () => {
+    expect(
+      setDocumentationText({
+        language: "fr",
+        text: "Quand : maintenant ; vraiment ? Oui ! Le « Retard ».",
+      }),
+    ).toBe(
+      "Quand\u00A0: maintenant\u202F; vraiment\u202F? Oui\u202F! Le «\u00A0Retard\u00A0».",
+    );
+  });
+
+  test("bold words keep their marks too, and stay bold", () => {
+    expect(
+      setDocumentationText({
+        language: "fr",
+        text: "- **Ses colonnes** : une colonne ajoutée.",
+      }),
+    ).toBe("- **Ses colonnes**\u00A0: une colonne ajoutée.");
+  });
+
+  test("a fenced code block and code in backticks are left as they are written", () => {
+    const text: string = [
+      "Exemple :",
+      "",
+      "```sql",
+      "SELECT a ; -- une remarque : ici ?",
+      "```",
+      "",
+      "Écrivez `a : b` puis validez !",
+      "",
+      "```json",
+      '{ "a" : 1 }',
+      "```",
+      "Fin ?",
+    ].join("\n");
+
+    expect(setDocumentationText({ language: "fr", text })).toBe(
+      [
+        "Exemple\u00A0:",
+        "",
+        "```sql",
+        "SELECT a ; -- une remarque : ici ?",
+        "```",
+        "",
+        "Écrivez `a : b` puis validez\u202F!",
+        "",
+        "```json",
+        '{ "a" : 1 }',
+        "```",
+        "Fin\u202F?",
+      ].join("\n"),
+    );
+  });
+
+  test.each(["fr", "fr-CA", "fr-FR"])(
+    "every French (%s) sets its marks so",
+    (language: string) => {
+      expect(setDocumentationText({ language, text: "Quand :" })).toBe(
+        "Quand\u00A0:",
+      );
+    },
+  );
+
+  test.each(
+    DASHBOARD_LANGUAGES.filter((language: string): boolean => {
+      return language !== "fr";
+    }),
+  )(
+    "%s's text is drawn exactly as its module writes it",
+    async (language: string) => {
+      expect(setDocumentationText({ language, text: "Quand : ici ?" })).toBe(
+        "Quand : ici ?",
+      );
+
+      if (TEXTS[language]) {
+        expect(
+          (
+            await loadDocumentationText({
+              language,
+              english: DOCUMENTATION,
+              translations: DOCUMENTATION_TRANSLATIONS,
+            })
+          ).text,
+        ).toBe(TEXTS[language]);
+      }
+    },
+  );
+
+  test("English is drawn exactly as it always was", async () => {
+    expect(setDocumentationText({ language: "en", text: DOCUMENTATION })).toBe(
+      DOCUMENTATION,
+    );
+    expect(
+      await loadDocumentationText({
+        language: "en",
+        english: DOCUMENTATION,
+        translations: DOCUMENTATION_TRANSLATIONS,
+      }),
+    ).toEqual({ language: "en", text: DOCUMENTATION });
+  });
+
+  test("the check above finds a mark a line could start with (negative control)", () => {
+    expect(frenchBreaksIn("Quand : ici")).toEqual(["d :"]);
+    expect(frenchBreaksIn("Le « Retard »")).toEqual(["« R", "d »"]);
+    expect(frenchBreaksIn("Quand\u00A0: ici")).toEqual([]);
+    expect(frenchBreaksIn("`a : b` et\n```\nx : y\n```")).toEqual([]);
   });
 });

@@ -2,6 +2,10 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { DEFAULT_DASHBOARD_LANGUAGE } from "Common/Types/Dashboard/DashboardLanguage";
 import {
+  setsPunctuationApart,
+  withFrenchSpacing,
+} from "Common/Types/NoBreakSpaces";
+import {
   getReadingDirection,
   ReadingDirection,
 } from "Common/Types/ReadingDirection";
@@ -28,7 +32,8 @@ import React, {
  * no reader downloads the other sixteen. A language the page has no text
  * for, or a chunk that cannot be fetched, reads the English. The text is
  * laid out its language's way: Arabic and Persian from the right, their
- * code from the left as it is written (MarkdownViewer's readingDirection).
+ * code from the left as it is written (MarkdownViewer's readingDirection),
+ * and French with its marks held to their words (setDocumentationText).
  */
 
 // One language's text: a module whose default export is the Markdown.
@@ -62,10 +67,43 @@ export function getDocumentationLanguage(data: {
   return DEFAULT_DASHBOARD_LANGUAGE;
 }
 
+// A fenced code block, from its opening fence's line to its closing one.
+const FENCED_CODE_BLOCK: RegExp = /^```[^\n]*\n[\s\S]*?^```[ \t]*$/gm;
+
 /*
- * The text in `language`, as its module holds it; the English when the
- * page has none in that language, or its module cannot be fetched or holds
- * no text.
+ * `text`, the page in `language`, as that language sets a line. French
+ * writes a plain space before » ? ! : and ; and after «, and a line may
+ * break there, so a narrow page started a line with ":" (#8032): those
+ * spaces are drawn as French's no-break ones, as the Translator draws every
+ * French wording (Common/Types/NoBreakSpaces). Code is left as it is
+ * written: a fenced block, and code in backticks.
+ */
+export function setDocumentationText(data: {
+  language: string;
+  text: string;
+}): string {
+  if (!setsPunctuationApart(data.language)) {
+    return data.text;
+  }
+
+  let result: string = "";
+  let proseStart: number = 0;
+
+  for (const block of data.text.matchAll(FENCED_CODE_BLOCK)) {
+    const blockStart: number = block.index || 0;
+
+    result +=
+      withFrenchSpacing(data.text.slice(proseStart, blockStart)) + block[0];
+    proseStart = blockStart + block[0].length;
+  }
+
+  return result + withFrenchSpacing(data.text.slice(proseStart));
+}
+
+/*
+ * The text in `language`, as its module holds it and as the language sets
+ * a line; the English when the page has none in that language, or its
+ * module cannot be fetched or holds no text.
  */
 export async function loadDocumentationText(data: {
   language: string;
@@ -84,7 +122,13 @@ export async function loadDocumentationText(data: {
     const loaded: { default: string } = await load();
 
     if (typeof loaded?.default === "string" && loaded.default.trim()) {
-      return { language: language, text: loaded.default };
+      return {
+        language: language,
+        text: setDocumentationText({
+          language: language,
+          text: loaded.default,
+        }),
+      };
     }
   } catch {
     // A chunk that cannot be fetched: the page is still there, in English.
