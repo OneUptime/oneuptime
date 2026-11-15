@@ -21,9 +21,14 @@ import {
   writeProbeTimeoutFailureCause,
 } from "./ProbeFailureReading";
 import {
+  readProbeFailureCause,
+  wordProbeFailureCause,
+} from "./ProbeFailureCauses";
+import {
   getRequestFailureDescriptionText,
   readRequestFailureDescription,
 } from "./RequestFailureDescriptions";
+import { wordRootCauseFact } from "./RootCauseFacts";
 
 /*
  * THE ROOT CAUSE A MONITOR WROTE, IN THE READER'S LANGUAGE (issue #6542).
@@ -56,7 +61,13 @@ import {
  * timed out.", ProbeFailureReading), the phase after "- Failed Phase:"
  * (DNS Resolution, TLS Handshake), and what the failed request means after
  * "- Error Description:" ("DNS resolution failed. ...",
- * RequestFailureDescriptions).
+ * RequestFailureDescriptions). So do the probe's causes with values after
+ * **Cause** ("No NTP reply from ... within 5 seconds. Tried 3 times.",
+ * ProbeFailureCauses, #8267), their values as the probe found them; and
+ * the figures the engine writes from a number - a response time, a count
+ * of attempts, an NTP server's stratum, offset, dispersion and leap
+ * indicator - read in the reader's digits and units (RootCauseFacts,
+ * #8268). A status code is a code, and stays as written.
  *
  * On a page read from the right, a line OneUptime words is its words with
  * a stored value after them - "**نام معیار**: Website is down", "- کد
@@ -283,13 +294,22 @@ export default class MonitorRootCauseWording {
           // What follows the label: as stored, unless this language words it.
           let rest: MarkdownText = storedValue(label, stored);
 
-          // "**Cause**: <the probe's timeout sentence>", worded with its count.
+          /*
+           * "**Cause**: <the probe's timeout sentence>", worded with its
+           * count, or one of its causes with values, its values as found.
+           */
           if (label === CAUSE && stored.startsWith(" ")) {
             const worded: string | null =
               MonitorRootCauseWording.wordProbeTimeout(
                 stored.slice(1),
                 translator,
-              );
+              ) ??
+              MonitorRootCauseWording.wordFailureCause({
+                line: line,
+                stored: stored.slice(1),
+                translator: translator,
+                setsValuesApart: setsValuesApart,
+              });
 
             if (worded !== null) {
               rest = mdText` ${worded}`;
@@ -355,6 +375,16 @@ export default class MonitorRootCauseWording {
                 translator: translator,
                 setsValuesApart: setsValuesApart,
               }) || value;
+          } else {
+            // A figure the engine wrote from a number, in the reader's digits.
+            value =
+              MonitorRootCauseWording.wordFigure({
+                line: line,
+                label: label,
+                stored: stored,
+                translator: translator,
+                setsValuesApart: setsValuesApart,
+              }) ?? value;
           }
 
           return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
@@ -408,6 +438,70 @@ export default class MonitorRootCauseWording {
     }
 
     return translator.translatePlural(PROBE_TIMEOUT_FAILURE_CAUSE, triedCount);
+  }
+
+  /*
+   * One of the probe's causes with values (ProbeFailureCauses), as the
+   * engine placed it after **Cause** (written with mdText): in the reader's
+   * language, its values as the probe found them - set apart from the
+   * reader's words when asked. Null for any other cause, and when the
+   * reader's language does not word it.
+   *
+   * The stored cause is Markdown: it is read back to its text, which is
+   * only taken for the cause when mdText writes it back to the very line
+   * the engine stored.
+   */
+  private static wordFailureCause(data: {
+    line: string;
+    stored: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const text: string = data.stored.replace(MARKDOWN_ESCAPE, "$1");
+
+    if (
+      !readProbeFailureCause(text) ||
+      mdText`**${CAUSE}**: ${text}`.toString() !== data.line
+    ) {
+      return null;
+    }
+
+    return wordProbeFailureCause({
+      translator: data.translator,
+      failureCause: text,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
+  }
+
+  /*
+   * A figure under a fact OneUptime lists - a response time, a count of
+   * attempts, an NTP server's stratum, clock offset, root dispersion or
+   * leap indicator - in the reader's digits and units, when the engine
+   * wrote exactly that figure (RootCauseFacts). Null for any other value,
+   * which stays as stored.
+   *
+   * Read back from the stored Markdown as the Error Description is: only
+   * when mdText writes the text back to the very line the engine stored.
+   */
+  private static wordFigure(data: {
+    line: string;
+    label: string;
+    stored: string;
+    translator: Translator;
+    setsValuesApart: boolean;
+  }): string | null {
+    const text: string = data.stored.replace(MARKDOWN_ESCAPE, "$1");
+
+    if (mdText`- ${data.label}: ${text}`.toString() !== data.line) {
+      return null;
+    }
+
+    return wordRootCauseFact({
+      label: data.label,
+      value: text,
+      translator: data.translator,
+      options: { setsValuesApart: data.setsValuesApart },
+    });
   }
 
   /*
