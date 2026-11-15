@@ -7,6 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   afterEach,
@@ -236,7 +237,7 @@ const PAGES: Array<[string, FunctionComponent<PageComponentProps>]> = [
 
 type Request = { url: URL; data: JSONObject };
 
-let fetchSpy: jest.SpiedFunction<typeof API.fetch>;
+let fetchSpy: SpyInstance<typeof API.fetch>;
 let notSignedUpAnswer: () => Promise<unknown>;
 
 function requestsTo(route: string): Array<Request> {
@@ -288,7 +289,7 @@ beforeEach(() => {
       },
       {},
     );
-  }) as never);
+  }) as never) as unknown as SpyInstance<typeof API.fetch>;
 });
 
 afterEach(() => {

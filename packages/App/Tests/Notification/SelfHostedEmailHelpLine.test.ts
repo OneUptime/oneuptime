@@ -435,7 +435,6 @@ describe("MailService.render", () => {
     environment.IsBillingEnabled = false;
 
     const rendered: RenderedEmail = await MailService.render({
-      toEmail: new Email("admin@example.test"),
       subject: "Test Email from OneUptime",
       isSubjectLiteral: true,
       templateType: EmailTemplateType.SMTPTest,
