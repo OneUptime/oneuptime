@@ -570,6 +570,61 @@ describe("execute_remediation_command on a resource round", () => {
     ).toBe(true);
   });
 
+  /*
+   * The citation names the resource as the middle of a sentence does, as a
+   * kubectl change's 'cluster "prod"' does: "Executed on host", never the
+   * label's "Executed on Host" beside "Executed on Docker host" (#8133).
+   */
+  it("cites a change on a host as executed on host, and one with no result back as sent to host", async () => {
+    const host: ResourceAiAccessStatus = resource({
+      resourceType: AiResourceType.Host,
+      resourceName: "db-1",
+    });
+    liveStatus.mockResolvedValue(host);
+    poll.mockResolvedValue(
+      fakeJob({
+        payload: {
+          displayCommand: "systemctl restart nginx",
+          program: "systemctl",
+        },
+      }),
+    );
+
+    const ran: ToolCallOutcome = await execute(
+      buildToolkit({ resourceTargets: [host] }),
+      resourceArgs({ command: "systemctl restart nginx" }),
+    );
+
+    expect(ran.success).toBe(true);
+    expect(ran.result?.citationLabel).toBe(
+      'Executed on host "db-1": systemctl restart nginx',
+    );
+
+    poll.mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.TimedOut,
+        exitCode: undefined,
+        output: "",
+        errorMessage: undefined,
+        payload: {
+          displayCommand: "systemctl restart nginx",
+          program: "systemctl",
+        },
+      }),
+    );
+
+    const unknown: ToolCallOutcome = await execute(
+      buildToolkit({ resourceTargets: [host] }),
+      resourceArgs({ command: "systemctl restart nginx" }),
+    );
+
+    expect(unknown.result?.citationLabel).toBe(
+      'Sent to host "db-1", result unknown: systemctl restart nginx',
+    );
+    expect(unknown.textForLlm).toContain('RESULT UNKNOWN on host "db-1"');
+    expect(unknown.textForLlm).not.toContain('on Host "db-1"');
+  });
+
   it("takes the resource's own breaker lock for its first change, releases it once the job exists, and not again for the next change", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit();
 

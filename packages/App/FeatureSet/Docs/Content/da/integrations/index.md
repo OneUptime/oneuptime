@@ -141,9 +141,9 @@ Når værktøjet skal have dataene i en anden form, tilføjer du en [Run Custom 
 Indsæt aldrig en API-nøgle eller et token i en blok. Gem den én gang som en hemmelig global variabel:
 
 :::steps
-1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+1. Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 2. Giv den et navn, f.eks. `JIRA_AUTH`, og klik på **Næste**.
-3. Indsæt nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Workflow Variabel**.
+3. Indsæt nøglen i **Indhold**, slå **Hemmelighed** til, og klik på **Opret Arbejdsgangsvariabel**.
 :::
 
 Enhver blok læser den som `{{global.variables.JIRA_AUTH}}`. En variabels indhold kan ikke læses igen, når det er gemt, og indholdet af en hemmelig variabel erstattes med `[REDACTED]` i kørselslogs. Til tokens, der udløber, som dem fra Microsoft Entra ID, henter en [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-tokens-der-fornyer-sig-selv) selv et nyt. Se [Workflow-variabler](/docs/workflows/variables#globale-variabler).

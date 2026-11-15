@@ -84,7 +84,7 @@ OneUptime hittar applikationen utifrån `service.name`, utan hänsyn till skiftl
 | **Klienter** | De webbläsarplattformar och enhetsmodeller som applikationen har använts på: en kort lista per plattform, aldrig en rad per användare. |
 | **Produktanalys** | Aktiva, nya, återkommande och inaktiva användare och sessioner per enhet, webbläsare, land och sida, räknade från de inspelade sessionerna, och de händelser din app skickar, som trender, trattar och kvarhållning: se [Produktanalys](/docs/rum/product-analytics). |
 | **Sessionsuppspelning** | Inspelningar av riktiga sessioner, bredvid deras fel, spår och loggar: se [Sessionsuppspelning](/docs/telemetry/session-replay). |
-| **Rekommendationer** | Färdiga övervakare för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
+| **Rekommendationer** | Färdiga monitorer för applikationen: dåliga Core Web Vitals, misslyckade förfrågningar, webbläsarundantag och, så snart den spelar in, budgetar för Session Replay. |
 
 Siffrorna kommer från de spans som din instrumentering skickar. **Sidladdningar** räknar det `documentLoad`-span som instrumenteringen för sidladdning registrerar vid varje fullständig laddning, så ett routebyte i en ensidesapp är ingen sidladdning.
 

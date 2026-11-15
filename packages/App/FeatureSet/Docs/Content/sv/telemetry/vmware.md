@@ -1,6 +1,6 @@
 # VMware-agent
 
-OneUptimes VMware-agent övervakar VMware vSphere: vCenter Server, ESXi-värdar, virtuella maskiner, datalager, kluster, resurspooler och vSAN. Den är en vanlig OpenTelemetry Collector vars [`vcenter`-mottagare](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) läser vSphere-API:t med en skrivskyddad användare, stämplar varje mätvärde med ditt vCenters namn och skickar det till OneUptime: inget plugin på vCenter och inget inuti VM:arna. [VMware-övervakare](/docs/monitor/vmware-monitor) larmar utifrån det som kommer in.
+OneUptimes VMware-agent övervakar VMware vSphere: vCenter Server, ESXi-värdar, virtuella maskiner, datalager, kluster, resurspooler och vSAN. Den är en vanlig OpenTelemetry Collector vars [`vcenter`-mottagare](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/vcenterreceiver) läser vSphere-API:t med en skrivskyddad användare, stämplar varje mätvärde med ditt vCenters namn och skickar det till OneUptime: inget plugin på vCenter och inget inuti VM:arna. [VMware-monitorer](/docs/monitor/vmware-monitor) larmar utifrån det som kommer in.
 
 :::cards
 - [Installera agenten](#installera-agenten): En skrivskyddad användare, sedan installationsskriptet, Docker Compose eller systemd.
@@ -219,7 +219,7 @@ Vid varje `VCENTER_COLLECTION_INTERVAL` går mottagaren igenom hela vSphere-inve
 | Datalager | + `vcenter.datastore.name` | `vcenter.datastore.disk.usage`, `vcenter.datastore.disk.utilization` |
 | Resurspool | + `vcenter.resource_pool.name`, `vcenter.resource_pool.inventory_path` | `vcenter.resource_pool.cpu.usage` / `.cpu.shares`, `vcenter.resource_pool.memory.usage` / `.memory.shares` / `.memory.ballooned` / `.memory.swapped` / `.memory.granted` |
 
-Räknings- och kapacitetsmätvärden fördelas över **datapunktsattribut**, som är precis det du filtrerar och grupperar på i övervakarkriterier:
+Räknings- och kapacitetsmätvärden fördelas över **datapunktsattribut**, som är precis det du filtrerar och grupperar på i monitorkriterier:
 
 | Attribut | Värden | Finns på |
 | --- | --- | --- |
@@ -232,7 +232,7 @@ Räknings- och kapacitetsmätvärden fördelas över **datapunktsattribut**, som
 | `cpu_reservation_type` | `total` / `used` | `vcenter.host.cpu.reserved` |
 | `type` | Minne: `guest` / `host` / `overhead`, `private` / `shared`; vSAN: `read` / `write` / `unmap` | Minnesserier för resurspooler, vSAN-latens och -operationer |
 
-Enheterna är mottagarens egna OTLP-enheter, som OneUptime skalar för visning: `MHz` för CPU-användning och -kapacitet, `%` för utnyttjande och CPU ready, `MiBy` för minne i värdar, VM:ar och resurspooler, `By` för minne i kluster och datacenter och allt diskutrymme, `ms` för disklatens i värdar och VM:ar och `us` (mikrosekunder) för vSAN-latens. I övervakarkriterier får identitetsattributen prefixet `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), medan datapunktsattribut står utan prefix (`disk_state`, `power_state`, `status`).
+Enheterna är mottagarens egna OTLP-enheter, som OneUptime skalar för visning: `MHz` för CPU-användning och -kapacitet, `%` för utnyttjande och CPU ready, `MiBy` för minne i värdar, VM:ar och resurspooler, `By` för minne i kluster och datacenter och allt diskutrymme, `ms` för disklatens i värdar och VM:ar och `us` (mikrosekunder) för vSAN-latens. I monitorkriterier får identitetsattributen prefixet `resource.` (`resource.vcenter.host.name`, `resource.vmware.vcenter.name`), medan datapunktsattribut står utan prefix (`disk_state`, `power_state`, `status`).
 
 `vcenter.host.memory.capacity` är avstängd som standard uppströms; den medföljande konfigurationen slår på den, eftersom OneUptime dividerar med den för värdarnas minnesutnyttjande. En kommentar i `otel-collector-config.yaml` listar de andra valfria mätvärdena (`vcenter.vm.cpu.time`, `vcenter.vm.memory.granted`, `vcenter.host.memory.active`, `vcenter.host.memory.ballooned`, `vcenter.host.memory.granted`, `vcenter.vm.network.broadcast.packet.rate`, `vcenter.vm.network.multicast.packet.rate`): Slå på vilket som helst av dem på samma sätt.
 

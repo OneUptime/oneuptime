@@ -177,7 +177,7 @@ Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST`�
 | 開機自動啟動 | `pve_onboot_status`，每個客體一個序列：客體設定為開機自動啟動時為 1。**Guest Down** 只針對這些客體發出警示。 |
 | 複寫 | 每個儲存空間複寫工作的 `pve_replication_failed_syncs`、`pve_replication_duration_seconds`、`pve_replication_last_sync_timestamp_seconds`、`pve_replication_last_try_timestamp_seconds`、`pve_replication_next_sync_timestamp_seconds`、`pve_replication_info`。它們的 `id` 標籤是工作 ID（例如 `100-0`），而不是資源。 |
 
-監控器條件和屬性篩選器是依相等而不是依前置詞比對，因此 Collector 的 `transform/pve-identity` 處理器也會將 `id` 拆分為三個屬性。內建的 Proxmox 警示範本會依這些屬性篩選，所以如果你自訂設定，請保留這個處理器：
+監測器條件和屬性篩選器是依相等而不是依前置詞比對，因此 Collector 的 `transform/pve-identity` 處理器也會將 `id` 拆分為三個屬性。內建的 Proxmox 警示範本會依這些屬性篩選，所以如果你自訂設定，請保留這個處理器：
 
 | 屬性 | 值 | 對於 `qemu/100` |
 | --- | --- | --- |

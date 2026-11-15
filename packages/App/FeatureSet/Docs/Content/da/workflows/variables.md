@@ -30,7 +30,7 @@ Værdier for hele projektet, som du gemmer én gang og genbruger i hvert workflo
 :::steps
 ### Åbn de globale variabler
 
-Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Workflow Variabel**.
+Gå til **Arbejdsgange → Globale variabler**, og klik på **Opret Arbejdsgangsvariabel**.
 
 ### Navngiv variablen
 
@@ -48,7 +48,7 @@ Udfyld i trinnet **Værdi**:
 - **Indhold** — selve værdien. Det er et felt til lang tekst, så værdier over flere linjer virker.
 - **Hemmelighed** — når den er slået til, fjernes værdien fra kørselslogge og trinspor.
 
-Klik på **Opret Workflow Variabel**. For at ændre navnet eller beskrivelsen før det klikker du på **Variabel** i listen over trin ved siden af formularen (vises på brede skærme); det, du skrev i begge trin, bevares.
+Klik på **Opret Arbejdsgangsvariabel**. For at ændre navnet eller beskrivelsen før det klikker du på **Variabel** i listen over trin ved siden af formularen (vises på brede skærme); det, du skrev i begge trin, bevares.
 :::
 
 Brug en global variabel i et hvilket som helst workflow med:
@@ -66,15 +66,15 @@ Listen viser hver variabels navn og beskrivelse. Klik på **Vis** i en række fo
 | **Rediger variabel**                       | Ændrer navnet, beskrivelsen og — for en statisk variabel, der endnu ikke er hemmelig — hemmeligheds-markeringen. Når en variabel først er hemmelig, forbliver den hemmelig. |
 | **Opdater indhold**                         | Erstatter en statisk værdi. Det gemte indhold kan ikke læses tilbage, så du skriver den nye værdi i sin helhed.                                  |
 | **Brug i arbejdsgange**                       | Viser den præcise reference, du skal indsætte i dine blokke, med en kopieringsknap.                                                              |
-| **Slet Workflow Variabel**                 | Sletter den, efter at have bedt dig bekræfte. Bekræftelsen nævner variablen, så du kan tjekke, at det er den rigtige.                             |
+| **Slet Arbejdsgangsvariabel**              | Sletter den, efter at have bedt dig bekræfte. Bekræftelsen nævner variablen, så du kan tjekke, at det er den rigtige.                             |
 
-For i stedet at oprette en variabel til et **OAuth 2.0-adgangstoken** åbner du menuen **Mere** (**⋯**) ved siden af **Opret Workflow Variabel** og vælger **Opret OAuth 2.0-variabel**. OAuth 2.0-variabler har [deres egen sektion](#oauth-20-variabler-tokens-der-fornyer-sig-selv) nedenfor. En variabels type kan ikke ændres, efter at den er gemt.
+For i stedet at oprette en variabel til et **OAuth 2.0-adgangstoken** åbner du menuen **Mere** (**⋯**) ved siden af **Opret Arbejdsgangsvariabel** og vælger **Opret OAuth 2.0-variabel**. OAuth 2.0-variabler har [deres egen sektion](#oauth-20-variabler-tokens-der-fornyer-sig-selv) nedenfor. En variabels type kan ikke ændres, efter at den er gemt.
 
 Du kan også opdatere en variabel via API'et, hvilket er beskrevet [sidst på denne side](#opdatér-en-variabel-fra-et-workflow). Globale variabler og workflowvariabler er en funktion i abonnementet Growth.
 
 ## Lokale workflowvariabler
 
-Variabler, der hører til ét workflow, administreret under **Arbejdsgangsvariabler** i det workflows menu. De virker på samme måde som globale variabler: **Opret Workflow Variabel** opretter en statisk variabel, menuen **Mere** (**⋯**) opretter en OAuth 2.0-variabel, og **Vis** åbner en variabels side. Henvis til dem med:
+Variabler, der hører til ét workflow, administreret under **Arbejdsgangsvariabler** i det workflows menu. De virker på samme måde som globale variabler: **Opret Arbejdsgangsvariabel** opretter en statisk variabel, menuen **Mere** (**⋯**) opretter en OAuth 2.0-variabel, og **Vis** åbner en variabels side. Henvis til dem med:
 
 ```text
 {{local.variables.NAME}}

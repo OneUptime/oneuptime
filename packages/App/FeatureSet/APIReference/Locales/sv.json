@@ -117,7 +117,7 @@
       "intro": "I den här guiden tittar vi på hur du arbetar med paginerade svar när du frågar OneUptime-API:et. Som standard begränsar alla svar resultat till tio.",
       "body": "När ett API-svar returnerar en lista med objekt, oavsett antal, stöds paginering. I paginerade svar är objekt nästlade i ett <code>data</code>-attribut. API-svaret har också ett <code>count</code>-attribut som anger det totala antalet i listan med den frågan. Du kan använda frågeparametrarna <code>limit</code> och <code>skip</code> för att fråga sidor.",
       "exampleHeading": "Pagineringsexempel",
-      "exampleBody": "I det här exemplet begär vi listan med övervakare. Som ett resultat får vi en lista med tre övervakare och kan se av <code>count</code>-attributet att vi har nått slutet av resultatuppsättningen",
+      "exampleBody": "I det här exemplet begär vi listan med monitorer. Som ett resultat får vi en lista med tre monitorer och kan se av <code>count</code>-attributet att vi har nått slutet av resultatuppsättningen",
       "queryParameters": "Frågeparametrar",
       "responseBody": "Svarstext",
       "limitDescription": "Antal objekt du behöver hämta. Fler objekt kommer att leda till långsammare svar. Maxgränsen är 100.",

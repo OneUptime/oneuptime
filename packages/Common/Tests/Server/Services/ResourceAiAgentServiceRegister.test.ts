@@ -35,7 +35,10 @@ import ForbiddenException from "../../../Types/Exception/ForbiddenException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
+import AiResourceType, {
+  AI_RESOURCE_TYPE_INFO,
+} from "../../../Types/ResourceAiAgent/AiResourceType";
+import { toSentenceTerm } from "../../../Types/Translator";
 import {
   MAX_POSTURE_STRING_LENGTH,
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -605,6 +608,41 @@ describe("register: resolving the resource of every named type", () => {
 
     await expect(register()).rejects.toThrow("could not be resolved");
     nothingWrittenToTheAgentTable(harness);
+  });
+
+  /*
+   * The refusal names the resource's kind in the middle of its sentence as
+   * the AI Investigation card does: "The host", never the label's "The
+   * Host" (#8133).
+   */
+  test.each(NAMED_TYPES)(
+    "a $resourceType that cannot be read back is named as a sentence names it",
+    async (fixture: TypeFixture) => {
+      setUp({ fixture, resource: null });
+
+      await expect(
+        register({
+          resourceType: fixture.resourceType,
+          resourceIdentifier: fixture.identity,
+        }),
+      ).rejects.toThrow(
+        `The ${toSentenceTerm(
+          AI_RESOURCE_TYPE_INFO[fixture.resourceType].displayName,
+          "en",
+        )} could not be resolved.`,
+      );
+    },
+  );
+
+  test("a host that cannot be read back is the host, not the Host", async () => {
+    setUp({ fixture: NAMED_TYPES[NAMED_TYPES.length - 1]!, resource: null });
+
+    await expect(
+      register({
+        resourceType: AiResourceType.Host,
+        resourceIdentifier: "node-7",
+      }),
+    ).rejects.toThrow("The host could not be resolved.");
   });
 
   /*

@@ -31,13 +31,28 @@ import {
  * output.
  */
 
-// 'Docker host "web-1"', 'Host "web-2"' — how a resource is named in copy.
+/*
+ * 'Docker host "web-1"', 'Host "web-2"' — how a resource is named where it
+ * starts a line or an item of a list for the model: its kind as a label.
+ */
 export function describeResource(status: ResourceAiAccessStatus): string {
   const info: AiResourceTypeInfo | null = isAiResourceType(status.resourceType)
     ? AI_RESOURCE_TYPE_INFO[status.resourceType]
     : null;
 
   return `${info ? info.displayName : "Resource"} "${status.resourceName}"`;
+}
+
+/*
+ * 'host "web-2"', 'Docker host "web-1"' — a resource in the middle of a
+ * sentence: its kind as a sentence says it (describeResourceNoun), never the
+ * label's "Host" beside "Docker host" (#8133). The name stays quoted: it can
+ * sit beside a command, where a bare name would run into it.
+ */
+export function describeResourceInSentence(
+  status: ResourceAiAccessStatus,
+): string {
+  return `${describeResourceNoun(status.resourceType)} "${status.resourceName}"`;
 }
 
 // "the Docker AI agent" — who runs commands on this resource.
@@ -181,7 +196,7 @@ export default class ResourceAccessContext {
     const blocking: Array<ResourceAiAccessGap> = getBlockingGaps(status);
 
     if (blocking.length === 0 && status.isInvestigationReady) {
-      return `OneUptime AI can run read-only commands on ${describeResource(
+      return `OneUptime AI can run read-only commands on ${describeResourceInSentence(
         status,
       )} through ${describeResourceAgent(status)}.`;
     }
@@ -189,12 +204,12 @@ export default class ResourceAccessContext {
     const first: ResourceAiAccessGap | undefined = blocking[0];
 
     if (!first) {
-      return `OneUptime AI could not run commands on ${describeResource(
+      return `OneUptime AI could not run commands on ${describeResourceInSentence(
         status,
       )}.`;
     }
 
-    return `OneUptime AI could not run commands on ${describeResource(
+    return `OneUptime AI could not run commands on ${describeResourceInSentence(
       status,
     )}: ${first.title.charAt(0).toLowerCase()}${first.title.slice(1)}. ${first.nextStep}`;
   }

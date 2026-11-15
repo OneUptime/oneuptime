@@ -1,6 +1,6 @@
 # Ceph 代理程式
 
-OneUptime Ceph 代理程式會監控 Ceph 叢集：它的健康狀態、監視器仲裁、OSD、儲存池和放置群組。它會在每個 mgr 常駐程式上抓取 Ceph mgr 的 `prometheus` 模組，為每個指標加上你的叢集名稱，並傳送到 OneUptime，叢集會在那裡連同其 OSD、儲存池和常駐程式一起顯示。[Ceph 監控](/docs/monitor/ceph-monitor) 會根據收到的資料發出警示。
+OneUptime Ceph 代理程式會監控 Ceph 叢集：它的健康狀態、監測器仲裁、OSD、儲存池和放置群組。它會在每個 mgr 常駐程式上抓取 Ceph mgr 的 `prometheus` 模組，為每個指標加上你的叢集名稱，並傳送到 OneUptime，叢集會在那裡連同其 OSD、儲存池和常駐程式一起顯示。[Ceph 監控](/docs/monitor/ceph-monitor) 會根據收到的資料發出警示。
 
 :::cards
 - [安裝代理程式](#安裝代理程式): 啟用 mgr 模組，再使用安裝指令碼或 Docker Compose。
@@ -16,7 +16,7 @@ OneUptime Ceph 代理程式會監控 Ceph 叢集：它的健康狀態、監視�
 ```mermaid title="從你的 Ceph 叢集到 OneUptime"
 flowchart TB
     mgrs["每個 mgr 常駐程式，<br/>連接埠 9283"]
-    daemons["監視器、mgr<br/>和 OSD 常駐程式"]
+    daemons["監測器、mgr<br/>和 OSD 常駐程式"]
     collector["Collector"] -->|"每 30 秒<br/>抓取一次"| mgrs
     collector -->|"OTLP"| oneuptime["OneUptime"]
     oneuptime -->|"調查事件<br/>或警示"| ai["Ceph AI 代理程式"]
@@ -137,7 +137,7 @@ AI 代理程式自己的設定請見 [AI 代理程式](#ai-代理程式)。
 | OSD | `ceph_osd_up`、`ceph_osd_in`、`ceph_osd_apply_latency_ms`、`ceph_osd_commit_latency_ms`、`ceph_osd_stat_bytes`、`ceph_osd_stat_bytes_used`、`ceph_osd_numpg`、`ceph_osd_metadata`，依 OSD 以 `ceph_daemon` 標籤區分（例如 `osd.3`） |
 | 儲存池 | `ceph_pool_stored`、`ceph_pool_max_avail`、`ceph_pool_objects`、`ceph_pool_rd`、`ceph_pool_wr`、`ceph_pool_rd_bytes`、`ceph_pool_wr_bytes`、`ceph_pool_metadata`。資料序列只帶有 `pool_id` 標籤；儲存池的名稱在 `ceph_pool_metadata` 上。 |
 | 放置群組 | `ceph_pg_total`、`ceph_pg_active`、`ceph_pg_clean`、`ceph_pg_degraded`、`ceph_pg_undersized`（皆依儲存池，以 `pool_id` 區分）、`ceph_num_objects_degraded`、`ceph_num_objects_misplaced` |
-| 常駐程式 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上方的監視器和 OSD 中繼資料。每個都指出一個常駐程式，並在 `ceph_version` 標籤中帶有其版本：**守護程式** 頁面會列出它們。 |
+| 常駐程式 | `ceph_mgr_metadata`、`ceph_mds_metadata` 和 `ceph_rgw_metadata`，加上上方的監測器和 OSD 中繼資料。每個都指出一個常駐程式，並在 `ceph_version` 標籤中帶有其版本：**守護程式** 頁面會列出它們。 |
 
 ### 更多抓取目標
 
@@ -163,7 +163,7 @@ OSD 比率是 Ceph 的預設值。設定了其他值的叢集會在自己的門�
 
 ## 選用 — 傳送 Ceph 叢集日誌
 
-代理程式可以追蹤 `/var/log/ceph/ceph.log` 並將其傳送到 OneUptime，進而填入叢集的 **叢集日誌** 頁面。它預設為關閉，因為這時代理程式必須在擁有叢集日誌的主機上執行：預設是監視器主機。
+代理程式可以追蹤 `/var/log/ceph/ceph.log` 並將其傳送到 OneUptime，進而填入叢集的 **叢集日誌** 頁面。它預設為關閉，因為這時代理程式必須在擁有叢集日誌的主機上執行：預設是監測器主機。
 
 :::steps
 ### 開啟接收器
@@ -252,7 +252,7 @@ docker compose down
 - **AI 調查預設為開啟。** 代理程式連線後，OneUptime AI 會用它來調查該叢集上的事件和警示，叢集的 **概覽** 會顯示代理程式的狀態。若要停止，請在代理程式執行的位置設定 `ONEUPTIME_AI_INVESTIGATION=false`（AI 代理程式頁面上 **AI 可以執行的操作** 下的 **變更** 會顯示方法），或不安裝代理程式。
 - **它自己的 Ceph 用戶端就是硬性界限。** 它以 `client.oneuptime-ai` 身分連線，使用叢集的最小 `ceph.conf` 和該用戶端的金鑰圈，兩者放在 `docker-compose.yml` 旁邊的 `ceph/` 資料夾中（以唯讀方式掛載到 `/etc/ceph`）。只有讀取 caps 時，它執行的任何命令都無法變更叢集。全新安裝時，`install.sh` 會提議建立該用戶端；再次執行時絕不會建立。切勿將 admin 金鑰圈放進該資料夾。
 - 除非你設定 `ONEUPTIME_AI_ALLOW_WRITES=true` 並為用戶端授予修正所需的 caps（代理程式的 README 列出了這些 caps），否則它是 **唯讀** 的；`ONEUPTIME_AI_WRITE_TARGETS`（例如 `osd.*,cluster`）會限制修正可以觸及的範圍。同一個 `.env` 中的 `ONEUPTIME_AI_FIXES` 決定修正如何執行——`ask-for-approval`（由人逐一核准）、`automatic` 或 `bypass-approval`——AI 代理程式頁面會以唯讀方式顯示它（[AI 可以執行的操作，由代理程式設定](/docs/ai/infrastructure-ai-agents#ai-可以做什麼由代理程式設定)）。
-- 它會對外連線到監視器（TCP 3300 和 6789）以及 mgr 和 OSD 常駐程式（TCP 6800–7300），以 UID 1000 執行且不帶任何 capabilities，絕不執行 `auth`、`config-key`、`tell` 或任何會刪除資料的命令。如果你不使用 OneUptime AI，請從 `docker-compose.yml` 中刪除 `oneuptime-ceph-ai-agent` 服務。
+- 它會對外連線到監測器（TCP 3300 和 6789）以及 mgr 和 OSD 常駐程式（TCP 6800–7300），以 UID 1000 執行且不帶任何 capabilities，絕不執行 `auth`、`config-key`、`tell` 或任何會刪除資料的命令。如果你不使用 OneUptime AI，請從 `docker-compose.yml` 中刪除 `oneuptime-ceph-ai-agent` 服務。
 
 若要手動建立該用戶端，請在 Ceph 管理節點上、代理程式的資料夾中執行以下命令（如果代理程式在另一台機器上，請將這兩個檔案複製到那台機器的 `ceph/` 資料夾中）：
 

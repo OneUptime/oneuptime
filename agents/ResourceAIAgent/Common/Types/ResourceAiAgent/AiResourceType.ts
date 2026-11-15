@@ -128,8 +128,19 @@ export function isAiResourceType(value: unknown): value is AiResourceType {
 
 export interface AiResourceTypeInfo {
   type: AiResourceType;
-  // How the resource is named in sentences: "Docker host", "Ceph cluster".
+  /*
+   * How the resource is named as a label, where it starts a line, a heading
+   * or an item of a list: "Docker host", "Ceph cluster", "Host".
+   */
   displayName: string;
+  /*
+   * How it is named in the middle of a sentence: its display name as
+   * toSentenceTerm (Types/Translator) cases it, which a Common test pins -
+   * "Docker host", "AWS account", but "host" and "database server" (#8133).
+   * Written out here because the resource AI agent carries this file
+   * without the Translator.
+   */
+  sentenceName: string;
   /*
    * How the resource's agent is named wherever a Runner name would
    * otherwise appear (RunnerJob targets, plan steps' runnerNameSnapshot,
@@ -191,6 +202,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.DockerHost]: {
     type: AiResourceType.DockerHost,
     displayName: "Docker host",
+    sentenceName: "Docker host",
     agentDisplayName: "Docker AI agent",
     agentAlias: "docker",
     programs: ["docker"],
@@ -205,6 +217,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.PodmanHost]: {
     type: AiResourceType.PodmanHost,
     displayName: "Podman host",
+    sentenceName: "Podman host",
     agentDisplayName: "Podman AI agent",
     agentAlias: "podman",
     programs: ["docker"],
@@ -219,6 +232,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.DockerSwarmCluster]: {
     type: AiResourceType.DockerSwarmCluster,
     displayName: "Docker Swarm cluster",
+    sentenceName: "Docker Swarm cluster",
     agentDisplayName: "Docker Swarm AI agent",
     agentAlias: "docker-swarm",
     programs: ["docker"],
@@ -235,6 +249,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.ProxmoxCluster]: {
     type: AiResourceType.ProxmoxCluster,
     displayName: "Proxmox cluster",
+    sentenceName: "Proxmox cluster",
     agentDisplayName: "Proxmox AI agent",
     agentAlias: "proxmox",
     programs: ["pvesh"],
@@ -245,6 +260,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.VMwareVCenter]: {
     type: AiResourceType.VMwareVCenter,
     displayName: "VMware vCenter",
+    sentenceName: "VMware vCenter",
     agentDisplayName: "VMware AI agent",
     agentAlias: "vmware",
     programs: ["govc"],
@@ -255,6 +271,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.CephCluster]: {
     type: AiResourceType.CephCluster,
     displayName: "Ceph cluster",
+    sentenceName: "Ceph cluster",
     agentDisplayName: "Ceph AI agent",
     agentAlias: "ceph",
     programs: ["ceph"],
@@ -271,6 +288,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.DatabaseServer]: {
     type: AiResourceType.DatabaseServer,
     displayName: "Database server",
+    sentenceName: "database server",
     agentDisplayName: "Database AI agent",
     agentAlias: "database",
     programs: ["db"],
@@ -287,6 +305,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.Host]: {
     type: AiResourceType.Host,
     displayName: "Host",
+    sentenceName: "host",
     agentDisplayName: "Host AI agent",
     agentAlias: "host",
     programs: HOST_PROGRAMS,
@@ -305,6 +324,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.AwsAccount]: {
     type: AiResourceType.AwsAccount,
     displayName: "AWS account",
+    sentenceName: "AWS account",
     agentDisplayName: "Cloud AI agent",
     agentAlias: "aws",
     programs: ["cloud"],
@@ -315,6 +335,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.AzureSubscription]: {
     type: AiResourceType.AzureSubscription,
     displayName: "Azure subscription",
+    sentenceName: "Azure subscription",
     agentDisplayName: "Cloud AI agent",
     agentAlias: "azure",
     programs: ["cloud"],
@@ -325,6 +346,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.GoogleCloudProject]: {
     type: AiResourceType.GoogleCloudProject,
     displayName: "Google Cloud project",
+    sentenceName: "Google Cloud project",
     agentDisplayName: "Cloud AI agent",
     agentAlias: "gcp",
     programs: ["cloud"],
@@ -341,6 +363,7 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
   [AiResourceType.OpenStackCloud]: {
     type: AiResourceType.OpenStackCloud,
     displayName: "OpenStack cloud",
+    sentenceName: "OpenStack cloud",
     agentDisplayName: "OpenStack AI agent",
     agentAlias: "openstack",
     programs: ["openstack"],

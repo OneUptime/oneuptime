@@ -1360,7 +1360,7 @@ describe("ChatInfrastructureAccess.buildForPage", () => {
 
     expect(outcome.success).toBe(true);
     expect(outcome.textForLlm).toContain(UPTIME_OUTPUT);
-    expect(outcome.result?.citationLabel).toBe('`uptime` on Host "test01"');
+    expect(outcome.result?.citationLabel).toBe('`uptime` on host "test01"');
     expect(outcome.result?.rowCount).toBe(1);
 
     // Through the host's own agent, as an AI run's read-only command.

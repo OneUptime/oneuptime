@@ -69,7 +69,7 @@ En ny monitor starter med **Cluster Stopped Reporting** under **Hva det skal var
 
 ### Sjekk kriteriene
 
-Åpne hvert kriterium under **Kriterier** og sjekk **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at metrikken ikke sender data, så sett din egen terskel.
+Åpne hvert kriterium under **Kriterier** og sjekk **Måling**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller dem ut. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare legger merke til at metrikken ikke sender data, så sett din egen terskel.
 
 ### Opprett monitoren
 
@@ -89,7 +89,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Ceph Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger slås sammen: **Gjennomsnitt**, **Maksimum** eller **Minimum**. Starter med metrikkens vanlige aggregering. En sum eller en telling ville legge sammen hver skraping i et minutt, så de er overlatt til **Avansert**. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
 Pooldataserier har bare etiketten `pool_id`: Poolens navn finnes bare på `ceph_pool_metadata`. Filtrer og grupper poolserier etter `pool_id`, og slå opp navnet i `ceph_pool_metadata` når du trenger det.
 
@@ -226,7 +226,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 
 | Felt | Hva det gjør |
 | --- | --- |
-| **Metrikk** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
+| **Måling** | Spørringen eller formelen som sjekkes, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maksimumsverdi**, **Minimumsverdi**, **Alle verdier** (hver verdi må stemme, i hele vinduet) eller **Minst én verdi** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** — eller en anomalibetingelse: **Unormalt høy**, **Unormalt lav** eller **Avvikende**. **Ingen data** stemmer når spørringen ikke ga noe i vinduet, og **Har data** når den ga noe. **Ventes å stige over** og **Ventes å falle under** treffer når metrikkens trend i vinduet er forbi terskelen ved slutten av **Tidshorisont**. |
 | **Terskel** | Verdien det sammenlignes med. Ved siden av står en enhetsliste når metrikken har en enhet. Vises ikke for anomalibetingelser. |
