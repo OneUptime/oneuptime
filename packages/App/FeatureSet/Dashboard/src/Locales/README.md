@@ -601,10 +601,12 @@ translated the same locale. Take either side, then run
   (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
-  not keys yet; the metric groups' titles and descriptions are. Nor are the
-  database monitor's metric names
-  (`Common/Types/Monitor/DatabaseMetricCatalog`), which its criteria draw as
-  written, so the docs' metric table keeps them in English.
+  not keys yet, except a Database monitor's descriptions, which are its
+  catalog's; the metric groups' titles and descriptions are. Every monitor
+  metric catalog's descriptions are keys (`Common/Types/Monitor/*MetricCatalog`,
+  #8014), but not the database, VMware, Kubernetes, Docker, Docker Swarm,
+  Podman, host and IoT catalogs' metric names, which their pickers and
+  criteria draw in English, so the docs' metric tables keep them in English.
 - "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
   Events" are still English in some languages, the monitor overview's
   verdicts among them. The translated docs quote each label as that

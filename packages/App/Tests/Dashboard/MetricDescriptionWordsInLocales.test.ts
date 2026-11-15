@@ -24,10 +24,20 @@ import {
   MESSAGE_QUEUE_METRICS,
   MessageQueueMetricDescriptor,
 } from "Common/Types/MessageQueue/MessageQueueMetricCatalog";
-import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  AsWrittenToken,
+  asWrittenIn as asWrittenAmong,
+  DIGITS_ARABIC_DOES_NOT_WRITE,
+  fullStopsOf,
+  hasNoLetters,
+  numbersIn,
+  placeholdersOf,
+  saysNumber,
+  sharedEnding,
+} from "./DescriptionWordsKept";
 
 /*
  * THE (i) BESIDE A RESOURCE PAGE'S TILES, CHARTS AND COLUMNS READS IN THE
@@ -234,13 +244,6 @@ const EXPORTED: ReadonlyMap<string, Array<ExportedDescription>> = new Map<
  * What a reading in English excuses as the same as English (LocaleStatus):
  * a text with no letters, the global list, the language's own list.
  */
-const PLACEHOLDER: RegExp = /\{\{\s*\w+\s*\}\}/g;
-const LETTER: RegExp = /\p{L}/u;
-
-function hasNoLetters(text: string): boolean {
-  return !LETTER.test(text.replace(PLACEHOLDER, ""));
-}
-
 const GLOBAL_SAME_AS_ENGLISH: Set<string> = new Set<string>(
   readGlobalSameAsEnglish(),
 );
@@ -252,28 +255,12 @@ function sameAsEnglishOf(language: string): Set<string> {
   ]);
 }
 
-function placeholdersOf(text: string): Array<string> {
-  return (text.match(PLACEHOLDER) || []).sort();
-}
-
 /*
  * What a text names that a reader looks up or reads as written, in every
- * language: a metric or attribute name (k8s.pod.cpu.usage,
- * telemetry.sdk.language), a setting (max_connections, wsrep_desync), an
- * identifier (cpuCores, a camelCase field), a token with digits in it (p95,
- * HTTP2, V8), a path (/orders/:id), the products, protocols and standards
- * the pages are about, unit symbols the tiles print in Latin letters, and a
- * value the page prints in quotation marks ("50+").
+ * language (DescriptionWordsKept): the metric, attribute and setting names
+ * it gives, and the products, protocols and standards the pages are about
+ * and the unit symbols the tiles print in Latin letters, listed here.
  */
-const DOTTED: RegExp = /(?<![\w.])[a-z][a-z0-9_]*(?:\.[a-z0-9_*]+)+/g;
-const SNAKE_CASE: RegExp = /\b[a-z][a-z0-9]*_[a-z0-9_]+\b/g;
-const CAMEL_CASE: RegExp = /\b[a-z]+[A-Z][A-Za-z0-9]*\b/g;
-const LETTERS_AND_DIGITS: RegExp = /\b[A-Za-z]+\d+[A-Za-z0-9]*\b/g;
-const PATH_LIKE: RegExp = /(?<!\w)\/[\w/:*-]+[\w*]/g;
-const QUOTED_VALUE: RegExp = /"([^"]+)"/g;
-const NUMERIC_VALUE: RegExp = /^[\d+<>%.,\s]+$/;
-const NOT_TOKENS: ReadonlySet<string> = new Set<string>(["e.g", "i.e", "etc"]);
-
 const NAMES: ReadonlyArray<string> = [
   "OneUptime",
   "OpenTelemetry",
@@ -380,135 +367,13 @@ const UNIT_SYMBOLS: ReadonlyArray<string> = [
   "B/s",
 ];
 
-// A name standing as a word of its own: not part of a longer word or name.
-function standsAlone(token: string): RegExp {
-  return new RegExp(`(?<![\\w.])${escapeRegExp(token)}(?!\\w)`);
-}
-
-const NAME_PATTERNS: ReadonlyArray<[string, RegExp]> = [
+const NAMES_AND_UNIT_SYMBOLS: ReadonlyArray<string> = [
   ...NAMES,
   ...UNIT_SYMBOLS,
-].map((token: string): [string, RegExp] => {
-  return [token, standsAlone(token)];
-});
-
-interface AsWrittenToken {
-  token: string;
-  // The forms a translation may keep it in (a plural's singular, "SDK").
-  forms: Array<string>;
-}
-
-function asWrittenIn(english: string): Array<AsWrittenToken> {
-  const text: string = english.replace(PLACEHOLDER, " ");
-  const tokens: Map<string, Array<string>> = new Map<string, Array<string>>();
-
-  for (const pattern of [DOTTED, SNAKE_CASE, LETTERS_AND_DIGITS, PATH_LIKE]) {
-    for (const match of text.match(pattern) || []) {
-      if (!NOT_TOKENS.has(match)) {
-        tokens.set(match, [match]);
-      }
-    }
-  }
-
-  // A camelCase name may lose its English plural "s" ("cpuCores").
-  for (const match of text.match(CAMEL_CASE) || []) {
-    tokens.set(
-      match,
-      match.endsWith("s") ? [match, match.slice(0, -1)] : [match],
-    );
-  }
-
-  for (const [token, pattern] of NAME_PATTERNS) {
-    if (pattern.test(text)) {
-      tokens.set(token, token === "SDKs" ? [token, "SDK"] : [token]);
-    }
-  }
-
-  for (const match of text.matchAll(QUOTED_VALUE)) {
-    const quoted: string = match[1] as string;
-
-    if (NUMERIC_VALUE.test(quoted)) {
-      tokens.set(quoted, [quoted]);
-    }
-  }
-
-  return Array.from(tokens.entries()).map(
-    ([token, forms]: [string, Array<string>]): AsWrittenToken => {
-      return { token, forms };
-    },
-  );
-}
-
-/*
- * The numbers a text says, as one language or another writes them: Persian
- * and Hindi digits read as 0-9, a thousands separator (2,000 / 2.000 /
- * 2 000) dropped and a decimal comma read as a point. An ordinal ("the 1st
- * of the month") may be worded instead.
- */
-const DIGITS_OF_OTHER_SCRIPTS: ReadonlyArray<string> = [
-  "۰۱۲۳۴۵۶۷۸۹",
-  "٠١٢٣٤٥٦٧٨٩",
-  "०१२३४५६७८९",
 ];
 
-function withLatinDigits(text: string): string {
-  let result: string = text;
-
-  for (const digits of DIGITS_OF_OTHER_SCRIPTS) {
-    for (let digit: number = 0; digit < 10; digit++) {
-      result = result.split(digits[digit] as string).join(String(digit));
-    }
-  }
-
-  return result;
-}
-
-/*
- * A thousands separator: a comma, a point, a space - plain, no-break (U+00A0),
- * narrow no-break (U+202F) or thin (U+2009) - or an apostrophe.
- */
-const THOUSANDS_SEPARATOR: RegExp = new RegExp(
-  "(?<=\\d)[,.\\u00a0\\u202f\\u2009 '\\u2019](?=\\d{3}(?!\\d))",
-  "g",
-);
-
-function numbersIn(text: string): Array<string> {
-  const plain: string = withLatinDigits(text)
-    .replace(/٫/g, ".")
-    .replace(/٬/g, ",")
-    .replace(/\b\d+(?:st|nd|rd|th)\b/g, " ")
-    .replace(THOUSANDS_SEPARATOR, "");
-
-  return (plain.match(/\d+(?:[.,]\d+)?/g) || []).map(
-    (number: string): string => {
-      return number.replace(",", ".");
-    },
-  );
-}
-
-// A number with trailing decimal zeros is the same number (12.0 is 12).
-function withoutTrailingZeros(number: string): string {
-  return number.includes(".") ? number.replace(/\.?0+$/, "") : number;
-}
-
-function saysNumber(numbers: Array<string>, number: string): boolean {
-  const wanted: string = withoutTrailingZeros(number);
-
-  return numbers.some((said: string): boolean => {
-    return withoutTrailingZeros(said) === wanted;
-  });
-}
-
-// A full stop as each language writes one.
-const FULL_STOPS: Readonly<Record<string, ReadonlyArray<string>>> = {
-  ja: ["。", "."],
-  "zh-CN": ["。", "."],
-  "zh-TW": ["。", "."],
-  hi: ["।", "."],
-};
-
-function fullStopsOf(language: string): ReadonlyArray<string> {
-  return FULL_STOPS[language] || ["."];
+function asWrittenIn(english: string): Array<AsWrittenToken> {
+  return asWrittenAmong(english, NAMES_AND_UNIT_SYMBOLS);
 }
 
 /*
@@ -602,32 +467,6 @@ const ENGINE_NOTES: ReadonlyArray<{ note: string; keep: Array<string> }> = [
     keep: ["SQL", "sqlquery"],
   },
 ];
-
-function sharedEnding(texts: Array<string>): string {
-  if (texts.length === 0) {
-    return "";
-  }
-
-  let ending: string = texts[0] as string;
-
-  for (const text of texts.slice(1)) {
-    let length: number = 0;
-
-    while (
-      length < ending.length &&
-      length < text.length &&
-      ending[ending.length - 1 - length] === text[text.length - 1 - length]
-    ) {
-      length++;
-    }
-
-    ending = ending.slice(ending.length - length);
-  }
-
-  return ending;
-}
-
-const DIGITS_ARABIC_DOES_NOT_WRITE: RegExp = /[٠-٩۰-۹]/;
 
 /*
  * A catalog unit the value formatter writes itself ("12 MB", "3.2 s",

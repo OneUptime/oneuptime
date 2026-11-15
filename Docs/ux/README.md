@@ -678,6 +678,15 @@ then `npm run i18n:validate` from the root.
   [ChartWordsInReadersLanguageGuard](../../packages/Common/Tests/App/Dashboard/ChartWordsInReadersLanguageGuard.test.ts)
   and
   [ResourcePageChartWords](../../packages/Common/Tests/App/Dashboard/ResourcePageChartWords.test.tsx).
+- **A metric's description reads in the reader's language, its code and names as written.** Every
+  monitor metric catalog marks its descriptions as keys (`translationKey`), written out whole: one
+  glued together at run time is no key, and read English in every language (#8014). Each place that
+  draws one looks it up once: a metric picker's line, a Database Health criteria's line, a Database
+  monitor's charts and summary, a metric a monitor stored. A translation keeps each piece of code
+  between backticks exactly and as often, since the picker draws it as code, and the metric,
+  attribute and product names, unit symbols, printed values and numbers the English gives. Enforced
+  by
+  [MonitorMetricDescriptionsInLocales](../../packages/App/Tests/Dashboard/MonitorMetricDescriptionsInLocales.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
