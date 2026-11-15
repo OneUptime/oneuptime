@@ -1,10 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import {
-  ExtractedString,
-  scanSourceText,
-} from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import { IMPORT_SCREENS, keysOf, SHARED_WITH_ADMIN } from "./ImportScreens";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
@@ -28,27 +25,14 @@ import {
  * names a kind of rule, so it has keys of its own, "Import rule" and
  * "Exclusion rule", worded as nouns in every language. The Hindi docs
  * name these buttons as the Dashboard draws them.
+ *
+ * Every other language is held to the same, from the same list of screens
+ * (ImportScreens), by ImportScreensInEveryLanguage (#7957).
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../..");
 const PACKAGES: string = path.join(REPOSITORY_ROOT, "packages");
 const APP: string = path.join(PACKAGES, "App");
-
-// The screens a reader imports from, each file that draws their words.
-const IMPORT_SCREENS: ReadonlyArray<string> = [
-  // Any model's JSON import and export (monitor groups, status pages...).
-  "Common/UI/Components/ImportExport/ImportModelsModal.tsx",
-  "Common/UI/Components/ImportExport/ExportModelCard.tsx",
-  "Common/UI/Components/CodeEditor/CodeEditor.tsx",
-  // The label rule import (alert, incident, monitor... label rules).
-  "Common/UI/Components/LabelRule/ImportLabelRulesModal.tsx",
-  "Common/UI/Components/LabelRule/LabelRuleTable.tsx",
-  // The CSV upload of the site and status page group imports.
-  "Common/UI/Components/CSVFileUpload/CSVFileUpload.tsx",
-  // Network > Settings > Auto Import Rules, its form and its run dialog.
-  "App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/AutoImportRules.tsx",
-  "App/FeatureSet/Dashboard/src/Components/NetworkAutomation/RunAutoImportRuleModal.tsx",
-];
 
 /*
  * Words these screens draw that Hindi keeps in English on purpose, each
@@ -64,31 +48,6 @@ const KEPT_IN_ENGLISH: Record<string, string> = {
   "Unnamed OID Collection Template":
     "named in English by the Hindi network docs",
 };
-
-function scan(file: string): Array<ExtractedString> {
-  return scanSourceText(
-    path.join("packages", file),
-    fs.readFileSync(path.join(PACKAGES, file), "utf8"),
-    { kind: "ui" },
-  ).strings as Array<ExtractedString>;
-}
-
-// Every key a file draws, with the "one" form of a plural.
-function keysOf(files: ReadonlyArray<string>): Array<string> {
-  const keys: Set<string> = new Set<string>();
-
-  for (const file of files) {
-    for (const entry of scan(file)) {
-      keys.add(entry.text);
-
-      if (entry.pluralOne) {
-        keys.add(`${entry.text}_one`);
-      }
-    }
-  }
-
-  return Array.from(keys).sort();
-}
 
 const SCREEN_KEYS: Array<string> = keysOf(IMPORT_SCREENS);
 
@@ -188,12 +147,11 @@ describe("the import screens in Hindi", () => {
       ),
     ) as Record<string, string>;
     const hindi: Record<string, string> = readDashboardLocale("hi");
-    const shared: Array<string> = keysOf([
-      "Common/UI/Components/ImportExport/ImportModelsModal.tsx",
-      "Common/UI/Components/CodeEditor/CodeEditor.tsx",
-    ]).filter((key: string): boolean => {
-      return Object.prototype.hasOwnProperty.call(admin, key);
-    });
+    const shared: Array<string> = keysOf(SHARED_WITH_ADMIN).filter(
+      (key: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(admin, key);
+      },
+    );
 
     expect(shared).toEqual(
       expect.arrayContaining([

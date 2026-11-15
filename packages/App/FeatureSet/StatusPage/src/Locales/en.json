@@ -471,5 +471,7 @@
     "note": "Note",
     "tip": "Tip",
     "warning": "Warning"
-  }
+  },
+  "No options available": "No options available",
+  "No matches found": "No matches found"
 }
