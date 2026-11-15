@@ -23,8 +23,8 @@ import { formatMilliseconds } from "../Milliseconds";
  * the summaries do: a duration with formatMilliseconds, in the reader's
  * unit and digits, a count with translator.formatNumber, an NTP fact with
  * the NTP summary's words. A value is read back only when it is exactly
- * what the engine writes for the number it names (writeRootCauseResponseTime,
- * NtpMonitorUtil's describers): anything else - a root cause somebody
+ * what the engine writes for the number it names (MonitorCriteriaEvaluator's
+ * formatMilliseconds, NtpMonitorUtil's describers): anything else - a root cause somebody
  * edited, a value a newer engine writes - stays as stored. A status code is
  * a code, and stays as written.
  *
@@ -42,25 +42,6 @@ const getResponseTimeFractionDigits: (milliseconds: number) => number = (
   return milliseconds < 100 ? 2 : milliseconds < 1000 ? 1 : 0;
 };
 
-/*
- * A response time as the engine writes it in a root cause's Response
- * Snapshot: "411.0 ms", "12.35 ms", "1532 ms" - word for word what it
- * wrote by hand. Null for no reading.
- */
-export const writeRootCauseResponseTime: (
-  milliseconds: number | null | undefined,
-) => string | null = (milliseconds: number | null | undefined): string | null => {
-  if (
-    milliseconds === undefined ||
-    milliseconds === null ||
-    isNaN(milliseconds)
-  ) {
-    return null;
-  }
-
-  return `${milliseconds.toFixed(getResponseTimeFractionDigits(milliseconds))} ms`;
-};
-
 // A stored figure is short: anything longer is no figure the engine wrote.
 const MAX_FIGURE_LENGTH: number = 40;
 
@@ -68,7 +49,8 @@ const MAX_FIGURE_LENGTH: number = 40;
 const RESPONSE_TIME: RegExp = /^(-?[0-9]{1,15}(?:\.[0-9]{1,2})?) ms$/;
 
 // "1,532 ms", "0.042 ms": a figure as en-US groups it, then " ms".
-const NTP_MILLISECONDS: RegExp = /^([0-9]{1,3}(?:,[0-9]{3}){0,5}(?:\.[0-9]{1,3})?) ms$/;
+const NTP_MILLISECONDS: RegExp =
+  /^([0-9]{1,3}(?:,[0-9]{3}){0,5}(?:\.[0-9]{1,3})?) ms$/;
 
 const COUNT: RegExp = /^[0-9]{1,9}$/;
 
@@ -88,9 +70,16 @@ export const readRootCauseResponseTime: (stored: string) => number | null = (
     return null;
   }
 
-  const milliseconds: number = Number(match[1]);
+  /*
+   * Exactly the engine's figure for that number
+   * (MonitorCriteriaEvaluator.formatMilliseconds): its decimals, as toFixed
+   * writes them.
+   */
+  const figure: string = match[1] as string;
+  const milliseconds: number = Number(figure);
 
-  return writeRootCauseResponseTime(milliseconds) === stored
+  return Number.isFinite(milliseconds) &&
+    milliseconds.toFixed(getResponseTimeFractionDigits(milliseconds)) === figure
     ? milliseconds
     : null;
 };
@@ -129,8 +118,9 @@ const ntpMillisecondsInReadersWords: (
 };
 
 /*
- * The NTP summary's words for a stratum and a clock offset (NtpMonitorView),
- * which are word for word what NtpMonitorUtil writes into a root cause.
+ * The NTP summary's words for a stratum and a clock offset (NtpMonitorView):
+ * the same English NtpMonitorUtil writes into a root cause, but for the
+ * capital of "In step with the probe".
  */
 const PRIMARY_SERVER: string = translationKey("1 (primary server)");
 const SECONDARY_SERVER: string = translationKey(
@@ -139,9 +129,7 @@ const SECONDARY_SERVER: string = translationKey(
 const NOT_SYNCHRONIZED: string = translationKey(
   "{{stratum}} (not synchronized)",
 );
-const KISS_OF_DEATH: string = translationKey(
-  "0 (kiss-o'-death {{kissCode}})",
-);
+const KISS_OF_DEATH: string = translationKey("0 (kiss-o'-death {{kissCode}})");
 // The root cause's stratum 0 says more than the summary's "0 (not synchronized)".
 const UNSPECIFIED_STRATUM: string = translationKey(
   "0 (unspecified, not synchronized)",

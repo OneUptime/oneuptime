@@ -7,7 +7,6 @@ import MonitorRootCauseWording from "../../../Utils/Monitor/MonitorRootCauseWord
 import {
   readRootCauseResponseTime,
   wordRootCauseFact,
-  writeRootCauseResponseTime,
 } from "../../../Utils/Monitor/RootCauseFacts";
 import {
   PROBE_FAILURE_CAUSES,
@@ -58,9 +57,11 @@ function word(
 // The value after `label` on the worded line that starts with "- ".
 function factValue(worded: string, language: string, label: string): string {
   const wordedLabel: string = readDashboardLocale(language)[label] || label;
-  const line: string | undefined = worded.split("\n").find((candidate: string) => {
-    return candidate.startsWith(`- ${wordedLabel}: `);
-  });
+  const line: string | undefined = worded
+    .split("\n")
+    .find((candidate: string) => {
+      return candidate.startsWith(`- ${wordedLabel}: `);
+    });
 
   if (line === undefined) {
     throw new Error(`No line for ${label} in ${worded}`);
@@ -97,19 +98,30 @@ const NTP_LINES: Array<string> = MonitorCriteriaEvaluator.getNtpResponseDetails(
 
 describe("the engine writes a response time as it did", () => {
   test("two decimals below 100 ms, one below a second, none above", () => {
-    expect(writeRootCauseResponseTime(12.345)).toBe("12.35 ms");
-    expect(writeRootCauseResponseTime(411)).toBe("411.0 ms");
-    expect(writeRootCauseResponseTime(1532.4)).toBe("1532 ms");
-    expect(writeRootCauseResponseTime(0)).toBe("0.00 ms");
-    expect(writeRootCauseResponseTime(undefined)).toBeNull();
-    expect(writeRootCauseResponseTime(NaN)).toBeNull();
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(12.345)).toBe(
+      "12.35 ms",
+    );
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(411)).toBe("411.0 ms");
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(1532.4)).toBe("1532 ms");
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(0)).toBe("0.00 ms");
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(undefined)).toBeNull();
+    expect(MonitorCriteriaEvaluator.formatMilliseconds(NaN)).toBeNull();
   });
 
   test("and reads back only what it writes", () => {
     expect(readRootCauseResponseTime("411.0 ms")).toBe(411);
     expect(readRootCauseResponseTime("12.35 ms")).toBe(12.35);
     expect(readRootCauseResponseTime("1532 ms")).toBe(1532);
-    for (const stored of ["411 ms", "12.3 ms", "1532.0 ms", "1,532 ms", "411.0ms", " 411.0 ms", "411.0 s", "fast"]) {
+    for (const stored of [
+      "411 ms",
+      "12.3 ms",
+      "1532.0 ms",
+      "1,532 ms",
+      "411.0ms",
+      " 411.0 ms",
+      "411.0 s",
+      "fast",
+    ]) {
       expect({ stored, read: readRootCauseResponseTime(stored) }).toEqual({
         stored,
         read: null,
@@ -133,7 +145,7 @@ describe("the engine writes a response time as it did", () => {
 describe("the Response Snapshot's figures in the reader's digits and units", () => {
   const ROOT_CAUSE: string = snapshot([
     mdText`- Response Status Code: ${503}`.toString(),
-    mdText`- Response Time: ${writeRootCauseResponseTime(411) as string}`.toString(),
+    mdText`- Response Time: ${MonitorCriteriaEvaluator.formatMilliseconds(411) as string}`.toString(),
     "- Timed Out: No",
     mdText`- Attempts: ${3}`.toString(),
     ...NTP_LINES,
@@ -292,9 +304,9 @@ describe("the Response Snapshot's figures in the reader's digits and units", () 
         "0,042 ms",
       ),
     );
-    expect(fact("Root Dispersion", NtpMonitorUtil.formatMilliseconds(1532.4))).toBe(
-      "1.532 ms",
-    );
+    expect(
+      fact("Root Dispersion", NtpMonitorUtil.formatMilliseconds(1532.4)),
+    ).toBe("1.532 ms");
 
     for (const indicator of [0, 1, 2, 3]) {
       const stored: string = `${indicator} (${NtpMonitorUtil.describeLeapIndicator(indicator)})`;
@@ -326,17 +338,27 @@ describe("the Response Snapshot's figures in the reader's digits and units", () 
       ["Clock Offset", "0 ms ahead of the probe"],
       ["Root Dispersion", "3.250 ms"],
       ["Leap Indicator", "4 (Unknown)"],
-      ["Leap Indicator", "0 (A leap second will be added at the end of the day)"],
+      [
+        "Leap Indicator",
+        "0 (A leap second will be added at the end of the day)",
+      ],
       ["Reference", "GPS"],
     ] as Array<[string, string]>) {
-      expect({ label, value, worded: wordRootCauseFact({ label, value, translator: de }) }).toEqual({
+      expect({
+        label,
+        value,
+        worded: wordRootCauseFact({ label, value, translator: de }),
+      }).toEqual({
         label,
         value,
         worded: null,
       });
     }
 
-    const edited: string = snapshot(["- Response Time: 411 ms", "- Attempts: three"]);
+    const edited: string = snapshot([
+      "- Response Time: 411 ms",
+      "- Attempts: three",
+    ]);
 
     expect(word(edited, "de")).toBe(
       `**${readDashboardLocale("de")["Response Snapshot"]}**\n- ${readDashboardLocale("de")["Response Time"]}: 411 ms\n- ${readDashboardLocale("de")["Attempts"]}: three`,
@@ -384,13 +406,16 @@ describe("**Cause**: the probe's failure causes with values", () => {
     return mdText`**Cause**: ${text}`.toString();
   };
 
-  const NTP_CAUSE: string = writeProbeFailureCause(ProbeFailureCause.TriedTimes, {
-    cause: writeProbeFailureCause(ProbeFailureCause.NtpNoReply, {
-      target: "192.0.2.10:123",
-      timeoutInMs: 5000,
-    }),
-    count: 3,
-  });
+  const NTP_CAUSE: string = writeProbeFailureCause(
+    ProbeFailureCause.TriedTimes,
+    {
+      cause: writeProbeFailureCause(ProbeFailureCause.NtpNoReply, {
+        target: "192.0.2.10:123",
+        timeoutInMs: 5000,
+      }),
+      count: 3,
+    },
+  );
 
   const IPV6_CAUSE: string = writeProbeFailureCause(
     ProbeFailureCause.ProbeCannotSendIPv6,
@@ -415,7 +440,9 @@ describe("**Cause**: the probe's failure causes with values", () => {
   test.each(["es", "ar", "fa"])(
     "%s: the probe-side sentence in the reader's words, the host and the OS's words kept",
     (language: string) => {
-      const worded: string = withoutIsolateMarks(word(cause(IPV6_CAUSE), language, true));
+      const worded: string = withoutIsolateMarks(
+        word(cause(IPV6_CAUSE), language, true),
+      );
 
       expect(worded).not.toContain("This probe");
       expect(worded).toContain("2001:db8::1");
@@ -431,8 +458,12 @@ describe("**Cause**: the probe's failure causes with values", () => {
   test("a cause somebody edited stays as they wrote it", () => {
     const edited: string = cause(`${NTP_CAUSE} Then it worked.`);
 
-    expect(withoutIsolateMarks(word(edited, "de"))).toContain(
-      `${NTP_CAUSE} Then it worked.`.replace(/-/g, "\\-"),
+    // Only the label is worded: the cause is the stored line's, Markdown and all.
+    expect(word(edited, "de")).toBe(
+      edited.replace(
+        "**Cause**",
+        `**${readDashboardLocale("de")["Cause"] as string}**`,
+      ),
     );
   });
 });
