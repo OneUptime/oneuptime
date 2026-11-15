@@ -2,9 +2,16 @@ import { describe, expect, test } from "@jest/globals";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import {
+  analyzeUserFlow,
   DEFAULT_USER_FLOW_OPTIONS,
+  getUserFlowPageText,
   USER_FLOW_MAX_STEPS,
+  UserFlowAnalysis,
+  UserFlowNode,
+  UserFlowPageCount,
+  UserFlowPageStats,
 } from "Common/Utils/Rum/UserFlow";
+import { UserFlowJourneysResponseDto } from "Common/Types/Rum/UserFlow";
 import {
   buildSessionsForPageSearch,
   buildUserFlowPageUrl,
@@ -153,6 +160,163 @@ describe("buildUserFlowPageUrl", () => {
     );
 
     expect(url.searchParams.get("foo")).toBe("bar");
+  });
+});
+
+/*
+ * #8018: User Flows keys a page in one spelling since #7983 ("/caf%C3%A9"),
+ * but a link made before it holds the spelling its session was stored in:
+ * "/caf%c3%a9" (lower-case hex) or "/cafe%CC%81" (a decomposed accent). No
+ * row has that key any more, so the map lost its anchor and the hidden
+ * page came back. The link is read in the key's spelling, opens on the row
+ * it named, and is written back in that spelling.
+ */
+describe("a link made before a page had one spelling", () => {
+  const CAFE: string = "/caf%C3%A9";
+  const MENU: string = "/men%C3%BC";
+
+  // ?page=/caf%c3%a9&hide=/men%c3%bc&hide=/menu%CC%88, as a browser escapes them.
+  const OLD_LINK: string = `?page=${encodeURIComponent("/caf%c3%a9")}&dir=backward&hide=${encodeURIComponent("/men%c3%bc")}&hide=${encodeURIComponent("/menu%CC%88")}&hide=%2Flogin`;
+
+  function session(
+    id: string,
+    pages: Array<number>,
+  ): UserFlowJourneysResponseDto["sessions"][number] {
+    return {
+      sessionId: id,
+      startUnixMs: 0,
+      durationMs: 1000,
+      deviceType: "desktop",
+      browserName: "Chrome",
+      countryCode: "US",
+      errorCount: 0,
+      frustrationCount: 0,
+      pages: pages,
+      pageSignals: [],
+    };
+  }
+
+  /*
+   * Five sessions to /café, stored before and after the one spelling, each
+   * through a menu page stored in three spellings, or through /login.
+   */
+  const RESPONSE: UserFlowJourneysResponseDto = {
+    pages: [
+      "https://shop.example.com/",
+      "https://shop.example.com/men%c3%bc",
+      "https://shop.example.com/men%C3%BC",
+      "https://shop.example.com/menu%CC%88",
+      "https://shop.example.com/caf%c3%a9",
+      "https://shop.example.com/cafe%CC%81",
+      "https://shop.example.com/caf%C3%A9",
+      "https://shop.example.com/login",
+    ],
+    sessions: [
+      session("s1", [0, 1, 4]),
+      session("s2", [0, 2, 5]),
+      session("s3", [0, 3, 6]),
+      session("s4", [0, 7, 6]),
+      session("s5", [0, 6]),
+    ],
+    sessionsInWindow: 5,
+    isSampled: false,
+    maxSessions: 5000,
+    startUnixMs: 0,
+    endUnixMs: 1,
+    scope: null,
+  };
+
+  test("reads the anchor and the hidden pages in the key's one spelling", () => {
+    const state: UserFlowUrlState = readUserFlowStateFromSearch(OLD_LINK);
+
+    expect(state.options.anchorPage).toBe(CAFE);
+    expect(state.options.direction).toBe("backward");
+    // Two spellings of one page are one hidden page.
+    expect(state.options.hiddenPages).toEqual([MENU, "/login"]);
+  });
+
+  test("opens on the /caf%C3%A9 row, with the hidden page hidden in every spelling", () => {
+    const state: UserFlowUrlState = readUserFlowStateFromSearch(OLD_LINK);
+    const analysis: UserFlowAnalysis = analyzeUserFlow(RESPONSE, state.options);
+
+    // One row for the page, with every session that reached it.
+    expect(
+      analysis.availablePages.filter((page: UserFlowPageCount): boolean => {
+        return getUserFlowPageText(page.page) === "/café";
+      }),
+    ).toEqual([{ page: CAFE, sessions: 5 }]);
+
+    // The map is anchored on it: step 0 is the page, all five sessions there.
+    const anchor: UserFlowNode | undefined = analysis.graph.nodes.find(
+      (node: UserFlowNode): boolean => {
+        return node.step === 0;
+      },
+    );
+
+    expect(analysis.graph.anchorPage).toBe(CAFE);
+    expect(anchor).toMatchObject({ page: CAFE, sessions: 5 });
+
+    // Backward, the page before it: the menu and /login are hidden, so "/".
+    expect(
+      analysis.graph.nodes
+        .filter((node: UserFlowNode): boolean => {
+          return node.step === 1;
+        })
+        .map((node: UserFlowNode): [string, number] => {
+          return [node.page, node.sessions];
+        }),
+    ).toEqual([["/", 5]]);
+    expect(
+      analysis.pages.some((page: UserFlowPageStats): boolean => {
+        return page.page === MENU || page.page === "/login";
+      }),
+    ).toBe(false);
+  });
+
+  test("the link it shows is written back in the new spelling", () => {
+    const state: UserFlowUrlState = readUserFlowStateFromSearch(OLD_LINK);
+    const url: URL = new URL(buildUserFlowPageUrl(`${PAGE}${OLD_LINK}`, state));
+
+    expect(url.searchParams.get(USER_FLOW_URL_KEYS.anchor)).toBe(CAFE);
+    expect(url.searchParams.getAll(USER_FLOW_URL_KEYS.hide)).toEqual([
+      MENU,
+      "/login",
+    ]);
+    expect(url.search).not.toContain("%25c3");
+    expect(url.search).not.toContain("%25CC");
+    // Read again, it is the same state: the spelling is settled.
+    expect(readUserFlowStateFromSearch(url.search)).toEqual(state);
+  });
+
+  test("a hidden page that is the anchor in another spelling is not hidden", () => {
+    const state: UserFlowUrlState = readUserFlowStateFromSearch(
+      `?page=${encodeURIComponent(CAFE)}&hide=${encodeURIComponent("/cafe%CC%81")}&hide=${encodeURIComponent("/caf%c3%a9")}`,
+    );
+
+    expect(state.options.anchorPage).toBe(CAFE);
+    expect(state.options.hiddenPages).toEqual([]);
+  });
+
+  test("a key that names a host, a grouped id or a page apart keeps its own", () => {
+    const state: UserFlowUrlState = readUserFlowStateFromSearch(
+      `?page=${encodeURIComponent("shop.example.com/caf%c3%a9")}&hide=${encodeURIComponent("/orders/:id")}&hide=${encodeURIComponent("/a%2fb")}&hide=${encodeURIComponent("/a/b")}&hide=%2FCart&hide=%2Fcart`,
+    );
+
+    expect(state.options.anchorPage).toBe("shop.example.com/caf%C3%A9");
+    expect(state.options.hiddenPages).toEqual([
+      "/orders/:id",
+      "/a%2Fb",
+      "/a/b",
+      "/Cart",
+      "/cart",
+    ]);
+  });
+
+  test("a page a person typed as it reads opens on its row too", () => {
+    expect(
+      readUserFlowStateFromSearch(`?page=${encodeURIComponent("/café")}`)
+        .options.anchorPage,
+    ).toBe(CAFE);
   });
 });
 

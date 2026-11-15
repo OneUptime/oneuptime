@@ -175,7 +175,11 @@
       "noItems": "尚未核發任何企業版授權。",
       "settingsCardTitle": "授權通知設定",
       "settingsCardDescription": "設定哪些人會收到授權郵件副本，以及提前多久寄送到期提醒。當授權超出使用者數量上限或即將到期時，系統會每天寄送提醒郵件給該客戶的主要管理員。",
-      "settingsEditButton": "編輯設定"
+      "settingsEditButton": "編輯設定",
+      "cloudOnlyTitle": "僅在 OneUptime Cloud 上提供",
+      "cloudOnlyDescription": "企業版授權在已啟用帳單功能的託管版 oneuptime.com 上核發與追蹤。此自架執行個體不管理授權。",
+      "enterpriseEditionRequiredTitle": "需要 OneUptime Enterprise Edition",
+      "enterpriseEditionRequiredDescription": "授權管理是 OneUptime Enterprise Edition 的一部分。請部署 Enterprise Edition 映像檔以核發與追蹤授權。"
     },
     "enterpriseLicenseView": {
       "title": "企業版授權",
@@ -2113,6 +2117,7 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。請複製此連結並自行傳送給對方。此連結僅限此地址使用一次，有效期 7 天。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。對方已有帳號：請傳送此連結讓其登入，並在那裡接受邀請。",
   "Invited": "已邀請",
+  "Get Invitation Link": "取得邀請連結",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "沒有有效授權時（{{days}} 天試用期結束後），SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",
   "Without a valid license (after the {{days}}-day grace period), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "沒有有效授權時（{{days}} 天寬限期結束後），SCIM 佈建停止，稽核日誌記錄停止記錄，企業設定變為唯讀，企業管理後台遭到鎖定。只要啟用授權，一切都會恢復，核心監控絕不受影響。",

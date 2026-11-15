@@ -69,6 +69,7 @@ import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/Sub
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import SubscriberTemplateValues from "Common/Server/Utils/StatusPage/SubscriberTemplateValues";
+import { StateListType } from "Common/Utils/StateOrder";
 import SubscriberMessageText, {
   SubscriberEmailText,
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
@@ -581,12 +582,15 @@ RunCron(
                   detailsUrl: episodeDetailsUrl,
                   // Default severity and state names in the page's language.
                   episodeSeverity: SubscriberTemplateValues.stateName(
+                    StateListType.IncidentSeverity,
                     episode.incidentSeverity?.name,
                     " - ",
                   ),
                   episodeTitle: episode.title || "",
-                  episodeState:
-                    SubscriberTemplateValues.stateName(episodeStateName),
+                  episodeState: SubscriberTemplateValues.stateName(
+                    StateListType.IncidentState,
+                    episodeStateName,
+                  ),
                 });
 
               // A resource list that lists none, in the page's language.
@@ -919,11 +923,13 @@ RunCron(
                             episodeSeverity: episode.incidentSeverity?.name
                               ? SubscriberMessageText.nameInLanguage(
                                   translator,
+                                  StateListType.IncidentSeverity,
                                   episode.incidentSeverity.name,
                                 )
                               : " - ",
                             episodeState: SubscriberMessageText.nameInLanguage(
                               translator,
+                              StateListType.IncidentState,
                               episodeStateName,
                             ),
                           };

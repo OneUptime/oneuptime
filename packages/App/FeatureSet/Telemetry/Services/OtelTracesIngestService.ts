@@ -37,6 +37,7 @@ import { RumTelemetrySignal } from "Common/Types/Rum/RumTelemetrySignal";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
+import { assignOwnValues, copyOwnValues } from "Common/Utils/LookupTable";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
   SpanEventType,
@@ -697,11 +698,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                    * exactly — same key-collision winners (resource < span
                    * attributes < scope.*) and same key insertion order —
                    * while the scope prefixing now happens once per scopeSpan
-                   * (see above) instead of per span.
+                   * (see above) instead of per span. assignOwnValues is
+                   * that Object.assign, but it keeps a span attribute named
+                   * __proto__ as a key, where Object.assign dropped it.
                    */
                   const spanAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = Object.assign(
+                  > = assignOwnValues<AttributeType | Array<AttributeType>>(
                     {},
                     resourceAttributes,
                     TelemetryUtil.getAttributes({
@@ -1353,7 +1356,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
              * re-classifiable later. Previously every `exception.*` key was
              * dropped, discarding that evidence for a few bytes.
              */
-            const exceptionAttributes: JSONObject = { ...eventAttributes };
+            // Copied with every key, one named __proto__ too.
+            const exceptionAttributes: JSONObject =
+              copyOwnValues(eventAttributes);
             for (const key of PROMOTED_EXCEPTION_ATTRIBUTE_KEYS) {
               delete exceptionAttributes[key];
             }
