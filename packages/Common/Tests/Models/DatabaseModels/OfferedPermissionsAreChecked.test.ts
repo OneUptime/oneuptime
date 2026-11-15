@@ -405,9 +405,11 @@ describe("every permission a custom role offers is checked", () => {
 
 describe("the checks outside the models are real", () => {
   test.each(
-    CHECKED_OUTSIDE_MODELS.map((entry: CheckedOutsideModels) => {
-      return [entry.permission.toString(), entry];
-    }),
+    CHECKED_OUTSIDE_MODELS.map(
+      (entry: CheckedOutsideModels): [string, CheckedOutsideModels] => {
+        return [entry.permission.toString(), entry];
+      },
+    ),
   )(
     "%s is named in the code of the file that checks it",
     (_name: string, entry: CheckedOutsideModels) => {

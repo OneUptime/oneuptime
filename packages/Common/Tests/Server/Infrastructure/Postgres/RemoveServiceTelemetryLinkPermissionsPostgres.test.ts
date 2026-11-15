@@ -474,7 +474,7 @@ describePostgres(
     });
 
     test.each(
-      ROLES.map((role: RoleSeed) => {
+      ROLES.map((role: RoleSeed): [string, RoleSeed] => {
         return [role.label, role];
       }),
     )(
