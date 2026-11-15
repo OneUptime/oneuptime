@@ -139,9 +139,9 @@ Bei einer selbst gehosteten Installation werden eigene Domains für Dashboards �
 
 ### Wer prüfen und neu ausstellen darf
 
-**Jetzt prüfen**, die Bestellung des Zertifikats einer Domain und **SSL neu ausstellen** ändern die Domain, also brauchen sie die Berechtigung, sie zu bearbeiten: **Edit Dashboard Domain** oder eine Rolle, die sie enthält (Project Owner, Project Admin, Project Member, Settings Admin oder Settings Member).
+**Jetzt prüfen**, die Bestellung des Zertifikats einer Domain und **SSL neu ausstellen** ändern die Domain, also brauchen sie die Berechtigung, sie zu bearbeiten: **Edit Dashboard Domain** oder eine Rolle, die sie enthält (Projektinhaber, Projektadministrator, Projektmitglied, Einstellungs-Administrator oder Einstellungs-Mitglied).
 
-Wer die Domain nur lesen darf, etwa ein Viewer oder ein Settings Viewer, sieht weiterhin die Spalte **Status** und den hinzuzufügenden Eintrag in **DNS-Einrichtung**. Für sie sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung sie brauchen. OneUptime prüft jede Domain und bestellt ihr Zertifikat so oder so von selbst.
+Wer die Domain nur lesen darf, etwa ein Betrachter oder ein Einstellungs-Betrachter, sieht weiterhin die Spalte **Status** und den hinzuzufügenden Eintrag in **DNS-Einrichtung**. Für sie sind **Jetzt prüfen** und **SSL neu ausstellen** gesperrt und sagen, welche Berechtigung sie brauchen. OneUptime prüft jede Domain und bestellt ihr Zertifikat so oder so von selbst.
 
 Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Dashboard-Domains nur lesen darf, kann `verify-cname`, `order-ssl` oder `reissue-ssl` auf `/dashboard-domain` nicht aufrufen. Geben Sie ihm **Read Dashboard Domain** und **Edit Dashboard Domain**, wenn er das braucht.
 

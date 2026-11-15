@@ -32,6 +32,7 @@ import { NotificationSchedule } from "../Telemetry/NotificationDeliveryMetrics";
 import { toOnCallPolicyRunStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
 import OnCallRunFailure from "./OnCallRunFailure";
 import OnCallSendLag, { OnCallScheduledSend } from "./OnCallSendLag";
+import { OnCallLevelInFlight } from "./OnCallLevelsInFlight";
 
 /*
  * MOVING AN ON-CALL POLICY'S RUN ON TO ITS NEXT ESCALATION RULE.
@@ -603,6 +604,54 @@ export default class OnCallEscalationAdvance {
     );
 
     return lastStarted!;
+  }
+
+  /*
+   * RESUMES THE LEVEL A RUN IS ON, WHOSE PAGING STOPPED PART WAY
+   * (issue #8406).
+   *
+   * A database error in the middle of a level, or a process that stopped
+   * there, left the rest of its people unpaged: the level's rule was
+   * recorded on the run, so the run waited out the level's wait and moved
+   * on. The level was kept in flight (OnCallLevelsInFlight), and the
+   * policy-run worker resumes it at the run's next try: its people this run
+   * has not paged for the rule since the level started are paged now, as
+   * the level pages them - nobody is paged twice - and a level that, all
+   * told, reached nobody moves the run on at once, as one does when it
+   * starts (OnCallEmptyLevel). Its wait runs from when the level started.
+   * Throws as paging does: the level stays in flight, stopped, for the
+   * run's next try.
+   */
+  @CaptureSpan()
+  public static async resumeLevel(data: {
+    run: OnCallDutyPolicyExecutionLog;
+    level: OnCallLevelInFlight;
+  }): Promise<void> {
+    const run: OnCallDutyPolicyExecutionLog = data.run;
+
+    logger.warn(
+      `On-call execution log ${run.id?.toString()}: the paging of escalation rule ${data.level.ruleId}, started at ${data.level.startedAt.toISOString()}, stopped part way; paging the people it did not get to.`,
+      { projectId: run.projectId?.toString() } as LogAttributes,
+    );
+
+    const passedOnUserIds: Array<ObjectID> = await this.getPassedOnUserIds(
+      run.id!,
+    );
+
+    const outcome: OnCallRuleExecutionOutcome =
+      await OnCallDutyPolicyEscalationRuleService.resumeRuleExecution(
+        new ObjectID(data.level.ruleId),
+        {
+          ...this.getPageContext(run),
+          onCallPolicyId: run.onCallDutyPolicyId!,
+          passedOnUserIds: passedOnUserIds,
+          since: data.level.startedAt,
+        },
+      );
+
+    if (outcome.movesOnAtOnce) {
+      await this.moveOnAtOnce({ runId: run.id! });
+    }
   }
 
   /*

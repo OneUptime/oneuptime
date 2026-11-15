@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - Falcon の顧客 ID（CID）と、API クライアントを管理できる Falcon コンソールのユーザー。Falcon Administrator ロール、または API clients and keys の権限を持つカスタムロール。
 - OneUptime のアプリと worker から、下の **Falcon クラウド** に記載されている Falcon クラウドの API ホストへの送信 HTTPS。
 

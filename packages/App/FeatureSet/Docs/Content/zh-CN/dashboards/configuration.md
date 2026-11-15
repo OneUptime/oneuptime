@@ -15,15 +15,15 @@
 
 | 操作 | 所需权限 |
 | --- | --- |
-| 阅读仪表板 | `ReadDashboard` ，或项目角色：Project Owner、Project Admin、Project Member、Viewer 或某个 Settings 角色 |
-| 创建仪表板 | `CreateDashboard` 、Project Owner 或 Project Admin |
-| 修改仪表板：它的小部件、变量、共享、品牌，以及归档它 | `EditDashboard` 、Project Owner 或 Project Admin |
-| 删除仪表板 | `DeleteDashboard` 、Project Owner 或 Project Admin |
-| 添加和移除所有者 | 仪表板所有者权限、Project Owner、Project Admin 或 Project Member |
-| 添加和修改自定义域名 | 仪表板域名权限、Project Owner、Project Admin、Project Member、Settings Admin 或 Settings Member |
-| 创建所有者规则和标签规则 | 规则权限、Project Owner 或 Project Admin |
+| 阅读仪表板 | `ReadDashboard` ，或项目角色：项目所有者、项目管理员、项目成员、查看者或某个 Settings 角色 |
+| 创建仪表板 | `CreateDashboard` 、项目所有者或项目管理员 |
+| 修改仪表板：它的小部件、变量、共享、品牌，以及归档它 | `EditDashboard` 、项目所有者或项目管理员 |
+| 删除仪表板 | `DeleteDashboard` 、项目所有者或项目管理员 |
+| 添加和移除所有者 | 仪表板所有者权限、项目所有者、项目管理员或项目成员 |
+| 添加和修改自定义域名 | 仪表板域名权限、项目所有者、项目管理员、项目成员、设置管理员或设置成员 |
+| 创建所有者规则和标签规则 | 规则权限、项目所有者或项目管理员 |
 
-因此，Project Member 可以阅读所有仪表板，但要构建仪表板需要 `CreateDashboard` 和 `EditDashboard` 。阅读、编辑和删除都可以分别限制在团队拥有的仪表板上，或带有某些标签的仪表板上：参见 [范围：一条允许权限能覆盖多远](/docs/permissions/index#范围一条允许权限能覆盖多远) 。
+因此，项目成员可以阅读所有仪表板，但要构建仪表板需要 `CreateDashboard` 和 `EditDashboard` 。阅读、编辑和删除都可以分别限制在团队拥有的仪表板上，或带有某些标签的仪表板上：参见 [范围：一条允许权限能覆盖多远](/docs/permissions/index#范围一条允许权限能覆盖多远) 。
 
 在团队的 **权限** 页面上分配它们：打开 **产品 → 团队** 并选择该团队。
 

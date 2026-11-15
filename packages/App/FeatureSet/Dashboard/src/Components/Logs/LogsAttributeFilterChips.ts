@@ -1,6 +1,8 @@
 import Dictionary from "Common/Types/Dictionary";
 import {
   DictionaryEntryValue,
+  DictionaryFilterOperator,
+  detectOperatorFromValue,
   formatDictionaryValueForDisplay,
 } from "Common/UI/Components/Dictionary/DictionaryFilterOperator";
 import { ActiveFilter } from "Common/UI/Components/LogsViewer/types";
@@ -137,6 +139,24 @@ const readOverride: ReadOverrideFunction = (
   return override;
 };
 
+type HoldsAnOperatorFunction = (value: DictionaryEntryValue) => boolean;
+
+/*
+ * Whether a pinned value is an operator's (contains, is any of, is empty),
+ * rather than a bare value matched as it is (=).
+ */
+const holdsAnOperator: HoldsAnOperatorFunction = (
+  value: DictionaryEntryValue,
+): boolean => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  return (
+    detectOperatorFromValue(value).operator !== DictionaryFilterOperator.EqualTo
+  );
+};
+
 /**
  * Turn pinned attribute filters into read-only chips.
  *
@@ -152,7 +172,13 @@ const readOverride: ReadOverrideFunction = (
  *
  * `options` only changes what the chip SHOWS. `facetKey` and `value` stay
  * the attribute key and the formatted filter value, so removal keys, React
- * keys and anything reading the chip back still see the real filter.
+ * keys and anything reading the chip back still see the real filter. That
+ * text is English - the operator's label glued before the value - so it is
+ * never what a person reads: a filter that holds an operator hands the chip
+ * its stored value too (`filterValue`), and the chip says it as one sentence
+ * in the reader's language, "http.route stimmt überein /api/*" (#8309). A
+ * page's own name for the value (`displayValues`) is drawn as "key: name",
+ * as it always was.
  */
 export const buildAttributeFilterChips: BuildAttributeFilterChipsFunction = (
   attributes: Dictionary<DictionaryEntryValue> | undefined,
@@ -166,6 +192,10 @@ export const buildAttributeFilterChips: BuildAttributeFilterChipsFunction = (
 
   for (const [attributeKey, attributeValue] of Object.entries(attributes)) {
     const text: string = formatDictionaryValueForDisplay(attributeValue);
+    const displayValue: string | undefined = readOverride(
+      options?.displayValues,
+      attributeKey,
+    );
 
     chips.push({
       facetKey: `attributes.${attributeKey}`,
@@ -173,8 +203,11 @@ export const buildAttributeFilterChips: BuildAttributeFilterChipsFunction = (
       displayKey:
         readOverride(options?.displayKeys, attributeKey) ||
         getAttributeDisplayName(attributeKey),
-      displayValue: readOverride(options?.displayValues, attributeKey) || text,
+      displayValue: displayValue || text,
       readOnly: true,
+      ...(displayValue === undefined && holdsAnOperator(attributeValue)
+        ? { filterValue: attributeValue }
+        : {}),
     });
   }
 

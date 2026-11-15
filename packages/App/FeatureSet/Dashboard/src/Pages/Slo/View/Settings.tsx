@@ -10,7 +10,13 @@ import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import { SLO_WINDOW_TYPE_DESCRIPTIONS } from "../SloFormFields";
+import {
+  pickSloFormFields,
+  SLO_SLI_TYPE_CHOICE_DESCRIPTIONS,
+  SLO_SLI_TYPE_NAMES,
+  SLO_WINDOW_TYPE_DESCRIPTIONS,
+} from "../SloFormFields";
+import { describeRequestErrorBudgetInLanguage } from "../../../Components/Slo/SloRequestTextInLanguage";
 import {
   describeSloErrorBudget,
   describeSloWindow,
@@ -22,7 +28,12 @@ import {
   SLO_MULTI_MONITOR_MODE_NAMES,
 } from "../SloSettingsFormFields";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import SliType from "Common/Types/ServiceLevelObjective/SliType";
+import { isRequestSliType } from "Common/Utils/Slo/SloRequestSli";
+import { formatMilliseconds } from "Common/Utils/Milliseconds";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
@@ -36,6 +47,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -58,14 +70,23 @@ const EM_DASH: string = "—";
  * card.
  */
 const SLO_SETTINGS_DIALOG_TITLES: {
+  measures: string;
   objective: string;
   period: string;
   downtime: string;
 } = {
+  measures: translationKey("Edit What It Measures"),
   objective: translationKey("Edit Objective"),
   period: translationKey("Edit Period"),
   downtime: translationKey("Edit Downtime Calculation"),
 };
+
+// The columns What It Measures edits, in the create form's own fields.
+const SLO_MEASURES_COLUMNS: Array<string> = [
+  "sliType",
+  "services",
+  "latencyThresholdInMilliseconds",
+];
 
 /*
  * Shown when a status has no colour, the same neutral fallback the
@@ -199,6 +220,45 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloDowntimeSettingsFormFields();
     }, []);
+  const measuresFormFields: Array<ModelField<ServiceLevelObjective>> =
+    useMemo((): Array<ModelField<ServiceLevelObjective>> => {
+      return pickSloFormFields(SLO_MEASURES_COLUMNS);
+    }, [translator.language]);
+
+  /*
+   * What the SLO measures, for the cards that depend on it: a request SLO
+   * has no downtime to calculate. Read again after What It Measures saves.
+   * Null until it is known, so the Downtime Calculation card never flashes
+   * up on a request SLO's page.
+   */
+  const [sliType, setSliType] = useState<SliType | null>(null);
+  const [measuresSaveCount, setMeasuresSaveCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isCurrent: boolean = true;
+
+    ModelAPI.getItem<ServiceLevelObjective>({
+      modelType: ServiceLevelObjective,
+      id: modelId,
+      select: {
+        sliType: true,
+      },
+    })
+      .then((slo: ServiceLevelObjective | null) => {
+        if (isCurrent) {
+          setSliType(slo?.sliType || SliType.MonitorUptime);
+        }
+      })
+      .catch(() => {
+        // Without the type, the page shows the cards every SLO has.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [modelId.toString(), measuresSaveCount]);
+
+  const isRequestSlo: boolean = isRequestSliType(sliType);
 
   return (
     <Fragment>
@@ -208,11 +268,125 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
 
       <CardModelDetail<ServiceLevelObjective>
+        name="SLO What It Measures"
+        cardProps={{
+          title: "What It Measures",
+          description:
+            "Where this SLO's numbers come from: the uptime of its monitors, or the requests its services serve.",
+        }}
+        isEditable={true}
+        editButtonText="Edit What It Measures"
+        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.measures}
+        formFields={measuresFormFields}
+        onSaveSuccess={(): void => {
+          refreshBanner();
+          setMeasuresSaveCount((count: number): number => {
+            return count + 1;
+          });
+        }}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 1,
+          modelType: ServiceLevelObjective,
+          id: "slo-settings-measures",
+          modelId: modelId,
+          // The services and threshold rows show by the SLI type.
+          selectMoreFields: {
+            sliType: true,
+            latencyThresholdInMilliseconds: true,
+          },
+          fields: [
+            {
+              field: {
+                sliType: true,
+              },
+              title: "SLI Type",
+              fieldType: FieldType.Element,
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                const type: SliType = item.sliType || SliType.MonitorUptime;
+                const name: string | undefined = SLO_SLI_TYPE_NAMES[type];
+                const description: string | undefined =
+                  SLO_SLI_TYPE_CHOICE_DESCRIPTIONS[type];
+
+                return getValueElement(
+                  name ? translator.translateText(name) || name : type,
+                  description
+                    ? translator.translateText(description) || description
+                    : undefined,
+                );
+              },
+            },
+            {
+              field: {
+                services: {
+                  name: true,
+                },
+              },
+              title: "Services",
+              fieldType: FieldType.Element,
+              showIf: (item: ServiceLevelObjective): boolean => {
+                return isRequestSliType(item.sliType);
+              },
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                const services: Array<Service> =
+                  (item.services as Array<Service> | undefined) || [];
+
+                if (services.length === 0) {
+                  return (
+                    <p className="font-medium text-yellow-700">
+                      {translator.translateText("No services chosen")}
+                    </p>
+                  );
+                }
+
+                return (
+                  <ul className="flex flex-wrap gap-2">
+                    {services.map((service: Service) => {
+                      return (
+                        <li
+                          key={service._id?.toString() || service.name}
+                          className="rounded-md bg-gray-100 px-2 py-0.5 text-sm font-medium text-gray-800"
+                        >
+                          {service.name}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              },
+            },
+            {
+              field: {
+                latencyThresholdInMilliseconds: true,
+              },
+              title: "Latency Threshold",
+              fieldType: FieldType.Element,
+              showIf: (item: ServiceLevelObjective): boolean => {
+                return item.sliType === SliType.RequestLatency;
+              },
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                return getValueElement(
+                  typeof item.latencyThresholdInMilliseconds === "number"
+                    ? formatMilliseconds(
+                        translator,
+                        item.latencyThresholdInMilliseconds,
+                      )
+                    : EM_DASH,
+                  translator.translateTemplate(
+                    "A request served within this counts as fast enough.",
+                  ),
+                );
+              },
+            },
+          ],
+        }}
+      />
+
+      <CardModelDetail<ServiceLevelObjective>
         name="SLO Objective"
         cardProps={{
           title: "Objective",
           description:
-            "How reliable this SLO's monitors must be, and how early it warns before the error budget runs out.",
+            "How reliable this SLO must be, and how early it warns before the error budget runs out.",
         }}
         isEditable={true}
         editButtonText="Edit Objective"
@@ -232,6 +406,8 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
           selectMoreFields: {
             targetPercentage: true,
             windowDays: true,
+            // A request SLO's budget is in requests, not downtime.
+            sliType: true,
           },
           fields: [
             {
@@ -284,6 +460,19 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "Error Budget",
               fieldType: FieldType.Element,
               getElement: (item: ServiceLevelObjective): ReactElement => {
+                if (isRequestSliType(item.sliType)) {
+                  // "0.1% of requests: 1 bad request in every 1,000".
+                  return getValueElement(
+                    describeRequestErrorBudgetInLanguage(
+                      { targetPercentage: item.targetPercentage },
+                      translator,
+                    ) || EM_DASH,
+                    translator.translateTemplate(
+                      "The bad requests this objective allows before it is breached.",
+                    ),
+                  );
+                }
+
                 // "0,1 % jedes Monats: 43 Min., 12 Sek. ..." in German.
                 return getValueElement(
                   describeSloErrorBudget(
@@ -379,65 +568,76 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
 
-      <CardModelDetail<ServiceLevelObjective>
-        name="SLO Downtime Calculation"
-        cardProps={{
-          title: "Downtime Calculation",
-          description:
-            "Which monitor statuses spend error budget, and how downtime is combined when this SLO measures more than one monitor.",
-        }}
-        isEditable={true}
-        editButtonText="Edit Downtime Calculation"
-        editModalTitle={SLO_SETTINGS_DIALOG_TITLES.downtime}
-        formFields={downtimeFormFields}
-        onSaveSuccess={refreshBanner}
-        modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
-          modelType: ServiceLevelObjective,
-          id: "slo-settings-downtime",
-          modelId: modelId,
-          fields: [
-            {
-              field: {
-                multiMonitorMode: true,
-              },
-              title: "Multi Monitor Mode",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                // Unset only on rows older than the column's default.
-                const mode: SloMultiMonitorMode =
-                  item.multiMonitorMode || SloMultiMonitorMode.AnyDown;
+      {/*
+       * A request SLO counts requests, not downtime: it has nothing for this
+       * card to calculate. Drawn once the SLI type is known.
+       */}
+      {sliType === null || isRequestSlo ? (
+        <></>
+      ) : (
+        <CardModelDetail<ServiceLevelObjective>
+          name="SLO Downtime Calculation"
+          cardProps={{
+            title: "Downtime Calculation",
+            description:
+              "Which monitor statuses spend error budget, and how downtime is combined when this SLO measures more than one monitor.",
+          }}
+          isEditable={true}
+          editButtonText="Edit Downtime Calculation"
+          editModalTitle={SLO_SETTINGS_DIALOG_TITLES.downtime}
+          formFields={downtimeFormFields}
+          onSaveSuccess={refreshBanner}
+          modelDetailProps={{
+            showDetailsInNumberOfColumns: 1,
+            modelType: ServiceLevelObjective,
+            id: "slo-settings-downtime",
+            modelId: modelId,
+            fields: [
+              {
+                field: {
+                  multiMonitorMode: true,
+                },
+                title: "Multi Monitor Mode",
+                fieldType: FieldType.Element,
+                getElement: (item: ServiceLevelObjective): ReactElement => {
+                  // Unset only on rows older than the column's default.
+                  const mode: SloMultiMonitorMode =
+                    item.multiMonitorMode || SloMultiMonitorMode.AnyDown;
 
-                return getValueElement(
-                  translator.translateTerm(SLO_MULTI_MONITOR_MODE_NAMES[mode]),
-                  translator.translateText(
-                    SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
-                  ),
-                );
-              },
-            },
-            {
-              field: {
-                downtimeMonitorStatuses: {
-                  name: true,
-                  color: true,
-                  priority: true,
+                  return getValueElement(
+                    translator.translateTerm(
+                      SLO_MULTI_MONITOR_MODE_NAMES[mode],
+                    ),
+                    translator.translateText(
+                      SLO_MULTI_MONITOR_MODE_DESCRIPTIONS[mode],
+                    ),
+                  );
                 },
               },
-              title: "Downtime Monitor Statuses",
-              description: "Time in any of these statuses counts as downtime.",
-              fieldType: FieldType.Element,
-              getElement: (item: ServiceLevelObjective): ReactElement => {
-                return getDowntimeStatusesElement(
-                  item.downtimeMonitorStatuses as
-                    | Array<MonitorStatus>
-                    | undefined,
-                );
+              {
+                field: {
+                  downtimeMonitorStatuses: {
+                    name: true,
+                    color: true,
+                    priority: true,
+                  },
+                },
+                title: "Downtime Monitor Statuses",
+                description:
+                  "Time in any of these statuses counts as downtime.",
+                fieldType: FieldType.Element,
+                getElement: (item: ServiceLevelObjective): ReactElement => {
+                  return getDowntimeStatusesElement(
+                    item.downtimeMonitorStatuses as
+                      | Array<MonitorStatus>
+                      | undefined,
+                  );
+                },
               },
-            },
-          ],
-        }}
-      />
+            ],
+          }}
+        />
+      )}
 
       <SloEvaluationCard sloId={modelId} />
 

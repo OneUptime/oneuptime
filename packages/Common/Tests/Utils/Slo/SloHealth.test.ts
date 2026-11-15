@@ -199,7 +199,7 @@ describe("SloHealth notices after the settings move", () => {
     });
 
     // No page in the product changes the SLI type, so a link would dead-end.
-    it("offers no link for an unsupported SLI type", () => {
+    it("sends an unsupported SLI type to Settings, where what it measures is chosen", () => {
       const notice: SloNotice | null = getSloNotice({
         ...MEASURING,
         sloStatus: SloStatus.Misconfigured,
@@ -207,7 +207,10 @@ describe("SloHealth notices after the settings move", () => {
       });
 
       expect(notice?.title).toBe("This SLO cannot be evaluated");
-      expect(notice?.action).toBeUndefined();
+      expect(notice?.action).toEqual({
+        label: "Open Settings",
+        target: SloNoticeActionTarget.Settings,
+      });
     });
 
     it("offers no link while the first evaluation is simply pending", () => {
@@ -450,7 +453,9 @@ describe("SloHealth", () => {
         lastEvaluatedAt: new Date(),
       });
 
-      expect(notice?.body).toContain(SliType.MonitorUptime);
+      expect(notice?.body).toContain(
+        "monitor uptime, request success or request latency",
+      );
     });
 
     describe("waiting for evaluation after monitors are attached", () => {
@@ -536,7 +541,7 @@ describe("SloHealth", () => {
 
         expect(notice?.type).toBe(SloNoticeType.Warning);
         expect(notice?.title).toBe("This SLO cannot be evaluated");
-        expect(notice?.action).toBeUndefined();
+        expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
       });
 
       it.each([SloStatus.Healthy, SloStatus.AtRisk, SloStatus.BudgetExhausted])(
@@ -697,5 +702,111 @@ describe("SloHealth", () => {
         }),
       ).toBe(true);
     });
+  });
+});
+
+/*
+ * A request SLO (Request Success, Request Latency) measures its services'
+ * requests: its notices name services and a latency threshold, never
+ * monitors, and every one of them leads to Settings, What It Measures.
+ */
+describe("SloHealth notices of a request SLO", () => {
+  const REQUEST: SloNoticeData = {
+    isEnabled: true,
+    isArchived: false,
+    sliType: SliType.RequestSuccess,
+    sloStatus: SloStatus.Misconfigured,
+    monitorCount: 0,
+    serviceCount: 2,
+    targetPercentage: 99.9,
+    lastEvaluatedAt: new Date("2026-09-21T12:00:00.000Z"),
+  };
+
+  it("no services: chooses them in Settings, never 'attach monitors'", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...REQUEST,
+      serviceCount: 0,
+    });
+
+    expect(notice).toEqual({
+      type: SloNoticeType.Warning,
+      title: "No services chosen",
+      body: "A request SLO measures the requests its services serve, so it cannot be evaluated without at least one. Choose its services in Settings.",
+      action: {
+        label: "Choose services",
+        target: SloNoticeActionTarget.Settings,
+      },
+    });
+  });
+
+  it("a Request Latency SLO without a threshold: sets it in Settings", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...REQUEST,
+      sliType: SliType.RequestLatency,
+      latencyThresholdInMilliseconds: null,
+    });
+
+    expect(notice?.title).toBe("No latency threshold");
+    expect(notice?.action).toEqual({
+      label: "Set the threshold",
+      target: SloNoticeActionTarget.Settings,
+    });
+  });
+
+  it("a Request Latency SLO with a threshold and services waits for requests", () => {
+    const notice: SloNotice | null = getSloNotice({
+      ...REQUEST,
+      sliType: SliType.RequestLatency,
+      latencyThresholdInMilliseconds: 300,
+    });
+
+    expect(notice?.title).toBe("Waiting for requests");
+    expect(notice?.type).toBe(SloNoticeType.Info);
+    expect(notice?.body).toContain("traces reach OneUptime");
+    expect(notice?.action?.target).toBe(SloNoticeActionTarget.Settings);
+  });
+
+  it("a target out of range is still named before the wait", () => {
+    expect(getSloNotice({ ...REQUEST, targetPercentage: 100 })?.title).toBe(
+      "The target is out of range",
+    );
+  });
+
+  it("is never told about monitors, attached or not", () => {
+    for (const notice of [
+      getSloNotice(REQUEST),
+      getSloNotice({ ...REQUEST, serviceCount: 0 }),
+      getSloNotice({ ...REQUEST, lastEvaluatedAt: null }),
+    ]) {
+      expect(notice?.title).not.toBe("No monitors attached");
+      expect(notice?.action?.target).not.toBe(SloNoticeActionTarget.Monitors);
+    }
+  });
+
+  it("a brand-new request SLO with services is simply not evaluated yet", () => {
+    expect(
+      getSloNotice({
+        ...REQUEST,
+        sloStatus: SloStatus.Healthy,
+        lastEvaluatedAt: null,
+      })?.title,
+    ).toBe("Not evaluated yet");
+  });
+
+  it("a brand-new request SLO with no services is told to choose them", () => {
+    expect(
+      getSloNotice({
+        ...REQUEST,
+        sloStatus: SloStatus.Healthy,
+        lastEvaluatedAt: null,
+        serviceCount: 0,
+      })?.title,
+    ).toBe("No services chosen");
+  });
+
+  it("an SLO measuring normally has no notice", () => {
+    expect(
+      getSloNotice({ ...REQUEST, sloStatus: SloStatus.Healthy }),
+    ).toBeNull();
   });
 });

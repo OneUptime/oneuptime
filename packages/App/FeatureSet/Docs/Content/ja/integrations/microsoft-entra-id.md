@@ -23,7 +23,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 ## 前提条件
 
-- OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
+- OneUptime でプロジェクト所有者、プロジェクト管理者、またはセキュリティ管理者のロール。セキュリティメンバーとセキュリティ閲覧者は接続とその実行履歴を見ることはできますが、変更はできません。
 - サインインとリスク検出には、Microsoft 365 E3、E5、Business Premium に含まれる Microsoft Entra ID P1 または P2。Microsoft Graph はこうしたテナントにしかこれらを提供せず、各リスク検出の詳細は P2 で得られます。ディレクトリの変更はどのテナントでも読み取れます。
 - アプリケーション管理者など、アプリケーションを登録できる Entra ロールと、管理者の同意を付与するためのグローバル管理者または特権ロール管理者。
 - Microsoft 365 監査ログには、テナントで監査がオンになっていること（既定でオン）。[Microsoft Purview ポータル](https://purview.microsoft.com) の **Audit** に **Start recording user and admin activity** が表示されていてはいけません。

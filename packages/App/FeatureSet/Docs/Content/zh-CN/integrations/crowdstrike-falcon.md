@@ -23,7 +23,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ## 开始之前
 
-- 在 OneUptime 中拥有 Project Owner、Project Admin 或 Security Admin 角色。Security Member 和 Security Viewer 可以查看连接及其运行历史，但不能更改它们。
+- 在 OneUptime 中拥有项目所有者、项目管理员或安全管理员角色。安全成员和安全查看者可以查看连接及其运行历史，但不能更改它们。
 - 一个 Falcon 客户 ID（CID），以及一个能管理 API 客户端的 Falcon 控制台用户：Falcon Administrator 角色，或拥有 API clients and keys 权限的自定义角色。
 - 从 OneUptime 应用和工作进程到你的 Falcon 云 API 主机的出站 HTTPS，主机列在下面的 **Falcon 云** 中。
 

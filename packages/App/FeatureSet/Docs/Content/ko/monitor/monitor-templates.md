@@ -27,7 +27,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **템플릿을 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor Template 권한이 있는 사용자 지정 역할. 템플릿을 바꾸려면 같은 역할이나 Edit Monitor Template 권한이 필요합니다.
+- **템플릿을 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor Template 권한이 있는 사용자 지정 역할. 템플릿을 바꾸려면 같은 역할이나 Edit Monitor Template 권한이 필요합니다.
 - **연결된 모니터를 업데이트할 권한.** 동기화는 여러분의 이름으로 연결된 각 모니터에 기록하며, 권한이 닿지 않는 모니터는 건너뜁니다.
 
 ## 템플릿 만들기

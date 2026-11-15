@@ -25,7 +25,7 @@ flowchart TB
 
 ## Bevor Sie beginnen
 
-- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadmins können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
+- **Ein OneUptime-Projekt und das Recht, das Übernommene zu erstellen.** Projektinhaber und Projektadministratoren können alles übernehmen. Andere Rollen können ebenfalls importieren und übernehmen die Arten von Datensätzen, die sie erstellen dürfen. Alles andere wird mit Begründung als nicht übernommen angezeigt.
 - **Ein schreibgeschützter REST-API-Schlüssel von PagerDuty.** Admins und Kontoinhaber in PagerDuty können einen erstellen. Der Import schreibt nie in PagerDuty, daher braucht der Schlüssel nur Lesezugriff.
 - **Ihre PagerDuty-Region.** Wenn Sie sich unter einer Adresse anmelden, die auf `eu.pagerduty.com` endet, liegt Ihr Konto in Europa. Andernfalls liegt es in den Vereinigten Staaten.
 
@@ -77,7 +77,7 @@ Ein Import erstellt höchstens 2.000 Datensätze: höchstens 500 Personen, 200 T
 
 In OneUptime Cloud werden Datensätze, die Ihr Tarif nicht enthält, als nicht übernommen angezeigt, mit dem Tarif, den sie brauchen.
 
-Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadmins sehen den Fortschritt und den Bericht jedes Imports.
+Eine Vorschau wird einen Tag lang aufbewahrt. Nur die Person, die das Konto eingelesen hat, kann auswählen und den Import starten. Projektinhaber und Projektadministratoren sehen den Fortschritt und den Bericht jedes Imports.
 
 ## Den Wechsel abschließen
 
