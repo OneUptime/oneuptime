@@ -52,7 +52,7 @@ flowchart TB
 2. In the side menu, open **Telemetry & APM** and select **Ingestion Keys**.
 3. Click **Create Ingestion Key**. The dialog fills in a name and picks the **Server** key type, which is what an application or a collector sends with. Rename it if you like, then click **Create Ingestion Key**.
 
-![The Ingestion Keys page in Project Settings](/docs/static/images/TelemetryIngestionKeys.png)
+![The "Ingestion Keys" list, with "Create Ingestion Key" ringed](screen:ingestion-keys)
 
 The new key opens on its own page. Copy its **Secret Key** — this is the token you send as `x-oneuptime-token`.
 
