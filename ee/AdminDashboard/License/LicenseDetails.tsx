@@ -32,6 +32,9 @@ import {
 } from "./LicenseDetailsCopy";
 import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 
+// A release's version, as OneUptime writes it everywhere: v14.2.0.
+const VERSION_PREFIX: string = "v";
+
 /*
  * The Enterprise license details: the seat usage card and the instances on
  * the license, for a master admin. Nothing here changes the license.
@@ -812,7 +815,8 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                                   )
                             }
                           >
-                            v{displayVersion}
+                            {VERSION_PREFIX}
+                            {displayVersion}
                           </span>
                         )}
                       </div>
