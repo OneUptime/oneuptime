@@ -50,7 +50,7 @@ Apri **Prodotti → Dashboard**, espandi **Impostazioni** nel menu laterale e fa
 
 ### Scegliere il tipo
 
-Fai clic su **Crea: Data Source**. La finestra **Choose a Data Source Type** raggruppa i tipi in base a ciò che contengono: metriche, log, database, ricerca e API. Fai clic su uno.
+Fai clic su **Crea: Origine dati**. La finestra **Choose a Data Source Type** raggruppa i tipi in base a ciò che contengono: metriche, log, database, ricerca e API. Fai clic su uno.
 
 ### Darle un nome
 
@@ -58,15 +58,15 @@ In **Informazioni di base**, dalle un **Nome**, come "Prometheus di produzione",
 
 ### Indicare dove si trova
 
-In **Connessione**, una fonte HTTP riceve l'**URL** a cui risponde. Un database riceve il suo **Database Host**, la sua **Database Port** (lasciala vuota per 5432, 3306, 1433 o 8123) e il suo **Nome del database**.
+In **Connessione**, una fonte HTTP riceve l'**URL** a cui risponde. Un database riceve il suo **Host del database**, la sua **Porta del database** (lasciala vuota per 5432, 3306, 1433 o 8123) e il suo **Nome del database**.
 
 ### Indicare come accedere
 
-In **Autenticazione**, inserisci un **Nome utente** e una **Password** oppure, per una fonte HTTP, un **Token API**, inviato come token bearer. **Altri campi** contiene **Custom HTTP Headers**, come `{ "X-Scope-OrgID": "tenant-1" }`, e **Additional Options**: `sslEnabled` e `sslRejectUnauthorized` per i database, `elasticsearchIndex` per Elasticsearch, che senza di esso legge tutti gli indici (`*`).
+In **Autenticazione**, inserisci un **Nome utente** e una **Password** oppure, per una fonte HTTP, un **Token API**, inviato come token bearer. **Altri campi** contiene **Intestazioni HTTP personalizzate**, come `{ "X-Scope-OrgID": "tenant-1" }`, e **Opzioni aggiuntive**: `sslEnabled` e `sslRejectUnauthorized` per i database, `elasticsearchIndex` per Elasticsearch, che senza di esso legge tutti gli indici (`*`).
 
 ### Provarla
 
-Fai clic su **Crea: Data Source**, poi su **Test** nella sua riga. OneUptime si collega con i dati che hai fornito, e dice se ha funzionato o che cosa è andato storto.
+Fai clic su **Crea: Origine dati**, poi su **Test** nella sua riga. OneUptime si collega con i dati che hai fornito, e dice se ha funzionato o che cosa è andato storto.
 :::
 
 Per cambiare una fonte di dati in seguito, aprila dall'elenco. **Modifica** in **Data Source Details** cambia tutto tranne i suoi segreti; **Aggiorna le credenziali** sostituisce la password, il token o le intestazioni, e lascia com'erano i campi che lasci vuoti; **Test** la verifica di nuovo.
@@ -75,7 +75,7 @@ Per cambiare una fonte di dati in seguito, aprila dall'elenco. **Modifica** in *
 
 Modifica una dashboard, fai clic su **Aggiungi widget** e scegli un widget del gruppo Fonti di dati esterne: un **Grafico**, un **Valore**, un **Indicatore** o una **Tabella**. Nelle sue impostazioni:
 
-- Scegli la **Data Source** e scrivi la **Query**. L'editor indica il linguaggio di query e mostra un esempio per il tipo.
+- Scegli la **Origine dati** e scrivi la **Query**. L'editor indica il linguaggio di query e mostra un esempio per il tipo.
 - In un grafico, **Aggiungi query** sovrappone altre query sugli stessi assi, e **Legend (optional)** dà un nome a ogni serie a partire dalle sue etichette: `{{instance}} — errors` scrive davanti l'etichetta `instance` della serie.
 - In un valore o in un indicatore, **Reduce** trasforma i punti in un solo numero: l'ultimo valore (il predefinito), il primo, la media, la somma, il minimo o il massimo. **Unità** aggiunge un suffisso, e scala le unità note: `Bytes` si legge come 1.5 MB, `ms` come 2.4 s.
 - In una tabella funziona qualsiasi query di sola lettura, e le sue righe appaiono così come arrivano.
@@ -162,14 +162,14 @@ Le query di intervallo di Prometheus e Loki chiedono circa 250 punti sull'interv
 ## Sicurezza
 
 - **SQL resta in sola lettura.** Una query deve essere un'unica istruzione che inizi con `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` o `DESC`. Le parole che scrivono o modificano una sessione, come `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` o `SET`, vengono rifiutate ovunque fuori dalle stringhe e dai nomi tra virgolette, quindi metti tra virgolette una colonna che porta il nome di una di esse. Scrivi un apice dentro una stringa come due apici (`''`): una barra rovesciata prima di un apice viene rifiutata. Anche le sessioni di PostgreSQL, MySQL e ClickHouse sono di sola lettura. SQL Server non ha sessioni di sola lettura, quindi collegalo con un login di sola lettura.
-- **Le credenziali sono di sola scrittura.** **Password**, **Token API** e **Custom HTTP Headers** sono cifrati a riposo, e l'API non li restituisce mai, nemmeno a te.
+- **Le credenziali sono di sola scrittura.** **Password**, **Token API** e **Intestazioni HTTP personalizzate** sono cifrati a riposo, e l'API non li restituisce mai, nemmeno a te.
 - **Gli indirizzi vengono verificati.** Gli indirizzi di loopback, link-local (dove si trovano i metadati del cloud) e gli altri indirizzi riservati vengono rifiutati ovunque. Gli indirizzi privati vengono rifiutati su OneUptime Cloud, e consentiti su un'installazione self-hosted a meno che `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sia `true`: vedi [Accesso alla rete privata](/docs/self-hosted/private-network-access).
 - **Le dashboard pubbliche non le eseguono mai.** I widget di Fonti di dati esterne vengono esclusi da una [dashboard pubblica](/docs/dashboards/sharing), query comprese.
 
 ## Risoluzione dei problemi
 
 :::details Test dice che non riesce a collegarsi
-Controlla l'URL, oppure l'host e la porta, dal punto in cui gira OneUptime: un firewall, un indirizzo privato su OneUptime Cloud o un database in ascolto solo sulla propria macchina appaiono uguali da qui. Per un database che richiede TLS, aggiungi `{ "sslEnabled": true }` in **Additional Options**.
+Controlla l'URL, oppure l'host e la porta, dal punto in cui gira OneUptime: un firewall, un indirizzo privato su OneUptime Cloud o un database in ascolto solo sulla propria macchina appaiono uguali da qui. Per un database che richiede TLS, aggiungi `{ "sslEnabled": true }` in **Opzioni aggiuntive**.
 :::
 
 :::details "Only read-only queries are allowed"
