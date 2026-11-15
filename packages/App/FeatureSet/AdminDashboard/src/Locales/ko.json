@@ -2876,7 +2876,7 @@
   "Changing this setting needs the {{planName}} plan.": "이 설정을 변경하려면 {{planName}} 요금제가 필요합니다.",
   "Products": "제품",
   "Pinned": "고정됨",
-  "Recent": "Recent",
+  "Recent": "최근",
   "Not set up": "설정되지 않음",
   "Unpin {{product}}": "{{product}} 고정 해제",
   "Pin {{product}}": "{{product}} 고정",

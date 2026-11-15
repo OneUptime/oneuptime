@@ -2876,7 +2876,7 @@
   "Changing this setting needs the {{planName}} plan.": "För att ändra den här inställningen behöver du {{planName}}-abonnemanget.",
   "Products": "Produkter",
   "Pinned": "Fäst",
-  "Recent": "Recent",
+  "Recent": "Nyligen",
   "Not set up": "Inte konfigurerad",
   "Unpin {{product}}": "Lossa {{product}}",
   "Pin {{product}}": "Fäst {{product}}",

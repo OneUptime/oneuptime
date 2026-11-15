@@ -2876,7 +2876,7 @@
   "Changing this setting needs the {{planName}} plan.": "Чтобы изменить эту настройку, нужен тариф {{planName}}.",
   "Products": "Продукты",
   "Pinned": "Закреплено",
-  "Recent": "Recent",
+  "Recent": "Недавно",
   "Not set up": "Не настроено",
   "Unpin {{product}}": "Открепить {{product}}",
   "Pin {{product}}": "Закрепить {{product}}",
