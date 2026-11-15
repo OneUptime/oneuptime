@@ -669,7 +669,8 @@ const MAX_LABEL_LENGTH: number = 999;
  * noted for marked (readLinkTextAsMarked): as far as a kept side and the
  * space a cut looks for reach.
  */
-const PLAIN_WINDOW_LENGTH: number = OVER_LONG_LINE_KEPT_LENGTH + CUT_SEARCH_LENGTH;
+const PLAIN_WINDOW_LENGTH: number =
+  OVER_LONG_LINE_KEPT_LENGTH + CUT_SEARCH_LENGTH;
 
 const BACKTICK: number = 0x60;
 
@@ -732,16 +733,19 @@ const newCodeSpanSearch: (text: string, end: number) => CodeSpanSearch = (
 };
 
 // Where the run of backticks that starts at `index` ends.
-const getBacktickRunEnd: (text: string, index: number, end: number) => number =
-  (text: string, index: number, end: number): number => {
-    let runEnd: number = index;
+const getBacktickRunEnd: (
+  text: string,
+  index: number,
+  end: number,
+) => number = (text: string, index: number, end: number): number => {
+  let runEnd: number = index;
 
-    while (runEnd < end && text.charCodeAt(runEnd) === BACKTICK) {
-      runEnd++;
-    }
+  while (runEnd < end && text.charCodeAt(runEnd) === BACKTICK) {
+    runEnd++;
+  }
 
-    return runEnd;
-  };
+  return runEnd;
+};
 
 /*
  * Where the code span that the run of backticks starting at `index` opens
@@ -1053,11 +1057,7 @@ const readLinkTextAsMarked: (
     }
   }
 
-  for (
-    let at: number = reading.cut;
-    at <= Math.min(close, windowEnd);
-    at++
-  ) {
+  for (let at: number = reading.cut; at <= Math.min(close, windowEnd); at++) {
     if (plain[at - windowStart] === 3) {
       plainAfter = at;
       break;
@@ -1154,7 +1154,9 @@ const readLabelClose: (text: string, from: number, end: number) => number = (
  * Where what makes a link of a text whose "]" is at `close` ends: past
  * its "](" (an inline link: its address and title follow) or its
  * "][label]" (a full reference). -1 when neither follows: a collapsed
- * reference, "[label][]", or a shortcut one, or no link.
+ * reference, "[label][]", or a shortcut one, or no link - or a label with
+ * a backtick in it, which stays in view: a code span it opens could close
+ * past it, where the closing backticks are held back.
  */
 const getLinkTextSuffixEnd: (
   text: string,
@@ -1173,7 +1175,17 @@ const getLinkTextSuffixEnd: (
 
   const labelClose: number = readLabelClose(text, close + 2, lineEnd);
 
-  return labelClose === -1 || labelClose === close + 2 ? -1 : labelClose + 1;
+  if (labelClose === -1 || labelClose === close + 2) {
+    return -1;
+  }
+
+  for (let index: number = close + 2; index < labelClose; index++) {
+    if (text.charCodeAt(index) === BACKTICK) {
+      return -1;
+    }
+  }
+
+  return labelClose + 1;
 };
 
 // Where the "[" of the label that starts at `start` - its "[", or the "!" of an image's "![" - is.
@@ -1368,7 +1380,11 @@ const getReferenceAcrossEnd: (data: {
       continue;
     }
 
-    const labelClose: number = readLabelClose(text, labelPart + 1, data.lineEnd);
+    const labelClose: number = readLabelClose(
+      text,
+      labelPart + 1,
+      data.lineEnd,
+    );
     const textOpen: number = getLabelOpen(text, data.lastClosedStart);
 
     if (labelClose === labelPart + 1) {
@@ -2082,11 +2098,19 @@ const holdBackMiddle: (data: {
       });
 
       if (referenceEnd > index) {
+        /*
+         * Read on to it as the kept start was read: it stays in view only
+         * where it ends as text - in no link, and in no code span, whose
+         * closing backticks would be held back.
+         */
         const advanced: LinkReading = { ...reading };
         let at: number = index;
 
         while (at < referenceEnd) {
-          at = readLinkUnit(text, at, advanced);
+          at =
+            advanced.part === "text" && text.charCodeAt(at) === BACKTICK
+              ? getPastBackticks(codeSpans, at)
+              : readLinkUnit(text, at, advanced);
         }
 
         if (at === referenceEnd && advanced.part === "text") {
