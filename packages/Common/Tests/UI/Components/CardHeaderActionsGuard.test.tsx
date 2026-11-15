@@ -473,6 +473,12 @@ const NOT_A_CARD_HEADER: Record<string, { count: number; reason: string }> = {
       reason:
         "The recording health verdict banner: its call to action follows the verdict.",
     },
+  "packages/App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthSummary.tsx":
+    {
+      count: 1,
+      reason:
+        "Setup Health's verdict band, the page's hero: when it was checked and Recheck follow the verdict's words, under them on a phone.",
+    },
   "packages/App/FeatureSet/Dashboard/src/Components/Topology/ServiceMapGraph.tsx":
     {
       count: 1,
