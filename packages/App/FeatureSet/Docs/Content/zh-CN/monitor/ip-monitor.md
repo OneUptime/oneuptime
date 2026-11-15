@@ -143,7 +143,7 @@ flowchart TB
 :::
 
 :::details IPv6 地址总是失败
-运行检查的探测器没有 IPv6 连接；失败信息会说明这一点。请在具备 IPv6 的探测器上运行监视器：请参阅 [自定义探针](/docs/probe/custom-probe)。
+运行检查的探测器没有 IPv6 连接；失败信息会说明这一点。请在具备 IPv6 的探测器上运行监视器：请参阅 [自定义探测器](/docs/probe/custom-probe)。
 :::
 
 :::details 丢包率和抖动为空
@@ -155,6 +155,6 @@ flowchart TB
 :::cards
 - [Ping 监控](/docs/monitor/ping-monitor): 按名称 ping 主机，并跟随 DNS 的变化。
 - [端口监控](/docs/monitor/port-monitor): 检查该地址上的服务，而不只是地址本身。
-- [自定义探针](/docs/probe/custom-probe): 从您自己的网络检查私有地址和 IPv6 地址。
+- [自定义探测器](/docs/probe/custom-probe): 从您自己的网络检查私有地址和 IPv6 地址。
 - [事件](/docs/incidents/index): 监视器声明事件之后会发生什么。
 :::

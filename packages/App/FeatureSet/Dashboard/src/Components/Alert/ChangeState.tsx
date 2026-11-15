@@ -62,11 +62,11 @@ import AcknowledgedStateUtil from "Common/Utils/AcknowledgedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import { getEventEndDateForCurrentState } from "../../Utils/EventDuration";
 import {
-  translatableTerm,
-  TranslatableTerm,
+  TemplateValue,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { recordNameInSentence } from "Common/Utils/DefaultRecordNames";
 
 export interface ComponentProps {
   alertId: ObjectID;
@@ -524,9 +524,11 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
 
   /*
    * The modal looks its title, description and button text up; the ones
-   * that name the chosen state are filled in here, in the reader's language.
+   * that name the chosen state are filled in here, in the reader's language,
+   * the state's name read by its list (Common/Utils/DefaultRecordNames).
    */
-  const selectedStateName: TranslatableTerm = translatableTerm(
+  const selectedStateName: TemplateValue = recordNameInSentence(
+    StateListType.AlertState,
     selectedAlertState?.name || "",
   );
 

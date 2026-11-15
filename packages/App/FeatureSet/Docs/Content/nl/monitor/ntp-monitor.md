@@ -157,6 +157,6 @@ De sonde staat ver van de server, of het pad is in de ene richting trager dan in
 :::cards
 - [Ping-monitor](/docs/monitor/ping-monitor): Controleren of de host zelf bereikbaar is.
 - [Poort-monitor](/docs/monitor/port-monitor): De TCP-diensten op dezelfde host controleren.
-- [Aangepaste probes](/docs/probe/custom-probe): Tijdservers in je eigen netwerk controleren.
+- [Aangepaste sondes](/docs/probe/custom-probe): Tijdservers in je eigen netwerk controleren.
 - [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating): Het stratum en de afwijking in de titel van een incident zetten.
 :::

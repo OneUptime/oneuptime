@@ -9,9 +9,107 @@ import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightHumanVerdict from "../../../Types/AI/AIInsightHumanVerdict";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import AiRunRefusalException from "../../../Types/Exception/AiRunRefusalException";
+import { AiRunRefusalCode } from "../../../Types/AI/AiRunRefusal";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { describe, expect, test, afterEach } from "@jest/globals";
+
+/*
+ * WHY AN INSIGHT'S ACTION DID NOT SAVE, BY ITS CODE (#8052): an insight
+ * gone between the page's check and the change, and one a person closed
+ * in another tab, are refused with the refusal codes the insight's page
+ * words in the reader's language.
+ */
+describe("AIInsightService refuses with codes the insight's page words", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    [
+      "applyHumanVerdict",
+      (): Promise<unknown> => {
+        return AIInsightService.applyHumanVerdict({
+          insightId,
+          verdict: AIInsightHumanVerdict.Confirmed,
+          byUserId: ObjectID.generate(),
+        });
+      },
+    ],
+    [
+      "reopenInsight",
+      (): Promise<unknown> => {
+        return AIInsightService.reopenInsight({ insightId });
+      },
+    ],
+    [
+      "resolveInsight",
+      (): Promise<unknown> => {
+        return AIInsightService.resolveInsight({
+          insightId,
+          byUserId: ObjectID.generate(),
+        });
+      },
+    ],
+  ])(
+    "%s: an insight that is gone is refused as no longer existing",
+    async (_name: string, act: () => Promise<unknown>) => {
+      jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(null);
+      const updateOneById: jest.SpyInstance = jest
+        .spyOn(AIInsightService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      const error: unknown = await act().catch((err: unknown) => {
+        return err;
+      });
+
+      expect(error).toBeInstanceOf(AiRunRefusalException);
+      expect(error).toMatchObject({
+        message: "This AI insight no longer exists.",
+        refusalCode: AiRunRefusalCode.InsightNotFound,
+      });
+      expect(updateOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    [
+      AIInsightStatus.Resolved,
+      AiRunRefusalCode.InsightAlreadyResolved,
+      "This AI insight is already resolved and cannot be resolved again.",
+    ],
+    [
+      AIInsightStatus.Dismissed,
+      AiRunRefusalCode.InsightAlreadyDismissed,
+      "This AI insight is already dismissed and cannot be resolved again.",
+    ],
+  ])(
+    "resolving an insight already %s is refused with its own code, its English as it was",
+    async (
+      status: AIInsightStatus,
+      code: AiRunRefusalCode,
+      message: string,
+    ) => {
+      jest
+        .spyOn(AIInsightService, "findOneById")
+        .mockResolvedValue(fakeInsight({ status }));
+      jest
+        .spyOn(AIInsightService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      const error: unknown = await AIInsightService.resolveInsight({
+        insightId,
+        byUserId: ObjectID.generate(),
+      }).catch((err: unknown) => {
+        return err;
+      });
+
+      expect(error).toBeInstanceOf(AiRunRefusalException);
+      expect(error).toMatchObject({ message, refusalCode: code });
+    },
+  );
+});
 
 /*
  * Human actions on AI insights land here via AIInsightAPI

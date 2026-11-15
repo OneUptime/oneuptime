@@ -8,6 +8,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  recordNameInSentence,
+  translateRecordName,
+} from "Common/Utils/DefaultRecordNames";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -99,7 +103,10 @@ export const EPISODE_PICKER_DISABLED_CLASS_NAME: string =
 const PILL_CLASS_NAME: string =
   "inline-flex max-w-full items-center gap-1.5 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200";
 
-// The state and severity pills, as the episode's members card draws them.
+/*
+ * The state and severity pills, as the episode's members card draws them,
+ * each name read by its list (Common/Utils/DefaultRecordNames).
+ */
 export const EpisodePickerPillBadge: FunctionComponent<{
   pill: EpisodePickerPill;
   testId: string;
@@ -109,6 +116,8 @@ export const EpisodePickerPillBadge: FunctionComponent<{
   testId: string;
   tooltip: string;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <span
       data-testid={props.testId}
@@ -120,7 +129,9 @@ export const EpisodePickerPillBadge: FunctionComponent<{
         className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
         style={{ backgroundColor: (props.pill.color || Black).toString() }}
       />
-      <span className="truncate">{props.pill.name}</span>
+      <span className="truncate">
+        {translateRecordName(translator, props.pill.list, props.pill.name)}
+      </span>
     </span>
   );
 };
@@ -275,7 +286,10 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                     pill={item.state}
                     testId={`${props.testId}-option-state`}
                     tooltip={translator.translateTemplate("State: {{name}}", {
-                      name: item.state.name,
+                      name: recordNameInSentence(
+                        item.state.list,
+                        item.state.name,
+                      ),
                     })}
                   />
                 )}
@@ -286,7 +300,10 @@ const EpisodePickerList: FunctionComponent<ComponentProps> = (
                     tooltip={translator.translateTemplate(
                       "Severity: {{name}}",
                       {
-                        name: item.severity.name,
+                        name: recordNameInSentence(
+                          item.severity.list,
+                          item.severity.name,
+                        ),
                       },
                     )}
                   />

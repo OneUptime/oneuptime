@@ -84,9 +84,10 @@ const PICKER_STRINGS: Array<string> = [
   "Try other words, or start from scratch.",
   "Search all templates",
   "How It Works",
-  "Trigger",
+  // What a screen reader hears around a chip's name: one sentence each (#8076).
+  "Trigger: {{name}}",
   "What you'll need",
-  "Secret",
+  "{{name}}, Secret",
   "Optional",
   "Nothing to fill in.",
 ];
@@ -212,6 +213,9 @@ const NEW_STRINGS: Array<string> = [
   // Who a template pages, asked in the wizard.
   "Pick who this workflow pages. You can change it later on its Page step in the Builder.",
   "Pick who to page.",
+  // A chip's and a setting's words for a screen reader, one sentence each (#8076).
+  "Trigger: {{name}}",
+  "{{name}}, Secret",
 ];
 
 /*
@@ -256,6 +260,7 @@ const IDENTICAL_TO_ENGLISH: Record<string, Array<string>> = {
    * the label as the Dashboard draws it.
    */
   Trigger: ["da", "it", "nl"],
+  "Trigger: {{name}}": ["da", "it", "nl"],
   // French spells it the same.
   Maintenance: ["fr"],
 };

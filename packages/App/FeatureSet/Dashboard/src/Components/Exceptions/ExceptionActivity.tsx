@@ -36,6 +36,7 @@ import { formatRelativeTime } from "../../Utils/ExceptionDetailPresentation";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * AN EXCEPTION'S ACTIVITY, ON ITS OVERVIEW.
@@ -226,7 +227,7 @@ const ExceptionActivity: FunctionComponent<ComponentProps> = (
           role="alert"
           data-testid="exception-activity-error"
         >
-          {error}
+          <ErrorInSentence message={error} showWhereToLook={true} />
         </p>
       );
     }

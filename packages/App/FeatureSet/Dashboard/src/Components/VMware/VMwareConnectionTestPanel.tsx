@@ -34,6 +34,7 @@ import {
   getVMwareConnectionTestView,
   isVMwareConnectionTestSettled,
 } from "./VMwareProbeCollectionView";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * "Test connection": the address, account and certificate on the form,
@@ -343,7 +344,9 @@ const VMwareConnectionTestPanel: FunctionComponent<ComponentProps> = (
           role="alert"
         >
           <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-none" />
-          <span>{error}</span>
+          <span>
+            <ErrorInSentence message={error} showWhereToLook={true} />
+          </span>
         </div>
       ) : (
         <></>

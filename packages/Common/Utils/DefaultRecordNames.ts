@@ -6,7 +6,12 @@ import {
   DEFAULT_MONITOR_STATUS_NAMES,
   DEFAULT_SCHEDULED_MAINTENANCE_STATE_NAMES,
 } from "../Types/StatusPage/DefaultStatusNames";
-import { Translator } from "../Types/Translator";
+import {
+  TemplateValue,
+  TermOptions,
+  Translator,
+  translatableTerm,
+} from "../Types/Translator";
 import { DEFAULT_POSTMORTEM_STATUSES } from "./Incident/PostmortemStatus";
 import { DEFAULT_SECURITY_CASE_PRIORITIES } from "./SecurityCase/SecurityCasePriorities";
 import { DEFAULT_SECURITY_CASE_STATUSES } from "./SecurityCase/SecurityCaseStatuses";
@@ -19,7 +24,8 @@ import { StateListType } from "./StateOrder";
  * a state or a severity a project made. It is drawn as written in every
  * language - a label named "Network" is "Network" on a Spanish page, never
  * "Red" - in a badge (Pill, StatusBubble), in a picker's options and in a
- * filter's menu and chip (DropdownOption.isUserContent).
+ * filter's menu and chip (DropdownOption.isUserContent), as a line of text
+ * (translateRecordName) and in a sentence (recordNameInSentence).
  *
  * The records a new project starts with that OneUptime names itself
  * (ProjectService) are the exception: its states, severities, monitor
@@ -154,4 +160,35 @@ export const translateRecordName: (
   }
 
   return translator.translateText(name.trim()) || name;
+};
+
+/*
+ * A record's name as a value of a sentence - "{{stateName}} in", "Mark as
+ * {{state}}", "Incident · {{severity}}" - by the same rule. One of
+ * OneUptime's default names of its table goes in as a term, translated
+ * with the sentence and only then (Types/Translator): a sentence the
+ * reader's language words reads "Marcar como Resuelto", one it does not
+ * yet reads "Mark as Resolved" whole, and `inSentence` cases the name for
+ * the middle of one ("Not yet resolved"). Any other name goes in as
+ * written, never looked up: a state a project named "Open" reads "Marcar
+ * como Open", never the verb "Abrir", in any language and in any case.
+ */
+export const recordNameInSentence: (
+  tableName: string | null | undefined,
+  name: string | null | undefined,
+  options?: TermOptions,
+) => TemplateValue = (
+  tableName: string | null | undefined,
+  name: string | null | undefined,
+  options?: TermOptions,
+): TemplateValue => {
+  if (!name) {
+    return "";
+  }
+
+  if (!isDefaultRecordName(tableName, name)) {
+    return name;
+  }
+
+  return translatableTerm(name.trim(), options);
 };

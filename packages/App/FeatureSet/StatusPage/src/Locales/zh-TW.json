@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 正常運作時間",
+    "uptimePercent": "正常運作時間 {{percent}}%",
     "operational": "運作中",
     "notMonitored": "未監控",
     "noResourcesInGroup": "此群組中未新增任何資源。",
@@ -114,6 +115,7 @@
     "noneDescription": "此狀態頁未發佈任何事件。",
     "postmortem": "事件事後分析",
     "declaredAt": "宣告於 ",
+    "declaredAtTime": "宣告於 {{time}}",
     "report": "事件報告",
     "notFound": "在此狀態頁上找不到此事件。"
   },
@@ -130,6 +132,7 @@
     "none": "無公告",
     "noneDescription": "此頁面尚未發佈任何公告。",
     "announcedAt": "公告於 ",
+    "announcedAtTime": "公告於 {{time}}",
     "notFound": "在此狀態頁上找不到此公告。"
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "沒有排定維護",
     "noneDescription": "此狀態頁尚未發布排定維護。",
     "scheduledAt": "排定於 ",
+    "scheduledAtTime": "排定於 {{time}}",
     "report": "維護事件報告",
     "notFound": "此狀態頁上找不到維護事件。",
     "calendar": {
@@ -467,5 +471,7 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "No options available": "沒有可用的選項",
+  "No matches found": "找不到相符項目"
 }

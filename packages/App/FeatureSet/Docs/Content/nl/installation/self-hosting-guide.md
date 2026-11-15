@@ -103,7 +103,7 @@ Open uw adres, zoals `https://oneuptime.example.com`, en registreer u. Het eerst
 
 ## De server afmaken
 
-De pagina **Serverinstelling** van het Admin Dashboard, op `/admin/setup`, somt op wat een nieuwe server nodig heeft, het belangrijkste eerst. E-mail, HTTPS en wie zich mag registreren zijn verplicht. Sms en oproepen, een globale probe, back-ups en updatecontroles worden aanbevolen. Elk punt heeft een knop die de plek opent waar het wordt ingesteld, en `npm start` eindigt met het adres van deze pagina.
+De pagina **Serverinstelling** van het Admin Dashboard, op `/admin/setup`, somt op wat een nieuwe server nodig heeft, het belangrijkste eerst. E-mail, HTTPS en wie zich mag registreren zijn verplicht. Sms en oproepen, een globale sonde, back-ups en updatecontroles worden aanbevolen. Elk punt heeft een knop die de plek opent waar het wordt ingesteld, en `npm start` eindigt met het adres van deze pagina.
 
 :::steps
 ### E-mail instellen
@@ -137,7 +137,7 @@ Voer in de map `oneuptime` de doctor uit:
 npm run doctor
 ```
 
-Hij controleert elke container, `config.env`, of `HOST` deze server bereikt, het certificaat en de vrije schijfruimte, en vraagt OneUptime wat het van zichzelf ziet, zoals e-mail en probes. Bij elk probleem hoort de oplossing: zie [Uw installatie controleren](/docs/installation/docker-compose#uw-installatie-controleren).
+Hij controleert elke container, `config.env`, of `HOST` deze server bereikt, het certificaat en de vrije schijfruimte, en vraagt OneUptime wat het van zichzelf ziet, zoals e-mail en sondes. Bij elk probleem hoort de oplossing: zie [Uw installatie controleren](/docs/installation/docker-compose#uw-installatie-controleren).
 @tab Kubernetes
 Voer het diagnosescript van de chart uit tegen uw cluster, zoals de [probleemoplossingsgids van de chart](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/troubleshooting.md#run-it) laat zien. Het leest alleen, en eindigt met een samenvatting van wat het vond, het ergste eerst.
 :::

@@ -1543,6 +1543,8 @@ const MonitorTemplatesView: FunctionComponent<
                   return {
                     label: monitor.name || "(unnamed monitor)",
                     value: monitor._id?.toString() || "",
+                    // A monitor's own name as written, never looked up.
+                    isUserContent: Boolean(monitor.name),
                   };
                 }),
               },

@@ -15,6 +15,12 @@ import {
   isSessionAuditLogAction,
   readSessionEntryFields,
 } from "Common/Types/AuditLog/AuditLogSessionEvent";
+import {
+  translatableTerm,
+  TranslatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export type AuditLogModalAction = "Create" | "Update" | "Delete" | string;
@@ -180,6 +186,57 @@ export const readSessionDetailRows: (
   return rows;
 };
 
+/*
+ * The dialog's title (issue #8076): the entry's action, then what it was
+ * done to - a resource's type and name, or the session a sign-in made - as
+ * one line in the reader's language. It was joined from English pieces, so
+ * every language read "Sign In · User Session", its fallbacks never
+ * translated. The action and the type are the reader's words; a name is
+ * drawn as written; the separator is the language's own (" • " in Persian).
+ */
+export const getAuditLogChangesTitle: (data: {
+  action: string;
+  resourceType?: string | undefined;
+  resourceName?: string | undefined;
+  translator: Translator;
+}) => string = (data: {
+  action: string;
+  resourceType?: string | undefined;
+  resourceName?: string | undefined;
+  translator: Translator;
+}): string => {
+  const action: TranslatableTerm = translatableTerm(
+    getAuditLogActionLabel(data.action),
+  );
+
+  if (isSessionAuditLogAction(data.action)) {
+    return data.translator.translateTemplate("{{action}} · {{subject}}", {
+      action: action,
+      subject:
+        data.resourceName ||
+        translatableTerm(data.resourceType || "User Session"),
+    });
+  }
+
+  const resourceType: TranslatableTerm = translatableTerm(
+    data.resourceType || "Resource",
+  );
+
+  return data.resourceName
+    ? data.translator.translateTemplate(
+        "{{action}} · {{resourceType}} — {{resourceName}}",
+        {
+          action: action,
+          resourceType: resourceType,
+          resourceName: data.resourceName,
+        },
+      )
+    : data.translator.translateTemplate("{{action}} · {{resourceType}}", {
+        action: action,
+        resourceType: resourceType,
+      });
+};
+
 // What a session entry's dialog says it shows.
 export const getSessionDetailsDescription: (action: string) => string = (
   action: string,
@@ -214,6 +271,7 @@ const renderValue: (value: JSONValue | undefined) => ReactElement = (
 const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const rows: Array<ChangeRow> = useMemo(() => {
     return readChangeRows(props.changes);
   }, [props.changes]);
@@ -222,7 +280,12 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
     return null;
   }
 
-  const actionLabel: string = getAuditLogActionLabel(props.action);
+  const title: string = getAuditLogChangesTitle({
+    action: props.action,
+    resourceType: props.resourceType,
+    resourceName: props.resourceName,
+    translator: translator,
+  });
 
   if (isSessionAuditLogAction(props.action)) {
     const sessionRows: Array<SessionDetailRow> = readSessionDetailRows(
@@ -231,7 +294,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
 
     return (
       <Modal
-        title={`${actionLabel} · ${props.resourceName || props.resourceType || "User Session"}`}
+        title={title}
         description={getSessionDetailsDescription(props.action)}
         onClose={props.onClose}
         closeButtonText="Close"
@@ -287,11 +350,7 @@ const AuditLogChangesModal: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title={
-        props.resourceName
-          ? `${actionLabel} · ${props.resourceType || "Resource"} — ${props.resourceName}`
-          : `${actionLabel} · ${props.resourceType || "Resource"}`
-      }
+      title={title}
       description={header}
       onClose={props.onClose}
       closeButtonText="Close"

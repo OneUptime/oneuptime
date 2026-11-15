@@ -446,7 +446,7 @@ describe("the diagnosis in the reader's language", () => {
       "Uploads paused 3h ago",
     );
     expect(diagnoseRecordingHealth(status, NOW, wordsBoth).title).toBe(
-      "Uploads pausiert vor 3 Std.",
+      "Uploads pausiert vor 3\u00A0Std.",
     );
   });
 });

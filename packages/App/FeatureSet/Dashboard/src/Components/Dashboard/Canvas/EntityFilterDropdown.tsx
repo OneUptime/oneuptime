@@ -42,6 +42,8 @@ import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponent
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getUnnamedText } from "../Components/DashboardWidgetFallbackWords";
+import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
 
@@ -98,6 +100,17 @@ const toDropdownOption: ToDropdownOptionFunction = (
     label:
       ((item as unknown as { name: string }).name as string) ||
       getUnnamedText(),
+    /*
+     * The name reads by its row's table: a default state's, severity's or
+     * monitor status's name is OneUptime's word, looked up; any other name,
+     * and "Unnamed" (already the reader's word), is drawn as written.
+     */
+    isUserContent:
+      !(item as unknown as { name: string }).name ||
+      isRecordNameAsWritten(
+        item.tableName,
+        (item as unknown as { name: string }).name,
+      ),
   };
 
   const color: Color | undefined = colorColumnName
@@ -483,7 +496,7 @@ const EntityFilterDropdown: FunctionComponent<EntityFilterDropdownProps> = (
   if (error) {
     return (
       <div className="text-xs text-red-600 py-2 px-3 border border-red-200 rounded-md bg-red-50">
-        {error}
+        <ErrorInSentence message={error} showWhereToLook={true} />
       </div>
     );
   }

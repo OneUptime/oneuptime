@@ -42,6 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% de disponibilidade",
+    "uptimePercent": "{{percent}}% de disponibilidade",
     "operational": "Operacional",
     "notMonitored": "Não monitorado",
     "noResourcesInGroup": "Nenhum recurso adicionado a este grupo.",
@@ -114,6 +115,7 @@
     "noneDescription": "Nenhum incidente publicado nesta página de status.",
     "postmortem": "Análise pós-incidente",
     "declaredAt": "Declarado em ",
+    "declaredAtTime": "Declarado em {{time}}",
     "report": "Relatório de incidente",
     "notFound": "Incidente não encontrado nesta página de status."
   },
@@ -130,6 +132,7 @@
     "none": "Sem anúncios",
     "noneDescription": "Nenhum anúncio publicado até agora nesta página.",
     "announcedAt": "Anunciado em ",
+    "announcedAtTime": "Anunciado em {{time}}",
     "notFound": "Anúncio não encontrado nesta página de status."
   },
   "scheduledEvents": {
@@ -142,6 +145,7 @@
     "none": "Nenhuma manutenção programada",
     "noneDescription": "Nenhuma manutenção programada publicada para esta página de status.",
     "scheduledAt": "Agendado para ",
+    "scheduledAtTime": "Agendado para {{time}}",
     "report": "Relatório do evento de manutenção",
     "notFound": "Nenhum evento de manutenção encontrado para esta página de status.",
     "calendar": {
@@ -467,5 +471,7 @@
     "note": "Nota",
     "tip": "Dica",
     "warning": "Aviso"
-  }
+  },
+  "No options available": "Nenhuma opção disponível",
+  "No matches found": "Nenhuma correspondência encontrada"
 }

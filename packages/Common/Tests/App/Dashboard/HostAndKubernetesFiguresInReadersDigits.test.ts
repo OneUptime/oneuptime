@@ -386,7 +386,9 @@ describe("an uptime's figure in its sentence takes the sentence's language", () 
 
   test("Persian, German and English", () => {
     expect(uptime(dashboardTranslator("fa"), 99.5)).toBe("۹۹٫۵۰٪ در دسترس");
-    expect(uptime(dashboardTranslator("de"), 99.5)).toBe("99,50 % verfügbar");
+    expect(uptime(dashboardTranslator("de"), 99.5)).toBe(
+      "99,50\u00A0% verfügbar",
+    );
     expect(uptime(dashboardTranslator("en"), 99.5)).toBe("99.50% uptime");
     expect(uptime(dashboardTranslator("en"), 99.99)).toBe("100.0% uptime");
   });
@@ -405,7 +407,9 @@ describe("an uptime's figure in its sentence takes the sentence's language", () 
   test("the page's own language does not leak into a sentence's figure", () => {
     // A Persian page, a German sentence: German's comma.
     inLanguage("fa", () => {
-      expect(uptime(dashboardTranslator("de"), 99.5)).toBe("99,50 % verfügbar");
+      expect(uptime(dashboardTranslator("de"), 99.5)).toBe(
+        "99,50\u00A0% verfügbar",
+      );
     });
   });
 });

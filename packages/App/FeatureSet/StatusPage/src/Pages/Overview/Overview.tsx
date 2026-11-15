@@ -963,7 +963,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       if (kind === StatusPageGroupRollupKind.UptimePercent) {
         return {
-          label: `${uptimePercent}${t("overview.uptimeSuffix")}`,
+          // One phrase, the figure where the reader's language puts it (#8076).
+          label: t("overview.uptimePercent", {
+            percent: String(uptimePercent),
+          }),
           color: color,
         };
       }
@@ -1641,7 +1644,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             uptimePercents.reduce((a: number, b: number) => {
               return a + b;
             }, 0) / uptimePercents.length;
-          uptimePercentText = `${avg.toFixed(2)}${t("overview.uptimeSuffix")}`;
+          uptimePercentText = t("overview.uptimePercent", {
+            percent: avg.toFixed(2),
+          });
         }
       }
 
@@ -2237,8 +2242,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 textOnRight={
                   currentStatus.isOperationalState &&
                   statusPage?.showOverallUptimePercentOnStatusPage
-                    ? (overallUptime?.toString() || "100") +
-                      t("overview.uptimeSuffix")
+                    ? t("overview.uptimePercent", {
+                        percent: overallUptime?.toString() || "100",
+                      })
                     : undefined
                 }
                 textClassName="text-white text-lg flex justify-between w-full"

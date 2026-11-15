@@ -33,6 +33,7 @@ import { MethodLabel } from "../../../../App/FeatureSet/Dashboard/src/Components
 import { PagingLadderStep } from "../../../Types/NotificationRule/PagingLadder";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -208,8 +209,15 @@ function lineIn(
   identifier: string,
 ): string {
   const words: Record<string, string> = locales[language]!;
+  const template: string = "{{label}}: {{identifier}}";
+  const worded: string | undefined = words[template];
 
-  return (words["{{label}}: {{identifier}}"] || "{{label}}: {{identifier}}")
+  // As the page draws it: French's colon kept with its word (NoBreakSpaces).
+  return (
+    worded && worded !== template
+      ? withNoBreakSpaces(worded, template, language)
+      : template
+  )
     .replace("{{label}}", nameIn(language, channel))
     .replace("{{identifier}}", identifier);
 }

@@ -1,4 +1,8 @@
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
+import {
+  setsPunctuationApart,
+  withFrenchSpacingInHtml,
+} from "Common/Types/NoBreakSpaces";
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import {
   DOCS_DEFAULT_ICON,
@@ -276,6 +280,16 @@ export default class DocsRender {
           return `${before}${escapeHtml(`/docs/${lang}/${parsed.category}/${parsed.page}${parsed.rest}`)}${after}`;
         },
       );
+    }
+
+    /*
+     * A page written in French keeps each of French's marks on the line of
+     * the words before or after it: the space before » ? ! : and ; and
+     * after « is a no-break one, in the text and never in the code
+     * (Common/Types/NoBreakSpaces).
+     */
+    if (setsPunctuationApart(contentLang)) {
+      result = withFrenchSpacingInHtml(result);
     }
 
     return result;

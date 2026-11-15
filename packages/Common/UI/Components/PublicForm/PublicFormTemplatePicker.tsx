@@ -33,7 +33,8 @@ const PublicFormTemplatePicker: FunctionComponent<ComponentProps> = (
 
   const options: Array<DropdownOption> = props.templates.map(
     (template: PublicFormTemplate): DropdownOption => {
-      return { value: template.id, label: template.name };
+      // A form template's name is its project's, drawn as written.
+      return { value: template.id, label: template.name, isUserContent: true };
     },
   );
 

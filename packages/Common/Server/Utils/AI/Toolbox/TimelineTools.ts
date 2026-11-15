@@ -39,6 +39,20 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionSentence,
+  AIActionTableCell,
+  aiActionSentence,
+  aiActionTerm,
+  describeAIActionSentence,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_CELLS,
+  AI_READ_RECORD_TABLE_TERMS,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, timelineEntriesValue } from "./ReadTableWords";
 
 /*
  * Merged activity timelines for incidents and alerts. Each tool stitches the
@@ -131,6 +145,71 @@ const timelineWidgetColumns: Array<AIChatWidgetColumn> = [
   { key: "author", title: translationKey("By") },
   { key: "entry", title: translationKey("Entry") },
 ];
+
+/*
+ * A timeline's cells that are OneUptime's words (issue #7977): each entry's
+ * kind, and a state change's entry - "State changed to Resolved" - in the
+ * reader's language, the state as the project named it and a root cause
+ * as written. A note's own text is data. The rows the model reads keep the
+ * kinds' codes ("state-change").
+ */
+const TIMELINE_ENTRY_KIND_TERMS: Record<string, string> = {
+  "state-change": AI_READ_RECORD_TABLE_TERMS.stateChange,
+  "internal-note": AI_READ_RECORD_TABLE_TERMS.internalNote,
+  "public-note": AI_READ_RECORD_TABLE_TERMS.publicNote,
+  feed: AI_READ_RECORD_TABLE_TERMS.feed,
+};
+
+// A state change's entry, by the row it is the entry of.
+const stateChangeEntryWords: WeakMap<JSONObject, AIActionSentence> =
+  new WeakMap<JSONObject, AIActionSentence>();
+
+// A state change's row, its entry its words in English.
+export function getStateChangeRow(data: {
+  at: Date | undefined;
+  author: string | undefined;
+  stateName: string | undefined;
+  rootCause: string | undefined;
+}): JSONObject {
+  const state: string = data.stateName || "(unknown)";
+  const words: AIActionSentence = data.rootCause
+    ? aiActionSentence(AI_READ_RECORD_TABLE_CELLS.stateChangedToWithRootCause, {
+        state,
+        rootCause: data.rootCause,
+      })
+    : aiActionSentence(AI_READ_RECORD_TABLE_CELLS.stateChangedTo, { state });
+  const row: JSONObject = {
+    at: data.at,
+    type: "state-change",
+    author: data.author,
+    entry: describeAIActionSentence(words),
+  };
+
+  stateChangeEntryWords.set(row, words);
+
+  return row;
+}
+
+export function getTimelineTableCells(
+  rows: Array<JSONObject>,
+): Array<Record<string, AIActionTableCell>> {
+  return rows.map((row: JSONObject): Record<string, AIActionTableCell> => {
+    const kind: string | undefined =
+      typeof row["type"] === "string" &&
+      Object.prototype.hasOwnProperty.call(
+        TIMELINE_ENTRY_KIND_TERMS,
+        row["type"],
+      )
+        ? TIMELINE_ENTRY_KIND_TERMS[row["type"]]
+        : undefined;
+    const entry: AIActionSentence | undefined = stateChangeEntryWords.get(row);
+
+    return {
+      ...(kind ? { type: aiActionTerm(kind) } : {}),
+      ...(entry ? { entry } : {}),
+    };
+  });
+}
 
 export const GetIncidentTimelineTool: ObservabilityTool = {
   name: "get_incident_timeline",
@@ -323,16 +402,12 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
 
     const merged: Array<JSONObject> = [
       ...stateTimeline.map((item: IncidentStateTimeline): JSONObject => {
-        let entry: string = `State changed to ${item.incidentState?.name || "(unknown)"}`;
-        if (item.rootCause) {
-          entry = `${entry}. Root cause: ${item.rootCause}`;
-        }
-        return {
+        return getStateChangeRow({
           at: item.startsAt || item.createdAt,
-          type: "state-change",
           author: formatAuthor(item.createdByUser),
-          entry: entry,
-        };
+          stateName: item.incidentState?.name,
+          rootCause: item.rootCause,
+        });
       }),
       ...internalNotes.map((item: IncidentInternalNote): JSONObject => {
         return {
@@ -378,7 +453,11 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `Incident ${incidentLabel} timeline (${formatTimelineEntryCount(serialized.rowCount)})`,
+      // In the reader's language (issues #7977, #7980).
+      ...citationSentence(AI_READ_CITATIONS.incidentTimeline, {
+        incident: incidentLabel,
+        entries: timelineEntriesValue(serialized.rowCount),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: incidentId.toString() },
@@ -388,8 +467,15 @@ export const GetIncidentTimelineTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Incident ${incidentLabel} timeline`,
-              description: incident.title,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.incidentTimeline,
+                  { incident: incidentLabel },
+                ),
+                cells: getTimelineTableCells(rows),
+              },
+              // The incident's own title, as written.
+              description: incident.title || undefined,
               columns: timelineWidgetColumns,
               rows: rows,
               link: {
@@ -553,16 +639,12 @@ export const GetAlertTimelineTool: ObservabilityTool = {
 
     const merged: Array<JSONObject> = [
       ...stateTimeline.map((item: AlertStateTimeline): JSONObject => {
-        let entry: string = `State changed to ${item.alertState?.name || "(unknown)"}`;
-        if (item.rootCause) {
-          entry = `${entry}. Root cause: ${item.rootCause}`;
-        }
-        return {
+        return getStateChangeRow({
           at: item.startsAt || item.createdAt,
-          type: "state-change",
           author: formatAuthor(item.createdByUser),
-          entry: entry,
-        };
+          stateName: item.alertState?.name,
+          rootCause: item.rootCause,
+        });
       }),
       ...internalNotes.map((item: AlertInternalNote): JSONObject => {
         return {
@@ -600,7 +682,11 @@ export const GetAlertTimelineTool: ObservabilityTool = {
     return {
       dataForLlm: dataForLlm,
       rowCount: serialized.rowCount,
-      citationLabel: `Alert ${alertLabel} timeline (${formatTimelineEntryCount(serialized.rowCount)})`,
+      // In the reader's language (issues #7977, #7980).
+      ...citationSentence(AI_READ_CITATIONS.alertTimeline, {
+        alert: alertLabel,
+        entries: timelineEntriesValue(serialized.rowCount),
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertId.toString() },
@@ -610,8 +696,15 @@ export const GetAlertTimelineTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Alert ${alertLabel} timeline`,
-              description: alert.title,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_RECORD_TABLE_TITLES.alertTimeline,
+                  { alert: alertLabel },
+                ),
+                cells: getTimelineTableCells(rows),
+              },
+              // The alert's own title, as written.
+              description: alert.title || undefined,
               columns: timelineWidgetColumns,
               rows: rows,
               link: {

@@ -18,6 +18,7 @@ import {
   RefusalWithValues,
 } from "../../Types/Exception/RefusalWithValues";
 import { MONITOR_TYPE_MISMATCH_REFUSAL } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
+import { DATA_CHECK_REFUSALS_WITH_VALUES } from "../../Types/DataObservability/DataCheckRefusals";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -112,17 +113,20 @@ export type ErrorInSentenceWords =
  */
 const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
   MONITOR_TYPE_MISMATCH_REFUSAL,
+  // Why a data check could not be written from a sentence (#7530).
+  ...DATA_CHECK_REFUSALS_WITH_VALUES,
 ];
 
 /*
  * A message somebody put into words, in `translator`'s language: a refusal
  * with values said with them, any other message looked up, or as written
- * where the language has no wording of it.
+ * where the language has no wording of it. ErrorLine says a message drawn
+ * on its own line this way too.
  */
-const sayMessage: (message: string, translator: Translator) => string = (
+export const sayErrorMessage: (
   message: string,
   translator: Translator,
-): string => {
+) => string = (message: string, translator: Translator): string => {
   for (const refusal of REFUSALS_WITH_VALUES) {
     const values: TemplateValues | null = readRefusalValues(refusal, message);
 
@@ -191,7 +195,7 @@ export const getErrorInSentenceWords: (data: {
   if (!error) {
     return {
       isUnexplained: false,
-      text: sayMessage(message, data.translator),
+      text: sayErrorMessage(message, data.translator),
     };
   }
 

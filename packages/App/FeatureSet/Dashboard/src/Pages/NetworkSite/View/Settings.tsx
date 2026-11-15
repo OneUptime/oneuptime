@@ -24,6 +24,8 @@ import {
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -413,7 +415,15 @@ const NetworkSiteSettings: FunctionComponent<
                     </span>
                   );
                 }
-                return <span>{item.alertSeverity.name}</span>;
+                return (
+                  <span>
+                    {translateRecordName(
+                      translator,
+                      StateListType.AlertSeverity,
+                      item.alertSeverity.name,
+                    )}
+                  </span>
+                );
               },
             },
           ],

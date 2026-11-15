@@ -969,9 +969,11 @@ describe("the truncation banner", () => {
 
   /*
    * Every word of the banner goes through translation, and no number is
-   * baked into a key: the fragments are translated, the figures are not.
+   * baked into a key: each cap is one sentence, its counts {{placeholders}}
+   * a language puts where its grammar does (#8076) - never "of" and
+   * "resources shown." looked up apart and joined in English's order.
    */
-  test("the banner is built from translated fragments with the numbers outside them", async () => {
+  test("the banner is one translated sentence per cap, with the numbers as its values", async () => {
     translate = (value: string): string => {
       return `«${value}»`;
     };
@@ -984,9 +986,34 @@ describe("the truncation banner", () => {
     renderPage();
     await screen.findByTestId("topology-services");
     expect(screen.getByTestId("topology-truncation").textContent).toBe(
-      `${(50000).toLocaleString()} «of» ${(50001).toLocaleString()} «resources shown.» ` +
-        `${(200000).toLocaleString()} «of» ${(200002).toLocaleString()} «connections shown.» ` +
+      `«${(50000).toLocaleString()} of ${(50001).toLocaleString()} resources shown.» ` +
+        `«${(200000).toLocaleString()} of ${(200002).toLocaleString()} connections shown.» ` +
         `«${SERVICE_MAP_NOTE}»`,
+    );
+  });
+
+  test("a language that puts the total first reads the banner in its own order", async () => {
+    const chinese: Record<string, string> = {
+      "{{shown}} of {{total}} resources shown.":
+        "已显示 {{total}} 个资源中的 {{shown}} 个。",
+      "{{shown}} of {{total}} connections shown.":
+        "已显示 {{total}} 个连接中的 {{shown}} 个。",
+    };
+    translate = (value: string): string => {
+      return chinese[value] || value;
+    };
+    answer = (): Answer => {
+      return serviceMapPayload({
+        entityTruncation: { shown: 50000, total: 50001 },
+        dependencyTruncation: { shown: 200000, total: 200002 },
+      });
+    };
+    renderPage();
+    await screen.findByTestId("topology-services");
+    expect(screen.getByTestId("topology-truncation").textContent).toBe(
+      `已显示 ${(50001).toLocaleString()} 个资源中的 ${(50000).toLocaleString()} 个。 ` +
+        `已显示 ${(200002).toLocaleString()} 个连接中的 ${(200000).toLocaleString()} 个。 ` +
+        SERVICE_MAP_NOTE,
     );
   });
 

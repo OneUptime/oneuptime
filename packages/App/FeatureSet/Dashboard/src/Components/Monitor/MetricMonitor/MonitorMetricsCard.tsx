@@ -24,6 +24,8 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import MonitorStepMetricQueries from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import MonitorStepMetricThresholds, {
   MonitorMetricThreshold,
@@ -174,7 +176,11 @@ const MonitorStepMetrics: FunctionComponent<StepMetricsProps> = (
           date: change.date,
           // A status's name as the project wrote it; the seeded ones translate.
           label: change.statusName
-            ? translator.translateTerm(change.statusName)
+            ? translateRecordName(
+                translator,
+                StateListType.MonitorStatus,
+                change.statusName,
+              )
             : translator.translateText(STATUS_CHANGED_LABEL) ||
               STATUS_CHANGED_LABEL,
           subtitle:

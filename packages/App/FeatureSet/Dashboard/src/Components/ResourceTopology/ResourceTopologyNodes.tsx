@@ -9,7 +9,10 @@ import { Handle, NodeProps, Position } from "reactflow";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   ResourceTopologyFact,
   ResourceTopologyGraph,
@@ -338,7 +341,11 @@ export function describeTopologyContents(
     .map((entry: [string, number]): string => {
       const kind: ResourceTopologyKindInfo = getResourceTopologyKind(entry[0]);
 
-      return `${translator.formatNumber(entry[1])} ${tx(entry[1] === 1 ? kind.label : kind.plural, translator)}`;
+      // The count in the reader's digits, where their language puts it.
+      return translator.translateTemplate("{{count}} {{kind}}", {
+        count: translator.formatNumber(entry[1]),
+        kind: translatableTerm(entry[1] === 1 ? kind.label : kind.plural),
+      });
     })
     .join(" · ");
 }
@@ -614,7 +621,10 @@ export const InsideHealthBar: FunctionComponent<{
 
   const title: string = shares
     .map((share: ResourceTopologyHealthShare): string => {
-      return `${tx(RESOURCE_TOPOLOGY_HEALTH_LABELS[share.health], translator)} ${translator.formatNumber(share.count)}`;
+      return translator.translateTemplate("{{label}} {{count}}", {
+        label: translatableTerm(RESOURCE_TOPOLOGY_HEALTH_LABELS[share.health]),
+        count: translator.formatNumber(share.count),
+      });
     })
     .join(" · ");
 
@@ -1639,7 +1649,11 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
         className={FOCUS_RING}
         data-testid={`resource-topology-related-${node.id}`}
         data-health={node.effectiveHealth}
-        aria-label={`${tx(placed.related?.label || "", translator)}: ${describeTopologyPart(translator, node)}`}
+        // The relation, then the part, with the reader's own colon.
+        aria-label={translator.translateTemplate("{{label}}: {{identifier}}", {
+          label: translatableTerm(placed.related?.label || ""),
+          identifier: describeTopologyPart(translator, node),
+        })}
         aria-pressed={data.isSelected}
         onClick={() => {
           data.callbacks.onSelect(node.id);

@@ -24,6 +24,18 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import { aiActionSentence } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATIONS,
+  AI_READ_TELEMETRY_TABLE_LINES,
+  AI_READ_TELEMETRY_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import {
+  citationSentence,
+  countFigure,
+  windowSentence,
+  windowValues,
+} from "./ReadTableWords";
 
 /*
  * AI toolbox over the SecurityEvent table — the "AI security analyst"
@@ -502,15 +514,24 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: serialized.rowCount,
-      citationLabel: `Security events ${startTime.toISOString()} – ${endTime.toISOString()} (${serialized.rowCount} shown)`,
+      // In the reader's language and time (issues #7979, #7980).
+      ...citationSentence(AI_READ_CITATIONS.securityEvents, {
+        ...windowValues(startTime, endTime),
+        count: countFigure(serialized.rowCount),
+      }),
       citationTarget: securityEventsLink,
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Security Events (${rows.length})`,
-              description: `${startTime.toISOString()} – ${endTime.toISOString()}`,
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.securityEvents,
+                  { count: countFigure(rows.length) },
+                ),
+                description: windowSentence(startTime, endTime),
+              },
               columns: columns,
               rows: widgetRows,
               link: securityEventsLink,
@@ -622,7 +643,16 @@ export const SecurityEventSummaryTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text + sampleNote,
       rowCount: serialized.rowCount,
-      citationLabel: `Security event summary ${startTime.toISOString()} – ${endTime.toISOString()}${sampleNote}`,
+      // In the reader's language and time (issue #7980).
+      ...(events.length >= SUMMARY_SAMPLE_LIMIT
+        ? citationSentence(AI_READ_CITATIONS.securityEventSummarySampled, {
+            ...windowValues(startTime, endTime),
+            count: countFigure(SUMMARY_SAMPLE_LIMIT),
+          })
+        : citationSentence(
+            AI_READ_CITATIONS.securityEventSummary,
+            windowValues(startTime, endTime),
+          )),
       citationTarget: {
         type: AIChatCitationTargetType.SecurityEvents,
       },
@@ -631,8 +661,22 @@ export const SecurityEventSummaryTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: "Security events by class and severity",
-              description: `${startTime.toISOString()} – ${endTime.toISOString()}${sampleNote}`,
+              // In the reader's language and time (issue #7979).
+              words: {
+                title: aiActionSentence(
+                  AI_READ_TELEMETRY_TABLE_TITLES.securityEventsByClass,
+                ),
+                description:
+                  events.length >= SUMMARY_SAMPLE_LIMIT
+                    ? aiActionSentence(
+                        AI_READ_TELEMETRY_TABLE_LINES.basedOnRecentEvents,
+                        {
+                          ...windowValues(startTime, endTime),
+                          count: countFigure(SUMMARY_SAMPLE_LIMIT),
+                        },
+                      )
+                    : windowSentence(startTime, endTime),
+              },
               columns: [
                 {
                   key: "class",

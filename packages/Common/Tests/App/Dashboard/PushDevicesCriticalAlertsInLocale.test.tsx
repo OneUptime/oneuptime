@@ -23,6 +23,7 @@ import { getMobileAppServerUrl } from "../../../../App/FeatureSet/Dashboard/src/
 import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 
 /*
  * The push devices card's critical alerts in every language the Dashboard
@@ -69,7 +70,12 @@ for (const language of LANGUAGES) {
 
 // The locale's sentence, with the app's labels where the dialog puts them.
 function expectedStep(language: string, template: string): string {
-  const sentence: string = LOCALES[language]![template] || template;
+  const worded: string | undefined = LOCALES[language]![template];
+  // As the page draws it: French's guillemets kept with their words.
+  const sentence: string =
+    worded && worded !== template
+      ? withNoBreakSpaces(worded, template, language)
+      : worded || template;
 
   return sentence
     .split("{{app}}")

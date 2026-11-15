@@ -68,6 +68,7 @@ import {
   getOpenStackFactNumber,
   getOpenStackFactText,
 } from "../Utils/OpenStackResourceUtils";
+import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 
 /*
  * One network: how many of its addresses are in use, subnet by subnet, because a full
@@ -325,6 +326,7 @@ const NetworkOverview: FunctionComponent<{
 const OpenStackCloudNetworkDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const part: OpenStackPart = useOpenStackPart(OpenStackResourceKind.Network);
   const backend: OpenStackNetworkBackend = useOpenStackNetworkBackend(
     part.openStackCloudId,
@@ -408,19 +410,22 @@ const OpenStackCloudNetworkDetail: FunctionComponent<
                 description="Addresses in use on each of this network's subnets, over the selected time range."
               >
                 <ResourceMetricsTab
-                  queryConfigs={[
-                    getOpenStackMetricQuery({
-                      part,
-                      variable: "network_addresses_used",
-                      title: "Addresses used",
-                      description:
-                        "Addresses in use on each of this network's subnets.",
-                      metricName:
-                        "openstack_neutron_network_ip_availabilities_used",
-                      legend: "Used",
-                      attributes: { network_id: part.externalId },
-                    }),
-                  ]}
+                  queryConfigs={chartWordsInReadersLanguage(
+                    [
+                      getOpenStackMetricQuery({
+                        part,
+                        variable: "network_addresses_used",
+                        title: "Addresses used",
+                        description:
+                          "Addresses in use on each of this network's subnets.",
+                        metricName:
+                          "openstack_neutron_network_ip_availabilities_used",
+                        legend: "Used",
+                        attributes: { network_id: part.externalId },
+                      }),
+                    ],
+                    translator,
+                  )}
                 />
               </Card>
             ),

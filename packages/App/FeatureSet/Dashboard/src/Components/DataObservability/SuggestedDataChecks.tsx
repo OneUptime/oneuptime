@@ -26,8 +26,10 @@ import { getDataTableKey } from "Common/Types/DataObservability/DataObservabilit
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
+import { translationKey } from "Common/Types/Translator";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -63,6 +65,27 @@ export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
 
 // Why the suggestions could not be read, added or dismissed.
 export const SUGGESTED_CHECKS_ERROR_TEST_ID: string = "suggested-checks-error";
+
+/*
+ * What did not happen, said first when nobody explained why (#7530): the
+ * suggestions were not read, a check was not added, or a suggestion was
+ * not dismissed.
+ */
+export const SuggestedChecksWhatFailed: {
+  read: string;
+  add: string;
+  dismiss: string;
+} = {
+  read: translationKey("The suggested checks could not be loaded."),
+  add: translationKey("The check was not added."),
+  dismiss: translationKey("The suggestion was not dismissed."),
+};
+
+// Why the card's last read or button failed, and which it was.
+interface CardError {
+  message: string;
+  whatFailed: string;
+}
 
 /*
  * Each suggestion's row: its words, and its Add and Dismiss beside them
@@ -117,7 +140,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   );
   const [readCount, setReadCount] = useState<number>(0);
   const [working, setWorking] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<CardError | null>(null);
 
   /*
    * A suggestion's name or reason in the reader's language (#7221), with
@@ -220,7 +243,10 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
 
     read().catch((err: unknown) => {
       if (isCurrent) {
-        setError(API.getFriendlyMessage(err));
+        setError({
+          message: API.getFriendlyMessage(err),
+          whatFailed: SuggestedChecksWhatFailed.read,
+        });
       }
     });
 
@@ -312,7 +338,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   ) => Promise<void> = async (
     chosen: Array<DataCheckSuggestion>,
   ): Promise<void> => {
-    setError("");
+    setError(null);
 
     for (const suggestion of chosen) {
       markWorking(suggestion.id, true);
@@ -320,7 +346,10 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
       try {
         await add(suggestion);
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        setError({
+          message: API.getFriendlyMessage(err),
+          whatFailed: SuggestedChecksWhatFailed.add,
+        });
       }
 
       markWorking(suggestion.id, false);
@@ -335,7 +364,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   const dismiss: (suggestion: DataCheckSuggestion) => Promise<void> = async (
     suggestion: DataCheckSuggestion,
   ): Promise<void> => {
-    setError("");
+    setError(null);
     markWorking(suggestion.id, true);
 
     try {
@@ -351,7 +380,10 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
         });
       });
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setError({
+        message: API.getFriendlyMessage(err),
+        whatFailed: SuggestedChecksWhatFailed.dismiss,
+      });
     }
 
     markWorking(suggestion.id, false);
@@ -382,14 +414,17 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
         {error ? (
           /*
            * Why the suggestions could not be read, added or dismissed, in
-           * the words the server wrote it in - English, whatever the
-           * page's language: a line of its own, read the way its words
-           * are, so on an Arabic or Persian page it keeps its full stop at
-           * its end, as each suggestion's name and reason do.
+           * the reader's language (#7530): an error nobody explained says
+           * what failed, why, what to do next and its reference; the
+           * server's own refusals are keys of the locales. A message the
+           * reader's language has no words for is a line of its own, read
+           * the way its words are, so on an Arabic or Persian page it
+           * keeps its full stop at its end, as each suggestion's name and
+           * reason do.
            */
-          <IsolatedLine
-            as="p"
-            text={error}
+          <ErrorLine
+            message={error.message}
+            whatFailed={translator.translateText(error.whatFailed)}
             className="mb-3 break-words text-sm text-red-600"
             dataTestId={SUGGESTED_CHECKS_ERROR_TEST_ID}
           />

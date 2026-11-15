@@ -88,14 +88,14 @@ describe("in English, as the summaries always read", () => {
 describe("in Persian: Persian digits, and the unit in Persian after the figure", () => {
   test("whole numbers, thousands and decimals", () => {
     expect(formatMilliseconds(persian, 411)).toBe(
-      `۴۱۱ ${PERSIAN_MILLISECONDS}`,
+      `۴۱۱\u00A0${PERSIAN_MILLISECONDS}`,
     );
     expect(formatMilliseconds(persian, 1234)).toBe(
-      `۱٬۲۳۴ ${PERSIAN_MILLISECONDS}`,
+      `۱٬۲۳۴\u00A0${PERSIAN_MILLISECONDS}`,
     );
     expect(
       formatMilliseconds(persian, 31.2749, { maximumFractionDigits: 2 }),
-    ).toBe(`۳۱٫۲۷ ${PERSIAN_MILLISECONDS}`);
+    ).toBe(`۳۱٫۲۷\u00A0${PERSIAN_MILLISECONDS}`);
   });
 
   test("no Latin digit or letter is left in it", () => {
@@ -118,12 +118,14 @@ describe("in Persian: Persian digits, and the unit in Persian after the figure",
 
 describe("in Arabic: Latin digits, as Arabic in OneUptime writes them, and an Arabic unit", () => {
   test("whole numbers, thousands and decimals", () => {
-    expect(formatMilliseconds(arabic, 411)).toBe(`411 ${ARABIC_MILLISECONDS}`);
+    expect(formatMilliseconds(arabic, 411)).toBe(
+      `411\u00A0${ARABIC_MILLISECONDS}`,
+    );
     expect(formatMilliseconds(arabic, 1234)).toBe(
-      `1,234 ${ARABIC_MILLISECONDS}`,
+      `1,234\u00A0${ARABIC_MILLISECONDS}`,
     );
     expect(formatMilliseconds(arabic, 8.12, { maximumFractionDigits: 2 })).toBe(
-      `8.12 ${ARABIC_MILLISECONDS}`,
+      `8.12\u00A0${ARABIC_MILLISECONDS}`,
     );
   });
 
@@ -148,9 +150,11 @@ describe("in other languages", () => {
   });
 
   test("each language's own unit where it has one", () => {
-    expect(formatMilliseconds(dashboardTranslator("ru"), 411)).toBe("411 мс");
+    expect(formatMilliseconds(dashboardTranslator("ru"), 411)).toBe(
+      "411\u00A0мс",
+    );
     expect(formatMilliseconds(dashboardTranslator("zh-CN"), 411)).toBe(
-      "411 毫秒",
+      "411\u00A0毫秒",
     );
   });
 });

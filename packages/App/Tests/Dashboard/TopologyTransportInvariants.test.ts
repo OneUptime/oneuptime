@@ -392,18 +392,24 @@ describe('the "Partial inventory loaded" banner is gone', () => {
   });
 
   /*
-   * One banner, worded per cap and per tab from translated fragments whose
-   * keys hold no numbers. "Counts are exact" is only true on Infrastructure,
-   * whose summary switches to the server's totals; the Service Map's counts
-   * come from what was shipped.
+   * One banner, worded per cap and per tab, each cap one sentence whose
+   * counts are values - never "of" and "resources shown." looked up apart
+   * and joined in English's order (#8076) - and no key holds a number.
+   * "Counts are exact" is only true on Infrastructure, whose summary
+   * switches to the server's totals; the Service Map's counts come from
+   * what was shipped.
    */
   test("the page's only truncation banner words each cap for what it limited", () => {
     const code: string = readCode(PAGE.path);
 
     expect(countOccurrences(code, 'data-testid="topology-truncation"')).toBe(1);
-    expect(code).toContain('translateString("of")');
-    expect(code).toContain('translateString("resources shown.")');
-    expect(code).toContain('translateString("connections shown.")');
+    expect(code).toContain('"{{shown}} of {{total}} resources shown."');
+    expect(code).toContain('"{{shown}} of {{total}} connections shown."');
+    expect(code).toContain("shown: translator.formatNumber(truncation.shown)");
+    expect(code).toContain("total: translator.formatNumber(truncation.total)");
+    expect(code).not.toContain('translateString("of")');
+    expect(code).not.toContain('translateString("resources shown.")');
+    expect(code).not.toContain('translateString("connections shown.")');
     expect(
       countOccurrences(
         code,

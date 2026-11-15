@@ -921,11 +921,11 @@ describe("Status page overview - searching a large page with uptime history", ()
     input.focus();
     expect(screen.getByRole("status")).toHaveTextContent("Operational");
     expect(
-      screen.queryByText("50overview.uptimeSuffix"),
+      screen.queryByText("overview.uptimePercent 50"),
     ).not.toBeInTheDocument();
     expect(
       screen.getAllByTestId("status-page-group-rollup")[0],
-    ).toHaveTextContent("100overview.uptimeSuffix");
+    ).toHaveTextContent("overview.uptimePercent 100");
 
     jest.setSystemTime(
       new Date(SEARCH_SNAPSHOT_TIME.getTime() + 5 * 60 * 1000),
@@ -944,7 +944,7 @@ describe("Status page overview - searching a large page with uptime history", ()
     expect(
       screen.getAllByTestId("status-page-group-rollup")[0],
     ).toHaveTextContent("Offline");
-    expect(screen.getByText("50overview.uptimeSuffix")).toBeInTheDocument();
+    expect(screen.getByText("overview.uptimePercent 50")).toBeInTheDocument();
     expect(
       screen
         .getByText("Service 40")

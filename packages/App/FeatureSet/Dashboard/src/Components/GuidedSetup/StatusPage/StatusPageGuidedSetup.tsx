@@ -47,6 +47,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { translateRecordName } from "Common/Utils/DefaultRecordNames";
+import { StateListType } from "Common/Utils/StateOrder";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -54,6 +56,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 /*
  * GUIDED SETUP: PUBLISH A STATUS PAGE (issue #6806), drawn in
@@ -421,7 +424,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
               />
               {monitor.statusName ? (
                 <span className="flex-shrink-0 text-sm text-gray-500">
-                  {monitor.statusName}
+                  {translateRecordName(
+                    translator,
+                    StateListType.MonitorStatus,
+                    monitor.statusName,
+                  )}
                 </span>
               ) : (
                 <></>
@@ -542,7 +549,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         )}
         {saveError ? (
           <p role="alert" className="text-sm text-red-600">
-            {saveError}
+            <ErrorInSentence message={saveError} showWhereToLook={true} />
           </p>
         ) : (
           <></>
@@ -657,7 +664,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
                       }
                       aria-hidden="true"
                     />
-                    {monitor.statusName}
+                    {translateRecordName(
+                      translator,
+                      StateListType.MonitorStatus,
+                      monitor.statusName,
+                    )}
                   </span>
                 ) : (
                   <></>

@@ -21,6 +21,20 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 import { translationKey } from "../../../../Types/Translator";
+import {
+  AIActionTableCell,
+  aiActionPluralSentence,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../Types/AI/AIActionWords";
+import {
+  AI_READ_CITATION_PLURALS,
+  AI_READ_CITATIONS,
+  AI_READ_RECORD_TABLE_LINES,
+  AI_READ_RECORD_TABLE_TERMS,
+  AI_READ_RECORD_TABLE_TITLES,
+} from "../../../../Types/AI/AIReadTableWords";
+import { citationOf, citationSentence, countFigure } from "./ReadTableWords";
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -168,14 +182,17 @@ export const QueryTeamsTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const memberLabel: string = `${memberRows.length} member${
-        memberRows.length === 1 ? "" : "s"
-      }`;
-
       return {
         dataForLlm: serialized.text,
         rowCount: serialized.rowCount,
-        citationLabel: `Team "${team.name}" (${memberLabel})`,
+        // In the reader's language (issues #7977, #7980).
+        ...citationOf(
+          aiActionPluralSentence(
+            AI_READ_CITATION_PLURALS.team,
+            memberRows.length,
+            { name: team.name || "" },
+          ),
+        ),
         citationTarget: {
           type: AIChatCitationTargetType.Teams,
         },
@@ -184,8 +201,25 @@ export const QueryTeamsTool: ObservabilityTool = {
         widget:
           memberRows.length > 0
             ? WidgetBuilder.table({
-                title: `Team: ${team.name}`,
-                description: team.description,
+                words: {
+                  title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.team, {
+                    name: team.name || "",
+                  }),
+                  // Each member's standing: a member, or invited still.
+                  cells: members.map(
+                    (member: TeamMember): Record<string, AIActionTableCell> => {
+                      return {
+                        status: aiActionTerm(
+                          member.hasAcceptedInvitation === false
+                            ? AI_READ_RECORD_TABLE_TERMS.invitedNotAccepted
+                            : AI_READ_RECORD_TABLE_TERMS.teamMember,
+                        ),
+                      };
+                    },
+                  ),
+                },
+                // The team's own description, as written.
+                description: team.description || undefined,
                 columns: [
                   {
                     key: "name",
@@ -310,9 +344,15 @@ export const QueryTeamsTool: ObservabilityTool = {
     return {
       dataForLlm: `${pagingPrefix}${serialized.text}`,
       rowCount: serialized.rowCount,
-      citationLabel: isPaged
-        ? `Teams (${rows.length} of ${totalCount})`
-        : `Teams (${serialized.rowCount} found)`,
+      // In the reader's language (issues #7977, #7980).
+      ...(isPaged
+        ? citationSentence(AI_READ_CITATIONS.teamsPaged, {
+            count: countFigure(rows.length),
+            total: countFigure(totalCount),
+          })
+        : citationSentence(AI_READ_CITATIONS.teams, {
+            count: countFigure(serialized.rowCount),
+          })),
       citationTarget: {
         type: AIChatCitationTargetType.Teams,
       },
@@ -321,10 +361,22 @@ export const QueryTeamsTool: ObservabilityTool = {
       widget:
         rows.length > 0
           ? WidgetBuilder.table({
-              title: `Teams (${rows.length})`,
-              description: isPaged
-                ? `Showing ${rows.length} of ${totalCount} teams`
-                : undefined,
+              words: {
+                title: aiActionSentence(AI_READ_RECORD_TABLE_TITLES.teams, {
+                  count: countFigure(rows.length),
+                }),
+                ...(isPaged
+                  ? {
+                      description: aiActionSentence(
+                        AI_READ_RECORD_TABLE_LINES.teamsShown,
+                        {
+                          shown: countFigure(rows.length),
+                          total: countFigure(totalCount),
+                        },
+                      ),
+                    }
+                  : {}),
+              },
               columns: [
                 { key: "name", title: translationKey("Name"), type: "text" },
                 {

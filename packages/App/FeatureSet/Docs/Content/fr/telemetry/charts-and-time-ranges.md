@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ### Indications sur les graphiques
 
-La plupart des graphiques qui zooment indiquent le geste au-dessus de la zone de tracé, **Faites glisser pour zoomer** ou **Cliquez ou faites glisser pour zoomer**, et, tant qu'un zoom est actif, ajoutent le rappel **double-cliquez pour réinitialiser**. Les cartes de métriques, l'explorateur de métriques et les graphiques de volume des explorateurs affichent toujours l'indication. Sur les cartes de graphiques des vues d'ensemble des ressources et des SLO, et sur certains widgets de tableau de bord, elle n'apparaît que lorsque vous pointez sur la carte ou y entrez avec la touche Tab.
+La plupart des graphiques qui zooment indiquent le geste au-dessus de la zone de tracé, **Faites glisser pour zoomer** ou **Cliquez ou faites glisser pour zoomer**, et, tant qu'un zoom est actif, ajoutent le rappel **double-cliquez pour réinitialiser**. Les cartes de métriques, l'explorateur de métriques et les graphiques de volume des explorateurs affichent toujours l'indication. Sur les cartes de graphiques des vues d'ensemble des ressources et des SLO, et sur certains widgets de tableau de bord, elle n'apparaît que lorsque vous pointez sur la carte ou y entrez avec la touche Tab. Sur un téléphone ou une tablette, les cartes de métriques et les cartes de graphiques n'affichent pas l'indication : un doigt ne peut pas tracer une zone de zoom.
 
 ## Où cela fonctionne
 
