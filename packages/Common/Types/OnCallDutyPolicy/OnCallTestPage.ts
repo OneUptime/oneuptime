@@ -5,6 +5,7 @@ import {
   OnCallPageChannel,
   getOnCallPageChannelName,
 } from "./OnCallPageChannel";
+import { StateListType } from "../../Utils/StateOrder";
 
 /*
  * A TEST PAGE: PROVE THAT A PAGE REACHES SOMEBODY, WITHOUT AN INCIDENT.
@@ -82,6 +83,19 @@ export function getOnCallTestPageRuleType(
   return kind === OnCallTestPageRecordKind.Alert
     ? NotificationRuleType.ON_CALL_EXECUTED_ALERT
     : NotificationRuleType.ON_CALL_EXECUTED_INCIDENT;
+}
+
+/*
+ * The list a test page's severity comes from: an incident severity, or an
+ * alert severity - so its name is read against that list's defaults alone
+ * (OnCallPageWords.getOnCallPageStateName).
+ */
+export function getOnCallTestPageSeverityList(
+  kind: OnCallTestPageRecordKind,
+): StateListType.IncidentSeverity | StateListType.AlertSeverity {
+  return kind === OnCallTestPageRecordKind.Alert
+    ? StateListType.AlertSeverity
+    : StateListType.IncidentSeverity;
 }
 
 // A run, or a log of one, read with its event type.

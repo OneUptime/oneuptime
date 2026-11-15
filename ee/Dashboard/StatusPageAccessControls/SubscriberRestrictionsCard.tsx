@@ -250,6 +250,7 @@ const AllowedEmailDomainsSetting: FunctionComponent<
               text={translator.translateTemplate("{{planName}} Plan", {
                 planName: planNeeded,
               })}
+              isUserContent={true}
               color={Yellow}
             />
           </div>

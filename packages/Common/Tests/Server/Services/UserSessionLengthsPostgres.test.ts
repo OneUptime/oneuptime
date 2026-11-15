@@ -537,6 +537,8 @@ describePostgres("how long a sign-in lasts, against Postgres", () => {
     expect(decision).toEqual({
       hasEnded: true,
       reason: SessionEndReason.LengthReached,
+      // When its person was last active, as its row says.
+      lastActiveAt: new Date(session!.lastActiveAt!),
     });
   });
 

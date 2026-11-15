@@ -363,7 +363,7 @@ Fünf Jobs benachrichtigen Eigentümer, jeder einmal pro Minute:
 
 | Benachrichtigung           | Wann                                                         | E-Mail-Betreff |
 | -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Vorfall erstellt**       | Der Vorfall wird gemeldet.                                   | `[New Incident {number}] - {title}` |
+| **Vorfall erstellt**       | Etwa eine Minute, nachdem der Vorfall gemeldet wurde.        | `[New Incident {number}] - {title}` |
 | **Eine Notiz wurde gepostet** | Eine öffentliche *oder* private Notiz wird gepostet.      | `[Update Incident {number}] - {title}` |
 | **Der Status hat sich geändert** | Der Vorfall wechselt in einen anderen Status.          | `[{State} Incident {number}] - {title}` |
 | **Sie wurden hinzugefügt** | Sie werden als Eigentümer hinzugefügt.                       | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Fünf Jobs benachrichtigen Eigentümer, jeder einmal pro Minute:
 
 Jede Benachrichtigung geht über die Kanäle hinaus, die die Person unter **Benutzereinstellungen → Benachrichtigungseinstellungen** eingeschaltet hat – E-Mail, SMS, Sprachanruf, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost oder Webhook –, und diese entscheiden, was tatsächlich gesendet wird. Jeder Empfänger kann jede davon einzeln abschalten – die Einstellungen je Benutzer sind so formuliert, dass sie Ihnen die Benachrichtigungen über erstellte Vorfälle, gepostete Notizen, Statuswechsel, hinzugefügte Eigentümer, zugewiesene Mitglieder und Erinnerungen an noch offene Vorfälle senden. Wer nur bei Statuswechseln angerufen werden will, kann genau das haben. Was ein Statuswechsel bedeutet, steht unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
 
-**Vorfälle ohne Eigentümer bleiben nicht still.** Hat ein Vorfall überhaupt keine Eigentümer, greifen die Benachrichtigungsjobs auf die Eigentümer des Projekts zurück, sodass nichts verloren geht. Die Benachrichtigung **Vorfall erstellt** eines Vorfalls, der über ein Formular gemeldet wurde, dessen Vorlage Eigentümer hat, wartet stattdessen auf diese Eigentümer. Jede benachrichtigte Person wird außerdem an den passenden Feed-Eintrag angehängt, sodass Sie später genau sehen, wer an welche Adresse informiert wurde.
+**Vorfälle ohne Eigentümer bleiben nicht still.** Hat ein Vorfall überhaupt keine Eigentümer, greifen die Benachrichtigungsjobs auf die Eigentümer des Projekts zurück, sodass nichts verloren geht. Die Benachrichtigung **Vorfall erstellt** wartet zuerst auf die Eigentümer des Vorfalls: Sie geht etwa eine Minute nach der Meldung des Vorfalls an alle Eigentümer, die er bis dahin hat, auch an Eigentümer, die ein Skript, ein Workflow oder die API direkt nach dem Anlegen hinzufügt, und nur dann an die Eigentümer des Projekts, wenn er noch immer keine hat. Startet OneUptime neu, während der Vorfall gemeldet wird, geht die Benachrichtigung trotzdem hinaus, höchstens ein paar Minuten später. Jede benachrichtigte Person wird außerdem an den passenden Feed-Eintrag angehängt, sodass Sie später genau sehen, wer an welche Adresse informiert wurde.
 
 ## Nächste Schritte
 

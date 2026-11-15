@@ -363,7 +363,7 @@ Cinq tâches notifient les propriétaires, chacune s'exécutant une fois par min
 
 | Notification                  | Quand                                                        | Objet de l'e-mail                                              |
 | ----------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| **Incident créé**             | L'incident est déclaré.                                      | `[New Incident {number}] - {title}`                            |
+| **Incident créé**             | Environ une minute après la déclaration de l'incident.       | `[New Incident {number}] - {title}`                            |
 | **Une note a été publiée**    | Une note publique *ou* privée est publiée.                   | `[Update Incident {number}] - {title}`                         |
 | **L'état a changé**           | L'incident passe à un autre état.                            | `[{State} Incident {number}] - {title}`                        |
 | **Vous avez été ajouté**      | Vous êtes ajouté comme propriétaire.                         | `You have been added as the owner of Incident {number} - {title}` |
@@ -371,7 +371,7 @@ Cinq tâches notifient les propriétaires, chacune s'exécutant une fois par min
 
 Chaque notification part sur les canaux que la personne a activés dans **Paramètres utilisateur → Paramètres de notification** — e-mail, SMS, appel vocal, push, WhatsApp, Telegram, Slack, Microsoft Teams, Mattermost ou webhook — qui décident de ce qui est réellement envoyé. Chaque destinataire peut désactiver chacune individuellement — les réglages par utilisateur sont formulés comme l'envoi des notifications d'incident créé, de note publiée, de changement d'état, d'ajout de propriétaire, d'affectation de membre et de rappel tant que l'incident est ouvert. Quelqu'un qui ne veut qu'un appel pour les changements d'état peut avoir exactement cela. Voir [États et sévérités des incidents](/docs/incidents/states-and-severities) pour ce que signifie un changement d'état.
 
-**Les incidents sans propriétaire ne sont pas muets.** Si un incident n'a aucun propriétaire, les tâches de notification se rabattent sur les propriétaires du projet, pour que rien ne se perde. La notification **Incident créé** d'un incident signalé via un formulaire dont le modèle a des propriétaires attend ces propriétaires à la place. Chaque personne notifiée est aussi ajoutée à l'élément de fil correspondant, si bien que vous pouvez voir ensuite exactement qui a été prévenu et à quelle adresse.
+**Les incidents sans propriétaire ne sont pas muets.** Si un incident n'a aucun propriétaire, les tâches de notification se rabattent sur les propriétaires du projet, pour que rien ne se perde. La notification **Incident créé** attend d'abord les propriétaires de l'incident : elle part environ une minute après la déclaration de l'incident, vers tous les propriétaires qu'il a à ce moment-là, y compris ceux qu'un script, un workflow ou l'API ajoute juste après l'avoir créé, et vers les propriétaires du projet seulement s'il n'en a toujours aucun. Si OneUptime redémarre pendant la déclaration de l'incident, la notification part quand même, avec au plus quelques minutes de retard. Chaque personne notifiée est aussi ajoutée à l'élément de fil correspondant, si bien que vous pouvez voir ensuite exactement qui a été prévenu et à quelle adresse.
 
 ## Étapes suivantes
 

@@ -1,3 +1,4 @@
+import { StateListType } from "Common/Utils/StateOrder";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
 import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
@@ -223,7 +224,10 @@ describe("Subscribers & Announcements: the language subscribers are written in",
       SubscriberTemplateValues.inPageLanguage(
         { defaultLanguage: "de" },
         {
-          state: SubscriberTemplateValues.stateName("Resolved"),
+          state: SubscriberTemplateValues.stateName(
+            StateListType.IncidentState,
+            "Resolved",
+          ),
           title: "Checkout failing",
         },
       ),

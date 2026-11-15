@@ -90,7 +90,7 @@ En hændelse, advarsel eller episode kører hver af sine politikker for sig, på
 
 Nogle tilkald fortsætter, efter den er bekræftet, indtil nogen, de har tilkaldt, svarer, eller den er løst: et nyt tilkald, et tilkald til observatører, et tilkald, som nogen har sendt til personer fra Slack eller Microsoft Teams, og en politik, der er startet manuelt.
 
-En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor.
+En politik, der er startet manuelt, er en, der er startet med **Udfør vagtpolitik** eller af et tilkald fra Slack eller Microsoft Teams, der nævner den. Den tilkalder niveau for niveau som enhver kørsel, med opkald og gentagne push-notifikationer, og at en anden bekræfter hændelsen, stopper den ikke: sådan tilkalder du endnu et team til en hændelse, som nogen allerede arbejder på. Den, den har tilkaldt, svarer fra sit tilkalds besked, et opkald eller en sms, eller ved selv at bekræfte hændelsen; når hændelsen er bekræftet, tilbyder hændelsens side vedkommende **Bekræft igen**. **Eskalér** sender den videre til næste niveau. På en hændelse, advarsel eller episode, der er løst, startes intet, og du får at vide hvorfor. Dens notifikationer siger, hvem der startede hvilken politik, og indeholder den besked, der blev sendt med et tilkald fra Slack eller Microsoft Teams.
 
 ## Udførelseslogs
 
@@ -112,9 +112,9 @@ flowchart TB
 | --- | --- |
 | **Venter** | En vagtregel sat til **Kun i arbejdstiden** lader kørslen vente, til arbejdstiden begynder: den siger, hvornår tilkaldelsen starter, og tilkalder ingen indtil da. Den slutter uden at tilkalde, hvis hændelsen eller advarslen bliver bekræftet eller løst først. Den begynder at tilkalde straks, hvis hændelsen eller advarslen ændrer sig og nu matcher en vagtregel, der tilkalder med det samme. |
 | **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
-| **Executing** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
-| **Execution Completed** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
-| **Execution Completed - No One Notified** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
+| **Udføres** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
+| **Udførelse fuldført** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
+| **Udførelse fuldført - ingen underrettet** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
 | **Fejl** | Kørslen mislykkedes. **Vis statusbesked** siger hvorfor. |
 
 Du finder udførelseslogs tre steder:
@@ -160,7 +160,7 @@ Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opre
 ## Fejlfinding
 
 :::details En politik kørte, men ingen blev tilkaldt
-Dens kørsel viser **Execution Completed - No One Notified**. Åbn **Vis tidslinje**: en række med **Ingen havde vagt** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagt → Parathed** viser, hvem der ikke kunne nås.
+Dens kørsel viser **Udførelse fuldført - ingen underrettet**. Åbn **Vis tidslinje**: en række med **Ingen havde vagt** peger på en vagtplan med et hul, og statusbeskeden i en række med **Sprunget over** siger hvorfor, fx nogen, der var fraværende uden nogen til at dække. **Vagt → Parathed** viser, hvem der ikke kunne nås.
 :::
 
 :::details Det næste niveau blev tilkaldt et minut efter sin ventetid

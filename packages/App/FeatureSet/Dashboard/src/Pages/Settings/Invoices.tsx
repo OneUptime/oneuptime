@@ -16,7 +16,6 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, BILLING_PUBLIC_KEY } from "Common/UI/Config";
 import BaseAPI from "Common/UI/Utils/API/API";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingInvoice, {
@@ -29,6 +28,7 @@ import React, {
   useState,
 } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Project from "Common/Models/DatabaseModels/Project";
 import {
   getBillingActionLockedReason,
@@ -65,6 +65,50 @@ const NOT_PAYABLE_INVOICE_STATUSES: Array<InvoiceStatus> = [
   InvoiceStatus.Void,
   InvoiceStatus.Deleted,
 ];
+
+/*
+ * An invoice's status in words - Stripe's "uncollectible" read as
+ * "Uncollectible" - keys of the Dashboard's locales: the Invoice Status
+ * filter's menu, its chip and each row's pill read them alike, each looked
+ * up once, where it is drawn, in the reader's language.
+ *
+ * "Open" alone is every Open button's verb, and every language words it so
+ * ("Abrir", "Öffnen"), so an open invoice's status has a key of its own,
+ * "Open (invoice status)", worded as the state: German "Offen", Spanish
+ * "Pendiente". English reads it "Open", as Stripe words it
+ * (Common/Types/MeaningKeys).
+ */
+const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  [InvoiceStatus.Paid]: translationKey("Paid"),
+  [InvoiceStatus.Draft]: translationKey("Draft"),
+  [InvoiceStatus.Void]: translationKey("Void"),
+  [InvoiceStatus.Uncollectible]: translationKey("Uncollectible"),
+  [InvoiceStatus.Deleted]: translationKey("Deleted"),
+  [InvoiceStatus.Open]: translationKey("Open (invoice status)"),
+  [InvoiceStatus.Undefined]: translationKey("Undefined"),
+};
+
+type GetInvoiceStatusLabelFunction = (status: string | undefined) => string;
+
+/*
+ * A status's words, for its pill to look up. One a newer server added reads
+ * as it is stored, with a capital.
+ */
+const getInvoiceStatusLabel: GetInvoiceStatusLabelFunction = (
+  status: string | undefined,
+): string => {
+  return (
+    INVOICE_STATUS_LABELS[(status || "") as InvoiceStatus] ||
+    Text.uppercaseFirstLetter(status || "")
+  );
+};
+
+// The Invoice Status filter: every status in the words its pill draws.
+const INVOICE_STATUS_OPTIONS: Array<DropdownOption> = Object.values(
+  InvoiceStatus,
+).map((status: InvoiceStatus): DropdownOption => {
+  return { value: status, label: INVOICE_STATUS_LABELS[status] };
+});
 
 type IsInvoicePayableFunction = (invoice: BillingInvoice) => boolean;
 
@@ -323,16 +367,7 @@ const Settings: FunctionComponent<ComponentProps> = (
               },
               title: "Invoice Status",
               type: FieldType.Dropdown,
-              filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                InvoiceStatus,
-              ).map((option: DropdownOption) => {
-                return {
-                  value: option.value,
-                  label: Text.uppercaseFirstLetter(
-                    (option.value as string) || "Undefined",
-                  ),
-                };
-              }),
+              filterDropdownOptions: INVOICE_STATUS_OPTIONS,
             },
           ]}
           columns={[
@@ -376,20 +411,13 @@ const Settings: FunctionComponent<ComponentProps> = (
               type: FieldType.Text,
 
               getElement: (item: BillingInvoice) => {
+                // In the words the Invoice Status filter offers it in.
+                const text: string = getInvoiceStatusLabel(item["status"]);
+
                 if (item["status"] === InvoiceStatus.Paid) {
-                  return (
-                    <Pill
-                      text={Text.uppercaseFirstLetter(item["status"] as string)}
-                      color={Green}
-                    />
-                  );
+                  return <Pill text={text} color={Green} />;
                 }
-                return (
-                  <Pill
-                    text={Text.uppercaseFirstLetter(item["status"] as string)}
-                    color={Yellow}
-                  />
-                );
+                return <Pill text={text} color={Yellow} />;
               },
             },
           ]}

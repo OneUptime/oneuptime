@@ -19,6 +19,8 @@ import MetricCriteriaContext from "../../../../Types/Monitor/MetricMonitor/Metri
 import { CheckOn } from "../../../../Types/Monitor/CriteriaFilter";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import ObjectID from "../../../../Types/ObjectID";
+import { JSONObject } from "../../../../Types/JSON";
+import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
 
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -251,6 +253,41 @@ describe("MonitorCriteriaEvaluator - logs explorer deep link", () => {
       }),
     ).toBeNull();
   });
+
+  /*
+   * Issues #8026 and #8025: a series grouped by an attribute named like
+   * what every object inherits is scoped by its own label, as any other.
+   * The scope was a plain object written with a plain assignment, so a
+   * label named __proto__ was dropped and the link showed every series'
+   * logs.
+   */
+  test.each(INHERITED_PROPERTY_NAMES)(
+    "a series label named %s scopes the link, over a criteria filter on the same key",
+    (name: string) => {
+      // As an incident's labels read back from JSON: own keys.
+      const own: (record: Record<string, string>) => JSONObject = (
+        record: Record<string, string>,
+      ): JSONObject => {
+        return JSON.parse(JSON.stringify(record)) as JSONObject;
+      };
+
+      const link: TelemetryExplorerDeepLink | null =
+        Evaluator.buildLogsExplorerDeepLink({
+          monitor: makeMonitor(ObjectID.generate()),
+          ctx: makeContext({
+            filterAttributes: own({ [name]: "any", "k8s.pod.name": "web-1" }),
+            seriesLabels: own({ [name]: "prod-01" }),
+          }),
+        });
+
+      const params: URLSearchParams = getQueryParams(link!.url);
+
+      expect(JSON.parse(params.get("filters") as string)).toEqual([
+        [`attributes.${name}`, ["prod-01"]],
+        ["attributes.k8s.pod.name", ["web-1"]],
+      ]);
+    },
+  );
 });
 
 describe("MonitorCriteriaEvaluator - traces explorer deep link", () => {

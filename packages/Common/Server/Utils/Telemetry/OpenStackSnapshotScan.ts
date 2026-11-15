@@ -43,6 +43,7 @@ import {
 } from "../../../Types/OpenStack/OpenStackScale";
 import { getOpenStackRatedFactKey } from "../../../Types/OpenStack/OpenStackSpendSnapshot";
 import logger from "../Logger";
+import { readOwnValue, writeOwnValue } from "../../../Utils/LookupTable";
 import {
   foldOpenStackControlPlaneDatapoint,
   isOpenStackControlPlaneDatapoint,
@@ -973,7 +974,14 @@ function setPlacementReading(data: {
   resource: string;
   value: number;
 }): void {
-  const reading: PlacementReading = data.entry.placement[data.resource] || {};
+  /*
+   * The entry's own reading only, written back as its own key: the
+   * resource class is the exporter's resourcetype label, and a plain read
+   * of one named __proto__ found the prototype every object shares, which
+   * the lines below then wrote total, reserved, ratio or usage onto.
+   */
+  const reading: PlacementReading =
+    readOwnValue(data.entry.placement, data.resource) || {};
   if (data.metricName === "openstack_placement_resource_total") {
     reading.total = data.value;
   } else if (data.metricName === "openstack_placement_resource_reserved") {
@@ -985,7 +993,7 @@ function setPlacementReading(data: {
   } else {
     reading.usage = data.value;
   }
-  data.entry.placement[data.resource] = reading;
+  writeOwnValue(data.entry.placement, data.resource, reading);
 }
 
 function foldHypervisor(data: {
@@ -2140,7 +2148,14 @@ function foldIpAvailability(data: {
     getLabel(data.attributes, "cidr") ||
     "default";
   const subnets: JSONObject = (entry.facts["ipsBySubnet"] as JSONObject) || {};
-  const subnet: JSONObject = (subnets[subnetKey] as JSONObject) || {};
+  /*
+   * The subnet's own entry only, written back as its own key: the key is
+   * the exporter's subnet_name or cidr label, and a plain read of one named
+   * __proto__ found the prototype every object shares, which the lines
+   * below then wrote total, used, cidr and ipVersion onto.
+   */
+  const subnet: JSONObject =
+    (readOwnValue(subnets, subnetKey) as JSONObject | undefined) || {};
   subnet[
     data.metricName === "openstack_neutron_network_ip_availabilities_total"
       ? "total"
@@ -2154,7 +2169,7 @@ function foldIpAvailability(data: {
   if (ipVersion) {
     subnet["ipVersion"] = ipVersion;
   }
-  subnets[subnetKey] = subnet;
+  writeOwnValue<JSONValue>(subnets, subnetKey, subnet);
   entry.facts["ipsBySubnet"] = subnets;
 }
 

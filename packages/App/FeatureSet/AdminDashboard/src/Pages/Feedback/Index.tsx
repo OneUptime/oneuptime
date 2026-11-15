@@ -35,6 +35,7 @@ import Table from "Common/UI/Components/Table/Table";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { BILLING_ENABLED } from "Common/UI/Config";
@@ -184,9 +185,17 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     );
   };
 
+  /*
+   * Each column names the row's field it draws (key), though every cell is
+   * its own element: the shared table once drew nothing for a column with
+   * no key, and both tables drew every answer as an empty row (#7457). A
+   * cell with nothing to say is the table's quiet dash (TableEmptyValue),
+   * never a hyphen of the page's own.
+   */
   const summaryColumns: Array<Column<ProductFeedbackTopicSummary>> = [
     {
       id: "question",
+      key: "topic",
       title: "Question",
       type: FieldType.Element,
       disableSort: true,
@@ -201,6 +210,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     },
     {
       id: "answers",
+      key: "answers",
       title: "Answers",
       type: FieldType.Element,
       disableSort: true,
@@ -210,6 +220,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     },
     {
       id: "result",
+      key: "averageScore",
       title: "How It Went",
       type: FieldType.Element,
       disableSort: true,
@@ -228,8 +239,9 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
           );
         }
 
+        // Give feedback asks no score and no yes or no.
         if (row.kind === ProductFeedbackKind.General) {
-          return <span className="text-gray-500">-</span>;
+          return <TableEmptyValue />;
         }
 
         return (
@@ -244,6 +256,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     },
     {
       id: "written",
+      key: "answersWithDetails",
       title: "With Words",
       type: FieldType.Element,
       disableSort: true,
@@ -257,23 +270,27 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
   const listColumns: Array<Column<ProductFeedbackListItem>> = [
     {
       id: "when",
+      key: "createdAt",
       title: "When",
       type: FieldType.Element,
       disableSort: true,
       getElement: (row: ProductFeedbackListItem): ReactElement => {
+        if (!row.createdAt) {
+          return <TableEmptyValue />;
+        }
+
         return (
           <span className="whitespace-nowrap">
-            {row.createdAt
-              ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  row.createdAt,
-                )
-              : "-"}
+            {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+              row.createdAt,
+            )}
           </span>
         );
       },
     },
     {
       id: "about",
+      key: "topic",
       title: "About",
       type: FieldType.Element,
       disableSort: true,
@@ -288,15 +305,20 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
     },
     {
       id: "answer",
+      key: "score",
       title: "Answer",
       type: FieldType.Element,
       disableSort: true,
       getElement: (row: ProductFeedbackListItem): ReactElement => {
-        return <span>{answerOf(row) || "-"}</span>;
+        const answer: string = answerOf(row);
+
+        // Give feedback is words only: no score, no yes or no.
+        return answer ? <span>{answer}</span> : <TableEmptyValue />;
       },
     },
     {
       id: "details",
+      key: "details",
       title: "What They Wrote",
       type: FieldType.Element,
       disableSort: true,
@@ -310,34 +332,44 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
             <bdi>{row.details}</bdi>
           </p>
         ) : (
-          <span className="text-gray-400">-</span>
+          <TableEmptyValue />
         );
       },
     },
     {
       id: "page",
+      key: "page",
       title: "Page",
       type: FieldType.Element,
       disableSort: true,
       hideOnMobile: true,
       getElement: (row: ProductFeedbackListItem): ReactElement => {
+        if (!row.page) {
+          return <TableEmptyValue />;
+        }
+
         return (
           <code className="break-all text-xs text-gray-600" dir="ltr">
-            {row.page || "-"}
+            {row.page}
           </code>
         );
       },
     },
     {
       id: "version",
+      key: "version",
       title: "Version",
       type: FieldType.Element,
       disableSort: true,
       hideOnMobile: true,
       getElement: (row: ProductFeedbackListItem): ReactElement => {
+        if (!row.version) {
+          return <TableEmptyValue />;
+        }
+
         return (
           <span className="text-xs text-gray-600" dir="ltr">
-            {row.version || "-"}
+            {row.version}
           </span>
         );
       },
@@ -366,6 +398,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
+          isTitleTranslated: true,
           to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
         },
         {

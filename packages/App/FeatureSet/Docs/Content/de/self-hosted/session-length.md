@@ -51,7 +51,7 @@ flowchart TB
 ```
 
 - Der Server zählt beide Dauern anhand der Sitzung selbst: wann sie angemeldet wurde und wann ihre Person zuletzt aktiv war. Er prüft sie bei jeder Anfrage, jeder Erneuerung und jeder Live-Aktualisierung und überlässt das Abmelden nie dem Browser.
-- Die Inaktivitätsdauer zählt ab dem letzten Klick, Tastendruck oder Scrollen in einem beliebigen Tab des Dashboards oder des Admin Dashboards. Ein offen gelassener Tab hält eine Sitzung nicht am Leben.
+- Die Inaktivitätsdauer zählt ab dem letzten Klick, Tastendruck oder Scrollen in einem beliebigen Tab des Dashboards oder des Admin Dashboards. Ein offen gelassener Tab hält eine Sitzung nicht am Leben. Auch erneutes Öffnen von OneUptime bringt sie nicht zurück: Wer länger als die Inaktivitätsdauer weg war, mit geschlossenem Browser oder schlafendem Computer, meldet sich erneut an.
 - Die mobile App zählt bei jeder Nutzung als aktiv.
 - Wenn eine Sitzung endet, wechselt der Browser zur Anmeldeseite, die sagt, warum. Nach der erneuten Anmeldung kommt die Person auf die Seite zurück, auf der sie war.
 

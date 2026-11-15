@@ -471,6 +471,127 @@ describe("SessionId", (): void => {
         ),
       ).toBe(2);
     });
+
+    /*
+     * #8015: a hash router keeps its route in the fragment, and every page
+     * of such an app has the path "/". Keyed by the path alone, full loads
+     * of different routes inside the window were reloads of one page, and
+     * a visitor opening three links raised refresh rage.
+     */
+    describe("on a hash-routed app", (): void => {
+      it("does not count full loads of different routes as reloads", (): void => {
+        const now: number = Date.now();
+
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/#/a", now),
+        ).toBe(1);
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/#/b", now + 100),
+        ).toBe(1);
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/#!/c", now + 200),
+        ).toBe(1);
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/", now + 300),
+        ).toBe(1);
+      });
+
+      it("counts loads of the same route, and raises rage at the threshold", (): void => {
+        const now: number = Date.now();
+
+        SessionId.recordPageLoad("https://shop.example.com/#/a", now);
+        SessionId.recordPageLoad("https://shop.example.com/#/b", now + 100);
+
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/#/a", now + 200),
+        ).toBe(2);
+
+        const third: number = SessionId.recordPageLoad(
+          "https://shop.example.com/#/a",
+          now + 300,
+        );
+
+        expect(third).toBe(3);
+        expect(SessionId.isRefreshRage(third)).toBe(true);
+      });
+
+      it("compares the route as scrub keeps it: no query, identifiers scrubbed, one spelling", (): void => {
+        const now: number = Date.now();
+
+        SessionId.recordPageLoad(
+          "https://shop.example.com/#!/orders/123456789012?attempt=1",
+          now,
+        );
+        SessionId.recordPageLoad(
+          "https://shop.example.com/?ref=mail#!/orders/987654321098?attempt=2",
+          now + 10,
+        );
+
+        expect(
+          SessionId.recordPageLoad(
+            "https://shop.example.com/#!/orders/555555555555",
+            now + 20,
+          ),
+        ).toBe(3);
+
+        SessionId.recordPageLoad("https://shop.example.com/#/caf%c3%a9", now);
+
+        expect(
+          SessionId.recordPageLoad(
+            "https://shop.example.com/#/cafe%CC%81",
+            now + 30,
+          ),
+        ).toBe(2);
+      });
+
+      it("keeps a route apart from the page's own path and from the hashbang form", (): void => {
+        const now: number = Date.now();
+
+        SessionId.recordPageLoad("https://shop.example.com/#/a", now);
+
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/a", now + 10),
+        ).toBe(1);
+        expect(
+          SessionId.recordPageLoad("https://shop.example.com/#!/a", now + 20),
+        ).toBe(1);
+      });
+
+      it("still reads an in-page anchor as the same page", (): void => {
+        const now: number = Date.now();
+
+        SessionId.recordPageLoad("https://shop.example.com/pricing#plans", now);
+        SessionId.recordPageLoad(
+          "https://shop.example.com/pricing#faq",
+          now + 10,
+        );
+
+        expect(
+          SessionId.recordPageLoad(
+            "https://shop.example.com/pricing",
+            now + 20,
+          ),
+        ).toBe(3);
+      });
+
+      it("logs the page with its route, so another tab's load is compared alike", (): void => {
+        const now: number = Date.now();
+
+        SessionId.recordPageLoad(
+          "https://shop.example.com/#/orders/123456789012?token=abc",
+          now,
+        );
+
+        const log: unknown = JSON.parse(
+          window.localStorage.getItem("oneuptime.replay.reloads") || "[]",
+        );
+
+        expect(log).toEqual([{ path: "/#/orders/[redacted]", atUnixMs: now }]);
+        // What the log holds is scrubbed: no token, no identifier.
+        expect(JSON.stringify(log)).not.toContain("abc");
+        expect(JSON.stringify(log)).not.toContain("123456789012");
+      });
+    });
   });
 
   /*

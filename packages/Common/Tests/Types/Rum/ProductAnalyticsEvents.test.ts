@@ -13,6 +13,7 @@ import {
   ProductAnalyticsDerivedMetric,
   ProductAnalyticsEventKind,
   ProductAnalyticsParsedBatch,
+  ProductAnalyticsParsedEvent,
   getProductAnalyticsDerivedMetricDescription,
   isProductAnalyticsDerivedMetricName,
   isProductAnalyticsMetricName,
@@ -24,6 +25,12 @@ import {
   toProductAnalyticsEventName,
   toProductAnalyticsPage,
 } from "../../../Types/Rum/ProductAnalyticsEvents";
+import {
+  CAFE_PAGE,
+  CAFE_SPELLINGS,
+  PAGE_SPELLINGS,
+  PageSpellingCase,
+} from "../../Helpers/PageSpellings";
 
 /*
  * The server's reading of a product analytics batch (issue #6444, part
@@ -281,6 +288,121 @@ describe("events", () => {
       PRODUCT_ANALYTICS_PROPERTY_LIMITS.maxValueLength,
     );
     expect(kept.events[1]!.properties).toEqual({});
+  });
+});
+
+/*
+ * #8017: one page can be written several ways - "/caf%c3%a9" (lower-case
+ * hex), "/caf%C3%A9", "/cafe%CC%81" (its accent decomposed) - and an older
+ * or cached recorder sends whichever the browser had. The server keeps the
+ * page in its one spelling, the one Session Replay stores and User Flows
+ * keys by, or product analytics counts one page as two or three. The
+ * recorder's suite reads the same table (Tests/Helpers/PageSpellings).
+ */
+describe("a page in its one spelling", () => {
+  test.each(
+    PAGE_SPELLINGS.map((row: PageSpellingCase): [string, PageSpellingCase] => {
+      return [row.name, row];
+    }),
+  )(
+    "keeps what a recorder sent in the page's one spelling: %s",
+    (_name: string, row: PageSpellingCase) => {
+      const kept: ProductAnalyticsParsedBatch = parsed(
+        batch({
+          events: [
+            { kind: "page", name: row.sent, at: RECEIVED_AT },
+            { kind: "page", page: row.sent, at: RECEIVED_AT },
+            {
+              kind: "custom",
+              name: "Signed up",
+              page: row.sent,
+              at: RECEIVED_AT,
+            },
+          ],
+        }),
+      );
+
+      expect(
+        kept.events.map((event: ProductAnalyticsParsedEvent) => {
+          return [event.name, event.page];
+        }),
+      ).toEqual([
+        [row.page, row.page],
+        [row.page, row.page],
+        ["Signed up", row.page],
+      ]);
+
+      // What the recorder sends now is kept as it is.
+      expect(toProductAnalyticsPage(row.page)).toBe(row.page);
+    },
+  );
+
+  test("the batch parser stores one spelling for the three", () => {
+    const kept: ProductAnalyticsParsedBatch = parsed(
+      batch({
+        events: [
+          { kind: "page", name: "/caf%c3%a9", at: RECEIVED_AT },
+          { kind: "page", name: "/caf%C3%A9", at: RECEIVED_AT },
+          { kind: "page", name: "/cafe%CC%81", at: RECEIVED_AT },
+          {
+            kind: "page",
+            name: "https://shop.example.com/cafe%cc%81?ref=mail#top",
+            at: RECEIVED_AT,
+          },
+        ],
+      }),
+    );
+
+    expect(
+      Array.from(
+        new Set(
+          kept.events.map((event: ProductAnalyticsParsedEvent): string => {
+            return event.name;
+          }),
+        ),
+      ),
+    ).toEqual([CAFE_PAGE]);
+    expect(CAFE_SPELLINGS.length).toBeGreaterThanOrEqual(5);
+
+    for (const spelling of CAFE_SPELLINGS) {
+      expect([spelling, toProductAnalyticsPage(spelling)]).toEqual([
+        spelling,
+        CAFE_PAGE,
+      ]);
+    }
+  });
+
+  test("keeps apart what names another page", () => {
+    expect(toProductAnalyticsPage("/a%2fb")).toBe("/a%2Fb");
+    expect(toProductAnalyticsPage("/a/b")).toBe("/a/b");
+    expect(toProductAnalyticsPage("/Cart")).toBe("/Cart");
+    expect(toProductAnalyticsPage("/cart")).toBe("/cart");
+    expect(toProductAnalyticsPage("/100%25")).toBe("/100%25");
+    // A lone "%" is not an escape, and nothing is made of it.
+    expect(toProductAnalyticsPage("/100%")).toBe("/100%");
+  });
+
+  test("a mobile app's screen is written in the same spelling", () => {
+    expect(toProductAnalyticsPage("Café")).toBe("/Caf%C3%A9");
+    expect(toProductAnalyticsPage("Checkout")).toBe("/Checkout");
+  });
+
+  test("holds the page to its cap once it is spelled, and running it again changes nothing", () => {
+    /* A page beyond ASCII grows when it is escaped: "é" is "%C3%A9". */
+    const long: string = toProductAnalyticsPage(`/${"é".repeat(400)}`);
+
+    expect(long).toHaveLength(PRODUCT_ANALYTICS_MAX_PAGE_LENGTH);
+    expect(long.startsWith("/%C3%A9%C3%A9")).toBe(true);
+    expect(toProductAnalyticsPage(long)).toBe(long);
+
+    for (const row of PAGE_SPELLINGS) {
+      const once: string = toProductAnalyticsPage(row.sent);
+
+      expect([row.sent, toProductAnalyticsPage(once)]).toEqual([
+        row.sent,
+        once,
+      ]);
+    }
   });
 });
 

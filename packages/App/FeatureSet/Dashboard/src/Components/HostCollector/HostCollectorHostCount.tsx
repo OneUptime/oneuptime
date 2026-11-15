@@ -63,6 +63,7 @@ const HostCollectorHostCount: FunctionComponent<ComponentProps> = (
               FAILED_COUNT_TEMPLATE,
               props.count.failed,
             )}
+            isUserContent={true}
             color={Red}
             size={PillSize.Small}
           />

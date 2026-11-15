@@ -26,6 +26,7 @@ import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNesti
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
+import { StateListType } from "Common/Utils/StateOrder";
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
 import { NOT_MONITORED_STATUS_COLOR } from "Common/Utils/StatusPage/FrozenMonitorResources";
 
@@ -256,8 +257,10 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             props.currentStatus?.color?.toString() || Green.toString(),
           )}
         >
-          {translateStatusName(props.currentStatus?.name) ||
-            t("overview.operational")}
+          {translateStatusName(
+            StateListType.MonitorStatus,
+            props.currentStatus?.name,
+          ) || t("overview.operational")}
         </div>
       );
     }
@@ -320,6 +323,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
               >
                 <Pill
                   text={t("monitorOverview.underMaintenance")}
+                  isUserContent={true}
                   color={MAINTENANCE_MARK_COLOR}
                   icon={IconProp.Wrench}
                   style={{ fontSize: "12px" }}

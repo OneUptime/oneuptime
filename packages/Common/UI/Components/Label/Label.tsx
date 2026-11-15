@@ -39,7 +39,12 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     isUserContent: true,
     size: props.size,
     isMinimal: props.isMinimal,
+    /*
+     * So is its description, in its hover tip: a description that matched
+     * a key - "Status" - read as that key's translation (#8067).
+     */
     tooltip: label.description || undefined,
+    isTooltipUserContent: true,
     isWrapping: props.isWrapping,
   };
 

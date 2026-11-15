@@ -6,7 +6,10 @@ import { IDENTITY_URL } from "../../../../UI/Config";
 import Navigation from "../../../../UI/Utils/Navigation";
 import SessionEndReturn from "../../../../UI/Utils/SessionEndReturn";
 import User from "../../../../UI/Utils/User";
-import UserActivity from "../../../../UI/Utils/UserActivity";
+import UserActivity, {
+  LAST_ACTIVITY_STORAGE_KEY,
+  LONGEST_INACTIVITY_STORAGE_KEY,
+} from "../../../../UI/Utils/UserActivity";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
@@ -18,6 +21,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import Sleep from "../../../../Types/Sleep";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
+  LONGEST_INACTIVITY_FIELD,
   SessionEndReason,
 } from "../../../../Types/UserSession/SessionLength";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -203,6 +207,157 @@ describe("a renewal says how long the person has not used OneUptime", () => {
     await StatusPageClient.refreshSession();
 
     expect(refreshRequests()[0]!.data).toBeUndefined();
+  });
+});
+
+/*
+ * Issue #6789: the Dashboard opened again after the browser stood closed.
+ * Opening the page is activity, so its renewal says its person is here -
+ * and the longest time they were not since the last renewal, which the
+ * server ends the session for when it reached the idle timeout.
+ */
+describe("a renewal after the browser stood closed says how long it stood closed", () => {
+  const HOUR_IN_MS: number = 60 * 60 * 1000;
+
+  // A renewal a while after the last one: not one another tab just made.
+  const laterThanARecentRenewal: () => void = (): void => {
+    nowInMs += BaseAPI.RECENT_SESSION_REFRESH_WINDOW_IN_MS + 1000;
+  };
+
+  // When the page opened again, which ended the two hours away.
+  let reopenedAtMs: number = 0;
+
+  beforeEach(() => {
+    // The last activity before the browser was closed, two hours ago.
+    localStorage.setItem(
+      LAST_ACTIVITY_STORAGE_KEY,
+      String(nowInMs - 2 * HOUR_IN_MS),
+    );
+    reopenedAtMs = nowInMs;
+    UserActivity.install();
+    nowInMs += 3000;
+  });
+
+  test("the page's first request comes back 401, and its renewal says its person is here, after two hours away", async () => {
+    server
+      .on(HTTPMethod.POST, INCIDENTS_URL, [
+        { status: 401, data: NOT_AUTHENTICATED_BODY },
+        { status: 200, data: { count: 1 } },
+      ])
+      .on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+
+    await requestIncidents();
+
+    expect(refreshRequests()).toHaveLength(1);
+    expect(refreshRequests()[0]!.data).toEqual({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 3,
+      [LONGEST_INACTIVITY_FIELD]: {
+        forSeconds: 2 * 60 * 60,
+        endedSecondsAgo: 3,
+      },
+    });
+  });
+
+  test("a renewal that went through forgets it: the next renewal says only how long it has been", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(true);
+
+    expect(localStorage.getItem(LONGEST_INACTIVITY_STORAGE_KEY)).toBeNull();
+
+    laterThanARecentRenewal();
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(true);
+
+    expect(refreshRequests()[1]!.data).toEqual({
+      [INACTIVE_FOR_IN_SECONDS_FIELD]: 19,
+    });
+  });
+
+  test("a renewal that got no answer keeps it for the next one", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [
+      { networkErrorCode: "ECONNREFUSED" },
+      { networkErrorCode: "ECONNREFUSED" },
+      { networkErrorCode: "ECONNREFUSED" },
+      { status: 200 },
+    ]);
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(false);
+
+    laterThanARecentRenewal();
+
+    await expect(BaseAPI.refreshSession()).resolves.toBe(true);
+
+    const last: SentRequest = refreshRequests()[refreshRequests().length - 1]!;
+
+    expect((last.data as JSONObject)[LONGEST_INACTIVITY_FIELD]).toEqual({
+      forSeconds: 2 * 60 * 60,
+      endedSecondsAgo: Math.floor((nowInMs - reopenedAtMs) / 1000),
+    });
+  });
+
+  test("a renewal the server refused keeps nothing back: the session is over and the person signs in again", async () => {
+    sessionEndsWith({
+      message: SESSION_ENDED_MESSAGES[SessionEndReason.Inactive],
+    });
+
+    await requestIncidents();
+
+    expect(logoutSpy).toHaveBeenCalled();
+    expect(refreshRequests()[0]!.data).toEqual(
+      expect.objectContaining({
+        [LONGEST_INACTIVITY_FIELD]: {
+          forSeconds: 2 * 60 * 60,
+          endedSecondsAgo: 3,
+        },
+      }),
+    );
+
+    for (const route of navigatedRoutes()) {
+      expect(route).toBe(`${LOGIN_ROUTE}?sessionEnded=inactive`);
+    }
+  });
+
+  test("a longer time without use that ended while the renewal was on its way, in another tab, is kept for the next one", async () => {
+    server.onRequest = (request: SentRequest): void => {
+      if (request.url !== REFRESH_URL || refreshRequests().length !== 1) {
+        return;
+      }
+
+      // Another tab, brought back after five hours, while this renewal is on its way.
+      nowInMs += 1000;
+      localStorage.setItem(
+        LONGEST_INACTIVITY_STORAGE_KEY,
+        JSON.stringify({ fromMs: nowInMs - 5 * HOUR_IN_MS, toMs: nowInMs }),
+      );
+    };
+
+    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }, { status: 200 }]);
+
+    await BaseAPI.refreshSession();
+
+    laterThanARecentRenewal();
+
+    await BaseAPI.refreshSession();
+
+    expect(
+      (refreshRequests()[1]!.data as JSONObject)[LONGEST_INACTIVITY_FIELD],
+    ).toEqual({
+      forSeconds: 5 * 60 * 60,
+      endedSecondsAgo: Math.floor(
+        (BaseAPI.RECENT_SESSION_REFRESH_WINDOW_IN_MS + 1000) / 1000,
+      ),
+    });
+  });
+
+  test("a status page's session says neither: it is not a sign-in to OneUptime", async () => {
+    server.on(HTTPMethod.POST, REFRESH_URL, [{ status: 200 }]);
+
+    await StatusPageClient.refreshSession();
+
+    expect(refreshRequests()[0]!.data).toBeUndefined();
+    // And its renewal forgets nothing the Dashboard's next renewal must say.
+    expect(localStorage.getItem(LONGEST_INACTIVITY_STORAGE_KEY)).not.toBeNull();
   });
 });
 
