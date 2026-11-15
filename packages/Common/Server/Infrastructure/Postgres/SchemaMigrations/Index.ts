@@ -1004,6 +1004,7 @@ import { AddIncidentPostmortemActionItem1809174800000 } from "./1809174800000-Ad
 import { AddSavedAsRunbookToAutoRemediationSuggestion1809174900000 } from "./1809174900000-AddSavedAsRunbookToAutoRemediationSuggestion";
 import { AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000 } from "./1809174910000-AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey";
 import { RemoveServiceTelemetryLinkPermissions1809176500000 } from "./1809176500000-RemoveServiceTelemetryLinkPermissions";
+import { AddServiceLevelObjectiveRequestSli1809176600000 } from "./1809176600000-AddServiceLevelObjectiveRequestSli";
 
 export default [
   InitialMigration,
@@ -2012,4 +2013,5 @@ export default [
   AddSavedAsRunbookToAutoRemediationSuggestion1809174900000,
   AddSavedAsRunbookToAutoRemediationSuggestionIndexAndKey1809174910000,
   RemoveServiceTelemetryLinkPermissions1809176500000,
+  AddServiceLevelObjectiveRequestSli1809176600000,
 ];
