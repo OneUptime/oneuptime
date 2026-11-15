@@ -313,8 +313,13 @@ interface WrittenDuration {
   unit: "minute" | "hour" | "day";
 }
 
-// A duration as describeDuration writes it, or "less than a minute".
-type ReadDuration = WrittenDuration | "less than a minute";
+/*
+ * A duration as describeDuration writes it. "less than a minute" reads as
+ * no whole minute: a count of 0.
+ */
+type ReadDuration = WrittenDuration;
+
+const LESS_THAN_A_MINUTE_READ: ReadDuration = { count: 0, unit: "minute" };
 
 const LESS_THAN_A_MINUTE: string = translationKey("less than a minute");
 
@@ -392,7 +397,7 @@ export const readWrittenDuration: (
   units?: ReadonlyArray<WrittenDuration["unit"]>,
 ): ReadDuration | null => {
   if (text === LESS_THAN_A_MINUTE && !units) {
-    return LESS_THAN_A_MINUTE;
+    return LESS_THAN_A_MINUTE_READ;
   }
 
   const match: RegExpExecArray | null = DURATION.exec(text);
@@ -427,8 +432,10 @@ const durationInWords: (duration: ReadDuration) => ComposedValue = (
 ): ComposedValue => {
   return {
     compose: (translator: Translator): string => {
-      if (duration === LESS_THAN_A_MINUTE) {
-        return translator.translateText(LESS_THAN_A_MINUTE) || duration;
+      if (duration.count === 0) {
+        return (
+          translator.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE
+        );
       }
 
       if (isEnglishDateLanguage(translator.language)) {
