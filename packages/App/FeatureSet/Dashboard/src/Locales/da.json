@@ -55038,5 +55038,9 @@
   "Entry point": "Indgangspunkt",
   "No calls observed": "Ingen kald observeret",
   "Unnamed dependency": "Unavngivet afhængighed",
-  "SCIM URLs - {{name}}": "SCIM-URL'er - {{name}}"
+  "SCIM URLs - {{name}}": "SCIM-URL'er - {{name}}",
+  "Network & Devices": "Network & Devices",
+  "This item mirrors a record elsewhere in OneUptime. Delete the original record to remove it for good — deleting it here only clears the copy.": "This item mirrors a record elsewhere in OneUptime. Delete the original record to remove it for good — deleting it here only clears the copy.",
+  "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.": "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.",
+  "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.": "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent."
 }

@@ -55038,5 +55038,9 @@
   "Entry point": "진입점",
   "No calls observed": "관찰된 호출 없음",
   "Unnamed dependency": "이름 없는 종속성",
-  "SCIM URLs - {{name}}": "SCIM URL - {{name}}"
+  "SCIM URLs - {{name}}": "SCIM URL - {{name}}",
+  "Network & Devices": "Network & Devices",
+  "This item mirrors a record elsewhere in OneUptime. Delete the original record to remove it for good — deleting it here only clears the copy.": "This item mirrors a record elsewhere in OneUptime. Delete the original record to remove it for good — deleting it here only clears the copy.",
+  "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.": "This item was discovered from telemetry. Deleting it clears it from the list, but it will be re-created the next time it sends data.",
+  "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent.": "This item's source is unknown to this version of OneUptime. Deleting it may not be permanent."
 }
