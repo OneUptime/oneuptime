@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import "@testing-library/jest-dom";
 import {
   afterAll,

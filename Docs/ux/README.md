@@ -605,8 +605,17 @@ then `npm run i18n:validate` from the root.
   and
   [DirectionArrowsInReadersLanguage](../../packages/Common/Tests/App/Dashboard/DirectionArrowsInReadersLanguage.test.tsx).
 - **A bare word has one meaning everywhere,** because a label is translated by its English text.
-  "Any" is the Match Condition's word. Enforced by
-  [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts).
+  "Any" is the Match Condition's word. A word that means something else in one place takes a key
+  that names its meaning, the word then what it means in brackets: "View (database object)", a
+  database's view beside the View buttons' verb. A Spanish catalog named a view "Ver" ("see it")
+  and headed its schema changes "Cambiar" ("change it", #8078). List the key in
+  [`Common/Types/MeaningKeys`](../../packages/Common/Types/MeaningKeys.ts), so English reads it as
+  the word alone, "View", wherever it is drawn: a column's or a filter's title, an option, a pill.
+  Enforced by
+  [MatchConditionAnyWordGuard](../../packages/Common/Tests/UI/Components/Forms/MatchConditionAnyWordGuard.test.ts),
+  [OneMeaningPerKey](../../packages/App/Tests/Dashboard/OneMeaningPerKey.test.ts)
+  and
+  [MeaningKeys](../../packages/Common/Tests/Types/MeaningKeys.test.tsx).
 - **A noun the sentences share starts a label with a capital.** Many nouns are worded for the middle
   of a sentence, so Spanish says "clúster de Kubernetes" and French "ressource cloud". Where the same
   key names a row, a chip or a line of a card, draw it through `toLabelTerm`, which starts it with a
