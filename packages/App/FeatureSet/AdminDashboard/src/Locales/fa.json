@@ -1045,7 +1045,7 @@
   "Custom Price": "قیمت سفارشی",
   "Compare plans": "مقایسه طرح‌ها",
   "Free forever.": "برای همیشه رایگان.",
-  "Active monitors and telemetry are pay as you go, and need a payment method.": "مانیتورهای فعال و تله‌متری بر اساس مصرف پرداخت می‌شوند و به یک روش پرداخت نیاز دارند.",
+  "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.": "بررسی یک وب‌سایت، یک API یا یک سرور و فرستادن تله‌متری بر اساس مصرف پرداخت می‌شوند و به یک روش پرداخت نیاز دارند.",
   "Active monitors and telemetry are pay as you go.": "مانیتورهای فعال و تله‌متری بر اساس مصرف پرداخت می‌شوند.",
   "Then {{price}} per user, billed yearly.": "سپس {{price}} برای هر کاربر، با صورت‌حساب سالانه.",
   "Then {{price}} per user, billed monthly.": "سپس {{price}} برای هر کاربر، با صورت‌حساب ماهانه.",
@@ -2142,7 +2142,9 @@
   "This server cannot send email yet, so they get no invitation email. The invitation is still created, and you get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود و پیوندی می‌گیرید تا خودتان برایشان بفرستید.",
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in and accept the invitation.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account and are a member now: send them this link to sign in.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند و اکنون عضو هستند: این پیوند را برای ورود برایشان بفرستید.",
   "Invited": "دعوت‌شده",
+  "Not Signed Up Yet": "هنوز ثبت‌نام نکرده",
   "Get Invitation Link": "دریافت پیوند دعوت",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
   "Without a valid license (after the {{days}}-day trial), SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "بدون پروانهٔ معتبر (پس از دورهٔ آزمایشی {{days}} روزه)، تأمین SCIM متوقف می‌شود، ثبت ممیزی دیگر چیزی ثبت نمی‌کند، پیکربندی سازمانی فقط‌خواندنی می‌شود و داشبوردهای مدیریت سازمانی قفل می‌شوند. همه‌چیز به‌محض فعال شدن یک پروانه از سر گرفته می‌شود و پایش اصلی هرگز تحت تأثیر قرار نمی‌گیرد.",
@@ -3147,5 +3149,9 @@
   "The probe could not send the request from its own side, so the NTP server was never contacted. The failure is on the probe, not on the server.": "پراب نتوانست درخواست را از سمت خودش بفرستد، برای همین هیچ‌وقت با سرور NTP تماس گرفته نشد. خرابی از پراب است، نه از سرور.",
   "The NTP check failed because of a network error.": "بررسی NTP به‌خاطر خطای شبکه ناموفق بود.",
   "From (range start)": "از",
-  "To (range end)": "تا"
+  "To (range end)": "تا",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "آنچه فرستاده شد بزرگ‌تر از آن بود که سرور بپذیرد، بنابراین این کار تمام نشد. با مقدار کمتری در هر بار دوباره امتحان کنید، مثلاً با فایلی کوچک‌تر.",
+  "What was sent was too large for the server to accept.": "آنچه فرستاده شد بزرگ‌تر از آن بود که سرور بپذیرد.",
+  "Try again with less at once, such as a smaller file.": "با مقدار کمتری در هر بار دوباره امتحان کنید، مثلاً با فایلی کوچک‌تر.",
+  "If a proxy in front of OneUptime refused it, raise that proxy's request size limit to 50 MB, as much as OneUptime itself takes (in nginx, client_max_body_size 50M).": "اگر پراکسی‌ای جلوی OneUptime آن را رد کرده است، سقف اندازهٔ درخواست آن پراکسی را به ۵۰ مگابایت برسانید، همان اندازه‌ای که خود OneUptime می‌پذیرد (در nginx، client_max_body_size 50M)."
 }

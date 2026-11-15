@@ -640,7 +640,11 @@ const Button: FunctionComponent<ComponentProps> = ({
          * locked button does nothing else. A busy one (isLoading) is not
          * locked: it is about to answer, so its tooltip stays hover only.
          */
-        <Tooltip text={translatedTooltip} isShownOnPress={isLocked}>
+        <Tooltip
+          text={translatedTooltip}
+          isTextTranslated={true}
+          isShownOnPress={isLocked}
+        >
           <span
             ref={wrapperRef}
             /*
@@ -664,7 +668,11 @@ const Button: FunctionComponent<ComponentProps> = ({
       );
     }
 
-    return <Tooltip text={translatedTooltip}>{getButton()}</Tooltip>;
+    return (
+      <Tooltip text={translatedTooltip} isTextTranslated={true}>
+        {getButton()}
+      </Tooltip>
+    );
   }
   return getButton();
 };

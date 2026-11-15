@@ -1,6 +1,8 @@
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../Server/Utils/Logger";
-import OnCallPolicyRunRetries from "../../../../Server/Utils/OnCall/OnCallPolicyRunRetries";
+import OnCallPolicyRunRetries, {
+  UserOnCallLogRetries,
+} from "../../../../Server/Utils/OnCall/OnCallPolicyRunRetries";
 import DatabaseNotConnectedException from "../../../../Types/Exception/DatabaseNotConnectedException";
 import ObjectID from "../../../../Types/ObjectID";
 import { OnCallPolicyRunFailures } from "../../../../Types/OnCallDutyPolicy/OnCallPolicyRunRetry";
@@ -221,5 +223,82 @@ describe("what is read back", () => {
       retryAt: FAILURES.retryAt.getTime(),
       lastError: "Connection terminated unexpectedly",
     });
+  });
+});
+
+/*
+ * A person's on-call log's failed tries (issue #8408) are kept the same way,
+ * by the person's-log worker, under a namespace of their own: nothing of a
+ * log is ever read as a run's, nor a run's as a log's.
+ */
+describe("a person's on-call log's failed tries", () => {
+  const LOG_FAILURES: OnCallPolicyRunFailures = {
+    ...FAILURES,
+    failedTries: 1,
+    lastError: "Query read timeout",
+  };
+
+  test("are kept under a namespace of their own", async () => {
+    expect(UserOnCallLogRetries.CACHE_NAMESPACE).not.toBe(
+      OnCallPolicyRunRetries.CACHE_NAMESPACE,
+    );
+
+    await UserOnCallLogRetries.remember(RUN_A, LOG_FAILURES);
+
+    expect(
+      kept.has(`${UserOnCallLogRetries.CACHE_NAMESPACE}-${RUN_A.toString()}`),
+    ).toBe(true);
+    expect((await OnCallPolicyRunRetries.read([RUN_A])).size).toBe(0);
+    expect(
+      (await UserOnCallLogRetries.read([RUN_A])).get(RUN_A.toString()),
+    ).toEqual(LOG_FAILURES);
+  });
+
+  test("forgetting a log's failures forgets nothing of a run's, nor a run's a log's", async () => {
+    await OnCallPolicyRunRetries.remember(RUN_A, FAILURES);
+    await UserOnCallLogRetries.remember(RUN_A, LOG_FAILURES);
+
+    await UserOnCallLogRetries.forget(RUN_A);
+
+    expect(
+      (await OnCallPolicyRunRetries.read([RUN_A])).get(RUN_A.toString()),
+    ).toEqual(FAILURES);
+    expect((await UserOnCallLogRetries.read([RUN_A])).size).toBe(0);
+
+    await UserOnCallLogRetries.remember(RUN_A, LOG_FAILURES);
+    await OnCallPolicyRunRetries.forget(RUN_A);
+
+    expect(
+      (await UserOnCallLogRetries.read([RUN_A])).get(RUN_A.toString()),
+    ).toEqual(LOG_FAILURES);
+  });
+
+  test("are kept as long as a run's", async () => {
+    await UserOnCallLogRetries.remember(RUN_B, LOG_FAILURES);
+
+    expect(
+      kept.get(`${UserOnCallLogRetries.CACHE_NAMESPACE}-${RUN_B.toString()}`)
+        ?.expiresInSeconds,
+    ).toBe(6 * 60 * 60);
+  });
+
+  test("a Redis that is down reads as none, keeps nothing, and does not throw", async () => {
+    jest
+      .spyOn(GlobalCache, "getStrings")
+      .mockRejectedValue(new Error("Connection is closed.") as never);
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("Connection is closed.") as never);
+    jest
+      .spyOn(GlobalCache, "deleteKey")
+      .mockRejectedValue(new Error("Connection is closed.") as never);
+
+    await expect(UserOnCallLogRetries.read([RUN_C])).resolves.toEqual(
+      new Map(),
+    );
+    await expect(
+      UserOnCallLogRetries.remember(RUN_C, LOG_FAILURES),
+    ).resolves.toBeUndefined();
+    await expect(UserOnCallLogRetries.forget(RUN_C)).resolves.toBeUndefined();
   });
 });

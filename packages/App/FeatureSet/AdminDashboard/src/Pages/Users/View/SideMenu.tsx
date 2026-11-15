@@ -19,10 +19,11 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
   const { t } = useTranslation();
   return (
     <SideMenu>
-      <SideMenuSection title={t("sideMenu.basic")}>
+      <SideMenuSection title={t("sideMenu.basic")} isTitleTranslated={true}>
         <SideMenuItem
           link={{
             title: t("sideMenu.overview"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_VIEW] as Route,
               {
@@ -35,6 +36,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.projects"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_PROJECTS] as Route,
               {
@@ -47,6 +49,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.authentication"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_AUTHENTICATION] as Route,
               {
@@ -59,6 +62,7 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         <SideMenuItem
           link={{
             title: t("sideMenu.settings"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS] as Route,
               {
@@ -75,10 +79,15 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
        * SideMenuSection does that by itself only for the English title, and
        * this one is already translated, so it is said here.
        */}
-      <SideMenuSection title={t("sideMenu.advanced")} defaultCollapsed={true}>
+      <SideMenuSection
+        title={t("sideMenu.advanced")}
+        isTitleTranslated={true}
+        defaultCollapsed={true}
+      >
         <SideMenuItem
           link={{
             title: t("sideMenu.delete"),
+            isTitleTranslated: true,
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_DELETE] as Route,
               {

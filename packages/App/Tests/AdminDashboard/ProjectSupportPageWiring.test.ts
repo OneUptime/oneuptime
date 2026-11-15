@@ -418,9 +418,7 @@ describe("SaaS gating", () => {
      * gate.
      */
     const beforeSupportSection: string =
-      sideMenuSource.split(
-        'SideMenuSection title={t("sideMenu.support")}',
-      )[0] || "";
+      sideMenuSource.split('title={t("sideMenu.support")}')[0] || "";
 
     expect(beforeSupportSection).not.toBe("");
     expect(beforeSupportSection.slice(-100)).toContain("BILLING_ENABLED ?");

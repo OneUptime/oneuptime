@@ -379,10 +379,41 @@ describe("SloNoticeBanner", () => {
       screen.getByText("This SLO cannot be evaluated"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Only "Monitor Uptime" SLIs are supported/),
+      screen.getByText(/monitor uptime, request success or request latency/),
     ).toBeInTheDocument();
     expect(screen.queryByText(WAITING_TITLE)).toBeNull();
-    expect(screen.queryByRole("link")).toBeNull();
+    // What it measures is chosen in Settings now, so the banner leads there.
+    expect(screen.getByRole("link")).toHaveTextContent("Open Settings");
+  });
+
+  test("a request SLO with no services is told to choose them in Settings, not to attach monitors", async () => {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      sliType: SliType.RequestSuccess,
+      services: [],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(screen.getByText("No services chosen")).toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveTextContent("Choose services");
+    expect(screen.queryByText("No monitors attached")).toBeNull();
+  });
+
+  test("a request SLO with services waits for requests", async () => {
+    serveSlo({
+      sloStatus: SloStatus.Misconfigured,
+      sliType: SliType.RequestSuccess,
+      services: [{ _id: "6d000000-0000-4000-8000-000000000001" }],
+    });
+
+    render(<SloNoticeBanner sloId={SLO_ID} />);
+
+    await findBanner();
+
+    expect(screen.getByText("Waiting for requests")).toBeInTheDocument();
   });
 
   test.each([0, 100, null])(

@@ -2152,6 +2152,26 @@ jobs:
           Tests/Server/Infrastructure/Postgres/RemovePermissionsTeamsCannotBeGivenPostgres.test.ts
           --forceExit
 
+      # Makes the custom role and permission tables in an isolated schema and
+      # runs the migration that takes the 28 permissions nothing checks (the
+      # Edit ... Feed ones, the On-Call Schedule Layer User ones, Create and
+      # Delete Invoices, Add Label to Resources) from every team, API key and
+      # custom role: every other row stays, a removed row's labels go with
+      # it, a role that held one is counted again without it, and a second
+      # run changes nothing.
+      - name: Test removing the permissions that grant nothing on Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PERMISSIONS_THAT_GRANT_NOTHING_TESTS: "true"
+          PERMISSIONS_THAT_GRANT_NOTHING_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PERMISSIONS_THAT_GRANT_NOTHING_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PERMISSIONS_THAT_GRANT_NOTHING_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/RemovePermissionsThatGrantNothingPostgres.test.ts
+          --forceExit
+
       # Clones the migrated ScheduledMaintenanceTemplate table into an isolated
       # schema and runs the migration that clears the next event of templates
       # whose Recurring Event switch is off: they lose the time they still

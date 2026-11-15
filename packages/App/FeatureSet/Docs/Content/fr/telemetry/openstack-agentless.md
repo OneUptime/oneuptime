@@ -93,6 +93,8 @@ Choisissez les régions à lire, nommez le cloud et cliquez sur **Connecter le c
 
 La **Vue d'ensemble** du cloud affiche une carte **Collecte des données**. Elle indique **Vérification** jusqu'à la première collecte, qui démarre dans la minute, puis **Collecte en cours**, et les pages se remplissent. Lorsque certains services ont été lus et pas un autre, elle précise lequel. Si aucune sonde ne vient pour le cloud pendant 15 minutes, parce qu'elle est hors ligne ou trop ancienne, elle indique **Pas de collecte** et le précise, quel qu'ait été le résultat de la dernière collecte.
 
+Lorsqu'aucune sonde ne peut collecter le cloud, la carte indique tout de suite **Pas de collecte**, avec la raison et ce qu'il faut changer : aucun identifiant n'est enregistré, l'adresse de Keystone manque, aucune sonde n'est choisie pour le collecter, sa sonde ne peut pas le collecter (une sonde partagée sur OneUptime Cloud, ou celle d'un autre projet), ou sa sonde est déconnectée. **Prochaine collecte** donne l'heure à laquelle une sonde le collecte la prochaine fois, **Prévu maintenant** tant qu'il en attend une, **En retard** dès qu'aucune n'est venue pendant 15 minutes, et **Non planifié** tant qu'aucune sonde ne peut le collecter. Un cloud archivé est toujours collecté.
+
 La carte **Collecte des données** de la page **Paramètres** du cloud contient ce avec quoi vous l'avez connecté :
 
 ![La carte Collecte des données sur la page Paramètres d'un cloud : son adresse Keystone, sa sonde, l'identifiant d'application avec lequel elle se connecte, ses régions, le certificat approuvé et la fréquence de collecte](/docs/static/images/OpenStackDataCollection.png)

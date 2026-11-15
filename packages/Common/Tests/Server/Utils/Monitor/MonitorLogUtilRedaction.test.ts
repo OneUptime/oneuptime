@@ -90,6 +90,12 @@ import DataToProcess from "../../../../Server/Utils/Monitor/DataToProcess";
 import { REDACTED } from "../../../../Server/Utils/LogRedaction";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import {
+  SNS_CONFIRMATION_HEADERS,
+  SNS_SUBSCRIBE_URL,
+  SNS_TOKEN,
+  snsSubscriptionConfirmation,
+} from "../../../Utils/Monitor/SubscriptionConfirmationFixtures";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const SECRET: string = "b1946ac9-2492-4b0f-9b2f-ee9b6cbe36ba";
@@ -302,5 +308,41 @@ describe("MonitorLogUtil.saveMonitorLog", () => {
     }
 
     expect(insertJsonRows).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * https://github.com/OneUptime/oneuptime/issues/7723
+ *
+ * A row is a copy people read, so an Incoming Request monitor's row of an
+ * Amazon SNS SubscriptionConfirmation keeps the link that confirms it -
+ * Monitoring Logs > View Summary offers it - while the message's signature
+ * stays masked. The rules are pinned in SubscriptionConfirmationCopies;
+ * here, that the row enqueued for ClickHouse is cut by them.
+ */
+describe("an Amazon SNS subscription confirmation's row", () => {
+  beforeEach(() => {
+    insertJsonRows.mockClear();
+  });
+
+  it("keeps the link that confirms the subscription, and masks the signature", async () => {
+    const row: JSONObject = await saveAndFlush({
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      requestMethod: "POST",
+      requestHeaders: { ...SNS_CONFIRMATION_HEADERS },
+      requestBody: snsSubscriptionConfirmation(),
+      incomingRequestReceivedAt: new Date("2026-11-13T15:59:15.000Z"),
+      checkedAt: new Date("2026-11-13T15:59:16.000Z"),
+      onlyCheckForIncomingRequestReceivedAt: false,
+    } as unknown as DataToProcess);
+
+    const requestBody: JSONObject = (row["logBody"] as JSONObject)[
+      "requestBody"
+    ] as JSONObject;
+
+    expect(requestBody["SubscribeURL"]).toBe(SNS_SUBSCRIBE_URL);
+    expect(requestBody["Token"]).toBe(SNS_TOKEN);
+    expect(requestBody["Signature"]).toBe(REDACTED);
   });
 });

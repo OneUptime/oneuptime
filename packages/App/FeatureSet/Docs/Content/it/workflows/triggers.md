@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Intestazioni della richiesta**      | Ogni header della richiesta, con il nome in minuscolo, come `content-type`.                                           |
 | **Request Query Params** | I parametri della query string dell'URL, per nome.                                                                    |
-| **Corpo della Richiesta**         | Il corpo inviato da chi chiama. Un corpo JSON, inviato con `Content-Type: application/json`, si può leggere campo per campo. |
+| **Corpo della Richiesta**         | Il corpo inviato da chi chiama. Un corpo JSON, inviato con `Content-Type: application/json`, si può leggere campo per campo, e così anche il JSON inviato come testo semplice, come lo invia Amazon SNS. |
 
 Leggi un campo aggiungendo il suo nome al riferimento, come in `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

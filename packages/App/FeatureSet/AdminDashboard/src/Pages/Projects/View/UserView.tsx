@@ -22,6 +22,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -32,6 +33,10 @@ import InvitationLinkModal, {
   INVITATION_LINK_COPY,
   getInvitationLinkRowAction,
 } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
+import {
+  MembersNotSignedUp,
+  useMembersNotSignedUp,
+} from "Common/UI/Components/InvitationLink/MembersNotSignedUp";
 import React, {
   Fragment,
   FunctionComponent,
@@ -47,9 +52,18 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
 
   /*
    * A server that cannot send email sent no invitation (#6825): a pending
-   * team's row offers its invitation link (#7168).
+   * team's row offers its invitation link (#7168), and Add to Team says no
+   * email goes out and hands the link over (#8192).
    */
   const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+
+  /*
+   * A member whose invitation was accepted for them before they had an
+   * account still has to sign up (#8191): their row says so, and offers
+   * their link.
+   */
+  const membersNotSignedUp: MembersNotSignedUp =
+    useMembersNotSignedUp(cannotSendEmail);
   const [invitationLinkFor, setInvitationLinkFor] = useState<ObjectID | null>(
     null,
   );
@@ -110,6 +124,7 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
       modelType={Project}
       modelAPI={AdminModelAPI}
       title={t("pages.projectUserView.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),
@@ -199,11 +214,13 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
               actionButtons={[
                 getInvitationLinkRowAction<TeamMember>({
                   isAvailable: cannotSendEmail,
+                  isNotSignedUp: membersNotSignedUp.isNotSignedUp,
                   onOpen: (teamMemberId: ObjectID) => {
                     setInvitationLinkFor(teamMemberId);
                   },
                 }),
               ]}
+              onFetchSuccess={membersNotSignedUp.onFetchSuccess}
               query={{
                 userId: userId,
                 projectId: projectId,
@@ -216,6 +233,21 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                 item.projectId = projectId;
                 return Promise.resolve(item);
               }}
+              onCreateSuccess={async (
+                item: TeamMember,
+                modalType?: ModalType,
+              ): Promise<TeamMember> => {
+                // No email went out: the link to send (#8192).
+                if (
+                  modalType !== ModalType.Edit &&
+                  cannotSendEmail &&
+                  item.id
+                ) {
+                  setInvitationLinkFor(item.id);
+                }
+
+                return item;
+              }}
               cardProps={{
                 title: t("pages.projectUserView.teamsCardTitle"),
                 description: t("pages.projectUserView.teamsCardDescription"),
@@ -227,8 +259,13 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                     team: true,
                   },
                   title: "Team",
-                  description:
-                    "Select the team you would like to add this user to.",
+                  /*
+                   * A server that cannot send email says so, as every other
+                   * invite form does (#8192).
+                   */
+                  description: cannotSendEmail
+                    ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
+                    : "Select the team you would like to add this user to.",
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
                   fetchDropdownOptions: async (): Promise<
@@ -316,7 +353,17 @@ const ProjectUserView: FunctionComponent = (): ReactElement => {
                   type: FieldType.Element,
                   getElement: (item: TeamMember): ReactElement => {
                     if (item.hasAcceptedInvitation) {
-                      return <Pill text="Member" color={Green} />;
+                      return (
+                        <div className="flex space-x-2">
+                          <Pill text="Member" color={Green} />
+                          {membersNotSignedUp.isNotSignedUp(item) && (
+                            <Pill
+                              text={INVITATION_LINK_COPY.notSignedUpPill}
+                              color={Yellow}
+                            />
+                          )}
+                        </div>
+                      );
                     }
                     return (
                       <Pill
