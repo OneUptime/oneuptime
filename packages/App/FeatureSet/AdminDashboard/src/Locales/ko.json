@@ -3862,5 +3862,21 @@
   "No exceptions yet": "아직 예외 없음",
   "First profiles received": "첫 프로필 수신됨",
   "No profiles yet": "아직 프로필 없음",
-  "Set up": "설정됨"
+  "Set up": "설정됨",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}}년",
+  "{{count}}mo": "{{count}}개월",
+  "{{count}}d": "{{count}}일",
+  "{{count}}h": "{{count}}시간",
+  "{{count}}m": "{{count}}분",
+  "{{count}}s": "{{count}}초",
+  "{{count}}y ago": "{{count}}년 전",
+  "{{count}}mo ago": "{{count}}개월 전",
+  "{{count}}d ago": "{{count}}일 전",
+  "{{count}}h ago": "{{count}}시간 전",
+  "{{count}}m ago": "{{count}}분 전",
+  "{{count}}s ago": "{{count}}초 전",
+  "{{minutes}}m {{seconds}}s": "{{minutes}}분 {{seconds}}초",
+  "{{hours}}h {{minutes}}m": "{{hours}}시간 {{minutes}}분",
+  "{{days}}d {{hours}}h": "{{days}}일 {{hours}}시간"
 }

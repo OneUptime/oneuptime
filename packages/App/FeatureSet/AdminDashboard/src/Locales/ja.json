@@ -3862,5 +3862,21 @@
   "No exceptions yet": "まだ例外がありません",
   "First profiles received": "最初のプロファイルを受信",
   "No profiles yet": "まだプロファイルがありません",
-  "Set up": "設定済み"
+  "Set up": "設定済み",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}}年",
+  "{{count}}mo": "{{count}}か月",
+  "{{count}}d": "{{count}}日",
+  "{{count}}h": "{{count}}時間",
+  "{{count}}m": "{{count}}分",
+  "{{count}}s": "{{count}}秒",
+  "{{count}}y ago": "{{count}} 年前",
+  "{{count}}mo ago": "{{count}} か月前",
+  "{{count}}d ago": "{{count}} 日前",
+  "{{count}}h ago": "{{count}} 時間前",
+  "{{count}}m ago": "{{count}} 分前",
+  "{{count}}s ago": "{{count}} 秒前",
+  "{{minutes}}m {{seconds}}s": "{{minutes}}分 {{seconds}}秒",
+  "{{hours}}h {{minutes}}m": "{{hours}}時間 {{minutes}}分",
+  "{{days}}d {{hours}}h": "{{days}}日 {{hours}}時間"
 }

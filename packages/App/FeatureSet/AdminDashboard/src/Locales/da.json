@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Ingen undtagelser endnu",
   "First profiles received": "Første profiler modtaget",
   "No profiles yet": "Ingen profiler endnu",
-  "Set up": "Sat op"
+  "Set up": "Sat op",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} år",
+  "{{count}}mo": "{{count}} md.",
+  "{{count}}d": "{{count}}d",
+  "{{count}}h": "{{count}}t",
+  "{{count}}m": "{{count}}m",
+  "{{count}}s": "{{count}}s",
+  "{{count}}y ago": "for {{count}} år siden",
+  "{{count}}mo ago": "for {{count}} md. siden",
+  "{{count}}d ago": "for {{count}} d siden",
+  "{{count}}h ago": "for {{count}} t siden",
+  "{{count}}m ago": "for {{count}} min siden",
+  "{{count}}s ago": "for {{count}} s siden",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min. {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}}t {{minutes}}m",
+  "{{days}}d {{hours}}h": "{{days}}d {{hours}}t"
 }

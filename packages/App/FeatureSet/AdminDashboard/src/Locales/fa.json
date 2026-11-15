@@ -3862,5 +3862,21 @@
   "No exceptions yet": "هنوز استثنایی نیست",
   "First profiles received": "نخستین پروفایل‌ها دریافت شد",
   "No profiles yet": "هنوز پروفایلی نیست",
-  "Set up": "راه‌اندازی شده"
+  "Set up": "راه‌اندازی شده",
+  "{{value}} ms": "{{value}} میلی‌ثانیه",
+  "{{count}}y": "{{count}} سال",
+  "{{count}}mo": "{{count}} ماه",
+  "{{count}}d": "{{count}} روز",
+  "{{count}}h": "{{count}} ساعت",
+  "{{count}}m": "{{count}} دقیقه",
+  "{{count}}s": "{{count}} ثانیه",
+  "{{count}}y ago": "{{count}} سال پیش",
+  "{{count}}mo ago": "{{count}} ماه پیش",
+  "{{count}}d ago": "{{count}} روز پیش",
+  "{{count}}h ago": "{{count}} ساعت پیش",
+  "{{count}}m ago": "{{count}} دقیقه پیش",
+  "{{count}}s ago": "{{count}} ثانیه پیش",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} دقیقه {{seconds}} ثانیه",
+  "{{hours}}h {{minutes}}m": "{{hours}} ساعت {{minutes}} دقیقه",
+  "{{days}}d {{hours}}h": "{{days}} روز {{hours}} ساعت"
 }

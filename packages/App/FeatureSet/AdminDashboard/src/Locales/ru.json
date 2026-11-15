@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Исключений пока нет",
   "First profiles received": "Получены первые профили",
   "No profiles yet": "Профилей пока нет",
-  "Set up": "Настроен"
+  "Set up": "Настроен",
+  "{{value}} ms": "{{value}} мс",
+  "{{count}}y": "{{count}} г.",
+  "{{count}}mo": "{{count}} мес.",
+  "{{count}}d": "{{count}} д",
+  "{{count}}h": "{{count}} ч",
+  "{{count}}m": "{{count}} м",
+  "{{count}}s": "{{count}} с",
+  "{{count}}y ago": "{{count}} г. назад",
+  "{{count}}mo ago": "{{count}} мес. назад",
+  "{{count}}d ago": "{{count}} д назад",
+  "{{count}}h ago": "{{count}} ч назад",
+  "{{count}}m ago": "{{count}} мин назад",
+  "{{count}}s ago": "{{count}} с назад",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} мин {{seconds}} с",
+  "{{hours}}h {{minutes}}m": "{{hours}} ч {{minutes}} мин",
+  "{{days}}d {{hours}}h": "{{days}} д {{hours}} ч"
 }

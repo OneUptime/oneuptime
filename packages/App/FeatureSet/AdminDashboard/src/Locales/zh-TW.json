@@ -3862,5 +3862,21 @@
   "No exceptions yet": "尚無例外",
   "First profiles received": "已收到第一批效能剖析",
   "No profiles yet": "尚無效能剖析",
-  "Set up": "已設定"
+  "Set up": "已設定",
+  "{{value}} ms": "{{value}} 毫秒",
+  "{{count}}y": "{{count}} 年",
+  "{{count}}mo": "{{count}} 個月",
+  "{{count}}d": "{{count}} 天",
+  "{{count}}h": "{{count}} 小時",
+  "{{count}}m": "{{count}} 分",
+  "{{count}}s": "{{count}} 秒",
+  "{{count}}y ago": "{{count}} 年前",
+  "{{count}}mo ago": "{{count}} 個月前",
+  "{{count}}d ago": "{{count}} 天前",
+  "{{count}}h ago": "{{count}} 小時前",
+  "{{count}}m ago": "{{count}} 分鐘前",
+  "{{count}}s ago": "{{count}} 秒前",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} 分 {{seconds}} 秒",
+  "{{hours}}h {{minutes}}m": "{{hours}} 小時 {{minutes}} 分",
+  "{{days}}d {{hours}}h": "{{days}} 天 {{hours}} 小時"
 }

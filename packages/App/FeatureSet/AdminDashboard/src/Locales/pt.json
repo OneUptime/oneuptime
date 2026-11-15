@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Nenhuma exceção ainda",
   "First profiles received": "Primeiros perfis recebidos",
   "No profiles yet": "Nenhum perfil ainda",
-  "Set up": "Configurado"
+  "Set up": "Configurado",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} anos",
+  "{{count}}mo": "{{count}} meses",
+  "{{count}}d": "{{count}} d",
+  "{{count}}h": "{{count}} h",
+  "{{count}}m": "{{count}} min",
+  "{{count}}s": "{{count}} s",
+  "{{count}}y ago": "há {{count}} anos",
+  "{{count}}mo ago": "há {{count}} meses",
+  "{{count}}d ago": "há {{count}} d",
+  "{{count}}h ago": "há {{count}} h",
+  "{{count}}m ago": "há {{count}} min",
+  "{{count}}s ago": "há {{count}} s",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}} h {{minutes}} min",
+  "{{days}}d {{hours}}h": "{{days}} d {{hours}} h"
 }

@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Inga undantag än",
   "First profiles received": "Första profilerna mottagna",
   "No profiles yet": "Inga profiler än",
-  "Set up": "Konfigurerad"
+  "Set up": "Konfigurerad",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} år",
+  "{{count}}mo": "{{count}} mån",
+  "{{count}}d": "{{count}} d",
+  "{{count}}h": "{{count}} h",
+  "{{count}}m": "{{count}} min",
+  "{{count}}s": "{{count}} s",
+  "{{count}}y ago": "för {{count}} år sedan",
+  "{{count}}mo ago": "för {{count}} mån sedan",
+  "{{count}}d ago": "för {{count}} d sedan",
+  "{{count}}h ago": "för {{count}} h sedan",
+  "{{count}}m ago": "för {{count}} min sedan",
+  "{{count}}s ago": "för {{count}} s sedan",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}} tim {{minutes}} min",
+  "{{days}}d {{hours}}h": "{{days}} d {{hours}} tim"
 }

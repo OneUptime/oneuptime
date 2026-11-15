@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Noch keine Exceptions",
   "First profiles received": "Erste Profile empfangen",
   "No profiles yet": "Noch keine Profile",
-  "Set up": "Eingerichtet"
+  "Set up": "Eingerichtet",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} J.",
+  "{{count}}mo": "{{count}} Mon.",
+  "{{count}}d": "{{count}} Tg.",
+  "{{count}}h": "{{count}} Std.",
+  "{{count}}m": "{{count}} Min.",
+  "{{count}}s": "{{count}} Sek.",
+  "{{count}}y ago": "vor {{count}} J.",
+  "{{count}}mo ago": "vor {{count}} Mon.",
+  "{{count}}d ago": "vor {{count}} Tg.",
+  "{{count}}h ago": "vor {{count}} Std.",
+  "{{count}}m ago": "vor {{count}} Min.",
+  "{{count}}s ago": "vor {{count}} Sek.",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} Min. {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}} Std. {{minutes}} Min.",
+  "{{days}}d {{hours}}h": "{{days}} T. {{hours}} Std."
 }

@@ -3862,5 +3862,21 @@
   "No exceptions yet": "Nog geen exceptions",
   "First profiles received": "Eerste profielen ontvangen",
   "No profiles yet": "Nog geen profielen",
-  "Set up": "Ingericht"
+  "Set up": "Ingericht",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} jr",
+  "{{count}}mo": "{{count}} mnd",
+  "{{count}}d": "{{count}}d",
+  "{{count}}h": "{{count}}u",
+  "{{count}}m": "{{count}}m",
+  "{{count}}s": "{{count}}s",
+  "{{count}}y ago": "{{count}} jr geleden",
+  "{{count}}mo ago": "{{count}} mnd geleden",
+  "{{count}}d ago": "{{count}} d geleden",
+  "{{count}}h ago": "{{count}} u geleden",
+  "{{count}}m ago": "{{count}} min geleden",
+  "{{count}}s ago": "{{count}} s geleden",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} min {{seconds}} s",
+  "{{hours}}h {{minutes}}m": "{{hours}}u {{minutes}}m",
+  "{{days}}d {{hours}}h": "{{days}}d {{hours}}u"
 }

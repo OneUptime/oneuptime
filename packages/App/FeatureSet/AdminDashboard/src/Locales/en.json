@@ -3862,5 +3862,21 @@
   "No exceptions yet": "No exceptions yet",
   "First profiles received": "First profiles received",
   "No profiles yet": "No profiles yet",
-  "Set up": "Set up"
+  "Set up": "Set up",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}}y",
+  "{{count}}mo": "{{count}}mo",
+  "{{count}}d": "{{count}}d",
+  "{{count}}h": "{{count}}h",
+  "{{count}}m": "{{count}}m",
+  "{{count}}s": "{{count}}s",
+  "{{count}}y ago": "{{count}}y ago",
+  "{{count}}mo ago": "{{count}}mo ago",
+  "{{count}}d ago": "{{count}}d ago",
+  "{{count}}h ago": "{{count}}h ago",
+  "{{count}}m ago": "{{count}}m ago",
+  "{{count}}s ago": "{{count}}s ago",
+  "{{minutes}}m {{seconds}}s": "{{minutes}}m {{seconds}}s",
+  "{{hours}}h {{minutes}}m": "{{hours}}h {{minutes}}m",
+  "{{days}}d {{hours}}h": "{{days}}d {{hours}}h"
 }

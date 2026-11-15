@@ -3862,5 +3862,21 @@
   "No exceptions yet": "अभी कोई एक्सेप्शन नहीं",
   "First profiles received": "पहली प्रोफ़ाइल मिली",
   "No profiles yet": "अभी कोई प्रोफ़ाइल नहीं",
-  "Set up": "सेट अप हो गया"
+  "Set up": "सेट अप हो गया",
+  "{{value}} ms": "{{value}} ms",
+  "{{count}}y": "{{count}} साल",
+  "{{count}}mo": "{{count}} माह",
+  "{{count}}d": "{{count}} दिन",
+  "{{count}}h": "{{count}} घंटे",
+  "{{count}}m": "{{count}} मिनट",
+  "{{count}}s": "{{count}} सेकंड",
+  "{{count}}y ago": "{{count}} साल पहले",
+  "{{count}}mo ago": "{{count}} महीने पहले",
+  "{{count}}d ago": "{{count}} दिन पहले",
+  "{{count}}h ago": "{{count}} घंटे पहले",
+  "{{count}}m ago": "{{count}} मिनट पहले",
+  "{{count}}s ago": "{{count}} सेकंड पहले",
+  "{{minutes}}m {{seconds}}s": "{{minutes}} मिनट {{seconds}} सेकंड",
+  "{{hours}}h {{minutes}}m": "{{hours}} घंटे {{minutes}} मिनट",
+  "{{days}}d {{hours}}h": "{{days}} दिन {{hours}} घं."
 }
