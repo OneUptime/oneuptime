@@ -98,7 +98,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur IP commence avec deux critères :
 
-- **Hors ligne** — l'adresse ne répond à aucune des requêtes d'écho, ou n'est pas joignable du tout, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ is offline » est créé. L'incident se résout de lui-même quand l'adresse répond de nouveau.
+- **Hors ligne** — l'adresse ne répond à aucune des requêtes d'écho, ou n'est pas joignable du tout, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _nom du moniteur_ est hors ligne » est créé. L'incident se résout de lui-même quand l'adresse répond de nouveau.
 - **En ligne** — l'adresse répond. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

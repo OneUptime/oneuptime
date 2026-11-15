@@ -98,7 +98,7 @@ Med to eller flere filtre avgjør **Samsvarsbetingelse** om **Alle** må samsvar
 
 En ny IP-monitor starter med to kriterier:
 
-- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitor name_ is offline" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
+- **Frakoblet** — adressen svarer ikke på noen av ekkoforespørslene, eller kan ikke nås i det hele tatt etter alle nye forsøk. Monitoren merkes som **Frakoblet**, og en hendelse kalt "_monitornavn_ er frakoblet" opprettes. Hendelsen løser seg selv når adressen svarer igjen.
 - **Oppe** — adressen svarer. Monitoren merkes som **I drift**.
 
 Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva som skjer. Når ingen samsvarer, viser monitoren standardstatusen sin: **I drift**, med mindre du velger en annen under **Flere felt** under kriteriene.

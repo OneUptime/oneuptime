@@ -58,6 +58,17 @@ export interface OneName {
  */
 const SWEDISH_NOUN_FOR_A_WATCHER: RegExp = /övervakar(?=\p{L})/iu;
 
+/*
+ * The words Norwegian dropped for an on-call or incoming call policy: a
+ * vakt(tjeneste)retningslinje in any form, a retningslinje for vakttjeneste
+ * or for innkommende anrop, and an (innkommende) anropsretningslinje. A
+ * retningslinje on its own is read by the on-call keys' own check
+ * (OneNamePerThingGuard), since Norwegian keeps the word for a guideline and
+ * a Kubernetes or network policy.
+ */
+export const NORWEGIAN_ON_CALL_POLICY_DROPPED: RegExp =
+  /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
+
 // Several keys kept for one reason.
 function keptForOneReason(
   keys: ReadonlyArray<string>,
@@ -284,15 +295,21 @@ export const ONE_NAME: Readonly<Record<string, ReadonlyArray<OneName>>> = {
       others: /metrikk/i,
     },
     /*
-     * An on-call policy is a "vaktretningslinje", as the On-Call Policies
-     * menu (Vaktretningslinjer) says it; some 180 strings of the
-     * Dashboard, the Admin Dashboard and the server said "vaktpolicy"
-     * (#8435).
+     * An on-call policy is a vaktpolicy, and an incoming call policy a
+     * policy for innkommende anrop: "policy" is the Norwegian Dashboard's
+     * word for every policy it has (varslingspolicy, feilbudsjettpolicy,
+     * avspillingspolicy), and a new project's first policy is named
+     * "Standard vaktpolicy". The list, the menu and about a hundred
+     * sentences said vaktretningslinje, vakttjenesteretningslinje or
+     * retningslinje for vakttjeneste beside it (#8527; #8435 had settled on
+     * the list's word, and #8527 moved the list and #8435's names to the
+     * one policy's). Both nouns are common gender (en retningslinje, en
+     * policy), so en, den, denne and dens stayed as they were.
      */
     {
       title: "On-Call",
       word: /vakt/i,
-      others: /vaktpolic/i,
+      others: NORWEGIAN_ON_CALL_POLICY_DROPPED,
     },
   ],
 };

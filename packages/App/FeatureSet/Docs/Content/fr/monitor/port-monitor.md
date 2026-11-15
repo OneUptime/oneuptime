@@ -122,7 +122,7 @@ Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** d
 
 Un nouveau moniteur de port commence avec deux critères :
 
-- **Hors ligne** — le port n'accepte pas de connexion, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _monitor name_ is offline » est créé. L'incident se résout de lui-même quand le port accepte de nouveau des connexions.
+- **Hors ligne** — le port n'accepte pas de connexion, après chaque nouvelle tentative. Le moniteur est marqué **Hors ligne** et un incident appelé « _nom du moniteur_ est hors ligne » est créé. L'incident se résout de lui-même quand le port accepte de nouveau des connexions.
 - **En ligne** — le port accepte une connexion. Le moniteur est marqué **Opérationnel**.
 
 Les critères sont vérifiés de haut en bas, et le premier qui correspond décide de ce qui se passe. Quand aucun ne correspond, le moniteur affiche son état par défaut : **Opérationnel**, sauf si vous en choisissez un autre sous **Plus de champs**, sous les critères.

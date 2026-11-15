@@ -774,8 +774,8 @@ En monitor som du inte bygger från en mall startar med två kriterier:
 
 | Ordning | Kriterium | Stämmer när | Då |
 | --- | --- | --- | --- |
-| 1 | Check if _monitor name_ is offline | Den första frågan saknar data under hela fönstret | Markerar monitorn som **Offline** och skapar incidenten "_monitor name_ is offline", som löser sig själv när monitorn återhämtar sig. |
-| 2 | Check if _monitor name_ is online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
+| 1 | Kontrollera om _monitornamn_ är offline | Den första frågan saknar data under hela fönstret | Markerar monitorn som **Offline** och skapar incidenten "_monitornamn_ är offline", som löser sig själv när monitorn återhämtar sig. |
+| 2 | Kontrollera om _monitornamn_ är online | Den första frågan har data | Markerar monitorn som **Fungerar**. |
 
 > [!IMPORTANT]
 > Värdet `0` är data, så ett mätvärde som ofta är noll, till exempel omstarter eller fel, gör inte monitorn offline. Om du vill larma på ett värde, utgå från en mall eller lägg till ett kriterium med en tröskel. När ingen data kommer in alls och inget kriterium stämmer behåller monitorn sin status och öppna incidenter förblir öppna: tystnad är inte återhämtning. Tid då OneUptime självt inte tog emot något är aldrig ingen data: en kontroll vars fönster innehåller den väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.

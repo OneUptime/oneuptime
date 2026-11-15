@@ -23,7 +23,10 @@ import {
  *   - Italian: the menu's "Policy di reperibilità" beside "criterio di
  *     reperibilità" in 48 strings ("ID del criterio di reperibilità");
  *   - Norwegian: the menu's "Vaktretningslinjer" beside "Vaktpolicy" in
- *     some 180 strings of the Dashboard, the Admin Dashboard and the server;
+ *     some 180 strings of the Dashboard, the Admin Dashboard and the server.
+ *     #8527 settled it on "vaktpolicy", the word for one policy, for the
+ *     first one ("Standard vaktpolicy") and for every other Norwegian
+ *     policy (varslingspolicy, feilbudsjettpolicy), and moved the menu;
  *   - Portuguese: "Plantão" with a capital in the middle of a name in
  *     sentence case ("ID da política de Plantão");
  *   - Arabic: "Timeline" is المخطط الزمني, but other timelines said
@@ -82,7 +85,7 @@ const ON_CALL_POLICY_WORD: Readonly<Record<string, RegExp>> = {
   pt: /políticas? de plantão/u,
   nl: /bereikbaarheidsbeleid/u,
   da: /vagtpolitik/u,
-  no: /vaktretningslinje/u,
+  no: /vaktpolic/u,
   sv: /jourpolic/u,
   ru: /политик\S* дежурств/u,
   ja: /オンコールポリシー/u,
@@ -259,7 +262,12 @@ describe("the rest of the on-call names, in every Dashboard language (#8435)", (
 
 describe("one word for an on-call thing in Italian, Norwegian, Portuguese and Arabic (#8435)", () => {
   const ITALIAN_DROPPED: RegExp = /criteri[oi] di reperibilità/iu;
-  const NORWEGIAN_DROPPED: RegExp = /vaktpolic/iu;
+  /*
+   * The words #8527 dropped for an on-call or incoming call policy, as
+   * App/Tests/Dashboard/OneNamePerThing.ts has them.
+   */
+  const NORWEGIAN_DROPPED: RegExp =
+    /vakt(?:tjeneste-?|ordning-)?retningslinj|retningslinj\p{L}* for (?:vakttjeneste|innkommende anrop)|anropsretningslinj/iu;
   // "Plantão" with a capital after a lower-case word: "da política de Plantão".
   const PORTUGUESE_DROPPED: RegExp = /(?:^|\s)\p{Ll}\S* d[eoa] Plantão/u;
   const ARABIC_DROPPED: RegExp = /الخط الزمني|خط زمني/u;
@@ -298,10 +306,8 @@ describe("one word for an on-call thing in Italian, Norwegian, Portuguese and Ar
     ).toEqual([]);
   });
 
-  test("Norwegian says the menu's vaktretningslinje, never vaktpolicy, in every app", () => {
-    expect(readDashboardLocale("no")["On-Call Policies"]).toBe(
-      "Vaktretningslinjer",
-    );
+  test("Norwegian says vaktpolicy, never vaktretningslinje, in every app (#8527)", () => {
+    expect(readDashboardLocale("no")["On-Call Policies"]).toBe("Vaktpolicyer");
     expect(
       sightings(
         "no",
@@ -311,9 +317,7 @@ describe("one word for an on-call thing in Italian, Norwegian, Portuguese and Ar
         [DASHBOARD, ADMIN_DASHBOARD, SERVER],
       ),
     ).toEqual([]);
-    expect(readDashboardLocale("no")["On-Call Policy"]).toBe(
-      "Vaktretningslinje",
-    );
+    expect(readDashboardLocale("no")["On-Call Policy"]).toBe("Vaktpolicy");
   });
 
   test("Portuguese writes plantão in lower case in the middle of a name in sentence case", () => {
@@ -374,8 +378,8 @@ describe("one word for an on-call thing in Italian, Norwegian, Portuguese and Ar
     expect(ITALIAN_DROPPED.test("ID del criterio di reperibilità")).toBe(true);
     expect(ITALIAN_DROPPED.test("ID della policy di reperibilità")).toBe(false);
     expect(ITALIAN_DROPPED.test("I criteri di ripetizione")).toBe(false);
-    expect(NORWEGIAN_DROPPED.test("Vaktpolicyene")).toBe(true);
-    expect(NORWEGIAN_DROPPED.test("Vaktretningslinjene")).toBe(false);
+    expect(NORWEGIAN_DROPPED.test("Vaktretningslinjene")).toBe(true);
+    expect(NORWEGIAN_DROPPED.test("Vaktpolicyene")).toBe(false);
     expect(PORTUGUESE_DROPPED.test("ID da política de Plantão")).toBe(true);
     expect(PORTUGUESE_DROPPED.test("Minhas Políticas de Plantão")).toBe(false);
     expect(PORTUGUESE_DROPPED.test("Abra Plantão > Prontidão")).toBe(false);

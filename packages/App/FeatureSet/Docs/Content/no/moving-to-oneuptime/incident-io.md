@@ -56,14 +56,14 @@ Rapporten teller hva som ble opprettet, invitert og ikke overført, og viser hve
 | Brukere | Prosjektmedlemmer | Kobles på e-postadresse. Alle som ikke er i prosjektet ennå, inviteres til teamet du velger. Deaktiverte brukere overføres ikke. |
 | Team | Team | Opprettes med medlemmene sine. Et team som prosjektet allerede har navnet på, brukes som det er, og medlemmene røres ikke. |
 | Vaktplaner | Vaktplaner | Hver rotasjon blir et lag med de samme personene, samme start, samme vaktlengde og samme arbeidstid, i vaktplanens tidssone. Versjonen av rotasjonen som gjelder nå, er den som overføres. |
-| Eskaleringsbaner | Vaktretningslinjer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir retningslinjens gjentakelser, og fra en forgrening overføres den første banen. |
+| Eskaleringsbaner | Vaktpolicyer | Hvert nivå blir en eskaleringsregel som varsler de samme vaktplanene, brukerne og teamene etter samme ventetid. En gjentakelse blir policyens gjentakelser, og fra en forgrening overføres den første banen. |
 | Katalogtjenester | Tjenester | Oppføringene i katalogtypene dine i tjenestekategorien, opprettet i tjenestekatalogen. Arkiverte oppføringer utelates. |
 | Alvorlighetsgrader | Hendelsesalvorligheter | Opprettes i incident.ios rekkefølge, den mest alvorlige først. En alvorlighetsgrad som prosjektet allerede har navnet på, brukes som den er. |
 | Statuser | Hendelsestilstander | En triagestatus tilsvarer tilstanden OneUptime starter hendelser i, og en lukket status tilstanden der hendelser er løst. Aktive og pausede statuser opprettes mellom Bekreftet og Løst. |
 | Hendelsesroller | Hendelsesroller | Den ledende rollen tilsvarer OneUptimes hendelsesleder, og de andre rollene opprettes. OneUptime registrerer hvem som meldte hver hendelse, så rapportørrollen trengs ikke. |
 | Egendefinerte felt | Egendefinerte hendelsesfelt | Felt med ett valg blir nedtrekkslister, felt med flere valg nedtrekkslister med flervalg, tekst- og lenkefelt tekst og numeriske felt tall, med alternativene sine. |
 
-En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per person på vakt, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktretningslinje som varslet vaktplanen, varsler alle.
+En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per person på vakt, fordi en OneUptime-vaktplan har én person på vakt om gangen. Hver vaktpolicy som varslet vaktplanen, varsler alle.
 
 ## Hva som ikke overføres
 
@@ -75,7 +75,7 @@ En rotasjon med flere personer på vakt samtidig blir én OneUptime-vaktplan per
 
 ## Grenser
 
-Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktretningslinjer, 500 tjenester, 100 egendefinerte hendelsesfelt og 25 av hver av hendelsesalvorligheter, hendelsestilstander og hendelsesroller. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
+Én import oppretter høyst 2 000 poster: høyst 500 personer, 200 team, 200 vaktplaner, 200 vaktpolicyer, 500 tjenester, 100 egendefinerte hendelsesfelt og 25 av hver av hendelsesalvorligheter, hendelsestilstander og hendelsesroller. Alt over en grense vises som ikke overført. Kjør importen på nytt for å overføre resten.
 
 I OneUptime Cloud vises poster som abonnementet ditt ikke inkluderer, som ikke overført, med abonnementet de trenger.
 

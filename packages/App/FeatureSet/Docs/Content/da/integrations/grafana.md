@@ -117,7 +117,7 @@ Brug et [arbejdsgang](/docs/workflows/index), når du har brug for dine egne tri
 :::steps
 ### Opret arbejdsgangen
 
-Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald det `Grafana alerts`, og klik på **Opret arbejdsgang**.
+Gå til **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Kald den `Grafana alerts`, og klik på **Opret arbejdsgang**.
 
 ### Tilføj Webhook-triggeren
 
@@ -152,7 +152,7 @@ En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset 
 :::details Intet kommer frem til OneUptime
 - Klik på **Test** på kontaktpunktet: Grafana viser en fejl, når den ikke kan nå URL'en. Grafanas serverlog har detaljerne.
 - Monitoren svarer `200` med det samme, før den kontrollerer noget, også ved en forkert hemmelig nøgle. Tjek monitorens tidslinje for at se, om notifikationer kommer frem.
-- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dets **Bygger**.
+- En arbejdsgang, der er slået fra, svarer `400`. Slå **Aktiveret** til øverst i dens **Bygger**.
 :::
 
 :::details Hændelser oprettes, men løses aldrig
