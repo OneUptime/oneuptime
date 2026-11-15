@@ -81,7 +81,7 @@ export function formatBytes(bytes: number | null | undefined): string {
     return "—";
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
@@ -109,9 +109,9 @@ export function formatMhz(value: number | null | undefined): string {
     return "—";
   }
   if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(value >= 100000 ? 0 : 2)} GHz`;
+    return `${(value / 1000).toFixed(value >= 100000 ? 0 : 2)}\u00A0GHz`;
   }
-  return `${Math.round(value)} MHz`;
+  return `${Math.round(value)}\u00A0MHz`;
 }
 
 export function formatBytesForChart(value: number): string {

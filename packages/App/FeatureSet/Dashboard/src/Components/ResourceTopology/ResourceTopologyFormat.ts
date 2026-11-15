@@ -34,7 +34,7 @@ export function formatTopologyBytes(bytes: number | null | undefined): string {
   }
 
   if (Math.abs(bytes) < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
 
   let value: number = bytes / 1024;

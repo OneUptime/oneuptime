@@ -181,8 +181,8 @@ export const describeLargeJson: (length: number) => string = (
   const kilobytes: number = length / 1024;
   const size: string =
     kilobytes >= 1024
-      ? `${(kilobytes / 1024).toFixed(1)} MB`
-      : `${kilobytes.toFixed(1)} KB`;
+      ? `${(kilobytes / 1024).toFixed(1)}\u00A0MB`
+      : `${kilobytes.toFixed(1)}\u00A0KB`;
 
   return `[${size} of JSON]`;
 };

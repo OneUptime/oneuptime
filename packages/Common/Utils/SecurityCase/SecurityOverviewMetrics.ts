@@ -509,18 +509,22 @@ export function formatDurationInMinutes(minutes: number | null): string {
   const total: number = Math.max(0, Math.round(minutes));
 
   if (total < 60) {
-    return `${total} min`;
+    return `${total}\u00A0min`;
   }
 
   const hours: number = Math.floor(total / 60);
   const restMinutes: number = total % 60;
 
   if (hours < 24) {
-    return restMinutes > 0 ? `${hours} h ${restMinutes} min` : `${hours} h`;
+    return restMinutes > 0
+      ? `${hours}\u00A0h ${restMinutes}\u00A0min`
+      : `${hours}\u00A0h`;
   }
 
   const days: number = Math.floor(hours / 24);
   const restHours: number = hours % 24;
 
-  return restHours > 0 ? `${days} d ${restHours} h` : `${days} d`;
+  return restHours > 0
+    ? `${days}\u00A0d ${restHours}\u00A0h`
+    : `${days}\u00A0d`;
 }

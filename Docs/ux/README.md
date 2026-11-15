@@ -595,16 +595,25 @@ work out, starts from a default for everything else, and folds what most people 
   reader's digits), never a figure joined to " ms" or written before "ms" in a template or JSX:
   every monitor's Response Time read "ms 411" on an Arabic or Persian page (#7224), and a trace's
   p95 "۱۲٫۴ ms" (#7418). `minimumFractionDigits` keeps the decimals toFixed wrote, `showsSign` an
-  offset's sign. A chart's value axis and the PDF export write it in English on purpose
-  (`formatMillisecondsInEnglish`). Enforced by
+  offset's sign. Its other units are the same helper's `unit` (`"ns"`, `"µs"`, `"s"`, `"min"`,
+  `"h"`), never `${x} s`, `${x}µs`, `${x}ns` or `${x} min` by hand: a Persian row read "1.25 s"
+  under "۴۲ میلی‌ثانیه" (#8348). A chart's value axis and the PDF export write it in English on
+  purpose (`formatMillisecondsInEnglish`). Enforced by
   [MillisecondsInReadersLanguageGuard](../../packages/Common/Tests/UI/MillisecondsInReadersLanguageGuard.test.ts).
 - **A number keeps its unit on its line.** English writes "Uptime ({{hours}}h)", German
   "Verfügbarkeit ({{hours}} Std.)", and on a phone the network site hero's title broke as
   "Verfügbarkeit (24" over "Std.)" (#8043). Wherever the English writes a number beside a unit's
   symbol ("{{minutes}} min", "{{percent}}%", "24h"), the space a translation puts after that number
-  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`). Write
-  the unit as its symbol after the number in the English, so the rule finds it. Enforced by
-  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts).
+  is drawn as a no-break space (`withNumbersKeptWithUnits` in `Common/Types/NoBreakSpaces`), and so
+  is the space English itself writes there ("Every 5 min", #8302). A unit a language writes in two
+  words, Arabic's "ملي ث", is held together after its number too (#8304). Write the unit as its
+  symbol after the number in the English, so the rule finds it. Code that joins a figure and a unit
+  itself joins them with a no-break space (`` `${size}\u00A0MB` ``, #8303), or goes through a key
+  as `formatMilliseconds` does; text that is no page's - a prompt, a Markdown export - keeps its
+  plain space, listed with its reason. Enforced by
+  [NumbersKeepTheirUnitsGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsGuard.test.ts)
+  and
+  [NumbersKeepTheirUnitsInCodeGuard](../../packages/Common/Tests/App/NumbersKeepTheirUnitsInCodeGuard.test.ts).
 - **A probe's message on a monitor's summary reads in the reader's language.** The probe stores why
   a check failed in English, and the summaries drew it as it came: "Request was tried 3 times and
   it timed out." stayed English on every page, and on an Arabic or Persian page an English message

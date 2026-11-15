@@ -872,14 +872,14 @@ export function formatTraceDuration(ms: number): string {
   }
 
   if (ms < 1000) {
-    return `${Math.round(ms)} ms`;
+    return `${Math.round(ms)}\u00A0ms`;
   }
 
   const seconds: number = ms / 1000;
 
   return seconds >= 10
-    ? `${Math.round(seconds)} s`
-    : `${Math.round(seconds * 10) / 10} s`;
+    ? `${Math.round(seconds)}\u00A0s`
+    : `${Math.round(seconds * 10) / 10}\u00A0s`;
 }
 
 function formatCount(count: number): string {

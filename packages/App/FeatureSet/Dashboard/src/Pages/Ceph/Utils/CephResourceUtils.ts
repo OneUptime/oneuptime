@@ -68,7 +68,7 @@ export function formatBytes(bytes: number | null | undefined): string {
     return "—";
   }
   if (bytes < 1024) {
-    return `${Math.round(bytes)} B`;
+    return `${Math.round(bytes)}\u00A0B`;
   }
   const units: Array<string> = ["KiB", "MiB", "GiB", "TiB", "PiB"];
   let value: number = bytes / 1024;
