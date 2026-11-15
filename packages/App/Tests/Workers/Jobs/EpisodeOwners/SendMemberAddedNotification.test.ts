@@ -17,6 +17,7 @@ import Color from "Common/Types/Color";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import EmailColorUtil from "Common/Utils/Email/EmailColorUtil";
+import { useInMemoryOwnerNotificationDeliveries } from "Common/Tests/Helpers/InMemoryOwnerNotificationDeliveries";
 import "../../../../FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
 
@@ -255,6 +256,11 @@ describe.each(cases)(
   (entry: EpisodeCase) => {
     beforeEach(() => {
       jest.clearAllMocks();
+      /*
+       * Whom the job tells is written down before it takes the batch, and
+       * each owner told through it (OwnerNotificationDeliveries, #8509).
+       */
+      useInMemoryOwnerNotificationDeliveries();
       entry.memberService.findAllBy.mockResolvedValue([
         {
           id: new ObjectID("member-1"),

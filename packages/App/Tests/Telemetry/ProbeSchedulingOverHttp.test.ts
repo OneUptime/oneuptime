@@ -57,6 +57,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import http from "http";
 import { AddressInfo } from "net";
 
@@ -166,7 +167,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/Monitor", () => {
   };
 });
 
-type AnyMock = jest.Mock<(...args: Array<any>) => any>;
+type AnyMock = Mock<(...args: Array<any>) => any>;
 
 const cache: { getString: AnyMock; setString: AnyMock } =
   GlobalCache as unknown as { getString: AnyMock; setString: AnyMock };

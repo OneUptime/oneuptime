@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 import SecurityEventAttributeUtil from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeUtil";
 import API from "../../../UI/Utils/API/API";
@@ -39,24 +40,22 @@ type PostArgs = {
 
 type MockPostFunction = (
   response: HTTPResponse<JSONObject> | HTTPErrorResponse,
-) => jest.SpiedFunction<typeof API.post>;
+) => SpyInstance<typeof API.post>;
 
 const mockPost: MockPostFunction = (
   response: HTTPResponse<JSONObject> | HTTPErrorResponse,
-): jest.SpiedFunction<typeof API.post> => {
+): SpyInstance<typeof API.post> => {
   return jest
     .spyOn(API, "post")
-    .mockResolvedValue(response as never) as unknown as jest.SpiedFunction<
+    .mockResolvedValue(response as never) as unknown as SpyInstance<
     typeof API.post
   >;
 };
 
-type FirstPostArgsFunction = (
-  spy: jest.SpiedFunction<typeof API.post>,
-) => PostArgs;
+type FirstPostArgsFunction = (spy: SpyInstance<typeof API.post>) => PostArgs;
 
 const firstPostArgs: FirstPostArgsFunction = (
-  spy: jest.SpiedFunction<typeof API.post>,
+  spy: SpyInstance<typeof API.post>,
 ): PostArgs => {
   return (spy.mock.calls[0] as Array<unknown>)[0] as PostArgs;
 };
@@ -79,9 +78,7 @@ describe("SecurityEventAttributeUtil.getAttributeKeys", () => {
   });
 
   test("posts to the security events attribute route", async () => {
-    const spy: jest.SpiedFunction<typeof API.post> = mockPost(
-      ok({ attributes: [] }),
-    );
+    const spy: SpyInstance<typeof API.post> = mockPost(ok({ attributes: [] }));
 
     await SecurityEventAttributeUtil.getAttributeKeys();
 
@@ -91,9 +88,7 @@ describe("SecurityEventAttributeUtil.getAttributeKeys", () => {
   });
 
   test("carries the tenant headers the route reads the project from", async () => {
-    const spy: jest.SpiedFunction<typeof API.post> = mockPost(
-      ok({ attributes: [] }),
-    );
+    const spy: SpyInstance<typeof API.post> = mockPost(ok({ attributes: [] }));
 
     await SecurityEventAttributeUtil.getAttributeKeys();
 

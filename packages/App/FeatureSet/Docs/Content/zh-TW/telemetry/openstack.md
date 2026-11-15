@@ -1530,6 +1530,8 @@ openstack server list --name '^oneuptime-check-'
 openstack volume list --name 'oneuptime-check-'
 ```
 
+封存雲端不會關閉其中任何一項。已封存的雲端只是不會顯示在清單中：它仍會被收集，其 API 檢查和生命週期檢查也會繼續執行。要停止某項檢查，請將其關閉。
+
 ## AI 代理程式
 
 代理程式的 `docker-compose.yml` 也會執行 **OpenStack AI 代理程式**，`oneuptime-openstack-ai-agent`（映像檔 `oneuptime/resource-ai-agent:release`）。當 OneUptime AI 調查這個雲端上的事件或警示時，它會透過它執行唯讀的 `openstack` 命令 —— `openstack compute service list --host compute-01`、`openstack server list --all-projects --limit 50 --host compute-01`、`openstack server event list ID`、`openstack network agent list`、`openstack volume service list` —— 並引用它執行過的內容。代理程式中沒有 `openstack` 執行檔，也沒有 shell：每個命令都會變成對能回答它的服務的一次 `GET`，使用代理程式自己的憑證。代理程式會以收集器所回報的同一個 `OPENSTACK_CLOUD_NAME` 註冊，所以它服務的就是這個雲端。
