@@ -5,7 +5,11 @@ import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
 } from "Common/Types/ReadingDirection";
-import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import {
+  boxesInOneFrame,
+  FrameBox,
+  lineBoxesInOneFrame,
+} from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import {
   dashboardWord,
@@ -3581,32 +3585,67 @@ test.describe("a cloud account and a cloud resource, in German and in Persian", 
        * right on a Persian page - and the reader's follow them, further
        * along the same line or on the next; both are seen, within the two
        * lines the list gives what was said about a change.
+       *
+       * Each part is read line by line: OneUptime's Persian words, "علت آن
+       * Azure بود.", start on Azure's line and wrap onto the next, so their
+       * one bounding box spans both lines, and was read as drawn over
+       * Azure's sentence, which nothing is (#8690).
        */
-      const [lineBox, writtenBox, wordedBox]: Array<FrameBox> =
-        await boxesInOneFrame([caused, written, worded]);
-      if (reader.code === "fa") {
+      const [[lineBox], writtenLines, wordedLines]: Array<Array<FrameBox>> =
+        await lineBoxesInOneFrame([caused, written, worded]);
+      const rightToLeft: boolean = reader.code === "fa";
+      // Where a box starts and ends, in the reader's direction.
+      const startOf: (box: FrameBox) => number = (box: FrameBox): number => {
+        return rightToLeft ? box.x + box.width : box.x;
+      };
+      const endOf: (box: FrameBox) => number = (box: FrameBox): number => {
+        return rightToLeft ? box.x : box.x + box.width;
+      };
+      // How far `to` is from `from`, along the line the reader's way.
+      const along: (from: number, to: number) => number = (
+        from: number,
+        to: number,
+      ): number => {
+        return rightToLeft ? from - to : to - from;
+      };
+      const lastWritten: FrameBox = writtenLines[writtenLines.length - 1]!;
+      const lastWorded: FrameBox = wordedLines[wordedLines.length - 1]!;
+
+      // Every line of Azure's words starts at the reader's start.
+      for (const [index, line] of writtenLines.entries()) {
         expect(
-          Math.abs(
-            lineBox!.x + lineBox!.width - (writtenBox!.x + writtenBox!.width),
-          ),
+          Math.abs(startOf(lineBox!) - startOf(line)),
+          `Azure's words, line ${index + 1}, start the line`,
         ).toBeLessThan(1.5);
-      } else {
-        expect(Math.abs(lineBox!.x - writtenBox!.x)).toBeLessThan(1.5);
       }
-      if (Math.abs(writtenBox!.y - wordedBox!.y) < 2) {
-        if (reader.code === "fa") {
-          expect(writtenBox!.x).toBeGreaterThanOrEqual(
-            wordedBox!.x + wordedBox!.width,
-          );
-        } else {
-          expect(wordedBox!.x).toBeGreaterThanOrEqual(
-            writtenBox!.x + writtenBox!.width,
-          );
-        }
+      // OneUptime's words follow, after Azure's on their last line ...
+      if (Math.abs(lastWritten.y - wordedLines[0]!.y) < 2) {
+        expect(
+          along(endOf(lastWritten), startOf(wordedLines[0]!)),
+          "OneUptime's words after Azure's, on their line",
+        ).toBeGreaterThanOrEqual(0);
       } else {
-        expect(wordedBox!.y).toBeGreaterThan(writtenBox!.y);
+        // ... or at the start of the next.
+        expect(wordedLines[0]!.y).toBeGreaterThan(
+          lastWritten.y + lastWritten.height / 2,
+        );
+        expect(
+          Math.abs(startOf(lineBox!) - startOf(wordedLines[0]!)),
+          "OneUptime's words start the line after Azure's",
+        ).toBeLessThan(1.5);
       }
-      expect(wordedBox!.y + wordedBox!.height).toBeLessThanOrEqual(
+      // A line they wrap onto is under the one before, from the reader's start.
+      for (let index: number = 1; index < wordedLines.length; index++) {
+        const above: FrameBox = wordedLines[index - 1]!;
+        const line: FrameBox = wordedLines[index]!;
+        // Under it: an inline box can reach a pixel into the next line's.
+        expect(line.y).toBeGreaterThan(above.y + above.height / 2);
+        expect(
+          Math.abs(startOf(lineBox!) - startOf(line)),
+          `OneUptime's words, line ${index + 1}, start the line`,
+        ).toBeLessThan(1.5);
+      }
+      expect(lastWorded.y + lastWorded.height).toBeLessThanOrEqual(
         lineBox!.y + lineBox!.height + 0.5,
       );
       await expectNoSidewaysScroll(page, { tolerance: 1 });
