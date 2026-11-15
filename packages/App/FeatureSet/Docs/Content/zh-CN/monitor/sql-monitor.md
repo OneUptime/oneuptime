@@ -283,5 +283,5 @@ OneUptime 会在把配置交给探测器之前，在服务器端解析密钥。O
 - [数据库健康监控](/docs/monitor/database-health-monitor): 无需编写 SQL 即可关注连接、锁和复制。
 - [监控密钥](/docs/monitor/monitor-secrets): 让数据库密码保持加密。
 - [JavaScript 表达式](/docs/monitor/javascript-expression): 编写组合多个值的条件。
-- [自定义探针](/docs/probe/custom-probe): 从你的网络内部运行检查。
+- [自定义探测器](/docs/probe/custom-probe): 从你的网络内部运行检查。
 :::

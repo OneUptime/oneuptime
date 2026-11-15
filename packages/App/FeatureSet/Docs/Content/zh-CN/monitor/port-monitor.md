@@ -181,5 +181,5 @@ sequenceDiagram
 - [Ping 监控](/docs/monitor/ping-monitor): 检查主机本身是否可达。
 - [SSL 证书监控](/docs/monitor/ssl-certificate-monitor): 检查 TLS 端口上的证书。
 - [数据库健康监控](/docs/monitor/database-health-monitor): 不止于开放的端口，监视数据库的健康状况。
-- [自定义探针](/docs/probe/custom-probe): 检查您自己网络中的端口。
+- [自定义探测器](/docs/probe/custom-probe): 检查您自己网络中的端口。
 :::
