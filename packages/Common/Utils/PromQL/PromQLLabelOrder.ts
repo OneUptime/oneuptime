@@ -300,3 +300,20 @@ export const sortPromQLByLabels: <T extends { labels: PromQLLabels }>(
       return entry.item;
     });
 };
+
+/*
+ * Items in the order Prometheus answers series in: by their whole label
+ * sets, labels.Compare. A range query's matrix is sorted so (sort.Sort(mat)
+ * in promql/engine.go, Matrix.Less), and so is what a TSDB block reads, the
+ * order an instant query's vector and /api/v1/series come in. So
+ * {i="x"} comes before {i="xy"}, and {a="1"} before {ab="1"}: a name or a
+ * value comes before any it is the start of. Each item's names are put in
+ * order once, not once per comparison.
+ */
+export const sortPromQLLabelSets: <T extends { labels: PromQLLabels }>(
+  items: ReadonlyArray<T>,
+) => Array<T> = <T extends { labels: PromQLLabels }>(
+  items: ReadonlyArray<T>,
+): Array<T> => {
+  return sortPromQLByLabels(items, [], false);
+};

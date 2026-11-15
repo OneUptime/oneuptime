@@ -4,6 +4,7 @@ import {
   comparePromQLText,
   promQLNaturalLess,
   sortPromQLByLabels,
+  sortPromQLLabelSets,
 } from "../../../Utils/PromQL/PromQLLabelOrder";
 import {
   PromQLLabels,
@@ -523,5 +524,135 @@ describe("sortPromQLByLabels", () => {
   test("an empty list sorts to an empty list", () => {
     expect(sortPromQLByLabels([], ["g"], false)).toEqual([]);
     expect(sortPromQLByLabels([], ["g"], true)).toEqual([]);
+  });
+});
+
+/*
+ * The order a range query's series come in (issue #8177): Prometheus sorts
+ * a matrix with labels.Compare (sort.Sort(mat), promql/engine.go), which
+ * reads two label sets label by label in name order and, where one runs
+ * out with every label so far the same, puts the shorter first. Sorting the
+ * label sets' joined text put "xy" before "x" and "ab" before "a": the
+ * separator after a value or a name sorts after every other character.
+ */
+describe("sortPromQLLabelSets, labels.Compare", () => {
+  const order: (sets: ReadonlyArray<PromQLLabels>) => Array<string> = (
+    sets: ReadonlyArray<PromQLLabels>,
+  ): Array<string> => {
+    return sortPromQLLabelSets(
+      sets.map((labels: PromQLLabels): { labels: PromQLLabels } => {
+        return { labels };
+      }),
+    ).map((item: { labels: PromQLLabels }): string => {
+      return formatPromQLLabels(item.labels);
+    });
+  };
+
+  test("a value that is the start of another comes first (the issue's first pair)", () => {
+    expect(
+      order([
+        { __name__: "tie", g: "1", i: "xy" },
+        { __name__: "tie", g: "1", i: "x" },
+      ]),
+    ).toEqual(['tie{g="1", i="x"}', 'tie{g="1", i="xy"}']);
+  });
+
+  test("a name that is the start of another comes first (the issue's second pair)", () => {
+    expect(
+      order([
+        { __name__: "tie", ab: "1", g: "1" },
+        { __name__: "tie", a: "1", g: "1" },
+      ]),
+    ).toEqual(['tie{a="1", g="1"}', 'tie{ab="1", g="1"}']);
+  });
+
+  /*
+   * Prometheus 3.16.0's labels.Compare, asked to sort these fourteen label
+   * sets (labels.FromMap, then sort.SliceStable), answered this order.
+   */
+  const SETS: Array<PromQLLabels> = [
+    { __name__: "tie", g: "1", i: "x" },
+    { __name__: "tie", g: "1", i: "xy" },
+    { __name__: "tie", a: "1", g: "1" },
+    { __name__: "tie", ab: "1", g: "1" },
+    { __name__: "tie", g: "1", i: "x\u{1F600}" },
+    { __name__: "tie", g: "1", i: "x\u{FFFF}" },
+    { __name__: "tie", g: "1", i: "x~" },
+    { __name__: "tie", g: "1" },
+    { __name__: "tie", g: "1", i: "x", j: "1" },
+    { __name__: "ti", g: "1" },
+    { __name__: "tie2", g: "1" },
+    { g: "1" },
+    { __name__: "tie", A: "1" },
+    { __name__: "tie", _: "1" },
+  ];
+  const PROMETHEUS_ORDER: Array<number> = [
+    12, 13, 9, 2, 3, 7, 0, 8, 1, 6, 5, 4, 10, 11,
+  ];
+
+  test("sorts as Prometheus' labels.Compare sorts", () => {
+    expect(order(SETS)).toEqual(
+      PROMETHEUS_ORDER.map((place: number): string => {
+        return formatPromQLLabels(SETS[place]!);
+      }),
+    );
+  });
+
+  test("gives the same order whatever order the sets come in", () => {
+    const expected: Array<string> = order(SETS);
+
+    for (let seed: number = 1; seed <= 30; seed++) {
+      expect(order(shuffled(SETS, seededRandom(seed)))).toEqual(expected);
+    }
+  });
+
+  test("puts each set before the next, as comparePromQLLabelSets orders them", () => {
+    const sorted: Array<{ labels: PromQLLabels }> = sortPromQLLabelSets(
+      SETS.map((labels: PromQLLabels): { labels: PromQLLabels } => {
+        return { labels };
+      }),
+    );
+
+    for (let index: number = 1; index < sorted.length; index++) {
+      expect(
+        comparePromQLLabelSets(
+          sorted[index - 1]!.labels,
+          sorted[index]!.labels,
+        ),
+      ).toBe(-1);
+    }
+  });
+
+  test("puts a character beyond U+FFFF after U+FFFF, as Go's UTF-8 order does", () => {
+    // JavaScript's < puts "\u{1F600}", a surrogate pair, before "\u{FFFF}".
+    expect("x\u{1F600}" < "x\u{FFFF}").toBe(true);
+    expect(order([{ v: "x\u{1F600}" }, { v: "x\u{FFFF}" }])).toEqual([
+      '{v="x\u{FFFF}"}',
+      '{v="x\u{1F600}"}',
+    ]);
+  });
+
+  test("reads an empty value as no label at all", () => {
+    // {a="1", z=""} is {a="1"}, shorter than {a="1", b="x"}: it comes first.
+    expect(
+      order([
+        { a: "1", b: "x" },
+        { a: "1", z: "" },
+      ]),
+    ).toEqual(['{a="1", z=""}', '{a="1", b="x"}']);
+  });
+
+  test("keeps each item whole, leaves the list it was given alone, and sorts an empty one", () => {
+    const items: Array<{ labels: PromQLLabels; value: number }> = [
+      { labels: { i: "xy" }, value: 1 },
+      { labels: { i: "x" }, value: 2 },
+    ];
+    const sorted: Array<{ labels: PromQLLabels; value: number }> =
+      sortPromQLLabelSets(items);
+
+    expect(sorted[0]).toBe(items[1]);
+    expect(sorted[1]).toBe(items[0]);
+    expect(items[0]!.value).toBe(1);
+    expect(sortPromQLLabelSets([])).toEqual([]);
   });
 });
