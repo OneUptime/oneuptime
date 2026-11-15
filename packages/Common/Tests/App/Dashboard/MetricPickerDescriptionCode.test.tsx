@@ -15,6 +15,7 @@ import KubernetesMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Com
 import OpenStackMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMetricPicker";
 import VMwareMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMetricPicker";
 import { LEFT_TO_RIGHT_ISOLATE } from "../../../Types/CodeInSentence";
+import { NO_BREAK_SPACE } from "../../../Types/NoBreakSpaces";
 import { getAllKubernetesMetrics } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import {
   getAllOpenStackMetrics,
@@ -453,7 +454,14 @@ describe.each(PICKERS)("the $name metric picker", (picker: PickerCase) => {
       "draws %s's code as code, each piece read from the left",
       (_id: string, metric: CatalogMetric) => {
         const line: HTMLElement = drawIn(language, picker.draw(metric.id));
-        const shown: string = withoutIsolates(line.textContent || "");
+        /*
+         * A worded description is drawn with a no-break space between a
+         * number and its unit ("20 s", Types/NoBreakSpaces): read with
+         * plain spaces, as the locale file writes it.
+         */
+        const shown: string = withoutIsolates(line.textContent || "")
+          .split(NO_BREAK_SPACE)
+          .join(" ");
         /*
          * The description in the page's language, its code in its words'
          * order, once the language words it (#8014); the English until then.

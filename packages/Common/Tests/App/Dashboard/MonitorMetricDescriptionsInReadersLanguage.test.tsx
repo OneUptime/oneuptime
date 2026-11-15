@@ -45,6 +45,10 @@ import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalo
 import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
+import {
+  NARROW_NO_BREAK_SPACE,
+  NO_BREAK_SPACE,
+} from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import { createTranslator, Translator } from "../../../Types/Translator";
@@ -407,8 +411,18 @@ const lineOf: (container: HTMLElement, metricName: string) => HTMLElement = (
   return (name as HTMLElement).closest("p") as HTMLElement;
 };
 
+/*
+ * What a line shows, without the isolates' marks, and with plain spaces
+ * where a worded text is drawn with no-break ones (between a number and
+ * its unit, and around French punctuation: Types/NoBreakSpaces), as the
+ * locale file writes it.
+ */
 const shownIn: (element: Element) => string = (element: Element): string => {
-  return withoutIsolates(element.textContent || "");
+  return withoutIsolates(element.textContent || "")
+    .split(NO_BREAK_SPACE)
+    .join(" ")
+    .split(NARROW_NO_BREAK_SPACE)
+    .join(" ");
 };
 
 // What a language's line says, filled as the line fills it.
