@@ -96,7 +96,6 @@ import {
   MESSAGE_QUEUE_INSTRUMENTING_DOCS_ANCHOR,
   MessageQueueLivenessStatus,
   formatMessageQueueCount,
-  formatMessageQueueDurationMs,
   formatMessageQueueDurationMsInLanguage,
   formatMessageQueueErrorRate,
   getMessageQueueDocsRoute,
@@ -761,8 +760,11 @@ const MessageQueueOverview: FunctionComponent<
               },
               m.total,
               {
-                rate: formatMessageQueueErrorRate(m.errorRatePercent),
-                count: formatMessageQueueCount(m.total),
+                rate: formatMessageQueueErrorRate(
+                  m.errorRatePercent,
+                  translator,
+                ),
+                count: formatMessageQueueCount(m.total, translator),
               },
             )
           : undefined,
@@ -851,7 +853,7 @@ const MessageQueueOverview: FunctionComponent<
         syncId={`message-queue-${modelId.toString()}`}
         yLegend="ms"
         yFormatter={(value: number): string => {
-          return formatMessageQueueDurationMs(value);
+          return formatMessageQueueDurationMsInLanguage(value, translator);
         }}
         loading={telemetryLoading && m.p95ProcessingSeries.length === 0}
         emptyMessage={
