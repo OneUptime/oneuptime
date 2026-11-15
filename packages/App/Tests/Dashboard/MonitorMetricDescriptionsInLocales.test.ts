@@ -92,6 +92,7 @@ const WORDED_LANGUAGES: ReadonlyArray<string> = [
   "nl",
   "da",
   "no",
+  "sv",
 ];
 
 const LANGUAGES: ReadonlyArray<string> = [...DASHBOARD_LANGUAGES];
