@@ -1085,7 +1085,7 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep the Admin Dashboard's labels it has no wording for out of its locale, and the ones it has in it", () => {
+  it("keep every Admin Dashboard label the identity pages name in its locale, so a translation names it in its language", () => {
     const adminEnglish: Record<string, unknown> = appLocale(
       "AdminDashboard",
       "en",
@@ -1119,15 +1119,11 @@ describe("the lists this test keeps", () => {
       "Client Secret",
       "Discovery URL",
       "Scopes",
-    ]) {
-      expect({ label, inLocale: adminEnglish[label] }).toEqual({
-        label,
-        inLocale: label,
-      });
-    }
-
-    // Drawn in English there, in every language.
-    for (const label of [
+      /*
+       * The provider pages' own labels, drawn in English in every language
+       * until the Admin Dashboard's own pages read in every language
+       * (9d4230468d5).
+       */
       "Identity Provider URLs",
       "Test this SSO provider",
       "Attached Projects",
@@ -1135,7 +1131,7 @@ describe("the lists this test keeps", () => {
     ]) {
       expect({ label, inLocale: adminEnglish[label] }).toEqual({
         label,
-        inLocale: undefined,
+        inLocale: label,
       });
     }
   });
@@ -1498,7 +1494,11 @@ describe("the helpers, on these pages' shapes", () => {
       "SSO für die Anmeldung erzwingen",
     );
     expect(adminLabel("de", "Settings")).toBe("Einstellungen");
-    expect(adminLabel("ja", "Attached Projects")).toBe("Attached Projects");
+    expect(adminLabel("ja", "Attached Projects")).toBe("関連付けたプロジェクト");
+    // A label the Admin Dashboard's locale lacks is read in English.
+    expect(adminLabel("ja", "A label no locale words")).toBe(
+      "A label no locale words",
+    );
   });
 
   it("read a dialog's field name without its colon, in any script", () => {
