@@ -21,6 +21,8 @@ import {
   ToolExecutionResult,
 } from "./ToolTypes";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence, countFigure } from "./ReadTableWords";
 /*
  * THE DATA OBSERVABILITY TOOLS: how OneUptime AI answers "is this table
  * fresh?" and "what is it built from?" - in Ask AI, in an investigation, and
@@ -134,9 +136,13 @@ export const GetDataTableFreshnessTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: answers.length,
-      citationLabel: only
-        ? `Data table ${only.table}`
-        : `Data tables called "${reference}" - ${answers.length} found`,
+      // In the reader's language (issue #8311).
+      ...(only
+        ? citationSentence(AI_TOOL_CITATIONS.dataTable, { table: only.table })
+        : citationSentence(AI_TOOL_CITATIONS.dataTables, {
+            reference,
+            count: countFigure(answers.length),
+          })),
       ...(only
         ? {
             citationTarget: {
@@ -209,9 +215,12 @@ export const GetDataTableLineageTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: answers.length,
-      citationLabel: only
-        ? `Lineage of ${only.name}`
-        : `Lineage of tables called "${reference}" - ${answers.length} found`,
+      ...(only
+        ? citationSentence(AI_TOOL_CITATIONS.lineageOf, { name: only.name })
+        : citationSentence(AI_TOOL_CITATIONS.lineageOfTables, {
+            reference,
+            count: countFigure(answers.length),
+          })),
       ...(only?.dataAssetId
         ? {
             citationTarget: {

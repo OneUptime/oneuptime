@@ -71,6 +71,8 @@ import {
   withStartWrittenOut,
 } from "./NewRecords";
 
+import { AI_TOOL_CITATIONS } from "../../../../Types/AI/AIReadTableWords";
+import { citationSentence } from "./ReadTableWords";
 /*
  * Acknowledging or resolving an alert changes its state: the permission to
  * create its state timeline row, as the dashboard's state panel asks.
@@ -552,7 +554,10 @@ export const CreateAlertTool: ObservabilityTool = {
     return {
       dataForLlm: `${lines.join("\n")}\n${serialized.text}`,
       rowCount: 1,
-      citationLabel: `Created alert ${alertNumber}`,
+      // In the reader's language (issue #8311).
+      ...citationSentence(AI_TOOL_CITATIONS.createdAlert, {
+        alert: alertNumber,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertIdString },
@@ -654,7 +659,11 @@ async function changeAlertStateTool(data: {
   return {
     dataForLlm: `Alert #${alert.alertNumber} ("${alert.title}") is now ${newStateName}.\n${serialized.text}`,
     rowCount: 1,
-    citationLabel: `${newStateName} alert #${alert.alertNumber}`,
+    // The state as the project named it: data.
+    ...citationSentence(AI_TOOL_CITATIONS.alertInState, {
+      state: newStateName,
+      alert: `#${alert.alertNumber}`,
+    }),
     citationTarget: {
       type: AIChatCitationTargetType.AlertView,
       params: { alertId: alertIdString },
@@ -966,7 +975,9 @@ export const AddAlertAffectedResourcesTool: ObservabilityTool = {
     return {
       dataForLlm: `${lines.join("\n")}\n${serialized.text}`,
       rowCount: lists.added.length,
-      citationLabel: `Linked alert #${alert.alertNumber}`,
+      ...citationSentence(AI_TOOL_CITATIONS.linkedAlert, {
+        alert: `#${alert.alertNumber}`,
+      }),
       citationTarget: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertIdString },

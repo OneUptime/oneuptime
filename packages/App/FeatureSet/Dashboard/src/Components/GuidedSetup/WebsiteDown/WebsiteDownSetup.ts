@@ -153,6 +153,7 @@ export const WEBSITE_DOWN_COPY: {
   whoExistingHelpNotOwner: string;
   policyMadeElsewhere: string;
   policyDeleted: string;
+  policyArchived: string;
   whoOwnerOnlyHelp: string;
   whoOwnerOnlyHelpNotOwner: string;
   whoOnCallRulesLink: string;
@@ -265,6 +266,15 @@ export const WEBSITE_DOWN_COPY: {
    */
   policyDeleted: translationKey(
     "The on-call policy this setup made was deleted, so choose who is told again.",
+  ),
+  /*
+   * Said when the on-call policy this setup made was archived since - in
+   * another tab, or by a teammate - so "Who should be told?" opened again
+   * (#8432), and when the page opens on a run whose policy is archived. An
+   * archived policy is still there, but pages no one.
+   */
+  policyArchived: translationKey(
+    "The on-call policy this setup made was archived, so it pages no one. Choose who is told again.",
   ),
   /*
    * Creating an on-call policy, its escalation rule and its two rules is not
