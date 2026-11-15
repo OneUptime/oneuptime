@@ -14,6 +14,7 @@ import {
   cardTargets,
   comparableFence,
   diagramSkeleton,
+  escapeRegExp,
   inlineCode,
   listItemCount,
   navTitle,
@@ -27,6 +28,7 @@ import {
 } from "Common/Types/Monitor/CephAlertTemplates";
 import {
   DatabaseMetricDefinition,
+  DatabaseMetricGroup,
   getAllDatabaseMetrics,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import { describe, expect, it } from "@jest/globals";
@@ -48,8 +50,11 @@ import { describe, expect, it } from "@jest/globals";
  *     segment.
  *   - A bold name the Dashboard has no locale key for is drawn in English in
  *     every language - the Ceph form's Custom Metric tab, the criteria's
- *     no-data policies, the database metric picker's names - so the
- *     translations keep it exactly (SHOWN_IN_ENGLISH). If the Dashboard
+ *     no-data policies - so the translations keep it exactly
+ *     (SHOWN_IN_ENGLISH). The database metric picker's names were such names
+ *     until #8354 made them keys: the metric tables, and the prose that
+ *     names a metric, now name each as the language's Dashboard draws it,
+ *     bold where the English names it plain. If the Dashboard
  *     starts translating one, "names only bold text with no Dashboard label"
  *     fails and says which one to move: the criteria's filter types,
  *     conditions and aggregations did in 31eadaee92e, and are drawn.
@@ -87,30 +92,62 @@ const DATABASE_PAGE: string = "monitor/database-health-monitor";
 const CEPH_PAGE: string = "monitor/ceph-monitor";
 
 /*
- * The database metric picker lists the catalog's names
- * (DatabaseMetricCatalog's friendlyName) as they are, so the metric tables
- * keep them in English. These are the ones that happen to be Dashboard labels
- * elsewhere too (Deadlocks: a database server's Engine Metrics, from
- * DatabaseServerMetricCatalog); the rest are in SHOWN_IN_ENGLISH.
- */
-const METRIC_NAMES_THAT_ARE_LABELS: Array<string> = [
-  "Uptime",
-  "Connections",
-  "Queries",
-  "Database Size",
-  "Replication Lag",
-  "Deadlocks",
-];
-
-/*
  * Bold Dashboard labels the translations keep in English, on purpose, by
  * page. A permission's name is not bold: "Create Ingestion Key" is the
  * permission and the Ingestion Keys table's create button (#6817), and only
- * the button is drawn in each language.
+ * the button is drawn in each language. None now: the database metric
+ * names were here until the catalog's names became keys (#8354).
  */
-const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
-  [DATABASE_PAGE]: METRIC_NAMES_THAT_ARE_LABELS,
-};
+const KEPT_IN_ENGLISH: Record<string, Array<string>> = {};
+
+/*
+ * The lines of the English Database Health page that name a metric of the
+ * catalog plain, in running text, and the names: each translation names
+ * them in bold, as its Dashboard draws them, on the same line. The page's
+ * other plain "Connections" name the collection group (the Group column,
+ * the troubleshooting headings), which the summary's collection issues
+ * print as the group's English value, and stay as they are.
+ */
+const METRICS_NAMED_IN_PROSE: ReadonlyArray<{
+  line: number;
+  names: Array<string>;
+}> = [
+  { line: 155, names: ["Connections"] },
+  { line: 253, names: ["Metric Groups Failed"] },
+  { line: 312, names: ["Deadlocks"] },
+  { line: 412, names: ["Connections Used"] },
+  { line: 413, names: ["Transaction ID Used"] },
+  { line: 414, names: ["Blocked Sessions"] },
+  { line: 444, names: ["I/O Read Time", "I/O Write Time"] },
+  { line: 448, names: ["Metric Groups Failed"] },
+];
+
+// The collection groups' names, which the catalog's "Connections" shares.
+const COLLECTION_GROUP_NAMES: ReadonlyArray<string> = Object.values(
+  DatabaseMetricGroup,
+) as Array<string>;
+
+/*
+ * The catalog's names a text still writes in English, where the language's
+ * Dashboard words them; the collection groups' names left out. A name ends
+ * where a Latin letter or digit does not follow, so a particle written onto
+ * it ("TempDB Free Space는") cannot hide it.
+ */
+function englishMetricNamesIn(text: string, language: string): Array<string> {
+  return getAllDatabaseMetrics()
+    .map((metric: DatabaseMetricDefinition): string => {
+      return metric.friendlyName;
+    })
+    .filter((name: string): boolean => {
+      return (
+        drawnDashboardLabel(language, name) !== name &&
+        !COLLECTION_GROUP_NAMES.includes(name) &&
+        new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(name)}(?![A-Za-z0-9])`).test(
+          text,
+        )
+      );
+    });
+}
 
 /*
  * Bold words that are Dashboard labels by coincidence but are prose where the
@@ -274,19 +311,46 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("keep the database metric names as the catalog names them", () => {
+  it("have every database metric name a Dashboard label, bold in the English tables", () => {
     const catalogNames: Array<string> = getAllDatabaseMetrics().map(
       (metric: DatabaseMetricDefinition): string => {
         return metric.friendlyName;
       },
     );
 
-    for (const name of METRIC_NAMES_THAT_ARE_LABELS) {
-      expect(catalogNames).toContain(name);
+    // The metric picker, the summary and the charts look each one up (#8354).
+    for (const name of catalogNames) {
+      expect({ name, label: isDashboardLabel(name) }).toEqual({
+        name,
+        label: true,
+      });
     }
 
     // Every metric of the catalog is a bold name in the English tables.
     expect(metricNamesOnEnglishPage().sort()).toEqual([...catalogNames].sort());
+  });
+
+  it("find each metric the English page names in prose, plain, on its line", () => {
+    const lines: Array<string> = englishPage(DATABASE_PAGE).split("\n");
+    const catalogNames: Array<string> = getAllDatabaseMetrics().map(
+      (metric: DatabaseMetricDefinition): string => {
+        return metric.friendlyName;
+      },
+    );
+
+    for (const entry of METRICS_NAMED_IN_PROSE) {
+      const line: string = lines[entry.line - 1] as string;
+
+      for (const name of entry.names) {
+        expect({ line: entry.line, name, named: true }).toEqual({
+          line: entry.line,
+          name,
+          named:
+            catalogNames.includes(name) &&
+            line.replace(/\*\*[^*]+\*\*/g, " ").includes(name),
+        });
+      }
+    }
   });
 
   it("find every Ceph template's name in the English tables", () => {
@@ -465,15 +529,47 @@ describe.each(LANGUAGES)("%s", (language: string) => {
   });
 
   describe("the Database Health Monitor page", () => {
-    it("names every metric as the database metric picker does", () => {
+    it("names every metric as the database metric picker draws it", () => {
       const page: string = readPage(language, DATABASE_PAGE);
 
       for (const name of metricNamesOnEnglishPage()) {
-        expect({ name: name, kept: page.includes(`**${name}**`) }).toEqual({
-          name: name,
-          kept: true,
+        const drawn: string = drawnDashboardLabel(language, name);
+
+        expect({ name, drawn, named: page.includes(`**${drawn}**`) }).toEqual({
+          name,
+          drawn,
+          named: true,
         });
       }
+    });
+
+    it("names a metric in prose in bold, as its Dashboard draws it, on the English line's line", () => {
+      const lines: Array<string> = readPage(language, DATABASE_PAGE).split(
+        "\n",
+      );
+      const missing: Array<string> = [];
+
+      for (const entry of METRICS_NAMED_IN_PROSE) {
+        for (const name of entry.names) {
+          const drawn: string = drawnDashboardLabel(language, name);
+
+          if (!(lines[entry.line - 1] || "").includes(`**${drawn}**`)) {
+            missing.push(`line ${entry.line}: ${drawn}`);
+          }
+        }
+      }
+
+      expect(missing).toEqual([]);
+    });
+
+    it("names no metric in English where its Dashboard words the name", () => {
+      // Outside code, where a series' name is written as it is.
+      const text: string = prose(readPage(language, DATABASE_PAGE)).replace(
+        /`[^`\n]*`/g,
+        " ",
+      );
+
+      expect(englishMetricNamesIn(text, language)).toEqual([]);
     });
 
     it("quotes SQL Server's own error in English, as a heading the summary's search lands on", () => {
@@ -560,5 +656,30 @@ describe("the helpers, on these pages' shapes", () => {
 
     expect(diagramSkeleton(translated)).toBe(diagramSkeleton(english));
     expect(diagramSkeleton(rewired)).not.toBe(diagramSkeleton(english));
+  });
+
+  it("find a metric named in English, a particle written onto it, but not a group's name or another word", () => {
+    expect(
+      englishMetricNamesIn(
+        "탄력적 풀에서 TempDB Free Space는 풀의 값입니다.",
+        "ko",
+      ),
+    ).toEqual(["TempDB Free Space"]);
+    expect(
+      englishMetricNamesIn(
+        '탄력적 풀에서 "TempDB 여유 공간"은 풀의 값입니다.',
+        "ko",
+      ),
+    ).toEqual([]);
+    // Connections is a collection group's name too; Deadlocks reads so in German.
+    expect(
+      englishMetricNamesIn(
+        "die Gruppen Connections, Activity und Locks; **Deadlocks**",
+        "de",
+      ),
+    ).toEqual([]);
+    expect(englishMetricNamesIn("SlowQueries, Slow Queriesx", "de")).toEqual(
+      [],
+    );
   });
 });

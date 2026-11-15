@@ -12,6 +12,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import dns from "dns";
 
 /*
@@ -33,7 +34,7 @@ const ALLOWLIST_ENV: string = "PRIVATE_NETWORK_WEBHOOK_ALLOWLIST";
 const PROJECT_ID: ObjectID = ObjectID.generate();
 
 describe("WebhookService — private network exception", () => {
-  let postSpy: jest.SpiedFunction<typeof API.post>;
+  let postSpy: SpyInstance<typeof API.post>;
   let originalAllow: string | undefined;
   let originalAllowlist: string | undefined;
 
@@ -51,7 +52,7 @@ describe("WebhookService — private network exception", () => {
       .spyOn(API, "post")
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(200, { ok: true }, {}) as never,
-      ) as unknown as jest.SpiedFunction<typeof API.post>;
+      ) as unknown as SpyInstance<typeof API.post>;
 
     // The delivery log is a database write and is not what these tests are about.
     jest

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 54234,
-    "untranslated": 8690
+    "keys": 54285,
+    "untranslated": 8638
   },
   "sameAsEnglish": [
     " is",
@@ -134,6 +134,7 @@
     "Datastores",
     "Deadline: {{date}}",
     "Deadlocks",
+    "Debug",
     "DeploymentConfigs",
     "Desktop",
     "Details",
