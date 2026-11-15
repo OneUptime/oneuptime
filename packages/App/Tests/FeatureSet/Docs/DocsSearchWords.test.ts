@@ -1,4 +1,5 @@
 import {
+  DOCS_SEARCH_ASKING_WORDS,
   DOCS_SEARCH_COMPOUNDING_LANGUAGES,
   DOCS_SEARCH_QUESTION_WORDS,
   DOCS_SEARCH_SYNONYMS,
@@ -9,13 +10,16 @@ import {
   DocsWordEndings,
   ENGLISH_ENDINGS,
   foldDocsSearchWord,
+  getDocsSearchAskingWords,
   getDocsSearchQuestionPhrases,
   getDocsSearchQuestionWords,
   getDocsSearchSynonyms,
   getDocsWordEndings,
   getTypoAllowance,
+  isDocsSearchAskingWord,
   isWithinEditDistance,
 } from "../../../FeatureSet/Docs/Utils/DocsSearchWords";
+import { tokenizeForDocs } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { describe, expect, it } from "@jest/globals";
 
@@ -410,5 +414,132 @@ describe("the question words", () => {
         }),
       ).toEqual([]);
     }
+  });
+});
+
+/*
+ * The words that make what was typed a question, not keywords (#8334):
+ * the docs search box lets a question's results miss a word or two (its
+ * verb, mostly), never keywords'. Each is a question word of its
+ * language, so it is never looked for itself.
+ */
+describe("the asking words", () => {
+  it("are listed for every docs language, English too", () => {
+    expect(Object.keys(DOCS_SEARCH_ASKING_WORDS).sort()).toEqual(
+      [...SUPPORTED_DOCS_LANGUAGE_CODES].sort(),
+    );
+
+    for (const words of Object.values(DOCS_SEARCH_ASKING_WORDS)) {
+      expect(words.length).toBeGreaterThan(0);
+      expect(new Set<string>(words).size).toBe(words.length);
+    }
+  });
+
+  it("are each a question word of their language, so a question never looks for one", () => {
+    for (const [language, words] of Object.entries(DOCS_SEARCH_ASKING_WORDS)) {
+      const questionWords: ReadonlySet<string> =
+        getDocsSearchQuestionWords(language);
+
+      expect({
+        language,
+        notLeftOut: words.filter((word: string): boolean => {
+          // English's are left out by the reader's own list (QUESTION_WORDS).
+          return language === "en"
+            ? tokenizeForDocs(word, "en").length > 0
+            : !questionWords.has(foldDocsSearchWord(word));
+        }),
+      }).toEqual({ language, notLeftOut: [] });
+    }
+  });
+
+  it.each([
+    ["en", ["how", "what", "my"]],
+    ["de", ["wie", "ich", "meine"]],
+    ["fr", ["comment", "je", "mon"]],
+    ["es", ["como", "mi"]],
+    ["it", ["come", "mio"]],
+    ["pt", ["como", "meu"]],
+    ["nl", ["hoe", "mijn"]],
+    ["da", ["hvordan", "min"]],
+    ["no", ["hvordan", "mitt"]],
+    ["sv", ["hur", "min"]],
+    ["ru", ["как", "мой", "свой"]],
+    ["ja", ["どうすればいいですか", "どうやって"]],
+    ["ko", ["어떻게", "내", "하나요"]],
+    ["zh-CN", ["如何", "怎么"]],
+    ["zh-TW", ["如何", "怎麼"]],
+    ["hi", ["कैसे", "मैं"]],
+    ["fa", ["چطور", "چگونه"]],
+  ] as Array<[string, Array<string>]>)(
+    "%s: hold its 'how' and its asker's 'my': %p",
+    (language: string, words: Array<string>) => {
+      const asking: ReadonlySet<string> = getDocsSearchAskingWords(language);
+
+      expect(
+        words.filter((word: string): boolean => {
+          return !asking.has(word);
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it.each([
+    ["en", ["the", "a", "for", "to", "i", "and"]],
+    ["de", ["der", "die", "das", "für", "und"]],
+    ["fr", ["le", "la", "de", "pour"]],
+    ["es", ["el", "la", "de", "para", "que", "qué"]],
+    ["it", ["il", "di", "per", "che"]],
+    ["pt", ["o", "de", "para", "que"]],
+    ["ru", ["в", "на", "и", "что", "который"]],
+    ["zh-CN", ["一个"]],
+  ] as Array<[string, Array<string>]>)(
+    "%s: never hold what keywords are written with: %p",
+    (language: string, words: Array<string>) => {
+      const asking: ReadonlySet<string> = getDocsSearchAskingWords(language);
+
+      expect(
+        words.filter((word: string): boolean => {
+          return asking.has(foldDocsSearchWord(word));
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  it("never hold a word a page is named for", () => {
+    for (const language of Object.keys(DOCS_SEARCH_ASKING_WORDS)) {
+      const asking: ReadonlySet<string> = getDocsSearchAskingWords(language);
+
+      for (const word of ["website", "monitor", "site", "сайт", "监控"]) {
+        expect({ language, word, asking: asking.has(word) }).toEqual({
+          language,
+          word,
+          asking: false,
+        });
+      }
+    }
+  });
+
+  it("are read in what was typed: a whole word, or wherever it stands where words are not spaced", () => {
+    expect(isDocsSearchAskingWord("Wie", "de")).toBe(true);
+    expect(isDocsSearchAskingWord("Cómo", "es")).toBe(true);
+    // Typed without its accent, as many do.
+    expect(isDocsSearchAskingWord("como", "es")).toBe(true);
+    expect(isDocsSearchAskingWord("如何监控我的网站", "zh-CN")).toBe(true);
+    expect(
+      isDocsSearchAskingWord(
+        "ウェブサイトを監視するにはどうすればいいですか",
+        "ja",
+      ),
+    ).toBe(true);
+    // Part of a spaced word is not one: "comment" is, "commentaire" is not.
+    expect(isDocsSearchAskingWord("comment", "fr")).toBe(true);
+    expect(isDocsSearchAskingWord("commentaire", "fr")).toBe(false);
+    expect(isDocsSearchAskingWord("监控网站", "zh-CN")).toBe(false);
+    // Only the index's language's: German "wie" in English is a word.
+    expect(isDocsSearchAskingWord("wie", "en")).toBe(false);
+    expect(isDocsSearchAskingWord("how", "de")).toBe(false);
+    // A language the docs do not have, or a key every object has, has none.
+    expect(getDocsSearchAskingWords("xx").size).toBe(0);
+    expect(getDocsSearchAskingWords("constructor").size).toBe(0);
   });
 });
