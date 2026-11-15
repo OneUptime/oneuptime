@@ -6,6 +6,9 @@ import ProjectUserPreferenceService from "./ProjectUserPreferenceService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import ProjectUsageCache, {
+  ProjectUsage,
+} from "../Utils/ProjectProducts/ProjectUsageCache";
 import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import AIInsight from "../../Models/DatabaseModels/AIInsight";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -87,7 +90,6 @@ import {
   getProductOffMessage,
 } from "../../Types/Product/ServerProducts";
 import ProjectGoal from "../../Types/WelcomeChecklist/ProjectGoal";
-import OldestKeyMap from "../../Utils/OldestKeyMap";
 
 /*
  * THE PRODUCTS A PROJECT SHOWS, AND THE ONES A PERSON PINS, ON THE SERVER
@@ -108,8 +110,10 @@ import OldestKeyMap from "../../Utils/OldestKeyMap";
  *     product of PRODUCT_RECORD_MODELS, whether the project has any of its
  *     records, and the project's activation milestones for the telemetry
  *     products. Kept per project for USAGE_TTL_IN_MS, so a page load costs
- *     no more than reading the project, and forgotten when the project's
- *     products change.
+ *     no more than reading the project, and read again on every server
+ *     once a product's first record is created, its records are deleted or
+ *     its first data arrives (Utils/ProjectProducts/ProjectUsageCache,
+ *     #7465).
  *
  * A member sees what is in use only for the products whose records they may
  * read (readableUsage): membership is not read authorisation. The telemetry
@@ -171,11 +175,11 @@ export const PRODUCT_RECORD_MODELS: Readonly<
   [ProductKey.Forms]: Form,
 };
 
-// How long a project's usage is kept before it is asked again.
-export const USAGE_TTL_IN_MS: number = 5 * 60 * 1000;
-
-// How many projects' usage this process keeps at most.
-export const USAGE_CACHE_MAX_ENTRIES: number = 10_000;
+/*
+ * How long a project's usage is kept at most before it is asked again. A
+ * change to it is seen at once (ProjectUsageCache).
+ */
+export const USAGE_TTL_IN_MS: number = ProjectUsageCache.TTL_MS;
 
 export interface ProjectProductsCaller {
   projectId: ObjectID;
@@ -184,12 +188,7 @@ export interface ProjectProductsCaller {
 }
 
 // What a project has something in: product -> has records or data.
-export type ProjectUsage = Partial<Record<ProductKey, boolean>>;
-
-interface CachedUsage {
-  usage: ProjectUsage;
-  readAt: number;
-}
+export type { ProjectUsage };
 
 interface ProjectProductsRow {
   settings: ProjectProductSettings | null;
@@ -228,9 +227,6 @@ export const getUsageStatement: () => string = (): string => {
 };
 
 export class ProjectProductsServiceClass {
-  private readonly usageCache: OldestKeyMap<string, CachedUsage> =
-    new OldestKeyMap<string, CachedUsage>();
-
   // Whether the caller may show and hide the project's products.
   public canChooseProducts(props: DatabaseCommonInteractionProps): boolean {
     if (props.isMasterAdmin) {
@@ -449,40 +445,34 @@ export class ProjectProductsServiceClass {
   }
 
   /*
-   * What the project has something in, kept for USAGE_TTL_IN_MS. A fresh
-   * read asks the database whatever is kept.
+   * What the project has something in, kept for USAGE_TTL_IN_MS or until
+   * something changes it (ProjectUsageCache). A fresh read asks the database
+   * whatever is kept.
    */
   public async getProjectUsage(
     projectId: ObjectID,
     options?: { isFreshRead?: boolean | undefined } | undefined,
   ): Promise<ProjectUsage> {
-    const key: string = projectId.toString();
-    const now: number = OneUptimeDate.getCurrentDate().getTime();
-    const cached: CachedUsage | undefined = this.usageCache.get(key);
-
-    if (
-      !options?.isFreshRead &&
-      cached &&
-      now - cached.readAt < USAGE_TTL_IN_MS
-    ) {
-      return cached.usage;
-    }
-
-    const usage: ProjectUsage = await this.readUsage(projectId);
-
-    this.remember(key, { usage: usage, readAt: now });
-
-    return usage;
+    return await ProjectUsageCache.getUsage({
+      projectId: projectId,
+      read: async (): Promise<ProjectUsage> => {
+        return await this.readUsage(projectId);
+      },
+      isFreshRead: options?.isFreshRead,
+    });
   }
 
-  // Forgets every project's kept usage (tests, and a process that must).
-  public forgetUsage(projectId?: ObjectID | undefined): void {
+  /*
+   * Forgets a project's kept usage, here and on every other server; with no
+   * project, everything this process keeps (tests).
+   */
+  public async forgetUsage(projectId?: ObjectID | undefined): Promise<void> {
     if (projectId) {
-      this.usageCache.delete(projectId.toString());
+      await ProjectUsageCache.forgetProjects([projectId]);
       return;
     }
 
-    this.usageCache.clear();
+    ProjectUsageCache.clear();
   }
 
   /*
@@ -634,22 +624,6 @@ export class ProjectProductsServiceClass {
     }
 
     return usage;
-  }
-
-  private remember(key: string, value: CachedUsage): void {
-    this.usageCache.delete(key);
-
-    while (this.usageCache.size >= USAGE_CACHE_MAX_ENTRIES) {
-      const oldest: string | undefined = this.usageCache.oldestKey();
-
-      if (oldest === undefined) {
-        break;
-      }
-
-      this.usageCache.delete(oldest);
-    }
-
-    this.usageCache.set(key, value);
   }
 
   private async readProject(projectId: ObjectID): Promise<ProjectProductsRow> {

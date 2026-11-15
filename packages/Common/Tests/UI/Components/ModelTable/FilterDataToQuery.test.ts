@@ -7,11 +7,14 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
+import GreaterThan from "../../../../Types/BaseDatabase/GreaterThan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import IsNull from "../../../../Types/BaseDatabase/IsNull";
 import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import Search from "../../../../Types/BaseDatabase/Search";
 import Query from "../../../../Types/BaseDatabase/Query";
+import OneUptimeDate from "../../../../Types/Date";
 import FilterData from "../../../../UI/Components/Filters/Types/FilterData";
 import { describe, expect, test } from "@jest/globals";
 
@@ -121,10 +124,15 @@ describe("buildQueryFromFilterData", () => {
     ).toBe(search);
   });
 
-  test("passes an InBetween through unchanged", () => {
+  /*
+   * A date filter's range is sent as the whole days it names (#7719): one
+   * already on its days' bounds, as the filter builds it, goes through as
+   * it is.
+   */
+  test("passes an InBetween of whole days through unchanged", () => {
     const range: InBetween<Date> = new InBetween(
-      new Date("2026-01-01T00:00:00.000Z"),
-      new Date("2026-02-01T00:00:00.000Z"),
+      OneUptimeDate.getStartOfDay(new Date("2026-01-01T12:00:00.000Z")),
+      OneUptimeDate.getEndOfDay(new Date("2026-02-01T12:00:00.000Z")),
     );
 
     expect(
@@ -132,6 +140,87 @@ describe("buildQueryFromFilterData", () => {
         "createdAt"
       ],
     ).toBe(range);
+  });
+
+  test("sends a date filter's InBetween that ends at its last day's start as the whole of that day", () => {
+    const range: InBetween<Date> = new InBetween(
+      OneUptimeDate.getStartOfDay(new Date("2026-01-01T12:00:00.000Z")),
+      OneUptimeDate.getStartOfDay(new Date("2026-02-01T12:00:00.000Z")),
+    );
+
+    const sent: InBetween<Date> = build({
+      createdAt: range,
+    } as unknown as FilterData<Monitor>)["createdAt"] as InBetween<Date>;
+
+    expect(sent).toBeInstanceOf(InBetween);
+    expect(new Date(sent.endValue).getTime()).toBe(
+      OneUptimeDate.getEndOfDay(new Date("2026-02-01T12:00:00.000Z")).getTime(),
+    );
+  });
+
+  describe("a date and time filter (#7719)", () => {
+    const DATE_TIME_FILTERS: Array<Filter<Monitor>> = [
+      {
+        title: "Updated",
+        type: FieldType.DateTime,
+        field: { updatedAt: true },
+      },
+      { title: "Name", type: FieldType.Text, field: { name: true } },
+    ] as unknown as Array<Filter<Monitor>>;
+
+    function buildDateTime(filterData: FilterData<Monitor>): Query<Monitor> {
+      return buildQueryFromFilterData<Monitor>({
+        filterData: filterData,
+        filters: DATE_TIME_FILTERS,
+      });
+    }
+
+    test("an old saved view's Is, an EqualTo on the instant, is sent as its whole minute", () => {
+      const sent: InBetween<Date> = buildDateTime({
+        updatedAt: new EqualTo(new Date("2026-11-13T11:15:00.000Z")),
+      } as unknown as FilterData<Monitor>)["updatedAt"] as InBetween<Date>;
+
+      expect(sent).toBeInstanceOf(InBetween);
+      expect(new Date(sent.startValue).toISOString()).toBe(
+        "2026-11-13T11:15:00.000Z",
+      );
+      expect(new Date(sent.endValue).toISOString()).toBe(
+        "2026-11-13T11:15:59.999Z",
+      );
+    });
+
+    test("an old After on a minute's first second is sent as after the whole minute", () => {
+      const sent: GreaterThan<Date> = buildDateTime({
+        updatedAt: new GreaterThan(new Date("2026-11-13T11:15:00.000Z")),
+      } as unknown as FilterData<Monitor>)["updatedAt"] as GreaterThan<Date>;
+
+      expect(new Date(sent.value).toISOString()).toBe(
+        "2026-11-13T11:15:59.999Z",
+      );
+    });
+
+    test("a value the filter built goes through as it is", () => {
+      const range: InBetween<Date> = new InBetween(
+        new Date("2026-11-13T09:00:00.000Z"),
+        new Date("2026-11-13T17:30:59.999Z"),
+      );
+
+      expect(
+        buildDateTime({ updatedAt: range } as unknown as FilterData<Monitor>)[
+          "updatedAt"
+        ],
+      ).toBe(range);
+    });
+
+    test("an EqualTo on a filter that is not a date's is left alone", () => {
+      const value: EqualTo<string> = new EqualTo("api");
+
+      expect(
+        buildDateTime({ name: value } as unknown as FilterData<Monitor>)[
+          "name"
+        ],
+      ).toBe(value);
+    });
   });
 
   test("wraps a bare array into an Includes", () => {

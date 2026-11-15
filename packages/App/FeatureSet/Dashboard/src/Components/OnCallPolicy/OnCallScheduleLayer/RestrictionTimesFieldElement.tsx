@@ -22,6 +22,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 
@@ -95,10 +96,36 @@ const copyRestrictionTimes: CopyRestrictionTimesFunction = (
   return copy;
 };
 
+/*
+ * The ids of the From: and To: labels over one window's controls, which
+ * name them for a screen reader (#7722). Each clock is the shared
+ * TimePicker, a group that otherwise falls back to "Time input", and each
+ * weekly window's day picker had no name at all: with three weekly windows
+ * a screen reader heard six clocks called "Time input" and nothing said
+ * which began a window and which ended one. A weekly window's ids carry its
+ * place, so two windows never share one.
+ */
+export const getRestrictionTimeLabelIds: (data: {
+  baseId: string;
+  // A weekly window's place in the list; left out for the daily window.
+  windowIndex?: number | undefined;
+}) => { from: string; to: string } = (data: {
+  baseId: string;
+  windowIndex?: number | undefined;
+}): { from: string; to: string } => {
+  const prefix: string =
+    data.windowIndex === undefined
+      ? `${data.baseId}-daily`
+      : `${data.baseId}-window-${data.windowIndex}`;
+
+  return { from: `${prefix}-from`, to: `${prefix}-to` };
+};
+
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const labelBaseId: string = `restriction-times-${useId()}`;
   const [restrictionTimes, setRestrictionTimes] = useState<
     RestrictionTimes | undefined
   >(props.value ? copyRestrictionTimes(props.value) : undefined);
@@ -175,13 +202,18 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   const getDailyRestriction: GetReactElementFunction = (): ReactElement => {
     // show start time to end time input fields
 
+    const labelIds: { from: string; to: string } = getRestrictionTimeLabelIds({
+      baseId: labelBaseId,
+    });
+
     return (
       <div className="flex flex-wrap gap-x-5 gap-y-3">
         <div>
-          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+          <p id={labelIds.from} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
             {translator.translateText("From:")}
           </p>
           <TimePicker
+            ariaLabelledby={labelIds.from}
             value={storedDateToTimePickerValue(
               restrictionTimes?.dayRestrictionTimes?.startTime,
             )}
@@ -205,10 +237,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           />
         </div>
         <div>
-          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+          <p id={labelIds.to} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
             {translator.translateText("To:")}
           </p>
           <TimePicker
+            ariaLabelledby={labelIds.to}
             value={storedDateToTimePickerValue(
               restrictionTimes?.dayRestrictionTimes?.endTime,
             )}
@@ -296,6 +329,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                     <div>
                       {getWeeklyTimeRestriction({
                         weeklyRestriction,
+                        windowIndex: i,
                         onChange: (value: WeeklyResctriction) => {
                           const tempRestrictionTimes: RestrictionTimes =
                             getEditableRestrictionTimes();
@@ -364,16 +398,25 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
 
   type GetWeeklyRestrictionFunction = (params: {
     weeklyRestriction: WeeklyResctriction;
+    // Its place in the list, for the ids of its labels.
+    windowIndex: number;
     onChange: (value: WeeklyResctriction) => void;
     onDelete: () => void;
   }) => ReactElement;
 
   const getWeeklyTimeRestriction: GetWeeklyRestrictionFunction = (params: {
     weeklyRestriction: WeeklyResctriction;
+    windowIndex: number;
     onChange: (value: WeeklyResctriction) => void;
     onDelete: () => void;
   }): ReactElement => {
     // show start time to end time input fields
+
+    // Each end's label names its day picker and its clock.
+    const labelIds: { from: string; to: string } = getRestrictionTimeLabelIds({
+      baseId: labelBaseId,
+      windowIndex: params.windowIndex,
+    });
 
     /*
      * One window, one row: From and To side by side, each its day over its
@@ -385,12 +428,13 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     return (
       <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-3">
         <div>
-          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+          <p id={labelIds.from} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
             {translator.translateText("From:")}
           </p>
           <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
             <div>
               <Dropdown
+                ariaLabelledby={labelIds.from}
                 isClearable={false}
                 options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
                 value={DropdownUtil.getDropdownOptionFromEnumForValue(
@@ -419,6 +463,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <TimePicker
+                ariaLabelledby={labelIds.from}
                 value={storedDateToTimePickerValue(
                   params.weeklyRestriction?.startTime,
                 )}
@@ -444,12 +489,13 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         <div>
-          <p className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
+          <p id={labelIds.to} className={RESTRICTION_TIME_LABEL_CLASS_NAME}>
             {translator.translateText("To:")}
           </p>
           <div className={RESTRICTION_WINDOW_END_CLASS_NAME}>
             <div>
               <Dropdown
+                ariaLabelledby={labelIds.to}
                 isClearable={false}
                 options={DropdownUtil.getDropdownOptionsFromEnum(DayOfWeek)}
                 value={DropdownUtil.getDropdownOptionFromEnumForValue(
@@ -478,6 +524,7 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             </div>
             <div>
               <TimePicker
+                ariaLabelledby={labelIds.to}
                 value={storedDateToTimePickerValue(
                   params.weeklyRestriction?.endTime,
                 )}

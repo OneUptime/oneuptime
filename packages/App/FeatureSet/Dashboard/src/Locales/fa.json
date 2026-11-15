@@ -52328,6 +52328,7 @@
   "Expand all branches": "باز کردن همه شاخه‌ها",
   "Expand {{name}}: {{count}} devices below it": "باز کردن {{name}}: {{count}} دستگاه زیر آن",
   "Expand {{name}}: {{count}} devices below it_one": "باز کردن {{name}}: {{count}} دستگاه زیر آن",
+  "Get Invitation Link": "دریافت پیوند دعوت",
   "Narrows the map to this device and the {{count}} devices below it.": "نقشه را به این دستگاه و {{count}} دستگاه زیر آن محدود می‌کند.",
   "Narrows the map to this device and the {{count}} devices below it._one": "نقشه را به این دستگاه و {{count}} دستگاه زیر آن محدود می‌کند.",
   "Opens the branches they are in.": "شاخه‌هایی را که در آن‌ها هستند باز می‌کند.",

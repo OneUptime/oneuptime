@@ -52328,6 +52328,7 @@
   "Expand all branches": "Развернуть все ветви",
   "Expand {{name}}: {{count}} devices below it": "Развернуть {{name}}: устройств под ним — {{count}}",
   "Expand {{name}}: {{count}} devices below it_one": "Развернуть {{name}}: {{count}} устройство под ним",
+  "Get Invitation Link": "Получить ссылку-приглашение",
   "Narrows the map to this device and the {{count}} devices below it.": "Оставляет на карте только это устройство и устройства под ним (всего: {{count}}).",
   "Narrows the map to this device and the {{count}} devices below it._one": "Оставляет на карте только это устройство и {{count}} устройство под ним.",
   "Opens the branches they are in.": "Раскрывает ветви, в которых они находятся.",
