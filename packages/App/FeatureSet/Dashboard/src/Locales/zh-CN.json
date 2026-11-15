@@ -53944,5 +53944,21 @@
   "{{order}}. {{name}}: {{targets}} (escalates after {{minutes}}m)": "{{order}}. {{name}}：{{targets}}（{{minutes}} 分钟后升级）",
   "{{sensitivity}} or above": "{{sensitivity}} 或更高",
   "{{state}} alert {{alert}}": "告警 {{alert}}：{{state}}",
-  "{{state}} incident {{incident}}": "事件 {{incident}}：{{state}}"
+  "{{state}} incident {{incident}}": "事件 {{incident}}：{{state}}",
+  "Available command targets": "可用的命令目标",
+  "Clusters OneUptime AI can inspect": "OneUptime AI 可以检查的集群",
+  "Executed on Runner \"{{runner}}\": {{command}}": "已在 Runner“{{runner}}”上执行：{{command}}",
+  "Executed on cluster \"{{cluster}}\": {{command}}": "已在集群“{{cluster}}”上执行：{{command}}",
+  "Executed on {{resource}}: {{command}}": "已在 {{resource}} 上执行：{{command}}",
+  "Infrastructure OneUptime AI can inspect": "OneUptime AI 可以检查的基础设施",
+  "Proposed a {{count}}-command remediation plan": "已提议包含 {{count}} 条命令的修复计划",
+  "Proposed rolling back {{deployment}}": "已提议回滚 {{deployment}}",
+  "Sent to cluster \"{{cluster}}\", result unknown: {{command}}": "已发送到集群“{{cluster}}”，结果未知：{{command}}",
+  "Sent to {{resource}}, result unknown: {{command}}": "已发送到 {{resource}}，结果未知：{{command}}",
+  "Tools of MCP server {{server}}": "MCP 服务器 {{server}} 的工具",
+  "Tools of the external MCP servers": "外部 MCP 服务器的工具",
+  "Why there is no fix": "为什么没有修复",
+  "{{command}} on cluster \"{{cluster}}\"": "集群“{{cluster}}”上的 {{command}}",
+  "{{command}} on {{resource}}": "{{resource}} 上的 {{command}}",
+  "{{server}} · {{tool}} (not run)": "{{server}} · {{tool}}（未运行）"
 }
