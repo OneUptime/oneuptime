@@ -84,14 +84,14 @@ Gehen Sie zu **Projekteinstellungen**, öffnen Sie **Audit-Protokolle** im Seite
 
 ### Die Einstellungen bearbeiten
 
-Klicken Sie auf **Edit Audit Log Settings** und schalten Sie **Audit-Protokolle aktivieren** ein.
+Klicken Sie auf **Audit-Protokoll-Einstellungen bearbeiten** und schalten Sie **Audit-Protokolle aktivieren** ein.
 
 ### Festlegen, was aufbewahrt wird
 
 Legen Sie **Aufbewahrung (Tage)** fest, von 7 (dem Standard) bis 180, und schalten Sie **Systemereignisse speichern** ein, um auch die Änderungen aufzuzeichnen, die OneUptime selbst vornimmt. Speichern Sie. Die Änderung greift innerhalb etwa einer Minute.
 :::
 
-Solange die Audit-Protokollierung aus ist, zeigt die Seite **Audit-Protokolle** des SLO **Audit logging is off**, mit einem Link zum Einschalten. Einträge, die vor dem Ausschalten erfasst wurden, bleiben sichtbar. Das gesamte Audit-Protokoll des Projekts über alle Ressourcen steht unter **Projekteinstellungen** → **Audit-Protokolle** → **Audit-Protokolle**.
+Solange die Audit-Protokollierung aus ist, zeigt die Seite **Audit-Protokolle** des SLO **Audit-Protokollierung aus**, mit einem Link zum Einschalten. Einträge, die vor dem Ausschalten erfasst wurden, bleiben sichtbar. Das gesamte Audit-Protokoll des Projekts über alle Ressourcen steht unter **Projekteinstellungen** → **Audit-Protokolle** → **Audit-Protokolle**.
 
 ## Nächste Schritte
 

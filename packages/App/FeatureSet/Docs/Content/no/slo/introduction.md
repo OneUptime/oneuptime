@@ -146,7 +146,7 @@ Et deaktivert eller arkivert SLO evalueres ikke, så statusen blir stående som 
 
 ## SLO-listen
 
-Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværende budsjett, forbruksrate, mål, vindu, monitorer, etiketter og eiere.
+Siden **SLOs** viser hvert SLO som ikke er arkivert, med status, SLI, gjenværende budsjett, forbruksrate, mål, vindu, monitorer, etiketter og eiere. Kolonnen **Hva den måler** viser tjenestene til et forespørsels-SLO der den viser monitorene til et oppetids-SLO, og filteret **Tjenester** finner SLO-ene som måler en tjeneste.
 
 - Flisene over listen teller SLO-er etter status: **Feilfri**, **I faresonen**, **Budsjett oppbrukt**, **Feilkonfigurert**, **Pauset** og **Deaktivert**. De vises så snart det finnes et SLO som ikke er arkivert. Klikk på en flis for å se bare de SLO-ene, og igjen for å se alle.
 - Velg SLO-er for å legge til eller fjerne etiketter og eiere, aktivere eller deaktivere dem, gi dem de [anbefalte forbruksratereglene](/docs/slo/burn-rate-alerts#legg-dem-til-på-mange-slo-er-på-én-gang) de mangler, arkivere dem eller slette dem, alle på én gang.
@@ -256,15 +256,15 @@ Et banner øverst på sidene til SLO-et forteller hva som hindrer det i å måle
 | Banner | Hva det betyr | Hva du gjør |
 | --- | --- | --- |
 | **Ingen monitorer knyttet til** | SLO-et har ingen monitorer, så det er ingenting å måle. | Knytt til monitorer, eller opprett en monitorregel. |
-| **Waiting for SLO evaluation** | Monitorer er knyttet til, men den siste evalueringen hadde ingen statusdata fra dem. | Sjekk at monitorene blir sjekket. Tallene vises etter neste evaluering med data. |
-| **Measurement is paused** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av. | Slå på overvåking igjen for minst én monitor, eller vent til vedlikeholdet er ferdig. |
-| **The target is out of range** | Målet er ikke større enn 0 og mindre enn 100. | Angi et mål som 99,9 under **Innstillinger** → **Mål**. |
-| **This SLO is disabled** | Evalueringen er slått av. | Klikk på **Slå på evaluering**. |
-| **This SLO is archived** | SLO-et er arkivert. | Fjern det fra arkivet under **Innstillinger**. |
+| **Venter på SLO-evaluering** | Monitorer er knyttet til, men den siste evalueringen hadde ingen statusdata fra dem. | Sjekk at monitorene blir sjekket. Tallene vises etter neste evaluering med data. |
+| **Målingen er satt på pause** | Alle monitorene det måler, er arkivert eller har aktiv overvåking slått av. | Slå på overvåking igjen for minst én monitor, eller vent til vedlikeholdet er ferdig. |
+| **Målet er utenfor tillatt område** | Målet er ikke større enn 0 og mindre enn 100. | Angi et mål som 99,9 under **Innstillinger** → **Mål**. |
+| **Denne SLO-en er deaktivert** | Evalueringen er slått av. | Klikk på **Slå på evaluering**. |
+| **Denne SLO-en er arkivert** | SLO-et er arkivert. | Fjern det fra arkivet under **Innstillinger**. |
 | **Ikke evaluert ennå** | SLO-et er nettopp opprettet. | Vent på den første evalueringen, høyst noen minutter. |
 | **Ingen tjenester valgt** | Et forespørsels-SLO har ingen tjenester, så det har ingen forespørsler å telle. | Velg tjenestene under **Innstillinger** → **Hva den måler**. |
-| **No latency threshold** | Et latens-SLO har ingen grense, så ingen forespørsel kan telle som rask nok. | Angi **Latensgrense (ms)** under **Innstillinger** → **Hva den måler**. |
-| **Waiting for requests** | Ingen av tjenestene til et forespørsels-SLO har besvart en forespørsel i vinduet ennå. | Sjekk at tjenestene sender spor til OneUptime. Tallene vises etter neste evaluering som teller en forespørsel. |
+| **Ingen latensgrense** | Et latens-SLO har ingen grense, så ingen forespørsel kan telle som rask nok. | Angi **Latensgrense (ms)** under **Innstillinger** → **Hva den måler**. |
+| **Venter på forespørsler** | Ingen av tjenestene til et forespørsels-SLO har besvart en forespørsel i vinduet ennå. | Sjekk at tjenestene sender spor til OneUptime. Tallene vises etter neste evaluering som teller en forespørsel. |
 
 ## Neste steg
 

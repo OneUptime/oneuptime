@@ -3888,7 +3888,8 @@ describe("Request and Latency SLOs, against the product", () => {
       "No latency threshold",
       "Waiting for requests",
     ]) {
-      expect(health).toContain(`title: "${title}",`);
+      // A translation key since the banner words its titles (#8446).
+      expect(health).toContain(`title: translationKey("${title}"),`);
       expect(firstCells(section(intro, "Troubleshooting"))).toContain(
         `**${title}**`,
       );
