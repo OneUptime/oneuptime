@@ -53,17 +53,17 @@ Filtrene til en probestatusmonitor teller prober:
 
 | Filter | Hva det teller |
 | --- | --- |
-| **Disconnected Probes** | De overvåkede probene som er frakoblet. |
-| **Connected Probes** | De overvåkede probene som er tilkoblet. |
+| **Frakoblede sonder** | De overvåkede probene som er frakoblet. |
+| **Tilkoblede sonder** | De overvåkede probene som er tilkoblet. |
 
 Begge er heltall, som sammenlignes med **Større enn**, **Mindre enn**, **Lik** og de andre sammenligningene. En ny monitor starter med to kriterier:
 
 | Kriterium | Filter | Hva det gjør |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** større enn `0` | Setter monitoren offline og erklærer en hendelse med tittelen `Probe disconnected: {{disconnectedProbeNames}}`, som løser seg selv. |
-| Check if every probe is connected | **Disconnected Probes** lik `0` | Setter monitoren til operasjonell. |
+| Sjekk om en sonde er frakoblet | **Frakoblede sonder** større enn `0` | Setter monitoren offline og erklærer en hendelse med tittelen `Probe disconnected: {{disconnectedProbeNames}}`, som løser seg selv. |
+| Sjekk om alle sonder er tilkoblet | **Frakoblede sonder** lik `0` | Setter monitoren til operasjonell. |
 
-**Connected Probes** passer for en monitor som overvåker flere prober og kan klare seg uten én: **Connected Probes** mindre enn `2` erklærer en hendelse først når det er færre enn to igjen.
+Filteret **Tilkoblede sonder** passer for en monitor som overvåker flere prober og kan klare seg uten én: **Tilkoblede sonder** mindre enn `2` erklærer en hendelse først når det er færre enn to igjen.
 
 ### Vente lenger før en hendelse
 
@@ -89,7 +89,7 @@ Hendelses- og varselmalene til en probestatusmonitor kan bruke disse variablene 
 ## Feilsøking
 
 :::details Monitoren sier at den venter på data
-En ny monitor viser sin første evaluering innen et minutt eller to. Hvis den ikke overvåker noen probe, viser den i stedet **Not set up**: velg probene under **Kriterier**.
+En ny monitor viser sin første evaluering innen et minutt eller to. Hvis den ikke overvåker noen probe, viser den i stedet **Ikke satt opp**: velg probene under **Kriterier**.
 :::
 
 :::details En probe gikk ned, og ingen hendelse ble erklært

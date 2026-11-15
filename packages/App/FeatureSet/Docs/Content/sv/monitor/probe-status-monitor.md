@@ -53,17 +53,17 @@ En probstatusmonitors filter räknar prober:
 
 | Filter | Vad det räknar |
 | --- | --- |
-| **Disconnected Probes** | De bevakade proberna som är frånkopplade. |
-| **Connected Probes** | De bevakade proberna som är anslutna. |
+| **Frånkopplade sonder** | De bevakade proberna som är frånkopplade. |
+| **Anslutna sonder** | De bevakade proberna som är anslutna. |
 
 Båda är heltal som jämförs med **Större än**, **Mindre än**, **Lika med** och de övriga jämförelserna. En ny monitor börjar med två kriterier:
 
 | Kriterium | Filter | Vad det gör |
 | --- | --- | --- |
-| Check if a probe is disconnected | **Disconnected Probes** större än `0` | Sätter monitorn offline och deklarerar en incident med titeln `Probe disconnected: {{disconnectedProbeNames}}`, som löser sig själv. |
-| Check if every probe is connected | **Disconnected Probes** lika med `0` | Sätter monitorn till i drift. |
+| Kontrollera om en sond är frånkopplad | **Frånkopplade sonder** större än `0` | Sätter monitorn offline och deklarerar en incident med titeln `Probe disconnected: {{disconnectedProbeNames}}`, som löser sig själv. |
+| Kontrollera om alla sonder är anslutna | **Frånkopplade sonder** lika med `0` | Sätter monitorn till i drift. |
 
-**Connected Probes** passar en monitor som bevakar flera prober och klarar att förlora en: **Connected Probes** mindre än `2` deklarerar en incident först när färre än två finns kvar.
+Filtret **Anslutna sonder** passar en monitor som bevakar flera prober och klarar att förlora en: **Anslutna sonder** mindre än `2` deklarerar en incident först när färre än två finns kvar.
 
 ### Vänta längre före en incident
 
@@ -89,7 +89,7 @@ En probstatusmonitors incident- och larmmallar kan använda de här variablerna,
 ## Felsökning
 
 :::details Monitorn säger att den väntar på data
-En ny monitor visar sin första utvärdering inom en minut eller två. Om den inte bevakar någon prob visar den i stället **Not set up**: välj proberna under **Kriterier**.
+En ny monitor visar sin första utvärdering inom en minut eller två. Om den inte bevakar någon prob visar den i stället **Inte konfigurerad**: välj proberna under **Kriterier**.
 :::
 
 :::details En prob gick ner och ingen incident deklarerades
