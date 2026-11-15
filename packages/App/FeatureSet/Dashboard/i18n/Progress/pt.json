@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9271
+    "keys": 52416,
+    "untranslated": 9154
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -183,6 +183,7 @@
     "Namespaces",
     "Nav",
     "Normal",
+    "OID Collection Template",
     "OK",
     "OSD",
     "OSDs",
@@ -289,6 +290,7 @@
     "URLs",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",

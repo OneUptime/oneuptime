@@ -34,20 +34,20 @@ Upload een JSON-exportbestand of plak de inhoud ervan.
 
 ### Valideren en het voorbeeld tonen
 
-Kies **Validate and preview**. Elke regel wordt gecontroleerd voordat er ook maar één wordt aangemaakt, en resources waarnaar wordt verwezen, moeten in het doelproject bestaan met unieke, overeenkomende namen.
+Kies **Valideren en voorbeeld bekijken**. Elke regel wordt gecontroleerd voordat er ook maar één wordt aangemaakt, en resources waarnaar wordt verwezen, moeten in het doelproject bestaan met unieke, overeenkomende namen.
 
 ### Het voorbeeld nakijken
 
-Controleer de namen van de regels, hun status, labels en voorwaarden. Een grote batch wordt per pagina getoond. Kies **Edit JSON** om iets te corrigeren en valideer opnieuw.
+Controleer de namen van de regels, hun status, labels en voorwaarden. Een grote batch wordt per pagina getoond. Kies **JSON bewerken** om iets te corrigeren en valideer opnieuw.
 
 ### Importeren
 
-Kies de importknop, die de regels telt (bijvoorbeeld **Import 2 rules**), en laat het venster open tot de resultaten verschijnen.
+Kies de importknop, die de regels telt (bijvoorbeeld **2 regels importeren**), en laat het venster open tot de resultaten verschijnen.
 :::
 
 Een import voegt nieuwe regels toe en behoudt de bestaande, dus hetzelfde bestand opnieuw importeren maakt nog een kopie. Voor elke regel gelden de normale machtigingen om aan te maken en de validatie op de server.
 
-Als sommige regels mislukken, kies dan **Download failed rules** om alleen die rijen op te slaan, corrigeer ze en importeer dat bestand opnieuw. Als een aanvraag een time-out krijgt, controleer dan de lijst met regels voordat u het opnieuw probeert: de server heeft de regel misschien opgeslagen voordat het antwoord verloren ging.
+Als sommige regels mislukken, kies dan **Mislukte regels downloaden** om alleen die rijen op te slaan, corrigeer ze en importeer dat bestand opnieuw. Als een aanvraag een time-out krijgt, controleer dan de lijst met regels voordat u het opnieuw probeert: de server heeft de regel misschien opgeslagen voordat het antwoord verloren ging.
 
 ## Een batch in JSON maken
 

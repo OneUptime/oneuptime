@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9240
+    "keys": 52416,
+    "untranslated": 9123
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -201,6 +201,7 @@
     "Namespace",
     "Nav",
     "No",
+    "OID Collection Template",
     "OK",
     "OR",
     "OSD",
@@ -324,6 +325,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Up · In",

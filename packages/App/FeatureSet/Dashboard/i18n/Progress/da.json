@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 52351,
-    "untranslated": 9252
+    "keys": 52416,
+    "untranslated": 9135
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -212,6 +212,7 @@
     "Normal",
     "Note",
     "Null",
+    "OID Collection Template",
     "OK",
     "OSD",
     "Object Gateway",
@@ -351,6 +352,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
     "Uplink",
