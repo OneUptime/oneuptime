@@ -1772,7 +1772,7 @@ const MonitorCreate: FunctionComponent<
     try {
       if (!data.createdMonitor.id) {
         throw new BadDataException(
-          "the server did not return the new monitor's id",
+          "The server did not say which monitor it created. Find it under Monitors.",
         );
       }
 

@@ -22,6 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -155,6 +156,8 @@ const PostmortemActionItemsTable: FunctionComponent = (): ReactElement => {
           type: FieldType.Element,
           // The row's name: always shown.
           isNotCustomizable: true,
+          // IsolatedText reads the title its own way, in a right-to-left page too.
+          getLineText: drawsItsOwnLines,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-[18rem] 2xl:max-w-md",
           contentClassName: "min-w-[10rem]",

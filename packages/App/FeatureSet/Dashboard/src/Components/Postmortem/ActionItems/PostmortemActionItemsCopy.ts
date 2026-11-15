@@ -68,7 +68,6 @@ export const POSTMORTEM_ACTION_ITEMS_COPY: {
   instructionsHelp: string;
   instructionsPlaceholder: string;
   askSubmit: string;
-  noRepository: string;
   listTitle: string;
   listDescription: string;
   listEmptyTitle: string;
@@ -143,7 +142,7 @@ export const POSTMORTEM_ACTION_ITEMS_COPY: {
     "OneUptime AI makes the change {{title}} asks for, and opens a pull request for review. The incident and its postmortem go with the request.",
   ),
   testDescription: translationKey(
-    "OneUptime AI writes a test that would have caught this incident for {{title}}, and opens a pull request with it. The incident and its postmortem go with the request.",
+    "For {{title}}, OneUptime AI writes a test that would have caught this incident, and opens a pull request with it. The incident and its postmortem go with the request.",
   ),
   repositoryField: translationKey("Repository"),
   repositoryHelp: translationKey("Where OneUptime AI makes the change."),
@@ -155,9 +154,6 @@ export const POSTMORTEM_ACTION_ITEMS_COPY: {
     "For example: the retry belongs in the payments client.",
   ),
   askSubmit: translationKey("Ask OneUptime AI"),
-  noRepository: translationKey(
-    "No repository is connected yet. Connect one in Code, then ask OneUptime AI again.",
-  ),
   listTitle: translationKey("Action Items"),
   listDescription: translationKey(
     "Every postmortem's action items across the project: who owns each, when it is due, and whether it is done.",

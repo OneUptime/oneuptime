@@ -1222,9 +1222,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
               title: dialog.item.title || "",
               dueDate: dialog.item.dueDate || undefined,
               description: dialog.item.description || "",
-              ...(dialog.item.ownerUserId
-                ? { [OWNER_KEY]: [dialog.item.ownerUserId.toString()] }
-                : {}),
             },
             fields: [
               {
@@ -1235,13 +1232,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
                 validation: {
                   maxLength: POSTMORTEM_ACTION_ITEM_TITLE_LIMIT,
                 },
-              },
-              {
-                field: { owner: true },
-                title: POSTMORTEM_ACTION_ITEMS_COPY.ownerField,
-                fieldType: FormFieldSchemaType.PeoplePicker,
-                required: false,
-                peoplePicker: OWNER_PICKER,
               },
               {
                 field: { dueDate: true },
@@ -1269,9 +1259,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
               return;
             }
 
-            const ownerUserId: string | undefined = toPeoplePickerIds(
-              record[OWNER_KEY],
-            )[0];
             const description: string =
               typeof record["description"] === "string"
                 ? (record["description"] as string).trim()
@@ -1283,7 +1270,6 @@ const PostmortemActionItems: FunctionComponent<ComponentProps> = (
                 id: new ObjectID(dialog.item._id!.toString()),
                 data: {
                   title,
-                  ownerUserId: ownerUserId || null,
                   dueDate: record["dueDate"] || null,
                   description: description || null,
                 },
