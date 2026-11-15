@@ -1,6 +1,10 @@
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import ObjectID from "../../../Types/ObjectID";
 import logger from "../Logger";
+import {
+  NotificationSchedule,
+  OnCallPageStart,
+} from "../Telemetry/NotificationDeliveryMetrics";
 
 /*
  * AN ESCALATION LEVEL WHILE IT PAGES ITS PEOPLE (issue #8406).
@@ -37,6 +41,20 @@ export interface OnCallLevelInFlight {
   heartbeatAt: Date;
   // Its paging failed part way: it is resumed at the run's next try.
   stopped: boolean;
+  /*
+   * People it pages before its own: a page again's acknowledger
+   * (OnCallAcknowledgementTimeout, alsoPageUserIds). A resume pages them
+   * first too (issue #8471).
+   */
+  firstUserIds?: Array<string> | undefined;
+  /*
+   * How its pages were timed as it started (issue #8471): a scheduled send
+   * due when the wait before it ran out (OnCallSendLag), or a page's start
+   * (OnCallPageTiming). A resume is timed the same way, so a page it sends
+   * late shows as late.
+   */
+  scheduledSend?: { dueAt: Date; schedule: NotificationSchedule } | undefined;
+  pageStart?: { startedAt: Date; start: OnCallPageStart } | undefined;
 }
 
 // A level kept in Redis: its moments in milliseconds since the epoch.
@@ -45,6 +63,9 @@ type KeptLevel = {
   startedAt: number;
   heartbeatAt: number;
   stopped: boolean;
+  firstUserIds?: Array<string>;
+  scheduledSend?: { dueAt: number; schedule: string };
+  pageStart?: { startedAt: number; start: string };
 };
 
 export class OnCallLevels {
@@ -157,6 +178,25 @@ export class OnCallLevels {
       startedAt: level.startedAt.getTime(),
       heartbeatAt: level.heartbeatAt.getTime(),
       stopped: level.stopped,
+      ...(level.firstUserIds && level.firstUserIds.length > 0
+        ? { firstUserIds: level.firstUserIds }
+        : {}),
+      ...(level.scheduledSend
+        ? {
+            scheduledSend: {
+              dueAt: level.scheduledSend.dueAt.getTime(),
+              schedule: level.scheduledSend.schedule,
+            },
+          }
+        : {}),
+      ...(level.pageStart
+        ? {
+            pageStart: {
+              startedAt: level.pageStart.startedAt.getTime(),
+              start: level.pageStart.start,
+            },
+          }
+        : {}),
     };
 
     return JSON.stringify(kept);
@@ -184,11 +224,44 @@ export class OnCallLevels {
         return null;
       }
 
+      const firstUserIds: Array<string> = Array.isArray(kept.firstUserIds)
+        ? kept.firstUserIds.filter((userId: unknown): userId is string => {
+            return typeof userId === "string" && userId.length > 0;
+          })
+        : [];
+
+      const schedules: Array<string> = Object.values(NotificationSchedule);
+      const scheduledSend:
+        | { dueAt: Date; schedule: NotificationSchedule }
+        | undefined =
+        kept.scheduledSend &&
+        this.isMoment(kept.scheduledSend.dueAt) &&
+        schedules.includes(kept.scheduledSend.schedule)
+          ? {
+              dueAt: new Date(kept.scheduledSend.dueAt),
+              schedule: kept.scheduledSend.schedule as NotificationSchedule,
+            }
+          : undefined;
+
+      const starts: Array<string> = Object.values(OnCallPageStart);
+      const pageStart: { startedAt: Date; start: OnCallPageStart } | undefined =
+        kept.pageStart &&
+        this.isMoment(kept.pageStart.startedAt) &&
+        starts.includes(kept.pageStart.start)
+          ? {
+              startedAt: new Date(kept.pageStart.startedAt),
+              start: kept.pageStart.start as OnCallPageStart,
+            }
+          : undefined;
+
       return {
         ruleId: kept.ruleId,
         startedAt: new Date(kept.startedAt as number),
         heartbeatAt: new Date(kept.heartbeatAt as number),
         stopped: kept.stopped === true,
+        ...(firstUserIds.length > 0 ? { firstUserIds: firstUserIds } : {}),
+        ...(scheduledSend ? { scheduledSend: scheduledSend } : {}),
+        ...(pageStart ? { pageStart: pageStart } : {}),
       };
     } catch {
       return null;

@@ -112,10 +112,10 @@ flowchart TB
 | --- | --- |
 | **Aguardando** | Uma regra de plantão definida como **Somente em horário comercial** faz a execução aguardar até esse horário começar: ela diz quando o acionamento começa, e até lá não aciona ninguém. Termina sem acionar se o incidente ou o alerta for confirmado ou resolvido antes. Começa a acionar na hora se o incidente ou o alerta mudar e passar a corresponder a uma regra de plantão que aciona imediatamente. |
 | **Agendado**, **Iniciada** | A execução está sendo preparada. Uma que ainda esteja aqui depois de 5 minutos não terminou de iniciar: passa para **Executando** e aciona a partir de onde o início parou. Um acionamento direto ou de teste que ainda esteja aqui é encerrado como **Erro**. |
-| **Executando** | A execução está acionando. O OneUptime a avança a cada minuto. |
+| **Executando** | A execução está acionando. O OneUptime a avança a cada minuto. Uma etapa que falha por um momento, por exemplo porque não foi possível alcançar o banco de dados, é tentada de novo um minuto depois, depois de 2 e 4 minutos, e então a cada 5 minutos. |
 | **Execução concluída** | Alguém confirmou, o incidente ou alerta foi resolvido, todas as regras e repetições foram usadas, ou a política foi arquivada. |
 | **Execução concluída - ninguém foi notificado** | A execução passou por todas as regras sem acionar ninguém: em geral um agendamento sem ninguém de plantão, ou um nível sem destinatários. |
-| **Erro** | A execução falhou. **Ver mensagem de status** diz por quê. |
+| **Erro** | A execução falhou: uma etapa falhou de um jeito que uma nova tentativa não consegue corrigir, como uma regra de escalonamento excluída, ou falhou 10 tentativas seguidas, ao longo de cerca de 37 minutos. **Ver mensagem de status** diz por quê. |
 
 Você encontra registros de execução em três lugares:
 
