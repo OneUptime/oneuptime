@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "अनुरोध फ़िल्टर अधिकतम {{max}} वर्णों का हो सकता है।",
   "The request filter can have at most {{max}} terms.": "अनुरोध फ़िल्टर में अधिकतम {{max}} शर्तें हो सकती हैं।",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "अनुरोध फ़िल्टर स्पैन विशेषताएं और स्पैन का नाम लेता है, जैसे @http.route:/checkout* या name:\"POST /checkout\"। \"{{text}}\" इनमें से कोई नहीं है।",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone का ऑडिट ट्रेल और हर API पर ऑडिट फ़िल्टर, सुरक्षा इवेंट में।",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "\"{{rule}}\" को इस टीम से हटाया जाता है। इसे पूर्ववत नहीं किया जा सकता - इसे रखने के लिए, इसके बजाय इसे संपादित करें और नई गंभीरताएं चुनें।",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "\"{{rule}}\" की जांच इस टीम में किसी के लिए नहीं होगी। इसे पूर्ववत नहीं किया जा सकता - कुछ समय के लिए जांच रोकने के लिए, इसके बजाय इसे रोकें।",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "नियम बताता है कि इस टीम में हर किसी को क्या सेट करना है, जैसे गंभीर घटनाओं के लिए फ़ोन कॉल। नीचे दी गई किसी सिफ़ारिश से शुरू करें या अपना नियम बनाएं।",

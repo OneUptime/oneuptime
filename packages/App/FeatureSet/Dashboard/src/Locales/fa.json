@@ -55180,6 +55180,7 @@
   "The request filter can be at most {{max}} characters long.": "فیلتر درخواست حداکثر می‌تواند {{max}} نویسه باشد.",
   "The request filter can have at most {{max}} terms.": "فیلتر درخواست حداکثر می‌تواند {{max}} شرط داشته باشد.",
   "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "فیلتر درخواست ویژگی‌های اسپن و نام اسپن را می‌پذیرد، مثلاً @http.route:/checkout* یا name:\"POST /checkout\". «{{text}}» هیچ‌کدام نیست.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "رد ممیزی Keystone و فیلتر ممیزی روی هر API، به رویدادهای امنیتی.",
   "\"{{rule}}\" is removed from this team. This cannot be undone - to keep it, edit it to choose new severities instead.": "«{{rule}}» از این تیم حذف می‌شود. این کار برگشت‌پذیر نیست؛ برای نگه داشتن آن، به‌جای این کار آن را ویرایش کنید و شدت‌های تازه انتخاب کنید.",
   "\"{{rule}}\" stops being checked for everyone on this team. This cannot be undone - to stop checking it for a while, pause it instead.": "«{{rule}}» دیگر برای هیچ‌کس در این تیم بررسی نمی‌شود. این کار برگشت‌پذیر نیست؛ برای توقف موقت بررسی، به‌جای این کار آن را متوقف کنید.",
   "A rule says what everyone on this team must set up, like a phone call for critical incidents. Start from a recommendation below or build your own.": "هر قاعده می‌گوید همه در این تیم چه چیزی را باید راه‌اندازی کنند، مثلاً تماس تلفنی برای حادثه‌های بحرانی. از یکی از پیشنهادهای زیر شروع کنید یا قاعدهٔ خودتان را بسازید.",

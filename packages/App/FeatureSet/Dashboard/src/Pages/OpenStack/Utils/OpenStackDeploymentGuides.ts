@@ -7,6 +7,7 @@ import {
 } from "../../../Components/SetupGuide/SetupGuide";
 import { getAgentFileDownloadCommand } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * NOBODY RUNS "OPENSTACK". THEY RUN A TOOL THAT DEPLOYS IT.
@@ -262,8 +263,9 @@ const TESTED_BY_RIG: string = `It has not been followed end to end on a real dep
  * tool takes them was read from that tool's source, and the comment above each tool's guide
  * says where. None has been followed on a real deployment of its tool.
  */
-const WHO_DID_WHAT_SUMMARY: string =
-  "Keystone's audit trail and the audit filter on each API, into Security Events.";
+const WHO_DID_WHAT_SUMMARY: string = translationKey(
+  "Keystone's audit trail and the audit filter on each API, into Security Events.",
+);
 
 const WHAT_THE_AUDIT_TRAIL_NEEDS: string =
   "Each writes to the service's own log, with no consumer on the bus. OneUptime reads them from there once **Find security events in your logs** is on, under **Security Events → Connections**.";

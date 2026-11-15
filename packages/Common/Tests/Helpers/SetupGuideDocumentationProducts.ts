@@ -13,10 +13,14 @@ import { IOT_INGESTION_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pag
 import { IOT_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/IoT/Utils/DocumentationTranslations";
 import { KUBERNETES_PLATFORMS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { KUBERNETES_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationTranslations";
+import { OPENSTACK_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationMarkdown";
+import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/OpenStackDeploymentGuides";
+import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import {
   SetupGuideWay,
   getKubernetesSetupGuideWays,
   getIoTSetupGuideWays,
+  getOpenStackSetupGuideWays,
   getCephSetupGuideWays,
   getDockerSwarmSetupGuideWays,
   getDockerSetupGuideWays,
@@ -190,6 +194,44 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "EKS Fargate",
         "OpenShift",
         "Red Hat OpenShift",
+      ],
+    }),
+    product({
+      name: "OpenStack",
+      translations: OPENSTACK_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "OPENSTACK_DOCUMENTATION_TRANSLATIONS",
+      ways: getOpenStackSetupGuideWays,
+      // The card asks how OpenStack is deployed, then how to install the agent.
+      options: [...OPENSTACK_DEPLOYMENT_TOOLS, ...OPENSTACK_CONNECT_METHODS],
+      dashboardWords: [
+        "OpenStack",
+        "All Clouds",
+        "Connect Cloud",
+        "Control Plane",
+        "Overview",
+        "Linked Resources",
+        "Incidents",
+        "Heartbeat URL",
+        "Logs",
+        "Security Events",
+        "Connections",
+        "Find security events in your logs",
+        "Services",
+        "Hypervisors",
+        "Domains",
+        "Images",
+        "Volumes",
+        "Settings",
+        "Real usage per instance",
+        "Agent Version",
+        "Full view",
+        "Infrastructure only",
+        "Project view",
+        "Kubernetes",
+        "Documentation",
+        "Not sure, or something else",
+        "Red Hat OpenShift",
+        "What the agent collects, and what it costs your cloud",
       ],
     }),
   ];
