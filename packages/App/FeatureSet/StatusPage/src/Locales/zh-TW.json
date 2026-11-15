@@ -467,5 +467,7 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "No options available": "沒有可用的選項",
+  "No matches found": "找不到相符項目"
 }

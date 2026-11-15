@@ -467,5 +467,7 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  }
+  },
+  "No options available": "Ingen tilgjengelige alternativer",
+  "No matches found": "Ingen treff"
 }

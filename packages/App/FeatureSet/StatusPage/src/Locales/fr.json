@@ -467,5 +467,7 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "No options available": "Aucune option disponible",
+  "No matches found": "Aucune correspondance trouvée"
 }

@@ -467,5 +467,7 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "No options available": "利用できるオプションはありません",
+  "No matches found": "一致するものが見つかりません"
 }

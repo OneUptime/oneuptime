@@ -467,5 +467,7 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "No options available": "कोई विकल्प उपलब्ध नहीं",
+  "No matches found": "कोई मिलान नहीं मिला"
 }

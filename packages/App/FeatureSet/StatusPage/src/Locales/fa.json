@@ -467,5 +467,7 @@
     "note": "نکته",
     "tip": "نکته کاربردی",
     "warning": "هشدار"
-  }
+  },
+  "No options available": "گزینه‌ای در دسترس نیست",
+  "No matches found": "موردی پیدا نشد"
 }
