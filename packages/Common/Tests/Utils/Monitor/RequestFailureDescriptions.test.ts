@@ -24,7 +24,7 @@ import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * A Website or API summary's Error Details, and the root cause's "- Error
  * Description:", are a fixed English explanation of OneUptime's own ("DNS
  * resolution failed. ...", "Connection refused. ..."), written by hand in
- * API.getRequestFailedDetails, the Port check and the NTP check, and drawn
+ * RequestFailedDetailsUtil.getRequestFailedDetails, the Port check and the NTP check, and drawn
  * in English in every language. Every one is written from one table now,
  * word for word as before (criteria, root causes and logs compare it), read
  * back only on an exact match, and drawn in the reader's language.
@@ -117,7 +117,7 @@ const WRITTEN_BY_HAND: Record<RequestFailureDescription, string> = {
     "The NTP check failed because of a network error.",
 };
 
-// The HTTP status sentence as API.getRequestFailedDetails built it by hand.
+// The HTTP status sentence as RequestFailedDetailsUtil.getRequestFailedDetails built it by hand.
 const httpStatusByHand: (status: number) => string = (
   status: number,
 ): string => {
@@ -220,7 +220,7 @@ describe("the explanation the probe stores", () => {
     100, 200, 204, 301, 302, 304, 399, 400, 401, 402, 403, 404, 405, 418, 429,
     451, 499, 500, 502, 503, 504, 599,
   ])(
-    "an HTTP %i: the sentence API.getRequestFailedDetails built by hand",
+    "an HTTP %i: the sentence RequestFailedDetailsUtil.getRequestFailedDetails built by hand",
     (status: number) => {
       const id: RequestFailureDescription =
         status >= 500

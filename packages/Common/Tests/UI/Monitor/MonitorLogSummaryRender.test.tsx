@@ -29,6 +29,7 @@ import MonitorSummarySnapshotUtil, {
  * Tests/UI/Rum/ReplayStage.test.tsx for why the path-based version broke CI.
  */
 import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 
 /*
  * What the "View Summary" modal on Monitoring Logs actually draws for a
@@ -263,8 +264,9 @@ describe("Monitoring Logs > View Summary on an Incoming Email monitor", () => {
     expect(
       screen.queryByText(formatted(MONITOR_CREATED_AT)),
     ).not.toBeInTheDocument();
-    expect(infoCardValue("From")).toBe("-");
-    expect(infoCardValue("Subject")).toBe("-");
+    // The quiet dash an empty value is drawn as (58fc3f92383).
+    expect(infoCardValue("From")).toBe(QUIET_DASH_TEXT);
+    expect(infoCardValue("Subject")).toBe(QUIET_DASH_TEXT);
     expect(screen.queryByText("Show More Details")).not.toBeInTheDocument();
 
     // And the evaluation that explains the verdict is still there.
