@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "긴 기간의 요청 수가 이 값보다 적은 동안에는 이 규칙을 건너뜁니다. 그래서 실패가 한 건뿐인 조용한 한 시간에는 아무도 호출되지 않습니다. 비워 두면 최소값이 없습니다.",
   "The request filter can be at most {{max}} characters long.": "요청 필터는 최대 {{max}}자까지 입력할 수 있습니다.",
   "The request filter can have at most {{max}} terms.": "요청 필터의 조건은 최대 {{max}}개입니다.",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다."
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "요청 필터에는 스팬 속성과 스팬 이름을 사용합니다(예: @http.route:/checkout* 또는 name:\"POST /checkout\"). \"{{text}}\"은(는) 둘 다 아닙니다.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }

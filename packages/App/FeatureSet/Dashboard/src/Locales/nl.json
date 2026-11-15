@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "Sla deze regel over zolang het lange venster minder aanvragen bevat dan dit, zodat een rustig uur met één fout niemand oproept. Laat leeg voor geen minimum.",
   "The request filter can be at most {{max}} characters long.": "Het aanvraagfilter mag maximaal {{max}} tekens lang zijn.",
   "The request filter can have at most {{max}} terms.": "Het aanvraagfilter mag maximaal {{max}} termen hebben.",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Het aanvraagfilter neemt span-attributen en de naam van de span, zoals @http.route:/checkout* of name:\"POST /checkout\". \"{{text}}\" is geen van beide."
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "Het aanvraagfilter neemt span-attributen en de naam van de span, zoals @http.route:/checkout* of name:\"POST /checkout\". \"{{text}}\" is geen van beide.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }

@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "जब तक इसकी लंबी अवधि में इससे कम अनुरोध हों, इस नियम को छोड़ दें, ताकि एक विफलता वाले शांत घंटे में किसी को अलर्ट न भेजा जाए। कोई न्यूनतम न रखने के लिए खाली छोड़ें।",
   "The request filter can be at most {{max}} characters long.": "अनुरोध फ़िल्टर अधिकतम {{max}} वर्णों का हो सकता है।",
   "The request filter can have at most {{max}} terms.": "अनुरोध फ़िल्टर में अधिकतम {{max}} शर्तें हो सकती हैं।",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "अनुरोध फ़िल्टर स्पैन विशेषताएं और स्पैन का नाम लेता है, जैसे @http.route:/checkout* या name:\"POST /checkout\"। \"{{text}}\" इनमें से कोई नहीं है।"
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "अनुरोध फ़िल्टर स्पैन विशेषताएं और स्पैन का नाम लेता है, जैसे @http.route:/checkout* या name:\"POST /checkout\"। \"{{text}}\" इनमें से कोई नहीं है।",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }

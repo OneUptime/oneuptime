@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "長視窗內的請求數少於此值時略過此規則，這樣只有一次失敗的安靜一小時不會呼叫任何人。留空則不設最小值。",
   "The request filter can be at most {{max}} characters long.": "請求篩選器最多 {{max}} 個字元。",
   "The request filter can have at most {{max}} terms.": "請求篩選器最多包含 {{max}} 個條件。",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "請求篩選器使用 Span 屬性和 Span 名稱，例如 @http.route:/checkout* 或 name:\"POST /checkout\"。「{{text}}」兩者皆非。"
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "請求篩選器使用 Span 屬性和 Span 名稱，例如 @http.route:/checkout* 或 name:\"POST /checkout\"。「{{text}}」兩者皆非。",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }

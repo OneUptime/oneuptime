@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "تخطَّ هذه القاعدة ما دامت نافذتها الطويلة تضم طلبات أقل من هذا العدد، حتى لا تستدعي ساعة هادئة فيها إخفاق واحد أحدًا. اتركه فارغًا لعدم وضع حد أدنى.",
   "The request filter can be at most {{max}} characters long.": "يمكن أن تتكون تصفية الطلبات من {{max}} حرف على الأكثر.",
   "The request filter can have at most {{max}} terms.": "يمكن أن تضم تصفية الطلبات {{max}} شروط على الأكثر.",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "تقبل تصفية الطلبات سمات الامتداد واسمه، مثل @http.route:/checkout* أو name:\"POST /checkout\". «{{text}}» ليس أيًّا منهما."
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "تقبل تصفية الطلبات سمات الامتداد واسمه، مثل @http.route:/checkout* أو name:\"POST /checkout\". «{{text}}» ليس أيًّا منهما.",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }

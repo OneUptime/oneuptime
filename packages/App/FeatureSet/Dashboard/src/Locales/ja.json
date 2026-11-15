@@ -54693,5 +54693,6 @@
   "Skip this rule while its long window holds fewer requests than this, so a quiet hour with one failure does not page anyone. Leave empty for no minimum.": "長い時間枠のリクエスト数がこの値未満の間は、このルールをスキップします。失敗が一件だけの静かな一時間でも、誰も呼び出されません。空欄にすると最小値なしです。",
   "The request filter can be at most {{max}} characters long.": "リクエストフィルターは {{max}} 文字以内にしてください。",
   "The request filter can have at most {{max}} terms.": "リクエストフィルターの条件は {{max}} 個までです。",
-  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "リクエストフィルターに使えるのはスパンの属性とスパン名です（例: @http.route:/checkout*、name:\"POST /checkout\"）。「{{text}}」はどちらでもありません。"
+  "The request filter takes span attributes and the span's name, such as @http.route:/checkout* or name:\"POST /checkout\". \"{{text}}\" is neither.": "リクエストフィルターに使えるのはスパンの属性とスパン名です（例: @http.route:/checkout*、name:\"POST /checkout\"）。「{{text}}」はどちらでもありません。",
+  "Keystone's audit trail and the audit filter on each API, into Security Events.": "Keystone's audit trail and the audit filter on each API, into Security Events."
 }
