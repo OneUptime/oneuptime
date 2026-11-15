@@ -30,7 +30,7 @@ flowchart TB
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **ホストとポートに到達できるプローブ。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。プライベートネットワーク上のサービスには、そのネットワーク内の [カスタムプローブ](/docs/probe/custom-probe) が必要です。
 
 ## SSL 証明書モニターを作成する

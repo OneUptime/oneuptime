@@ -27,7 +27,7 @@ flowchart TB
 - 對於 TAXII 情資來源：一個發布 STIX 2.1 `indicator` 物件的 TAXII 2.1 伺服器，以及要輪詢的集合 ID。TAXII 情資來源可以匿名登入，也可以使用 bearer 權杖或 HTTP 基本驗證登入。
 - 對於 Google SecOps 情資來源：一個服務帳戶能搜尋指標符合項目的 [Google SecOps 連線](/docs/integrations/google-secops#設定託管連接器)，`roles/chronicle.viewer` 角色就可以。
 - 不支援要求 TLS 用戶端憑證（雙向 TLS）的伺服器，例如 CISA AIS。MITRE 的公開 ATT&CK 伺服器發布的是技術和組織，而不是指標，所以指向它的情資來源會一直是空的。
-- 一個可以建立情資來源的角色：Project Owner、Project Admin、Security Admin 或 Security Member。Security Viewer 可以讀取情資來源和指標。請參閱 [角色](/docs/permissions/reference#角色)。
+- 一個可以建立情資來源的角色：專案擁有者、專案管理員、安全性管理員或安全性成員。安全性檢視者可以讀取情資來源和指標。請參閱 [角色](/docs/permissions/reference#角色)。
 
 ## 新增免費清單
 

@@ -25,7 +25,7 @@ flowchart TB
 ## 始める前に
 
 - **Growth プラン以上**（OneUptime Cloud の場合）。セルフホスト環境にはプランはありません。
-- **シークレットを管理できるロール**: Project Owner、Project Admin、または Create Monitor Secret 権限を持つカスタムロール。
+- **シークレットを管理できるロール**: プロジェクト所有者、プロジェクト管理者、または Create Monitor Secret 権限を持つカスタムロール。
 
 ## シークレットを扱う
 

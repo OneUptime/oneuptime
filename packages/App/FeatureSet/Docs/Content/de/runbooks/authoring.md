@@ -11,9 +11,9 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Runbooks schreibt.** Project Owner, Project Admin und Runbook Admin erstellen Runbooks und speichern ihre Schritte. Mit granularen Berechtigungen brauchen Sie **Create Runbook** und **Edit Runbook**. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
+- **Eine Rolle, die Runbooks schreibt.** Projektinhaber, Projektadministrator und Runbook-Administrator erstellen Runbooks und speichern ihre Schritte. Mit granularen Berechtigungen brauchen Sie **Create Runbook** und **Edit Runbook**. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
 - **Ein Runner, für Bash-, SSH- und kubectl-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein Schritt, der keinen Runner wählt, läuft auf dem [Standard-Runner des Projekts](/docs/runbooks/agents#der-standard-runner-des-projekts), wenn Sie einen festgelegt haben; ein JavaScript-Schritt läuft sonst auf einem [globalen Runner](/docs/runbooks/agents#globale-runner).
-- **Eine geheime Variable, für SSH- und kubectl-Schritte.** Der Schlüssel, das Passwort oder die kubeconfig, mit denen sich ein Schritt anmeldet, ist eine geheime [Runbook-Variable](/docs/runbooks/variables). Project Owner und Project Admin erstellen Variablen, und Runbook Admin wählt sie in den Schritten aus, die er schreibt. Ein kubectl-Schritt kann stattdessen den eigenen Zugriff des Runners verwenden.
+- **Eine geheime Variable, für SSH- und kubectl-Schritte.** Der Schlüssel, das Passwort oder die kubeconfig, mit denen sich ein Schritt anmeldet, ist eine geheime [Runbook-Variable](/docs/runbooks/variables). Projektinhaber und Projektadministrator erstellen Variablen, und Runbook-Administrator wählt sie in den Schritten aus, die er schreibt. Ein kubectl-Schritt kann stattdessen den eigenen Zugriff des Runners verwenden.
 - **Ein LLM-Anbieter, für KI-Schritte.** Siehe [LLM-Anbieter](/docs/ai/llm-provider).
 
 ## Ein Runbook erstellen

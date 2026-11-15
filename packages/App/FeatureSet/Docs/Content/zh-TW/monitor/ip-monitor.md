@@ -39,7 +39,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以建立監測器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor 權限的自訂角色。
+- **可以建立監測器的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor 權限的自訂角色。
 - **能夠連到該位址的探測器**，而且沿途允許 ICMP。每個新的監測器都會選取您專案的預設探測器。如果位址前面有防火牆，請允許來自 [OneUptime Cloud 探測器 IP 位址](/docs/configuration/ip-addresses) 的 ICMP 回應要求。私有位址需要該網路中的 [自訂探測器](/docs/probe/custom-probe)，IPv6 位址需要具備 IPv6 連線能力的探測器。
 
 ## 建立 IP 監測器

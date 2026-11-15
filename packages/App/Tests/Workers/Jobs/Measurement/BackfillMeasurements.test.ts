@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import JobDeadline from "Common/Server/Utils/JobDeadline";
 
 /*
  * Regression tests for the Measurement:Backfill cron, which fills in
@@ -42,6 +43,13 @@ import ObjectID from "Common/Types/ObjectID";
  *      does (MeasurementTable below); MeasurementBackfillProgressPostgres in
  *      Common runs the statement against Postgres itself, and
  *      BackfillMeasurementsPostgres runs this job against it.
+ *   6. TO THE MICROSECOND (#8388). The cursor's createdAt is saved and read
+ *      back as Postgres keeps it, so a cursor whose entity was deleted for
+ *      good still places the next page exactly: cut to the millisecond, the
+ *      page read again every entity of that millisecond before it.
+ *   7. THE DEADLINE (#8172). A tick stops at the next measurement, page or
+ *      entity once the deadline RunCron hands it passes, with where it got
+ *      to saved, and the next tick carries on from there.
  *
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler (the same recorder the other
@@ -51,7 +59,8 @@ import ObjectID from "Common/Types/ObjectID";
  * (`query` below).
  */
 
-type CronHandler = () => Promise<void>;
+// The tick, handed its deadline as RunCron hands it (none: a run outside the queue).
+type CronHandler = (deadline?: JobDeadline) => Promise<void>;
 
 /*
  * Captured cron handlers, keyed by job name. Must be declared before the job
@@ -172,6 +181,7 @@ import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import logger from "Common/Server/Utils/Logger";
 import MeasurementBackfillPage from "Common/Server/Utils/Measurement/MeasurementBackfillPage";
+import MeasurementBackfillProgress from "Common/Server/Utils/Measurement/MeasurementBackfillProgress";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/Measurement/BackfillMeasurements";
@@ -243,10 +253,33 @@ interface MeasurementRow {
   backfillCursorId?: ObjectID | undefined;
 }
 
-// A row of the page read, as node-postgres hands it back.
+/*
+ * A row of the page read, as node-postgres hands it back: its createdAt to
+ * the millisecond, and to the microsecond as text (#8388) - which a row made
+ * up by hand below may leave out.
+ */
 interface RawRecord {
   _id: string;
   createdAt: Date;
+  exactCreatedAt?: string | undefined;
+}
+
+// A time in microseconds as Postgres writes it in the page read: UTC, six digits of the second.
+function exactTextOf(microseconds: number): string {
+  const milliseconds: number = Math.floor(microseconds / 1000);
+  const rest: number = microseconds - milliseconds * 1000;
+
+  return `${new Date(milliseconds).toISOString().slice(0, 23)}${String(
+    rest,
+  ).padStart(3, "0")}Z`;
+}
+
+// The microseconds that text names.
+function microsecondsOf(exactText: string): number {
+  return (
+    new Date(`${exactText.slice(0, 23)}Z`).getTime() * 1000 +
+    Number(exactText.slice(23, 26))
+  );
 }
 
 function measurementRow(input: {
@@ -302,11 +335,23 @@ function recordPage(input: {
 interface PageRead {
   table: string;
   projectId: string;
-  after?: { createdAt: Date; id?: string | undefined } | undefined;
+  /*
+   * Where the page starts: the cursor's createdAt as a Date, to the
+   * millisecond, and the text to the microsecond when the read was given
+   * that (#8388).
+   */
+  after?:
+    | {
+        createdAt: Date;
+        exactCreatedAt?: string | undefined;
+        id?: string | undefined;
+      }
+    | undefined;
   limit: number;
 }
 
-const PAGE_TABLE: RegExp = /^SELECT "_id", "createdAt" FROM "([^"]+)" WHERE /;
+const PAGE_TABLE: RegExp =
+  /^SELECT "_id", "createdAt", .+? AS "exactCreatedAt" FROM "([^"]+)" WHERE /;
 
 function pageReadOf(sql: string, parameters: Array<unknown>): PageRead {
   const table: RegExpExecArray | null = PAGE_TABLE.exec(sql);
@@ -315,6 +360,9 @@ function pageReadOf(sql: string, parameters: Array<unknown>): PageRead {
     throw new Error(`not a page of the backfill: ${sql}`);
   }
 
+  // The cursor's createdAt, bound as a Date or as text to the microsecond.
+  const createdAt: unknown = parameters[1];
+
   // [project, limit], [project, createdAt, limit] or [project, createdAt, id, limit].
   const read: PageRead = {
     table: table[1]!,
@@ -322,7 +370,12 @@ function pageReadOf(sql: string, parameters: Array<unknown>): PageRead {
     after:
       parameters.length > 2
         ? {
-            createdAt: parameters[1] as Date,
+            createdAt:
+              typeof createdAt === "string"
+                ? new Date(`${createdAt.slice(0, 23)}Z`)
+                : (createdAt as Date),
+            exactCreatedAt:
+              typeof createdAt === "string" ? createdAt : undefined,
             id: parameters.length > 3 ? (parameters[2] as string) : undefined,
           }
         : undefined,
@@ -336,6 +389,7 @@ function pageReadOf(sql: string, parameters: Array<unknown>): PageRead {
       after: read.after
         ? {
             createdAt: read.after.createdAt,
+            exactCreatedAt: read.after.exactCreatedAt,
             id: read.after.id ? new ObjectID(read.after.id) : undefined,
           }
         : undefined,
@@ -359,7 +413,11 @@ function pageReadsOf(service: EntityServiceMock): Array<PageRead> {
   });
 }
 
-// Where each read of entities in a tick began: undefined is the beginning.
+/*
+ * Where each read of entities in a tick began: undefined is the beginning.
+ * The cursor's createdAt to the millisecond, as a Date: exactWalkStartsOf
+ * has it to the microsecond.
+ */
 function walkStartsOf(
   service: EntityServiceMock,
 ): Array<{ createdAt: Date; id?: string | undefined } | undefined> {
@@ -367,9 +425,20 @@ function walkStartsOf(
     (
       read: PageRead,
     ): { createdAt: Date; id?: string | undefined } | undefined => {
-      return read.after;
+      return read.after
+        ? { createdAt: read.after.createdAt, id: read.after.id }
+        : undefined;
     },
   );
+}
+
+// The createdAt each read of entities began after, to the microsecond (#8388); undefined when bound as a Date.
+function exactWalkStartsOf(
+  service: EntityServiceMock,
+): Array<string | undefined> {
+  return pageReadsOf(service).map((read: PageRead): string | undefined => {
+    return read.after?.exactCreatedAt;
+  });
 }
 
 // Answers the job's page reads with these pages, one per read, then empty ones.
@@ -439,11 +508,72 @@ function progressWriteOf(
   };
 }
 
-// Every progress write the job ran on a measurement service's connection.
+/*
+ * The read of the cursors the measurements hold, to the microsecond
+ * (MeasurementBackfillProgress.readExactCursors, #8388): the measurement
+ * ids it asks for. Only that statement reads.
+ */
+const EXACT_CURSOR_READ: RegExp =
+  /^SELECT "_id", "backfillCursorId" AS "cursorId", .+? AS "exactCreatedAt" FROM "([^"]+)" WHERE "_id" = ANY\(\$1\)/;
+
+function isExactCursorRead(sql: string): boolean {
+  return EXACT_CURSOR_READ.test(sql);
+}
+
+function exactCursorReadOf(
+  sql: string,
+  parameters: Array<unknown>,
+): { table: string; measurementIds: Array<string> } {
+  const read: RegExpExecArray | null = EXACT_CURSOR_READ.exec(sql);
+  const ids: Array<string> = parameters[0] as Array<string>;
+  const expected: { sql: string; parameters: Array<unknown> } =
+    MeasurementBackfillProgress.getExactCursorsStatement({
+      tableName: read ? read[1]! : "",
+      measurementIds: (ids || []).map((id: string): ObjectID => {
+        return new ObjectID(id);
+      }),
+    });
+
+  if (
+    !read ||
+    expected.sql !== sql ||
+    JSON.stringify(expected.parameters) !== JSON.stringify(parameters)
+  ) {
+    throw new Error(`not the backfill's read of the cursors held: ${sql}`);
+  }
+
+  return { table: read[1]!, measurementIds: ids };
+}
+
+// Every read of the cursors held the job ran on a measurement service's connection.
+function exactCursorReadsOf(
+  service: MeasurementServiceMock,
+): Array<{ table: string; measurementIds: Array<string> }> {
+  return service.query.mock.calls
+    .filter((call: Array<unknown>): boolean => {
+      return isExactCursorRead(call[0] as string);
+    })
+    .map(
+      (
+        call: Array<unknown>,
+      ): { table: string; measurementIds: Array<string> } => {
+        return exactCursorReadOf(call[0] as string, call[1] as Array<unknown>);
+      },
+    );
+}
+
+/*
+ * Every progress write the job ran on a measurement service's connection,
+ * past the reads of the cursors held. Any other statement throws.
+ */
 function writesOf(service: MeasurementServiceMock): Array<ProgressWrite> {
-  return service.query.mock.calls.map((call: Array<unknown>): ProgressWrite => {
-    return progressWriteOf(call[0] as string, call[1] as Array<unknown>);
-  });
+  return service.query.mock.calls
+    .filter((call: Array<unknown>): boolean => {
+      return !isExactCursorRead(call[0] as string);
+    })
+    .map((call: Array<unknown>): ProgressWrite => {
+      return progressWriteOf(call[0] as string, call[1] as Array<unknown>);
+    });
 }
 
 // The ids of the incidents worked out, in the order they were.
@@ -455,7 +585,7 @@ function recomputedIncidents(): Array<string> {
   );
 }
 
-async function runTick(): Promise<void> {
+async function runTick(deadline?: JobDeadline): Promise<void> {
   const handler: CronHandler | undefined =
     mockCapturedJobs["Measurement:Backfill"];
 
@@ -463,7 +593,7 @@ async function runTick(): Promise<void> {
     throw new Error("Measurement:Backfill did not register a cron handler");
   }
 
-  await handler();
+  await handler(deadline);
 }
 
 /*
@@ -481,7 +611,10 @@ interface StoredMeasurement {
   id: ObjectID;
   projectId: ObjectID;
   requestedAtInMicroseconds: number | null;
+  // The cursor's createdAt as a read gives it, to the millisecond.
   cursorCreatedAt: Date | null;
+  // And as the table keeps it, to the microsecond (#8388).
+  cursorCreatedAtInMicroseconds: number | null;
   cursorId: string | null;
   completedAt: Date | null;
 }
@@ -517,7 +650,13 @@ class MeasurementTable {
       async (
         sql: string,
         parameters: Array<unknown>,
-      ): Promise<Array<{ _id: string }>> => {
+      ): Promise<Array<unknown>> => {
+        if (isExactCursorRead(sql)) {
+          return this.readExactCursors(
+            exactCursorReadOf(sql, parameters).measurementIds,
+          );
+        }
+
         return this.writeGuarded(progressWriteOf(sql, parameters));
       },
     );
@@ -533,12 +672,14 @@ class MeasurementTable {
   }
 
   public insert(input: {
-    id?: ObjectID;
+    id?: ObjectID | undefined;
     projectId?: ObjectID;
     requestedAt: Date;
     // Past the millisecond, as a stamp made by the database's now() keeps them.
     extraMicroseconds?: number;
     cursorCreatedAt?: Date;
+    // The cursor's createdAt past its millisecond, as the table keeps it.
+    cursorExtraMicroseconds?: number;
     cursorId?: string;
   }): ObjectID {
     const id: ObjectID = input.id || MEASUREMENT_ID;
@@ -549,6 +690,10 @@ class MeasurementTable {
       requestedAtInMicroseconds:
         input.requestedAt.getTime() * 1000 + (input.extraMicroseconds || 0),
       cursorCreatedAt: input.cursorCreatedAt || null,
+      cursorCreatedAtInMicroseconds: input.cursorCreatedAt
+        ? input.cursorCreatedAt.getTime() * 1000 +
+          (input.cursorExtraMicroseconds || 0)
+        : null,
       cursorId: input.cursorId || null,
       completedAt: null,
     });
@@ -562,8 +707,35 @@ class MeasurementTable {
 
     row.requestedAtInMicroseconds = requestedAt.getTime() * 1000;
     row.cursorCreatedAt = null;
+    row.cursorCreatedAtInMicroseconds = null;
     row.cursorId = null;
     row.completedAt = null;
+  }
+
+  /*
+   * The cursor a row holds moved on by another writer: another record's
+   * createdAt, to the microsecond, and its id.
+   */
+  public moveCursor(
+    id: ObjectID,
+    cursor: { createdAtInMicroseconds: number; id: string },
+  ): void {
+    const row: StoredMeasurement = this.get(id);
+
+    row.cursorCreatedAtInMicroseconds = cursor.createdAtInMicroseconds;
+    row.cursorCreatedAt = new Date(
+      Math.floor(cursor.createdAtInMicroseconds / 1000),
+    );
+    row.cursorId = cursor.id;
+  }
+
+  // The cursor a row holds, to the microsecond, as the read of the cursors held writes it.
+  public exactCursorOf(id: ObjectID = MEASUREMENT_ID): string | null {
+    const row: StoredMeasurement = this.get(id);
+
+    return row.cursorCreatedAtInMicroseconds === null
+      ? null
+      : exactTextOf(row.cursorCreatedAtInMicroseconds);
   }
 
   // The measurement deleted.
@@ -676,9 +848,52 @@ class MeasurementTable {
     }
   }
 
+  /*
+   * The read of the cursors held, as Postgres answers it: the rows holding
+   * both columns of a cursor, its createdAt to the microsecond.
+   */
+  private readExactCursors(
+    measurementIds: Array<string>,
+  ): Array<{ _id: string; cursorId: string; exactCreatedAt: string }> {
+    return measurementIds
+      .map((id: string): StoredMeasurement | undefined => {
+        return this.rows.get(id);
+      })
+      .filter(
+        (row: StoredMeasurement | undefined): row is StoredMeasurement => {
+          return Boolean(
+            row && row.cursorCreatedAtInMicroseconds !== null && row.cursorId,
+          );
+        },
+      )
+      .map(
+        (
+          row: StoredMeasurement,
+        ): { _id: string; cursorId: string; exactCreatedAt: string } => {
+          return {
+            _id: row.id.toString(),
+            cursorId: row.cursorId!,
+            exactCreatedAt: exactTextOf(row.cursorCreatedAtInMicroseconds!),
+          };
+        },
+      );
+  }
+
   private apply(row: StoredMeasurement, set: Record<string, unknown>): void {
     if (set["backfillCursorCreatedAt"] !== undefined) {
-      row.cursorCreatedAt = set["backfillCursorCreatedAt"] as Date;
+      // Written as a Date (to the millisecond) or as text to the microsecond (#8388).
+      const createdAt: unknown = set["backfillCursorCreatedAt"];
+
+      row.cursorCreatedAtInMicroseconds =
+        createdAt === null
+          ? null
+          : typeof createdAt === "string"
+            ? microsecondsOf(createdAt)
+            : (createdAt as Date).getTime() * 1000;
+      row.cursorCreatedAt =
+        row.cursorCreatedAtInMicroseconds === null
+          ? null
+          : new Date(Math.floor(row.cursorCreatedAtInMicroseconds / 1000));
     }
 
     if (set["backfillCursorId"] !== undefined) {
@@ -800,6 +1015,11 @@ class RecordTable {
     return this.read(ids[ids.length - 1]!);
   }
 
+  // A record's createdAt as the page read writes it, to the microsecond.
+  public exactOf(id: string): string {
+    return exactTextOf(this.find(id)!.createdAtInMicroseconds);
+  }
+
   // The record deleted for good.
   public purge(id: string): void {
     this.rows = this.rows.filter((row: StoredRecord) => {
@@ -834,7 +1054,10 @@ class RecordTable {
     });
 
     if (read.after) {
-      const from: number = read.after.createdAt.getTime() * 1000;
+      // The cursor's createdAt to the microsecond when the read was given it (#8388).
+      const from: number = read.after.exactCreatedAt
+        ? microsecondsOf(read.after.exactCreatedAt)
+        : read.after.createdAt.getTime() * 1000;
 
       rows = rows.filter((row: StoredRecord) => {
         return row.createdAtInMicroseconds >= from;
@@ -861,6 +1084,7 @@ class RecordTable {
         return {
           _id: row.id,
           createdAt: new Date(Math.floor(row.createdAtInMicroseconds / 1000)),
+          exactCreatedAt: exactTextOf(row.createdAtInMicroseconds),
         };
       });
   }
@@ -1239,14 +1463,37 @@ describe("Measurement:Backfill", () => {
 
       expect(writes).toHaveLength(3);
       for (const write of writes) {
-        expect(write.set["backfillCursorCreatedAt"]).toBeInstanceOf(Date);
+        // The createdAt as the page read it, to the microsecond (#8388).
+        expect(write.set["backfillCursorCreatedAt"]).toMatch(
+          /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/,
+        );
         expect(typeof write.set["backfillCursorId"]).toBe("string");
 
         // The pair names one entity: its createdAt and its id.
-        expect(
-          table.read(write.set["backfillCursorId"] as string).createdAt,
-        ).toEqual(write.set["backfillCursorCreatedAt"]);
+        expect(table.exactOf(write.set["backfillCursorId"] as string)).toBe(
+          write.set["backfillCursorCreatedAt"],
+        );
       }
+    });
+
+    test("writes the createdAt as a Date when the page read gave no text of it to the microsecond", async () => {
+      // Rows as a read before #8388 handed them back: the Date alone.
+      const page: Array<RawRecord> = recordPage({
+        count: PAGE_SIZE,
+        firstCreatedAt: FIRST_CREATED_AT,
+      });
+
+      incidentMeasurements.findBy.mockResolvedValue([measurementRow({})]);
+      answerPages(incidents, [page]);
+
+      await runTick();
+
+      const write: ProgressWrite = writesOf(incidentMeasurements)[0]!;
+
+      expect(write.set["backfillCursorCreatedAt"]).toBeInstanceOf(Date);
+      expect(write.set["backfillCursorCreatedAt"]).toEqual(
+        page[PAGE_SIZE - 1]!.createdAt,
+      );
     });
   });
 
@@ -1395,8 +1642,8 @@ describe("Measurement:Backfill", () => {
 
       const writes: Array<ProgressWrite> = writesOf(incidentMeasurements);
       // The first page's cursor sits in the run; the second page finishes it.
-      expect(writes[0]!.set["backfillCursorCreatedAt"]).toEqual(
-        FIRST_CREATED_AT,
+      expect(writes[0]!.set["backfillCursorCreatedAt"]).toBe(
+        exactTextOf(FIRST_CREATED_AT.getTime() * 1000),
       );
       expect(writes[0]!.set["backfillCursorId"]).toBe(
         table.ordered()[PAGE_SIZE - 1],
@@ -1612,7 +1859,7 @@ describe("Measurement:Backfill", () => {
       expect(table.get().completedAt).toBeInstanceOf(Date);
     });
 
-    test("a cursor whose entity was deleted, in a run apart by microseconds: a few of its millisecond are read again, none passed over", async () => {
+    test("a cursor whose entity was deleted, in a run apart by microseconds: the walk goes on right after it, nothing read again (#8388)", async () => {
       records.add({
         count: MAX_PAGES_PER_RUN * PAGE_SIZE + 600,
         createdAt: RUN_AT,
@@ -1622,9 +1869,7 @@ describe("Measurement:Backfill", () => {
       await runTick();
 
       const cursorId: string = table.get().cursorId!;
-      const cursorCreatedAt: Date = table.get().cursorCreatedAt!;
       const ordered: Array<string> = records.ordered();
-      const firstTick: Array<string> = recomputedIncidents();
       const rest: Array<string> = ordered.slice(ordered.indexOf(cursorId) + 1);
 
       records.purge(cursorId);
@@ -1632,22 +1877,111 @@ describe("Measurement:Backfill", () => {
 
       await runTick();
 
-      const secondTick: Array<string> = recomputedIncidents();
-      const readAgain: Array<string> = secondTick.slice(
-        0,
-        secondTick.length - rest.length,
+      // Cut to the millisecond, the stored cursor read again the run's entities in it before the cursor.
+      expect(recomputedIncidents()).toEqual(rest);
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+    });
+
+    /*
+     * #8388, as it happens on Postgres: every entity one statement inserts
+     * shares its now(), to the microsecond, and that microsecond is seldom
+     * the first of a millisecond. A run longer than a tick's pages, its
+     * cursor's entity deleted for good between the ticks: cut to the
+     * millisecond, the stored cursor stood before the whole run, and the
+     * next tick worked every entity of the first out again - 5,000 of them.
+     */
+    test("a run one statement inserted, its now() past the millisecond, the cursor's entity deleted between ticks: the next tick goes on right after it", async () => {
+      records.add({
+        count: MAX_PAGES_PER_RUN * PAGE_SIZE + 1000,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 0,
+        extraMicroseconds: 456,
+      });
+
+      await runTick();
+
+      const cursorId: string = table.get().cursorId!;
+      const ordered: Array<string> = records.ordered();
+      const rest: Array<string> = ordered.slice(ordered.indexOf(cursorId) + 1);
+
+      // Saved as the entity has it: to the microsecond.
+      expect(table.exactCursorOf()).toBe(
+        exactTextOf(RUN_AT.getTime() * 1000 + 456),
+      );
+      expect(table.get().cursorCreatedAt).toEqual(RUN_AT);
+
+      records.purge(cursorId);
+      incidentValues.recomputeForIncident.mockClear();
+      incidents.query.mockClear();
+      incidentMeasurements.query.mockClear();
+
+      await runTick();
+
+      expect(recomputedIncidents()).toEqual(rest);
+      expect(repeatsOf(recomputedIncidents())).toEqual({});
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+
+      // The tick read the cursor held to the microsecond, and started its first page after that.
+      expect(exactCursorReadsOf(incidentMeasurements)).toEqual([
+        {
+          table: "IncidentMeasurement",
+          measurementIds: [MEASUREMENT_ID.toString()],
+        },
+      ]);
+      expect(exactWalkStartsOf(incidents)[0]).toBe(
+        exactTextOf(RUN_AT.getTime() * 1000 + 456),
+      );
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    });
+
+    test("the same run, its cursor's entity deleted between two pages of one tick: the next page goes on right after it", async () => {
+      records.add({
+        count: 3 * PAGE_SIZE,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 0,
+        extraMicroseconds: 789,
+      });
+      const ordered: Array<string> = records.ordered();
+
+      // The first page's last entity is deleted for good once it is worked out.
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (data: { incidentId: ObjectID }): Promise<void> => {
+          if (data.incidentId.toString() === ordered[PAGE_SIZE - 1]) {
+            records.purge(ordered[PAGE_SIZE - 1]!);
+          }
+        },
       );
 
-      // Every entity after the cursor is worked out...
-      expect(secondTick.slice(secondTick.length - rest.length)).toEqual(rest);
-      // ...and what is read again was worked out by the first tick, within the cursor's millisecond.
-      expect(readAgain.length).toBeGreaterThan(0);
-      expect(readAgain.length).toBeLessThan(1000);
-      for (const id of readAgain) {
-        expect(firstTick).toContain(id);
-        expect(records.read(id).createdAt).toEqual(cursorCreatedAt);
-      }
-      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(await walkToCompletion()).toBe(1);
+
+      expect(recomputedIncidents()).toEqual(ordered);
+      expect(repeatsOf(recomputedIncidents())).toEqual({});
+      // The second page started after the deleted entity, to the microsecond.
+      expect(exactWalkStartsOf(incidents)[1]).toBe(
+        exactTextOf(RUN_AT.getTime() * 1000 + 789),
+      );
+    });
+
+    test("every page after the first starts after its cursor to the microsecond", async () => {
+      records.add({
+        count: 2 * PAGE_SIZE + 10,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 3,
+        extraMicroseconds: 1,
+      });
+      const ordered: Array<string> = records.ordered();
+
+      expect(await walkToCompletion()).toBe(1);
+
+      expect(exactWalkStartsOf(incidents)).toEqual([
+        undefined,
+        records.exactOf(ordered[PAGE_SIZE - 1]!),
+        records.exactOf(ordered[2 * PAGE_SIZE - 1]!),
+      ]);
+      expect(table.exactCursorOf()).toBe(
+        records.exactOf(ordered[ordered.length - 1]!),
+      );
+      expectEachWorkedOutOnce();
     });
 
     test("entities of the run deleted with a deletedAt are left out, the rest each once", async () => {
@@ -1678,6 +2012,519 @@ describe("Measurement:Backfill", () => {
       expect(await walkToCompletion()).toBe(1);
       expectEachWorkedOutOnce();
       expect(recomputedIncidents()).toHaveLength(600);
+    });
+  });
+
+  /*
+   * #8388. The cursor a measurement holds is read through TypeORM, to the
+   * millisecond, with the measurements still to backfill; the job reads it
+   * again to the microsecond, for the walks it starts, in one statement per
+   * domain - and walks from the millisecond, as it did before, whenever that
+   * read cannot be used.
+   */
+  describe("the cursor held, read to the microsecond", () => {
+    const RUN_AT: Date = new Date("2026-06-01T10:00:00.000Z");
+
+    let table: MeasurementTable;
+    let records: RecordTable;
+
+    beforeEach(() => {
+      table = new MeasurementTable(incidentMeasurements);
+      records = new RecordTable(incidents);
+    });
+
+    // A measurement whose walk stopped on `entity` in an earlier tick, saved to the microsecond.
+    function insertStoppedOn(input: {
+      entity: string;
+      id?: ObjectID;
+      requestedAt?: Date;
+    }): ObjectID {
+      const microseconds: number = microsecondsOf(
+        records.exactOf(input.entity),
+      );
+
+      return table.insert({
+        id: input.id,
+        requestedAt: input.requestedAt || new Date("2026-07-01T00:00:00.000Z"),
+        cursorCreatedAt: new Date(Math.floor(microseconds / 1000)),
+        cursorExtraMicroseconds: microseconds % 1000,
+        cursorId: input.entity,
+      });
+    }
+
+    test("asks once per domain, for the measurements to walk that hold a cursor with both its columns", async () => {
+      const ids: Array<string> = records.add({
+        count: 30,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 7,
+        extraMicroseconds: 123,
+      });
+      const withCursor: ObjectID = insertStoppedOn({ entity: ids[9]! });
+      const alsoWithCursor: ObjectID = insertStoppedOn({
+        entity: ids[19]!,
+        id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+      });
+      // Asked for, never walked: no cursor yet.
+      table.insert({
+        id: new ObjectID("55555555-5555-4555-8555-555555555555"),
+        requestedAt: new Date("2026-07-01T00:00:00.000Z"),
+      });
+
+      await runTick();
+
+      expect(exactCursorReadsOf(incidentMeasurements)).toEqual([
+        {
+          table: "IncidentMeasurement",
+          measurementIds: [withCursor.toString(), alsoWithCursor.toString()],
+        },
+      ]);
+      // No other domain held a cursor: none of them was asked.
+      expect(exactCursorReadsOf(alertMeasurements)).toEqual([]);
+      expect(exactCursorReadsOf(maintenanceMeasurements)).toEqual([]);
+    });
+
+    test("never asks for a measurement it will not walk, nor for a cursor saved before the walk kept an id", async () => {
+      incidentMeasurements.findBy.mockResolvedValue([
+        // Finished after it was asked for.
+        measurementRow({
+          requestedAt: new Date("2026-07-01T00:00:00.000Z"),
+          completedAt: new Date("2026-07-01T00:05:00.000Z"),
+          cursorCreatedAt: RUN_AT,
+          cursorId: new ObjectID(recordId(1, 1)),
+        }),
+        // Read without its request.
+        {
+          _id: new ObjectID("44444444-4444-4444-8444-444444444444"),
+          projectId: PROJECT_ID,
+          backfillCursorCreatedAt: RUN_AT,
+          backfillCursorId: new ObjectID(recordId(1, 2)),
+        },
+        // Saved before #8171: the createdAt alone.
+        measurementRow({
+          id: new ObjectID("55555555-5555-4555-8555-555555555555"),
+          cursorCreatedAt: RUN_AT,
+        }),
+      ]);
+
+      await runTick();
+
+      expect(exactCursorReadsOf(incidentMeasurements)).toEqual([]);
+      // The cursor saved before the id was kept still walks, from its createdAt on, as a Date.
+      expect(exactWalkStartsOf(incidents)).toEqual([undefined]);
+      expect(walkStartsOf(incidents)).toEqual([
+        { createdAt: RUN_AT, id: undefined },
+      ]);
+    });
+
+    test("a read that fails is warned of, and the walk goes on from the cursor to the millisecond, passing over nothing", async () => {
+      const ids: Array<string> = records.add({
+        count: 40,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 1,
+        extraMicroseconds: 500,
+      });
+      insertStoppedOn({ entity: ids[9]! });
+      records.purge(ids[9]!);
+
+      const answer: (
+        sql: string,
+        parameters: Array<unknown>,
+      ) => Promise<unknown> =
+        incidentMeasurements.query.getMockImplementation()!;
+      incidentMeasurements.query.mockImplementation(
+        async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          if (isExactCursorRead(sql)) {
+            throw new Error("canceling statement due to statement timeout");
+          }
+
+          return await answer(sql, parameters);
+        },
+      );
+
+      await runTick();
+
+      expect(mockedLogger.warn).toHaveBeenCalled();
+      expect(exactWalkStartsOf(incidents)).toEqual([undefined]);
+      // The deleted cursor's millisecond read again, as before #8388: nothing after it passed over.
+      const recomputed: Array<string> = recomputedIncidents();
+      expect(recomputed.slice(recomputed.length - 30)).toEqual(ids.slice(10));
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+    });
+
+    test("a cursor held by another entity than the one read with the measurements - moved on between the two reads - is not mixed in", async () => {
+      const ids: Array<string> = records.add({
+        count: 40,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 2,
+        extraMicroseconds: 250,
+      });
+      insertStoppedOn({ entity: ids[9]! });
+
+      // Between the read of the measurements and the read of their cursors.
+      table.afterRead(() => {
+        table.moveCursor(MEASUREMENT_ID, {
+          createdAtInMicroseconds: microsecondsOf(records.exactOf(ids[29]!)),
+          id: ids[29]!,
+        });
+      });
+
+      await runTick();
+
+      // The walk starts after the entity it read, by the millisecond: never ids[9]'s id with ids[29]'s time.
+      expect(walkStartsOf(incidents)[0]).toEqual({
+        createdAt: records.read(ids[9]!).createdAt,
+        id: ids[9],
+      });
+      expect(exactWalkStartsOf(incidents)[0]).toBeUndefined();
+      expect(recomputedIncidents()).toEqual(ids.slice(10));
+    });
+
+    test("a cursor its read gives to the microsecond places the first page exactly", async () => {
+      const ids: Array<string> = records.add({
+        count: 40,
+        createdAt: RUN_AT,
+        apartInMicroseconds: 1,
+        extraMicroseconds: 100,
+      });
+      insertStoppedOn({ entity: ids[9]! });
+
+      await runTick();
+
+      expect(exactWalkStartsOf(incidents)[0]).toBe(records.exactOf(ids[9]!));
+      expect(recomputedIncidents()).toEqual(ids.slice(10));
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * #8172. RunCron hands every run its deadline: the job's time limit, or
+   * its lock lost (CronLock). The tick took none, and a tick with many
+   * measurements to work out ran far past its five minutes, went on after
+   * CronLock had given its lock back, and the next tick walked the same
+   * measurements beside it. It now stops at the next measurement, page or
+   * entity once the deadline passes, with where it got to saved, and the
+   * next tick carries on from there: no entity worked out twice, none
+   * passed over.
+   */
+  describe("the tick's deadline", () => {
+    const REQUESTED_AT: Date = new Date("2026-07-01T00:00:00.000Z");
+    const EDITED_AT: Date = new Date("2026-07-01T00:02:00.000Z");
+    const OTHER_MEASUREMENT_ID: ObjectID = new ObjectID(
+      "44444444-4444-4444-8444-444444444444",
+    );
+
+    let table: MeasurementTable;
+    let records: RecordTable;
+    let deadline: JobDeadline;
+
+    beforeEach(() => {
+      table = new MeasurementTable(incidentMeasurements);
+      records = new RecordTable(incidents);
+      deadline = new JobDeadline();
+    });
+
+    // Ends the deadline while the nth entity of the tick (from 1) is worked out.
+    function endWhileWorkingOut(nth: number, also?: () => void): void {
+      let recomputed: number = 0;
+
+      incidentValues.recomputeForIncident.mockImplementation(
+        async (): Promise<void> => {
+          recomputed++;
+
+          if (recomputed === nth) {
+            also?.();
+            deadline.end();
+          }
+        },
+      );
+    }
+
+    // The next tick, with no deadline: it carries on, to the end.
+    async function expectNextTickCarriesOnToTheEnd(
+      firstTick: Array<string>,
+    ): Promise<void> {
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+
+      await runTick();
+
+      const both: Array<string> = [...firstTick, ...recomputedIncidents()];
+
+      expect(repeatsOf(both)).toEqual({});
+      expect(both).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get().cursorId).toBe(records.last().id);
+    }
+
+    // The deadline's stop, logged once as what it is.
+    function expectStopLoggedOnce(): void {
+      const stops: Array<Array<unknown>> = mockedLogger.info.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return String(call[0]).includes("stopped at its deadline");
+        },
+      );
+
+      expect(stops).toHaveLength(1);
+      expect(mockedLogger.warn).not.toHaveBeenCalled();
+      expect(mockedLogger.error).not.toHaveBeenCalled();
+    }
+
+    test("passed before the tick: nothing is read, nothing written, and the stop is logged", async () => {
+      records.add({ count: 1200, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      deadline.end();
+
+      await runTick(deadline);
+
+      for (const service of [
+        incidentMeasurements,
+        alertMeasurements,
+        maintenanceMeasurements,
+      ]) {
+        expect(service.findBy).not.toHaveBeenCalled();
+        expect(service.query).not.toHaveBeenCalled();
+      }
+      expect(incidents.query).not.toHaveBeenCalled();
+      expect(incidentValues.recomputeForIncident).not.toHaveBeenCalled();
+      expectStopLoggedOnce();
+    });
+
+    test("passing after N pages: no page after them is read, and the cursor saved is the last page's (#8172)", async () => {
+      records.add({ count: 8 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+
+      // As the third page's cursor is written: three pages worked out.
+      table.beforeWrite(3, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(3);
+      expect(writesOf(incidentMeasurements)).toHaveLength(3);
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, 3 * PAGE_SIZE));
+      expect(table.get().cursorId).toBe(ordered[3 * PAGE_SIZE - 1]);
+      expect(table.get().completedAt).toBeNull();
+      expectStopLoggedOnce();
+
+      const firstTick: Array<string> = recomputedIncidents();
+      incidents.query.mockClear();
+
+      await expectNextTickCarriesOnToTheEnd(firstTick);
+      expect(walkStartsOf(incidents)[0]).toEqual({
+        createdAt: records.read(ordered[3 * PAGE_SIZE - 1]!).createdAt,
+        id: ordered[3 * PAGE_SIZE - 1],
+      });
+    });
+
+    test.each([
+      { reason: "its time limit ran out", end: undefined },
+      { reason: "it lost its lock", end: new Error("CronLock: lock lost") },
+    ])(
+      "passing in the middle of a page ($reason): the next entity is not worked out, and the cursor saved is the last one that was",
+      async (item: { reason: string; end: Error | undefined }) => {
+        records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+        table.insert({ requestedAt: REQUESTED_AT });
+        const ordered: Array<string> = records.ordered();
+
+        // The 700th entity: the 200th of the second page.
+        let recomputed: number = 0;
+        incidentValues.recomputeForIncident.mockImplementation(
+          async (): Promise<void> => {
+            recomputed++;
+
+            if (recomputed === 700) {
+              deadline.end(item.end);
+            }
+          },
+        );
+
+        await runTick(deadline);
+
+        expect(recomputedIncidents()).toEqual(ordered.slice(0, 700));
+        expect(incidents.query).toHaveBeenCalledTimes(2);
+
+        const writes: Array<ProgressWrite> = writesOf(incidentMeasurements);
+
+        expect(
+          writes.map((write: ProgressWrite): unknown => {
+            return write.set["backfillCursorId"];
+          }),
+        ).toEqual([ordered[PAGE_SIZE - 1], ordered[699]]);
+        // Held to the request, like every write of the walk; no completion.
+        for (const write of writes) {
+          expect((write.requestedAt as Date).toISOString()).toBe(
+            REQUESTED_AT.toISOString(),
+          );
+          expect(write.set["backfillCompletedAt"]).toBeUndefined();
+        }
+        expect(table.get().cursorId).toBe(ordered[699]);
+        expect(table.exactCursorOf()).toBe(records.exactOf(ordered[699]!));
+        expectStopLoggedOnce();
+
+        await expectNextTickCarriesOnToTheEnd(ordered.slice(0, 700));
+      },
+    );
+
+    test("passing right after a page is read, before any of it is worked out: nothing more is written, and the next tick reads that page again", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+
+      const answer: (
+        sql: string,
+        parameters: Array<unknown>,
+      ) => Promise<unknown> = incidents.query.getMockImplementation()!;
+      let reads: number = 0;
+      incidents.query.mockImplementation(
+        async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
+          const rows: unknown = await answer(sql, parameters);
+
+          if (++reads === 2) {
+            deadline.end();
+          }
+
+          return rows;
+        },
+      );
+
+      await runTick(deadline);
+
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, PAGE_SIZE));
+      expect(writesOf(incidentMeasurements)).toHaveLength(1);
+      expect(table.get().cursorId).toBe(ordered[PAGE_SIZE - 1]);
+      expectStopLoggedOnce();
+
+      incidents.query.mockImplementation(answer);
+
+      await expectNextTickCarriesOnToTheEnd(ordered.slice(0, PAGE_SIZE));
+    });
+
+    test("passing while the last, short page is worked out: the page is finished and the walk completed", async () => {
+      records.add({ count: 2 * PAGE_SIZE + 200, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      endWhileWorkingOut(2 * PAGE_SIZE + 200);
+
+      await runTick(deadline);
+
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get().cursorId).toBe(records.last().id);
+      // The other domains are not looked at past the deadline.
+      expect(alertMeasurements.findBy).not.toHaveBeenCalled();
+      expect(maintenanceMeasurements.findBy).not.toHaveBeenCalled();
+    });
+
+    test("passing as a full page's last entity is worked out: that page's cursor is saved, and no page after it is read", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      const ordered: Array<string> = records.ordered();
+      endWhileWorkingOut(PAGE_SIZE);
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(1);
+      expect(recomputedIncidents()).toEqual(ordered.slice(0, PAGE_SIZE));
+      expect(table.get().cursorId).toBe(ordered[PAGE_SIZE - 1]);
+      expect(table.get().completedAt).toBeNull();
+
+      await expectNextTickCarriesOnToTheEnd(ordered.slice(0, PAGE_SIZE));
+    });
+
+    test("passing between two measurements: the second is not walked this tick, and the next tick walks it", async () => {
+      records.add({ count: 300, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      table.insert({ id: OTHER_MEASUREMENT_ID, requestedAt: REQUESTED_AT });
+
+      // As the first measurement's walk completes.
+      table.beforeWrite(1, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidents.query).toHaveBeenCalledTimes(1);
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+      expect(table.get(OTHER_MEASUREMENT_ID).completedAt).toBeNull();
+      expect(table.get(OTHER_MEASUREMENT_ID).cursorId).toBeNull();
+      expectStopLoggedOnce();
+
+      incidentValues.recomputeForIncident.mockClear();
+
+      await runTick();
+
+      // Only the second, from its beginning.
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get(OTHER_MEASUREMENT_ID).completedAt).toBeInstanceOf(Date);
+    });
+
+    test("passing between two domains: the domains after it are not read this tick", async () => {
+      records.add({ count: 300, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      table.beforeWrite(1, () => {
+        deadline.end();
+      });
+
+      await runTick(deadline);
+
+      expect(incidentMeasurements.findBy).toHaveBeenCalledTimes(1);
+      expect(alertMeasurements.findBy).not.toHaveBeenCalled();
+      expect(maintenanceMeasurements.findBy).not.toHaveBeenCalled();
+      expectStopLoggedOnce();
+    });
+
+    test("an edit landing as the deadline passes mid-page: where the walk got to is refused, and the edit's walk starts from the beginning", async () => {
+      records.add({ count: 3 * PAGE_SIZE, createdAt: FIRST_CREATED_AT });
+      table.insert({ requestedAt: REQUESTED_AT });
+      endWhileWorkingOut(700, () => {
+        table.edit(MEASUREMENT_ID, EDITED_AT);
+      });
+
+      await runTick(deadline);
+
+      expect(table.requestedAtOf()?.toISOString()).toBe(
+        EDITED_AT.toISOString(),
+      );
+      expect(table.get().cursorId).toBeNull();
+      expect(table.get().cursorCreatedAt).toBeNull();
+      expect(table.get().completedAt).toBeNull();
+      // The refused write is the walk stopping for the edit, said as such.
+      expect(
+        mockedLogger.info.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("asked for again");
+        }),
+      ).toBe(true);
+
+      incidentValues.recomputeForIncident.mockReset();
+      incidentValues.recomputeForIncident.mockResolvedValue(undefined);
+      incidents.query.mockClear();
+
+      await runTick();
+
+      expect(walkStartsOf(incidents)[0]).toBeUndefined();
+      expect(recomputedIncidents()).toEqual(records.ordered());
+      expect(table.get().completedAt).toBeInstanceOf(Date);
+    });
+
+    test("one that never passes, as a run outside the queue has, walks as before: to the end or the page cap", async () => {
+      records.add({
+        count: (MAX_PAGES_PER_RUN + 2) * PAGE_SIZE,
+        createdAt: FIRST_CREATED_AT,
+      });
+      table.insert({ requestedAt: REQUESTED_AT });
+
+      await runTick(JobDeadline.none());
+
+      expect(incidents.query).toHaveBeenCalledTimes(MAX_PAGES_PER_RUN);
+      expect(table.get().cursorId).toBe(
+        records.ordered()[MAX_PAGES_PER_RUN * PAGE_SIZE - 1],
+      );
+      expect(
+        mockedLogger.info.mock.calls.some((call: Array<unknown>): boolean => {
+          return String(call[0]).includes("stopped at its deadline");
+        }),
+      ).toBe(false);
     });
   });
 

@@ -39,7 +39,7 @@ flowchart TB
 
 ## 开始之前
 
-- **可以创建监视器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者拥有 Create Monitor 权限的自定义角色。
+- **可以创建监视器的角色**：项目所有者、项目管理员、项目成员、监视器管理员或监视器成员，或者拥有 Create Monitor 权限的自定义角色。
 - **能够访问该地址的探测器**，并且沿途允许 ICMP。每个新监视器都会选中您项目的默认探测器。如果地址前面有防火墙，请放行来自 [OneUptime Cloud 探测器 IP 地址](/docs/configuration/ip-addresses) 的 ICMP 回显请求。私有地址需要该网络中的 [自定义探测器](/docs/probe/custom-probe)，IPv6 地址需要具备 IPv6 连接的探测器。
 
 ## 创建 IP 监视器

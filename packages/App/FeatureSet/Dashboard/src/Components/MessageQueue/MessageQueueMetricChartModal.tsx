@@ -294,11 +294,12 @@ const MessageQueueMetricChartModal: FunctionComponent<ComponentProps> = (
 
   const formatValue: (value: number) => string = (value: number): string => {
     if (descriptor) {
-      return formatMessageQueueMetricAxisValue(value, descriptor);
+      return formatMessageQueueMetricAxisValue(value, descriptor, translator);
     }
     return formatDatabaseMetricUnitAxisValue(value, spec ? spec.unit : unit, {
       isRate: Boolean(spec?.isRate),
       metricName: props.metricName,
+      translator: translator,
     });
   };
 

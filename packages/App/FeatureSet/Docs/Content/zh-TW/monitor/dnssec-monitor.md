@@ -41,7 +41,7 @@ flowchart TB
 
 ## 開始之前
 
-- **可以建立監測器的角色**：Project Owner、Project Admin、Project Member、Monitor Admin 或 Monitor Member，或者擁有 Create Monitor 權限的自訂角色。
+- **可以建立監測器的角色**：專案擁有者、專案管理員、專案成員、監測器管理員或監測器成員，或者擁有 Create Monitor 權限的自訂角色。
 - **一個已簽署的區域。** 區域必須已簽署，並且已透過您的註冊商在父區域中發布其 DS 記錄。
 - **來自探測器的對外 DNS**，送往您列出的解析器；為了檢查名稱伺服器一致性，也要送往該區域的權威名稱伺服器。每個新的監測器都會選取您專案的預設探測器。
 

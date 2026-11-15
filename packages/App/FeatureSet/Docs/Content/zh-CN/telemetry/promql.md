@@ -24,7 +24,7 @@ flowchart TB
 ## 开始之前
 
 - **正在到达的指标。** 通过 [OpenTelemetry](/docs/telemetry/open-telemetry) 发送，或者从代理发送，例如 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector)。
-- **可以读取指标的角色。** Project Owner、Project Admin、Project Member、Viewer、Telemetry Admin、Telemetry Member 或 Telemetry Viewer，或者拥有 Read Metrics 权限的自定义角色。仅限部分服务的角色只能读取这些服务的指标。
+- **可以读取指标的角色。** 项目所有者、项目管理员、项目成员、查看者、遥测管理员、遥测成员或遥测查看者，或者拥有 Read Metrics 权限的自定义角色。仅限部分服务的角色只能读取这些服务的指标。
 - **用于 Grafana 或脚本：项目 API 密钥**，需具有上述角色之一或 Read Metrics 权限。参见 [创建 API 密钥](/docs/api-reference/api-reference#创建-api-密钥)。在 OneUptime Cloud 上，API 密钥需要 **Growth** 套餐。
 
 ## 编写查询

@@ -27,7 +27,7 @@ flowchart TB
 
 ## 始める前に
 
-- **テンプレートを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor Template 権限を持つカスタムロール。テンプレートの変更には同じロール、または Edit Monitor Template 権限が必要です。
+- **テンプレートを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor Template 権限を持つカスタムロール。テンプレートの変更には同じロール、または Edit Monitor Template 権限が必要です。
 - **リンクされたモニターを更新する権限。** 同期はあなたとしてリンクされた各モニターに書き込み、あなたの権限が及ばないモニターはスキップします。
 
 ## テンプレートを作成する

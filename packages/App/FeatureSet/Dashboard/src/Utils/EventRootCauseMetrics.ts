@@ -93,6 +93,12 @@ export interface RootCauseMetricsInput {
   createdCriteriaId?: string | null | undefined;
   // The monitors it is on, as they are now.
   monitors: Array<RootCauseMonitor> | null | undefined;
+  /*
+   * The reader's word for a group whose attribute held nothing, for the
+   * summary the card draws ("service.name = (nicht gesetzt)", #8269);
+   * "(unset)" without one.
+   */
+  unsetLabel?: string | undefined;
 }
 
 type HasQueriesFunction = (
@@ -198,6 +204,7 @@ export function getRootCauseMetrics(
       seriesSummary: MetricSeriesScope.getAppliedSeriesLabelSummary({
         queryConfigs: snapshotView.queryConfigs,
         seriesLabels: input.seriesLabels,
+        unsetLabel: input.unsetLabel,
       }),
       chartedFromMonitorNow: undefined,
     };
@@ -233,6 +240,7 @@ export function getRootCauseMetrics(
     seriesSummary: MetricSeriesScope.getAppliedSeriesLabelSummary({
       queryConfigs: queryConfigs,
       seriesLabels: input.seriesLabels,
+      unsetLabel: input.unsetLabel,
     }),
     chartedFromMonitorNow: {
       resourceName: getMonitorResourceName(

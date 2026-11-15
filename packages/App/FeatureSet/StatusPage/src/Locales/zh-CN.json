@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% 正常运行时间",
-    "uptimePercent": "正常运行时间 {{percent}}%",
+    "uptimePercent": "正常运行时间 {{percent}}",
     "operational": "运行正常",
     "notMonitored": "未监控",
     "noResourcesInGroup": "此组中未添加任何资源。",

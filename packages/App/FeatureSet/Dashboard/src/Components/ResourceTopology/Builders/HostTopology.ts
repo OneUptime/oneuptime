@@ -1,6 +1,6 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../../Utils/PageMap";
 import { isEntityActive } from "../../Topology/TopologyActivity";
 import { SERVICE_STATUS_LABELS } from "../../Topology/ServiceMapViewModel";
@@ -95,6 +95,13 @@ export interface HostTopologyInput {
   issues?: Array<OpenIssueRecord> | undefined;
   serviceIssues?: Map<string, Array<ResourceTopologyIssue>> | undefined;
   now: Date;
+  /*
+   * The reader's: a service's call rate and error share, its reasons and
+   * its edges' rates are written in their language and digits, as the
+   * service map writes them ("۶۰۰/دقیقه", "10,0 %"; #8259). English when
+   * left out.
+   */
+  translator?: Translator | undefined;
 }
 
 const CONTAINMENT: ReadonlySet<string> = new Set<string>([
@@ -143,6 +150,7 @@ function addTraffic(
 
 function trafficFacts(
   traffic: Traffic | undefined,
+  translator: Translator | undefined,
 ): Array<ResourceTopologyFact> {
   if (!traffic || traffic.calls <= 0) {
     return [];
@@ -151,11 +159,15 @@ function trafficFacts(
   return [
     {
       label: translationKey("Requests"),
-      value: formatCallRate(traffic.calls, HOST_METRICS_WINDOW_SECONDS),
+      value: formatCallRate(
+        traffic.calls,
+        HOST_METRICS_WINDOW_SECONDS,
+        translator,
+      ),
     },
     {
       label: translationKey("Errors"),
-      value: formatErrorRate(traffic.calls, traffic.errors),
+      value: formatErrorRate(traffic.calls, traffic.errors, translator),
     },
   ];
 }
@@ -540,11 +552,15 @@ export function buildHostTopology(
         health === "critical" || health === "degraded"
           ? [
               text(translationKey("{{rate}} of its calls failed."), {
-                rate: formatErrorRate(traffic?.calls, traffic?.errors),
+                rate: formatErrorRate(
+                  traffic?.calls,
+                  traffic?.errors,
+                  input.translator,
+                ),
               }),
             ]
           : [],
-      facts: trafficFacts(traffic),
+      facts: trafficFacts(traffic, input.translator),
       context: context,
       link:
         serviceId && type === EntityType.Service
@@ -655,7 +671,11 @@ export function buildHostTopology(
         health: healthOfTraffic(callHealth),
         detail:
           edge.callCount && edge.callCount > 0
-            ? formatCallRate(edge.callCount, HOST_METRICS_WINDOW_SECONDS)
+            ? formatCallRate(
+                edge.callCount,
+                HOST_METRICS_WINDOW_SECONDS,
+                input.translator,
+              )
             : undefined,
       });
     }

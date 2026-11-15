@@ -84,26 +84,41 @@ function errorStat(
   const rate: number | null = attempts > 0 ? errors / attempts : null;
   return {
     label: translator.translateText("errors") || "errors",
-    value: formatMessageQueueTopologyPercent(rate === null ? null : rate * 100),
+    value: formatMessageQueueTopologyPercent(
+      rate === null ? null : rate * 100,
+      translator,
+    ),
     color: getMessageQueueTopologyErrorColor(rate),
   };
 }
 
-/** A headline's number, short: a gauge's count, a counter's rate. */
+/*
+ * A headline's number, short: a gauge's count, a counter's rate - in the
+ * reader's digits when handed their translator ("۱٫۲k/s", #8259).
+ */
 export function formatMessageQueueHeadlineShort(
   headline: MessageQueueHeadlineValue,
+  translator?: Translator | undefined,
 ): string {
   if (headline.descriptor.kind === "counter") {
-    return `${formatMessageQueueCount(headline.value)}/s`;
+    return `${formatMessageQueueCount(headline.value, translator)}/s`;
   }
-  return formatMessageQueueCount(headline.value);
+  return formatMessageQueueCount(headline.value, translator);
 }
 
-/** A headline's number in its unit, for the drawer ("1.2k messages"). */
+/*
+ * A headline's number in its unit, for the drawer ("1.2k messages"), in
+ * the reader's digits when handed their translator.
+ */
 export function formatMessageQueueHeadlineFull(
   headline: MessageQueueHeadlineValue,
+  translator?: Translator | undefined,
 ): string {
-  return formatMessageQueueMetricValue(headline.value, headline.descriptor);
+  return formatMessageQueueMetricValue(
+    headline.value,
+    headline.descriptor,
+    translator,
+  );
 }
 
 export function getMessageQueueTopologyStatusLabel(
@@ -126,11 +141,19 @@ function queueCard(
     stats.push(
       {
         label: translator.translateText("in") || "in",
-        value: formatMessageQueueTopologyRate(queue.published, windowSeconds),
+        value: formatMessageQueueTopologyRate(
+          queue.published,
+          windowSeconds,
+          translator,
+        ),
       },
       {
         label: translator.translateText("out") || "out",
-        value: formatMessageQueueTopologyRate(queue.consumed, windowSeconds),
+        value: formatMessageQueueTopologyRate(
+          queue.consumed,
+          windowSeconds,
+          translator,
+        ),
       },
     );
   }
@@ -145,14 +168,14 @@ function queueCard(
     );
     stats.push({
       label: translator.translateText(label) || label,
-      value: formatMessageQueueHeadlineShort(headline.waiting),
+      value: formatMessageQueueHeadlineShort(headline.waiting, translator),
     });
   }
 
   let footer: string | undefined;
   if (headline?.deadLetter && headline.deadLetter.value > 0) {
     footer = translator.translateTemplate("{{count}} dead-lettered", {
-      count: formatMessageQueueHeadlineShort(headline.deadLetter),
+      count: formatMessageQueueHeadlineShort(headline.deadLetter, translator),
     });
   } else if (node.producerCount > 0 || node.consumerCount > 0) {
     footer = translator.translateTemplate("{{producers}} · {{consumers}}", {
@@ -191,6 +214,7 @@ function serviceCard(
       value: formatMessageQueueTopologyRate(
         node.published.messages,
         windowSeconds,
+        translator,
       ),
     });
   }
@@ -200,6 +224,7 @@ function serviceCard(
       value: formatMessageQueueTopologyRate(
         node.consumed.messages,
         windowSeconds,
+        translator,
       ),
     });
   }
@@ -277,11 +302,19 @@ function brokerCard(
     stats.push(
       {
         label: translator.translateText("in") || "in",
-        value: formatMessageQueueTopologyRate(node.published, windowSeconds),
+        value: formatMessageQueueTopologyRate(
+          node.published,
+          windowSeconds,
+          translator,
+        ),
       },
       {
         label: translator.translateText("out") || "out",
-        value: formatMessageQueueTopologyRate(node.consumed, windowSeconds),
+        value: formatMessageQueueTopologyRate(
+          node.consumed,
+          windowSeconds,
+          translator,
+        ),
       },
       errorStat(node.spans, node.errors, translator),
     );
@@ -354,27 +387,36 @@ export function getMessageQueueTopologyNodeLabel(
 
 /**
  * A line's label for the picked metric, or undefined for none (a line with
- * no number to show, or "On hover" while the pointer is elsewhere).
+ * no number to show, or "On hover" while the pointer is elsewhere), in the
+ * reader's language and digits (#8259).
  */
 export function getMessageQueueTopologyEdgeLabel(
   edge: MessageQueueTopologyEdge,
   metric: MessageQueueTopologyEdgeLabel,
   windowSeconds: number,
   isHovered: boolean,
+  translator: Translator = getGlobalTranslator(),
 ): string | undefined {
   const shown: MessageQueueTopologyEdgeLabel =
     metric === "hover" ? (isHovered ? "rate" : "hover") : metric;
   switch (shown) {
     case "rate":
-      return formatMessageQueueTopologyRate(edge.messages, windowSeconds);
+      return formatMessageQueueTopologyRate(
+        edge.messages,
+        windowSeconds,
+        translator,
+      );
     case "errors":
-      return formatMessageQueueTopologyPercent(edge.errorRatePercent);
+      return formatMessageQueueTopologyPercent(
+        edge.errorRatePercent,
+        translator,
+      );
     case "latency":
       return edge.p95DurationMs === null
         ? undefined
         : formatMessageQueueDurationMsInLanguage(
             edge.p95DurationMs,
-            getGlobalTranslator(),
+            translator,
           );
     default:
       return undefined;

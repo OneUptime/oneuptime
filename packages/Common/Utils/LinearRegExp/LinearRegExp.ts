@@ -60,6 +60,13 @@ export interface LinearRegExpOptions {
   captures?: boolean | undefined;
   // How many steps the pattern may compile to (Program.ts DEFAULT_MAX_STEPS).
   maxSteps?: number | undefined;
+  /*
+   * How long the source may be, in code units (MAX_PATTERN_LENGTH). Longer
+   * only for a source written from a pattern a person wrote and already
+   * held to MAX_PATTERN_LENGTH, such as a PromQL pattern written out for
+   * JavaScript: the steps limit still bounds what it compiles to.
+   */
+  maxLength?: number | undefined;
 }
 
 export interface LinearRegExpMatch {
@@ -74,6 +81,12 @@ export interface LinearRegExpMatch {
    * no part. Empty unless the pattern was compiled with captures.
    */
   captures: Array<string | undefined>;
+  /*
+   * Where each group's capture starts and ends in the text, group 1 first,
+   * as JavaScript's d flag gives them; undefined for a group that took no
+   * part. Empty unless the pattern was compiled with captures.
+   */
+  captureIndices: Array<[number, number] | undefined>;
   // Named groups' captures, by name (with captures only).
   groups: Record<string, string | undefined>;
 }
@@ -89,15 +102,19 @@ const SUPPORTED_FLAGS: string = "gims";
 export const MAX_PATTERN_LENGTH: number = 20_000;
 
 /*
- * Refuses a pattern longer than MAX_PATTERN_LENGTH, as too large. Asked
- * before anything reads the pattern - or keeps it: a filter or a request can
- * carry megabytes of text.
+ * Refuses a pattern longer than MAX_PATTERN_LENGTH - or than the longer
+ * `maxLength` a written-out source is given (LinearRegExpOptions) - as too
+ * large. Asked before anything reads the pattern - or keeps it: a filter or
+ * a request can carry megabytes of text.
  */
-export function refusePatternTooLong(source: string): void {
-  if (source.length > MAX_PATTERN_LENGTH) {
+export function refusePatternTooLong(
+  source: string,
+  maxLength: number = MAX_PATTERN_LENGTH,
+): void {
+  if (source.length > maxLength) {
     throw new PatternProblemError(
       PatternProblemReason.TooLarge,
-      `The pattern is longer than ${MAX_PATTERN_LENGTH} characters.`,
+      `The pattern is longer than ${maxLength} characters.`,
     );
   }
 }
@@ -127,7 +144,7 @@ export default class LinearRegExp {
     }
 
     // Refused before anything reads it: a filter can carry megabytes.
-    refusePatternTooLong(source);
+    refusePatternTooLong(source, options?.maxLength);
 
     /*
      * The allowance of the piece of work under way, if any: nothing is
@@ -452,6 +469,7 @@ export default class LinearRegExp {
     const index: number = slots[0]!;
     const end: number = slots[1]!;
     const captures: Array<string | undefined> = [];
+    const captureIndices: Array<[number, number] | undefined> = [];
     /*
      * With no prototype, as JavaScript's own: a group may be named
      * constructor or toString, and a name no group has reads undefined.
@@ -468,10 +486,13 @@ export default class LinearRegExp {
       ) {
         const start: number = slots[group * 2]!;
         const stop: number = slots[group * 2 + 1]!;
-        const value: string | undefined =
-          start >= 0 && stop >= 0 ? text.slice(start, stop) : undefined;
+        const tookPart: boolean = start >= 0 && stop >= 0;
+        const value: string | undefined = tookPart
+          ? text.slice(start, stop)
+          : undefined;
 
         captures.push(value);
+        captureIndices.push(tookPart ? [start, stop] : undefined);
 
         const name: string | null | undefined =
           this.compiled.captureNames[group - 1];
@@ -491,6 +512,7 @@ export default class LinearRegExp {
       end: end,
       value: text.slice(index, end),
       captures: captures,
+      captureIndices: captureIndices,
       groups: groups,
     };
   }

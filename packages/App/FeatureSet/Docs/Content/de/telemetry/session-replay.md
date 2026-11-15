@@ -1092,7 +1092,7 @@ Weil das Stempeln jeden Dienst erreicht, den eine Browser-Anfrage durchlaufen ha
 
 ## Wer eine Aufzeichnung ansehen kann
 
-Eine Aufzeichnung anzusehen ist eine eigene Berechtigung, getrennt vom Auflisten der Sitzungen, und keine von beiden gewährt die projektweite Viewer-Rolle. Projekteigentümer und -administratoren haben sie alle.
+Eine Aufzeichnung anzusehen ist eine eigene Berechtigung, getrennt vom Auflisten der Sitzungen, und keine von beiden gewährt die projektweite Betrachter-Rolle. Projekteigentümer und -administratoren haben sie alle.
 
 | Berechtigung | Erlaubt |
 | --- | --- |

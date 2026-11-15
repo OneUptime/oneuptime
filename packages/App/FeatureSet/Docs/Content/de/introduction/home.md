@@ -56,7 +56,7 @@ Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **
 
 ### Die Willkommens-Checkliste
 
-Wenn ein Projekteigentümer oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, fragt die Karte **Was möchten Sie zuerst tun?** Haken Sie ein oder mehrere Ziele an, etwa **Wissen, wenn meine Website oder API ausfällt** oder **Ich sehe mich nur um**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. **Überspringen** gibt Ihnen die vier Schritte, die jedes Projekt bekommt. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
+Wenn ein Projektinhaber oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, fragt die Karte **Was möchten Sie zuerst tun?** Haken Sie ein oder mehrere Ziele an, etwa **Wissen, wenn meine Website oder API ausfällt** oder **Ich sehe mich nur um**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. **Überspringen** gibt Ihnen die vier Schritte, die jedes Projekt bekommt. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
 
 Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, wenn ein Eintrag existiert, und alle, die das Projekt einrichten, sehen auf jedem Gerät dieselbe Liste:
 

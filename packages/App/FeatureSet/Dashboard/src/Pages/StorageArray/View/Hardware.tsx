@@ -338,10 +338,10 @@ const StorageArrayHardware: FunctionComponent<
                 return textCell("");
               }
               return textCell(
-                [
+                StorageArrayResourceUtils.joinFiguresOfACell([
                   StorageArrayResourceUtils.formatBytesPerSec(received),
                   StorageArrayResourceUtils.formatBytesPerSec(transmitted),
-                ].join(" / "),
+                ]),
               );
             },
           },

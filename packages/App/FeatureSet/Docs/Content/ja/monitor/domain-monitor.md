@@ -32,7 +32,7 @@ flowchart TB
 
 ## 始める前に
 
-- **モニターを作成できるロール**: Project Owner、Project Admin、Project Member、Monitor Admin、Monitor Member のいずれか、または Create Monitor 権限を持つカスタムロール。
+- **モニターを作成できるロール**: プロジェクト所有者、プロジェクト管理者、プロジェクトメンバー、モニター管理者、モニターメンバーのいずれか、または Create Monitor 権限を持つカスタムロール。
 - **プローブからレジストリへの送信アクセス。** 新しいモニターには、プロジェクトのデフォルトのプローブが選ばれます。[カスタムプローブ](/docs/probe/custom-probe) は次に到達できる必要があります。
 
 | 宛先 | プロトコル | 用途 |

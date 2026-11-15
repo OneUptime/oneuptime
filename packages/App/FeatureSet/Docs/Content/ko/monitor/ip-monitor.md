@@ -39,7 +39,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **모니터를 만들 수 있는 역할**: Project Owner, Project Admin, Project Member, Monitor Admin 또는 Monitor Member, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
+- **모니터를 만들 수 있는 역할**: 프로젝트 소유자, 프로젝트 관리자, 프로젝트 구성원, 모니터 관리자 또는 모니터 구성원, 또는 Create Monitor 권한이 있는 사용자 지정 역할.
 - **주소에 연결할 수 있는 프로브**(경로에서 ICMP가 허용되어야 합니다). 모든 새 모니터에는 프로젝트의 기본 프로브가 선택됩니다. 주소 앞에 방화벽이 있으면 [OneUptime Cloud의 프로브 IP 주소](/docs/configuration/ip-addresses)에서 오는 ICMP 에코 요청을 허용합니다. 프라이빗 주소에는 그 네트워크의 [사용자 지정 프로브](/docs/probe/custom-probe)가, IPv6 주소에는 IPv6로 연결할 수 있는 프로브가 필요합니다.
 
 ## IP 모니터 만들기

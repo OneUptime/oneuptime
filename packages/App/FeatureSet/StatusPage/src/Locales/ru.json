@@ -42,7 +42,7 @@
   },
   "overview": {
     "uptimeSuffix": "% времени работы",
-    "uptimePercent": "Время работы: {{percent}}%",
+    "uptimePercent": "Время работы: {{percent}}",
     "operational": "Работает",
     "notMonitored": "Не отслеживается",
     "noResourcesInGroup": "В эту группу не добавлены ресурсы.",

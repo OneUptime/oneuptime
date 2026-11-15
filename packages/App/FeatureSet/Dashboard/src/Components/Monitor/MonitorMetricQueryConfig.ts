@@ -24,6 +24,28 @@ export type GetSeriesResolverArgs = {
   monitorType: MonitorType;
   monitorMetricType: MonitorMetricType;
   probes: Array<Probe>;
+  /*
+   * The reader's: a series with no probe, disk or interface of its own is
+   * named by its metric (a Server monitor's CPU), in their words.
+   */
+  translator?: Translator | undefined;
+};
+
+/*
+ * One of a chart's words in the reader's language, looked up once: the
+ * shared utilities write them in English, and the chart draws them as it is
+ * handed them. Without a translator, the English, as the server and a unit
+ * test read it.
+ */
+const translateChartWord: (
+  text: string,
+  translator: Translator | undefined,
+) => string = (text: string, translator: Translator | undefined): string => {
+  if (!translator || !text) {
+    return text;
+  }
+
+  return translator.translateText(text) || text;
 };
 
 /*
@@ -35,9 +57,12 @@ export function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
   const { data, monitorType, monitorMetricType, probes } = args;
 
   const fallback: ChartSeries = {
-    title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-      monitorMetricType,
-      monitorType,
+    title: translateChartWord(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        monitorMetricType,
+        monitorType,
+      ),
+      args.translator,
     ),
   };
 
@@ -97,11 +122,15 @@ export function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
  * grouped by attributes so each probe (or disk, or interface) is its own
  * series.
  *
- * The chart draws its description as it is handed (EmbeddedMetricCard,
- * MetricCharts), so with the reader's translator it is looked up here, once:
- * a Database monitor's metric says what it is in the reader's language, from
- * its catalog's description (#8014). Without one it reads English, as the
- * server and a unit test get it.
+ * The chart draws its title, its description and its legend as it is handed
+ * them (EmbeddedMetricCard, MetricCharts), and so a series named by its
+ * metric, so with the reader's translator each is looked up here, once:
+ * "Antwortzeit" over a German website monitor's chart (#8282), and a
+ * Database monitor's metric says what it is in the reader's language, from
+ * its catalog's description (#8014). Without one they read English, as the
+ * server and a unit test get them. The configs are never handed through
+ * chartWordsInReadersLanguage as well: a translation looked up again can be
+ * an English key itself (#7790).
  */
 export function buildMonitorMetricQueryConfig(data: {
   monitorId: ObjectID;
@@ -113,25 +142,31 @@ export function buildMonitorMetricQueryConfig(data: {
 }): MetricQueryConfigData {
   const monitorMetricType: MonitorMetricType = data.metric;
   const monitorType: MonitorType = data.monitorType;
-  const description: string =
-    MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
-      monitorMetricType,
-      monitorType,
-    );
+  const translator: Translator | undefined = data.translator;
 
   return {
     metricAliasData: {
       metricVariable: monitorMetricType,
-      title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-        monitorMetricType,
-        monitorType,
+      title: translateChartWord(
+        MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+          monitorMetricType,
+          monitorType,
+        ),
+        translator,
       ),
-      description: data.translator
-        ? data.translator.translateText(description) || description
-        : description,
-      legend: MonitorMetricTypeUtil.getLegendByMonitorMetricType(
-        monitorMetricType,
-        monitorType,
+      description: translateChartWord(
+        MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+          monitorMetricType,
+          monitorType,
+        ),
+        translator,
+      ),
+      legend: translateChartWord(
+        MonitorMetricTypeUtil.getLegendByMonitorMetricType(
+          monitorMetricType,
+          monitorType,
+        ),
+        translator,
       ),
       legendUnit:
         MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
@@ -160,6 +195,7 @@ export function buildMonitorMetricQueryConfig(data: {
         monitorType: monitorType,
         monitorMetricType: monitorMetricType,
         probes: data.probes,
+        translator: translator,
       });
     },
   };

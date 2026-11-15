@@ -1080,17 +1080,58 @@ function formatValueParts(
   }
 
   /*
-   * Unknown unit — format number and show the readable unit name when we
-   * have one: the reader's, when the caller can name it (unitName).
+   * A unit no threshold table scales, written beside its value by its
+   * symbol where it has one: "23.5 °C", "50 Hz", "230 V", "12 kW" - on a
+   * chart's value axis, in its legend and tooltip, on a threshold line, in
+   * a metric's row and on a Gauge alike. Its English name in words - "23.5
+   * Celsius", "98.6 Fahrenheit" - was English on every tick of every
+   * language's chart ("23,5 Celsius" in German, "۲۳٫۵ Celsius" in Persian)
+   * and the widest tick on the axis (#8284); a symbol reads alike in every
+   * language, as "ms", "MB/s" and "%" always have (units are kept in Latin
+   * letters, Locales/ARABIC.md), and as Intl writes "°C" in Persian. The
+   * words stay where there is room for a name, in the reader's language:
+   * the unit chip and the metric's details (getReadableUnit, UnitNames). A
+   * unit with no symbol ("Kelvin", "widgets") keeps its name: the reader's,
+   * when the caller can name it (unitName, #7518), English otherwise.
    */
   return build(
     formatNumber(value),
     unitStyle === "compact"
       ? ValueFormatter.getCompactUnit(unit, options)
-      : options?.unitName
-        ? options.unitName(unit)
-        : ValueFormatter.getReadableUnit(unit),
+      : (getValueSymbol(trimmedUnit) ??
+          (options?.unitName
+            ? options.unitName(unit)
+            : ValueFormatter.getReadableUnit(unit))),
   );
+}
+
+/*
+ * The symbol a value is written with for a unit no threshold table scales:
+ * compactUnitMap's ("°C", "Hz", "kW", "MiB"), and UCUM's ampere, "A",
+ * which is case-sensitive - "a" is a year (an annum), so only the capital
+ * is read as amperes. A span of time in minutes, hours or days reads as
+ * the seconds table writes one ("2 hours", "5 min"), so the reader's
+ * language words it as it words every span ("2 Stunden", "۲ ساعت").
+ * Undefined for a unit with no symbol of its own.
+ */
+const TIME_UNIT_SYMBOLS: Record<string, string> = {
+  min: "min",
+  h: "hours",
+  d: "days",
+};
+
+function getValueSymbol(unit: string): string | undefined {
+  if (unit === "A") {
+    return "A";
+  }
+
+  const symbol: string | undefined = compactUnitMap[normalizeUnit(unit)];
+
+  if (symbol === undefined || symbol === "") {
+    return undefined;
+  }
+
+  return TIME_UNIT_SYMBOLS[symbol] ?? symbol;
 }
 
 export default class ValueFormatter {
