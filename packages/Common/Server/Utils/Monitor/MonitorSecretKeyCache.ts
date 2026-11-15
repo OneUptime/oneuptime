@@ -14,11 +14,12 @@ import { createHash } from "crypto";
  * still the monitor's key (MonitorResourceOptions.secretKey), so a key that
  * was rotated or a monitor that was deleted stops working at once - the
  * caller forgets the entry and the job ends as it did before (the monitor is
- * not found). A monitor disabled or archived inside the minute ends the same
- * way MonitorResource ends any result for one (MonitorDisabled /
- * MonitorArchived, which the ingest jobs complete without retrying); a
- * project blocked or made a sample project is skipped by MonitorResource as
- * before. What the lookup alone checked - a project's subscription still
+ * not found). A monitor archived, disabled, or paused by a manually created
+ * incident or a maintenance event inside the minute ends the same way
+ * MonitorResource ends any result for one (its ExceptionMessages refusal,
+ * which the ingest jobs complete without retrying -
+ * isNonActionableIngestError); a project blocked or made a sample project is
+ * skipped by MonitorResource as before. What the lookup alone checked - a project's subscription still
  * active - holds for at most this minute.
  *
  * Keys are hashed in the Redis key names, as IncomingRequestReceivedAtStore
