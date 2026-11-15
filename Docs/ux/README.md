@@ -571,9 +571,11 @@ then `npm run i18n:validate` from the root.
   [DashboardComponentsAToLHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsAToLHardcodedGuard.test.ts),
   [DashboardComponentsMRHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardComponentsMRHardcodedGuard.test.ts),
   [DashboardPagesUtilsHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardPagesUtilsHardcodedGuard.test.ts),
-  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
-  and
-  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+  [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts),
+  [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts)
+  and, for the service map and the infrastructure explorer, whose cards built "3 active incidents"
+  and "10.0% errors" in English at run time (#7725),
+  [TopologyScreensWordsGuard](../../packages/App/Tests/Dashboard/TopologyScreensWordsGuard.test.ts).
 - **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
   its digits; print it so it keeps its own direction. Enforced by
   [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
