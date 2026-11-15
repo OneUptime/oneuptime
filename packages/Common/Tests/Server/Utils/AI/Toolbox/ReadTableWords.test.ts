@@ -180,28 +180,53 @@ describe("a table with words, and a line that is data", () => {
 });
 
 /*
- * Every table a read tool leaves says its words (issues #7977, #7979): a
- * table built from a title of plain English reads English on every page.
+ * Every widget a tool leaves says its words (issues #7977, #7979, #8312): a
+ * table, a chart, a list of incidents, alerts or exceptions, a trace
+ * waterfall or stat cards built from a title of plain English reads
+ * English on every page. A resource card and an action card carry words
+ * of their own (ResourceCardWordsGuard).
  */
 const TOOLBOX_DIR: string = path.resolve(
   __dirname,
   "../../../../../Server/Utils/AI/Toolbox",
 );
+const CHAT_DIR: string = path.resolve(
+  __dirname,
+  "../../../../../Server/Utils/AI/Chat",
+);
 
-// Each `WidgetBuilder.table({` call, and the text of its arguments' first lines.
-function getTableCalls(source: string): Array<string> {
-  const calls: Array<string> = [];
-  let index: number = source.indexOf("WidgetBuilder.table(");
+const WORDED_WIDGET_BUILDERS: ReadonlyArray<string> = [
+  "table",
+  "timeSeries",
+  "bars",
+  "traceWaterfall",
+  "incidentList",
+  "alertList",
+  "exceptionList",
+  "stats",
+];
 
-  while (index >= 0) {
-    calls.push(source.slice(index, index + 400));
-    index = source.indexOf("WidgetBuilder.table(", index + 1);
+// Each `WidgetBuilder.<builder>(` call, and the text of its arguments' first lines.
+function getWidgetCalls(
+  source: string,
+): Array<{ builder: string; call: string }> {
+  const calls: Array<{ builder: string; call: string }> = [];
+  const pattern: RegExp = new RegExp(
+    `WidgetBuilder\\.(${WORDED_WIDGET_BUILDERS.join("|")})\\(`,
+    "g",
+  );
+
+  for (const match of source.matchAll(pattern)) {
+    calls.push({
+      builder: match[1]!,
+      call: source.slice(match.index!, match.index! + 400),
+    });
   }
 
   return calls;
 }
 
-// Whether a call hands the table words rather than an English title.
+// Whether a call hands the widget words rather than an English title.
 function isWorded(call: string): boolean {
   const titleAt: number = call.search(/\btitle\s*:/);
   // Words, or a builder of a heading with words: ...getHotspotsHeading(...).
@@ -211,66 +236,41 @@ function isWorded(call: string): boolean {
 }
 
 /*
- * The labels of the tools whose chips carry words (issue #7980): a label
- * written as English in place - "`Logs ${...}`" - reads English under a
- * German answer.
+ * The files that only describe a chip, rather than write one: the
+ * helpers that build a label and its words at once, and the result's type.
  */
-const WORDED_CHIP_TOOLS: ReadonlyArray<string> = [
-  "OnCallTools.ts",
-  "StatusPageTools.ts",
-  "ScheduledMaintenanceTools.ts",
-  "SloTools.ts",
-  "TeamTools.ts",
-  "TimelineTools.ts",
-  "WorkflowProbeTools.ts",
-  "LogTools.ts",
-  "TraceTools.ts",
-  "RumTools.ts",
-  "ContainerTools.ts",
-  "SecurityEventTools.ts",
-  "MonitorTools.ts",
-  "IncidentTools.ts",
-  "AlertTools.ts",
-  "ExceptionTools.ts",
+const CHIP_HELPER_FILES: ReadonlyArray<string> = [
+  "ReadTableWords.ts",
+  "ToolTypes.ts",
 ];
 
 /*
- * The labels these tools still write in English, each a refusal or a
- * not-found answer the model reads more than a person does (a follow-up of
- * #7980 words them).
+ * Every chip a tool leaves says its words (issues #7980, #8311): a label
+ * written in place - "`Logs ${...}`", "citationLabel: label" - reads
+ * English under a German answer, so no tool writes citationLabel at all:
+ * it spreads ReadTableWords' citationSentence or citationOf, whose English
+ * is the label.
  */
-const ENGLISH_LABELS_LEFT: ReadonlyArray<string> = [
-  'citationLabel: "On-call now (policy not found)"',
-  "citationLabel: `Status page ${statusPageId.toString()}`",
-  'citationLabel: "SLOs (invalid status filter)"',
-  "citationLabel: `Runbook ${runbookId.toString()}`",
-  "citationLabel: `Team ${teamId.toString()}`",
-  'citationLabel: "Incident timeline (no incident id)"',
-  'citationLabel: "Incident timeline (not found)"',
-  'citationLabel: "Alert timeline (no alert id)"',
-  'citationLabel: "Alert timeline (not found)"',
-  "citationLabel: `Workflow ${workflowId.toString()}`",
-  'citationLabel: "Incident search (no query)"',
-];
-
-// Every `citationLabel:` a source writes in place.
 function getWrittenLabels(source: string): Array<string> {
-  return Array.from(source.matchAll(/citationLabel:\s*[`"][^\n]*/g)).map(
+  return Array.from(source.matchAll(/\bcitationLabel\b[^\n]*/g)).map(
     (match: RegExpMatchArray): string => {
       return match[0].replace(/,\s*$/, "");
     },
   );
 }
 
-describe("every read tool's table and chip says its words", () => {
-  const files: Array<string> = fs
-    .readdirSync(TOOLBOX_DIR)
-    .filter((file: string): boolean => {
-      return file.endsWith(".ts");
-    });
+function toolboxFiles(): Array<string> {
+  return fs.readdirSync(TOOLBOX_DIR).filter((file: string): boolean => {
+    return file.endsWith(".ts");
+  });
+}
 
-  test("the toolbox builds tables, and each says its words", () => {
-    let tables: number = 0;
+describe("every tool's widgets and chips say their words", () => {
+  const files: Array<string> = toolboxFiles();
+
+  test("the toolbox builds widgets of every worded kind, and each says its words", () => {
+    let widgets: number = 0;
+    const builders: Set<string> = new Set<string>();
 
     for (const file of files) {
       const source: string = fs.readFileSync(
@@ -278,39 +278,112 @@ describe("every read tool's table and chip says its words", () => {
         "utf8",
       );
 
-      for (const call of getTableCalls(source)) {
-        tables++;
-        expect({ file, worded: isWorded(call) }).toEqual({
+      for (const { builder, call } of getWidgetCalls(source)) {
+        widgets++;
+        builders.add(builder);
+        expect({ file, builder, worded: isWorded(call) }).toEqual({
           file,
+          builder,
           worded: true,
         });
       }
     }
 
-    // On-call, status pages, SLOs, logs, traces and the rest: about 36.
-    expect(tables).toBeGreaterThanOrEqual(35);
+    // About 36 tables, and the lists, the charts and the waterfall (#8312).
+    expect(widgets).toBeGreaterThanOrEqual(48);
+    expect(Array.from(builders).sort()).toEqual(
+      [
+        "alertList",
+        "bars",
+        "exceptionList",
+        "incidentList",
+        "table",
+        "timeSeries",
+        "traceWaterfall",
+      ].sort(),
+    );
   });
 
-  test.each(WORDED_CHIP_TOOLS)(
-    "%s writes no label in English but the ones listed",
-    (file: string) => {
-      const source: string = fs.readFileSync(
-        path.join(TOOLBOX_DIR, file),
-        "utf8",
-      );
+  test.each(
+    files.filter((file: string): boolean => {
+      return !CHIP_HELPER_FILES.includes(file);
+    }),
+  )("%s writes no chip's label in place", (file: string) => {
+    const source: string = fs.readFileSync(
+      path.join(TOOLBOX_DIR, file),
+      "utf8",
+    );
 
-      expect(source).toMatch(/citationSentence\(|citationOf\(/);
-      expect(
-        getWrittenLabels(source).filter((label: string): boolean => {
-          return !ENGLISH_LABELS_LEFT.includes(label);
-        }),
-      ).toEqual([]);
-    },
-  );
+    expect(getWrittenLabels(source)).toEqual([]);
+  });
+
+  test("the tools that leave a chip build it from words", () => {
+    const buildsFromWords: RegExp = /citationSentence\(|citationOf\(/;
+    const wordedTools: Array<string> = files.filter((file: string): boolean => {
+      return buildsFromWords.test(
+        fs.readFileSync(path.join(TOOLBOX_DIR, file), "utf8"),
+      );
+    });
+
+    /*
+     * Every read and write tool: the docs, code, cloud, metric, profile,
+     * context, write and setup tools among them (#8311).
+     */
+    for (const file of [
+      "DocsTools.ts",
+      "CodeTools.ts",
+      "CodeWriteTools.ts",
+      "CloudTools.ts",
+      "MetricTools.ts",
+      "ProfileTools.ts",
+      "ContextTools.ts",
+      "DataObservabilityTools.ts",
+      "ChangeTools.ts",
+      "RecentChangesTools.ts",
+      "TransceiverTools.ts",
+      "SetupHealthTools.ts",
+      "ResourceTools.ts",
+      "WhoIsToldTools.ts",
+      "IncidentWriteTools.ts",
+      "AlertWriteTools.ts",
+      "NoteWriteTools.ts",
+      "AIActionTools.ts",
+      "SetupTools.ts",
+      "WorkflowBuilderTools.ts",
+      "AIMetaTools.ts",
+      "SecurityCaseTools.ts",
+      "DataSecurityTools.ts",
+      "OnCallTools.ts",
+      "StatusPageTools.ts",
+      "SloTools.ts",
+      "RunbookTools.ts",
+      "TeamTools.ts",
+      "TimelineTools.ts",
+      "WorkflowProbeTools.ts",
+      "IncidentTools.ts",
+    ]) {
+      expect(wordedTools).toContain(file);
+    }
+  });
+
+  test("a page of a long output says its words too (ToolOutputPager)", () => {
+    const source: string = fs.readFileSync(
+      path.join(CHAT_DIR, "ToolOutputPager.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("...ToolOutputPager.getPageCitation(page)");
+    expect(source).not.toMatch(/citationLabel:\s*[`"]/);
+  });
 
   test("the readings themselves (negative controls)", () => {
     expect(
       isWorded("WidgetBuilder.table({\n  title: `Logs (${rows.length})`,"),
+    ).toBe(false);
+    expect(
+      isWorded(
+        "WidgetBuilder.incidentList({\n  title: `${stateLabel} (${total})`,",
+      ),
     ).toBe(false);
     expect(
       isWorded(
@@ -321,9 +394,16 @@ describe("every read tool's table and chip says its words", () => {
       isWorded("WidgetBuilder.table({\n  ...getHotspotsHeading(kind, window),"),
     ).toBe(true);
     expect(
+      getWidgetCalls(
+        "WidgetBuilder.bars({ title: 'x' }); WidgetBuilder.resourceCard({ title: 'y' });",
+      ).map((call: { builder: string }): string => {
+        return call.builder;
+      }),
+    ).toEqual(["bars"]);
+    expect(
       getWrittenLabels(
-        "citationLabel: `Logs ${start} (${n} shown)`,\n...citationSentence(X),",
+        "citationLabel: `Logs ${start} (${n} shown)`,\n...citationSentence(X),\ncitationLabel,\n",
       ),
-    ).toEqual(["citationLabel: `Logs ${start} (${n} shown)`"]);
+    ).toEqual(["citationLabel: `Logs ${start} (${n} shown)`", "citationLabel"]);
   });
 });

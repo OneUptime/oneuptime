@@ -877,12 +877,12 @@ export const AI_READ_DATA_SECURITY_TERMS: ReadonlyArray<string> = [
   translationKey("AI Conversations"),
 ];
 
-// A security case's AI verdict (SecurityCaseVerdict), as its page says it.
+// A security case's AI verdict (SecurityCaseAiVerdict), as its page says it.
 export const AI_READ_SECURITY_VERDICTS: ReadonlyArray<string> = [
-  translationKey("True Positive"),
-  translationKey("Benign Positive"),
-  translationKey("False Positive"),
-  translationKey("Undetermined"),
+  translationKey("Likely Malicious"),
+  translationKey("Likely Benign"),
+  translationKey("Likely False Positive"),
+  translationKey("Inconclusive"),
 ];
 
 // A runbook step's type, as the runbook's Steps page names it.
