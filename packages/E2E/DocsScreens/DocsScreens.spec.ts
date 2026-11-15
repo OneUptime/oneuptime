@@ -27,6 +27,7 @@ import {
   compareFingerprints,
   DocsScreenFingerprint,
   DocsScreenFingerprints,
+  REGENERATE_COMMAND,
 } from "../../App/FeatureSet/Docs/Screens/DocsScreenFingerprint";
 import ScreenDriver from "./ScreenDriver";
 import {
@@ -45,7 +46,8 @@ import {
  * THE DOCS' SCREENSHOTS (#6823), drawn from the offline fixtures: one test
  * per docs language, walking every shot of DocsScreenList.ts in order.
  * `npm run docs-screens` writes the pictures whose page changed;
- * `npm run docs-screens:check` only says which did (README.md).
+ * `npm run docs-screens:check` writes nothing, and fails a language with a
+ * shot whose page changed (README.md).
  *
  * Each shot opens its page in its fixture, does its steps by the words on
  * screen in this language, reads its fingerprint, and - when that differs
@@ -253,13 +255,24 @@ for (const lang of LANGUAGES) {
       `${JSON.stringify(result, null, 2)}\n`,
     );
 
-    // Writing, a shot that could not be drawn fails the run; checking, the issue lists it.
-    if (MODE === "write") {
-      expect(
-        results.filter((entry: ShotResult): boolean => {
-          return entry.status === "failed";
+    /*
+     * A shot that could not be drawn fails the run, and so, checking, does a
+     * stale one (#7510): the Docs Screenshots workflow fails with it, on main
+     * and in the release run that waits for it. The result is written above
+     * first, so the teardown still puts every language's together for the
+     * staleness issue.
+     */
+    expect(
+      results
+        .filter((entry: ShotResult): boolean => {
+          return entry.status === "failed" || entry.status === "stale";
+        })
+        .map((entry: ShotResult): string => {
+          return `${entry.name} (${entry.status}): ${entry.reasons.join("; ")}`;
         }),
-      ).toEqual([]);
-    }
+      MODE === "check"
+        ? `Docs screenshots in ${lang} that no longer show their page. Draw them again with \`${REGENERATE_COMMAND}\` and commit what it changes`
+        : `Docs screenshots in ${lang} that could not be drawn`,
+    ).toEqual([]);
   });
 }
