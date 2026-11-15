@@ -1,4 +1,3 @@
-import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
   AnomalyDetectionSensitivity,
   CheckOn,
@@ -276,18 +275,16 @@ export const CRITERIA_ON_ANY_CHECK_SENTENCE: PluralTemplate = {
   other: "{{condition}} on any check in the past {{count}} minutes",
 };
 
-// The whole filter, and whether the next one must match too.
+/*
+ * The whole filter. Whether all of a criteria's filters must match or any
+ * one is said once, above them (MonitorCriteriaInstance's heading), never
+ * as an "and," or "or," left at the end of each line (#8533).
+ */
 export const CRITERIA_FILTER_SENTENCE: string = translationKey(
   "Check if {{condition}}",
 );
 export const CRITERIA_EXPRESSION_FILTER_SENTENCE: string = translationKey(
   "Check if {{condition}}.",
-);
-export const CRITERIA_FILTER_AND_SENTENCE: string = translationKey(
-  "Check if {{condition}} and,",
-);
-export const CRITERIA_FILTER_OR_SENTENCE: string = translationKey(
-  "Check if {{condition}} or,",
 );
 
 export interface CheckByCheckWindow {
@@ -521,15 +518,14 @@ export default class CriteriaFilterUtil {
   /*
    * The filter as a sentence, for the criteria list, in the translator's
    * language (#8350): "Check if "Response Time (in ms)" is greater than
-   * 3,000 ms and,", "Prüfen, ob „Antwortzeit (in ms)“ größer als 3.000 ms
-   * ist, und". Pass the monitor type when it is known: whether a window is
-   * judged check by check depends on it
-   * (CommonCriteriaFilterUtil.isJudgedCheckByCheck). Without a translator
-   * it is English.
+   * 3,000 ms", "Prüfen: "Antwortzeit (in ms)" ist größer als 3.000 ms". Pass
+   * the monitor type when it is known: whether a window is judged check by
+   * check depends on it (CommonCriteriaFilterUtil.isJudgedCheckByCheck).
+   * Without a translator it is English. How the filters combine is the
+   * list's to say, once (#8533).
    */
   public static translateFilterToText(
     criteriaFilter: CriteriaFilter,
-    filterCondition?: FilterCondition | undefined,
     monitorType?: MonitorType | undefined,
     translator: Translator = ENGLISH,
   ): string {
@@ -920,14 +916,9 @@ export default class CriteriaFilterUtil {
       ) &&
       !isForecast;
 
-    const whole: string =
-      filterCondition === FilterCondition.All
-        ? CRITERIA_FILTER_AND_SENTENCE
-        : filterCondition === FilterCondition.Any
-          ? CRITERIA_FILTER_OR_SENTENCE
-          : isExpression
-            ? CRITERIA_EXPRESSION_FILTER_SENTENCE
-            : CRITERIA_FILTER_SENTENCE;
+    const whole: string = isExpression
+      ? CRITERIA_EXPRESSION_FILTER_SENTENCE
+      : CRITERIA_FILTER_SENTENCE;
 
     return translator.translateTemplate(whole, {
       condition: composedValue(judged),

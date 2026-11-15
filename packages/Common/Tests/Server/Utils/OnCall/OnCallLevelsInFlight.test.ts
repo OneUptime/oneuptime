@@ -165,6 +165,54 @@ describe("what a level kept for its resume", () => {
     ).toEqual(kept);
   });
 
+  /*
+   * A page again's start is kept before its rule is recorded (issue
+   * #8514): where it starts - or nowhere named, for the policy's first
+   * rule - who acknowledged, and its timeout's minutes.
+   */
+  test("a page again's start, naming no rule, is read back as it was kept", async () => {
+    const kept: OnCallLevelInFlight = level({
+      ruleId: "",
+      stopped: true,
+      firstUserIds: ["85140000-0000-4000-8000-0000000000d1"],
+      pageAgain: {
+        startAtRuleId: null,
+        acknowledgedByUserId: "85140000-0000-4000-8000-0000000000d1",
+        minutes: 30,
+      },
+    });
+
+    await OnCallLevelsInFlight.keep(RUN, kept);
+
+    expect(
+      (await OnCallLevelsInFlight.read([RUN])).get(RUN.toString()),
+    ).toEqual(kept);
+  });
+
+  test("only a page again's start may name no rule", () => {
+    expect(
+      OnCallLevelsInFlight.fromCacheValue(
+        JSON.stringify({
+          ruleId: "",
+          startedAt: 1,
+          heartbeatAt: 1,
+          stopped: true,
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      OnCallLevelsInFlight.fromCacheValue(
+        JSON.stringify({
+          ruleId: "",
+          startedAt: 1,
+          heartbeatAt: 1,
+          stopped: true,
+          pageAgain: { startAtRuleId: 42, minutes: "soon" },
+        }),
+      ),
+    ).toBeNull();
+  });
+
   test("timing that is not one it knows is left out, and the level still reads", () => {
     expect(
       OnCallLevelsInFlight.fromCacheValue(

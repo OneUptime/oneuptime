@@ -467,7 +467,7 @@ describe("not triaged yet", () => {
     expect(within(reason).queryByRole("link")).not.toBeInTheDocument();
     expect(
       within(reason).getByTestId("security-case-ai-reason-who-can"),
-    ).toHaveTextContent("A project administrator can review these settings.");
+    ).toHaveTextContent("A Project Admin can review these settings.");
   });
 
   test("the daily limit's fix goes to who may change the limits", async () => {
