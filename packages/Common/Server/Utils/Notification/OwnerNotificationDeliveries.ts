@@ -11,6 +11,7 @@ import OwnerNotificationDeliveryService, {
   OwnerNotificationDeliveryRow,
   OwnerNotificationEvent,
 } from "../../Services/OwnerNotificationDeliveryService";
+import ProjectService from "../../Services/ProjectService";
 import UserService from "../../Services/UserService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
@@ -429,6 +430,49 @@ export default class OwnerNotificationDeliveries {
       rows: rows,
       known: owners,
       isFeedLeftUnwritten: false,
+    });
+  }
+
+  /*
+   * plan(), for the record's owners as `findOwners` reads them - or the
+   * project's owners, told in their place, when it reads none. A failure to
+   * read them tells nobody, as it did when it came after the take, and says
+   * so. Never throws.
+   */
+  public static async planForOwnersOf(data: {
+    notification: OwnerNotificationOf;
+    findOwners: () => Promise<Array<User>>;
+    writesFeedItem: boolean;
+  }): Promise<OwnerNotificationDelivery> {
+    let owners: Array<User> = [];
+    let isProjectOwners: boolean = false;
+
+    try {
+      owners = await data.findOwners();
+
+      if (owners.length === 0) {
+        isProjectOwners = true;
+        owners = await ProjectService.getOwners(data.notification.projectId);
+      }
+    } catch (error) {
+      logger.error(
+        `Could not read whom ${data.notification.kind} ${data.notification.eventId.toString()} is to tell: ${error}. Telling nobody.`,
+        {
+          projectId: data.notification.projectId.toString(),
+          ownerNotificationKind: data.notification.kind,
+          resourceId: data.notification.resourceId.toString(),
+          eventId: data.notification.eventId.toString(),
+        } as LogAttributes,
+      );
+      owners = [];
+      isProjectOwners = false;
+    }
+
+    return await this.plan({
+      notification: data.notification,
+      owners: owners,
+      isProjectOwners: isProjectOwners,
+      writesFeedItem: data.writesFeedItem,
     });
   }
 
