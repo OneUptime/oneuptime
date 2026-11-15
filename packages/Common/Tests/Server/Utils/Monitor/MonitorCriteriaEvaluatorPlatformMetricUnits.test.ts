@@ -472,8 +472,8 @@ describe("Docker monitor root cause", () => {
     expectNoLegacySummary(rootCause);
     expect(rootCause).toContain("- Unit: Milliseconds");
     // 1000 ms + 900 ms of growth, summed over the window.
-    expect(filterConditionsMet(rootCause)).toContain("1.9 sec");
-    expect(filterConditionsMet(rootCause)).toContain("1 sec threshold");
+    expect(filterConditionsMet(rootCause)).toContain("1.9\u00A0sec");
+    expect(filterConditionsMet(rootCause)).toContain("1\u00A0sec threshold");
   });
 
   test("Container Down: the container's uptime is listed in seconds with the container named", async () => {
@@ -492,7 +492,7 @@ describe("Docker monitor root cause", () => {
     expectNoLegacySummary(rootCause);
     expect(rootCause).toContain("- Metric: `container.uptime`");
     expect(rootCause).toContain("- Unit: Seconds");
-    expect(sampleValueAt(rootCause, 0)).toBe("0 sec");
+    expect(sampleValueAt(rootCause, 0)).toBe("0\u00A0sec");
     expect(rootCause).toContain("   - `resource.container.name`: `checkout`");
     // Only the grouped label is lifted off the raw row, not every attribute.
     expect(rootCause).not.toContain("resource.host.arch");
@@ -536,11 +536,11 @@ describe("Podman monitor root cause", () => {
 
     expectNoLegacySummary(rootCause);
     expect(rootCause).toContain("- Unit: Seconds");
-    expect(sampleValueAt(rootCause, 0)).toBe("45 sec");
+    expect(sampleValueAt(rootCause, 0)).toBe("45\u00A0sec");
     expect(rootCause).toContain("   - `resource.container.name`: `api`");
     expect(rootCause).not.toContain("`worker`");
-    expect(filterConditionsMet(rootCause)).toContain("45 sec");
-    expect(filterConditionsMet(rootCause)).toContain("2 min threshold");
+    expect(filterConditionsMet(rootCause)).toContain("45\u00A0sec");
+    expect(filterConditionsMet(rootCause)).toContain("2\u00A0min threshold");
   });
 });
 
@@ -634,13 +634,13 @@ describe("IoT device monitor root cause", () => {
       templateId: "iot-weak-signal",
       values: [-103.2, -104.5],
       unitLine: "- Unit: dBm",
-      expected: ["-103.2 dBm", "-104.5 dBm"],
+      expected: ["-103.2\u00A0dBm", "-104.5\u00A0dBm"],
     },
     {
       templateId: "iot-high-temperature",
       values: [72.5, 75],
       unitLine: "- Unit: °C",
-      expected: ["72.5 °C", "75 °C"],
+      expected: ["72.5\u00A0°C", "75\u00A0°C"],
     },
   ];
 

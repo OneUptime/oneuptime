@@ -664,8 +664,8 @@ describe("Grouped Proxmox ratio templates list only the breaching series, in %",
 
     // No RAM totals, raw or scaled.
     expect(rootCause).not.toMatch(RAW_NUMBER);
-    expect(rootCause).not.toContain("64 GB");
-    expect(rootCause).not.toContain("128 GB");
+    expect(rootCause).not.toContain("64\u00A0GB");
+    expect(rootCause).not.toContain("128\u00A0GB");
   });
 
   test("pve-node-high-memory: '- Metric:' names the formula legend and lists both components", async () => {
@@ -738,8 +738,8 @@ describe("Grouped Proxmox ratio templates list only the breaching series, in %",
     );
 
     expect(rootCause).not.toMatch(RAW_NUMBER);
-    expect(rootCause).not.toContain("4 TB");
-    expect(rootCause).not.toContain("1 TB");
+    expect(rootCause).not.toContain("4\u00A0TB");
+    expect(rootCause).not.toContain("1\u00A0TB");
   });
 
   test("pve-lxc-disk-near-full: only the container above 90%, in %, with the legend and components", async () => {
@@ -768,7 +768,7 @@ describe("Grouped Proxmox ratio templates list only the breaching series, in %",
     );
 
     expect(rootCause).not.toMatch(RAW_NUMBER);
-    expect(rootCause).not.toContain("8 GB");
+    expect(rootCause).not.toContain("8\u00A0GB");
   });
 });
 
@@ -930,7 +930,7 @@ describe("Grouped Ceph templates list the series the criteria matched", () => {
     // The emptiest pool, previously first by free bytes, is gone.
     expect(rootCause).not.toContain("**Pool** `0`");
     expect(rootCause).not.toContain("**Pool** `5`");
-    expect(rootCause).not.toContain("2.4 TB");
+    expect(rootCause).not.toContain("2.4\u00A0TB");
     expect(rootCause).not.toMatch(RAW_NUMBER);
   });
 
@@ -1140,7 +1140,7 @@ describe("Grouped VMware templates name the object the series is about", () => {
      * name may or may not precede it.
      */
     const poolHead: RegExp =
-      /^1\. \*\*Resource Pool\*\* .*`\/DC1\/host\/prod-cluster\/Resources\/batch`.* — \*\*537 MB\*\*$/;
+      /^1\. \*\*Resource Pool\*\* .*`\/DC1\/host\/prod-cluster\/Resources\/batch`.* — \*\*537\u00A0MB\*\*$/;
 
     const head: number = lines.findIndex((line: string) => {
       return poolHead.test(line);
@@ -1157,7 +1157,7 @@ describe("Grouped VMware templates name the object the series is about", () => {
     expect(rootCause).not.toContain("esx-01.lab");
 
     expect(rootCause).not.toContain("Resources/web");
-    expect(rootCause).not.toContain("512 MiB");
+    expect(rootCause).not.toContain("512\u00A0MiB");
     expect(rootCause).not.toMatch(RAW_NUMBER);
   });
 });
@@ -1222,13 +1222,13 @@ describe("Grouped Docker Swarm templates list the affected tasks", () => {
     expect(rootCause).not.toContain("**Affected Resources**");
 
     const first: number = lines.indexOf(
-      "1. **Task** `web.2.z9y8x7w6v5u4` — **12.5 sec**",
+      "1. **Task** `web.2.z9y8x7w6v5u4` — **12.5\u00A0sec**",
     );
     expect(first).toBeGreaterThanOrEqual(0);
     expect(lines[first + 1]).toBe("   - Service: `web`");
     expect(lines[first + 2]).toBe("   - Node: `swarm-worker-3`");
 
-    expect(lines).toContain("2. **Task** `web.1.k3j2h1g0f9e8` — **35 sec**");
+    expect(lines).toContain("2. **Task** `web.1.k3j2h1g0f9e8` — **35\u00A0sec**");
 
     // The long-running task never breached.
     expect(rootCause).not.toContain("api.1.a1b2c3d4e5f6");

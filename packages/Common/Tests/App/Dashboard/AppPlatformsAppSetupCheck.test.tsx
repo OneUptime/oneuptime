@@ -520,7 +520,7 @@ describe("once the subscription is connected", () => {
     expect(tileOf(tiles, "Response time").value).toBe("250\u00A0ms");
     // 90 s of CPU reads as a duration, not "90.00 s".
     expect(tileOf(tiles, "CPU time").value).toBe("1m 30s");
-    expect(tileOf(tiles, "Memory").value).toBe("512 MiB");
+    expect(tileOf(tiles, "Memory").value).toBe("512\u00A0MiB");
 
     // Read under the names the connection stores them by.
     expect(new Set(mockReads.metricNames)).toEqual(

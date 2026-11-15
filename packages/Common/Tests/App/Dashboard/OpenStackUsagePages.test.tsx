@@ -60,6 +60,15 @@ import {
 } from "./OpenStackPartHarness";
 
 /*
+ * A size as toHaveTextContent reads the page: its whitespace collapsed to
+ * plain spaces, the no-break space a figure is held to its unit with
+ * (#8457) among them.
+ */
+const readBytes: (bytes: number) => string = (bytes: number): string => {
+  return formatOpenStackBytes(bytes).replace(/\u00A0/g, " ");
+};
+
+/*
  * What is really busy on the pages, beside what is promised: rendered for real over the real
  * cards, with the server's answers made up. Allocation is never shown as usage, and a page
  * with no source says what is missing and how to add it.
@@ -396,16 +405,16 @@ describe("a hypervisor's page", () => {
        * Six MiB over the minute between its two readings.
        */
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes((6 * 1024 * 1024) / 60)}/s read`,
+        `${readBytes((6 * 1024 * 1024) / 60)}/s read`,
       );
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes((12 * 1024 * 1024) / 60)}/s written`,
+        `${readBytes((12 * 1024 * 1024) / 60)}/s written`,
       );
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(1024 * 1024)}/s in`,
+        `${readBytes(1024 * 1024)}/s in`,
       );
       expect(throughput).toHaveTextContent(
-        `${formatOpenStackBytes(512 * 1024)}/s out`,
+        `${readBytes(512 * 1024)}/s out`,
       );
       // Still what is promised, on its own tiles, which none of this has changed.
       expect(
@@ -596,7 +605,7 @@ describe("an instance's page", () => {
     expect(usage).toHaveTextContent("of 2 vCPUs from its flavor");
     expect(within(usage).getByText("12%")).toBeInTheDocument();
     expect(usage).toHaveTextContent(
-      `of ${formatOpenStackBytes(2048 * 1024 * 1024)} from its flavor`,
+      `of ${readBytes(2048 * 1024 * 1024)} from its flavor`,
     );
   });
 
@@ -625,11 +634,11 @@ describe("an instance's page", () => {
     await openInstance();
     const usage: HTMLElement = screen.getByTestId("openstack-instance-usage");
     expect(usage).toHaveTextContent(
-      `${formatOpenStackBytes(3072)}/s read, ${formatOpenStackBytes(4096)}/s written`,
+      `${readBytes(3072)}/s read, ${readBytes(4096)}/s written`,
     );
     expect(usage).toHaveTextContent("75.5 ms");
     expect(usage).toHaveTextContent(
-      `${formatOpenStackBytes(1024)}/s in, ${formatOpenStackBytes(2048)}/s out`,
+      `${readBytes(1024)}/s in, ${readBytes(2048)}/s out`,
     );
   });
 
@@ -676,10 +685,10 @@ describe("an instance's page", () => {
       expect(flavor).toHaveTextContent("m1.small");
       expect(flavor).toHaveTextContent("2 vCPUs");
       expect(flavor).toHaveTextContent(
-        formatOpenStackBytes(2048 * 1024 * 1024),
+        readBytes(2048 * 1024 * 1024),
       );
       expect(flavor).toHaveTextContent(
-        formatOpenStackBytes(20 * 1024 * 1024 * 1024),
+        readBytes(20 * 1024 * 1024 * 1024),
       );
       const queries: Array<HTMLElement> = screen.getAllByTestId("metric-query");
       expect(
@@ -743,7 +752,7 @@ describe("an instance's page", () => {
     ];
     await openInstance();
     expect(screen.getByTestId("openstack-instance-usage")).toHaveTextContent(
-      formatOpenStackBytes(1024 * 1024 * 1024),
+      readBytes(1024 * 1024 * 1024),
     );
   });
 

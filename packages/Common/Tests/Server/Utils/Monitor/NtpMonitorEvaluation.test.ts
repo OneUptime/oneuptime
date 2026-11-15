@@ -270,7 +270,7 @@ describe("what a new NTP monitor does with a check", () => {
 
     expect(evaluation.outcome).toBe("offline");
     expect(evaluation.response.rootCause).toContain(
-      "1,500 ms behind the probe",
+      "1,500\u00A0ms behind the probe",
     );
   });
 
@@ -339,10 +339,10 @@ describe("MonitorCriteriaEvaluator.getNtpResponseDetails", () => {
     ).toEqual([
       "- Synchronized: Yes",
       "- Stratum: 2 (secondary server)",
-      "- Clock Offset: 3.5 ms ahead of the probe",
+      "- Clock Offset: 3.5\u00A0ms ahead of the probe",
       "- Leap Indicator: 0 (No leap second pending)",
       "- Reference: 192.0.2.1",
-      "- Root Dispersion: 3.25 ms",
+      "- Root Dispersion: 3.25\u00A0ms",
       "- Server Address: 192.0.2.10",
     ]);
   });
@@ -428,7 +428,7 @@ describe("MonitorCriteriaObservationBuilder.describeNtpObservation", () => {
         answered({ clockOffsetInMs: -12.34 }),
       ),
     ).toBe(
-      "NTP Clock Offset (in ms) was 12.3 ms: the server's clock is 12.3 ms behind the probe",
+      "NTP Clock Offset (in ms) was 12.3\u00A0ms: the server's clock is 12.3\u00A0ms behind the probe",
     );
     expect(
       observe(
@@ -449,7 +449,7 @@ describe("MonitorCriteriaObservationBuilder.describeNtpObservation", () => {
         filter(CheckOn.NtpRootDispersion),
         answered({ rootDispersionInMs: 8180.6 }),
       ),
-    ).toBe("NTP Root Dispersion (in ms) was 8,181 ms");
+    ).toBe("NTP Root Dispersion (in ms) was 8,181\u00A0ms");
     expect(
       observe(
         filter(CheckOn.NtpRootDispersion),
@@ -460,7 +460,7 @@ describe("MonitorCriteriaObservationBuilder.describeNtpObservation", () => {
 
   test("NTP Response Time", () => {
     expect(observe(filter(CheckOn.NtpResponseTime), answered())).toBe(
-      "NTP Response Time (in ms) was 18 ms",
+      "NTP Response Time (in ms) was 18\u00A0ms",
     );
     expect(observe(filter(CheckOn.NtpResponseTime), silent())).toContain(
       "so there is no response time",

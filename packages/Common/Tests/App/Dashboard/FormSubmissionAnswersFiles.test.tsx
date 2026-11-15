@@ -99,7 +99,7 @@ describe("a submission's file answers", () => {
       rows.map((row: HTMLElement): string | null => {
         return row.textContent;
       }),
-    ).toEqual(["gateway-errors.csv18 KB", "capture-eu-west-1.pcap2.4 MB"]);
+    ).toEqual(["gateway-errors.csv18\u00A0KB", "capture-eu-west-1.pcap2.4\u00A0MB"]);
 
     // Listed, not linked: their downloads are on the record.
     expect(screen.queryByRole("link")).toBeNull();

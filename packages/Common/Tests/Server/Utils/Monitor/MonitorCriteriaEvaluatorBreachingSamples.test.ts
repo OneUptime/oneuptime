@@ -328,13 +328,13 @@ describe("Breaching Samples - markdown", () => {
         "**Breaching Samples**",
         "3 of 10 samples breached the threshold.",
         "",
-        "1. `2026-08-14T10:28:00.000Z` — **1.07 GB**",
+        "1. `2026-08-14T10:28:00.000Z` — **1.07\u00A0GB**",
         "   - `k8s.namespace.name`: `payments`",
         "   - `k8s.pod.name`: `web-1`",
-        "2. `2026-08-14T10:29:00.000Z` — **2.15 GB**",
+        "2. `2026-08-14T10:29:00.000Z` — **2.15\u00A0GB**",
         "   - `k8s.namespace.name`: `payments`",
         "   - `k8s.pod.name`: `web-1`",
-        "3. `2026-08-14T10:30:00.000Z` — **1.26 MB**",
+        "3. `2026-08-14T10:30:00.000Z` — **1.26\u00A0MB**",
         "   - `k8s.namespace.name`: `payments`",
         "   - `k8s.pod.name`: `web-2`",
       ].join("\n"),
@@ -347,12 +347,12 @@ describe("Breaching Samples - markdown", () => {
         "**Breaching Samples**",
         "2 of 5 samples breached the threshold.",
         "",
-        "1. `2026-08-14T10:29:00.000Z` — **805 MB**",
-        "   - `a`: 537 MB",
-        "   - `b`: 1.5 sec",
+        "1. `2026-08-14T10:29:00.000Z` — **805\u00A0MB**",
+        "   - `a`: 537\u00A0MB",
+        "   - `b`: 1.5\u00A0sec",
         "   - `host.name`: `prod-01`",
-        "2. `2026-08-14T10:30:00.000Z` — **1.07 GB**",
-        "   - `a`: 1.07 GB",
+        "2. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**",
+        "   - `a`: 1.07\u00A0GB",
         "   - `host.name`: `prod-02`",
       ].join("\n"),
     );
@@ -374,7 +374,7 @@ describe("Breaching Samples - markdown", () => {
         "**Breaching Samples**",
         "1 sample breached the threshold.",
         "",
-        "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**",
+        "1. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**",
       ].join("\n"),
     );
   });
@@ -431,7 +431,7 @@ describe("Breaching Samples - markdown", () => {
       }),
     );
 
-    expect(markdown).toContain("1. `2026-08-14T10:30:00.000Z` — **1.07 GB**");
+    expect(markdown).toContain("1. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**");
   });
 
   test("the value is bold at the end of the item's line", () => {
@@ -440,7 +440,7 @@ describe("Breaching Samples - markdown", () => {
     const last: Token = inline[inline.length - 1]!;
 
     expect(last.type).toBe("strong");
-    expect((last as Tokens.Strong).text).toBe("1.07 GB");
+    expect((last as Tokens.Strong).text).toBe("1.07\u00A0GB");
   });
 
   /*
@@ -494,7 +494,7 @@ describe("Breaching Samples - markdown", () => {
     );
 
     expect(markdown).toContain(
-      "1. `2026-08-14T10:30:00.000Z` — **1.07 GB**\n   - `k8s.pod.name`: `web-1`",
+      "1. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**\n   - `k8s.pod.name`: `web-1`",
     );
     expect(markdown).not.toContain("2. ");
   });
@@ -514,8 +514,8 @@ describe("Breaching Samples - formula components", () => {
     const list: Tokens.List = orderedLists(section(formulaContext()))[0]!;
 
     expect(detailTexts(list.items[0]!)).toEqual([
-      "`a`: 537 MB",
-      "`b`: 1.5 sec",
+      "`a`: 537\u00A0MB",
+      "`b`: 1.5\u00A0sec",
       "`host.name`: `prod-01`",
     ]);
   });
@@ -524,7 +524,7 @@ describe("Breaching Samples - formula components", () => {
     const markdown: string = section(formulaContext());
 
     expect(markdown).toContain(
-      "2. `2026-08-14T10:30:00.000Z` — **1.07 GB**\n   - `a`: 1.07 GB\n   - `host.name`: `prod-02`",
+      "2. `2026-08-14T10:30:00.000Z` — **1.07\u00A0GB**\n   - `a`: 1.07\u00A0GB\n   - `host.name`: `prod-02`",
     );
     expect(markdown).not.toContain("`b`: -");
     expect(markdown).not.toMatch(/: -$/m);
@@ -537,7 +537,7 @@ describe("Breaching Samples - formula components", () => {
     const list: Tokens.List = orderedLists(section(ctx))[0]!;
 
     expect(detailTexts(list.items[0]!)).toEqual([
-      "`b`: 1.5 sec",
+      "`b`: 1.5\u00A0sec",
       "`host.name`: `prod-01`",
     ]);
   });
@@ -562,8 +562,8 @@ describe("Breaching Samples - formula components", () => {
     const list: Tokens.List = orderedLists(section(ctx))[0]!;
 
     expect(detailTexts(list.items[0]!)).toEqual([
-      "`a`: 537 MB",
-      "`b`: 1.5 sec",
+      "`a`: 537\u00A0MB",
+      "`b`: 1.5\u00A0sec",
       "`host.name`: `prod-01`",
     ]);
   });
@@ -590,7 +590,7 @@ describe("Breaching Samples - formula components", () => {
     const list: Tokens.List = orderedLists(section(ctx))[0]!;
 
     expect(detailTexts(list.items[0]!)).toEqual([
-      "`b`: 1.5 sec",
+      "`b`: 1.5\u00A0sec",
       "`host.name`: `prod-01`",
     ]);
   });
@@ -1105,10 +1105,10 @@ describe("Breaching Samples - in the email", () => {
     expect(html).toMatch(/<ol style="[^"]+">/);
 
     expect(html).toMatch(
-      /<li style="[^"]+">\s*<code[^>]*>2026-08-14T10:28:00\.000Z<\/code> — <strong>1\.07 GB<\/strong>\s*<ul style="[^"]+">\s*<li style="[^"]+"><code[^>]*>k8s\.namespace\.name<\/code>: <code[^>]*>payments<\/code><\/li>\s*<li style="[^"]+"><code[^>]*>k8s\.pod\.name<\/code>: <code[^>]*>web-1<\/code><\/li>\s*<\/ul>\s*<\/li>/,
+      /<li style="[^"]+">\s*<code[^>]*>2026-08-14T10:28:00\.000Z<\/code> — <strong>1\.07\u00A0GB<\/strong>\s*<ul style="[^"]+">\s*<li style="[^"]+"><code[^>]*>k8s\.namespace\.name<\/code>: <code[^>]*>payments<\/code><\/li>\s*<li style="[^"]+"><code[^>]*>k8s\.pod\.name<\/code>: <code[^>]*>web-1<\/code><\/li>\s*<\/ul>\s*<\/li>/,
     );
     expect(html).toMatch(
-      /<code[^>]*>2026-08-14T10:30:00\.000Z<\/code> — <strong>1\.26 MB<\/strong>/,
+      /<code[^>]*>2026-08-14T10:30:00\.000Z<\/code> — <strong>1\.26\u00A0MB<\/strong>/,
     );
   });
 
@@ -1119,7 +1119,7 @@ describe("Breaching Samples - in the email", () => {
     );
 
     expect(html).toMatch(
-      /<ul style="[^"]+">\s*<li style="[^"]+"><code[^>]*>a<\/code>: 537 MB<\/li>\s*<li style="[^"]+"><code[^>]*>b<\/code>: 1\.5 sec<\/li>\s*<li style="[^"]+"><code[^>]*>host\.name<\/code>: <code[^>]*>prod-01<\/code><\/li>\s*<\/ul>/,
+      /<ul style="[^"]+">\s*<li style="[^"]+"><code[^>]*>a<\/code>: 537\u00A0MB<\/li>\s*<li style="[^"]+"><code[^>]*>b<\/code>: 1\.5\u00A0sec<\/li>\s*<li style="[^"]+"><code[^>]*>host\.name<\/code>: <code[^>]*>prod-01<\/code><\/li>\s*<\/ul>/,
     );
     expect(html).not.toContain("-</");
   });
@@ -1177,13 +1177,13 @@ describe("Breaching Samples - in Slack", () => {
      * with zero-width spaces so it binds next to punctuation.
      */
     expect(slack).toMatch(
-      /1\.\s+`2026-08-14T10:28:00\.000Z` — \u200B?\*1\.07 GB\*\u200B?\n/,
+      /1\.\s+`2026-08-14T10:28:00\.000Z` — \u200B?\*1\.07\u00A0GB\*\u200B?\n/,
     );
     expect(slack).toMatch(
       /\n\s+•\s+`k8s\.namespace\.name`: `payments`\n\s+•\s+`k8s\.pod\.name`: `web-1`\n/,
     );
     expect(slack).toMatch(
-      /\n3\.\s+`2026-08-14T10:30:00\.000Z` — \u200B?\*1\.26 MB\*\u200B?\n/,
+      /\n3\.\s+`2026-08-14T10:30:00\.000Z` — \u200B?\*1\.26\u00A0MB\*\u200B?\n/,
     );
     expect(slack).toContain("3 of 10 samples breached the threshold.");
   });
@@ -1194,7 +1194,7 @@ describe("Breaching Samples - in Slack", () => {
     );
 
     expect(slack).toMatch(
-      /\n\s+•\s+`a`: 537 MB\n\s+•\s+`b`: 1\.5 sec\n\s+•\s+`host\.name`: `prod-01`\n/,
+      /\n\s+•\s+`a`: 537\u00A0MB\n\s+•\s+`b`: 1\.5\u00A0sec\n\s+•\s+`host\.name`: `prod-01`\n/,
     );
   });
 
@@ -1223,13 +1223,13 @@ describe("Breaching Samples - as plain text", () => {
     ).toEqual([
       "Breaching Samples",
       "3 of 10 samples breached the threshold.",
-      "2026-08-14T10:28:00.000Z — 1.07 GB",
+      "2026-08-14T10:28:00.000Z — 1.07\u00A0GB",
       "k8s.namespace.name: payments",
       "k8s.pod.name: web-1",
-      "2026-08-14T10:29:00.000Z — 2.15 GB",
+      "2026-08-14T10:29:00.000Z — 2.15\u00A0GB",
       "k8s.namespace.name: payments",
       "k8s.pod.name: web-1",
-      "2026-08-14T10:30:00.000Z — 1.26 MB",
+      "2026-08-14T10:30:00.000Z — 1.26\u00A0MB",
       "k8s.namespace.name: payments",
       "k8s.pod.name: web-2",
     ]);
@@ -1241,12 +1241,12 @@ describe("Breaching Samples - as plain text", () => {
     ).toEqual([
       "Breaching Samples",
       "2 of 5 samples breached the threshold.",
-      "2026-08-14T10:29:00.000Z — 805 MB",
-      "a: 537 MB",
-      "b: 1.5 sec",
+      "2026-08-14T10:29:00.000Z — 805\u00A0MB",
+      "a: 537\u00A0MB",
+      "b: 1.5\u00A0sec",
       "host.name: prod-01",
-      "2026-08-14T10:30:00.000Z — 1.07 GB",
-      "a: 1.07 GB",
+      "2026-08-14T10:30:00.000Z — 1.07\u00A0GB",
+      "a: 1.07\u00A0GB",
       "host.name: prod-02",
     ]);
   });

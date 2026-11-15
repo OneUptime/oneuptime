@@ -123,7 +123,7 @@ describe("MonitorCriteriaExpectationBuilder", () => {
           makeFilter({ filterType: FilterType.GreaterThan, value: 5 }),
           { unit: "sec" },
         ),
-      ).toBe("to be greater than 5 sec");
+      ).toBe("to be greater than 5\u00A0sec");
 
       // String comparisons carry their own wording and get no unit suffix.
       expect(
@@ -228,7 +228,7 @@ describe("MonitorCriteriaExpectationBuilder", () => {
           }),
           { unit: "ms" },
         ),
-      ).toBe("to be greater than 5 ms over the last 15 minutes using average");
+      ).toBe("to be greater than 5\u00A0ms over the last 15 minutes using average");
     });
   });
 
