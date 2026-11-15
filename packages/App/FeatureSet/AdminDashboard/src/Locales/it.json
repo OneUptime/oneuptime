@@ -1363,7 +1363,7 @@
   "The longest message the receiver takes, in bytes. A longer entry is shortened to fit, and says so. Leave empty for 8192.": "Il messaggio più lungo che il ricevitore accetta, in byte. Una voce più lunga viene accorciata per rientrarvi, e lo segnala. Lascia vuoto per 8192.",
   "CA certificate": "Certificato della CA",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Solo per un ricevitore il cui certificato è stato firmato da una CA privata: il certificato di quella CA (PEM).",
-  "Audit Log Export": "Esportazione del registro di audit",
+  "Audit Log Export": "Esportazione del log di audit",
   "Failing for {{duration}}": "In errore da {{duration}}",
   "Send what was recorded while it was off, then carry on.": "Invia ciò che è stato registrato mentre era disattivata, poi continua.",
   "Stop sending. It keeps its place and catches up when turned back on.": "Interrompe l'invio. Mantiene la sua posizione e recupera quando viene riattivata.",
