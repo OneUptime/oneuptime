@@ -193,6 +193,7 @@ const Projects: FunctionComponent = (): ReactElement => {
   return (
     <Page
       title={t("pages.projects.title")}
+      isTitleTranslated={true}
       breadcrumbLinks={[
         {
           title: t("breadcrumbs.adminDashboard"),

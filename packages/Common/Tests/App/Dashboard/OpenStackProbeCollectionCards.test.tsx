@@ -546,6 +546,13 @@ describe("the Overview's Data Collection card", () => {
       ).toHaveTextContent(
         "Check that the probe is connected on the Probes page.",
       );
+      // No probe has come for it: what it is set to, not a promise.
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
     });
 
     test("a new cloud no probe ever came for stops saying Checking", async () => {
@@ -633,30 +640,32 @@ describe("the Overview's Data Collection card", () => {
       collectionSummary: summary(),
     };
 
+    /*
+     * The description is what the cloud is set to, never "Collected by" beside Not collecting
+     * (OneUptime issue #8326), and nothing at all when the probe or the address is what is
+     * missing: the body says so.
+     */
     test.each([
-      [
-        "archived",
-        { isArchived: true },
-        "This cloud is archived, so no probe collects it.",
-        "Unarchive it to collect it again.",
-      ],
       [
         "with no credential",
         { isCredentialSet: false },
         "No credential is saved for this cloud.",
         "Save an application credential or a password in Settings, and test the connection.",
+        "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
       ],
       [
         "with no Keystone address",
         { authUrl: undefined },
         "This cloud has no Keystone address.",
         "Enter Keystone's address in Settings, and test the connection.",
+        null,
       ],
       [
         "with no probe",
         { collectionProbeId: undefined, collectionProbe: undefined },
         "No probe is set to collect this cloud.",
         "Pick one of this project's probes in Settings.",
+        null,
       ],
       [
         "on another project's probe",
@@ -669,19 +678,29 @@ describe("the Overview's Data Collection card", () => {
         },
         "This probe may not collect this cloud",
         "Pick a probe of this project's own. Shared OneUptime probes never receive OpenStack credentials.",
+        "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
       ],
     ])(
-      "%s: not collecting, why, the fix, and no next collection",
+      "%s: not collecting, why, the fix, no next collection, and no promise of one",
       async (
         _name: string,
         stop: Record<string, unknown>,
         title: string,
         nextStep: string,
+        description: string | null,
       ) => {
         stored = { ...SET_ASIDE, ...stop };
 
         render(<OpenStackCollectionStatusCard modelId={modelId()} />);
         await flush();
+
+        expect(screen.queryByText(/^Collected by /)).toBeNull();
+
+        if (description) {
+          expect(screen.getByText(description)).toBeInTheDocument();
+        } else {
+          expect(screen.queryByText(/^Set to be collected by /)).toBeNull();
+        }
 
         const status: HTMLElement = screen.getByTestId(
           "openstack-collection-status",
@@ -725,11 +744,63 @@ describe("the Overview's Data Collection card", () => {
       expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
         "Not scheduled",
       );
+      expect(
+        screen.getByText(
+          "Set to be collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/^Collected by /)).toBeNull();
+    });
+
+    test("a probe the reader may not read, on a cloud with no credential: the setting, by 'its probe'", async () => {
+      stored = {
+        ...SET_ASIDE,
+        isCredentialSet: false,
+        collectionProbe: undefined,
+        collectionIntervalInMinutes: 1,
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(
+        screen.getByText(
+          "Set to be collected by its probe from https://keystone.example.com:5000, every 1 minute.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    /*
+     * OneUptime issue #8324: the claim set an archived cloud aside while its Archived page said
+     * it keeps collecting, as an archived vCenter does. It is collected now.
+     */
+    test("archived: still collected, so the card reads Collecting, by whom, and when next", async () => {
+      const dueAt: Date = new Date(Date.now() + 2 * MINUTE_IN_MS);
+
+      stored = {
+        ...SET_ASIDE,
+        isArchived: true,
+        nextCollectionAt: dueAt,
+      };
+
+      render(<OpenStackCollectionStatusCard modelId={modelId()} />);
+      await flush();
+
+      expect(screen.getByText("Collecting")).toBeInTheDocument();
+      expect(screen.queryByText("Not collecting")).toBeNull();
+      expect(
+        screen.getByText(
+          "Collected by Datacenter probe from https://keystone.example.com:5000, every 5 minutes. No agent runs for it.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("openstack-next-collection")).toHaveTextContent(
+        OneUptimeDate.fromNow(dueAt),
+      );
     });
 
     test("nothing to wait for: the card does not keep asking", async () => {
       jest.useFakeTimers();
-      stored = { ...SET_ASIDE, isArchived: true };
+      stored = { ...SET_ASIDE, isCredentialSet: false };
 
       render(<OpenStackCollectionStatusCard modelId={modelId()} />);
       await flush();
@@ -754,14 +825,17 @@ describe("the Overview's Data Collection card", () => {
 
       for (const column of [
         "projectId",
-        "isArchived",
         "isCredentialSet",
         "authUrl",
         "collectionProbeId",
         "nextCollectionAt",
+        "collectionIntervalInMinutes",
       ]) {
         expect(select[column]).toBe(true);
       }
+
+      // Archiving stops nothing, so it is not asked for.
+      expect(select["isArchived"]).toBeUndefined();
 
       expect(select["collectionProbe"]).toEqual({
         name: true,

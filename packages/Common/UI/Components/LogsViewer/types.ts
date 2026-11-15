@@ -41,6 +41,16 @@ export interface ActiveFilter {
    * the chip's tooltip. Display only.
    */
   lockedDetail?: LockedFilterDetail | undefined;
+  /*
+   * An attribute filter's stored value, when it holds an operator (contains,
+   * is any of, is empty: a Search, an Includes, an IsNull...). The chip then
+   * says the filter as one sentence in the reader's language
+   * (DictionaryFilterSentence) - "http.route stimmt überein /api/*" - in
+   * place of "key: value", whose value would put the operator's English
+   * word before it (#8309). Display only: `value` stays what removal and
+   * keys read.
+   */
+  filterValue?: unknown;
 }
 
 /*

@@ -203,8 +203,15 @@ describe("SLO overview page composition", () => {
   });
 
   test("a new SLO gets the getting-started card instead of the numbers", () => {
+    /*
+     * A request SLO measures its services' requests: it never waits for
+     * monitors, so it never gets the card that asks for them.
+     */
     expect(INDEX_CODE).toContain(
-      "const isGettingStarted: boolean = monitorIds.length === 0 && data.monitorRuleCount === 0;",
+      "const isRequestSlo: boolean = isRequestSliType(slo.sliType);",
+    );
+    expect(INDEX_CODE).toContain(
+      "const isGettingStarted: boolean = !isRequestSlo && monitorIds.length === 0 && data.monitorRuleCount === 0;",
     );
     expect(INDEX_CODE).toMatch(
       /\{isGettingStarted \? \( <><\/> \) : \( <SloKpiStrip/,

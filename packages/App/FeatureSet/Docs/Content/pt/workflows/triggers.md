@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **Cabeçalhos da Requisição**      | Todos os cabeçalhos da requisição, pelo nome em minúsculas, como `content-type`.                                      |
 | **Request Query Params** | Os parâmetros da query string da URL, pelo nome.                                                                      |
-| **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo. |
+| **Corpo da Requisição**         | O corpo que quem chamou enviou. Um corpo JSON, enviado com `Content-Type: application/json`, pode ser lido campo a campo, assim como JSON enviado como texto simples, como o Amazon SNS o envia. |
 
 Leia um campo acrescentando o nome dele à referência, como em `{{local.components.webhook-1.returnValues.request-body.message}}`.
 

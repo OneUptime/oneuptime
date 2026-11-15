@@ -439,7 +439,14 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
       const noCredential: ObjectID = await insertCloud({
         isCredentialSet: false,
       });
-      const archived: ObjectID = await insertCloud({ archived: true });
+      /*
+       * Archived, and still collected, as an archived vCenter is and as its Archived page says
+       * (OneUptime issue #8324). Due after `due`, so it is handed out second.
+       */
+      const archived: ObjectID = await insertCloud({
+        archived: true,
+        nextCollectionAt: minutesFromNow(-2),
+      });
       const deleted: ObjectID = await insertCloud({ deleted: true });
       const running: ObjectID = await insertCloud({});
       const anotherProbes: ObjectID = await insertCloud({
@@ -456,7 +463,6 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
       const uncollectable: Array<ObjectID> = [
         agent,
         noCredential,
-        archived,
         deleted,
         otherProjects,
       ];
@@ -480,7 +486,7 @@ describePostgres("OpenStack probe collection SQL against Postgres", () => {
        * never collected has no due time, so the set-aside after the claim
        * makes it due, and the next claim hands it out.
        */
-      expect(idsOf(jobs)).toEqual([due.toString()]);
+      expect(idsOf(jobs)).toEqual([due.toString(), archived.toString()]);
       expect(
         (await readCloud(neverCollected)).nextCollectionAt!.getTime(),
       ).toBeLessThanOrEqual(Date.now());

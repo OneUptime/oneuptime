@@ -292,10 +292,13 @@ describe("ActiveFilterChips — locked chips", () => {
     );
 
     expect(document.body.textContent).not.toContain("[object Object]");
-    expect(screen.getByText("is any of web")).toBeInTheDocument();
+    // Said as one sentence (#8309), not the operator's label before the value.
+    expect(screen.getByTestId("locked-filter-chip").textContent).toBe(
+      "logtype is any of: web",
+    );
     expect(
       document.querySelector(
-        "[title='logtype: is any of web (applied filter)']",
+        "[title='logtype is any of: web (applied filter)']",
       ),
     ).not.toBeNull();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();

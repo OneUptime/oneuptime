@@ -61,6 +61,8 @@ El nombre predeterminado es el nombre de host de vCenter. Haga clic en **Conecta
 
 La **Vista general** del vCenter muestra una tarjeta **Recopilación de datos**. Indica **Comprobando** hasta la primera recopilación, que empieza en menos de un minuto, después **Recopilando**, y el inventario se completa.
 
+Si ninguna sonda se ocupa del vCenter durante 20 minutos, porque está sin conexión o es demasiado antigua, la tarjeta dice **Sin recopilar** y lo indica, sea cual sea lo que encontró la última recopilación. Cuando ninguna sonda puede recopilar el vCenter, dice **Sin recopilar** al momento, con el motivo y lo que hay que cambiar: no hay ninguna contraseña guardada, falta la dirección o el nombre de usuario de vCenter, no hay ninguna sonda configurada para recopilarlo, su sonda no puede recopilarlo (una sonda compartida en OneUptime Cloud, o la de otro proyecto), o su sonda está desconectada. **Próxima recopilación** es la hora a la que una sonda lo recopila la próxima vez, **Previsto ahora** mientras espera a una, **Atrasado** cuando ninguna se ha ocupado de él en 20 minutos, y **Sin programar** mientras ninguna sonda puede recopilarlo. Un vCenter archivado se sigue recopilando.
+
 ## Certificados
 
 La sonda nunca omite la verificación de certificados. Cada conexión completa un protocolo de enlace TLS completo, y después:

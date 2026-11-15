@@ -412,14 +412,20 @@ const LayerCard: FunctionComponent<ComponentProps> = (
       {/* Header */}
       <div className="flex items-start gap-3 p-4 md:p-5">
         {/* Priority badge, aligned inline with the layer name */}
+        {/*
+         * Worded here either way, and drawn as given (#8226): "Priority 2"
+         * is a sentence around the layer's number, so the top layer's words
+         * are looked up here too, never twice.
+         */}
         <Tooltip
           text={
             isTopPriority
-              ? "Highest priority layer"
+              ? translator.translateTemplate("Highest priority layer")
               : translator.translateTemplate("Priority {{number}}", {
                   number: props.index + 1,
                 })
           }
+          isTextTranslated={true}
         >
           <span
             className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white ${

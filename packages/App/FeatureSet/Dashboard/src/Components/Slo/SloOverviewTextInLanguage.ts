@@ -197,6 +197,8 @@ export const SLO_OVERVIEW_FIXED_TEXTS: ReadonlyArray<string> = [
   // getSliTypeText
   translationKey("Metric"),
   translationKey("Monitor uptime"),
+  translationKey("Request success"),
+  translationKey("Request latency"),
   // getSloDowntimeStatusesText([])
   translationKey("Every non-operational status"),
   // getSloBudgetRemainingText

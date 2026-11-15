@@ -529,10 +529,15 @@ describe("a step that fails for a moment", () => {
 
     await tickAt(0);
 
-    expect(GlobalCache.getStrings).toHaveBeenCalledTimes(1);
-    expect(
-      (GlobalCache.getStrings as unknown as jest.Mock).mock.calls[0]![1],
-    ).toHaveLength(3);
+    // Their failed tries; the page reads its runs' levels in flight beside them (issue #8406).
+    const failureReads: Array<Array<unknown>> = (
+      GlobalCache.getStrings as unknown as jest.Mock
+    ).mock.calls.filter((call: Array<unknown>): boolean => {
+      return call[0] === "on-call-policy-run-failures";
+    });
+
+    expect(failureReads).toHaveLength(1);
+    expect(failureReads[0]![1]).toHaveLength(3);
   });
 });
 

@@ -54,13 +54,18 @@ let routes: Record<string, Handler>;
 let started: Array<ExecuteWorkflowType>;
 let triggerId: string | undefined;
 
+/*
+ * The route's own handler: the last one it registers, after the middleware
+ * that reads a text/plain body (PlainTextJsonBody), which the requests here
+ * - JSON, already parsed - pass straight through.
+ */
 function fakeRouter(): ExpressRouter {
   return {
-    get: (uri: string, handler: Handler): void => {
-      routes[`GET ${uri}`] = handler;
+    get: (uri: string, ...handlers: Array<Handler>): void => {
+      routes[`GET ${uri}`] = handlers[handlers.length - 1] as Handler;
     },
-    post: (uri: string, handler: Handler): void => {
-      routes[`POST ${uri}`] = handler;
+    post: (uri: string, ...handlers: Array<Handler>): void => {
+      routes[`POST ${uri}`] = handlers[handlers.length - 1] as Handler;
     },
   } as unknown as ExpressRouter;
 }

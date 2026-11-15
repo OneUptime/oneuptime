@@ -6,7 +6,16 @@
 
 {{> VerticalSpace this}}
 
+{{!--
+  The test reaches whoever set the mail server up: on a self-hosted server,
+  its master admin (Admin Dashboard > Settings > Email) or a project's admin
+  (the project's own mail server). That is the server's admin or someone who
+  asks them, and the email arriving is the answer, so there is no help line
+  to give (#8190). OneUptime Cloud keeps its support line.
+--}}
+{{#unless @root.isSelfHosted}}
 {{> SupportBlock this}}
+{{/unless}}
 
 {{> Footer this}}
                 

@@ -22,6 +22,7 @@ const LicenseSideMenuItem: FunctionComponent = (): ReactElement => {
     <SideMenuItem
       link={{
         title: t("breadcrumbs.enterpriseLicense"),
+        isTitleTranslated: true,
         to: getEnterpriseSettingsPageRoute(LICENSE_SETTINGS_PAGE_PATH),
       }}
       icon={IconProp.Key}

@@ -326,14 +326,30 @@ describe("PlanPickerCopy: each plan's row", () => {
 });
 
 describe("PlanPickerCopy: what picking a plan means for money", () => {
-  it("Free: free forever, and active monitors and telemetry need a payment method", () => {
+  it("Free: free forever, and checking a website and sending telemetry need a payment method", () => {
     expect(terms(FREE, BillingPeriod.Yearly)).toEqual({
       headline: "Free forever.",
       details: [
-        "Active monitors and telemetry are pay as you go, and need a payment method.",
+        "Checking a website, an API or a server, and sending telemetry, are billed as they are used and need a payment method.",
       ],
     });
     expect(terms(FREE, BillingPeriod.Monthly).headline).toBe("Free forever.");
+  });
+
+  /*
+   * "Active monitors" was the billing's word, which a newcomer read as
+   * nothing they were about to make: after two "No credit card required."
+   * they read monitors as free, and the website guided setup's Start
+   * checking then needed a card (#8246). The Free plan's line says what is
+   * billed in the reader's words: checking a website, the first thing most
+   * people do.
+   */
+  it("Free: says what is billed in the reader's words, not the billing's", () => {
+    const detail: string = terms(FREE, BillingPeriod.Yearly).details[0]!;
+
+    expect(detail).not.toMatch(/active monitor/i);
+    expect(detail).toContain("Checking a website");
+    expect(detail).toContain("need a payment method");
   });
 
   it("a paid plan with a trial: free for its days without a card, then the year's price", () => {

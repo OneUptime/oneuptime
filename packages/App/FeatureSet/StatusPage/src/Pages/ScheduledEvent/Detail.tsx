@@ -510,6 +510,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
       <Page
         title={t("scheduledEvents.report")}
+        isTitleTranslated={true}
         /*
          * The event in a calendar app, once it is read - while it is still
          * to come or under way; an event that is over is history.

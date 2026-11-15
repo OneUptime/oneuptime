@@ -119,6 +119,8 @@ let querySpy: jest.Mock;
 let errorSpy: jest.SpyInstance;
 // What the workers' rule answers for the store a scan was handed.
 let scannableRows: Array<JSONObject>;
+// Answers for the rule's next questions, in turn, before scannableRows.
+let scannableAnswers: Array<Array<JSONObject>>;
 // What the workers' claim hands out.
 let claimRows: Array<JSONObject>;
 // Whether the project's telemetry may be read: a row when it may.
@@ -199,6 +201,7 @@ beforeEach(() => {
     .spyOn(CloudConnectionService, "getConnectorSettings")
     .mockResolvedValue(SETTINGS);
   scannableRows = [{ _id: STORE_ID.toString() }];
+  scannableAnswers = [];
   claimRows = [];
   projectTelemetryRows = (): Array<JSONObject> => {
     return [{ _id: PROJECT_ID.toString() }];
@@ -209,7 +212,7 @@ beforeEach(() => {
   // Each statement answers what its test set; anything else is an account read.
   querySpy = jest.fn(async (sql: string) => {
     if (sql === DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT) {
-      return scannableRows;
+      return scannableAnswers.shift() || scannableRows;
     }
 
     if (sql === CLAIM_DUE_DATA_STORES_FOR_WORKERS_STATEMENT) {
@@ -727,6 +730,193 @@ describe("scanStore: the workers' rule, asked before any content is read (#8325)
     ).rejects.toThrow("Postgres went away");
     expect(sampleSpy).not.toHaveBeenCalled();
     expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * And asked again before anything is written: a scan reads for minutes, 8 for a bucket, and a
+ * switch turned off, or a project suspended, while it read kept its findings and their masked
+ * samples - the window OneUptime issue #8391 closed for a probe's results.
+ */
+describe("scanStore: the workers' rule, asked again before anything is written", () => {
+  function scansAsked(): Array<number> {
+    return querySpy.mock.calls
+      .map((call: Array<unknown>, index: number): number => {
+        return call[0] === DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT
+          ? querySpy.mock.invocationCallOrder[index]!
+          : -1;
+      })
+      .filter((order: number): boolean => {
+        return order >= 0;
+      });
+  }
+
+  function bucket(): ContentScanResult {
+    return {
+      ...emptyContentScanResult(),
+      locations: [
+        {
+          location: "exports/*.csv",
+          locationKind: DataStoreLocationKind.Object,
+          classifications: [classification("email-address")],
+        },
+      ],
+      objectsRead: 4,
+    };
+  }
+
+  test("the normal case: asked before the read and again after it, then written", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("content");
+    sampleSpy.mockResolvedValue(bucket());
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    const asked: Array<number> = scansAsked();
+
+    expect(asked).toHaveLength(2);
+    // Once before the read, once after it and before the write.
+    expect(asked[0]!).toBeLessThan(sampleSpy.mock.invocationCallOrder[0]!);
+    expect(asked[1]!).toBeGreaterThan(sampleSpy.mock.invocationCallOrder[0]!);
+    expect(asked[1]!).toBeLessThan(recordScanSpy.mock.invocationCallOrder[0]!);
+    // The same question both times.
+    expect(
+      querySpy.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT;
+      }),
+    ).toEqual([
+      [
+        DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT,
+        [
+          STORE_ID.toString(),
+          PROJECT_ID.toString(),
+          [...WORKER_CLAIMED_DATA_STORE_KINDS],
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        ],
+      ],
+      [
+        DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT,
+        [
+          STORE_ID.toString(),
+          PROJECT_ID.toString(),
+          [...WORKER_CLAIMED_DATA_STORE_KINDS],
+          SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        ],
+      ],
+    ]);
+    expect(recordScanSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["the store's Scan Content switch turned off while the scan read"],
+    ["the project's Scan Content switch turned off while the scan read"],
+    ["the project suspended, blocked or deleted while the scan read"],
+    ["the store archived, or given a scan probe, while the scan read"],
+  ])(
+    "%s: what it read of the bucket is not written, nor a failure",
+    async () => {
+      storeOf({
+        kind: DataStoreKind.AwsS3Bucket,
+        cloudConnectionId: CONNECTION_ID,
+      });
+      connectionOf("content");
+      sampleSpy.mockImplementation(async (): Promise<ContentScanResult> => {
+        // Turned off while the bucket was read.
+        scannableRows = [];
+        return bucket();
+      });
+
+      await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+      expect(sampleSpy).toHaveBeenCalledTimes(1);
+      expect(recordScanSpy).not.toHaveBeenCalled();
+      expect(recordFailedSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a database whose switch was turned off while it was read: nothing of it written", async () => {
+    storeOf({
+      kind: DataStoreKind.PostgreSql,
+      connectionString: "postgres://reader:x@db.internal/app",
+    });
+    sampleDatabaseSpy.mockImplementation(
+      async (): Promise<ContentScanResult> => {
+        scannableRows = [];
+        return bucket();
+      },
+    );
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(sampleDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(recordScanSpy).not.toHaveBeenCalled();
+    expect(recordFailedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a scan that would be recorded as skipped, of a store turned off meanwhile: nothing recorded", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("configuration");
+    // Scannable when the scan starts, not when it would write.
+    scannableAnswers = [[{ _id: STORE_ID.toString() }], []];
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(scansAsked()).toHaveLength(2);
+    expect(recordFailedSpy).not.toHaveBeenCalled();
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+
+  test("the rule failing to answer after the read: the scan is recorded as failed, and nothing it read is written", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("content");
+    sampleSpy.mockResolvedValue(bucket());
+
+    const answer: (sql: string) => Promise<unknown> =
+      querySpy.getMockImplementation() as (sql: string) => Promise<unknown>;
+    let asked: number = 0;
+
+    querySpy.mockImplementation(async (sql: string): Promise<unknown> => {
+      if (sql === DATA_STORE_SCANNABLE_BY_WORKERS_STATEMENT && ++asked === 2) {
+        throw new Error("Postgres went away");
+      }
+
+      return await answer(sql);
+    });
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(recordScanSpy).not.toHaveBeenCalled();
+    expect(recordFailedSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (recordFailedSpy.mock.calls[0]![0] as { errorMessage: string })
+        .errorMessage,
+    ).toBe("Postgres went away");
+  });
+
+  test("a store turned back on before the write: written as usual", async () => {
+    storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      cloudConnectionId: CONNECTION_ID,
+    });
+    connectionOf("content");
+    sampleSpy.mockResolvedValue(bucket());
+    scannableAnswers = [
+      [{ _id: STORE_ID.toString() }],
+      [{ _id: STORE_ID.toString() }],
+    ];
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(recordScanSpy).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -94,7 +94,7 @@ sequenceDiagram
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | **請求標頭**      | 請求的每個標頭，依小寫名稱列出，例如 `content-type`。                                                                  |
 | **Request Query Params** | URL 中的查詢參數，依名稱列出。                                                                                         |
-| **請求內文**         | 呼叫端傳送的內文。以 `Content-Type: application/json` 傳送的 JSON 內文可以逐一讀取欄位。                               |
+| **請求內文**         | 呼叫端傳送的內文。以 `Content-Type: application/json` 傳送的 JSON 內文可以逐一讀取欄位，像 Amazon SNS 那樣以純文字傳送的 JSON 也可以。 |
 
 要讀取單一欄位，把它的名稱加到參照後面，例如 `{{local.components.webhook-1.returnValues.request-body.message}}`。
 
