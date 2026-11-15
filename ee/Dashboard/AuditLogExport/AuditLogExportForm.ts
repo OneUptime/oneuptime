@@ -30,6 +30,7 @@ import {
   getFeedLocale,
   getFeedTimeAgoDistance,
 } from "Common/UI/Components/Feed/FeedTime";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * The audit log export form and table, without React: what the form's
@@ -674,7 +675,7 @@ export function formatAuditLogExportDuration(data: {
 
   const names: [string, string] = ENGLISH_DURATION_UNITS[distance.unit];
 
-  return `${distance.count} ${distance.count === 1 ? names[0] : names[1]}`;
+  return `${distance.count}${NO_BREAK_SPACE}${distance.count === 1 ? names[0] : names[1]}`;
 }
 
 export function getAuditLogExportHealth(

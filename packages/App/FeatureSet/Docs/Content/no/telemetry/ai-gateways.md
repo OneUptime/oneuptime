@@ -294,6 +294,6 @@ Tilkoblingstesten feilet. Sjekk at endpointet slutter på `/v1/traces`, og at he
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Samtaler, varsler, forbruk og daglige kostnadsbudsjetter for disse kallene.
 - [AI-kodeassistenter](/docs/telemetry/ai-coding-assistants): Sett en gateway foran verktøy som ikke sender telemetri selv.
 - [Circuit breakers for AI-agenter](/docs/telemetry/ai-agent-circuit-breaker): Stopp en løpsk agent når varselet slår til.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Varsle på span-mønstre, som et verktøy som kalles i en løkke.
+- [Trase-monitor](/docs/monitor/traces-monitor): Varsle på span-mønstre, som et verktøy som kalles i en løkke.
 - [Kontoer hos AI-leverandører](/docs/telemetry/ai-provider-accounts): Regningen for kontoene bak gatewayen, uten kode.
 :::

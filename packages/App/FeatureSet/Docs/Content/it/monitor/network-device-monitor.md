@@ -795,7 +795,7 @@ Finché non ci sono policy, la pagina offre **Create the recommended policy**: u
 
 ### Un dispositivo alla volta
 
-Apri la pagina del dispositivo e fai clic su **Crea monitor** nella scheda **Monitors alerting on this device**. Il modulo del monitor si apre con il tipo Network Device e il dispositivo già scelti, e con il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato) compilato: controllalo, imposta le gravità e le policy di reperibilità e salva.
+Apri la pagina del dispositivo e fai clic su **Crea monitor** nella scheda **Monitors alerting on this device**. Il modulo del monitor si apre con il tipo Dispositivo di rete e il dispositivo già scelti, e con il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato) compilato: controllalo, imposta le gravità e le policy di reperibilità e salva.
 
 La maggior parte di switch, router, firewall e stampanti offre anche un'interfaccia web al proprio indirizzo. **Monitora l'interfaccia web**, nella stessa scheda, apre un monitor **Sito web** per essa: `https://` all'indirizzo del dispositivo, con **Consenti certificati autofirmati** attivo, perché l'interfaccia web di un dispositivo ne ha quasi sempre uno, controllato dalla sonda del dispositivo stesso e con il nome del dispositivo. Cambia l'URL se l'interfaccia risponde in `http`, su un'altra porta o sotto un percorso, poi salva. La scheda elenca il monitor finché il suo nome contiene il nome del dispositivo e il suo URL è all'indirizzo del dispositivo; non cambia lo stato del dispositivo.
 

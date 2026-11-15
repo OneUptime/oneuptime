@@ -220,7 +220,7 @@ describe("the band", () => {
     expect(silent.tone).toBe(SecurityStatusTone.Success);
     expect(silent.action).toBe(SecurityHeadlineAction.TestAttack);
     expect(say(silent.summary)).toBe(
-      "No open case and nothing waiting for an approval, but the last security event arrived 3 days ago.",
+      "No open case and nothing waiting for an approval, but the last security event arrived 3\u00A0days ago.",
     );
   });
 
@@ -638,7 +638,7 @@ describe("the pipeline's cells", () => {
       "sources",
     );
 
-    expect(read(silent)).toEqual(["1 source", "Last event 3 days ago"]);
+    expect(read(silent)).toEqual(["1 source", "Last event 3\u00A0days ago"]);
     expect([silent.statusTone, silent.statusIcon]).toEqual([
       SecurityStatusTone.Warning,
       IconProp.SignalSlash,
@@ -668,7 +668,7 @@ describe("the pipeline's cells", () => {
       "sources",
     );
 
-    expect(read(recent)).toEqual(["1 source", "Last event 5 minutes ago"]);
+    expect(read(recent)).toEqual(["1 source", "Last event 5\u00A0minutes ago"]);
     expect(recent.statusTone).toBe(SecurityStatusTone.Neutral);
 
     const ahead: SecurityStageView = view(
@@ -815,7 +815,7 @@ describe("words", () => {
         since: ago(3 * DAY_IN_MS),
         now: NOW,
       }),
-    ).toBe("Letztes Ereignis vor 3 Tagen");
+    ).toBe("Letztes Ereignis vor 3\u00A0Tagen");
     expect(translateSecurityOverviewText(german, { text: NONE_OPEN })).toBe(
       "Keiner offen",
     );

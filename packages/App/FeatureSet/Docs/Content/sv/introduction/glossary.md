@@ -294,7 +294,7 @@ Se [Loggutforskare](/docs/telemetry/logs-explorer).
 
 Talen som dina tjänster och din infrastruktur rapporterar över tid, till exempel antal förfrågningar, latens, CPU och ködjup.
 
-Se [Måttutforskare](/docs/telemetry/metrics-explorer).
+Se [Mätvärdesutforskare](/docs/telemetry/metrics-explorer).
 
 ### Spår
 

@@ -951,7 +951,7 @@ describe("in German", () => {
         return time.textContent || "";
       });
 
-    expect(times).toEqual(["vor 1 Stunde", "vor 2 Minuten"]);
+    expect(times).toEqual(["vor 1\u00A0Stunde", "vor 2\u00A0Minuten"]);
     expect(screen.getByTestId("huntress-trigger-status")).toHaveTextContent(
       "Letztes Ereignis vor 1 Stunde",
     );

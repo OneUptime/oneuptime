@@ -30,7 +30,7 @@ flowchart TB
 ```
 
 - 每台設備一個[網路裝置](/docs/monitor/network-device-monitor)，由能到達它的探測器輪詢，並帶有一個廠商範本，提供合適的健康 OID 和 [SNMP 表格](/docs/monitor/network-device-monitor#snmp-表格)。
-- 每台裝置一個用於警示的 Network Device 監測器。從裝置頁面建立它，[建議警示](/docs/monitor/network-device-monitor#建議警示套件)就會自動填入，其中包括為每個知道何謂健康的表格設定的依列警示。對於裝置群，[警示策略](/docs/monitor/network-device-monitor#警示策略)會在每台裝置上維持一個監測器。
+- 每台裝置一個用於警示的 網路裝置 監測器。從裝置頁面建立它，[建議警示](/docs/monitor/network-device-monitor#建議警示套件)就會自動填入，其中包括為每個知道何謂健康的表格設定的依列警示。對於裝置群，[警示策略](/docs/monitor/network-device-monitor#警示策略)會在每台裝置上維持一個監測器。
 - 對於廠商只在日誌中回報的內容：傳送到探測器的 syslog（OneUptime 會自行把它讀取為[網路事件](/docs/monitor/network-events)）、依通道或閘道各發一次警示的[帶有 Group By 的日誌監測器](/docs/monitor/logs-monitor#依群組警示group-by)，以及把這些日誌中的數字繪製成圖表的[日誌記錄規則](/docs/telemetry/log-recording-rules)。
 
 ## Sophos Firewall (XGS / SFOS)

@@ -181,7 +181,7 @@ En selvhostet OneUptime kaller andre verktøy fra nettverket ditt, og andre verk
 
 :::cards
 - [Oversikt over arbeidsflyter](/docs/workflows/index): Hvordan arbeidsflyter kjører, og hvordan du bygger din første.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Motta varsler fra alle verktøy uten arbeidsflyt.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Motta varsler fra alle verktøy uten arbeidsflyt.
 - [Jira](/docs/integrations/jira): En komplett toveisintegrasjon, ut fra maler.
 - [Arbeidsflyt-variabler](/docs/workflows/variables): Send data mellom blokker, og hold hemmeligheter unna dem.
 :::

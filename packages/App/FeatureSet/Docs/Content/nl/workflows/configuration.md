@@ -81,7 +81,7 @@ Klik in de lijst **Workflows** op **JSON importeren** en kies een bestand dat is
 Het bestand bevat de naam, de beschrijving, de inschakelstatus en de graaf van de workflow. Het bevat bewust niet:
 
 - **De geheime sleutel van de webhook.** Bij het aanmaken van de workflow wordt een nieuwe gegenereerd, dus een geïmporteerde workflow heeft een andere webhook-URL — kopieer die uit de Webhook-trigger van de nieuwe workflow. Alles wat het origineel aanriep, moet worden omgezet.
-- **Het adres voor binnenkomende e-mail.** Een geïmporteerde workflow met een Incoming Email-trigger krijgt een eigen adres — kopieer het uit de trigger van de nieuwe workflow. Alles wat het origineel mailde, moet het nieuwe adres krijgen.
+- **Het adres voor binnenkomende e-mail.** Een geïmporteerde workflow met een Inkomende e-mail-trigger krijgt een eigen adres — kopieer het uit de trigger van de nieuwe workflow. Alles wat het origineel mailde, moet het nieuwe adres krijgen.
 - **Globale variabelen.** Een blok dat `{{global.variables.MY_SECRET}}` leest, houdt die verwijzing, maar de waarde staat niet in het bestand. Maak de variabelen aan in het doelproject voordat je de geïmporteerde workflow uitvoert.
 - **Eigenaren en labels.** De label- en eigenaarsregels van je project worden op de geïmporteerde workflow toegepast, net alsof je hem met de hand had gemaakt.
 
@@ -103,10 +103,10 @@ Alleen mensen die de workflow mogen bewerken — **Projecteigenaar**, **Projectb
 
 ## Beveiliging van binnenkomende e-mail
 
-De Incoming Email-trigger geeft de workflow een eigen adres, en iedereen die het adres kent, kan ernaar mailen. Het deel vóór de `@` is de geheime sleutel van de workflow, dus behandel het adres als een wachtwoord:
+De Inkomende e-mail-trigger geeft de workflow een eigen adres, en iedereen die het adres kent, kan ernaar mailen. Het deel vóór de `@` is de geheime sleutel van de workflow, dus behandel het adres als een wachtwoord:
 
 - Publiceer het niet en zet het niet in een openbare repository. De trigger verbergt de sleutel totdat je op **Tonen** klikt, en **Adres kopiëren** kopieert het adres zonder het te tonen.
-- Lekt het adres uit, klik dan op de Incoming Email-trigger in de **Bouwer** en daarna op **Adres opnieuw instellen**. De workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd.
+- Lekt het adres uit, klik dan op de Inkomende e-mail-trigger in de **Bouwer** en daarna op **Adres opnieuw instellen**. De workflow krijgt een nieuw adres, en e-mail naar het oude wordt vanaf dan genegeerd.
 - Iedereen kan elke willekeurige afzender op een e-mail zetten, dus **Van** bewijst niet wie hem stuurde. Controleer met een **Als / Anders**-blok iets wat alleen de echte afzender weet — een token in het onderwerp of in een header — voordat een workflow iets belangrijks doet. Sla het verwachte token op als geheime variabele.
 - De sleutel wordt afgeschermd in alles wat de uitvoering ontvangt — **Aan**, **CC**, de headers en de bodies —, omdat het logboek van de uitvoering zichtbaar is voor iedereen die de uitvoeringen van de workflow kan lezen.
 

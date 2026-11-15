@@ -82,12 +82,12 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트를 사용합니다.
 :::
 
-통지의 각 알림은 **Max incidents per request**(바꾸지 않으면 `100`)까지 자체 인시던트를 열고, 각 알림의 `status`가 그 인시던트가 언제 해결될지를 결정합니다. Grafana의 `fingerprint`는 레이블로 알림을 식별하므로 그룹화에 쓸 값이 바로 이것입니다. 각 설정이 하는 일은 [다른 시스템의 알림 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
+통지의 각 알림은 **Max incidents per request**(바꾸지 않으면 `100`)까지 자체 인시던트를 열고, 각 알림의 `status`가 그 인시던트가 언제 해결될지를 결정합니다. Grafana의 `fingerprint`는 레이블로 알림을 식별하므로 그룹화에 쓸 값이 바로 이것입니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
 
 > [!WARNING]
 > 통지의 모든 알림이 공유하는 레이블로 그룹화하지 마세요. Grafana의 기본 알림 정책은 알림을 `grafana_folder`와 `alertname`으로 그룹화하므로, 한 통지의 모든 알림은 같은 `alertname`을 가집니다. `requestBody.alerts[*].labels.alertname`으로 그룹화하면 통지 전체가 인시던트 하나로 합쳐집니다.
 
-`{{requestBody.commonLabels.alertname}}`과 `{{requestBody.message}}`는 통지 전체를 설명하며, 기본 정책에서는 그것이 알림 규칙 하나에 해당합니다. 그룹화 키도 `{{fingerprint}}`라는 변수이지만, 대응자에게 아무것도 알려 주지 않는 해시입니다. 사용할 수 있는 모든 변수는 [인시던트 및 알림 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
+`{{requestBody.commonLabels.alertname}}`과 `{{requestBody.message}}`는 통지 전체를 설명하며, 기본 정책에서는 그것이 알림 규칙 하나에 해당합니다. 그룹화 키도 `{{fingerprint}}`라는 변수이지만, 대응자에게 아무것도 알려 주지 않는 해시입니다. 사용할 수 있는 모든 변수는 [인시던트 및 경고 템플릿](/docs/monitor/incident-alert-templating)을 참고하세요.
 
 ## Grafana 구성
 

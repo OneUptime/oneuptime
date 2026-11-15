@@ -51,6 +51,8 @@ import {
   OWNER_RULE_ADDS_NOTHING_MESSAGE,
 } from "Common/Utils/Rules/RuleAction";
 import { describe, expect, it } from "@jest/globals";
+import BaseModelComponent from "Common/Types/Workflow/Components/BaseModel";
+import ComponentMetadata from "Common/Types/Workflow/Component";
 import fs from "fs";
 import path from "path";
 import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
@@ -1015,14 +1017,16 @@ describe("the lists this test keeps", () => {
      * maintenance trigger "On Create Scheduled Maintenance", which the
      * builder has never listed: it is "... Maintenance Event".
      */
-    const builder: string = fs.readFileSync(
-      path.join(PACKAGES_DIR, "Common/Types/Workflow/Components/BaseModel.ts"),
-      "utf8",
-    );
-
-    expect(builder).toContain(
-      'title: words(translationKey("On Create {{itemName}}"), false),',
-    );
+    // Asked of the builder itself: a step's title is filled in from a template.
+    for (const created of [new Incident(), new ScheduledMaintenance()]) {
+      expect(
+        BaseModelComponent.getComponents(created).map(
+          (component: ComponentMetadata): string => {
+            return component.title;
+          },
+        ),
+      ).toContain(`On Create ${created.singularName}`);
+    }
 
     for (const created of [new Incident(), new ScheduledMaintenance()]) {
       expect(created.enableWorkflowOn).toEqual(

@@ -46,7 +46,7 @@ Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens 
 :::steps
 1. Åpne **Produkter → AI / LLM → Budsjetter**, og klikk på **Opprett LLM Cost Budget**. Angi et **Daglig budsjett (USD)**, og velg agentens tjeneste i **Tjeneste (valgfritt)**, slik at budsjettet bare følger med på den agenten.
 2. Velg **Vis ID** i radmenyen til det nye budsjettet, og kopier ID-en.
-3. Opprett en [Målingsovervåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
+3. Opprett en [Målingsmonitor](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
 4. I **Når det skal varsles** setter du **Betingelse** til **På eller over** og **Verdi** til `100`, beholder **Opprett et varsel**, og gir det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
 :::
 
@@ -208,7 +208,7 @@ Monitorens **Tidsintervall** er kortere enn budsjettets 15 minutter mellom to pu
 
 :::cards
 - [AI- / LLM-observerbarhet](/docs/telemetry/ai-llm-observability): Budsjetter, kostnader og spanene circuit breakeren følger med på.
-- [Trase-overvåking](/docs/monitor/traces-monitor): Span-filtre og kriterier i detalj.
+- [Trase-monitor](/docs/monitor/traces-monitor): Span-filtre og kriterier i detalj.
 - [Arbeidsflyter](/docs/workflows/index): Utløsere, komponenter, variabler og kjøringer.
 - [AI-gatewayer](/docs/telemetry/ai-gateways): Alle agentenes modellkall gjennom én eksport.
 :::

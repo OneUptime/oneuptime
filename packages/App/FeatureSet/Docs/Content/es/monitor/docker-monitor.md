@@ -42,7 +42,7 @@ flowchart TB
 
 Vaya a **Monitores** y haga clic en **Crear monitor**.
 
-### Elegir Docker Container
+### Elegir Contenedor de Docker
 
 En **Tipo de monitor**, haga clic en **Más tipos de monitor** y elija **Contenedor de Docker** en **Infraestructura**, o escriba `docker` en el cuadro de búsqueda. Introduzca un **Nombre** – se usa en los títulos de los incidentes y las alertas – y haga clic en **Siguiente**.
 

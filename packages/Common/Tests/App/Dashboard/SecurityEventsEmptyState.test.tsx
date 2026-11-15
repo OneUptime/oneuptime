@@ -742,7 +742,7 @@ describe("SecurityEventsEmptyState", () => {
       expect(
         screen.getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`)
           .textContent,
-      ).toBe("Checked 2 minutes ago. No security event found yet.");
+      ).toBe("Checked 2\u00A0minutes ago. No security event found yet.");
       // Not asked to turn on what is on.
       expect(
         within(card("logs")).queryByRole("button", {

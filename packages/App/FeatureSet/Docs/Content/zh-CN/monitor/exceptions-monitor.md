@@ -211,7 +211,7 @@ OneUptime 每分钟统计一次与监视器过滤器匹配、且在其时间窗�
 ## 后续步骤
 
 :::cards
-- [跟踪监控](/docs/monitor/traces-monitor): 对失败的 Span 和端点告警。
+- [追踪监控](/docs/monitor/traces-monitor): 对失败的 Span 和端点告警。
 - [日志监控](/docs/monitor/logs-monitor): 对日志量和日志内容告警。
 - [事件与告警模板](/docs/monitor/incident-alert-templating): 编写有用的告警标题和描述。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 把异常发送到 OneUptime。

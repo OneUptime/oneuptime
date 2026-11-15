@@ -395,7 +395,7 @@ describe("cardForNode", () => {
       NOW,
     );
     expect(card.dimmed).toBe(true);
-    expect(card.statusLabel).toBe("Inactive · seen 3 days ago");
+    expect(card.statusLabel).toBe("Inactive · seen 3\u00A0days ago");
   });
 });
 

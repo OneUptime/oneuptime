@@ -115,7 +115,7 @@ OneUptime 每 10 分钟在你的追踪中查找一次服务之间的调用。当
 
 :::cards
 - [服务](/docs/telemetry/services): 关于一个服务的一切。
-- [跟踪浏览器](/docs/telemetry/traces-explorer): 每个箭头背后的请求。
+- [追踪浏览器](/docs/telemetry/traces-explorer): 每个箭头背后的请求。
 - [资产清单概览](/docs/inventory/overview): 地图绘制的每个资源。
 - [网络设备监控](/docs/monitor/network-device-monitor): 把你的网络放到地图上。
 :::

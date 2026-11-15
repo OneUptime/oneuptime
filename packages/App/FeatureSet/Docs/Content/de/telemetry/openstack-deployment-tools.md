@@ -41,7 +41,7 @@ Jedes Tool mit einem Alertmanager kann schon heute Vorfälle haben: Eine ausgel�
 :::steps
 ### Den Monitor erstellen
 
-Erstellen Sie einen Monitor vom Typ Incoming Request, wie [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#warnungen-mit-einem-monitor-empfangen) es beschreibt, und kopieren Sie seine **Heartbeat-URL**. Das ist die Adresse `<secret key>` im Empfänger jedes Tools unten.
+Erstellen Sie einen Monitor vom Typ Eingehende Anfrage, wie [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager#warnungen-mit-einem-monitor-empfangen) es beschreibt, und kopieren Sie seine **Heartbeat-URL**. Das ist die Adresse `<secret key>` im Empfänger jedes Tools unten.
 
 ### Ihn der Cloud zuordnen
 

@@ -117,7 +117,7 @@ Inne i løkken:
 - En løkke over en sti som ikke er en liste, eller over en tom liste, skriver ingenting.
 - Løkker kan nestes: en `{{#each}}` inne i en annen leser den indre listen til hvert ytre element.
 
-For eksempel en [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor) som mottar denne varslingen:
+For eksempel en [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor) som mottar denne varslingen:
 
 ```json title="Request body"
 {
@@ -152,7 +152,7 @@ Alerts for payments:
 
 En målingsbasert monitor med attributter i **Grupper etter** åpner én hendelse per serie, og verdien til hvert attributt er en variabel under attributtets navn. Gruppering etter `host.name` gir `{{host.name}}`, og gruppering etter `resource.k8s.pod.name` gir `{{resource.k8s.pod.name}}`. `{{seriesLabels}}` inneholder alle, som et objekt.
 
-En gruppert [Logg-overvåking](/docs/monitor/logs-monitor) fungerer på samme måte: verdien til hvert grupperingsattributt er en variabel under nøkkelen sin.
+En gruppert [Logg-monitor](/docs/monitor/logs-monitor) fungerer på samme måte: verdien til hvert grupperingsattributt er en variabel under nøkkelen sin.
 
 ## Variabler som alle monitorer har
 
@@ -199,7 +199,7 @@ Disse beskriver serien som en gruppert monitor åpnet hendelsen for: en pod, en 
 Når kriteriet har **Group incidents and alerts by a payload field** slått på, er grupperingsnøkkelen også en variabel, oppkalt etter det **siste segmentet** av grupperingsstien: gruppering etter `requestBody.alerts[*].labels.alertname` gir `{{alertname}}`, og gruppering etter `requestBody.alerts[*].fingerprint` gir `{{fingerprint}}`. Hele `requestBody` finnes fortsatt ved siden av.
 
 > [!NOTE]
-> `[*]` virker bare i feltene for grupperingsstien. I en mal leser den ingenting, så plassholderen blir stående som den er skrevet. `{{requestBody.alerts[0].annotations.summary}}` leser alltid det første varselet i payloaden, ikke det hendelsen ble åpnet for: bruk grupperingsvariabelen og payloadens felles felt, som `commonLabels` og `commonAnnotations`. Se [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor).
+> `[*]` virker bare i feltene for grupperingsstien. I en mal leser den ingenting, så plassholderen blir stående som den er skrevet. `{{requestBody.alerts[0].annotations.summary}}` leser alltid det første varselet i payloaden, ikke det hendelsen ble åpnet for: bruk grupperingsvariabelen og payloadens felles felt, som `commonLabels` og `commonAnnotations`. Se [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor).
 
 ### Monitorer for innkommende e-post
 
@@ -211,7 +211,7 @@ Når kriteriet har **Group incidents and alerts by a payload field** slått på,
 | `emailBody` | E-postens body som ren tekst. | `string` |
 | `emailReceivedAt` | Når e-posten ble mottatt, som et ISO 8601-tidsstempel i UTC. | `string` |
 
-I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser og utbedringsnotater får hele verdien. Se [Innkommende e-post-overvåking](/docs/monitor/incoming-email-monitor#malvariabler).
+I en tittel kuttes hver av dem til én linje på høyst 150 tegn. Beskrivelser og utbedringsnotater får hele verdien. Se [Innkommende e-post-monitor](/docs/monitor/incoming-email-monitor#malvariabler).
 
 ### Ping-, IP- og portmonitorer
 
@@ -417,7 +417,7 @@ For å vise skjermbildet av hver feilet kjøring legger du bildet i en løkke. H
 | `trapSourceIp` | Adressen trapen kom fra. Bare når en SNMP-trap utløste sjekken. | `string` |
 | `trapVarbinds` | Trapens varbinds, hver som `{oid, value}`. Bare når en SNMP-trap utløste sjekken. | `Array<Object>` |
 
-En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når den har påloggingsinformasjon, så **`isOnline` er den eneste variabelen over som en enhet med bare ping fyller ut**: alle de andre kommer fra SNMP-gjennomgangen og blir stående som de er skrevet uten den. Begynn med `{{isOnline}}` og enhetens navn i maler som kan brukes for enheter uten påloggingsinformasjon. Se [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor#hva-en-polling-faktisk-gjør) for hva hver type avspørring samler inn.
+En nettverksenhet pinges ved hver avspørring og gås bare gjennom via SNMP når den har påloggingsinformasjon, så **`isOnline` er den eneste variabelen over som en enhet med bare ping fyller ut**: alle de andre kommer fra SNMP-gjennomgangen og blir stående som de er skrevet uten den. Begynn med `{{isOnline}}` og enhetens navn i maler som kan brukes for enheter uten påloggingsinformasjon. Se [Nettverksenhets-monitor](/docs/monitor/network-device-monitor#hva-en-polling-faktisk-gjør) for hva hver type avspørring samler inn.
 
 ### Monitorer for databasehelse
 
@@ -452,17 +452,17 @@ Serienavnene i `metrics` inneholder punktum, som `oneuptime.monitor.database.con
 
 ### Målings- og infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Storage Array- og IoT Device-monitorer har én egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- og IoT-enhet-monitorer har én egen variabel:
 
 | Variabel | Hva den inneholder | Type |
 | --- | --- | --- |
 | `metricName` | Navnet på målingen monitorens første spørring leser, som `container.cpu.time`. | `string` |
 
-Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT Device-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
+Grupperte har de også verdien til hvert attributt i **Grupper etter**, og `seriesLabels`: se [Verdier fra en gruppert monitor](#verdier-fra-en-gruppert-monitor). Malene til IoT-enhet-monitoren grupperer etter enhet, så en monitor laget fra en av dem har også `{{device.id}}`.
 
 ### Andre monitortyper
 
-Logs-, Traces-, Exceptions-, Security Events-, AI / LLM- og SQL Query-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
+Logs-, Traces-, Exceptions-, Sikkerhetshendelser-, AI / LLM- og SQL-spørring-monitorer har ingen egne variabler. Bruk [variablene som alle monitorer har](#variabler-som-alle-monitorer-har), og på en gruppert Logs-monitor [gruppeverdiene](#verdier-fra-en-gruppert-monitor).
 
 ## Eksempler
 
@@ -590,6 +590,6 @@ Sjekk bildets format og størrelse mot [Vis et skjermbilde](#vis-et-skjermbilde)
 :::cards
 - [JavaScript-uttrykk](/docs/monitor/javascript-expression): De samme plassholderne, i et kriteriums betingelser.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Hva som skjer etter at et kriterium har erklært en.
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Ta skjermbildene en beskrivelse kan vise.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Gjør webhooks om til hendelser oppkalt etter hvert varsel.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Ta skjermbildene en beskrivelse kan vise.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Gjør webhooks om til hendelser oppkalt etter hvert varsel.
 :::

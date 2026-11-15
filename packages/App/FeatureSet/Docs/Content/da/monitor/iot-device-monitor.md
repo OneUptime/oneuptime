@@ -44,7 +44,7 @@ flowchart TB
 
 Gå til **Monitorer**, og klik på **Opret monitor**.
 
-### Vælg IoT Device
+### Vælg IoT-enhed
 
 Klik under **Monitortype** på **Flere monitortyper**, og vælg **IoT-enhed** under **Infrastruktur**, eller skriv `iot` i søgefeltet. Angiv et **Navn** - det bruges i titlerne på hændelser og advarsler - og klik på **Næste**.
 

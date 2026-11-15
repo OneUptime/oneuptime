@@ -689,8 +689,8 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       const corporate: StatusPageReportGroup = report.groups[0]!;
 
-      expect(corporate.downtimeInHoursAndMinutes).toContain("2 days");
-      expect(report.totalDowntimeInHoursAndMinutes).toContain("2 days");
+      expect(corporate.downtimeInHoursAndMinutes).toContain("2\u00A0days");
+      expect(report.totalDowntimeInHoursAndMinutes).toContain("2\u00A0days");
     });
 
     test("counts a group's incidents over every monitor beneath it", async () => {
@@ -868,8 +868,8 @@ describe("StatusPageService.getReportByStatusPage", () => {
           resource.downtimeInHoursAndMinutes;
       }
 
-      expect(downtimeByName["Router"]).toBe("2 days, 0 minutes");
-      expect(downtimeByName["Switch 01"]).toBe("1 days, 0 minutes");
+      expect(downtimeByName["Router"]).toBe("2\u00A0days, 0\u00A0minutes");
+      expect(downtimeByName["Switch 01"]).toBe("1\u00A0days, 0\u00A0minutes");
 
       /*
        * Neither resource was down for three days, so only the merged
@@ -880,9 +880,15 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
-      expect(corporate.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(corporate.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
     });
 
     test("never prints a group below one of its own resources", async () => {
@@ -908,8 +914,12 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         report.groups[0]!.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("2 days, 0 minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("2 days, 0 minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "2\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "2\u00A0days, 0\u00A0minutes",
+      );
     });
   });
 
@@ -1016,8 +1026,10 @@ describe("StatusPageService.getReportByStatusPage", () => {
           resource.downtimeInHoursAndMinutes;
       }
 
-      expect(downtimeByName["Router"]).toBe("2 days, 0 minutes");
-      expect(downtimeByName["Switch 01"]).toBe("2 days, 12 hours, 0 minutes");
+      expect(downtimeByName["Router"]).toBe("2\u00A0days, 0\u00A0minutes");
+      expect(downtimeByName["Switch 01"]).toBe(
+        "2\u00A0days, 12\u00A0hours, 0\u00A0minutes",
+      );
 
       /*
        * Not the old merge's two days, not the largest resource's two and a
@@ -1028,9 +1040,15 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const unit: StatusPageReportGroup =
         corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
 
-      expect(unit.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
-      expect(corporate.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(unit.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(corporate.downtimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "3\u00A0days, 0\u00A0minutes",
+      );
     });
   });
 
@@ -1330,7 +1348,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       // not the 5 minutes the capped rows hold.
       expect(
         itemsByName(report)["lp.chainflip.io"]!.downtimeInHoursAndMinutes,
-      ).toBe("4 hours, 40 minutes");
+      ).toBe("4\u00A0hours, 40\u00A0minutes");
     });
 
     test("keeps a quiet monitor's history when a noisy one fills the cap", async () => {
@@ -1344,7 +1362,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       // one day down in sixty, although none of its rows survive the cap.
       expect(quiet.uptimePercentAsString).toBe("98.33%");
-      expect(quiet.downtimeInHoursAndMinutes).toBe("1 days, 0 minutes");
+      expect(quiet.downtimeInHoursAndMinutes).toBe(
+        "1\u00A0days, 0\u00A0minutes",
+      );
     });
 
     test("averages the page over the corrected figures", async () => {
@@ -1453,7 +1473,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
        * 280 - 5 + 1440 + 360 = 2075 minutes.
        */
       expect(report.totalDowntimeInHoursAndMinutes).toBe(
-        "1 days, 10 hours, 35 minutes",
+        "1\u00A0days, 10\u00A0hours, 35\u00A0minutes",
       );
     });
 
@@ -1568,10 +1588,10 @@ describe("StatusPageService.getReportByStatusPage", () => {
        * swallows one five minute flap - 1715 minutes.
        */
       expect(group.downtimeInHoursAndMinutes).toBe(
-        "1 days, 4 hours, 35 minutes",
+        "1\u00A0days, 4\u00A0hours, 35\u00A0minutes",
       );
       expect(report.totalDowntimeInHoursAndMinutes).toBe(
-        "1 days, 4 hours, 35 minutes",
+        "1\u00A0days, 4\u00A0hours, 35\u00A0minutes",
       );
     });
 
@@ -1611,7 +1631,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const edge: StatusPageReportItem = itemsByName(report)["Edge"]!;
 
       expect(edge.uptimePercentAsString).toBe("99.58%");
-      expect(edge.downtimeInHoursAndMinutes).toBe("6 hours, 0 minutes");
+      expect(edge.downtimeInHoursAndMinutes).toBe(
+        "6\u00A0hours, 0\u00A0minutes",
+      );
     });
 
     test("prints 100% and no downtime for a monitor with nothing recorded, rather than null", async () => {
@@ -1626,7 +1648,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       expect(unrecorded.uptimePercent).toBe(100);
       expect(unrecorded.uptimePercentAsString).toBe("100%");
-      expect(unrecorded.downtimeInHoursAndMinutes).toBe("0 minutes");
+      expect(unrecorded.downtimeInHoursAndMinutes).toBe("0\u00A0minutes");
     });
 
     test("prints the same for a monitor group with nothing recorded", async () => {
@@ -1660,8 +1682,8 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       expect(item.uptimePercent).toBe(100);
       expect(item.uptimePercentAsString).toBe("100%");
-      expect(item.downtimeInHoursAndMinutes).toBe("0 minutes");
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("0 minutes");
+      expect(item.downtimeInHoursAndMinutes).toBe("0\u00A0minutes");
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("0\u00A0minutes");
     });
   });
 
@@ -1732,7 +1754,9 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       // two hours down in three covered days.
       expect(router.uptimePercentAsString).toBe("97.22%");
-      expect(router.downtimeInHoursAndMinutes).toBe("2 hours, 0 minutes");
+      expect(router.downtimeInHoursAndMinutes).toBe(
+        "2\u00A0hours, 0\u00A0minutes",
+      );
     });
   });
 

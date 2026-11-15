@@ -231,7 +231,7 @@ Añada criterios para decidir cuándo el monitor se considera en línea, degrada
 | **Error de la consulta SQL** | El mensaje de error de la consulta. Alerte cuando esté (o no) vacío, o cuando coincida con una cadena concreta. |
 | **Expresión de JavaScript** | Evaluar una expresión de JavaScript personalizada sobre `rowCount`, `scalarValue`, `firstRow`, `executionTimeInMs`, `queryError` e `isOnline`. Consulte [Expresiones JavaScript](/docs/monitor/javascript-expression#monitores-de-consultas-sql). |
 
-Los umbrales numéricos son números enteros: escriba `10`, no `10.5`. Los filtros de SQL Query no se pueden evaluar durante un periodo de tiempo; cada comprobación es independiente.
+Los umbrales numéricos son números enteros: escriba `10`, no `10.5`. Los filtros de Consulta SQL no se pueden evaluar durante un periodo de tiempo; cada comprobación es independiente.
 
 Un monitor de consultas SQL nuevo empieza con dos criterios: **SQL en línea** es falso (el monitor queda sin conexión y declara un incidente que se resuelve solo) y **SQL en línea** es verdadero, que lo marca en línea. **Añadir criterios** añade uno al final; arrástrelo por encima del criterio en línea, porque los criterios se comprueban desde arriba y el primero que coincide decide.
 

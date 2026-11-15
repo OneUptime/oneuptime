@@ -276,7 +276,7 @@ OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 디바이스에
 
 | 메트릭 이름 | 의미 |
 | --- | --- |
-| `iot_device_up` | 가용성: `1`은 업이고 도달 가능, `0`은 다운. IoT Device 모니터가 이를 읽습니다. |
+| `iot_device_up` | 가용성: `1`은 업이고 도달 가능, `0`은 다운. IoT 디바이스 모니터가 이를 읽습니다. |
 | `iot_device_info` | 식별 정보만. `device.id`, 분류, 유형, 펌웨어를 담으므로 디바이스가 측정값을 보고하기 전에도 인벤토리에 나타납니다. |
 | `iot_battery_percent` | 배터리 충전량, `0`~`100`(%). |
 | `iot_signal_strength_dbm` | dBm 단위 무선 신호 강도(Wi-Fi, LoRa, 셀룰러 RSSI 등). |

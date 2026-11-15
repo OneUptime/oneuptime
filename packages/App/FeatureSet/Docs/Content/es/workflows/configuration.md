@@ -81,7 +81,7 @@ En la lista **Flujos de trabajo**, haz clic en **Importar JSON** y elige un arch
 El archivo contiene el nombre del flujo de trabajo, su descripción, su estado de activación y su grafo. A propósito, no contiene:
 
 - **La clave secreta del webhook.** Se genera una nueva al crear el flujo de trabajo, así que un flujo de trabajo importado tiene otra URL de webhook: cópiala del disparador Webhook del flujo de trabajo nuevo. Todo lo que llamaba al original tiene que apuntar al nuevo.
-- **La dirección de correo entrante.** Un flujo de trabajo importado con un disparador Incoming Email recibe una dirección propia: cópiala del disparador del flujo de trabajo nuevo. Todo lo que escribía al original tiene que recibir la dirección nueva.
+- **La dirección de correo entrante.** Un flujo de trabajo importado con un disparador Correo entrante recibe una dirección propia: cópiala del disparador del flujo de trabajo nuevo. Todo lo que escribía al original tiene que recibir la dirección nueva.
 - **Las variables globales.** Un bloque que lee `{{global.variables.MY_SECRET}}` conserva esa referencia, pero el valor no está en el archivo. Crea las variables en el proyecto de destino antes de ejecutar el flujo de trabajo importado.
 - **Los propietarios y las etiquetas.** Las reglas de etiquetas y de propietarios de tu proyecto se aplican al flujo de trabajo importado, igual que si lo hubieras creado a mano.
 
@@ -103,10 +103,10 @@ Solo las personas que pueden editar el flujo de trabajo — **Propietario del pr
 
 ## Seguridad del correo entrante
 
-El disparador Incoming Email da al flujo de trabajo una dirección propia, y cualquiera que conozca la dirección puede escribirle. La parte anterior a la `@` es la clave secreta del flujo de trabajo, así que trata la dirección como una contraseña:
+El disparador Correo entrante da al flujo de trabajo una dirección propia, y cualquiera que conozca la dirección puede escribirle. La parte anterior a la `@` es la clave secreta del flujo de trabajo, así que trata la dirección como una contraseña:
 
 - No la publiques ni la pongas en un repositorio público. El disparador oculta la clave hasta que haces clic en **Mostrar**, y **Copiar dirección** copia la dirección sin mostrarla.
-- Si la dirección se filtra, haz clic en el disparador Incoming Email en el **Constructor** y después en **Restablecer dirección**. El flujo de trabajo recibe una dirección nueva, y el correo a la antigua se ignora a partir de entonces.
+- Si la dirección se filtra, haz clic en el disparador Correo entrante en el **Constructor** y después en **Restablecer dirección**. El flujo de trabajo recibe una dirección nueva, y el correo a la antigua se ignora a partir de entonces.
 - Cualquiera puede poner cualquier remitente en un correo, así que **De** no prueba quién lo envió. Antes de que un flujo de trabajo haga algo importante, comprueba algo que solo sepa el remitente real — un token en el asunto o en una cabecera — con un bloque **Si / Si no**. Guarda el token esperado como variable secreta.
 - La clave se oculta en todo lo que recibe la ejecución — **Para**, **CC**, las cabeceras y los cuerpos —, porque el registro de la ejecución es visible para cualquiera que pueda leer las ejecuciones del flujo de trabajo.
 

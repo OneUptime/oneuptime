@@ -341,10 +341,10 @@ describe.each(LANGUAGES)(
         sentenceIn(language, "replay lag {{lag}}", { lag: "2.0s" }),
       );
       expect(pageText()).toContain(
-        sentenceIn(language, "{{size}} behind", { size: "2.0 KB" }),
+        sentenceIn(language, "{{size}} behind", { size: "2.0\u00A0KB" }),
       );
       expect(pageText()).toContain(
-        sentenceIn(language, "retains {{size}}", { size: "4.0 KB" }),
+        sentenceIn(language, "retains {{size}}", { size: "4.0\u00A0KB" }),
       );
 
       // Two sessions blocked: one sentence, its count in the language's digits.
@@ -404,7 +404,7 @@ describe.each(LANGUAGES)("Health > Overview, in %s", (language: string) => {
 
     await waitFor(() => {
       expect(pageText()).toContain(
-        sentenceIn(language, "Database {{size}}", { size: "1.0 GB" }),
+        sentenceIn(language, "Database {{size}}", { size: "1.0\u00A0GB" }),
       );
     });
 

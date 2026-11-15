@@ -10,6 +10,7 @@ import fsSync from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
+import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
 
 /*
  * The network's Traffic page with its Meraki side (issue #5140), in a real
@@ -2149,4 +2150,18 @@ test("a member sees the connections without buttons, and why - and the guide's o
   await expect(page.getByTestId("traffic-setup-meraki-locked")).toContainText(
     "You do not have permission to create this Meraki connection.",
   );
+});
+
+/*
+ * The fixture loads its locales as the Dashboard does (#8645). It imported
+ * German whole, parsed on every page load of every test. English is in the
+ * bundle now, and each other language a chunk of its own, loaded only by a
+ * page drawn in it (SuiteHelpers/FixtureLocales.js), built as the Dashboard
+ * ships it (SuiteHelpers/FixtureLocalesBuild.js).
+ */
+describePageLanguages({
+  languages: ["de"],
+  address: (language: string): string => {
+    return `${TRAFFIC}?state=meraki${language === "en" ? "" : `&lang=${language}`}`;
+  },
 });

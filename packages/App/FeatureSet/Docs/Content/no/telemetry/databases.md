@@ -31,7 +31,7 @@ flowchart LR
 
 Motormålinger kommer bare fra en collector som snakker med selve databasen (eller, for en administrert skydatabase, med leverandørens overvåkings-API). Spor og containerinventarer forteller OneUptime at en database finnes og hvordan den brukes, men ikke hvordan den har det innvendig; statusen **Motormålinger** på hver database viser om den delen er tilkoblet.
 
-Du kan også legge til en database manuelt: **Databaser → Opprett Database** med motor, adresse og port. For en helsesjekk fra en sonde som ikke trenger noen agent i det hele tatt, se [Databasehelse-overvåking](/docs/monitor/database-health-monitor).
+Du kan også legge til en database manuelt: **Databaser → Opprett Database** med motor, adresse og port. For en helsesjekk fra en sonde som ikke trenger noen agent i det hele tatt, se [Databasehelse-monitor](/docs/monitor/database-health-monitor).
 
 ## Støttede databaser
 
@@ -222,7 +222,7 @@ Agenten ligger i [mappen DatabaseAgent](https://github.com/OneUptime/oneuptime/t
 :::steps
 ### Opprett en overvåkingsbruker
 
-Gi agenten sin egen innlogging med lesetilgang til motorens statistikk: aldri en administrator og aldri innloggingen til en applikasjon. Hvis du allerede har opprettet en overvåkingsbruker for [Databasehelse-overvåking](/docs/monitor/database-health-monitor#opprett-en-overvåkingsbruker), dekker rettighetene for PostgreSQL, MySQL og SQL Server også agenten.
+Gi agenten sin egen innlogging med lesetilgang til motorens statistikk: aldri en administrator og aldri innloggingen til en applikasjon. Hvis du allerede har opprettet en overvåkingsbruker for [Databasehelse-monitor](/docs/monitor/database-health-monitor#opprett-en-overvåkingsbruker), dekker rettighetene for PostgreSQL, MySQL og SQL Server også agenten.
 
 :::tabs
 @tab PostgreSQL
@@ -682,7 +682,7 @@ List bare tellerne du varsler på: fra da av viser databasens grafer disse måli
 
 SQL Servers `sqlserver.*.rate`-målinger (batchforespørsler, kompileringer, låseventetider, vranglåser) er forkledde tellere: via agentens direkte tilkobling bærer de tellerens total siden serveren startet i stedet for en rate per sekund (bare Windows-ytelsestellere rapporterer raten), og `cumulativetodelta` lar dem være fordi receiveren rapporterer dem som gauges. Varsle i stedet på SQL Servers øyeblikksverdier: blokkerte økter, ventende minnetildelinger, page life expectancy, treffrate i bufferhurtigbufferen.
 
-For en sonde som sjekker en database uten noen agent, se [Databasehelse-overvåking](/docs/monitor/database-health-monitor).
+For en sonde som sjekker en database uten noen agent, se [Databasehelse-monitor](/docs/monitor/database-health-monitor).
 
 ## Livssyklus, arkivering og oppbevaring
 
@@ -784,8 +784,8 @@ Monitoren navngir ikke databasen. Filtrer eller grupper en målings- eller loggm
 ## Neste trinn
 
 :::cards
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på motormålingene til en database, filtrert på `oneuptime.database.server.id`.
-- [Databasehelse-overvåking](/docs/monitor/database-health-monitor): Sjekk PostgreSQL, MySQL eller SQL Server fra en sonde, uten agent.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på motormålingene til en database, filtrert på `oneuptime.database.server.id`.
+- [Databasehelse-monitor](/docs/monitor/database-health-monitor): Sjekk PostgreSQL, MySQL eller SQL Server fra en sonde, uten agent.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Instrumenter applikasjonene dine, slik at databasekallene deres fyller **Spørringer fra applikasjoner**.
 - [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents): Hva database-AI-agenten kan kjøre, og hvordan rettinger fungerer.
 :::

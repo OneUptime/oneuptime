@@ -30,6 +30,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatCompactDuration } from "../../../Milliseconds";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * The words of a telemetry monitor's rule editor - "When to alert" and
@@ -177,7 +178,7 @@ export const formatWindow: (
       part: { count, unit: whole.unit },
       locale: translator.language || "en",
       unitDisplay: "long",
-    }) || `${count} ${whole.unit}${count === 1 ? "" : "s"}`
+    }) || `${count}${NO_BREAK_SPACE}${whole.unit}${count === 1 ? "" : "s"}`
   );
 };
 
@@ -1096,7 +1097,7 @@ export const formatPreviewRange: (
         part: { count: hours, unit: "hour" },
         locale: translator.language || "en",
         unitDisplay: "long",
-      }) || `${hours} hour${hours === 1 ? "" : "s"}`
+      }) || `${hours}${NO_BREAK_SPACE}hour${hours === 1 ? "" : "s"}`
     );
   }
 
@@ -1205,7 +1206,7 @@ export const formatDuration: (
     }) ||
     parts
       .map((part: DurationTextPart) => {
-        return `${part.count} ${part.unit}${part.count === 1 ? "" : "s"}`;
+        return `${part.count}${NO_BREAK_SPACE}${part.unit}${part.count === 1 ? "" : "s"}`;
       })
       .join(", ")
   );

@@ -139,7 +139,7 @@ Ist eine E-Mail eingetroffen, weiß die Werteauswahl in jedem Baustein nach dem 
 
 Um den Workflow auszuprobieren, ohne eine E-Mail zu senden, klicken Sie auf der Seite **Editor** auf **Arbeitsablauf ausführen** und füllen einen Absender, einen Betreff und einen Body aus. Die Werte, die Sie weglassen, kommen leer an.
 
-E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Incoming Email ist.
+E-Mails starten den Workflow nur, solange er an ist. Eine E-Mail an einen Workflow, der aus ist, wird ignoriert, ebenso eine E-Mail an einen Workflow, dessen Trigger nicht mehr Eingehende E-Mail ist.
 
 ### Die Adresse privat halten
 

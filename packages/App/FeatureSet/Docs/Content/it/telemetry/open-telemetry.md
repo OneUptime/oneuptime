@@ -23,7 +23,7 @@ flowchart TB
     sdk -->|"OTLP"| collector
     sdk -->|"OTLP + chiave di acquisizione"| ingest["Acquisizione OneUptime"]
     collector -->|"OTLP + chiave di acquisizione"| ingest
-    ingest --> logs["Registri"]
+    ingest --> logs["Log"]
     ingest --> traces["Tracce"]
     ingest --> metrics["Metriche"]
     logs --> exceptions["Eccezioni"]

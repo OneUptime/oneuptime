@@ -25,6 +25,7 @@ import {
   RunbookScheduleRepeat,
 } from "Common/Types/Runbook/RunbookSchedule";
 import RunbookTriggerType from "Common/Types/Runbook/RunbookTriggerType";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 
 /*
  * A RUNBOOK'S TRIGGERS PAGE, in words: a schedule card, a webhook card, and
@@ -808,7 +809,9 @@ export function formatRunRelativeTime(data: {
 
   const units: string = value === 1 ? unit : `${unit}s`;
 
-  return sign < 0 ? `${value} ${units} ago` : `in ${value} ${units}`;
+  return sign < 0
+    ? `${value}${NO_BREAK_SPACE}${units} ago`
+    : `in ${value}${NO_BREAK_SPACE}${units}`;
 }
 
 export function formatRunTime(data: {

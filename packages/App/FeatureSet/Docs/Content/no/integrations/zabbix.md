@@ -353,7 +353,7 @@ Handlingen har sannsynligvis to operasjoner som sender til den samme brukeren, f
 
 :::cards
 - [Arbeidsflytmaler](/docs/workflows/authoring): Opprett en arbeidsflyt fra en mal, og endre den i Bygger.
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Alle innstillingene for monitoren som mottar Zabbix-problemer.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Alle innstillingene for monitoren som mottar Zabbix-problemer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem en vaktpolicy varsler, og når.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

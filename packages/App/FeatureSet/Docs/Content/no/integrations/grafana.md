@@ -179,8 +179,8 @@ Veiledningen for [Prometheus Alertmanager](/docs/integrations/prometheus-alertma
 ## Neste trinn
 
 :::cards
-- [Innkommende forespørsel-overvåking](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
+- [Innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor): Hver innstilling for monitoren som mottar varslene dine.
 - [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager): Det samme oppsettet, med en dødmannsbryter for varslingen din.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på de samme målingene i selve OneUptime.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på de samme målingene i selve OneUptime.
 - [Oversikt over integrasjoner](/docs/integrations/index): De andre verktøyene du kan koble til.
 :::

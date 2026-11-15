@@ -81,7 +81,7 @@ Dans la liste **Flux de travail**, cliquez sur **Importer du JSON** et choisisse
 Le fichier contient le nom du flux de travail, sa description, son état d'activation et son graphe. Il ne contient volontairement pas :
 
 - **La clé secrète du webhook.** Une nouvelle clé est générée à la création du flux de travail : un flux de travail importé a donc une autre URL de webhook — copiez-la depuis le déclencheur Webhook du nouveau flux de travail. Tout ce qui appelait l'original doit être redirigé.
-- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur Incoming Email reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
+- **L'adresse e-mail entrante.** Un flux de travail importé avec un déclencheur E-mail entrant reçoit sa propre adresse — copiez-la depuis le déclencheur du nouveau flux de travail. Tout ce qui écrivait à l'original doit recevoir la nouvelle adresse.
 - **Les variables globales.** Un bloc qui lit `{{global.variables.MY_SECRET}}` garde cette référence, mais la valeur n'est pas dans le fichier. Créez les variables dans le projet de destination avant d'exécuter le flux de travail importé.
 - **Les propriétaires et les étiquettes.** Les règles d'étiquettes et de propriétaires de votre projet s'appliquent au flux de travail importé, comme si vous l'aviez créé à la main.
 
@@ -103,10 +103,10 @@ Seules les personnes qui peuvent modifier le flux de travail — **Propriétaire
 
 ## Sécurité des e-mails entrants
 
-Le déclencheur Incoming Email donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
+Le déclencheur E-mail entrant donne au flux de travail sa propre adresse, et quiconque connaît l'adresse peut lui écrire. La partie avant le `@` est la clé secrète du flux de travail : traitez donc l'adresse comme un mot de passe :
 
 - Ne la publiez pas et ne la mettez pas dans un dépôt public. Le déclencheur masque la clé tant que vous ne cliquez pas sur **Afficher**, et **Copier l'adresse** copie l'adresse sans l'afficher.
-- Si l'adresse fuite, cliquez sur le déclencheur Incoming Email dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
+- Si l'adresse fuite, cliquez sur le déclencheur E-mail entrant dans le **Constructeur** puis sur **Réinitialiser l'adresse**. Le flux de travail reçoit une nouvelle adresse, et les e-mails envoyés à l'ancienne sont ignorés à partir de ce moment.
 - N'importe qui peut mettre n'importe quel expéditeur sur un e-mail : **De** ne prouve donc pas qui l'a envoyé. Avant qu'un flux de travail fasse quoi que ce soit d'important, vérifiez une information que seul le véritable expéditeur connaît — un jeton dans l'objet ou dans un en-tête — avec un bloc **Si / Sinon**. Enregistrez le jeton attendu comme variable secrète.
 - La clé est masquée dans tout ce que reçoit l'exécution — **À**, **Cc**, les en-têtes et les corps — car le journal de l'exécution est visible par toute personne qui peut lire les exécutions du flux de travail.
 

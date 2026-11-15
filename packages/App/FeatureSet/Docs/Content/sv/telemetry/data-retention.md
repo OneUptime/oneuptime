@@ -92,7 +92,7 @@ Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm
 | --- | --- | --- |
 | Session Replays | 7 dagar om det inte ändras | RUM-applikationens replay-policy: se [Hantera applikationer](/docs/rum/applications#lagring-av-sessionsuppspelningar). |
 | Övervakningsloggar, en rad per kontroll | 1 dag om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsloggar (dagar)** i Admin Dashboard |
-| Övervakningsmätvärden, och de mätvärden som SLO:er registrerar | 30 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsmått (dagar)** i Admin Dashboard |
+| Övervakningsmätvärden, och de mätvärden som SLO:er registrerar | 30 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för övervakningsmätvärden (dagar)** i Admin Dashboard |
 | [Telemetrianvändning](/docs/telemetry/usage), en summa per resurs, signal och dag | 120 dagar om det inte ändras | På en installation i egen drift, **Lagringstid för telemetrianvändning (dagar)** i Admin Dashboard |
 
 ## Vad lagring kostar

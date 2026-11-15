@@ -180,7 +180,7 @@ Apri la policy e scegli **Impostazioni** in **Avanzato** nel suo menu laterale. 
 
 Twilio legge i messaggi con una voce sintetica, quindi scrivili come vuoi che suonino. Un messaggio lasciato vuoto viene letto con le parole di OneUptime, che la scheda mostra al suo posto.
 
-## Registri chiamate
+## Log chiamate
 
 Ogni chiamata compare nella pagina **Log chiamate** della policy, in **Log** nel suo menu laterale: il **Chiamante**, il **Numero chiamato**, il suo **Stato**, chi ha risposto (**Risposto da**), la **Durata** e quando è iniziata (**Iniziato il**). Fai clic su **Visualizza cronologia** su una chiamata per vedere la sua **Cronologia chiamata**: ogni persona che ha squillato, su quale numero e come è finito ogni tentativo.
 

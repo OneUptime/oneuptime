@@ -242,7 +242,7 @@ Ingenting på lokasjonen rapporterer en status: monitorene bak enhetene har over
 ## Neste steg
 
 :::cards
-- [Nettverksenhets-overvåking](/docs/monitor/network-device-monitor): Legg til, poll og varsle om enhetene som knyttes til disse lokasjonene.
+- [Monitor for nettverksenhet](/docs/monitor/network-device-monitor): Legg til, poll og varsle om enhetene som knyttes til disse lokasjonene.
 - [Nettverkstrafikk](/docs/monitor/network-traffic): Se en lokasjons trafikk ut fra enhetenes flytposter.
 - [Inventar](/docs/inventory/overview): Nettverksenheter ved siden av alle de andre ressursene dine.
 :::

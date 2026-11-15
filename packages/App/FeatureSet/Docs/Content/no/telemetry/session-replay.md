@@ -811,7 +811,7 @@ Under diagnosen deler siden et opptak opp i fire faser — **Opptaker lastet**, 
 
 ### Varsler for lagringsbudsjettet
 
-De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [målingsovervåkinger](/docs/monitor/metrics-monitor) varsler på dem.
+De to lagringsbudsjettene — prosjektets daglige opplastingsgrense og en applikasjons valgfrie **Månedlig budsjett (GB)** — håndheves stille: så snart ett er brukt opp, får opptakerne beskjed om å stoppe, og opptakene slutter rett og slett å komme inn. For at noen skal få vite det, helst før det skjer, skriver OneUptime hvert 5. minutt som målinger hvor mye av hvert som er brukt, og vanlige [målingsmonitorer](/docs/monitor/metrics-monitor) varsler på dem.
 
 **Sette dem opp.** Fire ferdige varsler overvåker disse budsjettene, på applikasjonens fane **Anbefalinger** under **Øktavspilling**:
 
@@ -855,7 +855,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 - Applikasjonen har aldri tatt opp en avspilling.
 - Applikasjonen har ikke noe månedlig budsjett: ingenting telles mot et budsjett som ikke er satt, så det finnes ikke noe månedlig par i det hele tatt. Å fjerne budsjettet gjør de månedlige monitorene stille, og det månedlige tallet teller bare opplastinger som gjøres mens et budsjett er satt: et som settes første gang midt i måneden, teller fra det øyeblikket, ikke fra den 1., mens et som fjernes og settes igjen i samme måned, fortsetter månedens tidligere telling.
 
-**Lag din egen overvåking.** En [målingsovervåking](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
+**Lag din egen overvåking.** En [målingsmonitor](/docs/monitor/metrics-monitor) som du lager selv, trenger de samme innstillingene som anbefalingene bruker:
 
 - Finn målingene i prosjektets målingsutforsker (**Målinger** i hovednavigasjonen) og i en monitor målingsvelger når det første punktet deres er skrevet. De står ikke på applikasjonens egen fane **Målinger**.
 - Sett det [rullerende tidsvinduet](/docs/monitor/metrics-monitor#glidende-tidsvindu) til 15 minutter eller mer. Et punkt kommer hvert 5. minutt, så et kortere vindu kan inneholde ett punkt eller ingen, og et tomt vindu løser varselet: én forsinket kjøring ville fått det til å blafre.
@@ -866,7 +866,7 @@ Det daglige paret bærer bare `projectId`: tallet er prosjektets, og ingenting i
 
 **Når varsler åpnes og løses.** En overskridelse skrives ved neste kjøring hvert 5. minutt, så et varsel åpnes innen omtrent 6 minutter. Det løses 10 til 15 minutter etter at verdien har falt under terskelen igjen, når den siste avlesningen på eller over den har forlatt vinduet på 15 minutter: de daglige varslene av seg selv rundt 00:10–00:15 UTC, de månedlige på samme tid den 1. i måneden, eller 10 til 15 minutter etter at budsjettet er økt. En daglig grense som brukes opp i de siste minuttene før 00:00 UTC, gir kanskje ikke noe varsel i det hele tatt: dagen er over før neste kjøring kan skrive den.
 
-**Oppbevaring og bruk.** Disse seriene oppbevares like lenge som monitormålinger: **30 dager** som standard, satt på en egenhostet installasjon av **Målingsoppbevaring for overvåking (dager)** i Admin Dashboards innstillinger for **Dataoppbevaring**. De teller ikke som telemetribruk. Målingsnavn som starter med `oneuptime.rum.session.replay.`, uansett store og små bokstaver, er reservert for dem: målinger som dine egne applikasjoner sender under et slikt navn, eller gir et slikt navn med en regel i en målingspipeline, kastes ved inntak, og en opptaksregel kan ikke lagres med et slikt navn som utdata.
+**Oppbevaring og bruk.** Disse seriene oppbevares like lenge som monitormålinger: **30 dager** som standard, satt på en egenhostet installasjon av **Målingsoppbevaring for monitorer (dager)** i Admin Dashboards innstillinger for **Dataoppbevaring**. De teller ikke som telemetribruk. Målingsnavn som starter med `oneuptime.rum.session.replay.`, uansett store og små bokstaver, er reservert for dem: målinger som dine egne applikasjoner sender under et slikt navn, eller gir et slikt navn med en regel i en målingspipeline, kastes ved inntak, og en opptaksregel kan ikke lagres med et slikt navn som utdata.
 
 ## Frustrasjonssignaler
 
@@ -1138,5 +1138,5 @@ To ting forteller deg hvilken av dem du har foran deg:
 - [Feilsøking av øktavspilling](/docs/rum/session-replay-troubleshooting): Hver kode fra opptakeren, og hva du gjør med den.
 - [Nettleseroppsett](/docs/rum/browser-setup): Legg til OpenTelemetry-spor, -logger og Core Web Vitals på de samme sidene.
 - [Administrere applikasjoner](/docs/rum/applications): Oppbevaring, etiketter og hvem som kan se opptak.
-- [Målingsovervåking](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
+- [Målingsmonitor](/docs/monitor/metrics-monitor): Varsle på lagringsbudsjettets målinger, eller på alt annet appen din sender.
 :::

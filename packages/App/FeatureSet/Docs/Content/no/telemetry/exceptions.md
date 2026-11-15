@@ -228,7 +228,7 @@ En ny forekomst gjenåpner et løst unntak med vilje: feilen skjer fortsatt. Kon
 ## Neste steg
 
 :::cards
-- [Unntak-overvåking](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
+- [Unntak-monitor](/docs/monitor/exceptions-monitor): Få varsel når unntak øker kraftig.
 - [Source maps](/docs/telemetry/source-maps): Lesbare stack traces for nettleserkode.
 - [Kode](/docs/ai/ai-agent): Hvordan AI retter kode og åpner pull requests.
 - [Sporutforsker](/docs/telemetry/traces-explorer): Se forespørselen et unntak skjedde i.

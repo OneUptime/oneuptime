@@ -238,7 +238,7 @@ Det hindrer at et feil valg setter en hendelse på en side om noe helt annet. De
 
 En monitor har én status, og hver statusside som viser monitoren, viser den. Å begrense en hendelse endrer ikke det. Hvis hendelsen angir **Endre monitorstatus til**, eller monitoren går ned av seg selv, blir monitoren rød på hver side som viser den, også sider hendelsen ikke er begrenset til, og sider som bare viser hendelser som er begrenset til dem. Erklæringsskjemaet advarer deg når du kombinerer en statusendring med valgte sider.
 
-**Når hver lokasjon trenger sin egen status, gir du hver lokasjon en manuell monitor.** Opprett en [Manuell overvåking](/docs/monitor/manual-monitor) per lokasjon, for eksempel `Site 03 network`, og vis den bare på den lokasjonens side. Knytt de berørte lokasjonenes manuelle monitorer til hendelsen, med **Endre monitorstatus til** hvis du vil at statusen deres skal endres, og la den delte monitoren være for sidene som skal se den. Hendelsen når da akkurat lokasjonene den har monitorene til, og en statusendring vises bare på sidene deres.
+**Når hver lokasjon trenger sin egen status, gir du hver lokasjon en manuell monitor.** Opprett en [Manuell monitor](/docs/monitor/manual-monitor) per lokasjon, for eksempel `Site 03 network`, og vis den bare på den lokasjonens side. Knytt de berørte lokasjonenes manuelle monitorer til hendelsen, med **Endre monitorstatus til** hvis du vil at statusen deres skal endres, og la den delte monitoren være for sidene som skal se den. Hendelsen når da akkurat lokasjonene den har monitorene til, og en statusendring vises bare på sidene deres.
 
 ## Hva som registreres
 
@@ -269,5 +269,5 @@ Workerne som sender abonnentvarslinger, er det som holder en hendelse til sidene
 - [Abonnenter og kunngjøringer](/docs/status-pages/subscribers): Abonnentkanalene, og hva hver hendelse sender.
 - [Opprette en hendelse](/docs/incidents/declaring-incidents): Erklæringsskjemaet, trinn for trinn.
 - [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities): Hva annet som holder en hendelse borte fra en statusside.
-- [Manuell overvåking](/docs/monitor/manual-monitor): Monitorer der du angir statusen selv.
+- [Manuell monitor](/docs/monitor/manual-monitor): Monitorer der du angir statusen selv.
 :::

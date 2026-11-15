@@ -1,4 +1,4 @@
-# Overvåkingshemmeligheter
+# Monitorhemmeligheter
 
 Monitorhemmeligheter holder passordene, API-nøklene og tokenene som monitorene dine trenger, utenfor selve monitoren. Du lagrer en verdi én gang, kryptert, velger hvilke monitorer som kan bruke den, og viser til den som `{{monitorSecrets.NAME}}` der monitoren trenger den.
 
@@ -69,16 +69,16 @@ Disse monitortypene og feltene tar imot hemmeligheter:
 | --- | --- |
 | API | URL-en, forespørselens hoder og brødtekst, og klientsertifikatet, den private nøkkelen og passordfrasen (mTLS) |
 | Nettsted | URL-en, og klientsertifikatet, den private nøkkelen og passordfrasen (mTLS) |
-| Ping, IP, Port, NTP, SSL Certificate | Verten eller URL-en som sjekkes |
+| Ping, IP, Port, NTP, SSL-sertifikat | Verten eller URL-en som sjekkes |
 | DNS | Domenenavnet og DNS-serveren |
 | DNSSEC, Domene | Domenenavnet |
-| SQL Query | Verten, databasenavnet, brukernavnet, passordet og spørringen |
-| Database Health | Verten, databasenavnet, brukernavnet og passordet |
-| External Status Page | URL-en til statussiden |
-| Synthetic Monitor, Custom JavaScript Code | Skriptet |
-| Network Device | SNMP-fellesskapsstrengen, og autentiserings- og personvernnøklene for SNMPv3 |
+| SQL-spørring | Verten, databasenavnet, brukernavnet, passordet og spørringen |
+| Databasehelse | Verten, databasenavnet, brukernavnet og passordet |
+| Ekstern statusside | URL-en til statussiden |
+| Syntetisk monitor, Egendefinert JavaScript-kode | Skriptet |
+| Nettverksenhet | SNMP-fellesskapsstrengen, og autentiserings- og personvernnøklene for SNMPv3 |
 
-Hemmeligheter fylles inn før skriptet til en monitor av typen Synthetic Monitor eller Custom JavaScript Code kjører, så en henvisning som `{{monitorSecrets.ApiKey}}` i skriptet er den dekrypterte verdien når det kjøres.
+Hemmeligheter fylles inn før skriptet til en monitor av typen Syntetisk monitor eller Egendefinert JavaScript-kode kjører, så en henvisning som `{{monitorSecrets.ApiKey}}` i skriptet er den dekrypterte verdien når det kjøres.
 
 Hvis en monitor viser til en hemmelighet den ikke kan bruke, blir henvisningen stående som den er og erstattes ikke med verdien.
 
@@ -101,7 +101,7 @@ Bare feltene i tabellen ovenfor tar imot hemmeligheter. I ethvert annet felt sen
 ## Neste steg
 
 :::cards
-- [API-overvåking](/docs/monitor/api-monitor): Send en hemmelighet i et forespørselshode.
-- [Syntetisk overvåking](/docs/monitor/synthetic-monitor): Bruk en hemmelighet i et nettleserskript.
-- [SQL-spørring-overvåking](/docs/monitor/sql-monitor): Hold et databasepassord kryptert.
+- [API-monitor](/docs/monitor/api-monitor): Send en hemmelighet i et forespørselshode.
+- [Syntetisk monitor](/docs/monitor/synthetic-monitor): Bruk en hemmelighet i et nettleserskript.
+- [SQL-spørring-monitor](/docs/monitor/sql-monitor): Hold et databasepassord kryptert.
 :::

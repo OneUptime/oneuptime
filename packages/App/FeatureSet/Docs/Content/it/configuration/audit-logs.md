@@ -1,10 +1,10 @@
-# Registri di audit
+# Log di audit
 
 Il log di audit annota chi ha cambiato che cosa nel tuo progetto: ogni creazione, modifica ed eliminazione delle risorse che copre, con i valori prima e dopo, e ogni volta che qualcuno accede o si disconnette. Usalo per scoprire chi ha disattivato un monitor o cambiato una chiave API, chi ha effettuato l'accesso e da dove, e per conservare una traccia per le verifiche di conformità. Fa parte del piano Enterprise su OneUptime Cloud, e dell'Enterprise Edition quando ospiti OneUptime in proprio.
 
 :::cards
 - [Attivare il registro di audit](#attivare-il-registro-di-audit): All'inizio è disattivato in ogni progetto.
-- [Leggere il registro di audit](#leggere-il-registro-di-audit): Chi ha cambiato che cosa, e quando.
+- [Leggere il log di audit](#leggere-il-log-di-audit): Chi ha cambiato che cosa, e quando.
 - [Che cosa viene registrato](#che-cosa-viene-registrato): Le risorse e le azioni che copre.
 - [Accessi e sessioni](#accessi-e-sessioni): Chi ha effettuato l'accesso, e come è finita ogni sessione.
 - [Per quanto tempo restano le voci](#per-quanto-tempo-restano-le-voci): Da 7 a 180 giorni.
@@ -37,7 +37,7 @@ flowchart TB
 ## Attivare il registro di audit
 
 :::steps
-### Aprire le impostazioni del registro di audit
+### Aprire le impostazioni del log di audit
 
 Vai a **Impostazioni del progetto → Log di audit → Impostazioni**. **Log di audit** è chiuso all'inizio nel menu laterale: fai clic per aprirlo.
 
@@ -58,7 +58,7 @@ Attiva **Abilita log di controllo**, imposta **Conservazione (giorni)** e scegli
 
 Una modifica di queste impostazioni vale entro un minuto.
 
-## Leggere il registro di audit
+## Leggere il log di audit
 
 **Impostazioni del progetto → Log di audit → Log di audit** elenca ogni voce del progetto, le più recenti per prime:
 
@@ -126,9 +126,9 @@ Accessi e sessioni vengono registrati che il progetto memorizzi o no gli eventi 
 
 Ogni voce resta per la **Conservazione (giorni)** che il progetto aveva quando è stata registrata, poi viene eliminata. Una nuova conservazione vale per le nuove voci: quelle già registrate mantengono le loro date. Anche tramite l'API, una conservazione è un numero intero di giorni da 7 a 180: qualsiasi altro valore viene rifiutato.
 
-Per conservare le voci oltre 180 giorni, inviale man mano che vengono registrate al tuo storage o SIEM: vedi [Esportazione del registro di audit](/docs/configuration/audit-log-export). Puoi anche leggerle tramite l'API con una chiave API che abbia **Read Audit Log** e salvarle dove ti servono. Vedi [Riferimento API OneUptime](/docs/api-reference/api-reference).
+Per conservare le voci oltre 180 giorni, inviale man mano che vengono registrate al tuo storage o SIEM: vedi [Esportazione del log di audit](/docs/configuration/audit-log-export). Puoi anche leggerle tramite l'API con una chiave API che abbia **Read Audit Log** e salvarle dove ti servono. Vedi [Riferimento API OneUptime](/docs/api-reference/api-reference).
 
-## Quando il piano o la licenza non include più i registri di audit
+## Quando il piano o la licenza non include più i log di audit
 
 - **Su OneUptime Cloud**, un progetto che lascia il piano Enterprise smette di registrare, e le sue pagine del log di audit mostrano la scheda di upgrade finché non torna a quel piano.
 - **Quando ospiti OneUptime in proprio**, il log di audit smette di registrare quando la prova Enterprise o il periodo di tolleranza finisce senza licenza, o quando la licenza non include i log di audit. Il log di audit lo segnala in rosso. Le voci già registrate restano, e la registrazione riprende con le stesse impostazioni appena viene attivata una licenza. Vedi [Quando una licenza scade o manca](/docs/self-hosted/enterprise#quando-una-licenza-scade-o-manca).
@@ -146,7 +146,7 @@ Controlla che la risorsa sia in [Che cosa viene registrato](#che-cosa-viene-regi
 ## Passi successivi
 
 :::cards
-- [Esportazione del registro di audit](/docs/configuration/audit-log-export): Inviare il log di audit al proprio storage o SIEM.
+- [Esportazione del log di audit](/docs/configuration/audit-log-export): Inviare il log di audit al proprio storage o SIEM.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può leggere il log di audit.
 - [Impostazioni del progetto](/docs/configuration/project-settings): Le altre impostazioni del progetto.
 - [Fatturazione e utilizzo](/docs/configuration/billing): Cambiare il piano del progetto.

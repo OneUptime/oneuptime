@@ -147,7 +147,7 @@ export function formatLastSeen(
   if (age.unit === "hour") {
     return `${age.count}${NO_BREAK_SPACE}h ago`;
   }
-  return `${age.count} days ago`;
+  return `${age.count}${NO_BREAK_SPACE}days ago`;
 }
 
 /*
