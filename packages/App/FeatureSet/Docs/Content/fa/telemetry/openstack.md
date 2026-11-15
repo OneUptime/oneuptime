@@ -1643,7 +1643,7 @@ ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_SECRET=...
 
 ### fixها از یک workflow
 
-یک workflow می‌تواند از هشداری در OpenStack شروع شود و fixی پیشنهاد دهد: گام **Propose an OpenStack fix** هشدار یا incident و دستور را می‌گیرد. از همان سیاست، همان محدوده نوشتن و همان خواندن آنچه تغییر لمس می‌کند می‌گذرد که fixای که هوش مصنوعی OneUptime پیشنهاد می‌دهد، مدل هوش مصنوعی نمی‌خواهد، و انسان آن را روی هشدار تأیید می‌کند. workflow نمی‌تواند خودش تغییر را انجام دهد یا آنچه پیشنهاد می‌دهد را تأیید کند، حالت fix ابر هر چه باشد. الگوی **Propose taking a failing OpenStack compute service out of scheduling** جای شروع است.
+یک workflow می‌تواند از هشداری در OpenStack شروع شود و fixی پیشنهاد دهد: گام **پیشنهاد یک اصلاح OpenStack** هشدار یا incident و دستور را می‌گیرد. از همان سیاست، همان محدوده نوشتن و همان خواندن آنچه تغییر لمس می‌کند می‌گذرد که fixای که هوش مصنوعی OneUptime پیشنهاد می‌دهد، مدل هوش مصنوعی نمی‌خواهد، و انسان آن را روی هشدار تأیید می‌کند. workflow نمی‌تواند خودش تغییر را انجام دهد یا آنچه پیشنهاد می‌دهد را تأیید کند، حالت fix ابر هر چه باشد. الگوی **Propose taking a failing OpenStack compute service out of scheduling** جای شروع است.
 
 ## اجرا به‌صورت سرویس systemd
 
