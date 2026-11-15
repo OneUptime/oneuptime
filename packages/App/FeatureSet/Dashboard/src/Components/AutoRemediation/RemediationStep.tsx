@@ -51,6 +51,11 @@ import {
   parseInvestigationCodeFixSuggestion,
 } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
+import { getVerifiedFixRunbookOffer } from "Common/Utils/Suggestions/VerifiedFixRunbookSuggestion";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import Link from "Common/UI/Components/Link/Link";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { useAiSwitchState } from "../../Utils/UseAiOffered";
 import AiCardStep from "../AI/AiCardStep";
 import InvestigationNotice, {
@@ -371,6 +376,14 @@ const FIX_FAILED_VISUAL: RemediationFixFactVisual = {
  * fixes it read "exactly what is shown" while every fix was folded to its
  * sentence and nothing was shown.
  */
+/*
+ * A verified fix saved as a runbook (#6801): the runbook, linked to its
+ * steps, where it is reviewed and turned on.
+ */
+export const VERIFIED_FIX_SAVED_AS_RUNBOOK: string = translationKey(
+  "This fix worked and is saved as the runbook {{runbook}}. It stays off until someone reviews its steps and turns it on.",
+);
+
 export const REMEDIATION_APPROVAL_NOTE: string = translationKey(
   "Approving runs exactly what is shown, under your name.",
 );
@@ -505,7 +518,12 @@ function isRiskierFixWaiting(suggestion: AutoRemediationSuggestion): boolean {
   );
 }
 
-export type RemediationSuggestionAction = "approve" | "dismiss" | "dry-run";
+export type RemediationSuggestionAction =
+  | "approve"
+  | "dismiss"
+  | "dry-run"
+  // A verified fix written down as a runbook (VerifiedFixRunbookSave, #6801).
+  | "save-as-runbook";
 
 // The suggestion has left "waiting": someone approved it, or it ran unattended.
 function isAlreadyStarted(
@@ -550,6 +568,9 @@ export function getActionErrorTitle(
   }
   if (action === "dry-run") {
     return CLOUD_DRY_RUN_COPY.dryRunActionError;
+  }
+  if (action === "save-as-runbook") {
+    return translationKey("The fix was not saved as a runbook");
   }
   /*
    * "fix", as Dismiss fix and every other line of the step say it - never
@@ -833,6 +854,12 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               rationaleMarkdown: true,
               runbookId: true,
               runbookExecutionId: true,
+              // The runbook a verified fix was saved as, when it was (#6801).
+              savedAsRunbookId: true,
+              savedAsRunbook: {
+                _id: true,
+                name: true,
+              },
               suggestionType: true,
               commandPlan: true,
               mcpToolCallPlan: true,
@@ -1698,12 +1725,30 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
      */
     const isRoundTryAgainShown: boolean =
       isUnfinishedRound && Boolean(round?.mayTryAgain) && !isStepOpen("plan");
+    /*
+     * A fix that worked, written down as a runbook (#6801): offered once it
+     * is verified, to someone who may create runbooks; once saved, the
+     * runbook it was saved as, linked.
+     */
+    const saveAsRunbookOffer: SuggestionOffer = getVerifiedFixRunbookOffer({
+      suggestionType: suggestion.suggestionType,
+      verificationStatus: suggestion.verificationStatus,
+      commandPlan: plan,
+      mcpToolCallPlan: mcpPlan,
+      savedAsRunbookId: suggestion.savedAsRunbookId?.toString(),
+      subject: { kind: "incident", handle: "", title: "" },
+      mayCreateRunbook: PermissionGate.check(new Runbook(), ModelAction.Create)
+        .isAllowed,
+    });
+    const isSaveAsRunbookShown: boolean =
+      saveAsRunbookOffer === SuggestionOffer.Act;
     const hasButtons: boolean =
       isRoundTryAgainShown ||
       isApproveShown ||
       isDryRunShown ||
       isDismissShown ||
-      canViewExecution;
+      canViewExecution ||
+      isSaveAsRunbookShown;
     const planDetailsId: string = getRemediationFixStepDetailsId(
       stepsIdPrefix,
       "plan",
@@ -1927,6 +1972,25 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
               <></>
             )}
 
+            {isSaveAsRunbookShown ? (
+              <Button
+                title="Save as Runbook"
+                icon={IconProp.BookOpen}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                disabled={isBusy}
+                isLoading={isBusy && busyAction === "save-as-runbook"}
+                dataTestId="remediation-save-as-runbook-button"
+                onClick={() => {
+                  performAction(suggestion, "save-as-runbook").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+            ) : (
+              <></>
+            )}
+
             {canViewExecution ? (
               <Button
                 title="View Execution"
@@ -1954,6 +2018,44 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
 
       return (
         <div className="space-y-3">
+          {saveAsRunbookOffer === SuggestionOffer.Done &&
+          suggestion.savedAsRunbookId ? (
+            <p
+              className="text-sm leading-6 text-gray-700"
+              data-testid="remediation-saved-as-runbook"
+            >
+              <TranslatedSentence
+                template={VERIFIED_FIX_SAVED_AS_RUNBOOK}
+                slots={{
+                  runbook: (
+                    <Link
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.RUNBOOK_VIEW_STEPS] as Route,
+                        {
+                          modelId: new ObjectID(
+                            suggestion.savedAsRunbookId.toString(),
+                          ),
+                        },
+                      )}
+                      className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+                      dataTestId="remediation-saved-as-runbook-link"
+                    >
+                      <IsolatedText
+                        text={
+                          suggestion.savedAsRunbook?.name?.toString() ||
+                          translator.translateText("Runbook") ||
+                          "Runbook"
+                        }
+                      />
+                    </Link>
+                  ),
+                }}
+              />
+            </p>
+          ) : (
+            <></>
+          )}
+
           {isUnapprovablePlan ? (
             <p
               className="text-xs leading-5 text-gray-600"
