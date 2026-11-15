@@ -7817,7 +7817,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rows: items,
         });
 
-        // A product emptied is not set up again. See ProjectUsageCache.
+        // A product's last record gone: "Not set up" again. See ProjectUsageCache.
         await ProjectUsageCache.afterDelete({
           tableName: this.model.tableName,
           rows: items,
@@ -8170,7 +8170,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rows: items,
         });
 
-        // A product emptied is not set up again. See ProjectUsageCache.
+        // A product's last record gone: "Not set up" again. See ProjectUsageCache.
         await ProjectUsageCache.afterDelete({
           tableName: this.model.tableName,
           rows: items,
