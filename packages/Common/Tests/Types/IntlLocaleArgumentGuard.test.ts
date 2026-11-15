@@ -75,6 +75,12 @@ const ALLOWED: ReadonlyMap<string, number> = new Map<string, number>([
   ["Common/Types/Date.ts ", 1],
   // formatNumber's fallback when Intl refuses the language's locale.
   ["Common/Types/Translator.ts ", 1],
+  /*
+   * The same fallback for a duration's figure with fraction digits
+   * (7e41fd3d7c8), which formatNumber cannot take: the figure without them
+   * goes through formatNumber, so both fall back alike.
+   */
+  ["Common/Utils/Milliseconds.ts undefined", 1],
 ]);
 
 // The first argument of the call whose "(" ends at `start`, as written.

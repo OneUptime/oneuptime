@@ -1,3 +1,10 @@
+/*
+ * First, before anything loads UI/Config: the host a real install serves the
+ * Accounts app on. UI/Config builds APP_API_URL from HOST once, and without
+ * a config.env there is none - "http:///api", which the addresses below
+ * cannot be checked against.
+ */
+import { DASHBOARD_ORIGIN } from "../../UI/Utils/API/DashboardHost";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -462,6 +469,9 @@ afterEach(async () => {
 describe("the consent screen's API addresses", () => {
   test("are on the app's own origin, under /mcp/oauth/consent and not under /api", () => {
     const apiUrl: globalThis.URL = new globalThis.URL(APP_API_URL.toString());
+
+    // The host the suite pins, whatever config.env says or lacks.
+    expect(apiUrl.origin).toBe(DASHBOARD_ORIGIN);
 
     // The API itself lives under /api; these three deliberately do not.
     expect(apiUrl.pathname).toBe("/api");
